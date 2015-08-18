@@ -47,5 +47,9 @@ setup(
         'Topic :: Scientific/Engineering'
     ],
     test_suite='tests',
-    tests_require=requirements_tests
+    tests_require=requirements_tests,
+    scripts=['bin/mdt-init-user-settings',
+             'bin/mdt-list-devices',
+             'bin/mdt-print-abstract-model-function',
+             'bin/mdt-tk'],
 )

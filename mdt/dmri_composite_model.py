@@ -100,6 +100,14 @@ class DMRICompositeSampleModel(SampleModelBuilder, SmoothableModelInterface,
 
         return problems
 
+    def get_abstract_model_function(self):
+        """Get the abstract diffusion model function computed by this model.
+
+        Returns:
+            str: the abstract model function of this class
+        """
+        return self._model_tree
+
     def _set_default_dependencies(self):
         super(DMRICompositeSampleModel, self)._set_default_dependencies()
         names = [w.name + '.w' for w in self._get_weight_models()]
