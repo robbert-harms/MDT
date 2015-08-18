@@ -484,45 +484,12 @@ def load_nifti(nifti_volume):
 
 
 def make_path_joiner(*folder):
-    """Generates and returns a nice function to quickly join pathnames.
-
-    Usage:
-        pjoin = make_path_joiner(('tmp', 'experiment', 'final'))
-        mask = pjoin(('masks', 'complete.nii.gz'))
-        print(mask)
-        '/tmp/experiment/final/masks/complete.nii.gz'
-
-        data = pjoin('dataset.nii.gz')
-        print(data)
-        '/tmp/experiment/final/dataset.nii.gz'
-
-    That is you can call the returned function with either a single filename or with a list of
-    directories and filenames.
-
-    To return a function pointing to a new path, you can use
-        pjoin = pjoin('results', as_func=True)
-        fa_map = pjoin('fa.nii.gz')
-        print(fa_map)
-        '/tmp/experiment/final/results/fa.nii.gz'
-
-    Here our path joiner is initialized to a new path which is the old with the new appended.
-
-    Args:
-        *folder: the initial set of folders. Either with varargin style of as a list.
+    """Generates and returns an instance of utils.PathJoiner to quickly join pathnames.
 
     Returns:
-        A python function which can be used to build paths.
+        An instance of utils.PathJoiner for easy path manipulation.
     """
-    base_path = os.path.join('', *folder)
-
-    def create_path_joiner(_base_path):
-        def path_joiner(*args, **kwargs):
-            tmp_path = os.path.join('', *args)
-            if 'as_func' in kwargs:
-                return create_path_joiner(os.path.join(_base_path, tmp_path))
-            return os.path.abspath(os.path.join(_base_path, tmp_path))
-        return path_joiner
-    return create_path_joiner(base_path)
+    return utils.PathJoiner(*folder)
 
 
 def create_roi(data, brain_mask):

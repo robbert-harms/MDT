@@ -416,6 +416,70 @@ class BatchFitOutputInfo(object):
                     yield (subject_id, d, full_path)
 
 
+class PathJoiner(object):
+
+    def __init__(self, *args):
+        """The path joining class.
+
+        To construct use something like:
+        >>> pjoin = PathJoiner(r'/my/images/dir/')
+
+        or:
+        >>> pjoin = PathJoiner('my', 'images', 'dir')
+
+
+        Then, you can call it like:
+        >>> pjoin()
+        /my/images/dir
+
+        At least, it returns the above on Linux. On windows it will return 'my\\images\\dir'.
+
+        You can also call it with additional path elements which should be appended to the path:
+        >>> pjoin('/brain_mask.nii.gz')
+        /my/images/dir/brain_mask.nii.gz
+
+        Note that that is not permanent. To make it permanent you can call
+        >>> pjoin.append('results')
+
+        This will extend the stored path to /my/images/dir/results/:
+        >>> pjoin('/brain_mask.nii.gz')
+        /my/images/dir/results/brain_mask.nii.gz
+
+        You can revert this by calling:
+        >>> pjoin.reset()
+
+        You can also create a copy of this class with extended path elements by calling
+        >>> pjoin2 = pjoin.create_extended('results')
+
+        This returns a new PathJoiner instance with as path the current path plus the items in the arguments.
+        >>> pjoin2('brain_mask.nii.gz')
+        /my/images/dir/results/brain_mask.nii.gz
+
+        Args:
+            *args: the initial path element(s).
+        """
+        self._initial_path = os.path.join('', *args)
+        self._path = os.path.join('', *args)
+
+    def create_extended(self, *args):
+        """Create and return a new PathJoiner instance with the path extended by the given arguments."""
+        return PathJoiner(os.path.join(self._path, *args))
+
+    def append(self, *args):
+        """Extend the stored path with the given elements"""
+        self._path = os.path.join(self._path, *args)
+        return self
+
+    def reset(self, *args):
+        """Reset the path to the path at construction time"""
+        self._path = self._initial_path
+        return self
+
+    def __call__(self, *args, **kwargs):
+        tmp_path = os.path.join(self._path, *args)
+        return os.path.abspath(os.path.join(self._path, tmp_path))
+
+
 def condense_protocol_problems(protocol_problems_list):
     """Condenses the protocol problems list by combining similar problems objects.
 
