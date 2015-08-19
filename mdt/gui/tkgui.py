@@ -764,14 +764,14 @@ class GenerateProtocolFileTab(TabContainer):
             lambda trc1, trc2, trc3: self._onchange_to_protocol('bvec_chooser'),
             FileBrowserWidget.common_file_types('bvec'),
             'Select bvec file: ', '(Select the gradient vectors file)',
-            dialog_type=FileBrowserWidget.SAVE)
+            dialog_type=FileBrowserWidget.OPEN)
 
         self._bval_chooser = FileBrowserWidget(
             self._tab,
             lambda trc1, trc2, trc3: self._onchange_to_protocol('bval_chooser'),
             FileBrowserWidget.common_file_types('bval'),
             'Select bval file: ', '(Select the gradient b-values file)',
-            dialog_type=FileBrowserWidget.SAVE)
+            dialog_type=FileBrowserWidget.OPEN)
 
         self._bval_scale_box = TextboxWidget(
             self._tab,
@@ -822,14 +822,10 @@ class GenerateProtocolFileTab(TabContainer):
         self._generate_prtcl_button = ttk.Button(self._buttons_frame, text='Generate protocol',
                                                  command=self._generate_protocol, state='disabled')
 
-        self._generate_bval_bvec_button = ttk.Button(self._buttons_frame, text='Generate bval/bvec',
-                                                     command=self._generate_bval_bvec, state='disabled')
-
         self._view_results_button = ttk.Button(self._buttons_frame, text='View protocol file',
                                                command=self._view_results, state='disabled')
         self._generate_prtcl_button.grid(row=0)
         self._view_results_button.grid(row=0, column=1, padx=(10, 0))
-        self._generate_bval_bvec_button.grid(row=0, column=2, padx=(10, 0))
 
     def get_tab(self):
         row = 0
@@ -889,10 +885,8 @@ class GenerateProtocolFileTab(TabContainer):
 
         if all_valid:
             self._generate_prtcl_button.config(state='normal')
-            self._generate_bval_bvec_button.config(state='normal')
         else:
             self._generate_prtcl_button.config(state='disabled')
-            self._generate_bval_bvec_button.config(state='disabled')
 
     def _generate_protocol(self):
         self._generate_prtcl_button.config(state='disabled')
@@ -920,19 +914,6 @@ class GenerateProtocolFileTab(TabContainer):
         tkMessageBox.showinfo('Action completed', 'The protocol file has been written.')
         self._view_results_button.config(state='normal')
         self._generate_prtcl_button.config(state='normal')
-
-    def _generate_bval_bvec(self):
-        self._generate_bval_bvec_button.config(state='disabled')
-        bvec_fname = self._bvec_chooser.get_value()
-        bval_fname = self._bval_chooser.get_value()
-        prtcl_fname = self._output_protocol_chooser.get_value()
-
-        protocol = load_protocol(prtcl_fname)
-        bval_scale = float(self._bval_scale_box.get_value())
-
-        mdt.protocols.write_bvec_bval(protocol, bvec_fname, bval_fname, bval_scale=bval_scale)
-        tkMessageBox.showinfo('Action completed', 'The bval and bvec files have been written.')
-        self._generate_bval_bvec_button.config(state='normal')
 
     def _view_results(self):
         output_fname = self._output_protocol_chooser.get_value()
