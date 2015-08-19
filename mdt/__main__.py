@@ -10,4 +10,5 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 By default this will start the graphical user interface in TK.
 
 """
-tkgui.run_standard()
+window = tkgui.get_window()
+window.mainloop()

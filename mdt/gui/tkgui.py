@@ -1,15 +1,19 @@
+from ScrolledText import ScrolledText
 from Tkconstants import W, E, BOTH, FALSE, YES, HORIZONTAL, VERTICAL, END, EXTENDED, BROWSE, INSERT
 from Tkinter import Tk, StringVar, IntVar, Listbox, TclError
 import Tkinter
 import copy
 import glob
+import logging
 import os
+import threading
 import tkFileDialog
 import tkMessageBox
 import ttk
+import sys
+import multiprocessing
 import mdt
 import mdt.utils
-import mdt.configuration as mdt_config
 from math import log10
 import platform
 from numpy import genfromtxt
@@ -40,7 +44,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 mdt.utils.setup_logging(disable_existing_loggers=True)
 
 
-def run_standard():
+def get_window():
     window = Tk()
     s = ttk.Style()
     try:
@@ -52,8 +56,8 @@ def run_standard():
     notebook = ttk.Notebook(window)
     window.resizable(width=FALSE, height=FALSE)
     window.update_idletasks()
-    width = 780
-    height = 500
+    width = 900
+    height = 600
     x = (window.winfo_screenwidth() // 2) - (width // 2)
     y = (window.winfo_screenheight() // 2) - (height // 2)
     window.geometry('{}x{}+{}+{}'.format(width, height, x, y))
@@ -69,7 +73,51 @@ def run_standard():
         notebook.add(tab.get_tab(), text=tab.tab_name)
 
     notebook.pack(fill=BOTH, expand=YES)
-    window.mainloop()
+
+    txt = ScrolledText(window, height=15)
+    txt.pack(fill=BOTH, expand=YES)
+
+    real_stdout = sys.stdout
+
+    def start_stdout_redirect():
+        sys.stdout = StdoutTextWrapper(txt)
+
+        for module in ('mdt', 'mot'):
+            logger = logging.getLogger(module)
+            console = logging.StreamHandler(stream=sys.stdout)
+            logger.addHandler(console)
+
+        from mdt import VERSION
+        welcome_str = 'Welcome to MDT version ' + VERSION
+        print(welcome_str)
+        print('-' * len(welcome_str))
+        print('')
+        print('This area is reserved for print and logging output from MDT.')
+
+
+    window.after(100, start_stdout_redirect)
+
+    def on_closing():
+        sys.stdout = real_stdout
+        window.destroy()
+    window.protocol("WM_DELETE_WINDOW", on_closing)
+
+    return window
+
+
+class StdoutTextWrapper(object):
+
+    def __init__(self, text_widget):
+        self._text_box = text_widget
+
+    def write(self, string):
+        self._text_box.configure(state='normal')
+        self._text_box.insert(END, string)
+        self._text_box.configure(state='disabled')
+        self._text_box.see(END)
+
+    def flush(self):
+        pass
 
 
 class TabContainer(object):
@@ -456,15 +504,14 @@ class GenerateBrainMaskTab(TabContainer):
             self._tab,
             lambda trc1, trc2, trc3: self._onchange_bm_cb('image_vol_chooser'),
             FileBrowserWidget.common_file_types('image_volumes'),
-            'Select 4d image: ', '(Select the measured 4d image)')
+            'Select 4d image: ', '(Select the measured 4d diffusion weighted image)')
 
         self._protocol_file_chooser = FileBrowserWidget(
             self._tab,
             lambda trc1, trc2, trc3:
             self._onchange_bm_cb('protocol_file_chooser'),
             FileBrowserWidget.common_file_types('protocol_files'),
-            'Select protocol file: ',
-            '(If you don\'t have one, generate one\n on the tab "Generate protocol file")')
+            'Select protocol file: ', '(Please see the tab "Generate protocol file")')
 
         self._output_bm_chooser = FileBrowserWidget(
             self._tab,
@@ -475,7 +522,7 @@ class GenerateBrainMaskTab(TabContainer):
         self._median_radius_box = TextboxWidget(
             self._tab,
             lambda trc1, trc2, trc3: self._onchange_bm_cb('median_radius_box'),
-            'Median radius: ', '(Radius (in voxels) of the\n applied median filter)',
+            'Median radius: ', '(Radius (in voxels) of the applied median filter)',
             default_val='4')
 
         self._numpasses_box = TextboxWidget(
@@ -487,7 +534,7 @@ class GenerateBrainMaskTab(TabContainer):
         self._threshold_box = TextboxWidget(
             self._tab,
             lambda trc1, trc2, trc3: self._onchange_bm_cb('threshold'),
-            'OK threshold: ', '(One if mean(volume(weighted)) * mask\n > threshold, applied per voxel)',
+            'Final threshold: ', '(Additional masking threshold)',
             default_val='0')
 
         self._mask_items = [self._image_vol_chooser, self._protocol_file_chooser, self._output_bm_chooser,
@@ -503,9 +550,15 @@ class GenerateBrainMaskTab(TabContainer):
 
     def get_tab(self):
         row = 0
-        label = ttk.Label(self._tab, text="Generate whole brain mask", font=(None, 14))
+        label = ttk.Label(self._tab, text="Generate brain mask", font=(None, 14))
         label.grid(row=row, column=0, columnspan=4, sticky=W)
         row += 1
+
+        label = ttk.Label(self._tab, text="Creates a mask for a whole brain using the median-otsu algorithm.",
+                          font=(None, 9, 'italic'))
+        label.grid(row=row, column=0, columnspan=4, sticky=W)
+        row += 1
+
         ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=row, columnspan=5, sticky="EW", pady=(5, 3))
         row += 1
         for field in self._mask_items:
@@ -558,9 +611,15 @@ class GenerateBrainMaskTab(TabContainer):
             threshold = int(self._threshold_box.get_value())
             threshold = max(threshold, 0)
 
-        create_median_otsu_brain_mask(volume, prtcl, output_fname, median_radius=filter_mean_radius,
-                                      numpass=filter_passes, mask_threshold=threshold)
-        tkMessageBox.showinfo('Action completed', 'The action has been completed.')
+        def create_brain_mask():
+            print('---------------------')
+            create_median_otsu_brain_mask(volume, prtcl, output_fname, median_radius=filter_mean_radius,
+                                          numpass=filter_passes, mask_threshold=threshold)
+            print('---------------------')
+
+        mask_create_thread = threading.Thread(target=create_brain_mask)
+        mask_create_thread.start()
+
         self._run_whole_brain_mask_button.config(state='normal')
 
     def _view_brain_mask(self):
@@ -586,7 +645,7 @@ class GenerateROIMaskTab(TabContainer):
             self._tab,
             lambda trc1, trc2, trc3: self._onchange_roi_cb('brain_mask_chooser'),
             FileBrowserWidget.common_file_types('image_volumes'),
-            'Select brain mask: ', '(This can be created on the tab\n "Generate brain mask")')
+            'Select brain mask: ', '(Please see tab "Generate brain mask")')
 
         self._roi_dimension_index = DropdownWidget(
             self._tab,
@@ -610,7 +669,7 @@ class GenerateROIMaskTab(TabContainer):
             self._tab,
             lambda trc1, trc2, trc3: self._onchange_roi_cb('roi_output_chooser'),
             FileBrowserWidget.common_file_types('image_volumes'),
-            'Select output file: ', '(Default is\n <mask_name>_<dim>_<slice>.nii.gz)',
+            'Select output file: ', '(Default is <mask_name>_<dim>_<slice>.nii.gz)',
             dialog_type=FileBrowserWidget.SAVE)
 
         self._roi_items = [self._brain_mask_vol_chooser, self._roi_dimension_index,
@@ -1070,6 +1129,12 @@ class ViewResultsTab(TabContainer):
         label = ttk.Label(self._tab, text="View results", font=(None, 14))
         label.grid(row=row, column=0, columnspan=4, sticky=W)
         row += 1
+
+        label = ttk.Label(self._tab, text="View all maps in a given folder.",
+                          font=(None, 9, 'italic'))
+        label.grid(row=row, column=0, columnspan=4, sticky=W)
+        row += 1
+
         ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=row, columnspan=5, sticky="EW", pady=(5, 3))
         row += 1
         self._input_dir.render(row)
@@ -1100,7 +1165,9 @@ class ViewResultsTab(TabContainer):
                 self._parameter_files.update({name: name})
                 a_file = f
 
-            self._maps_chooser.set_items(self._parameter_files.keys(), 'ALL')
+            items_list = sorted(self._parameter_files.keys())
+            selected_items = filter(lambda v: all(m not in v for m in ('eig', '.d', '.sigma')), items_list)
+            self._maps_chooser.set_items(sorted(self._parameter_files.keys()), default_items=selected_items)
 
             if a_file:
                 data = nib.load(a_file)
@@ -1152,7 +1219,11 @@ class ViewResultsTab(TabContainer):
             for ind in selected_maps:
                 params_list.append(self._parameter_files.get(ind))
 
-        view_results_slice(self._input_dir.get_value(), slice_dimension, slice_index, maps_to_show=params_list)
+        def results_slice_cb():
+            view_results_slice(self._input_dir.get_value(), slice_dimension, slice_index, maps_to_show=params_list)
+
+        view_process = multiprocessing.Process(target=results_slice_cb, args=())
+        view_process.start()
 
 
 class CompositeWidget(object):
@@ -1194,7 +1265,7 @@ class FileBrowserWidget(CompositeWidget):
         self._browse_button = ttk.Button(self._root_window, text='Browse', command=self._get_filename)
         self._fname_var = StringVar()
         self._fname_var.trace('w', self._onchange_cb)
-        self._fname_entry = ttk.Entry(self._root_window, textvariable=self._fname_var, width=20)
+        self._fname_entry = ttk.Entry(self._root_window, textvariable=self._fname_var, width=30)
 
     @property
     def initial_file(self):
@@ -1285,7 +1356,7 @@ class DirectoryBrowserWidget(CompositeWidget):
         self._browse_button = ttk.Button(self._root_window, text='Browse', command=self._get_dir_name)
         self._fname_var = StringVar()
         self._fname_var.trace('w', self._onchange_cb)
-        self._fname_entry = ttk.Entry(self._root_window, textvariable=self._fname_var, width=20)
+        self._fname_entry = ttk.Entry(self._root_window, textvariable=self._fname_var, width=30)
 
     @property
     def initial_dir(self):
@@ -1350,7 +1421,7 @@ class TextboxWidget(CompositeWidget):
         self._fname_var = StringVar()
         self._fname_var.set(default_val)
         self._fname_var.trace('w', self._onchange_cb)
-        self._fname_entry = ttk.Entry(self._root_window, textvariable=self._fname_var, width=20, state=state)
+        self._fname_entry = ttk.Entry(self._root_window, textvariable=self._fname_var, width=30, state=state)
 
     def set_state(self, state):
         self._fname_entry.config(state=state)

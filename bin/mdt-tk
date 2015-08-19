@@ -16,4 +16,5 @@ def get_arg_parser():
 parser = get_arg_parser()
 args = parser.parse_args()
 
-tkgui.run_standard()
+window = tkgui.get_window()
+window.mainloop()

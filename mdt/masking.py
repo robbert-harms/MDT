@@ -1,3 +1,4 @@
+import logging
 import os
 import numpy as np
 from scipy.ndimage import binary_dilation, generate_binary_structure
@@ -30,6 +31,9 @@ def create_median_otsu_brain_mask(dwi_info, protocol, mask_threshold=0, **kwargs
     Returns:
         ndarray: The created brain mask
     """
+    logger = logging.getLogger(__name__)
+    logger.info('Starting calculating a brain mask')
+
     if isinstance(dwi_info, string_types):
         signal_img = nib.load(dwi_info)
         dwi = signal_img.get_data()
@@ -55,6 +59,8 @@ def create_median_otsu_brain_mask(dwi_info, protocol, mask_threshold=0, **kwargs
 
     if mask_threshold:
         brain_mask = np.mean(dwi[..., protocol.get_weighted_indices()], axis=3) * brain_mask > mask_threshold
+
+    logger.info('Finished calculating a brain mask')
 
     return brain_mask
 
