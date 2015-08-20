@@ -7,13 +7,16 @@ import logging.config as logging_config
 import os
 import collections
 import shutil
-import tempfile
+import time
+
 from six import string_types
 import numpy as np
 import nibabel as nib
 import pkg_resources
-import time
+from scipy.special import jnp_zeros
+
 from mdt.components_loader import BatchProfilesLoader, get_model
+from mdt.log_handlers import ModelOutputLogHandler
 from mdt.protocols import load_from_protocol
 from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
 from mot import runtime_configuration
@@ -22,7 +25,6 @@ import configuration
 from mot.cl_environments import CLEnvironmentFactory
 from mot.cl_routines.optimizing.meta_optimizer import MetaOptimizer
 from mot.factory import get_load_balance_strategy_by_name, get_optimizer_by_name, get_filter_by_name
-from scipy.special import jnp_zeros
 
 try:
     import codecs
@@ -905,64 +907,6 @@ def configure_per_model_logging(output_path):
         ModelOutputLogHandler.output_file = os.path.abspath(os.path.join(output_path, 'info.log'))
 
 
-class ModelOutputLogHandler(logging.StreamHandler):
-
-    output_file = None
-
-    def __init__(self, mode='a', encoding=None):
-        """This logger can log information about a model optimization to the folder of the model being optimized.
-
-        One can change the class attribute 'output_file' to change the file items are logged to.
-        """
-        super(ModelOutputLogHandler, self).__init__()
-
-        if self.output_file is None:
-            self.output_file = tempfile.mkstemp()[1]
-
-        if codecs is None:
-            encoding = None
-        self.baseFilename = os.path.abspath(self.output_file)
-        self.mode = mode
-        self.encoding = encoding
-        self.stream = None
-        self._open()
-
-    def emit(self, record):
-        if self.output_file is not None:
-            if os.path.abspath(self.output_file) != self.baseFilename:
-                self.close()
-                self.baseFilename = os.path.abspath(self.output_file)
-
-            if self.stream is None:
-                self.stream = self._open()
-
-            super(ModelOutputLogHandler, self).emit(record)
-
-    def close(self):
-        """Closes the stream."""
-        self.acquire()
-        try:
-            if self.stream:
-                self.flush()
-                if hasattr(self.stream, "close"):
-                    self.stream.close()
-                self.stream = None
-            super(ModelOutputLogHandler, self).close()
-        finally:
-            self.release()
-
-    def _open(self):
-        """
-        Open the current base file with the (original) mode and encoding.
-        Return the resulting stream.
-        """
-        if self.encoding is None:
-            stream = open(self.baseFilename, self.mode)
-        else:
-            stream = codecs.open(self.baseFilename, self.mode, self.encoding)
-        return stream
-
-
 def recursive_merge_dict(dictionary, update_dict):
     """ Recursively merge the given dictionary with the new values.
 
@@ -1143,14 +1087,18 @@ class MetaOptimizerBuilder(object):
         given we load the general options under 'general/meta_optimizer'.
 
         Args:
-            model_name (str): the name of the model we will optimize with the returned optimizer.
+            the constructed meta optimizer
         """
         optim_config = self._get_configuration_dict(model_name)
-        meta_optimizer = MetaOptimizer(runtime_configuration.runtime_config['cl_environments'],
-                                       runtime_configuration.runtime_config['load_balancer'])
 
-        meta_optimizer.optimizer = self._get_optimizer(optim_config['optimizers'][0])
-        meta_optimizer.extra_optim_runs_optimizers = [self._get_optimizer(optim_config['optimizers'][i])
+        cl_environments = self._get_cl_environments(optim_config)
+        load_balancer = self._get_load_balancer(optim_config)
+
+        meta_optimizer = MetaOptimizer(cl_environments, load_balancer)
+
+        meta_optimizer.optimizer = self._get_optimizer(optim_config['optimizers'][0], cl_environments, load_balancer)
+        meta_optimizer.extra_optim_runs_optimizers = [self._get_optimizer(optim_config['optimizers'][i],
+                                                                          cl_environments, load_balancer)
                                                       for i in range(1, len(optim_config['optimizers']))]
 
         for attr in ('extra_optim_runs', 'extra_optim_runs_apply_smoothing', 'extra_optim_runs_use_perturbation',
@@ -1158,18 +1106,26 @@ class MetaOptimizerBuilder(object):
             meta_optimizer.__setattr__(attr, optim_config[attr])
 
         if 'smoothing_routines' in optim_config and len(optim_config['smoothing_routines']):
-            meta_optimizer.smoother = self._get_smoother(optim_config['smoothing_routines'][0])
-            meta_optimizer.extra_optim_runs_smoothers = [self._get_smoother(optim_config['smoothing_routines'][i])
+            meta_optimizer.smoother = self._get_smoother(optim_config['smoothing_routines'][0],
+                                                         cl_environments, load_balancer)
+            meta_optimizer.extra_optim_runs_smoothers = [self._get_smoother(optim_config['smoothing_routines'][i],
+                                                                            cl_environments, load_balancer)
                                                          for i in range(1, len(optim_config['smoothing_routines']))]
 
-        if 'load_balancer' in optim_config:
-            load_balancer = get_load_balance_strategy_by_name(optim_config['load_balancer']['name'])()
-            for attr, value in optim_config['load_balancer'].items():
-                if attr != 'name':
-                    load_balancer.__setattr__(attr, value)
-            meta_optimizer.load_balancer = load_balancer
-
         return meta_optimizer
+
+    def _get_load_balancer(self, optim_config):
+        load_balancer = get_load_balance_strategy_by_name(optim_config['load_balancer']['name'])()
+        for attr, value in optim_config['load_balancer'].items():
+            if attr != 'name':
+                load_balancer.__setattr__(attr, value)
+        return load_balancer
+
+    def _get_cl_environments(self, optim_config):
+        cl_environments = CLEnvironmentFactory.all_devices()
+        if optim_config['cl_devices']:
+            cl_environments = [cl_environments[int(ind)] for ind in optim_config['cl_devices']]
+        return cl_environments
 
     def _get_configuration_dict(self, model_name):
         current_config = configuration.config['optimization_settings']
@@ -1183,23 +1139,15 @@ class MetaOptimizerBuilder(object):
         optim_config = recursive_merge_dict(optim_config, self._meta_optimizer_config)
         return optim_config
 
-    def _get_optimizer(self, options):
+    def _get_optimizer(self, options, cl_environments, load_balancer):
         optimizer = get_optimizer_by_name(options['name'])
-        patience = None
-        if 'patience' in options:
-            patience = options['patience']
-        return optimizer(runtime_configuration.runtime_config['cl_environments'],
-                         runtime_configuration.runtime_config['load_balancer'],
-                         patience=patience)
+        patience = options['patience']
+        return optimizer(cl_environments, load_balancer, patience=patience)
 
-    def _get_smoother(self, options):
+    def _get_smoother(self, options, cl_environments, load_balancer):
         smoother = get_filter_by_name(options['name'])
-        size = 1
-        if 'size' in options:
-            size = options['size']
-        return smoother(size,
-                        runtime_configuration.runtime_config['cl_environments'],
-                        runtime_configuration.runtime_config['load_balancer'])
+        size = options['size']
+        return smoother(size, cl_environments, load_balancer)
 
 
 def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, mask_name=None, symlink=False):

@@ -76,8 +76,14 @@ class MapsVisualizer(object):
         """
         if dimension:
             self.dimension = dimension
+        else:
+            self.dimension = 2
+
         if slice_ind:
             self.slice_ind = slice_ind
+        else:
+            self.slice_ind = int(self._volumes_shape[self.dimension] / 2.0)
+
         if volume_ind:
             self.volume_ind = volume_ind
         if names:

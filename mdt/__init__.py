@@ -28,7 +28,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.1.6'
+VERSION = '0.2.0'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')                                           
@@ -37,7 +37,11 @@ if len(_items) > 1:
     VERSION_STATUS = _items[1]
 __version__ = VERSION
 
-setup_logging()
+
+try:
+    setup_logging()
+except ValueError:
+    print('Logging disabled')
 
 
 def batch_fit(data_folder, batch_profile=None, subjects=None, recalculate=False, cl_device_ind=None, dry_run=False):

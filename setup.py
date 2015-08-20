@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 import re
 from setuptools import setup, find_packages
+from setuptools.command.install import install
+
 
 def load_requirements(fname):
     is_comment = re.compile('^\s*(#|--).*').match
@@ -18,6 +19,19 @@ requirements_tests = load_requirements('requirements_tests.txt')
 
 ver_dic = {}
 exec(compile(version_file_contents, "mdt/__init__.py", 'exec'), ver_dic)
+
+
+def _post_install(directory):
+    from subprocess import call
+    print('Initializing mdt configuration directory, creating a backup of old settings if needed.')
+    call(['mdt-init-user-settings'])
+
+
+class CustomInstall(install):
+    def run(self):
+        install.run(self)
+        self.execute(_post_install, (self.install_lib,), msg="Running post install tasks.")
+
 
 setup(
     name='mdt',
@@ -52,4 +66,5 @@ setup(
              'bin/mdt-list-devices',
              'bin/mdt-print-abstract-model-function',
              'bin/mdt-tk'],
+    cmdclass={'install': CustomInstall}
 )

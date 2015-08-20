@@ -1,10 +1,10 @@
-from ScrolledText import ScrolledText
 from Tkconstants import W, E, BOTH, FALSE, YES, HORIZONTAL, VERTICAL, END, EXTENDED, BROWSE, INSERT
 from Tkinter import Tk, StringVar, IntVar, Listbox, TclError
 import Tkinter
+from collections import OrderedDict
 import copy
 import glob
-import logging
+import numbers
 import os
 import threading
 import tkFileDialog
@@ -12,27 +12,24 @@ import tkMessageBox
 import ttk
 import sys
 import multiprocessing
+from nibabel.spatialimages import ImageFileError
 import mdt
+from mdt.log_handlers import LogListenerInterface, LogDispatchHandler
 import mdt.utils
 from math import log10
 import platform
 from numpy import genfromtxt
 import nibabel as nib
 import numpy as np
-from mdt import load_protocol, load_dwi, load_brain_mask, create_median_otsu_brain_mask, \
-    create_slice_roi, load_protocol_bval_bvec, view_results_slice, fit_model, concatenate_mri_sets
+from mdt import load_dwi, load_brain_mask, create_median_otsu_brain_mask, \
+    create_slice_roi, load_protocol_bval_bvec, view_results_slice, concatenate_mri_sets
+from mdt.configuration import config as mdt_config
 import mot.cl_environments
-from mot.cl_routines.filters.median import MedianFilter
-from mot.load_balance_strategies import EvenDistribution
-from mot.cl_routines.optimizing.levenberg_marquardt import LevenbergMarquardt
-from mot.cl_routines.optimizing.meta_optimizer import MetaOptimizer
-from mot.cl_routines.optimizing.nmsimplex import NMSimplex
-from mot.cl_routines.optimizing.powell import Powell
-from mot.cl_routines.filters.mean import MeanFilter
 from mdt.visualization import MapsVisualizer
 import mdt.protocols
 import mdt.configuration
-
+from mdt.utils import MetaOptimizerBuilder, check_user_components
+from mot.factory import get_optimizer_by_name
 
 __author__ = 'Robbert Harms'
 __date__ = "2014-10-01"
@@ -57,64 +54,180 @@ def get_window():
     window.resizable(width=FALSE, height=FALSE)
     window.update_idletasks()
     width = 900
-    height = 600
+    height = 700
     x = (window.winfo_screenwidth() // 2) - (width // 2)
     y = (window.winfo_screenheight() // 2) - (height // 2)
     window.geometry('{}x{}+{}+{}'.format(width, height, x, y))
 
-    tabs = (RunModelTab(window),
+    tabs = [RunModelTab(window),
             GenerateBrainMaskTab(window),
             GenerateROIMaskTab(window),
             GenerateProtocolFileTab(window),
             ConcatenateShellsTab(window),
-            ViewResultsTab(window))
+            ViewResultsTab(window)]
 
     for tab in tabs:
         notebook.add(tab.get_tab(), text=tab.tab_name)
 
     notebook.pack(fill=BOTH, expand=YES)
 
-    txt = ScrolledText(window, height=15)
+    txt = ScrolledText(window, wrap='none')
     txt.pack(fill=BOTH, expand=YES)
 
-    real_stdout = sys.stdout
+    stdout_old = sys.stdout
+    stderr_old = sys.stderr
 
-    def start_stdout_redirect():
-        sys.stdout = StdoutTextWrapper(txt)
+    def window_start():
+        log_listener = TextboxLogListener(txt)
+        sys.stdout = log_listener
+        sys.stderr = log_listener
 
-        for module in ('mdt', 'mot'):
-            logger = logging.getLogger(module)
-            console = logging.StreamHandler(stream=sys.stdout)
-            logger.addHandler(console)
+        LogDispatchHandler.add_listener(log_listener)
+        print_welcome_message()
+        update_user_settings()
 
-        from mdt import VERSION
-        welcome_str = 'Welcome to MDT version ' + VERSION
-        print(welcome_str)
-        print('-' * len(welcome_str))
-        print('')
-        print('This area is reserved for print and logging output from MDT.')
-
-
-    window.after(100, start_stdout_redirect)
+    window.after(100, window_start)
 
     def on_closing():
-        sys.stdout = real_stdout
+        sys.stdout = stdout_old
+        sys.stderr = stderr_old
+
         window.destroy()
     window.protocol("WM_DELETE_WINDOW", on_closing)
 
     return window
 
 
-class StdoutTextWrapper(object):
+def print_welcome_message():
+    from mdt import VERSION
+    welcome_str = 'Welcome to MDT version ' + VERSION + '.'
+    print(welcome_str)
+    print('')
+    print('This area is reserved for print and log output.')
+    print('-----------------------------------------------')
 
-    def __init__(self, text_widget):
-        self._text_box = text_widget
+
+def update_user_settings():
+    if not check_user_components():
+        print('')
+        print('Your configuration folder is not up to date. We will create a backup\nof your old settings and '
+              'initialize your config directory to the latest version.')
+        print('')
+        print('...')
+        mdt.initialize_user_settings()
+        print('')
+        print('Initializing home directory completed.')
+
+
+class ScrolledText(Tkinter.Text):
+    """Copied from ScrolledText from TK"""
+    def __init__(self, master=None, **kw):
+        self.frame = Tkinter.Frame(master)
+
+        yscroll = Tkinter.Scrollbar(self.frame, orient=VERTICAL)
+        xscroll = Tkinter.Scrollbar(self.frame, orient=HORIZONTAL)
+
+        kw.update({'yscrollcommand': yscroll.set})
+        kw.update({'xscrollcommand': xscroll.set})
+        Tkinter.Text.__init__(self, self.frame, **kw)
+
+        yscroll['command'] = self.yview
+        xscroll['command'] = self.xview
+
+        yscroll.grid(column=1, row=0, sticky="news")
+        xscroll.grid(column=0, row=1, sticky="ew")
+        self.grid(column=0, row=0, sticky="news")
+
+        self.frame.grid()
+        self.frame.rowconfigure(0, weight=1)
+        self.frame.columnconfigure(0, weight=1)
+
+        text_meths = vars(Tkinter.Text).keys()
+        methods = vars(Tkinter.Pack).keys() + vars(Tkinter.Grid).keys() + vars(Tkinter.Place).keys()
+        methods = set(methods).difference(text_meths)
+
+        for m in methods:
+            if m[0] != '_' and m != 'config' and m != 'configure':
+                setattr(self, m, getattr(self.frame, m))
+
+    def __str__(self):
+        return str(self.frame)
+
+
+def split_image_path(image_path):
+    """Split the path to an image into three parts, the directory, the basename and the extension.
+
+    Args:
+        image_path (str): the path to an image
+
+    Returns:
+        list of str: the path, the basename and the extension
+    """
+    folder = os.path.dirname(image_path)
+    basename = os.path.basename(image_path)
+
+    extension = ''
+    if '.nii.gz' in basename:
+        extension = '.nii.gz'
+    elif '.nii' in basename:
+        extension = '.nii'
+
+    basename = basename.replace(extension, '')
+    return folder, basename, extension
+
+
+class IntegerGenerator(object):
+
+    def __init__(self, start=0, end=None):
+        """Small generator to generate integers.
+
+        Usage:
+        >>> next_int = IntegerGenerator()
+        >>> next(next_int)
+        0
+        >>> next_int.next()
+        1
+        >>> next_int()
+        2
+
+        Args:
+            start (int): the starting point of the generator
+            end (int): the end point of the generator can be None. If set the iteration ends when the end point is
+                reached. This is exclusive the end point.
+        """
+        self._current_int = start
+        self._end = end
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        self._current_int += 1
+        if self._end and self._current_int == self._end:
+            raise StopIteration('End point reached.')
+        return self._current_int - 1
+
+    def __next__(self):
+        return self.next()
+
+    def __call__(self, *args, **kwargs):
+        return self.next()
+
+
+class TextboxLogListener(LogListenerInterface):
+
+    def __init__(self, text_box):
+        self.text_box = text_box
+
+    def emit(self, record, formatted_message):
+        self.write(formatted_message)
+        self.write("\n")
 
     def write(self, string):
-        self._text_box.configure(state='normal')
-        self._text_box.insert(END, string)
-        self._text_box.configure(state='disabled')
-        self._text_box.see(END)
+        self.text_box.configure(state='normal')
+        self.text_box.insert(END, string)
+        self.text_box.configure(state='disabled')
+        self.text_box.see(END)
 
     def flush(self):
         pass
@@ -143,65 +256,44 @@ class RunModelTab(TabContainer):
         self._models = {k: v['description'] for k, v in mdt.get_models_meta_info().items()}
         self._models_default = self._models_ordered_list[0]
 
-        self._optim_routine_default = '-- Auto --'
-        self._optim_routines = {'-- Auto --': NMSimplex,
-                                'Nelder-Mead Simplex': NMSimplex,
-                                'Levenberg Marquardt': LevenbergMarquardt,
-                                'Powell\'s method': Powell}
-
-        self._smoothing_routines = {'Median filter': MedianFilter,
-                                    'Mean filter': MeanFilter}
-
-        self._cl_environments = {}
-        self._cl_environments_keys = []
-        cl_environments = mot.cl_environments.CLEnvironmentFactory.all_devices()
-        i = 1
-        for env in cl_environments:
-            s = repr(i) + ') '
-            s += 'GPU' if env.is_gpu else 'CPU'
-            s += ' - ' + env.device.name + ' (' + env.platform.name + ')'
-            self._cl_environments.update({s: env})
-            self._cl_environments_keys.append(s)
-            i += 1
-
-        self._optim_options = OptimOptions()
-        self._optim_options.optim_routine_index = self._optim_routine_default
-        self._optim_options.smoother_index = 'Median filter'
-        self._optim_options.cl_envs_indices = [self._get_gpu_device_key()]
+        self.optim_options = OptimOptions()
         self._optim_options_window = OptimOptionsWindow(self)
 
         self._image_vol_chooser = FileBrowserWidget(
             self._tab,
-            lambda trc1, trc2, trc3: self._onchange_cb('image_vol_chooser'),
+            'image_vol_chooser',
+            self._onchange_cb,
             FileBrowserWidget.common_file_types('image_volumes'),
-            'Select 4d image: ', '(Select the measured MRI volume)')
+            'Select 4d image: ', '(Select the measured diffusion weighted image)')
 
         self._brain_mask_chooser = FileBrowserWidget(
             self._tab,
-            lambda trc1, trc2, trc3: self._onchange_cb('brain_mask_chooser'),
+            'brain_mask_chooser',
+            self._onchange_cb,
             FileBrowserWidget.common_file_types('image_volumes'),
             'Select brain mask: ',
-            '(If you don\'t have one, generate one\n on the tab "Generate brain masks")')
+            '(To create one see the tab "Generate brain masks")')
 
         self._protocol_file_chooser = FileBrowserWidget(
             self._tab,
-            lambda trc1, trc2, trc3:
-            self._onchange_cb('protocol_file_chooser'),
+            'protocol_files',
+            self._onchange_cb,
             FileBrowserWidget.common_file_types('protocol_files'),
             'Select protocol file: ',
-            '(If you don\'t have one, generate one\n on the tab "Generate protocol file")')
+            '(To create one see the tab "Generate protocol file")')
 
         self._output_dir_chooser = DirectoryBrowserWidget(
             self._tab,
-            lambda trc1, trc2, trc3:
-            self._onchange_cb('output_dir_chooser'),
+            'output_dir_chooser',
+            self._onchange_cb,
             False,
             'Select output folder: ',
             '(Defaults to "output/<mask name>" in\n the same directory as the 4d image)')
 
         self._model_select_chooser = DropdownWidget(
             self._tab,
-            lambda val: self._onchange_cb('model_select_chooser'),
+            'model_select_chooser',
+            self._onchange_cb,
             self._models_ordered_list,
             self._models_default,
             'Select model: ',
@@ -209,102 +301,90 @@ class RunModelTab(TabContainer):
 
         self._optim_options_button = SubWindowWidget(
             self._tab,
+            'optim_options_button',
             self._optim_options_window,
             'Optimization options: ',
-            '(The defaults are generally fine)')
+            '(The defaults are loaded from your config file\n these are generally fine)')
 
         self._io_fields = [self._image_vol_chooser, self._brain_mask_chooser,
                            self._protocol_file_chooser, self._output_dir_chooser]
         self._model_select_fields = [self._model_select_chooser]
-
         self._required_fields = [self._image_vol_chooser, self._brain_mask_chooser, self._protocol_file_chooser]
-
         self._run_button = ttk.Button(self._tab, text='Run', command=self._run_model, state='disabled')
 
+        self._image_vol_chooser.initial_file = '/home/robbert/programming/python/phd-scripts/bin/dti_test/4Ddwi_b1000.nii.gz'
+        self._brain_mask_chooser.initial_file = '/home/robbert/programming/python/phd-scripts/bin/dti_test/4Ddwi_b1000_mask_2_25.nii.gz'
+        self._protocol_file_chooser.initial_file = '/home/robbert/programming/python/phd-scripts/bin/dti_test/4Ddwi_b1000.prtcl'
+
     def get_tab(self):
-        row = 0
+        next_row = IntegerGenerator()
+
         label = ttk.Label(self._tab, text="Run model", font=(None, 14))
-        label.grid(row=row, column=0, columnspan=4, sticky=W)
-        row += 1
+        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
 
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=row, columnspan=5, sticky="EW", pady=(5, 3))
-        row += 1
+        label = ttk.Label(self._tab, text="Optimize a model to your data.",
+                          font=(None, 9, 'italic'))
+        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
 
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(5, 3))
         for field in self._io_fields:
-            field.render(row)
-            row += 1
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=row, columnspan=5, sticky="EW", pady=(8, 3))
-        row += 1
+            field.render(next_row())
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(8, 3))
 
         for field in self._model_select_fields:
-            field.render(row)
-            row += 1
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=row, columnspan=5, sticky="EW", pady=(8, 3))
-        row += 1
+            field.render(next_row())
 
-        self._optim_options_button.render(row)
-        row += 1
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(8, 3))
+        self._optim_options_button.render(next_row())
 
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=row, columnspan=5, sticky="EW", pady=(8, 3))
-        row += 1
-
-        self._run_button.grid(row=row, sticky='W', pady=(10, 0))
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(8, 3))
+        self._run_button.grid(row=next_row(), sticky='W', pady=(10, 0))
 
         return self._tab
 
     def _run_model(self):
+        self._test_protocol()
+        thr = threading.Thread(target=self._run_optimizer)
+        thr.start()
+
+    def _test_protocol(self):
+        model_name = self._model_select_chooser.get_value()
+        model = mdt.get_model(model_name)
+
+        protocol = mdt.load_protocol(self._protocol_file_chooser.get_value())
+        protocol_sufficient = model.is_protocol_sufficient(protocol)
+
+        if not protocol_sufficient:
+            problems = model.get_protocol_problems(protocol)
+            tkMessageBox.showerror('Protocol insufficient', "\n".join(['- ' + str(p) for p in problems]))
+
+    def _run_optimizer(self):
         self._run_button.config(state='disabled')
 
-        problem_data = mdt.load_problem_data(mdt.load_dwi(self._image_vol_chooser.get_value()),
-                                             mdt.load_protocol(self._protocol_file_chooser.get_value()),
-                                             mdt.load_brain_mask(self._brain_mask_chooser.get_value()),)
-        output_folder = self._output_dir_chooser.get_value()
+        print('')
+        print('Starting model fitting, please wait.')
+        print('-' * 20)
 
-        recalculate = True
-        only_recalculate_last = self._optim_options.recalculate_all
-        optimizer = self._get_optimizer()
+        optimizer = self.optim_options.get_optimizer()
+        model_name = self._model_select_chooser.get_value()
 
-        model_key = self._model_select_chooser.get_value()
-        model = mdt.get_model(model_key)
+        mdt.fit_model(model_name,
+                      self._image_vol_chooser.get_value(),
+                      self._protocol_file_chooser.get_value(),
+                      self._brain_mask_chooser.get_value(),
+                      self._output_dir_chooser.get_value(),
+                      optimizer=optimizer,
+                      recalculate=True,
+                      only_recalculate_last=self.optim_options.recalculate_all)
 
-        protocol_sufficient = model.is_protocol_sufficient(problem_data.protocol)
-        if protocol_sufficient:
-            fit_model(model, problem_data, output_folder, optimizer=optimizer, recalculate=recalculate,
-                only_recalculate_last=only_recalculate_last)
-            tkMessageBox.showinfo('Calculation completed', 'The calculations have been completed.')
-        else:
-            problems = model.get_protocol_problems(problem_data.protocol)
-            tkMessageBox.showerror('Protocol insufficient', "\n".join(['- ' + str(p) for p in problems]))
+        print('-' * 20)
+        print('Finished model fitting. You can view the results using the "View results" tab.')
         self._run_button.config(state='normal')
 
-    def _get_optimizer(self):
-        optimizer = MetaOptimizer()
+    def _onchange_cb(self, calling_widget, *args, **kwargs):
+        id_key = calling_widget.id_key
 
-        sub_opt = self._optim_routines[self._optim_options.optim_routine_index]
-        sub_opt = sub_opt(patience=self._optim_options.patience)
-        optimizer.optimizer = sub_opt
-
-        smoother = self._smoothing_routines[self._optim_options.smoother_index]
-        optimizer.smoother = smoother([self._optim_options.smoother_size] * 3)
-
-        optimizer.extra_optim_runs = self._optim_options.extra_optim_runs
-        optimizer.load_balancer = EvenDistribution()
-
-        envs = []
-        for key in self._optim_options.cl_envs_indices:
-            envs.append(self._cl_environments[key])
-        optimizer.cl_environments = envs
-
-        return optimizer
-
-    def _get_gpu_device_key(self):
-        for key, env in self._cl_environments.items():
-            if env.is_gpu:
-                return key
-        return self._cl_environments_keys[0]
-
-    def _onchange_cb(self, widget_name):
-        if widget_name is not 'output_dir_chooser':
+        if id_key is not 'output_dir_chooser':
             if not self._output_dir_chooser.get_value() and self._image_vol_chooser.is_valid() \
                     and self._brain_mask_chooser.is_valid():
                 mask_name = os.path.splitext(os.path.basename(self._brain_mask_chooser.get_value()))[0]
@@ -312,16 +392,68 @@ class RunModelTab(TabContainer):
                 self._output_dir_chooser.initial_dir = os.path.join(os.path.dirname(
                     self._image_vol_chooser.get_value()), 'output', mask_name)
 
-        all_valid = True
-        for f in self._required_fields:
-            if not f.is_valid():
-                all_valid = False
-                break
-
+        all_valid = all(field.is_valid() for field in self._required_fields)
         if all_valid:
             self._run_button.config(state='normal')
         else:
             self._run_button.config(state='disabled')
+
+
+def get_cl_environments_ordered_dict():
+    """Get an ordered dictionary with all the CL environments.
+
+    Returns:
+        OrderedDict: an ordered dict with all the CL environments
+    """
+    cl_environments = mot.cl_environments.CLEnvironmentFactory.all_devices()
+    cl_env_dict = OrderedDict()
+    for ind, env in enumerate(cl_environments):
+        s = repr(ind) + ') '
+        s += 'GPU' if env.is_gpu else 'CPU'
+        s += ' - ' + env.device.name + ' (' + env.platform.name + ')'
+        cl_env_dict.update({s: env})
+    return cl_env_dict
+
+
+class OptimOptions(object):
+
+    optim_routines = {'Powell\'s method': 'Powell',
+                      'Nelder-Mead Simplex': 'NMSimplex',
+                      'Levenberg Marquardt': 'LevenbergMarquardt',}
+
+    smoothing_routines = {'Median filter': 'MedianFilter',
+                          'Mean filter': 'MeanFilter'}
+
+    cl_environments = get_cl_environments_ordered_dict()
+
+    def __init__(self):
+        self.optimizer = mdt_config['optimization_settings']['general']['optimizers'][0]['name']
+        self.patience = mdt_config['optimization_settings']['general']['optimizers'][0]['patience']
+
+        self.smoother = mdt_config['optimization_settings']['general']['smoothing_routines'][0]['name']
+        self.smoother_size = mdt_config['optimization_settings']['general']['smoothing_routines'][0]['size']
+
+        self.recalculate_all = True
+        self.extra_optim_runs = mdt_config['optimization_settings']['general']['extra_optim_runs']
+
+        self.cl_envs_indices = self._get_prefered_device_indices()
+
+    def _get_prefered_device_indices(self):
+        l = [ind for ind, env in enumerate(self.cl_environments.values()) if env.is_gpu]
+        if l:
+            return l
+        return [0]
+
+    def get_optimizer(self):
+        optimizer_config = {
+            'optimizers': [{'name': self.optimizer, 'patience': self.patience}],
+            'extra_optim_runs': self.extra_optim_runs,
+            'extra_optim_runs_apply_smoothing': True,
+            'smoothing_routines': [{'name': self.smoother, 'size': self.smoother_size}],
+            'load_balancer': {'name': 'EvenDistribution'},
+            'cl_devices': self.cl_envs_indices,
+        }
+        return MetaOptimizerBuilder(optimizer_config).construct()
 
 
 class SubWindow(object):
@@ -337,159 +469,183 @@ class SubWindow(object):
         """Render the items in the given frame"""
 
 
-class OptimOptions(object):
-
-    def __init__(self):
-        self.patience = 125
-        self.recalculate_all = True
-        self.optim_routine_index = None
-        self.extra_optim_runs = 0
-        self.smoother_index = None
-        self.smoother_size = 1
-        self.cl_envs_indices = []
-
-
 class OptimOptionsWindow(SubWindow):
 
     def __init__(self, parent):
         super(OptimOptionsWindow, self).__init__('Optimization options')
         self._parent = parent
-        self._optim_options = copy.copy(parent._optim_options)
-        self._optim_routine_chooser = None
-        self._patience_box = None
-        self._recalculate_all = None
+        self._optim_options = copy.copy(parent.optim_options)
 
-    def render(self, toplevel):
-        self._optim_options = copy.copy(self._parent._optim_options)
+    def render(self, window):
+        self._optim_options = copy.copy(self._parent.optim_options)
 
-        frame = ttk.Frame(toplevel)
+        frame = ttk.Frame(window)
         frame.config(padding=(10, 13, 10, 10))
         frame.grid_columnconfigure(3, weight=1)
 
-        self._optim_routine_chooser = DropdownWidget(
-            frame,
-            lambda val: self._onchange_cb('optim_routine_chooser'),
-            self._parent._optim_routines.keys(),
-            self._optim_options.optim_routine_index,
-            'Select optimization routine: ',
-            '(Auto selects the best optimizer for the chosen model)')
+        self._optim_routine_chooser = self._get_optim_routine_chooser(frame)
 
         self._patience_box = TextboxWidget(
             frame,
-            lambda trc1, trc2, trc3: self._onchange_cb('patience_box'),
-            'Patience: ', '(The amount of iterations to wait per parameter)',
+            'patience_box',
+            self._onchange_cb,
+            'Patience: ',
+            '(The amount of iterations to wait per parameter)',
             default_val=self._optim_options.patience)
 
         self._recalculate_all = YesNonWidget(
             frame,
-            lambda: self._onchange_cb('recalculate_all'),
+            'recalculate_all',
+            self._onchange_cb,
             'Recalculate all: ',
-            '(If yes, recalculate all maps in the cascade, if no, only the last)',
+            '(If yes, recalculate all maps, if no, only the last.\n This is only for cascades.)',
             default_val=self._optim_options.recalculate_all)
 
         self._extra_optim_runs = TextboxWidget(
             frame,
-            lambda trc1, trc2, trc3: self._onchange_cb('extra_optim_runs'),
+            'extra_optim_runs',
+            self._onchange_cb,
             'Extra runs: ', '(The additional number of iterations,\n with a smoothing step in between)',
             default_val=self._optim_options.extra_optim_runs)
 
+        default_smoother = None
+        for name, val in self._optim_options.smoothing_routines.items():
+            if val == self._optim_options.smoother:
+                default_smoother = name
+                break
+
         self._smoothing_routine_chooser = DropdownWidget(
             frame,
-            lambda val: self._onchange_cb('smoothing_routine_chooser'),
-            self._parent._smoothing_routines.keys(),
-            self._optim_options.smoother_index,
+            'smoothing_routine_chooser',
+            self._onchange_cb,
+            self._optim_options.smoothing_routines.keys(),
+            default_smoother,
             'Select smoothing routine: ',
             '(Used before each additional optimization iteration)')
 
+        if isinstance(self._optim_options.smoother_size, numbers.Number):
+            default_smoother_size = self._optim_options.smoother_size
+        else:
+            default_smoother_size = ','.join(map(str, self._optim_options.smoother_size))
+
         self._smoothing_size = TextboxWidget(
             frame,
-            lambda trc1, trc2, trc3: self._onchange_cb('smoothing_size'),
-            'smoothing filter size: ', '(The size in voxels in all dimensions for the smoothing filter)',
-            default_val=self._optim_options.smoother_size)
+            'smoothing_size',
+            self._onchange_cb,
+            'Smoothing filter size: ', '(Either one integer or three comma separated.\n '
+                                       'This is the smoothing filter size in voxels.)',
+            default_val=default_smoother_size)
 
         self._devices_chooser = ListboxWidget(
             frame,
-            lambda val: self._onchange_cb('cl_environment_chooser'),
+            'cl_environment_chooser',
+            self._onchange_cb,
             (),
             '',
             EXTENDED,
             3,
             'Select OpenCL devices: ',
             '(Select the devices you would like to use)')
-        self._devices_chooser.set_items(self._parent._cl_environments_keys,
-                                        default_items=self._optim_options.cl_envs_indices)
+
+        default_cl_environments = []
+        cl_environment_names = self._optim_options.cl_environments.keys()
+        for ind in self._optim_options.cl_envs_indices:
+            default_cl_environments.append(cl_environment_names[ind])
+
+        self._devices_chooser.set_items(self._optim_options.cl_environments.keys(),
+                                        default_items=default_cl_environments)
 
         fields = [self._optim_routine_chooser, self._patience_box, self._recalculate_all, self._extra_optim_runs,
                   self._smoothing_routine_chooser, self._smoothing_size, self._devices_chooser]
 
-        def accept():
-            self._accept()
-            toplevel.destroy()
+        button_frame = self._get_button_frame(frame, window)
 
-        button_frame = ttk.Frame(frame)
+        next_row = IntegerGenerator()
+        label = ttk.Label(frame, text="Optimization options", font=(None, 14))
+        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
+
+        ttk.Separator(frame, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(5, 3))
+        for field in fields:
+            field.render(next_row())
+
+        ttk.Separator(frame, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(5, 3))
+        button_frame.grid(row=next_row(), sticky='W', pady=(10, 0), columnspan=4)
+
+        frame.pack(fill=BOTH, expand=YES)
+
+    def _get_optim_routine_chooser(self, parent):
+        default_optimizer = None
+        for name, val in self._optim_options.optim_routines.items():
+            if val == self._optim_options.optimizer:
+                default_optimizer = name
+                break
+
+        return DropdownWidget(
+            parent,
+            'optim_routine_chooser',
+            self._onchange_cb,
+            self._optim_options.optim_routines.keys(),
+            default_optimizer,
+            'Optimization routine: ',
+            '(Select the routine you would like to use)')
+
+    def _get_button_frame(self, parent, window):
+        def accept():
+            self._parent.optim_options = self._optim_options
+            window.destroy()
+
+        button_frame = ttk.Frame(parent)
         ok_button = ttk.Button(button_frame, text='Accept', command=accept, state='normal')
-        cancel_button = ttk.Button(button_frame, text='Cancel', command=toplevel.destroy, state='normal')
+        cancel_button = ttk.Button(button_frame, text='Cancel', command=window.destroy, state='normal')
         ok_button.grid(row=0)
         cancel_button.grid(row=0, column=1, padx=(10, 0))
 
-        row = 0
-        label = ttk.Label(frame, text="Optimization options", font=(None, 14))
-        label.grid(row=row, column=0, columnspan=4, sticky=W)
-        row += 1
-        ttk.Separator(frame, orient=HORIZONTAL).grid(row=row, columnspan=5, sticky="EW", pady=(5, 3))
-        row += 1
-        for field in fields:
-            field.render(row)
-            row += 1
-        ttk.Separator(frame, orient=HORIZONTAL).grid(row=row, columnspan=5, sticky="EW", pady=(5, 3))
-        row += 1
-        button_frame.grid(row=row, sticky='W', pady=(10, 0), columnspan=4)
-        frame.pack(fill=BOTH, expand=YES)
+        return button_frame
 
-    def _onchange_cb(self, widget_name):
-        if widget_name == 'optim_routine_chooser':
-            optim_routine = self._optim_routine_chooser.get_value()
-            if optim_routine != self._parent._optim_routine_default:
-                sub_opt = self._parent._optim_routines[self._optim_routine_chooser.get_value()]
-                self._patience_box.set_value(sub_opt.patience)
-            else:
-                self._patience_box.set_value(125)
+    def _onchange_cb(self, calling_widget):
+        id_key = calling_widget.id_key
 
-        self._optim_options.patience = self._patience_box.get_value()
-        self._optim_options.recalculate_all = self._recalculate_all.get_value()
-        self._optim_options.optim_routine_index = self._optim_routine_chooser.get_value()
-        self._optim_options.extra_optim_runs = self._extra_optim_runs.get_value()
-        self._optim_options.smoother_index = self._smoothing_routine_chooser.get_value()
-        self._optim_options.smoother_size = self._smoothing_size.get_value()
-        self._optim_options.cl_envs_indices = self._devices_chooser.get_value()
+        if id_key == 'optim_routine_chooser':
+            optimizer = self._optim_options.optim_routines[self._optim_routine_chooser.get_value()]
+            self._optim_options.optimizer = optimizer
 
-        if self._optim_options.patience:
-            try:
-                self._optim_options.patience = int(self._optim_options.patience)
-            except ValueError:
-                self._optim_options.patience = 1
-        if self._optim_options.extra_optim_runs:
-            try:
-                self._optim_options.extra_optim_runs = int(self._optim_options.extra_optim_runs)
-            except ValueError:
-                self._optim_options.extra_optim_runs = 1
-        if self._optim_options.smoother_size:
-            try:
-                self._optim_options.smoother_size = int(self._optim_options.smoother_size)
-            except ValueError:
-                self._optim_options.smoother_size = 1
+            optimizer_class = get_optimizer_by_name(optimizer)
+            self._patience_box.set_value(optimizer_class.default_patience)
 
-        if self._optim_options.patience < 0:
-            self._optim_options.patience = 1
-        if self._optim_options.extra_optim_runs < 0:
-            self._optim_options.extra_optim_runs = 0
-        if self._optim_options.smoother_size < 1:
-            self._optim_options.smoother_size = 1
-        if not self._optim_options.cl_envs_indices:
-            self._optim_options.cl_envs_indices = self._parent._cl_environments_keys
-
-    def _accept(self):
-        self._parent._optim_options = self._optim_options
+        #
+        #
+        # self._optim_options.patience = self._patience_box.get_value()
+        # self._optim_options.recalculate_all = self._recalculate_all.get_value()
+        # self._optim_options.optimizer = self._optim_routine_chooser.get_value()
+        # self._optim_options.extra_optim_runs = self._extra_optim_runs.get_value()
+        # self._optim_options.smoother = self._smoothing_routine_chooser.get_value()
+        # self._optim_options.smoother_size = self._smoothing_size.get_value()
+        # self._optim_options.cl_envs_indices = self._devices_chooser.get_value()
+        #
+        # if self._optim_options.patience:
+        #     try:
+        #         self._optim_options.patience = int(self._optim_options.patience)
+        #     except ValueError:
+        #         self._optim_options.patience = 1
+        # if self._optim_options.extra_optim_runs:
+        #     try:
+        #         self._optim_options.extra_optim_runs = int(self._optim_options.extra_optim_runs)
+        #     except ValueError:
+        #         self._optim_options.extra_optim_runs = 1
+        # if self._optim_options.smoother_size:
+        #     try:
+        #         self._optim_options.smoother_size = int(self._optim_options.smoother_size)
+        #     except ValueError:
+        #         self._optim_options.smoother_size = 1
+        #
+        # if self._optim_options.patience < 0:
+        #     self._optim_options.patience = 1
+        # if self._optim_options.extra_optim_runs < 0:
+        #     self._optim_options.extra_optim_runs = 0
+        # if self._optim_options.smoother_size < 1:
+        #     self._optim_options.smoother_size = 1
+        # if not self._optim_options.cl_envs_indices:
+        #     self._optim_options.cl_envs_indices = self._parent._cl_environments_keys
 
 
 class GenerateBrainMaskTab(TabContainer):
@@ -502,38 +658,43 @@ class GenerateBrainMaskTab(TabContainer):
 
         self._image_vol_chooser = FileBrowserWidget(
             self._tab,
-            lambda trc1, trc2, trc3: self._onchange_bm_cb('image_vol_chooser'),
+            'image_vol_chooser',
+            self._onchange_cb,
             FileBrowserWidget.common_file_types('image_volumes'),
             'Select 4d image: ', '(Select the measured 4d diffusion weighted image)')
 
         self._protocol_file_chooser = FileBrowserWidget(
             self._tab,
-            lambda trc1, trc2, trc3:
-            self._onchange_bm_cb('protocol_file_chooser'),
+            'protocol_file_chooser',
+            self._onchange_cb,
             FileBrowserWidget.common_file_types('protocol_files'),
-            'Select protocol file: ', '(Please see the tab "Generate protocol file")')
+            'Select protocol file: ', '(To create one see the tab "Generate protocol file")')
 
         self._output_bm_chooser = FileBrowserWidget(
             self._tab,
-            lambda trc1, trc2, trc3: self._onchange_bm_cb('output_bm_chooser'),
+            'output_bm_chooser',
+            self._onchange_cb,
             FileBrowserWidget.common_file_types('image_volumes'),
             'Select output file: ', '(Default is <volume_name>_mask.nii.gz)', dialog_type=FileBrowserWidget.SAVE)
 
         self._median_radius_box = TextboxWidget(
             self._tab,
-            lambda trc1, trc2, trc3: self._onchange_bm_cb('median_radius_box'),
+            'median_radius_box',
+            self._onchange_cb,
             'Median radius: ', '(Radius (in voxels) of the applied median filter)',
             default_val='4')
 
         self._numpasses_box = TextboxWidget(
             self._tab,
-            lambda trc1, trc2, trc3: self._onchange_bm_cb('median_radius_box'),
+            'numpasses_box',
+            self._onchange_cb,
             'Number of passes: ', '(Number of median filter passes)',
             default_val='4')
 
         self._threshold_box = TextboxWidget(
             self._tab,
-            lambda trc1, trc2, trc3: self._onchange_bm_cb('threshold'),
+            'threshold',
+            self._onchange_cb,
             'Final threshold: ', '(Additional masking threshold)',
             default_val='0')
 
@@ -549,33 +710,31 @@ class GenerateBrainMaskTab(TabContainer):
         self._view_brain_mask_button.grid(row=0, column=1, padx=(10, 0))
 
     def get_tab(self):
-        row = 0
+        next_row = IntegerGenerator()
+
         label = ttk.Label(self._tab, text="Generate brain mask", font=(None, 14))
-        label.grid(row=row, column=0, columnspan=4, sticky=W)
-        row += 1
+        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
 
         label = ttk.Label(self._tab, text="Creates a mask for a whole brain using the median-otsu algorithm.",
                           font=(None, 9, 'italic'))
-        label.grid(row=row, column=0, columnspan=4, sticky=W)
-        row += 1
-
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=row, columnspan=5, sticky="EW", pady=(5, 3))
-        row += 1
+        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
+        
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(5, 3))
+        
         for field in self._mask_items:
-            field.render(row)
-            row += 1
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=row, columnspan=5, sticky="EW", pady=(5, 3))
-        row += 1
-        self._whole_mask_buttons_frame.grid(row=row, sticky='W', pady=(10, 0), columnspan=4)
+            field.render(next_row())
+            
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(5, 3))
+        
+        self._whole_mask_buttons_frame.grid(row=next_row(), sticky='W', pady=(10, 0), columnspan=4)
         return self._tab
 
-    def _onchange_bm_cb(self, cb_name):
-        if cb_name == 'image_vol_chooser':
-            img_name = self._image_vol_chooser.get_value()
-            img_name = os.path.splitext(img_name)[0]
-            img_name = img_name.replace('.nii', '')
-            img_name += '_mask.nii.gz'
-            self._output_bm_chooser.initial_file = img_name
+    def _onchange_cb(self, calling_widget, *args, **kwargs):
+        id_key = calling_widget.id_key
+        if id_key == 'image_vol_chooser':
+            path, img_name = split_image_path(calling_widget.get_value())[0:2]
+            mask_name = os.path.join(path, img_name + '_mask.nii.gz')
+            self._output_bm_chooser.initial_file = mask_name
 
         if os.path.isfile(self._output_bm_chooser.get_value())\
             and self._image_vol_chooser.is_valid()\
@@ -591,7 +750,6 @@ class GenerateBrainMaskTab(TabContainer):
             self._run_whole_brain_mask_button.config(state='disabled')
 
     def _run_whole_brain_mask(self):
-        self._run_whole_brain_mask_button.config(state='disabled')
         volume = self._image_vol_chooser.get_value()
         prtcl = self._protocol_file_chooser.get_value()
         output_fname = self._output_bm_chooser.get_value()
@@ -612,15 +770,18 @@ class GenerateBrainMaskTab(TabContainer):
             threshold = max(threshold, 0)
 
         def create_brain_mask():
-            print('---------------------')
+            self._run_whole_brain_mask_button.config(state='disabled')
+            print('')
+            print('Started creating a mask')
+            print('-' * 20)
             create_median_otsu_brain_mask(volume, prtcl, output_fname, median_radius=filter_mean_radius,
                                           numpass=filter_passes, mask_threshold=threshold)
-            print('---------------------')
+            print('-' * 20)
+            print('Finished creating a mask')
+            self._run_whole_brain_mask_button.config(state='normal')
 
         mask_create_thread = threading.Thread(target=create_brain_mask)
         mask_create_thread.start()
-
-        self._run_whole_brain_mask_button.config(state='normal')
 
     def _view_brain_mask(self):
         mask = self._output_bm_chooser.get_value()
@@ -643,13 +804,15 @@ class GenerateROIMaskTab(TabContainer):
 
         self._brain_mask_vol_chooser = FileBrowserWidget(
             self._tab,
-            lambda trc1, trc2, trc3: self._onchange_roi_cb('brain_mask_chooser'),
+            'brain_mask_chooser',
+            self._onchange_cb,
             FileBrowserWidget.common_file_types('image_volumes'),
-            'Select brain mask: ', '(Please see tab "Generate brain mask")')
+            'Select brain mask: ', '(To create one see the tab "Generate brain mask")')
 
         self._roi_dimension_index = DropdownWidget(
             self._tab,
-            lambda val: self._onchange_roi_cb('roi_dimension_chooser'),
+            'roi_dimension_chooser',
+            self._onchange_cb,
             (),
             '',
             'Select dimension: ',
@@ -657,7 +820,8 @@ class GenerateROIMaskTab(TabContainer):
 
         self._roi_slice_index = ListboxWidget(
             self._tab,
-            lambda val: self._onchange_roi_cb('roi_slice_chooser'),
+            'roi_slice_chooser',
+            self._onchange_cb,
             (),
             '',
             BROWSE,
@@ -667,7 +831,8 @@ class GenerateROIMaskTab(TabContainer):
 
         self._output_roi_chooser = FileBrowserWidget(
             self._tab,
-            lambda trc1, trc2, trc3: self._onchange_roi_cb('roi_output_chooser'),
+            'roi_output_chooser',
+            self._onchange_cb,
             FileBrowserWidget.common_file_types('image_volumes'),
             'Select output file: ', '(Default is <mask_name>_<dim>_<slice>.nii.gz)',
             dialog_type=FileBrowserWidget.SAVE)
@@ -681,42 +846,48 @@ class GenerateROIMaskTab(TabContainer):
         self._run_slice_roi_button.grid(row=0)
 
     def get_tab(self):
-        row = 0
+        next_row = IntegerGenerator()
+
         label = ttk.Label(self._tab, text="Generate ROI mask", font=(None, 14))
-        label.grid(row=row, column=0, columnspan=4, sticky=W)
-        row += 1
+        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
+        
         label = ttk.Label(self._tab, text="Create a brain mask with a Region Of Interest "
                                           "that only includes the voxels in the selected slice. ",
                           font=(None, 9, 'italic'))
-        label.grid(row=row, column=0, columnspan=4, sticky=W)
-        row += 1
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=row, columnspan=5, sticky="EW", pady=(5, 3))
-        row += 1
+        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
+        
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(5, 3))
+        
         for field in self._roi_items:
-            field.render(row)
-            row += 1
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=row, columnspan=5, sticky="EW", pady=(10, 3))
-        row += 1
-        self._buttons_frame.grid(row=row, sticky='W', pady=(10, 0), columnspan=4)
+            field.render(next_row())
+            
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(10, 3))
+        
+        self._buttons_frame.grid(row=next_row(), sticky='W', pady=(10, 0), columnspan=4)
         return self._tab
 
-    def _onchange_roi_cb(self, cb_name):
+    def _onchange_cb(self, calling_widget, *args, **kwargs):
+        id_key = calling_widget.id_key
         brain_mask_fname = self._brain_mask_vol_chooser.get_value()
 
         if brain_mask_fname:
-            if cb_name == 'brain_mask_chooser':
-                mask = nib.load(brain_mask_fname)
-                shape = mask.shape
-                self._dimension_shape = shape
-                self._dimensions = {}
-                items = []
-                for i in range(len(shape)):
-                    items.append('{} ({} items)'.format(i, shape[i]))
-                    self._dimensions.update({'{} ({} items)'.format(i, shape[i]): i})
-                self._roi_dimension_index.set_items(items, items[0])
-                self._update_roi_slice_chooser()
+            if id_key == 'brain_mask_chooser':
+                try:
+                    mask = nib.load(brain_mask_fname)
+                    shape = mask.shape
+                    self._dimension_shape = shape
+                    self._dimensions = {}
+                    items = []
+                    for i in range(len(shape)):
+                        items.append('{} ({} items)'.format(i, shape[i]))
+                        self._dimensions.update({'{} ({} items)'.format(i, shape[i]): i})
+                    self._roi_dimension_index.set_items(items, items[0])
+                    self._update_roi_slice_chooser()
+                except ImageFileError:
+                    tkMessageBox.showerror('File not an image', 'The selected file could not be loaded.')
+                    return
 
-            elif cb_name == 'roi_dimension_chooser':
+            elif id_key == 'roi_dimension_chooser':
                 self._update_roi_slice_chooser()
 
             brain_mask = self._brain_mask_vol_chooser.get_value()
@@ -727,12 +898,7 @@ class GenerateROIMaskTab(TabContainer):
                                         repr(roi_slice)) + '.nii.gz'
             self._output_roi_chooser.initial_file = output_fname
 
-        all_valid = True
-        for field in self._roi_items:
-            if not field.is_valid():
-                all_valid = False
-                break
-
+        all_valid = all(field.is_valid() for field in self._roi_items)
         if all_valid:
             self._run_slice_roi_button.config(state='normal')
         else:
@@ -745,12 +911,19 @@ class GenerateROIMaskTab(TabContainer):
 
     def _run_slice_roi(self):
         self._run_slice_roi_button.config(state='disabled')
+        print('')
+        print('Generating a slice ROI')
+        print('-'*20)
+        print('please wait...')
+
         brain_mask = self._brain_mask_vol_chooser.get_value()
         roi_dim = int(self._dimensions[self._roi_dimension_index.get_value()])
         roi_slice = int(self._roi_slice_index.get_value()[0])
         output_fname = self._output_roi_chooser.get_value()
         create_slice_roi(brain_mask, roi_dim, roi_slice, output_fname, overwrite_if_exists=True)
-        tkMessageBox.showinfo('Action completed', 'The action has been completed.')
+
+        print('-'*20)
+        print('ROI generated')
         self._run_slice_roi_button.config(state='normal')
 
 
@@ -761,56 +934,66 @@ class GenerateProtocolFileTab(TabContainer):
 
         self._bvec_chooser = FileBrowserWidget(
             self._tab,
-            lambda trc1, trc2, trc3: self._onchange_to_protocol('bvec_chooser'),
+            'bvec_chooser',
+            self._onchange_cb,
             FileBrowserWidget.common_file_types('bvec'),
             'Select bvec file: ', '(Select the gradient vectors file)',
             dialog_type=FileBrowserWidget.OPEN)
 
         self._bval_chooser = FileBrowserWidget(
             self._tab,
-            lambda trc1, trc2, trc3: self._onchange_to_protocol('bval_chooser'),
+            'bval_chooser',
+            self._onchange_cb,
             FileBrowserWidget.common_file_types('bval'),
             'Select bval file: ', '(Select the gradient b-values file)',
             dialog_type=FileBrowserWidget.OPEN)
 
         self._bval_scale_box = TextboxWidget(
             self._tab,
-            lambda trc1, trc2, trc3: self._onchange_to_protocol('bval_scale_box'),
+            'bval_scale_box',
+            self._onchange_cb,
             'B-value scale factor: ', '(We expect the the b-values in the\nresult protocol in s/m^2)',
             default_val='1e6')
 
         self._output_protocol_chooser = FileBrowserWidget(
             self._tab,
-            lambda trc1, trc2, trc3: self._onchange_to_protocol('output_protocol_chooser'),
+            'output_protocol_chooser',
+            self._onchange_cb,
             FileBrowserWidget.common_file_types('protocol_files'),
             'Select output (protocol) file: ', '(Default is <bvec_name>.prtcl)', dialog_type=FileBrowserWidget.SAVE)
 
-        self._estimate_timings = YesNonWidget(self._tab,
-                                              lambda: self._onchange_to_protocol('estimate_sequence_timing'),
-                                              'Add sequence timings: ',
-                                              '(Guess the sequence timings\n (G, Delta, delta) from the b values)')
+        self._estimate_timings = YesNonWidget(
+            self._tab,
+            'estimate_sequence_timing',
+            self._onchange_cb,
+            'Add sequence timings: ',
+            '(Guess the sequence timings\n (G, Delta, delta) from the b values)')
 
         self._maxG_box = TextboxWidget(
             self._tab,
-            lambda trc1, trc2, trc3: self._onchange_to_protocol('Delta_box'),
+            'maxG_box',
+            self._onchange_cb,
             'Max G: ', '(Specify the maximum gradient\n amplitude (mT/m))',
             default_val='40', state='disabled')
 
         self._Delta_box = TextboxWidget(
             self._tab,
-            lambda trc1, trc2, trc3: self._onchange_to_protocol('Delta_box'),
+            'Delta_box',
+            self._onchange_cb,
             'Big Delta: ', '(Optionally, use this Delta\n for the sequence timings (ms))',
             default_val='', state='disabled')
 
         self._delta_box = TextboxWidget(
             self._tab,
-            lambda trc1, trc2, trc3: self._onchange_to_protocol('delta_box'),
+            'delta_box',
+            self._onchange_cb,
             'Small delta: ', '(Optionally, use this delta\n for the sequence timings (ms))',
             default_val='', state='disabled')
 
         self._te_box = TextboxWidget(
             self._tab,
-            lambda trc1, trc2, trc3: self._onchange_to_protocol('te_box'),
+            'te_box',
+            self._onchange_cb,
             'TE: ', '(Optionally, use this TE\n for the echo time (ms))',
             default_val='', state='disabled')
 
@@ -828,37 +1011,36 @@ class GenerateProtocolFileTab(TabContainer):
         self._view_results_button.grid(row=0, column=1, padx=(10, 0))
 
     def get_tab(self):
-        row = 0
+        next_row = IntegerGenerator()
         label = ttk.Label(self._tab, text="Generate protocol file", font=(None, 14))
-        label.grid(row=row, column=0, columnspan=4, sticky=W)
-        row += 1
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=row, columnspan=5, sticky="EW", pady=(5, 3))
-        row += 1
+        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(5, 3))
         for field in self._to_protocol_items:
-            field.render(row)
-            row += 1
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=row, columnspan=5, sticky="EW", pady=(10, 3))
-        row += 1
-        self._buttons_frame.grid(row=row, sticky='W', columnspan=4, pady=(10, 0))
+            field.render(next_row())
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(10, 3))
+        self._buttons_frame.grid(row=next_row(), sticky='W', columnspan=4, pady=(10, 0))
         return self._tab
 
-    def _onchange_to_protocol(self, cb_name):
-        if cb_name == 'bvec_chooser':
-            self._output_protocol_chooser.initial_file = os.path.splitext(self._bvec_chooser.get_value())[0] + '.prtcl'
+    def _onchange_cb(self, calling_widget, *args, **kwargs):
+        id_key = calling_widget.id_key
 
-        if cb_name == 'bval_chooser':
-            bval_file = self._bval_chooser.get_value()
+        if id_key == 'bvec_chooser':
+            self._output_protocol_chooser.initial_file = os.path.splitext(calling_widget.get_value())[0] + '.prtcl'
+
+        if id_key == 'bval_chooser':
+            bval_file = calling_widget.get_value()
             if os.path.isfile(bval_file):
                 data = genfromtxt(bval_file)
-                if log10(np.mean(data)) >= 8:
-                    self._bval_scale_box.set_value('1')
-                else:
+                try:
+                    if log10(np.mean(data)) >= 8:
+                        self._bval_scale_box.set_value('1')
+                    else:
+                        self._bval_scale_box.set_value('1e6')
+                except ValueError:
                     self._bval_scale_box.set_value('1e6')
-            else:
-                self._bval_scale_box.set_value('1e-6')
 
-        if cb_name == 'estimate_sequence_timing':
-            estimate_st = self._estimate_timings.get_value()
+        if id_key == 'estimate_sequence_timing':
+            estimate_st = calling_widget.get_value()
             if estimate_st:
                 self._maxG_box.set_state('normal')
                 self._Delta_box.set_state('normal')
@@ -871,18 +1053,12 @@ class GenerateProtocolFileTab(TabContainer):
                 self._te_box.set_state('disabled')
 
         if self._output_protocol_chooser.is_valid():
-            fname = self._output_protocol_chooser.get_value()
-            if os.path.isfile(fname):
+            if os.path.isfile(calling_widget.get_value()):
                 self._view_results_button.config(state='normal')
             else:
                 self._view_results_button.config(state='disabled')
 
-        all_valid = True
-        for field in self._to_protocol_items:
-            if not field.is_valid():
-                all_valid = False
-                break
-
+        all_valid = all(field.is_valid() for field in self._to_protocol_items)
         if all_valid:
             self._generate_prtcl_button.config(state='normal')
         else:
@@ -890,6 +1066,11 @@ class GenerateProtocolFileTab(TabContainer):
 
     def _generate_protocol(self):
         self._generate_prtcl_button.config(state='disabled')
+        print('')
+        print('Generating a protocol file')
+        print('-'*20)
+        print('please wait...')
+
         bvec_fname = self._bvec_chooser.get_value()
         bval_fname = self._bval_chooser.get_value()
         output_fname = self._output_protocol_chooser.get_value()
@@ -912,6 +1093,9 @@ class GenerateProtocolFileTab(TabContainer):
         mdt.protocols.write_protocol(protocol, output_fname)
 
         tkMessageBox.showinfo('Action completed', 'The protocol file has been written.')
+
+        print('-'*20)
+        print('Finished generating a protocol file.')
         self._view_results_button.config(state='normal')
         self._generate_prtcl_button.config(state='normal')
 
@@ -925,7 +1109,7 @@ class GenerateProtocolFileTab(TabContainer):
         t.wm_title('Generated protocol (read-only)')
 
     def _format_columns(self, table):
-        return table.replace("\t", "\t\t\t\t")
+        return table.replace("\t", "\t" * 4)
 
 
 class ConcatenateShellsTab(TabContainer):
@@ -935,37 +1119,43 @@ class ConcatenateShellsTab(TabContainer):
 
         self._image_1_chooser = FileBrowserWidget(
             self._tab,
-            lambda trc1, trc2, trc3: self._onchange_concat('image_1_chooser'),
+            'image_1_chooser',
+            self._onchange_cb,
             FileBrowserWidget.common_file_types('image_volumes'),
             'Select 4d image 1: ', '(Select the first measured 4d image)')
 
         self._protocol_1_chooser = FileBrowserWidget(
             self._tab,
-            lambda trc1, trc2, trc3: self._onchange_concat('protocol_1_chooser'),
+            'protocol_1_chooser',
+            self._onchange_cb,
             FileBrowserWidget.common_file_types('protocol_files'),
             'Select protocol 1: ', '(Select the first protocol file)')
 
         self._image_2_chooser = FileBrowserWidget(
             self._tab,
-            lambda trc1, trc2, trc3: self._onchange_concat('image_2_chooser'),
+            'image_2_chooser',
+            self._onchange_cb,
             FileBrowserWidget.common_file_types('image_volumes'),
             'Select 4d image 2: ', '(Select the second measured 4d image)')
 
         self._protocol_2_chooser = FileBrowserWidget(
             self._tab,
-            lambda trc1, trc2, trc3: self._onchange_concat('protocol_2_chooser'),
+            'protocol_2_chooser',
+            self._onchange_cb,
             FileBrowserWidget.common_file_types('protocol_files'),
             'Select protocol 2: ', '(Select the second protocol file)')
 
         self._output_image_chooser = FileBrowserWidget(
             self._tab,
-            lambda trc1, trc2, trc3: self._onchange_concat('output_image_chooser'),
+            'output_image_chooser',
+            self._onchange_cb,
             FileBrowserWidget.common_file_types('image_volumes'),
             'Select output volume: ', '(Default is <vol_1><vol_2>.nii.gz)', dialog_type=FileBrowserWidget.SAVE)
 
         self._output_protocol_chooser = FileBrowserWidget(
             self._tab,
-            lambda trc1, trc2, trc3: self._onchange_concat('output_protocol_chooser'),
+            'output_protocol_chooser',
+            self._onchange_cb,
             FileBrowserWidget.common_file_types('protocol_files'),
             'Select output protocol: ', '(Default is <prtcl_1>_<prtcl_2>.prtcl)', dialog_type=FileBrowserWidget.SAVE)
 
@@ -974,53 +1164,57 @@ class ConcatenateShellsTab(TabContainer):
                                  self._output_image_chooser, self._output_protocol_chooser]
 
         self._concatenate_button = ttk.Button(self._tab, text='Concatenate', command=self._apply_concatenate,
-                                                       state='disabled')
+                                              state='disabled')
 
     def get_tab(self):
-        row = 0
+        next_row = IntegerGenerator()
+        
         label = ttk.Label(self._tab, text="Concatenate shells", font=(None, 14))
-        label.grid(row=row, column=0, columnspan=4, sticky=W)
-        row += 1
+        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
+        
         label = ttk.Label(self._tab, text="Concatenate multiple aligned 4d image series of the same subject. ",
                           font=(None, 9, 'italic'))
-        label.grid(row=row, column=0, columnspan=4, sticky=W)
-        row += 1
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=row, columnspan=5, sticky="EW", pady=(5, 3))
-        row += 1
-        self._image_1_chooser.render(row)
-        row += 1
-        self._protocol_1_chooser.render(row)
-        row += 1
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=row, columnspan=5, sticky="EW", pady=(8, 3))
-        row += 1
-        self._image_2_chooser.render(row)
-        row += 1
-        self._protocol_2_chooser.render(row)
-        row += 1
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=row, columnspan=5, sticky="EW", pady=(8, 3))
-        row += 1
-        self._output_image_chooser.render(row)
-        row += 1
-        self._output_protocol_chooser.render(row)
-        row += 1
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=row, columnspan=5, sticky="EW", pady=(10, 3))
-        row += 1
-        self._concatenate_button.grid(row=row, sticky='W', pady=(10, 0))
+        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
+        
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(5, 3))
+        self._image_1_chooser.render(next_row())
+        self._protocol_1_chooser.render(next_row())
+        
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(8, 3))
+        self._image_2_chooser.render(next_row())
+        self._protocol_2_chooser.render(next_row())
+        
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(8, 3))
+        self._output_image_chooser.render(next_row())
+        self._output_protocol_chooser.render(next_row())
+        
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(10, 3))
+        self._concatenate_button.grid(row=next_row(), sticky='W', pady=(10, 0))
+
         return self._tab
 
-    def _onchange_concat(self, cb_name):
-        if (cb_name == 'image_1_chooser' or cb_name == 'image_2_chooser') \
+    def _onchange_cb(self, calling_widget, *args, **kwargs):
+        id_key = calling_widget.id_key
+
+        for ind in (1, 2):
+            if id_key == 'image_' + str(ind) + '_chooser':
+                if calling_widget.is_valid():
+                    folder, img_name, ext = split_image_path(calling_widget.get_value())
+
+                    possible_prtcl_path = os.path.join(folder, img_name + '.prtcl')
+                    if os.path.exists(possible_prtcl_path):
+                        prtcl_chooser = self.__getattribute__('_protocol_' + str(ind) + '_chooser')
+                        prtcl_chooser.initial_file = possible_prtcl_path
+
+        if (id_key == 'image_1_chooser' or id_key == 'image_2_chooser') \
                 and self._image_1_chooser.is_valid() and self._image_2_chooser.is_valid():
 
-            img1_name = os.path.splitext(self._image_1_chooser.get_value())[0]
-            img1_name = img1_name.replace('.nii', '')
+            path, img1_name = split_image_path(self._image_1_chooser.get_value())[0:2]
+            img2_name = split_image_path(self._image_2_chooser.get_value())[1]
 
-            img2_name = os.path.splitext(self._image_2_chooser.get_value())[0]
-            img2_name = os.path.basename(img2_name.replace('.nii', ''))
+            self._output_image_chooser.initial_file = os.path.join(path, img1_name + '_' + img2_name + '.nii.gz')
 
-            self._output_image_chooser.initial_file = img1_name + '_' + img2_name + '.nii.gz'
-
-        if (cb_name == 'protocol_1_chooser' or cb_name == 'protocol_2_chooser')\
+        if (id_key == 'protocol_1_chooser' or id_key == 'protocol_2_chooser')\
                 and self._protocol_1_chooser.is_valid() and self._protocol_2_chooser.is_valid():
 
             prtcl_1_name = os.path.splitext(self._protocol_1_chooser.get_value())[0]
@@ -1028,31 +1222,38 @@ class ConcatenateShellsTab(TabContainer):
 
             self._output_protocol_chooser.initial_file = prtcl_1_name + '_' + prtcl_2_name + '.prtcl'
 
-        all_valid = True
-        for field in self._validate_fields:
-            if not field.is_valid():
-                all_valid = False
-                break
-
+        all_valid = all(field.is_valid() for field in self._validate_fields)
         if all_valid:
             self._concatenate_button.config(state='normal')
         else:
             self._concatenate_button.config(state='disabled')
 
     def _apply_concatenate(self):
-        self._concatenate_button.config(state='disabled')
-        img1 = self._image_1_chooser.get_value()
-        img2 = self._image_2_chooser.get_value()
-        protocol1 = self._protocol_1_chooser.get_value()
-        protocol2 = self._protocol_2_chooser.get_value()
-        output_protocol = self._output_protocol_chooser.get_value()
-        output_img = self._output_image_chooser.get_value()
+        def concatenate_shells():
+            self._concatenate_button.config(state='disabled')
+            print('')
+            print('Started concatenating shells')
+            print('-' * 20)
+            print('please wait...')
 
-        items = ({'volume': img1, 'protocol': protocol1}, {'volume': img2, 'protocol': protocol2})
-        concatenate_mri_sets(items, output_img, output_protocol)
+            item1 = {'volume': self._image_1_chooser.get_value(),
+                     'protocol': self._protocol_1_chooser.get_value()}
 
-        tkMessageBox.showinfo('Action completed', 'The action has been completed.')
-        self._concatenate_button.config(state='normal')
+            item2 = {'volume': self._image_2_chooser.get_value(),
+                     'protocol': self._protocol_2_chooser.get_value()}
+
+            output_protocol = self._output_protocol_chooser.get_value()
+            output_img = self._output_image_chooser.get_value()
+
+            items = (item1, item2)
+            concatenate_mri_sets(items, output_img, output_protocol)
+
+            print('-' * 20)
+            print('Finished concatenating shells.')
+            self._concatenate_button.config(state='normal')
+
+        concatenate_thread = threading.Thread(target=concatenate_shells)
+        concatenate_thread.start()
 
 
 class ViewResultsTab(TabContainer):
@@ -1060,148 +1261,71 @@ class ViewResultsTab(TabContainer):
     def __init__(self, window):
         super(ViewResultsTab, self).__init__(window, 'View results')
 
-        self._dimensions = {}
-        self._dimension_shape = []
         self._parameter_files = {}
 
         self._input_dir = DirectoryBrowserWidget(
-            self._tab,
-            lambda trc1, trc2, trc3:
-            self._onchange_cb('input_dir_chooser'),
-            True,
-            'Select input folder: ',
-            '(Choose a result directory)')
-
-        self._roi_dimension_index = DropdownWidget(
-            self._tab,
-            lambda val: self._onchange_cb('roi_dimension_chooser'),
-            (),
-            '',
-            'Select dimension: ',
-            '(Select an input dir first)')
-
-        self._roi_slice_index = ListboxWidget(
-            self._tab,
-            lambda val: self._onchange_cb('roi_slice_chooser'),
-            (),
-            '',
-            BROWSE,
-            1,
-            'Select slice: ',
-            '(Select an input dir first)')
+            self._tab, 'input_dir_chooser', self._onchange_cb, True,
+            'Select input folder: ', '(Choose a directory containing .nii files)')
 
         self._maps_chooser = ListboxWidget(
-            self._tab,
-            lambda val: self._onchange_cb('maps_chooser'),
-            (),
-            '',
-            EXTENDED,
-            10,
-            'Select parameters: ',
-            '(Select the parameters\n you would like to display)')
+            self._tab, 'maps_chooser', self._onchange_cb, (), '', EXTENDED, 10, 'Select maps: ',
+            '(Select the maps you would like to display)')
 
-        self._validate_fields = [self._input_dir, self._roi_dimension_index, self._roi_slice_index]
-
+        self._validate_fields = [self._input_dir]
         self._view_slices_button = ttk.Button(self._tab, text='View', command=self._view_slices,
                                               state='disabled')
 
     def get_tab(self):
-        row = 0
+        next_row = IntegerGenerator()
+
         label = ttk.Label(self._tab, text="View results", font=(None, 14))
-        label.grid(row=row, column=0, columnspan=4, sticky=W)
-        row += 1
+        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
 
         label = ttk.Label(self._tab, text="View all maps in a given folder.",
                           font=(None, 9, 'italic'))
-        label.grid(row=row, column=0, columnspan=4, sticky=W)
-        row += 1
+        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
 
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=row, columnspan=5, sticky="EW", pady=(5, 3))
-        row += 1
-        self._input_dir.render(row)
-        row += 1
-        self._roi_dimension_index.render(row)
-        row += 1
-        self._roi_slice_index.render(row)
-        row += 1
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=row, columnspan=5, sticky="EW", pady=(8, 3))
-        row += 1
-        self._maps_chooser.render(row)
-        row += 1
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=row, columnspan=5, sticky="EW", pady=(10, 3))
-        row += 1
-        self._view_slices_button.grid(row=row, sticky='W', pady=(10, 0))
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(5, 3))
+        self._input_dir.render(next_row())
+
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(8, 3))
+        self._maps_chooser.render(next_row())
+
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(10, 3))
+        self._view_slices_button.grid(row=next_row(), sticky='W', pady=(10, 0))
+
         return self._tab
 
-    def _onchange_cb(self, cb_name):
-        if cb_name == 'input_dir_chooser':
-            folder = self._input_dir.get_value()
-            result_files = glob.glob(os.path.join(folder, '*.nii.gz')) + glob.glob(os.path.join(folder, '*.nii'))
+    def _onchange_cb(self, calling_widget, *args, **kwargs):
+        if calling_widget.id_key == 'input_dir_chooser':
+            folder = calling_widget.get_value()
+            result_files = glob.glob(os.path.join(folder, '*.nii*'))
 
-            a_file = None
-            self._parameter_files = {}
-            for f in result_files:
-                name = os.path.splitext(os.path.basename(f))[0]
-                name = name.replace('.nii', '')
-                self._parameter_files.update({name: name})
-                a_file = f
+            def get_name(img_path):
+                return split_image_path(os.path.basename(img_path))[1]
+            self._parameter_files = {get_name(f): get_name(f) for f in result_files}
 
             items_list = sorted(self._parameter_files.keys())
             selected_items = filter(lambda v: all(m not in v for m in ('eig', '.d', '.sigma')), items_list)
-            self._maps_chooser.set_items(sorted(self._parameter_files.keys()), default_items=selected_items)
 
-            if a_file:
-                data = nib.load(a_file)
-                shape = data.shape
-                if len(shape) > 3:
-                    shape = list(shape)
-                    del shape[-1]
+            self._maps_chooser.set_items(items_list, default_items=selected_items)
 
-                if self._dimension_shape != shape:
-                    self._dimension_shape = shape
-                    self._dimensions = {}
-                    items = []
-                    for i in range(len(shape)):
-                        items.append('{} ({} items)'.format(i, shape[i]))
-                        self._dimensions.update({'{} ({} items)'.format(i, shape[i]): i})
-                    self._roi_dimension_index.set_items(items, items[0])
-                    self._update_roi_slice_chooser()
-
-        elif cb_name == 'roi_dimension_chooser':
-            self._update_roi_slice_chooser()
-
-        all_valid = True
-        for field in self._validate_fields:
-            if not field.is_valid():
-                all_valid = False
-                break
-
+        all_valid = all(field.is_valid() for field in self._validate_fields)
         if all_valid:
             self._view_slices_button.config(state='normal')
         else:
             self._view_slices_button.config(state='disabled')
 
-    def _update_roi_slice_chooser(self):
-        dimension = self._dimensions[self._roi_dimension_index.get_value()]
-        length = self._dimension_shape[dimension]
-        self._roi_slice_index.set_items(range(length), int(length/2))
-
     def _view_slices(self):
-        slice_dimension = int(self._dimensions[self._roi_dimension_index.get_value()])
-        slice_index = int(self._roi_slice_index.get_value()[0])
-
-        params_list = []
-        selected_maps = self._maps_chooser.get_value()
-
-        if not selected_maps:
-            for key, value in self._parameter_files.items():
-                params_list.append(value)
-        else:
-            for ind in selected_maps:
-                params_list.append(self._parameter_files.get(ind))
-
         def results_slice_cb():
-            view_results_slice(self._input_dir.get_value(), slice_dimension, slice_index, maps_to_show=params_list)
+            selected_maps = self._maps_chooser.get_value()
+
+            if not selected_maps:
+                params_list = self._parameter_files.values()
+            else:
+                params_list = [self._parameter_files[ind] for ind in selected_maps]
+
+            view_results_slice(self._input_dir.get_value(), maps_to_show=params_list)
 
         view_process = multiprocessing.Process(target=results_slice_cb, args=())
         view_process.start()
@@ -1209,10 +1333,27 @@ class ViewResultsTab(TabContainer):
 
 class CompositeWidget(object):
 
-    def __init__(self, root_window, onchange_cb):
+    def __init__(self, root_window, id_key, onchange_cb):
         super(CompositeWidget, self).__init__()
+        self.id_key = id_key
         self._root_window = root_window
-        self._onchange_cb = onchange_cb
+        self._onchange_cb = self._get_cb_function(onchange_cb)
+
+    def _get_cb_function(self, onchange_cb):
+        """Generate the final callback function.
+
+        This wraps the given callback function in a new function that adds a reference to the calling composite widget
+        (this) as first argument to the callback.
+
+        Args:
+            onchange_cb: the user provided callback function
+
+        Returns:
+            a new callback function that adds this calling widget as first argument to the function
+        """
+        def extra_cb(*args, **kwargs):
+            onchange_cb(self, *args, **kwargs)
+        return extra_cb
 
     def is_valid(self):
         pass
@@ -1229,8 +1370,8 @@ class FileBrowserWidget(CompositeWidget):
     OPEN = 1
     SAVE = 2
 
-    def __init__(self, root_window, onchange_cb, file_types, label_text, helper_text, dialog_type=None):
-        super(FileBrowserWidget, self).__init__(root_window, onchange_cb)
+    def __init__(self, root_window, id_key, onchange_cb, file_types, label_text, helper_text, dialog_type=None):
+        super(FileBrowserWidget, self).__init__(root_window, id_key, onchange_cb)
 
         self._initial_file = None
 
@@ -1325,8 +1466,8 @@ class FileBrowserWidget(CompositeWidget):
 
 class DirectoryBrowserWidget(CompositeWidget):
 
-    def __init__(self, root_window, onchange_cb, must_exist, label_text, helper_text):
-        super(DirectoryBrowserWidget, self).__init__(root_window, onchange_cb)
+    def __init__(self, root_window, id_key, onchange_cb, must_exist, label_text, helper_text):
+        super(DirectoryBrowserWidget, self).__init__(root_window, id_key, onchange_cb)
 
         self._initial_dir = None
         self.must_exist = must_exist
@@ -1390,9 +1531,9 @@ class DirectoryBrowserWidget(CompositeWidget):
 
 class TextboxWidget(CompositeWidget):
 
-    def __init__(self, root_window, onchange_cb, label_text, helper_text, default_val='',
+    def __init__(self, root_window, id_key, onchange_cb, label_text, helper_text, default_val='',
                  required=False, state='normal'):
-        super(TextboxWidget, self).__init__(root_window, onchange_cb)
+        super(TextboxWidget, self).__init__(root_window, id_key, onchange_cb)
 
         self._required = required
 
@@ -1428,14 +1569,15 @@ class TextboxWidget(CompositeWidget):
 
 class DropdownWidget(CompositeWidget):
 
-    def __init__(self, root_window, onchange_cb, items, default_item, label_text, helper_text):
-        super(DropdownWidget, self).__init__(root_window, onchange_cb)
+    def __init__(self, root_window, id_key, onchange_cb, items, default_item, label_text, helper_text):
+        super(DropdownWidget, self).__init__(root_window, id_key, onchange_cb)
 
         self._label_text = label_text
         self._helper_text = helper_text
 
         self._chooser_var = StringVar(self._root_window)
-        self._chooser = ttk.OptionMenu(self._root_window, self._chooser_var, default_item, *items, command=onchange_cb)
+        self._chooser = ttk.OptionMenu(self._root_window, self._chooser_var, default_item, *items,
+                                       command=self._onchange_cb)
 
     def set_items(self, items, default_item):
         self._chooser_var.set('')
@@ -1464,8 +1606,8 @@ class DropdownWidget(CompositeWidget):
 
 class ListboxWidget(CompositeWidget):
 
-    def __init__(self, root_window, onchange_cb, items, default_item, selectmode, height, label_text, helper_text):
-        super(ListboxWidget, self).__init__(root_window, onchange_cb)
+    def __init__(self, root_window, id_key, onchange_cb, items, default_item, selectmode, height, label_text, helper_text):
+        super(ListboxWidget, self).__init__(root_window, id_key, onchange_cb)
 
         self._selectbox_height = height
         self._label_text = label_text
@@ -1476,7 +1618,7 @@ class ListboxWidget(CompositeWidget):
         self._scrollbar = ttk.Scrollbar(self._chooser_frame, orient=VERTICAL)
         self._chooser = Listbox(self._chooser_frame, selectmode=selectmode, exportselection=0,
                                 yscrollcommand=self._mouse_scroll_detect, height=height)
-        self._chooser.bind('<<ListboxSelect>>', onchange_cb)
+        self._chooser.bind('<<ListboxSelect>>', self._onchange_cb)
         self._scrollbar.config(command=self._scrolling)
 
         if items:
@@ -1538,17 +1680,17 @@ class ListboxWidget(CompositeWidget):
 
 class YesNonWidget(CompositeWidget):
 
-    def __init__(self, root_window, onchange_cb, label_text, helper_text, default_val=0):
-        super(YesNonWidget, self).__init__(root_window, onchange_cb)
+    def __init__(self, root_window, id_key, onchange_cb, label_text, helper_text, default_val=0):
+        super(YesNonWidget, self).__init__(root_window, id_key, onchange_cb)
 
         self._label_text = label_text
         self._helper_text = helper_text
 
         self._chooser_var = IntVar(self._root_window)
         self._yes = ttk.Radiobutton(self._root_window, text='Yes', variable=self._chooser_var,
-                                    value=1, command=onchange_cb)
+                                    value=1, command=self._onchange_cb)
         self._no = ttk.Radiobutton(self._root_window, text='No', variable=self._chooser_var,
-                                   value=0, command=onchange_cb)
+                                   value=0, command=self._onchange_cb)
         self._chooser_var.set(default_val)
 
     def is_valid(self):
@@ -1568,8 +1710,8 @@ class YesNonWidget(CompositeWidget):
 
 class SubWindowWidget(CompositeWidget):
 
-    def __init__(self, root_window, subwindow, label_text, helper_text):
-        super(SubWindowWidget, self).__init__(root_window, None)
+    def __init__(self, root_window, id_key, subwindow, label_text, helper_text):
+        super(SubWindowWidget, self).__init__(root_window, id_key, None)
         self._subwindow = subwindow
         self._label_text = label_text
         self._helper_text = helper_text
