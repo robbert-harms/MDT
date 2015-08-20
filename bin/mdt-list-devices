@@ -17,6 +17,6 @@ parser = get_arg_parser()
 args = parser.parse_args()
 
 for env in cl_environments.CLEnvironmentFactory.all_devices():
-    print(env)
+    print(repr(env))
     print("\n")
 
