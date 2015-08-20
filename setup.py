@@ -20,19 +20,6 @@ requirements_tests = load_requirements('requirements_tests.txt')
 ver_dic = {}
 exec(compile(version_file_contents, "mdt/__init__.py", 'exec'), ver_dic)
 
-
-def _post_install(directory):
-    from subprocess import call
-    print('Initializing mdt configuration directory, creating a backup of old settings if needed.')
-    call(['mdt-init-user-settings'])
-
-
-class CustomInstall(install):
-    def run(self):
-        install.run(self)
-        self.execute(_post_install, (self.install_lib,), msg="Running post install tasks.")
-
-
 setup(
     name='mdt',
     version=ver_dic["VERSION"],
@@ -65,6 +52,5 @@ setup(
     scripts=['bin/mdt-init-user-settings',
              'bin/mdt-list-devices',
              'bin/mdt-print-abstract-model-function',
-             'bin/mdt-tk'],
-    cmdclass={'install': CustomInstall}
+             'bin/mdt-tk']
 )
