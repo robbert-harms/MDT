@@ -74,17 +74,17 @@ class MapsVisualizer(object):
             maximize (boolean): if we want to display the window maximized or not
             window_title (str): the title of the window. If None, the default title is used
         """
-        if dimension:
+        if dimension is not None:
             self.dimension = dimension
         else:
             self.dimension = 2
 
-        if slice_ind:
+        if slice_ind is not None:
             self.slice_ind = slice_ind
         else:
             self.slice_ind = int(self._volumes_shape[self.dimension] / 2.0)
 
-        if volume_ind:
+        if volume_ind is not None:
             self.volume_ind = volume_ind
         if names:
             self.names = names

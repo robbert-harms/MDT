@@ -66,6 +66,19 @@ class OptimOptions(object):
         return MetaOptimizerBuilder(optimizer_config).construct()
 
 
+class ProtocolOptions(object):
+
+    def __init__(self):
+        """Simple container class for storing and passing protocol options."""
+        self.estimate_sequence_timings = False
+        self.maxG = 0.04
+        self.Delta = None
+        self.delta = None
+        self.TE = None
+
+        self.extra_column_names = ['Delta', 'delta', 'TE']
+
+
 def print_welcome_message():
     """Prints a small welcome message for after the GUI has loaded.
 
