@@ -58,7 +58,7 @@ class ToolkitGUIWindow(Tk):
         self.resizable(width=FALSE, height=FALSE)
         self.update_idletasks()
         width = 900
-        height = 700
+        height = 630
         x = (self.winfo_screenwidth() // 2) - (width // 2)
         y = (self.winfo_screenheight() // 2) - (height // 2)
         self.geometry('{}x{}+{}+{}'.format(width, height, x, y))
@@ -66,8 +66,10 @@ class ToolkitGUIWindow(Tk):
         notebook = MainNotebook(self)
         notebook.pack(fill=BOTH, expand=YES)
 
-        self._log_box = ScrolledText(self, wrap='none')
+        txt_frame = ttk.Frame(self)
+        self._log_box = ScrolledText(txt_frame, wrap='none')
         self._log_box.pack(fill=BOTH, expand=YES)
+        txt_frame.pack(fill=BOTH, expand=YES)
 
         stdout_old = sys.stdout
         stderr_old = sys.stderr
@@ -144,7 +146,7 @@ class TabContainer(object):
         self.window = window
         self.tab_name = tab_name
         self._tab = ttk.Frame()
-        self._tab.config(padding=(10, 13, 10, 10))
+        self._tab.config(padding=(10, 13, 10, 13))
         self._tab.grid_columnconfigure(3, weight=1)
 
     def get_tab(self):
@@ -260,11 +262,6 @@ class RunModelTab(TabContainer):
         self._model_select_fields = [self._model_select_chooser]
         self._required_fields = [self._image_vol_chooser, self._brain_mask_chooser, self._protocol_file_chooser]
         self._run_button = ttk.Button(self._tab, text='Run', command=self._run_model, state='disabled')
-
-        #todo remove
-        self._image_vol_chooser.initial_file = '/home/robbert/programming/python/phd-scripts/bin/dti_test/4Ddwi_b1000.nii.gz'
-        self._brain_mask_chooser.initial_file = '/home/robbert/programming/python/phd-scripts/bin/dti_test/4Ddwi_b1000_mask_2_25.nii.gz'
-        self._protocol_file_chooser.initial_file = '/home/robbert/programming/python/phd-scripts/bin/dti_test/4Ddwi_b1000.prtcl'
 
     def get_tab(self):
         next_row = IntegerGenerator()
@@ -831,6 +828,8 @@ class GenerateProtocolFileTab(TabContainer):
     def __init__(self, window):
         super(GenerateProtocolFileTab, self).__init__(window, 'Generate protocol file')
 
+        self._extra_options_window = ProtocolExtraOptionsWindow(self)
+
         self._bvec_chooser = FileBrowserWidget(
             self._tab,
             'bvec_chooser',
@@ -861,44 +860,15 @@ class GenerateProtocolFileTab(TabContainer):
             FileBrowserWidget.common_file_types('protocol_files'),
             'Select output (protocol) file: ', '(Default is <bvec_name>.prtcl)', dialog_type=FileBrowserWidget.SAVE)
 
-        self._estimate_timings = YesNonWidget(
+        self._extra_options_button = SubWindowWidget(
             self._tab,
-            'estimate_sequence_timing',
-            self._onchange_cb,
-            'Add sequence timings: ',
-            '(Guess the sequence timings\n (G, Delta, delta) from the b values)')
-
-        self._maxG_box = TextboxWidget(
-            self._tab,
-            'maxG_box',
-            self._onchange_cb,
-            'Max G: ', '(Specify the maximum gradient\n amplitude (mT/m))',
-            default_val='40', state='disabled')
-
-        self._Delta_box = TextboxWidget(
-            self._tab,
-            'Delta_box',
-            self._onchange_cb,
-            'Big Delta: ', '(Optionally, use this Delta\n for the sequence timings (ms))',
-            default_val='', state='disabled')
-
-        self._delta_box = TextboxWidget(
-            self._tab,
-            'delta_box',
-            self._onchange_cb,
-            'Small delta: ', '(Optionally, use this delta\n for the sequence timings (ms))',
-            default_val='', state='disabled')
-
-        self._te_box = TextboxWidget(
-            self._tab,
-            'te_box',
-            self._onchange_cb,
-            'TE: ', '(Optionally, use this TE\n for the echo time (ms))',
-            default_val='', state='disabled')
+            'extra_options_button',
+            self._extra_options_window,
+            'Extra options: ',
+            '(Add additional columns, some models need them)')
 
         self._to_protocol_items = (self._bvec_chooser, self._bval_chooser, self._bval_scale_box,
-                                   self._output_protocol_chooser, self._estimate_timings, self._maxG_box,
-                                   self._Delta_box, self._delta_box, self._te_box)
+                                   self._output_protocol_chooser)
 
         self._buttons_frame = ttk.Frame(self._tab)
         self._generate_prtcl_button = ttk.Button(self._buttons_frame, text='Generate protocol',
@@ -913,9 +883,18 @@ class GenerateProtocolFileTab(TabContainer):
         next_row = IntegerGenerator()
         label = ttk.Label(self._tab, text="Generate protocol file", font=(None, 14))
         label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
+
+        label = ttk.Label(self._tab, text="Create a protocol file containing all your sequence information.",
+                          font=(None, 9, 'italic'))
+        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
+
         ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(5, 3))
         for field in self._to_protocol_items:
             field.render(next_row())
+
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(8, 3))
+        self._extra_options_button.render(next_row())
+
         ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(10, 3))
         self._buttons_frame.grid(row=next_row(), sticky='W', columnspan=4, pady=(10, 0))
         return self._tab
@@ -938,19 +917,6 @@ class GenerateProtocolFileTab(TabContainer):
                 except ValueError:
                     self._bval_scale_box.set_value('1e6')
 
-        if id_key == 'estimate_sequence_timing':
-            estimate_st = calling_widget.get_value()
-            if estimate_st:
-                self._maxG_box.set_state('normal')
-                self._Delta_box.set_state('normal')
-                self._delta_box.set_state('normal')
-                self._te_box.set_state('normal')
-            else:
-                self._maxG_box.set_state('disabled')
-                self._Delta_box.set_state('disabled')
-                self._delta_box.set_state('disabled')
-                self._te_box.set_state('disabled')
-
         if self._output_protocol_chooser.is_valid():
             if os.path.isfile(calling_widget.get_value()):
                 self._view_results_button.config(state='normal')
@@ -971,21 +937,23 @@ class GenerateProtocolFileTab(TabContainer):
         bvec_fname = self._bvec_chooser.get_value()
         bval_fname = self._bval_chooser.get_value()
         output_fname = self._output_protocol_chooser.get_value()
-        estimate_st = self._estimate_timings.get_value()
         bval_scale = float(self._bval_scale_box.get_value())
 
         protocol = load_protocol_bval_bvec(bvec=bvec_fname, bval=bval_fname, bval_scale=bval_scale)
-        if estimate_st:
-            maxG = float(self._maxG_box.get_value()) / 1000.0
 
-            if self._te_box.get_value():
-                protocol.add_column('TE', float(self._te_box.get_value()) / 1000.0)
-            if self._Delta_box.get_value():
-                protocol.add_column('Delta', float(self._Delta_box.get_value()) / 1000.0)
-            if self._delta_box.get_value():
-                protocol.add_column('delta', float(self._delta_box.get_value()) / 1000.0)
 
-            protocol.add_estimated_protocol_params(maxG=maxG)
+        # estimate_st = self._estimate_timings.get_value()
+        # if estimate_st:
+        #     maxG = float(self._maxG_box.get_value()) / 1000.0
+        #
+        #     if self._te_box.get_value():
+        #         protocol.add_column('TE', float(self._te_box.get_value()) / 1000.0)
+        #     if self._Delta_box.get_value():
+        #         protocol.add_column('Delta', float(self._Delta_box.get_value()) / 1000.0)
+        #     if self._delta_box.get_value():
+        #         protocol.add_column('delta', float(self._delta_box.get_value()) / 1000.0)
+        #
+        #     protocol.add_estimated_protocol_params(maxG=maxG)
 
         mdt.protocols.write_protocol(protocol, output_fname)
 
@@ -1005,6 +973,104 @@ class GenerateProtocolFileTab(TabContainer):
 
     def _format_columns(self, table):
         return table.replace("\t", "\t" * 4)
+
+
+class ProtocolExtraOptionsWindow(SubWindow):
+
+    def __init__(self, parent):
+        super(ProtocolExtraOptionsWindow, self).__init__('Extra protocol options')
+        self._parent = parent
+
+    def render(self, window):
+        subframe = ttk.Frame(window)
+        subframe.config(padding=(10, 13, 10, 10))
+        subframe.grid_columnconfigure(3, weight=1)
+
+        self._seq_timing_fields = self._get_sequence_timing_fields(subframe)
+
+        button_frame = self._get_button_frame(subframe, window)
+
+        next_row = IntegerGenerator()
+        label = ttk.Label(subframe, text="Extra protocol options", font=(None, 14))
+        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
+
+        label = ttk.Label(subframe, text="Add extra columns to the generated protocol file.",
+                          font=(None, 9, 'italic'))
+        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
+
+        ttk.Separator(subframe, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(5, 3))
+        self._get_sequence_timing_switch(subframe).render(next_row())
+        for field in self._seq_timing_fields:
+            field.render(next_row())
+
+        ttk.Separator(subframe, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(5, 3))
+        button_frame.grid(row=next_row(), sticky='W', pady=(10, 0), columnspan=4)
+
+        subframe.pack(fill=BOTH, expand=YES)
+
+    def _get_sequence_timing_switch(self, frame):
+        self._estimate_timings = YesNonWidget(
+            frame,
+            'estimate_sequence_timing',
+            self._onchange_cb,
+            'Add sequence timings: ',
+            '(By default it will guess the sequence timings\n (G, Delta, delta) from the b values)')
+        return self._estimate_timings
+
+    def _get_sequence_timing_fields(self, frame):
+        self._maxG_box = TextboxWidget(
+            frame,
+            'maxG_box',
+            self._onchange_cb,
+            'Max G: ', '(Specify the maximum gradient\n amplitude (mT/m))',
+            default_val='40', state='disabled')
+
+        self._Delta_box = TextboxWidget(
+            frame,
+            'Delta_box',
+            self._onchange_cb,
+            'Big Delta: ', '(Optionally, use this Delta\n for the sequence timings (ms))',
+            default_val='', state='disabled')
+
+        self._delta_box = TextboxWidget(
+            frame,
+            'delta_box',
+            self._onchange_cb,
+            'Small delta: ', '(Optionally, use this delta\n for the sequence timings (ms))',
+            default_val='', state='disabled')
+
+        self._te_box = TextboxWidget(
+            frame,
+            'te_box',
+            self._onchange_cb,
+            'TE: ', '(Optionally, use this TE\n for the echo time (ms))',
+            default_val='', state='disabled')
+
+        return [self._maxG_box, self._Delta_box, self._delta_box, self._te_box]
+
+    def _get_button_frame(self, parent, window):
+        def accept():
+            window.destroy()
+
+        button_frame = ttk.Frame(parent)
+        ok_button = ttk.Button(button_frame, text='Accept', command=accept, state='normal')
+        cancel_button = ttk.Button(button_frame, text='Cancel', command=window.destroy, state='normal')
+        ok_button.grid(row=0)
+        cancel_button.grid(row=0, column=1, padx=(10, 0))
+
+        return button_frame
+
+    def _onchange_cb(self, calling_widget, *args, **kwargs):
+        id_key = calling_widget.id_key
+
+        if id_key == 'estimate_sequence_timing':
+            we_will_estimate_seq_timings = calling_widget.get_value()
+            if we_will_estimate_seq_timings:
+                for field in self._seq_timing_fields:
+                    field.set_state('normal')
+            else:
+                for field in self._seq_timing_fields:
+                    field.set_state('disabled')
 
 
 class ConcatenateShellsTab(TabContainer):
