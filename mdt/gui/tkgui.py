@@ -767,6 +767,15 @@ class GenerateROIMaskTab(TabContainer):
         self._init_path_chooser(self._output_roi_chooser, TabContainer.last_used_roi_mask)
         self._init_path_chooser(self._brain_mask_vol_chooser, TabContainer.last_used_mask)
 
+        if TabContainer.last_used_image_dimension:
+            if TabContainer.last_used_image_dimension in self._dimensions.values():
+                self._roi_dimension_index.set_value(TabContainer.last_used_image_dimension)
+
+        if TabContainer.last_used_image_slice_ind and self._dimensions:
+            if TabContainer.last_used_image_slice_ind < \
+                    self._dimension_shape[self._dimensions[self._roi_dimension_index.get_value()]]:
+                self._roi_slice_index.set_default_ind(TabContainer.last_used_image_slice_ind)
+
     def _onchange_cb(self, calling_widget, *args, **kwargs):
         id_key = calling_widget.id_key
         brain_mask_fname = self._brain_mask_vol_chooser.get_value()

@@ -310,6 +310,9 @@ class DropdownWidget(CompositeWidget):
             self._chooser['menu'].add_command(label=choice, command=func)
         self._chooser_var.set(default_item)
 
+    def set_value(self, value):
+        self._chooser_var.set(value)
+
     def is_valid(self):
         return True
 
@@ -363,6 +366,14 @@ class ListboxWidget(CompositeWidget):
         if default_items:
             for item in default_items:
                 self._chooser.selection_set(items.index(item))
+
+    def set_default_ind(self, default_items):
+        try:
+            for ind in default_items:
+                self._chooser.selection_set(ind)
+        except TypeError:
+            self._chooser.select_set(default_items)
+            self._chooser.see(default_items)
 
     def is_valid(self):
         selection = self._chooser.curselection()
