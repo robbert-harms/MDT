@@ -4,6 +4,7 @@ import Tkinter
 import copy
 from functools import wraps
 import glob
+from itertools import count
 import numbers
 import os
 import threading
@@ -19,7 +20,7 @@ import numpy as np
 import mdt
 from mdt.gui.tk.widgets import ScrolledText, FileBrowserWidget, DirectoryBrowserWidget, TextboxWidget, DropdownWidget, \
     ListboxWidget, YesNonWidget, SubWindowWidget
-from mdt.gui.utils import print_welcome_message, update_user_settings, IntegerGenerator, OptimOptions, \
+from mdt.gui.utils import print_welcome_message, update_user_settings, OptimOptions, \
     ProtocolOptions
 from mdt.utils import split_image_path
 from mdt.log_handlers import LogListenerInterface, LogDispatchHandler
@@ -269,28 +270,28 @@ class RunModelTab(TabContainer):
         self._run_button = ttk.Button(self._tab, text='Run', command=self._run_model, state='disabled')
 
     def get_tab(self):
-        next_row = IntegerGenerator()
+        row_nmr = count()
 
         label = ttk.Label(self._tab, text="Run model", font=(None, 14))
-        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
+        label.grid(row=next(row_nmr), column=0, columnspan=4, sticky=W)
 
         label = ttk.Label(self._tab, text="Optimize a model to your data.",
                           font=(None, 9, 'italic'))
-        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
+        label.grid(row=next(row_nmr), column=0, columnspan=4, sticky=W)
 
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(5, 3))
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(5, 3))
         for field in self._io_fields:
-            field.render(next_row())
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(8, 3))
+            field.render(next(row_nmr))
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(8, 3))
 
         for field in self._model_select_fields:
-            field.render(next_row())
+            field.render(next(row_nmr))
 
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(8, 3))
-        self._optim_options_button.render(next_row())
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(8, 3))
+        self._optim_options_button.render(next(row_nmr))
 
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(8, 3))
-        self._run_button.grid(row=next_row(), sticky='W', pady=(10, 0))
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(8, 3))
+        self._run_button.grid(row=next(row_nmr), sticky='W', pady=(10, 0))
 
         return self._tab
 
@@ -465,20 +466,20 @@ class OptimOptionsWindow(SubWindow):
 
         button_frame = self._get_button_frame(subframe, window)
 
-        next_row = IntegerGenerator()
+        row_nmr = count()
         label = ttk.Label(subframe, text="Optimization options", font=(None, 14))
-        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
+        label.grid(row=next(row_nmr), column=0, columnspan=4, sticky=W)
 
         label = ttk.Label(subframe, text="Options for the optimization routines, these are advanced settings.",
                           font=(None, 9, 'italic'))
-        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
+        label.grid(row=next(row_nmr), column=0, columnspan=4, sticky=W)
 
-        ttk.Separator(subframe, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(5, 3))
+        ttk.Separator(subframe, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(5, 3))
         for field in fields:
-            field.render(next_row())
+            field.render(next(row_nmr))
 
-        ttk.Separator(subframe, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(5, 3))
-        button_frame.grid(row=next_row(), sticky='W', pady=(10, 0), columnspan=4)
+        ttk.Separator(subframe, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(5, 3))
+        button_frame.grid(row=next(row_nmr), sticky='W', pady=(10, 0), columnspan=4)
 
         subframe.pack(fill=BOTH, expand=YES)
 
@@ -601,23 +602,23 @@ class GenerateBrainMaskTab(TabContainer):
         self._view_brain_mask_button.grid(row=0, column=1, padx=(10, 0))
 
     def get_tab(self):
-        next_row = IntegerGenerator()
+        row_nmr = count()
 
         label = ttk.Label(self._tab, text="Generate brain mask", font=(None, 14))
-        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
+        label.grid(row=next(row_nmr), column=0, columnspan=4, sticky=W)
 
         label = ttk.Label(self._tab, text="Creates a mask for a whole brain using the median-otsu algorithm.",
                           font=(None, 9, 'italic'))
-        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
+        label.grid(row=next(row_nmr), column=0, columnspan=4, sticky=W)
         
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(5, 3))
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(5, 3))
         
         for field in self._mask_items:
-            field.render(next_row())
+            field.render(next(row_nmr))
             
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(5, 3))
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(5, 3))
         
-        self._whole_mask_buttons_frame.grid(row=next_row(), sticky='W', pady=(10, 0), columnspan=4)
+        self._whole_mask_buttons_frame.grid(row=next(row_nmr), sticky='W', pady=(10, 0), columnspan=4)
         return self._tab
 
     def tab_selected(self):
@@ -744,24 +745,24 @@ class GenerateROIMaskTab(TabContainer):
         self._run_slice_roi_button.grid(row=0)
 
     def get_tab(self):
-        next_row = IntegerGenerator()
+        row_nmr = count()
 
         label = ttk.Label(self._tab, text="Generate ROI mask", font=(None, 14))
-        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
+        label.grid(row=next(row_nmr), column=0, columnspan=4, sticky=W)
         
         label = ttk.Label(self._tab, text="Create a brain mask with a Region Of Interest "
                                           "that only includes the voxels in the selected slice. ",
                           font=(None, 9, 'italic'))
-        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
+        label.grid(row=next(row_nmr), column=0, columnspan=4, sticky=W)
         
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(5, 3))
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(5, 3))
         
         for field in self._roi_items:
-            field.render(next_row())
+            field.render(next(row_nmr))
             
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(10, 3))
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(10, 3))
         
-        self._buttons_frame.grid(row=next_row(), sticky='W', pady=(10, 0), columnspan=4)
+        self._buttons_frame.grid(row=next(row_nmr), sticky='W', pady=(10, 0), columnspan=4)
         return self._tab
 
     def tab_selected(self):
@@ -898,23 +899,23 @@ class GenerateProtocolFileTab(TabContainer):
         self._view_results_button.grid(row=0, column=1, padx=(10, 0))
 
     def get_tab(self):
-        next_row = IntegerGenerator()
+        row_nmr = count()
         label = ttk.Label(self._tab, text="Generate protocol file", font=(None, 14))
-        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
+        label.grid(row=next(row_nmr), column=0, columnspan=4, sticky=W)
 
         label = ttk.Label(self._tab, text="Create a protocol file containing all your sequence information.",
                           font=(None, 9, 'italic'))
-        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
+        label.grid(row=next(row_nmr), column=0, columnspan=4, sticky=W)
 
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(5, 3))
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(5, 3))
         for field in self._to_protocol_items:
-            field.render(next_row())
+            field.render(next(row_nmr))
 
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(8, 3))
-        self._extra_options_button.render(next_row())
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(8, 3))
+        self._extra_options_button.render(next(row_nmr))
 
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(10, 3))
-        self._buttons_frame.grid(row=next_row(), sticky='W', columnspan=4, pady=(10, 0))
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(10, 3))
+        self._buttons_frame.grid(row=next(row_nmr), sticky='W', columnspan=4, pady=(10, 0))
         return self._tab
 
     def _onchange_cb(self, calling_widget, *args, **kwargs):
@@ -1012,21 +1013,21 @@ class ProtocolExtraOptionsWindow(SubWindow):
 
         button_frame = self._get_button_frame(subframe, window)
 
-        next_row = IntegerGenerator()
+        row_nmr = count()
         label = ttk.Label(subframe, text="Extra protocol options", font=(None, 14))
-        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
+        label.grid(row=next(row_nmr), column=0, columnspan=4, sticky=W)
 
         label = ttk.Label(subframe, text="Add extra columns to the generated protocol file.",
                           font=(None, 9, 'italic'))
-        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
+        label.grid(row=next(row_nmr), column=0, columnspan=4, sticky=W)
 
-        ttk.Separator(subframe, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(5, 3))
-        self._get_sequence_timing_switch(subframe).render(next_row())
+        ttk.Separator(subframe, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(5, 3))
+        self._get_sequence_timing_switch(subframe).render(next(row_nmr))
         for field in self._seq_timing_fields:
-            field.render(next_row())
+            field.render(next(row_nmr))
 
-        ttk.Separator(subframe, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(5, 3))
-        button_frame.grid(row=next_row(), sticky='W', pady=(10, 0), columnspan=4)
+        ttk.Separator(subframe, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(5, 3))
+        button_frame.grid(row=next(row_nmr), sticky='W', pady=(10, 0), columnspan=4)
 
         subframe.pack(fill=BOTH, expand=YES)
 
@@ -1164,29 +1165,29 @@ class ConcatenateShellsTab(TabContainer):
                                               state='disabled')
 
     def get_tab(self):
-        next_row = IntegerGenerator()
+        row_nmr = count()
         
         label = ttk.Label(self._tab, text="Concatenate shells", font=(None, 14))
-        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
+        label.grid(row=next(row_nmr), column=0, columnspan=4, sticky=W)
         
         label = ttk.Label(self._tab, text="Concatenate multiple aligned 4d image series of the same subject. ",
                           font=(None, 9, 'italic'))
-        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
+        label.grid(row=next(row_nmr), column=0, columnspan=4, sticky=W)
         
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(5, 3))
-        self._image_1_chooser.render(next_row())
-        self._protocol_1_chooser.render(next_row())
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(5, 3))
+        self._image_1_chooser.render(next(row_nmr))
+        self._protocol_1_chooser.render(next(row_nmr))
         
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(8, 3))
-        self._image_2_chooser.render(next_row())
-        self._protocol_2_chooser.render(next_row())
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(8, 3))
+        self._image_2_chooser.render(next(row_nmr))
+        self._protocol_2_chooser.render(next(row_nmr))
         
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(8, 3))
-        self._output_image_chooser.render(next_row())
-        self._output_protocol_chooser.render(next_row())
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(8, 3))
+        self._output_image_chooser.render(next(row_nmr))
+        self._output_protocol_chooser.render(next(row_nmr))
         
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(10, 3))
-        self._concatenate_button.grid(row=next_row(), sticky='W', pady=(10, 0))
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(10, 3))
+        self._concatenate_button.grid(row=next(row_nmr), sticky='W', pady=(10, 0))
 
         return self._tab
 
@@ -1271,23 +1272,23 @@ class ViewResultsTab(TabContainer):
                                               state='disabled')
 
     def get_tab(self):
-        next_row = IntegerGenerator()
+        row_nmr = count()
 
         label = ttk.Label(self._tab, text="View results", font=(None, 14))
-        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
+        label.grid(row=next(row_nmr), column=0, columnspan=4, sticky=W)
 
         label = ttk.Label(self._tab, text="View all maps in a given folder.",
                           font=(None, 9, 'italic'))
-        label.grid(row=next_row(), column=0, columnspan=4, sticky=W)
+        label.grid(row=next(row_nmr), column=0, columnspan=4, sticky=W)
 
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(5, 3))
-        self._input_dir.render(next_row())
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(5, 3))
+        self._input_dir.render(next(row_nmr))
 
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(8, 3))
-        self._maps_chooser.render(next_row())
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(8, 3))
+        self._maps_chooser.render(next(row_nmr))
 
-        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next_row(), columnspan=5, sticky="EW", pady=(10, 3))
-        self._view_slices_button.grid(row=next_row(), sticky='W', pady=(10, 0))
+        ttk.Separator(self._tab, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(10, 3))
+        self._view_slices_button.grid(row=next(row_nmr), sticky='W', pady=(10, 0))
 
         return self._tab
 
