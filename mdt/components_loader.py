@@ -41,7 +41,7 @@ class ComponentsLoader(object):
             component_type (str): the type of component we wish to load
         """
         self.component_type = component_type
-        self._mot_source = PPPESourceSingle(component_type)
+        self._mot_source = MOTSourceSingle(component_type)
         self._users_source = UserComponentsSourceSingle(component_type)
 
     def list_all(self):
@@ -143,7 +143,7 @@ class ComponentsLoaderMulti(ComponentsLoader):
 
     def __init__(self, component_type):
         super(ComponentsLoaderMulti, self).__init__(component_type)
-        self._mot_source = PPPESourceMulti(self.component_type)
+        self._mot_source = MOTSourceMulti(self.component_type)
         self._users_source = UserComponentsSourceMulti(self.component_type)
 
 
@@ -278,10 +278,10 @@ class UserComponentsSourceMulti(ComponentsSourceMulti):
         return []
 
 
-class PPPESourceSingle(ComponentsSource):
+class MOTSourceSingle(ComponentsSource):
 
     def __init__(self, component_type):
-        super(PPPESourceSingle, self).__init__()
+        super(MOTSourceSingle, self).__init__()
         self.component_type = component_type
 
     def list(self):
@@ -302,10 +302,10 @@ class PPPESourceSingle(ComponentsSource):
         return {}
 
 
-class PPPESourceMulti(ComponentsSource):
+class MOTSourceMulti(ComponentsSource):
 
     def __init__(self, component_type):
-        super(PPPESourceMulti, self).__init__()
+        super(MOTSourceMulti, self).__init__()
         self.component_type = component_type
 
     def list(self):

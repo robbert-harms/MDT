@@ -12,7 +12,8 @@ from mdt import configuration
 from mdt.IO import Nifti
 from mdt.utils import create_roi, configure_per_model_logging, restore_volumes, recursive_merge_dict, \
     load_problem_data, ProtocolProblemError, MetaOptimizerBuilder, get_cl_devices, \
-    get_model_config, apply_model_protocol_options, model_output_exists, get_batch_profile
+    get_model_config, apply_model_protocol_options, model_output_exists, split_image_path
+from mdt.batch_utils import batch_profile_factory
 from mdt.masking import create_write_median_otsu_brain_mask
 from mot import runtime_configuration
 
@@ -24,7 +25,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class BatchFitting(object):
 
-    def __init__(self, data_folder, batch_profile=None, subjects=None, recalculate=False, cl_device_ind=None):
+    def __init__(self, data_folder, batch_profile_class=None, subjects_ind=None, recalculate=False, cl_device_ind=None):
         """This class is meant to make running computations as simple as possible.
 
         The idea is that a single folder is enough to fit_model the computations.
@@ -39,13 +40,13 @@ class BatchFitting(object):
             1) options from the batch profile
 
         Setting the cl_device_ind has the side effect that it changes the current run time cl_device settings in the
-        PPPE toolkit.
+        MOT toolkit.
 
         Args:
             data_folder (str): the main directory to look for items to process.
-            batch_profile (SubjectCrawler or str): the subjects crawler to use to get all the subjects, can
-                also be the name of the subject crawler to load from the users folder.
-            subjects (list of int): either a list of subjects to process or the index of a single subject to process.
+            batch_profile (BatchProfile class or str): the batch profile to instantiate or the name of a batch
+                profile to load from the users folder.
+            subjects_ind (list of int): either a list of subjects to process or the index of a single subject to process.
                 This indexes the list of subjects returned by the batch profile.
             recalculate (boolean): If we want to recalculate the results if they are already present.
             cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
@@ -54,9 +55,8 @@ class BatchFitting(object):
         self._data_folder = data_folder
         self._config = configuration.config['batch_fitting']
         self._logger = logging.getLogger(__name__)
-        self._batch_profile = get_batch_profile(batch_profile, self._data_folder)
+        self._batch_profile = batch_profile_factory(batch_profile_class, self._data_folder)
         self._cl_device_ind = cl_device_ind
-        self._subjects = subjects
         self._recalculate = recalculate
 
         if self._batch_profile is None:
@@ -66,9 +66,9 @@ class BatchFitting(object):
         self._config = recursive_merge_dict(self._config, self._batch_profile.get_batch_fit_config_options())
 
         self._logger.info('Using batch profile: {0}'.format(self._batch_profile))
-        self._subjects = self._get_subjects()
+        self._subjects = self._get_subjects(subjects_ind)
 
-        self._logger.info('Subjects found: {0}'.format(self._batch_profile.get_subjects_count(self._data_folder)))
+        self._logger.info('Subjects found: {0}'.format(self._batch_profile.get_subjects_count()))
 
         if self._cl_device_ind is not None:
             runtime_configuration.runtime_config['cl_environments'] = [get_cl_devices()[self._cl_device_ind]]
@@ -80,10 +80,9 @@ class BatchFitting(object):
         that limits the amount of subjects we will run.
 
         Returns:
-            A listing of all the found subjects from the batch profile. This will look like:
-                [('<subject_name>', {<info dict>}), (...), ...]
+            list of utils.BatchSubjectInfo: information about all available subjects
         """
-        return self._batch_profile.get_subjects(self._data_folder)
+        return self._batch_profile.get_subjects()
 
     def get_subjects_info(self):
         """Get a dictionary with the info of the subject we will run computations on.
@@ -91,8 +90,7 @@ class BatchFitting(object):
         This will return information about only the subjects that we will use in the batch fitting.
 
         Returns:
-            A listing of all the found subjects from the batch profile. This will look like:
-                [('<subject_name>', {<info dict>}), (...), ...]
+            list of utils.BatchSubjectInfo: information about all subjects we will use
         """
         return self._subjects
 
@@ -100,22 +98,22 @@ class BatchFitting(object):
         """Run the computations on the current dir with all the configured options. """
         self._logger.info('Running computations on {0} subjects'.format(len(self._subjects)))
 
-        batch_items = [{'subject': s,
-                        'output_dir': self._batch_profile.get_output_directory(self._data_folder, s[0])}
-                       for s in self._subjects]
+        batch_items = [{'subject': subject_info,
+                        'output_dir': self._batch_profile.get_output_directory(subject_info.subject_id)}
+                       for subject_info in self._subjects]
 
         run_func = _BatchFitRunner(self._config, self._recalculate, self._cl_device_ind)
         map(run_func, batch_items)
 
         return self._subjects
 
-    def _get_subjects(self):
-        subjects = self._batch_profile.get_subjects(self._data_folder)
-        if self._subjects is not None:
-            if hasattr(self._subjects, '__iter__'):
-                subjects_selection = self._subjects
+    def _get_subjects(self, subjects_ind):
+        subjects = self._batch_profile.get_subjects()
+        if subjects_ind is not None:
+            if hasattr(subjects_ind, '__iter__'):
+                subjects_selection = subjects_ind
             else:
-                subjects_selection = [self._subjects]
+                subjects_selection = [subjects_ind]
 
             returned_subjects = []
             for subject_ind in subjects_selection:
@@ -145,29 +143,31 @@ class _BatchFitRunner(object):
         """
         logger = logging.getLogger(__name__)
 
-        subject = batch_instance['subject']
+        subject_info = batch_instance['subject']
         output_dir = batch_instance['output_dir']
 
-        protocol = self._get_protocol(subject[0], subject[1])
-        brain_mask = self._get_mask(subject[0], subject[1], protocol, output_dir)
+        protocol = self._get_protocol(subject_info.subject_id, subject_info.found_items)
+        brain_mask = self._get_mask(subject_info.subject_id, subject_info.found_items, protocol, output_dir)
 
-        if all(model_output_exists(model, os.path.join(output_dir, self._get_basename(brain_mask)))
+        model_output_exists('BallStick (Cascade)', os.path.join(output_dir, split_image_path(brain_mask)[1]))
+
+        if all(model_output_exists(model, os.path.join(output_dir, split_image_path(brain_mask)[1]))
                for model in self._batch_fitting_config['models']):
-            logger.info('Skipping subject {0}, output exists'.format(subject[0]))
+            logger.info('Skipping subject {0}, output exists'.format(subject_info.subject_id))
             return
 
-        logger.info('Loading the data (DWI, mask and protocol) of subject {0}'.format(subject[0]))
-        problem_data = load_problem_data(subject[1]['dwi'], protocol, brain_mask)
+        logger.info('Loading the data (DWI, mask and protocol) of subject {0}'.format(subject_info.subject_id))
+        problem_data = load_problem_data(subject_info.found_items['dwi'], protocol, brain_mask)
 
         write_protocol(protocol, os.path.join(output_dir, 'auto_generated_protocol.prtcl'))
 
         start_time = timeit.default_timer()
         for model in self._batch_fitting_config['models']:
-            logger.info('Going to fit model {0} on subject {1}'.format(model, subject[0]))
+            logger.info('Going to fit model {0} on subject {1}'.format(model, subject_info.subject_id))
             try:
                 model_fit = ModelFit(model,
                                      problem_data,
-                                     os.path.join(output_dir, self._get_basename(brain_mask)),
+                                     os.path.join(output_dir, split_image_path(brain_mask)[1]),
                                      recalculate=self._recalculate,
                                      only_recalculate_last=False,
                                      model_protocol_options=self._batch_fitting_config['model_protocol_options'],
@@ -175,22 +175,15 @@ class _BatchFitRunner(object):
                 model_fit.run()
             except ProtocolProblemError as ex:
                 logger.info('Could not fit model {0} on subject {1} '
-                            'due to protocol problems. {2}'.format(model, subject[0], ex))
+                            'due to protocol problems. {2}'.format(model, subject_info.subject_id, ex))
             else:
-                logger.info('Done fitting model {0} on subject {1}'.format(model, subject[0]))
+                logger.info('Done fitting model {0} on subject {1}'.format(model, subject_info.subject_id))
         logger.info('Fitted all models on subject {0} in time {1} (h:m:s)'.format(
-            subject[0], time.strftime('%H:%M:%S', time.gmtime(timeit.default_timer() - start_time))))
-
-    def _get_basename(self, f):
-        """Get the basename of a file. That is, the name of the files with all extensions stripped."""
-        bn = os.path.basename(f)
-        bn = bn.replace('.nii.gz', '')
-        exts = os.path.splitext(bn)
-        if len(exts) > 0:
-            return exts[0]
-        return bn
+            subject_info.subject_id, time.strftime('%H:%M:%S', time.gmtime(timeit.default_timer() - start_time))))
 
     def _get_mask(self, subject_id, subject_info, protocol, output_dir):
+        #todo move to batch profile class
+
         """Helper function for _batch_fit_run()
 
         Args:
@@ -216,6 +209,7 @@ class _BatchFitRunner(object):
             return output_fname
 
     def _get_protocol(self, subject_id, subject_info):
+        #todo move to batch profile class
         """Helper function for _batch_fit_run()
 
         Args:

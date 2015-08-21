@@ -68,7 +68,7 @@ def get_charmed(nmr_restr=3):
             for m in range(1, nmr_restr):
                 fr += d['w_res' + repr(m) + '.w']
             return fr
-        modifiers = [('FR.fr', calculate_fr)]
+        modifiers = [('FR', calculate_fr)]
         model.add_post_optimization_modifiers(modifiers)
 
         return model

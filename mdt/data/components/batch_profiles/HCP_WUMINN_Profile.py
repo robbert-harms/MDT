@@ -1,7 +1,7 @@
 import glob
 import os
 import mdt
-from mdt.utils import SimpleBatchProfile
+from mdt.batch_utils import BatchSubjectInfo, SimpleBatchProfile
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-07-13"
@@ -34,16 +34,16 @@ class HCP_WUMINN_Profile(SimpleBatchProfile):
         return {'protocol': {'extra_columns': {'TE': 0.0895},
                              'max_G': 0.1}}
 
-    def get_output_directory(self, root_dir, subject_id):
-        return os.path.join(root_dir, subject_id, 'T1w', 'Diffusion', 'output')
+    def get_output_directory(self, subject_id):
+        return os.path.join(self._root_dir, subject_id, 'T1w', 'Diffusion', 'output')
 
-    def _get_subjects(self, root_dir):
-        dirs = sorted([os.path.basename(f) for f in glob.glob(os.path.join(root_dir, '*'))])
+    def _get_subjects(self):
+        dirs = sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._root_dir, '*'))])
         subjects = []
         for d in dirs:
             info = {}
 
-            pjoin = mdt.make_path_joiner(root_dir, d, 'T1w', 'Diffusion')
+            pjoin = mdt.make_path_joiner(self._root_dir, d, 'T1w', 'Diffusion')
             if os.path.isdir(pjoin()):
                 if glob.glob(pjoin('data.nii*')):
                     info['dwi'] = glob.glob(pjoin('data.nii*'))[0]
@@ -67,8 +67,8 @@ class HCP_WUMINN_Profile(SimpleBatchProfile):
                     info['mask'] = glob.glob(pjoin('nodif_brain_mask.nii*'))[0]
 
             if 'dwi' in info and (('bval' in info and 'bvec' in info) or 'prtcl' in info):
-                subjects.append((d, info))
+                subjects.append(BatchSubjectInfo(d, info))
         return subjects
 
-    def __repr__(self):
+    def __str__(self):
         return meta_info['title']

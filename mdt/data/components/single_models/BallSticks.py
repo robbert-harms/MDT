@@ -55,7 +55,7 @@ def get_ball_sticks(nmr_sticks=1, invivo=True):
     def model_construction_cb(evaluation_model=GaussianEvaluationModel().fix('sigma', math.sqrt(0.5)),
                               signal_noise_model=None):
         model = DMRICompositeSampleModel(name, CompartmentModelTree(ml), evaluation_model, signal_noise_model)
-        modifiers = [('FR.fr', lambda results: 1 - results['Wball.w'])]
+        modifiers = [('SNIF', lambda results: 1 - results['Wball.w'])]
         model.add_post_optimization_modifiers(modifiers)
         return model
 

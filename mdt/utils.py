@@ -8,14 +8,12 @@ import os
 import collections
 import shutil
 import time
-
 from six import string_types
 import numpy as np
 import nibabel as nib
 import pkg_resources
 from scipy.special import jnp_zeros
-
-from mdt.components_loader import BatchProfilesLoader, get_model
+from mdt.components_loader import get_model
 from mdt.log_handlers import ModelOutputLogHandler
 from mdt.protocols import load_from_protocol
 from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
@@ -244,180 +242,6 @@ class NamedProtocolProblem(ModelProtocolProblem):
 
     def merge(self, other_problem):
         raise ValueError("This class does not support merging.")
-
-
-class BatchProfile(object):
-
-    def get_batch_fit_config_options(self):
-        """Get the specific options from this batch fitting profile that will override the default config options.
-
-        This should only return the content of the base config setting 'batch_fitting'.
-
-        See the BatchFitting class for the resolution order of the config files.
-        """
-
-    def get_output_directory(self, root_dir, subject_id):
-        """Get the output directory for the subject with the given subject id.
-
-        Args:
-            subject_id (str): the subject id for which to get the output directory.
-
-        """
-
-    def get_subjects(self, root_dir):
-        """Get the information about all the subjects in the given folder given the root directory.
-
-        Args:
-            root_dir (str): the root directory from which to return all the subjects
-
-        Returns:
-            dict: a dictionary with as keys 'dwi', 'bval', 'bvec', 'prtcl' and 'mask'.
-                Either prtcl of bval and bvec files must be present. mask can always be None
-        """
-
-    def profile_suitable(self, root_dir):
-        """Check if this directory can be used to load subjects from using this batch fitting profile.
-
-        This is used for auto detecting the best batch fitting profile to use for loading
-        subjects from the given root dir.
-
-        Args:
-            root_dir (str): the root directory to check if it is usable
-
-        Returns:
-            boolean: true if this batch fitting profile can load datasets from this root directory, false otherwise.
-        """
-
-    def get_subjects_count(self, root_dir):
-        """Get the number of subjects this batch fitting profile can load from the given root directory.
-
-        Args:
-            root_dir (str): the root directory to check if it is usable
-
-        Returns:
-            int: the number of subjects this batch fitting profile can load from the given directory.
-        """
-
-
-class SimpleBatchProfile(BatchProfile):
-
-    def get_batch_fit_config_options(self):
-        return {}
-
-    def get_output_directory(self, root_dir, subject_id):
-        return os.path.join(root_dir, subject_id, 'output')
-
-    def get_subjects(self, root_dir):
-        return self._get_subjects(root_dir)
-
-    def profile_suitable(self, root_dir):
-        return len(self._get_subjects(root_dir)) > 0
-
-    def get_subjects_count(self, root_dir):
-        return len(self._get_subjects(root_dir))
-
-    def _get_subjects(self, root_dir):
-        """Get the all the matching subjects from the given root dir.
-
-        Args:
-            root_dir (str): the root directory from which to return all the subjects
-
-        Returns:
-            list of list: A list of subjects with as first element the subject name and as second the a dictionary with
-                as keys 'dwi', 'bval', 'bvec', 'prtcl' and 'mask'.
-                Please note, either prtcl or bval and bvec files must be present. The mask can always be None
-        """
-        return []
-
-    def _get_basename(self, file):
-        """Get the basename of a file. That is, the name of the files with all extensions stripped."""
-        bn = os.path.basename(file)
-        bn = bn.replace('.nii.gz', '')
-        exts = os.path.splitext(bn)
-        if len(exts) > 0:
-            return exts[0]
-        return bn
-
-
-class BatchFitOutputInfo(object):
-
-    def __init__(self, data_folder, batch_profile=None):
-        """Single point of information about batch fitting output.
-
-        Args:
-            data_folder (str): The data folder with the output files
-            batch_profile (BatchProfile or str): the batch profile to use, can also be the name of a batch profile to load.
-                If not given it is auto detected.
-        """
-        self._data_folder = data_folder
-        self._batch_profile = get_batch_profile(batch_profile, data_folder)
-        self._subjects = self._batch_profile.get_subjects(data_folder)
-        self._subjects_dirs = {s_id: self._batch_profile.get_output_directory(data_folder, s_id)
-                               for s_id,_ in self._subjects}
-        self._mask_paths = {}
-
-    def get_available_masks(self):
-        """Searches all the subjects and lists the unique available masks.
-
-        Returns:
-            list: the list of the available maps. Not all subjects may have the available mask.
-        """
-        s = set()
-        for subject_id, path in self._subjects_dirs.items():
-            masks = (p for p in os.listdir(path) if os.path.isdir(os.path.join(path, p)))
-            map(s.add, masks)
-        return list(sorted(list(s)))
-
-    def get_path_to_mask_per_subject(self, mask_name, error_on_missing_mask=False):
-        """Get for every subject the path to the given mask name.
-
-        If a subject does not have that mask_name it is either skipped or an error is raised, depending on the setting
-        error_on_missing_mask.
-
-        Args:
-            mask_name (str): the name of the mask we return the path to per subject
-            error_on_missing_mask (boolean): if we don't have the mask for one subject should we raise an error or skip
-                the subject?
-
-        Returns:
-            dict: per subject ID the path to the mask
-        """
-        if mask_name in self._mask_paths:
-            return self._mask_paths[mask_name]
-
-        paths = {}
-        for subject_id, path in self._subjects_dirs.items():
-            mask_dir = os.path.join(path, mask_name)
-            if os.path.isdir(mask_dir):
-                paths.update({subject_id: mask_dir})
-            else:
-                if error_on_missing_mask:
-                    raise ValueError('Missing the choosen mask "{0}" for subject "{1} '
-                                     'and error_on_missing_mask is True"'.format(mask_name, subject_id))
-
-        self._mask_paths.update({mask_name: paths})
-        return paths
-
-    def subject_model_path_generator(self, mask_name, error_on_missing_mask=False):
-        """Generates for every subject the path to the models for the given mask name.
-
-        If a subject does not have that mask_name it is either skipped or an error is raised, depending on the setting
-        error_on_missing_mask.
-
-        Args:
-            mask_name (str): the name of the mask we return the path to per subject
-            error_on_missing_mask (boolean): if we don't have the mask for one subject should we raise an error or skip
-                the subject?
-
-        Returns:
-            generator: per subject a tuple: (subject_id, path)
-        """
-        mask_paths = self.get_path_to_mask_per_subject(mask_name, error_on_missing_mask)
-        for subject_id, mask_path in mask_paths.items():
-            for d in os.listdir(mask_path):
-                full_path = os.path.join(mask_path, d)
-                if os.path.isdir(full_path):
-                    yield (subject_id, d, full_path)
 
 
 class PathJoiner(object):
@@ -990,48 +814,6 @@ def load_dwi(volume_fname):
     return data, header
 
 
-def get_batch_profile(batch_profile, data_folder):
-    """Wrapper function for getting a batch profile.
-
-    Args:
-        batch_profile (None, string or batch profile): indication of the batch profile to load
-        data_folder (str): the data folder we want to use the batch profile on.
-
-    Returns:
-        If the given batch profile is None we return the output from get_best_batch_profile(). If batch profile is
-        a string we load it from the batch profiles loader. Else we return the input.
-    """
-    if batch_profile is None:
-        return get_best_batch_profile(data_folder)
-    elif isinstance(batch_profile, string_types):
-        return BatchProfilesLoader().load(batch_profile)
-    return batch_profile
-
-
-def get_best_batch_profile(directory):
-    """Get the batch profile that best matches the given directory.
-
-    Args:
-        directory (str): the directory for which to get the best batch profile.
-
-    Returns:
-        BatchProfile: the best matching batch profile.
-    """
-    profile_loader = BatchProfilesLoader()
-    crawlers = [profile_loader.load(c) for c in profile_loader.list_all()]
-
-    best_crawler = None
-    best_subjects_count = 0
-    for crawler in crawlers:
-        if crawler.profile_suitable(directory):
-            tmp_count = crawler.get_subjects_count(directory)
-            if tmp_count > best_subjects_count:
-                best_crawler = crawler
-                best_subjects_count = tmp_count
-
-    return best_crawler
-
-
 def load_brain_mask(brain_mask_fname):
     """Load the brain mask from the given file.
 
@@ -1150,77 +932,6 @@ class MetaOptimizerBuilder(object):
         smoother = get_filter_by_name(options['name'])
         size = options['size']
         return smoother(size, cl_environments, load_balancer)
-
-
-def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, mask_name=None, symlink=False):
-    """Load from the given data folder all the output files and put them into the output directory.
-
-    If there is more than one mask file available the user has to choose which mask to use using the mask_name
-    keyword argument. If it is not given an error is raised.
-
-    The results for the chosen mask it placed in the output folder per subject. Example:
-        <output_dir>/<subject_id>/<results>
-
-    Args:
-        data_folder (str): The data folder with the output files
-        output_dir (str): The path to the output folder where all the files will be put.
-        batch_profile (BatchProfile or str): the batch profile to use, can also be the name of a batch profile to load.
-            If not given it is auto detected.
-        mask_name (str): the mask to use to get the output from
-        symlink (boolean): only available under Unix OS's. Creates a symlink instead of copying.
-    """
-    output_info = BatchFitOutputInfo(data_folder, batch_profile)
-    mask_names = output_info.get_available_masks()
-    if len(mask_names) > 1:
-        if mask_name is None:
-            raise ValueError('There are results of more than one mask. '
-                             'Please choose one out of ({}) '
-                             'using the \'mask_name\' keyword.'.format(', '.join(mask_names)))
-    else:
-        mask_name = mask_names[0]
-
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    mask_paths = output_info.get_path_to_mask_per_subject(mask_name)
-
-    for subject_id, mask_path in mask_paths.items():
-        subject_out = os.path.join(output_dir, subject_id)
-
-        if os.path.exists(subject_out):
-            if os.path.islink(subject_out):
-                os.unlink(subject_out)
-            else:
-                shutil.rmtree(output_dir)
-
-        if symlink:
-            os.symlink(mask_path, subject_out)
-        else:
-            shutil.copytree(mask_path, subject_out)
-
-
-def run_function_on_batch_fit_output(data_folder, func, batch_profile=None, mask_name=None):
-    """Run a function on the output of a batch fitting routine.
-
-    This enables you to run a function on every model output from every subject. The python function should accept
-    the following arguments in this order:
-        - path: the full path to the directory with the maps
-        - subject_id: the id of the subject
-        - mask_name: the name of the mask
-        - model_name: the name of the model
-
-    Args:
-        data_folder (str): The data folder with the output files
-        func (python function): the python function we should call for every map and model
-        batch_profile (BatchProfile or str): the batch profile to use, can also be the name of a batch profile to load.
-            If not given it is auto detected.
-        mask_name (str): the mask to use to get the output from
-    """
-    output_info = BatchFitOutputInfo(data_folder, batch_profile)
-    mask_names = output_info.get_available_masks()
-    for mask_name in mask_names:
-        for subject_id, model_name, path in output_info.subject_model_path_generator(mask_name):
-            func(path, subject_id, mask_name, model_name)
 
 
 def get_cl_devices():
@@ -1344,3 +1055,25 @@ def model_output_exists(model, output_folder, check_sample_output=False):
             return False
 
     return True
+
+
+def split_image_path(image_path):
+    """Split the path to an image into three parts, the directory, the basename and the extension.
+
+    Args:
+        image_path (str): the path to an image
+
+    Returns:
+        list of str: the path, the basename and the extension
+    """
+    folder = os.path.dirname(image_path)
+    basename = os.path.basename(image_path)
+
+    extension = ''
+    if '.nii.gz' in basename:
+        extension = '.nii.gz'
+    elif '.nii' in basename:
+        extension = '.nii'
+
+    basename = basename.replace(extension, '')
+    return folder, basename, extension

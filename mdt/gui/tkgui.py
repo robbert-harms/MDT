@@ -19,8 +19,9 @@ import numpy as np
 import mdt
 from mdt.gui.tk.widgets import ScrolledText, FileBrowserWidget, DirectoryBrowserWidget, TextboxWidget, DropdownWidget, \
     ListboxWidget, YesNonWidget, SubWindowWidget
-from mdt.gui.utils import print_welcome_message, update_user_settings, split_image_path, IntegerGenerator, OptimOptions, \
+from mdt.gui.utils import print_welcome_message, update_user_settings, IntegerGenerator, OptimOptions, \
     ProtocolOptions
+from mdt.utils import split_image_path
 from mdt.log_handlers import LogListenerInterface, LogDispatchHandler
 import mdt.utils
 from mdt import load_dwi, load_brain_mask, create_median_otsu_brain_mask, \

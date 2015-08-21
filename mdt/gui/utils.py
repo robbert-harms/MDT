@@ -1,5 +1,5 @@
 from collections import OrderedDict
-import os
+
 import mdt
 from mdt.configuration import config as mdt_config
 from mdt.utils import check_user_components, MetaOptimizerBuilder
@@ -107,28 +107,6 @@ def update_user_settings():
         mdt.initialize_user_settings()
         print('')
         print('Initializing home directory completed.')
-
-
-def split_image_path(image_path):
-    """Split the path to an image into three parts, the directory, the basename and the extension.
-
-    Args:
-        image_path (str): the path to an image
-
-    Returns:
-        list of str: the path, the basename and the extension
-    """
-    folder = os.path.dirname(image_path)
-    basename = os.path.basename(image_path)
-
-    extension = ''
-    if '.nii.gz' in basename:
-        extension = '.nii.gz'
-    elif '.nii' in basename:
-        extension = '.nii'
-
-    basename = basename.replace(extension, '')
-    return folder, basename, extension
 
 
 class IntegerGenerator(object):

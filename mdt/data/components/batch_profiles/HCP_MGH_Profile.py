@@ -1,7 +1,7 @@
 import glob
 import os
 import mdt
-from mdt.utils import SimpleBatchProfile
+from mdt.batch_utils import BatchSubjectInfo, SimpleBatchProfile
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-07-13"
@@ -31,15 +31,15 @@ class HCP_MGH_Profile(SimpleBatchProfile):
     def get_batch_fit_config_options(self):
         return {'protocol': {'extra_columns': {'Delta': 12.9e-3, 'delta': 21.8e-3, 'TR': 8800e-3, 'TE': 57e-3}}}
 
-    def get_output_directory(self, root_dir, subject_id):
-        return os.path.join(root_dir, subject_id, 'diff', 'preproc', 'output')
+    def get_output_directory(self, subject_id):
+        return os.path.join(self._root_dir, subject_id, 'diff', 'preproc', 'output')
 
-    def _get_subjects(self, root_dir):
-        dirs = sorted([os.path.basename(f) for f in glob.glob(os.path.join(root_dir, '*'))])
+    def _get_subjects(self):
+        dirs = sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._root_dir, '*'))])
         subjects = []
         for d in dirs:
             info = {}
-            pjoin = mdt.make_path_joiner(root_dir, d, 'diff', 'preproc')
+            pjoin = mdt.make_path_joiner(self._root_dir, d, 'diff', 'preproc')
             if os.path.isdir(pjoin()):
                 if glob.glob(pjoin('mri', 'diff_preproc.nii*')):
                     info['dwi'] = glob.glob(pjoin('mri', 'diff_preproc.nii*'))[0]
@@ -61,8 +61,8 @@ class HCP_MGH_Profile(SimpleBatchProfile):
                     info['mask'] = glob.glob(pjoin('diff_preproc_mask.nii*'))[0]
 
             if 'dwi' in info and (('bval' in info and 'bvec' in info) or 'prtcl' in info):
-                subjects.append((d, info))
+                subjects.append(BatchSubjectInfo(d, info))
         return subjects
 
-    def __repr__(self):
+    def __str__(self):
         return meta_info['title']

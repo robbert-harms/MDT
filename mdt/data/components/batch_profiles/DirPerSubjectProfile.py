@@ -1,6 +1,6 @@
 import glob
 import os
-from mdt.utils import SimpleBatchProfile
+from mdt.batch_utils import BatchSubjectInfo, SimpleBatchProfile
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-07-13"
@@ -46,8 +46,8 @@ with a single value for TE (for example).
 
 class DirPerSubjectProfile(SimpleBatchProfile):
 
-    def _get_subjects(self, root_dir):
-        dirs = sorted([os.path.basename(f) for f in glob.glob(os.path.join(root_dir, '*'))])
+    def _get_subjects(self):
+        dirs = sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._root_dir, '*'))])
         subjects = []
 
         patterns_to_look_for = [('bval', '*bval'), ('bvec', '*bvec'), ('TE', '*TE'), ('Delta', '*Delta'),
@@ -56,7 +56,7 @@ class DirPerSubjectProfile(SimpleBatchProfile):
         for d in dirs:
             info = {}
 
-            niftis = glob.glob(os.path.join(root_dir, d, '*.nii*'))
+            niftis = glob.glob(os.path.join(self._root_dir, d, '*.nii*'))
             dwis = filter(lambda v: '_mask' not in v, niftis)
             masks = filter(lambda v: '_mask' in v, niftis)
 
@@ -67,14 +67,14 @@ class DirPerSubjectProfile(SimpleBatchProfile):
                     info.update({'mask': masks[0]})
 
                 for key, pattern in patterns_to_look_for:
-                    items = glob.glob(os.path.join(root_dir, d, pattern))
+                    items = glob.glob(os.path.join(self._root_dir, d, pattern))
                     if items:
                         info.update({key: items[0]})
 
                 if 'dwi' in info and (('bval' in info and 'bvec' in info) or 'prtcl' in info):
-                    subjects.append((d, info))
+                    subjects.append(BatchSubjectInfo(d, info))
 
         return subjects
 
-    def __repr__(self):
+    def __str__(self):
         return meta_info['title']

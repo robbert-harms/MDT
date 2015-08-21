@@ -1,6 +1,6 @@
 import glob
 import os
-from mdt.utils import SimpleBatchProfile
+from mdt.batch_utils import BatchSubjectInfo, SimpleBatchProfile
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-07-13"
@@ -42,11 +42,11 @@ or a value per protocol line.
 
 class SingleDirProfile(SimpleBatchProfile):
 
-    def get_output_directory(self, root_dir, subject_id):
-        return os.path.join(root_dir, 'output', subject_id)
+    def get_output_directory(self, subject_id):
+        return os.path.join('output', subject_id)
 
-    def _get_subjects(self, root_dir):
-        files = [os.path.basename(f) for f in glob.glob(os.path.join(root_dir, '*'))]
+    def _get_subjects(self):
+        files = [os.path.basename(f) for f in glob.glob(os.path.join(self._root_dir, '*'))]
         basenames = sorted(list({self._get_basename(f) for f in files}))
         subjects = []
 
@@ -60,21 +60,21 @@ class SingleDirProfile(SimpleBatchProfile):
                              ('mask', '_mask.nii'), ('mask', '_mask.nii.gz')]
 
         default_mask = None
-        if glob.glob(os.path.join(root_dir, 'mask.nii*')):
-            default_mask = glob.glob(os.path.join(root_dir, 'mask.nii*'))[0]
+        if glob.glob(os.path.join(self._root_dir, 'mask.nii*')):
+            default_mask = glob.glob(os.path.join(self._root_dir, 'mask.nii*'))[0]
 
         for basename in basenames:
             info = {}
             for info_key, ext in files_to_look_for:
                 if basename + ext in files:
-                    info.update({info_key: os.path.join(root_dir, basename + ext)})
+                    info.update({info_key: os.path.join(self._root_dir, basename + ext)})
 
             if 'mask' not in info:
                 info.update({'mask': default_mask})
 
             if 'dwi' in info and (('bval' in info and 'bvec' in info) or 'prtcl' in info):
-                subjects.append((basename, info))
+                subjects.append(BatchSubjectInfo(basename, info))
         return subjects
 
-    def __repr__(self):
+    def __str__(self):
         return meta_info['title']

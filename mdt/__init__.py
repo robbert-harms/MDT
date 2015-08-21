@@ -3,6 +3,7 @@ import pickle
 import re
 import matplotlib.pyplot as plt
 from six import string_types
+import mdt.batch_utils
 from mdt.cascade_model import CascadeModelInterface
 import mdt.masking as masking
 from mdt.model_fitting import ModelFit, BatchFitting
@@ -28,7 +29,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.2.0'
+VERSION = '0.2.1'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')                                           
@@ -44,19 +45,24 @@ except ValueError:
     print('Logging disabled')
 
 
-def batch_fit(data_folder, batch_profile=None, subjects=None, recalculate=False, cl_device_ind=None, dry_run=False):
+def batch_fit(data_folder, batch_profile_class=None, subjects_ind=None, recalculate=False,
+              cl_device_ind=None, dry_run=False):
     """Run all the available and applicable models on the data in the given folder.
 
     See the class AutoRun for more details and options.
 
-    Setting the cl_device_ind has the side effect that it changes the current run time cl_device settings in the PPPE
+    Setting the cl_device_ind has the side effect that it changes the current run time cl_device settings in the MOT
     toolkit.
 
     Args:
         data_folder (str): The data folder to process
-        batch_profile (BatchProfile or str): the batch profile to use, can also be the name of a batch profile to load.
-            If not given it is auto detected.
-        subjects (list of int): either a list of subjects to process or the index of a single subject to process.
+        batch_profile_class (BatchProfile class or str): the batch profile class to use, can also be the name
+            of a batch profile to load. If not given it is auto detected.
+            Please note it expects a callable that returns a batch profile instance. For example, you can use it as:
+                batch_profile_class=MyBatchProfile
+            but this would not work:
+                batch_profile_class=MyBatchProfile()
+        subjects_ind (list of int): either a list of subjects to process or the index of a single subject to process.
             To get a list of subjects run this function with the dry_run parameter to true.
         recalculate (boolean): If we want to recalculate the results if they are already present.
         cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
@@ -70,7 +76,7 @@ def batch_fit(data_folder, batch_profile=None, subjects=None, recalculate=False,
     if not utils.check_user_components():
         raise RuntimeError('User\'s components folder is not up to date. Please run the script mdt-init-user-settings.')
 
-    batch_fitting = BatchFitting(data_folder, batch_profile=batch_profile, subjects=subjects,
+    batch_fitting = BatchFitting(data_folder, batch_profile_class=batch_profile_class, subjects_ind=subjects_ind,
                                  recalculate=recalculate, cl_device_ind=cl_device_ind)
 
     if dry_run:
@@ -169,7 +175,7 @@ def get_config():
     return configuration.config
 
 
-def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, mask_name=None, symlink=False):
+def collect_batch_fit_output(data_folder, output_dir, batch_profile_class=None, mask_name=None, symlink=False):
     """Load from the given data folder all the output files and put them into the output directory.
 
     If there is more than one mask file available the user has to choose which mask to use using the mask_name
@@ -181,33 +187,36 @@ def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, mask_n
     Args:
         data_folder (str): The data folder with the output files
         output_dir (str): The path to the output folder where all the files will be put.
-        batch_profile (BatchProfile or str): the batch profile to use, can also be the name of a batch profile to load.
-            If not given it is auto detected.
+        batch_profile_class (BatchProfile class or str): the batch profile class to use, can also be the name
+            of a batch profile to load. If not given it is auto detected.
+            Please note it expects a callable that returns a batch profile instance. For example, you can use it as:
+                batch_profile_class=MyBatchProfile
+            but this would not work:
+                batch_profile_class=MyBatchProfile()
         mask_name (str): the mask to use to get the output from
         symlink (boolean): only available under Unix OS's. Creates a symlink instead of copying.
     """
-    utils.collect_batch_fit_output(data_folder, output_dir, batch_profile=batch_profile, mask_name=mask_name,
-                                   symlink=symlink)
+    mdt.batch_utils.collect_batch_fit_output(data_folder, output_dir, batch_profile_class=batch_profile_class,
+                                   mask_name=mask_name, symlink=symlink)
 
 
-def run_function_on_batch_fit_output(data_folder, func, batch_profile=None, mask_name=None):
+def run_function_on_batch_fit_output(data_folder, func, batch_profile_class=None):
     """Run a function on the output of a batch fitting routine.
 
     This enables you to run a function on every model output from every subject. The python function should accept
-    the following arguments in this order:
-        - path: the full path to the directory with the maps
-        - subject_id: the id of the subject
-        - mask_name: the name of the mask
-        - model_name: the name of the model
+    as single argument an instance of the class BatchFitSubjectOutputInfo.
 
     Args:
         data_folder (str): The data folder with the output files
         func (python function): the python function we should call for every map and model
-        batch_profile (BatchProfile or str): the batch profile to use, can also be the name of a batch profile to load.
-            If not given it is auto detected.
-        mask_name (str): the mask to use to get the output from
+        batch_profile_class (BatchProfile class or str): the batch profile class to use, can also be the name
+            of a batch profile to load. If not given it is auto detected.
+            Please note it expects a callable that returns a batch profile instance. For example, you can use it as:
+                batch_profile_class=MyBatchProfile
+            but this would not work:
+                batch_profile_class=MyBatchProfile()
     """
-    utils.run_function_on_batch_fit_output(data_folder, func, batch_profile=batch_profile, mask_name=mask_name)
+    mdt.batch_utils.run_function_on_batch_fit_output(data_folder, func, batch_profile_class=batch_profile_class)
 
 
 def get_cl_devices():

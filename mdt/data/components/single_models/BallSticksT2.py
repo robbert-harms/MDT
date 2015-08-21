@@ -59,7 +59,10 @@ def get_ball_sticks_t2(nmr_sticks=1, invivo=True):
 
     def model_construction_cb(evaluation_model=GaussianEvaluationModel().fix('sigma', math.sqrt(0.5)),
                               signal_noise_model=None):
-        return DMRICompositeSampleModel(name, CompartmentModelTree(ml), evaluation_model, signal_noise_model)
+        model = DMRICompositeSampleModel(name, CompartmentModelTree(ml), evaluation_model, signal_noise_model)
+        modifiers = [('SNIF', lambda results: 1 - results['Wball.w'])]
+        model.add_post_optimization_modifiers(modifiers)
+        return model
 
     return {'model_constructor': model_construction_cb,
             'name': name,
@@ -108,7 +111,10 @@ def get_ball_sticks_t2t2(nmr_sticks=1, invivo=True):
 
     def model_construction_cb(evaluation_model=GaussianEvaluationModel().fix('sigma', math.sqrt(0.5)),
                               signal_noise_model=None):
-        return DMRICompositeSampleModel(name, CompartmentModelTree(ml), evaluation_model, signal_noise_model)
+        model = DMRICompositeSampleModel(name, CompartmentModelTree(ml), evaluation_model, signal_noise_model)
+        modifiers = [('SNIF', lambda results: 1 - results['Wball.w'])]
+        model.add_post_optimization_modifiers(modifiers)
+        return model
 
     return {'model_constructor': model_construction_cb,
             'name': name,
