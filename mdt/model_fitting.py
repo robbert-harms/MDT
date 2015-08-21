@@ -4,16 +4,14 @@ import shutil
 import timeit
 import pickle
 import time
-
 from six import string_types
-
 from mdt.protocols import load_bvec_bval, load_from_protocol, write_protocol
-from mdt.components_loader import get_model, BatchProfilesLoader
+from mdt.components_loader import get_model
 from mdt.cascade_model import CascadeModelInterface
 from mdt import configuration
 from mdt.IO import Nifti
 from mdt.utils import create_roi, configure_per_model_logging, restore_volumes, recursive_merge_dict, \
-    load_problem_data, get_best_batch_profile, ProtocolProblemError, MetaOptimizerBuilder, get_cl_devices, \
+    load_problem_data, ProtocolProblemError, MetaOptimizerBuilder, get_cl_devices, \
     get_model_config, apply_model_protocol_options, model_output_exists, get_batch_profile
 from mdt.masking import create_write_median_otsu_brain_mask
 from mot import runtime_configuration
@@ -30,7 +28,7 @@ class BatchFitting(object):
         """This class is meant to make running computations as simple as possible.
 
         The idea is that a single folder is enough to fit_model the computations.
-        For configuration of the optimizers use the configuration file. For batch fitting specific options use
+        For configuration of the optimizers uses the users configuration file. For batch fitting specific options use
         the options parameter.
 
         One can optionally give it the batch_profile to use for the fitting. If not given, this class
@@ -65,7 +63,7 @@ class BatchFitting(object):
             raise RuntimeError('No suitable batch profile could be '
                                'found for the directory {0}'.format(os.path.abspath(self._data_folder)))
 
-        self._config = recursive_merge_dict(self._config, self._batch_profile.get_options())
+        self._config = recursive_merge_dict(self._config, self._batch_profile.get_batch_fit_config_options())
 
         self._logger.info('Using batch profile: {0}'.format(self._batch_profile))
         self._subjects = self._get_subjects()
@@ -132,8 +130,8 @@ class BatchFitting(object):
 
 class _BatchFitRunner(object):
 
-    def __init__(self, config, recalculate, cl_device_ind):
-        self._config = config
+    def __init__(self, batch_fitting_config, recalculate, cl_device_ind):
+        self._batch_fitting_config = batch_fitting_config
         self._recalculate = recalculate
         self._cl_device_ind = cl_device_ind
 
@@ -153,8 +151,8 @@ class _BatchFitRunner(object):
         protocol = self._get_protocol(subject[0], subject[1])
         brain_mask = self._get_mask(subject[0], subject[1], protocol, output_dir)
 
-        if all([model_output_exists(model, os.path.join(output_dir, self._get_basename(brain_mask)))
-                for model in self._config['models']]):
+        if all(model_output_exists(model, os.path.join(output_dir, self._get_basename(brain_mask)))
+               for model in self._batch_fitting_config['models']):
             logger.info('Skipping subject {0}, output exists'.format(subject[0]))
             return
 
@@ -164,7 +162,7 @@ class _BatchFitRunner(object):
         write_protocol(protocol, os.path.join(output_dir, 'auto_generated_protocol.prtcl'))
 
         start_time = timeit.default_timer()
-        for model in self._config['models']:
+        for model in self._batch_fitting_config['models']:
             logger.info('Going to fit model {0} on subject {1}'.format(model, subject[0]))
             try:
                 model_fit = ModelFit(model,
@@ -172,7 +170,7 @@ class _BatchFitRunner(object):
                                      os.path.join(output_dir, self._get_basename(brain_mask)),
                                      recalculate=self._recalculate,
                                      only_recalculate_last=False,
-                                     model_protocol_options=self._config['model_protocol_options'],
+                                     model_protocol_options=self._batch_fitting_config['model_protocol_options'],
                                      cl_device_ind=self._cl_device_ind)
                 model_fit.run()
             except ProtocolProblemError as ex:
@@ -233,10 +231,10 @@ class _BatchFitRunner(object):
         else:
             protocol = load_bvec_bval(subject_info['bvec'], subject_info['bval'])
 
-        if self._config['protocol']['max_G'] is not None:
-            protocol.max_G = self._config['protocol']['max_G']
+        if self._batch_fitting_config['protocol']['max_G'] is not None:
+            protocol.max_G = self._batch_fitting_config['protocol']['max_G']
 
-        for col in self._config['protocol']['extra_columns'].items():
+        for col in self._batch_fitting_config['protocol']['extra_columns'].items():
             protocol.add_column(*col)
 
         for col in ('TE', 'Delta', 'delta'):

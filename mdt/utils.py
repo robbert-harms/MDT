@@ -248,10 +248,12 @@ class NamedProtocolProblem(ModelProtocolProblem):
 
 class BatchProfile(object):
 
-    def get_options(self):
-        """Get the specific options from this batch fitting profile that will override the default options.
+    def get_batch_fit_config_options(self):
+        """Get the specific options from this batch fitting profile that will override the default config options.
 
-        See the BatchFitting class for the default and available options.
+        This should only return the content of the base config setting 'batch_fitting'.
+
+        See the BatchFitting class for the resolution order of the config files.
         """
 
     def get_output_directory(self, root_dir, subject_id):
@@ -299,7 +301,7 @@ class BatchProfile(object):
 
 class SimpleBatchProfile(BatchProfile):
 
-    def get_options(self):
+    def get_batch_fit_config_options(self):
         return {}
 
     def get_output_directory(self, root_dir, subject_id):

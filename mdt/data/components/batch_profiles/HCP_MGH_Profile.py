@@ -28,7 +28,7 @@ Optional items (these will take precedence if present):
 
 class HCP_MGH_Profile(SimpleBatchProfile):
 
-    def get_options(self):
+    def get_batch_fit_config_options(self):
         return {'protocol': {'extra_columns': {'Delta': 12.9e-3, 'delta': 21.8e-3, 'TR': 8800e-3, 'TE': 57e-3}}}
 
     def get_output_directory(self, root_dir, subject_id):

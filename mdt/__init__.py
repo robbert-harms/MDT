@@ -68,7 +68,7 @@ def batch_fit(data_folder, batch_profile=None, subjects=None, recalculate=False,
         The list of subjects we will calculate / have calculated.
     """
     if not utils.check_user_components():
-        raise RuntimeError('User\'s components folder is not up to date. Please run mdt.initialize_user_settings().')
+        raise RuntimeError('User\'s components folder is not up to date. Please run the script mdt-init-user-settings.')
 
     batch_fitting = BatchFitting(data_folder, batch_profile=batch_profile, subjects=subjects,
                                  recalculate=recalculate, cl_device_ind=cl_device_ind)
@@ -106,7 +106,7 @@ def fit_model(model, dwi_info, protocol, brain_mask, output_folder, optimizer=No
         returned
     """
     if not utils.check_user_components():
-        raise RuntimeError('User\'s components folder is not up to date. Please run mdt.initialize_user_settings().')
+        raise RuntimeError('User\'s components folder is not up to date. Please the script mdt-init-user-settings.')
 
     model_fit = ModelFit.load_from_basic_data(
         model, dwi_info, protocol, brain_mask, output_folder, optimizer=optimizer,

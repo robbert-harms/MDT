@@ -30,7 +30,7 @@ Optional items (these will take precedence if present):
 
 class HCP_WUMINN_Profile(SimpleBatchProfile):
 
-    def get_options(self):
+    def get_batch_fit_config_options(self):
         return {'protocol': {'extra_columns': {'TE': 0.0895},
                              'max_G': 0.1}}
 
