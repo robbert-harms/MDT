@@ -45,9 +45,6 @@ or a value per protocol line.
 
 class SingleDirProfile(SimpleBatchProfile):
 
-    def get_output_directory(self, subject_id):
-        return os.path.join('output', subject_id)
-
     def _get_subjects(self):
         pjoin = mdt.make_path_joiner(self._root_dir)
 
@@ -95,7 +92,10 @@ class SingleDirProfile(SimpleBatchProfile):
                 protocol_loader = SimpleProtocolLoader(
                     prtcl_fname=prtcl_fname, bvec_fname=bvec_fname, bval_fname=bval_fname,
                     extra_cols_from_file=extra_cols_from_file)
-                subjects.append(SimpleSubjectInfo(basename, dwi_fname, protocol_loader, mask_fname))
+
+                output_dir = os.path.join('output', basename)
+
+                subjects.append(SimpleSubjectInfo(basename, dwi_fname, protocol_loader, mask_fname, output_dir))
         return subjects
 
     def __str__(self):

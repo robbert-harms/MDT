@@ -28,9 +28,6 @@ Optional items (these will take precedence if present):
 
 class HCP_MGH_Profile(SimpleBatchProfile):
 
-    def get_output_directory(self, subject_id):
-        return os.path.join(self._root_dir, subject_id, 'diff', 'preproc', 'output')
-
     def _get_subjects(self):
         dirs = sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._root_dir, '*'))])
         subjects = []
@@ -59,7 +56,9 @@ class HCP_MGH_Profile(SimpleBatchProfile):
                     prtcl_fname=prtcl_fname, bvec_fname=bvec_fname, bval_fname=bval_fname,
                     extra_cols={'Delta': 12.9e-3, 'delta': 21.8e-3, 'TR': 8800e-3, 'TE': 57e-3})
 
-                subjects.append(SimpleSubjectInfo(subject_id, dwi_fname, protocol_loader, mask_fname))
+                output_dir = os.path.join(self._root_dir, subject_id, 'diff', 'preproc', 'output')
+
+                subjects.append(SimpleSubjectInfo(subject_id, dwi_fname, protocol_loader, mask_fname, output_dir))
         return subjects
 
     def __str__(self):

@@ -30,14 +30,11 @@ Optional items (these will take precedence if present):
 
 class HCP_WUMINN_Profile(SimpleBatchProfile):
 
-    def get_output_directory(self, subject_id):
-        return os.path.join(self._root_dir, subject_id, 'T1w', 'Diffusion', 'output')
-
     def _get_subjects(self):
         dirs = sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._root_dir, '*'))])
         subjects = []
-        for d in dirs:
-            pjoin = mdt.make_path_joiner(self._root_dir, d, 'T1w', 'Diffusion')
+        for subject_id in dirs:
+            pjoin = mdt.make_path_joiner(self._root_dir, subject_id, 'T1w', 'Diffusion')
             if os.path.isdir(pjoin()):
                 dwi_fname = glob.glob(pjoin('data.nii*'))[0]
 
@@ -61,7 +58,9 @@ class HCP_WUMINN_Profile(SimpleBatchProfile):
                     prtcl_fname=prtcl_fname, bvec_fname=bvec_fname,
                     bval_fname=bval_fname, extra_cols={'TE': 0.0895})
 
-                subjects.append(SimpleSubjectInfo(d, dwi_fname, protocol_loader, mask_fname))
+                output_dir = pjoin('output')
+
+                subjects.append(SimpleSubjectInfo(subject_id, dwi_fname, protocol_loader, mask_fname, output_dir))
         return subjects
 
     def __str__(self):

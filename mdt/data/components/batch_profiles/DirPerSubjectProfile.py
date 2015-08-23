@@ -78,7 +78,9 @@ class DirPerSubjectProfile(SimpleBatchProfile):
                         prtcl_fname=protocol_fname, bvec_fname=bvec_fname,
                         bval_fname=bval_fname, extra_cols_from_file=extra_protocol_cols)
 
-                    subjects.append(SimpleSubjectInfo(subject_id, dwi_fname, protocol_loader, mask_fname))
+                    output_dir = os.path.join(self._root_dir, subject_id, 'output')
+
+                    subjects.append(SimpleSubjectInfo(subject_id, dwi_fname, protocol_loader, mask_fname, output_dir))
 
         return subjects
 

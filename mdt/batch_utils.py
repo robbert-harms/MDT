@@ -62,13 +62,6 @@ class BatchProfile(object):
         See the BatchFitting class for the resolution order of the config files.
         """
 
-    def get_output_directory(self, subject_id):
-        """Get the output directory for the subject with the given subject id.
-
-        Args:
-            subject_id (str): the subject id for which to get the output directory.
-        """
-
     def get_subjects(self):
         """Get the information about all the subjects in the current folder.
 
@@ -107,9 +100,6 @@ class SimpleBatchProfile(BatchProfile):
     def get_batch_fit_config_options(self):
         return {}
 
-    def get_output_directory(self, subject_id):
-        return os.path.join(self._root_dir, subject_id, 'output')
-
     def get_subjects(self):
         return self._subjects_found
 
@@ -141,6 +131,15 @@ class SubjectInfo(object):
         """
         return ''
 
+    @property
+    def output_dir(self):
+        """Get the output folder for this subject.
+
+        Returns:
+            str: the output folder
+        """
+        return ''
+
     def get_protocol_info(self):
         """Get the protocol to use, or a filename of a protocol file to load.
 
@@ -169,7 +168,7 @@ class SubjectInfo(object):
 
 class SimpleSubjectInfo(SubjectInfo):
 
-    def __init__(self, subject_id, dwi_fname, protocol_loader, mask_fname):
+    def __init__(self, subject_id, dwi_fname, protocol_loader, mask_fname, output_dir):
         """This class contains all the information about found subjects during batch fitting.
 
         It is returned by the method get_subjects() from the class BatchProfile.
@@ -179,15 +178,21 @@ class SimpleSubjectInfo(SubjectInfo):
             dwi_fname (str): the filename with path to the dwi image
             protocol_loader (ProtocolLoader): the protocol loader that can load us the protocol
             mask_fname (str): the filename of the mask to load. Can be None.
+            output_dir (str): the
         """
         self._subject_id = subject_id
         self._dwi_fname = dwi_fname
         self._protocol_loader = protocol_loader
         self._mask_fname = mask_fname
+        self._output_dir = output_dir
 
     @property
     def subject_id(self):
         return self._subject_id
+
+    @property
+    def output_dir(self):
+        return self._output_dir
 
     def get_subject_id(self):
         return self.subject_id
@@ -282,9 +287,7 @@ class BatchFitOutputInfo(object):
         self._data_folder = data_folder
         self._batch_profile = batch_profile_factory(batch_profile_class, data_folder)
         self._subjects = self._batch_profile.get_subjects()
-        self._subjects_dirs = {subject_info.subject_id:
-                                   self._batch_profile.get_output_directory(subject_info.subject_id)
-                               for subject_info in self._subjects}
+        self._subjects_dirs = {subject_info.subject_id: subject_info.output_dir for subject_info in self._subjects}
         self._mask_paths = {}
 
     def get_available_masks(self):

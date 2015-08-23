@@ -98,12 +98,8 @@ class BatchFitting(object):
         """Run the computations on the current dir with all the configured options. """
         self._logger.info('Running computations on {0} subjects'.format(len(self._subjects)))
 
-        batch_items = [{'subject': subject_info,
-                        'output_dir': self._batch_profile.get_output_directory(subject_info.subject_id)}
-                       for subject_info in self._subjects]
-
         run_func = _BatchFitRunner(self._config, self._recalculate, self._cl_device_ind)
-        map(run_func, batch_items)
+        map(run_func, self._subjects)
 
         return self._subjects
 
@@ -133,7 +129,7 @@ class _BatchFitRunner(object):
         self._recalculate = recalculate
         self._cl_device_ind = cl_device_ind
 
-    def __call__(self, batch_instance):
+    def __call__(self, subject_info):
         """Run the batch fitting on the given subject.
 
         This is a module level function to allow for python multiprocessing to work.
@@ -143,8 +139,7 @@ class _BatchFitRunner(object):
         """
         logger = logging.getLogger(__name__)
 
-        subject_info = batch_instance['subject']
-        output_dir = batch_instance['output_dir']
+        output_dir = subject_info.output_dir
 
         protocol = subject_info.get_protocol_info()
         brain_mask = self._get_mask_path(subject_info, protocol, output_dir)
