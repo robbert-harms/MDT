@@ -304,8 +304,7 @@ class PathJoiner(object):
         return self
 
     def __call__(self, *args, **kwargs):
-        tmp_path = os.path.join(self._path, *args)
-        return os.path.abspath(os.path.join(self._path, tmp_path))
+        return os.path.abspath(os.path.join(self._path, *args))
 
 
 def condense_protocol_problems(protocol_problems_list):
@@ -728,7 +727,7 @@ def configure_per_model_logging(output_path):
         output_path: the output path where the model results are stored.
     """
     if output_path is None:
-        ModelOutputLogHandler.output_file = None
+        ModelOutputLogHandler.reset_output_file()
     else:
         ModelOutputLogHandler.output_file = os.path.abspath(os.path.join(output_path, 'info.log'))
 
@@ -776,16 +775,17 @@ def load_problem_data(volume_info, protocol, mask):
         volume_info (string): Either an (ndarray, img_header) tuple or the full path to the volume (4d signal data).
         protocol (Protocol or string): A protocol object with the right protocol for the given data,
             or a string object with a filename to the given file.
-        mask (string): A full path to a mask file that can optionally be used. If None given, no mask is used.
+        mask (ndarray, string): A full path to a mask file or a 3d ndarray containing the mask
 
     Returns:
-        The Problem data, in the ProblemData container object.
+        DMRIProblemData: the problem data object containing all the info needed for diffusion MRI model fitting
     """
     if isinstance(protocol, string_types):
         protocol = load_from_protocol(protocol)
 
     if isinstance(mask, string_types):
-        mask = nib.load(mask).get_data() > 0
+        mask = load_brain_mask(mask)
+
     if isinstance(volume_info, string_types):
         signal4d, img_header = load_dwi(volume_info)
     else:

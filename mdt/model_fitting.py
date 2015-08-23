@@ -5,7 +5,7 @@ import timeit
 import pickle
 import time
 from six import string_types
-from mdt.protocols import load_bvec_bval, load_from_protocol, write_protocol
+from mdt.protocols import write_protocol
 from mdt.components_loader import get_model
 from mdt.cascade_model import CascadeModelInterface
 from mdt import configuration
@@ -80,7 +80,7 @@ class BatchFitting(object):
         that limits the amount of subjects we will run.
 
         Returns:
-            list of utils.BatchSubjectInfo: information about all available subjects
+            list of batch_utils.SubjectInfo: information about all available subjects
         """
         return self._batch_profile.get_subjects()
 
@@ -90,7 +90,7 @@ class BatchFitting(object):
         This will return information about only the subjects that we will use in the batch fitting.
 
         Returns:
-            list of utils.BatchSubjectInfo: information about all subjects we will use
+            list of batch_utils.SubjectInfo: information about all subjects we will use
         """
         return self._subjects
 
@@ -146,8 +146,8 @@ class _BatchFitRunner(object):
         subject_info = batch_instance['subject']
         output_dir = batch_instance['output_dir']
 
-        protocol = subject_info.protocol
-        brain_mask = self._get_mask(subject_info, protocol, output_dir)
+        protocol = subject_info.get_protocol_info()
+        brain_mask = self._get_mask_path(subject_info, protocol, output_dir)
 
         model_output_exists('BallStick (Cascade)', os.path.join(output_dir, split_image_path(brain_mask)[1]))
 
@@ -157,9 +157,9 @@ class _BatchFitRunner(object):
             return
 
         logger.info('Loading the data (DWI, mask and protocol) of subject {0}'.format(subject_info.subject_id))
-        problem_data = load_problem_data(subject_info.dwi_fname, protocol, brain_mask)
+        problem_data = load_problem_data(subject_info.get_dwi_info(), protocol, brain_mask)
 
-        write_protocol(protocol, os.path.join(output_dir, 'auto_generated_protocol.prtcl'))
+        write_protocol(protocol, os.path.join(output_dir, 'used_protocol.prtcl'))
 
         start_time = timeit.default_timer()
         for model in self._batch_fitting_config['models']:
@@ -181,31 +181,26 @@ class _BatchFitRunner(object):
         logger.info('Fitted all models on subject {0} in time {1} (h:m:s)'.format(
             subject_info.subject_id, time.strftime('%H:%M:%S', time.gmtime(timeit.default_timer() - start_time))))
 
-    def _get_mask(self, subject_info, protocol, output_dir):
-        #todo move to batch profile class
-
-        """Helper function for _batch_fit_run()
+    def _get_mask_path(self, subject_info, protocol, output_dir):
+        """Get the path to the mask to use.
 
         Args:
-            subject_id (str): the id of this subject
-            subject_info (dict): information items about that subject. Contains things like 'dwi', 'bval', 'bvec',
-                'prtcl' and 'mask'
-            protocol (Protocol): the protocol object
+            subject_info (SubjectInfo): information items about the subject.
+            protocol (Protocol): the protocol object we loaded using the subject info
             output_dir (str): if we need to create a new mask, this is the location to write it to
-            batch_fitting_config: the configuration of the batch fitting procedure
 
         Returns:
             str: the filename of the mask to load
         """
         logger = logging.getLogger(__name__)
 
-        if 'mask' in subject_info.found_items:
-            return subject_info.found_items['mask']
+        if subject_info.get_mask_info():
+            return subject_info.get_mask_info()
         else:
-            output_fname = os.path.join(output_dir, 'brain_mask.nii.gz')
+            output_fname = os.path.join(output_dir, 'auto_generated_mask.nii.gz')
             if not os.path.isfile(output_fname):
                 logger.info('Creating a brain mask for subject {0}'.format(subject_info.subject_id))
-                create_write_median_otsu_brain_mask(subject_info.dwi_fname, protocol, output_fname)
+                create_write_median_otsu_brain_mask(subject_info.get_dwi_info(), protocol, output_fname)
             return output_fname
 
 

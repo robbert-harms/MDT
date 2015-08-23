@@ -1,7 +1,7 @@
 import glob
 import os
 import mdt
-from mdt.batch_utils import BatchSubjectInfo, SimpleBatchProfile
+from mdt.batch_utils import SimpleBatchProfile, SimpleProtocolLoader, SimpleSubjectInfo
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-07-13"
@@ -34,39 +34,33 @@ class HCP_MGH_Profile(SimpleBatchProfile):
     def _get_subjects(self):
         dirs = sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._root_dir, '*'))])
         subjects = []
-        for d in dirs:
-            info = {}
-            pjoin = mdt.make_path_joiner(self._root_dir, d, 'diff', 'preproc')
+        for subject_id in dirs:
+            pjoin = mdt.make_path_joiner(self._root_dir, subject_id, 'diff', 'preproc')
             if os.path.isdir(pjoin()):
-                if glob.glob(pjoin('mri', 'diff_preproc.nii*')):
-                    info['dwi'] = glob.glob(pjoin('mri', 'diff_preproc.nii*'))[0]
+                dwi_fname = glob.glob(pjoin('mri', 'diff_preproc.nii*'))[0]
 
+                bval_fname = pjoin('bvals.txt')
                 if os.path.isfile(pjoin('diff_preproc.bval')):
-                    info['bval'] = pjoin('diff_preproc.bval')
-                elif os.path.isfile(pjoin('bvals.txt')):
-                    info['bval'] = pjoin('bvals.txt')
+                    bval_fname = pjoin('diff_preproc.bval')
 
+                bvec_fname = pjoin('bvecs_fsl_moco_norm.txt')
                 if os.path.isfile(pjoin('diff_preproc.bvec')):
-                    info['bvec'] = pjoin('diff_preproc.bvec')
-                elif os.path.isfile(pjoin('bvecs_fsl_moco_norm.txt')):
-                    info['bvec'] = pjoin('bvecs_fsl_moco_norm.txt')
+                    bvec_fname = pjoin('diff_preproc.bvec')
 
+                prtcl_fname = None
                 if os.path.isfile(pjoin('diff_preproc.prtcl')):
-                    info['prtcl'] = pjoin('diff_preproc.prtcl')
+                    prtcl_fname = pjoin('diff_preproc.prtcl')
 
+                mask_fname = None
                 if glob.glob(pjoin('diff_preproc_mask.nii*')):
-                    info['mask'] = glob.glob(pjoin('diff_preproc_mask.nii*'))[0]
+                    mask_fname = glob.glob(pjoin('diff_preproc_mask.nii*'))[0]
 
-            if 'dwi' in info and (('bval' in info and 'bvec' in info) or 'prtcl' in info):
-                protocol = self._get_protocol(info)
-                subjects.append(BatchSubjectInfo(d, info['dwi'], protocol, info))
+                protocol_loader = SimpleProtocolLoader(
+                    prtcl_fname=prtcl_fname, bvec_fname=bvec_fname, bval_fname=bval_fname,
+                    extra_cols={'Delta': 12.9e-3, 'delta': 21.8e-3, 'TR': 8800e-3, 'TE': 57e-3})
+
+                subjects.append(SimpleSubjectInfo(subject_id, dwi_fname, protocol_loader, mask_fname))
         return subjects
-
-    def _get_protocol(self, found_items):
-        protocol = super(HCP_MGH_Profile, self)._get_protocol(found_items)
-        for col, val in {'Delta': 12.9e-3, 'delta': 21.8e-3, 'TR': 8800e-3, 'TE': 57e-3}.items():
-            protocol.add_column(col, val)
-        return protocol
 
     def __str__(self):
         return meta_info['title']

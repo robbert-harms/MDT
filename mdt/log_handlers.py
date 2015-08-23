@@ -11,7 +11,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class ModelOutputLogHandler(logging.StreamHandler):
 
-    output_file = None
+    output_file = tempfile.mkstemp()[1]
 
     def __init__(self, mode='a', encoding=None):
         """This logger can log information about a model optimization to the folder of the model being optimized.
@@ -20,22 +20,19 @@ class ModelOutputLogHandler(logging.StreamHandler):
         """
         super(ModelOutputLogHandler, self).__init__()
 
-        if self.output_file is None:
-            self.output_file = tempfile.mkstemp()[1]
-
         if codecs is None:
             encoding = None
-        self.baseFilename = os.path.abspath(self.output_file)
+        self.baseFilename = os.path.abspath(ModelOutputLogHandler.output_file)
         self.mode = mode
         self.encoding = encoding
         self.stream = None
         self._open()
 
     def emit(self, record):
-        if self.output_file is not None:
-            if os.path.abspath(self.output_file) != self.baseFilename:
+        if ModelOutputLogHandler.output_file is not None:
+            if os.path.abspath(ModelOutputLogHandler.output_file) != self.baseFilename:
                 self.close()
-                self.baseFilename = os.path.abspath(self.output_file)
+                self.baseFilename = os.path.abspath(ModelOutputLogHandler.output_file)
 
             if self.stream is None:
                 self.stream = self._open()
@@ -65,6 +62,10 @@ class ModelOutputLogHandler(logging.StreamHandler):
         else:
             stream = codecs.open(self.baseFilename, self.mode, self.encoding)
         return stream
+
+    @staticmethod
+    def reset_output_file():
+        ModelOutputLogHandler.output_file = tempfile.mkstemp()[1]
 
 
 class LogDispatchHandler(logging.StreamHandler):

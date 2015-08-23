@@ -1,6 +1,8 @@
 import glob
 import os
-from mdt.batch_utils import BatchSubjectInfo, SimpleBatchProfile
+import mdt
+from mdt.batch_utils import SimpleBatchProfile, SimpleProtocolLoader, SimpleSubjectInfo
+from mdt.utils import split_image_path
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-07-13"
@@ -29,7 +31,8 @@ Example directory layout:
 This gives three subjects, 'a', 'b' and 'c' with a Diffusion Weighted Image recognized by the extension .nii(.gz) and
 a bvec and bval or protocol file for the protocol information. Subject 'c' also has a brain mask associated.
 
-If there is a file mask.nii(.gz) it is used as the mask for all the subjects in the single directory.
+If there is a file mask.nii(.gz) present in the directory it is used as the default mask for all the subjects
+in the single directory that do not have their own mask.
 
 Optional items:
     /<name>.TE (case sensitive)
@@ -46,35 +49,53 @@ class SingleDirProfile(SimpleBatchProfile):
         return os.path.join('output', subject_id)
 
     def _get_subjects(self):
-        files = [os.path.basename(f) for f in glob.glob(os.path.join(self._root_dir, '*'))]
-        basenames = sorted(list({self._get_basename(f) for f in files}))
+        pjoin = mdt.make_path_joiner(self._root_dir)
+
+        files = [os.path.basename(f) for f in glob.glob(pjoin('*'))]
+        basenames = sorted(list({split_image_path(f)[1] for f in files}))
         subjects = []
 
-        files_to_look_for = [('bval', '.bval'),
-                             ('bvec', '.bvec'),
-                             ('TE', '.TE'),
-                             ('Delta', '.Delta'),
-                             ('delta', '.delta'),
-                             ('prtcl', '.prtcl'),
-                             ('dwi', '.nii'), ('dwi', '.nii.gz'),
-                             ('mask', '_mask.nii'), ('mask', '_mask.nii.gz')]
+        extra_protocol_col_files = [('TE', '.TE'), ('Delta', '.Delta'), ('delta', '.delta')]
 
         default_mask = None
-        if glob.glob(os.path.join(self._root_dir, 'mask.nii*')):
-            default_mask = glob.glob(os.path.join(self._root_dir, 'mask.nii*'))[0]
+        if glob.glob(pjoin('mask.nii*')):
+            default_mask = glob.glob(pjoin('mask.nii*'))[0]
 
         for basename in basenames:
-            info = {}
-            for info_key, ext in files_to_look_for:
+            dwi_fname = None
+            if basename + '.nii' in files:
+                dwi_fname = pjoin(basename + '.nii')
+            elif basename + '.nii.gz' in files:
+                dwi_fname = pjoin(basename + '.nii.gz')
+
+            prtcl_fname = None
+            if basename + '.prtcl' in files:
+                prtcl_fname = pjoin(basename + '.prtcl')
+
+            bval_fname = None
+            if basename + '.bval' in files:
+                bval_fname = pjoin(basename + '.bval')
+
+            bvec_fname = None
+            if basename + '.bvec' in files:
+                bvec_fname = pjoin(basename + '.bvec')
+
+            mask_fname = default_mask
+            if basename + '_mask.nii' in files:
+                mask_fname = pjoin(basename + '_mask.nii')
+            elif basename + '_mask.nii.gz' in files:
+                mask_fname = pjoin(basename + '_mask.nii.gz')
+
+            extra_cols_from_file = {}
+            for col, ext in extra_protocol_col_files:
                 if basename + ext in files:
-                    info.update({info_key: os.path.join(self._root_dir, basename + ext)})
+                    extra_cols_from_file.update({col: pjoin(basename + ext)})
 
-            if 'mask' not in info:
-                info.update({'mask': default_mask})
-
-            if 'dwi' in info and (('bval' in info and 'bvec' in info) or 'prtcl' in info):
-                protocol = self._get_protocol(info)
-                subjects.append(BatchSubjectInfo(basename, info['dwi'], protocol, info))
+            if dwi_fname and (prtcl_fname or (bval_fname and bvec_fname)):
+                protocol_loader = SimpleProtocolLoader(
+                    prtcl_fname=prtcl_fname, bvec_fname=bvec_fname, bval_fname=bval_fname,
+                    extra_cols_from_file=extra_cols_from_file)
+                subjects.append(SimpleSubjectInfo(basename, dwi_fname, protocol_loader, mask_fname))
         return subjects
 
     def __str__(self):

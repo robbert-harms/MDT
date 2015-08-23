@@ -1,7 +1,7 @@
 import glob
 import os
 import mdt
-from mdt.batch_utils import BatchSubjectInfo, SimpleBatchProfile
+from mdt.batch_utils import SimpleBatchProfile, SimpleProtocolLoader, SimpleSubjectInfo
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-07-13"
@@ -37,42 +37,40 @@ class HCP_WUMINN_Profile(SimpleBatchProfile):
         dirs = sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._root_dir, '*'))])
         subjects = []
         for d in dirs:
-            info = {}
-
             pjoin = mdt.make_path_joiner(self._root_dir, d, 'T1w', 'Diffusion')
             if os.path.isdir(pjoin()):
-                if glob.glob(pjoin('data.nii*')):
-                    info['dwi'] = glob.glob(pjoin('data.nii*'))[0]
+                dwi_fname = glob.glob(pjoin('data.nii*'))[0]
 
+                bval_fname = pjoin('bvals')
                 if os.path.isfile(pjoin('data.bval')):
-                    info['bval'] = pjoin('data.bval')
-                elif os.path.isfile(pjoin('bvals')):
-                    info['bval'] = pjoin('bvals')
+                    bval_fname = pjoin('data.bval')
 
+                bvec_fname = pjoin('bvecs')
                 if os.path.isfile(pjoin('data.bvec')):
-                    info['bvec'] = pjoin('data.bvec')
-                elif os.path.isfile(pjoin('bvecs')):
-                    info['bvec'] = pjoin('bvecs')
+                    bvec_fname = pjoin('data.bvec')
 
+                prtcl_fname = None
                 if os.path.isfile(pjoin('data.prtcl')):
-                    info['prtcl'] = pjoin('data.prtcl')
+                    prtcl_fname = pjoin('data.prtcl')
 
+                mask_fname = glob.glob(pjoin('nodif_brain_mask.nii*'))[0]
                 if glob.glob(pjoin('data_mask.nii*')):
-                    info['mask'] = glob.glob(pjoin('data_mask.nii*'))[0]
-                elif glob.glob(pjoin('nodif_brain_mask.nii*')):
-                    info['mask'] = glob.glob(pjoin('nodif_brain_mask.nii*'))[0]
+                    mask_fname = glob.glob(pjoin('data_mask.nii*'))[0]
 
-            if 'dwi' in info and (('bval' in info and 'bvec' in info) or 'prtcl' in info):
-                protocol = self._get_protocol(info)
-                subjects.append(BatchSubjectInfo(d, info['dwi'], protocol, info))
+                protocol_loader = HCP_WUMINN_ProtocolLoader(
+                    prtcl_fname=prtcl_fname, bvec_fname=bvec_fname,
+                    bval_fname=bval_fname, extra_cols={'TE': 0.0895})
+
+                subjects.append(SimpleSubjectInfo(d, dwi_fname, protocol_loader, mask_fname))
         return subjects
-
-    def _get_protocol(self, found_items):
-        protocol = super(HCP_WUMINN_Profile, self)._get_protocol(found_items)
-        for col, val in {'TE': 0.0895}.items():
-            protocol.add_column(col, val)
-        protocol.add_estimated_protocol_params(maxG=0.1)
-        return protocol
 
     def __str__(self):
         return meta_info['title']
+
+
+class HCP_WUMINN_ProtocolLoader(SimpleProtocolLoader):
+
+    def load_protocol(self):
+        protocol = super(HCP_WUMINN_ProtocolLoader, self).load_protocol()
+        protocol.add_estimated_protocol_params(maxG=0.1)
+        return protocol

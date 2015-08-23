@@ -1,6 +1,6 @@
 import glob
 import os
-from mdt.batch_utils import BatchSubjectInfo, SimpleBatchProfile
+from mdt.batch_utils import SimpleBatchProfile, SimpleProtocolLoader, SimpleSubjectInfo
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-07-13"
@@ -49,30 +49,36 @@ class DirPerSubjectProfile(SimpleBatchProfile):
         dirs = sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._root_dir, '*'))])
         subjects = []
 
-        items_to_look_for = [('bval', '*bval'), ('bvec', '*bvec'), ('TE', '*TE'), ('Delta', '*Delta'),
-                             ('delta', '*delta'), ('prtcl', '*prtcl')]
+        protocol_extra_cols_search = ['TE', 'Delta', 'delta']
 
         for subject_id in dirs:
-            info = {}
+            extra_protocol_cols = {}
 
             niftis = glob.glob(os.path.join(self._root_dir, subject_id, '*.nii*'))
             dwis = filter(lambda v: '_mask' not in v, niftis)
             masks = filter(lambda v: '_mask' in v, niftis)
+            protocols = glob.glob(os.path.join(self._root_dir, subject_id, '*prtcl'))
+            bvals = glob.glob(os.path.join(self._root_dir, subject_id, '*bval*'))
+            bvecs = glob.glob(os.path.join(self._root_dir, subject_id, '*bvec*'))
 
             if dwis:
-                info.update({'dwi': dwis[0]})
+                dwi_fname = dwis[0]
+                mask_fname = masks[0] if masks else None
+                protocol_fname = protocols[0] if protocols else None
+                bval_fname = bvals[0] if bvals else None
+                bvec_fname = bvecs[0] if bvecs else None
 
-                if masks:
-                    info.update({'mask': masks[0]})
-
-                for key, pattern in items_to_look_for:
-                    items = glob.glob(os.path.join(self._root_dir, subject_id, pattern))
+                for key in protocol_extra_cols_search:
+                    items = glob.glob(os.path.join(self._root_dir, subject_id, '*' + key))
                     if items:
-                        info.update({key: items[0]})
+                        extra_protocol_cols.update({key: items[0]})
 
-                if 'dwi' in info and (('bval' in info and 'bvec' in info) or 'prtcl' in info):
-                    protocol = self._get_protocol(info)
-                    subjects.append(BatchSubjectInfo(subject_id, info['dwi'], protocol, info))
+                if dwi_fname and (protocol_fname or (bval_fname and bvec_fname)):
+                    protocol_loader = SimpleProtocolLoader(
+                        prtcl_fname=protocol_fname, bvec_fname=bvec_fname,
+                        bval_fname=bval_fname, extra_cols_from_file=extra_protocol_cols)
+
+                    subjects.append(SimpleSubjectInfo(subject_id, dwi_fname, protocol_loader, mask_fname))
 
         return subjects
 
