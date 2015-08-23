@@ -73,7 +73,8 @@ class SingleDirProfile(SimpleBatchProfile):
                 info.update({'mask': default_mask})
 
             if 'dwi' in info and (('bval' in info and 'bvec' in info) or 'prtcl' in info):
-                subjects.append(BatchSubjectInfo(basename, info))
+                protocol = self._get_protocol(info)
+                subjects.append(BatchSubjectInfo(basename, info['dwi'], protocol, info))
         return subjects
 
     def __str__(self):

@@ -146,8 +146,8 @@ class _BatchFitRunner(object):
         subject_info = batch_instance['subject']
         output_dir = batch_instance['output_dir']
 
-        protocol = self._get_protocol(subject_info.subject_id, subject_info.found_items)
-        brain_mask = self._get_mask(subject_info.subject_id, subject_info.found_items, protocol, output_dir)
+        protocol = subject_info.protocol
+        brain_mask = self._get_mask(subject_info, protocol, output_dir)
 
         model_output_exists('BallStick (Cascade)', os.path.join(output_dir, split_image_path(brain_mask)[1]))
 
@@ -157,7 +157,7 @@ class _BatchFitRunner(object):
             return
 
         logger.info('Loading the data (DWI, mask and protocol) of subject {0}'.format(subject_info.subject_id))
-        problem_data = load_problem_data(subject_info.found_items['dwi'], protocol, brain_mask)
+        problem_data = load_problem_data(subject_info.dwi_fname, protocol, brain_mask)
 
         write_protocol(protocol, os.path.join(output_dir, 'auto_generated_protocol.prtcl'))
 
@@ -181,7 +181,7 @@ class _BatchFitRunner(object):
         logger.info('Fitted all models on subject {0} in time {1} (h:m:s)'.format(
             subject_info.subject_id, time.strftime('%H:%M:%S', time.gmtime(timeit.default_timer() - start_time))))
 
-    def _get_mask(self, subject_id, subject_info, protocol, output_dir):
+    def _get_mask(self, subject_info, protocol, output_dir):
         #todo move to batch profile class
 
         """Helper function for _batch_fit_run()
@@ -199,48 +199,14 @@ class _BatchFitRunner(object):
         """
         logger = logging.getLogger(__name__)
 
-        if 'mask' in subject_info:
-            return subject_info['mask']
+        if 'mask' in subject_info.found_items:
+            return subject_info.found_items['mask']
         else:
             output_fname = os.path.join(output_dir, 'brain_mask.nii.gz')
             if not os.path.isfile(output_fname):
-                logger.info('Creating a brain mask for subject {0}'.format(subject_id))
-                create_write_median_otsu_brain_mask(subject_info['dwi'], protocol, output_fname)
+                logger.info('Creating a brain mask for subject {0}'.format(subject_info.subject_id))
+                create_write_median_otsu_brain_mask(subject_info.dwi_fname, protocol, output_fname)
             return output_fname
-
-    def _get_protocol(self, subject_id, subject_info):
-        #todo move to batch profile class
-        """Helper function for _batch_fit_run()
-
-        Args:
-            subject_id (str): the id of this subject
-            subject_info (dict): information items about that subject. Contains things like 'dwi', 'bval', 'bvec',
-                'prtcl', 'TE', 'Delta', 'delta' and 'mask'
-            batch_fitting_config: the configuration of the batch fitting procedure
-        """
-        logger = logging.getLogger(__name__)
-
-        if 'prtcl' in subject_info:
-            protocol = load_from_protocol(subject_info['prtcl'])
-        else:
-            protocol = load_bvec_bval(subject_info['bvec'], subject_info['bval'])
-
-        if self._batch_fitting_config['protocol']['max_G'] is not None:
-            protocol.max_G = self._batch_fitting_config['protocol']['max_G']
-
-        for col in self._batch_fitting_config['protocol']['extra_columns'].items():
-            protocol.add_column(*col)
-
-        for col in ('TE', 'Delta', 'delta'):
-            if col in subject_info:
-                protocol.add_column_from_file(col, subject_info[col])
-
-        for column in ['G', 'Delta', 'delta']:
-            if not protocol.has_unestimated_column(column):
-                logger.debug('Protocol column {column} will be '
-                             'estimated for subject {subject}. '
-                             'This may give inaccurate results.'.format(column=column, subject=subject_id))
-        return protocol
 
 
 class ModelFit(object):

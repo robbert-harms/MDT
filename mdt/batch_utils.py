@@ -3,6 +3,7 @@ import os
 import shutil
 from six import string_types
 from mdt.components_loader import BatchProfilesLoader
+from mdt.protocols import load_from_protocol, load_bvec_bval
 from mdt.utils import split_image_path
 
 __author__ = 'Robbert Harms'
@@ -10,22 +11,48 @@ __date__ = "2015-08-21"
 __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
+# todo try to merge BatchSubjectInfo and BatchFitSubjectOutputInfo
 
 class BatchSubjectInfo(object):
 
-    def __init__(self, subject_id, found_items):
+    def __init__(self, subject_id, dwi_fname, protocol, found_items):
         """This class contains all the information about found subjects during batch fitting.
 
         It is returned by the method get_subjects() from the class BatchProfile.
 
         Args:
             subject_id (str): the subject id
+            dwi_fname (str): the filename with path to the dwi image
+            protocol (Protocol): the protocol object to use
             found_items (dict): a dictionary with the found subject items.
                 Can contain items like: 'dwi', 'bval', 'bvec', 'prtcl' and 'mask'
         """
-        #todo add extra items here, perhaps change found items to be more keyword arg style
         self.subject_id = subject_id
+        self.dwi_fname = dwi_fname
+        self.protocol = protocol
         self.found_items = found_items
+
+
+class BatchFitSubjectOutputInfo(object):
+
+    def __init__(self, path, subject_id, mask_name, model_name):
+        """This class is used in conjunction with the function run_function_on_batch_fit_output().
+
+        When applied the function run_function_on_batch_fit_output() calls the given function for every subject
+        with as single argument an instance of this class. The user can then use this class to get information
+        about the loaded subject.
+
+        Args:
+            output_path (str): the full path to the directory with the maps
+            subject_id (str): the id of the subject
+            mask_name (str): the name of the mask (not a path)
+            model_name (str): the name of the model (not a path)
+        """
+        self.output_path = path
+        self.subject_id = subject_id
+        self.mask_name = mask_name
+        self.model_name = model_name
+        self.available_map_names = [split_image_path(v)[1] for v in glob.glob(os.path.join(self.output_path, '*.nii*'))]
 
 
 class BatchProfile(object):
@@ -110,10 +137,39 @@ class SimpleBatchProfile(BatchProfile):
     def _get_subjects(self):
         """Get the matching subjects from the given root dir.
 
+        If a protocol file or brain mask can not be found for a subject this class will have to create one.
+
+        You can use the routine _generate_brain_mask() and _create_protocol() for that, or overwrite them with
+        your own implementation.
+
         Returns:
             list of BatchSubjectInfo: the information about the found subjects
         """
         return []
+
+    def _get_protocol(self, found_items):
+        """Get a protocol object that we can use during optimization.
+
+        If no protocol file is present it will have to create one itself.
+        This should not write a protocol file, it should only create and return a protocol object.
+
+        Args:
+            subject_id (str): the id of this subject
+            found_items (dict): the found items during directory scanning
+
+        Returns:
+            protocol: a generated protocol object
+        """
+        if 'prtcl' in found_items:
+            protocol = load_from_protocol(found_items['prtcl'])
+        else:
+            protocol = load_bvec_bval(found_items['bvec'], found_items['bval'])
+
+        for col in ('TE', 'Delta', 'delta'):
+            if col in found_items:
+                protocol.add_column_from_file(col, found_items[col])
+
+        return protocol
 
     def _get_basename(self, file):
         """Get the basename of a file. That is, the name of the files with all extensions stripped."""
@@ -204,28 +260,6 @@ class BatchFitOutputInfo(object):
                 output_path = os.path.join(mask_path, model_name)
                 if os.path.isdir(output_path):
                     yield BatchFitSubjectOutputInfo(output_path, subject_id, mask_name, model_name)
-
-
-class BatchFitSubjectOutputInfo(object):
-
-    def __init__(self, path, subject_id, mask_name, model_name):
-        """This class is used in conjunction with the function run_function_on_batch_fit_output().
-
-        When applied the function run_function_on_batch_fit_output() calls the given function for every subject
-        with as single argument an instance of this class. The user can then use this class to get information
-        about the loaded subject.
-
-        Args:
-            output_path (str): the full path to the directory with the maps
-            subject_id (str): the id of the subject
-            mask_name (str): the name of the mask (not a path)
-            model_name (str): the name of the model (not a path)
-        """
-        self.output_path = path
-        self.subject_id = subject_id
-        self.mask_name = mask_name
-        self.model_name = model_name
-        self.available_map_names = [split_image_path(v)[1] for v in glob.glob(os.path.join(self.output_path, '*.nii*'))]
 
 
 def run_function_on_batch_fit_output(data_folder, func, batch_profile_class=None):

@@ -40,8 +40,7 @@ Optional items:
 The optional items TE, Delta and delta provide extra information about the protocol.
 They should either contain exactly 1 value (for all protocol lines), or a value per protocol line.
 
-Better is to create the protocol directly by creating a .prtcl file. But that may not be as easy as adding a file
-with a single value for TE (for example).
+It is better to create the protocol directly by creating a .prtcl file, but adding single value files is also possible.
 '''}
 
 class DirPerSubjectProfile(SimpleBatchProfile):
@@ -50,13 +49,13 @@ class DirPerSubjectProfile(SimpleBatchProfile):
         dirs = sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._root_dir, '*'))])
         subjects = []
 
-        patterns_to_look_for = [('bval', '*bval'), ('bvec', '*bvec'), ('TE', '*TE'), ('Delta', '*Delta'),
-                                ('delta', '*delta'), ('prtcl', '*prtcl')]
+        items_to_look_for = [('bval', '*bval'), ('bvec', '*bvec'), ('TE', '*TE'), ('Delta', '*Delta'),
+                             ('delta', '*delta'), ('prtcl', '*prtcl')]
 
-        for d in dirs:
+        for subject_id in dirs:
             info = {}
 
-            niftis = glob.glob(os.path.join(self._root_dir, d, '*.nii*'))
+            niftis = glob.glob(os.path.join(self._root_dir, subject_id, '*.nii*'))
             dwis = filter(lambda v: '_mask' not in v, niftis)
             masks = filter(lambda v: '_mask' in v, niftis)
 
@@ -66,13 +65,14 @@ class DirPerSubjectProfile(SimpleBatchProfile):
                 if masks:
                     info.update({'mask': masks[0]})
 
-                for key, pattern in patterns_to_look_for:
-                    items = glob.glob(os.path.join(self._root_dir, d, pattern))
+                for key, pattern in items_to_look_for:
+                    items = glob.glob(os.path.join(self._root_dir, subject_id, pattern))
                     if items:
                         info.update({key: items[0]})
 
                 if 'dwi' in info and (('bval' in info and 'bvec' in info) or 'prtcl' in info):
-                    subjects.append(BatchSubjectInfo(d, info))
+                    protocol = self._get_protocol(info)
+                    subjects.append(BatchSubjectInfo(subject_id, info['dwi'], protocol, info))
 
         return subjects
 

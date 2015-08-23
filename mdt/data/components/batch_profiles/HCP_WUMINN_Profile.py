@@ -30,10 +30,6 @@ Optional items (these will take precedence if present):
 
 class HCP_WUMINN_Profile(SimpleBatchProfile):
 
-    def get_batch_fit_config_options(self):
-        return {'protocol': {'extra_columns': {'TE': 0.0895},
-                             'max_G': 0.1}}
-
     def get_output_directory(self, subject_id):
         return os.path.join(self._root_dir, subject_id, 'T1w', 'Diffusion', 'output')
 
@@ -67,8 +63,16 @@ class HCP_WUMINN_Profile(SimpleBatchProfile):
                     info['mask'] = glob.glob(pjoin('nodif_brain_mask.nii*'))[0]
 
             if 'dwi' in info and (('bval' in info and 'bvec' in info) or 'prtcl' in info):
-                subjects.append(BatchSubjectInfo(d, info))
+                protocol = self._get_protocol(info)
+                subjects.append(BatchSubjectInfo(d, info['dwi'], protocol, info))
         return subjects
+
+    def _get_protocol(self, found_items):
+        protocol = super(HCP_WUMINN_Profile, self)._get_protocol(found_items)
+        for col, val in {'TE': 0.0895}.items():
+            protocol.add_column(col, val)
+        protocol.add_estimated_protocol_params(maxG=0.1)
+        return protocol
 
     def __str__(self):
         return meta_info['title']
