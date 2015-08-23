@@ -28,12 +28,12 @@ class BatchFitting(object):
     def __init__(self, data_folder, batch_profile_class=None, subjects_ind=None, recalculate=False, cl_device_ind=None):
         """This class is meant to make running computations as simple as possible.
 
-        The idea is that a single folder is enough to fit_model the computations.
+        The idea is that a single folder is enough to fit_model the computations. One can optionally give it the
+        batch_profile to use for the fitting. If not given, this class will attempt to use the
+        batch_profile that fits the data folder best.
+
         For configuration of the optimizers uses the users configuration file. For batch fitting specific options use
         the options parameter.
-
-        One can optionally give it the batch_profile to use for the fitting. If not given, this class
-        will attempt to use the batch_profile that fits the data folder best.
 
         The general optimization options are loaded in this order:
             0) default options
