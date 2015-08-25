@@ -1327,19 +1327,18 @@ class ViewResultsTab(TabContainer):
             self._view_slices_button.config(state='disabled')
 
     def _view_slices(self):
-        def results_slice_cb():
-            selected_maps = self._maps_chooser.get_value()
+        selected_maps = self._maps_chooser.get_value()
 
-            if not selected_maps:
-                params_list = self._parameter_files.values()
-            else:
-                params_list = [self._parameter_files[ind] for ind in selected_maps]
+        if not selected_maps:
+            params_list = self._parameter_files.values()
+        else:
+            params_list = [self._parameter_files[ind] for ind in selected_maps]
 
-            dim = TabContainer.last_used_image_dimension
-            slice_ind = TabContainer.last_used_image_slice_ind
+        dim = TabContainer.last_used_image_dimension
+        slice_ind = TabContainer.last_used_image_slice_ind
 
-            view_results_slice(self._input_dir.get_value(), maps_to_show=params_list,
-                               dimension=dim, slice_ind=slice_ind)
-
-        view_process = multiprocessing.Process(target=results_slice_cb, args=())
+        view_process = multiprocessing.Process(
+            target=view_results_slice,
+            args=[self._input_dir.get_value()],
+            kwargs={'maps_to_show': params_list, 'dimension': dim, 'slice_ind': slice_ind})
         view_process.start()
