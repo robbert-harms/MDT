@@ -1,6 +1,6 @@
 import glob
 import os
-from mdt.batch_utils import SimpleBatchProfile, SimpleProtocolLoader, SimpleSubjectInfo
+from mdt.batch_utils import SimpleBatchProfile, BatchFitProtocolLoader, SimpleSubjectInfo
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-07-13"
@@ -74,7 +74,7 @@ class DirPerSubjectProfile(SimpleBatchProfile):
                         extra_protocol_cols.update({key: items[0]})
 
                 if dwi_fname and (protocol_fname or (bval_fname and bvec_fname)):
-                    protocol_loader = SimpleProtocolLoader(
+                    protocol_loader = BatchFitProtocolLoader(
                         prtcl_fname=protocol_fname, bvec_fname=bvec_fname,
                         bval_fname=bval_fname, extra_cols_from_file=extra_protocol_cols)
 

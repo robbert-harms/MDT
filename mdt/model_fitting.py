@@ -141,7 +141,7 @@ class _BatchFitRunner(object):
 
         output_dir = subject_info.output_dir
 
-        protocol = subject_info.get_protocol_info()
+        protocol = subject_info.get_protocol_loader().get_protocol()
         brain_mask = self._get_mask_path(subject_info, protocol, output_dir)
 
         model_output_exists('BallStick (Cascade)', os.path.join(output_dir, split_image_path(brain_mask)[1]))
@@ -247,30 +247,6 @@ class ModelFit(object):
 
         if self._cl_device_ind is not None:
             runtime_configuration.runtime_config['cl_environments'] = [get_cl_devices()[self._cl_device_ind]]
-
-    @classmethod
-    def load_from_basic_data(cls, model, dwi_info, protocol, brain_mask, output_folder, **kwargs):
-        """This will automatically create the problem data object the constructor needs.
-
-        It is better to use the constructor directly since reusing a problem_data object will save you runtime and
-        memory if you are optimizing multiple models after each other.
-
-        Still, for ease of use, this method is here.
-
-        Args:
-            model (AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize.
-            dwi_info (str or list): Either a filename of a DWI image to load, or a list with as first element the image
-                and as second a nifti header.
-            protocol (str or Protocol): either a filename of a protocol to load, or a Protocol object
-            brain_mask (str or ndarray): either a filename of a brain mask or a ndarray which should function as a mask.
-            output_folder (string): The full path to the folder where to place the output
-            **kwargs (dict): see the constructor
-
-        Returns:
-            An instance of this class with all the correct arguments.
-        """
-        problem_data = load_problem_data(dwi_info, protocol, brain_mask)
-        return cls(model, problem_data, output_folder, **kwargs)
 
     def run(self):
         """Run the model and return the resulting maps

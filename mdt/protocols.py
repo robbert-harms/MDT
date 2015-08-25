@@ -480,7 +480,7 @@ def write_bvec_bval(protocol, bvec_fname, bval_fname, column_based=True, bval_sc
     np.savetxt(bval_fname, b)
 
 
-def load_from_protocol(protocol_fname, column_names=None):
+def load_protocol(protocol_fname, column_names=None):
     """Load an protocol from the given protocol file, with as column names the given list of names.
 
     Args:

@@ -14,8 +14,8 @@ import nibabel as nib
 import pkg_resources
 from scipy.special import jnp_zeros
 from mdt.components_loader import get_model
+from mdt.data_loader.protocol import autodetect_protocol_loader
 from mdt.log_handlers import ModelOutputLogHandler
-from mdt.protocols import load_from_protocol
 from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
 from mot import runtime_configuration
 from mot.base import AbstractProblemData, ModelFunction
@@ -780,8 +780,7 @@ def load_problem_data(volume_info, protocol, mask):
     Returns:
         DMRIProblemData: the problem data object containing all the info needed for diffusion MRI model fitting
     """
-    if isinstance(protocol, string_types):
-        protocol = load_from_protocol(protocol)
+    protocol = autodetect_protocol_loader(protocol).get_protocol()
 
     if isinstance(mask, string_types):
         mask = load_brain_mask(mask)

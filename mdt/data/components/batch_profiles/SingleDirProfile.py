@@ -1,7 +1,7 @@
 import glob
 import os
 import mdt
-from mdt.batch_utils import SimpleBatchProfile, SimpleProtocolLoader, SimpleSubjectInfo
+from mdt.batch_utils import SimpleBatchProfile, BatchFitProtocolLoader, SimpleSubjectInfo
 from mdt.utils import split_image_path
 
 __author__ = 'Robbert Harms'
@@ -89,7 +89,7 @@ class SingleDirProfile(SimpleBatchProfile):
                     extra_cols_from_file.update({col: pjoin(basename + ext)})
 
             if dwi_fname and (prtcl_fname or (bval_fname and bvec_fname)):
-                protocol_loader = SimpleProtocolLoader(
+                protocol_loader = BatchFitProtocolLoader(
                     prtcl_fname=prtcl_fname, bvec_fname=bvec_fname, bval_fname=bval_fname,
                     extra_cols_from_file=extra_cols_from_file)
 

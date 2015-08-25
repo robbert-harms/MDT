@@ -1,7 +1,7 @@
 import glob
 import os
 import mdt
-from mdt.batch_utils import SimpleBatchProfile, SimpleProtocolLoader, SimpleSubjectInfo
+from mdt.batch_utils import SimpleBatchProfile, BatchFitProtocolLoader, SimpleSubjectInfo
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-07-13"
@@ -52,7 +52,7 @@ class HCP_MGH_Profile(SimpleBatchProfile):
                 if glob.glob(pjoin('diff_preproc_mask.nii*')):
                     mask_fname = glob.glob(pjoin('diff_preproc_mask.nii*'))[0]
 
-                protocol_loader = SimpleProtocolLoader(
+                protocol_loader = BatchFitProtocolLoader(
                     prtcl_fname=prtcl_fname, bvec_fname=bvec_fname, bval_fname=bval_fname,
                     extra_cols={'Delta': 12.9e-3, 'delta': 21.8e-3, 'TR': 8800e-3, 'TE': 57e-3})
 

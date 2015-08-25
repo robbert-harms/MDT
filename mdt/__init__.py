@@ -13,7 +13,7 @@ from mdt import utils
 from mdt.IO import Nifti, TrackMark
 import nibabel as nib
 from mdt.model_sampling import sample_single_model
-from mdt.protocols import load_from_protocol, load_bvec_bval
+from mdt.protocols import load_bvec_bval
 import mdt.protocols as protocols
 from mdt.utils import concatenate_two_mri_measurements, DMRIProblemData, setup_logging, configure_per_model_logging
 import mdt.utils
@@ -114,9 +114,10 @@ def fit_model(model, dwi_info, protocol, brain_mask, output_folder, optimizer=No
     if not utils.check_user_components():
         raise RuntimeError('User\'s components folder is not up to date. Please the script mdt-init-user-settings.')
 
-    model_fit = ModelFit.load_from_basic_data(
-        model, dwi_info, protocol, brain_mask, output_folder, optimizer=optimizer,
-        recalculate=recalculate, only_recalculate_last=only_recalculate_last, cl_device_ind=cl_device_ind)
+    problem_data = load_problem_data(dwi_info, protocol, brain_mask)
+    model_fit = ModelFit(model, problem_data, output_folder, optimizer=optimizer, recalculate=recalculate,
+                         only_recalculate_last=only_recalculate_last, cl_device_ind=cl_device_ind)
+
     return model_fit.run()
 
 
@@ -273,7 +274,8 @@ def load_protocol(filename, column_names=None):
     Returns:
         An protocol with all the columns loaded.
     """
-    return load_from_protocol(filename, column_names)
+    from mdt.protocols import load_protocol
+    return load_protocol(filename, column_names)
 
 
 def write_protocol(protocol, fname, columns_list=None):
@@ -372,7 +374,7 @@ def concatenate_mri_sets(items, output_volume_fname, output_protocol_fname, over
         signal4d = signal_img.get_data()
         nii_header = signal_img.get_header()
 
-        protocol = load_from_protocol(e['protocol'])
+        protocol = load_protocol(e['protocol'])
         to_concat.append((protocol, signal4d))
 
     protocol, signal4d = concatenate_two_mri_measurements(to_concat)

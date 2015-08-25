@@ -3,7 +3,7 @@ import os
 import numpy as np
 from scipy.ndimage import binary_dilation, generate_binary_structure
 from six import string_types
-from mdt.protocols import load_from_protocol
+from mdt.protocols import load_protocol
 import nibabel as nib
 from mot import runtime_configuration
 from mot.cl_routines.filters.median import MedianFilter
@@ -43,7 +43,7 @@ def create_median_otsu_brain_mask(dwi_info, protocol, mask_threshold=0, **kwargs
         dwi = dwi_info
 
     if isinstance(protocol, string_types):
-        protocol = load_from_protocol(protocol)
+        protocol = load_protocol(protocol)
 
     if len(dwi.shape) == 4:
         unweighted_ind = protocol.get_unweighted_indices()

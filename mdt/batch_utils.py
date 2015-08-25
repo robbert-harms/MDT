@@ -3,7 +3,8 @@ import os
 import shutil
 from six import string_types
 from mdt.components_loader import BatchProfilesLoader
-from mdt.protocols import load_from_protocol, load_bvec_bval
+from mdt.data_loader.protocol import ProtocolLoader
+from mdt.protocols import load_protocol, load_bvec_bval
 from mdt.utils import split_image_path
 
 __author__ = 'Robbert Harms'
@@ -140,11 +141,11 @@ class SubjectInfo(object):
         """
         return ''
 
-    def get_protocol_info(self):
+    def get_protocol_loader(self):
         """Get the protocol to use, or a filename of a protocol file to load.
 
         Returns:
-            str or Protocol: the protocol object or a filename
+            ProtocolLoader: the protocol loader
         """
 
     def get_dwi_info(self):
@@ -197,8 +198,8 @@ class SimpleSubjectInfo(SubjectInfo):
     def get_subject_id(self):
         return self.subject_id
 
-    def get_protocol_info(self):
-        return self._protocol_loader.load_protocol()
+    def get_protocol_loader(self):
+        return self._protocol_loader
 
     def get_dwi_info(self):
         return self._dwi_fname
@@ -207,22 +208,7 @@ class SimpleSubjectInfo(SubjectInfo):
         return self._mask_fname
 
 
-class ProtocolLoader(object):
-
-    def load_protocol(self):
-        """Load and return the protocol object from this protocol loader.
-
-        The idea is that it would be costly to load all the protocols for every subject while testing which
-        batch profile would fit a directory best. An alternative to this deferred loading scheme would be to let
-        the batch profile write a protocol file and give the path to the SubjectInfo class. The problem then is that
-        every batch profile might overwrite the protocol with its own generated protocol during directory testing.
-
-        Returns:
-            Protocol: a complete protocol object
-        """
-
-
-class SimpleProtocolLoader(ProtocolLoader):
+class BatchFitProtocolLoader(ProtocolLoader):
 
     def __init__(self, prtcl_fname=None, bvec_fname=None, bval_fname=None,
                  extra_cols=None, extra_cols_from_file=None):
@@ -245,17 +231,17 @@ class SimpleProtocolLoader(ProtocolLoader):
                 the values the values of that column.
                 Example: {'TE': '/path/to/TE_file', 'TI': '/path/to/T1_file', ...}
         """
-        super(SimpleProtocolLoader, self).__init__()
+        super(BatchFitProtocolLoader, self).__init__()
         self._prtcl_fname = prtcl_fname
         self._bvec_fname = bvec_fname
         self._bval_fname = bval_fname
         self._extra_cols = extra_cols
         self._extra_cols_from_file = extra_cols_from_file
 
-    def load_protocol(self):
-        super(SimpleProtocolLoader, self).load_protocol()
+    def get_protocol(self):
+        super(BatchFitProtocolLoader, self).get_protocol()
         if self._prtcl_fname and os.path.isfile(self._prtcl_fname):
-            protocol = load_from_protocol(self._prtcl_fname)
+            protocol = load_protocol(self._prtcl_fname)
         else:
             protocol = load_bvec_bval(self._bvec_fname, self._bval_fname)
 

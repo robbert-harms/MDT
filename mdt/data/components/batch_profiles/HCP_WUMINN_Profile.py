@@ -1,7 +1,7 @@
 import glob
 import os
 import mdt
-from mdt.batch_utils import SimpleBatchProfile, SimpleProtocolLoader, SimpleSubjectInfo
+from mdt.batch_utils import SimpleBatchProfile, BatchFitProtocolLoader, SimpleSubjectInfo
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-07-13"
@@ -67,9 +67,9 @@ class HCP_WUMINN_Profile(SimpleBatchProfile):
         return meta_info['title']
 
 
-class HCP_WUMINN_ProtocolLoader(SimpleProtocolLoader):
+class HCP_WUMINN_ProtocolLoader(BatchFitProtocolLoader):
 
-    def load_protocol(self):
-        protocol = super(HCP_WUMINN_ProtocolLoader, self).load_protocol()
+    def get_protocol(self):
+        protocol = super(HCP_WUMINN_ProtocolLoader, self).get_protocol()
         protocol.add_estimated_protocol_params(maxG=0.1)
         return protocol
