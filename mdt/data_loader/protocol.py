@@ -7,7 +7,6 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-
 def autodetect_protocol_loader(data_source):
     """A function to get a protocol loader using the given data source.
 

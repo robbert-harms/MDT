@@ -1,5 +1,6 @@
 from mot.cl_functions import Weight
-from mdt.utils import restore_volumes, create_roi, ProtocolCheckInterface, MissingColumns, InsufficientShells
+from mdt.utils import restore_volumes, create_roi, ProtocolCheckInterface
+from mdt.model_protocol_problem import MissingColumns, InsufficientShells
 from mot.models.interfaces import SmoothableModelInterface, PerturbationModelInterface
 from mot.models.model_builders import SampleModelBuilder
 from mot.parameter_functions.dependencies import WeightSumToOneRule

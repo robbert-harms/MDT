@@ -14,7 +14,6 @@ from mdt.utils import create_roi, configure_per_model_logging, restore_volumes, 
     load_problem_data, ProtocolProblemError, MetaOptimizerBuilder, get_cl_devices, \
     get_model_config, apply_model_protocol_options, model_output_exists, split_image_path
 from mdt.batch_utils import batch_profile_factory
-from mdt.masking import create_write_median_otsu_brain_mask
 from mot import runtime_configuration
 
 __author__ = 'Robbert Harms'
@@ -142,17 +141,17 @@ class _BatchFitRunner(object):
         output_dir = subject_info.output_dir
 
         protocol = subject_info.get_protocol_loader().get_protocol()
-        brain_mask = self._get_mask_path(subject_info, protocol, output_dir)
+        brain_mask_fname = subject_info.get_mask_filename()
 
-        model_output_exists('BallStick (Cascade)', os.path.join(output_dir, split_image_path(brain_mask)[1]))
+        model_output_exists('BallStick (Cascade)', os.path.join(output_dir, split_image_path(brain_mask_fname)[1]))
 
-        if all(model_output_exists(model, os.path.join(output_dir, split_image_path(brain_mask)[1]))
+        if all(model_output_exists(model, os.path.join(output_dir, split_image_path(brain_mask_fname)[1]))
                for model in self._batch_fitting_config['models']):
             logger.info('Skipping subject {0}, output exists'.format(subject_info.subject_id))
             return
 
         logger.info('Loading the data (DWI, mask and protocol) of subject {0}'.format(subject_info.subject_id))
-        problem_data = load_problem_data(subject_info.get_dwi_info(), protocol, brain_mask)
+        problem_data = load_problem_data(subject_info.get_dwi_info(), protocol, brain_mask_fname)
 
         write_protocol(protocol, os.path.join(output_dir, 'used_protocol.prtcl'))
 
@@ -162,7 +161,7 @@ class _BatchFitRunner(object):
             try:
                 model_fit = ModelFit(model,
                                      problem_data,
-                                     os.path.join(output_dir, split_image_path(brain_mask)[1]),
+                                     os.path.join(output_dir, split_image_path(brain_mask_fname)[1]),
                                      recalculate=self._recalculate,
                                      only_recalculate_last=False,
                                      model_protocol_options=self._batch_fitting_config['model_protocol_options'],
@@ -175,28 +174,6 @@ class _BatchFitRunner(object):
                 logger.info('Done fitting model {0} on subject {1}'.format(model, subject_info.subject_id))
         logger.info('Fitted all models on subject {0} in time {1} (h:m:s)'.format(
             subject_info.subject_id, time.strftime('%H:%M:%S', time.gmtime(timeit.default_timer() - start_time))))
-
-    def _get_mask_path(self, subject_info, protocol, output_dir):
-        """Get the path to the mask to use.
-
-        Args:
-            subject_info (SubjectInfo): information items about the subject.
-            protocol (Protocol): the protocol object we loaded using the subject info
-            output_dir (str): if we need to create a new mask, this is the location to write it to
-
-        Returns:
-            str: the filename of the mask to load
-        """
-        logger = logging.getLogger(__name__)
-
-        if subject_info.get_mask_info():
-            return subject_info.get_mask_info()
-        else:
-            output_fname = os.path.join(output_dir, 'auto_generated_mask.nii.gz')
-            if not os.path.isfile(output_fname):
-                logger.info('Creating a brain mask for subject {0}'.format(subject_info.subject_id))
-                create_write_median_otsu_brain_mask(subject_info.get_dwi_info(), protocol, output_fname)
-            return output_fname
 
 
 class ModelFit(object):

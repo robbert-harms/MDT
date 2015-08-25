@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 from six import string_types
 import mdt.batch_utils
 from mdt.cascade_model import CascadeModelInterface
+from mdt.data_loader.brain_mask import autodetect_brain_mask_loader
+from mdt.data_loader.protocol import autodetect_protocol_loader
 import mdt.masking as masking
 from mdt.model_fitting import ModelFit, BatchFitting
 from mdt.components_loader import SingleModelsLoader, CascadeModelsLoader
@@ -797,8 +799,7 @@ def extract_volumes(input_volume_fname, input_protocol, output_volume_fname, out
         output_protocol (str): the output protocol for the selected volumes
         protocol_indices (list): the desired indices, indexing the input_volume
     """
-    if isinstance(input_protocol, basestring):
-        input_protocol = mdt.load_protocol(input_protocol)
+    input_protocol = autodetect_protocol_loader(input_protocol).get_protocol()
 
     new_protocol = input_protocol.get_new_protocol_with_indices(protocol_indices)
     protocols.write_protocol(new_protocol, output_protocol)
@@ -836,8 +837,7 @@ def apply_mask(dwi, mask, inplace=False):
     Returns:
         ndarray: image of the same size as the input image but with all values set to zero where the mask is zero.
     """
-    if isinstance(mask, string_types):
-        mask = load_brain_mask(mask)
+    mask = autodetect_brain_mask_loader(mask).get_data()
 
     if isinstance(dwi, string_types):
         dwi = load_dwi(dwi)[0]

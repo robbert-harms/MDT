@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import glob
 import re
 from setuptools import setup, find_packages
-from setuptools.command.install import install
-
 
 def load_requirements(fname):
     is_comment = re.compile('^\s*(#|--).*').match
@@ -19,6 +18,7 @@ requirements_tests = load_requirements('requirements_tests.txt')
 
 ver_dic = {}
 exec(compile(version_file_contents, "mdt/__init__.py", 'exec'), ver_dic)
+
 
 setup(
     name='mdt',
@@ -49,8 +49,5 @@ setup(
     ],
     test_suite='tests',
     tests_require=requirements_tests,
-    scripts=['bin/mdt-init-user-settings',
-             'bin/mdt-list-devices',
-             'bin/mdt-print-abstract-model-function',
-             'bin/mdt-tk']
+    scripts=glob.glob('bin/mdt-*')
 )
