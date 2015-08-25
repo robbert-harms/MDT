@@ -57,6 +57,9 @@ class ModelOutputLogHandler(logging.StreamHandler):
         Open the current base file with the (original) mode and encoding.
         Return the resulting stream.
         """
+        if not os.path.isdir(os.path.dirname(self.baseFilename)):
+            os.makedirs(os.path.dirname(self.baseFilename))
+
         if self.encoding is None:
             stream = open(self.baseFilename, self.mode)
         else:

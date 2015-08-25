@@ -853,11 +853,13 @@ def get_model_config(model_name, config_list):
     """Get from the given dictionary the config for the given model.
 
     The config list should contain dictionaries with the items 'model_name' and 'config'. Where the first is a regex
-    expression for the model name and the second the configuration we will use.
+    expression for the model name and the second the configuration we will use. It can optionally also contain the
+    key 'enabled' which can be set to False to exclude the config from considerations.
 
     Args:
         model_name (str): the name of the model
-        config_list (list of dict): the list with config items with the keys 'model_name' and 'config'.
+        config_list (list of dict): the list with config items with the keys 'model_name', 'config' and optionally
+            'enabled'.
 
     Returns:
         An accumulation of all the configuration of all the models that match with the given model name.
@@ -866,7 +868,7 @@ def get_model_config(model_name, config_list):
         return {}
     conf = {}
     for info in config_list:
-        if re.match(info['model_name'], model_name):
+        if re.match(info['model_name'], model_name) and info.get('enabled', True):
             conf = recursive_merge_dict(conf, info['config'])
     return conf
 
@@ -884,6 +886,8 @@ def apply_model_protocol_options(model_protocol_options, problem_data):
     Returns:
         a new problem data object with the correct protocol (and DWI data), or the old one
     """
+    logger = logging.getLogger(__name__)
+
     if model_protocol_options:
         protocol = problem_data.protocol
         protocol_indices = np.array([])
@@ -891,7 +895,7 @@ def apply_model_protocol_options(model_protocol_options, problem_data):
         if 'use_weighted' not in model_protocol_options or\
             ('use_weighted' in model_protocol_options and model_protocol_options['use_weighted']):
             if 'b_value' in model_protocol_options:
-                options = {'start': 0, 'end': 1e9, 'epsilon': None}
+                options = {'start': 0, 'end': 1.5e9, 'epsilon': None}
                 for key, value in model_protocol_options['b_value'].items():
                     options.update({key: value})
                 protocol_indices = protocol.get_indices_bval_in_range(**options)
@@ -903,7 +907,6 @@ def apply_model_protocol_options(model_protocol_options, problem_data):
         protocol_indices = np.unique(protocol_indices)
 
         if len(protocol_indices) != protocol.protocol_length:
-            logger = logging.getLogger(__name__)
             logger.info('Applying model protocol options. We will only use a subset of the protocol.')
             new_protocol = protocol.get_new_protocol_with_indices(protocol_indices)
 
@@ -912,6 +915,7 @@ def apply_model_protocol_options(model_protocol_options, problem_data):
             return DMRIProblemData(new_protocol, new_dwi_volume, problem_data.mask,
                                    problem_data.volume_header)
 
+    logger.info('No model protocol options to apply. Using original protocol')
     return problem_data
 
 

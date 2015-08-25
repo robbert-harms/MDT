@@ -809,22 +809,6 @@ def extract_volumes(input_volume_fname, input_protocol, output_volume_fname, out
     write_image(output_volume_fname, image_data, input_volume[1])
 
 
-def extract_tensor_shell(input_volume_fname, input_protocol, output_volume_fname, output_protocol, max_b_val=1.0e9):
-    """ Extract the tensor shell from the given volume and protocol
-
-    Args:
-        input_volume_fname (str): the input volume from which to get the specific volumes
-        input_protocol (str): the input protocol filename
-        output_volume_fname (str): the output filename for the selected volumes
-        output_protocol (str): the output protocol for the selected volumes
-        max_b_val (double): the maximum b-value, standard is 1.0e-9
-    """
-    protocol = mdt.load_protocol(input_protocol)
-    tensor_shell_ind = protocol.get_indices_bval_in_range(start=10, end=max_b_val)
-    tensor_shell_ind = np.unique(np.append(tensor_shell_ind, protocol.get_unweighted_indices()))
-    mdt.extract_volumes(input_volume_fname, protocol, output_volume_fname, output_protocol, tensor_shell_ind)
-
-
 def apply_mask(dwi, mask, inplace=False):
     """Apply a mask to the given input.
 

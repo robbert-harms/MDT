@@ -1,3 +1,4 @@
+import glob
 import logging
 import os
 import shutil
@@ -147,8 +148,9 @@ class _BatchFitRunner(object):
 
         if all(model_output_exists(model, os.path.join(output_dir, split_image_path(brain_mask_fname)[1]))
                for model in self._batch_fitting_config['models']):
-            logger.info('Skipping subject {0}, output exists'.format(subject_info.subject_id))
-            return
+            if not self._recalculate:
+                logger.info('Skipping subject {0}, output exists'.format(subject_info.subject_id))
+                return
 
         logger.info('Loading the data (DWI, mask and protocol) of subject {0}'.format(subject_info.subject_id))
         problem_data = load_problem_data(subject_info.get_dwi_info(), protocol, brain_mask_fname)
@@ -262,6 +264,8 @@ class ModelFit(object):
         return self._run_single_model(model, recalculate, meta_optimizer_config)
 
     def _run_single_model(self, model, recalculate, meta_optimizer_config):
+        configure_per_model_logging(_get_model_output_path(self._output_folder, model))
+
         self._logger.info('Preparing for model {0}'.format(model.name))
         optimizer = self._optimizer or MetaOptimizerBuilder(meta_optimizer_config).construct(model.name)
 
@@ -285,8 +289,10 @@ def fit_single_model(model, problem_data, output_folder, optimizer, recalculate=
         optimizer (AbstractOptimizer): The optimization routine to use.
         recalculate (boolean): If we want to recalculate the results if they are already present.
     """
-    output_path = os.path.join(output_folder, model.name)
+    output_path = _get_model_output_path(output_folder, model)
     logger = logging.getLogger(__name__)
+    configure_per_model_logging(output_path)
+
     model.set_problem_data(problem_data)
 
     if not model.is_protocol_sufficient(problem_data.protocol):
@@ -296,7 +302,7 @@ def fit_single_model(model, problem_data, output_folder, optimizer, recalculate=
 
     if recalculate:
         if os.path.exists(output_path):
-            shutil.rmtree(output_path)
+            map(os.remove, glob.glob(os.path.join(output_path, '*.nii*')))
     else:
         if model_output_exists(model, output_folder):
             maps = Nifti.read_volume_maps(output_path)
@@ -305,8 +311,6 @@ def fit_single_model(model, problem_data, output_folder, optimizer, recalculate=
 
     if not os.path.isdir(output_path):
         os.makedirs(output_path)
-
-    configure_per_model_logging(output_path)
 
     minimize_start_time = timeit.default_timer()
     logger.info('Fitting {} model'.format(model.name))
@@ -330,3 +334,9 @@ def _write_output(results, other_output, problem_data, output_path):
     for k, v in other_output.items():
         with open(os.path.join(output_path, k + '.pyobj'), 'wb') as f:
             pickle.dump(v, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+    write_protocol(problem_data.protocol, os.path.join(output_path, 'used_protocol.prtcl'))
+
+
+def _get_model_output_path(output_dir, model):
+    return os.path.join(output_dir, model.name)

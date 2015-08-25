@@ -64,6 +64,8 @@ class SingleDirProfile(SimpleBatchProfile):
                 dwi_fname = pjoin(basename + '.nii')
             elif basename + '.nii.gz' in files:
                 dwi_fname = pjoin(basename + '.nii.gz')
+            elif basename + '.hdr' in files and basename + '.img' in files:
+                dwi_fname = pjoin(basename + '.hdr')
 
             prtcl_fname = None
             if basename + '.prtcl' in files:
