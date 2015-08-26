@@ -8,13 +8,14 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-def get_arg_parser():
-    description = "Launches the MDT TK Graphical User Interface.\n"
-    parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
-    return parser
+if __name__ == '__main__':
+    def get_arg_parser():
+        description = "Launches the MDT TK Graphical User Interface.\n"
+        parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
+        return parser
 
-parser = get_arg_parser()
-args = parser.parse_args()
+    parser = get_arg_parser()
+    args = parser.parse_args()
 
-window = tkgui.get_window()
-window.mainloop()
+    window = tkgui.get_window()
+    window.mainloop()
