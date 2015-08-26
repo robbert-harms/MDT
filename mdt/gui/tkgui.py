@@ -362,8 +362,7 @@ class RunModelTab(TabContainer):
     def _onchange_cb(self, calling_widget, *args, **kwargs):
         id_key = calling_widget.id_key
 
-        self._update_global_initial_dir(calling_widget, ['image_vol_chooser', 'brain_mask_chooser',
-                                                         'protocol_files', 'output_dir_chooser'])
+        self._update_global_initial_dir(calling_widget, ['image_vol_chooser', 'brain_mask_chooser', 'protocol_files'])
 
         if id_key != 'output_dir_chooser':
             if not self._output_dir_chooser.get_value() and self._image_vol_chooser.is_valid() \
