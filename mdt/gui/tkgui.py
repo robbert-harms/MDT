@@ -20,7 +20,7 @@ import nibabel as nib
 import numpy as np
 import mdt
 from mdt.gui.tk.widgets import ScrolledText, FileBrowserWidget, DirectoryBrowserWidget, TextboxWidget, DropdownWidget, \
-    ListboxWidget, YesNonWidget, SubWindowWidget
+    ListboxWidget, YesNonWidget, SubWindowWidget, CompositeWidget
 from mdt.gui.utils import print_welcome_message, update_user_settings, OptimOptions, \
     ProtocolOptions
 from mdt.utils import split_image_path
@@ -43,13 +43,13 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 mdt.utils.setup_logging(disable_existing_loggers=True)
 
 
-def get_window():
-    return ToolkitGUIWindow()
+def get_window(initial_dir=None):
+    return ToolkitGUIWindow(initial_dir=initial_dir)
 
 
 class ToolkitGUIWindow(Tk):
 
-    def __init__(self):
+    def __init__(self, initial_dir=None):
         Tk.__init__(self)
 
         s = ttk.Style()
@@ -90,6 +90,7 @@ class ToolkitGUIWindow(Tk):
             self.destroy()
 
         self.protocol("WM_DELETE_WINDOW", on_closing)
+        CompositeWidget.initial_dir = initial_dir
 
     def _window_start_cb(self):
         log_listener = TextboxLogListener(self._log_box)
@@ -350,6 +351,13 @@ class RunModelTab(TabContainer):
 
     def _onchange_cb(self, calling_widget, *args, **kwargs):
         id_key = calling_widget.id_key
+
+        if id_key in ['image_vol_chooser', 'brain_mask_chooser', 'protocol_files', 'output_dir_chooser']:
+            value = calling_widget.get_value()
+            if os.path.isdir(value):
+                CompositeWidget.initial_dir = value
+            else:
+                CompositeWidget.initial_dir = os.path.basename(value)
 
         if id_key != 'output_dir_chooser':
             if not self._output_dir_chooser.get_value() and self._image_vol_chooser.is_valid() \

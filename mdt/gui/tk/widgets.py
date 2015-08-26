@@ -49,6 +49,8 @@ class ScrolledText(Tkinter.Text):
 
 class CompositeWidget(object):
 
+    initial_dir = None
+
     def __init__(self, root_window, id_key, onchange_cb):
         """Container for all widgets in use."""
         super(CompositeWidget, self).__init__()
@@ -137,6 +139,9 @@ class FileBrowserWidget(CompositeWidget):
         init_dir = self._fname_entry.get()
         if not init_dir:
             init_dir = self.initial_file
+
+        if not init_dir:
+            init_dir = CompositeWidget.initial_dir
 
         if init_dir:
             options['initialdir'] = os.path.dirname(init_dir)
@@ -237,6 +242,8 @@ class DirectoryBrowserWidget(CompositeWidget):
             options['initialdir'] = init_dir
         elif self.initial_dir:
             options['initialdir'] = self.initial_dir
+        else:
+            options['initialdir'] = CompositeWidget.initial_dir
 
         options['parent'] = self._root_window
         options['title'] = self._label_text
