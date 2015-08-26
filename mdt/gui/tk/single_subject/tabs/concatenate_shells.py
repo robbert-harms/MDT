@@ -156,6 +156,4 @@ class ConcatenateShellsTab(TabContainer):
             TabContainer.last_used_protocol = output_protocol
 
             self._concatenate_button.config(state='normal')
-
-        concatenate_thread = threading.Thread(target=concatenate_shells)
-        concatenate_thread.start()
+        concatenate_shells()

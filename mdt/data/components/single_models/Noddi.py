@@ -51,7 +51,8 @@ def get_noddi():
         noddi_model.add_parameter_dependencies(noddi_dependencies)
         modifiers = (('Noddi_IC.kappa', lambda d: d['Noddi_IC.kappa'] / 10.0),
                      ('NDI', lambda d: d['Wic.w'] / ((1 - d['Wcsf.w']) + ((1 - d['Wcsf.w']) < cutoff))),
-                     ('SNIF', lambda d: 1 - d['Wcsf.w']))
+                     ('SNIF', lambda d: 1 - d['Wcsf.w']),
+                     ('ODI', lambda d: d['Noddi_IC.odi']))
         noddi_model.add_post_optimization_modifiers(modifiers)
 
         return noddi_model

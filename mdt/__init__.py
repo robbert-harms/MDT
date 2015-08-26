@@ -31,7 +31,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.2.1'
+VERSION = '0.2.2'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')                                           
@@ -387,6 +387,7 @@ def concatenate_mri_sets(items, output_volume_fname, output_protocol_fname, over
 def view_results_slice(data,
                        dimension=None,
                        slice_ind=None,
+                       article_modus=False,
                        maps_to_show=None,
                        general_plot_options=None,
                        map_plot_options=None,
@@ -394,28 +395,22 @@ def view_results_slice(data,
                        to_file=None,
                        block=True,
                        maximize=False,
-                       window_title=None):
+                       window_title=None,
+                       axis_options=None,
+                       nmr_colorbar_axis_ticks=None,
+                       show_sliders=None):
     """View from the given results the given slice.
 
+    See MapsVisualizer.show() for most of the the options. The special options are listed in the section Args
+
     Args:
-        data (string or dict with maps): Either the folder to read the maps from, or the data itself in a dictionary.
-        dimension (int): the dimension to select a slice from
-        slice (int): the selected slice
-        maps_to_show (list): A list of parameters we want to show (in that order)
-        general_plot_options (dict): A number of options for rendering the maps. These hold for all the displayed maps.
-        map_plot_options (dict): A number of options for rendering the maps. These options should be like:
-                {map_name: {options}}.
-                That is a set of options for that specific map. These override the general plot options if present.
-                For example, to change the contrast one can use as options: {'vmin': 0, 'vmax': 1}
-        font_size (int): The size of the font for larger or smaller print.
-        to_file (string, optional, default None): If to_file is not None it is supposed to be a filename where the
-            images will be saved and nothing will be displayed. If set to None, no file is saved and results are
-            displayed. Already existing items will be overwritten.
-        block (boolean): If we want to block after calling the plots or not. Set this to False if you
-            do not want the routine to block after drawing. In doing so you manually need to block. You can
-            do this by calling the function block_plots()
-        maximize (boolean): if we want to display the window maximized or not
-        window_title (str): the title of the window. If None, the default title is used
+        article_modus (boolean): If set to true we set most of the options as such that the data is rendered better
+            for in use of a paper. Sets
+                axis_options='off'
+                font_size=20
+                nmr_colorbar_axis_ticks=4
+                show_sliders=False
+            You can overwrite these again by specifying one of these options directly.
     """
     general_plot_options = general_plot_options or {}
 
@@ -430,6 +425,12 @@ def view_results_slice(data,
     if maps_to_show:
         results_total = {k: results_total[k] for k in maps_to_show}
 
+    if article_modus:
+        axis_options = axis_options or 'off'
+        font_size = font_size or 20
+        nmr_colorbar_axis_ticks = nmr_colorbar_axis_ticks or 4
+        show_sliders = show_sliders or False
+
     viz = MapsVisualizer(results_total)
     if font_size:
         viz.font_size = font_size
@@ -441,7 +442,10 @@ def view_results_slice(data,
              to_file=to_file,
              block=block,
              maximize=maximize,
-             window_title=window_title)
+             window_title=window_title,
+             axis_options=axis_options,
+             nmr_colorbar_axis_ticks=nmr_colorbar_axis_ticks,
+             show_sliders=show_sliders)
 
 
 def block_plots():

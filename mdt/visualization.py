@@ -1,10 +1,12 @@
 import math
 import matplotlib.pyplot as plt
 import matplotlib
+from matplotlib.ticker import LinearLocator
 from matplotlib.widgets import Slider
 from mdt.utils import get_slice_in_dimension
 from matplotlib.gridspec import GridSpec
 import numpy as np
+from matplotlib import ticker
 
 
 __author__ = 'Robbert Harms'
@@ -40,10 +42,12 @@ class MapsVisualizer(object):
         self._volume_slider = None
         self._updating_sliders = False
         self._colorbar_subplots = {}
+        self.axis_options = None
+        self.nmr_colorbar_axis_ticks = None
 
     def show(self, dimension=None, slice_ind=None, volume_ind=None, names=None, maps_to_show=None,
              general_plot_options=None, map_plot_options=None, to_file=None, block=True, maximize=False,
-             window_title=None):
+             window_title=None, axis_options=None, nmr_colorbar_axis_ticks=None, show_sliders=None):
         """Show the data contained in this visualizer using the specifics in this function call.
 
         Args:
@@ -73,6 +77,11 @@ class MapsVisualizer(object):
                 do not want the routine to block after drawing. In doing so you manually need to block.
             maximize (boolean): if we want to display the window maximized or not
             window_title (str): the title of the window. If None, the default title is used
+            axis_options: if not set it is not used. If set it can be a single string or list that is used for all maps,
+                if it is dictionary it is supposed to be a value per map.
+            nmr_colorbar_axis_ticks: the nmr of ticks (labels) to display. Can be None, a single int or a dict with
+                per map name an int.
+            show_sliders (boolean or None): if we want to show the sliders or not. Can be None then it is not used.
         """
         if dimension is not None:
             self.dimension = dimension
@@ -94,6 +103,12 @@ class MapsVisualizer(object):
             self.general_plot_options = general_plot_options
         if map_plot_options:
             self.map_plot_options = map_plot_options
+
+        self.axis_options = axis_options
+        self.nmr_colorbar_axis_ticks = nmr_colorbar_axis_ticks
+
+        if show_sliders is not None:
+            self.show_sliders = show_sliders
 
         self._setup()
 
@@ -192,8 +207,10 @@ class MapsVisualizer(object):
             self._figure.delaxes(f)
         self._image_subplots = {}
 
+        bottom_spacing = 0.07 if self.show_sliders else 0.015
+
         rows, cols = self._get_row_cols()
-        grid = GridSpec(rows, cols, left=0.04, right=0.96, top=0.97, bottom=0.07)
+        grid = GridSpec(rows, cols, left=0.04, right=0.96, top=0.97, bottom=bottom_spacing)
 
         ind = 0
         for map_name in self.maps_to_show:
@@ -214,10 +231,14 @@ class MapsVisualizer(object):
 
             try:
                 vf = image_subplots.imshow(data, **plot_options)
+
+                self._set_axis_options(map_name, plt)
+
                 plt.title(title)
                 self._image_subplots.update({map_name: image_subplots})
 
                 cbar = plt.colorbar(vf)
+                self._set_colorbar_axis_ticks(map_name, cbar)
                 self._colorbar_subplots.update({map_name: cbar})
 
             except TypeError:
@@ -226,6 +247,34 @@ class MapsVisualizer(object):
             ind += 1
 
         self._figure.canvas.draw()
+
+    def _set_axis_options(self, map_name, plt):
+        if self.axis_options is not None:
+            try:
+                if isinstance(self.axis_options, dict):
+                    if map_name in self.axis_options:
+                        plt.axis(self.axis_options[map_name])
+                else:
+                    plt.axis(self.axis_options)
+            except TypeError:
+                pass
+
+    def _set_colorbar_axis_ticks(self, map_name, cbar):
+        if self.nmr_colorbar_axis_ticks is not None:
+            ticks=None
+
+            if isinstance(self.nmr_colorbar_axis_ticks, dict):
+                if map_name in self.nmr_colorbar_axis_ticks:
+                    ticks = self.nmr_colorbar_axis_ticks[map_name]
+            else:
+                ticks = self.nmr_colorbar_axis_ticks
+
+            try:
+                tick_locator = MyColourBarTickLocator(numticks=ticks)
+                cbar.locator = tick_locator
+                cbar.update_ticks()
+            except TypeError:
+                pass
 
     def _get_image(self, data):
         """Get the 2d image to display for the given data.
@@ -427,3 +476,10 @@ class _DiscreteSlider(Slider):
             return
         for cid, func in self.observers.iteritems():
             func(discrete_val)
+
+
+class MyColourBarTickLocator(LinearLocator):
+
+    def __call__(self):
+        locations = LinearLocator.__call__(self)
+        return np.round(locations, 2)
