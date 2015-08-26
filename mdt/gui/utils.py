@@ -1,5 +1,5 @@
 from collections import OrderedDict
-
+from functools import wraps
 import mdt
 from mdt.configuration import config as mdt_config
 from mdt.utils import check_user_components, MetaOptimizerBuilder
@@ -107,3 +107,32 @@ def update_user_settings():
         mdt.initialize_user_settings()
         print('')
         print('Initializing home directory completed.')
+
+
+def function_message_decorator(header, footer):
+    """This creates and returns a decorator that prints a header and footer before executing the function.
+
+    Args:
+        header (str): the header text, we will add extra decoration to it
+        foot (str): the footer text, we will add extra decoration to it
+
+    Returns:
+        decorator function
+    """
+    def _called_decorator(dec_func):
+
+        @wraps(dec_func)
+        def _decorator(*args, **kwargs):
+            print('')
+            print(header)
+            print('-'*20)
+
+            response = dec_func(*args, **kwargs)
+
+            print('-'*20)
+            print(footer)
+
+            return response
+        return _decorator
+
+    return _called_decorator
