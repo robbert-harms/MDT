@@ -208,6 +208,16 @@ class TabContainer(object):
 
         return _called_decorator
 
+    def _update_global_initial_dir(self, calling_widget, keys_to_listen_to):
+        id_key = calling_widget.id_key
+
+        if id_key in keys_to_listen_to:
+            value = calling_widget.get_value()
+            if os.path.isdir(value):
+                CompositeWidget.initial_dir = value
+            else:
+                CompositeWidget.initial_dir = os.path.dirname(value)
+
 
 class RunModelTab(TabContainer):
 
@@ -352,12 +362,8 @@ class RunModelTab(TabContainer):
     def _onchange_cb(self, calling_widget, *args, **kwargs):
         id_key = calling_widget.id_key
 
-        if id_key in ['image_vol_chooser', 'brain_mask_chooser', 'protocol_files', 'output_dir_chooser']:
-            value = calling_widget.get_value()
-            if os.path.isdir(value):
-                CompositeWidget.initial_dir = value
-            else:
-                CompositeWidget.initial_dir = os.path.dirname(value)
+        self._update_global_initial_dir(calling_widget, ['image_vol_chooser', 'brain_mask_chooser',
+                                                         'protocol_files', 'output_dir_chooser'])
 
         if id_key != 'output_dir_chooser':
             if not self._output_dir_chooser.get_value() and self._image_vol_chooser.is_valid() \
@@ -645,6 +651,9 @@ class GenerateBrainMaskTab(TabContainer):
             mask_name = os.path.join(path, img_name + '_mask.nii.gz')
             self._output_bm_chooser.initial_file = mask_name
 
+        self._update_global_initial_dir(calling_widget, ['image_vol_chooser', 'protocol_file_chooser',
+                                                         'output_bm_chooser'])
+
         if os.path.isfile(self._output_bm_chooser.get_value())\
             and self._image_vol_chooser.is_valid()\
             and os.path.isfile(self._protocol_file_chooser.get_value()):
@@ -794,6 +803,8 @@ class GenerateROIMaskTab(TabContainer):
         id_key = calling_widget.id_key
         brain_mask_fname = self._brain_mask_vol_chooser.get_value()
 
+        self._update_global_initial_dir(calling_widget, ['brain_mask_chooser'])
+
         if brain_mask_fname:
             if id_key == 'brain_mask_chooser':
                 try:
@@ -932,6 +943,8 @@ class GenerateProtocolFileTab(TabContainer):
 
     def _onchange_cb(self, calling_widget, *args, **kwargs):
         id_key = calling_widget.id_key
+
+        self._update_global_initial_dir(calling_widget, ['bvec_chooser', 'bval_chooser'])
 
         if id_key == 'bvec_chooser':
             self._output_protocol_chooser.initial_file = os.path.splitext(calling_widget.get_value())[0] + '.prtcl'
@@ -1205,6 +1218,10 @@ class ConcatenateShellsTab(TabContainer):
 
     def _onchange_cb(self, calling_widget, *args, **kwargs):
         id_key = calling_widget.id_key
+
+        self._update_global_initial_dir(calling_widget, ['image_1_chooser', 'protocol_1_chooser', 'image_2_chooser',
+                                                         'protocol_2_chooser', 'output_image_chooser',
+                                                         'output_protocol_chooser'])
 
         for ind in (1, 2):
             if id_key == 'image_' + str(ind) + '_chooser':
