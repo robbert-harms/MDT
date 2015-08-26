@@ -144,8 +144,12 @@ class FileBrowserWidget(CompositeWidget):
             init_dir = CompositeWidget.initial_dir
 
         if init_dir:
-            options['initialdir'] = os.path.dirname(init_dir)
-            options['initialfile'] = os.path.basename(init_dir)
+            if os.path.isdir(init_dir):
+                options['initialdir'] = init_dir
+                options['initialfile'] = None
+            else:
+                options['initialdir'] = os.path.dirname(init_dir)
+                options['initialfile'] = os.path.basename(init_dir)
 
         options['parent'] = self._root_window
         options['title'] = self._label_text
@@ -238,12 +242,16 @@ class DirectoryBrowserWidget(CompositeWidget):
         options['mustexist'] = self.must_exist
 
         init_dir = self._fname_entry.get()
+        if not init_dir:
+            init_dir = self.initial_dir
+        if not init_dir:
+            init_dir = CompositeWidget.initial_dir
+
         if init_dir:
-            options['initialdir'] = init_dir
-        elif self.initial_dir:
-            options['initialdir'] = self.initial_dir
-        else:
-            options['initialdir'] = CompositeWidget.initial_dir
+            if os.path.isdir(init_dir):
+                options['initialdir'] = init_dir
+            else:
+                options['initialdir'] = os.path.dirname(init_dir)
 
         options['parent'] = self._root_window
         options['title'] = self._label_text
