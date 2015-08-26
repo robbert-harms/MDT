@@ -1,3 +1,4 @@
+from pkg_resources import resource_filename
 from Tkconstants import W, BOTH, FALSE, YES, HORIZONTAL, END, EXTENDED, BROWSE, INSERT
 from Tkinter import Tk, TclError
 import Tkinter
@@ -60,6 +61,9 @@ class ToolkitGUIWindow(Tk):
         self.wm_title("Diffusion MRI Toolbox")
         self.resizable(width=FALSE, height=FALSE)
         self.update_idletasks()
+
+        img = Tkinter.PhotoImage(file=resource_filename('mdt', 'data/logo.gif'))
+        self.tk.call('wm', 'iconphoto', self._w, img)
 
         width = 900
         height = 630
