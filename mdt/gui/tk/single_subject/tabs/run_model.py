@@ -25,7 +25,7 @@ class RunModelTab(TabContainer):
     def __init__(self, window):
         super(RunModelTab, self).__init__(window, 'Run model')
 
-        self.queue = Queue.Queue()
+        self._queue = Queue.Queue()
 
         self._models_ordered_list = mdt.get_models_list()
         self._models = {k: v['description'] for k, v in mdt.get_models_meta_info().items()}
@@ -134,15 +134,15 @@ class RunModelTab(TabContainer):
 
         only_recalculate_last = self.optim_options.recalculate_all
 
-        thr = RunModelThread(self.queue, optimizer, model_name, image_path, protocol_path,
+        thr = RunModelThread(self._queue, optimizer, model_name, image_path, protocol_path,
                              brain_mask_path, output_dir, only_recalculate_last)
         thr.start()
         self.window.after(100, self._wait_for_run_completion)
 
     def _wait_for_run_completion(self):
         try:
-            self.queue.get(0)
-            self._run_button.config(state='enabled')
+            self._queue.get(0)
+            self._run_button.config(state='normal')
         except Queue.Empty:
             self.window.after(100, self._wait_for_run_completion)
 
@@ -204,6 +204,7 @@ class RunModelThread(threading.Thread):
                       optimizer=self._optimizer,
                       recalculate=True,
                       only_recalculate_last=self._only_recalculate_last)
+        self.queue.put('Task finished')
 
 
 class OptimOptionsWindow(SubWindow):

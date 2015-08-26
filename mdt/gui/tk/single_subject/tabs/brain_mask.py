@@ -1,3 +1,4 @@
+import Queue
 from Tkconstants import W, HORIZONTAL
 from itertools import count
 import os
@@ -20,6 +21,8 @@ class GenerateBrainMaskTab(TabContainer):
 
     def __init__(self, window):
         super(GenerateBrainMaskTab, self).__init__(window, 'Generate brain mask')
+
+        self._queue = Queue.Queue()
 
         self._image_vol_chooser = FileBrowserWidget(
             self._tab, 'image_vol_chooser', self._onchange_cb,
@@ -108,11 +111,6 @@ class GenerateBrainMaskTab(TabContainer):
             self._run_whole_brain_mask_button.config(state='disabled')
 
     def _run_whole_brain_mask(self):
-        mask_create_thread = threading.Thread(target=self._create_brain_mask)
-        mask_create_thread.start()
-
-    @function_message_decorator('Started creating a mask.', 'Finished creating a mask')
-    def _create_brain_mask(self):
         self._run_whole_brain_mask_button.config(state='disabled')
 
         volume = self._image_vol_chooser.get_value()
@@ -134,14 +132,20 @@ class GenerateBrainMaskTab(TabContainer):
             threshold = int(self._threshold_box.get_value())
             threshold = max(threshold, 0)
 
-        create_median_otsu_brain_mask(volume, prtcl, output_fname, median_radius=filter_mean_radius,
-                                      numpass=filter_passes, mask_threshold=threshold)
+        thr = CreateMaskThread(self._queue, volume, prtcl, output_fname, filter_mean_radius, filter_passes, threshold)
+        thr.start()
+        self.window.after(100, self._wait_for_mask_completion)
 
         TabContainer.last_used_dwi_image = volume
         TabContainer.last_used_protocol = prtcl
         TabContainer.last_used_mask = output_fname
 
-        self._run_whole_brain_mask_button.config(state='normal')
+    def _wait_for_mask_completion(self):
+        try:
+            self._queue.get(0)
+            self._run_whole_brain_mask_button.config(state='normal')
+        except Queue.Empty:
+            self.window.after(100, self._wait_for_mask_completion)
 
     def _view_brain_mask(self):
         mask = self._output_bm_chooser.get_value()
@@ -152,3 +156,23 @@ class GenerateBrainMaskTab(TabContainer):
             s = image_data.shape
             MapsVisualizer({'Masked': masked_image,
                             'DWI': image_data}).show(dimension=1, slice_ind=s[1]/2)
+
+
+class CreateMaskThread(threading.Thread):
+
+    def __init__(self, queue, volume, prtcl, output_fname, filter_mean_radius, filter_passes, threshold):
+        threading.Thread.__init__(self)
+        self.queue = queue
+        self._volume = volume
+        self._prtcl = prtcl
+        self._output_fname = output_fname
+        self._filter_mean_radius = filter_mean_radius
+        self._filter_passes = filter_passes
+        self._threshold = threshold
+
+    @function_message_decorator('Started creating a mask.', 'Finished creating a mask')
+    def run(self):
+        create_median_otsu_brain_mask(self._volume, self._prtcl, self._output_fname,
+                                      median_radius=self._filter_mean_radius, numpass=self._filter_passes,
+                                      mask_threshold=self._threshold)
+        self.queue.put('Task finished')
