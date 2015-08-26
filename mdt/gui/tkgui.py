@@ -357,7 +357,7 @@ class RunModelTab(TabContainer):
             if os.path.isdir(value):
                 CompositeWidget.initial_dir = value
             else:
-                CompositeWidget.initial_dir = os.path.basename(value)
+                CompositeWidget.initial_dir = os.path.dirname(value)
 
         if id_key != 'output_dir_chooser':
             if not self._output_dir_chooser.get_value() and self._image_vol_chooser.is_valid() \
