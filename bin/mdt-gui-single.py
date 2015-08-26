@@ -10,7 +10,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 if __name__ == '__main__':
     def get_arg_parser():
-        description = "Launches the MDT TK Graphical User Interface.\n"
+        description = "Launches the MDT TK single subject graphical user interface.\n"
         parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
         return parser
 
