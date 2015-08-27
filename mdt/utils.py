@@ -765,6 +765,13 @@ class MetaOptimizerBuilder(object):
 
         Args;
             meta_optimizer_config (dict): optimizer configuration settings
+                The dict should only contain the elements inside optimization_settings.general
+                Example config dict:
+                    meta_optimizer_config = {
+                        'optimizers': [{'name': 'NMSimplex', 'patience': 30}],
+                        'extra_optim_runs': 0,
+                        ...
+                    }
         """
         self._meta_optimizer_config = meta_optimizer_config or {}
 
