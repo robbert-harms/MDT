@@ -33,8 +33,6 @@ class ViewResultsTab(TabContainer):
         self._validate_fields = [self._input_dir]
         self._view_slices_button = ttk.Button(self._tab, text='View', command=self._view_slices,
                                               state='disabled')
-        #todo remove
-        self._input_dir.initial_dir = '/home/robbert/programming/python/phd-scripts/bin/dti_test/output/brain_mask/BallStick/'
 
     def get_tab(self):
         row_nmr = count()
