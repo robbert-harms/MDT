@@ -92,15 +92,16 @@ class ViewResultsTab(TabContainer):
             self._view_slices_button.config(state='disabled')
 
     def _view_slices(self):
-        view_process = ViewResultsProcess(self._input_dir.get_value())
+        view_process = ViewResultsProcess(self._input_dir.get_value(), self._maps_chooser.get_value())
         view_process.start()
 
 
 class ViewResultsProcess(multiprocessing.Process):
 
-    def __init__(self, input_dir):
+    def __init__(self, input_dir, maps_to_show):
         super(ViewResultsProcess, self).__init__()
         self._input_dir = input_dir
+        self._maps_to_show = maps_to_show
 
     def run(self):
-        view_results_slice(self._input_dir)
+        view_results_slice(self._input_dir, maps_to_show=self._maps_to_show)
