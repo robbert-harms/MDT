@@ -12,7 +12,7 @@ from mdt.gui.tk.utils import SubWindow, TabContainer
 from mdt.gui.tk.widgets import FileBrowserWidget, DirectoryBrowserWidget, DropdownWidget, SubWindowWidget, \
     TextboxWidget, YesNonWidget, ListboxWidget
 from mdt.gui.utils import OptimOptions, function_message_decorator
-from mdt.utils import MetaOptimizerBuilder
+from mdt.utils import MetaOptimizerBuilder, split_image_path
 from mot.factory import get_optimizer_by_name
 
 __author__ = 'Robbert Harms'
@@ -123,7 +123,6 @@ class RunModelTab(TabContainer):
         self._test_protocol()
         self._set_last_run_settings()
 
-        optimizer = self.optim_options.get_optimizer()
         model_name = self._model_select_chooser.get_value()
 
         image_path = self._image_vol_chooser.get_value()
@@ -170,6 +169,19 @@ class RunModelTab(TabContainer):
         id_key = calling_widget.id_key
 
         self._update_global_initial_dir(calling_widget, ['image_vol_chooser', 'brain_mask_chooser', 'protocol_files'])
+
+        if id_key == 'image_vol_chooser':
+            path, img_name = split_image_path(calling_widget.get_value())[0:2]
+
+            if not self._brain_mask_chooser.is_valid():
+                mask_name = os.path.join(path, img_name + '_mask.nii.gz')
+                if os.path.isfile(mask_name):
+                    self._brain_mask_chooser.initial_file = mask_name
+
+            if not self._protocol_file_chooser.is_valid():
+                prtcl_name = os.path.join(path, img_name + '.prtcl')
+                if os.path.isfile(prtcl_name):
+                    self._protocol_file_chooser.initial_file = prtcl_name
 
         if id_key != 'output_dir_chooser':
             if not self._output_dir_chooser.get_value() and self._image_vol_chooser.is_valid() \

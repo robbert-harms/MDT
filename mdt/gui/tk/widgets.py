@@ -1,4 +1,4 @@
-from Tkconstants import VERTICAL, HORIZONTAL, E, W, END, FALSE
+from Tkconstants import VERTICAL, HORIZONTAL, E, W, END, FALSE, NONE
 import Tkinter
 from Tkinter import StringVar, Listbox, IntVar
 import os
@@ -50,7 +50,7 @@ class ScrolledText(Tkinter.Text):
 class LoggingTextArea(ScrolledText):
 
     def __init__(self, master=None, **kwargs):
-        kwargs.update(wrap=None)
+        kwargs.update({'wrap': NONE})
         ScrolledText.__init__(self, master=master, **kwargs)
 
     def write(self, string):

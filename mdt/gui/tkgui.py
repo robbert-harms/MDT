@@ -1,11 +1,8 @@
 from Tkconstants import BOTH, FALSE, YES
 from Tkinter import Tk, TclError
 import Tkinter
-from threading import Thread
 import ttk
 import sys
-import multiprocessing
-
 from pkg_resources import resource_filename
 import mdt
 from mdt.gui.tk.single_subject.tabs.brain_mask import GenerateBrainMaskTab
@@ -15,9 +12,7 @@ from mdt.gui.tk.single_subject.tabs.roi_mask import GenerateROIMaskTab
 from mdt.gui.tk.single_subject.tabs.run_model import RunModelTab
 from mdt.gui.tk.single_subject.tabs.view_results import ViewResultsTab
 from mdt.gui.tk.widgets import CompositeWidget, LoggingTextArea
-from mdt.gui.utils import print_welcome_message, update_user_settings, StdoutQueue, \
-    ForwardingListener, LogMonitorThread
-from mdt.log_handlers import LogDispatchHandler
+from mdt.gui.utils import print_welcome_message, update_user_settings, LogMonitorThread
 import mdt.utils
 import mdt.protocols
 import mdt.configuration
@@ -43,10 +38,6 @@ class ToolkitGUIWindow(Tk):
 
         self._cl_process_queue = input_queue
         self._output_queue = output_queue
-        # self._stdout_queue = StdoutQueue()
-
-        # manager = multiprocessing.Manager()
-        # self._stdout_queue = manager.Queue()
 
         self._stdout_old = sys.stdout
         self._stderr_old = sys.stderr
@@ -77,7 +68,6 @@ class ToolkitGUIWindow(Tk):
         sys.stdout = self._log_box
         sys.stderr = self._log_box
 
-        # LogDispatchHandler.add_listener(ForwardingListener(self._stdout_queue))
         print_welcome_message()
         update_user_settings()
 

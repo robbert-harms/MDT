@@ -25,6 +25,10 @@ def cl_process_runner(input_queue, output_queue):
     import mdt
     import mot
     import sys
+    from mdt.log_handlers import LogDispatchHandler
+    from mdt.gui.utils import ForwardingListener
+
+    LogDispatchHandler.add_listener(ForwardingListener(output_queue))
 
     redirect = StdRedirect(output_queue)
     sys.stdout = redirect

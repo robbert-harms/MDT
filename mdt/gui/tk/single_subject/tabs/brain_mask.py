@@ -1,8 +1,6 @@
 from Queue import Empty
-from multiprocessing.queues import Queue
 from Tkconstants import W, HORIZONTAL
 from itertools import count
-import logging
 import os
 import ttk
 import multiprocessing
@@ -146,6 +144,7 @@ class GenerateBrainMaskTab(TabContainer):
             try:
                 finish_queue.get(block=False)
                 self._run_whole_brain_mask_button.config(state='normal')
+                self._view_brain_mask_button.config(state='normal')
             except Empty:
                 self.window.after(100, _wait_for_mask_completion)
 

@@ -1,11 +1,8 @@
 from Queue import Empty
 from collections import OrderedDict
 from functools import wraps
-from multiprocessing.queues import Queue
-import sys
 import threading
 import time
-import multiprocessing
 import mdt
 from mdt.configuration import config as mdt_config
 from mdt.log_handlers import LogListenerInterface
@@ -195,27 +192,3 @@ class ForwardingListener(LogListenerInterface):
 
     def write(self, string):
         self._queue.put(string)
-
-
-
-#todo remove?
-class StdoutQueue(Queue):
-
-    def __init__(self,*args, **kwargs):
-        """This is a Queue that behaves like stdout.
-
-        This queue should be passed to the different tabs in the GUI. If they then want to start a process they
-        should use this queue and set:
-            sys.stdout = queue
-            sys.stderr = queue
-
-        Where queue is a reference to this queue object. In that way, everything that sys out writes is caught by this
-        class and then re-emitted using queue.put().
-        """
-        Queue.__init__(self, *args, **kwargs)
-
-    def write(self, msg):
-        self.put(msg)
-
-    def flush(self):
-        sys.__stdout__.flush()
