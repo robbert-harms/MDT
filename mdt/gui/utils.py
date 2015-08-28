@@ -1,7 +1,14 @@
+from Queue import Empty
 from collections import OrderedDict
 from functools import wraps
+from multiprocessing.queues import Queue
+import sys
+import threading
+import time
+import multiprocessing
 import mdt
 from mdt.configuration import config as mdt_config
+from mdt.log_handlers import LogListenerInterface
 from mdt.utils import check_user_components, MetaOptimizerBuilder
 import mot.cl_environments
 
@@ -54,8 +61,8 @@ class OptimOptions(object):
             return l
         return [0]
 
-    def get_optimizer(self):
-        optimizer_config = {
+    def get_meta_optimizer_config(self):
+        return {
             'optimizers': [{'name': self.optimizer, 'patience': self.patience}],
             'extra_optim_runs': self.extra_optim_runs,
             'extra_optim_runs_apply_smoothing': True,
@@ -63,6 +70,9 @@ class OptimOptions(object):
             'load_balancer': {'name': 'EvenDistribution'},
             'cl_devices': self.cl_envs_indices,
         }
+
+    def get_optimizer(self):
+        optimizer_config = self.get_meta_optimizer_config()
         return MetaOptimizerBuilder(optimizer_config).construct()
 
 
@@ -136,3 +146,76 @@ def function_message_decorator(header, footer):
         return _decorator
 
     return _called_decorator
+
+
+class LogMonitorThread(threading.Thread):
+
+    def __init__(self, queue, logging_text_area):
+        """Log monitor to watch the given queue and write the output to the given log listener.
+
+        Call the method stop() to stop this thread.
+
+        Args:
+            logging_text_area (LoggingTextArea): the text area to log to
+            queue (multiprocessing.Queue): the queue to which we will listen
+        """
+        super(LogMonitorThread, self).__init__()
+        self._stop = threading.Event()
+        self._queue = queue
+        self._logging_text_area = logging_text_area
+
+    def stop(self):
+        self._stop.set()
+
+    def run(self):
+        while not self._stop.isSet():
+            try:
+                message = self._queue.get(0)
+                self._logging_text_area.write(message)
+                time.sleep(0.001)
+            except Empty:
+                pass
+
+
+class ForwardingListener(LogListenerInterface):
+
+    def __init__(self, queue):
+        """Forwards all incoming messages to the given queue.
+
+        Instances of this class can be used as a log listener to the MDT LogDispatchHandler and as a
+        sys.stdout replacement.
+
+        Args:
+            queue (Queue): the queue to forward the messages to
+        """
+        self._queue = queue
+
+    def emit(self, record, formatted_message):
+        self._queue.put(formatted_message + "\n")
+
+    def write(self, string):
+        self._queue.put(string)
+
+
+
+#todo remove?
+class StdoutQueue(Queue):
+
+    def __init__(self,*args, **kwargs):
+        """This is a Queue that behaves like stdout.
+
+        This queue should be passed to the different tabs in the GUI. If they then want to start a process they
+        should use this queue and set:
+            sys.stdout = queue
+            sys.stderr = queue
+
+        Where queue is a reference to this queue object. In that way, everything that sys out writes is caught by this
+        class and then re-emitted using queue.put().
+        """
+        Queue.__init__(self, *args, **kwargs)
+
+    def write(self, msg):
+        self.put(msg)
+
+    def flush(self):
+        sys.__stdout__.flush()

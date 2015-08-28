@@ -1,8 +1,6 @@
-from Tkconstants import END
 import os
 import ttk
 from mdt.gui.tk.widgets import CompositeWidget
-from mdt.log_handlers import LogListenerInterface
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-26"
@@ -34,8 +32,9 @@ class TabContainer(object):
     last_used_image_dimension = None
     last_used_image_slice_ind = None
 
-    def __init__(self, window, tab_name):
+    def __init__(self, window, cl_process_queue, tab_name):
         self.window = window
+        self._cl_process_queue = cl_process_queue
         self.tab_name = tab_name
         self._tab = ttk.Frame()
         self._tab.config(padding=(10, 13, 10, 13))
@@ -69,22 +68,3 @@ class TabContainer(object):
                 CompositeWidget.initial_dir = value
             else:
                 CompositeWidget.initial_dir = os.path.dirname(value)
-
-
-class TextboxLogListener(LogListenerInterface):
-
-    def __init__(self, text_box):
-        self.text_box = text_box
-
-    def emit(self, record, formatted_message):
-        self.write(formatted_message)
-        self.write("\n")
-
-    def write(self, string):
-        self.text_box.configure(state='normal')
-        self.text_box.insert(END, string)
-        self.text_box.configure(state='disabled')
-        self.text_box.see(END)
-
-    def flush(self):
-        pass

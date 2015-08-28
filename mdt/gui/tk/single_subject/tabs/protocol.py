@@ -21,8 +21,8 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class GenerateProtocolFileTab(TabContainer):
 
-    def __init__(self, window):
-        super(GenerateProtocolFileTab, self).__init__(window, 'Generate protocol file')
+    def __init__(self, window, cl_process_queue):
+        super(GenerateProtocolFileTab, self).__init__(window, cl_process_queue, 'Generate protocol file')
 
         self.protocol_options = ProtocolOptions()
 

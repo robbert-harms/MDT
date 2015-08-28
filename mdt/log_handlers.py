@@ -87,10 +87,25 @@ class LogDispatchHandler(logging.StreamHandler):
 
     @staticmethod
     def add_listener(listener):
+        """Add a listener to this handler.
+
+        Args:
+            listener (LogListenerInterface): listener that implements the log listener interface.
+
+        Returns:
+            int: the listener id number. You can use this to remove the listener again.
+        """
+        id = len(LogDispatchHandler._listeners)
         LogDispatchHandler._listeners.append(listener)
+        return id
+
+    @staticmethod
+    def remove_listener(listener_id):
+        del LogDispatchHandler._listeners[listener_id]
 
 
 class LogListenerInterface(object):
+    """Interface for listeners to work in conjunction with LogDispatchHandler"""
 
     def emit(self, record, formatted_message):
         pass

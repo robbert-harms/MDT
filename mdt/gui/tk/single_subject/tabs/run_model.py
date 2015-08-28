@@ -4,14 +4,15 @@ import copy
 from itertools import count
 import numbers
 import os
-import threading
 import tkMessageBox
 import ttk
+import multiprocessing
 import mdt
 from mdt.gui.tk.utils import SubWindow, TabContainer
 from mdt.gui.tk.widgets import FileBrowserWidget, DirectoryBrowserWidget, DropdownWidget, SubWindowWidget, \
     TextboxWidget, YesNonWidget, ListboxWidget
 from mdt.gui.utils import OptimOptions, function_message_decorator
+from mdt.utils import MetaOptimizerBuilder
 from mot.factory import get_optimizer_by_name
 
 __author__ = 'Robbert Harms'
@@ -22,10 +23,8 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class RunModelTab(TabContainer):
 
-    def __init__(self, window):
-        super(RunModelTab, self).__init__(window, 'Run model')
-
-        self._queue = Queue.Queue()
+    def __init__(self, window, cl_process_queue):
+        super(RunModelTab, self).__init__(window, cl_process_queue, 'Run model')
 
         self._models_ordered_list = mdt.get_models_list()
         self._models = {k: v['description'] for k, v in mdt.get_models_meta_info().items()}
@@ -134,17 +133,21 @@ class RunModelTab(TabContainer):
 
         only_recalculate_last = self.optim_options.recalculate_all
 
-        thr = RunModelThread(self._queue, optimizer, model_name, image_path, protocol_path,
-                             brain_mask_path, output_dir, only_recalculate_last)
-        thr.start()
-        self.window.after(100, self._wait_for_run_completion)
+        manager = multiprocessing.Manager()
+        finish_queue = manager.Queue()
 
-    def _wait_for_run_completion(self):
-        try:
-            self._queue.get(0)
-            self._run_button.config(state='normal')
-        except Queue.Empty:
-            self.window.after(100, self._wait_for_run_completion)
+        run_proc = RunModelProcess(self.optim_options.get_meta_optimizer_config(), finish_queue, model_name, image_path, protocol_path,
+                                   brain_mask_path, output_dir, only_recalculate_last)
+        self._cl_process_queue.put(run_proc)
+
+        def _wait_for_run_completion():
+            try:
+                finish_queue.get(block=False)
+                self._run_button.config(state='normal')
+            except Queue.Empty:
+                self.window.after(100, _wait_for_run_completion)
+
+        self.window.after(100, _wait_for_run_completion)
 
     def _test_protocol(self):
         model_name = self._model_select_chooser.get_value()
@@ -183,13 +186,12 @@ class RunModelTab(TabContainer):
             self._run_button.config(state='disabled')
 
 
-class RunModelThread(threading.Thread):
+class RunModelProcess(object):
 
-    def __init__(self, queue, optimizer, model_name, image_path, protocol_path, brain_mask_path,
+    def __init__(self, meta_optimizer_config, finish_queue, model_name, image_path, protocol_path, brain_mask_path,
                  output_dir, only_recalculate_last):
-        threading.Thread.__init__(self)
-        self.queue = queue
-        self._optimizer = optimizer
+        self._finish_queue = finish_queue
+        self._meta_optimizer_config = meta_optimizer_config
         self._model_name = model_name
         self._image_path = image_path
         self._protocol_path = protocol_path
@@ -199,12 +201,14 @@ class RunModelThread(threading.Thread):
 
     @function_message_decorator('Starting model fitting, please wait.',
                                 'Finished model fitting. You can view the results using the "View results" tab.')
-    def run(self):
+    def __call__(self, *args, **kwargs):
+        optimizer = MetaOptimizerBuilder(self._meta_optimizer_config).construct()
+
         mdt.fit_model(self._model_name, self._image_path, self._protocol_path, self._brain_mask_path, self._output_dir,
-                      optimizer=self._optimizer,
+                      optimizer=optimizer,
                       recalculate=True,
                       only_recalculate_last=self._only_recalculate_last)
-        self.queue.put('Task finished')
+        self._finish_queue.put('DONE')
 
 
 class OptimOptionsWindow(SubWindow):

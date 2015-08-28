@@ -1,7 +1,6 @@
 from Tkconstants import EXTENDED, W, HORIZONTAL
 import glob
 from itertools import count
-import multiprocessing
 import os
 import ttk
 from mdt import view_results_slice
@@ -17,8 +16,8 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class ViewResultsTab(TabContainer):
 
-    def __init__(self, window):
-        super(ViewResultsTab, self).__init__(window, 'View results')
+    def __init__(self, window, cl_process_queue):
+        super(ViewResultsTab, self).__init__(window, cl_process_queue, 'View results')
 
         self._parameter_files = {}
 
@@ -33,6 +32,8 @@ class ViewResultsTab(TabContainer):
         self._validate_fields = [self._input_dir]
         self._view_slices_button = ttk.Button(self._tab, text='View', command=self._view_slices,
                                               state='disabled')
+        #todo remove
+        # self._input_dir.initial_dir = '/home/robbert/programming/python/phd-scripts/bin/dti_test/output/brain_mask/BallStick/'
 
     def get_tab(self):
         row_nmr = count()
@@ -90,18 +91,23 @@ class ViewResultsTab(TabContainer):
             self._view_slices_button.config(state='disabled')
 
     def _view_slices(self):
-        selected_maps = self._maps_chooser.get_value()
+        view_process = ViewResultsProcess(self._input_dir.get_value())
+        self._cl_process_queue.put(view_process)
 
-        if not selected_maps:
-            params_list = self._parameter_files.values()
-        else:
-            params_list = [self._parameter_files[ind] for ind in selected_maps]
 
-        dim = TabContainer.last_used_image_dimension
-        slice_ind = TabContainer.last_used_image_slice_ind
+class ViewResultsProcess(object):
 
-        view_process = multiprocessing.Process(
-            target=view_results_slice,
-            args=[self._input_dir.get_value()],
-            kwargs={'maps_to_show': params_list, 'dimension': dim, 'slice_ind': slice_ind})
-        view_process.start()
+    def __init__(self, input_dir):
+        self._input_dir = input_dir
+
+    def __call__(self, *args, **kwargs):
+        view_results_slice(self._input_dir)
+        # redirect = StdRedirect(self._multi_proc_queue)
+        # sys.stdout = redirect
+        # sys.stderr = redirect
+
+        # self._multi_proc_queue.put('tester')
+
+        # print('test')
+        # logger = logging.getLogger('mdt')
+        # logger.info('test')

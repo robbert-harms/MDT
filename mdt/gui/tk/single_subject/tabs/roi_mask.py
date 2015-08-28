@@ -18,8 +18,8 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class GenerateROIMaskTab(TabContainer):
 
-    def __init__(self, window):
-        super(GenerateROIMaskTab, self).__init__(window, 'Generate ROI mask')
+    def __init__(self, window, cl_process_queue):
+        super(GenerateROIMaskTab, self).__init__(window, cl_process_queue, 'Generate ROI mask')
 
         self._dimensions = {}
         self._dimension_shape = []

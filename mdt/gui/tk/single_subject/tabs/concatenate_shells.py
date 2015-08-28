@@ -17,8 +17,8 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class ConcatenateShellsTab(TabContainer):
 
-    def __init__(self, window):
-        super(ConcatenateShellsTab, self).__init__(window, 'Concatenate shells')
+    def __init__(self, window, cl_process_queue):
+        super(ConcatenateShellsTab, self).__init__(window, cl_process_queue, 'Concatenate shells')
 
         self._image_1_chooser = FileBrowserWidget(
             self._tab,

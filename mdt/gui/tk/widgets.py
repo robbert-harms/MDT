@@ -13,7 +13,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 class ScrolledText(Tkinter.Text):
-    """Copied from ScrolledText from TK"""
+
     def __init__(self, master=None, **kw):
         self.frame = Tkinter.Frame(master)
 
@@ -45,6 +45,22 @@ class ScrolledText(Tkinter.Text):
 
     def __str__(self):
         return str(self.frame)
+
+
+class LoggingTextArea(ScrolledText):
+
+    def __init__(self, master=None, **kwargs):
+        kwargs.update(wrap=None)
+        ScrolledText.__init__(self, master=master, **kwargs)
+
+    def write(self, string):
+        self.configure(state='normal')
+        self.insert(END, string)
+        self.configure(state='disabled')
+        self.see(END)
+
+    def flush(self):
+        pass
 
 
 class CompositeWidget(object):
@@ -164,26 +180,21 @@ class FileBrowserWidget(CompositeWidget):
     @staticmethod
     def common_file_types(choice):
         if choice == 'image_volumes':
-            l = (('All image files', ('*.nii', '*.nii.gz', '*.img')),
-                 ('Nifti files', ('*.nii', '*.nii.gz')),
-                 ('Analyze files', '*.img'),
-                 ('All files', '.*'))
+            l = (('All image files', ('*.nii.gz', '*.nii', '*.img')),)
         elif choice == 'protocol_files':
-            l = (('Protocol files', '*.prtcl'),
-                 ('All files', '.*'))
+            l = (('Protocol files', '*.prtcl'),)
         elif choice == 'txt':
-            l = (('Text files', '*.txt'),
-                 ('All files', '.*'))
+            l = (('Text files', '*.txt'),)
         elif choice == 'bvec':
             l = (('b-vector files', '*.bvec'),
                  ('Text files', '*.txt'),
-                 ('All files', '.*'))
+                 ('All files', '*.*'))
         elif choice == 'bval':
             l = (('b-values files', '*.bval'),
                  ('Text files', '*.txt'),
-                 ('All files', '.*'))
+                 ('All files', '*.*'))
         else:
-            return ('All files', '.*'),
+            return ('All files', '*.*'),
 
         if platform.system() == 'Windows':
             return list(reversed(l))

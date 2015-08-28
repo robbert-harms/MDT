@@ -1,28 +1,5 @@
-import os
-import pickle
-import re
-import matplotlib.pyplot as plt
-from six import string_types
-import mdt.batch_utils
-from mdt.cascade_model import CascadeModelInterface
-from mdt.data_loader.brain_mask import autodetect_brain_mask_loader
-from mdt.data_loader.protocol import autodetect_protocol_loader
-import mdt.masking as masking
-from mdt.model_fitting import ModelFit, BatchFitting
-from mdt.components_loader import SingleModelsLoader, CascadeModelsLoader
-import mdt.configuration
-from mdt import utils
-from mdt.IO import Nifti, TrackMark
-import nibabel as nib
-from mdt.model_sampling import sample_single_model
-from mdt.protocols import load_bvec_bval
-import mdt.protocols as protocols
-from mdt.utils import concatenate_two_mri_measurements, DMRIProblemData, setup_logging, configure_per_model_logging
-import mdt.utils
-from mdt.visualization import SampleVisualizer, MapsVisualizer
-import numpy as np
-from mot import runtime_configuration
-from mot.cl_routines.sampling.metropolis_hastings import MetropolisHastings
+import logging.config as logging_config
+from mdt import configuration
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-03-10"
@@ -34,7 +11,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 VERSION = '0.2.3'
 VERSION_STATUS = ''
 
-_items = VERSION.split('-')                                           
+_items = VERSION.split('-')
 VERSION_NUMBER_PARTS = tuple(int(i) for i in _items[0].split('.'))
 if len(_items) > 1:
     VERSION_STATUS = _items[1]
@@ -42,10 +19,20 @@ __version__ = VERSION
 
 
 try:
-    setup_logging()
+    conf = configuration.config['logging']['info_dict']
+    logging_config.dictConfig(configuration.config['logging']['info_dict'])
 except ValueError:
     print('Logging disabled')
 
+
+"""The main init of MDT.
+
+We inlined all the import in the functions to do as less work as possible in the initialization.
+
+This is very important when working with MDT and the python multiprocessing library. In essence if we import
+PyOpencl (via MOT) before we start the multiprocessing we are bound to get in trouble. We will get an Out Of Memory
+exception when trying to create an kernel.
+"""
 
 def batch_fit(data_folder, batch_profile_class=None, subjects_ind=None, recalculate=False,
               cl_device_ind=None, dry_run=False):
@@ -75,6 +62,9 @@ def batch_fit(data_folder, batch_profile_class=None, subjects_ind=None, recalcul
     Returns:
         The list of subjects we will calculate / have calculated.
     """
+    import mdt.utils
+    from mdt.model_fitting import BatchFitting
+
     if not utils.check_user_components():
         raise RuntimeError('User\'s components folder is not up to date. Please run the script mdt-init-user-settings.')
 
@@ -113,10 +103,13 @@ def fit_model(model, dwi_info, protocol, brain_mask, output_folder, optimizer=No
         the output of the optimization. If a cascade is given, only the results of the last model in the cascade is
         returned
     """
+    import mdt.utils
+    from mdt.model_fitting import ModelFit
+
     if not utils.check_user_components():
         raise RuntimeError('User\'s components folder is not up to date. Please the script mdt-init-user-settings.')
 
-    problem_data = load_problem_data(dwi_info, protocol, brain_mask)
+    problem_data = utils.load_problem_data(dwi_info, protocol, brain_mask)
     model_fit = ModelFit(model, problem_data, output_folder, optimizer=optimizer, recalculate=recalculate,
                          only_recalculate_last=only_recalculate_last, cl_device_ind=cl_device_ind)
 
@@ -143,6 +136,12 @@ def sample_model(model, dwi_info, protocol, brain_mask, output_folder,
     Returns:
         the full chain of the optimization
     """
+    import mdt.utils
+    from mot import runtime_configuration
+    from mdt.cascade_model import CascadeModelInterface
+    from mot.cl_routines.sampling.metropolis_hastings import MetropolisHastings
+    from mdt.model_sampling import sample_single_model
+
     if not utils.check_user_components():
         raise RuntimeError('User\'s components folder is not up to date. Please run mdt.initialize_user_settings().')
 
@@ -199,8 +198,9 @@ def collect_batch_fit_output(data_folder, output_dir, batch_profile_class=None, 
         mask_name (str): the mask to use to get the output from
         symlink (boolean): only available under Unix OS's. Creates a symlink instead of copying.
     """
-    mdt.batch_utils.collect_batch_fit_output(data_folder, output_dir, batch_profile_class=batch_profile_class,
-                                   mask_name=mask_name, symlink=symlink)
+    from mdt.batch_utils import collect_batch_fit_output
+    collect_batch_fit_output(data_folder, output_dir, batch_profile_class=batch_profile_class,
+                             mask_name=mask_name, symlink=symlink)
 
 
 def run_function_on_batch_fit_output(data_folder, func, batch_profile_class=None):
@@ -219,7 +219,8 @@ def run_function_on_batch_fit_output(data_folder, func, batch_profile_class=None
             but this would not work:
                 batch_profile_class=MyBatchProfile()
     """
-    mdt.batch_utils.run_function_on_batch_fit_output(data_folder, func, batch_profile_class=batch_profile_class)
+    from mdt.batch_utils import run_function_on_batch_fit_output
+    run_function_on_batch_fit_output(data_folder, func, batch_profile_class=batch_profile_class)
 
 
 def get_cl_devices():
@@ -230,7 +231,8 @@ def get_cl_devices():
     Returns:
         A list of CLEnvironments, one for each device in the system.
     """
-    return mdt.utils.get_cl_devices()
+    from mdt.utils import get_cl_devices
+    return get_cl_devices()
 
 
 def load_problem_data(volume_info, protocol, mask):
@@ -245,7 +247,8 @@ def load_problem_data(volume_info, protocol, mask):
     Returns:
         The Problem data, in the ProblemData container object.
     """
-    return utils.load_problem_data(volume_info, protocol, mask)
+    from mdt.utils import load_problem_data
+    return load_problem_data(volume_info, protocol, mask)
 
 
 def load_protocol_bval_bvec(bvec=None, bval=None, bval_scale='auto'):
@@ -259,6 +262,7 @@ def load_protocol_bval_bvec(bvec=None, bval=None, bval_scale='auto'):
     Returns:
         A Protocol object.
     """
+    from mdt.protocols import load_bvec_bval
     return load_bvec_bval(bvec, bval, bval_scale=bval_scale)
 
 
@@ -288,7 +292,8 @@ def write_protocol(protocol, fname, columns_list=None):
         fname (string): The filename to write to
         columns_list (list, optional): Only write these columns (and in this order).
     """
-    protocols.write_protocol(protocol, fname, columns_list=columns_list)
+    from mdt.protocols import write_protocol
+    write_protocol(protocol, fname, columns_list=columns_list)
 
 
 def write_protocol_bvec_bval(protocol, bvec_fname, bval_fname, column_based=True, bval_scale='auto'):
@@ -306,7 +311,8 @@ def write_protocol_bvec_bval(protocol, bvec_fname, bval_fname, column_based=True
             The default is auto, this checks if the first b-value is higher than 1e4 and if so multiplies it by
             1e-6 else multiplies by 1.
     """
-    protocols.write_bvec_bval(protocol, bvec_fname, bval_fname, column_based=column_based, bval_scale=bval_scale)
+    from mdt.protocols import write_bvec_bval
+    write_bvec_bval(protocol, bvec_fname, bval_fname, column_based=column_based, bval_scale=bval_scale)
 
 
 def create_median_otsu_brain_mask(dwi_info, protocol, output_fname=None, **kwargs):
@@ -326,12 +332,14 @@ def create_median_otsu_brain_mask(dwi_info, protocol, output_fname=None, **kwarg
     Returns:
         ndarray: The created brain mask
     """
+    from six import string_types
+    from mdt.masking import create_median_otsu_brain_mask, create_write_median_otsu_brain_mask
+
     if output_fname:
         if not isinstance(dwi_info, (string_types, tuple, list)):
             raise ValueError('No header obtainable, can not write the brain mask.')
-        return masking.create_write_median_otsu_brain_mask(dwi_info, protocol, output_fname, **kwargs)
-
-    return masking.create_median_otsu_brain_mask(dwi_info, protocol, **kwargs)
+        return create_write_median_otsu_brain_mask(dwi_info, protocol, output_fname, **kwargs)
+    return create_median_otsu_brain_mask(dwi_info, protocol, **kwargs)
 
 
 def load_brain_mask(brain_mask_fname):
@@ -343,7 +351,8 @@ def load_brain_mask(brain_mask_fname):
     Returns:
         The loaded brain mask data
     """
-    return utils.load_brain_mask(brain_mask_fname)
+    from mdt.utils import load_brain_mask
+    return load_brain_mask(brain_mask_fname)
 
 
 def concatenate_mri_sets(items, output_volume_fname, output_protocol_fname, overwrite_if_exists=False):
@@ -362,6 +371,11 @@ def concatenate_mri_sets(items, output_volume_fname, output_protocol_fname, over
         output_protocol_fname (string): The name of the output protocol file
         overwrite_if_exists (boolean, optional, default false): Overwrite the output files if they already exists.
     """
+    import os
+    import nibabel as nib
+    from mdt.utils import concatenate_two_mri_measurements
+    from protocols import write_protocol
+
     if not items:
         return
 
@@ -381,7 +395,7 @@ def concatenate_mri_sets(items, output_volume_fname, output_protocol_fname, over
 
     protocol, signal4d = concatenate_two_mri_measurements(to_concat)
     nib.Nifti1Image(signal4d, None, nii_header).to_filename(output_volume_fname)
-    protocols.write_protocol(protocol, output_protocol_fname)
+    write_protocol(protocol, output_protocol_fname)
 
 
 def view_results_slice(data,
@@ -412,6 +426,9 @@ def view_results_slice(data,
                 show_sliders=False
             You can overwrite these again by specifying one of these options directly.
     """
+    from six import string_types
+    from mdt.visualization import MapsVisualizer
+
     general_plot_options = general_plot_options or {}
 
     if 'cmap' not in general_plot_options:
@@ -453,6 +470,7 @@ def block_plots():
 
     This basically only calls plt.show()
     """
+    import matplotlib.pyplot as plt
     plt.show()
 
 
@@ -467,6 +485,10 @@ def view_result_samples(data, voxel_ind=None, block=True):
             do not want the routine to block after drawing. In doing so you manually need to block. You can
             do this by calling the function block_plots()
     """
+    from six import string_types
+    from mdt.visualization import SampleVisualizer
+    import pickle
+
     if isinstance(data, string_types):
         with open(data, 'rb') as f:
             data = pickle.load(f)
@@ -488,7 +510,8 @@ def load_dwi(volume_fname):
     Returns:
         a tuple with (data, header) for the given file.
     """
-    return utils.load_dwi(volume_fname)
+    from mdt.utils import load_dwi
+    return load_dwi(volume_fname)
 
 
 def load_nifti(nifti_volume):
@@ -501,6 +524,7 @@ def load_nifti(nifti_volume):
     Returns:
         nib image
     """
+    import nibabel as nib
     return nib.load(nifti_volume)
 
 
@@ -510,7 +534,8 @@ def make_path_joiner(*folder):
     Returns:
         An instance of utils.PathJoiner for easy path manipulation.
     """
-    return utils.PathJoiner(*folder)
+    from mdt.utils import PathJoiner
+    return PathJoiner(*folder)
 
 
 def create_roi(data, brain_mask):
@@ -524,7 +549,8 @@ def create_roi(data, brain_mask):
     Returns:
         Signal lists for each of the given volumes. The axis are: (voxels, protocol)
     """
-    return utils.create_roi(data, brain_mask)
+    from mdt.utils import create_roi
+    return create_roi(data, brain_mask)
 
 
 def create_slice_roi(brain_mask_fname, roi_dimension, roi_slice, output_fname, overwrite_if_exists=False):
@@ -545,12 +571,16 @@ def create_slice_roi(brain_mask_fname, roi_dimension, roi_slice, output_fname, o
     Returns:
         A brain mask of the same dimensions as the original mask, but with only one slice set to one.
     """
+    import os
+    import nibabel as nib
+    from mdt.utils import create_slice_roi
+
     if os.path.exists(output_fname) and not overwrite_if_exists:
         return load_brain_mask(output_fname)
     brain_mask_img = nib.load(brain_mask_fname)
     brain_mask = brain_mask_img.get_data()
     img_header = brain_mask_img.get_header()
-    roi_mask = utils.create_slice_roi(brain_mask, roi_dimension, roi_slice)
+    roi_mask = create_slice_roi(brain_mask, roi_dimension, roi_slice)
     write_image(output_fname, roi_mask, img_header)
     return roi_mask
 
@@ -563,6 +593,7 @@ def write_image(fname, data, header):
         data (ndarray): The data to write
         header (nibabel header): The header to use
     """
+    import nibabel as nib
     nib.Nifti1Image(data, None, header).to_filename(fname)
 
 
@@ -584,7 +615,8 @@ def restore_volumes(data, brain_mask, with_volume_dim=True):
         If with_volume_ind_dim is set we return values with 4 dimensions. (x, y, z, 1). If not set we return only
         three dimensions.
     """
-    return utils.restore_volumes(data, brain_mask, with_volume_dim=with_volume_dim)
+    from mdt.utils import restore_volumes
+    return restore_volumes(data, brain_mask, with_volume_dim=with_volume_dim)
 
 
 def write_trackmark_files(input_folder, output_folder=None, eigenvalue_scalar=1e6, tvl_header=(1, 1.8, 0, 0),
@@ -628,6 +660,11 @@ def write_trackmark_files(input_folder, output_folder=None, eigenvalue_scalar=1e
     Returns:
         None
     """
+    import os
+    import re
+    import numpy as np
+    from mdt.IO import TrackMark
+
     if output_folder is None:
         output_folder = os.path.join(input_folder, 'trackmark')
 
@@ -674,6 +711,7 @@ def load_volume_maps(directory, map_names=None):
         dict: A dictionary with the volumes. The keys of the dictionary are the filenames (without the extension) of the
             files in the given directory.
     """
+    from mdt.IO import Nifti
     return Nifti.read_volume_maps(directory, map_names=map_names)
 
 
@@ -686,6 +724,7 @@ def get_volume_names(directory):
     Returns:
         list: A list with the names of the volumes.
     """
+    from mdt.IO import Nifti
     return list(sorted(Nifti.volume_names_generator(directory)))
 
 
@@ -698,6 +737,7 @@ def write_volume_maps(maps, directory, header, overwrite_volumes=True):
         header: The Nibabel Image Header
         overwrite_volumes (boolean): If we want to overwrite the volumes if they are present.
     """
+    from mdt.IO import Nifti
     return Nifti.write_volume_maps(maps, directory, header, overwrite_volumes=overwrite_volumes)
 
 
@@ -707,6 +747,7 @@ def get_list_of_single_models():
     Returns:
         list of str: A list of all available single model names.
     """
+    from mdt.components_loader import SingleModelsLoader
     return SingleModelsLoader().list_all()
 
 
@@ -716,6 +757,7 @@ def get_list_of_cascade_models():
     Returns:
         list of str: A list of available cascade models
     """
+    from mdt.components_loader import CascadeModelsLoader
     return CascadeModelsLoader().list_all()
 
 
@@ -737,6 +779,7 @@ def get_models_meta_info():
         dict of dict: The first dictionary indexes the model names to the meta tags, the second holds the meta
             information.
     """
+    from mdt.components_loader import SingleModelsLoader, CascadeModelsLoader
     sml = SingleModelsLoader()
     cml = CascadeModelsLoader()
 
@@ -758,6 +801,7 @@ def get_model(model_name, **kwargs):
     Returns:
         Either a cascade model or a single model. In any case, a model that can be given to the fit_model function.
     """
+    import mdt.components_loader
     return components_loader.get_model(model_name, **kwargs)
 
 
@@ -774,6 +818,11 @@ def split_dataset(input_fname, split_dimension, split_index, output_folder=None)
         If it is a list, tuple or dict return two of those with exactly the same indices but with each holding one half
         of the splitted data.
     """
+    import os
+    import nibabel as nib
+    import mdt.utils
+    from mdt.IO import Nifti
+
     if output_folder is None:
         output_folder = os.path.dirname(input_fname)
     dataset = nib.load(input_fname)
@@ -803,6 +852,9 @@ def extract_volumes(input_volume_fname, input_protocol, output_volume_fname, out
         output_protocol (str): the output protocol for the selected volumes
         protocol_indices (list): the desired indices, indexing the input_volume
     """
+    from mdt.data_loader.protocol import autodetect_protocol_loader
+    import mdt.protocols
+
     input_protocol = autodetect_protocol_loader(input_protocol).get_protocol()
 
     new_protocol = input_protocol.get_new_protocol_with_indices(protocol_indices)
@@ -825,6 +877,9 @@ def apply_mask(dwi, mask, inplace=False):
     Returns:
         ndarray: image of the same size as the input image but with all values set to zero where the mask is zero.
     """
+    from six import string_types
+    from mdt.data_loader.brain_mask import autodetect_brain_mask_loader
+
     mask = autodetect_brain_mask_loader(mask).get_data()
 
     if isinstance(dwi, string_types):
@@ -874,7 +929,8 @@ def initialize_user_settings(overwrite=True):
     Returns:
         the path the user settings skeleton was written to
     """
-    return utils.initialize_user_settings(overwrite)
+    from mdt.utils import initialize_user_settings
+    return initialize_user_settings(overwrite)
 
 def dwi_merge(dwi_images, output_fname, sort=True):
     """ Merge a list of DWI images on the 4th dimension. Writes the result as a file.
@@ -893,6 +949,10 @@ def dwi_merge(dwi_images, output_fname, sort=True):
         sort (boolean): if true we natural sort the list of DWI images before we merge them. If false we don't.
             The default is True.
     """
+    import re
+    import nibabel as nib
+    import numpy as np
+
     images = []
     header = None
 
