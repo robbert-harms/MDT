@@ -161,7 +161,7 @@ class GenerateBrainMaskTab(TabContainer):
 
         if os.path.isfile(mask) and os.path.isfile(dwi_path):
             proc = ViewMaskProcess(dwi_path, mask)
-            self._cl_process_queue.put(proc)
+            proc.start()
 
 
 class CreateMaskProc(object):
@@ -184,13 +184,14 @@ class CreateMaskProc(object):
         self._finish_queue.put('DONE')
 
 
-class ViewMaskProcess(object):
+class ViewMaskProcess(multiprocessing.Process):
 
     def __init__(self, dwi_path, brain_mask_path):
+        super(ViewMaskProcess, self).__init__()
         self._dwi_path = dwi_path
         self._brain_mask_path = brain_mask_path
 
-    def __call__(self, *args, **kwargs):
+    def run(self):
         image_data = load_dwi(self._dwi_path)[0]
         mask = np.expand_dims(load_brain_mask(self._brain_mask_path), axis=3)
         masked_image = image_data * mask

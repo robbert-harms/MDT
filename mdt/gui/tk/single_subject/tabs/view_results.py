@@ -3,6 +3,7 @@ import glob
 from itertools import count
 import os
 import ttk
+import multiprocessing
 from mdt import view_results_slice
 from mdt.gui.tk.utils import TabContainer
 from mdt.gui.tk.widgets import DirectoryBrowserWidget, ListboxWidget
@@ -33,7 +34,7 @@ class ViewResultsTab(TabContainer):
         self._view_slices_button = ttk.Button(self._tab, text='View', command=self._view_slices,
                                               state='disabled')
         #todo remove
-        # self._input_dir.initial_dir = '/home/robbert/programming/python/phd-scripts/bin/dti_test/output/brain_mask/BallStick/'
+        self._input_dir.initial_dir = '/home/robbert/programming/python/phd-scripts/bin/dti_test/output/brain_mask/BallStick/'
 
     def get_tab(self):
         row_nmr = count()
@@ -92,22 +93,14 @@ class ViewResultsTab(TabContainer):
 
     def _view_slices(self):
         view_process = ViewResultsProcess(self._input_dir.get_value())
-        self._cl_process_queue.put(view_process)
+        view_process.start()
 
 
-class ViewResultsProcess(object):
+class ViewResultsProcess(multiprocessing.Process):
 
     def __init__(self, input_dir):
+        super(ViewResultsProcess, self).__init__()
         self._input_dir = input_dir
 
-    def __call__(self, *args, **kwargs):
+    def run(self):
         view_results_slice(self._input_dir)
-        # redirect = StdRedirect(self._multi_proc_queue)
-        # sys.stdout = redirect
-        # sys.stderr = redirect
-
-        # self._multi_proc_queue.put('tester')
-
-        # print('test')
-        # logger = logging.getLogger('mdt')
-        # logger.info('test')
