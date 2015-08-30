@@ -8,6 +8,7 @@ import os
 import collections
 import shutil
 import time
+import functools
 
 from six import string_types
 import numpy as np
@@ -22,7 +23,7 @@ from mdt.log_handlers import ModelOutputLogHandler
 from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
 from mot import runtime_configuration
 from mot.base import AbstractProblemData, ModelFunction
-import configuration
+import mdt.configuration as configuration
 from mot.cl_environments import CLEnvironmentFactory
 from mot.cl_routines.optimizing.meta_optimizer import MetaOptimizer
 from mot.factory import get_load_balance_strategy_by_name, get_optimizer_by_name, get_filter_by_name
@@ -473,7 +474,7 @@ def restore_volumes(data, brain_mask, with_volume_dim=True):
         s = voxel_list.shape
 
         def restore_3d(voxels):
-            volume_length = reduce(lambda x, y: x*y, shape3d[:3])
+            volume_length = functools.reduce(lambda x, y: x*y, shape3d[:3])
 
             return_volume = np.zeros((volume_length,), dtype=voxels.dtype, order='C')
             return_volume[indices] = voxels
@@ -664,7 +665,7 @@ def recursive_merge_dict(dictionary, update_dict):
     dictionary = copy.deepcopy(dictionary)
 
     def merge(d, upd):
-        for k, v in upd.iteritems():
+        for k, v in upd.items():
             if isinstance(v, collections.Mapping):
                 r = merge(d.get(k, {}), v)
                 d[k] = r

@@ -186,7 +186,7 @@ class Protocol(object):
         Returns:
             list of str: The names of the columns.
         """
-        return self._columns.keys()
+        return list(self._columns.keys())
 
     def keys(self):
         return self._columns.keys()
@@ -507,7 +507,7 @@ def load_protocol(protocol_fname, column_names=None):
         else:
             ValueError('No column names given and none in protocol file.')
 
-    data = np.genfromtxt(protocol)
+    data = np.genfromtxt(protocol_fname)
     s = data.shape
     d = {}
     for i in range(s[1]):
@@ -554,6 +554,8 @@ def write_protocol(protocol, fname, columns_list=None):
         f.write('#')
         f.write(','.join(columns_list))
         f.write("\n")
+
+    with open(fname, 'ab') as f:
         np.savetxt(f, data, delimiter="\t")
 
     if columns_list:

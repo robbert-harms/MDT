@@ -314,7 +314,7 @@ class MapsVisualizer(object):
         return rows, cols
 
     def _get_volumes_shape(self):
-        return self._volumes_dict[self._volumes_dict.keys()[0]].shape
+        return self._volumes_dict[list(self._volumes_dict.keys())[0]].shape
 
     def _load_min_max_vals(self):
         d = {}
@@ -474,7 +474,7 @@ class _DiscreteSlider(Slider):
         self.val = val
         if not self.eventson:
             return
-        for cid, func in self.observers.iteritems():
+        for cid, func in self.observers.items():
             func(discrete_val)
 
 

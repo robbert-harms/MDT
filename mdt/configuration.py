@@ -68,7 +68,7 @@ def load_from_dict(config_dict):
 
 def _update_dict_recursive(d, u):
     """Updates in place"""
-    for k, v in u.iteritems():
+    for k, v in u.items():
         if isinstance(v, collections.Mapping):
             r = _update_dict_recursive(d.get(k, {}), v)
             d[k] = r
