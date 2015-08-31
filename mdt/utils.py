@@ -915,7 +915,7 @@ def apply_model_protocol_options(model_protocol_options, problem_data):
         protocol_indices = np.unique(protocol_indices)
 
         if len(protocol_indices) != protocol.protocol_length:
-            logger.info('Applying model protocol options. We will only use a subset of the protocol.')
+            logger.info('Applying model protocol options, we will only use a subset of the protocol.')
             new_protocol = protocol.get_new_protocol_with_indices(protocol_indices)
 
             new_dwi_volume = problem_data.dwi_volume[..., protocol_indices]
@@ -923,7 +923,7 @@ def apply_model_protocol_options(model_protocol_options, problem_data):
             return DMRIProblemData(new_protocol, new_dwi_volume, problem_data.mask,
                                    problem_data.volume_header)
 
-    logger.info('No model protocol options to apply. Using original protocol')
+    logger.info('No model protocol options to apply, using original protocol.')
     return problem_data
 
 

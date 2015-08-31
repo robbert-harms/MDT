@@ -1,4 +1,5 @@
 import math
+import os
 import matplotlib.pyplot as plt
 import matplotlib
 from matplotlib.ticker import LinearLocator
@@ -121,6 +122,9 @@ class MapsVisualizer(object):
             mng.canvas.set_window_title(window_title)
 
         if to_file:
+            if not os.path.isdir(os.path.dirname(to_file)):
+                os.makedirs(os.path.dirname(to_file))
+
             plt.savefig(to_file)
             plt.close()
         else:
