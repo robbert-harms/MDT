@@ -1,8 +1,14 @@
-from Tkconstants import W, HORIZONTAL
+try:
+    #python 2.7
+    from Tkconstants import W, HORIZONTAL
+    import ttk
+except ImportError:
+    # python 3.4
+    from tkinter.constants import W, HORIZONTAL
+    from tkinter import ttk
+
 from itertools import count
 import os
-import threading
-import ttk
 from mdt import concatenate_mri_sets
 from mdt.gui.tk.utils import TabContainer
 from mdt.gui.tk.widgets import FileBrowserWidget
@@ -17,8 +23,8 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class ConcatenateShellsTab(TabContainer):
 
-    def __init__(self, window, cl_process_queue):
-        super(ConcatenateShellsTab, self).__init__(window, cl_process_queue, 'Concatenate shells')
+    def __init__(self, window, cl_process_queue, output_queue):
+        super(ConcatenateShellsTab, self).__init__(window, cl_process_queue, output_queue, 'Concatenate shells')
 
         self._image_1_chooser = FileBrowserWidget(
             self._tab,

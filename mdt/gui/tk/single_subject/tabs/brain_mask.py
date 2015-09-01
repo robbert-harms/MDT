@@ -1,8 +1,16 @@
-from Queue import Empty
-from Tkconstants import W, HORIZONTAL
+try:
+    #python 2.7
+    from Queue import Empty
+    from Tkconstants import W, HORIZONTAL
+    import ttk
+except ImportError:
+    # python 3.4
+    from queue import Empty
+    from tkinter.constants import W, HORIZONTAL
+    from tkinter import ttk
+
 from itertools import count
 import os
-import ttk
 import multiprocessing
 import numpy as np
 from mdt import create_median_otsu_brain_mask, load_dwi, load_brain_mask
@@ -20,8 +28,8 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class GenerateBrainMaskTab(TabContainer):
 
-    def __init__(self, window, cl_process_queue):
-        super(GenerateBrainMaskTab, self).__init__(window, cl_process_queue, 'Generate brain mask')
+    def __init__(self, window, cl_process_queue, output_queue):
+        super(GenerateBrainMaskTab, self).__init__(window, cl_process_queue, output_queue, 'Generate brain mask')
 
         self._image_vol_chooser = FileBrowserWidget(
             self._tab, 'image_vol_chooser', self._onchange_cb,

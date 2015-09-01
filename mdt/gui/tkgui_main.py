@@ -1,4 +1,12 @@
-from Queue import Empty
+try:
+    #python 2.7
+    from Queue import Queue
+    from Queue import Empty
+except ImportError:
+    # python 3.4
+    from queue import Queue
+    from queue import Empty
+
 import time
 import multiprocessing
 

@@ -1,8 +1,17 @@
-from Tkconstants import BROWSE, W, HORIZONTAL
+try:
+    #python 2.7
+    from Tkconstants import BROWSE, W, HORIZONTAL
+    import ttk
+    import tkMessageBox
+except ImportError:
+    # python 3.4
+    from tkinter.constants import BROWSE, W, HORIZONTAL
+    from tkinter import ttk
+    import tkinter.messagebox as tkMessageBox
+
+
 from itertools import count
 import os
-import tkMessageBox
-import ttk
 import nibabel as nib
 from nibabel.spatialimages import ImageFileError
 from mdt import create_slice_roi
@@ -18,8 +27,8 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class GenerateROIMaskTab(TabContainer):
 
-    def __init__(self, window, cl_process_queue):
-        super(GenerateROIMaskTab, self).__init__(window, cl_process_queue, 'Generate ROI mask')
+    def __init__(self, window, cl_process_queue, output_queue):
+        super(GenerateROIMaskTab, self).__init__(window, cl_process_queue, output_queue, 'Generate ROI mask')
 
         self._dimensions = {}
         self._dimension_shape = []
@@ -92,11 +101,11 @@ class GenerateROIMaskTab(TabContainer):
         self._init_path_chooser(self._output_roi_chooser, TabContainer.last_used_roi_mask)
         self._init_path_chooser(self._brain_mask_vol_chooser, TabContainer.last_used_mask)
 
-        if TabContainer.last_used_image_dimension:
+        if TabContainer.last_used_image_dimension is not None:
             if TabContainer.last_used_image_dimension in self._dimensions.values():
                 self._roi_dimension_index.set_value(TabContainer.last_used_image_dimension)
 
-        if TabContainer.last_used_image_slice_ind and self._dimensions:
+        if TabContainer.last_used_image_slice_ind is not None and self._dimensions:
             if TabContainer.last_used_image_slice_ind < \
                     self._dimension_shape[self._dimensions[self._roi_dimension_index.get_value()]]:
                 self._roi_slice_index.set_default_ind(TabContainer.last_used_image_slice_ind)

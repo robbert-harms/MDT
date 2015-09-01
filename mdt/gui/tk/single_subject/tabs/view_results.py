@@ -1,8 +1,18 @@
-from Tkconstants import EXTENDED, W, HORIZONTAL
+import sys
+from mdt.gui.utils import StdRedirect
+
+try:
+    #python 2.7
+    from Tkconstants import EXTENDED, W, HORIZONTAL
+    import ttk
+except ImportError:
+    # python 3.4
+    from tkinter.constants import EXTENDED, W, HORIZONTAL
+    from tkinter import ttk
+
 import glob
 from itertools import count
 import os
-import ttk
 import multiprocessing
 from mdt import view_results_slice
 from mdt.gui.tk.utils import TabContainer
@@ -17,8 +27,8 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class ViewResultsTab(TabContainer):
 
-    def __init__(self, window, cl_process_queue):
-        super(ViewResultsTab, self).__init__(window, cl_process_queue, 'View results')
+    def __init__(self, window, cl_process_queue, output_queue):
+        super(ViewResultsTab, self).__init__(window, cl_process_queue, output_queue, 'View results')
 
         self._parameter_files = {}
 
@@ -90,16 +100,32 @@ class ViewResultsTab(TabContainer):
             self._view_slices_button.config(state='disabled')
 
     def _view_slices(self):
-        view_process = ViewResultsProcess(self._input_dir.get_value(), self._maps_chooser.get_value())
+        dim = None
+        ind = None
+
+        if TabContainer.last_used_image_dimension is not None \
+                and TabContainer.last_used_image_slice_ind is not None:
+            dim = TabContainer.last_used_image_dimension
+            ind = TabContainer.last_used_image_slice_ind
+
+        view_process = ViewResultsProcess(self._output_queue, self._input_dir.get_value(),
+                                          self._maps_chooser.get_value(), dim, ind)
         view_process.start()
 
 
 class ViewResultsProcess(multiprocessing.Process):
 
-    def __init__(self, input_dir, maps_to_show):
+    def __init__(self, output_queue, input_dir, maps_to_show, dimension, slice_ind):
         super(ViewResultsProcess, self).__init__()
+        self._output_queue = output_queue
         self._input_dir = input_dir
         self._maps_to_show = maps_to_show
+        self._dimension = dimension
+        self._slice_ind = slice_ind
 
     def run(self):
-        view_results_slice(self._input_dir, maps_to_show=self._maps_to_show)
+        redirect = StdRedirect(self._output_queue)
+        sys.stdout = redirect
+        sys.stderr = redirect
+        view_results_slice(self._input_dir, maps_to_show=self._maps_to_show,
+                           dimension=self._dimension, slice_ind=self._slice_ind)

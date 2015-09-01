@@ -1,10 +1,18 @@
-from Tkconstants import W, HORIZONTAL, BOTH, YES, INSERT
-import Tkinter
+try:
+    #python 2.7
+    from Tkconstants import W, HORIZONTAL, BOTH, YES, INSERT
+    import ttk
+    from Tkinter import Toplevel
+except ImportError:
+    # python 3.4
+    from tkinter.constants import W, HORIZONTAL, BOTH, YES, INSERT
+    from tkinter import ttk
+    from tkinter import Toplevel
+
 import copy
 from itertools import count
 from math import log10
 import os
-import ttk
 from numpy import genfromtxt
 import numpy as np
 from mdt import load_protocol_bval_bvec
@@ -21,8 +29,8 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class GenerateProtocolFileTab(TabContainer):
 
-    def __init__(self, window, cl_process_queue):
-        super(GenerateProtocolFileTab, self).__init__(window, cl_process_queue, 'Generate protocol file')
+    def __init__(self, window, cl_process_queue, output_queue):
+        super(GenerateProtocolFileTab, self).__init__(window, cl_process_queue, output_queue, 'Generate protocol file')
 
         self.protocol_options = ProtocolOptions()
 
@@ -157,7 +165,7 @@ class GenerateProtocolFileTab(TabContainer):
 
     def _view_results(self):
         output_fname = self._output_protocol_chooser.get_value()
-        toplevel = Tkinter.Toplevel(self.window)
+        toplevel = Toplevel(self.window)
 
         txt_frame = ttk.Frame(toplevel)
         w = ScrolledText(txt_frame, wrap='none')

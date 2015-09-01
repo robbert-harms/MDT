@@ -1,4 +1,12 @@
-from Queue import Empty
+try:
+    #python 2.7
+    from Queue import Queue
+    from Queue import Empty
+except ImportError:
+    # python 3.4
+    from queue import Queue
+    from queue import Empty
+
 from collections import OrderedDict
 from functools import wraps
 import threading
@@ -150,22 +158,22 @@ class LogMonitorThread(threading.Thread):
     def __init__(self, queue, logging_text_area):
         """Log monitor to watch the given queue and write the output to the given log listener.
 
-        Call the method stop() to stop this thread.
+        Call the method send_stop_signal() to send_stop_signal this thread.
 
         Args:
             logging_text_area (LoggingTextArea): the text area to log to
             queue (multiprocessing.Queue): the queue to which we will listen
         """
         super(LogMonitorThread, self).__init__()
-        self._stop = threading.Event()
+        self._stop_event = threading.Event()
         self._queue = queue
         self._logging_text_area = logging_text_area
 
-    def stop(self):
-        self._stop.set()
+    def send_stop_signal(self):
+        self._stop_event.set()
 
     def run(self):
-        while not self._stop.isSet():
+        while not self._stop_event.isSet():
             try:
                 message = self._queue.get(0)
                 self._logging_text_area.write(message)
@@ -192,3 +200,15 @@ class ForwardingListener(LogListenerInterface):
 
     def write(self, string):
         self._queue.put(string)
+
+
+class StdRedirect(object):
+
+    def __init__(self, queue):
+        self._queue = queue
+
+    def write(self, message):
+        self._queue.put(message)
+
+    def flush(self):
+        pass

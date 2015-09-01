@@ -1,10 +1,19 @@
-from Tkconstants import VERTICAL, HORIZONTAL, E, W, END, FALSE, NONE
-import Tkinter
-from Tkinter import StringVar, Listbox, IntVar
+try:
+    #python 2.7
+    from Tkconstants import VERTICAL, HORIZONTAL, E, W, END, FALSE, NONE
+    from Tkinter import StringVar, Listbox, IntVar, Text, Frame, Toplevel, Scrollbar, Pack, Grid, Place
+    import ttk
+    import tkFileDialog
+except ImportError:
+    # python 3.4
+    from tkinter.constants import VERTICAL, HORIZONTAL, E, W, END, FALSE, NONE
+    from tkinter import StringVar, Listbox, IntVar, Text, Frame, Toplevel, Scrollbar, Pack, Grid, Place
+    from tkinter import ttk
+    from tkinter import filedialog as tkFileDialog
+
 import os
 import platform
-import tkFileDialog
-import ttk
+
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-20"
@@ -12,17 +21,18 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class ScrolledText(Tkinter.Text):
+class ScrolledText(Text):
 
     def __init__(self, master=None, **kw):
-        self.frame = Tkinter.Frame(master)
+        Text.__init__(self)
+        self.frame = Frame(master)
 
-        yscroll = Tkinter.Scrollbar(self.frame, orient=VERTICAL)
-        xscroll = Tkinter.Scrollbar(self.frame, orient=HORIZONTAL)
+        yscroll = Scrollbar(self.frame, orient=VERTICAL)
+        xscroll = Scrollbar(self.frame, orient=HORIZONTAL)
 
         kw.update({'yscrollcommand': yscroll.set})
         kw.update({'xscrollcommand': xscroll.set})
-        Tkinter.Text.__init__(self, self.frame, **kw)
+        Text.__init__(self, self.frame, **kw)
 
         yscroll['command'] = self.yview
         xscroll['command'] = self.xview
@@ -35,8 +45,8 @@ class ScrolledText(Tkinter.Text):
         self.frame.rowconfigure(0, weight=1)
         self.frame.columnconfigure(0, weight=1)
 
-        text_meths = vars(Tkinter.Text).keys()
-        methods = vars(Tkinter.Pack).keys() + vars(Tkinter.Grid).keys() + vars(Tkinter.Place).keys()
+        text_meths = list(vars(Text).keys())
+        methods = list(vars(Pack).keys()) + list(vars(Grid).keys()) + list(vars(Place).keys())
         methods = set(methods).difference(text_meths)
 
         for m in methods:
@@ -431,7 +441,7 @@ class ListboxWidget(CompositeWidget):
         self._onchange_cb(None)
 
     def _scrolling(self, *args):
-        apply(self._chooser.yview, args)
+        self._chooser.yview(*args)
         self._onchange_cb(None)
 
 
@@ -482,7 +492,7 @@ class SubWindowWidget(CompositeWidget):
                                                                                             pady=(5, 0))
 
     def _launch_frame(self):
-        t = Tkinter.Toplevel(self._root_window)
+        t = Toplevel(self._root_window)
         self._subwindow.render(t)
         t.wm_title(self._subwindow.window_title)
         t.resizable(width=FALSE, height=FALSE)

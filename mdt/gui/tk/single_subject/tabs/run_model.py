@@ -1,11 +1,22 @@
-import Queue
-from Tkconstants import W, HORIZONTAL, EXTENDED, BOTH, YES
+try:
+    #python 2.7
+    from Queue import Empty
+    from Tkconstants import W, HORIZONTAL, EXTENDED, BOTH, YES
+    from Tkinter import StringVar, Listbox, IntVar, Text, Frame, Toplevel, Scrollbar, Pack, Grid, Place
+    import ttk
+    import tkMessageBox
+except ImportError:
+    # python 3.4
+    from queue import Empty
+    from tkinter.constants import W, HORIZONTAL, EXTENDED, BOTH, YES
+    from tkinter import StringVar, Listbox, IntVar, Text, Frame, Toplevel, Scrollbar, Pack, Grid, Place
+    from tkinter import ttk
+    import tkinter.messagebox as tkMessageBox
+
 import copy
 from itertools import count
 import numbers
 import os
-import tkMessageBox
-import ttk
 import multiprocessing
 import mdt
 from mdt.gui.tk.utils import SubWindow, TabContainer
@@ -23,8 +34,8 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class RunModelTab(TabContainer):
 
-    def __init__(self, window, cl_process_queue):
-        super(RunModelTab, self).__init__(window, cl_process_queue, 'Run model')
+    def __init__(self, window, cl_process_queue, output_queue):
+        super(RunModelTab, self).__init__(window, cl_process_queue, output_queue, 'Run model')
 
         self._models_ordered_list = mdt.get_models_list()
         self._models = {k: v['description'] for k, v in mdt.get_models_meta_info().items()}
@@ -143,7 +154,7 @@ class RunModelTab(TabContainer):
             try:
                 finish_queue.get(block=False)
                 self._run_button.config(state='normal')
-            except Queue.Empty:
+            except Empty:
                 self.window.after(100, _wait_for_run_completion)
 
         self.window.after(100, _wait_for_run_completion)
@@ -302,11 +313,11 @@ class OptimOptionsWindow(SubWindow):
             '(Select the devices you would like to use)')
 
         default_cl_environments = []
-        cl_environment_names = self._optim_options.cl_environments.keys()
+        cl_environment_names = list(self._optim_options.cl_environments.keys())
         for ind in self._optim_options.cl_envs_indices:
             default_cl_environments.append(cl_environment_names[ind])
 
-        self._devices_chooser.set_items(self._optim_options.cl_environments.keys(),
+        self._devices_chooser.set_items(list(self._optim_options.cl_environments.keys()),
                                         default_items=default_cl_environments)
 
         fields = [self._optim_routine_chooser, self._patience_box, self._recalculate_all, self._extra_optim_runs,

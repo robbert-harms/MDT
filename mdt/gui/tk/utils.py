@@ -1,5 +1,11 @@
+try:
+    #python 2.7
+    import ttk
+except ImportError:
+    # python 3.4
+    from tkinter import ttk
+
 import os
-import ttk
 from mdt.gui.tk.widgets import CompositeWidget
 
 __author__ = 'Robbert Harms'
@@ -32,9 +38,10 @@ class TabContainer(object):
     last_used_image_dimension = None
     last_used_image_slice_ind = None
 
-    def __init__(self, window, cl_process_queue, tab_name):
+    def __init__(self, window, cl_process_queue, output_queue, tab_name):
         self.window = window
         self._cl_process_queue = cl_process_queue
+        self._output_queue = output_queue
         self.tab_name = tab_name
         self._tab = ttk.Frame()
         self._tab.config(padding=(10, 13, 10, 13))

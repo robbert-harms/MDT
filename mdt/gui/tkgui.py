@@ -1,7 +1,14 @@
-from Tkconstants import BOTH, FALSE, YES
-from Tkinter import Tk, TclError
-import Tkinter
-import ttk
+try:
+    #python 2.7
+    from Tkconstants import BOTH, FALSE, YES
+    from Tkinter import Tk, TclError, PhotoImage
+    import ttk
+except ImportError:
+    # python 3.4
+    from tkinter.constants import BOTH, FALSE, YES
+    from tkinter import Tk, TclError, PhotoImage
+    from tkinter import ttk
+
 import sys
 from pkg_resources import resource_filename
 import mdt
@@ -54,7 +61,7 @@ class ToolkitGUIWindow(Tk):
         self._log_box = LoggingTextArea(txt_frame)
         self._log_box.pack(fill=BOTH, expand=YES)
 
-        notebook = MainNotebook(self, self._cl_process_queue)
+        notebook = MainNotebook(self, self._cl_process_queue, self._output_queue)
         notebook.pack(fill=BOTH, expand=YES)
 
         txt_frame.pack(fill=BOTH, expand=YES)
@@ -79,7 +86,7 @@ class ToolkitGUIWindow(Tk):
         sys.stdout = self._stdout_old
         sys.stderr = self._stderr_old
 
-        self._monitor.stop()
+        self._monitor.send_stop_signal()
         self._monitor.join()
 
         self.destroy()
@@ -92,7 +99,7 @@ class ToolkitGUIWindow(Tk):
             pass
 
     def _set_icon(self):
-        img = Tkinter.PhotoImage(file=resource_filename('mdt', 'data/logo.gif'))
+        img = PhotoImage(file=resource_filename('mdt', 'data/logo.gif'))
         self.tk.call('wm', 'iconphoto', self._w, img)
 
     def _set_size_and_position(self):
@@ -105,15 +112,15 @@ class ToolkitGUIWindow(Tk):
 
 class MainNotebook(ttk.Notebook):
 
-    def __init__(self, window, cl_process_queue):
+    def __init__(self, window, cl_process_queue, output_queue):
         ttk.Notebook.__init__(self, window)
 
-        self.tabs = [RunModelTab(window, cl_process_queue),
-                     GenerateBrainMaskTab(window, cl_process_queue),
-                     GenerateROIMaskTab(window, cl_process_queue),
-                     GenerateProtocolFileTab(window, cl_process_queue),
-                     ConcatenateShellsTab(window, cl_process_queue),
-                     ViewResultsTab(window, cl_process_queue)]
+        self.tabs = [RunModelTab(window, cl_process_queue, output_queue),
+                     GenerateBrainMaskTab(window, cl_process_queue, output_queue),
+                     GenerateROIMaskTab(window, cl_process_queue, output_queue),
+                     GenerateProtocolFileTab(window, cl_process_queue, output_queue),
+                     ConcatenateShellsTab(window, cl_process_queue, output_queue),
+                     ViewResultsTab(window, cl_process_queue, output_queue)]
 
         for tab in self.tabs:
             self.add(tab.get_tab(), text=tab.tab_name)
