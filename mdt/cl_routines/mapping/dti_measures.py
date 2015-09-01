@@ -1,6 +1,6 @@
 import numpy as np
 import pyopencl as cl
-from mot.utils import set_correct_cl_data_type, get_cl_pragma_double
+from mot.utils import get_cl_pragma_double, get_float_type_def
 from mot.cl_routines.base import AbstractCLRoutine
 from mot.load_balance_strategies import Worker
 
@@ -14,7 +14,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class DTIMeasures(AbstractCLRoutine):
 
-    def concat_and_calculate(self, eigenval1, eigenval2, eigenval3):
+    def concat_and_calculate(self, eigenval1, eigenval2, eigenval3, use_double=False):
         """Calculate DTI statistics from the given eigenvalues.
 
         This concatenates the eigenvalue matrices and runs self.calculate(eigenvalues) on them.
@@ -29,6 +29,8 @@ class DTIMeasures(AbstractCLRoutine):
             eigenval3 (ndarray):
                 The first set of eigenvalues, can be 2d, per voxel one eigenvalue,
                 or 3d, per voxel multiple eigenvalues.
+            use_double (boolean): if we want to use float (set it to False) or double (set it to True)
+
         Returns:
             Per voxel, and optionally per instance per voxel, the FA and MD: (fa, md)
         """
@@ -36,36 +38,41 @@ class DTIMeasures(AbstractCLRoutine):
         if len(s) < 3:
             return self.calculate(np.concatenate((np.reshape(eigenval1, (s[0], 1)),
                                                   np.reshape(eigenval2, (s[0], 1)),
-                                                  np.reshape(eigenval3, (s[0], 1))), axis=1))
+                                                  np.reshape(eigenval3, (s[0], 1))), axis=1), use_double)
         else:
             return self.calculate(np.concatenate((np.reshape(eigenval1, (s[0], s[1], 1)),
                                                   np.reshape(eigenval2, (s[0], s[1], 1)),
-                                                  np.reshape(eigenval3, (s[0], s[1], 1))), axis=2))
+                                                  np.reshape(eigenval3, (s[0], s[1], 1))), axis=2), use_double)
 
-    def calculate(self, eigenvalues):
+    def calculate(self, eigenvalues, use_double=False):
         """Calculate DTI statistics from the given eigenvalues.
 
         Args:
             eigenvalues (ndarray):
                 The set of eigen values, can be 2d, per voxel one eigenvalue, or 3d, per voxel multiple eigenvalues.
+            use_double (boolean): if we want to use float (set it to False) or double (set it to True)
 
         Returns:
             Per voxel, and optionally per instance per voxel, the FA and MD: (fa, md)
         """
-        eigenvalues = set_correct_cl_data_type(eigenvalues)
+        np_dtype = np.float32
+        if use_double:
+            np_dtype = np.float64
+
+        eigenvalues = eigenvalues.astype(np_dtype, order='C', copy=False)
 
         s = eigenvalues.shape
         if len(s) < 3:
-            fa_host = np.zeros((s[0], 1), dtype=np.float64)
-            md_host = np.zeros((s[0], 1), dtype=np.float64)
+            fa_host = np.zeros((s[0], 1), dtype=np_dtype)
+            md_host = np.zeros((s[0], 1), dtype=np_dtype)
             items = s[0]
         else:
-            fa_host = np.zeros((s[0] * s[1], 1), dtype=np.float64)
-            md_host = np.zeros((s[0] * s[1], 1), dtype=np.float64)
+            fa_host = np.zeros((s[0] * s[1], 1), dtype=np_dtype)
+            md_host = np.zeros((s[0] * s[1], 1), dtype=np_dtype)
             items = s[0] * s[1]
             eigenvalues = np.reshape(eigenvalues, (s[0] * s[1], -1))
 
-        workers = self._create_workers(_DTIMeasuresWorker, eigenvalues, fa_host, md_host)
+        workers = self._create_workers(_DTIMeasuresWorker, eigenvalues, fa_host, md_host, use_double)
         self.load_balancer.process(workers, items)
 
         if len(s) > 2:
@@ -76,11 +83,12 @@ class DTIMeasures(AbstractCLRoutine):
 
 class _DTIMeasuresWorker(Worker):
 
-    def __init__(self, cl_environment, eigenvalues, fa_host, md_host):
+    def __init__(self, cl_environment, eigenvalues, fa_host, md_host, use_double):
         super(_DTIMeasuresWorker, self).__init__(cl_environment)
         self._eigenvalues = eigenvalues
         self._fa_host = fa_host
         self._md_host = md_host
+        self._use_double = use_double
         self._kernel = self._build_kernel()
 
     def calculate(self, range_start, range_end):
@@ -102,18 +110,19 @@ class _DTIMeasuresWorker(Worker):
 
     def _get_kernel_source(self):
         kernel_source = get_cl_pragma_double()
+        kernel_source += get_float_type_def(self._use_double, 'float_type')
         kernel_source += '''
             __kernel void calculate_measures(
-                global double* eigenvalues,
-                global double* fas,
-                global double* mds
+                global float_type* eigenvalues,
+                global float_type* fas,
+                global float_type* mds
                 ){
                     int gid = get_global_id(0);
                     int voxel = gid * 3;
 
-                    double v1 = eigenvalues[voxel];
-                    double v2 = eigenvalues[voxel + 1];
-                    double v3 = eigenvalues[voxel + 2];
+                    float_type v1 = eigenvalues[voxel];
+                    float_type v2 = eigenvalues[voxel + 1];
+                    float_type v3 = eigenvalues[voxel + 2];
 
                     fas[gid] = sqrt(0.5 * (pown(v1 - v2, 2) + pown(v1 - v3, 2) + pown(v2 - v3, 2)) /
                                            (pown(v1, 2) + pown(v2, 2) + pown(v3, 2)));

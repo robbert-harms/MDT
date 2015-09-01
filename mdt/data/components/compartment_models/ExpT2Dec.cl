@@ -14,7 +14,7 @@
  * @params TE the protocol value for TE
  * @params T2 the parameter T2
  */
-double cmExpT2Dec(const double TE, const double T2){
+model_float cmExpT2Dec(const double TE, const double T2){
     return exp(-TE / T2);
 }
 

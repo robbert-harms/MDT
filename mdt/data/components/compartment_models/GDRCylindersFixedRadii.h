@@ -21,7 +21,7 @@
  * @params nmr_gamma_cyl, the number of cylinders we provided
  *
  */
-double cmGDRCylindersFixedRadii(const double4 g,
+model_float cmGDRCylindersFixedRadii(const double4 g,
                                 const double G,
                                 const double Delta,
                                 const double delta,

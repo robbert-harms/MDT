@@ -25,7 +25,7 @@ double gcf(const double a, const double x);
 double findGammaCDFCrossing(double startx, double stopx, const double offset, const double convergence,
                             const double gamma_k, const double gamma_beta);
 
-double cmGDRCylinders(const double4 g,
+model_float cmGDRCylinders(const double4 g,
                       const double G,
                       const double Delta,
                       const double delta,

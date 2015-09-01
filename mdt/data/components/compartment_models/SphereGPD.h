@@ -9,7 +9,7 @@
  * Email = robbert.harms@maastrichtuniversity.nl
  */
 
-double cmSphereGPD(const double Delta,
+model_float cmSphereGPD(const double Delta,
                    const double delta,
                    const double d,
                    const double R,

@@ -9,7 +9,7 @@
  * Email = robbert.harms@maastrichtuniversity.nl
  */
 
-double cmAstroCylinders(const double4 g,
+model_float cmAstroCylinders(const double4 g,
                         const double b,
                         const double G,
                         const double Delta,

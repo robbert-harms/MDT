@@ -12,7 +12,7 @@
 /**
  * Generate the compartment model signal for the CylinderGPD model.
  */
-double cmCylinderGPD(const double4 g,
+model_float cmCylinderGPD(const double4 g,
                      const double G,
                      const double Delta,
                      const double delta,

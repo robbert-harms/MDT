@@ -12,7 +12,7 @@
 /**
  * Generate the compartment model signal for the Dot model.
  */
-double cmDot(){
+model_float cmDot(){
     return 1.0;
 }
 

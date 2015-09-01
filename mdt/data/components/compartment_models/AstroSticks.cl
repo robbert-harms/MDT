@@ -9,7 +9,7 @@
  * Email = robbert.harms@maastrichtuniversity.nl
  */
 
-double cmAstroSticks(const double4 g,
+model_float cmAstroSticks(const double4 g,
                      const double G,
                      const double b,
                      const double d){

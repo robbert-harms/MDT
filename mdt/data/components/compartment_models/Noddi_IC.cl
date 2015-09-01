@@ -21,7 +21,7 @@ double Noddi_IC_CylNeumanLePerp_PGSE(const double d, const double R, const doubl
 /**
  * See the header for details
  */
-double cmNoddi_IC(const double4 g,
+model_float cmNoddi_IC(const double4 g,
                   const double b,
                   const double G,
                   const double Delta,

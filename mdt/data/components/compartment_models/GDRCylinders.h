@@ -19,7 +19,7 @@
  * @param gamma_beta the gamma scale parameter
  * @param gamma_nmr_cyl the number of different cylinders we calculate
  */
-double cmGDRCylinders(const double4 g,
+model_float cmGDRCylinders(const double4 g,
                       const double G,
                       const double Delta,
                       const double delta,

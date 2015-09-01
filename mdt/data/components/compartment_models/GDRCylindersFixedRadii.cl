@@ -9,7 +9,7 @@
  * Email = robbert.harms@maastrichtuniversity.nl
  */
 
-double cmGDRCylindersFixedRadii(const double4 g,
+model_float cmGDRCylindersFixedRadii(const double4 g,
                                 const double G,
                                 const double Delta,
                                 const double delta,

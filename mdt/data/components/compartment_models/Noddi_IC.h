@@ -30,7 +30,7 @@
  * @params CLJnpZeros: the bessel root zeros used by the model function
  * @params CLJnpZerosLength: the length of the bessel roots vector CLJnpZeros
  */
-double cmNoddi_IC(const double4 g,
+model_float cmNoddi_IC(const double4 g,
                   const double b,
                   const double G,
                   const double Delta,

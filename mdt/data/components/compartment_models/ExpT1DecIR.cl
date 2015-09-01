@@ -14,7 +14,7 @@
  * @params Ti the protocol value for Ti (time inversion recovery)
  * @params T1 the parameter T1
  */
-double cmExpT1DecIR(const double Ti, const double T1){
+model_float cmExpT1DecIR(const double Ti, const double T1){
     return abs(1 - 2 * exp(-Ti / T1));
 }
 

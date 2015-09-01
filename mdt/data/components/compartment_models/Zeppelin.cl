@@ -18,7 +18,7 @@
  * @params phi the parameter phi
  * @params dperp the perpendicular diffusivity
  */
-double cmZeppelin(const double4 g,
+model_float cmZeppelin(const double4 g,
                   const double b,
                   const double d,
                   const double dperp,
