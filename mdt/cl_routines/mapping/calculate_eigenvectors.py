@@ -1,6 +1,6 @@
 import pyopencl as cl
 import numpy as np
-from mot.utils import get_cl_double_extension_definer, set_correct_cl_data_type
+from mot.utils import get_cl_pragma_double, set_correct_cl_data_type
 from mot.cl_routines.base import AbstractCLRoutine
 from mot.load_balance_strategies import Worker
 
@@ -76,7 +76,7 @@ class _CEWorker(Worker):
         return event
 
     def _get_kernel_source(self):
-        kernel_source = get_cl_double_extension_definer(self._cl_environment.platform)
+        kernel_source = get_cl_pragma_double()
         kernel_source += '''
             double4 Tensor_rotateVector(const double4 vector, const double4 axis_rotate, const double psi){
                 double4 n1 = axis_rotate;

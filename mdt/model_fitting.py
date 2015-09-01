@@ -1,7 +1,6 @@
 import glob
 import logging
 import os
-import shutil
 import timeit
 import pickle
 import time

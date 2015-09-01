@@ -1,6 +1,6 @@
 import numpy as np
 import pyopencl as cl
-from mot.utils import set_correct_cl_data_type, get_cl_double_extension_definer
+from mot.utils import set_correct_cl_data_type, get_cl_pragma_double
 from mot.cl_routines.base import AbstractCLRoutine
 from mot.load_balance_strategies import Worker
 
@@ -101,7 +101,7 @@ class _DTIMeasuresWorker(Worker):
         return event
 
     def _get_kernel_source(self):
-        kernel_source = get_cl_double_extension_definer(self._cl_environment.platform)
+        kernel_source = get_cl_pragma_double()
         kernel_source += '''
             __kernel void calculate_measures(
                 global double* eigenvalues,
