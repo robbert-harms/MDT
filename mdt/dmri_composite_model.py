@@ -65,7 +65,7 @@ class DMRICompositeSampleModel(SampleModelBuilder, SmoothableModelInterface,
             not_to_smooth = {key: value for key, value in results.items() if key not in smoothable}
 
             roi_smoothed = smoother.filter(restore_volumes(to_smooth, mask, with_volume_dim=False), mask,
-                                           self.use_double)
+                                           self.double_precision)
             smoothed_results = create_roi(roi_smoothed, mask)
             smoothed_results.update(not_to_smooth)
             return smoothed_results

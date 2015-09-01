@@ -108,9 +108,10 @@ class ViewResultsTab(TabContainer):
             dim = TabContainer.last_used_image_dimension
             ind = TabContainer.last_used_image_slice_ind
 
-        view_process = ViewResultsProcess(self._output_queue, self._input_dir.get_value(),
-                                          self._maps_chooser.get_value(), dim, ind)
-        view_process.start()
+        if glob.glob(os.path.join(self._input_dir.get_value(), '*.nii*')):
+            view_process = ViewResultsProcess(self._output_queue, self._input_dir.get_value(),
+                                              self._maps_chooser.get_value(), dim, ind)
+            view_process.start()
 
 
 class ViewResultsProcess(multiprocessing.Process):

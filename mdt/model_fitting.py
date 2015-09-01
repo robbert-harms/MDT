@@ -24,7 +24,8 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class BatchFitting(object):
 
-    def __init__(self, data_folder, batch_profile_class=None, subjects_ind=None, recalculate=False, cl_device_ind=None):
+    def __init__(self, data_folder, batch_profile_class=None, subjects_ind=None, recalculate=False,
+                 cl_device_ind=None, double_precision=False):
         """This class is meant to make running computations as simple as possible.
 
         The idea is that a single folder is enough to fit_model the computations. One can optionally give it the
@@ -50,6 +51,7 @@ class BatchFitting(object):
             recalculate (boolean): If we want to recalculate the results if they are already present.
             cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
                 get_cl_devices().
+            double_precision (boolean): if we would like to do the calculations in double precision
         """
         self._data_folder = data_folder
         self._config = configuration.config['batch_fitting']
@@ -57,6 +59,7 @@ class BatchFitting(object):
         self._batch_profile = batch_profile_factory(batch_profile_class, self._data_folder)
         self._cl_device_ind = cl_device_ind
         self._recalculate = recalculate
+        self._double_precision = double_precision
 
         if self._batch_profile is None:
             raise RuntimeError('No suitable batch profile could be '
@@ -97,7 +100,7 @@ class BatchFitting(object):
         """Run the computations on the current dir with all the configured options. """
         self._logger.info('Running computations on {0} subjects'.format(len(self._subjects)))
 
-        run_func = _BatchFitRunner(self._config, self._recalculate, self._cl_device_ind)
+        run_func = _BatchFitRunner(self._config, self._recalculate, self._cl_device_ind, self._double_precision)
         map(run_func, self._subjects)
 
         return self._subjects
@@ -123,10 +126,11 @@ class BatchFitting(object):
 
 class _BatchFitRunner(object):
 
-    def __init__(self, batch_fitting_config, recalculate, cl_device_ind):
+    def __init__(self, batch_fitting_config, recalculate, cl_device_ind, double_precision):
         self._batch_fitting_config = batch_fitting_config
         self._recalculate = recalculate
         self._cl_device_ind = cl_device_ind
+        self._double_precision = double_precision
 
     def __call__(self, subject_info):
         """Run the batch fitting on the given subject.
@@ -166,7 +170,8 @@ class _BatchFitRunner(object):
                                      recalculate=self._recalculate,
                                      only_recalculate_last=False,
                                      model_protocol_options=self._batch_fitting_config['model_protocol_options'],
-                                     cl_device_ind=self._cl_device_ind)
+                                     cl_device_ind=self._cl_device_ind,
+                                     double_precision=self._double_precision)
                 model_fit.run()
             except ProtocolProblemError as ex:
                 logger.info('Could not fit model {0} on subject {1} '
@@ -181,7 +186,7 @@ class ModelFit(object):
 
     def __init__(self, model, problem_data, output_folder, optimizer=None,
                  recalculate=False, only_recalculate_last=False, model_protocol_options=None,
-                 cl_device_ind=None):
+                 cl_device_ind=None, double_precision=False):
         """Setup model fitting for the given input model and data.
 
         This does nothing by itself, please call fit_model() to actually fit_model the optimizer to fit the model.
@@ -204,9 +209,13 @@ class ModelFit(object):
                 For instance, in the Tensor model we generally only want to use the lower b-values.
             cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
                 get_cl_devices().
+            double_precision (boolean): if we would like to do the calculations in double precision
+
         """
         if isinstance(model, string_types):
             model = get_model(model)
+
+        model.double_precision = double_precision
 
         self._model = model
         self._problem_data = problem_data

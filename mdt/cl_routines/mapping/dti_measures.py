@@ -14,7 +14,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class DTIMeasures(AbstractCLRoutine):
 
-    def concat_and_calculate(self, eigenval1, eigenval2, eigenval3, use_double=False):
+    def concat_and_calculate(self, eigenval1, eigenval2, eigenval3, double_precision=False):
         """Calculate DTI statistics from the given eigenvalues.
 
         This concatenates the eigenvalue matrices and runs self.calculate(eigenvalues) on them.
@@ -29,7 +29,7 @@ class DTIMeasures(AbstractCLRoutine):
             eigenval3 (ndarray):
                 The first set of eigenvalues, can be 2d, per voxel one eigenvalue,
                 or 3d, per voxel multiple eigenvalues.
-            use_double (boolean): if we want to use float (set it to False) or double (set it to True)
+            double_precision (boolean): if we want to use float (set it to False) or double (set it to True)
 
         Returns:
             Per voxel, and optionally per instance per voxel, the FA and MD: (fa, md)
@@ -38,25 +38,25 @@ class DTIMeasures(AbstractCLRoutine):
         if len(s) < 3:
             return self.calculate(np.concatenate((np.reshape(eigenval1, (s[0], 1)),
                                                   np.reshape(eigenval2, (s[0], 1)),
-                                                  np.reshape(eigenval3, (s[0], 1))), axis=1), use_double)
+                                                  np.reshape(eigenval3, (s[0], 1))), axis=1), double_precision)
         else:
             return self.calculate(np.concatenate((np.reshape(eigenval1, (s[0], s[1], 1)),
                                                   np.reshape(eigenval2, (s[0], s[1], 1)),
-                                                  np.reshape(eigenval3, (s[0], s[1], 1))), axis=2), use_double)
+                                                  np.reshape(eigenval3, (s[0], s[1], 1))), axis=2), double_precision)
 
-    def calculate(self, eigenvalues, use_double=False):
+    def calculate(self, eigenvalues, double_precision=False):
         """Calculate DTI statistics from the given eigenvalues.
 
         Args:
             eigenvalues (ndarray):
                 The set of eigen values, can be 2d, per voxel one eigenvalue, or 3d, per voxel multiple eigenvalues.
-            use_double (boolean): if we want to use float (set it to False) or double (set it to True)
+            double_precision (boolean): if we want to use float (set it to False) or double (set it to True)
 
         Returns:
             Per voxel, and optionally per instance per voxel, the FA and MD: (fa, md)
         """
         np_dtype = np.float32
-        if use_double:
+        if double_precision:
             np_dtype = np.float64
 
         eigenvalues = eigenvalues.astype(np_dtype, order='C', copy=False)
@@ -72,7 +72,7 @@ class DTIMeasures(AbstractCLRoutine):
             items = s[0] * s[1]
             eigenvalues = np.reshape(eigenvalues, (s[0] * s[1], -1))
 
-        workers = self._create_workers(_DTIMeasuresWorker, eigenvalues, fa_host, md_host, use_double)
+        workers = self._create_workers(_DTIMeasuresWorker, eigenvalues, fa_host, md_host, double_precision)
         self.load_balancer.process(workers, items)
 
         if len(s) > 2:
@@ -83,12 +83,12 @@ class DTIMeasures(AbstractCLRoutine):
 
 class _DTIMeasuresWorker(Worker):
 
-    def __init__(self, cl_environment, eigenvalues, fa_host, md_host, use_double):
+    def __init__(self, cl_environment, eigenvalues, fa_host, md_host, double_precision):
         super(_DTIMeasuresWorker, self).__init__(cl_environment)
         self._eigenvalues = eigenvalues
         self._fa_host = fa_host
         self._md_host = md_host
-        self._use_double = use_double
+        self._double_precision = double_precision
         self._kernel = self._build_kernel()
 
     def calculate(self, range_start, range_end):
@@ -110,7 +110,7 @@ class _DTIMeasuresWorker(Worker):
 
     def _get_kernel_source(self):
         kernel_source = get_cl_pragma_double()
-        kernel_source += get_float_type_def(self._use_double, 'float_type')
+        kernel_source += get_float_type_def(self._double_precision, 'float_type')
         kernel_source += '''
             __kernel void calculate_measures(
                 global float_type* eigenvalues,

@@ -14,7 +14,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class CalculateEigenvectors(AbstractCLRoutine):
 
-    def convert_theta_phi_psi(self, theta_roi, phi_roi, psi_roi, use_double=False):
+    def convert_theta_phi_psi(self, theta_roi, phi_roi, psi_roi, double_precision=False):
         """Calculate the eigenvectors from the given theta, phi and psi angles.
 
         This will return the eigenvectors unsorted (since we know nothing about the eigenvalues).
@@ -23,7 +23,7 @@ class CalculateEigenvectors(AbstractCLRoutine):
             theta_roi (ndarray): The list of theta's per voxel in the ROI
             phi_roi (ndarray): The list of phi's per voxel in the ROI
             psi_roi (ndarray): The list of psi's per voxel in the ROI
-            use_double (boolean): if we want to use float (set it to False) or double (set it to True)
+            double_precision (boolean): if we want to use float (set it to False) or double (set it to True)
 
         Returns:
             The three eigenvectors per voxel in the ROI. The return matrix is of shape (n, 3, 3) where n is the number
@@ -37,7 +37,7 @@ class CalculateEigenvectors(AbstractCLRoutine):
             The resulting eigenvectors are the same as those from the Tensor.
         """
         np_dtype = np.float32
-        if use_double:
+        if double_precision:
             np_dtype = np.float64
 
         theta_roi = theta_roi.astype(np_dtype, order='C', copy=False)
@@ -47,7 +47,7 @@ class CalculateEigenvectors(AbstractCLRoutine):
         rows = theta_roi.shape[0]
         evecs = np.zeros((rows, 3*3), dtype=np_dtype)
 
-        workers = self._create_workers(_CEWorker, theta_roi, phi_roi, psi_roi, evecs, use_double)
+        workers = self._create_workers(_CEWorker, theta_roi, phi_roi, psi_roi, evecs, double_precision)
         self.load_balancer.process(workers, rows)
 
         return np.reshape(evecs, (rows, 3, 3))
@@ -55,14 +55,14 @@ class CalculateEigenvectors(AbstractCLRoutine):
 
 class _CEWorker(Worker):
 
-    def __init__(self, cl_environment, theta_roi, phi_roi, psi_roi, evecs, use_double):
+    def __init__(self, cl_environment, theta_roi, phi_roi, psi_roi, evecs, double_precision):
         super(_CEWorker, self).__init__(cl_environment)
 
         self._theta_roi = theta_roi
         self._phi_roi = phi_roi
         self._psi_roi = psi_roi
         self._evecs = evecs
-        self._use_double = use_double
+        self._double_precision = double_precision
         self._kernel = self._build_kernel()
 
     def calculate(self, range_start, range_end):
@@ -83,7 +83,7 @@ class _CEWorker(Worker):
 
     def _get_kernel_source(self):
         kernel_source = get_cl_pragma_double()
-        kernel_source += get_float_type_def(self._use_double, 'float_type')
+        kernel_source += get_float_type_def(self._double_precision, 'float_type')
         kernel_source += '''
             float_type4 Tensor_rotateVector(const float_type4 vector, const float_type4 axis_rotate, const float_type psi){
                 float_type4 n1 = axis_rotate;

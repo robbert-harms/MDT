@@ -35,7 +35,7 @@ exception when trying to create an kernel.
 """
 
 def batch_fit(data_folder, batch_profile_class=None, subjects_ind=None, recalculate=False,
-              cl_device_ind=None, dry_run=False):
+              cl_device_ind=None, dry_run=False, double_precision=False):
     """Run all the available and applicable models on the data in the given folder.
 
     See the class AutoRun for more details and options.
@@ -58,6 +58,7 @@ def batch_fit(data_folder, batch_profile_class=None, subjects_ind=None, recalcul
             get_cl_devices().
         dry_run (boolean): a dry run will do no computations, but will list all the subjects found in the
             given directory.
+        double_precision (boolean): if we would like to do the calculations in double precision
 
     Returns:
         The list of subjects we will calculate / have calculated.
@@ -69,7 +70,8 @@ def batch_fit(data_folder, batch_profile_class=None, subjects_ind=None, recalcul
         raise RuntimeError('User\'s components folder is not up to date. Please run the script mdt-init-user-settings.')
 
     batch_fitting = BatchFitting(data_folder, batch_profile_class=batch_profile_class, subjects_ind=subjects_ind,
-                                 recalculate=recalculate, cl_device_ind=cl_device_ind)
+                                 recalculate=recalculate, cl_device_ind=cl_device_ind,
+                                 double_precision=double_precision)
 
     if dry_run:
         return batch_fitting.get_subjects_info()
@@ -78,7 +80,7 @@ def batch_fit(data_folder, batch_profile_class=None, subjects_ind=None, recalcul
 
 
 def fit_model(model, dwi_info, protocol, brain_mask, output_folder, optimizer=None,
-              recalculate=False, only_recalculate_last=False, cl_device_ind=None):
+              recalculate=False, only_recalculate_last=False, cl_device_ind=None, double_precision=False):
     """Run the optimizer on the given model.
 
     Args:
@@ -98,6 +100,7 @@ def fit_model(model, dwi_info, protocol, brain_mask, output_folder, optimizer=No
             If set to false, we recalculate everything. This only holds for the first level of the cascade.
         cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices().
+        double_precision (boolean): if we would like to do the calculations in double precision
 
     Returns:
         the output of the optimization. If a cascade is given, only the results of the last model in the cascade is
@@ -111,13 +114,14 @@ def fit_model(model, dwi_info, protocol, brain_mask, output_folder, optimizer=No
 
     problem_data = utils.load_problem_data(dwi_info, protocol, brain_mask)
     model_fit = ModelFit(model, problem_data, output_folder, optimizer=optimizer, recalculate=recalculate,
-                         only_recalculate_last=only_recalculate_last, cl_device_ind=cl_device_ind)
+                         only_recalculate_last=only_recalculate_last, cl_device_ind=cl_device_ind,
+                         double_precision=double_precision)
 
     return model_fit.run()
 
 
 def sample_model(model, dwi_info, protocol, brain_mask, output_folder,
-                 sampler=None, recalculate=False, cl_device_ind=None):
+                 sampler=None, recalculate=False, cl_device_ind=None, double_precision=False):
     """Sample a single model. This does not accept cascade models, only single models.
 
     Args:
@@ -132,6 +136,7 @@ def sample_model(model, dwi_info, protocol, brain_mask, output_folder,
         recalculate (boolean): If we want to recalculate the results if they are already present.
         cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices().
+        double_precision (boolean): if we would like to do the calculations in double precision
 
     Returns:
         the full chain of the optimization
@@ -141,9 +146,15 @@ def sample_model(model, dwi_info, protocol, brain_mask, output_folder,
     from mdt.cascade_model import CascadeModelInterface
     from mot.cl_routines.sampling.metropolis_hastings import MetropolisHastings
     from mdt.model_sampling import sample_single_model
+    from six import string_types
 
     if not utils.check_user_components():
         raise RuntimeError('User\'s components folder is not up to date. Please run mdt.initialize_user_settings().')
+
+    if isinstance(model, string_types):
+        model = get_model(model)
+
+    model.double_precision = double_precision
 
     if isinstance(model, CascadeModelInterface):
         raise ValueError('The function \'sample_model()\' does not accept cascade models.')

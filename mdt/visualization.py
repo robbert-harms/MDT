@@ -318,7 +318,10 @@ class MapsVisualizer(object):
         return rows, cols
 
     def _get_volumes_shape(self):
-        return self._volumes_dict[list(self._volumes_dict.keys())[0]].shape
+        if list(self._volumes_dict.keys()):
+            return self._volumes_dict[list(self._volumes_dict.keys())[0]].shape
+        else:
+            return [0, 0, 0]
 
     def _load_min_max_vals(self):
         d = {}
