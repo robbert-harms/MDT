@@ -29,19 +29,18 @@ def get_parameter(param_name):
     Returns:
         the parameter object for the requested parameter
     """
-    param_map = {'g': ProtocolParameter(CLDataType.from_string('double4'), 'g'),
-                 'G': ProtocolParameter(CLDataType.from_string('double'), 'G'),
-                 'Delta': ProtocolParameter(CLDataType.from_string('double'), 'Delta'),
-                 'delta': ProtocolParameter(CLDataType.from_string('double'), 'delta'),
-                 'TE': ProtocolParameter(CLDataType.from_string('double'), 'TE'),
-                 'b': ProtocolParameter(CLDataType.from_string('double'), 'b'),
-                 'q': ProtocolParameter(CLDataType.from_string('double'), 'q'),
-                 'T1': ProtocolParameter(CLDataType.from_string('double'), 'T1'),
-                 'GAMMA2_G2_delta2': ProtocolParameter(CLDataType.from_string('double'), 'GAMMA2_G2_delta2'),
+    param_map = {'g': ProtocolParameter(CLDataType.from_string('model_float4'), 'g'),
+                 'G': ProtocolParameter(CLDataType.from_string('model_float'), 'G'),
+                 'Delta': ProtocolParameter(CLDataType.from_string('model_float'), 'Delta'),
+                 'delta': ProtocolParameter(CLDataType.from_string('model_float'), 'delta'),
+                 'TE': ProtocolParameter(CLDataType.from_string('model_float'), 'TE'),
+                 'b': ProtocolParameter(CLDataType.from_string('model_float'), 'b'),
+                 'q': ProtocolParameter(CLDataType.from_string('model_float'), 'q'),
+                 'T1': ProtocolParameter(CLDataType.from_string('model_float'), 'T1'),
+                 'GAMMA2_G2_delta2': ProtocolParameter(CLDataType.from_string('model_float'), 'GAMMA2_G2_delta2'),
 
                  'T2': FreeParameter(CLDataType.from_string('double'), 'T2', False, 0.05, 0.0, 0.8,
                                      parameter_transform=ClampTransform(),  sampling_proposal=GaussianProposal(0.0001)),
-
                  #todo get correct values here
                  'Ti': FreeParameter(CLDataType.from_string('double'), 'Ti', False, 0.05, 0.0, 1.0,
                                      parameter_transform=ClampTransform(), sampling_proposal=GaussianProposal(0.0001)),
@@ -101,8 +100,8 @@ def get_parameter(param_name):
                                                 parameter_transform=SinSqrClampTransform(),
                                                 sampling_proposal=GaussianProposal(1.0)),
 
-                 'CLJnpZeros': ModelDataParameter(CLDataType.from_string('float*'), 'CLJnpZeros',
-                                                  get_bessel_roots(number_of_roots=20, np_data_type=np.float32)),
+                 'CLJnpZeros': ModelDataParameter(CLDataType.from_string('model_float*'), 'CLJnpZeros',
+                                                  get_bessel_roots(number_of_roots=20)),
                  'CLJnpZerosLength': ModelDataParameter(CLDataType.from_string('int'), 'CLJnpZerosLength', 20),
 
                  # charmed default, this is the fixed parameter for the length of the GDRCylindersFixed model
@@ -110,17 +109,17 @@ def get_parameter(param_name):
 
                  # charmed default, used in GDRCylindersFixed model
                  'gamma_radii': ModelDataParameter(
-                     CLDataType.from_string('double*'),
-                     'gamma_radii', 1e-6 * np.array([1.5, 2.5, 3.5, 4.5, 5.5, 6.5]).astype(np.float64)),
+                     CLDataType.from_string('model_float*'),
+                     'gamma_radii', 1e-6 * np.array([1.5, 2.5, 3.5, 4.5, 5.5, 6.5])),
 
                  # charmed default, used in GDRCylindersFixed model
                  'gamma_cyl_weights': ModelDataParameter(
-                     CLDataType.from_string('double*'),
+                     CLDataType.from_string('model_float*'),
                      'gamma_cyl_weights', np.array([0.0211847200855742,
                                                     0.107169623942214,
                                                     0.194400551313197,
                                                     0.266676876170322,
                                                     0.214921653661151,
-                                                    0.195646574827541]).astype(np.float64)),
+                                                    0.195646574827541])),
                  }
     return param_map[param_name]

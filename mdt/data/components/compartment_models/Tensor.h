@@ -20,8 +20,8 @@
  * @params dperp2 parameter perpendicular diffusion 2
  * @params psi the third rotation angle
  */
-model_float cmTensor(const double4 g,
-                const double b,
+model_float cmTensor(const model_float4 g,
+                const model_float b,
                 const double d,
                 const double dperp,
                 const double dperp2,

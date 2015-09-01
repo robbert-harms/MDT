@@ -12,45 +12,46 @@
 // do not change this value! It would require adding approximations to the functions below
 #define NODDI_IC_MAX_POLYNOMIAL_ORDER 6
 
-void Noddi_IC_LegendreGaussianIntegral(const double x, double* result);
-void Noddi_IC_WatsonSHCoeff(const double kappa, double* result);
-double Noddi_IC_CylNeumanLePerp_PGSE(const double d, const double R, const double G, const double Delta,
-                                     const double delta, global const double* const CLJnpZeros,
-                                     const int CLJnpZerosLength);
+void Noddi_IC_LegendreGaussianIntegral(const model_float x, model_float* result);
+void Noddi_IC_WatsonSHCoeff(const model_float kappa, model_float* result);
+model_float Noddi_IC_CylNeumanLePerp_PGSE(const model_float d, const model_float R, const model_float G,
+                                          const model_float Delta,
+                                          const model_float delta, global const model_float* const CLJnpZeros,
+                                          const int CLJnpZerosLength);
 
 /**
  * See the header for details
  */
-model_float cmNoddi_IC(const double4 g,
-                  const double b,
-                  const double G,
-                  const double Delta,
-                  const double delta,
-                  const double d,
-                  const double theta,
-                  const double phi,
-                  const double kappa,
-                  const double R,
-                  global const double* const CLJnpZeros,
-                  const int CLJnpZerosLength){
+model_float cmNoddi_IC(const model_float4 g,
+                       const model_float b,
+                       const model_float G,
+                       const model_float Delta,
+                       const model_float delta,
+                       const double d,
+                       const double theta,
+                       const double phi,
+                       const double kappa,
+                       const double R,
+                       global const model_float* const CLJnpZeros,
+                       const int CLJnpZerosLength){
 
-    double cosTheta = dot(g, (double4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0.0));
+    model_float cosTheta = dot(g, (model_float4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0.0));
     if(fabs(cosTheta) > 1){
         cosTheta = cosTheta / fabs(cosTheta);
     }
 
-    double watson_coeff[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
+    model_float watson_coeff[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
     Noddi_IC_WatsonSHCoeff(kappa, watson_coeff);
 
-    double LePerp = -2 * GAMMA_H_SQ * pown(G, 2) *
+    model_float LePerp = -2 * GAMMA_H_SQ * pown(G, 2) *
                         NeumannCylPerpPGSESum(Delta, delta, d, R, CLJnpZeros, CLJnpZerosLength);
-    double ePerp = exp(LePerp);
-    double Lpmp = LePerp + d * b;
+    model_float ePerp = exp(LePerp);
+    model_float Lpmp = LePerp + d * b;
 
-    double lgi[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
+    model_float lgi[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
     Noddi_IC_LegendreGaussianIntegral(Lpmp, lgi);
 
-    double signal = 0.0;
+    model_float signal = 0.0;
     for(int i = 0; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
         signal += lgi[i] * watson_coeff[i] * sqrt((i + 0.25)/M_PI) * getFirstLegendreTerm(cosTheta, 2*i);
     }
@@ -76,11 +77,11 @@ model_float cmNoddi_IC(const double4 g,
 
     original author: Gary Hui Zhang (gary.zhang@ucl.ac.uk)
 */
-void Noddi_IC_LegendreGaussianIntegral(const double x, double* const result){
+void Noddi_IC_LegendreGaussianIntegral(const model_float x, model_float* const result){
 
     if(x > 0.05){
         // exact
-        double tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
+        model_float tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
         tmp[0] = M_SQRTPI * erf(sqrt(x))/sqrt(x);
         for(int i = 1; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
             tmp[i] = (-exp(-x) + (i - 0.5) * tmp[i-1]) / x;
@@ -96,7 +97,7 @@ void Noddi_IC_LegendreGaussianIntegral(const double x, double* const result){
     }
     else{
         // approximate
-        double tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER - 1];
+        model_float tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER - 1];
         tmp[0] = pown(x, 2);
         tmp[1] = tmp[0] * x;
         tmp[2] = tmp[1] * x;
@@ -125,11 +126,11 @@ void Noddi_IC_LegendreGaussianIntegral(const double x, double* const result){
 
     author: Gary Hui Zhang (gary.zhang@ucl.ac.uk)
 */
-void Noddi_IC_WatsonSHCoeff(const double kappa, double* const result){
+void Noddi_IC_WatsonSHCoeff(const model_float kappa, model_float* const result){
     result[0] = M_SQRTPI * 2;
 
     if(kappa <= 30){
-        double ks[NODDI_IC_MAX_POLYNOMIAL_ORDER - 1];
+        model_float ks[NODDI_IC_MAX_POLYNOMIAL_ORDER - 1];
         ks[0] = pown(kappa, 2);
         ks[1] = ks[0] * kappa;
         ks[2] = ks[1] * kappa;
@@ -138,7 +139,7 @@ void Noddi_IC_WatsonSHCoeff(const double kappa, double* const result){
 
         if(kappa > 0.1){
             // exact
-            double sks[NODDI_IC_MAX_POLYNOMIAL_ORDER];
+            model_float sks[NODDI_IC_MAX_POLYNOMIAL_ORDER];
             sks[0] = sqrt(kappa);
             sks[1] = sks[0] * kappa;
             sks[2] = sks[1] * kappa;
@@ -146,10 +147,10 @@ void Noddi_IC_WatsonSHCoeff(const double kappa, double* const result){
             sks[4] = sks[3] * kappa;
             sks[5] = sks[4] * kappa;
 
-            double erfik = erfi(sks[0]);
-            double ierfik = 1/erfik;
-            double ek = exp(kappa);
-            double dawsonk = M_SQRTPI_2 * erfik/ek;
+            model_float erfik = erfi(sks[0]);
+            model_float ierfik = 1/erfik;
+            model_float ek = exp(kappa);
+            model_float dawsonk = M_SQRTPI_2 * erfik/ek;
 
             result[1] = 3 * sks[0] - (3 + 2 * kappa) * dawsonk;
             result[1] = sqrt(5.0) * result[1] * ek;
@@ -198,7 +199,7 @@ void Noddi_IC_WatsonSHCoeff(const double kappa, double* const result){
     }
     else{
         // large
-        double lnkd[NODDI_IC_MAX_POLYNOMIAL_ORDER];
+        model_float lnkd[NODDI_IC_MAX_POLYNOMIAL_ORDER];
         lnkd[0] = log(kappa) - log(30.0);
         lnkd[1] = lnkd[0] * lnkd[0];
         lnkd[2] = lnkd[1] * lnkd[0];

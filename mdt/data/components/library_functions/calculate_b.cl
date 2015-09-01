@@ -9,7 +9,7 @@
  * Email = robbert.harms@maastrichtuniversity.nl
  */
 
-double calculate_b(const double G, const double Delta, const double delta){
+model_float calculate_b(const model_float G, const model_float Delta, const model_float delta){
     return GAMMA_H_SQ * pown(G * delta, 2) * (Delta - (delta/3.0));
 }
 

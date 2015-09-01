@@ -19,8 +19,8 @@
  * @params dperp parameter (hindered diffusivity outside the cylinders in perpendicular directions)
  * @params kappa parameter (concentration parameter of the Watson's distribution)
  */
-model_float cmNoddi_EC(const double4 g,
-                  const double b,
+model_float cmNoddi_EC(const model_float4 g,
+                  const model_float b,
                   const double d,
                   const double dperp,
                   const double theta,

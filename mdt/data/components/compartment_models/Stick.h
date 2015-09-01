@@ -18,8 +18,8 @@
  * @params theta the parameter theta
  * @params phi the parameter phi
  */
-model_float cmStick(const double4 g,
-               const double b,
+model_float cmStick(const model_float4 g,
+               const model_float b,
                const double d,
                const double theta,
                const double phi);

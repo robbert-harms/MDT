@@ -9,9 +9,9 @@
  * Email = robbert.harms@maastrichtuniversity.nl
  */
 
-model_float cmAstroSticks(const double4 g,
-                     const double G,
-                     const double b,
+model_float cmAstroSticks(const model_float4 g,
+                     const model_float G,
+                     const model_float b,
                      const double d);
 
 #endif // DMRICM_ASTROSTICKS_H

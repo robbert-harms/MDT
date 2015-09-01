@@ -9,20 +9,20 @@
  * Email = robbert.harms@maastrichtuniversity.nl
  */
 
-model_float cmGDRCylindersFixedRadii(const double4 g,
-                                const double G,
-                                const double Delta,
-                                const double delta,
+model_float cmGDRCylindersFixedRadii(const model_float4 g,
+                                const model_float G,
+                                const model_float Delta,
+                                const model_float delta,
                                 const double d,
                                 const double theta,
                                 const double phi,
-                                global const double* const gamma_cyl_radii,
-                                global const double* const gamma_cyl_weights,
+                                global const model_float* const gamma_cyl_radii,
+                                global const model_float* const gamma_cyl_weights,
                                 const int nmr_gamma_cyl_fixed,
-                                global const double* const CLJnpZeros,
+                                global const model_float* const CLJnpZeros,
                                 const int CLJnpZerosLength){
 
-    double signal = 0;
+    model_float signal = 0;
     for(int i = 0; i < nmr_gamma_cyl_fixed; i++){
         signal += gamma_cyl_weights[i] *
                     cmCylinderGPD(g, G, Delta, delta, d, theta, phi, gamma_cyl_radii[i], CLJnpZeros, CLJnpZerosLength);

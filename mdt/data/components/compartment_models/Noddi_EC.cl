@@ -19,24 +19,24 @@
  * @params dperp parameter (hindered diffusivity outside the cylinders in perpendicular directions)
  * @params kappa parameter (concentration parameter of the Watson's distribution)
  */
-model_float cmNoddi_EC(const double4 g,
-                  const double b,
+model_float cmNoddi_EC(const model_float4 g,
+                  const model_float b,
                   const double d,
                   const double dperp,
                   const double theta,
                   const double phi,
                   const double kappa){
 
-    double dw_0, dw_1;
-    double dotted = pown(dot(g, (double4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0)), 2);
+    model_float dw_0, dw_1;
+    model_float dotted = pown(dot(g, (model_float4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0)), 2);
 
     if(kappa > 1e-5){
-	    double factor = sqrt(kappa)/dawson(sqrt(kappa));
+	    model_float factor = sqrt(kappa)/dawson(sqrt(kappa));
 	    dw_0 = (-(d - dperp) + 2 * dperp     * kappa + (d - dperp) * factor) / (2.0 * kappa);
 	    dw_1 = ( (d - dperp) + 2 * (d+dperp) * kappa - (d - dperp) * factor) / (4.0 * kappa);
     }
     else{
-        double factor = 2 * (d - dperp) * kappa;
+        model_float factor = 2 * (d - dperp) * kappa;
 	    dw_0 = (fma(2, dperp, d) / 3.0) + (factor/22.5) + ((factor * kappa) / 236.0);
    	    dw_1 = (fma(2, dperp, d) / 3.0) - (factor/45.0) - ((factor * kappa) / 472.0);
     }

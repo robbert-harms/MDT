@@ -12,15 +12,15 @@
 /**
  * Generate the compartment model signal for the CylinderGPD model.
  */
-model_float cmCylinderGPD(const double4 g,
-                     const double G,
-                     const double Delta,
-                     const double delta,
+model_float cmCylinderGPD(const model_float4 g,
+                     const model_float G,
+                     const model_float Delta,
+                     const model_float delta,
                      const double d,
                      const double theta,
                      const double phi,
                      const double R,
-                     global const double* const CLJnpZeros,
+                     global const model_float* const CLJnpZeros,
                      const int CLJnpZerosLength);
 
 #endif // DMRICM_CYLINDERGPD_H

@@ -18,36 +18,37 @@
 /** Max number of iterations in series evaluation */
 #define GDRCYL_ITMAX 100
 
-double gammaCDF(const double k, const double theta, const double x);
-double gammp(const double a, const double x);
-double gser(const double a, const double x);
-double gcf(const double a, const double x);
-double findGammaCDFCrossing(double startx, double stopx, const double offset, const double convergence,
-                            const double gamma_k, const double gamma_beta);
+model_float gammaCDF(const model_float k, const model_float theta, const model_float x);
+model_float gammp(const model_float a, const model_float x);
+model_float gser(const model_float a, const model_float x);
+model_float gcf(const model_float a, const model_float x);
+model_float findGammaCDFCrossing(model_float startx, model_float stopx, const model_float offset,
+                                 const model_float convergence, const model_float gamma_k,
+                                 const model_float gamma_beta);
 
-model_float cmGDRCylinders(const double4 g,
-                      const double G,
-                      const double Delta,
-                      const double delta,
+model_float cmGDRCylinders(const model_float4 g,
+                      const model_float G,
+                      const model_float Delta,
+                      const model_float delta,
                       const double d,
                       const double theta,
                       const double phi,
                       const double gamma_k,
                       const double gamma_beta,
                       const double gamma_nmr_cyl,
-                      global const double* const CLJnpZeros,
+                      global const model_float* const CLJnpZeros,
                       const int CLJnpZerosLength){
 
     int nmr_cyl = round(gamma_nmr_cyl);
 
-    double lower = findGammaCDFCrossing(0, gamma_beta*gamma_k, 1.0/nmr_cyl, 1e-20, gamma_k, gamma_beta);
-    double upper = findGammaCDFCrossing(lower, nmr_cyl*gamma_beta*gamma_k, (1-1.0/nmr_cyl), 1e-20,
+    model_float lower = findGammaCDFCrossing(0, gamma_beta*gamma_k, 1.0/nmr_cyl, 1e-20, gamma_k, gamma_beta);
+    model_float upper = findGammaCDFCrossing(lower, nmr_cyl*gamma_beta*gamma_k, (1-1.0/nmr_cyl), 1e-20,
                                         gamma_k, gamma_beta);
 
-    double binWidth = (upper-lower)/nmr_cyl;
-    double gamma_cyl_weight = 0;
-    double gamma_cyl_radius = 0;
-    double signal = 0;
+    model_float binWidth = (upper-lower)/nmr_cyl;
+    model_float gamma_cyl_weight = 0;
+    model_float gamma_cyl_radius = 0;
+    model_float signal = 0;
 
     for(int i = 0; i < nmr_cyl; i++){
         gamma_cyl_radius = lower + (i+0.5)*binWidth;
@@ -75,7 +76,7 @@ model_float cmGDRCylinders(const double4 g,
  *
  *
  */
-double gammaCDF(const double k, const double theta, const double x){
+model_float gammaCDF(const model_float k, const model_float theta, const model_float x){
     return gammp(k, x/theta);
 }
 
@@ -84,7 +85,7 @@ double gammaCDF(const double k, const double theta, const double x){
  * Returns the incomplete gamma function P(a; x).
  * see NRC p. 218.
  */
-double gammp(const double a, const double x){
+model_float gammp(const model_float a, const model_float x){
     if(x<0.0 || a <= 0.0){
         return NAN;
     }
@@ -100,10 +101,10 @@ double gammp(const double a, const double x){
  * Returns the incomplete gamma function P(a; x) evaluated by its
  * series representation as gamser.
  */
-double gser(const double a, const double x){
-    double sum;
-    double del;
-    double ap;
+model_float gser(const model_float a, const model_float x){
+    model_float sum;
+    model_float del;
+    model_float ap;
 
     if(x <= 0.0){
         if (x < 0.0){
@@ -132,9 +133,9 @@ double gser(const double a, const double x){
  * Returns the incomplete gamma function Q(a; x) evaluated by its continued
  * fraction representation.
  */
-double gcf(const double a, const double x){
+model_float gcf(const model_float a, const model_float x){
     int i;
-    double an,b,c,d,del,h;
+    model_float an,b,c,d,del,h;
 
     //Set up for evaluating continued fraction by modified Lentz's method (x5.2) with b0 = 0.
     b=x+1.0-a;
@@ -171,12 +172,13 @@ double gcf(const double a, const double x){
 }
 
 //Using Brent root finding to determine cdfs
-double findGammaCDFCrossing(double startx, double stopx, const double offset, const double convergence,
-                            const double gamma_k, const double gamma_beta){
+model_float findGammaCDFCrossing(model_float startx, model_float stopx,
+                                 const model_float offset, const model_float convergence,
+                                 const model_float gamma_k, const model_float gamma_beta){
 
-    double fstartx = gammaCDF(gamma_k, gamma_beta, startx) - offset;
-    double fstopx = gammaCDF(gamma_k, gamma_beta, stopx) - offset;
-    double delta = fabs(stopx-startx);
+    model_float fstartx = gammaCDF(gamma_k, gamma_beta, startx) - offset;
+    model_float fstopx = gammaCDF(gamma_k, gamma_beta, stopx) - offset;
+    model_float delta = fabs(stopx-startx);
 
     if(fstartx * fstopx > 0){
         if (fstartx>0){
@@ -190,11 +192,11 @@ double findGammaCDFCrossing(double startx, double stopx, const double offset, co
         }
     }
 
-    double root = startx;
-    double froot = fstartx;
+    model_float root = startx;
+    model_float froot = fstartx;
     bool mflag=1;
-    double s = 0;
-    double de = 0;
+    model_float s = 0;
+    model_float de = 0;
 
     while(!(delta < convergence || fstartx == 0 || fstopx == 0)){
          if (fstartx != froot && fstopx != froot){
@@ -221,7 +223,7 @@ double findGammaCDFCrossing(double startx, double stopx, const double offset, co
              mflag=0;
          }
 
-         double fs=gammaCDF(gamma_k, gamma_beta, s) - offset;
+         model_float fs=gammaCDF(gamma_k, gamma_beta, s) - offset;
 
          de=root;
          root=stopx;
@@ -238,8 +240,8 @@ double findGammaCDFCrossing(double startx, double stopx, const double offset, co
 
          if (fabs(fstartx) < fabs(fstopx)){
              //swap startx and stopx
-             double tmp=stopx;
-             double ftmp=fstopx;
+             model_float tmp=stopx;
+             model_float ftmp=fstopx;
              stopx=startx;
              fstopx=fstartx;
              startx=tmp;

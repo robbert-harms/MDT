@@ -30,17 +30,17 @@
  * @params CLJnpZeros: the bessel root zeros used by the model function
  * @params CLJnpZerosLength: the length of the bessel roots vector CLJnpZeros
  */
-model_float cmNoddi_IC(const double4 g,
-                  const double b,
-                  const double G,
-                  const double Delta,
-                  const double delta,
-                  const double d,
-                  const double theta,
-                  const double phi,
-                  const double kappa,
-                  const double R,
-                  global const double* const CLJnpZeros,
-                  const int CLJnpZerosLength);
+model_float cmNoddi_IC(const model_float4 g,
+                       const model_float b,
+                       const model_float G,
+                       const model_float Delta,
+                       const model_float delta,
+                       const double d,
+                       const double theta,
+                       const double phi,
+                       const double kappa,
+                       const double R,
+                       global const model_float* const CLJnpZeros,
+                       const int CLJnpZerosLength);
                     
 #endif // DMRICM_NODDIIC_H

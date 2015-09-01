@@ -12,21 +12,21 @@
 /**
  * Generate the compartment model signal for the CylinderGPD model.
  */
-model_float cmCylinderGPD(const double4 g,
-                     const double G,
-                     const double Delta,
-                     const double delta,
+model_float cmCylinderGPD(const model_float4 g,
+                     const model_float G,
+                     const model_float Delta,
+                     const model_float delta,
                      const double d,
                      const double theta,
                      const double phi,
                      const double R,
-                     global const double* const CLJnpZeros,
+                     global const model_float* const CLJnpZeros,
                      const int CLJnpZerosLength){
 
-    double sum = NeumannCylPerpPGSESum(Delta, delta, d, R, CLJnpZeros, CLJnpZerosLength);
+    model_float sum = NeumannCylPerpPGSESum(Delta, delta, d, R, CLJnpZeros, CLJnpZerosLength);
 
-    const double4 n = (double4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0.0);
-    double omega = (G == 0.0) ? M_PI_2 : acos(dot(n, g * G) / (G * length(n)));
+    const model_float4 n = (model_float4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0.0);
+    model_float omega = (G == 0.0) ? M_PI_2 : acos(dot(n, g * G) / (G * length(n)));
 
     return exp(-2 * GAMMA_H_SQ * pown(G * sin(omega), 2) * sum) *
             exp(-(Delta - (delta/3.0)) * pown(GAMMA_H * delta * G * cos(omega), 2) * d);

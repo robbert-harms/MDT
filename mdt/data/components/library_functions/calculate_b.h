@@ -9,6 +9,6 @@
  * Email = robbert.harms@maastrichtuniversity.nl
  */
 
-double calculate_b(const double G, const double Delta, const double delta);
+model_float calculate_b(const model_float G, const model_float Delta, const model_float delta);
 
 #endif //CALCULATE_B_H

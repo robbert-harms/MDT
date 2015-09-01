@@ -9,10 +9,10 @@
  * Email = robbert.harms@maastrichtuniversity.nl
  */
 
-model_float cmCharmedRestricted(const double4 g,
-                           const double b,
-                           const double GAMMA2_G2_delta2,
-                           const double TE,
+model_float cmCharmedRestricted(const model_float4 g,
+                           const model_float b,
+                           const model_float GAMMA2_G2_delta2,
+                           const model_float TE,
                            const double d,
                            const double theta,
                            const double phi);

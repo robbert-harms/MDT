@@ -9,14 +9,14 @@
  * Email = robbert.harms@maastrichtuniversity.nl
  */
 
-model_float cmAstroCylinders(const double4 g,
-                        const double b,
-                        const double G,
-                        const double Delta,
-                        const double delta,
+model_float cmAstroCylinders(const model_float4 g,
+                        const model_float b,
+                        const model_float G,
+                        const model_float Delta,
+                        const model_float delta,
                         const double d,
                         const double R,
-                        global const double* const CLJnpZeros,
+                        global const model_float* const CLJnpZeros,
                         const int CLJnpZerosLength);
 
 #endif // DMRICM_ASTROCYLINDERS_H

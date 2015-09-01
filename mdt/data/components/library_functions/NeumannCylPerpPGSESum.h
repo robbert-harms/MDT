@@ -16,11 +16,11 @@
  * This function only returns the sum over the Bessel roots, up to a accuracy of 1e-8, it does not
  * calculate the complete signal for a cylinder model.
  */
-double NeumannCylPerpPGSESum(const double Delta,
-                             const double delta,
+model_float NeumannCylPerpPGSESum(const model_float Delta,
+                             const model_float delta,
                              const double d,
                              const double R,
-                             global const double* const CLJnpZeros,
+                             global const model_float* const CLJnpZeros,
                              const int CLJnpZerosLength);
 
 #endif //NEUMANN_CYL_PERP_PGSE_SUM_H

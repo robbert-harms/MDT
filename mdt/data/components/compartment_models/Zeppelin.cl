@@ -18,15 +18,15 @@
  * @params phi the parameter phi
  * @params dperp the perpendicular diffusivity
  */
-model_float cmZeppelin(const double4 g,
-                  const double b,
+model_float cmZeppelin(const model_float4 g,
+                  const model_float b,
                   const double d,
                   const double dperp,
                   const double theta,
                   const double phi){
     return exp(-b * (
                 ((d - dperp) *
-                 pown(dot(g, (double4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0.0)), 2))
+                 pown(dot(g, (model_float4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0.0)), 2))
                   + dperp));
 }
 
