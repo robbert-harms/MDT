@@ -797,8 +797,7 @@ class MetaOptimizerBuilder(object):
                                                                           cl_environments, load_balancer)
                                                       for i in range(1, len(optim_config['optimizers']))]
 
-        for attr in ('extra_optim_runs', 'extra_optim_runs_apply_smoothing', 'extra_optim_runs_use_perturbation',
-                     'enable_grid_search'):
+        for attr in ('extra_optim_runs', 'extra_optim_runs_apply_smoothing', 'extra_optim_runs_use_perturbation'):
             meta_optimizer.__setattr__(attr, optim_config[attr])
 
         if 'smoothing_routines' in optim_config and len(optim_config['smoothing_routines']):
