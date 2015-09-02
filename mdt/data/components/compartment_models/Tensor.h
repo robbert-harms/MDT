@@ -21,12 +21,12 @@
  * @params psi the third rotation angle
  */
 model_float cmTensor(const model_float4 g,
-                const model_float b,
-                const double d,
-                const double dperp,
-                const double dperp2,
-                const double theta,
-                const double phi,
-                const double psi);
+                     const model_float b,
+                     const model_float d,
+                     const model_float dperp,
+                     const model_float dperp2,
+                     const model_float theta,
+                     const model_float phi,
+                     const model_float psi);
 
 #endif // DMRICM_TENSOR_H

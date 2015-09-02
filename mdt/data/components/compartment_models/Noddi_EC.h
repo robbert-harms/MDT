@@ -20,11 +20,11 @@
  * @params kappa parameter (concentration parameter of the Watson's distribution)
  */
 model_float cmNoddi_EC(const model_float4 g,
-                  const model_float b,
-                  const double d,
-                  const double dperp,
-                  const double theta,
-                  const double phi,
-                  const double kappa);
+                       const model_float b,
+                       const model_float d,
+                       const model_float dperp,
+                       const model_float theta,
+                       const model_float phi,
+                       const model_float kappa);
 
 #endif // DMRICM_NODDIEC_H

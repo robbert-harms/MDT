@@ -19,10 +19,10 @@
  * @params phi the parameter phi
  */
 model_float cmStick(const model_float4 g,
-               const model_float b,
-               const double d,
-               const double theta,
-               const double phi){
+                    const model_float b,
+                    const model_float d,
+                    const model_float theta,
+                    const model_float phi){
     return exp(-b * d * pown(dot(g, (model_float4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0.0)), 2));
 }
 

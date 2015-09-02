@@ -20,12 +20,12 @@
  * @params kappa parameter (concentration parameter of the Watson's distribution)
  */
 model_float cmNoddi_EC(const model_float4 g,
-                  const model_float b,
-                  const double d,
-                  const double dperp,
-                  const double theta,
-                  const double phi,
-                  const double kappa){
+                       const model_float b,
+                       const model_float d,
+                       const model_float dperp,
+                       const model_float theta,
+                       const model_float phi,
+                       const model_float kappa){
 
     model_float dw_0, dw_1;
     model_float dotted = pown(dot(g, (model_float4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0)), 2);

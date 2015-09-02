@@ -243,7 +243,7 @@ class ModelFit(object):
         Returns:
             The result maps for the model we are running.
         """
-        self._run(self._model, self._recalculate, self._only_recalculate_last, {})
+        return self._run(self._model, self._recalculate, self._only_recalculate_last, {})
 
     def _run(self, model, recalculate, only_recalculate_last, meta_optimizer_config):
         """Recursively calculate the (cascade) models"""

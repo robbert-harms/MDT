@@ -14,6 +14,6 @@
  * @params TE the protocol value for TE
  * @params T2 the parameter T2
  */
-model_float cmExpT2Dec(const model_float TE, const double T2);
+model_float cmExpT2Dec(const model_float TE, const model_float T2);
 
 #endif // DMRICM_EXPT2DEC_H

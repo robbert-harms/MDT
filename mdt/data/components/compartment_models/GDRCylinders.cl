@@ -27,17 +27,17 @@ model_float findGammaCDFCrossing(model_float startx, model_float stopx, const mo
                                  const model_float gamma_beta);
 
 model_float cmGDRCylinders(const model_float4 g,
-                      const model_float G,
-                      const model_float Delta,
-                      const model_float delta,
-                      const double d,
-                      const double theta,
-                      const double phi,
-                      const double gamma_k,
-                      const double gamma_beta,
-                      const double gamma_nmr_cyl,
-                      global const model_float* const CLJnpZeros,
-                      const int CLJnpZerosLength){
+                           const model_float G,
+                           const model_float Delta,
+                           const model_float delta,
+                           const model_float d,
+                           const model_float theta,
+                           const model_float phi,
+                           const model_float gamma_k,
+                           const model_float gamma_beta,
+                           const model_float gamma_nmr_cyl,
+                           global const model_float* const CLJnpZeros,
+                           const int CLJnpZerosLength){
 
     int nmr_cyl = round(gamma_nmr_cyl);
 

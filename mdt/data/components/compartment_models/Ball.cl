@@ -14,7 +14,7 @@
  * @params b the scheme value for b
  * @params d the parameter d
  */
-model_float cmBall(const model_float b, const double d){
+model_float cmBall(const model_float b, const model_float d){
     return exp(-d * b);
 }
 

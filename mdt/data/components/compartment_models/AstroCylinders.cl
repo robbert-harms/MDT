@@ -10,14 +10,14 @@
  */
 
 model_float cmAstroCylinders(const model_float4 g,
-                        const model_float b,
-                        const model_float G,
-                        const model_float Delta,
-                        const model_float delta,
-                        const double d,
-                        const double R,
-                        global const model_float* const CLJnpZeros,
-                        const int CLJnpZerosLength){
+                             const model_float b,
+                             const model_float G,
+                             const model_float Delta,
+                             const model_float delta,
+                             const model_float d,
+                             const model_float R,
+                             global const model_float* const CLJnpZeros,
+                             const int CLJnpZerosLength){
 
     model_float sum = NeumannCylPerpPGSESum(Delta, delta, d, R, CLJnpZeros, CLJnpZerosLength);
 

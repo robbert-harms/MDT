@@ -19,9 +19,9 @@
  * @params phi the parameter phi
  */
 model_float cmStick(const model_float4 g,
-               const model_float b,
-               const double d,
-               const double theta,
-               const double phi);
+                    const model_float b,
+                    const model_float d,
+                    const model_float theta,
+                    const model_float phi);
 
 #endif // DMRICM_STICK_H

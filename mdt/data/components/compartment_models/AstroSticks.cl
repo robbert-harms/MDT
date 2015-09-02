@@ -10,9 +10,9 @@
  */
 
 model_float cmAstroSticks(const model_float4 g,
-                     const model_float G,
-                     const model_float b,
-                     const double d){
+                          const model_float G,
+                          const model_float b,
+                          const model_float d){
     if(b == 0){
         return 1;
     }

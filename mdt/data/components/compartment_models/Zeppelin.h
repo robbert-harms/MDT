@@ -19,10 +19,10 @@
  * @params dperp the perpendicular diffusivity
  */
 model_float cmZeppelin(const model_float4 g,
-                  const model_float b,
-                  const double d,
-                  const double dperp,
-                  const double theta,
-                  const double phi);
+                       const model_float b,
+                       const model_float d,
+                       const model_float dperp,
+                       const model_float theta,
+                       const model_float phi);
 
 #endif // DMRICM_ZEPPELIN_H

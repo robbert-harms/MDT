@@ -20,16 +20,16 @@
  * @param gamma_nmr_cyl the number of different cylinders we calculate
  */
 model_float cmGDRCylinders(const model_float4 g,
-                      const model_float G,
-                      const model_float Delta,
-                      const model_float delta,
-                      const double d,
-                      const double theta,
-                      const double phi,
-                      const double gamma_k,
-                      const double gamma_beta,
-                      const double gamma_nmr_cyl,
-                      global const model_float* const CLJnpZeros,
-                      const int CLJnpZerosLength);
+                           const model_float G,
+                           const model_float Delta,
+                           const model_float delta,
+                           const model_float d,
+                           const model_float theta,
+                           const model_float phi,
+                           const model_float gamma_k,
+                           const model_float gamma_beta,
+                           const model_float gamma_nmr_cyl,
+                           global const model_float* const CLJnpZeros,
+                           const int CLJnpZerosLength);
 
 #endif // DMRICM_GDRCYLINDERS_H

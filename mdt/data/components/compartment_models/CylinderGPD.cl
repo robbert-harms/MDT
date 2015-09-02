@@ -13,15 +13,15 @@
  * Generate the compartment model signal for the CylinderGPD model.
  */
 model_float cmCylinderGPD(const model_float4 g,
-                     const model_float G,
-                     const model_float Delta,
-                     const model_float delta,
-                     const double d,
-                     const double theta,
-                     const double phi,
-                     const double R,
-                     global const model_float* const CLJnpZeros,
-                     const int CLJnpZerosLength){
+                          const model_float G,
+                          const model_float Delta,
+                          const model_float delta,
+                          const model_float d,
+                          const model_float theta,
+                          const model_float phi,
+                          const model_float R,
+                          global const model_float* const CLJnpZeros,
+                          const int CLJnpZerosLength){
 
     model_float sum = NeumannCylPerpPGSESum(Delta, delta, d, R, CLJnpZeros, CLJnpZerosLength);
 
