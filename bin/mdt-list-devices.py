@@ -18,7 +18,7 @@ if __name__ == '__main__':
     parser = get_arg_parser()
     args = parser.parse_args()
 
-    for env in cl_environments.CLEnvironmentFactory.all_devices():
+    for ind, env in enumerate(cl_environments.CLEnvironmentFactory.all_devices()):
+        print('Device {}:'.format(ind))
         print(repr(env))
-        print("\n")
 
