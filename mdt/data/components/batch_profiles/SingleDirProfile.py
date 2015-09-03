@@ -55,8 +55,8 @@ class SingleDirProfile(SimpleBatchProfile):
         extra_protocol_col_files = [('TE', '.TE'), ('Delta', '.Delta'), ('delta', '.delta')]
 
         default_mask = None
-        if glob.glob(pjoin('mask.nii*')):
-            default_mask = glob.glob(pjoin('mask.nii*'))[0]
+        if list(glob.glob(pjoin('mask.nii*'))):
+            default_mask = list(glob.glob(pjoin('mask.nii*')))[0]
 
         for basename in basenames:
             dwi_fname = None
@@ -95,7 +95,7 @@ class SingleDirProfile(SimpleBatchProfile):
                     prtcl_fname=prtcl_fname, bvec_fname=bvec_fname, bval_fname=bval_fname,
                     extra_cols_from_file=extra_cols_from_file)
 
-                output_dir = os.path.join('output', basename)
+                output_dir = pjoin('output', basename)
 
                 subjects.append(SimpleSubjectInfo(basename, dwi_fname, protocol_loader, mask_fname, output_dir))
         return subjects

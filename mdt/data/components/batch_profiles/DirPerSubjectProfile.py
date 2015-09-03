@@ -55,8 +55,8 @@ class DirPerSubjectProfile(SimpleBatchProfile):
             extra_protocol_cols = {}
 
             niftis = glob.glob(os.path.join(self._root_dir, subject_id, '*.nii*'))
-            dwis = filter(lambda v: '_mask' not in v, niftis)
-            masks = filter(lambda v: '_mask' in v, niftis)
+            dwis = list(filter(lambda v: '_mask' not in v, niftis))
+            masks = list(filter(lambda v: '_mask' in v, niftis))
             protocols = glob.glob(os.path.join(self._root_dir, subject_id, '*prtcl'))
             bvals = glob.glob(os.path.join(self._root_dir, subject_id, '*bval*'))
             bvecs = glob.glob(os.path.join(self._root_dir, subject_id, '*bvec*'))

@@ -288,7 +288,7 @@ class BatchFitOutputInfo(object):
         s = set()
         for subject_id, path in self._subjects_dirs.items():
             masks = (p for p in os.listdir(path) if os.path.isdir(os.path.join(path, p)))
-            map(s.add, masks)
+            list(map(s.add, masks))
         return list(sorted(list(s)))
 
     def get_path_to_mask_per_subject(self, mask_name, error_on_missing_mask=False):
@@ -370,7 +370,7 @@ def run_function_on_batch_fit_output(data_folder, func, batch_profile_class=None
     output_info = BatchFitOutputInfo(data_folder, batch_profile_class)
     mask_names = output_info.get_available_masks()
     for mask_name in mask_names:
-        map(func, output_info.subject_output_info_generator(mask_name))
+        list(map(func, output_info.subject_output_info_generator(mask_name)))
 
 
 def batch_profile_factory(batch_profile_class, data_folder):

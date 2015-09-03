@@ -194,8 +194,8 @@ class PathJoiner(object):
         Args:
             *args: the initial path element(s).
         """
-        self._initial_path = os.path.join('', *args)
-        self._path = os.path.join('', *args)
+        self._initial_path = os.path.abspath(os.path.join('', *args))
+        self._path = os.path.abspath(os.path.join('', *args))
 
     def create_extended(self, *args):
         """Create and return a new PathJoiner instance with the path extended by the given arguments."""
@@ -914,7 +914,7 @@ def apply_model_protocol_options(model_protocol_options, problem_data):
         protocol_indices = np.unique(protocol_indices)
 
         if len(protocol_indices) != protocol.protocol_length:
-            logger.info('Applying model protocol options, we will only use a subset of the protocol.')
+            logger.info('Applying model protocol options, we will use a subset of the protocol/dwi.')
             new_protocol = protocol.get_new_protocol_with_indices(protocol_indices)
 
             new_dwi_volume = problem_data.dwi_volume[..., protocol_indices]

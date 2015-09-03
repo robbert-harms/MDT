@@ -34,7 +34,7 @@ class HCP_MGH_Profile(SimpleBatchProfile):
         for subject_id in dirs:
             pjoin = mdt.make_path_joiner(self._root_dir, subject_id, 'diff', 'preproc')
             if os.path.isdir(pjoin()):
-                dwi_fname = glob.glob(pjoin('mri', 'diff_preproc.nii*'))[0]
+                dwi_fname = list(glob.glob(pjoin('mri', 'diff_preproc.nii*')))[0]
 
                 bval_fname = pjoin('bvals.txt')
                 if os.path.isfile(pjoin('diff_preproc.bval')):
@@ -49,8 +49,8 @@ class HCP_MGH_Profile(SimpleBatchProfile):
                     prtcl_fname = pjoin('diff_preproc.prtcl')
 
                 mask_fname = None
-                if glob.glob(pjoin('diff_preproc_mask.nii*')):
-                    mask_fname = glob.glob(pjoin('diff_preproc_mask.nii*'))[0]
+                if list(glob.glob(pjoin('diff_preproc_mask.nii*'))):
+                    mask_fname = list(glob.glob(pjoin('diff_preproc_mask.nii*')))[0]
 
                 protocol_loader = BatchFitProtocolLoader(
                     prtcl_fname=prtcl_fname, bvec_fname=bvec_fname, bval_fname=bval_fname,

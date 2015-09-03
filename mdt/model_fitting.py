@@ -101,7 +101,7 @@ class BatchFitting(object):
         self._logger.info('Running computations on {0} subjects'.format(len(self._subjects)))
 
         run_func = _BatchFitRunner(self._config, self._recalculate, self._cl_device_ind, self._double_precision)
-        map(run_func, self._subjects)
+        list(map(run_func, self._subjects))
 
         return self._subjects
 
@@ -146,8 +146,6 @@ class _BatchFitRunner(object):
 
         protocol = subject_info.get_protocol_loader().get_protocol()
         brain_mask_fname = subject_info.get_mask_filename()
-
-        model_output_exists('BallStick (Cascade)', os.path.join(output_dir, split_image_path(brain_mask_fname)[1]))
 
         if all(model_output_exists(model, os.path.join(output_dir, split_image_path(brain_mask_fname)[1]))
                for model in self._batch_fitting_config['models']):
@@ -310,7 +308,7 @@ def fit_single_model(model, problem_data, output_folder, optimizer, recalculate=
 
     if recalculate:
         if os.path.exists(output_path):
-            map(os.remove, glob.glob(os.path.join(output_path, '*.nii*')))
+            list(map(os.remove, glob.glob(os.path.join(output_path, '*.nii*'))))
     else:
         if model_output_exists(model, output_folder):
             maps = Nifti.read_volume_maps(output_path)

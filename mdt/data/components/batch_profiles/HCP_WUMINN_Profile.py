@@ -36,7 +36,7 @@ class HCP_WUMINN_Profile(SimpleBatchProfile):
         for subject_id in dirs:
             pjoin = mdt.make_path_joiner(self._root_dir, subject_id, 'T1w', 'Diffusion')
             if os.path.isdir(pjoin()):
-                dwi_fname = glob.glob(pjoin('data.nii*'))[0]
+                dwi_fname = list(glob.glob(pjoin('data.nii*')))[0]
 
                 bval_fname = pjoin('bvals')
                 if os.path.isfile(pjoin('data.bval')):
@@ -50,9 +50,9 @@ class HCP_WUMINN_Profile(SimpleBatchProfile):
                 if os.path.isfile(pjoin('data.prtcl')):
                     prtcl_fname = pjoin('data.prtcl')
 
-                mask_fname = glob.glob(pjoin('nodif_brain_mask.nii*'))[0]
-                if glob.glob(pjoin('data_mask.nii*')):
-                    mask_fname = glob.glob(pjoin('data_mask.nii*'))[0]
+                mask_fname = list(glob.glob(pjoin('nodif_brain_mask.nii*')))[0]
+                if list(glob.glob(pjoin('data_mask.nii*'))):
+                    mask_fname = list(glob.glob(pjoin('data_mask.nii*')))[0]
 
                 protocol_loader = HCP_WUMINN_ProtocolLoader(
                     prtcl_fname=prtcl_fname, bvec_fname=bvec_fname,

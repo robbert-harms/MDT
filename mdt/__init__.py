@@ -8,7 +8,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.2.4'
+VERSION = '0.3.0'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')
@@ -385,7 +385,7 @@ def concatenate_mri_sets(items, output_volume_fname, output_protocol_fname, over
     import os
     import nibabel as nib
     from mdt.utils import concatenate_two_mri_measurements
-    from protocols import write_protocol
+    from mdt.protocols import write_protocol
 
     if not items:
         return
