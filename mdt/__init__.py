@@ -121,7 +121,7 @@ def fit_model(model, dwi_info, protocol, brain_mask, output_folder, optimizer=No
 
 
 def sample_model(model, dwi_info, protocol, brain_mask, output_folder,
-                 sampler=None, recalculate=False, cl_device_ind=None, double_precision=False):
+                 sampler=None, recalculate=False, cl_device_ind=None, double_precision=True):
     """Sample a single model. This does not accept cascade models, only single models.
 
     Args:

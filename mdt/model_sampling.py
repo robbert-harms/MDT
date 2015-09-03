@@ -99,13 +99,19 @@ def _write_output(results, other_output, problem_data, output_path):
 
 
 def _get_initialization_params(model, problem_data, output_folder, initialize, initialize_using):
+    logger = logging.getLogger(__name__)
+
     if initialize:
         maps = None
         if initialize_using is None:
-            maps = Nifti.read_volume_maps(os.path.join(output_folder, model.name))
+            folder = os.path.join(output_folder, model.name)
+            logger.info("Initializing sampler using maps in {}".format(folder))
+            maps = Nifti.read_volume_maps(folder)
         elif isinstance(initialize_using, string_types):
+            logger.info("Initializing sampler using maps in {}".format(initialize_using))
             maps = Nifti.read_volume_maps(initialize_using)
         elif isinstance(initialize_using, dict):
+            logger.info("Initializing sampler using given maps.")
             maps = initialize_using
 
         if not maps:
