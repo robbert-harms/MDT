@@ -14,7 +14,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class CalculateEigenvectors(AbstractCLRoutine):
 
-    def convert_theta_phi_psi(self, theta_roi, phi_roi, psi_roi, double_precision=False):
+    def convert_theta_phi_psi(self, theta_roi, phi_roi, psi_roi, double_precision=True):
         """Calculate the eigenvectors from the given theta, phi and psi angles.
 
         This will return the eigenvectors unsorted (since we know nothing about the eigenvalues).

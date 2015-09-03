@@ -432,7 +432,7 @@ def view_results_slice(data,
         article_modus (boolean): If set to true we set most of the options as such that the data is rendered better
             for in use of a paper. Sets
                 axis_options='off'
-                font_size=20
+                font_size=36
                 nmr_colorbar_axis_ticks=4
                 show_sliders=False
             You can overwrite these again by specifying one of these options directly.
@@ -455,7 +455,7 @@ def view_results_slice(data,
 
     if article_modus:
         axis_options = axis_options or 'off'
-        font_size = font_size or 20
+        font_size = font_size or 36
         nmr_colorbar_axis_ticks = nmr_colorbar_axis_ticks or 4
         show_sliders = show_sliders or False
 

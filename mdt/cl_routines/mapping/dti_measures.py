@@ -14,7 +14,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class DTIMeasures(AbstractCLRoutine):
 
-    def concat_and_calculate(self, eigenval1, eigenval2, eigenval3, double_precision=False):
+    def concat_and_calculate(self, eigenval1, eigenval2, eigenval3, double_precision=True):
         """Calculate DTI statistics from the given eigenvalues.
 
         This concatenates the eigenvalue matrices and runs self.calculate(eigenvalues) on them.
@@ -44,7 +44,7 @@ class DTIMeasures(AbstractCLRoutine):
                                                   np.reshape(eigenval2, (s[0], s[1], 1)),
                                                   np.reshape(eigenval3, (s[0], s[1], 1))), axis=2), double_precision)
 
-    def calculate(self, eigenvalues, double_precision=False):
+    def calculate(self, eigenvalues, double_precision=True):
         """Calculate DTI statistics from the given eigenvalues.
 
         Args:

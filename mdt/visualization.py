@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 from matplotlib.ticker import LinearLocator
 from matplotlib.widgets import Slider
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from mdt.utils import get_slice_in_dimension
 from matplotlib.gridspec import GridSpec
 import numpy as np
@@ -125,7 +126,7 @@ class MapsVisualizer(object):
             if not os.path.isdir(os.path.dirname(to_file)):
                 os.makedirs(os.path.dirname(to_file))
 
-            plt.savefig(to_file)
+            plt.savefig(to_file, bbox_inches='tight', pad_inches=0)
             plt.close()
         else:
             plt.draw()
@@ -227,26 +228,24 @@ class MapsVisualizer(object):
             if map_name in self.names:
                 title = self.names[map_name]
 
-            image_subplots = plt.subplot(grid[ind])
+            image_subplot_axis = plt.subplot(grid[ind])
             plot_options = {'vmin': minval, 'vmax': maxval}
             plot_options.update(self.general_plot_options)
             if map_name in self.map_plot_options:
                 plot_options.update(self.map_plot_options[map_name])
 
-            try:
-                vf = image_subplots.imshow(data, **plot_options)
+            vf = image_subplot_axis.imshow(data, **plot_options)
 
-                self._set_axis_options(map_name, plt)
+            self._set_axis_options(map_name, plt)
 
-                plt.title(title)
-                self._image_subplots.update({map_name: image_subplots})
+            plt.title(title)
+            self._image_subplots.update({map_name: image_subplot_axis})
 
-                cbar = plt.colorbar(vf)
-                self._set_colorbar_axis_ticks(map_name, cbar)
-                self._colorbar_subplots.update({map_name: cbar})
-
-            except TypeError:
-                pass
+            divider = make_axes_locatable(image_subplot_axis)
+            cax = divider.append_axes("right", size="5%", pad=0.05)
+            cbar = plt.colorbar(vf, cax=cax)
+            self._set_colorbar_axis_ticks(map_name, cbar)
+            self._colorbar_subplots.update({map_name: cbar})
 
             ind += 1
 
