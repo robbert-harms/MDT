@@ -15,6 +15,7 @@ class CascadeModelInterface(object):
         it contains a number of models that are to be ran one after each other and with which the output results of
         the previous fit_model(s) are used for the next fit_model.
         """
+        self._double_precision = False
 
     @property
     def name(self):
@@ -24,6 +25,15 @@ class CascadeModelInterface(object):
             str: The name of this cascade model
         """
         return ''
+
+    @property
+    def double_precision(self):
+        return self._double_precision
+
+    @double_precision.setter
+    def double_precision(self, double_precision):
+        self._double_precision = double_precision
+        self._set_double_precision(double_precision)
 
     def get_optimization_config(self, model):
         """Get the optimization config for the given model.
@@ -89,6 +99,13 @@ class CascadeModelInterface(object):
 
         Returns:
             list of str: the names of the models in this list
+        """
+
+    def _set_double_precision(self, double_precision):
+        """Set the value double precision for all models in the cascade.
+
+        Args:
+            double_precision (boolean): the value to set for all models in the cascade
         """
 
 
@@ -180,3 +197,7 @@ class SimpleCascadeModel(CascadeModelInterface, ProtocolCheckInterface):
             dict: dictionary with optimizer configurations for the given model
         """
         return {}
+
+    def _set_double_precision(self, double_precision):
+        for model in self._model_list:
+            model.double_precision = double_precision

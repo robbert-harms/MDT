@@ -40,9 +40,9 @@ def get_noddi():
         cutoff = 1e-2
         noddi_dependencies = (
             ('Noddi_EC.dperp0', SimpleAssignment(
-                'Noddi_EC.d * (((1 - Wcsf.w) < ' + repr(cutoff) + ') ? 0.0 : (Wec.w / (1 - Wcsf.w)))')),
+                'Noddi_EC.d * (((1 - Wcsf.w) < ' + str(cutoff) + ') ? 0.0 : (Wec.w / (1 - Wcsf.w)))')),
             ('Noddi_IC.kappa', SimpleAssignment(
-                '(((1 - Wcsf.w) < '+repr(cutoff)+') ? 0.0 : Noddi_IC.kappa)',
+                '(((1 - Wcsf.w) < '+str(cutoff)+') ? 0.0 : Noddi_IC.kappa)',
                 fixed=False)),
             ('Noddi_EC.kappa', SimpleAssignment('Noddi_IC.kappa')),
             ('Noddi_EC.theta', SimpleAssignment('Noddi_IC.theta')),

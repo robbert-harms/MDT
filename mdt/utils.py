@@ -571,9 +571,10 @@ def initialize_user_settings(overwrite=True):
     if os.path.exists(path):
         if overwrite:
             backup_dir = os.path.join(path, 'backup_' + time.strftime("%Y-%m-%d"))
+            backup_dir_tmpl = backup_dir + '_{version}'
             backup_version = 1
             while os.path.isdir(backup_dir):
-                backup_dir += '_' + str(backup_version)
+                backup_dir = backup_dir_tmpl.format(version=backup_version)
                 backup_version += 1
 
             os.mkdir(backup_dir)
