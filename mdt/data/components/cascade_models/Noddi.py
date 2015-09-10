@@ -29,8 +29,9 @@ class NoddiInit(SimpleCascadeModel):
     def _prepare_model(self, model, position, output_previous_model, output_all_previous_models):
         super(NoddiInit, self)._prepare_model(model, position, output_previous_model, output_all_previous_models)
         if position == 2:
-            model.cmf('Wic').init('w', output_previous_model['Wstick.w'])
-            model.cmf('Wec').init('w', output_previous_model['Wball.w'])
+            model.cmf('Wic').init('w', output_previous_model['Wstick.w']/2.0)
+            model.cmf('Wec').init('w', output_previous_model['Wstick.w']/2.0)
+            model.cmf('Wcsf').init('w', output_previous_model['Wball.w'])
             model.cmf('Noddi_IC').init('theta', output_previous_model['Stick.theta'])
             model.cmf('Noddi_IC').init('phi', output_previous_model['Stick.phi'])
 
@@ -48,7 +49,8 @@ class NoddiFixed(SimpleCascadeModel):
     def _prepare_model(self, model, position, output_previous_model, output_all_previous_models):
         super(NoddiFixed, self)._prepare_model(model, position, output_previous_model, output_all_previous_models)
         if position == 2:
-            model.cmf('Wic').init('w', output_previous_model['Wstick.w'])
-            model.cmf('Wec').init('w', output_previous_model['Wball.w'])
+            model.cmf('Wic').init('w', output_previous_model['Wstick.w']/2.0)
+            model.cmf('Wec').init('w', output_previous_model['Wstick.w']/2.0)
+            model.cmf('Wcsf').init('w', output_previous_model['Wball.w'])
             model.cmf('Noddi_IC').fix('theta', output_previous_model['Stick.theta'])
             model.cmf('Noddi_IC').fix('phi', output_previous_model['Stick.phi'])
