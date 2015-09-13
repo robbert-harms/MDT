@@ -1,5 +1,4 @@
 from collections import OrderedDict
-import six
 
 try:
     #python 2.7
@@ -19,7 +18,7 @@ import os
 from numpy import genfromtxt
 import numpy as np
 from mdt import load_protocol_bval_bvec
-import mdt
+import mdt.protocols as protocols
 from mdt.gui.tk.utils import TabContainer, SubWindow
 from mdt.gui.tk.widgets import FileBrowserWidget, TextboxWidget, SubWindowWidget, ScrolledText, YesNonWidget, \
     RadioButtonWidget
@@ -159,7 +158,7 @@ class GenerateProtocolFileTab(TabContainer):
                 value = self.protocol_options.__getattribute__(column)
                 self._add_column_to_protocol(protocol, column, value, self.protocol_options.seq_timings_units)
 
-        mdt.protocols.write_protocol(protocol, output_fname)
+        protocols.write_protocol(protocol, output_fname)
 
         TabContainer.last_used_protocol = output_fname
 

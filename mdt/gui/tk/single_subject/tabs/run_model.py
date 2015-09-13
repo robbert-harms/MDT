@@ -144,13 +144,16 @@ class RunModelTab(TabContainer):
             output_dir = self._output_dir_chooser.get_value()
 
             only_recalculate_last = self.optim_options.recalculate_all
+            meta_optimizer_config = self.optim_options.get_meta_optimizer_config()
+            use_model_default_optimizer = self.optim_options.use_model_default_optimizer
 
             manager = multiprocessing.Manager()
             finish_queue = manager.Queue()
 
-            run_proc = RunModelProcess(self.optim_options.get_meta_optimizer_config(), finish_queue, model_name,
+            run_proc = RunModelProcess(finish_queue, model_name,
                                        image_path, protocol_path,
-                                       brain_mask_path, output_dir, only_recalculate_last)
+                                       brain_mask_path, output_dir, only_recalculate_last,
+                                       meta_optimizer_config, use_model_default_optimizer)
             self._cl_process_queue.put(run_proc)
 
             def _wait_for_run_completion():
@@ -216,8 +219,8 @@ class RunModelTab(TabContainer):
 
 class RunModelProcess(object):
 
-    def __init__(self, meta_optimizer_config, finish_queue, model_name, image_path, protocol_path, brain_mask_path,
-                 output_dir, only_recalculate_last):
+    def __init__(self, finish_queue, model_name, image_path, protocol_path, brain_mask_path,
+                 output_dir, only_recalculate_last, meta_optimizer_config, use_model_default_optimizer):
         self._finish_queue = finish_queue
         self._meta_optimizer_config = meta_optimizer_config
         self._model_name = model_name
@@ -226,11 +229,15 @@ class RunModelProcess(object):
         self._brain_mask_path = brain_mask_path
         self._output_dir = output_dir
         self._only_recalculate_last = only_recalculate_last
+        self._use_model_default_optimizer = use_model_default_optimizer
 
     @function_message_decorator('Starting model fitting, please wait.',
                                 'Finished model fitting. You can view the results using the "View results" tab.')
     def __call__(self, *args, **kwargs):
-        optimizer = MetaOptimizerBuilder(self._meta_optimizer_config).construct()
+        if self._use_model_default_optimizer:
+            optimizer = None
+        else:
+            optimizer = MetaOptimizerBuilder(self._meta_optimizer_config).construct()
 
         mdt.fit_model(self._model_name, self._image_path, self._protocol_path, self._brain_mask_path, self._output_dir,
                       optimizer=optimizer,
@@ -255,6 +262,14 @@ class OptimOptionsWindow(SubWindow):
 
         self._optim_routine_chooser = self._get_optim_routine_chooser(subframe)
 
+        self._use_model_default_optimizer = YesNonWidget(
+            subframe,
+            'use_model_default_optimizer',
+            self._onchange_cb,
+            'Use model default: ',
+            '(Use the default optimizer for the chosen model,\n in cascades, auto-chooses optimizer per submodel)',
+            default_val=self._optim_options.use_model_default_optimizer)
+
         self._patience_box = TextboxWidget(
             subframe,
             'patience_box',
@@ -262,14 +277,6 @@ class OptimOptionsWindow(SubWindow):
             'Patience: ',
             '(The amount of iterations to wait per parameter)',
             default_val=self._optim_options.patience)
-
-        self._recalculate_all = YesNonWidget(
-            subframe,
-            'recalculate_all',
-            self._onchange_cb,
-            'Recalculate all: ',
-            '(If yes, recalculate all maps, if no, only the last.\n This is only for cascades.)',
-            default_val=self._optim_options.recalculate_all)
 
         self._extra_optim_runs = TextboxWidget(
             subframe,
@@ -306,6 +313,14 @@ class OptimOptionsWindow(SubWindow):
                                        'This is the smoothing filter size in voxels.)',
             default_val=default_smoother_size)
 
+        self._recalculate_all = YesNonWidget(
+            subframe,
+            'recalculate_all',
+            self._onchange_cb,
+            'Recalculate all: ',
+            '(For Cascades, if yes, recalculate all maps,\n if no, only the last)',
+            default_val=self._optim_options.recalculate_all)
+
         self._devices_chooser = ListboxWidget(
             subframe,
             'cl_environment_chooser',
@@ -325,8 +340,9 @@ class OptimOptionsWindow(SubWindow):
         self._devices_chooser.set_items(list(self._optim_options.cl_environments.keys()),
                                         default_items=default_cl_environments)
 
-        fields = [self._optim_routine_chooser, self._patience_box, self._recalculate_all, self._extra_optim_runs,
-                  self._smoothing_routine_chooser, self._smoothing_size, self._devices_chooser]
+        self._optimizer_fields = [self._optim_routine_chooser, self._patience_box, self._extra_optim_runs,
+                            self._smoothing_routine_chooser, self._smoothing_size]
+        extra_fields  = [self._recalculate_all, self._devices_chooser]
 
         button_frame = self._get_button_frame(subframe, window)
 
@@ -339,7 +355,13 @@ class OptimOptionsWindow(SubWindow):
         label.grid(row=next(row_nmr), column=0, columnspan=4, sticky=W)
 
         ttk.Separator(subframe, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(5, 3))
-        for field in fields:
+        self._use_model_default_optimizer.render(next(row_nmr))
+        for field in self._optimizer_fields:
+            field.render(next(row_nmr))
+            field.set_state('disabled' if self._optim_options.use_model_default_optimizer else 'normal')
+
+        ttk.Separator(subframe, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(5, 3))
+        for field in extra_fields:
             field.render(next(row_nmr))
 
         ttk.Separator(subframe, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(5, 3))
@@ -385,6 +407,11 @@ class OptimOptionsWindow(SubWindow):
 
             optimizer_class = get_optimizer_by_name(optimizer)
             self._patience_box.set_value(optimizer_class.default_patience)
+
+        elif id_key == 'use_model_default_optimizer':
+            self._optim_options.use_model_default_optimizer = calling_widget.get_value()
+            for field in self._optimizer_fields:
+                field.set_state('disabled' if self._optim_options.use_model_default_optimizer else 'normal')
 
         elif id_key == 'patience_box':
             try:

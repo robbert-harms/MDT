@@ -352,6 +352,9 @@ class DropdownWidget(CompositeWidget):
     def set_value(self, value):
         self._chooser_var.set(value)
 
+    def set_state(self, state):
+        self._chooser.config(state=state)
+
     def is_valid(self):
         return True
 

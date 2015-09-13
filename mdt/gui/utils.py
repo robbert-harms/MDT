@@ -49,6 +49,8 @@ class OptimOptions(object):
     cl_environments = get_cl_environments_ordered_dict()
 
     def __init__(self):
+        self.use_model_default_optimizer = True
+
         self.optimizer = mdt_config['optimization_settings']['general']['optimizers'][0]['name']
         self.patience = mdt_config['optimization_settings']['general']['optimizers'][0]['patience']
 
