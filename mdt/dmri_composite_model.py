@@ -21,12 +21,16 @@ class DMRICompositeSampleModel(SampleModelBuilder, SmoothableModelInterface,
 
         This also implements the smoothing interface to allow spatial smoothing of the data during meta-optimization.
 
-        It furthermore implements some protocol check functions. These are used by the fit_model functions in MDT to check
-        if the protocol is correct for the model we try to fit_model.
+        It furthermore implements some protocol check functions. These are used by the fit_model functions in MDT
+        to check if the protocol is correct for the model we try to fit.
 
         Attributes:
-            minimum_nmr_unique_weighted_bvals (int): Define the minimum number of unique weighted bvals necessary
-                for this model. The default is false, which means that we don't check for this.
+            white_list (list): The list of names of maps that must be smoothed. Set to None to ignore, set to [] to
+                filter no maps.
+            black_list (list): The list of names of maps that must not be smoothed. Set to None to ignore, set to [] to
+                allow all maps.
+            required_nmr_shells (int): Define the minimum number of unique shells necessary for this model.
+                The default is false, which means that we don't check for this.
         """
         super(DMRICompositeSampleModel, self).__init__(model_name, model_tree, evaluation_model, signal_noise_model,
                                                        problem_data=problem_data)

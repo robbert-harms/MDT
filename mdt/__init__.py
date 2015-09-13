@@ -412,7 +412,6 @@ def concatenate_mri_sets(items, output_volume_fname, output_protocol_fname, over
 def view_results_slice(data,
                        dimension=None,
                        slice_ind=None,
-                       article_modus=False,
                        maps_to_show=None,
                        general_plot_options=None,
                        map_plot_options=None,
@@ -423,7 +422,10 @@ def view_results_slice(data,
                        window_title=None,
                        axis_options=None,
                        nmr_colorbar_axis_ticks=None,
-                       show_sliders=None):
+                       show_sliders=None,
+                       figure_options=None,
+                       grid_layout=None,
+                       article_modus=False):
     """View from the given results the given slice.
 
     See MapsVisualizer.show() for most of the the options. The special options are listed in the section Args
@@ -473,7 +475,9 @@ def view_results_slice(data,
              window_title=window_title,
              axis_options=axis_options,
              nmr_colorbar_axis_ticks=nmr_colorbar_axis_ticks,
-             show_sliders=show_sliders)
+             show_sliders=show_sliders,
+             figure_options=figure_options,
+             grid_layout=grid_layout)
 
 
 def block_plots():
@@ -847,7 +851,7 @@ def split_dataset(input_fname, split_dimension, split_index, output_folder=None)
 
     volumes = {}
     for ind, v in enumerate(split):
-        volumes.update({basename + '_split_' + repr(split_dimension) + '_' + lengths[ind]: v})
+        volumes.update({basename + '_split_' + str(split_dimension) + '_' + lengths[ind]: v})
 
     Nifti.write_volume_maps(volumes, output_folder, header)
 
