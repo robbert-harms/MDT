@@ -1,3 +1,6 @@
+from collections import OrderedDict
+from itertools import count
+
 try:
     #python 2.7
     from Tkconstants import VERTICAL, HORIZONTAL, E, W, END, FALSE, NONE
@@ -445,34 +448,74 @@ class ListboxWidget(CompositeWidget):
         self._onchange_cb(None)
 
 
-class YesNonWidget(CompositeWidget):
+class RadioButtonWidget(CompositeWidget):
 
-    def __init__(self, root_window, id_key, onchange_cb, label_text, helper_text, default_val=0):
-        super(YesNonWidget, self).__init__(root_window, id_key, onchange_cb)
+    def __init__(self, root_window, id_key, onchange_cb, label_text, helper_text, items, default_val=0,
+                 horizontal_layout=True):
+        """Create a radio button widget.
+
+        Args:
+            items (dict ): dict of options, the keys are used as keys, the values are returned with get_value()
+            default_val (int): the initial index
+            horizontal_layout (boolean): if we want a horizontal (True) or vertical layout (False)
+        """
+        super(RadioButtonWidget, self).__init__(root_window, id_key, onchange_cb)
 
         self._label_text = label_text
         self._helper_text = helper_text
+        self._horizontal_layout = horizontal_layout
+        self._items = items
 
+        self._subframe = ttk.Frame(self._root_window)
         self._chooser_var = IntVar(self._root_window)
-        self._yes = ttk.Radiobutton(self._root_window, text='Yes', variable=self._chooser_var,
-                                    value=1, command=self._onchange_cb)
-        self._no = ttk.Radiobutton(self._root_window, text='No', variable=self._chooser_var,
-                                   value=0, command=self._onchange_cb)
-        self._chooser_var.set(default_val)
+        self._options = []
+        for ind, key in enumerate(items.keys()):
+            self._options.append(ttk.Radiobutton(self._subframe, text=key, variable=self._chooser_var,
+                                                 value=ind, command=self._onchange_cb))
+
+        for ind, val in enumerate(items.values()):
+            if val == default_val:
+                self._chooser_var.set(ind)
 
     def is_valid(self):
         return True
 
     def get_value(self):
-        return self._chooser_var.get() == 1
+        choosen_ind = self._chooser_var.get()
+        for ind, val in enumerate(self._items.values()):
+            if ind == choosen_ind:
+                return val
+        return None
+
+    def set_state(self, state):
+        for option in self._options:
+            option.config(state=state)
 
     def render(self, row):
-        ttk.Label(self._root_window, text=self._label_text).grid(row=row, column=0, padx=(0, 5), pady=(5, 0), sticky=E)
-        self._yes.grid(row=row, column=1, padx=(0, 3), pady=(5, 0), sticky='WE')
-        self._no.grid(row=row, column=2, padx=(0, 3), pady=(5, 0), sticky='WE')
-        ttk.Label(self._root_window, text=self._helper_text, font=(None, 9, 'italic')).grid(row=row, column=3,
-                                                                                            padx=(12, 0), sticky=W,
-                                                                                            pady=(5, 0))
+        label = ttk.Label(self._root_window, text=self._label_text)
+        label.grid(row=row, column=0, padx=(0, 5), pady=(5, 0), sticky=E)
+
+        row_nmr = count(0)
+        for option in self._options:
+            kwargs = dict(padx=(0, 3), pady=(5, 0), sticky='WE')
+            if self._horizontal_layout:
+                kwargs.update(dict(row=row, column=next(row_nmr)))
+            else:
+                kwargs.update(dict(row=next(row_nmr), column=0))
+
+            option.grid(**kwargs)
+
+        self._subframe.grid(row=row, column=1, sticky='WE')
+
+        helper_label = ttk.Label(self._root_window, text=self._helper_text, font=(None, 9, 'italic'))
+        helper_label.grid(row=row, column=3, padx=(12, 0), sticky=W, pady=(5, 0))
+
+
+class YesNonWidget(RadioButtonWidget):
+
+    def __init__(self, root_window, id_key, onchange_cb, label_text, helper_text, default_val=0):
+        super(YesNonWidget, self).__init__(root_window, id_key, onchange_cb, label_text, helper_text,
+                                           OrderedDict([('Yes', 1), ('No', 0)]), default_val=default_val)
 
 
 class SubWindowWidget(CompositeWidget):

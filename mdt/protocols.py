@@ -78,7 +78,7 @@ class Protocol(object):
 
         return self
 
-    def add_column_from_file(self, name, file_name):
+    def add_column_from_file(self, name, file_name, multiplication_factor=1):
         """Add a column to this protocol, loaded from the given file.
 
         The given file can either contain a single value (which is broadcasted), or one value per protocol line.
@@ -86,11 +86,13 @@ class Protocol(object):
         Args:
             name (str): The name of the column to add
             data (ndarray): The file to get the column from.
-
+            multiplication_factor (double): we might need to scale the data by a constant. For example,
+                if the data in the file is in ms we might need to scale it to seconds by multiplying with 1e-3
         Returns:
             self: for chaining
         """
         data = np.genfromtxt(file_name)
+        data *= multiplication_factor
         self.add_column(name, data)
         return self
 

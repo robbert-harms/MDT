@@ -86,6 +86,7 @@ class ProtocolOptions(object):
     def __init__(self):
         """Simple container class for storing and passing protocol options."""
         self.estimate_sequence_timings = False
+        self.seq_timings_units = 'ms'
         self.maxG = 0.04
         self.Delta = None
         self.delta = None

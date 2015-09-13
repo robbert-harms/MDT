@@ -1,3 +1,6 @@
+from collections import OrderedDict
+import six
+
 try:
     #python 2.7
     from Tkconstants import W, HORIZONTAL, BOTH, YES, INSERT
@@ -18,7 +21,8 @@ import numpy as np
 from mdt import load_protocol_bval_bvec
 import mdt
 from mdt.gui.tk.utils import TabContainer, SubWindow
-from mdt.gui.tk.widgets import FileBrowserWidget, TextboxWidget, SubWindowWidget, ScrolledText, YesNonWidget
+from mdt.gui.tk.widgets import FileBrowserWidget, TextboxWidget, SubWindowWidget, ScrolledText, YesNonWidget, \
+    RadioButtonWidget
 from mdt.gui.utils import ProtocolOptions, function_message_decorator
 
 __author__ = 'Robbert Harms'
@@ -56,7 +60,7 @@ class GenerateProtocolFileTab(TabContainer):
             self._tab,
             'bval_scale_box',
             self._onchange_cb,
-            'B-value scale factor: ', '(We expect the the b-values in the\nresult protocol in s/m^2)',
+            'B-value scale factor: ', '(We expect the b-values in the\noutput protocol in units of s/m^2)',
             default_val='1e6')
 
         self._output_protocol_chooser = FileBrowserWidget(
@@ -84,6 +88,9 @@ class GenerateProtocolFileTab(TabContainer):
                                                command=self._view_results, state='disabled')
         self._generate_prtcl_button.grid(row=0)
         self._view_results_button.grid(row=0, column=1, padx=(10, 0))
+
+        self._bval_chooser.initial_file = '/home/robbert/programming/python/phd-data/protocol_test/bvals'
+        self._bvec_chooser.initial_file = '/home/robbert/programming/python/phd-data/protocol_test/bvecs'
 
     def get_tab(self):
         row_nmr = count()
@@ -140,7 +147,7 @@ class GenerateProtocolFileTab(TabContainer):
     @function_message_decorator('Generating a protocol file', 'Finished generating a protocol file')
     def _generate_protocol(self):
         self._generate_prtcl_button.config(state='disabled')
-        print('please wait...')
+        print('generating protocol...')
 
         bvec_fname = self._bvec_chooser.get_value()
         bval_fname = self._bval_chooser.get_value()
@@ -153,8 +160,7 @@ class GenerateProtocolFileTab(TabContainer):
             protocol.add_estimated_protocol_params(maxG=self.protocol_options.maxG)
             for column in self.protocol_options.extra_column_names:
                 value = self.protocol_options.__getattribute__(column)
-                if value is not None:
-                    protocol.add_column(column, value)
+                self._add_column_to_protocol(protocol, column, value, self.protocol_options.seq_timings_units)
 
         mdt.protocols.write_protocol(protocol, output_fname)
 
@@ -185,6 +191,23 @@ class GenerateProtocolFileTab(TabContainer):
     def _format_columns(self, table):
         return table.replace("\t", "\t" * 4)
 
+    def _add_column_to_protocol(self, protocol, column, value, units):
+        """Adds the given value to the protocol as the given column name.
+
+        Args:
+            protocol (Protocol): the protocol object
+            column (str): the name of the column
+            value (float, str): either a single column value, or a string which we will try to interpret as a file.
+            units (str): either 's', or 'ms'
+        """
+        mult_factor = 1e-3 if units == 'ms' else 1
+
+        if value is not None:
+            if os.path.isfile(value):
+                protocol.add_column_from_file(column, value, mult_factor)
+            else:
+                protocol.add_column(column, float(value) * mult_factor)
+
 
 class ProtocolExtraOptionsWindow(SubWindow):
 
@@ -213,6 +236,7 @@ class ProtocolExtraOptionsWindow(SubWindow):
         ttk.Separator(subframe, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(5, 3))
         self._get_sequence_timing_switch(subframe).render(next(row_nmr))
         for field in self._seq_timing_fields:
+            field.set_state('normal' if self._estimate_timings.get_value() else 'disabled')
             field.render(next(row_nmr))
 
         ttk.Separator(subframe, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(5, 3))
@@ -233,6 +257,15 @@ class ProtocolExtraOptionsWindow(SubWindow):
     def _get_sequence_timing_fields(self, frame):
         state = 'normal' if self._protocol_options.estimate_sequence_timings else 'disabled'
 
+        self._units_box = RadioButtonWidget(
+            frame,
+            'seq_timings_units',
+            self._onchange_cb,
+            'Sequence timing units: ',
+            '(The units in which we specify Delta, delta and TE)',
+            OrderedDict([('Seconds (s)', 's'), ('Milliseconds (ms)', 'ms')]),
+            default_val=self._protocol_options.seq_timings_units)
+
         self._maxG_box = TextboxWidget(
             frame,
             'maxG',
@@ -244,24 +277,24 @@ class ProtocolExtraOptionsWindow(SubWindow):
             frame,
             'Delta',
             self._onchange_cb,
-            'Big Delta: ', '(Optionally, use this Delta\n for the sequence timings (s))',
+            'Big Delta: ', '(Optional Delta, give a filename or number)',
             default_val=self._protocol_options.Delta, state=state)
 
         self._delta_box = TextboxWidget(
             frame,
             'delta',
             self._onchange_cb,
-            'Small delta: ', '(Optionally, use this delta\n for the sequence timings (s))',
+            'Small delta: ', '(Optional delta, give a filename or number)',
             default_val=self._protocol_options.delta, state=state)
 
         self._te_box = TextboxWidget(
             frame,
             'TE',
             self._onchange_cb,
-            'TE: ', '(Optionally, use this TE\n for the echo time (s))',
+            'TE: ', '(Optional TE, give a filename or number)',
             default_val=self._protocol_options.TE, state=state)
 
-        return [self._maxG_box, self._Delta_box, self._delta_box, self._te_box]
+        return [self._units_box, self._maxG_box, self._Delta_box, self._delta_box, self._te_box]
 
     def _get_button_frame(self, parent, window):
         def accept():
@@ -293,7 +326,4 @@ class ProtocolExtraOptionsWindow(SubWindow):
         else:
             for field in self._seq_timing_fields:
                 if field.id_key == id_key:
-                    try:
-                        setattr(self._protocol_options, field.id_key, float(calling_widget.get_value()))
-                    except ValueError:
-                        pass
+                    setattr(self._protocol_options, field.id_key, calling_widget.get_value())

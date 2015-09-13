@@ -131,33 +131,36 @@ class RunModelTab(TabContainer):
 
     def _run_model(self):
         self._run_button.config(state='disabled')
-        self._test_protocol()
-        self._set_last_run_settings()
+        protocol_ok = self._test_protocol()
 
-        model_name = self._model_select_chooser.get_value()
+        if protocol_ok:
+            self._set_last_run_settings()
 
-        image_path = self._image_vol_chooser.get_value()
-        protocol_path = self._protocol_file_chooser.get_value()
-        brain_mask_path = self._brain_mask_chooser.get_value()
-        output_dir = self._output_dir_chooser.get_value()
+            model_name = self._model_select_chooser.get_value()
 
-        only_recalculate_last = self.optim_options.recalculate_all
+            image_path = self._image_vol_chooser.get_value()
+            protocol_path = self._protocol_file_chooser.get_value()
+            brain_mask_path = self._brain_mask_chooser.get_value()
+            output_dir = self._output_dir_chooser.get_value()
 
-        manager = multiprocessing.Manager()
-        finish_queue = manager.Queue()
+            only_recalculate_last = self.optim_options.recalculate_all
 
-        run_proc = RunModelProcess(self.optim_options.get_meta_optimizer_config(), finish_queue, model_name, image_path, protocol_path,
-                                   brain_mask_path, output_dir, only_recalculate_last)
-        self._cl_process_queue.put(run_proc)
+            manager = multiprocessing.Manager()
+            finish_queue = manager.Queue()
 
-        def _wait_for_run_completion():
-            try:
-                finish_queue.get(block=False)
-                self._run_button.config(state='normal')
-            except Empty:
-                self.window.after(100, _wait_for_run_completion)
+            run_proc = RunModelProcess(self.optim_options.get_meta_optimizer_config(), finish_queue, model_name,
+                                       image_path, protocol_path,
+                                       brain_mask_path, output_dir, only_recalculate_last)
+            self._cl_process_queue.put(run_proc)
 
-        self.window.after(100, _wait_for_run_completion)
+            def _wait_for_run_completion():
+                try:
+                    finish_queue.get(block=False)
+                    self._run_button.config(state='normal')
+                except Empty:
+                    self.window.after(100, _wait_for_run_completion)
+
+            self.window.after(100, _wait_for_run_completion)
 
     def _test_protocol(self):
         model_name = self._model_select_chooser.get_value()
@@ -169,6 +172,8 @@ class RunModelTab(TabContainer):
         if not protocol_sufficient:
             problems = model.get_protocol_problems(protocol)
             tkMessageBox.showerror('Protocol insufficient', "\n".join(['- ' + str(p) for p in problems]))
+            return False
+        return True
 
     def _set_last_run_settings(self):
         TabContainer.last_used_dwi_image = self._image_vol_chooser.get_value()
