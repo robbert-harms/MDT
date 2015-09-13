@@ -166,7 +166,7 @@ class _BatchFitRunner(object):
                                      problem_data,
                                      os.path.join(output_dir, split_image_path(brain_mask_fname)[1]),
                                      recalculate=self._recalculate,
-                                     only_recalculate_last=False,
+                                     only_recalculate_last=True,
                                      model_protocol_options=self._batch_fitting_config['model_protocol_options'],
                                      cl_device_ind=self._cl_device_ind,
                                      double_precision=self._double_precision)
