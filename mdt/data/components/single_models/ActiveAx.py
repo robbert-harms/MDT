@@ -17,22 +17,22 @@ compartments_loader = CompartmentModelsLoader()
 
 
 def get_activeax():
-    active_ax_ml = (compartments_loader.load('S0'),
-                    ((compartments_loader.get_constructor('Weight')('wic'),
-                      compartments_loader.load('CylinderGPD').fix('d', 1.7e-9),
-                      '*'),
-                     (compartments_loader.get_constructor('Weight')('wec'),
-                      compartments_loader.load('Zeppelin').fix('d', 1.7e-9),
-                      '*'),
-                     (compartments_loader.get_constructor('Weight')('wcsf'),
-                      compartments_loader.load('Ball').fix('d', 3e-9),
-                      '*'),
-                     '+'),
-                    '*')
-
     name = 'ActiveAx'
 
     def model_construction_cb(evaluation_model=SumOfSquares(), signal_noise_model=None):
+        active_ax_ml = (compartments_loader.load('S0'),
+                        ((compartments_loader.get_class('Weight')('wic'),
+                          compartments_loader.load('CylinderGPD').fix('d', 1.7e-9),
+                          '*'),
+                         (compartments_loader.get_class('Weight')('wec'),
+                          compartments_loader.load('Zeppelin').fix('d', 1.7e-9),
+                          '*'),
+                         (compartments_loader.get_class('Weight')('wcsf'),
+                          compartments_loader.load('Ball').fix('d', 3e-9),
+                          '*'),
+                         '+'),
+                        '*')
+
         model = DMRICompositeSampleModel(name, CompartmentModelTree(active_ax_ml), evaluation_model, signal_noise_model)
         model.add_parameter_dependency('Zeppelin.dperp0', SimpleAssignment('Zeppelin.d * (wec.w / (wec.w + wic.w))'))
         return model

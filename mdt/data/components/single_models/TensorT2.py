@@ -17,20 +17,28 @@ compartments_loader = CompartmentModelsLoader()
 
 
 def get_tensor_t2(invivo=True):
-    tensor_ml = (compartments_loader.load('S0'),
-                 compartments_loader.load('ExpT2Dec'),
-                 compartments_loader.load('Tensor'),
-                 '*')
-
     name = 'Tensor-T2'
     vivo_type = 'in-vivo'
-    if not invivo:
+    if invivo:
+        d = 1.7e-9
+        dperp0 = 1.7e-10
+        dperp1 = 1.7e-11
+    else:
         name += '-ExVivo'
-        tensor_ml[2].init('d', 0.6e-9).init('dperp0', 0.6e-10).init('dperp1', 0.6e-11)
         vivo_type = 'ex-vivo'
+        d = 0.6e-9
+        dperp0 = 0.6e-10
+        dperp1 = 0.6e-11
 
     def model_construction_cb(evaluation_model=GaussianEvaluationModel().fix('sigma', math.sqrt(0.5)),
                               signal_noise_model=None):
+        tensor_ml = (compartments_loader.load('S0'),
+                     compartments_loader.load('ExpT2Dec'),
+                     compartments_loader.load('Tensor').init('d', d)
+                                                       .init('dperp0', dperp0)
+                                                       .init('dperp1', dperp1),
+                     '*')
+
         return DMRICompositeSampleModel(name, CompartmentModelTree(tensor_ml), evaluation_model, signal_noise_model)
 
     return {'model_constructor': model_construction_cb,

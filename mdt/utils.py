@@ -900,17 +900,16 @@ def apply_model_protocol_options(model_protocol_options, problem_data):
         protocol = problem_data.protocol
         protocol_indices = np.array([])
 
-        if 'use_weighted' not in model_protocol_options or\
-            ('use_weighted' in model_protocol_options and model_protocol_options['use_weighted']):
+        if model_protocol_options.get('use_weighted', False):
             if 'b_value' in model_protocol_options:
                 options = {'start': 0, 'end': 1.5e9, 'epsilon': None}
                 for key, value in model_protocol_options['b_value'].items():
                     options.update({key: value})
                 protocol_indices = protocol.get_indices_bval_in_range(**options)
 
-        if 'use_unweighted' not in model_protocol_options or\
-            ('use_unweighted' in model_protocol_options and model_protocol_options['use_unweighted']):
-            protocol_indices = np.append(protocol_indices, protocol.get_unweighted_indices())
+        if model_protocol_options.get('use_unweighted', False):
+            unweighted_threshold = model_protocol_options.get('unweighted_threshold', None)
+            protocol_indices = np.append(protocol_indices, protocol.get_unweighted_indices(unweighted_threshold))
 
         protocol_indices = np.unique(protocol_indices)
 

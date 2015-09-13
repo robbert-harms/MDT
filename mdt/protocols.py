@@ -250,17 +250,20 @@ class Protocol(object):
             return None
         return np.concatenate([self[i] for i in column_names], axis=1)
 
-    def get_unweighted_indices(self):
+    def get_unweighted_indices(self, unweighted_threshold=None):
         """Get the indices to the unweighted volumes.
 
         Returns:
             list of int: A list of indices to the unweighted volumes.
+            unweighted_threshold (double): if given, use this unweighted threshold
         """
+        unweighted_threshold = unweighted_threshold or self._unweighted_threshold
+
         b = self.get_column('b')
         g = self.get_column('g')
 
         g_limit = np.sqrt(g[:, 0]**2 + g[:, 1]**2 + g[:, 2]**2) < 0.99
-        b_limit = b[:, 0] < self._unweighted_threshold
+        b_limit = b[:, 0] < unweighted_threshold
 
         return np.where(g_limit + b_limit)[0]
 

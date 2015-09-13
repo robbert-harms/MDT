@@ -18,21 +18,21 @@ compartments_loader = CompartmentModelsLoader()
 
 
 def get_noddi():
-    noddi_ml = (compartments_loader.load('S0'),
-                ((compartments_loader.get_constructor('Weight')('Wic'),
-                  compartments_loader.load('Noddi_IC').fix('d', 1.7e-9).fix('R', 0.0),
-                  '*'),
-                 (compartments_loader.get_constructor('Weight')('Wec'),
-                  compartments_loader.load('Noddi_EC').fix('d', 1.7e-9),
-                  '*'),
-                 (compartments_loader.get_constructor('Weight')('Wcsf'),
-                  compartments_loader.load('Ball').fix('d', 3.0e-9),
-                  '*'),
-                 '+'),
-                '*')
-
     def model_construction_cb(evaluation_model=GaussianEvaluationModel().fix('sigma', math.sqrt(0.5)),
                               signal_noise_model=None):
+        noddi_ml = (compartments_loader.load('S0'),
+                    ((compartments_loader.get_class('Weight')('Wic'),
+                      compartments_loader.load('Noddi_IC').fix('d', 1.7e-9).fix('R', 0.0),
+                      '*'),
+                     (compartments_loader.get_class('Weight')('Wec'),
+                      compartments_loader.load('Noddi_EC').fix('d', 1.7e-9),
+                      '*'),
+                     (compartments_loader.get_class('Weight')('Wcsf'),
+                      compartments_loader.load('Ball').fix('d', 3.0e-9),
+                      '*'),
+                     '+'),
+                    '*')
+
         noddi_model = DMRICompositeSampleModel('Noddi', CompartmentModelTree(noddi_ml), evaluation_model,
                                                signal_noise_model)
         noddi_model.required_nmr_shells = 2

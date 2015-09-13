@@ -37,35 +37,45 @@ def get_parameter(param_name):
                  'b': ProtocolParameter(CLDataType.from_string('model_float'), 'b'),
                  'q': ProtocolParameter(CLDataType.from_string('model_float'), 'q'),
                  'T1': ProtocolParameter(CLDataType.from_string('model_float'), 'T1'),
-                 'GAMMA2_G2_delta2': ProtocolParameter(CLDataType.from_string('model_float'), 'GAMMA2_G2_delta2'),
+                 'GAMMA2_G2_delta2': ProtocolParameter(CLDataType.from_string('model_float'),
+                                                               'GAMMA2_G2_delta2'),
 
-                 'T2': FreeParameter(CLDataType.from_string('model_float'), 'T2', False, 0.05, 0.0, 0.8,
-                                     parameter_transform=ClampTransform(),  sampling_proposal=GaussianProposal(0.0001)),
+                 'T2': FreeParameter(
+                     CLDataType.from_string('model_float'), 'T2', False, 0.05, 0.0, 0.8,
+                     parameter_transform=ClampTransform(),
+                     sampling_proposal=GaussianProposal(0.0001)),
                  #todo get correct values here
-                 'Ti': FreeParameter(CLDataType.from_string('model_float'), 'Ti', False, 0.05, 0.0, 1.0,
-                                     parameter_transform=ClampTransform(), sampling_proposal=GaussianProposal(0.0001)),
-                 'TR': FreeParameter(CLDataType.from_string('model_float'), 'TR', False, 0.05, 0.0, 1.0,
-                                     parameter_transform=ClampTransform(),
-                                     sampling_proposal=GaussianProposal(0.0001)),
+                 'Ti': FreeParameter(
+                     CLDataType.from_string('model_float'), 'Ti', False, 0.05, 0.0, 1.0,
+                     parameter_transform=ClampTransform(),
+                     sampling_proposal=GaussianProposal(0.0001)),
+                 'TR': FreeParameter(
+                     CLDataType.from_string('model_float'), 'TR', False, 0.05, 0.0, 1.0,
+                     parameter_transform=ClampTransform(),
+                     sampling_proposal=GaussianProposal(0.0001)),
 
-                 'theta': FreeParameter(CLDataType.from_string('model_float'), 'theta', False, 1/2.0*np.pi, 0, np.pi,
-                                        parameter_transform=AbsModPiTransform(),
-                                        sampling_proposal=GaussianProposal(0.02),
-                                        sampling_prior=AbsSinHalfPrior(),
-                                        sampling_statistics=CircularGaussianPSS(),
-                                        perturbation_function=lambda v: v + np.random.normal(scale=0.1, size=v.shape)),
-                 'phi': FreeParameter(CLDataType.from_string('model_float'), 'phi', False, 1/2.0*np.pi, 0, np.pi,
-                                      parameter_transform=AbsModPiTransform(),
-                                      sampling_proposal=GaussianProposal(0.02),
-                                      sampling_prior=AbsSinPrior(),
-                                      sampling_statistics=CircularGaussianPSS(),
-                                      perturbation_function=lambda v: v + np.random.normal(scale=0.1, size=v.shape)),
-                 'psi': FreeParameter(CLDataType.from_string('model_float'), 'psi', False, 1/2.0*np.pi, 0, np.pi,
-                                      parameter_transform=AbsModPiTransform(),
-                                      sampling_proposal=GaussianProposal(0.02),
-                                      sampling_prior=AbsSinPrior(),
-                                      sampling_statistics=CircularGaussianPSS(),
-                                      perturbation_function=lambda v: v + np.random.normal(scale=0.1, size=v.shape)),
+                 'theta': FreeParameter(
+                     CLDataType.from_string('model_float'), 'theta', False, 1/2.0*np.pi,
+                     0, np.pi,
+                     parameter_transform=AbsModPiTransform(),
+                     sampling_proposal=GaussianProposal(0.02),
+                     sampling_prior=AbsSinHalfPrior(),
+                     sampling_statistics=CircularGaussianPSS(),
+                     perturbation_function=lambda v: v + np.random.normal(scale=0.1, size=v.shape)),
+                 'phi': FreeParameter(
+                     CLDataType.from_string('model_float'), 'phi', False, 1/2.0*np.pi, 0, np.pi,
+                     parameter_transform=AbsModPiTransform(),
+                     sampling_proposal=GaussianProposal(0.02),
+                     sampling_prior=AbsSinPrior(),
+                     sampling_statistics=CircularGaussianPSS(),
+                     perturbation_function=lambda v: v + np.random.normal(scale=0.1, size=v.shape)),
+                 'psi': FreeParameter(
+                     CLDataType.from_string('model_float'), 'psi', False, 1/2.0*np.pi, 0, np.pi,
+                     parameter_transform=AbsModPiTransform(),
+                     sampling_proposal=GaussianProposal(0.02),
+                     sampling_prior=AbsSinPrior(),
+                     sampling_statistics=CircularGaussianPSS(),
+                     perturbation_function=lambda v: v + np.random.normal(scale=0.1, size=v.shape)),
 
                  'd': FreeParameter(
                      CLDataType.from_string('model_float'), 'd', False, 1.7e-9, 0, 1.0e-8,
@@ -82,31 +92,39 @@ def get_parameter(param_name):
                      parameter_transform=SinSqrClampTransform(),
                      sampling_proposal=GaussianProposal(1e-15)),
 
-                 'R': FreeParameter(CLDataType.from_string('model_float'), 'R', False, 2.0e-6, 1e-6, 20e-6,
-                                    parameter_transform=CosSqrClampTransform(),
-                                    sampling_proposal=GaussianProposal(1e-6)),
-                 'kappa': FreeParameter(CLDataType.from_string('model_float'), 'kappa', False, 1, 1e-5, 2 * np.pi * 10,
-                                        parameter_transform=CosSqrClampTransform(),
-                                        sampling_proposal=GaussianProposal(1.0)),
+                 'R': FreeParameter(
+                     CLDataType.from_string('model_float'), 'R', False, 2.0e-6, 1e-6, 20e-6,
+                     parameter_transform=CosSqrClampTransform(),
+                     sampling_proposal=GaussianProposal(1e-6)),
+                 'kappa': FreeParameter(
+                     CLDataType.from_string('model_float'), 'kappa', False, 1, 1e-5, 2 * np.pi * 10,
+                     parameter_transform=CosSqrClampTransform(),
+                     sampling_proposal=GaussianProposal(1.0)),
 
                  # for use in the GDRCylinder model
-                 'gamma_k': FreeParameter(CLDataType.from_string('model_float'), 'gamma_k', False, 1, 0, 20,
-                                          parameter_transform=SinSqrClampTransform(),
-                                          sampling_proposal=GaussianProposal(1.0)),
-                 'gamma_beta': FreeParameter(CLDataType.from_string('model_float'), 'gamma_beta', False, 1, 1.0e-7,
-                                             3.0e-7,
-                                             parameter_transform=SinSqrClampTransform(),
-                                             sampling_proposal=GaussianProposal(1e-7)),
-                 'gamma_nmr_cyl': FreeParameter(CLDataType.from_string('model_float'), 'gamma_nmr_cyl', True, 5, 1, 10,
-                                                parameter_transform=SinSqrClampTransform(),
-                                                sampling_proposal=GaussianProposal(1.0)),
+                 'gamma_k': FreeParameter(
+                     CLDataType.from_string('model_float'), 'gamma_k', False, 1, 0, 20,
+                     parameter_transform=SinSqrClampTransform(),
+                     sampling_proposal=GaussianProposal(1.0)),
+                 'gamma_beta': FreeParameter(
+                     CLDataType.from_string('model_float'), 'gamma_beta', False, 1, 1.0e-7,
+                     3.0e-7,
+                     parameter_transform=SinSqrClampTransform(),
+                     sampling_proposal=GaussianProposal(1e-7)),
+                 'gamma_nmr_cyl': FreeParameter(
+                     CLDataType.from_string('model_float'), 'gamma_nmr_cyl', True, 5, 1, 10,
+                     parameter_transform=SinSqrClampTransform(),
+                     sampling_proposal=GaussianProposal(1.0)),
 
-                 'CLJnpZeros': ModelDataParameter(CLDataType.from_string('model_float*'), 'CLJnpZeros',
-                                                  get_bessel_roots(number_of_roots=20)),
-                 'CLJnpZerosLength': ModelDataParameter(CLDataType.from_string('int'), 'CLJnpZerosLength', 20),
+                 'CLJnpZeros': ModelDataParameter(
+                     CLDataType.from_string('model_float*'), 'CLJnpZeros',
+                     get_bessel_roots(number_of_roots=20)),
+                 'CLJnpZerosLength': ModelDataParameter(
+                     CLDataType.from_string('int'), 'CLJnpZerosLength', 20),
 
                  # charmed default, this is the fixed parameter for the length of the GDRCylindersFixed model
-                 'nmr_gamma_cyl_fixed': ModelDataParameter(CLDataType.from_string('int'), 'nmr_gamma_cyl_fixed', 6),
+                 'nmr_gamma_cyl_fixed': ModelDataParameter(
+                     CLDataType.from_string('int'), 'nmr_gamma_cyl_fixed', 6),
 
                  # charmed default, used in GDRCylindersFixed model
                  'gamma_radii': ModelDataParameter(

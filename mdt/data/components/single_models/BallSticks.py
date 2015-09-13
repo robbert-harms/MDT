@@ -34,26 +34,26 @@ def get_ball_sticks(nmr_sticks=1, invivo=True):
 
     description = 'The Ball and Stick model with {0} Sticks and with {1} defaults.'.format(nmr_sticks, vivo_type)
 
-    csf = (compartments_loader.get_constructor('Weight')('Wball'),
-           compartments_loader.load('Ball').fix('d', d_iso),
-           '*')
-
-    if nmr_sticks == 1:
-        ic = (compartments_loader.get_constructor('Weight')('Wstick'),
-              compartments_loader.load('Stick').fix('d', d_ani),
-              '*')
-    else:
-        ic = []
-        for i in range(nmr_sticks):
-            ic.append((compartments_loader.get_constructor('Weight')('Wstick' + repr(i)),
-                       compartments_loader.get_constructor('Stick')('Stick' + repr(i)).fix('d', d_ani),
-                       '*'))
-        ic.append('+')
-
-    ml = (compartments_loader.load('S0'), (csf, ic, '+'), '*')
-
     def model_construction_cb(evaluation_model=GaussianEvaluationModel().fix('sigma', math.sqrt(0.5)),
                               signal_noise_model=None):
+        csf = (compartments_loader.get_class('Weight')('Wball'),
+               compartments_loader.load('Ball').fix('d', d_iso),
+               '*')
+
+        if nmr_sticks == 1:
+            ic = (compartments_loader.get_class('Weight')('Wstick'),
+                  compartments_loader.load('Stick').fix('d', d_ani),
+                  '*')
+        else:
+            ic = []
+            for i in range(nmr_sticks):
+                ic.append((compartments_loader.get_class('Weight')('Wstick' + repr(i)),
+                           compartments_loader.get_class('Stick')('Stick' + repr(i)).fix('d', d_ani),
+                           '*'))
+            ic.append('+')
+
+        ml = (compartments_loader.load('S0'), (csf, ic, '+'), '*')
+
         model = DMRICompositeSampleModel(name, CompartmentModelTree(ml), evaluation_model, signal_noise_model)
         modifiers = [('SNIF', lambda results: 1 - results['Wball.w'])]
         model.add_post_optimization_modifiers(modifiers)

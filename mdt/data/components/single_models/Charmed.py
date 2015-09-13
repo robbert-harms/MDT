@@ -28,37 +28,37 @@ def get_charmed(nmr_restr=3):
 
     description = 'The standard charmed model, with {0} restricted compartments.'.format(nmr_restr)
 
-    hin = (compartments_loader.get_constructor('Weight')('w_hin0'),
-           compartments_loader.load('Tensor').ub('d', 5e-9).lb('d', 1e-9)
-               .ub('dperp0', 5e-9).lb('dperp0', 0.3e-9)
-               .ub('dperp1', 3e-9).lb('dperp0', 0.3e-9)
-               .init('d', 1.2e-9)
-               .init('dperp0', 0.5e-9)
-               .init('dperp1', 0.5e-9),
-           '*')
-
-    hin[1].get_parameter_by_name('dperp0').parameter_transform = SinSqrClampTransform()
-    hin[1].get_parameter_by_name('dperp1').parameter_transform = SinSqrClampTransform()
-
-    if nmr_restr == 1:
-        res = (compartments_loader.get_constructor('Weight')('w_res0'),
-               compartments_loader.get_constructor('CharmedRestricted')('CharmedRestricted0')
-                    .lb('d', 0.3e-9).ub('d', 3e-9).init('d', 1e-9),
-               '*')
-    else:
-        res = []
-        for i in range(nmr_restr):
-            res.append((compartments_loader.get_constructor('Weight')('w_res' + repr(i)),
-                        compartments_loader.get_constructor('CharmedRestricted')('CharmedRestricted' + repr(i))
-                            .lb('d', 0.3e-9)
-                            .ub('d', 3e-9)
-                            .init('d', 1e-9 if i == i else 0.5e-9),
-                        '*'))
-        res.append('+')
-
-    ml = (compartments_loader.load('S0'), (hin, res, '+'), '*')
-
     def model_construction_cb(evaluation_model=SumOfSquares(), signal_noise_model=JohnsonSignalNoise()):
+        hin = (compartments_loader.get_class('Weight')('w_hin0'),
+               compartments_loader.load('Tensor').ub('d', 5e-9).lb('d', 1e-9)
+                   .ub('dperp0', 5e-9).lb('dperp0', 0.3e-9)
+                   .ub('dperp1', 3e-9).lb('dperp0', 0.3e-9)
+                   .init('d', 1.2e-9)
+                   .init('dperp0', 0.5e-9)
+                   .init('dperp1', 0.5e-9),
+               '*')
+
+        hin[1].get_parameter_by_name('dperp0').parameter_transform = SinSqrClampTransform()
+        hin[1].get_parameter_by_name('dperp1').parameter_transform = SinSqrClampTransform()
+
+        if nmr_restr == 1:
+            res = (compartments_loader.get_class('Weight')('w_res0'),
+                   compartments_loader.get_class('CharmedRestricted')('CharmedRestricted0')
+                        .lb('d', 0.3e-9).ub('d', 3e-9).init('d', 1e-9),
+                   '*')
+        else:
+            res = []
+            for i in range(nmr_restr):
+                res.append((compartments_loader.get_class('Weight')('w_res' + repr(i)),
+                            compartments_loader.get_class('CharmedRestricted')('CharmedRestricted' + repr(i))
+                                .lb('d', 0.3e-9)
+                                .ub('d', 3e-9)
+                                .init('d', 1e-9 if i == i else 0.5e-9),
+                            '*'))
+            res.append('+')
+
+        ml = (compartments_loader.load('S0'), (hin, res, '+'), '*')
+
         model = DMRICompositeSampleModel(name, CompartmentModelTree(ml),
                                          evaluation_model, signal_noise_model)
         model.required_nmr_shells = 2

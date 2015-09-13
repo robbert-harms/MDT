@@ -32,12 +32,11 @@ def get_s0_model():
 
 
 def get_s0_t2_model():
-    s0t2_model_list = (compartments_loader.load('S0'),
-                       compartments_loader.load('ExpT2Dec'),
-                       '*')
-
     def model_construction_cb(evaluation_model=GaussianEvaluationModel().fix('sigma', math.sqrt(0.5)),
                               signal_noise_model=None):
+        s0t2_model_list = (compartments_loader.load('S0'),
+                           compartments_loader.load('ExpT2Dec'),
+                           '*')
         return DMRICompositeSampleModel('s0-T2', CompartmentModelTree(s0t2_model_list), evaluation_model,
                                         signal_noise_model)
 
@@ -49,18 +48,17 @@ def get_s0_t2_model():
 
 
 def get_s0_t2_t2_model():
-    s0t2t2_ml = (compartments_loader.load('S0'),
-                 ((compartments_loader.get_constructor('Weight')('Wlong'),
-                   compartments_loader.get_constructor('ExpT2Dec')('T2long').fix('T2', 0.5),
-                   '*'),
-                  (compartments_loader.get_constructor('Weight')('Wshort'),
-                   compartments_loader.get_constructor('ExpT2Dec')('T2short').ub('T2', 0.08),
-                   '*'),
-                  '+'),
-                 '*')
-
     def model_construction_cb(evaluation_model=GaussianEvaluationModel().fix('sigma', math.sqrt(0.5)),
                               signal_noise_model=None):
+        s0t2t2_ml = (compartments_loader.load('S0'),
+                     ((compartments_loader.get_class('Weight')('Wlong'),
+                       compartments_loader.get_class('ExpT2Dec')('T2long').fix('T2', 0.5),
+                       '*'),
+                      (compartments_loader.get_class('Weight')('Wshort'),
+                       compartments_loader.get_class('ExpT2Dec')('T2short').ub('T2', 0.08),
+                       '*'),
+                      '+'),
+                     '*')
         model = DMRICompositeSampleModel('s0-T2T2', CompartmentModelTree(s0t2t2_ml), evaluation_model,
                                          signal_noise_model)
         extra_maps = (('T2short.T2Weighted', lambda d: d['Wshort.w'] * d['T2short.T2']),
