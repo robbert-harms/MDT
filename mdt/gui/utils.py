@@ -50,6 +50,7 @@ class OptimOptions(object):
 
     def __init__(self):
         self.use_model_default_optimizer = True
+        self.double_precision = False
 
         self.optimizer = mdt_config['optimization_settings']['general']['optimizers'][0]['name']
         self.patience = mdt_config['optimization_settings']['general']['optimizers'][0]['patience']

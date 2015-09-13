@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 try:
     #python 2.7
     from Queue import Empty
@@ -21,7 +23,7 @@ import multiprocessing
 import mdt
 from mdt.gui.tk.utils import SubWindow, TabContainer
 from mdt.gui.tk.widgets import FileBrowserWidget, DirectoryBrowserWidget, DropdownWidget, SubWindowWidget, \
-    TextboxWidget, YesNonWidget, ListboxWidget
+    TextboxWidget, YesNonWidget, ListboxWidget, RadioButtonWidget
 from mdt.gui.utils import OptimOptions, function_message_decorator
 from mdt.utils import MetaOptimizerBuilder, split_image_path
 from mot.factory import get_optimizer_by_name
@@ -143,17 +145,11 @@ class RunModelTab(TabContainer):
             brain_mask_path = self._brain_mask_chooser.get_value()
             output_dir = self._output_dir_chooser.get_value()
 
-            only_recalculate_last = self.optim_options.recalculate_all
-            meta_optimizer_config = self.optim_options.get_meta_optimizer_config()
-            use_model_default_optimizer = self.optim_options.use_model_default_optimizer
-
             manager = multiprocessing.Manager()
             finish_queue = manager.Queue()
 
-            run_proc = RunModelProcess(finish_queue, model_name,
-                                       image_path, protocol_path,
-                                       brain_mask_path, output_dir, only_recalculate_last,
-                                       meta_optimizer_config, use_model_default_optimizer)
+            run_proc = RunModelProcess(finish_queue, model_name, image_path, protocol_path, brain_mask_path,
+                                       output_dir, self.optim_options)
             self._cl_process_queue.put(run_proc)
 
             def _wait_for_run_completion():
@@ -219,30 +215,28 @@ class RunModelTab(TabContainer):
 
 class RunModelProcess(object):
 
-    def __init__(self, finish_queue, model_name, image_path, protocol_path, brain_mask_path,
-                 output_dir, only_recalculate_last, meta_optimizer_config, use_model_default_optimizer):
+    def __init__(self, finish_queue, model_name, image_path, protocol_path, brain_mask_path, output_dir, optim_options):
         self._finish_queue = finish_queue
-        self._meta_optimizer_config = meta_optimizer_config
         self._model_name = model_name
         self._image_path = image_path
         self._protocol_path = protocol_path
         self._brain_mask_path = brain_mask_path
         self._output_dir = output_dir
-        self._only_recalculate_last = only_recalculate_last
-        self._use_model_default_optimizer = use_model_default_optimizer
+        self._optim_options = optim_options
 
     @function_message_decorator('Starting model fitting, please wait.',
                                 'Finished model fitting. You can view the results using the "View results" tab.')
     def __call__(self, *args, **kwargs):
-        if self._use_model_default_optimizer:
+        if self._optim_options.use_model_default_optimizer:
             optimizer = None
         else:
-            optimizer = MetaOptimizerBuilder(self._meta_optimizer_config).construct()
+            optimizer = MetaOptimizerBuilder(self._optim_options.get_meta_optimizer_config()).construct()
 
         mdt.fit_model(self._model_name, self._image_path, self._protocol_path, self._brain_mask_path, self._output_dir,
                       optimizer=optimizer,
                       recalculate=True,
-                      only_recalculate_last=self._only_recalculate_last)
+                      only_recalculate_last=self._optim_options.recalculate_all,
+                      double_precision=self._optim_options.double_precision)
         self._finish_queue.put('DONE')
 
 
@@ -313,6 +307,15 @@ class OptimOptionsWindow(SubWindow):
                                        'This is the smoothing filter size in voxels.)',
             default_val=default_smoother_size)
 
+        self._double_precision = RadioButtonWidget(
+            subframe,
+            'double_precision',
+            self._onchange_cb,
+            'Float precision: ',
+            '(Specify the precision of the calculations)',
+            OrderedDict([('Float', False), ('Double', True)]),
+            default_val=self._optim_options.double_precision)
+
         self._recalculate_all = YesNonWidget(
             subframe,
             'recalculate_all',
@@ -342,7 +345,7 @@ class OptimOptionsWindow(SubWindow):
 
         self._optimizer_fields = [self._optim_routine_chooser, self._patience_box, self._extra_optim_runs,
                             self._smoothing_routine_chooser, self._smoothing_size]
-        extra_fields  = [self._recalculate_all, self._devices_chooser]
+        extra_fields = [self._double_precision, self._recalculate_all, self._devices_chooser]
 
         button_frame = self._get_button_frame(subframe, window)
 
@@ -441,6 +444,9 @@ class OptimOptionsWindow(SubWindow):
                     self._optim_options.smoother_size = [int(v) for v in calling_widget.get_value().split(',')][0:3]
                 except ValueError:
                     pass
+
+        elif id_key == 'double_precision':
+            self._optim_options.double_precision = calling_widget.get_value()
 
         elif id_key == 'cl_environment_chooser':
             chosen_keys = self._devices_chooser.get_value()
