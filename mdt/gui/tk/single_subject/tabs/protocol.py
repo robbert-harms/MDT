@@ -89,9 +89,6 @@ class GenerateProtocolFileTab(TabContainer):
         self._generate_prtcl_button.grid(row=0)
         self._view_results_button.grid(row=0, column=1, padx=(10, 0))
 
-        self._bval_chooser.initial_file = '/home/robbert/programming/python/phd-data/protocol_test/bvals'
-        self._bvec_chooser.initial_file = '/home/robbert/programming/python/phd-data/protocol_test/bvecs'
-
     def get_tab(self):
         row_nmr = count()
         label = ttk.Label(self._tab, text="Generate protocol file", font=(None, 14))
