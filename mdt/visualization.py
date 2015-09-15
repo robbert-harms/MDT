@@ -88,7 +88,7 @@ class MapsVisualizer(object):
             figure_options (dict) options for the figure
             grid_layout (GridLayout) the grid layout to use
         """
-        figure_options = figure_options or {}
+        figure_options = figure_options or {'figsize':(18,16)}
         self._figure = plt.figure(**figure_options)
 
         if dimension is not None:

@@ -1,3 +1,4 @@
+import copy
 import os
 from os.path import expanduser
 import collections
@@ -53,6 +54,38 @@ def load_from_yaml(yaml_str):
     d = yaml.load(yaml_str)
     if d is not None and isinstance(d, dict):
         load_from_dict(d)
+
+
+def get_config_from_yaml(yaml_str):
+    """Returns a configuration dict from a YAML string.
+
+    This does not add the configuration options to the current configuration.
+
+    Args:
+        yaml_str (str): the string with the YAML config contents
+
+    Returns:
+        configuration dict which can be loaded using load_from_dict()
+    """
+    d = yaml.load(yaml_str)
+    if d is not None and isinstance(d, dict):
+        return d
+    return {}
+
+
+def get_config_from_yaml_file(file_name):
+    """Returns a configuration dict from a YAML file.
+
+    This does not add the configuration options to the current configuration.
+
+    Args:
+        file_name (str): the path to the the YAML file.
+
+    Returns:
+        configuration dict which can be loaded using load_from_dict()
+    """
+    with open(file_name) as f:
+        return get_config_from_yaml(f.read())
 
 
 def load_from_dict(config_dict):

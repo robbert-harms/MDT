@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import logging.config as logging_config
 from mdt import configuration
 
@@ -988,3 +989,64 @@ def dwi_merge(dwi_images, output_fname, sort=True):
 
     combined_image = np.concatenate(images, axis=3)
     nib.Nifti1Image(combined_image, None, header).to_filename(output_fname)
+
+
+@contextmanager
+def config_context(config):
+    """Creates a temporary configuration context with the given config.
+
+    This will temporarily alter the given configuration keys to the given values. After the context is executed
+    the configuration will revert to the original settings.
+
+    Example usage:
+        config = '''
+        optimization_settings:
+            general:
+                optimizers:
+                    -   name: 'NMSimplex'
+                        patience: 10
+        '''
+        with mdt.config_context(mdt.get_config_from_yaml(config)):
+            mdt.fit_model(...)
+
+        This loads the configuration from a YAML string, converts it to a dict using the function
+        mdt.get_config_from_yaml() and then uses that config dict as context for the optimization.
+
+    Args:
+        config (dict): the configuration as a dictionary
+    """
+    import copy
+    import mdt.configuration
+    old_config = copy.deepcopy(mdt.configuration.config)
+    configuration.load_from_dict(config)
+    yield
+    mdt.configuration.config = old_config
+
+
+def get_config_from_yaml(yaml_str):
+    """Returns a configuration dict from a YAML string.
+
+    Args:
+        yaml_str (str): the string with the YAML config contents
+
+    Returns:
+        configuration dict which can be loaded using mdt.configuration.load_from_dict() or used with the context
+        manager mdt.config_context()
+    """
+    from mdt.configuration import get_config_from_yaml
+    return get_config_from_yaml(yaml_str)
+
+
+def get_config_from_yaml_file(file_name):
+    """Returns a configuration dict from a YAML file.
+
+    This does not add the configuration options to the current configuration.
+
+    Args:
+        file_name (str): the path to the the YAML file.
+
+    Returns:
+        configuration dict which can be loaded using load_from_dict()
+    """
+    from mdt.configuration import get_config_from_yaml_file
+    return get_config_from_yaml_file(file_name)
