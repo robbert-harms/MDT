@@ -16,12 +16,11 @@ def get_components_list():
              'name': Charmed2r_name,
              'description': 'Cascade for Charmed_2r initialized with two B&S.'},
 
-            {'model_constructor': Charmed,
-             'name': Charmed_name,
-             'description': 'Cascade for Charmed using Ball and three Sticks as basis.'}]
+            get_charmed(fixed=False),
+            get_charmed(fixed=True)]
 
 
-Charmed1r_name = 'Charmed_1r (Cascade)'
+Charmed1r_name = 'Charmed_1r (Cascade|fixed)'
 class Charmed1r(SimpleCascadeModel):
 
     def __init__(self):
@@ -39,7 +38,7 @@ class Charmed1r(SimpleCascadeModel):
             model.cmf('w_res0').init('w', output_previous_model['Wstick' + '.w'])
 
 
-Charmed2r_name = 'Charmed_2r (Cascade)'
+Charmed2r_name = 'Charmed_2r (Cascade|fixed)'
 class Charmed2r(SimpleCascadeModel):
 
     def __init__(self):
@@ -58,22 +57,44 @@ class Charmed2r(SimpleCascadeModel):
                 model.cmf('w_res' + repr(i)).init('w', output_previous_model['Wstick' + repr(i) + '.w'])
 
 
-Charmed_name = 'Charmed (Cascade)'
-class Charmed(SimpleCascadeModel):
+def get_charmed(fixed=False):
+    if fixed:
+        name = 'Charmed (Cascade|fixed)'
+        description = 'Fixes the directions to Ball & 3 Sticks.'
+    else:
+        name = 'Charmed (Cascade)'
+        description = 'Initializes the directions to Ball & 3 Sticks.'
 
-    def __init__(self):
-        super(Charmed, self).__init__(
-            Charmed_name,
-            (mdt.get_model('BallStickStickStick (Cascade)'),
-             mdt.get_model('Charmed')))
-
-    def _prepare_model(self, model, position, output_previous_model, output_all_previous_models):
-        super(Charmed, self)._prepare_model(model, position, output_previous_model, output_all_previous_models)
-        if position == 1:
+    def prepare_charmed(model, output_previous_model):
+        if fixed:
             for i in range(3):
                 model.cmf('CharmedRestricted' + repr(i))\
                     .fix('theta', output_previous_model['Stick' + repr(i) + '.theta'])\
                     .fix('phi', output_previous_model['Stick' + repr(i) + '.phi'])
                 model.cmf('w_res' + repr(i)).init('w', output_previous_model['Wstick' + repr(i) + '.w'])
-            model.cmf('Tensor').init('theta', output_previous_model['Stick0.theta'])\
-                               .init('phi', output_previous_model['Stick0.phi'])
+        else:
+            for i in range(3):
+                model.cmf('CharmedRestricted' + repr(i))\
+                    .init('theta', output_previous_model['Stick' + repr(i) + '.theta'])\
+                    .init('phi', output_previous_model['Stick' + repr(i) + '.phi'])
+                model.cmf('w_res' + repr(i)).init('w', output_previous_model['Wstick' + repr(i) + '.w'])
+
+        model.cmf('Tensor').init('theta', output_previous_model['Stick0.theta'])\
+                           .init('phi', output_previous_model['Stick0.phi'])
+
+    class Charmed(SimpleCascadeModel):
+
+        def __init__(self):
+            super(Charmed, self).__init__(
+                name,
+                (mdt.get_model('BallStickStickStick (Cascade)'),
+                 mdt.get_model('Charmed')))
+
+        def _prepare_model(self, model, position, output_previous_model, output_all_previous_models):
+            super(Charmed, self)._prepare_model(model, position, output_previous_model, output_all_previous_models)
+            if position == 1:
+                prepare_charmed(model, output_previous_model)
+
+    return {'model_constructor': Charmed,
+            'name': name,
+            'description': description}

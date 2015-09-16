@@ -283,6 +283,8 @@ class MapsVisualizer(object):
                 cbar.update_ticks()
             except TypeError:
                 pass
+            except ValueError:
+                pass
 
     def _get_image(self, data):
         """Get the 2d image to display for the given data.
