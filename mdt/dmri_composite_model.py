@@ -1,10 +1,12 @@
+import numpy as np
+from mot.base import CLDataType
 from mot.cl_functions import Weight
 from mdt.utils import restore_volumes, create_roi, ProtocolCheckInterface
 from mdt.model_protocol_problem import MissingColumns, InsufficientShells
 from mot.models.interfaces import SmoothableModelInterface, PerturbationModelInterface
 from mot.models.model_builders import SampleModelBuilder
 from mot.parameter_functions.dependencies import WeightSumToOneRule
-
+from mot.utils import set_cl_compatible_data_type
 
 __author__ = 'Robbert Harms'
 __date__ = "2014-10-26"
@@ -31,12 +33,16 @@ class DMRICompositeSampleModel(SampleModelBuilder, SmoothableModelInterface,
                 allow all maps.
             required_nmr_shells (int): Define the minimum number of unique shells necessary for this model.
                 The default is false, which means that we don't check for this.
+            grad_dev (ndarray): contains the effects of gradient nonlinearities on the bvals and bvecs for each voxel.
+                This should be a 2d matrix with per voxel 9 values that constitute the gradient deviation in
+                Fortran (column-major) order. This data is used as defined by the HCP WUMINN study.
         """
         super(DMRICompositeSampleModel, self).__init__(model_name, model_tree, evaluation_model, signal_noise_model,
                                                        problem_data=problem_data)
         self.smooth_white_list = None
         self.smooth_black_list = None
         self.required_nmr_shells = False
+        self.gradient_deviations = None
 
     def set_smooth_lists(self, white_list=None, black_list=None):
         """Set the list with maps to filter.
@@ -54,6 +60,42 @@ class DMRICompositeSampleModel(SampleModelBuilder, SmoothableModelInterface,
         """
         self.smooth_white_list = white_list
         self.smooth_black_list = black_list
+
+    def set_gradient_deviations(self, grad_dev):
+        """Set the gradient deviations.
+
+        Args:
+            grad_dev (ndarray): the gradient deviations containing per voxel 9 values that constitute the gradient
+                non-linearities. The matrix can either be a 4d matrix or a 2d matrix.
+
+                If it is a 4d matrix the first 3 dimensions are supposed to be the voxel index and the 4th
+                should contain the grad dev data.
+
+                If it is a 2 dimensional matrix, the first dimension is the voxel index and the second should contain
+                the gradient deviation data. In this case the nmr of voxels should coincide with the number of voxels
+                in the ROI of the DWI.
+        """
+        if len(grad_dev.shape) > 2:
+            self.gradient_deviations = create_roi(grad_dev, self._problem_data.mask)
+        else:
+            self.gradient_deviations = grad_dev
+        return self
+
+    def get_problems_var_data(self):
+        var_data_dict = super(DMRICompositeSampleModel, self).get_problems_var_data()
+
+        if self.gradient_deviations is not None:
+            grad_dev = self.gradient_deviations
+
+            # adds the eye(3) matrix to every grad dev, so we don't have to do it in the kernel.
+            grad_dev += np.eye(3).flatten(order='F')
+
+            grad_dev = set_cl_compatible_data_type(grad_dev, CLDataType.from_string('model_float*'),
+                                                   self._double_precision)
+
+            var_data_dict.update({'gradient_deviations': grad_dev})
+
+        return var_data_dict
 
     def smooth(self, results, smoother):
         if self.smooth_white_list is not None:
@@ -122,3 +164,39 @@ class DMRICompositeSampleModel(SampleModelBuilder, SmoothableModelInterface,
 
     def _get_weight_models(self):
         return [n.data for n in self._model_tree.leaves if isinstance(n.data, Weight)]
+
+    def _get_pre_model_expression_eval_code(self):
+        if self._can_use_gradient_deviations():
+            return '''
+                apply_gradient_deviations(&g, &b, data->var_data_gradient_deviations);
+            '''
+
+    def _get_pre_model_expression_eval_function(self):
+        if self._can_use_gradient_deviations():
+            return '''
+                void apply_gradient_deviations(model_float4* const g,
+                                               model_float* const b,
+                                               global const model_float* const gradient_deviations){
+
+                    model_float4 il_0 = (model_float4)(gradient_deviations[0], gradient_deviations[3],
+                                                       gradient_deviations[6], 0.0);
+
+                    model_float4 il_1 = (model_float4)(gradient_deviations[1], gradient_deviations[4],
+                                                       gradient_deviations[7], 0.0);
+
+                    model_float4 il_2 = (model_float4)(gradient_deviations[2], gradient_deviations[5],
+                                                       gradient_deviations[8], 0.0);
+
+                    model_float4 v = (model_float4)(dot(il_0, *g), dot(il_1, *g), dot(il_2, *g), 0.0);
+                    model_float n = length(v);
+                    *g = v/n;
+                    *b *= pown(n, 2);
+                }
+            '''
+
+    def _can_use_gradient_deviations(self):
+        if self.gradient_deviations is not None:
+            protocol_keys = list(self.get_problems_prtcl_data().keys())
+            if 'g' in protocol_keys and 'b' in protocol_keys:
+                return True
+        return False
