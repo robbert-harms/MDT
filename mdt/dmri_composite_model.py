@@ -85,10 +85,8 @@ class DMRICompositeSampleModel(SampleModelBuilder, SmoothableModelInterface,
         var_data_dict = super(DMRICompositeSampleModel, self).get_problems_var_data()
 
         if self.gradient_deviations is not None:
-            grad_dev = self.gradient_deviations
-
             # adds the eye(3) matrix to every grad dev, so we don't have to do it in the kernel.
-            grad_dev += np.eye(3).flatten(order='F')
+            grad_dev = self.gradient_deviations + np.eye(3).flatten(order='F')
 
             grad_dev = set_cl_compatible_data_type(grad_dev, CLDataType.from_string('model_float*'),
                                                    self._double_precision)
@@ -174,6 +172,8 @@ class DMRICompositeSampleModel(SampleModelBuilder, SmoothableModelInterface,
     def _get_pre_model_expression_eval_function(self):
         if self._can_use_gradient_deviations():
             return '''
+                #ifndef APPLY_GRADIENT_DEVIATIONS
+                #define APPLY_GRADIENT_DEVIATIONS
                 void apply_gradient_deviations(model_float4* const g,
                                                model_float* const b,
                                                global const model_float* const gradient_deviations){
@@ -192,6 +192,7 @@ class DMRICompositeSampleModel(SampleModelBuilder, SmoothableModelInterface,
                     *g = v/n;
                     *b *= pown(n, 2);
                 }
+                #endif //APPLY_GRADIENT_DEVIATIONS
             '''
 
     def _can_use_gradient_deviations(self):

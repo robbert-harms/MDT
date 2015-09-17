@@ -108,6 +108,12 @@ class CascadeModelInterface(object):
             double_precision (boolean): the value to set for all models in the cascade
         """
 
+    def set_problem_data(self, problem_data):
+        """Set the problem data in every model in the cascade."""
+
+    def set_gradient_deviations(self, grad_dev):
+        """Set the gradient deviations in every model."""
+
 
 class SimpleCascadeModel(CascadeModelInterface, ProtocolCheckInterface):
 
@@ -168,6 +174,14 @@ class SimpleCascadeModel(CascadeModelInterface, ProtocolCheckInterface):
 
     def get_model_names(self):
         return [model.name for model in self._model_list]
+
+    def set_problem_data(self, problem_data):
+        for model in self._model_list:
+            model.set_problem_data(problem_data)
+
+    def set_gradient_deviations(self, grad_dev):
+        for model in self._model_list:
+            model.set_gradient_deviations(grad_dev)
 
     def _prepare_model(self, model, position, output_previous_model, output_all_previous_models):
         """Prepare the next model with the output of the previous model.
