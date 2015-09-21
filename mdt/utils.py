@@ -913,7 +913,7 @@ def apply_model_protocol_options(model_protocol_options, problem_data):
 
         protocol_indices = np.unique(protocol_indices)
 
-        if len(protocol_indices) != protocol.protocol_length:
+        if len(protocol_indices) != protocol.length:
             logger.info('Applying model protocol options, we will use a subset of the protocol and DWI.')
             new_protocol = protocol.get_new_protocol_with_indices(protocol_indices)
 

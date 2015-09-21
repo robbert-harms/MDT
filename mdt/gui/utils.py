@@ -136,8 +136,8 @@ def print_welcome_message():
     welcome_str = 'Welcome to MDT version ' + VERSION + '.'
     print(welcome_str)
     print('')
-    print('This area is reserved for print and log output.')
-    print('-----------------------------------------------')
+    print('This area is reserved for log output.')
+    print('-------------------------------------')
 
 
 def update_user_settings():

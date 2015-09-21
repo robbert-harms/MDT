@@ -15,6 +15,7 @@ from mdt.utils import create_roi, configure_per_model_logging, restore_volumes, 
     get_model_config, apply_model_protocol_options, model_output_exists, split_image_path
 from mdt.batch_utils import batch_profile_factory
 from mot import runtime_configuration
+import nibabel as nib
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-05-01"
@@ -158,6 +159,10 @@ class _BatchFitRunner(object):
 
         write_protocol(protocol, os.path.join(output_dir, 'used_protocol.prtcl'))
 
+        gradient_deviations = subject_info.get_gradient_deviations()
+        if gradient_deviations:
+            gradient_deviations = nib.load(gradient_deviations).get_data()
+
         start_time = timeit.default_timer()
         for model in self._batch_fitting_config['models']:
             logger.info('Going to fit model {0} on subject {1}'.format(model, subject_info.subject_id))
@@ -169,7 +174,8 @@ class _BatchFitRunner(object):
                                      only_recalculate_last=True,
                                      model_protocol_options=self._batch_fitting_config['model_protocol_options'],
                                      cl_device_ind=self._cl_device_ind,
-                                     double_precision=self._double_precision)
+                                     double_precision=self._double_precision,
+                                     gradient_deviations=gradient_deviations)
                 model_fit.run()
             except ProtocolProblemError as ex:
                 logger.info('Could not fit model {0} on subject {1} '
@@ -184,7 +190,7 @@ class ModelFit(object):
 
     def __init__(self, model, problem_data, output_folder, optimizer=None,
                  recalculate=False, only_recalculate_last=False, model_protocol_options=None,
-                 cl_device_ind=None, double_precision=False):
+                 cl_device_ind=None, double_precision=False, gradient_deviations=None):
         """Setup model fitting for the given input model and data.
 
         This does nothing by itself, please call fit_model() to actually fit_model the optimizer to fit the model.
@@ -208,12 +214,13 @@ class ModelFit(object):
             cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
                 get_cl_devices().
             double_precision (boolean): if we would like to do the calculations in double precision
-
+            gradient_deviations (ndarray): set of gradient deviations to use. In HCP WUMINN format.
         """
         if isinstance(model, string_types):
             model = get_model(model)
 
         model.double_precision = double_precision
+        model.set_gradient_deviations(gradient_deviations)
 
         self._model = model
         self._problem_data = problem_data

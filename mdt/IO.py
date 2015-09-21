@@ -110,8 +110,9 @@ class TrackMark(object):
             tvl_header: the header for the TVL file. This is a list of either 4 or 10 entries.
                 4 entries: [version, res, gap, offset]
                 10 entries: [version, x_res, x_gap, x_offset, y_res, y_gap, y_offset, z_res, z_gap, z_offset]
-            direction_pairs (list): The list with direction pairs.
+            direction_pairs (list): The list with direction pairs, only three are used.
         """
+        direction_pairs = direction_pairs[0:3]
         dir_matrix = np.zeros(direction_pairs[0][0].shape[0:3] + (12,))
         for ind, dirs in enumerate(direction_pairs):
             dir_matrix[..., ind*3:ind*3+3] = np.squeeze(dirs[0])

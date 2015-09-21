@@ -1,8 +1,10 @@
 import numpy as np
+from mot import runtime_configuration
 from mot.base import CLDataType
 from mot.cl_functions import Weight
 from mdt.utils import restore_volumes, create_roi, ProtocolCheckInterface
 from mdt.model_protocol_problem import MissingColumns, InsufficientShells
+from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
 from mot.models.interfaces import SmoothableModelInterface, PerturbationModelInterface
 from mot.models.model_builders import SampleModelBuilder
 from mot.parameter_functions.dependencies import WeightSumToOneRule
@@ -75,22 +77,24 @@ class DMRICompositeSampleModel(SampleModelBuilder, SmoothableModelInterface,
                 the gradient deviation data. In this case the nmr of voxels should coincide with the number of voxels
                 in the ROI of the DWI.
         """
-        if len(grad_dev.shape) > 2:
-            self.gradient_deviations = create_roi(grad_dev, self._problem_data.mask)
-        else:
-            self.gradient_deviations = grad_dev
+        self.gradient_deviations = grad_dev
         return self
 
     def get_problems_var_data(self):
         var_data_dict = super(DMRICompositeSampleModel, self).get_problems_var_data()
 
         if self.gradient_deviations is not None:
-            # adds the eye(3) matrix to every grad dev, so we don't have to do it in the kernel.
-            grad_dev = self.gradient_deviations + np.eye(3).flatten(order='F')
+            if len(self.gradient_deviations.shape) > 2:
+                grad_dev = create_roi(self.gradient_deviations, self._problem_data.mask)
+            else:
+                grad_dev = np.copy(self.gradient_deviations)
 
+            # adds the eye(3) matrix to every grad dev, so we don't have to do it in the kernel.
+            # Flattening an eye(3) matrix gives the same result with F and C ordering, I nevertheless put it here
+            # to emphasize that the gradient deviations matrix is in Fortran (column-major) order.
+            grad_dev += np.eye(3).flatten(order='F')
             grad_dev = set_cl_compatible_data_type(grad_dev, CLDataType.from_string('model_float*'),
                                                    self._double_precision)
-
             var_data_dict.update({'gradient_deviations': grad_dev})
 
         return var_data_dict
@@ -165,39 +169,51 @@ class DMRICompositeSampleModel(SampleModelBuilder, SmoothableModelInterface,
 
     def _get_pre_model_expression_eval_code(self):
         if self._can_use_gradient_deviations():
-            return '''
-                apply_gradient_deviations(&g, &b, data->var_data_gradient_deviations);
+            s = '''
+                model_float4 _new_gradient_vector_raw = _get_new_gradient_raw(g, data->var_data_gradient_deviations);
+                model_float _new_gradient_vector_length = length(_new_gradient_vector_raw);
+                g = _new_gradient_vector_raw/_new_gradient_vector_length;
             '''
+            if 'b' in list(self.get_problems_prtcl_data().keys()):
+                s += 'b *= pown(_new_gradient_vector_length, 2);' + "\n"
+
+            if 'G' in list(self.get_problems_prtcl_data().keys()):
+                s += 'G *= _new_gradient_vector_length;' + "\n"
+
+            if 'GAMMA2_G2_delta2' in list(self.get_problems_prtcl_data().keys()):
+                s += 'GAMMA2_G2_delta2 *= pown(_new_gradient_vector_length, 2);'
+
+            return s
 
     def _get_pre_model_expression_eval_function(self):
         if self._can_use_gradient_deviations():
             return '''
-                #ifndef APPLY_GRADIENT_DEVIATIONS
-                #define APPLY_GRADIENT_DEVIATIONS
-                void apply_gradient_deviations(model_float4* const g,
-                                               model_float* const b,
-                                               global const model_float* const gradient_deviations){
+                #ifndef GET_NEW_GRADIENT_RAW
+                #define GET_NEW_GRADIENT_RAW
+                model_float4 _get_new_gradient_raw(model_float4 g,
+                                                   global const model_float* const gradient_deviations){
 
-                    model_float4 il_0 = (model_float4)(gradient_deviations[0], gradient_deviations[3],
-                                                       gradient_deviations[6], 0.0);
+                    const model_float4 il_0 = (model_float4)(gradient_deviations[0], gradient_deviations[3],
+                                                             gradient_deviations[6], 0.0);
 
-                    model_float4 il_1 = (model_float4)(gradient_deviations[1], gradient_deviations[4],
-                                                       gradient_deviations[7], 0.0);
+                    const model_float4 il_1 = (model_float4)(gradient_deviations[1], gradient_deviations[4],
+                                                             gradient_deviations[7], 0.0);
 
-                    model_float4 il_2 = (model_float4)(gradient_deviations[2], gradient_deviations[5],
-                                                       gradient_deviations[8], 0.0);
+                    const model_float4 il_2 = (model_float4)(gradient_deviations[2], gradient_deviations[5],
+                                                             gradient_deviations[8], 0.0);
 
-                    model_float4 v = (model_float4)(dot(il_0, *g), dot(il_1, *g), dot(il_2, *g), 0.0);
-                    model_float n = length(v);
-                    *g = v/n;
-                    *b *= pown(n, 2);
+                    return (model_float4)(dot(il_0, g), dot(il_1, g), dot(il_2, g), 0.0);
                 }
-                #endif //APPLY_GRADIENT_DEVIATIONS
+                #endif //GET_NEW_GRADIENT_RAW
             '''
 
     def _can_use_gradient_deviations(self):
-        if self.gradient_deviations is not None:
-            protocol_keys = list(self.get_problems_prtcl_data().keys())
-            if 'g' in protocol_keys and 'b' in protocol_keys:
-                return True
-        return False
+        return self.gradient_deviations is not None and 'g' in list(self.get_problems_prtcl_data().keys())
+
+    def _add_finalizing_result_maps(self, results_dict):
+        log_likelihood_calc = LogLikelihoodCalculator(runtime_configuration.runtime_config['cl_environments'],
+                                                      runtime_configuration.runtime_config['load_balancer'])
+        log_likelihood = log_likelihood_calc.calculate(self, results_dict)
+        k = len(self._get_free_parameters_list())
+        results_dict.update({'BIC': -2 * log_likelihood + k * np.log(self._problem_data.protocol.length),
+                             'AIC': -2 * log_likelihood + k * 2})

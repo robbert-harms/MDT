@@ -164,7 +164,7 @@ class Protocol(object):
         raise KeyError('The given column name "{}" could not be found in this protocol.'.format(column_name))
 
     @property
-    def protocol_length(self):
+    def length(self):
         """Get the length of this protocol.
 
         Returns:
@@ -343,7 +343,7 @@ class Protocol(object):
         return Protocol(columns={k: v[indices] for k, v in self._columns.items()})
 
     def __len__(self):
-        return self.protocol_length
+        return self.length
 
     def __contains__(self, column):
         return self.has_column(column)

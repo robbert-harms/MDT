@@ -9,7 +9,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.3.4'
+VERSION = '0.3.5'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')
@@ -81,7 +81,8 @@ def batch_fit(data_folder, batch_profile_class=None, subjects_ind=None, recalcul
 
 
 def fit_model(model, dwi_info, protocol, brain_mask, output_folder, optimizer=None,
-              recalculate=False, only_recalculate_last=False, cl_device_ind=None, double_precision=False):
+              recalculate=False, only_recalculate_last=False, cl_device_ind=None, double_precision=False,
+              gradient_deviations=None):
     """Run the optimizer on the given model.
 
     Args:
@@ -102,6 +103,7 @@ def fit_model(model, dwi_info, protocol, brain_mask, output_folder, optimizer=No
         cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices().
         double_precision (boolean): if we would like to do the calculations in double precision
+        gradient_deviations (str or ndarray): set of gradient deviations to use. In HCP WUMINN format.
 
     Returns:
         the output of the optimization. If a cascade is given, only the results of the last model in the cascade is
@@ -109,6 +111,11 @@ def fit_model(model, dwi_info, protocol, brain_mask, output_folder, optimizer=No
     """
     import mdt.utils
     from mdt.model_fitting import ModelFit
+    import six
+
+    if gradient_deviations:
+        if isinstance(gradient_deviations, six.string_types):
+            gradient_deviations = mdt.load_nifti(gradient_deviations).get_data()
 
     if not utils.check_user_components():
         raise RuntimeError('User\'s components folder is not up to date. Please the script mdt-init-user-settings.')
@@ -116,7 +123,7 @@ def fit_model(model, dwi_info, protocol, brain_mask, output_folder, optimizer=No
     problem_data = utils.load_problem_data(dwi_info, protocol, brain_mask)
     model_fit = ModelFit(model, problem_data, output_folder, optimizer=optimizer, recalculate=recalculate,
                          only_recalculate_last=only_recalculate_last, cl_device_ind=cl_device_ind,
-                         double_precision=double_precision)
+                         double_precision=double_precision, gradient_deviations=gradient_deviations)
 
     return model_fit.run()
 
@@ -693,7 +700,7 @@ def write_trackmark_files(input_folder, output_folder=None, eigenvalue_scalar=1e
         eigen_vectors = [volumes[k] for k in eigen_vectors_keys]
         eigen_values = [volumes[k] for k in eigen_values_keys]
 
-        eigen_pairs = zip(eigen_vectors, eigen_values)
+        eigen_pairs = list(zip(eigen_vectors, eigen_values))
     else:
         eigen_pairs_keys = eigen_pairs
         eigen_pairs = []

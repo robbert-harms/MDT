@@ -12,14 +12,14 @@ meta_info = {'title': 'HCP WU-Minn',
              'description': 'The profile for the WU-Minn data from the Human Connectome project',
              'directory_layout':
 '''
-This assumes that you downloaded and extracted the WU-Minn data in one folder and that you now have
-one folder per subject.
+This assumes that you downloaded and extracted the WU-Minn data in one folder which gives one folder per subject.
 
 Example directory layout:
     /*/T1w/Diffusion/data.nii.gz
     /*/T1w/Diffusion/bvals
     /*/T1w/Diffusion/bvecs
     /*/T1w/Diffusion/nodif_brain_mask.nii.gz
+    /*/T1w/Diffusion/grad_dev.nii.gz
 
 Optional items (these will take precedence if present):
     /*/T1w/Diffusion/data.bval
@@ -54,13 +54,16 @@ class HCP_WUMINN_Profile(SimpleBatchProfile):
                 if list(glob.glob(pjoin('data_mask.nii*'))):
                     mask_fname = list(glob.glob(pjoin('data_mask.nii*')))[0]
 
+                grad_dev = pjoin('grad_dev.nii.gz')
+
                 protocol_loader = HCP_WUMINN_ProtocolLoader(
                     prtcl_fname=prtcl_fname, bvec_fname=bvec_fname,
                     bval_fname=bval_fname, extra_cols={'TE': 0.0895})
 
                 output_dir = pjoin('output')
 
-                subjects.append(SimpleSubjectInfo(subject_id, dwi_fname, protocol_loader, mask_fname, output_dir))
+                subjects.append(SimpleSubjectInfo(subject_id, dwi_fname, protocol_loader, mask_fname,
+                                                  output_dir, gradient_deviations=grad_dev))
         return subjects
 
     def __str__(self):

@@ -141,10 +141,18 @@ class SubjectInfo(object):
             str: the filename of the mask to load
         """
 
+    def get_gradient_deviations(self):
+        """Get a possible gradient deviation image to use.
+
+        Returns:
+            str: the filename of the gradient deviations to use, None if not applicable.
+        """
+        return None
+
 
 class SimpleSubjectInfo(SubjectInfo):
 
-    def __init__(self, subject_id, dwi_fname, protocol_loader, mask_fname, output_dir):
+    def __init__(self, subject_id, dwi_fname, protocol_loader, mask_fname, output_dir, gradient_deviations=None):
         """This class contains all the information about found subjects during batch fitting.
 
         It is returned by the method get_subjects() from the class BatchProfile.
@@ -161,6 +169,7 @@ class SimpleSubjectInfo(SubjectInfo):
         self._protocol_loader = protocol_loader
         self._mask_fname = mask_fname
         self._output_dir = output_dir
+        self._gradient_deviations = gradient_deviations
 
         if self._mask_fname is None:
             self._mask_fname = os.path.join(self.output_dir, 'auto_generated_mask.nii.gz')
@@ -191,6 +200,9 @@ class SimpleSubjectInfo(SubjectInfo):
             create_write_median_otsu_brain_mask(self.get_dwi_info(), protocol, self._mask_fname)
 
         return self._mask_fname
+
+    def get_gradient_deviations(self):
+        return self._gradient_deviations
 
 
 class BatchFitProtocolLoader(ProtocolLoader):
