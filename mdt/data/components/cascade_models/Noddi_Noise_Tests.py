@@ -50,7 +50,7 @@ class NoddiGONInit(SimpleCascadeModel):
             Noddi_GON_init_name,
             (mdt.get_model('s0'),
              mdt.get_model('BallStick'),
-             mdt.get_model('Noddi', evaluation_model=OffsetGaussianEvaluationModel().fix('sigma', math.sqrt(0.5))),))
+             mdt.get_model('Noddi', evaluation_model=OffsetGaussianEvaluationModel()),))
 
     def _prepare_model(self, model, position, output_previous_model, output_all_previous_models):
         super(NoddiGONInit, self)._prepare_model(model, position, output_previous_model, output_all_previous_models)
@@ -70,7 +70,7 @@ class NoddiGONJNInit(SimpleCascadeModel):
             Noddi_GON_JN_init_name,
             (mdt.get_model('s0'),
              mdt.get_model('BallStick'),
-             mdt.get_model('Noddi', evaluation_model=OffsetGaussianEvaluationModel().fix('sigma', math.sqrt(0.5)),
+             mdt.get_model('Noddi', evaluation_model=OffsetGaussianEvaluationModel(),
                            signal_noise_model=JohnsonSignalNoise()),))
 
     def _prepare_model(self, model, position, output_previous_model, output_all_previous_models):

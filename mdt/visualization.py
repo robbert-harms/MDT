@@ -1,3 +1,4 @@
+import locale
 import math
 import os
 import itertools
@@ -9,6 +10,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from mdt.utils import get_slice_in_dimension
 from matplotlib.gridspec import GridSpec
 import numpy as np
+import matplotlib.ticker as ticker
 
 
 __author__ = 'Robbert Harms'
@@ -33,7 +35,7 @@ class MapsVisualizer(object):
         self._volumes_shape = self._get_volumes_shape()
         self._figure = None
         self.maps_to_show = sorted(self._volumes_dict.keys())
-        self.names = {}
+        self.map_titles = {}
         self.general_plot_options = {}
         self.font_size = None
         self._image_subplots = {}
@@ -47,7 +49,7 @@ class MapsVisualizer(object):
         self.nmr_colorbar_axis_ticks = None
         self.grid_layout = SquareGridLayout()
 
-    def show(self, dimension=None, slice_ind=None, volume_ind=None, names=None, maps_to_show=None,
+    def show(self, dimension=None, slice_ind=None, volume_ind=None, map_titles=None, maps_to_show=None,
              general_plot_options=None, map_plot_options=None, to_file=None, block=True, maximize=False,
              window_title=None, axis_options=None, nmr_colorbar_axis_ticks=None, show_sliders=None, figure_options=None,
              grid_layout=None):
@@ -60,7 +62,7 @@ class MapsVisualizer(object):
                 The slice (in that dimension) to display
             volume_index (dict):
                 The volume to display initially.
-            names (dict):
+            map_titles (dict):
                 A list of names for the different maps. Use as {map_name: display_name} that is,
                  the key is the name of the map in the volumes dictionary and the display name is the string that will
                  be used as title for that map.
@@ -103,8 +105,8 @@ class MapsVisualizer(object):
 
         if volume_ind is not None:
             self._volume_ind = volume_ind
-        if names:
-            self.names = names
+        if map_titles:
+            self.map_titles = map_titles
         if maps_to_show:
             self.maps_to_show = maps_to_show
         if general_plot_options:
@@ -222,7 +224,7 @@ class MapsVisualizer(object):
         self._image_subplots = {}
 
         bottom_spacing = 0.07 if self.show_sliders else 0.015
-        self.grid_layout.spacings = dict(left=0.04, right=0.96, top=0.97, bottom=bottom_spacing)
+        self.grid_layout.spacings = dict(left=0.04, right=0.96, top=0.97, bottom=bottom_spacing, wspace=0.5)
 
         for ind, map_name in enumerate(self.maps_to_show):
             image_subplot_axis = self.grid_layout.get_axis(ind, len(self.maps_to_show))
@@ -233,8 +235,8 @@ class MapsVisualizer(object):
             maxval = self._minmax_vals[map_name][1]
 
             title = map_name
-            if map_name in self.names:
-                title = self.names[map_name]
+            if map_name in self.map_titles:
+                title = self.map_titles[map_name]
 
             plot_options = {'vmin': minval, 'vmax': maxval}
             plot_options.update(self.general_plot_options)
@@ -252,6 +254,9 @@ class MapsVisualizer(object):
             cax = divider.append_axes("right", size="5%", pad=0.05)
             cbar = plt.colorbar(vf, cax=cax)
             self._set_colorbar_axis_ticks(map_name, cbar)
+            cbar.formatter.set_powerlimits((-3, 4))
+            cbar.update_ticks()
+            cbar.ax.get_yticklabels()[-1].set_verticalalignment('top')
             self._colorbar_subplots.update({map_name: cbar})
 
         self._figure.canvas.draw()
@@ -481,7 +486,14 @@ class MyColourBarTickLocator(LinearLocator):
 
     def __call__(self):
         locations = LinearLocator.__call__(self)
-        return np.round(locations, 2)
+
+        new_locations = []
+        for location in locations:
+            if np.absolute(location) < 0.01:
+                new_locations.append(float("{:.1e}".format(location)))
+            else:
+                new_locations.append(np.round(location, 2))
+        return new_locations
 
 
 class GridLayout(object):

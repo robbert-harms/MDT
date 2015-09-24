@@ -3,6 +3,7 @@ import os
 import numpy as np
 from scipy.ndimage import binary_dilation, generate_binary_structure
 from six import string_types
+from mdt import utils
 from mdt.protocols import load_protocol
 import nibabel as nib
 from mot import runtime_configuration
@@ -63,6 +64,42 @@ def create_median_otsu_brain_mask(dwi_info, protocol, mask_threshold=0, **kwargs
     logger.info('Finished calculating a brain mask')
 
     return brain_mask
+
+
+def generate_threshold_fa_mask(fa_fname, brain_mask_fname, out_fname, fa_threshold=0.3, median_radius=1, numpass=2):
+    """Thresholds the given FA map with the given threshold, write the output to the given filename.
+
+    The idea is to create a simple white matter mask using FA values. Everything below the given threshold will be
+    masked.
+
+    Args:
+        fa_fname (str): the path to the FA file
+        brain_mask_fname (str): the path to the general brain mask in use
+        out_fname (str): where to write the outfile.
+        fa_threshold (double): the FA threshold. Everything below this threshold is masked (set to 0). To be precise:
+            where fa_data < fa_threshold set the value to 0.
+        median_radius (int): the radius of the median filter
+        numpass (int): the number of passes we apply a median filter
+    """
+    logger = logging.getLogger(__name__)
+    logger.info('Starting calculating a white matter mask using FA.')
+
+    nib_container = nib.load(fa_fname)
+    fa_data = nib_container.get_data()
+
+    fa_data[fa_data < fa_threshold] = 0
+    fa_data[fa_data > 0] = 1
+
+    mask = utils.load_brain_mask(brain_mask_fname)
+
+    median_filter = MedianFilter(median_radius,
+                                 runtime_configuration.runtime_config['cl_environments'],
+                                 runtime_configuration.runtime_config['load_balancer'])
+    for i in range(0, numpass):
+        fa_data = median_filter.filter(fa_data, mask=mask)
+
+    nib.Nifti1Image(fa_data, None, nib_container.get_header()).to_filename(out_fname)
+    logger.info('Finished calculating a white matter mask.')
 
 
 def create_write_median_otsu_brain_mask(dwi_info, protocol, output_fname, **kwargs):

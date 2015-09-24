@@ -421,6 +421,7 @@ def view_results_slice(data,
                        dimension=None,
                        slice_ind=None,
                        maps_to_show=None,
+                       map_titles=None,
                        general_plot_options=None,
                        map_plot_options=None,
                        font_size=None,
@@ -475,6 +476,7 @@ def view_results_slice(data,
     viz.show(dimension=dimension,
              slice_ind=slice_ind,
              maps_to_show=maps_to_show,
+             map_titles=map_titles,
              general_plot_options=general_plot_options,
              map_plot_options=map_plot_options,
              to_file=to_file,
@@ -517,7 +519,7 @@ def view_result_samples(data, voxel_ind=None, block=True):
             data = pickle.load(f)
 
     if voxel_ind is None:
-        voxel_ind = data[data.keys()[0]].shape[0] / 2
+        voxel_ind = data[list(data.keys())[0]].shape[0] / 2
     SampleVisualizer(data).show(voxel_ind=voxel_ind, block=block)
 
 
