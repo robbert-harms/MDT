@@ -34,7 +34,7 @@ def get_ball_sticks(nmr_sticks=1, invivo=True):
 
     description = 'The Ball and Stick model with {0} Sticks and with {1} defaults.'.format(nmr_sticks, vivo_type)
 
-    def model_construction_cb(evaluation_model=GaussianEvaluationModel().fix('sigma', math.sqrt(0.5)),
+    def model_construction_cb(evaluation_model=GaussianEvaluationModel().fix('sigma', 1),
                               signal_noise_model=None):
         csf = (compartments_loader.get_class('Weight')('Wball'),
                compartments_loader.load('Ball').fix('d', d_iso),

@@ -30,7 +30,7 @@ def get_tensor(invivo=True):
         dperp0 = 0.6e-10
         dperp1 = 0.6e-11
 
-    def model_construction_cb(evaluation_model=GaussianEvaluationModel().fix('sigma', math.sqrt(0.5)),
+    def model_construction_cb(evaluation_model=GaussianEvaluationModel().fix('sigma', 1),
                               signal_noise_model=None):
 
         tensor_ml = (compartments_loader.load('S0'),

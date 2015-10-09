@@ -18,7 +18,7 @@ compartments_loader = CompartmentModelsLoader()
 
 
 def get_noddi():
-    def model_construction_cb(evaluation_model=GaussianEvaluationModel().fix('sigma', math.sqrt(0.5)),
+    def model_construction_cb(evaluation_model=GaussianEvaluationModel().fix('sigma', 1),
                               signal_noise_model=None):
         noddi_ml = (compartments_loader.load('S0'),
                     ((compartments_loader.get_class('Weight')('Wic'),

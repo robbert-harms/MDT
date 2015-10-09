@@ -18,7 +18,7 @@ compartments_loader = CompartmentModelsLoader()
 
 
 def get_s0_model():
-    def model_construction_cb(evaluation_model=GaussianEvaluationModel().fix('sigma', ),
+    def model_construction_cb(evaluation_model=GaussianEvaluationModel().fix('sigma', 1),
                               signal_noise_model=None):
         return DMRICompositeSampleModel('s0',
                                         CompartmentModelTree((compartments_loader.load('S0'),)),
@@ -32,7 +32,7 @@ def get_s0_model():
 
 
 def get_s0_t2_model():
-    def model_construction_cb(evaluation_model=GaussianEvaluationModel().fix('sigma', math.sqrt(0.5)),
+    def model_construction_cb(evaluation_model=GaussianEvaluationModel().fix('sigma', 1),
                               signal_noise_model=None):
         s0t2_model_list = (compartments_loader.load('S0'),
                            compartments_loader.load('ExpT2Dec'),
@@ -48,7 +48,7 @@ def get_s0_t2_model():
 
 
 def get_s0_t2_t2_model():
-    def model_construction_cb(evaluation_model=GaussianEvaluationModel().fix('sigma', math.sqrt(0.5)),
+    def model_construction_cb(evaluation_model=GaussianEvaluationModel().fix('sigma', 1),
                               signal_noise_model=None):
         s0t2t2_ml = (compartments_loader.load('S0'),
                      ((compartments_loader.get_class('Weight')('Wlong'),
