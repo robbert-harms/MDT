@@ -30,10 +30,12 @@ model_float cmNoddi_IC(const model_float4 g,
                        const model_float d,
                        const model_float theta,
                        const model_float phi,
-                       const model_float kappa,
+                       const model_float kappa_non_scaled,
                        const model_float R,
                        global const model_float* const CLJnpZeros,
                        const int CLJnpZerosLength){
+
+    const model_float kappa = kappa_non_scaled * 10;
 
     model_float cosTheta = dot(g, (model_float4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0.0));
     if(fabs(cosTheta) > 1){

@@ -25,7 +25,9 @@ model_float cmNoddi_EC(const model_float4 g,
                        const model_float dperp,
                        const model_float theta,
                        const model_float phi,
-                       const model_float kappa){
+                       const model_float kappa_non_scaled){
+
+    const model_float kappa = kappa_non_scaled * 10;
 
     model_float dw_0, dw_1;
     model_float dotted = pown(dot(g, (model_float4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0)), 2);

@@ -97,9 +97,9 @@ def get_parameter(param_name):
                      parameter_transform=CosSqrClampTransform(),
                      sampling_proposal=GaussianProposal(1e-6)),
                  'kappa': FreeParameter(
-                     CLDataType.from_string('model_float'), 'kappa', False, 1, 1e-5, 2 * np.pi * 10,
+                     CLDataType.from_string('model_float'), 'kappa', False, 1, 1e-5, 2 * np.pi,
                      parameter_transform=CosSqrClampTransform(),
-                     sampling_proposal=GaussianProposal(1.0)),
+                     sampling_proposal=GaussianProposal(0.1)),
 
                  # for use in the GDRCylinder model
                  'gamma_k': FreeParameter(

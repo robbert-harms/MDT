@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 import logging.config as logging_config
 from mdt import configuration
+import numpy as np
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-03-10"
@@ -9,7 +10,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.3.5'
+VERSION = '0.3.6'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')
@@ -26,13 +27,14 @@ except ValueError:
     print('Logging disabled')
 
 
-"""The main init of MDT.
+"""
+The main initialization of MDT.
 
-We inlined all the import in the functions to do as less work as possible in the initialization.
+We inlined all the import in the functions to do as little work as possible during initialization.
 
-This is very important when working with MDT and the python multiprocessing library. In essence if we import
-PyOpencl (via MOT) before we start the multiprocessing we are bound to get in trouble. We will get an Out Of Memory
-exception when trying to create an kernel.
+This is important when working with MOT and the python multiprocessing library. In essence, if we import
+PyOpencl (via MOT) before we start the multiprocessing we will get an Out Of Memory exception when
+trying to create an kernel.
 """
 
 def batch_fit(data_folder, batch_profile_class=None, subjects_ind=None, recalculate=False,
@@ -890,32 +892,42 @@ def extract_volumes(input_volume_fname, input_protocol, output_volume_fname, out
     write_image(output_volume_fname, image_data, input_volume[1])
 
 
-def apply_mask(dwi, mask, inplace=False):
+def apply_mask(dwi, mask, inplace=True):
     """Apply a mask to the given input.
 
     Args:
-        input_fname (str or ndarray): The input file path or the image itself
+        input_fname (str, ndarray, list, tuple or dict): The input file path or the image itself or a list, tuple or
+            dict.
         mask_fname (str or ndarray): The filename of the mask or the mask itself
-        inplace (boolean): if true we apply the mask in place on the dwi image. If false we do not.
-            The default is False.
+        inplace (boolean): if True we apply the mask in place on the dwi image. If false we do not.
 
     Returns:
-        ndarray: image of the same size as the input image but with all values set to zero where the mask is zero.
+        Depending on the input either a singla image of the same size as the input image, or a list, tuple or dict.
+        This will set for all the output images the the values to zero where the mask is zero.
     """
     from six import string_types
     from mdt.data_loader.brain_mask import autodetect_brain_mask_loader
 
     mask = autodetect_brain_mask_loader(mask).get_data()
 
-    if isinstance(dwi, string_types):
-        dwi = load_dwi(dwi)[0]
+    def apply(volume, mask):
+        if isinstance(volume, string_types):
+            volume = load_dwi(volume)[0]
+        mask = mask.reshape(mask.shape + (volume.ndim - mask.ndim) * (1,))
 
-    mask = mask.reshape(mask.shape + (dwi.ndim - mask.ndim) * (1,))
+        if inplace:
+            volume *= mask
+            return volume
+        return volume * mask
 
-    if inplace:
-        dwi *= mask
-        return dwi
-    return dwi * mask
+    if isinstance(dwi, tuple):
+        return (apply(v, mask) for v in dwi)
+    elif isinstance(dwi, list):
+        return [apply(v, mask) for v in dwi]
+    elif isinstance(dwi, dict):
+        return {k: apply(v, mask) for k, v in dwi.items()}
+
+    return apply(dwi, mask)
 
 
 def apply_mask_to_file(input_fname, mask_fname, output_fname=None):
@@ -1059,3 +1071,19 @@ def get_config_from_yaml_file(file_name):
     """
     from mdt.configuration import get_config_from_yaml_file
     return get_config_from_yaml_file(file_name)
+
+
+def set_data_type(maps_dict, numpy_data_type=np.float32):
+    """Convert all maps in the given dictionary to the given numpy data type.
+
+    Args:
+        maps_dict (dict): the dictionary with the parameter maps
+        numpy_data_type (np datatype): the data type to convert the maps to. Use for example np.float32 for float and
+            np.float64 for double.
+
+    Returns:
+        the same dictionary with updated maps. This means the conversion happens in-place.
+    """
+    for k, v in maps_dict.items():
+        maps_dict[k] = v.astype(numpy_data_type)
+    return maps_dict
