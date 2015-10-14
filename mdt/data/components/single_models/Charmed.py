@@ -61,7 +61,6 @@ def get_charmed(nmr_restr=3):
 
         model = DMRICompositeSampleModel(name, CompartmentModelTree(ml),
                                          evaluation_model, signal_noise_model)
-        model.required_nmr_shells = 2
         modifiers = [('FR', lambda results: 1 - results['w_hin0.w'])]
         model.add_post_optimization_modifiers(modifiers)
 

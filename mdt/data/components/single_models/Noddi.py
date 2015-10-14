@@ -35,7 +35,6 @@ def get_noddi():
 
         noddi_model = DMRICompositeSampleModel('Noddi', CompartmentModelTree(noddi_ml), evaluation_model,
                                                signal_noise_model)
-        noddi_model.required_nmr_shells = 2
 
         cutoff = 1e-2
         noddi_dependencies = (

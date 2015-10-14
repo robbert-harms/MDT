@@ -1,5 +1,4 @@
-import mdt
-from mdt.cascade_model import SimpleCascadeModel
+from mdt.cascade_model import SimpleCascadeBuilder
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -8,74 +7,104 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 def get_components_list():
-    return [{'model_constructor': BallStick,
-             'name': BallStick_name,
-             'description': 'Cascade for BallStick.'},
-
-            {'model_constructor': BallStickExVivo,
-             'name': BallStickExVivo_name,
-             'description': 'Cascade for BallStick ex vivo.'},
-
-            {'model_constructor': BallStickStick,
-             'name': BallStickStick_name,
-             'description': 'Cascade for Ball and 2 Sticks.'},
-
-            {'model_constructor': BallStickStickStick,
-             'name': BallStickStickStick_name,
-             'description': 'Cascade for Ball and 3 Sticks.'}]
+    return [BallStick().build(),
+            BallStickExVivo().build(),
+            BallStickStick().build(),
+            BallStickStickExVivo().build(),
+            BallStickStickStick().build(),
+            BallStickStickStickExVivo().build()]
 
 
-BallStick_name = 'BallStick (Cascade)'
-class BallStick(SimpleCascadeModel):
+class BallStick(SimpleCascadeBuilder):
 
-    def __init__(self):
-        super(BallStick, self).__init__(
-            BallStick_name,
-            (mdt.get_model('s0'),
-             mdt.get_model('BallStick'),))
+    def _get_name(self):
+        return 'BallStick (Cascade)'
 
+    def _get_description(self):
+        return 'Cascade for BallStick.'
 
-BallStickExVivo_name = 'BallStick-ExVivo (Cascade)'
-class BallStickExVivo(SimpleCascadeModel):
-
-    def __init__(self):
-        super(BallStickExVivo, self).__init__(
-            BallStickExVivo_name,
-            (mdt.get_model('s0'),
-             mdt.get_model('BallStick-ExVivo'),))
+    def _get_cascade_names(self):
+        return ('s0',
+                'BallStick')
 
 
-BallStickStick_name = 'BallStickStick (Cascade)'
-class BallStickStick(SimpleCascadeModel):
+class BallStickExVivo(SimpleCascadeBuilder):
 
-    def __init__(self):
-        super(BallStickStick, self).__init__(
-            BallStickStick_name,
-            (BallStick(),
-             mdt.get_model('BallStickStick')))
+    def _get_name(self):
+        return 'BallStick-ExVivo (Cascade)'
 
-    def _prepare_model(self, model, position, output_previous_model, output_all_previous_models):
-        super(BallStickStick, self)._prepare_model(model, position, output_previous_model, output_all_previous_models)
-        if position == 1:
-            model.cmf('Stick0').init('theta', output_previous_model['Stick.theta'])
-            model.cmf('Stick0').init('phi', output_previous_model['Stick.phi'])
-            model.cmf('Wstick0').init('w', output_previous_model['Wstick.w'])
-            model.cmf('Wstick1').init('w', 0.0)
+    def _get_description(self):
+        return 'Cascade for BallStick with ex vivo defaults.'
+
+    def _get_cascade_names(self):
+        return ('s0',
+                'BallStick-ExVivo')
 
 
-BallStickStickStick_name = 'BallStickStickStick (Cascade)'
-class BallStickStickStick(SimpleCascadeModel):
+class BallStickStick(SimpleCascadeBuilder):
 
-    def __init__(self):
-        super(BallStickStickStick, self).__init__(
-            BallStickStickStick_name,
-            (BallStickStick(),
-             mdt.get_model('BallStickStickStick'),))
+    def _get_name(self):
+        return 'BallStickStick (Cascade)'
 
-    def _prepare_model(self, model, position, output_previous_model, output_all_previous_models):
-        super(BallStickStickStick, self)._prepare_model(model, position,
-                                                        output_previous_model, output_all_previous_models)
-        if position == 1:
-            model.cmf('Stick0').fix('theta', output_previous_model['Stick0.theta'])
-            model.cmf('Stick0').fix('phi', output_previous_model['Stick0.phi'])
-            model.cmf('Wstick1').init('w', 0.0)
+    def _get_description(self):
+        return 'Cascade for BallStickStick.'
+
+    def _get_cascade_names(self):
+        return ('BallStick (Cascade)',
+                'BallStickStick')
+
+    def _get_prepare_model_function(self):
+        def _prepare_model(self, model, position, output_previous, output_all_previous):
+            if position == 1:
+                model.init('Stick0.theta', output_previous['Stick.theta'])
+                model.init('Stick0.phi', output_previous['Stick.phi'])
+                model.init('Wstick0.w', output_previous['Wstick.w'])
+                model.init('Wstick1.w', 0.0)
+        return _prepare_model
+
+
+class BallStickStickExVivo(BallStickStick):
+
+    def _get_name(self):
+        return 'BallStickStick-ExVivo (Cascade)'
+
+    def _get_description(self):
+        return 'Cascade for BallStickStick with ex vivo defaults.'
+
+    def _get_cascade_names(self):
+        return ('BallStick-ExVivo (Cascade)',
+                'BallStickStick-ExVivo')
+
+
+class BallStickStickStick(SimpleCascadeBuilder):
+
+    def _get_name(self):
+        return 'BallStickStickStick (Cascade)'
+
+    def _get_description(self):
+        return 'Cascade for BallStickStickStick.'
+
+    def _get_cascade_names(self):
+        return ('BallStickStick (Cascade)',
+                'BallStickStickStick')
+
+    def _get_prepare_model_function(self):
+        def _prepare_model(self, model, position, output_previous, output_all_previous):
+            if position == 1:
+                model.fix('Stick0.theta', output_previous['Stick0.theta'])
+                model.fix('Stick0.phi', output_previous['Stick0.phi'])
+                model.init('Wstick1.w', 0.0)
+        return _prepare_model
+
+
+class BallStickStickStickExVivo(BallStickStick):
+
+    def _get_name(self):
+        return 'BallStickStickStick-ExVivo (Cascade)'
+
+    def _get_description(self):
+        return 'Cascade for BallStickStickStick with ex vivo defaults.'
+
+    def _get_cascade_names(self):
+        return ('BallStickStick-ExVivo (Cascade)',
+                'BallStickStickStick-ExVivo')

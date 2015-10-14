@@ -1,5 +1,4 @@
-import mdt
-from mdt.cascade_model import SimpleCascadeModel
+from mdt.cascade_model import SimpleCascadeBuilder
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -8,38 +7,53 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 def get_components_list():
-    return [{'model_constructor': Tensor,
-             'name': Tensor_name,
-             'description': 'Cascade for Tensor.'},
-
-            {'model_constructor': TensorExVivo,
-             'name': TensorExVivo_name,
-             'description': 'Cascade for Tensor with ex vivo defaults.'},
+    return [Tensor().build(),
+            TensorExVivo().build(),
+            TensorT2().build()
             ]
 
 
-Tensor_name = 'Tensor (Cascade)'
-class Tensor(SimpleCascadeModel):
+class Tensor(SimpleCascadeBuilder):
 
-    def __init__(self, name=None, cascade_models=None):
-        name = name or Tensor_name
-        cascade_models = cascade_models or (mdt.get_model('s0'),
-                                            mdt.get_model('BallStick'),
-                                            mdt.get_model('Tensor'),)
-        super(Tensor, self).__init__(name, cascade_models)
+    def _get_name(self):
+        return 'Tensor (Cascade)'
 
-    def _prepare_model(self, model, position, output_previous_model, output_all_previous_models):
-        super(Tensor, self)._prepare_model(model, position, output_previous_model, output_all_previous_models)
-        if position == 2:
-            model.cmf('Tensor').init('theta', output_previous_model['Stick.theta'])
-            model.cmf('Tensor').init('phi', output_previous_model['Stick.phi'])
+    def _get_description(self):
+        return 'Cascade for Tensor.'
+
+    def _get_cascade_names(self):
+        return ('BallStick (Cascade)',
+                'Tensor')
+
+    def _get_prepare_model_function(self):
+        def _prepare_model(self, model, position, output_previous, output_all_previous):
+            if position == 1:
+                model.init('Tensor.theta', output_previous['Stick.theta'])
+                model.init('Tensor.phi', output_previous['Stick.phi'])
+        return _prepare_model
 
 
-TensorExVivo_name = 'Tensor-ExVivo (Cascade)'
 class TensorExVivo(Tensor):
 
-    def __init__(self):
-        super(TensorExVivo, self).__init__(name = TensorExVivo_name,
-                                           cascade_models=(mdt.get_model('s0'),
-                                                           mdt.get_model('BallStick-ExVivo'),
-                                                           mdt.get_model('Tensor-ExVivo'),))
+    def _get_name(self):
+        return 'Tensor-ExVivo (Cascade)'
+
+    def _get_description(self):
+        return 'Cascade for Tensor with ex vivo defaults.'
+
+    def _get_cascade_names(self):
+        return ('BallStick-ExVivo (Cascade)',
+                'Tensor-ExVivo')
+
+
+class TensorT2(Tensor):
+
+    def _get_name(self):
+        return 'Tensor-T2 (Cascade)'
+
+    def _get_description(self):
+        return 'Cascade for Tensor with an extra T2 model.'
+
+    def _get_cascade_names(self):
+        return ('BallStick-T2 (Cascade)',
+                'Tensor-T2')

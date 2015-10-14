@@ -1,0 +1,32 @@
+#!/usr/bin/env python
+import argparse
+import mdt
+import mdt.utils
+
+__author__ = 'Robbert Harms'
+__date__ = "2015-08-18"
+__maintainer__ = "Robbert Harms"
+__email__ = "robbert.harms@maastrichtuniversity.nl"
+
+
+if __name__ == '__main__':
+    def get_arg_parser():
+        description = "This script prints a list of all the models MDT can find in your home directory."
+
+        parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
+        parser.add_argument('-s', '--short', action='store_true', default=False, help='do not print the descriptions')
+        return parser
+
+    parser = get_arg_parser()
+    args = parser.parse_args()
+
+    meta_info = mdt.get_models_meta_info()
+    models = mdt.get_models_list()
+
+    max_model_name = max(map(len, models))
+
+    for model in models:
+        if args.short:
+            print(model)
+        else:
+            print(('%-' + str(max_model_name + 2) + 's%-s') % (model, meta_info[model]['description']))

@@ -193,7 +193,10 @@ class FileBrowserWidget(CompositeWidget):
     @staticmethod
     def common_file_types(choice):
         if choice == 'image_volumes':
-            l = (('All image files', ('*.nii.gz', '*.nii', '*.img')),)
+            l = (('Nifti gz', '*.nii.gz'),
+                 ('Nifti', '*.nii'),
+                 ('IMG, HDR', '*.img'),
+                 ('All files', '*.*'))
         elif choice == 'protocol_files':
             l = (('Protocol files', '*.prtcl'),)
         elif choice == 'txt':

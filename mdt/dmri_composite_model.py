@@ -215,5 +215,8 @@ class DMRICompositeSampleModel(SampleModelBuilder, SmoothableModelInterface,
                                                       runtime_configuration.runtime_config['load_balancer'])
         log_likelihood = log_likelihood_calc.calculate(self, results_dict)
         k = self.get_nmr_estimable_parameters()
-        results_dict.update({'BIC': -2 * log_likelihood + k * np.log(self._problem_data.protocol.length),
-                             'AIC': -2 * log_likelihood + k * 2})
+        n = self._problem_data.protocol.length
+        results_dict.update({'LogLikelihood': log_likelihood,
+                             'BIC': -2 * log_likelihood + k * np.log(n),
+                             'AIC': -2 * log_likelihood + k * 2,
+                             'AICc': -2 * log_likelihood + k * 2 + (2 * k * (k + 1))/(n - k - 1)})

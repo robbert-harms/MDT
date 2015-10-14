@@ -1,3 +1,4 @@
+import mdt
 from mdt.utils import simple_parameter_init, ProtocolCheckInterface, condense_protocol_problems
 
 __author__ = 'Robbert Harms'
@@ -121,6 +122,10 @@ class SimpleCascadeModel(CascadeModelInterface, ProtocolCheckInterface):
         """Create a new cascade model from a given list of models.
 
         This class adds some standard bookkeeping to make implementing cascade models easier.
+
+        Args:
+            name (str): the name of this cascade model
+            model_list (list of models): the list of models this cascade consists of
         """
         super(CascadeModelInterface, self).__init__()
         self._name = name
@@ -183,7 +188,7 @@ class SimpleCascadeModel(CascadeModelInterface, ProtocolCheckInterface):
         for model in self._model_list:
             model.set_gradient_deviations(grad_dev)
 
-    def _prepare_model(self, model, position, output_previous_model, output_all_previous_models):
+    def _prepare_model(self, model, position, output_previous, output_all_previous):
         """Prepare the next model with the output of the previous model.
 
         By default this model initializes all parameter maps to the output of the previous model.
@@ -191,15 +196,15 @@ class SimpleCascadeModel(CascadeModelInterface, ProtocolCheckInterface):
         Args:
             model: The model to prepare
             position: The position of this model in the list of models
-            output_previous_model (dict): the output of the (direct) previous model.
-            output_previous_models (dict): The output of the previous models. Indexed first by model name, second
+            output_previous (dict): the output of the (direct) previous model.
+            output_all_previous (dict): The output of all the previous models. Indexed first by model name, second
                 by full parameter name.
 
         Returns:
             None, preparing should happen in-place.
         """
         if not isinstance(model, CascadeModelInterface):
-            simple_parameter_init(model, output_previous_model)
+            simple_parameter_init(model, output_previous)
 
     def _get_optimization_config(self, position):
         """Get the optimization config for the model at the given position.
@@ -215,3 +220,81 @@ class SimpleCascadeModel(CascadeModelInterface, ProtocolCheckInterface):
     def _set_double_precision(self, double_precision):
         for model in self._model_list:
             model.double_precision = double_precision
+
+
+class CascadeBuilderInterface(object):
+
+    def build(self):
+        """Get the dictionary with the information about the build cascade.
+
+        Returns:
+            dict: the information dict. Containing at least the items:
+                 - model_constructor: reference to the class
+                 - name: the name of the model
+                 - description: the description string
+        """
+        return {
+            'model_constructor': self._get_model_class(),
+            'name': self._get_name(),
+            'description': self._get_description()
+        }
+
+    def _get_name(self):
+        """Get the name of the build Charmed cascade
+
+        Return:
+            str: the name of the model (as it appears in the model list)
+        """
+
+    def _get_description(self):
+        """Get the description of the build Cascade
+
+        Returns:
+            str: the description
+        """
+
+    def _get_model_class(self):
+        """Get the actual model class.
+
+        Returns:
+            class: the model class
+        """
+
+
+class SimpleCascadeBuilder(CascadeBuilderInterface):
+
+    def _get_cascade_names(self):
+        """Get the names of the models in the cascade.
+
+        Returns:
+            list: the list of model names that constitute the cascade.
+        """
+        return ()
+
+    def _get_prepare_model_function(self):
+        """Get the function to prepare the models in the cascade.
+
+        Returns:
+            function: the function to prepare the model. This should have the exact same arguments as the function
+                _prepare_model in the SimpleCascadeModel class.
+        """
+        def _prepare_model(self, model, position, output_previous_model, output_all_previous_models):
+            pass
+        return _prepare_model
+
+    def _get_model_class(self):
+        name = self._get_name()
+        cascade_names = self._get_cascade_names()
+        prepare_function = self._get_prepare_model_function()
+
+        class ModelClass(SimpleCascadeModel):
+
+            def __init__(self):
+                cascade = list(map(mdt.get_model, cascade_names))
+                super(ModelClass, self).__init__(name, cascade)
+
+            def _prepare_model(self, model, position, output_previous, output_all_previous):
+                super(ModelClass, self)._prepare_model(model, position, output_previous, output_all_previous)
+                prepare_function(self, model, position, output_previous, output_all_previous)
+
+        return ModelClass

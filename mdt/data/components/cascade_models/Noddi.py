@@ -1,5 +1,4 @@
-import mdt
-from mdt.cascade_model import SimpleCascadeModel
+from mdt.cascade_model import SimpleCascadeBuilder
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -8,49 +7,51 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 def get_components_list():
-    return [{'model_constructor': NoddiInit,
-             'name': Noddi_init_name,
-             'description': 'Cascade for Noddi with initialized directions.'},
-            {'model_constructor': NoddiFixed,
-             'name': Noddi_fixed_name,
-             'description': 'Cascade for Noddi with fixed directions.'}]
+    return [Noddi().build(),
+            Noddi_fixed().build()]
 
 
-Noddi_init_name = 'Noddi (Cascade)'
-class NoddiInit(SimpleCascadeModel):
+class Noddi(SimpleCascadeBuilder):
 
-    def __init__(self):
-        super(NoddiInit, self).__init__(
-            Noddi_init_name,
-            (mdt.get_model('s0'),
-             mdt.get_model('BallStick'),
-             mdt.get_model('Noddi'),))
+    def _get_name(self):
+        return 'Noddi (Cascade)'
 
-    def _prepare_model(self, model, position, output_previous_model, output_all_previous_models):
-        super(NoddiInit, self)._prepare_model(model, position, output_previous_model, output_all_previous_models)
-        if position == 2:
-            model.cmf('Wic').init('w', output_previous_model['Wstick.w']/2.0)
-            model.cmf('Wec').init('w', output_previous_model['Wstick.w']/2.0)
-            model.cmf('Wcsf').init('w', output_previous_model['Wball.w'])
-            model.cmf('Noddi_IC').init('theta', output_previous_model['Stick.theta'])
-            model.cmf('Noddi_IC').init('phi', output_previous_model['Stick.phi'])
+    def _get_description(self):
+        return 'Cascade for Noddi initialized from Ball&Stick.'
+
+    def _get_cascade_names(self):
+        return ('BallStick (Cascade)',
+                'Noddi')
+
+    def _get_prepare_model_function(self):
+        def _prepare_model(self, model, position, output_previous, output_all_previous):
+            if position == 2:
+                model.init('Wic.w', output_previous['Wstick.w']/2.0)
+                model.init('Wec.w', output_previous['Wstick.w']/2.0)
+                model.init('Wcsf.w', output_previous['Wball.w'])
+                model.init('Noddi_IC.theta', output_previous['Stick.theta'])
+                model.init('Noddi_IC.phi', output_previous['Stick.phi'])
+        return _prepare_model
 
 
-Noddi_fixed_name = 'Noddi (Cascade|fixed)'
-class NoddiFixed(SimpleCascadeModel):
+class Noddi_fixed(SimpleCascadeBuilder):
 
-    def __init__(self):
-        super(NoddiFixed, self).__init__(
-            Noddi_fixed_name,
-            (mdt.get_model('s0'),
-             mdt.get_model('BallStick'),
-             mdt.get_model('Noddi'),))
+    def _get_name(self):
+        return 'Noddi (Cascade|fixed)'
 
-    def _prepare_model(self, model, position, output_previous_model, output_all_previous_models):
-        super(NoddiFixed, self)._prepare_model(model, position, output_previous_model, output_all_previous_models)
-        if position == 2:
-            model.cmf('Wic').init('w', output_previous_model['Wstick.w']/2.0)
-            model.cmf('Wec').init('w', output_previous_model['Wstick.w']/2.0)
-            model.cmf('Wcsf').init('w', output_previous_model['Wball.w'])
-            model.cmf('Noddi_IC').fix('theta', output_previous_model['Stick.theta'])
-            model.cmf('Noddi_IC').fix('phi', output_previous_model['Stick.phi'])
+    def _get_description(self):
+        return 'Cascade for Noddi with fixed directions from Ball&Stick.'
+
+    def _get_cascade_names(self):
+        return ('BallStick (Cascade)',
+                'Noddi')
+
+    def _get_prepare_model_function(self):
+        def _prepare_model(self, model, position, output_previous, output_all_previous):
+            if position == 2:
+                model.init('Wic.w', output_previous['Wstick.w']/2.0)
+                model.init('Wec.w', output_previous['Wstick.w']/2.0)
+                model.init('Wcsf.w', output_previous['Wball.w'])
+                model.fix('Noddi_IC.theta', output_previous['Stick.theta'])
+                model.fix('Noddi_IC.phi', output_previous['Stick.phi'])
+        return _prepare_model

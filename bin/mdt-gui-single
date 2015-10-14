@@ -9,7 +9,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 def get_arg_parser():
-    description = "Launches the MDT TK single subject graphical user interface.\n"
+    description = "Launches the MDT TK single subject Graphical User Interface.\n"
     parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-d', '--dir', metavar='dir', type=str, help='the base directory for the file choosers',
                         default=None)

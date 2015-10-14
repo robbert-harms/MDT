@@ -251,7 +251,8 @@ class ComponentsSourceMulti(ComponentsSource):
 
     def get_meta_info(self, name):
         for x in self._components_list:
-            return {k: v for k, v in x.items() if k != 'model_constructor'}
+            if x['name'] == name:
+                return x
         return {}
 
 

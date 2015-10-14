@@ -811,10 +811,10 @@ def get_models_meta_info():
     cml = CascadeModelsLoader()
 
     meta_info = {}
-    for x in (sml, cml):
-        models = x.list_all()
+    for model_loader in (sml, cml):
+        models = model_loader.list_all()
         for model in models:
-            meta_info.update({model: x.get_meta_info(model)})
+            meta_info.update({model: model_loader.get_meta_info(model)})
     return meta_info
 
 
