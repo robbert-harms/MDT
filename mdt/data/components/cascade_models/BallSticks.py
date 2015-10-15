@@ -1,4 +1,5 @@
-from mdt.cascade_model import SimpleCascadeBuilder
+import mdt
+from mdt.cascade_model import SimpleCascadeBuilder, SimpleCascadeModel
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -7,7 +8,8 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 def get_components_list():
-    return [BallStick().build(),
+    return [#BallStick().build(),
+            BallStick.get_meta_data(),
             BallStickExVivo().build(),
             BallStickStick().build(),
             BallStickStickExVivo().build(),
@@ -15,17 +17,38 @@ def get_components_list():
             BallStickStickStickExVivo().build()]
 
 
-class BallStick(SimpleCascadeBuilder):
 
-    def _get_name(self):
-        return 'BallStick (Cascade)'
 
-    def _get_description(self):
-        return 'Cascade for BallStick.'
 
-    def _get_cascade_names(self):
-        return ('s0',
-                'BallStick')
+class BallStick(SimpleCascadeModel):
+
+    def __init__(self):
+        cascade_names = ('s0', 'BallStick')
+        cascade = list(map(mdt.get_model, cascade_names))
+        super(BallStick, self).__init__(BallStick.get_meta_data()['name'], cascade)
+
+    def _prepare_model(self, model, position, output_previous, output_all_previous):
+        super(BallStick, self)._prepare_model(model, position, output_previous, output_all_previous)
+
+    @staticmethod
+    def get_meta_data():
+        return {
+            'model_constructor': BallStick,
+            'name': 'BallStick (Cascade)',
+            'description': 'Cascade for Ballstick'
+        }
+
+# class BallStick(SimpleCascadeBuilder):
+#
+#     def _get_name(self):
+#         return 'BallStick (Cascade)'
+#
+#     def _get_description(self):
+#         return 'Cascade for BallStick.'
+#
+#     def _get_cascade_names(self):
+#         return ('s0',
+#                 'BallStick')
 
 
 class BallStickExVivo(SimpleCascadeBuilder):
