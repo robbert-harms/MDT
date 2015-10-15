@@ -1,5 +1,4 @@
-import mdt
-from mdt.cascade_model import SimpleCascadeModel, cascade_builder_decorator
+from mdt.cascade_model import CascadeModelBuilder
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -7,17 +6,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-def get_components_list():
-    return [BallStick.get_meta_data(),
-            BallStickExVivo.get_meta_data(),
-            BallStickStick.get_meta_data(),
-            BallStickStickExVivo.get_meta_data(),
-            BallStickStickStick.get_meta_data(),
-            BallStickStickStickExVivo.get_meta_data()]
-
-
-@cascade_builder_decorator
-class BallStick(SimpleCascadeModel):
+class BallStick(CascadeModelBuilder):
 
     name = 'BallStick (Cascade)'
     description = 'Cascade for Ballstick'
@@ -25,7 +14,6 @@ class BallStick(SimpleCascadeModel):
               'BallStick')
 
 
-@cascade_builder_decorator
 class BallStickExVivo(BallStick):
 
     name = 'BallStick-ExVivo (Cascade)'
@@ -34,24 +22,22 @@ class BallStickExVivo(BallStick):
               'BallStick-ExVivo')
 
 
-@cascade_builder_decorator
-class BallStickStick(SimpleCascadeModel):
+class BallStickStick(CascadeModelBuilder):
 
     name = 'BallStickStick (Cascade)'
     description = 'Cascade for BallStickStick.'
     models = ('BallStick (Cascade)',
               'BallStickStick')
 
-    def _prepare_model(self, model, position, output_previous, output_all_previous):
-        super(BallStickStick, self)._prepare_model(model, position, output_previous, output_all_previous)
-        if position == 1:
+    def _prepare_model(self, model, output_previous, output_all_previous):
+        super(BallStickStick, self)._prepare_model(model, output_previous, output_all_previous)
+        if model.name == 'BallStickStick':
             model.init('Stick0.theta', output_previous['Stick.theta'])
             model.init('Stick0.phi', output_previous['Stick.phi'])
             model.init('Wstick0.w', output_previous['Wstick.w'])
             model.init('Wstick1.w', 0.0)
 
 
-@cascade_builder_decorator
 class BallStickStickExVivo(BallStickStick):
 
     name = 'BallStickStick-ExVivo (Cascade)'
@@ -60,21 +46,19 @@ class BallStickStickExVivo(BallStickStick):
               'BallStickStick-ExVivo')
 
 
-@cascade_builder_decorator
-class BallStickStickStick(SimpleCascadeModel):
+class BallStickStickStick(CascadeModelBuilder):
 
     name = 'BallStickStickStick (Cascade)'
     description = 'Cascade for BallStickStickStick.'
     models = ('BallStickStick (Cascade)',
               'BallStickStickStick')
 
-    def _prepare_model(self, model, position, output_previous, output_all_previous):
-        super(BallStickStickStick, self)._prepare_model(model, position, output_previous, output_all_previous)
-        if position == 1:
+    def _prepare_model(self, model, output_previous, output_all_previous):
+        super(BallStickStickStick, self)._prepare_model(model, output_previous, output_all_previous)
+        if model.name == 'BallStickStickStick':
             model.init('Wstick1.w', 0.0)
 
 
-@cascade_builder_decorator
 class BallStickStickStickExVivo(BallStickStickStick):
 
     name = 'BallStickStickStick-ExVivo (Cascade)'

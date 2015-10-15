@@ -257,7 +257,6 @@ class ModelFit(object):
             last_result = None
             while model.has_next():
                 sub_model = model.get_next(results)
-                meta_optimizer_config = model.get_optimization_config(sub_model)
 
                 sub_recalculate = False
                 if recalculate:

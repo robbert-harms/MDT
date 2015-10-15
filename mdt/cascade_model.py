@@ -36,19 +36,6 @@ class CascadeModelInterface(object):
         self._double_precision = double_precision
         self._set_double_precision(double_precision)
 
-    def get_optimization_config(self, model):
-        """Get the optimization config for the given model.
-
-        This function should return optimization hints that specify how a model in this cascade should be optimized.
-        The model should be one of the models in this cascade.
-
-        Args:
-            model: one of the models in this cascade
-
-        Returns:
-            dict: dictionary with optimizer configurations for the given model
-        """
-
     def has_next(self):
         """Check if this cascade model has a next model.
 
@@ -136,11 +123,6 @@ class SimpleCascadeModel(CascadeModelInterface, ProtocolCheckInterface):
     def name(self):
         return self._name
 
-    def get_optimization_config(self, model):
-        for position, m in enumerate(self._model_list):
-            if m == model:
-                return self._get_optimization_config(position)
-
     def has_next(self):
         return self._iteration_position != len(self._model_list)
 
@@ -149,7 +131,7 @@ class SimpleCascadeModel(CascadeModelInterface, ProtocolCheckInterface):
         output_previous = {}
         if self._iteration_position > 0:
             output_previous = output_previous_models[self._model_list[self._iteration_position - 1].name]
-        self._prepare_model(next_model, self._iteration_position, output_previous, output_previous_models)
+        self._prepare_model(next_model, output_previous, output_previous_models)
         self._iteration_position += 1
         return next_model
 
@@ -188,14 +170,13 @@ class SimpleCascadeModel(CascadeModelInterface, ProtocolCheckInterface):
         for model in self._model_list:
             model.set_gradient_deviations(grad_dev)
 
-    def _prepare_model(self, model, position, output_previous, output_all_previous):
+    def _prepare_model(self, model, output_previous, output_all_previous):
         """Prepare the next model with the output of the previous model.
 
         By default this model initializes all parameter maps to the output of the previous model.
 
         Args:
             model: The model to prepare
-            position: The position of this model in the list of models
             output_previous (dict): the output of the (direct) previous model.
             output_all_previous (dict): The output of all the previous models. Indexed first by model name, second
                 by full parameter name.
@@ -206,29 +187,28 @@ class SimpleCascadeModel(CascadeModelInterface, ProtocolCheckInterface):
         if not isinstance(model, CascadeModelInterface):
             simple_parameter_init(model, output_previous)
 
-    def _get_optimization_config(self, position):
-        """Get the optimization config for the model at the given position.
-
-        Args:
-            position (int): the position of the model in the model list
-
-        Returns:
-            dict: dictionary with optimizer configurations for the given model
-        """
-        return {}
-
     def _set_double_precision(self, double_precision):
         for model in self._model_list:
             model.double_precision = double_precision
 
 
 def cascade_builder_decorator(original_class):
-    """This function is supposed to be used as a decorator for building cascade models.
+    """This function can be used as a decorator for building cascade models.
 
     By using this decorator you can almost declaratively construct a cascade model.
 
     This decorator will overwrite the init method to include the name and the models (it will create the models
     from a string name). It also adds the static method get_meta_data() to get the meta data for the components list.
+
+    The actual preferred way of building cascade models is by using the CascadaBuilderMetaClass and by inheriting
+    from the CascadeModelBuilder. If however you have a strong need of using a decorator you can use this one.
+
+    Example usage:
+        @cascade_builder_decorator
+        class BallStick(SimpleCascadeModel):
+            name = 'BallStick (Cascade)'
+            description = 'Cascade for Ballstick'
+            models = ('s0', 'BallStick')
 
     Args:
         original_class (class): the class we want to wrap
@@ -251,3 +231,45 @@ def cascade_builder_decorator(original_class):
     original_class.get_meta_data = staticmethod(get_meta_data)
 
     return original_class
+
+
+class CascadeBuilderMetaClass(type):
+
+    def __new__(mcs, name, bases, dct):
+        """Adds methods to the class at class creation time."""
+        result_class = super(CascadeBuilderMetaClass, mcs).__new__(mcs, name, bases, dct)
+
+        def get_meta_data():
+            return {'name': result_class.name,
+                    'model_constructor': result_class,
+                    'description': result_class.description}
+
+        result_class.get_meta_data = staticmethod(get_meta_data)
+
+        orig_init = result_class.__init__
+
+        def __init__(self, *args, **kws):
+            if len(args) == 2:
+                # inheritance is used, the name and model list are already set
+                orig_init(self, *args, **kws)
+            else:
+                orig_init(self, result_class.name, list(map(mdt.get_model, result_class.models)), **kws)
+
+        result_class.__init__ = __init__
+
+        return result_class
+
+
+class CascadeModelBuilder(SimpleCascadeModel, metaclass=CascadeBuilderMetaClass):
+    """The model builder to inherit from.
+
+    One can use this to create models in a declarative style. Example of such a model definition:
+
+    class BallStick(CascadeModelBuilder):
+        name = 'BallStick (Cascade)'
+        description = 'Cascade for Ballstick'
+        models = ('s0', 'BallStick')
+
+    This class has a metaclass which is able to use the class variables to guide the construction of the model.
+    """
+    __metaclass__ = CascadeBuilderMetaClass

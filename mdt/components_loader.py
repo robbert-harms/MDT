@@ -1,11 +1,16 @@
+"""The general components loader.
+
+This modules consists of two main items, component sources and component loaders. The component loaders have a list
+of sources from which they load the available components.
+"""
 import glob
+import inspect
 import os
 import imp
 #todo in P3.4 replace imp calls with importlib.SourceFileLoader(name, path).load_module(name)
 from mdt import configuration
 from mot.base import LibraryFunction, ModelFunction
 import mot.cl_functions
-from inspect import getmembers, isclass
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -40,33 +45,16 @@ class ComponentsLoader(object):
         """The base class for loading and displaying components.
 
         Args:
-            sources (list): the list of sources to use
+            sources (list): the list of sources to use for loading the components
         """
         self._sources = sources
 
     def list_all(self):
         """List the names of all the available components."""
-        return list(sorted(set(self.list_builtin() + self.list_user())))
-
-    def list_builtin(self):
-        """List the names of all the loadable builtin components."""
-        builtin_modules = []
-
+        components = []
         for source in self._sources:
-            if source.is_builtin:
-                builtin_modules.extend(source.list())
-
-        return list(sorted(set(builtin_modules)))
-
-    def list_user(self):
-        """List the names of all the components from the user folder."""
-        builtin_modules = []
-
-        for source in self._sources:
-            if not source.is_builtin:
-                builtin_modules.extend(source.list())
-
-        return list(sorted(set(builtin_modules)))
+            components.extend(source.list())
+        return list(sorted(set(components)))
 
     def has_component(self, name):
         """Check if this loader has a component with the given name.
@@ -146,47 +134,6 @@ class ComponentsLoader(object):
         raise ImportError("No component found with the name {}".format(name))
 
 
-class ComponentsLoaderSingle(ComponentsLoader):
-
-    def __init__(self, component_type):
-        """The components loader for single component per file component type.
-
-        This expects that the available python files contain a class with the same name as the file in which the class
-        resides. For example, if we have a python file named "MySingleComponent.py" we should at least have the class
-        named "MySingleComponent" in that python file. Additionally, the file can contain a dictionary named
-        'meta_info' which contains meta information about that module.
-
-        To have multiple (named) components in one file you can use the ComponentsLoaderMulti style of
-        component loading.
-
-        Args:
-            component_type (str): the type of component we wish to load. This should be named exactly to one of the
-                directories available in mdt/data/components/
-        """
-        super(ComponentsLoaderSingle, self).__init__([UserComponentsSourceSingle(component_type),
-                                                      MOTSourceSingle(component_type)])
-
-
-class ComponentsLoaderMulti(ComponentsLoader):
-
-    def __init__(self, component_type):
-        """The components loader for multiple components per file component type.
-
-        This expects that the available python files contain a function named "get_components_list()" that should
-        return a list of functions that, when called, return a dictionary with information about the available modules.
-        That dictionary in turn should at least contain the key 'model_constructor' which should return a function
-        that returns a model instance.
-
-        To have a single (named) component in one file you can use the ComponentsLoaderSingle style of
-        component loading.
-
-        Args:
-            component_type (str): the type of component we wish to load. This should be named exactly to one of the
-                directories available in mdt/data/components/
-        """
-        super(ComponentsLoaderMulti, self).__init__([UserComponentsSourceMulti(component_type)])
-
-
 class ComponentsSource(object):
 
     def __init__(self):
@@ -197,6 +144,9 @@ class ComponentsSource(object):
 
     def list(self):
         """Get the names of all the available components from this source.
+
+        Returns:
+            list or str: list of the names of all the components loadable from this source.
         """
         return []
 
@@ -224,42 +174,17 @@ class ComponentsSource(object):
         """
         return {}
 
-    @property
-    def is_builtin(self):
-        """Check if this source represents builtin modules or loads external modules.
-
-        Returns:
-            boolean: if this source is a builtin module, or an external module source
-        """
-        return False
-
-
-class ComponentsSourceMulti(ComponentsSource):
-
-    def __init__(self):
-        super(ComponentsSourceMulti, self).__init__()
-        self._components_list = []
-
-    def list(self):
-        return [x['name'] for x in self._components_list]
-
-    def get_class(self, name):
-        for x in self._components_list:
-            if x['name'] == name:
-                return x['model_constructor']
-        raise ImportError
-
-    def get_meta_info(self, name):
-        for x in self._components_list:
-            if x['name'] == name:
-                return x
-        return {}
-
 
 class UserComponentsSourceSingle(ComponentsSource):
 
     def __init__(self, component_type):
         """
+
+        This expects that the available python files contain a class with the same name as the file in which the class
+        resides. For example, if we have a python file named "MySingleComponent.py" we should at least have the class
+        named "MySingleComponent" in that python file. Additionally, the file can contain a dictionary named
+        'meta_info' which contains meta information about that module.
+
         Args:
             component_type (str): the type of component we wish to load. This should be named exactly to one of the
                 directories available in mdt/data/components/
@@ -293,68 +218,114 @@ class UserComponentsSourceSingle(ComponentsSource):
                 return {}
         return {}
 
-    def is_builtin(self):
-        return True
 
+class UserComponentsSourceMulti(ComponentsSource):
+    """Base class for components in which there are multiple components per file.
 
-class UserComponentsSourceMulti(ComponentsSourceMulti):
+    Inherited classes must overwrite the method: _get_components_from_module() which is used to get the components
+    in a loaded file/module.
 
-    """A cache for loaded components.
+    Attributes:
+        loaded_modules_cache (dict): A cache for loaded components.
+            If we do not do this, we fit_model into TypeError problems when a class is reloaded while there is already
+            an instantiated object.
 
-    If we do not do this, we fit_model into TypeError problems when the class is reloaded while there is already
-    an instantiated object.
+            This dict is indexed per directory names and contains for each loaded python file a tuple with the
+            module and the loaded component.
     """
-    loaded_components = {}
+    loaded_modules_cache = {}
 
-    def __init__(self, component_type):
+    def __init__(self, dir_name):
         super(UserComponentsSourceMulti, self).__init__()
-        self._component_type = component_type
+        self._dir_name = dir_name
 
-        if self._component_type not in self.loaded_components:
-            self.loaded_components[self._component_type] = {}
+        if self._dir_name not in self.loaded_modules_cache:
+            self.loaded_modules_cache[self._dir_name] = {}
 
-        self.path = os.path.join(os.path.expanduser(configuration.config['components_location']), component_type)
-        if not os.path.isdir(self.path):
-            raise RuntimeError('The components folder "{0}" could not be found. '
-                               'Please check the path to the components in your configuration file.'.format(self.path))
+        self.path = os.path.join(os.path.expanduser(configuration.config['components_location']), dir_name)
+        self._check_path()
+        self._components_meta_infos = self._get_all_components_meta_info()
 
-        self._components_list = self._init_components_list()
+    def list(self):
+        return self._components_meta_infos.keys()
 
-    def _init_components_list(self):
-        if os.path.isdir(self.path):
-            components = []
+    def get_class(self, name):
+        if name not in self._components_meta_infos:
+            raise ImportError
+        return self._components_meta_infos[name]['model_constructor']
 
-            for path in self._get_python_component_files():
-                if path not in self.loaded_components[self._component_type]:
-                    module_name = self._component_type + '/' + os.path.basename(path)[0:-3]
-                    module = imp.load_source(module_name, path)
-                    self.loaded_components[self._component_type][path] = [module, module.get_components_list()]
-                components.extend(self.loaded_components[self._component_type][path][1])
+    def get_meta_info(self, name):
+        return self._components_meta_infos[name]
 
-            return components
-        return []
+    def _get_all_components_meta_info(self):
+        self._update_modules_cache()
+
+        all_components = []
+        for module, components in self.loaded_modules_cache[self._dir_name].values():
+            all_components.extend(components)
+
+        return {meta_info['name']: meta_info for meta_info in all_components}
+
+    def _update_modules_cache(self):
+        """Fill the modules cache with the components.
+
+        This loops through all the python files present in the dir name and tries to load them as modules if they
+        are not yet loaded.
+        """
+        for path in self._get_python_component_files():
+            if path not in self.loaded_modules_cache[self._dir_name]:
+                module_name = self._dir_name + '/' + os.path.splitext(os.path.basename(path))[0]
+                module = imp.load_source(module_name, path)
+                self.loaded_modules_cache[self._dir_name][path] = [module, self._get_components_from_module(module)]
+
+    def _get_components_from_module(self, module):
+        """Return a list of all the available components in the given module.
+
+        Args:
+            module (module): the module from which to load the components.
+
+        Returns:
+            list: list of components loaded from this module
+        """
 
     def _get_python_component_files(self):
         return filter(lambda v: os.path.basename(v)[0:2] != '__', glob.glob(os.path.join(self.path, '*.py')))
 
-    def is_builtin(self):
-        return True
+    def _check_path(self):
+        if not os.path.isdir(self.path):
+            raise RuntimeError('The components folder "{0}" could not be found. '
+                               'Please check the path to the components in your configuration file.'.format(self.path))
+
+
+class SingleModelSource(UserComponentsSourceMulti):
+
+    def __init__(self):
+        """Source for the items in the 'single_models' dir in the components folder."""
+        super(SingleModelSource, self).__init__('single_models')
+
+    def _get_components_from_module(self, module):
+        return module.get_components_list()
+
+
+class CascadeComponentSource(UserComponentsSourceMulti):
+
+    def __init__(self):
+        """Source for the items in the 'cascade_models' dir in the components folder."""
+        super(CascadeComponentSource, self).__init__('cascade_models')
+
+    def _get_components_from_module(self, module):
+        from mdt.cascade_model import CascadeModelInterface
+
+        items = inspect.getmembers(module, get_class_predicate(module, CascadeModelInterface))
+        loaded_items = [item[1].get_meta_data() for item in items]
+
+        if hasattr(module, 'get_components_list'):
+            loaded_items.extend(module.get_components_list())
+
+        return loaded_items
+
 
 class MOTSourceSingle(ComponentsSource):
-
-    def __init__(self, component_type):
-        super(MOTSourceSingle, self).__init__()
-        self.component_type = component_type
-
-    def list(self):
-        classes = getmembers(mot.cl_functions, isclass)
-
-        if self.component_type == 'library_functions':
-            return [x[0] for x in classes if issubclass(x[1], LibraryFunction) and x[0] != 'LibraryFunction']
-        elif self.component_type == 'compartments':
-            return [x[0] for x in classes if issubclass(x[1], ModelFunction) and x[0] != 'ModelFunction']
-
-        return []
 
     def get_class(self, name):
         module = mot.cl_functions
@@ -363,34 +334,72 @@ class MOTSourceSingle(ComponentsSource):
     def get_meta_info(self, name):
         return {}
 
-    def is_builtin(self):
-        return False
 
-class BatchProfilesLoader(ComponentsLoaderSingle):
+class MOTLibraryFunctionSource(MOTSourceSingle):
 
-    def __init__(self):
-        super(BatchProfilesLoader, self).__init__('batch_profiles')
-
-
-class CompartmentModelsLoader(ComponentsLoaderSingle):
-
-    def __init__(self):
-        super(CompartmentModelsLoader, self).__init__('compartment_models')
+    def list(self):
+        module = mot.cl_functions
+        items = inspect.getmembers(module, get_class_predicate(module, LibraryFunction))
+        return [x[0] for x in items if x[0] != 'LibraryFunction']
 
 
-class LibraryFunctionsLoader(ComponentsLoaderSingle):
+class MOTModelsSource(MOTSourceSingle):
 
-    def __init__(self):
-        super(LibraryFunctionsLoader, self).__init__('library_functions')
+    def list(self):
+        module = mot.cl_functions
+        items = inspect.getmembers(module, get_class_predicate(module, ModelFunction))
+        return [x[0] for x in items if x[0] != 'ModelFunction']
 
 
-class SingleModelsLoader(ComponentsLoaderMulti):
+class BatchProfilesLoader(ComponentsLoader):
 
     def __init__(self):
-        super(SingleModelsLoader, self).__init__('single_models')
+        super(BatchProfilesLoader, self).__init__([UserComponentsSourceSingle('batch_profiles')])
 
 
-class CascadeModelsLoader(ComponentsLoaderMulti):
+class CompartmentModelsLoader(ComponentsLoader):
 
     def __init__(self):
-        super(CascadeModelsLoader, self).__init__('cascade_models')
+        super(CompartmentModelsLoader, self).__init__([UserComponentsSourceSingle('compartment_models'),
+                                                       MOTModelsSource()])
+
+
+class LibraryFunctionsLoader(ComponentsLoader):
+
+    def __init__(self):
+        super(LibraryFunctionsLoader, self).__init__([UserComponentsSourceSingle('library_functions'),
+                                                      MOTLibraryFunctionSource()])
+
+
+class SingleModelsLoader(ComponentsLoader):
+
+    def __init__(self):
+        super(SingleModelsLoader, self).__init__([SingleModelSource()])
+
+
+class CascadeModelsLoader(ComponentsLoader):
+
+    def __init__(self):
+        super(CascadeModelsLoader, self).__init__([CascadeComponentSource()])
+
+
+def get_class_predicate(module, class_type):
+    """A predicate to be used in the function inspect.getmembers
+
+    This predicate checks if the module of the item we inspect matches the given module, checks the class type
+    to be the given class type and checks if the checked item is not in the exclude list.
+
+    Args:
+        module (module): the module to check against the module of the item
+        class_type (module): the module to check against the class_type of the item
+
+    Returns:
+        function: a function to be used as a predicate in inspect.getmembers
+    """
+    defined_in_module = lambda item: item.__module__ == module.__name__
+    is_subclass = lambda item: issubclass(item, class_type)
+
+    def predicate_function(item):
+        return inspect.isclass(item) and defined_in_module(item) and is_subclass(item)
+
+    return predicate_function
