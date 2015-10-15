@@ -222,79 +222,32 @@ class SimpleCascadeModel(CascadeModelInterface, ProtocolCheckInterface):
             model.double_precision = double_precision
 
 
-class CascadeBuilderInterface(object):
+def cascade_builder_decorator(original_class):
+    """This function is supposed to be used as a decorator for building cascade models.
 
-    def build(self):
-        """Get the dictionary with the information about the build cascade.
+    By using this decorator you can almost declaratively construct a cascade model.
 
-        Returns:
-            dict: the information dict. Containing at least the items:
-                 - model_constructor: reference to the class
-                 - name: the name of the model
-                 - description: the description string
-        """
-        return {
-            'model_constructor': self._get_model_class(),
-            'name': self._get_name(),
-            'description': self._get_description()
-        }
+    This decorator will overwrite the init method to include the name and the models (it will create the models
+    from a string name). It also adds the static method get_meta_data() to get the meta data for the components list.
 
-    def _get_name(self):
-        """Get the name of the build Charmed cascade
+    Args:
+        original_class (class): the class we want to wrap
+    """
+    orig_init = original_class.__init__
 
-        Return:
-            str: the name of the model (as it appears in the model list)
-        """
+    def __init__(self, *args, **kws):
+        if len(args) == 2:
+            # inheritance is used, the name and model list are already set
+            orig_init(self, *args, **kws)
+        else:
+            orig_init(self, original_class.name, list(map(mdt.get_model, original_class.models)), **kws)
 
-    def _get_description(self):
-        """Get the description of the build Cascade
+    def get_meta_data():
+        return {'name': original_class.name,
+                'model_constructor': original_class,
+                'description': original_class.description}
 
-        Returns:
-            str: the description
-        """
+    original_class.__init__ = __init__
+    original_class.get_meta_data = staticmethod(get_meta_data)
 
-    def _get_model_class(self):
-        """Get the actual model class.
-
-        Returns:
-            class: the model class
-        """
-
-
-class SimpleCascadeBuilder(CascadeBuilderInterface):
-
-    def _get_cascade_names(self):
-        """Get the names of the models in the cascade.
-
-        Returns:
-            list: the list of model names that constitute the cascade.
-        """
-        return ()
-
-    def _get_prepare_model_function(self):
-        """Get the function to prepare the models in the cascade.
-
-        Returns:
-            function: the function to prepare the model. This should have the exact same arguments as the function
-                _prepare_model in the SimpleCascadeModel class.
-        """
-        def _prepare_model(self, model, position, output_previous_model, output_all_previous_models):
-            pass
-        return _prepare_model
-
-    def _get_model_class(self):
-        name = self._get_name()
-        cascade_names = self._get_cascade_names()
-        prepare_function = self._get_prepare_model_function()
-
-        class ModelClass(SimpleCascadeModel):
-
-            def __init__(self):
-                cascade = list(map(mdt.get_model, cascade_names))
-                super(ModelClass, self).__init__(name, cascade)
-
-            def _prepare_model(self, model, position, output_previous, output_all_previous):
-                super(ModelClass, self)._prepare_model(model, position, output_previous, output_all_previous)
-                prepare_function(self, model, position, output_previous, output_all_previous)
-
-        return ModelClass
+    return original_class

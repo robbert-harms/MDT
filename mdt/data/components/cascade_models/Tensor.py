@@ -1,4 +1,4 @@
-from mdt.cascade_model import SimpleCascadeBuilder
+from mdt.cascade_model import cascade_builder_decorator, SimpleCascadeModel
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -7,53 +7,40 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 def get_components_list():
-    return [Tensor().build(),
-            TensorExVivo().build(),
-            TensorT2().build()
+    return [Tensor.get_meta_data(),
+            TensorExVivo.get_meta_data(),
+            TensorT2.get_meta_data()
             ]
 
 
-class Tensor(SimpleCascadeBuilder):
+@cascade_builder_decorator
+class Tensor(SimpleCascadeModel):
 
-    def _get_name(self):
-        return 'Tensor (Cascade)'
+    name = 'Tensor (Cascade)'
+    description = 'Cascade for Tensor.'
+    models = ('BallStick (Cascade)',
+              'Tensor')
 
-    def _get_description(self):
-        return 'Cascade for Tensor.'
-
-    def _get_cascade_names(self):
-        return ('BallStick (Cascade)',
-                'Tensor')
-
-    def _get_prepare_model_function(self):
-        def _prepare_model(self, model, position, output_previous, output_all_previous):
-            if position == 1:
-                model.init('Tensor.theta', output_previous['Stick.theta'])
-                model.init('Tensor.phi', output_previous['Stick.phi'])
-        return _prepare_model
+    def _prepare_model(self, model, position, output_previous, output_all_previous):
+        super(Tensor, self)._prepare_model(model, position, output_previous, output_all_previous)
+        if position == 1:
+            model.init('Tensor.theta', output_previous['Stick.theta'])
+            model.init('Tensor.phi', output_previous['Stick.phi'])
 
 
+@cascade_builder_decorator
 class TensorExVivo(Tensor):
 
-    def _get_name(self):
-        return 'Tensor-ExVivo (Cascade)'
-
-    def _get_description(self):
-        return 'Cascade for Tensor with ex vivo defaults.'
-
-    def _get_cascade_names(self):
-        return ('BallStick-ExVivo (Cascade)',
-                'Tensor-ExVivo')
+    name = 'Tensor-ExVivo (Cascade)'
+    description = 'Cascade for Tensor with ex vivo defaults.'
+    models = ('BallStick-ExVivo (Cascade)',
+              'Tensor-ExVivo')
 
 
+@cascade_builder_decorator
 class TensorT2(Tensor):
 
-    def _get_name(self):
-        return 'Tensor-T2 (Cascade)'
-
-    def _get_description(self):
-        return 'Cascade for Tensor with an extra T2 model.'
-
-    def _get_cascade_names(self):
-        return ('BallStick-T2 (Cascade)',
-                'Tensor-T2')
+    name = 'Tensor-T2 (Cascade)'
+    description = 'Cascade for Tensor with an extra T2 model.'
+    models = ('BallStick-T2 (Cascade)',
+              'Tensor-t2')
