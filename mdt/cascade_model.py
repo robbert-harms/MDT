@@ -1,3 +1,4 @@
+from six import with_metaclass
 import mdt
 from mdt.utils import simple_parameter_init, ProtocolCheckInterface, condense_protocol_problems
 
@@ -198,7 +199,7 @@ def cascade_builder_decorator(original_class):
     By using this decorator you can almost declaratively construct a cascade model.
 
     This decorator will overwrite the init method to include the name and the models (it will create the models
-    from a string name). It also adds the static method get_meta_data() to get the meta data for the components list.
+    from a string name). It also adds the static method meta_info() to get the meta data for the components list.
 
     The actual preferred way of building cascade models is by using the CascadaBuilderMetaClass and by inheriting
     from the CascadeModelBuilder. If however you have a strong need of using a decorator you can use this one.
@@ -222,13 +223,12 @@ def cascade_builder_decorator(original_class):
         else:
             orig_init(self, original_class.name, list(map(mdt.get_model, original_class.models)), **kws)
 
-    def get_meta_data():
+    def meta_info():
         return {'name': original_class.name,
-                'model_constructor': original_class,
                 'description': original_class.description}
 
     original_class.__init__ = __init__
-    original_class.get_meta_data = staticmethod(get_meta_data)
+    original_class.meta_info = staticmethod(meta_info)
 
     return original_class
 
@@ -239,12 +239,11 @@ class CascadeBuilderMetaClass(type):
         """Adds methods to the class at class creation time."""
         result_class = super(CascadeBuilderMetaClass, mcs).__new__(mcs, name, bases, dct)
 
-        def get_meta_data():
+        def meta_info():
             return {'name': result_class.name,
-                    'model_constructor': result_class,
                     'description': result_class.description}
 
-        result_class.get_meta_data = staticmethod(get_meta_data)
+        result_class.meta_info = staticmethod(meta_info)
 
         orig_init = result_class.__init__
 
@@ -260,7 +259,7 @@ class CascadeBuilderMetaClass(type):
         return result_class
 
 
-class CascadeModelBuilder(SimpleCascadeModel, metaclass=CascadeBuilderMetaClass):
+class CascadeModelBuilder(with_metaclass(CascadeBuilderMetaClass, SimpleCascadeModel)):
     """The model builder to inherit from.
 
     One can use this to create models in a declarative style. Example of such a model definition:
@@ -272,4 +271,3 @@ class CascadeModelBuilder(SimpleCascadeModel, metaclass=CascadeBuilderMetaClass)
 
     This class has a metaclass which is able to use the class variables to guide the construction of the model.
     """
-    __metaclass__ = CascadeBuilderMetaClass

@@ -244,27 +244,27 @@ class UserComponentsSourceMulti(ComponentsSource):
 
         self.path = os.path.join(os.path.expanduser(configuration.config['components_location']), dir_name)
         self._check_path()
-        self._components_meta_infos = self._get_all_components_meta_info()
+        self._components = self._load_all_components()
 
     def list(self):
-        return self._components_meta_infos.keys()
+        return self._components.keys()
 
     def get_class(self, name):
-        if name not in self._components_meta_infos:
+        if name not in self._components:
             raise ImportError
-        return self._components_meta_infos[name]['model_constructor']
+        return self._components[name][0]
 
     def get_meta_info(self, name):
-        return self._components_meta_infos[name]
+        return self._components[name][1]
 
-    def _get_all_components_meta_info(self):
+    def _load_all_components(self):
         self._update_modules_cache()
 
         all_components = []
         for module, components in self.loaded_modules_cache[self._dir_name].values():
             all_components.extend(components)
 
-        return {meta_info['name']: meta_info for meta_info in all_components}
+        return {meta_info[1]['name']: meta_info for meta_info in all_components}
 
     def _update_modules_cache(self):
         """Fill the modules cache with the components.
@@ -304,7 +304,8 @@ class SingleModelSource(UserComponentsSourceMulti):
         super(SingleModelSource, self).__init__('single_models')
 
     def _get_components_from_module(self, module):
-        return module.get_components_list()
+        components = module.get_components_list()
+        return [(component['model_constructor'], component) for component in components]
 
 
 class CascadeComponentSource(UserComponentsSourceMulti):
@@ -317,7 +318,7 @@ class CascadeComponentSource(UserComponentsSourceMulti):
         from mdt.cascade_model import CascadeModelInterface
 
         items = inspect.getmembers(module, get_class_predicate(module, CascadeModelInterface))
-        loaded_items = [item[1].get_meta_data() for item in items]
+        loaded_items = [(item[1], item[1].meta_info()) for item in items]
 
         if hasattr(module, 'get_components_list'):
             loaded_items.extend(module.get_components_list())
