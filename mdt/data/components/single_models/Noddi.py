@@ -36,19 +36,18 @@ def get_noddi():
         noddi_model = DMRICompositeSampleModel('Noddi', CompartmentModelTree(noddi_ml), evaluation_model,
                                                signal_noise_model)
 
-        cutoff = 1e-2
+        eps = 1e-5
+        cutoff = 0.01
         noddi_dependencies = (
-            ('Noddi_EC.dperp0', SimpleAssignment(
-                'Noddi_EC.d * (((1 - Wcsf.w) < ' + str(cutoff) + ') ? 0.0 : (Wec.w / (1 - Wcsf.w)))')),
-            ('Noddi_IC.kappa', SimpleAssignment(
-                '(((1 - Wcsf.w) < '+str(cutoff)+') ? 0.0 : Noddi_IC.kappa)',
-                fixed=False)),
+            ('Noddi_EC.dperp0', SimpleAssignment('Noddi_EC.d * (Wec.w / (1 - Wcsf.w + {}))'.format(eps))),
+            ('Noddi_IC.kappa', SimpleAssignment('((1 - Wcsf.w) >= {}) * Noddi_IC.kappa'.format(cutoff),
+                                                fixed=False)),
             ('Noddi_EC.kappa', SimpleAssignment('Noddi_IC.kappa')),
             ('Noddi_EC.theta', SimpleAssignment('Noddi_IC.theta')),
             ('Noddi_EC.phi', SimpleAssignment('Noddi_IC.phi'))
         )
         noddi_model.add_parameter_dependencies(noddi_dependencies)
-        modifiers = (('NDI', lambda d: d['Wic.w'] / ((1 - d['Wcsf.w']) + ((1 - d['Wcsf.w']) < cutoff))),
+        modifiers = (('NDI', lambda d: d['Wic.w'] / (d['Wic.w'] + d['Wec.w'])),
                      ('SNIF', lambda d: 1 - d['Wcsf.w']),
                      ('ODI', lambda d: d['Noddi_IC.odi']))
         noddi_model.add_post_optimization_modifiers(modifiers)
