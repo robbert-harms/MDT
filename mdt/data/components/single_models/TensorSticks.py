@@ -54,8 +54,8 @@ def get_tensor_sticks(nmr_sticks=1):
 
         return model
 
-    return {'model_constructor': model_construction_cb,
-            'name': name,
-            'in_vivo_suitable': True,
-            'ex_vivo_suitable': False,
-            'description': description}
+    return [model_construction_cb,
+            {'name': name,
+             'in_vivo_suitable': True,
+             'ex_vivo_suitable': False,
+             'description': description}]

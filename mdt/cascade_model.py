@@ -193,73 +193,7 @@ class SimpleCascadeModel(CascadeModelInterface, ProtocolCheckInterface):
             model.double_precision = double_precision
 
 
-def cascade_builder_decorator(original_class):
-    """This function can be used as a decorator for building cascade models.
-
-    By using this decorator you can almost declaratively construct a cascade model.
-
-    This decorator will overwrite the init method to include the name and the models (it will create the models
-    from a string name). It also adds the static method meta_info() to get the meta data for the components list.
-
-    The actual preferred way of building cascade models is by using the CascadaBuilderMetaClass and by inheriting
-    from the CascadeModelBuilder. If however you have a strong need of using a decorator you can use this one.
-
-    Example usage:
-        @cascade_builder_decorator
-        class BallStick(SimpleCascadeModel):
-            name = 'BallStick (Cascade)'
-            description = 'Cascade for Ballstick'
-            models = ('s0', 'BallStick')
-
-    Args:
-        original_class (class): the class we want to wrap
-    """
-    orig_init = original_class.__init__
-
-    def __init__(self, *args, **kws):
-        if len(args) == 2:
-            # inheritance is used, the name and model list are already set
-            orig_init(self, *args, **kws)
-        else:
-            orig_init(self, original_class.name, list(map(mdt.get_model, original_class.models)), **kws)
-
-    def meta_info():
-        return {'name': original_class.name,
-                'description': original_class.description}
-
-    original_class.__init__ = __init__
-    original_class.meta_info = staticmethod(meta_info)
-
-    return original_class
-
-
-class CascadeBuilderMetaClass(type):
-
-    def __new__(mcs, name, bases, dct):
-        """Adds methods to the class at class creation time."""
-        result_class = super(CascadeBuilderMetaClass, mcs).__new__(mcs, name, bases, dct)
-
-        def meta_info():
-            return {'name': result_class.name,
-                    'description': result_class.description}
-
-        result_class.meta_info = staticmethod(meta_info)
-
-        orig_init = result_class.__init__
-
-        def __init__(self, *args, **kws):
-            if len(args) == 2:
-                # inheritance is used, the name and model list are already set
-                orig_init(self, *args, **kws)
-            else:
-                orig_init(self, result_class.name, list(map(mdt.get_model, result_class.models)), **kws)
-
-        result_class.__init__ = __init__
-
-        return result_class
-
-
-class CascadeModelBuilder(with_metaclass(CascadeBuilderMetaClass, SimpleCascadeModel)):
+class CascadeModelBuilder(SimpleCascadeModel):
     """The model builder to inherit from.
 
     One can use this to create models in a declarative style. Example of such a model definition:
@@ -268,6 +202,19 @@ class CascadeModelBuilder(with_metaclass(CascadeBuilderMetaClass, SimpleCascadeM
         name = 'BallStick (Cascade)'
         description = 'Cascade for Ballstick'
         models = ('s0', 'BallStick')
-
-    This class has a metaclass which is able to use the class variables to guide the construction of the model.
     """
+    name = '<default>'
+    description = '<default>'
+    models = ()
+
+    def __init__(self, *args, **kwargs):
+        if len(args) == 2:
+            # inheritance is used, the name and model list are already set
+            super(CascadeModelBuilder, self).__init__(*args)
+        else:
+            super(CascadeModelBuilder, self).__init__(self.name, list(map(mdt.get_model, self.models)))
+
+    @classmethod
+    def meta_info(cls):
+        return {'name': cls.name,
+                'description': cls.description}

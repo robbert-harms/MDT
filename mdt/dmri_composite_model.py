@@ -5,9 +5,11 @@ from mot.cl_functions import Weight
 from mdt.utils import restore_volumes, create_roi, ProtocolCheckInterface
 from mdt.model_protocol_problem import MissingColumns, InsufficientShells
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
+from mot.evaluation_models import GaussianEvaluationModel
 from mot.models.interfaces import SmoothableModelInterface, PerturbationModelInterface
 from mot.models.model_builders import SampleModelBuilder
 from mot.parameter_functions.dependencies import WeightSumToOneRule
+from mot.trees import CompartmentModelTree
 from mot.utils import set_cl_compatible_data_type
 
 __author__ = 'Robbert Harms'
@@ -220,3 +222,40 @@ class DMRICompositeSampleModel(SampleModelBuilder, SmoothableModelInterface,
                              'BIC': -2 * log_likelihood + k * np.log(n),
                              'AIC': -2 * log_likelihood + k * 2,
                              'AICc': -2 * log_likelihood + k * 2 + (2 * k * (k + 1))/(n - k - 1)})
+
+
+class DMRISingleModelBuilder(DMRICompositeSampleModel):
+
+    name = '<default>'
+    in_vivo_suitable = True
+    ex_vivo_suitable = True
+    description = '<default>'
+    post_optimization_modifiers = ()
+    dependencies = ()
+    model_listing = ()
+
+    def __init__(self, evaluation_model=GaussianEvaluationModel().fix('sigma', 1), signal_noise_model=None):
+        super(DMRISingleModelBuilder, self).__init__(self.name, CompartmentModelTree(self._get_model_listing()),
+                                                 evaluation_model, signal_noise_model=signal_noise_model)
+
+        self.add_parameter_dependencies(self._get_dependencies())
+        self.add_post_optimization_modifiers(self._get_post_optimization_modifiers())
+
+    @classmethod
+    def meta_info(cls):
+        return {'name': cls.name,
+                'in_vivo_suitable': cls.in_vivo_suitable,
+                'ex_vivo_suitable': cls.ex_vivo_suitable,
+                'description': cls.description}
+
+    @classmethod
+    def _get_model_listing(cls):
+        return cls.model_listing
+
+    @classmethod
+    def _get_dependencies(cls):
+        return cls.dependencies
+
+    @classmethod
+    def _get_post_optimization_modifiers(cls):
+        return cls.post_optimization_modifiers

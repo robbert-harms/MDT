@@ -66,8 +66,8 @@ def get_charmed(nmr_restr=3):
 
         return model
 
-    return {'model_constructor': model_construction_cb,
-            'name': name,
-            'in_vivo_suitable': True,
-            'ex_vivo_suitable': False,
-            'description': description}
+    return [model_construction_cb,
+            {'name': name,
+             'in_vivo_suitable': True,
+             'ex_vivo_suitable': False,
+             'description': description}]

@@ -287,6 +287,20 @@ class UserComponentsSourceMulti(ComponentsSource):
         Returns:
             list: list of components loaded from this module
         """
+        items = inspect.getmembers(module, get_class_predicate(module, self._get_desired_class()))
+        loaded_items = [(item[1], item[1].meta_info()) for item in items]
+
+        if hasattr(module, 'get_components_list'):
+            loaded_items.extend(module.get_components_list())
+
+        return loaded_items
+
+    def _get_desired_class(self):
+        """This function is used for the default implementation of _get_components_from_module.
+
+        Returns:
+            class: the name of a class we want to look for in the modules.
+        """
 
     def _get_python_component_files(self):
         return filter(lambda v: os.path.basename(v)[0:2] != '__', glob.glob(os.path.join(self.path, '*.py')))
@@ -303,9 +317,9 @@ class SingleModelSource(UserComponentsSourceMulti):
         """Source for the items in the 'single_models' dir in the components folder."""
         super(SingleModelSource, self).__init__('single_models')
 
-    def _get_components_from_module(self, module):
-        components = module.get_components_list()
-        return [(component['model_constructor'], component) for component in components]
+    def _get_desired_class(self):
+        from mdt.dmri_composite_model import DMRISingleModelBuilder
+        return DMRISingleModelBuilder
 
 
 class CascadeComponentSource(UserComponentsSourceMulti):
@@ -314,16 +328,9 @@ class CascadeComponentSource(UserComponentsSourceMulti):
         """Source for the items in the 'cascade_models' dir in the components folder."""
         super(CascadeComponentSource, self).__init__('cascade_models')
 
-    def _get_components_from_module(self, module):
+    def _get_desired_class(self):
         from mdt.cascade_model import CascadeModelInterface
-
-        items = inspect.getmembers(module, get_class_predicate(module, CascadeModelInterface))
-        loaded_items = [(item[1], item[1].meta_info()) for item in items]
-
-        if hasattr(module, 'get_components_list'):
-            loaded_items.extend(module.get_components_list())
-
-        return loaded_items
+        return CascadeModelInterface
 
 
 class MOTSourceSingle(ComponentsSource):

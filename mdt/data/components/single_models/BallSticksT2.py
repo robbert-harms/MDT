@@ -1,4 +1,3 @@
-import math
 from mdt.components_loader import CompartmentModelsLoader
 from mdt.dmri_composite_model import DMRICompositeSampleModel
 from mot.evaluation_models import GaussianEvaluationModel
@@ -64,11 +63,11 @@ def get_ball_sticks_t2(nmr_sticks=1, invivo=True):
         model.add_post_optimization_modifiers(modifiers)
         return model
 
-    return {'model_constructor': model_construction_cb,
-            'name': name,
-            'in_vivo_suitable': invivo,
-            'ex_vivo_suitable': not invivo,
-            'description': description}
+    return [model_construction_cb,
+            {'name': name,
+             'in_vivo_suitable': invivo,
+             'ex_vivo_suitable': not invivo,
+             'description': description}]
 
 
 def get_ball_sticks_t2t2(nmr_sticks=1, invivo=True):
@@ -115,8 +114,8 @@ def get_ball_sticks_t2t2(nmr_sticks=1, invivo=True):
         model.add_post_optimization_modifiers(modifiers)
         return model
 
-    return {'model_constructor': model_construction_cb,
-            'name': name,
-            'in_vivo_suitable': invivo,
-            'ex_vivo_suitable': not invivo,
-            'description': description}
+    return [model_construction_cb,
+            {'name': name,
+             'in_vivo_suitable': invivo,
+             'ex_vivo_suitable': not invivo,
+             'description': description}]
