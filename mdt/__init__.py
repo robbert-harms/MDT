@@ -103,7 +103,7 @@ def fit_model(model, dwi_info, protocol, brain_mask, output_folder, optimizer=No
             If set to true we only recalculate the last element in the chain (if recalculate is set to True, that is).
             If set to false, we recalculate everything. This only holds for the first level of the cascade.
         cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
-            utils.get_cl_devices().
+            utils.get_cl_devices(). This can also be a list of device indices.
         double_precision (boolean): if we would like to do the calculations in double precision
         gradient_deviations (str or ndarray): set of gradient deviations to use. In HCP WUMINN format.
 
@@ -349,6 +349,7 @@ def create_median_otsu_brain_mask(dwi_info, protocol, output_fname=None, **kwarg
         protocol (string or Protocol): The filename of the protocol file or a Protocol object
         output_fname (string): the filename of the output file. If None, no output is written.
             If dwi_info is only an image also no file is written.
+        **kwargs: the additional arguments for median_otsu.
 
     Returns:
         ndarray: The created brain mask

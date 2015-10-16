@@ -4,6 +4,7 @@ import os
 import timeit
 import pickle
 import time
+import collections
 from six import string_types
 from mdt.protocols import write_protocol
 from mdt.components_loader import get_model
@@ -16,6 +17,7 @@ from mdt.utils import create_roi, configure_per_model_logging, restore_volumes, 
 from mdt.batch_utils import batch_profile_factory
 from mot import runtime_configuration
 import nibabel as nib
+from mot.load_balance_strategies import EvenDistribution
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-05-01"
@@ -212,7 +214,7 @@ class ModelFit(object):
                 This is for example used during batch fitting to limit the protocol for certain models.
                 For instance, in the Tensor model we generally only want to use the lower b-values.
             cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
-                get_cl_devices().
+                get_cl_devices(). This can also be a list of device indices.
             double_precision (boolean): if we would like to do the calculations in double precision
             gradient_deviations (ndarray): set of gradient deviations to use. In HCP WUMINN format.
         """
@@ -230,15 +232,21 @@ class ModelFit(object):
         self._only_recalculate_last = only_recalculate_last
         self._model_protocol_options = model_protocol_options
         self._logger = logging.getLogger(__name__)
-        self._cl_device_ind = cl_device_ind
+        self._cl_device_indices = cl_device_ind
+
+        if self._cl_device_indices is not None and not isinstance(self._cl_device_indices, collections.Iterable):
+            self._cl_device_indices = [self._cl_device_indices]
 
         if not model.is_protocol_sufficient(self._problem_data.protocol):
             raise ProtocolProblemError(
                 'The given protocol is insufficient for this model. '
                 'The reported errors where: {}'.format(self._model.get_protocol_problems(self._problem_data.protocol)))
 
-        if self._cl_device_ind is not None:
-            runtime_configuration.runtime_config['cl_environments'] = [get_cl_devices()[self._cl_device_ind]]
+        if self._cl_device_indices is not None:
+            all_devices = get_cl_devices()
+            runtime_configuration.runtime_config['cl_environments'] = [all_devices[ind]
+                                                                       for ind in self._cl_device_indices]
+            runtime_configuration.runtime_config['load_balancer'] = EvenDistribution()
 
     def run(self):
         """Run the model and return the resulting maps
@@ -281,8 +289,10 @@ class ModelFit(object):
         self._logger.info('Preparing for model {0}'.format(model.name))
         optimizer = self._optimizer or MetaOptimizerBuilder(meta_optimizer_config).construct(model.name)
 
-        if self._cl_device_ind is not None:
-            optimizer.cl_environments = [get_cl_devices()[self._cl_device_ind]]
+        if self._cl_device_indices is not None:
+            all_devices = get_cl_devices()
+            optimizer.cl_environments = [all_devices[ind] for ind in self._cl_device_indices]
+            optimizer.load_balancer = EvenDistribution()
 
         model_protocol_options = get_model_config(model.name, self._model_protocol_options)
         problem_data = apply_model_protocol_options(model_protocol_options, self._problem_data)

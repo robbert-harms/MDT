@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import argparse
-from mdt.utils import initialize_user_settings
+import mdt
 from mot import cl_environments
 
 __author__ = 'Robbert Harms'
@@ -19,9 +19,8 @@ if __name__ == '__main__':
     parser = get_arg_parser()
     args = parser.parse_args()
 
-    initialize_user_settings(False)
+    mdt.initialize_user_settings(False)
 
     for ind, env in enumerate(cl_environments.CLEnvironmentFactory.all_devices()):
         print('Device {}:'.format(ind))
         print(repr(env))
-

@@ -75,7 +75,7 @@ class RunModelTab(TabContainer):
             self._onchange_cb,
             False,
             'Select output folder: ',
-            '(Defaults to "output/<mask name>" in\n the same directory as the 4d image)')
+            '(Defaults to "output/<mask name>" in\n the same directory as the DWI)')
 
         self._model_select_chooser = DropdownWidget(
             self._tab,
@@ -321,7 +321,7 @@ class OptimOptionsWindow(SubWindow):
             'recalculate_all',
             self._onchange_cb,
             'Recalculate all: ',
-            '(For Cascades, if yes, recalculate all maps,\n if no, only the last)',
+            '(For Cascades, if yes, recalculate all models,\n if no, only the last)',
             default_val=self._optim_options.recalculate_all)
 
         self._devices_chooser = ListboxWidget(

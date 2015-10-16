@@ -6,3 +6,4 @@ scipy>=0.12.1
 mot
 pyyaml
 nibabel
+argcomplete

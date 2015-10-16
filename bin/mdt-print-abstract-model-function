@@ -1,8 +1,9 @@
 #!/usr/bin/env python
+# PYTHON_ARGCOMPLETE_OK
 import argparse
 import sys
+import argcomplete
 import mdt
-import mdt.utils
 from mdt.cascade_model import CascadeModelInterface
 
 __author__ = 'Robbert Harms'
@@ -18,13 +19,14 @@ if __name__ == '__main__':
                       "\tmdt-print-abstract-model-function BallStick\n"
 
         parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
-        parser.add_argument('model', metavar='model', type=str, help='the model to print')
+        parser.add_argument('model', metavar='model', choices=mdt.get_models_list(), help='the model to print')
         return parser
 
-    parser = get_arg_parser()
-    args = parser.parse_args()
-
     mdt.initialize_user_settings(False)
+
+    parser = get_arg_parser()
+    argcomplete.autocomplete(parser)
+    args = parser.parse_args()
 
     model_name = args.model
     model = mdt.get_model(model_name)

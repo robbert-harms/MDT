@@ -1,0 +1,70 @@
+#!/usr/bin/env python
+# PYTHON_ARGCOMPLETE_OK
+import argparse
+import os
+import argcomplete
+import mdt
+import mdt.shell_utils
+from argcomplete.completers import FilesCompleter
+import nibabel as nib
+import textwrap
+
+__author__ = 'Robbert Harms'
+__date__ = "2015-08-18"
+__maintainer__ = "Robbert Harms"
+__email__ = "robbert.harms@maastrichtuniversity.nl"
+
+
+if __name__ == '__main__':
+
+    def get_arg_parser():
+        """For autocomplete, please execute activate-global-python-argcomplete in your bash or zsh shell."""
+
+        description = "Create a (brain) mask with a region of interest " \
+                      "that only includes the voxels in the selected slice."
+
+        epilog = textwrap.dedent("""
+            Examples of use:
+                mdt-generate-roi-slice mask.nii.gz
+                mdt-generate-roi-slice mask.nii.gz -d 1 -s 50
+                mdt-generate-roi-slice mask.nii.gz -d 1 -s 50 -o my_roi_1_50.nii.gz
+        """)
+
+        parser = argparse.ArgumentParser(description=description, epilog=epilog,
+                                         formatter_class=argparse.RawTextHelpFormatter)
+        parser.add_argument('mask',
+                            action=mdt.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
+                            help='the mask to select a slice from').completer = \
+            FilesCompleter(['nii', 'gz', 'hdr', 'img'], directories=False)
+
+        parser.add_argument('-d', '--dimension', type=int, help="The dimension to index (0, 1, 2, ...). Default is 1.")
+        parser.add_argument('-s', '--slice', type=int, help="The slice to use in the selected dimension (0, 1, 2, ...)."
+                                                            "Defaults to center of chosen dimension.")
+
+        parser.add_argument('-o', '--output-name',
+                            action=mdt.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
+                            help='the filename of the output file. Default is <mask_name>_<dim>_<slice>.nii.gz').\
+            completer = FilesCompleter(['nii', 'gz', 'hdr', 'img'], directories=False)
+
+        return parser
+
+    parser = get_arg_parser()
+    argcomplete.autocomplete(parser)
+    args = parser.parse_args()
+
+    shape = nib.load(args.mask).shape
+    roi_dimension = args.dimension if args.dimension is not None else 1
+    if roi_dimension > len(shape)-1 or roi_dimension < 0:
+        print('Error: the given mask has only {0} dimensions with slices {1}.'.format(len(shape), shape))
+        exit(1)
+
+    roi_slice = args.slice if args.slice is not None else shape[roi_dimension] // 2
+    if roi_slice > shape[roi_dimension]-1 or roi_slice < 0:
+        print('Error: dimension {0} has only {1} slices.'.format(roi_dimension, shape[roi_dimension]))
+        exit(1)
+
+    mask_base_name = os.path.splitext(args.mask)[0]
+    mask_base_name = mask_base_name.replace('.nii', '')
+    output_name = args.output_name or mask_base_name + '_{0}_{1}.nii.gz'.format(roi_dimension, roi_slice)
+
+    mdt.create_slice_roi(args.mask, roi_dimension, roi_slice, output_name, overwrite_if_exists=True)

@@ -132,7 +132,7 @@ def create_write_median_otsu_brain_mask(dwi_info, protocol, output_fname, **kwar
     return mask
 
 
-def median_otsu(unweighted_volume, median_radius=4, numpass=4, dilate=1, cl_environments=None):
+def median_otsu(unweighted_volume, median_radius=4, numpass=4, dilate=1):
     """ Simple brain extraction tool method for images from DWI data
 
     This function is inspired from the median_otsu function from dipy
@@ -149,20 +149,24 @@ def median_otsu(unweighted_volume, median_radius=4, numpass=4, dilate=1, cl_envi
 
     Args:
         unweighted_volume (ndarray): ndarray of the unweighted volumes brain volumes
-        median_radius (int): Radius (in voxels) of the applied median filter(default 4)
+        median_radius (int): Radius (in voxels) of the applied median filter (default 4)
         numpass (int) Number of pass of the median filter (default 4)
         dilate (None or int): optional number of iterations for binary dilation
-        cl_environments (None): the CL environments to use for the filtering
 
     Returns:
         ndarray: a 3D ndarray with the binary brain mask
     """
     b0vol = unweighted_volume
 
+    logger = logging.getLogger(__name__)
+    logger.info('We will use a single precision float type for the calculations.'.format())
+    for env in runtime_configuration.runtime_config['cl_environments']:
+        logger.info('Using device \'{}\' with compile flags {}'.format(str(env), str(env.compile_flags)))
+
     m = MedianFilter(median_radius,
                      runtime_configuration.runtime_config['cl_environments'],
                      runtime_configuration.runtime_config['load_balancer'])
-    m.cl_environments = cl_environments
+
     for i in range(0, numpass):
         b0vol = m.filter(b0vol)
 
