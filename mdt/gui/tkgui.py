@@ -19,7 +19,7 @@ from mdt.gui.tk.single_subject.tabs.roi_mask import GenerateROIMaskTab
 from mdt.gui.tk.single_subject.tabs.run_model import RunModelTab
 from mdt.gui.tk.single_subject.tabs.view_results import ViewResultsTab
 from mdt.gui.tk.widgets import CompositeWidget, LoggingTextArea
-from mdt.gui.utils import print_welcome_message, update_user_settings, LogMonitorThread
+from mdt.gui.utils import print_welcome_message, LogMonitorThread
 import mdt.utils
 import mdt.protocols
 import mdt.configuration
@@ -76,7 +76,6 @@ class ToolkitGUIWindow(Tk):
         sys.stderr = self._log_box
 
         print_welcome_message()
-        update_user_settings()
 
         self._monitor = LogMonitorThread(self._output_queue, self._log_box)
         self._monitor.daemon = True

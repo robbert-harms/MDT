@@ -8,7 +8,6 @@ import inspect
 import os
 import imp
 #todo in P3.4 replace imp calls with importlib.SourceFileLoader(name, path).load_module(name)
-from mdt import configuration
 from mot.base import LibraryFunction, ModelFunction
 import mot.cl_functions
 
@@ -177,7 +176,7 @@ class ComponentsSource(object):
 
 class UserComponentsSourceSingle(ComponentsSource):
 
-    def __init__(self, component_type):
+    def __init__(self, dir_name):
         """
 
         This expects that the available python files contain a class with the same name as the file in which the class
@@ -190,7 +189,8 @@ class UserComponentsSourceSingle(ComponentsSource):
                 directories available in mdt/data/components/
         """
         super(UserComponentsSourceSingle, self).__init__()
-        self.path = os.path.join(os.path.expanduser(configuration.config['components_location']), component_type)
+        from mdt import get_config_dir
+        self.path = os.path.join(get_config_dir(), 'components', dir_name)
 
     def list(self):
         if os.path.isdir(self.path):
@@ -242,7 +242,8 @@ class UserComponentsSourceMulti(ComponentsSource):
         if self._dir_name not in self.loaded_modules_cache:
             self.loaded_modules_cache[self._dir_name] = {}
 
-        self.path = os.path.join(os.path.expanduser(configuration.config['components_location']), dir_name)
+        from mdt import get_config_dir
+        self.path = os.path.join(get_config_dir(), 'components', dir_name)
         self._check_path()
         self._components = self._load_all_components()
 

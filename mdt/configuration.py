@@ -1,4 +1,3 @@
-import copy
 import os
 from os.path import expanduser
 import collections

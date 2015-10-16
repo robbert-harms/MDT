@@ -10,7 +10,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.3.6'
+VERSION = '0.3.7'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')
@@ -957,17 +957,17 @@ def initialize_user_settings(overwrite=True):
     This will create all the necessary directories for adding components to MDT. It will also create a basic
     configuration file for setting global wide MDT options.
 
-    If the users home folder already exists a backup copy is created first,
+    Each MDT version will have it's own sub-directory in the choosen folder.
 
     Args:
-        overwrite (boolean): If we want to overwrite the folder if it already exists. If true we overwrite, if false
-            we do not.
+        overwrite (boolean): if the folder for this version already exists, do we want to overwrite yes or no.
 
     Returns:
         the path the user settings skeleton was written to
     """
     from mdt.utils import initialize_user_settings
     return initialize_user_settings(overwrite)
+
 
 def dwi_merge(dwi_images, output_fname, sort=True):
     """ Merge a list of DWI images on the 4th dimension. Writes the result as a file.
@@ -1087,3 +1087,13 @@ def set_data_type(maps_dict, numpy_data_type=np.float32):
     for k, v in maps_dict.items():
         maps_dict[k] = v.astype(numpy_data_type)
     return maps_dict
+
+
+def get_config_dir():
+    """Get the location of the components.
+
+    Return:
+        str: the path to the components
+    """
+    import os
+    return os.path.join(os.path.expanduser("~"), '.mdt', __version__)

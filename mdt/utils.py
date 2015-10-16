@@ -557,30 +557,20 @@ def initialize_user_settings(overwrite=True):
     This will create all the necessary directories for adding components to MDT. It will also create a basic
     configuration file for setting global wide MDT options.
 
-    If the users home folder already exists a backup copy is created first,
+    Each MDT version will have it's own sub-directory in the choosen folder.
 
     Args:
-        overwrite (boolean): If we want to overwrite the folder if it already exists. If true we overwrite, if false
-            we do not.
+        overwrite (boolean): if the folder for this version already exists, do we want to overwrite yes or no.
 
     Returns:
         the path the user settings skeleton was written to
     """
-    path = os.path.join(os.path.expanduser("~"), '.mdt')
+    from mdt import get_config_dir
+    path = get_config_dir()
 
     if os.path.exists(path):
         if overwrite:
-            backup_dir = os.path.join(path, 'backup_' + time.strftime("%Y-%m-%d"))
-            backup_dir_tmpl = backup_dir + '_{version}'
-            backup_version = 1
-            while os.path.isdir(backup_dir):
-                backup_dir = backup_dir_tmpl.format(version=backup_version)
-                backup_version += 1
-
-            os.mkdir(backup_dir)
-            for item in 'components', 'mdt.conf', 'version.txt':
-                if os.path.exists(os.path.join(path, item)):
-                    shutil.move(os.path.join(path, item), backup_dir)
+            shutil.rmtree(path)
         else:
             return path
 
@@ -590,10 +580,6 @@ def initialize_user_settings(overwrite=True):
     cache_path = pkg_resources.resource_filename('mdt', 'data/mdt.conf')
     shutil.copy(cache_path, path)
 
-    from mdt import __version__
-    with open(os.path.join(path, 'version.txt'), 'w') as f:
-        f.write(__version__)
-
     return path
 
 
@@ -601,16 +587,10 @@ def check_user_components():
     """Check if the components in the user's home folder are up to date with this version of MDT
 
     Returns:
-        bool: True if the .mdt folder exists and the versions are up to date, False otherwise.
+        bool: True if the .mdt folder for this version exists. False otherwise.
     """
-    version_file = os.path.join(os.path.expanduser("~"), '.mdt', 'version.txt')
-    if not os.path.isfile(version_file):
-        return False
-
-    from mdt import __version__
-    with open(version_file, 'r') as f:
-        version = f.read()
-        return version.strip() == __version__.strip()
+    from mdt import get_config_dir
+    return os.path.isdir(get_config_dir())
 
 
 def setup_logging(disable_existing_loggers=None):

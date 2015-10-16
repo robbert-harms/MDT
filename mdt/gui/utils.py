@@ -140,26 +140,6 @@ def print_welcome_message():
     print('-------------------------------------')
 
 
-def update_user_settings():
-    """Updates the user settings if necessary.
-
-    This prints a message to stdout if it updates the users settings.
-    We expect the GUI to catch the stdout events and redirect them to the GUI.
-    """
-    if not check_user_components():
-        @function_message_decorator('Updating configuration', 'Configuration updated')
-        def do_update():
-            print('Your configuration folder is not up to date. We will create a backup of\nyour old settings and '
-                  'initialize your config directory to the latest version.')
-            print('')
-            print('...')
-            path = mdt.initialize_user_settings()
-            print('')
-            print('Done, your configuration was updated in {}'.format(path))
-
-        do_update()
-
-
 class LogMonitorThread(threading.Thread):
 
     def __init__(self, queue, logging_text_area):
