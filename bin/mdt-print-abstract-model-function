@@ -5,6 +5,7 @@ import sys
 import argcomplete
 import mdt
 from mdt.cascade_model import CascadeModelInterface
+import mdt.shell_utils
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"
@@ -17,6 +18,7 @@ if __name__ == '__main__':
         description = "This script prints the abstract model function for any of the (non-cascade) models in MDT.\n\n" \
                       "For example, to print the abstract 'BallStick' model function run: \n" \
                       "\tmdt-print-abstract-model-function BallStick\n"
+        description += mdt.shell_utils.get_citation_message()
 
         parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument('model', metavar='model', choices=mdt.get_models_list(), help='the model to print')

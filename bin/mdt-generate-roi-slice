@@ -20,8 +20,10 @@ if __name__ == '__main__':
     def get_arg_parser():
         """For autocomplete, please execute activate-global-python-argcomplete in your bash or zsh shell."""
 
-        description = "Create a (brain) mask with a region of interest " \
-                      "that only includes the voxels in the selected slice."
+        description = textwrap.dedent("""
+            Create a (brain) mask with a region of interest that only includes the voxels in the selected slice.
+        """)
+        description += mdt.shell_utils.get_citation_message()
 
         epilog = textwrap.dedent("""
             Examples of use:

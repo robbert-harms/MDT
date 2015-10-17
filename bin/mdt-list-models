@@ -1,7 +1,10 @@
 #!/usr/bin/env python
+# PYTHON_ARGCOMPLETE_OK
 import argparse
+import argcomplete
 import mdt
 import mdt.utils
+import mdt.shell_utils
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"
@@ -12,12 +15,14 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 if __name__ == '__main__':
     def get_arg_parser():
         description = "This script prints a list of all the models MDT can find in your home directory."
+        description += mdt.shell_utils.get_citation_message()
 
         parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument('-l', '--long', action='store_true', help='print the descriptions')
         return parser
 
     parser = get_arg_parser()
+    argcomplete.autocomplete(parser)
     args = parser.parse_args()
 
     mdt.initialize_user_settings(False)

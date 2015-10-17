@@ -3,7 +3,6 @@
 import argparse
 import os
 import argcomplete
-import six
 import mdt
 import mdt.shell_utils
 from argcomplete.completers import FilesCompleter
@@ -22,6 +21,7 @@ if __name__ == '__main__':
         """For autocomplete, please execute activate-global-python-argcomplete in your bash or zsh shell."""
 
         description = "Fit one of the models to the given data."
+        description += mdt.shell_utils.get_citation_message()
 
         epilog = textwrap.dedent("""
             Examples of use:
@@ -53,11 +53,15 @@ if __name__ == '__main__':
         parser.add_argument('-o', '--output_folder',
                             help='the directory for the output, defaults to "output/<mask_name>" '
                                  'in the same directory as the dwi volume').completer = FilesCompleter()
+
         parser.add_argument('--cl-device-ind', type=int, nargs='*', choices=available_devices,
                             help="The index of the device we would like to use. This follows the indices "
                                  "in mdt-list-devices and defaults to the first GPU.")
+
         parser.add_argument('--gradient-deviations',
-                            help="The volume with the gradient deviations to use, in HCP WUMINN format.")
+                            action=mdt.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
+                            help="The volume with the gradient deviations to use, in HCP WUMINN format.").\
+            completer = FilesCompleter(['nii', 'gz', 'hdr', 'img'], directories=False)
 
         parser.add_argument('--recalculate', dest='recalculate', action='store_true',
                             help="Recalculate the model(s) if the output exists. Default.")

@@ -1,7 +1,11 @@
 #!/usr/bin/env python
+# PYTHON_ARGCOMPLETE_OK
 import argparse
+import textwrap
+import argcomplete
 import mdt
 from mot import cl_environments
+import mdt.shell_utils
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"
@@ -11,12 +15,16 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 if __name__ == '__main__':
     def get_arg_parser():
-        description = "This script prints information about the available devices on your computer.\n"
+        description = textwrap.dedent("""
+            This script prints information about the available devices on your computer.
+        """)
+        description += mdt.shell_utils.get_citation_message()
 
         parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
         return parser
 
     parser = get_arg_parser()
+    argcomplete.autocomplete(parser)
     args = parser.parse_args()
 
     mdt.initialize_user_settings(False)

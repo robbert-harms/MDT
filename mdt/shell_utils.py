@@ -1,4 +1,5 @@
 import argparse
+import textwrap
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-10-16"
@@ -18,3 +19,15 @@ def get_argparse_extension_checker(choices):
                 parser.error("File doesn't end with one of {}{}".format(choices, option_string))
 
     return Act
+
+
+def get_citation_message():
+    """The citation message used in the shell scripts.
+
+    Returns:
+        str: the citation message for use in the description of every shell script
+    """
+    return textwrap.dedent("""
+        If you use any of the scripts/functions/tools from MDT in your research, please cite the following paper:
+            <citation here>
+    """)
