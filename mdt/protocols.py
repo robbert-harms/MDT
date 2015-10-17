@@ -566,3 +566,21 @@ def write_protocol(protocol, fname, columns_list=None):
     if columns_list:
         return columns_list
     return protocol.column_names
+
+
+def add_column_to_protocol(protocol, column, value, units):
+    """Adds the given value to the protocol as the given column name.
+
+    Args:
+        protocol (Protocol): the protocol object
+        column (str): the name of the column
+        value (float, str): either a single column value, or a string which we will try to interpret as a file.
+        units (str): either 's', or 'ms'
+    """
+    mult_factor = 1e-3 if units == 'ms' else 1
+
+    if value is not None:
+        if os.path.isfile(value):
+            protocol.add_column_from_file(column, value, mult_factor)
+        else:
+            protocol.add_column(column, float(value) * mult_factor)

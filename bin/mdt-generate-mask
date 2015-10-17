@@ -44,7 +44,8 @@ if __name__ == '__main__':
                                                                                             directories=False)
         parser.add_argument('protocol',
                             action=mdt.shell_utils.get_argparse_extension_checker(['.prtcl']),
-                            help='the protocol file').completer = FilesCompleter(['prtcl'], directories=False)
+                            help='the protocol file, see mdt-generate-protocol').\
+            completer = FilesCompleter(['prtcl'], directories=False)
         parser.add_argument('-o', '--output-name',
                             action=mdt.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
                             help='the filename of the output file. Default is <dwi_name>_mask.nii.gz').completer = \

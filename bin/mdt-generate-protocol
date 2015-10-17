@@ -1,0 +1,102 @@
+#!/usr/bin/env python
+# PYTHON_ARGCOMPLETE_OK
+import argparse
+import os
+import argcomplete
+import mdt
+import mdt.shell_utils
+from argcomplete.completers import FilesCompleter
+import textwrap
+import mdt.protocols
+
+__author__ = 'Robbert Harms'
+__date__ = "2015-08-18"
+__maintainer__ = "Robbert Harms"
+__email__ = "robbert.harms@maastrichtuniversity.nl"
+
+
+if __name__ == '__main__':
+
+    def get_arg_parser():
+        """For autocomplete, please execute activate-global-python-argcomplete in your bash or zsh shell."""
+
+        description = ['Generate a protocol from a bvec and bval file.' + "\n",
+                       'MDT uses a protocol file (with extension .prtcl) to store all the '
+                       'acquisition related values. This is a column based file which can hold, next to the '
+                       'b-values and gradient directions, the big Delta, small delta, gradient amplitude G and'
+                       ' more of these extra acquisition details.']
+        description = "\n".join(description) + "\n"
+        description += mdt.shell_utils.get_citation_message()
+
+        epilog = textwrap.dedent("""
+        Examples of use:
+            mdt-generate-protocol data.bvec data.bval
+            mdt-generate-protocol data.bvec data.bval -o my_protocol.prtcl
+            mdt-generate-protocol data.bvec data.bval --add-sequence-timings
+            mdt-generate-protocol data.bvec data.bval --add-sequence-timings --Delta 30 --delta 20
+            mdt-generate-protocol data.bvec data.bval --add-sequence-timings --sequence-timing-units 's' --Delta 0.03
+            mdt-generate-protocol data.bvec data.bval --add-sequence-timings --TE ../my_TE_file.txt
+        """)
+
+        parser = argparse.ArgumentParser(description=description, epilog=epilog,
+                                         formatter_class=argparse.RawTextHelpFormatter)
+        parser.add_argument('bvec', help='the gradient vectors file').completer = FilesCompleter()
+        parser.add_argument('bval', help='the gradient b-values').completer = FilesCompleter()
+        parser.add_argument('-s', '--bval-scale-factor', type=int,
+                            help="We expect the b-values in the output protocol in units of s/m^2. "
+                                 "Example use: 1 or 1e6. The default is autodetect.")
+
+        parser.add_argument('-o', '--output_file',
+                            help='the output protocol, defaults to "<bvec_name>.prtcl"').completer = FilesCompleter()
+
+        parser.add_argument('--add-sequence-timings', action='store_true',
+                            help="Add the sequence timings. If no timings given it will guess G, Delta and delta. "
+                                 "By default no timings are added.")
+
+        parser.add_argument('--sequence-timing-units', choices=('ms', 's'), default='ms',
+                            help="The units of the sequence timings. The default is 'ms' which we will convert to 's'.")
+
+        parser.add_argument('--max-g', type=float, default=0.04,
+                            help="The maximum gradient amplitude in T/m. This is only useful if we need to guess "
+                                 "big Delta and small delta. Default is 0.04 T/m")
+
+        parser.add_argument('--Delta',
+                            help="The big Delta to use, either a single number or a file with either a single number "
+                                 "or one number per gradient direction.")
+
+        parser.add_argument('--delta',
+                            help="The small delta to use, either a single number or a file with either a single number "
+                                 "or one number per gradient direction.")
+
+        parser.add_argument('--TE',
+                            help="The TE to use, either a single number or a file with either a single number "
+                                 "or one number per gradient direction.")
+
+        return parser
+
+    mdt.initialize_user_settings(False)
+
+    parser = get_arg_parser()
+    argcomplete.autocomplete(parser)
+    args = parser.parse_args()
+
+    bvec_name = os.path.splitext(os.path.basename(args.bvec))[0]
+    output_prtcl = args.output_file or os.path.join(os.path.dirname(args.bvec),
+                                             os.path.splitext(os.path.basename(args.bvec))[0] + '.prtcl')
+    bval_scale_factor = args.bval_scale_factor or 'auto'
+
+    protocol = mdt.load_protocol_bval_bvec(bvec=args.bvec, bval=args.bval, bval_scale=bval_scale_factor)
+
+    if args.add_sequence_timings:
+        protocol.add_estimated_protocol_params(maxG=args.max_g)
+
+        if args.Delta is not None:
+            mdt.protocols.add_column_to_protocol(protocol, 'Delta', args.Delta, args.sequence_timing_units)
+        if args.delta is not None:
+            mdt.protocols.add_column_to_protocol(protocol, 'delta', args.delta, args.sequence_timing_units)
+        if args.TE is not None:
+            mdt.protocols.add_column_to_protocol(protocol, 'TE', args.TE, args.sequence_timing_units)
+
+    mdt.protocols.write_protocol(protocol, output_prtcl)
+
+
