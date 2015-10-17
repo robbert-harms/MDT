@@ -47,7 +47,8 @@ if __name__ == '__main__':
                                  "Example use: 1 or 1e6. The default is autodetect.")
 
         parser.add_argument('-o', '--output_file',
-                            help='the output protocol, defaults to "<bvec_name>.prtcl"').completer = FilesCompleter()
+                            help='the output protocol, defaults to "<bvec_name>.prtcl" in the same '
+                                 'directory as the bvec file.').completer = FilesCompleter()
 
         parser.add_argument('--add-sequence-timings', action='store_true',
                             help="Add the sequence timings. If no timings given it will guess G, Delta and delta. "
