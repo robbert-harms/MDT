@@ -1,7 +1,7 @@
 import math
 from mdt.components_loader import CompartmentModelsLoader
 from mdt.dmri_composite_model import DMRICompositeSampleModel, DMRISingleModelBuilder
-from mot.evaluation_models import GaussianEvaluationModel
+from mot.evaluation_models import GaussianEvaluationModel, OffsetGaussianEvaluationModel
 from mot.trees import CompartmentModelTree
 
 __author__ = 'Robbert Harms'

@@ -84,7 +84,7 @@ def batch_fit(data_folder, batch_profile_class=None, subjects_ind=None, recalcul
 
 def fit_model(model, dwi_info, protocol, brain_mask, output_folder, optimizer=None,
               recalculate=False, only_recalculate_last=False, cl_device_ind=None, double_precision=False,
-              gradient_deviations=None):
+              gradient_deviations=None, noise_std=None):
     """Run the optimizer on the given model.
 
     Args:
@@ -106,6 +106,8 @@ def fit_model(model, dwi_info, protocol, brain_mask, output_folder, optimizer=No
             utils.get_cl_devices(). This can also be a list of device indices.
         double_precision (boolean): if we would like to do the calculations in double precision
         gradient_deviations (str or ndarray): set of gradient deviations to use. In HCP WUMINN format.
+        noise_std (double): the noise level standard deviation. This is useful for model comparisons.
+                By default this is not used and the model default is used (normally 1).
 
     Returns:
         the output of the optimization. If a cascade is given, only the results of the last model in the cascade is
@@ -125,7 +127,7 @@ def fit_model(model, dwi_info, protocol, brain_mask, output_folder, optimizer=No
     problem_data = utils.load_problem_data(dwi_info, protocol, brain_mask)
     model_fit = ModelFit(model, problem_data, output_folder, optimizer=optimizer, recalculate=recalculate,
                          only_recalculate_last=only_recalculate_last, cl_device_ind=cl_device_ind,
-                         double_precision=double_precision, gradient_deviations=gradient_deviations)
+                         double_precision=double_precision, gradient_deviations=gradient_deviations, noise_std=noise_std)
 
     return model_fit.run()
 

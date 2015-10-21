@@ -9,7 +9,7 @@ from six import string_types
 from mdt.protocols import write_protocol
 from mdt.components_loader import get_model
 from mdt.cascade_model import CascadeModelInterface
-from mdt import configuration
+from mdt import configuration, __version__
 from mdt.IO import Nifti
 from mdt.utils import create_roi, configure_per_model_logging, restore_volumes, recursive_merge_dict, \
     load_problem_data, ProtocolProblemError, MetaOptimizerBuilder, get_cl_devices, \
@@ -70,6 +70,7 @@ class BatchFitting(object):
 
         self._config = recursive_merge_dict(self._config, self._batch_profile.get_batch_fit_config_options())
 
+        self._logger.info('Using MDT version {}'.format(__version__))
         self._logger.info('Using batch profile: {0}'.format(self._batch_profile))
         self._subjects = self._get_subjects(subjects_ind)
 
@@ -192,7 +193,7 @@ class ModelFit(object):
 
     def __init__(self, model, problem_data, output_folder, optimizer=None,
                  recalculate=False, only_recalculate_last=False, model_protocol_options=None,
-                 cl_device_ind=None, double_precision=False, gradient_deviations=None):
+                 cl_device_ind=None, double_precision=False, gradient_deviations=None, noise_std=None):
         """Setup model fitting for the given input model and data.
 
         This does nothing by itself, please call fit_model() to actually fit_model the optimizer to fit the model.
@@ -217,6 +218,8 @@ class ModelFit(object):
                 get_cl_devices(). This can also be a list of device indices.
             double_precision (boolean): if we would like to do the calculations in double precision
             gradient_deviations (ndarray): set of gradient deviations to use. In HCP WUMINN format.
+            noise_std (double): the noise level standard deviation. This is useful for model comparisons.
+                By default this is not used and the model default is used (normally 1).
         """
         if isinstance(model, string_types):
             model = get_model(model)
@@ -233,6 +236,7 @@ class ModelFit(object):
         self._model_protocol_options = model_protocol_options
         self._logger = logging.getLogger(__name__)
         self._cl_device_indices = cl_device_ind
+        self._noise_std = noise_std
 
         if self._cl_device_indices is not None and not isinstance(self._cl_device_indices, collections.Iterable):
             self._cl_device_indices = [self._cl_device_indices]
@@ -241,6 +245,8 @@ class ModelFit(object):
             raise ProtocolProblemError(
                 'The given protocol is insufficient for this model. '
                 'The reported errors where: {}'.format(self._model.get_protocol_problems(self._problem_data.protocol)))
+
+        self._logger.info('Using MDT version {}'.format(__version__))
 
         if self._cl_device_indices is not None:
             all_devices = get_cl_devices()
@@ -284,6 +290,9 @@ class ModelFit(object):
         return self._run_single_model(model, recalculate, meta_optimizer_config)
 
     def _run_single_model(self, model, recalculate, meta_optimizer_config):
+        if self._noise_std is not None:
+            model.evaluation_model.set_noise_level_std(self._noise_std)
+
         configure_per_model_logging(_get_model_output_path(self._output_folder, model))
 
         self._logger.info('Preparing for model {0}'.format(model.name))

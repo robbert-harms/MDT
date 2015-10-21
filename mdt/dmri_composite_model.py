@@ -48,6 +48,10 @@ class DMRICompositeSampleModel(SampleModelBuilder, SmoothableModelInterface,
         self.required_nmr_shells = False
         self.gradient_deviations = None
 
+    @property
+    def evaluation_model(self):
+        return self._evaluation_model
+
     def set_smooth_lists(self, white_list=None, black_list=None):
         """Set the list with maps to filter.
 
