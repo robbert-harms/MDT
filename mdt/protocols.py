@@ -515,8 +515,12 @@ def load_protocol(protocol_fname, column_names=None):
     data = np.genfromtxt(protocol_fname)
     s = data.shape
     d = {}
-    for i in range(s[1]):
-        d.update({column_names[i]: data[:, i]})
+
+    if len(s) == 1:
+        d.update({column_names[0]: data})
+    else:
+        for i in range(s[1]):
+            d.update({column_names[i]: data[:, i]})
     return Protocol(columns=d)
 
 

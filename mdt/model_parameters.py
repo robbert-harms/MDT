@@ -36,21 +36,19 @@ def get_parameter(param_name):
                  'TE': ProtocolParameter(CLDataType.from_string('model_float'), 'TE'),
                  'b': ProtocolParameter(CLDataType.from_string('model_float'), 'b'),
                  'q': ProtocolParameter(CLDataType.from_string('model_float'), 'q'),
-                 'T1': ProtocolParameter(CLDataType.from_string('model_float'), 'T1'),
+
                  'GAMMA2_G2_delta2': ProtocolParameter(CLDataType.from_string('model_float'),
                                                                'GAMMA2_G2_delta2'),
+                 'TM': ProtocolParameter(CLDataType.from_string('model_float'), 'TM'),
+                 'Ti': ProtocolParameter(CLDataType.from_string('model_float'), 'Ti'),
+                 'TR': ProtocolParameter(CLDataType.from_string('model_float'), 'TR'),
 
+                 'T1': FreeParameter(
+                     CLDataType.from_string('model_float'), 'T1', False, 0.03, 0.0, 4.0,
+                     parameter_transform=ClampTransform(),
+                     sampling_proposal=GaussianProposal(0.0001)),
                  'T2': FreeParameter(
-                     CLDataType.from_string('model_float'), 'T2', False, 0.05, 0.0, 0.8,
-                     parameter_transform=ClampTransform(),
-                     sampling_proposal=GaussianProposal(0.0001)),
-                 #todo get correct values here
-                 'Ti': FreeParameter(
-                     CLDataType.from_string('model_float'), 'Ti', False, 0.05, 0.0, 1.0,
-                     parameter_transform=ClampTransform(),
-                     sampling_proposal=GaussianProposal(0.0001)),
-                 'TR': FreeParameter(
-                     CLDataType.from_string('model_float'), 'TR', False, 0.05, 0.0, 1.0,
+                     CLDataType.from_string('model_float'), 'T2', False, 0.01, 0.0, 2.0,
                      parameter_transform=ClampTransform(),
                      sampling_proposal=GaussianProposal(0.0001)),
 
