@@ -368,6 +368,22 @@ def create_median_otsu_brain_mask(dwi_info, protocol, output_fname=None, **kwarg
     return create_median_otsu_brain_mask(dwi_info, protocol, **kwargs)
 
 
+def create_blank_mask(volume4d_path, output_fname):
+    """Create a blank mask for the given 4d volume.
+
+    Sometimes you want to use all the voxels in the given dataset, without masking any voxel. Since the optimization
+    routines require a mask, you have to submit one. The solution is to use a blank mask, that is, a mask that
+    masks nothing.
+
+    Args:
+        volume4d_path (str): the path to the volume you want to create a blank mask for
+        output_fname (str): the path to the result mask
+    """
+    volume = load_dwi(volume4d_path)
+    mask = np.ones(volume.shape[:3])
+    write_image(output_fname, mask, volume.get_header())
+
+
 def load_brain_mask(brain_mask_fname):
     """Load the brain mask from the given file.
 

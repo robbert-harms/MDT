@@ -390,6 +390,9 @@ class Protocol(object):
             G[self.get_unweighted_indices()] = 0
             return {'G': G, 'Delta': self._columns['Delta'], 'delta': self._columns['delta']}
 
+        if 'b' not in self._columns:
+            return {}
+
         max_G = max_G or self.max_G
         bvals = self.get_column('b')
         bmax = max(self.get_b_values_shells())

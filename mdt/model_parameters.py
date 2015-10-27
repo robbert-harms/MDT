@@ -33,12 +33,12 @@ def get_parameter(param_name):
                  'G': ProtocolParameter(CLDataType.from_string('model_float'), 'G'),
                  'Delta': ProtocolParameter(CLDataType.from_string('model_float'), 'Delta'),
                  'delta': ProtocolParameter(CLDataType.from_string('model_float'), 'delta'),
-                 'TE': ProtocolParameter(CLDataType.from_string('model_float'), 'TE'),
                  'b': ProtocolParameter(CLDataType.from_string('model_float'), 'b'),
                  'q': ProtocolParameter(CLDataType.from_string('model_float'), 'q'),
 
                  'GAMMA2_G2_delta2': ProtocolParameter(CLDataType.from_string('model_float'),
                                                                'GAMMA2_G2_delta2'),
+                 'TE': ProtocolParameter(CLDataType.from_string('model_float'), 'TE'),
                  'TM': ProtocolParameter(CLDataType.from_string('model_float'), 'TM'),
                  'Ti': ProtocolParameter(CLDataType.from_string('model_float'), 'Ti'),
                  'TR': ProtocolParameter(CLDataType.from_string('model_float'), 'TR'),

@@ -10,11 +10,13 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 lc = CompartmentModelsLoader().load
 
 
-class TM(DMRISingleModelBuilder):
+class S0TM(DMRISingleModelBuilder):
 
-    name = 'TM'
+    name = 's0-TM'
     description = 'Model for the Mixing time.'
-    model_listing = (lc('ExpT1DecTM'),)
+    model_listing = (lc('S0').fix('s0', 1),
+                     lc('ExpT1DecTM'),
+                     '*')
 
 
 class S0T2(DMRISingleModelBuilder):
