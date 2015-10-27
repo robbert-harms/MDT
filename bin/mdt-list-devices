@@ -21,6 +21,7 @@ if __name__ == '__main__':
         description += mdt.shell_utils.get_citation_message()
 
         parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
+        parser.add_argument('-l', '--long', action='store_true', help='print all info about the devices')
         return parser
 
     parser = get_arg_parser()
@@ -31,4 +32,7 @@ if __name__ == '__main__':
 
     for ind, env in enumerate(cl_environments.CLEnvironmentFactory.all_devices()):
         print('Device {}:'.format(ind))
-        print(repr(env))
+        if args.long:
+            print(repr(env))
+        else:
+            print(str(env))
