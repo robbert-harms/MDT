@@ -1,6 +1,6 @@
-from six import with_metaclass
 import mdt
-from mdt.utils import simple_parameter_init, ProtocolCheckInterface, condense_protocol_problems
+from mdt.models.base import DMRIOptimizable
+from mdt.utils import simple_parameter_init, condense_protocol_problems
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-04-24"
@@ -8,7 +8,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class CascadeModelInterface(object):
+class DMRICascadeModelInterface(DMRIOptimizable):
 
     def __init__(self):
         """The interface to cascade models.
@@ -63,16 +63,6 @@ class CascadeModelInterface(object):
         The implementing class should now reset the iteration such that get_next gets the first model again.
         """
 
-    def is_protocol_sufficient(self, protocol):
-        """Check if the given protocol holds enough information for all models in the cascade.
-
-        Args:
-            protocol (Protocol): The protocol object to check for sufficient information.
-
-        Returns:
-            boolean: True if there is enough information in the protocol, false otherwise
-        """
-
     def get_model(self, name):
         """Get one of the models in the cascade by name.
 
@@ -104,7 +94,7 @@ class CascadeModelInterface(object):
         """Set the gradient deviations in every model."""
 
 
-class SimpleCascadeModel(CascadeModelInterface, ProtocolCheckInterface):
+class SimpleCascadeModel(DMRICascadeModelInterface):
 
     def __init__(self, name, model_list):
         """Create a new cascade model from a given list of models.
@@ -115,7 +105,7 @@ class SimpleCascadeModel(CascadeModelInterface, ProtocolCheckInterface):
             name (str): the name of this cascade model
             model_list (list of models): the list of models this cascade consists of
         """
-        super(CascadeModelInterface, self).__init__()
+        super(DMRICascadeModelInterface, self).__init__()
         self._name = name
         self._model_list = model_list
         self._iteration_position = 0
@@ -185,7 +175,7 @@ class SimpleCascadeModel(CascadeModelInterface, ProtocolCheckInterface):
         Returns:
             None, preparing should happen in-place.
         """
-        if not isinstance(model, CascadeModelInterface):
+        if not isinstance(model, DMRICascadeModelInterface):
             simple_parameter_init(model, output_previous)
 
     def _set_double_precision(self, double_precision):

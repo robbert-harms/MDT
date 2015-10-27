@@ -4,7 +4,7 @@ import os
 import shutil
 from six import string_types
 from mdt.components_loader import BatchProfilesLoader
-from mdt.data_loader.protocol import ProtocolLoader
+from mdt.data_loaders.protocol import ProtocolLoader
 from mdt.masking import create_write_median_otsu_brain_mask
 from mdt.protocols import load_protocol, load_bvec_bval
 from mdt.utils import split_image_path

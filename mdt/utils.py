@@ -7,7 +7,6 @@ import logging.config as logging_config
 import os
 import collections
 import shutil
-import time
 import functools
 
 from six import string_types
@@ -17,8 +16,8 @@ import pkg_resources
 from scipy.special import jnp_zeros
 
 from mdt.components_loader import get_model
-from mdt.data_loader.brain_mask import autodetect_brain_mask_loader
-from mdt.data_loader.protocol import autodetect_protocol_loader
+from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
+from mdt.data_loaders.protocol import autodetect_protocol_loader
 from mdt.log_handlers import ModelOutputLogHandler
 from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
 from mot import runtime_configuration
@@ -126,69 +125,43 @@ class DMRICompartmentModelFunction(ModelFunction):
         return extra_dict
 
 
-class ProtocolCheckInterface(object):
-
-    def is_protocol_sufficient(self, protocol=None):
-        """Check if the protocol holds enough information for this model to work.
-
-        Args:
-            protocol (Protocol): The protocol object to check for sufficient information. If set the None, the
-                current protocol in the problem data is used.
-
-        Returns:
-            boolean: True if there is enough information in the protocol, false otherwise
-        """
-
-    def get_protocol_problems(self, protocol=None):
-        """Get all the problems with the protocol.
-
-        Args:
-            protocol (Protocol): The protocol object to check for problems. If set the None, the
-                current protocol in the problem data is used.
-
-        Returns:
-            list of ModelProtocolProblem: A list of ModelProtocolProblem instances or subclasses of that baseclass.
-                These objects indicate the problems with the protocol and this model.
-        """
-
-
 class PathJoiner(object):
 
     def __init__(self, *args):
         """The path joining class.
 
         To construct use something like:
-        >>> pjoin = PathJoiner(r'/my/images/dir/')
+        pjoin = PathJoiner(r'/my/images/dir/')
 
         or:
-        >>> pjoin = PathJoiner('my', 'images', 'dir')
+        pjoin = PathJoiner('my', 'images', 'dir')
 
 
         Then, you can call it like:
-        >>> pjoin()
+        pjoin()
         /my/images/dir
 
         At least, it returns the above on Linux. On windows it will return 'my\\images\\dir'.
 
         You can also call it with additional path elements which should be appended to the path:
-        >>> pjoin('/brain_mask.nii.gz')
+        pjoin('/brain_mask.nii.gz')
         /my/images/dir/brain_mask.nii.gz
 
         Note that that is not permanent. To make it permanent you can call
-        >>> pjoin.append('results')
+        pjoin.append('results')
 
         This will extend the stored path to /my/images/dir/results/:
-        >>> pjoin('/brain_mask.nii.gz')
+        pjoin('/brain_mask.nii.gz')
         /my/images/dir/results/brain_mask.nii.gz
 
         You can revert this by calling:
-        >>> pjoin.reset()
+        pjoin.reset()
 
         You can also create a copy of this class with extended path elements by calling
-        >>> pjoin2 = pjoin.create_extended('results')
+        pjoin2 = pjoin.create_extended('results')
 
         This returns a new PathJoiner instance with as path the current path plus the items in the arguments.
-        >>> pjoin2('brain_mask.nii.gz')
+        pjoin2('brain_mask.nii.gz')
         /my/images/dir/results/brain_mask.nii.gz
 
         Args:
@@ -555,9 +528,10 @@ def initialize_user_settings(overwrite=True):
     """Initializes the user settings folder using a skeleton.
 
     This will create all the necessary directories for adding components to MDT. It will also create a basic
-    configuration file for setting global wide MDT options.
+    configuration file for setting global wide MDT options. Also, it will copy the user components from the previous
+    version to this version.
 
-    Each MDT version will have it's own sub-directory in the choosen folder.
+    Each MDT version will have it's own sub-directory in the config directory.
 
     Args:
         overwrite (boolean): if the folder for this version already exists, do we want to overwrite yes or no.
@@ -568,10 +542,17 @@ def initialize_user_settings(overwrite=True):
     from mdt import get_config_dir
     path = get_config_dir()
 
+    base_path = get_config_dir(False)
+    previous_version = next(reversed(sorted(os.listdir(base_path))))
+
+    tmp_dir = os.path.join(base_path, 'user_components_tmp')
+    shutil.copytree(os.path.join(base_path, previous_version, 'components', 'user'), tmp_dir)
+
     if os.path.exists(path):
         if overwrite:
             shutil.rmtree(path)
         else:
+            shutil.rmtree(tmp_dir)
             return path
 
     cache_path = pkg_resources.resource_filename('mdt', 'data/components')
@@ -579,6 +560,9 @@ def initialize_user_settings(overwrite=True):
 
     cache_path = pkg_resources.resource_filename('mdt', 'data/mdt.conf')
     shutil.copy(cache_path, path)
+
+    shutil.rmtree(os.path.join(path, 'components', 'user'))
+    shutil.move(tmp_dir, os.path.join(path, 'components', 'user'))
 
     return path
 
@@ -931,8 +915,8 @@ def model_output_exists(model, output_folder, check_sample_output=False):
     if isinstance(model, string_types):
         model = get_model(model)
 
-    from mdt.cascade_model import CascadeModelInterface
-    if isinstance(model, CascadeModelInterface):
+    from mdt.models.cascade import DMRICascadeModelInterface
+    if isinstance(model, DMRICascadeModelInterface):
         return all([model_output_exists(sub_model, output_folder, check_sample_output)
                     for sub_model in model.get_model_names()])
 

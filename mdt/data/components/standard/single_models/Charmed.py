@@ -1,5 +1,5 @@
 from mdt.components_loader import CompartmentModelsLoader
-from mdt.dmri_composite_model import DMRICompositeSampleModel
+from mdt.models.single import DMRISingleModelBuilder, DMRISingleModel
 from mot.evaluation_models import SumOfSquares
 from mot.parameter_functions.transformations import SinSqrClampTransform
 from mot.signal_noise_models import JohnsonSignalNoise
@@ -59,7 +59,7 @@ def get_charmed(nmr_restr=3):
 
         ml = (compartments_loader.load('S0'), (hin, res, '+'), '*')
 
-        model = DMRICompositeSampleModel(name, CompartmentModelTree(ml),
+        model = DMRISingleModel(name, CompartmentModelTree(ml),
                                          evaluation_model, signal_noise_model)
         modifiers = [('FR', lambda results: 1 - results['w_hin0.w'])]
         model.add_post_optimization_modifiers(modifiers)

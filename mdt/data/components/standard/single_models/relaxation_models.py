@@ -1,5 +1,5 @@
 from mdt.components_loader import CompartmentModelsLoader
-from mdt.dmri_composite_model import DMRISingleModelBuilder
+from mdt.models.single import DMRISingleModelBuilder
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -10,11 +10,11 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 lc = CompartmentModelsLoader().load
 
 
-class S0(DMRISingleModelBuilder):
+class TM(DMRISingleModelBuilder):
 
-    name = 's0'
-    description = 'Models the unweighted signal (aka. b0).'
-    model_listing = (lc('S0'),)
+    name = 'TM'
+    description = 'Model for the Mixing time.'
+    model_listing = (lc('ExpT1DecTM'),)
 
 
 class S0T2(DMRISingleModelBuilder):
@@ -45,3 +45,4 @@ class S0T2T2(DMRISingleModelBuilder):
         ('T2long.T2Weighted', lambda d: d['Wlong.w'] * d['T2long.T2']),
         ('T2.T2', lambda d: d['T2short.T2Weighted'] + d['T2long.T2Weighted'])
     )
+

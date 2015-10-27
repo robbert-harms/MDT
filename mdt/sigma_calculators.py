@@ -1,7 +1,7 @@
 import six
 from mdt import load_dwi
-from mdt.data_loader.brain_mask import autodetect_brain_mask_loader
-from mdt.data_loader.protocol import autodetect_protocol_loader
+from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
+from mdt.data_loaders.protocol import autodetect_protocol_loader
 import numpy as np
 
 __author__ = 'Robbert Harms'

@@ -122,7 +122,7 @@ class ComponentsLoader(object):
     def _get_preferred_source(self, name):
         """Try to get the preferred source for the component with the given name.
 
-        The user source takes precedence over the builtin sources.
+        The order of the sources matter, the first source takes precedence over the latter ones and so forth.
         """
         for source in self._sources:
             try:
@@ -176,7 +176,7 @@ class ComponentsSource(object):
 
 class UserComponentsSourceSingle(ComponentsSource):
 
-    def __init__(self, dir_name):
+    def __init__(self, user_type, component_type):
         """
 
         This expects that the available python files contain a class with the same name as the file in which the class
@@ -185,12 +185,12 @@ class UserComponentsSourceSingle(ComponentsSource):
         'meta_info' which contains meta information about that module.
 
         Args:
+            user_type (str): either 'standard' or 'user'
             component_type (str): the type of component we wish to load. This should be named exactly to one of the
                 directories available in mdt/data/components/
         """
         super(UserComponentsSourceSingle, self).__init__()
-        from mdt import get_config_dir
-        self.path = os.path.join(get_config_dir(), 'components', dir_name)
+        self.path = _get_components_path(user_type, component_type)
 
     def list(self):
         if os.path.isdir(self.path):
@@ -235,15 +235,15 @@ class UserComponentsSourceMulti(ComponentsSource):
     """
     loaded_modules_cache = {}
 
-    def __init__(self, dir_name):
+    def __init__(self, user_type, component_type):
         super(UserComponentsSourceMulti, self).__init__()
-        self._dir_name = dir_name
+        self._user_type = user_type
+        self._component_type = component_type
 
-        if self._dir_name not in self.loaded_modules_cache:
-            self.loaded_modules_cache[self._dir_name] = {}
+        if self._component_type not in self.loaded_modules_cache:
+            self.loaded_modules_cache[self._component_type] = {}
 
-        from mdt import get_config_dir
-        self.path = os.path.join(get_config_dir(), 'components', dir_name)
+        self.path = _get_components_path(user_type, component_type)
         self._check_path()
         self._components = self._load_all_components()
 
@@ -262,7 +262,7 @@ class UserComponentsSourceMulti(ComponentsSource):
         self._update_modules_cache()
 
         all_components = []
-        for module, components in self.loaded_modules_cache[self._dir_name].values():
+        for module, components in self.loaded_modules_cache[self._component_type].values():
             all_components.extend(components)
 
         return {meta_info[1]['name']: meta_info for meta_info in all_components}
@@ -274,10 +274,12 @@ class UserComponentsSourceMulti(ComponentsSource):
         are not yet loaded.
         """
         for path in self._get_python_component_files():
-            if path not in self.loaded_modules_cache[self._dir_name]:
-                module_name = self._dir_name + '/' + os.path.splitext(os.path.basename(path))[0]
+            if path not in self.loaded_modules_cache[self._component_type]:
+                module_name = self._user_type + '/' + \
+                              self._component_type + '/' + \
+                              os.path.splitext(os.path.basename(path))[0]
                 module = imp.load_source(module_name, path)
-                self.loaded_modules_cache[self._dir_name][path] = [module, self._get_components_from_module(module)]
+                self.loaded_modules_cache[self._component_type][path] = [module, self._get_components_from_module(module)]
 
     def _get_components_from_module(self, module):
         """Return a list of all the available components in the given module.
@@ -314,24 +316,24 @@ class UserComponentsSourceMulti(ComponentsSource):
 
 class SingleModelSource(UserComponentsSourceMulti):
 
-    def __init__(self):
+    def __init__(self, user_type):
         """Source for the items in the 'single_models' dir in the components folder."""
-        super(SingleModelSource, self).__init__('single_models')
+        super(SingleModelSource, self).__init__(user_type, 'single_models')
 
     def _get_desired_class(self):
-        from mdt.dmri_composite_model import DMRISingleModelBuilder
+        from mdt.models.single import DMRISingleModelBuilder
         return DMRISingleModelBuilder
 
 
-class CascadeComponentSource(UserComponentsSourceMulti):
+class CascadeSource(UserComponentsSourceMulti):
 
-    def __init__(self):
+    def __init__(self, user_type):
         """Source for the items in the 'cascade_models' dir in the components folder."""
-        super(CascadeComponentSource, self).__init__('cascade_models')
+        super(CascadeSource, self).__init__(user_type, 'cascade_models')
 
     def _get_desired_class(self):
-        from mdt.cascade_model import CascadeModelInterface
-        return CascadeModelInterface
+        from mdt.models.cascade import DMRICascadeModelInterface
+        return DMRICascadeModelInterface
 
 
 class MOTSourceSingle(ComponentsSource):
@@ -363,33 +365,38 @@ class MOTModelsSource(MOTSourceSingle):
 class BatchProfilesLoader(ComponentsLoader):
 
     def __init__(self):
-        super(BatchProfilesLoader, self).__init__([UserComponentsSourceSingle('batch_profiles')])
+        super(BatchProfilesLoader, self).__init__([UserComponentsSourceSingle('user', 'batch_profiles'),
+                                                   UserComponentsSourceSingle('standard', 'batch_profiles')])
 
 
 class CompartmentModelsLoader(ComponentsLoader):
 
     def __init__(self):
-        super(CompartmentModelsLoader, self).__init__([UserComponentsSourceSingle('compartment_models'),
+        super(CompartmentModelsLoader, self).__init__([UserComponentsSourceSingle('user', 'compartment_models'),
+                                                       UserComponentsSourceSingle('standard', 'compartment_models'),
                                                        MOTModelsSource()])
 
 
 class LibraryFunctionsLoader(ComponentsLoader):
 
     def __init__(self):
-        super(LibraryFunctionsLoader, self).__init__([UserComponentsSourceSingle('library_functions'),
+        super(LibraryFunctionsLoader, self).__init__([UserComponentsSourceSingle('user', 'library_functions'),
+                                                      UserComponentsSourceSingle('standard', 'library_functions'),
                                                       MOTLibraryFunctionSource()])
 
 
 class SingleModelsLoader(ComponentsLoader):
 
     def __init__(self):
-        super(SingleModelsLoader, self).__init__([SingleModelSource()])
+        super(SingleModelsLoader, self).__init__([SingleModelSource('user'),
+                                                  SingleModelSource('standard')])
 
 
 class CascadeModelsLoader(ComponentsLoader):
 
     def __init__(self):
-        super(CascadeModelsLoader, self).__init__([CascadeComponentSource()])
+        super(CascadeModelsLoader, self).__init__([CascadeSource('user'),
+                                                   CascadeSource('standard')])
 
 
 def get_class_predicate(module, class_type):
@@ -412,3 +419,13 @@ def get_class_predicate(module, class_type):
         return inspect.isclass(item) and defined_in_module(item) and is_subclass(item)
 
     return predicate_function
+
+
+def _get_components_path(user_type, component_type):
+    """
+    Args:
+        user_type (str): either 'standard' or 'user'
+        component_type (str): one of the dir names in standard and user
+    """
+    from mdt import get_config_dir
+    return os.path.join(get_config_dir(), 'components', user_type, component_type)

@@ -1,7 +1,9 @@
 from contextlib import contextmanager
 import logging.config as logging_config
-from mdt import configuration
+
 import numpy as np
+
+from mdt import configuration
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-03-10"
@@ -10,7 +12,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.3.8'
+VERSION = '0.4.0'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')
@@ -155,7 +157,7 @@ def sample_model(model, dwi_info, protocol, brain_mask, output_folder,
     """
     import mdt.utils
     from mot import runtime_configuration
-    from mdt.cascade_model import CascadeModelInterface
+    from mdt.models.cascade import DMRICascadeModelInterface
     from mot.cl_routines.sampling.metropolis_hastings import MetropolisHastings
     from mdt.model_sampling import sample_single_model
     from six import string_types
@@ -168,7 +170,7 @@ def sample_model(model, dwi_info, protocol, brain_mask, output_folder,
 
     model.double_precision = double_precision
 
-    if isinstance(model, CascadeModelInterface):
+    if isinstance(model, DMRICascadeModelInterface):
         raise ValueError('The function \'sample_model()\' does not accept cascade models.')
 
     if cl_device_ind is not None:
@@ -882,7 +884,7 @@ def extract_volumes(input_volume_fname, input_protocol, output_volume_fname, out
         output_protocol (str): the output protocol for the selected volumes
         protocol_indices (list): the desired indices, indexing the input_volume
     """
-    from mdt.data_loader.protocol import autodetect_protocol_loader
+    from mdt.data_loaders.protocol import autodetect_protocol_loader
     import mdt.protocols
 
     input_protocol = autodetect_protocol_loader(input_protocol).get_protocol()
@@ -909,7 +911,7 @@ def apply_mask(dwi, mask, inplace=True):
         This will set for all the output images the the values to zero where the mask is zero.
     """
     from six import string_types
-    from mdt.data_loader.brain_mask import autodetect_brain_mask_loader
+    from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
 
     mask = autodetect_brain_mask_loader(mask).get_data()
 
@@ -1092,11 +1094,17 @@ def set_data_type(maps_dict, numpy_data_type=np.float32):
     return maps_dict
 
 
-def get_config_dir():
+def get_config_dir(for_this_version=True):
     """Get the location of the components.
+
+    Args:
+        for_this_version (boolean): if True we return the config dir for this version, if False we return the
+            general config dir.
 
     Return:
         str: the path to the components
     """
     import os
-    return os.path.join(os.path.expanduser("~"), '.mdt', __version__)
+    if for_this_version:
+        return os.path.join(os.path.expanduser("~"), '.mdt', __version__)
+    return os.path.join(os.path.expanduser("~"), '.mdt')

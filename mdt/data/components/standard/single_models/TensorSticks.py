@@ -1,5 +1,5 @@
 from mdt.components_loader import CompartmentModelsLoader
-from mdt.dmri_composite_model import DMRICompositeSampleModel
+from mdt.models.single import DMRISingleModelBuilder, DMRISingleModel
 from mot.evaluation_models import SumOfSquares
 from mot.signal_noise_models import JohnsonSignalNoise
 from mot.trees import CompartmentModelTree
@@ -41,7 +41,7 @@ def get_tensor_sticks(nmr_sticks=1):
 
         ml = (compartments_loader.load('S0'), (hin, res, '+'), '*')
 
-        model = DMRICompositeSampleModel(name, CompartmentModelTree(ml),
+        model = DMRISingleModel(name, CompartmentModelTree(ml),
                                          evaluation_model, signal_noise_model)
 
         def calculate_fr(d):

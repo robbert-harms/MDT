@@ -5,10 +5,13 @@ import timeit
 import pickle
 import time
 import collections
+
 from six import string_types
+import nibabel as nib
+from mdt.models.cascade import DMRICascadeModelInterface
+
 from mdt.protocols import write_protocol
 from mdt.components_loader import get_model
-from mdt.cascade_model import CascadeModelInterface
 from mdt import configuration, __version__
 from mdt.IO import Nifti
 from mdt.utils import create_roi, configure_per_model_logging, restore_volumes, recursive_merge_dict, \
@@ -16,7 +19,6 @@ from mdt.utils import create_roi, configure_per_model_logging, restore_volumes, 
     get_model_config, apply_model_protocol_options, model_output_exists, split_image_path
 from mdt.batch_utils import batch_profile_factory
 from mot import runtime_configuration
-import nibabel as nib
 from mot.load_balance_strategies import EvenDistribution
 
 __author__ = 'Robbert Harms'
@@ -266,7 +268,7 @@ class ModelFit(object):
 
     def _run(self, model, recalculate, only_recalculate_last, meta_optimizer_config):
         """Recursively calculate the (cascade) models"""
-        if isinstance(model, CascadeModelInterface):
+        if isinstance(model, DMRICascadeModelInterface):
             results = {}
             last_result = None
             while model.has_next():

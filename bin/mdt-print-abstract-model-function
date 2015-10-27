@@ -2,9 +2,11 @@
 # PYTHON_ARGCOMPLETE_OK
 import argparse
 import sys
+
 import argcomplete
+
 import mdt
-from mdt.cascade_model import CascadeModelInterface
+from mdt.models.cascade import DMRICascadeModelInterface
 import mdt.shell_utils
 
 __author__ = 'Robbert Harms'
@@ -33,7 +35,7 @@ if __name__ == '__main__':
     model_name = args.model
     model = mdt.get_model(model_name)
 
-    if isinstance(model, CascadeModelInterface):
+    if isinstance(model, DMRICascadeModelInterface):
         print('Printing an abstract model function is not supported for cascade models.')
         sys.exit(2)
 

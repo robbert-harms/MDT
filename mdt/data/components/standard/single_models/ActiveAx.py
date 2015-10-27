@@ -1,5 +1,5 @@
 from mdt.components_loader import CompartmentModelsLoader
-from mdt.dmri_composite_model import DMRISingleModelBuilder
+from mdt.models.single import DMRISingleModelBuilder
 from mot.parameter_functions.dependencies import SimpleAssignment
 
 __author__ = 'Robbert Harms'

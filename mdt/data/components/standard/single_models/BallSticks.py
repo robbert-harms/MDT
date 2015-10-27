@@ -1,6 +1,6 @@
 import math
 from mdt.components_loader import CompartmentModelsLoader
-from mdt.dmri_composite_model import DMRICompositeSampleModel, DMRISingleModelBuilder
+from mdt.models.single import DMRISingleModelBuilder, DMRISingleModel
 from mot.evaluation_models import GaussianEvaluationModel, OffsetGaussianEvaluationModel
 from mot.trees import CompartmentModelTree
 
@@ -54,7 +54,7 @@ def get_ball_sticks(nmr_sticks=1, invivo=True):
 
         ml = (compartments_loader.load('S0'), (csf, ic, '+'), '*')
 
-        model = DMRICompositeSampleModel(name, CompartmentModelTree(ml), evaluation_model, signal_noise_model)
+        model = DMRISingleModel(name, CompartmentModelTree(ml), evaluation_model, signal_noise_model)
         modifiers = [('SNIF', lambda results: 1 - results['Wball.w'])]
         model.add_post_optimization_modifiers(modifiers)
         return model

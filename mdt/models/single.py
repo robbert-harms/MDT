@@ -1,8 +1,9 @@
 import numpy as np
+from mdt.models.base import DMRIOptimizable
 from mot import runtime_configuration
 from mot.base import CLDataType
 from mot.cl_functions import Weight
-from mdt.utils import restore_volumes, create_roi, ProtocolCheckInterface
+from mdt.utils import restore_volumes, create_roi
 from mdt.model_protocol_problem import MissingColumns, InsufficientShells
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
 from mot.evaluation_models import GaussianEvaluationModel
@@ -19,8 +20,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class DMRICompositeSampleModel(SampleModelBuilder, SmoothableModelInterface,
-                               ProtocolCheckInterface, PerturbationModelInterface):
+class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimizable, PerturbationModelInterface):
 
     def __init__(self, model_name, model_tree, evaluation_model, signal_noise_model=None, problem_data=None):
         """Create a composite dMRI sample model.
@@ -41,8 +41,8 @@ class DMRICompositeSampleModel(SampleModelBuilder, SmoothableModelInterface,
                 This should be a 2d matrix with per voxel 9 values that constitute the gradient deviation in
                 Fortran (column-major) order. This data is used as defined by the HCP WUMINN study.
         """
-        super(DMRICompositeSampleModel, self).__init__(model_name, model_tree, evaluation_model, signal_noise_model,
-                                                       problem_data=problem_data)
+        super(DMRISingleModel, self).__init__(model_name, model_tree, evaluation_model, signal_noise_model,
+                                              problem_data=problem_data)
         self.smooth_white_list = None
         self.smooth_black_list = None
         self.required_nmr_shells = False
@@ -87,7 +87,7 @@ class DMRICompositeSampleModel(SampleModelBuilder, SmoothableModelInterface,
         return self
 
     def get_problems_var_data(self):
-        var_data_dict = super(DMRICompositeSampleModel, self).get_problems_var_data()
+        var_data_dict = super(DMRISingleModel, self).get_problems_var_data()
 
         if self.gradient_deviations is not None:
             if len(self.gradient_deviations.shape) > 2:
@@ -165,7 +165,7 @@ class DMRICompositeSampleModel(SampleModelBuilder, SmoothableModelInterface,
         return self._model_tree
 
     def _set_default_dependencies(self):
-        super(DMRICompositeSampleModel, self)._set_default_dependencies()
+        super(DMRISingleModel, self)._set_default_dependencies()
         names = [w.name + '.w' for w in self._get_weight_models()]
         if len(names):
             self.add_parameter_dependency(names[0], WeightSumToOneRule(names[1:]))
@@ -228,7 +228,7 @@ class DMRICompositeSampleModel(SampleModelBuilder, SmoothableModelInterface,
                              'AICc': -2 * log_likelihood + k * 2 + (2 * k * (k + 1))/(n - k - 1)})
 
 
-class DMRISingleModelBuilder(DMRICompositeSampleModel):
+class DMRISingleModelBuilder(DMRISingleModel):
 
     name = '<default>'
     in_vivo_suitable = True
@@ -237,10 +237,12 @@ class DMRISingleModelBuilder(DMRICompositeSampleModel):
     post_optimization_modifiers = ()
     dependencies = ()
     model_listing = ()
+    evaluation_model = GaussianEvaluationModel().fix('sigma', 1)
+    signal_noise_model = None
 
-    def __init__(self, evaluation_model=GaussianEvaluationModel().fix('sigma', 1), signal_noise_model=None):
+    def __init__(self):
         super(DMRISingleModelBuilder, self).__init__(self.name, CompartmentModelTree(self._get_model_listing()),
-                                                 evaluation_model, signal_noise_model=signal_noise_model)
+                                                     self.evaluation_model, signal_noise_model=self.signal_noise_model)
 
         self.add_parameter_dependencies(self._get_dependencies())
         self.add_post_optimization_modifiers(self._get_post_optimization_modifiers())

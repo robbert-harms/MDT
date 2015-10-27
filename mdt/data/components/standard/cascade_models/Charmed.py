@@ -1,4 +1,4 @@
-from mdt.cascade_model import CascadeModelBuilder
+from mdt.models.cascade import CascadeModelBuilder
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
