@@ -13,7 +13,9 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class SigmaCalculator(object):
 
     def __init__(self, volume_info, protocol, mask):
-        """Calculator for the standard deviation of the error
+        """Calculator for the standard deviation of the error.
+
+        This is usually called sigma named after the use of this value in the Gaussian noise model.
 
         Args:
             volume_info (string or tuple): Either an (ndarray, img_header) tuple or the
@@ -55,23 +57,30 @@ class AverageOfAirROI(SigmaCalculator):
         This will find the edges in the first dimension, the quarterpoints in the second and the middle slice in the
         last dimension to draw a ROI with the specified roi size.
 
+        Next, it will append all the values of all the voxels and calculate the dot product of this vector to get the
+        sum of squares. This will be divided by the length of the array to end up with a value for E(S^2).
+        This follows the procedure in Camino in the file /src/apps/DataStats.java
+
+        Finally we follow the procedure on the Camino website:
+        (http://cmic.cs.ucl.ac.uk/camino/index.php?n=Man.Datastats)
+        "
+            Useful for estimating the noise level (as required for restore or mbalign) or signal to noise.
+            An estimate of the noise level sigma (standard deviation of each component of the complex noise on
+            the signal) is sqrt(E(S^2)/2) from an ROI entirely in background.
+        "
+
+        To end up with a return value for an estimate of the noise level.
+
         Args:
             roi_size (int): the size of the ROI's in all dimensions.
         """
         rois = self.get_used_rois(roi_size)
-        voxel_values = np.array([self._signal4d[roi].flatten() for roi in rois])
+        voxel_values = np.array([self._signal4d[roi].flatten() for roi in rois]).flatten()
 
-        print(voxel_values)
-        print(np.mean(voxel_values))
-        print(np.sqrt(np.mean(np.square(voxel_values))))
+        sum_of_squares = np.dot(voxel_values, voxel_values)
+        mean_squares = sum_of_squares / len(voxel_values)
 
-        for roi in rois:
-            self._signal4d[roi] = 1e4
-
-        from mdt import view_results_slice
-        view_results_slice({'signal4d': self._signal4d})
-
-        return np.std(voxel_values)
+        return np.sqrt(mean_squares / 2.0)
 
     def get_used_rois(self, roi_size=2):
         dist_from_edge = 5

@@ -1,9 +1,8 @@
 from contextlib import contextmanager
 import logging.config as logging_config
-
 import numpy as np
-
 from mdt import configuration
+
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-03-10"
@@ -129,13 +128,15 @@ def fit_model(model, dwi_info, protocol, brain_mask, output_folder, optimizer=No
     problem_data = utils.load_problem_data(dwi_info, protocol, brain_mask)
     model_fit = ModelFit(model, problem_data, output_folder, optimizer=optimizer, recalculate=recalculate,
                          only_recalculate_last=only_recalculate_last, cl_device_ind=cl_device_ind,
-                         double_precision=double_precision, gradient_deviations=gradient_deviations, noise_std=noise_std)
+                         double_precision=double_precision, gradient_deviations=gradient_deviations,
+                         noise_std=noise_std)
 
     return model_fit.run()
 
 
 def sample_model(model, dwi_info, protocol, brain_mask, output_folder,
-                 sampler=None, recalculate=False, cl_device_ind=None, double_precision=True):
+                 sampler=None, recalculate=False, cl_device_ind=None, double_precision=True,
+                 noise_std=None):
     """Sample a single model. This does not accept cascade models, only single models.
 
     Args:
@@ -151,6 +152,8 @@ def sample_model(model, dwi_info, protocol, brain_mask, output_folder,
         cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices().
         double_precision (boolean): if we would like to do the calculations in double precision
+        noise_std (double): the noise level standard deviation. This is useful for model comparisons.
+                By default this is not used and the model default is used (normally 1).
 
     Returns:
         the full chain of the optimization
@@ -169,6 +172,9 @@ def sample_model(model, dwi_info, protocol, brain_mask, output_folder,
         model = get_model(model)
 
     model.double_precision = double_precision
+
+    if noise_std is not None:
+        model.evaluation_model.set_noise_level_std(noise_std)
 
     if isinstance(model, DMRICascadeModelInterface):
         raise ValueError('The function \'sample_model()\' does not accept cascade models.')
@@ -1124,3 +1130,70 @@ def get_config_dir(for_this_version=True):
     if for_this_version:
         return os.path.join(os.path.expanduser("~"), '.mdt', __version__)
     return os.path.join(os.path.expanduser("~"), '.mdt')
+
+
+def recalculate_ics(model, dwi_info, protocol, brain_mask, data_dir, sigma, output_dir=None, sigma_param_name=None):
+    """Recalculate the information criterion maps.
+
+    This will write the results either to the original data directory, or to the given output dir.
+
+    Args:
+        model (str or AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize
+            or the name of an model we load with get_model()
+        dwi_info (string): Either an (ndarray, img_header) tuple or the full path to the volume (4d signal data).
+        protocol (Protocol or string): A protocol object with the right protocol for the given data,
+            or a string object with a filename to the given file.
+        brain_mask (string): A full path to a mask file that can optionally be used. If None given, no mask is used.
+        data_dir (str): the directory containing the results for the given model
+        sigma (float): the new noise sigma we use for calculating the log likelihood and then the
+            information criteria's.
+        output_dir (str): if given, we write the output to this directory instead of the data dir.
+        sigma_param_name (str): the name of the parameter to which we will set sigma. If not given we search
+            the result maps for something ending in .sigma
+    """
+    from six import string_types
+    import mdt.utils
+    from mdt.models.cascade import DMRICascadeModelInterface
+    from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
+    from mot import runtime_configuration
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    print(model)
+
+    if isinstance(model, string_types):
+        model = get_model(model)
+
+    if isinstance(model, DMRICascadeModelInterface):
+        raise ValueError('This function does not accept cascade models.')
+
+    problem_data = utils.load_problem_data(dwi_info, protocol, brain_mask)
+    model.set_problem_data(problem_data)
+
+    results_maps = create_roi(load_volume_maps(data_dir), problem_data.mask)
+
+    if sigma_param_name is None:
+        sigma_params = list(filter(lambda key: '.sigma' in key, model.get_optimization_output_param_names()))
+
+        if not sigma_params:
+            raise ValueError('Could not find a suitable parameter to set sigma for.')
+
+        sigma_param_name = sigma_params[0]
+        logger.info('Setting the given sigma value to the model parameter {}.'.format(sigma_param_name))
+
+    model.fix(sigma_param_name, sigma)
+
+    log_likelihood_calc = LogLikelihoodCalculator(runtime_configuration.runtime_config['cl_environments'],
+                                                  runtime_configuration.runtime_config['load_balancer'])
+    log_likelihoods = log_likelihood_calc.calculate(model, results_maps)
+
+    k = model.get_nmr_estimable_parameters()
+    n = problem_data.protocol.length
+    results_maps.update({'LogLikelihood': log_likelihoods})
+    results_maps.update(utils.calculate_information_criterions(log_likelihoods, k, n))
+
+    volumes = mdt.restore_volumes(results_maps, problem_data.mask)
+
+    output_dir = output_dir or data_dir
+    write_volume_maps(volumes, output_dir, problem_data.volume_header)

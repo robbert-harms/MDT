@@ -1,6 +1,6 @@
 from mdt.components_loader import CompartmentModelsLoader
 from mdt.models.single import DMRISingleModelBuilder, DMRISingleModel
-from mot.evaluation_models import SumOfSquares
+from mot.evaluation_models import SumOfSquares, GaussianEvaluationModel
 from mot.parameter_functions.transformations import SinSqrClampTransform
 from mot.signal_noise_models import JohnsonSignalNoise
 from mot.trees import CompartmentModelTree
@@ -28,7 +28,8 @@ def get_charmed(nmr_restr=3):
 
     description = 'The standard charmed model, with {0} restricted compartments.'.format(nmr_restr)
 
-    def model_construction_cb(evaluation_model=SumOfSquares(), signal_noise_model=JohnsonSignalNoise()):
+    def model_construction_cb(evaluation_model=GaussianEvaluationModel().fix('sigma', 1),
+                              signal_noise_model=JohnsonSignalNoise()):
         hin = (compartments_loader.get_class('Weight')('w_hin0'),
                compartments_loader.load('Tensor').ub('d', 5e-9).lb('d', 1e-9)
                    .ub('dperp0', 5e-9).lb('dperp0', 0.3e-9)

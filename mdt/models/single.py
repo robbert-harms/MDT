@@ -1,4 +1,5 @@
 import numpy as np
+from mdt import utils
 from mdt.models.base import DMRIOptimizable
 from mot import runtime_configuration
 from mot.base import CLDataType
@@ -219,13 +220,11 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
     def _add_finalizing_result_maps(self, results_dict):
         log_likelihood_calc = LogLikelihoodCalculator(runtime_configuration.runtime_config['cl_environments'],
                                                       runtime_configuration.runtime_config['load_balancer'])
-        log_likelihood = log_likelihood_calc.calculate(self, results_dict)
+        log_likelihoods = log_likelihood_calc.calculate(self, results_dict)
         k = self.get_nmr_estimable_parameters()
         n = self._problem_data.protocol.length
-        results_dict.update({'LogLikelihood': log_likelihood,
-                             'BIC': -2 * log_likelihood + k * np.log(n),
-                             'AIC': -2 * log_likelihood + k * 2,
-                             'AICc': -2 * log_likelihood + k * 2 + (2 * k * (k + 1))/(n - k - 1)})
+        results_dict.update({'LogLikelihood': log_likelihoods})
+        results_dict.update(utils.calculate_information_criterions(log_likelihoods, k, n))
 
 
 class DMRISingleModelBuilder(DMRISingleModel):

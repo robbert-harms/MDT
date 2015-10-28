@@ -957,3 +957,22 @@ def split_image_path(image_path):
 
     basename = basename.replace(extension, '')
     return folder, basename, extension
+
+
+def calculate_information_criterions(log_likelihoods, k, n):
+    """Calculate various information criterions.
+
+    Args:
+        log_likelihoods (1d np array): the array with the log likelihoods
+        k (int): number of parameters
+        n (int): the number of instances, protocol length
+
+    Returns:
+        dict with therein the BIC, AIC and AICc which stand for the
+            Bayesian, Akaike and Akaike corrected Information Criterion
+    """
+    return {
+        'BIC': -2 * log_likelihoods + k * np.log(n),
+        'AIC': -2 * log_likelihoods + k * 2,
+        'AICc': -2 * log_likelihoods + k * 2 + (2 * k * (k + 1))/(n - k - 1)
+    }
