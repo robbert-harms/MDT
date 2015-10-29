@@ -543,16 +543,24 @@ def initialize_user_settings(overwrite=True):
     path = get_config_dir()
 
     base_path = get_config_dir(False)
-    previous_version = next(reversed(sorted(os.listdir(base_path))))
 
-    tmp_dir = os.path.join(base_path, 'user_components_tmp')
-    shutil.copytree(os.path.join(base_path, previous_version, 'components', 'user'), tmp_dir)
+    if not os.path.exists(base_path):
+        os.mkdir(base_path)
+
+    previous_versions = list(reversed(sorted(os.listdir(base_path))))
+
+    if previous_versions:
+        previous_version = previous_versions[0]
+
+        tmp_dir = os.path.join(base_path, 'user_components_tmp')
+        shutil.copytree(os.path.join(base_path, previous_version, 'components', 'user'), tmp_dir)
 
     if os.path.exists(path):
         if overwrite:
             shutil.rmtree(path)
         else:
-            shutil.rmtree(tmp_dir)
+            if previous_versions:
+                shutil.rmtree(tmp_dir)
             return path
 
     cache_path = pkg_resources.resource_filename('mdt', 'data/components')
@@ -561,8 +569,15 @@ def initialize_user_settings(overwrite=True):
     cache_path = pkg_resources.resource_filename('mdt', 'data/mdt.conf')
     shutil.copy(cache_path, path)
 
-    shutil.rmtree(os.path.join(path, 'components', 'user'))
-    shutil.move(tmp_dir, os.path.join(path, 'components', 'user'))
+    if previous_versions:
+        shutil.rmtree(os.path.join(path, 'components', 'user'))
+        shutil.move(tmp_dir, os.path.join(path, 'components', 'user'))
+    else:
+        os.mkdir(os.path.join(path, 'components', 'user'))
+        items = os.listdir(os.path.join(path, 'components', 'standard'))
+        for item in items:
+            if os.path.isdir(os.path.join(path, 'components', 'standard', item)):
+                os.mkdir(os.path.join(path, 'components', 'user', item))
 
     return path
 
