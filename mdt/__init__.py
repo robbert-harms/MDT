@@ -1,7 +1,6 @@
 from contextlib import contextmanager
 import logging.config as logging_config
 import numpy as np
-from mdt import configuration
 
 
 __author__ = 'Robbert Harms'
@@ -11,7 +10,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.4.0'
+VERSION = '0.4.1'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')
@@ -20,12 +19,6 @@ if len(_items) > 1:
     VERSION_STATUS = _items[1]
 __version__ = VERSION
 
-
-try:
-    conf = configuration.config['logging']['info_dict']
-    logging_config.dictConfig(configuration.config['logging']['info_dict'])
-except ValueError:
-    print('Logging disabled')
 
 
 """
@@ -1160,8 +1153,6 @@ def recalculate_ics(model, dwi_info, protocol, brain_mask, data_dir, sigma, outp
 
     logger = logging.getLogger(__name__)
 
-    print(model)
-
     if isinstance(model, string_types):
         model = get_model(model)
 
@@ -1197,3 +1188,54 @@ def recalculate_ics(model, dwi_info, protocol, brain_mask, data_dir, sigma, outp
 
     output_dir = output_dir or data_dir
     write_volume_maps(volumes, output_dir, problem_data.volume_header)
+
+
+def roi_index_to_volume_index(roi_index, brain_mask):
+    """Get the 3d index of a voxel given the linear index in a ROI created with the given brain mask.
+
+    This is the inverse function of volume_index_to_roi_index.
+
+    This function is useful if you, for example, have sampling results of a specific voxel
+    and you want to locate that voxel in the brain maps.
+
+    Args:
+        roi_index (int): the index in the ROI created by that brain mask
+        brain_mask (str or 3d array): the brain mask you would like to use
+    """
+    from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
+    mask = autodetect_brain_mask_loader(brain_mask).get_data()
+
+    index_matrix = np.indices(mask.shape[0:3])
+    index_matrix = np.transpose(index_matrix, (1, 2, 3, 0))
+
+    roi = create_roi(index_matrix, mask)
+    return roi[roi_index]
+
+
+def volume_index_to_roi_index(volume_index, brain_mask):
+    """Get the ROI index given the volume index (in 3d).
+
+    This is the inverse function of roi_index_to_volume_index.
+
+    This function is useful if you want to locate a voxel in the ROI given the position in the volume.
+
+    Args:
+        volume_index (tuple): the volume index, a tuple or list of length 3
+        brain_mask (str or 3d array): the brain mask you would like to use
+    """
+    from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
+    mask = autodetect_brain_mask_loader(brain_mask).get_data()
+
+    roi_length = np.count_nonzero(mask)
+    roi = np.arange(0, roi_length)
+    vol = restore_volumes(roi, mask)
+
+    return vol[volume_index][0]
+
+
+from mdt import configuration
+try:
+    conf = configuration.config['logging']['info_dict']
+    logging_config.dictConfig(configuration.config['logging']['info_dict'])
+except ValueError:
+    print('Logging disabled')

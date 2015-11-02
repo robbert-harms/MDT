@@ -1,6 +1,6 @@
 import os
-from os.path import expanduser
 import collections
+import six
 import yaml
 from pkg_resources import resource_stream
 
@@ -21,7 +21,8 @@ def load_builtin():
 
 def load_user_home():
     """Load the config file from user home directory"""
-    config_file = os.path.join(expanduser("~"), '.mdt', 'mdt.conf')
+    from mdt import get_config_dir
+    config_file = os.path.join(get_config_dir(), 'mdt.conf')
     if os.path.isfile(config_file):
         with open(config_file) as f:
             load_from_yaml(f.read())
@@ -95,17 +96,37 @@ def load_from_dict(config_dict):
     Args:
         config (dict): a dictionary with configuration options that will overwrite the current configuration.
     """
-    _update_dict_recursive(config, config_dict)
+    complete_overwrite = {'optimization_settings': {'general': 'optimizers'}}
+
+    _update_dict_recursive(config, config_dict, complete_overwrite=complete_overwrite)
 
 
-def _update_dict_recursive(d, u):
-    """Updates in place"""
+def _update_dict_recursive(d, u, complete_overwrite=None):
+    """Updates in place
+
+    Args:
+        d (dict): the dictionary we want to update
+        u (dict): the dictionary with the new values
+        complete_overwrite (dict): a dictionary with items that follow the same
+            dictionary structure as the dict d, and contains hints about which items should be completely overwritten
+            by the new dictionary if encountered.
+    """
+    complete_overwrite = complete_overwrite or {}
+
     for k, v in u.items():
-        if isinstance(v, collections.Mapping):
-            r = _update_dict_recursive(d.get(k, {}), v)
-            d[k] = r
+        if isinstance(complete_overwrite, six.string_types) and k == complete_overwrite:
+            d[k] = v
         else:
-            d[k] = u[k]
+            if isinstance(complete_overwrite, six.string_types):
+                overwrite = {}
+            else:
+                overwrite = complete_overwrite.get(k, {})
+
+            if isinstance(v, collections.Mapping):
+                r = _update_dict_recursive(d.get(k, {}), v, overwrite)
+                d[k] = r
+            else:
+                d[k] = v
     return d
 
 

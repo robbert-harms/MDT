@@ -749,7 +749,7 @@ class MetaOptimizerBuilder(object):
                 The dict should only contain the elements inside optimization_settings.general
                 Example config dict:
                     meta_optimizer_config = {
-                        'optimizers': [{'name': 'NMSimplex', 'patience': 30}],
+                        'optimizers': [{'name': 'NMSimplex', 'patience': 30, 'optimizer_options': {} }],
                         'extra_optim_runs': 0,
                         ...
                     }
@@ -817,7 +817,8 @@ class MetaOptimizerBuilder(object):
     def _get_optimizer(self, options, cl_environments, load_balancer):
         optimizer = get_optimizer_by_name(options['name'])
         patience = options['patience']
-        return optimizer(cl_environments, load_balancer, patience=patience)
+        optimizer_options = options.get('optimizer_options')
+        return optimizer(cl_environments, load_balancer, patience=patience, optimizer_options=optimizer_options)
 
     def _get_smoother(self, options, cl_environments, load_balancer):
         smoother = get_filter_by_name(options['name'])
