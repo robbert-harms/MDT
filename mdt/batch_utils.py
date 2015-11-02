@@ -468,7 +468,7 @@ def collect_batch_fit_output(data_folder, output_dir, batch_profile_class=None, 
     for subject_id, mask_path in mask_paths.items():
         subject_out = os.path.join(output_dir, subject_id)
 
-        if os.path.exists(subject_out):
+        if os.path.exists(subject_out) or os.path.islink(subject_out):
             if os.path.islink(subject_out):
                 os.unlink(subject_out)
             else:
