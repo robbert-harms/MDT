@@ -826,6 +826,29 @@ class MetaOptimizerBuilder(object):
         return smoother(size, cl_environments, load_balancer)
 
 
+def get_configuration_options(model_name):
+    """Get the configuration for this specific model.
+
+    This will first load the general configuration options and afterwards apply the specific model options
+    on top of the general configuration options. The specific model options are also loaded from the
+    current configuratin file and are found using the model name.
+
+    Args:
+        model_name (str): the model for which to load the configuration options
+
+    Returns:
+        dict: the configuration options specific to this model
+    """
+    current_config = configuration.config['optimization_settings']
+    optim_config = current_config['general'].copy()
+
+    if model_name is not None and 'single_model' in current_config:
+        info_dict = get_model_config(model_name, current_config['single_model'])
+        if info_dict:
+            optim_config = recursive_merge_dict(optim_config, info_dict)
+    return optim_config
+
+
 def get_cl_devices():
     """Get a list of all CL devices in the system.
 

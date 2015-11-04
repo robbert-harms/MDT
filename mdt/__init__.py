@@ -77,8 +77,8 @@ def batch_fit(data_folder, batch_profile_class=None, subjects_ind=None, recalcul
 
 
 def fit_model(model, dwi_info, protocol, brain_mask, output_folder, optimizer=None,
-              recalculate=False, only_recalculate_last=False, cl_device_ind=None, double_precision=False,
-              gradient_deviations=None, noise_std=None):
+              recalculate=False, only_recalculate_last=False, model_protocol_options=None,
+              cl_device_ind=None, double_precision=False, gradient_deviations=None, noise_std='auto'):
     """Run the optimizer on the given model.
 
     Args:
@@ -96,12 +96,16 @@ def fit_model(model, dwi_info, protocol, brain_mask, output_folder, optimizer=No
             This is only of importance when dealing with CascadeModels.
             If set to true we only recalculate the last element in the chain (if recalculate is set to True, that is).
             If set to false, we recalculate everything. This only holds for the first level of the cascade.
+        model_protocol_options (dict): specific model protocol options to use during fitting.
+                This is for example used during batch fitting to limit the protocol for certain models.
+                For instance, in the Tensor model we generally only want to use the lower b-values.
         cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices(). This can also be a list of device indices.
         double_precision (boolean): if we would like to do the calculations in double precision
         gradient_deviations (str or ndarray): set of gradient deviations to use. In HCP WUMINN format.
-        noise_std (double): the noise level standard deviation. This is useful for model comparisons.
-                By default this is not used and the model default is used (normally 1).
+        noise_std (double or 'auto'): the noise level standard deviation. This is useful for model comparisons.
+                By default this is None and we set it to 1. If set to auto we try to estimate it using multiple
+                noise std calculators.
 
     Returns:
         the output of the optimization. If a cascade is given, only the results of the last model in the cascade is
@@ -120,8 +124,9 @@ def fit_model(model, dwi_info, protocol, brain_mask, output_folder, optimizer=No
 
     problem_data = utils.load_problem_data(dwi_info, protocol, brain_mask)
     model_fit = ModelFit(model, problem_data, output_folder, optimizer=optimizer, recalculate=recalculate,
-                         only_recalculate_last=only_recalculate_last, cl_device_ind=cl_device_ind,
-                         double_precision=double_precision, gradient_deviations=gradient_deviations,
+                         only_recalculate_last=only_recalculate_last, model_protocol_options=model_protocol_options,
+                         cl_device_ind=cl_device_ind, double_precision=double_precision,
+                         gradient_deviations=gradient_deviations,
                          noise_std=noise_std)
 
     return model_fit.run()
@@ -437,6 +442,49 @@ def concatenate_mri_sets(items, output_volume_fname, output_protocol_fname, over
     protocol, signal4d = concatenate_two_mri_measurements(to_concat)
     nib.Nifti1Image(signal4d, None, nii_header).to_filename(output_volume_fname)
     write_protocol(protocol, output_protocol_fname)
+
+
+def dwi_merge(dwi_images, output_fname, sort=True):
+    """ Merge a list of DWI images on the 4th dimension. Writes the result as a file.
+
+    Please note that by default this will sort the list of DWI names based on a natural key sort. This is
+    the most convenient option in the case of globbing files. You can disable this behaviour by setting the keyword
+    argument 'sort' to False
+
+    Example usage is:
+        mdt.dwi_merge(glob.glob(pjoin('raw', '*b278*.nii')),
+                      pjoin('b278.nii.gz'))
+
+    Args:
+        dwi_images (list of str): the list with the input filenames
+        output_fname (str): the output filename
+        sort (boolean): if true we natural sort the list of DWI images before we merge them. If false we don't.
+            The default is True.
+    """
+    import re
+    import nibabel as nib
+    import numpy as np
+
+    images = []
+    header = None
+
+    if sort:
+        def natural_key(_str):
+            return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', _str)]
+        dwi_images.sort(key=natural_key)
+
+    for dwi_image in dwi_images:
+        nib_container = nib.load(dwi_image)
+        header = header or nib_container.get_header()
+        image_data = nib_container.get_data()
+
+        if len(image_data.shape) < 4:
+            image_data = np.expand_dims(image_data, axis=3)
+
+        images.append(image_data)
+
+    combined_image = np.concatenate(images, axis=3)
+    nib.Nifti1Image(combined_image, None, header).to_filename(output_fname)
 
 
 def view_results_slice(data,
@@ -989,49 +1037,6 @@ def initialize_user_settings(overwrite=True):
     return initialize_user_settings(overwrite)
 
 
-def dwi_merge(dwi_images, output_fname, sort=True):
-    """ Merge a list of DWI images on the 4th dimension. Writes the result as a file.
-
-    Please note that by default this will sort the list of DWI names based on a natural key sort. This is
-    the most convenient option in the case of globbing files. You can disable this behaviour by setting the keyword
-    argument 'sort' to False
-
-    Example usage is:
-        mdt.dwi_merge(glob.glob(pjoin('raw', '*b278*.nii')),
-                      pjoin('b278.nii.gz'))
-
-    Args:
-        dwi_images (list of str): the list with the input filenames
-        output_fname (str): the output filename
-        sort (boolean): if true we natural sort the list of DWI images before we merge them. If false we don't.
-            The default is True.
-    """
-    import re
-    import nibabel as nib
-    import numpy as np
-
-    images = []
-    header = None
-
-    if sort:
-        def natural_key(_str):
-            return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', _str)]
-        dwi_images.sort(key=natural_key)
-
-    for dwi_image in dwi_images:
-        nib_container = nib.load(dwi_image)
-        header = header or nib_container.get_header()
-        image_data = nib_container.get_data()
-
-        if len(image_data.shape) < 4:
-            image_data = np.expand_dims(image_data, axis=3)
-
-        images.append(image_data)
-
-    combined_image = np.concatenate(images, axis=3)
-    nib.Nifti1Image(combined_image, None, header).to_filename(output_fname)
-
-
 @contextmanager
 def config_context(config):
     """Creates a temporary configuration context with the given config.
@@ -1047,11 +1052,11 @@ def config_context(config):
                     -   name: 'NMSimplex'
                         patience: 10
         '''
-        with mdt.config_context(mdt.get_config_from_yaml(config)):
+        with mdt.config_context(mdt.yaml_string_to_dict(config)):
             mdt.fit_model(...)
 
         This loads the configuration from a YAML string, converts it to a dict using the function
-        mdt.get_config_from_yaml() and then uses that config dict as context for the optimization.
+        mdt.yaml_string_to_dict() and then uses that config dict as context for the optimization.
 
     Args:
         config (dict): the configuration as a dictionary
@@ -1064,33 +1069,33 @@ def config_context(config):
     mdt.configuration.config = old_config
 
 
-def get_config_from_yaml(yaml_str):
-    """Returns a configuration dict from a YAML string.
+def yaml_string_to_dict(yaml_str):
+    """Returns a dict from a YAML string.
 
     Args:
-        yaml_str (str): the string with the YAML config contents
+        yaml_str (str): the string with the YAML contents
 
     Returns:
-        configuration dict which can be loaded using mdt.configuration.load_from_dict() or used with the context
-        manager mdt.config_context()
+        dict: with the yaml content
     """
-    from mdt.configuration import get_config_from_yaml
-    return get_config_from_yaml(yaml_str)
+    import yaml
+    d = yaml.load(yaml_str)
+    if d is not None and isinstance(d, dict):
+        return d
+    return {}
 
 
-def get_config_from_yaml_file(file_name):
-    """Returns a configuration dict from a YAML file.
-
-    This does not add the configuration options to the current configuration.
+def yaml_file_to_dict(file_name):
+    """Returns a dict from a YAML file.
 
     Args:
         file_name (str): the path to the the YAML file.
 
     Returns:
-        configuration dict which can be loaded using load_from_dict()
+        dict: with the yaml content
     """
-    from mdt.configuration import get_config_from_yaml_file
-    return get_config_from_yaml_file(file_name)
+    with open(file_name) as f:
+        return yaml_string_to_dict(f.read())
 
 
 def set_data_type(maps_dict, numpy_data_type=np.float32):
@@ -1231,6 +1236,27 @@ def volume_index_to_roi_index(volume_index, brain_mask):
     vol = restore_volumes(roi, mask)
 
     return vol[volume_index][0]
+
+
+def build_optimizer(optimizer_info):
+    """Build an optimizer either from a YAML string or a dictionary.
+
+    This uses the MetaOptimizerBuilder from mdt.utils to create a optimizer. This optimizer can then be used
+    as input to the fit_model routine.
+
+    Args:
+        optimizer_info (str or dict): either a YAML string or a dict containing the information about the optimizer
+            to build.
+
+    Returns:
+        optimizer: a MetaOptimizer with the specific settings
+    """
+    import six
+    import yaml
+    from mdt.utils import MetaOptimizerBuilder
+    if isinstance(optimizer_info, six.string_types):
+        optimizer_info = yaml.load(optimizer_info)
+    return MetaOptimizerBuilder(optimizer_info).construct()
 
 
 from mdt import configuration

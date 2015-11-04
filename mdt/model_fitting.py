@@ -14,9 +14,10 @@ from mdt.protocols import write_protocol
 from mdt.components_loader import get_model
 from mdt import configuration, __version__
 from mdt.IO import Nifti
+from mdt.noise_std_calculators import AverageOfAirROI, AverageOfUnweightedVolumes
 from mdt.utils import create_roi, configure_per_model_logging, restore_volumes, recursive_merge_dict, \
     load_problem_data, ProtocolProblemError, MetaOptimizerBuilder, get_cl_devices, \
-    get_model_config, apply_model_protocol_options, model_output_exists, split_image_path
+    get_model_config, apply_model_protocol_options, model_output_exists, split_image_path, get_configuration_options
 from mdt.batch_utils import batch_profile_factory
 from mot import runtime_configuration
 from mot.load_balance_strategies import EvenDistribution
@@ -220,8 +221,9 @@ class ModelFit(object):
                 get_cl_devices(). This can also be a list of device indices.
             double_precision (boolean): if we would like to do the calculations in double precision
             gradient_deviations (ndarray): set of gradient deviations to use. In HCP WUMINN format.
-            noise_std (double): the noise level standard deviation. This is useful for model comparisons.
-                By default this is not used and the model default is used (normally 1).
+            noise_std (double or 'auto'): the noise level standard deviation. This is useful for model comparisons.
+                By default this is None and we set it to 1. If set to auto we try to estimate it using multiple
+                noise std calculators.
         """
         if isinstance(model, string_types):
             model = get_model(model)
@@ -238,7 +240,7 @@ class ModelFit(object):
         self._model_protocol_options = model_protocol_options
         self._logger = logging.getLogger(__name__)
         self._cl_device_indices = cl_device_ind
-        self._noise_std = noise_std
+        self._noise_std = self._get_noise_std(noise_std)
 
         if self._cl_device_indices is not None and not isinstance(self._cl_device_indices, collections.Iterable):
             self._cl_device_indices = [self._cl_device_indices]
@@ -292,12 +294,12 @@ class ModelFit(object):
         return self._run_single_model(model, recalculate, meta_optimizer_config)
 
     def _run_single_model(self, model, recalculate, meta_optimizer_config):
-        if self._noise_std is not None:
-            model.evaluation_model.set_noise_level_std(self._noise_std)
-
         configure_per_model_logging(_get_model_output_path(self._output_folder, model))
 
         self._logger.info('Preparing for model {0}'.format(model.name))
+        self._logger.info('Setting the noise standard deviation to {0}'.format(self._noise_std))
+        model.evaluation_model.set_noise_level_std(self._noise_std)
+
         optimizer = self._optimizer or MetaOptimizerBuilder(meta_optimizer_config).construct(model.name)
 
         if self._cl_device_indices is not None:
@@ -308,6 +310,27 @@ class ModelFit(object):
         model_protocol_options = get_model_config(model.name, self._model_protocol_options)
         problem_data = apply_model_protocol_options(model_protocol_options, self._problem_data)
         return fit_single_model(model, problem_data, self._output_folder, optimizer, recalculate=recalculate)
+
+    def _get_noise_std(self, user_noise_std):
+        noise_std = user_noise_std
+
+        if user_noise_std == 'auto':
+            self._logger.info('The noise std was set to \'auto\', we will now try to estimate one.')
+
+            noise_std_calculators = [AverageOfAirROI, AverageOfUnweightedVolumes]
+
+            for calculator_class in noise_std_calculators:
+                calculator = calculator_class([self._problem_data.dwi_volume, self._problem_data.volume_header],
+                                              self._problem_data.protocol)
+                try:
+                    noise_std = calculator.calculate()
+                    break
+                except ValueError:
+                    noise_std = 1
+        elif user_noise_std is None:
+            noise_std = 1.0
+
+        return noise_std
 
 
 def fit_single_model(model, problem_data, output_folder, optimizer, recalculate=False):
