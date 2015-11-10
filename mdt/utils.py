@@ -8,6 +8,7 @@ import os
 import collections
 import shutil
 import functools
+import tempfile
 
 from six import string_types
 import numpy as np
@@ -552,8 +553,8 @@ def initialize_user_settings(overwrite=True):
     if previous_versions:
         previous_version = previous_versions[0]
 
-        tmp_dir = os.path.join(base_path, 'user_components_tmp')
-        shutil.copytree(os.path.join(base_path, previous_version, 'components', 'user'), tmp_dir)
+        tmp_dir = tempfile.mkdtemp()
+        shutil.copytree(os.path.join(base_path, previous_version, 'components', 'user'), tmp_dir + '/components/')
 
     if os.path.exists(path):
         if overwrite:
@@ -571,7 +572,8 @@ def initialize_user_settings(overwrite=True):
 
     if previous_versions:
         shutil.rmtree(os.path.join(path, 'components', 'user'))
-        shutil.move(tmp_dir, os.path.join(path, 'components', 'user'))
+        shutil.move(tmp_dir + '/components/', os.path.join(path, 'components', 'user'))
+        shutil.rmtree(tmp_dir)
     else:
         os.mkdir(os.path.join(path, 'components', 'user'))
         items = os.listdir(os.path.join(path, 'components', 'standard'))
