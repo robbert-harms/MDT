@@ -23,6 +23,14 @@ class Noddi(CascadeModelBuilder):
             model.init('Noddi_IC.phi', output_previous['Stick.phi'])
 
 
+class NoddiS0(CascadeModelBuilder):
+
+    name = 'Noddi (Cascade|s0)'
+    description = 'Cascade for Noddi initialized with only an S0 fit.'
+    models = ('s0',
+              'Noddi')
+
+
 class NoddiFixed(CascadeModelBuilder):
 
     name = 'Noddi (Cascade|fixed)'
