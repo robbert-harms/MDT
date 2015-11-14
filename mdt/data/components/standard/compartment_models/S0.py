@@ -11,7 +11,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class S0(Scalar):
 
-    def __init__(self, name='S0', value=1e4, lower_bound=0, upper_bound=1e8):
+    def __init__(self, name='S0', value=1e4, lower_bound=0, upper_bound=1e10):
         super(S0, self).__init__(name=name, value=value, lower_bound=lower_bound, upper_bound=upper_bound)
         self.parameter_list[0].name = 's0'
         self.parameter_list[0].parameter_transform = ClampTransform()
