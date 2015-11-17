@@ -24,7 +24,7 @@ __version__ = VERSION
 """
 The main initialization of MDT.
 
-We inlined all the import in the functions to do as little work as possible during initialization.
+We inlined all the imports in the functions to do as little work as possible during initialization.
 
 This is important when working with MOT and the python multiprocessing library. In essence, if we import
 PyOpencl (via MOT) before we start the multiprocessing we will get an Out Of Memory exception when
@@ -311,6 +311,32 @@ def load_protocol(filename, column_names=None):
     """
     from mdt.protocols import load_protocol
     return load_protocol(filename, column_names)
+
+
+def auto_load_protocol(directory, protocol_options=None, bvec_fname=None, bval_fname=None):
+    """Load a protocol from the given directory.
+
+    This will first try to load the first .prtcl file found. If none present it will try to find bval and bvec files
+    to load. If present it will also try to load additional columns.
+
+    For more detail see auto_load_protocol in the protocols module.
+
+    Args:
+        directory (str): the directory to load the protocol from
+        protocol_options (dict): mapping protocol items to filenames (as a subpath of the given directory)
+            or mapping them to values (one value or one value per bvec line)
+        bvec_fname (str): if given, the filename of the bvec file (as a subpath of the given directory)
+        bval_fname (str): if given, the filename of the bvec file (as a subpath of the given directory)
+
+    Returns:
+        Protocol: a loaded protocol file.
+
+    Raises:
+        ValueError: if not enough information could be found. (No protocol or no bvec/bval combo).
+    """
+    import mdt.protocols
+    return mdt.protocols.auto_load_protocol(directory, protocol_options=protocol_options,
+                                            bvec_fname=bvec_fname, bval_fname=bval_fname)
 
 
 def write_protocol(protocol, fname, columns_list=None):

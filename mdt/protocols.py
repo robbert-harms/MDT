@@ -1,7 +1,10 @@
+import glob
 import numbers
 import os
+import itertools
 import numpy as np
 import copy
+import six
 
 __author__ = 'Robbert Harms'
 __date__ = "2014-02-06"
@@ -69,13 +72,6 @@ class Protocol(object):
             raise ValueError("Incorrect column length given.")
         self._columns.update({name: data})
 
-        if name == 'delta':
-            if 'Delta' in self._columns and 'G' not in self._columns:
-                self.add_column('G', self._estimate_sequence_timings()['G'])
-        elif name == 'Delta':
-            if 'delta' in self._columns and 'G' not in self._columns:
-                self.add_column('G', self._estimate_sequence_timings()['G'])
-
         return self
 
     def add_column_from_file(self, name, file_name, multiplication_factor=1):
@@ -107,16 +103,29 @@ class Protocol(object):
             del self._columns['gy']
             del self._columns['gz']
         else:
-            del self._columns[column_name]
+            if column_name in self._columns:
+                del self._columns[column_name]
 
     def remove_rows(self, rows):
         """Remove a list of rows from all the columns.
+
+        Please note that the protocol is 0 indexed.
 
         Args:
             rows (list of int): List with indices of the rows to remove
         """
         for key, column in self._columns.items():
             self._columns[key] = np.delete(column, rows)
+
+    def get_columns(self, column_names):
+        """Get a matrix containing the requested column names in the order given.
+
+        Returns:
+            ndarrray: A 2d matrix with the column requested concatenated.
+        """
+        if not column_names:
+            return None
+        return np.concatenate([self[i] for i in column_names], axis=1)
 
     def get_column(self, column_name):
         """Get the column associated by the given column name.
@@ -130,38 +139,13 @@ class Protocol(object):
         Raises:
             KeyError: If the column could not be found.
         """
-        if column_name in self._columns:
-            return np.reshape(self._columns[column_name], (-1, 1))
-
-        if column_name == 'g':
-            return self.get_columns(('gx', 'gy', 'gz'))
-
-        if column_name == 'q':
-            if self.has_column('G') and self.has_column('delta'):
-                return np.reshape(self._gamma_h * self.get_column('G') *
-                                  self.get_column('delta') / (2 * np.pi), (-1, 1))
-
-        if column_name == 'GAMMA2_G2_delta2':
-            if self.has_column('G') and self.has_column('delta'):
-                return np.reshape(np.power(self._gamma_h * self.get_column('G') * self.get_column('delta'), 2), (-1, 1))
-
-        if column_name == 'b':
-            if self.has_column('G') and self.has_column('delta') and self.has_column('Delta'):
-                return np.reshape(self._gamma_h ** 2 *
-                                  self.get_column('G')**2 *
-                                  self.get_column('delta')**2 *
-                                  (self.get_column('Delta') - (self.get_column('delta')/3)), (-1, 1))
-
-        if column_name == 'G':
-            return self._estimate_sequence_timings()['G']
-
-        if column_name == 'Delta':
-            return self._estimate_sequence_timings()['Delta']
-
-        if column_name == 'delta':
-            return self._estimate_sequence_timings()['delta']
-
-        raise KeyError('The given column name "{}" could not be found in this protocol.'.format(column_name))
+        try:
+            return self._get_real_column(column_name)
+        except KeyError:
+            try:
+                return self._get_estimated_column(column_name)
+            except KeyError:
+                raise KeyError('The given column name "{}" could not be found in this protocol.'.format(column_name))
 
     @property
     def length(self):
@@ -176,6 +160,8 @@ class Protocol(object):
     def number_of_columns(self):
         """Get the number of columns in this protocol.
 
+        This only counts the real columns, not the estimated ones.
+
         Returns:
             int: The number columns in this protocol.
         """
@@ -184,6 +170,8 @@ class Protocol(object):
     @property
     def column_names(self):
         """Get the names of the columns.
+
+        This only lists the real columns, not the estimated ones.
 
         Returns:
             list of str: The names of the columns.
@@ -234,23 +222,14 @@ class Protocol(object):
     def has_unestimated_column(self, column_name):
         """Check if this protocol has real column information for the column with the given name.
 
-        For example, has_column('G') will always return true since 'G' can be estimated from 'b'. This function
-        however will return false if the column needs to be estimated and will return true if the column is truly known.
+        For example, the other function has_column('G') will normally return true since 'G' can be estimated from 'b'.
+        This function however will return false if the column needs to be estimated and will
+        return true if the column is truly known.
 
         Returns:
             boolean: true if there is really a column with the given name, false otherwise.
         """
         return column_name in self._columns
-
-    def get_columns(self, column_names):
-        """Get a matrix containing the requested column names in the order given.
-
-        Returns:
-            ndarrray: A 2d matrix with the column requested concatenated.
-        """
-        if not column_names:
-            return None
-        return np.concatenate([self[i] for i in column_names], axis=1)
 
     def get_unweighted_indices(self, unweighted_threshold=None):
         """Get the indices to the unweighted volumes.
@@ -306,10 +285,10 @@ class Protocol(object):
         return np.where(((start - epsilon) <= b_values) * (b_values <= (end + epsilon)))[0]
 
     def get_all_columns(self):
-        """Get all columns as a big array.
+        """Get all real (known) columns as a big array.
 
         Returns:
-            ndarray: All the columns of this protocol.
+            ndarray: All the real columns of this protocol.
         """
         return self.get_columns(self.column_names)
 
@@ -357,22 +336,54 @@ class Protocol(object):
         s += np.array_str(self.get_all_columns())
         return s
 
-    def add_estimated_protocol_params(self, maxG=None, Delta=None, delta=None):
-        maxG = maxG or self.max_G
-        if Delta is not None:
-            self.add_column('Delta', Delta)
-        if delta is not None:
-            self.add_column('delta', delta)
+    def _get_real_column(self, column_name):
+        """Try to load a real column from this protocol.
 
-        items = self._estimate_sequence_timings(max_G=maxG)
-        if Delta is None:
-            self.add_column('Delta', items['Delta'])
-        if delta is None:
-            self.add_column('delta', items['delta'])
-        self.add_column('G', items['G'])
+        Returns:
+            A real column, that is, a column from which we have real data.
 
-    def _estimate_sequence_timings(self, max_G=None):
-        """Return estimated G, Delta and delta.
+        Raises:
+            KeyError: If the column name could not be found we raise a key error.
+        """
+        if column_name in self._columns:
+            return np.reshape(self._columns[column_name], (-1, 1))
+
+        if column_name == 'g':
+            return self.get_columns(('gx', 'gy', 'gz'))
+
+        raise KeyError('The given column could not be found.')
+
+    def _get_estimated_column(self, column_name):
+        """Try to load an estimated column from this protocol.
+
+        Returns:
+            An estimated column, that is, a column we estimate from the other columns.
+
+        Raises:
+            KeyError: If the column name could not be estimated we raise a key error.
+        """
+        sequence_timings = self._get_sequence_timings()
+
+        if column_name in sequence_timings:
+            return sequence_timings[column_name]
+
+        if column_name == 'q':
+            return np.reshape((self._gamma_h * sequence_timings['G'] * sequence_timings['delta'] / (2 * np.pi)),
+                              (-1, 1))
+
+        if column_name == 'GAMMA2_G2_delta2':
+            return np.reshape(np.power(self._gamma_h * sequence_timings['G'] * sequence_timings['delta'], 2), (-1, 1))
+
+        if column_name == 'b':
+            return np.reshape(self._gamma_h ** 2 *
+                              sequence_timings['G']**2 *
+                              sequence_timings['delta']**2 *
+                              (sequence_timings['Delta'] - (sequence_timings['delta']/3)), (-1, 1))
+
+        raise KeyError('The given column name "{}" could not be found in this protocol.'.format(column_name))
+
+    def _get_sequence_timings(self, max_G=None):
+        """Return G, Delta and delta, estimate them if necessary.
 
         If Delta and delta are available, they are used instead of estimated Delta and delta.
 
@@ -384,11 +395,25 @@ class Protocol(object):
         Returns:
             the columns G, Delta and delta
         """
-        if 'b' in self._columns and 'Delta' in self._columns and 'delta' in self._columns:
-            G = np.sqrt(self.get_column('b') / (self.gamma_h**2 * self.get_column('delta')**2 *
-                                                (self.get_column('Delta') - (self.get_column('delta')/3.0))))
+        if all(map(lambda v: v in self._columns, ['b', 'Delta', 'delta'])):
+            G = np.sqrt(self._columns['b'] / (self.gamma_h**2 * self._columns['delta']**2 *
+                                                        (self._columns['Delta'] - (self._columns['delta']/3.0))))
             G[self.get_unweighted_indices()] = 0
             return {'G': G, 'Delta': self._columns['Delta'], 'delta': self._columns['delta']}
+
+        if all(map(lambda v: v in self._columns, ['b', 'Delta', 'G'])):
+            roots = np.roots([-1/3.0, self._columns['Delta'],
+                              -self._columns['b']/(self._gamma_h**2 * self._columns['G']**2)])
+            delta = list(itertools.dropwhile(np.isreal, roots))[0]
+            return {'G': self._columns['G'], 'Delta': self._columns['Delta'], 'delta': delta}
+
+        if all(map(lambda v: v in self._columns, ['b', 'G', 'delta'])):
+            Delta = ((self._columns['b'] - self._gamma_h**2 * self._columns['G']**2 * self._columns['delta']**3/3.0) /
+                        (self._gamma_h**2 * self._columns['G']**2 * self._columns['delta']**2))
+            return {'G': self._columns['G'], 'delta': self._columns['delta'], 'Delta': Delta}
+
+        if all(map(lambda v: v in self._columns, ['G', 'delta', 'Delta'])):
+            return {'G': self._columns['G'], 'delta': self._columns['delta'], 'Delta': self._columns['Delta']}
 
         if 'b' not in self._columns:
             return {}
@@ -591,3 +616,87 @@ def add_column_to_protocol(protocol, column, value, units):
             protocol.add_column_from_file(column, value, mult_factor)
         else:
             protocol.add_column(column, float(value) * mult_factor)
+
+
+def auto_load_protocol(directory, protocol_options=None, bvec_fname=None, bval_fname=None):
+    """Load a protocol from the given directory.
+
+    This function will only auto-search files in the top directory and not in the sub-directories.
+
+    This will first try to load the first .prtcl file found. If none present, it will try to find bval and bvec files
+    to load and then try to find the protocol options.
+
+    The protocol_options should be a dictionary mapping protocol items to filenames. If given, we only use the items
+    in that dictionary. If not given we try to autodetect the protocol option files from the given directory.
+
+    The search order is (continue until matched):
+        1) anything ending in .prtcl
+        2) a) anything containing bval or b-val
+           b) anything containing bvec or b-vec
+           c) protocol options
+                i) using dict
+                ii) matching filenames exactly to the available protocol options.
+                    (e.g, finding a file named TE for the TE's)
+
+    The available protocol options are:
+        - TE: the TE in seconds, either a file or, one value or one value per bvec
+        - TR: the TR in seconds, either a file or, either one value or one value per bvec
+        - Delta: the big Delta in seconds, either a file or, either one value or one value per bvec
+        - delta: the small delta in seconds, either a file or, either one value or one value per bvec
+        - maxG: the maximum gradient amplitude G in T/m. Used in estimating G, Delta and delta if not given.
+
+    Args:
+        directory (str): the directory to load the protocol from
+        protocol_options (dict): mapping protocol items to filenames (as a subpath of the given directory)
+            or mapping them to values (one value or one value per bvec line)
+        bvec_fname (str): if given, the filename of the bvec file (as a subpath of the given directory)
+        bval_fname (str): if given, the filename of the bvec file (as a subpath of the given directory)
+
+    Returns:
+        Protocol: a loaded protocol file.
+
+    Raises:
+        ValueError: if not enough information could be found. (No protocol or no bvec/bval combo).
+    """
+    protocol_files = list(glob.glob(os.path.join(directory, '*.prtcl')))
+    if protocol_files:
+        return load_protocol(protocol_files[0])
+
+    bval_files = list(glob.glob(os.path.join(directory, '*bval*')))
+    if not bval_files:
+        bval_files = glob.glob(os.path.join(directory, '*b-val*'))
+        if not bval_files:
+            raise ValueError('Could not find a suitable bval file')
+
+    bvec_files = list(glob.glob(os.path.join(directory, '*bvec*')))
+    if not bvec_files:
+        bvec_files = glob.glob(os.path.join(directory, '*b-vec*'))
+        if not bvec_files:
+            raise ValueError('Could not find a suitable bvec file')
+
+    protocol = load_bvec_bval(bvec_files[0], bval_files[0])
+
+    protocol_extra_cols = ['TE', 'TR', 'Delta', 'delta']
+    protocol_maxG = 'maxG'
+
+    if protocol_options:
+        if protocol_maxG in protocol_options:
+            protocol.max_G = protocol_options[protocol_maxG]
+
+        for col in protocol_extra_cols:
+            if col in protocol_options:
+                if isinstance(protocol_options[col], six.string_types):
+                    protocol.add_column_from_file(col, os.path.join(directory, protocol_options[col]))
+                else:
+                    protocol.add_column(col, protocol_options[col])
+    else:
+        if os.path.isfile(os.path.join(directory, protocol_maxG)):
+            maxG = np.genfromtxt(os.path.join(directory, protocol_maxG))
+            if maxG:
+                protocol.max_G = float(maxG)
+
+        for col in protocol_extra_cols:
+            if os.path.isfile(os.path.join(directory, col)):
+                protocol.add_column_from_file(col, os.path.join(directory, col))
+
+    return protocol
