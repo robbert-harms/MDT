@@ -10,7 +10,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.4.1'
+VERSION = '0.4.2'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')
@@ -31,7 +31,7 @@ PyOpencl (via MOT) before we start the multiprocessing we will get an Out Of Mem
 trying to create an kernel.
 """
 
-def batch_fit(data_folder, batch_profile_class=None, subjects_ind=None, recalculate=False,
+def batch_fit(data_folder, batch_profile=None, subjects_ind=None, recalculate=False,
               cl_device_ind=None, dry_run=False, double_precision=False):
     """Run all the available and applicable models on the data in the given folder.
 
@@ -42,12 +42,8 @@ def batch_fit(data_folder, batch_profile_class=None, subjects_ind=None, recalcul
 
     Args:
         data_folder (str): The data folder to process
-        batch_profile_class (BatchProfile class or str): the batch profile class to use, can also be the name
-            of a batch profile to load. If not given it is auto detected.
-            Please note it expects a callable that returns a batch profile instance. For example, you can use it as:
-                batch_profile_class=MyBatchProfile
-            but this would not work:
-                batch_profile_class=MyBatchProfile()
+        batch_profile (BatchProfile or str): the batch profile to use, or the name of a batch profile to load.
+            If not given it is auto detected.
         subjects_ind (list of int): either a list of subjects to process or the index of a single subject to process.
             To get a list of subjects run this function with the dry_run parameter to true.
         recalculate (boolean): If we want to recalculate the results if they are already present.
@@ -66,7 +62,7 @@ def batch_fit(data_folder, batch_profile_class=None, subjects_ind=None, recalcul
     if not utils.check_user_components():
         raise RuntimeError('User\'s components folder is not up to date. Please run the script mdt-init-user-settings.')
 
-    batch_fitting = BatchFitting(data_folder, batch_profile_class=batch_profile_class, subjects_ind=subjects_ind,
+    batch_fitting = BatchFitting(data_folder, batch_profile=batch_profile, subjects_ind=subjects_ind,
                                  recalculate=recalculate, cl_device_ind=cl_device_ind,
                                  double_precision=double_precision)
 
@@ -206,7 +202,7 @@ def get_config():
     return configuration.config
 
 
-def collect_batch_fit_output(data_folder, output_dir, batch_profile_class=None, mask_name=None, symlink=False):
+def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, mask_name=None, symlink=False):
     """Load from the given data folder all the output files and put them into the output directory.
 
     If there is more than one mask file available the user has to choose which mask to use using the mask_name
@@ -218,17 +214,17 @@ def collect_batch_fit_output(data_folder, output_dir, batch_profile_class=None, 
     Args:
         data_folder (str): The data folder with the output files
         output_dir (str): The path to the output folder where all the files will be put.
-        batch_profile_class (BatchProfile class or str): the batch profile class to use, can also be the name
+        batch_profile (BatchProfile class or str): the batch profile class to use, can also be the name
             of a batch profile to load. If not given it is auto detected.
             Please note it expects a callable that returns a batch profile instance. For example, you can use it as:
-                batch_profile_class=MyBatchProfile
+                batch_profile=MyBatchProfile
             but this would not work:
-                batch_profile_class=MyBatchProfile()
+                batch_profile=MyBatchProfile()
         mask_name (str): the mask to use to get the output from
         symlink (boolean): only available under Unix OS's. Creates a symlink instead of copying.
     """
     from mdt.batch_utils import collect_batch_fit_output
-    collect_batch_fit_output(data_folder, output_dir, batch_profile_class=batch_profile_class,
+    collect_batch_fit_output(data_folder, output_dir, batch_profile=batch_profile,
                              mask_name=mask_name, symlink=symlink)
 
 
@@ -249,7 +245,7 @@ def run_function_on_batch_fit_output(data_folder, func, batch_profile_class=None
                 batch_profile_class=MyBatchProfile()
     """
     from mdt.batch_utils import run_function_on_batch_fit_output
-    run_function_on_batch_fit_output(data_folder, func, batch_profile_class=batch_profile_class)
+    run_function_on_batch_fit_output(data_folder, func, batch_profile=batch_profile_class)
 
 
 def get_cl_devices():
@@ -313,7 +309,7 @@ def load_protocol(filename, column_names=None):
     return load_protocol(filename, column_names)
 
 
-def auto_load_protocol(directory, protocol_options=None, bvec_fname=None, bval_fname=None):
+def auto_load_protocol(directory, protocol_options=None, bvec_fname=None, bval_fname=None, bval_scale='auto'):
     """Load a protocol from the given directory.
 
     This will first try to load the first .prtcl file found. If none present it will try to find bval and bvec files
@@ -336,7 +332,8 @@ def auto_load_protocol(directory, protocol_options=None, bvec_fname=None, bval_f
     """
     import mdt.protocols
     return mdt.protocols.auto_load_protocol(directory, protocol_options=protocol_options,
-                                            bvec_fname=bvec_fname, bval_fname=bval_fname)
+                                            bvec_fname=bvec_fname, bval_fname=bval_fname,
+                                            bval_scale=bval_scale)
 
 
 def write_protocol(protocol, fname, columns_list=None):

@@ -30,7 +30,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class BatchFitting(object):
 
-    def __init__(self, data_folder, batch_profile_class=None, subjects_ind=None, recalculate=False,
+    def __init__(self, data_folder, batch_profile=None, subjects_ind=None, recalculate=False,
                  cl_device_ind=None, double_precision=False):
         """This class is meant to make running computations as simple as possible.
 
@@ -50,7 +50,7 @@ class BatchFitting(object):
 
         Args:
             data_folder (str): the main directory to look for items to process.
-            batch_profile (BatchProfile class or str): the batch profile to instantiate or the name of a batch
+            batch_profile (BatchProfile class or str): the batch profile to use or the name of a batch
                 profile to load from the users folder.
             subjects_ind (list of int): either a list of subjects to process or the index of a single subject to process.
                 This indexes the list of subjects returned by the batch profile.
@@ -62,7 +62,8 @@ class BatchFitting(object):
         self._data_folder = data_folder
         self._config = configuration.config['batch_fitting']
         self._logger = logging.getLogger(__name__)
-        self._batch_profile = batch_profile_factory(batch_profile_class, self._data_folder)
+        self._batch_profile = batch_profile_factory(batch_profile, self._data_folder)
+        self._models_to_fit = self._batch_profile.get_models_to_fit()
         self._cl_device_ind = cl_device_ind
         self._recalculate = recalculate
         self._double_precision = double_precision
@@ -107,7 +108,8 @@ class BatchFitting(object):
         """Run the computations on the current dir with all the configured options. """
         self._logger.info('Running computations on {0} subjects'.format(len(self._subjects)))
 
-        run_func = _BatchFitRunner(self._config, self._recalculate, self._cl_device_ind, self._double_precision)
+        run_func = _BatchFitRunner(self._config, self._models_to_fit,
+                                   self._recalculate, self._cl_device_ind, self._double_precision)
         list(map(run_func, self._subjects))
 
         return self._subjects
@@ -133,8 +135,9 @@ class BatchFitting(object):
 
 class _BatchFitRunner(object):
 
-    def __init__(self, batch_fitting_config, recalculate, cl_device_ind, double_precision):
+    def __init__(self, batch_fitting_config, models_to_fit, recalculate, cl_device_ind, double_precision):
         self._batch_fitting_config = batch_fitting_config
+        self._models_to_fit = models_to_fit
         self._recalculate = recalculate
         self._cl_device_ind = cl_device_ind
         self._double_precision = double_precision
@@ -155,10 +158,9 @@ class _BatchFitRunner(object):
         brain_mask_fname = subject_info.get_mask_filename()
 
         if all(model_output_exists(model, os.path.join(output_dir, split_image_path(brain_mask_fname)[1]))
-               for model in self._batch_fitting_config['models']):
-            if not self._recalculate:
-                logger.info('Skipping subject {0}, output exists'.format(subject_info.subject_id))
-                return
+               for model in self._models_to_fit) and not self._recalculate:
+            logger.info('Skipping subject {0}, output exists'.format(subject_info.subject_id))
+            return
 
         logger.info('Loading the data (DWI, mask and protocol) of subject {0}'.format(subject_info.subject_id))
         problem_data = load_problem_data(subject_info.get_dwi_info(), protocol, brain_mask_fname)
@@ -169,8 +171,10 @@ class _BatchFitRunner(object):
         if gradient_deviations:
             gradient_deviations = nib.load(gradient_deviations).get_data()
 
+        noise_std = _get_noise_std(subject_info.get_noise_std(), problem_data)
+
         start_time = timeit.default_timer()
-        for model in self._batch_fitting_config['models']:
+        for model in self._models_to_fit:
             logger.info('Going to fit model {0} on subject {1}'.format(model, subject_info.subject_id))
             try:
                 model_fit = ModelFit(model,
@@ -181,7 +185,8 @@ class _BatchFitRunner(object):
                                      model_protocol_options=self._batch_fitting_config['model_protocol_options'],
                                      cl_device_ind=self._cl_device_ind,
                                      double_precision=self._double_precision,
-                                     gradient_deviations=gradient_deviations)
+                                     gradient_deviations=gradient_deviations,
+                                     noise_std=noise_std)
                 model_fit.run()
             except ProtocolProblemError as ex:
                 logger.info('Could not fit model {0} on subject {1} '
@@ -240,7 +245,7 @@ class ModelFit(object):
         self._model_protocol_options = model_protocol_options
         self._logger = logging.getLogger(__name__)
         self._cl_device_indices = cl_device_ind
-        self._noise_std = self._get_noise_std(noise_std)
+        self._noise_std = _get_noise_std(noise_std, self._problem_data)
 
         if self._cl_device_indices is not None and not isinstance(self._cl_device_indices, collections.Iterable):
             self._cl_device_indices = [self._cl_device_indices]
@@ -311,27 +316,6 @@ class ModelFit(object):
         problem_data = apply_model_protocol_options(model_protocol_options, self._problem_data)
         return fit_single_model(model, problem_data, self._output_folder, optimizer, recalculate=recalculate)
 
-    def _get_noise_std(self, user_noise_std):
-        noise_std = user_noise_std
-
-        if user_noise_std == 'auto':
-            self._logger.info('The noise std was set to \'auto\', we will now try to estimate one.')
-
-            noise_std_calculators = [AverageOfAirROI, AverageOfUnweightedVolumes]
-
-            for calculator_class in noise_std_calculators:
-                calculator = calculator_class([self._problem_data.dwi_volume, self._problem_data.volume_header],
-                                              self._problem_data.protocol)
-                try:
-                    noise_std = calculator.calculate()
-                    break
-                except ValueError:
-                    noise_std = 1
-        elif user_noise_std is None:
-            noise_std = 1.0
-
-        return noise_std
-
 
 def fit_single_model(model, problem_data, output_folder, optimizer, recalculate=False):
     """Fits a single model.
@@ -396,3 +380,28 @@ def _write_output(results, other_output, problem_data, output_path):
 
 def _get_model_output_path(output_dir, model):
     return os.path.join(output_dir, model.name)
+
+
+def _get_noise_std(user_noise_std, problem_data):
+    logger = logging.getLogger(__name__)
+
+    noise_std = user_noise_std
+
+    if user_noise_std == 'auto':
+        logger.info('The noise std was set to \'auto\', we will now try to estimate one.')
+
+        noise_std_calculators = [AverageOfAirROI, AverageOfUnweightedVolumes]
+
+        for calculator_class in noise_std_calculators:
+            calculator = calculator_class([problem_data.dwi_volume, problem_data.volume_header], problem_data.protocol)
+            try:
+                noise_std = calculator.calculate()
+                break
+            except ValueError:
+                noise_std = 1.0
+
+        logger.info('Finished estimating the noise std.')
+    elif user_noise_std is None:
+        noise_std = 1.0
+
+    return noise_std

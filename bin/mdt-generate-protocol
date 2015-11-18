@@ -73,6 +73,10 @@ if __name__ == '__main__':
                             help="The TE to use, either a single number or a file with either a single number "
                                  "or one number per gradient direction.")
 
+        parser.add_argument('--TR',
+                            help="The TR to use, either a single number or a file with either a single number "
+                                 "or one number per gradient direction.")
+
         return parser
 
     mdt.initialize_user_settings(False)
@@ -81,7 +85,6 @@ if __name__ == '__main__':
     argcomplete.autocomplete(parser)
     args = parser.parse_args()
 
-    bvec_name = os.path.splitext(os.path.basename(args.bvec))[0]
     output_prtcl = args.output_file or os.path.join(os.path.dirname(args.bvec),
                                              os.path.splitext(os.path.basename(args.bvec))[0] + '.prtcl')
     bval_scale_factor = args.bval_scale_factor or 'auto'
@@ -97,6 +100,8 @@ if __name__ == '__main__':
             mdt.protocols.add_column_to_protocol(protocol, 'delta', args.delta, args.sequence_timing_units)
         if args.TE is not None:
             mdt.protocols.add_column_to_protocol(protocol, 'TE', args.TE, args.sequence_timing_units)
+        if args.TR is not None:
+            mdt.protocols.add_column_to_protocol(protocol, 'TR', args.TR, args.sequence_timing_units)
 
     mdt.protocols.write_protocol(protocol, output_prtcl)
 

@@ -52,7 +52,7 @@ class SingleDirProfile(SimpleBatchProfile):
         basenames = sorted(list({split_image_path(f)[1] for f in files}))
         subjects = []
 
-        extra_protocol_col_files = [('TE', '.TE'), ('Delta', '.Delta'), ('delta', '.delta')]
+        protocol_options = ['TE', 'TR', 'Delta', 'delta', 'maxG']
 
         default_mask = None
         if list(glob.glob(pjoin('mask.nii*'))):
@@ -86,16 +86,20 @@ class SingleDirProfile(SimpleBatchProfile):
                 mask_fname = pjoin(basename + '_mask.nii.gz')
 
             extra_cols_from_file = {}
-            for col, ext in extra_protocol_col_files:
-                if basename + ext in files:
-                    extra_cols_from_file.update({col: pjoin(basename + ext)})
+            for option in protocol_options:
+                if basename + '.' + option in files:
+                    extra_cols_from_file.update({option: pjoin(basename + '.' + option)})
 
             if dwi_fname and (prtcl_fname or (bval_fname and bvec_fname)):
                 protocol_loader = BatchFitProtocolLoader(
+                    pjoin(),
                     prtcl_fname=prtcl_fname, bvec_fname=bvec_fname, bval_fname=bval_fname,
-                    extra_cols_from_file=extra_cols_from_file)
+                    protocol_options=extra_cols_from_file)
 
-                output_dir = pjoin('output', basename)
+                if self.output_sub_dir:
+                    output_dir = pjoin('output', basename, self.output_sub_dir)
+                else:
+                    output_dir = pjoin('output', basename)
 
                 subjects.append(SimpleSubjectInfo(basename, dwi_fname, protocol_loader, mask_fname, output_dir))
         return subjects

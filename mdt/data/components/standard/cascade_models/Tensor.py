@@ -20,6 +20,14 @@ class Tensor(CascadeModelBuilder):
             model.init('Tensor.phi', output_previous['Stick.phi'])
 
 
+class Tensors0(CascadeModelBuilder):
+
+    name = 'Tensor (Cascade|s0)'
+    description = 'Cascade for Tensor initialized with only an S0 fit.'
+    models = ('s0',
+              'Tensor')
+
+
 class TensorExVivo(Tensor):
 
     name = 'Tensor-ExVivo (Cascade)'

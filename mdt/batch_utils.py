@@ -3,6 +3,7 @@ import logging
 import os
 import shutil
 from six import string_types
+from mdt import protocols
 from mdt.components_loader import BatchProfilesLoader
 from mdt.data_loaders.protocol import ProtocolLoader
 from mdt.masking import create_write_median_otsu_brain_mask
@@ -17,11 +18,16 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class BatchProfile(object):
 
-    def __init__(self, root_dir):
-        """Instantiate this BatchProfile on the given root directory.
+    def __init__(self):
+        """Instantiate this BatchProfile
+        """
+        self._root_dir = ''
+
+    def set_root_dir(self, root_dir):
+        """Set the root dir. That is, the directory we search in for batch fit subjects.
 
         Args:
-            root_dir (str): the root directory from which to return all the subjects
+            root_dir (str): the root dir to use
         """
         self._root_dir = root_dir
 
@@ -33,6 +39,16 @@ class BatchProfile(object):
         """
         return self._root_dir
 
+    def get_models_to_fit(self):
+        """Get the list of models we want to fit to every found subject.
+
+        The models can either be real model objects, or strings with the model names.
+
+        Returns:
+            list: the list of models we want to fit to the subjects
+        """
+
+    #todo remove this
     def get_batch_fit_config_options(self):
         """Get the specific options from this batch fitting profile that will override the default config options.
 
@@ -68,24 +84,46 @@ class BatchProfile(object):
 
 class SimpleBatchProfile(BatchProfile):
 
-    def __init__(self, root_dir):
+    def __init__(self):
         """A base class for quickly implementing a batch profile.
 
         Implementing classes need only implement the method _get_subjects(). This class will handle the rest.
+
+        Attributes:
+            output_sub_dir (str): if given, a sub directory (in the default output dir) to place the output in
+            models_to_fit (list): list of model names or model objects to use during fitting
         """
-        super(SimpleBatchProfile, self).__init__(root_dir)
-        self._subjects_found = self._get_subjects()
+        super(SimpleBatchProfile, self).__init__()
+        self._subjects_found = None
+        self.output_sub_dir = None
+        self.models_to_fit = ('BallStick (Cascade)',
+                              'Tensor (Cascade)',
+                              'Noddi (Cascade)',
+                              'BallStickStickStick (Cascade)',
+                              'Charmed (Cascade|fixed)')
+
+    def get_models_to_fit(self):
+        return self.models_to_fit
 
     def get_batch_fit_config_options(self):
         return {}
 
     def get_subjects(self):
+        if not self._subjects_found:
+            self._subjects_found = self._get_subjects()
+
         return self._subjects_found
 
     def profile_suitable(self):
+        if not self._subjects_found:
+            self._subjects_found = self._get_subjects()
+
         return len(self._subjects_found) > 0
 
     def get_subjects_count(self):
+        if not self._subjects_found:
+            self._subjects_found = self._get_subjects()
+
         return len(self._subjects_found)
 
     def _get_subjects(self):
@@ -98,6 +136,19 @@ class SimpleBatchProfile(BatchProfile):
         """
         return []
 
+    def _get_subject_output_dir(self, subject_id):
+        """Helper function for generating the output directory for a subject.
+
+        Args:
+            subject_id (str): the id of the subject to use
+
+        Returns:
+            str: the path for the output directory
+        """
+        dir_items = [self._root_dir, subject_id, 'output']
+        if self.output_sub_dir:
+            dir_items.append(self.output_sub_dir)
+        return os.path.join(*dir_items)
 
 class SubjectInfo(object):
 
@@ -148,6 +199,15 @@ class SubjectInfo(object):
             str: the filename of the gradient deviations to use, None if not applicable.
         """
         return None
+
+    def get_noise_std(self):
+        """Get the noise standard deviation to use during fitting.
+
+        Returns:
+            The noise std to use. This can either be a value, None, or the string 'auto'. If auto we try to auto detect it.
+            If None it is set to 1.0
+        """
+        return 'auto'
 
 
 class SimpleSubjectInfo(SubjectInfo):
@@ -207,50 +267,27 @@ class SimpleSubjectInfo(SubjectInfo):
 
 class BatchFitProtocolLoader(ProtocolLoader):
 
-    def __init__(self, prtcl_fname=None, bvec_fname=None, bval_fname=None,
-                 extra_cols=None, extra_cols_from_file=None):
+    def __init__(self, base_dir, prtcl_fname=None, protocol_options=None, bvec_fname=None, bval_fname=None):
         """A simple protocol loader for loading a protocol from a protocol file or bvec/bval files.
 
-        The parameters extra_cols and extra_cols_from_file allow you to add additional columns
-        to the loaded protocol.
-
-        Please note that extra_cols_from_file is loaded first and extra_cols loaded second.
-        This means that the values in extra_cols overwrite the other columns if present.
-
-        Args:
-            prtcl_fname (str): the filename of the protocol file to (preferably load)
-            bvec_fname (str): the filename of the bvec file to use if no protocol file is given
-            bval_fname (str): the filename of the bval file to use if no protocol file is given
-            extra_cols (dict): a dictionary with additional columns to add. The keys are column names
-                and the values as values of that column. Can be one value or one per row of the protocol.
-                Example: {'TE': 0.01, 'Delta': 0.01, ...}
-            extra_cols_from_file (dict): Load additional columns from file. The keys are column names and
-                the values the values of that column.
-                Example: {'TE': '/path/to/TE_file', 'TI': '/path/to/T1_file', ...}
+        This either loads the protocol file if present, or autoloads the protocol using the auto_load_protocol
+        from the protocol module.
         """
         super(BatchFitProtocolLoader, self).__init__()
+        self._base_dir = base_dir
         self._prtcl_fname = prtcl_fname
         self._bvec_fname = bvec_fname
         self._bval_fname = bval_fname
-        self._extra_cols = extra_cols
-        self._extra_cols_from_file = extra_cols_from_file
+        self._protocol_options= protocol_options
 
     def get_protocol(self):
         super(BatchFitProtocolLoader, self).get_protocol()
+
         if self._prtcl_fname and os.path.isfile(self._prtcl_fname):
-            protocol = load_protocol(self._prtcl_fname)
-        else:
-            protocol = load_bvec_bval(self._bvec_fname, self._bval_fname)
+            return load_protocol(self._prtcl_fname)
 
-        if self._extra_cols_from_file:
-            for name, filename in self._extra_cols_from_file.items():
-                protocol.add_column_from_file(name, filename)
-
-        if self._extra_cols:
-            for name, value in self._extra_cols.items():
-                protocol.add_column(name, value)
-
-        return protocol
+        return protocols.auto_load_protocol(self._base_dir, protocol_options=self._protocol_options,
+                                            bvec_fname=self._bvec_fname, bval_fname=self._bval_fname)
 
 
 class BatchFitSubjectOutputInfo(object):
@@ -273,20 +310,16 @@ class BatchFitSubjectOutputInfo(object):
 
 class BatchFitOutputInfo(object):
 
-    def __init__(self, data_folder, batch_profile_class=None):
+    def __init__(self, data_folder, batch_profile=None):
         """Single point of information about batch fitting output.
 
         Args:
             data_folder (str): The data folder with the output files
-            batch_profile_class (BatchProfile class or str): the batch profile class to use, can also be the name
+            batch_profile (BatchProfile class or str): the batch profile to use, can also be the name
                 of a batch profile to load. If not given it is auto detected.
-                Please note it expects a callable that returns a batch profile instance. For example, you can use it as:
-                    batch_profile_class=MyBatchProfile
-                but this would not work:
-                    batch_profile_class=MyBatchProfile()
         """
         self._data_folder = data_folder
-        self._batch_profile = batch_profile_factory(batch_profile_class, data_folder)
+        self._batch_profile = batch_profile_factory(batch_profile, data_folder)
         self._subjects = self._batch_profile.get_subjects()
         self._subjects_dirs = {subject_info.subject_id: subject_info.output_dir for subject_info in self._subjects}
         self._mask_paths = {}
@@ -363,7 +396,7 @@ class BatchFitOutputInfo(object):
                                      'and error_on_missing_mask is True"'.format(mask_name, subject_info.subject_id))
 
 
-def run_function_on_batch_fit_output(data_folder, func, batch_profile_class=None):
+def run_function_on_batch_fit_output(data_folder, func, batch_profile=None):
     """Run a function on the output of a batch fitting routine.
 
     This enables you to run a function on every model output from every subject. The python function should accept
@@ -372,25 +405,20 @@ def run_function_on_batch_fit_output(data_folder, func, batch_profile_class=None
     Args:
         data_folder (str): The data folder with the output files
         func (python function): the python function we should call for every map and model
-        batch_profile_class (BatchProfile class or str): the batch profile class to use, can also be the name
+        batch_profile (BatchProfile class or str): the batch profile to use, can also be the name
             of a batch profile to load. If not given it is auto detected.
-            Please note it expects a callable that returns a batch profile instance. For example, you can use it as:
-                batch_profile_class=MyBatchProfile
-            but this would not work:
-                batch_profile_class=MyBatchProfile()
     """
-    output_info = BatchFitOutputInfo(data_folder, batch_profile_class)
+    output_info = BatchFitOutputInfo(data_folder, batch_profile)
     mask_names = output_info.get_available_masks()
     for mask_name in mask_names:
         list(map(func, output_info.subject_output_info_generator(mask_name)))
 
 
-def batch_profile_factory(batch_profile_class, data_folder):
+def batch_profile_factory(batch_profile, data_folder):
     """Wrapper function for getting a batch profile.
 
     Args:
-        batch_profile_class (None, string or BatchProfile class): indication of the batch profile to load.
-            If a BatchProfile class is given it expects a callable that can generate a batch profile instance.
+        batch_profile (None, string or BatchProfile): indication of the batch profile to load.
             If a string is given it is loaded from the users home folder. Else the best matching profile is returned.
         data_folder (str): the data folder we want to use the batch profile on.
 
@@ -398,11 +426,13 @@ def batch_profile_factory(batch_profile_class, data_folder):
         If the given batch profile is None we return the output from get_best_batch_profile(). If batch profile is
         a string we load it from the batch profiles loader. Else we return the input.
     """
-    if batch_profile_class is None:
-        return get_best_batch_profile(data_folder)
-    elif isinstance(batch_profile_class, string_types):
-        return BatchProfilesLoader().load(batch_profile_class, data_folder)
-    return batch_profile_class(data_folder)
+    if batch_profile is None:
+        batch_profile = get_best_batch_profile(data_folder)
+    elif isinstance(batch_profile, string_types):
+        batch_profile = BatchProfilesLoader().load(batch_profile)
+
+    batch_profile.set_root_dir(data_folder)
+    return batch_profile
 
 
 def get_best_batch_profile(data_folder):
@@ -415,11 +445,12 @@ def get_best_batch_profile(data_folder):
         BatchProfile: the best matching batch profile.
     """
     profile_loader = BatchProfilesLoader()
-    crawlers = [profile_loader.load(c, data_folder) for c in profile_loader.list_all()]
+    crawlers = [profile_loader.load(c) for c in profile_loader.list_all()]
 
     best_crawler = None
     best_subjects_count = 0
     for crawler in crawlers:
+        crawler.set_root_dir(data_folder)
         if crawler.profile_suitable():
             tmp_count = crawler.get_subjects_count()
             if tmp_count > best_subjects_count:
@@ -429,7 +460,7 @@ def get_best_batch_profile(data_folder):
     return best_crawler
 
 
-def collect_batch_fit_output(data_folder, output_dir, batch_profile_class=None, mask_name=None, symlink=False):
+def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, mask_name=None, symlink=False):
     """Load from the given data folder all the output files and put them into the output directory.
 
     If there is more than one mask file available the user has to choose which mask to use using the mask_name
@@ -441,16 +472,16 @@ def collect_batch_fit_output(data_folder, output_dir, batch_profile_class=None, 
     Args:
         data_folder (str): The data folder with the output files
         output_dir (str): The path to the output folder where all the files will be put.
-        batch_profile_class (BatchProfile class or str): the batch profile class to use, can also be the name
+        batch_profile (BatchProfile class or str): the batch profile class to use, can also be the name
             of a batch profile to load. If not given it is auto detected.
             Please note it expects a callable that returns a batch profile instance. For example, you can use it as:
-                batch_profile_class=MyBatchProfile
+                batch_profile=MyBatchProfile
             but this would not work:
-                batch_profile_class=MyBatchProfile()
+                batch_profile=MyBatchProfile()
         mask_name (str): the mask to use to get the output from
         symlink (boolean): only available under Unix OS's. Creates a symlink instead of copying.
     """
-    output_info = BatchFitOutputInfo(data_folder, batch_profile_class)
+    output_info = BatchFitOutputInfo(data_folder, batch_profile)
     mask_names = output_info.get_available_masks()
     if len(mask_names) > 1:
         if mask_name is None:

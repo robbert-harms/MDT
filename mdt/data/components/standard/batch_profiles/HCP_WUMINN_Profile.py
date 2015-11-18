@@ -30,6 +30,10 @@ Optional items (these will take precedence if present):
 
 class HCP_WUMINN_Profile(SimpleBatchProfile):
 
+    def __init__(self):
+        super(HCP_WUMINN_Profile, self).__init__()
+        self.use_gradient_deviations = True
+
     def _get_subjects(self):
         dirs = sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._root_dir, '*'))])
         subjects = []
@@ -54,13 +58,20 @@ class HCP_WUMINN_Profile(SimpleBatchProfile):
                 if list(glob.glob(pjoin('data_mask.nii*'))):
                     mask_fname = list(glob.glob(pjoin('data_mask.nii*')))[0]
 
-                grad_dev = pjoin('grad_dev.nii.gz')
+                if self.use_gradient_deviations:
+                    grad_dev = pjoin('grad_dev.nii.gz')
+                else:
+                    grad_dev = None
 
-                protocol_loader = HCP_WUMINN_ProtocolLoader(
+                protocol_loader = BatchFitProtocolLoader(
+                    pjoin(),
                     prtcl_fname=prtcl_fname, bvec_fname=bvec_fname,
-                    bval_fname=bval_fname, extra_cols={'TE': 0.0895})
+                    bval_fname=bval_fname, protocol_options={'TE': 0.0895, 'maxG': 0.1})
 
-                output_dir = pjoin('output')
+                if self.output_sub_dir:
+                    output_dir = pjoin('output', self.output_sub_dir)
+                else:
+                    output_dir = pjoin('output')
 
                 subjects.append(SimpleSubjectInfo(subject_id, dwi_fname, protocol_loader, mask_fname,
                                                   output_dir, gradient_deviations=grad_dev))
@@ -68,11 +79,3 @@ class HCP_WUMINN_Profile(SimpleBatchProfile):
 
     def __str__(self):
         return meta_info['title']
-
-
-class HCP_WUMINN_ProtocolLoader(BatchFitProtocolLoader):
-
-    def get_protocol(self):
-        protocol = super(HCP_WUMINN_ProtocolLoader, self).get_protocol()
-        protocol.add_estimated_protocol_params(maxG=0.1)
-        return protocol

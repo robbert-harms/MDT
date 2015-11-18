@@ -618,7 +618,7 @@ def add_column_to_protocol(protocol, column, value, units):
             protocol.add_column(column, float(value) * mult_factor)
 
 
-def auto_load_protocol(directory, protocol_options=None, bvec_fname=None, bval_fname=None):
+def auto_load_protocol(directory, protocol_options=None, bvec_fname=None, bval_fname=None, bval_scale='auto'):
     """Load a protocol from the given directory.
 
     This function will only auto-search files in the top directory and not in the sub-directories.
@@ -631,9 +631,10 @@ def auto_load_protocol(directory, protocol_options=None, bvec_fname=None, bval_f
 
     The search order is (continue until matched):
         1) anything ending in .prtcl
-        2) a) anything containing bval or b-val
-           b) anything containing bvec or b-vec
-           c) protocol options
+        2) a) the given bvec and bval file
+           b) anything containing bval or b-val
+           c) anything containing bvec or b-vec
+           d) protocol options
                 i) using dict
                 ii) matching filenames exactly to the available protocol options.
                     (e.g, finding a file named TE for the TE's)
@@ -651,6 +652,8 @@ def auto_load_protocol(directory, protocol_options=None, bvec_fname=None, bval_f
             or mapping them to values (one value or one value per bvec line)
         bvec_fname (str): if given, the filename of the bvec file (as a subpath of the given directory)
         bval_fname (str): if given, the filename of the bvec file (as a subpath of the given directory)
+        bval_scale (double): The scale by which to scale the values in the bval file.
+            If we load from bvec and bval we will use this scale. If 'auto' we try to guess the units/scale.
 
     Returns:
         Protocol: a loaded protocol file.
@@ -662,19 +665,23 @@ def auto_load_protocol(directory, protocol_options=None, bvec_fname=None, bval_f
     if protocol_files:
         return load_protocol(protocol_files[0])
 
-    bval_files = list(glob.glob(os.path.join(directory, '*bval*')))
-    if not bval_files:
-        bval_files = glob.glob(os.path.join(directory, '*b-val*'))
+    if not bval_fname:
+        bval_files = list(glob.glob(os.path.join(directory, '*bval*')))
         if not bval_files:
-            raise ValueError('Could not find a suitable bval file')
+            bval_files = glob.glob(os.path.join(directory, '*b-val*'))
+            if not bval_files:
+                raise ValueError('Could not find a suitable bval file')
+        bval_fname = bval_files[0]
 
-    bvec_files = list(glob.glob(os.path.join(directory, '*bvec*')))
-    if not bvec_files:
-        bvec_files = glob.glob(os.path.join(directory, '*b-vec*'))
+    if not bvec_fname:
+        bvec_files = list(glob.glob(os.path.join(directory, '*bvec*')))
         if not bvec_files:
-            raise ValueError('Could not find a suitable bvec file')
+            bvec_files = glob.glob(os.path.join(directory, '*b-vec*'))
+            if not bvec_files:
+                raise ValueError('Could not find a suitable bvec file')
+        bvec_fname = bvec_files[0]
 
-    protocol = load_bvec_bval(bvec_files[0], bval_files[0])
+    protocol = load_bvec_bval(bvec_fname, bval_fname, bval_scale=bval_scale)
 
     protocol_extra_cols = ['TE', 'TR', 'Delta', 'delta']
     protocol_maxG = 'maxG'

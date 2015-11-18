@@ -53,13 +53,19 @@ class HCP_MGH_Profile(SimpleBatchProfile):
                     mask_fname = list(glob.glob(pjoin('diff_preproc_mask.nii*')))[0]
 
                 protocol_loader = BatchFitProtocolLoader(
+                    pjoin(),
                     prtcl_fname=prtcl_fname, bvec_fname=bvec_fname, bval_fname=bval_fname,
-                    extra_cols={'Delta': 12.9e-3, 'delta': 21.8e-3, 'TR': 8800e-3, 'TE': 57e-3})
+                    protocol_options={'Delta': 12.9e-3, 'delta': 21.8e-3, 'TR': 8800e-3, 'TE': 57e-3})
 
-                output_dir = os.path.join(self._root_dir, subject_id, 'diff', 'preproc', 'output')
+                output_dir = self._get_subject_output_dir(subject_id)
 
                 subjects.append(SimpleSubjectInfo(subject_id, dwi_fname, protocol_loader, mask_fname, output_dir))
         return subjects
+    
+    def _get_subject_output_dir(self, subject_id):
+        if self.output_sub_dir:
+            return os.path.join(self._root_dir, subject_id, 'diff', 'preproc', 'output', self.output_sub_dir)
+        return os.path.join(self._root_dir, subject_id, 'diff', 'preproc', 'output')
 
     def __str__(self):
         return meta_info['title']

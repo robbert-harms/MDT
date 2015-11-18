@@ -25,6 +25,14 @@ class CharmedR1(CascadeModelBuilder):
                 .init('phi', output_previous['Stick.phi'])
 
 
+class CharmedR1s0(CascadeModelBuilder):
+
+    name = 'Charmed_1r (Cascade|s0)'
+    description = 'Cascade for Charmed 1r initialized with only an S0 fit.'
+    models = ('s0',
+              'Charmed_1r')
+
+
 class CharmedR1Fixed(CascadeModelBuilder):
 
     name = 'Charmed_1r (Cascade|fixed)'

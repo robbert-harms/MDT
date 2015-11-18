@@ -16,8 +16,8 @@ we use the first one found.
 
 Example directory layout:
     /a/*.nii(.gz)
-    /a/*.bval
-    /a/*.bvec
+    /a/*bval*
+    /a/*bvec*
 
     /b/...
     /c/...
@@ -27,13 +27,8 @@ Optional items:
     /*/*.prtcl
 
     /*/TE (in seconds)
-    /*/*.TE (in seconds)
-
     /*/delta (in seconds)
-    /*/*.delta (in seconds)
-
     /*/Delta (in seconds)
-    /*/*.Delta (in seconds)
 
     /*/*_mask.nii(.gz)
 
@@ -49,14 +44,12 @@ class DirPerSubjectProfile(SimpleBatchProfile):
         dirs = sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._root_dir, '*'))])
         subjects = []
 
-        protocol_extra_cols_search = ['TE', 'Delta', 'delta']
-
         for subject_id in dirs:
-            extra_protocol_cols = {}
-
             niftis = glob.glob(os.path.join(self._root_dir, subject_id, '*.nii*'))
-            dwis = list(filter(lambda v: '_mask' not in v, niftis))
+            dwis = list(filter(lambda v: '_mask' not in v and 'grad_dev' not in v, niftis))
             masks = list(filter(lambda v: '_mask' in v, niftis))
+            grad_devs = list(filter(lambda v: 'grad_dev' in v, niftis))
+
             protocols = glob.glob(os.path.join(self._root_dir, subject_id, '*prtcl'))
             bvals = glob.glob(os.path.join(self._root_dir, subject_id, '*bval*'))
             bvecs = glob.glob(os.path.join(self._root_dir, subject_id, '*bvec*'))
@@ -64,21 +57,18 @@ class DirPerSubjectProfile(SimpleBatchProfile):
             if dwis:
                 dwi_fname = dwis[0]
                 mask_fname = masks[0] if masks else None
+                grad_dev = grad_devs[0] if grad_devs else None
                 protocol_fname = protocols[0] if protocols else None
                 bval_fname = bvals[0] if bvals else None
                 bvec_fname = bvecs[0] if bvecs else None
 
-                for key in protocol_extra_cols_search:
-                    items = glob.glob(os.path.join(self._root_dir, subject_id, '*' + key))
-                    if items:
-                        extra_protocol_cols.update({key: items[0]})
-
                 if dwi_fname and (protocol_fname or (bval_fname and bvec_fname)):
                     protocol_loader = BatchFitProtocolLoader(
+                        os.path.join(self._root_dir, subject_id),
                         prtcl_fname=protocol_fname, bvec_fname=bvec_fname,
-                        bval_fname=bval_fname, extra_cols_from_file=extra_protocol_cols)
+                        bval_fname=bval_fname)
 
-                    output_dir = os.path.join(self._root_dir, subject_id, 'output')
+                    output_dir = self._get_subject_output_dir(subject_id)
 
                     subjects.append(SimpleSubjectInfo(subject_id, dwi_fname, protocol_loader, mask_fname, output_dir))
 
