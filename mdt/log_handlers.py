@@ -1,7 +1,6 @@
 import codecs
 import logging
 import os
-import tempfile
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-19"
@@ -11,64 +10,65 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class ModelOutputLogHandler(logging.StreamHandler):
 
-    output_file = tempfile.mkstemp()[1]
+    __instances__ = set()
 
     def __init__(self, mode='a', encoding=None):
         """This logger can log information about a model optimization to the folder of the model being optimized.
-
-        One can change the class attribute 'output_file' to change the file items are logged to.
         """
         super(ModelOutputLogHandler, self).__init__()
+        self.__class__.__instances__.add(self)
 
         if codecs is None:
             encoding = None
-        self.baseFilename = os.path.abspath(ModelOutputLogHandler.output_file)
+
+        self._output_file = None
         self.mode = mode
         self.encoding = encoding
         self.stream = None
         self._open()
 
+    @property
+    def output_file(self):
+        return self.output_file
+
+    @output_file.setter
+    def output_file(self, output_file):
+        self.close()
+
+        self._output_file = output_file
+        if self._output_file:
+            if not os.path.isdir(os.path.dirname(self._output_file)):
+                os.makedirs(os.path.dirname(self._output_file))
+            self._open()
+
     def emit(self, record):
-        if ModelOutputLogHandler.output_file is not None:
-            if os.path.abspath(ModelOutputLogHandler.output_file) != self.baseFilename:
-                self.close()
-                self.baseFilename = os.path.abspath(ModelOutputLogHandler.output_file)
-
-            if self.stream is None:
-                self.stream = self._open()
-
+        if self._output_file:
             super(ModelOutputLogHandler, self).emit(record)
 
     def close(self):
-        """Closes the stream."""
-        self.acquire()
-        try:
-            if self.stream:
-                self.flush()
-                if hasattr(self.stream, "close"):
-                    self.stream.close()
-                self.stream = None
-            super(ModelOutputLogHandler, self).close()
-        finally:
-            self.release()
+        if self._output_file:
+            self.acquire()
+            try:
+                if self.stream:
+                    self.flush()
+                    if hasattr(self.stream, "close"):
+                        self.stream.close()
+                    self.stream = None
+                super(ModelOutputLogHandler, self).close()
+            finally:
+                self.release()
 
     def _open(self):
         """
         Open the current base file with the (original) mode and encoding.
         Return the resulting stream.
         """
-        if not os.path.isdir(os.path.dirname(self.baseFilename)):
-            os.makedirs(os.path.dirname(self.baseFilename))
-
-        if self.encoding is None:
-            stream = open(self.baseFilename, self.mode)
-        else:
-            stream = codecs.open(self.baseFilename, self.mode, self.encoding)
-        return stream
-
-    @staticmethod
-    def reset_output_file():
-        ModelOutputLogHandler.output_file = tempfile.mkstemp()[1]
+        if self._output_file:
+            if self.encoding is None:
+                stream = open(self._output_file, self.mode)
+            else:
+                stream = codecs.open(self._output_file, self.mode, self.encoding)
+            return stream
 
 
 class LogDispatchHandler(logging.StreamHandler):

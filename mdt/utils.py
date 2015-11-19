@@ -616,10 +616,10 @@ def configure_per_model_logging(output_path):
     Args:
         output_path: the output path where the model results are stored.
     """
-    if output_path is None:
-        ModelOutputLogHandler.reset_output_file()
-    else:
-        ModelOutputLogHandler.output_file = os.path.abspath(os.path.join(output_path, 'info.log'))
+    handlers = ModelOutputLogHandler.__instances__
+    output_path = output_path or os.path.abspath(os.path.join(output_path, 'info.log'))
+    for handler in handlers:
+        handler.output_file = output_path
 
 
 def recursive_merge_dict(dictionary, update_dict):
