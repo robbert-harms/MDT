@@ -25,7 +25,6 @@ class ModelOutputLogHandler(logging.StreamHandler):
         self.mode = mode
         self.encoding = encoding
         self.stream = None
-        self._open()
 
     @property
     def output_file(self):
@@ -65,10 +64,9 @@ class ModelOutputLogHandler(logging.StreamHandler):
         """
         if self._output_file:
             if self.encoding is None:
-                stream = open(self._output_file, self.mode)
+                self.stream = open(self._output_file, self.mode)
             else:
-                stream = codecs.open(self._output_file, self.mode, self.encoding)
-            return stream
+                self.stream = codecs.open(self._output_file, self.mode, self.encoding)
 
 
 class LogDispatchHandler(logging.StreamHandler):

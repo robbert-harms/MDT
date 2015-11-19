@@ -349,7 +349,7 @@ def fit_single_model(model, problem_data, output_folder, optimizer, recalculate=
             logger.info('Not recalculating {} model'.format(model.name))
             return create_roi(maps, problem_data.mask)
 
-    if not os.path.isdir(output_path):
+    if not os.path.exists(output_path):
         os.makedirs(output_path)
 
     minimize_start_time = timeit.default_timer()

@@ -38,7 +38,7 @@ class Nifti(object):
             nifti_header: the nifti header to use for each of the volumes
             overwrite_volumes: defaults to True, if we want to overwrite the volumes if they exists
         """
-        if not os.path.isdir(directory):
+        if not os.path.exists(directory):
             os.makedirs(directory)
 
         for key, volume in result_volumes.items():

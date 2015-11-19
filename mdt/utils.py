@@ -617,7 +617,9 @@ def configure_per_model_logging(output_path):
         output_path: the output path where the model results are stored.
     """
     handlers = ModelOutputLogHandler.__instances__
-    output_path = output_path or os.path.abspath(os.path.join(output_path, 'info.log'))
+    if output_path:
+        output_path = os.path.abspath(os.path.join(output_path, 'info.log'))
+
     for handler in handlers:
         handler.output_file = output_path
 
