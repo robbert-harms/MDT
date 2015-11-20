@@ -576,7 +576,8 @@ def initialize_user_settings(overwrite=True):
     shutil.copy(cache_path, path)
 
     if previous_versions:
-        shutil.rmtree(os.path.join(path, 'components', 'user'))
+        if os.path.exists(os.path.join(path, 'components', 'user')):
+            shutil.rmtree(os.path.join(path, 'components', 'user'))
         shutil.move(tmp_dir + '/components/', os.path.join(path, 'components', 'user'))
         shutil.rmtree(tmp_dir)
     else:
