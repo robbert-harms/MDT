@@ -496,8 +496,9 @@ def write_bvec_bval(protocol, bvec_fname, bval_fname, column_based=True, bval_sc
     b = protocol['b']
     g = protocol['g']
 
-    if bval_scale == 'auto' and b[0] > 1e4:
-        b *= 1e-6
+    if bval_scale == 'auto':
+        if b[0] > 1e4:
+            b *= 1e-6
     else:
         b *= bval_scale
 
