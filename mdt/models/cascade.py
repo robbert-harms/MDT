@@ -1,3 +1,4 @@
+import six
 import mdt
 from mdt.models.base import DMRIOptimizable
 from mdt.utils import simple_parameter_init, condense_protocol_problems
@@ -196,6 +197,8 @@ class CascadeModelBuilder(SimpleCascadeModel):
     name = '<default>'
     description = '<default>'
     models = ()
+    inits = {}
+    fixes = {}
 
     def __init__(self, *args, **kwargs):
         if len(args) == 2:
@@ -208,3 +211,21 @@ class CascadeModelBuilder(SimpleCascadeModel):
     def meta_info(cls):
         return {'name': cls.name,
                 'description': cls.description}
+
+    def _prepare_model(self, model, output_previous, output_all_previous):
+        super(CascadeModelBuilder, self)._prepare_model(model, output_previous, output_all_previous)
+
+        def parse_value(v):
+            if isinstance(v, six.string_types):
+                return output_previous[v]
+            elif hasattr(v, '__call__'):
+                return v(output_previous)
+            return v
+
+        if model.name in self.inits:
+            for item in self.inits[model.name]:
+                model.init(item[0], parse_value(item[1]))
+
+        if model.name in self.fixes:
+            for item in self.fixes[model.name]:
+                model.fix(item[0], parse_value(item[1]))

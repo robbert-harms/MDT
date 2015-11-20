@@ -15,6 +15,8 @@ import numpy as np
 import nibabel as nib
 import pkg_resources
 from scipy.special import jnp_zeros
+import six
+from mdt import load_dwi
 
 from mdt.components_loader import get_model
 from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
@@ -552,9 +554,12 @@ def initialize_user_settings(overwrite=True):
 
     if previous_versions:
         previous_version = previous_versions[0]
-
         tmp_dir = tempfile.mkdtemp()
-        shutil.copytree(os.path.join(base_path, previous_version, 'components', 'user'), tmp_dir + '/components/')
+
+        if os.path.exists(os.path.join(base_path, previous_version, 'components', 'user')):
+            shutil.copytree(os.path.join(base_path, previous_version, 'components', 'user'), tmp_dir + '/components/')
+        else:
+            os.makedirs(tmp_dir + '/components/user/')
 
     if os.path.exists(path):
         if overwrite:
@@ -1019,3 +1024,43 @@ def calculate_information_criterions(log_likelihoods, k, n):
         'AIC': -2 * log_likelihoods + k * 2,
         'AICc': -2 * log_likelihoods + k * 2 + (2 * k * (k + 1))/(n - k - 1)
     }
+
+
+class NoiseStdCalculator(object):
+
+    def __init__(self, volume_info, protocol, mask=None):
+        """Calculator for the standard deviation of the error.
+
+        This is usually called sigma named after the use of this value in the Gaussian noise model.
+
+        Args:
+            volume_info (string or tuple): Either an (ndarray, img_header) tuple or the
+                full path to the volume (4d signal data).
+            protocol (Protocol or string): A protocol object with the right protocol for the given data,
+                or a string object with a filename to the given file.
+            brain_mask (string): A full path to a mask file that can optionally be used.
+                If None given, we will create one if necessary.
+        """
+        self._volume_info = volume_info
+        self._protocol = autodetect_protocol_loader(protocol).get_protocol()
+        self._logger = logging.getLogger(__name__)
+
+        if mask is not None:
+            self._mask = autodetect_brain_mask_loader(mask).get_data()
+        else:
+            self._mask = None
+
+        if isinstance(volume_info, six.string_types):
+            self._signal4d, self._img_header = load_dwi(volume_info)
+        else:
+            self._signal4d, self._img_header = volume_info
+
+    def calculate(self, **kwargs):
+        """Calculate the sigma used in the evaluation models for the multi-compartment models.
+
+        Returns:
+            float: single value representing the sigma for the given volume
+
+        Raises:
+            ValueError: if we can not calculate the sigma using this calculator an exception is raised.
+        """

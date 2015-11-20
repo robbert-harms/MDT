@@ -12,12 +12,8 @@ class Tensor(CascadeModelBuilder):
     description = 'Cascade for Tensor.'
     models = ('BallStick (Cascade)',
               'Tensor')
-
-    def _prepare_model(self, model, output_previous, output_all_previous):
-        super(Tensor, self)._prepare_model(model, output_previous, output_all_previous)
-        if model.name == 'Tensor':
-            model.init('Tensor.theta', output_previous['Stick.theta'])
-            model.init('Tensor.phi', output_previous['Stick.phi'])
+    inits = {'Tensor': [('Tensor.theta', 'Stick.theta'),
+                        ('Tensor.phi', 'Stick.phi')]}
 
 
 class Tensors0(CascadeModelBuilder):

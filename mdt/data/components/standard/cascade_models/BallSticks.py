@@ -28,14 +28,10 @@ class BallStickStick(CascadeModelBuilder):
     description = 'Cascade for BallStickStick.'
     models = ('BallStick (Cascade)',
               'BallStickStick')
-
-    def _prepare_model(self, model, output_previous, output_all_previous):
-        super(BallStickStick, self)._prepare_model(model, output_previous, output_all_previous)
-        if model.name == 'BallStickStick':
-            model.init('Stick0.theta', output_previous['Stick.theta'])
-            model.init('Stick0.phi', output_previous['Stick.phi'])
-            model.init('Wstick0.w', output_previous['Wstick.w'])
-            model.init('Wstick1.w', 0.0)
+    inits = {'BallStickStick': [('Stick0.theta', 'Stick.theta'),
+                                ('Stick0.phi', 'Stick.phi'),
+                                ('Wstick0.w', 'Wstick.w'),
+                                ('Wstick1.w', 0.0)]}
 
 
 class BallStickStickExVivo(BallStickStick):

@@ -1103,7 +1103,7 @@ def yaml_string_to_dict(yaml_str):
     """
     import yaml
     d = yaml.load(yaml_str)
-    if d is not None and isinstance(d, dict):
+    if d is not None:
         return d
     return {}
 

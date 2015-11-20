@@ -369,6 +369,13 @@ class BatchProfilesLoader(ComponentsLoader):
                                                    UserComponentsSourceSingle('standard', 'batch_profiles')])
 
 
+class NoiseSTDCalculatorsLoader(ComponentsLoader):
+
+    def __init__(self):
+        super(NoiseSTDCalculatorsLoader, self).__init__([UserComponentsSourceSingle('user', 'noise_std_calculators'),
+                                                   UserComponentsSourceSingle('standard', 'noise_std_calculators')])
+
+
 class CompartmentModelsLoader(ComponentsLoader):
 
     def __init__(self):

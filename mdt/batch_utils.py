@@ -48,13 +48,13 @@ class BatchProfile(object):
             list: the list of models we want to fit to the subjects
         """
 
-    #todo remove this
-    def get_batch_fit_config_options(self):
-        """Get the specific options from this batch fitting profile that will override the default config options.
+    def get_model_protocol_options(self):
+        """Get the protocol options we would like to use.
 
-        This should only return the content of the base config setting 'batch_fitting'.
+        These protocol options define per model which shells to use from the data.
 
-        See the BatchFitting class for the resolution order of the config files.
+        Returns:
+            dict: configuration dictionary
         """
 
     def get_subjects(self):
@@ -105,8 +105,24 @@ class SimpleBatchProfile(BatchProfile):
     def get_models_to_fit(self):
         return self.models_to_fit
 
-    def get_batch_fit_config_options(self):
-        return {}
+    def get_model_protocol_options(self):
+        import mdt
+
+        yaml_str = '''
+            -   model_name: '^Tensor$'
+                enabled: True
+                config:
+                    use_weighted: True
+                    use_unweighted: True
+                    # the unweighted threshold in SI units of s/m^2
+                    unweighted_threshold: !!float 25e6
+                    # Indicate to use b-values between [start - epsilon, end + epsilon], set b-values in s/m^2
+                    b_value:
+                        start: 0
+                        end: !!float 1.5e9
+                        epsilon: !!float 1e-5
+            '''
+        return mdt.yaml_string_to_dict(yaml_str)
 
     def get_subjects(self):
         if not self._subjects_found:
@@ -149,6 +165,7 @@ class SimpleBatchProfile(BatchProfile):
         if self.output_sub_dir:
             dir_items.append(self.output_sub_dir)
         return os.path.join(*dir_items)
+
 
 class SubjectInfo(object):
 

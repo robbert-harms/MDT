@@ -12,17 +12,10 @@ class CharmedR1(CascadeModelBuilder):
     description = 'Initializes the directions to Ball & Stick.'
     models = ('BallStick (Cascade)',
               'Charmed_1r')
-
-    def _prepare_model(self, model, output_previous, output_all_previous):
-        super(CharmedR1, self)._prepare_model(model, output_previous, output_all_previous)
-        if model.name == 'Charmed_1r':
-            model.cmf('CharmedRestricted0')\
-                .init('theta', output_previous['Stick.theta'])\
-                .init('phi', output_previous['Stick.phi'])
-
-            model.cmf('Tensor')\
-                .init('theta', output_previous['Stick.theta'])\
-                .init('phi', output_previous['Stick.phi'])
+    inits = {'CharmedRestricted0': [('CharmedRestricted0.theta', 'Stick.theta'),
+                                    ('CharmedRestricted0.phi', 'Stick.phi'),
+                                    ('Tensor.theta', 'Stick.theta'),
+                                    ('Tensor.phi', 'Stick.phi')]}
 
 
 class CharmedR1s0(CascadeModelBuilder):
@@ -39,17 +32,10 @@ class CharmedR1Fixed(CascadeModelBuilder):
     description = 'Fixes the directions to Ball & Stick.'
     models = ('BallStick (Cascade)',
               'Charmed_1r')
-
-    def _prepare_model(self, model, output_previous, output_all_previous):
-        super(CharmedR1Fixed, self)._prepare_model(model, output_previous, output_all_previous)
-        if model.name == 'Charmed_1r':
-            model.cmf('CharmedRestricted0')\
-                .fix('theta', output_previous['Stick.theta'])\
-                .fix('phi', output_previous['Stick.phi'])
-
-            model.cmf('Tensor')\
-                .init('theta', output_previous['Stick.theta'])\
-                .init('phi', output_previous['Stick.phi'])
+    inits = {'CharmedRestricted0': [('Tensor.theta', 'Stick.theta'),
+                                    ('Tensor.phi', 'Stick.phi')]}
+    fixes = {'CharmedRestricted0': [('CharmedRestricted0.theta', 'Stick.theta'),
+                                    ('CharmedRestricted0.phi', 'Stick.phi')]}
 
 
 class CharmedR2(CascadeModelBuilder):

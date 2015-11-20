@@ -40,6 +40,10 @@ It is better to create the protocol directly by creating a .prtcl file, but addi
 
 class DirPerSubjectProfile(SimpleBatchProfile):
 
+    def __init__(self):
+        super(DirPerSubjectProfile, self).__init__()
+        self.use_gradient_deviations = True
+
     def _get_subjects(self):
         dirs = sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._root_dir, '*'))])
         subjects = []
@@ -49,15 +53,24 @@ class DirPerSubjectProfile(SimpleBatchProfile):
             dwis = list(filter(lambda v: '_mask' not in v and 'grad_dev' not in v, niftis))
             masks = list(filter(lambda v: '_mask' in v, niftis))
             grad_devs = list(filter(lambda v: 'grad_dev' in v, niftis))
-
             protocols = glob.glob(os.path.join(self._root_dir, subject_id, '*prtcl'))
             bvals = glob.glob(os.path.join(self._root_dir, subject_id, '*bval*'))
             bvecs = glob.glob(os.path.join(self._root_dir, subject_id, '*bvec*'))
 
             if dwis:
                 dwi_fname = dwis[0]
-                mask_fname = masks[0] if masks else None
-                grad_dev = grad_devs[0] if grad_devs else None
+
+                mask_first_choice = glob.glob(os.path.join(self._root_dir, subject_id, 'mask.nii*'))
+                if mask_first_choice:
+                    mask_fname = mask_first_choice[0]
+                else:
+                    mask_fname = masks[0] if masks else None
+
+                if not self.use_gradient_deviations:
+                    grad_dev = None
+                else:
+                    grad_dev = grad_devs[0] if grad_devs else None
+
                 protocol_fname = protocols[0] if protocols else None
                 bval_fname = bvals[0] if bvals else None
                 bvec_fname = bvecs[0] if bvecs else None
@@ -70,7 +83,8 @@ class DirPerSubjectProfile(SimpleBatchProfile):
 
                     output_dir = self._get_subject_output_dir(subject_id)
 
-                    subjects.append(SimpleSubjectInfo(subject_id, dwi_fname, protocol_loader, mask_fname, output_dir))
+                    subjects.append(SimpleSubjectInfo(subject_id, dwi_fname, protocol_loader, mask_fname, output_dir,
+                                                      gradient_deviations=grad_dev))
 
         return subjects
 

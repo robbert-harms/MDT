@@ -11,13 +11,12 @@ import nibabel as nib
 from mdt.models.cascade import DMRICascadeModelInterface
 
 from mdt.protocols import write_protocol
-from mdt.components_loader import get_model
-from mdt import configuration, __version__
+from mdt.components_loader import get_model, NoiseSTDCalculatorsLoader
+from mdt import __version__
 from mdt.IO import Nifti
-from mdt.noise_std_calculators import AverageOfAirROI, AverageOfUnweightedVolumes
-from mdt.utils import create_roi, configure_per_model_logging, restore_volumes, recursive_merge_dict, \
+from mdt.utils import create_roi, configure_per_model_logging, restore_volumes, \
     load_problem_data, ProtocolProblemError, MetaOptimizerBuilder, get_cl_devices, \
-    get_model_config, apply_model_protocol_options, model_output_exists, split_image_path, get_configuration_options
+    get_model_config, apply_model_protocol_options, model_output_exists, split_image_path
 from mdt.batch_utils import batch_profile_factory
 from mot import runtime_configuration
 from mot.load_balance_strategies import EvenDistribution
@@ -60,7 +59,6 @@ class BatchFitting(object):
             double_precision (boolean): if we would like to do the calculations in double precision
         """
         self._data_folder = data_folder
-        self._config = configuration.config['batch_fitting']
         self._logger = logging.getLogger(__name__)
         self._batch_profile = batch_profile_factory(batch_profile, self._data_folder)
         self._models_to_fit = self._batch_profile.get_models_to_fit()
@@ -72,7 +70,7 @@ class BatchFitting(object):
             raise RuntimeError('No suitable batch profile could be '
                                'found for the directory {0}'.format(os.path.abspath(self._data_folder)))
 
-        self._config = recursive_merge_dict(self._config, self._batch_profile.get_batch_fit_config_options())
+        self._model_protocol_options = self._batch_profile.get_model_protocol_options()
 
         self._logger.info('Using MDT version {}'.format(__version__))
         self._logger.info('Using batch profile: {0}'.format(self._batch_profile))
@@ -108,7 +106,7 @@ class BatchFitting(object):
         """Run the computations on the current dir with all the configured options. """
         self._logger.info('Running computations on {0} subjects'.format(len(self._subjects)))
 
-        run_func = _BatchFitRunner(self._config, self._models_to_fit,
+        run_func = _BatchFitRunner(self._model_protocol_options, self._models_to_fit,
                                    self._recalculate, self._cl_device_ind, self._double_precision)
         list(map(run_func, self._subjects))
 
@@ -135,8 +133,8 @@ class BatchFitting(object):
 
 class _BatchFitRunner(object):
 
-    def __init__(self, batch_fitting_config, models_to_fit, recalculate, cl_device_ind, double_precision):
-        self._batch_fitting_config = batch_fitting_config
+    def __init__(self, model_protocol_options, models_to_fit, recalculate, cl_device_ind, double_precision):
+        self._model_protocol_options = model_protocol_options
         self._models_to_fit = models_to_fit
         self._recalculate = recalculate
         self._cl_device_ind = cl_device_ind
@@ -182,7 +180,7 @@ class _BatchFitRunner(object):
                                      os.path.join(output_dir, split_image_path(brain_mask_fname)[1]),
                                      recalculate=self._recalculate,
                                      only_recalculate_last=True,
-                                     model_protocol_options=self._batch_fitting_config['model_protocol_options'],
+                                     model_protocol_options=self._model_protocol_options,
                                      cl_device_ind=self._cl_device_ind,
                                      double_precision=self._double_precision,
                                      gradient_deviations=gradient_deviations,
@@ -390,7 +388,8 @@ def _get_noise_std(user_noise_std, problem_data):
     if user_noise_std == 'auto':
         logger.info('The noise std was set to \'auto\', we will now try to estimate one.')
 
-        noise_std_calculators = [AverageOfAirROI, AverageOfUnweightedVolumes]
+        loader = NoiseSTDCalculatorsLoader()
+        noise_std_calculators = map(loader.get_class, loader.list_all())
 
         for calculator_class in noise_std_calculators:
             calculator = calculator_class([problem_data.dwi_volume, problem_data.volume_header], problem_data.protocol)
@@ -400,7 +399,7 @@ def _get_noise_std(user_noise_std, problem_data):
             except ValueError:
                 noise_std = 1.0
 
-        logger.info('Finished estimating the noise std.')
+        logger.info('Finished estimating the noise std, found {}.'.format(noise_std))
     elif user_noise_std is None:
         noise_std = 1.0
 
