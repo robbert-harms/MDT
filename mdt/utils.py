@@ -551,6 +551,7 @@ def initialize_user_settings(overwrite=True):
         os.mkdir(base_path)
 
     previous_versions = list(reversed(sorted(os.listdir(base_path))))
+    use_previous_version = True
 
     if previous_versions:
         previous_version = previous_versions[0]
@@ -559,7 +560,7 @@ def initialize_user_settings(overwrite=True):
         if os.path.exists(os.path.join(base_path, previous_version, 'components', 'user')):
             shutil.copytree(os.path.join(base_path, previous_version, 'components', 'user'), tmp_dir + '/components/')
         else:
-            os.makedirs(tmp_dir + '/components/user/')
+            use_previous_version = False
 
     if os.path.exists(path):
         if overwrite:
@@ -576,9 +577,10 @@ def initialize_user_settings(overwrite=True):
     shutil.copy(cache_path, path)
 
     if previous_versions:
-        if os.path.exists(os.path.join(path, 'components', 'user')):
-            shutil.rmtree(os.path.join(path, 'components', 'user'))
-        shutil.move(tmp_dir + '/components/', os.path.join(path, 'components', 'user'))
+        if use_previous_version:
+            if os.path.exists(os.path.join(path, 'components', 'user')):
+                shutil.rmtree(os.path.join(path, 'components', 'user'))
+            shutil.move(tmp_dir + '/components/', os.path.join(path, 'components', 'user'))
         shutil.rmtree(tmp_dir)
     else:
         os.mkdir(os.path.join(path, 'components', 'user'))
