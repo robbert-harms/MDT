@@ -20,9 +20,7 @@ class SphereGPD(DMRICompartmentModelFunction):
             (get_parameter('Delta'),
              get_parameter('delta'),
              get_parameter('d'),
-             get_parameter('R'),
-             get_parameter('CLJnpZeros'),
-             get_parameter('CLJnpZerosLength')),
+             get_parameter('R')),
             resource_filename(__name__, 'SphereGPD.h'),
             resource_filename(__name__, 'SphereGPD.cl'),
             (lib_loader.load('MRIConstants'),)

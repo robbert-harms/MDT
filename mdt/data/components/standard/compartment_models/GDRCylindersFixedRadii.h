@@ -30,8 +30,6 @@ MOT_FLOAT_TYPE cmGDRCylindersFixedRadii(const MOT_FLOAT_TYPE4 g,
                                      const MOT_FLOAT_TYPE phi,
                                      global const MOT_FLOAT_TYPE* const gamma_cyl_radii,
                                      global const MOT_FLOAT_TYPE* const gamma_cyl_weights,
-                                     const int nmr_gamma_cyl_fixed,
-                                     global const MOT_FLOAT_TYPE* const CLJnpZeros,
-                                     const int CLJnpZerosLength);
+                                     const int nmr_gamma_cyl_fixed);
 
 #endif // DMRICM_GDRCYLINDERSFIXEDRADII_H

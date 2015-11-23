@@ -15,8 +15,6 @@ MOT_FLOAT_TYPE cmAstroCylinders(const MOT_FLOAT_TYPE4 g,
                              const MOT_FLOAT_TYPE Delta,
                              const MOT_FLOAT_TYPE delta,
                              const MOT_FLOAT_TYPE d,
-                             const MOT_FLOAT_TYPE R,
-                             global const MOT_FLOAT_TYPE* const CLJnpZeros,
-                             const int CLJnpZerosLength);
+                             const MOT_FLOAT_TYPE R);
 
 #endif // DMRICM_ASTROCYLINDERS_H

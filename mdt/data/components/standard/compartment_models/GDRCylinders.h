@@ -28,8 +28,6 @@ MOT_FLOAT_TYPE cmGDRCylinders(const MOT_FLOAT_TYPE4 g,
                            const MOT_FLOAT_TYPE phi,
                            const MOT_FLOAT_TYPE gamma_k,
                            const MOT_FLOAT_TYPE gamma_beta,
-                           const MOT_FLOAT_TYPE gamma_nmr_cyl,
-                           global const MOT_FLOAT_TYPE* const CLJnpZeros,
-                           const int CLJnpZerosLength);
+                           const MOT_FLOAT_TYPE gamma_nmr_cyl);
 
 #endif // DMRICM_GDRCYLINDERS_H

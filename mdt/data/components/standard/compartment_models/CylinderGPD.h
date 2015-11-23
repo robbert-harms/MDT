@@ -19,8 +19,6 @@ MOT_FLOAT_TYPE cmCylinderGPD(const MOT_FLOAT_TYPE4 g,
                           const MOT_FLOAT_TYPE d,
                           const MOT_FLOAT_TYPE theta,
                           const MOT_FLOAT_TYPE phi,
-                          const MOT_FLOAT_TYPE R,
-                          global const MOT_FLOAT_TYPE* const CLJnpZeros,
-                          const int CLJnpZerosLength);
+                          const MOT_FLOAT_TYPE R);
 
 #endif // DMRICM_CYLINDERGPD_H

@@ -26,9 +26,7 @@ class GDRCylindersFixedRadii(DMRICompartmentModelFunction):
              get_parameter('phi'),
              get_parameter('gamma_radii'),
              get_parameter('gamma_cyl_weights'),
-             get_parameter('nmr_gamma_cyl_fixed'),
-             get_parameter('CLJnpZeros'),
-             get_parameter('CLJnpZerosLength')),
+             get_parameter('nmr_gamma_cyl_fixed')),
             resource_filename(__name__, 'GDRCylindersFixedRadii.h'),
             resource_filename(__name__, 'GDRCylindersFixedRadii.cl'),
             (compartment_loader.load('CylinderGPD'),)

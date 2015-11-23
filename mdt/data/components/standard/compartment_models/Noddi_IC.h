@@ -27,8 +27,6 @@
  * @params phi parameter
  * @params kappa parameter (concentration parameter of the Watson's distribution)
  * @params R the radius of the cylinder
- * @params CLJnpZeros: the bessel root zeros used by the model function
- * @params CLJnpZerosLength: the length of the bessel roots vector CLJnpZeros
  */
 MOT_FLOAT_TYPE cmNoddi_IC(const MOT_FLOAT_TYPE4 g,
                        const MOT_FLOAT_TYPE b,
@@ -39,8 +37,6 @@ MOT_FLOAT_TYPE cmNoddi_IC(const MOT_FLOAT_TYPE4 g,
                        const MOT_FLOAT_TYPE theta,
                        const MOT_FLOAT_TYPE phi,
                        const MOT_FLOAT_TYPE kappa,
-                       const MOT_FLOAT_TYPE R,
-                       global const MOT_FLOAT_TYPE* const CLJnpZeros,
-                       const int CLJnpZerosLength);
+                       const MOT_FLOAT_TYPE R);
                     
 #endif // DMRICM_NODDIIC_H

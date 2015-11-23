@@ -14,10 +14,6 @@
 
 void Noddi_IC_LegendreGaussianIntegral(const MOT_FLOAT_TYPE x, MOT_FLOAT_TYPE* result);
 void Noddi_IC_WatsonSHCoeff(const MOT_FLOAT_TYPE kappa, MOT_FLOAT_TYPE* result);
-MOT_FLOAT_TYPE Noddi_IC_CylNeumanLePerp_PGSE(const MOT_FLOAT_TYPE d, const MOT_FLOAT_TYPE R, const MOT_FLOAT_TYPE G,
-                                          const MOT_FLOAT_TYPE Delta,
-                                          const MOT_FLOAT_TYPE delta, global const MOT_FLOAT_TYPE* const CLJnpZeros,
-                                          const int CLJnpZerosLength);
 
 /**
  * See the header for details
@@ -31,9 +27,7 @@ MOT_FLOAT_TYPE cmNoddi_IC(const MOT_FLOAT_TYPE4 g,
                        const MOT_FLOAT_TYPE theta,
                        const MOT_FLOAT_TYPE phi,
                        const MOT_FLOAT_TYPE kappa_non_scaled,
-                       const MOT_FLOAT_TYPE R,
-                       global const MOT_FLOAT_TYPE* const CLJnpZeros,
-                       const int CLJnpZerosLength){
+                       const MOT_FLOAT_TYPE R){
 
     const MOT_FLOAT_TYPE kappa = kappa_non_scaled * 10;
 
@@ -45,8 +39,7 @@ MOT_FLOAT_TYPE cmNoddi_IC(const MOT_FLOAT_TYPE4 g,
     MOT_FLOAT_TYPE watson_coeff[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
     Noddi_IC_WatsonSHCoeff(kappa, watson_coeff);
 
-    MOT_FLOAT_TYPE LePerp = -2 * GAMMA_H_SQ * pown(G, 2) *
-                        NeumannCylPerpPGSESum(Delta, delta, d, R, CLJnpZeros, CLJnpZerosLength);
+    MOT_FLOAT_TYPE LePerp = -2 * GAMMA_H_SQ * pown(G, 2) * NeumannCylPerpPGSESum(Delta, delta, d, R);
     MOT_FLOAT_TYPE ePerp = exp(LePerp);
     MOT_FLOAT_TYPE Lpmp = LePerp + d * b;
 

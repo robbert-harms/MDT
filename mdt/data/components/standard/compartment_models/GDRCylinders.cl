@@ -35,9 +35,7 @@ MOT_FLOAT_TYPE cmGDRCylinders(const MOT_FLOAT_TYPE4 g,
                            const MOT_FLOAT_TYPE phi,
                            const MOT_FLOAT_TYPE gamma_k,
                            const MOT_FLOAT_TYPE gamma_beta,
-                           const MOT_FLOAT_TYPE gamma_nmr_cyl,
-                           global const MOT_FLOAT_TYPE* const CLJnpZeros,
-                           const int CLJnpZerosLength){
+                           const MOT_FLOAT_TYPE gamma_nmr_cyl){
 
     int nmr_cyl = round(gamma_nmr_cyl);
 
@@ -56,8 +54,7 @@ MOT_FLOAT_TYPE cmGDRCylinders(const MOT_FLOAT_TYPE4 g,
                                 - gammaCDF(gamma_k, gamma_beta, lower + i*binWidth))
                                     / (1 - (2.0/nmr_cyl));
 
-        signal += gamma_cyl_weight * cmCylinderGPD(g, G, Delta, delta, d, theta, phi,
-                                                   gamma_cyl_radius, CLJnpZeros, CLJnpZerosLength);
+        signal += gamma_cyl_weight * cmCylinderGPD(g, G, Delta, delta, d, theta, phi, gamma_cyl_radius);
     }
     return signal;
 }

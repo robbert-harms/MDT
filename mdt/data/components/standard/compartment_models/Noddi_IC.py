@@ -28,9 +28,7 @@ class Noddi_IC(DMRICompartmentModelFunction):
              get_parameter('theta'),
              get_parameter('phi'),
              get_parameter('kappa'),
-             get_parameter('R'),
-             get_parameter('CLJnpZeros'),
-             get_parameter('CLJnpZerosLength')
+             get_parameter('R')
              ),
             resource_filename(__name__, 'Noddi_IC.h'),
             resource_filename(__name__, 'Noddi_IC.cl'),

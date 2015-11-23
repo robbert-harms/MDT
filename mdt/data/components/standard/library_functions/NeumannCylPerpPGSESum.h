@@ -17,10 +17,8 @@
  * calculate the complete signal for a cylinder model.
  */
 MOT_FLOAT_TYPE NeumannCylPerpPGSESum(const MOT_FLOAT_TYPE Delta,
-                                  const MOT_FLOAT_TYPE delta,
-                                  const MOT_FLOAT_TYPE d,
-                                  const MOT_FLOAT_TYPE R,
-                                  global const MOT_FLOAT_TYPE* const CLJnpZeros,
-                                  const int CLJnpZerosLength);
+                                     const MOT_FLOAT_TYPE delta,
+                                     const MOT_FLOAT_TYPE d,
+                                     const MOT_FLOAT_TYPE R);
 
 #endif //NEUMANN_CYL_PERP_PGSE_SUM_H

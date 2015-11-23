@@ -5,8 +5,6 @@ from mot.parameter_functions.proposals import GaussianProposal
 from mot.parameter_functions.sample_statistics import CircularGaussianPSS
 from mot.parameter_functions.transformations import ClampTransform, \
     AbsModPiTransform, SinSqrClampTransform, CosSqrClampTransform
-from mdt.utils import get_bessel_roots
-
 
 __author__ = 'Robbert Harms'
 __date__ = "2014-05-12"
@@ -113,16 +111,6 @@ def get_parameter(param_name):
                      CLDataType.from_string('MOT_FLOAT_TYPE'), 'gamma_nmr_cyl', True, 5, 1, 10,
                      parameter_transform=SinSqrClampTransform(),
                      sampling_proposal=GaussianProposal(1.0)),
-
-                 'CLJnpZeros': ModelDataParameter(
-                     CLDataType.from_string('MOT_FLOAT_TYPE*'), 'CLJnpZeros',
-                     get_bessel_roots(number_of_roots=20)),
-                 'CLJnpZerosLength': ModelDataParameter(
-                     CLDataType.from_string('int'), 'CLJnpZerosLength', 20),
-
-                 # charmed default, this is the fixed parameter for the length of the GDRCylindersFixed model
-                 'nmr_gamma_cyl_fixed': ModelDataParameter(
-                     CLDataType.from_string('int'), 'nmr_gamma_cyl_fixed', 6),
 
                  # charmed default, used in GDRCylindersFixed model
                  'gamma_radii': ModelDataParameter(

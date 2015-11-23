@@ -19,11 +19,9 @@ MOT_FLOAT_TYPE cmCylinderGPD(const MOT_FLOAT_TYPE4 g,
                           const MOT_FLOAT_TYPE d,
                           const MOT_FLOAT_TYPE theta,
                           const MOT_FLOAT_TYPE phi,
-                          const MOT_FLOAT_TYPE R,
-                          global const MOT_FLOAT_TYPE* const CLJnpZeros,
-                          const int CLJnpZerosLength){
+                          const MOT_FLOAT_TYPE R){
 
-    MOT_FLOAT_TYPE sum = NeumannCylPerpPGSESum(Delta, delta, d, R, CLJnpZeros, CLJnpZerosLength);
+    MOT_FLOAT_TYPE sum = NeumannCylPerpPGSESum(Delta, delta, d, R);
 
     const MOT_FLOAT_TYPE4 n = (MOT_FLOAT_TYPE4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0.0);
     MOT_FLOAT_TYPE omega = (G == 0.0) ? M_PI_2 : acos(dot(n, g * G) / (G * length(n)));
