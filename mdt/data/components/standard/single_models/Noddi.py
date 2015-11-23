@@ -30,7 +30,8 @@ class Noddi(DMRISingleModelBuilder):
                      '*')
 
     dependencies = (
-        ('Noddi_EC.dperp0', SimpleAssignment('Noddi_EC.d * (Wec.w / (1 - Wcsf.w + {eps}))'.format(eps=1e-5))),
+        ('Noddi_EC.dperp0', SimpleAssignment('Noddi_EC.d * (Wec.w / (1 - Wcsf.w + {eps}))'.format(eps=1e-5),
+                                             fixed=False)),
         ('Noddi_IC.kappa', SimpleAssignment('((1 - Wcsf.w) >= {cutoff}) * Noddi_IC.kappa'.format(cutoff=0.01),
                                             fixed=False)),
         ('Noddi_EC.kappa', SimpleAssignment('Noddi_IC.kappa')),

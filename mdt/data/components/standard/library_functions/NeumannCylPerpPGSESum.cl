@@ -16,7 +16,7 @@ MOT_FLOAT_TYPE NeumannCylPerpPGSESum(const MOT_FLOAT_TYPE Delta,
                                      const MOT_FLOAT_TYPE delta,
                                      const MOT_FLOAT_TYPE d,
                                      const MOT_FLOAT_TYPE R){
-    if(R == 0.0){
+    if(R == 0.0 || R < MOT_EPSILON){
         return 0;
     }
 

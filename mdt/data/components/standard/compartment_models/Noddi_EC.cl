@@ -28,21 +28,29 @@ MOT_FLOAT_TYPE cmNoddi_EC(const MOT_FLOAT_TYPE4 g,
                        const MOT_FLOAT_TYPE kappa){
 
     const MOT_FLOAT_TYPE kappa_scaled = kappa * 10;
-
     MOT_FLOAT_TYPE dw_0, dw_1;
-    MOT_FLOAT_TYPE dotted = pown(dot(g, (MOT_FLOAT_TYPE4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0)), 2);
 
     if(kappa_scaled > 1e-5){
-	    MOT_FLOAT_TYPE factor = sqrt(kappa_scaled)/dawson(sqrt(kappa_scaled));
-	    dw_0 = (-(d - dperp) + 2 * dperp     * kappa_scaled + (d - dperp) * factor) / (2.0 * kappa_scaled);
-	    dw_1 = ( (d - dperp) + 2 * (d+dperp) * kappa_scaled - (d - dperp) * factor) / (4.0 * kappa_scaled);
+	    // using dw_1 as a temporary variable for holding the multiplication factor
+	    dw_1 = sqrt(kappa_scaled)/dawson(sqrt(kappa_scaled));
+
+	    dw_0 = (-(d - dperp) + 2 * dperp     * kappa_scaled + (d - dperp) * dw_1) / (2.0 * kappa_scaled);
+
+	    // overwrites dw_1 with the real dw_1 value, the factor is now lost
+	    dw_1 = ( (d - dperp) + 2 * (d+dperp) * kappa_scaled - (d - dperp) * dw_1) / (4.0 * kappa_scaled);
     }
     else{
-        MOT_FLOAT_TYPE factor = 2 * (d - dperp) * kappa_scaled;
-	    dw_0 = (fma(2, dperp, d) / 3.0) + (factor/22.5) + ((factor * kappa_scaled) / 236.0);
-   	    dw_1 = (fma(2, dperp, d) / 3.0) - (factor/45.0) - ((factor * kappa_scaled) / 472.0);
+        // using dw_1 as a temporary variable for holding the multiplication factor
+        dw_1 = 2 * (d - dperp) * kappa_scaled;
+
+	    dw_0 = (fma(2, dperp, d) / 3.0) + (dw_1/22.5) + ((dw_1 * kappa_scaled) / 236.0);
+
+   	    // overwrites dw_1 with the real dw_1 value, the factor is now lost
+   	    dw_1 = (fma(2, dperp, d) / 3.0) - (dw_1/45.0) - ((dw_1 * kappa_scaled) / 472.0);
     }
-    return exp(-b * (((dw_0 - dw_1) * dotted) + dw_1));
+    return exp(-b * (((dw_0 - dw_1) *
+                      pown(dot(g, (MOT_FLOAT_TYPE4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0)), 2))
+                     + dw_1));
 }
 
 #endif // DMRICM_NODDIEC_CL
