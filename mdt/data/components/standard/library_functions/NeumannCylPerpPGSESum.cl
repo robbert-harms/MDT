@@ -13,11 +13,11 @@
  * See the header definition for explanation
  */
 model_float NeumannCylPerpPGSESum(const model_float Delta,
-                             const model_float delta,
-                             const double d,
-                             const double R,
-                             global const model_float* const CLJnpZeros,
-                             const int CLJnpZerosLength){
+                                  const model_float delta,
+                                  const model_float d,
+                                  const model_float R,
+                                  global const model_float* const CLJnpZeros,
+                                  const int CLJnpZerosLength){
     if(R == 0.0){
         return 0;
     }

@@ -38,10 +38,13 @@ class Protocol(object):
             self._columns = columns
             self._length = columns[list(columns.keys())[0]].shape[0]
 
-            for v in columns.values():
+            for k, v in columns.items():
                 s = v.shape
                 if len(s) > 2 or (len(s) == 2 and s[1] > 1):
                     raise ValueError("All columns should be of width one.")
+
+                if len(s) ==2 and s[1] == 1:
+                    self._columns[k] = np.squeeze(v)
 
     @property
     def gamma_h(self):
@@ -493,8 +496,8 @@ def write_bvec_bval(protocol, bvec_fname, bval_fname, column_based=True, bval_sc
             The default is auto, this checks if the first b-value is higher than 1e4 and if so multiplies it by
             1e-6 (sets bval_scale to 1e-6 and multiplies), else multiplies by 1.
     """
-    b = protocol['b']
-    g = protocol['g']
+    b = protocol['b'].copy()
+    g = protocol['g'].copy()
 
     if bval_scale == 'auto':
         if b[0] > 1e4:
