@@ -12,21 +12,21 @@
 /**
  * Generate the compartment model signal for the CylinderGPD model.
  */
-model_float cmCylinderGPD(const model_float4 g,
-                          const model_float G,
-                          const model_float Delta,
-                          const model_float delta,
-                          const model_float d,
-                          const model_float theta,
-                          const model_float phi,
-                          const model_float R,
-                          global const model_float* const CLJnpZeros,
+MOT_FLOAT_TYPE cmCylinderGPD(const MOT_FLOAT_TYPE4 g,
+                          const MOT_FLOAT_TYPE G,
+                          const MOT_FLOAT_TYPE Delta,
+                          const MOT_FLOAT_TYPE delta,
+                          const MOT_FLOAT_TYPE d,
+                          const MOT_FLOAT_TYPE theta,
+                          const MOT_FLOAT_TYPE phi,
+                          const MOT_FLOAT_TYPE R,
+                          global const MOT_FLOAT_TYPE* const CLJnpZeros,
                           const int CLJnpZerosLength){
 
-    model_float sum = NeumannCylPerpPGSESum(Delta, delta, d, R, CLJnpZeros, CLJnpZerosLength);
+    MOT_FLOAT_TYPE sum = NeumannCylPerpPGSESum(Delta, delta, d, R, CLJnpZeros, CLJnpZerosLength);
 
-    const model_float4 n = (model_float4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0.0);
-    model_float omega = (G == 0.0) ? M_PI_2 : acos(dot(n, g * G) / (G * length(n)));
+    const MOT_FLOAT_TYPE4 n = (MOT_FLOAT_TYPE4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0.0);
+    MOT_FLOAT_TYPE omega = (G == 0.0) ? M_PI_2 : acos(dot(n, g * G) / (G * length(n)));
 
     return exp(-2 * GAMMA_H_SQ * pown(G * sin(omega), 2) * sum) *
             exp(-(Delta - (delta/3.0)) * pown(GAMMA_H * delta * G * cos(omega), 2) * d);

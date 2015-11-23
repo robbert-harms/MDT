@@ -18,10 +18,10 @@
  * @params theta the parameter theta
  * @params phi the parameter phi
  */
-model_float cmStick(const model_float4 g,
-                    const model_float b,
-                    const model_float d,
-                    const model_float theta,
-                    const model_float phi);
+MOT_FLOAT_TYPE cmStick(const MOT_FLOAT_TYPE4 g,
+                    const MOT_FLOAT_TYPE b,
+                    const MOT_FLOAT_TYPE d,
+                    const MOT_FLOAT_TYPE theta,
+                    const MOT_FLOAT_TYPE phi);
 
 #endif // DMRICM_STICK_H

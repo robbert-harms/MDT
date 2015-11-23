@@ -14,7 +14,7 @@
  * @params Ti the protocol value for Ti (time inversion recovery)
  * @params T1 the parameter T1
  */
-model_float cmExpT1DecIR(const model_float Ti, const model_float T1){
+MOT_FLOAT_TYPE cmExpT1DecIR(const MOT_FLOAT_TYPE Ti, const MOT_FLOAT_TYPE T1){
     return abs(1 - 2 * exp(-Ti / T1));
 }
 

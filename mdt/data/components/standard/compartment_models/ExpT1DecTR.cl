@@ -14,7 +14,7 @@
  * @params TR the protocol value for TR
  * @params T1 the parameter T1
  */
-model_float cmExpT1DecTR(const model_float TR, const model_float T1){
+MOT_FLOAT_TYPE cmExpT1DecTR(const MOT_FLOAT_TYPE TR, const MOT_FLOAT_TYPE T1){
     return abs(1 - exp(-TR / T1));
 }
 

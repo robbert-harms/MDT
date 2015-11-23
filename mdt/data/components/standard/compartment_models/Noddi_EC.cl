@@ -19,26 +19,26 @@
  * @params dperp parameter (hindered diffusivity outside the cylinders in perpendicular directions)
  * @params kappa parameter (concentration parameter of the Watson's distribution)
  */
-model_float cmNoddi_EC(const model_float4 g,
-                       const model_float b,
-                       const model_float d,
-                       const model_float dperp,
-                       const model_float theta,
-                       const model_float phi,
-                       const model_float kappa_non_scaled){
+MOT_FLOAT_TYPE cmNoddi_EC(const MOT_FLOAT_TYPE4 g,
+                       const MOT_FLOAT_TYPE b,
+                       const MOT_FLOAT_TYPE d,
+                       const MOT_FLOAT_TYPE dperp,
+                       const MOT_FLOAT_TYPE theta,
+                       const MOT_FLOAT_TYPE phi,
+                       const MOT_FLOAT_TYPE kappa_non_scaled){
 
-    const model_float kappa = kappa_non_scaled * 10;
+    const MOT_FLOAT_TYPE kappa = kappa_non_scaled * 10;
 
-    model_float dw_0, dw_1;
-    model_float dotted = pown(dot(g, (model_float4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0)), 2);
+    MOT_FLOAT_TYPE dw_0, dw_1;
+    MOT_FLOAT_TYPE dotted = pown(dot(g, (MOT_FLOAT_TYPE4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0)), 2);
 
     if(kappa > 1e-5){
-	    model_float factor = sqrt(kappa)/dawson(sqrt(kappa));
+	    MOT_FLOAT_TYPE factor = sqrt(kappa)/dawson(sqrt(kappa));
 	    dw_0 = (-(d - dperp) + 2 * dperp     * kappa + (d - dperp) * factor) / (2.0 * kappa);
 	    dw_1 = ( (d - dperp) + 2 * (d+dperp) * kappa - (d - dperp) * factor) / (4.0 * kappa);
     }
     else{
-        model_float factor = 2 * (d - dperp) * kappa;
+        MOT_FLOAT_TYPE factor = 2 * (d - dperp) * kappa;
 	    dw_0 = (fma(2, dperp, d) / 3.0) + (factor/22.5) + ((factor * kappa) / 236.0);
    	    dw_1 = (fma(2, dperp, d) / 3.0) - (factor/45.0) - ((factor * kappa) / 472.0);
     }

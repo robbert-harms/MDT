@@ -18,11 +18,11 @@
  * @params phi the parameter phi
  * @params dperp the perpendicular diffusivity
  */
-model_float cmZeppelin(const model_float4 g,
-                       const model_float b,
-                       const model_float d,
-                       const model_float dperp,
-                       const model_float theta,
-                       const model_float phi);
+MOT_FLOAT_TYPE cmZeppelin(const MOT_FLOAT_TYPE4 g,
+                       const MOT_FLOAT_TYPE b,
+                       const MOT_FLOAT_TYPE d,
+                       const MOT_FLOAT_TYPE dperp,
+                       const MOT_FLOAT_TYPE theta,
+                       const MOT_FLOAT_TYPE phi);
 
 #endif // DMRICM_ZEPPELIN_H

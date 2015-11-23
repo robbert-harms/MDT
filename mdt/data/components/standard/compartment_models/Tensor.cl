@@ -9,7 +9,7 @@
  * Email = robbert.harms@maastrichtuniversity.nl
  */
 
-model_float4 Tensor_rotateVector(const model_float4 vector, const model_float4 axis_rotate, const model_float psi);
+MOT_FLOAT_TYPE4 Tensor_rotateVector(const MOT_FLOAT_TYPE4 vector, const MOT_FLOAT_TYPE4 axis_rotate, const MOT_FLOAT_TYPE psi);
 
 /**
  * Generate the compartment model signal for the Tensor model.
@@ -22,22 +22,22 @@ model_float4 Tensor_rotateVector(const model_float4 vector, const model_float4 a
  * @params dperp2 parameter perpendicular diffusion 2
  * @params psi the third rotation angle
  */
-model_float cmTensor(const model_float4 g,
-                     const model_float b,
-                     const model_float d,
-                     const model_float dperp,
-                     const model_float dperp2,
-                     const model_float theta,
-                     const model_float phi,
-                     const model_float psi){
+MOT_FLOAT_TYPE cmTensor(const MOT_FLOAT_TYPE4 g,
+                     const MOT_FLOAT_TYPE b,
+                     const MOT_FLOAT_TYPE d,
+                     const MOT_FLOAT_TYPE dperp,
+                     const MOT_FLOAT_TYPE dperp2,
+                     const MOT_FLOAT_TYPE theta,
+                     const MOT_FLOAT_TYPE phi,
+                     const MOT_FLOAT_TYPE psi){
 
-    model_float sinT = sin(theta);
-    model_float sinP = sin(phi);
-    model_float cosP = cos(phi);
-    model_float rst = sin(theta+(M_PI_2));
+    MOT_FLOAT_TYPE sinT = sin(theta);
+    MOT_FLOAT_TYPE sinP = sin(phi);
+    MOT_FLOAT_TYPE cosP = cos(phi);
+    MOT_FLOAT_TYPE rst = sin(theta+(M_PI_2));
 
-    model_float4 n1 = (model_float4)(cosP * sinT, sinP * sinT, cos(theta), 0.0);
-    model_float4 n2 = Tensor_rotateVector((model_float4)(rst * cosP, rst * sinP, cos(theta+(M_PI_2)), 0.0), n1, psi);
+    MOT_FLOAT_TYPE4 n1 = (MOT_FLOAT_TYPE4)(cosP * sinT, sinP * sinT, cos(theta), 0.0);
+    MOT_FLOAT_TYPE4 n2 = Tensor_rotateVector((MOT_FLOAT_TYPE4)(rst * cosP, rst * sinP, cos(theta+(M_PI_2)), 0.0), n1, psi);
 
     return exp(-b * (d *      pown(dot(n1, g), 2) +
                      dperp *  pown(dot(n2, g), 2) +
@@ -47,8 +47,8 @@ model_float cmTensor(const model_float4 g,
 
 }
 
-model_float4 Tensor_rotateVector(const model_float4 vector, const model_float4 axis_rotate, const model_float psi){
-    model_float4 n1 = axis_rotate;
+MOT_FLOAT_TYPE4 Tensor_rotateVector(const MOT_FLOAT_TYPE4 vector, const MOT_FLOAT_TYPE4 axis_rotate, const MOT_FLOAT_TYPE psi){
+    MOT_FLOAT_TYPE4 n1 = axis_rotate;
     if(axis_rotate.z < 0 || ((axis_rotate.z == 0.0) && (axis_rotate.x < 0.0))){
     	n1 *= -1;
     }

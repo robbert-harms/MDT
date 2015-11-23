@@ -9,12 +9,12 @@
  * Email = robbert.harms@maastrichtuniversity.nl
  */
 
-model_float cmCharmedRestricted(const model_float4 g,
-                                const model_float b,
-                                const model_float GAMMA2_G2_delta2,
-                                const model_float TE,
-                                const model_float d,
-                                const model_float theta,
-                                const model_float phi);
+MOT_FLOAT_TYPE cmCharmedRestricted(const MOT_FLOAT_TYPE4 g,
+                                const MOT_FLOAT_TYPE b,
+                                const MOT_FLOAT_TYPE GAMMA2_G2_delta2,
+                                const MOT_FLOAT_TYPE TE,
+                                const MOT_FLOAT_TYPE d,
+                                const MOT_FLOAT_TYPE theta,
+                                const MOT_FLOAT_TYPE phi);
 
 #endif // DMRICM_CHARMEDRESTRICTED_H

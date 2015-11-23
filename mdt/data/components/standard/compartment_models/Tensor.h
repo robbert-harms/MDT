@@ -20,13 +20,13 @@
  * @params dperp2 parameter perpendicular diffusion 2
  * @params psi the third rotation angle
  */
-model_float cmTensor(const model_float4 g,
-                     const model_float b,
-                     const model_float d,
-                     const model_float dperp,
-                     const model_float dperp2,
-                     const model_float theta,
-                     const model_float phi,
-                     const model_float psi);
+MOT_FLOAT_TYPE cmTensor(const MOT_FLOAT_TYPE4 g,
+                     const MOT_FLOAT_TYPE b,
+                     const MOT_FLOAT_TYPE d,
+                     const MOT_FLOAT_TYPE dperp,
+                     const MOT_FLOAT_TYPE dperp2,
+                     const MOT_FLOAT_TYPE theta,
+                     const MOT_FLOAT_TYPE phi,
+                     const MOT_FLOAT_TYPE psi);
 
 #endif // DMRICM_TENSOR_H

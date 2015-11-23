@@ -12,19 +12,19 @@
 /**
  * See the header definition for explanation
  */
-model_float NeumannCylPerpPGSESum(const model_float Delta,
-                                  const model_float delta,
-                                  const model_float d,
-                                  const model_float R,
-                                  global const model_float* const CLJnpZeros,
+MOT_FLOAT_TYPE NeumannCylPerpPGSESum(const MOT_FLOAT_TYPE Delta,
+                                  const MOT_FLOAT_TYPE delta,
+                                  const MOT_FLOAT_TYPE d,
+                                  const MOT_FLOAT_TYPE R,
+                                  global const MOT_FLOAT_TYPE* const CLJnpZeros,
                                   const int CLJnpZerosLength){
     if(R == 0.0){
         return 0;
     }
 
-    model_float sum = 0;
-    model_float dam;
-	model_float amrdiv;
+    MOT_FLOAT_TYPE sum = 0;
+    MOT_FLOAT_TYPE dam;
+	MOT_FLOAT_TYPE amrdiv;
 
     for(int i = 0; i < CLJnpZerosLength; i++){
         amrdiv = CLJnpZeros[i] / R;

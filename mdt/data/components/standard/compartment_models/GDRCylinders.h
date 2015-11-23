@@ -19,17 +19,17 @@
  * @param gamma_beta the gamma scale parameter
  * @param gamma_nmr_cyl the number of different cylinders we calculate
  */
-model_float cmGDRCylinders(const model_float4 g,
-                           const model_float G,
-                           const model_float Delta,
-                           const model_float delta,
-                           const model_float d,
-                           const model_float theta,
-                           const model_float phi,
-                           const model_float gamma_k,
-                           const model_float gamma_beta,
-                           const model_float gamma_nmr_cyl,
-                           global const model_float* const CLJnpZeros,
+MOT_FLOAT_TYPE cmGDRCylinders(const MOT_FLOAT_TYPE4 g,
+                           const MOT_FLOAT_TYPE G,
+                           const MOT_FLOAT_TYPE Delta,
+                           const MOT_FLOAT_TYPE delta,
+                           const MOT_FLOAT_TYPE d,
+                           const MOT_FLOAT_TYPE theta,
+                           const MOT_FLOAT_TYPE phi,
+                           const MOT_FLOAT_TYPE gamma_k,
+                           const MOT_FLOAT_TYPE gamma_beta,
+                           const MOT_FLOAT_TYPE gamma_nmr_cyl,
+                           global const MOT_FLOAT_TYPE* const CLJnpZeros,
                            const int CLJnpZerosLength);
 
 #endif // DMRICM_GDRCYLINDERS_H

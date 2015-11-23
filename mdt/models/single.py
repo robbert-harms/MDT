@@ -100,7 +100,7 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
             # Flattening an eye(3) matrix gives the same result with F and C ordering, I nevertheless put it here
             # to emphasize that the gradient deviations matrix is in Fortran (column-major) order.
             grad_dev += np.eye(3).flatten(order='F')
-            grad_dev = set_cl_compatible_data_type(grad_dev, CLDataType.from_string('model_float*'),
+            grad_dev = set_cl_compatible_data_type(grad_dev, CLDataType.from_string('MOT_FLOAT_TYPE*'),
                                                    self._double_precision)
             var_data_dict.update({'gradient_deviations': grad_dev})
 
@@ -177,8 +177,8 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
     def _get_pre_model_expression_eval_code(self):
         if self._can_use_gradient_deviations():
             s = '''
-                model_float4 _new_gradient_vector_raw = _get_new_gradient_raw(g, data->var_data_gradient_deviations);
-                model_float _new_gradient_vector_length = length(_new_gradient_vector_raw);
+                MOT_FLOAT_TYPE4 _new_gradient_vector_raw = _get_new_gradient_raw(g, data->var_data_gradient_deviations);
+                MOT_FLOAT_TYPE _new_gradient_vector_length = length(_new_gradient_vector_raw);
                 g = _new_gradient_vector_raw/_new_gradient_vector_length;
             '''
             if 'b' in list(self.get_problems_prtcl_data().keys()):
@@ -197,19 +197,19 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
             return '''
                 #ifndef GET_NEW_GRADIENT_RAW
                 #define GET_NEW_GRADIENT_RAW
-                model_float4 _get_new_gradient_raw(model_float4 g,
-                                                   global const model_float* const gradient_deviations){
+                MOT_FLOAT_TYPE4 _get_new_gradient_raw(MOT_FLOAT_TYPE4 g,
+                                                   global const MOT_FLOAT_TYPE* const gradient_deviations){
 
-                    const model_float4 il_0 = (model_float4)(gradient_deviations[0], gradient_deviations[3],
+                    const MOT_FLOAT_TYPE4 il_0 = (MOT_FLOAT_TYPE4)(gradient_deviations[0], gradient_deviations[3],
                                                              gradient_deviations[6], 0.0);
 
-                    const model_float4 il_1 = (model_float4)(gradient_deviations[1], gradient_deviations[4],
+                    const MOT_FLOAT_TYPE4 il_1 = (MOT_FLOAT_TYPE4)(gradient_deviations[1], gradient_deviations[4],
                                                              gradient_deviations[7], 0.0);
 
-                    const model_float4 il_2 = (model_float4)(gradient_deviations[2], gradient_deviations[5],
+                    const MOT_FLOAT_TYPE4 il_2 = (MOT_FLOAT_TYPE4)(gradient_deviations[2], gradient_deviations[5],
                                                              gradient_deviations[8], 0.0);
 
-                    return (model_float4)(dot(il_0, g), dot(il_1, g), dot(il_2, g), 0.0);
+                    return (MOT_FLOAT_TYPE4)(dot(il_0, g), dot(il_1, g), dot(il_2, g), 0.0);
                 }
                 #endif //GET_NEW_GRADIENT_RAW
             '''

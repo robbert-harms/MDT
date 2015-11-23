@@ -18,12 +18,12 @@
  * @params theta the parameter theta
  * @params phi the parameter phi
  */
-model_float cmStick(const model_float4 g,
-                    const model_float b,
-                    const model_float d,
-                    const model_float theta,
-                    const model_float phi){
-    return exp(-b * d * pown(dot(g, (model_float4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0.0)), 2));
+MOT_FLOAT_TYPE cmStick(const MOT_FLOAT_TYPE4 g,
+                    const MOT_FLOAT_TYPE b,
+                    const MOT_FLOAT_TYPE d,
+                    const MOT_FLOAT_TYPE theta,
+                    const MOT_FLOAT_TYPE phi){
+    return exp(-b * d * pown(dot(g, (MOT_FLOAT_TYPE4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0.0)), 2));
 }
 
 #endif // DMRICM_STICK_CL

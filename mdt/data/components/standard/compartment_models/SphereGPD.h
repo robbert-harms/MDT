@@ -9,11 +9,11 @@
  * Email = robbert.harms@maastrichtuniversity.nl
  */
 
-model_float cmSphereGPD(const model_float Delta,
-                        const model_float delta,
-                        const model_float d,
-                        const model_float R,
-                        global const model_float* const CLJnpZeros,
+MOT_FLOAT_TYPE cmSphereGPD(const MOT_FLOAT_TYPE Delta,
+                        const MOT_FLOAT_TYPE delta,
+                        const MOT_FLOAT_TYPE d,
+                        const MOT_FLOAT_TYPE R,
+                        global const MOT_FLOAT_TYPE* const CLJnpZeros,
                         const int CLJnpZerosLength);
 
 #endif // DMRICM_SPHEREGPD_H

@@ -12,15 +12,15 @@
 /**
  * Generate the compartment model signal for the CylinderGPD model.
  */
-model_float cmCylinderGPD(const model_float4 g,
-                          const model_float G,
-                          const model_float Delta,
-                          const model_float delta,
-                          const model_float d,
-                          const model_float theta,
-                          const model_float phi,
-                          const model_float R,
-                          global const model_float* const CLJnpZeros,
+MOT_FLOAT_TYPE cmCylinderGPD(const MOT_FLOAT_TYPE4 g,
+                          const MOT_FLOAT_TYPE G,
+                          const MOT_FLOAT_TYPE Delta,
+                          const MOT_FLOAT_TYPE delta,
+                          const MOT_FLOAT_TYPE d,
+                          const MOT_FLOAT_TYPE theta,
+                          const MOT_FLOAT_TYPE phi,
+                          const MOT_FLOAT_TYPE R,
+                          global const MOT_FLOAT_TYPE* const CLJnpZeros,
                           const int CLJnpZerosLength);
 
 #endif // DMRICM_CYLINDERGPD_H

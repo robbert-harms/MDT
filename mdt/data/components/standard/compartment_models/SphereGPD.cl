@@ -9,16 +9,16 @@
  * Email = robbert.harms@maastrichtuniversity.nl
  */
 
-model_float cmSphereGPD(const model_float Delta,
-                        const model_float delta,
-                        const model_float d,
-                        const model_float R,
-                        global const model_float* const CLJnpZeros,
+MOT_FLOAT_TYPE cmSphereGPD(const MOT_FLOAT_TYPE Delta,
+                        const MOT_FLOAT_TYPE delta,
+                        const MOT_FLOAT_TYPE d,
+                        const MOT_FLOAT_TYPE R,
+                        global const MOT_FLOAT_TYPE* const CLJnpZeros,
                         const int CLJnpZerosLength){
 
-    model_float sum = 0;
-    model_float dam;
-	model_float amrdiv;
+    MOT_FLOAT_TYPE sum = 0;
+    MOT_FLOAT_TYPE dam;
+	MOT_FLOAT_TYPE amrdiv;
 
     // The summation below differs from that of CylinderGPD by having a -2 instead of a -1 in the denominator.
     for(int i = 0; i < CLJnpZerosLength; i++){

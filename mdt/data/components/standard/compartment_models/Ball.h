@@ -14,6 +14,6 @@
  * @params b the scheme value for b
  * @params d the parameter d
  */
-model_float cmBall(const model_float b, const model_float d);
+MOT_FLOAT_TYPE cmBall(const MOT_FLOAT_TYPE b, const MOT_FLOAT_TYPE d);
 
 #endif // DMRICM_BALL_H

@@ -12,6 +12,6 @@
 /**
  * Generate the compartment model signal for the Dot model.
  */
-model_float cmDot();
+MOT_FLOAT_TYPE cmDot();
 
 #endif // DMRICM_DOT_H

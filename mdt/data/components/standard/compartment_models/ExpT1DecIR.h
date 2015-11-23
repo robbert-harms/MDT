@@ -14,6 +14,6 @@
  * @params TR the protocol value for TR
  * @params T1 the parameter T1
  */
-model_float cmExpT1DecIR(const model_float Ti, const model_float T1);
+MOT_FLOAT_TYPE cmExpT1DecIR(const MOT_FLOAT_TYPE Ti, const MOT_FLOAT_TYPE T1);
 
 #endif // DMRICM_EXPT1DECIR_H

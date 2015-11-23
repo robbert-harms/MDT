@@ -9,10 +9,10 @@
  * Email = robbert.harms@maastrichtuniversity.nl
  */
 
-model_float cmAstroSticks(const model_float4 g,
-                          const model_float G,
-                          const model_float b,
-                          const model_float d){
+MOT_FLOAT_TYPE cmAstroSticks(const MOT_FLOAT_TYPE4 g,
+                          const MOT_FLOAT_TYPE G,
+                          const MOT_FLOAT_TYPE b,
+                          const MOT_FLOAT_TYPE d){
     if(b == 0){
         return 1;
     }
