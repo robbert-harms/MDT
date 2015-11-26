@@ -96,15 +96,15 @@ class _DTIMeasuresWorker(Worker):
         write_flags = self._cl_environment.get_write_only_cl_mem_flags()
         read_flags = self._cl_environment.get_read_only_cl_mem_flags()
 
-        eigenvalues_buf = cl.Buffer(self._cl_environment.context, read_flags,
+        eigenvalues_buf = cl.Buffer(self._cl_context.context, read_flags,
                                     hostbuf=self._eigenvalues[range_start:range_end])
-        fa_buf = cl.Buffer(self._cl_environment.context, write_flags, hostbuf=self._fa_host[range_start:range_end])
-        md_buf = cl.Buffer(self._cl_environment.context, write_flags, hostbuf=self._md_host[range_start:range_end])
+        fa_buf = cl.Buffer(self._cl_context.context, write_flags, hostbuf=self._fa_host[range_start:range_end])
+        md_buf = cl.Buffer(self._cl_context.context, write_flags, hostbuf=self._md_host[range_start:range_end])
         buffers = [eigenvalues_buf, fa_buf, md_buf]
 
-        self._kernel.calculate_measures(self._queue, (int(nmr_problems), ), None, *buffers)
-        cl.enqueue_copy(self._queue, self._fa_host[range_start:range_end], fa_buf, is_blocking=True)
-        event = cl.enqueue_copy(self._queue, self._md_host[range_start:range_end], md_buf, is_blocking=False)
+        self._kernel.calculate_measures(self._cl_context.queue, (int(nmr_problems), ), None, *buffers)
+        cl.enqueue_copy(self._cl_context.queue, self._fa_host[range_start:range_end], fa_buf, is_blocking=True)
+        event = cl.enqueue_copy(self._cl_context.queue, self._md_host[range_start:range_end], md_buf, is_blocking=False)
 
         return event
 

@@ -64,8 +64,8 @@ class HCP_MGH_Profile(SimpleBatchProfile):
     
     def _get_subject_output_dir(self, subject_id):
         if self.output_sub_dir:
-            return os.path.join(self._root_dir, subject_id, 'diff', 'preproc', 'output', self.output_sub_dir)
-        return os.path.join(self._root_dir, subject_id, 'diff', 'preproc', 'output')
+            return os.path.join(self._root_dir, subject_id, 'diff', 'preproc', self.output_base_dir, self.output_sub_dir)
+        return os.path.join(self._root_dir, subject_id, 'diff', 'preproc', self.output_base_dir)
 
     def __str__(self):
         return meta_info['title']

@@ -228,7 +228,7 @@ def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, mask_n
                              mask_name=mask_name, symlink=symlink)
 
 
-def run_function_on_batch_fit_output(data_folder, func, batch_profile_class=None):
+def run_function_on_batch_fit_output(data_folder, func, batch_profile=None, subjects_ind=None):
     """Run a function on the output of a batch fitting routine.
 
     This enables you to run a function on every model output from every subject. The python function should accept
@@ -237,15 +237,12 @@ def run_function_on_batch_fit_output(data_folder, func, batch_profile_class=None
     Args:
         data_folder (str): The data folder with the output files
         func (python function): the python function we should call for every map and model
-        batch_profile_class (BatchProfile class or str): the batch profile class to use, can also be the name
+        batch_profile (BatchProfile or str): the batch profile to use, can also be the name
             of a batch profile to load. If not given it is auto detected.
-            Please note it expects a callable that returns a batch profile instance. For example, you can use it as:
-                batch_profile_class=MyBatchProfile
-            but this would not work:
-                batch_profile_class=MyBatchProfile()
+        subjects_ind (list of int): either a list of subjects to process or the index of a single subject to process.
     """
     from mdt.batch_utils import run_function_on_batch_fit_output
-    run_function_on_batch_fit_output(data_folder, func, batch_profile=batch_profile_class)
+    run_function_on_batch_fit_output(data_folder, func, batch_profile=batch_profile, subjects_ind=subjects_ind)
 
 
 def get_cl_devices():

@@ -90,11 +90,13 @@ class SimpleBatchProfile(BatchProfile):
         Implementing classes need only implement the method _get_subjects(). This class will handle the rest.
 
         Attributes:
+            output_base_dir (str): the standard subject output dir, defaults to 'output'
             output_sub_dir (str): if given, a sub directory (in the default output dir) to place the output in
             models_to_fit (list): list of model names or model objects to use during fitting
         """
         super(SimpleBatchProfile, self).__init__()
         self._subjects_found = None
+        self.output_base_dir = 'output'
         self.output_sub_dir = None
         self.models_to_fit = ('BallStick (Cascade)',
                               'Tensor (Cascade)',
@@ -161,7 +163,7 @@ class SimpleBatchProfile(BatchProfile):
         Returns:
             str: the path for the output directory
         """
-        dir_items = [self._root_dir, subject_id, 'output']
+        dir_items = [self._root_dir, subject_id, self.output_base_dir]
         if self.output_sub_dir:
             dir_items.append(self.output_sub_dir)
         return os.path.join(*dir_items)
@@ -327,17 +329,18 @@ class BatchFitSubjectOutputInfo(object):
 
 class BatchFitOutputInfo(object):
 
-    def __init__(self, data_folder, batch_profile=None):
+    def __init__(self, data_folder, batch_profile=None, subjects_ind=None):
         """Single point of information about batch fitting output.
 
         Args:
             data_folder (str): The data folder with the output files
             batch_profile (BatchProfile class or str): the batch profile to use, can also be the name
                 of a batch profile to load. If not given it is auto detected.
+            subjects_ind (list of int): either a list of subjects to process or the index of a single subject to process.
         """
         self._data_folder = data_folder
         self._batch_profile = batch_profile_factory(batch_profile, data_folder)
-        self._subjects = self._batch_profile.get_subjects()
+        self._subjects = self._get_subjects(subjects_ind)
         self._subjects_dirs = {subject_info.subject_id: subject_info.output_dir for subject_info in self._subjects}
         self._mask_paths = {}
 
@@ -412,8 +415,24 @@ class BatchFitOutputInfo(object):
                     raise ValueError('Missing the choosen mask "{0}" for subject "{1} '
                                      'and error_on_missing_mask is True"'.format(mask_name, subject_info.subject_id))
 
+    def _get_subjects(self, subjects_ind):
+        return_subjects = []
+        subjects = self._batch_profile.get_subjects()
+        if subjects_ind:
+            if hasattr(subjects_ind, '__iter__'):
+                subjects_selection = subjects_ind
+            else:
+                subjects_selection = [subjects_ind]
 
-def run_function_on_batch_fit_output(data_folder, func, batch_profile=None):
+            for subject_ind in subjects_selection:
+                if 0 <= subject_ind < len(subjects):
+                    return_subjects.append(subjects[subject_ind])
+
+            return return_subjects
+        return subjects
+
+
+def run_function_on_batch_fit_output(data_folder, func, batch_profile=None, subjects_ind=None):
     """Run a function on the output of a batch fitting routine.
 
     This enables you to run a function on every model output from every subject. The python function should accept
@@ -424,8 +443,9 @@ def run_function_on_batch_fit_output(data_folder, func, batch_profile=None):
         func (python function): the python function we should call for every map and model
         batch_profile (BatchProfile class or str): the batch profile to use, can also be the name
             of a batch profile to load. If not given it is auto detected.
+        subjects_ind (list of int): either a list of subjects to process or the index of a single subject to process.
     """
-    output_info = BatchFitOutputInfo(data_folder, batch_profile)
+    output_info = BatchFitOutputInfo(data_folder, batch_profile, subjects_ind=subjects_ind)
     mask_names = output_info.get_available_masks()
     for mask_name in mask_names:
         list(map(func, output_info.subject_output_info_generator(mask_name)))

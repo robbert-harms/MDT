@@ -16,6 +16,16 @@ class Tensor(CascadeModelBuilder):
                         ('Tensor.phi', 'Stick.phi')]}
 
 
+class TensorFixed(CascadeModelBuilder):
+
+    name = 'Tensor (Cascade|fixed)'
+    description = 'Cascade for Tensor with fixed angles.'
+    models = ('BallStick (Cascade)',
+              'Tensor')
+    fixes = {'Tensor': [('Tensor.theta', 'Stick.theta'),
+                        ('Tensor.phi', 'Stick.phi')]}
+
+
 class Tensors0(CascadeModelBuilder):
 
     name = 'Tensor (Cascade|s0)'

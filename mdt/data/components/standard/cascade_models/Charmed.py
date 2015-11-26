@@ -12,10 +12,10 @@ class CharmedR1(CascadeModelBuilder):
     description = 'Initializes the directions to Ball & Stick.'
     models = ('BallStick (Cascade)',
               'Charmed_1r')
-    inits = {'CharmedRestricted0': [('CharmedRestricted0.theta', 'Stick.theta'),
-                                    ('CharmedRestricted0.phi', 'Stick.phi'),
-                                    ('Tensor.theta', 'Stick.theta'),
-                                    ('Tensor.phi', 'Stick.phi')]}
+    inits = {'Charmed_1r': [('CharmedRestricted0.theta', 'Stick.theta'),
+                            ('CharmedRestricted0.phi', 'Stick.phi'),
+                            ('Tensor.theta', 'Stick.theta'),
+                            ('Tensor.phi', 'Stick.phi')]}
 
 
 class CharmedR1s0(CascadeModelBuilder):
@@ -32,10 +32,10 @@ class CharmedR1Fixed(CascadeModelBuilder):
     description = 'Fixes the directions to Ball & Stick.'
     models = ('BallStick (Cascade)',
               'Charmed_1r')
-    inits = {'CharmedRestricted0': [('Tensor.theta', 'Stick.theta'),
-                                    ('Tensor.phi', 'Stick.phi')]}
-    fixes = {'CharmedRestricted0': [('CharmedRestricted0.theta', 'Stick.theta'),
-                                    ('CharmedRestricted0.phi', 'Stick.phi')]}
+    inits = {'Charmed_1r': [('Tensor.theta', 'Stick.theta'),
+                            ('Tensor.phi', 'Stick.phi')]}
+    fixes = {'Charmed_1r': [('CharmedRestricted0.theta', 'Stick.theta'),
+                            ('CharmedRestricted0.phi', 'Stick.phi')]}
 
 
 class CharmedR2(CascadeModelBuilder):
@@ -44,21 +44,21 @@ class CharmedR2(CascadeModelBuilder):
     description = 'Initializes the directions to 2x Ball & Stick.'
     models = ('BallStickStick (Cascade)',
               'Charmed_2r')
+    inits = {'Charmed_2r': [('Tensor.theta', 'Stick0.theta'),
+                            ('Tensor.phi', 'Stick0.phi'),
+                            ('CharmedRestricted0.theta', 'Stick0.theta'),
+                            ('CharmedRestricted0.phi', 'Stick0.phi'),
+                            ('CharmedRestricted1.theta', 'Stick1.theta'),
+                            ('CharmedRestricted1.phi', 'Stick1.phi'),
+                            ('w_res0.w', 'Wstick0.w'),
+                            ('w_res1.w', 'Wstick1.w')]}
 
-    def _prepare_model(self, model, output_previous, output_all_previous):
-        super(CharmedR2, self)._prepare_model(model, output_previous, output_all_previous)
+class CharmedR2s0(CascadeModelBuilder):
 
-        if model.name == 'Charmed_2r':
-            for i in range(2):
-                model.cmf('CharmedRestricted' + repr(i))\
-                    .init('theta', output_previous['Stick' + repr(i) + '.theta'])\
-                    .init('phi', output_previous['Stick' + repr(i) + '.phi'])
-
-                model.cmf('w_res' + repr(i)).init('w', output_previous['Wstick' + repr(i) + '.w'])
-
-            model.cmf('Tensor')\
-                .init('theta', output_previous['Stick0.theta'])\
-                .init('phi', output_previous['Stick0.phi'])
+    name = 'Charmed_2r (Cascade|s0)'
+    description = 'Initializes with only an S0 fit.'
+    models = ('s0',
+              'Charmed_2r')
 
 
 class CharmedR2Fixed(CascadeModelBuilder):
@@ -67,21 +67,15 @@ class CharmedR2Fixed(CascadeModelBuilder):
     description = 'Fixes the directions to 2x Ball & Stick.'
     models = ('BallStickStick (Cascade)',
               'Charmed_2r')
-
-    def _prepare_model(self, model, output_previous, output_all_previous):
-        super(CharmedR2Fixed, self)._prepare_model(model, output_previous, output_all_previous)
-
-        if model.name == 'Charmed_2r':
-            for i in range(2):
-                model.cmf('CharmedRestricted' + repr(i))\
-                    .fix('theta', output_previous['Stick' + repr(i) + '.theta'])\
-                    .fix('phi', output_previous['Stick' + repr(i) + '.phi'])
-
-                model.cmf('w_res' + repr(i)).init('w', output_previous['Wstick' + repr(i) + '.w'])
-
-            model.cmf('Tensor')\
-                .init('theta', output_previous['Stick0.theta'])\
-                .init('phi', output_previous['Stick0.phi'])
+    inits = {'Charmed_2r': [('Tensor.theta', 'Stick0.theta'),
+                            ('Tensor.phi', 'Stick0.phi'),
+                            ('w_res0.w', 'Wstick0.w'),
+                            ('w_res1.w', 'Wstick1.w')]}
+    fixes = {'Charmed_2r': [('CharmedRestricted0.theta', 'Stick0.theta'),
+                            ('CharmedRestricted0.phi', 'Stick0.phi'),
+                            ('CharmedRestricted1.theta', 'Stick1.theta'),
+                            ('CharmedRestricted1.phi', 'Stick1.phi'),
+                            ]}
 
 
 class Charmed(CascadeModelBuilder):
@@ -90,21 +84,26 @@ class Charmed(CascadeModelBuilder):
     description = 'Initializes the directions to 3x Ball & Stick.'
     models = ('BallStickStickStick (Cascade)',
               'Charmed')
+    inits = {'Charmed': [('Tensor.theta', 'Stick0.theta'),
+                         ('Tensor.phi', 'Stick0.phi'),
+                         ('w_res0.w', 'Wstick0.w'),
+                         ('w_res1.w', 'Wstick1.w'),
+                         ('w_res2.w', 'Wstick2.w'),
+                         ('CharmedRestricted0.theta', 'Stick0.theta'),
+                         ('CharmedRestricted0.phi', 'Stick0.phi'),
+                         ('CharmedRestricted1.theta', 'Stick1.theta'),
+                         ('CharmedRestricted1.phi', 'Stick1.phi'),
+                         ('CharmedRestricted2.theta', 'Stick2.theta'),
+                         ('CharmedRestricted2.phi', 'Stick2.phi'),
+                         ]}
 
-    def _prepare_model(self, model, output_previous, output_all_previous):
-        super(Charmed, self)._prepare_model(model, output_previous, output_all_previous)
 
-        if model.name == 'Charmed':
-            for i in range(3):
-                model.cmf('CharmedRestricted' + repr(i))\
-                    .init('theta', output_previous['Stick' + repr(i) + '.theta'])\
-                    .init('phi', output_previous['Stick' + repr(i) + '.phi'])
+class Charmeds0(CascadeModelBuilder):
 
-                model.cmf('w_res' + repr(i)).init('w', output_previous['Wstick' + repr(i) + '.w'])
-
-            model.cmf('Tensor')\
-                .init('theta', output_previous['Stick0.theta'])\
-                .init('phi', output_previous['Stick0.phi'])
+    name = 'Charmed (Cascade|s0)'
+    description = 'Initializes with only an S0 fit.'
+    models = ('s0',
+              'Charmed')
 
 
 class CharmedFixed(CascadeModelBuilder):
@@ -113,18 +112,14 @@ class CharmedFixed(CascadeModelBuilder):
     description = 'Fixes the directions to 3x Ball & Stick.'
     models = ('BallStickStickStick (Cascade)',
               'Charmed')
-
-    def _prepare_model(self, model, output_previous, output_all_previous):
-        super(CharmedFixed, self)._prepare_model(model, output_previous, output_all_previous)
-
-        if model.name == 'Charmed':
-            for i in range(3):
-                model.cmf('CharmedRestricted' + repr(i))\
-                    .fix('theta', output_previous['Stick' + repr(i) + '.theta'])\
-                    .fix('phi', output_previous['Stick' + repr(i) + '.phi'])
-
-                model.cmf('w_res' + repr(i)).init('w', output_previous['Wstick' + repr(i) + '.w'])
-
-            model.cmf('Tensor')\
-                .init('theta', output_previous['Stick0.theta'])\
-                .init('phi', output_previous['Stick0.phi'])
+    inits = {'Charmed': [('Tensor.theta', 'Stick0.theta'),
+                         ('Tensor.phi', 'Stick0.phi'),
+                         ('w_res0.w', 'Wstick0.w'),
+                         ('w_res1.w', 'Wstick1.w'),
+                         ('w_res2.w', 'Wstick2.w')]}
+    fixes = {'Charmed': [('CharmedRestricted0.theta', 'Stick0.theta'),
+                         ('CharmedRestricted0.phi', 'Stick0.phi'),
+                         ('CharmedRestricted1.theta', 'Stick1.theta'),
+                         ('CharmedRestricted1.phi', 'Stick1.phi'),
+                         ('CharmedRestricted2.theta', 'Stick2.theta'),
+                         ('CharmedRestricted2.phi', 'Stick2.phi')]}

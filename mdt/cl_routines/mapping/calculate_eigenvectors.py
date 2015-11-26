@@ -70,14 +70,14 @@ class _CEWorker(Worker):
         write_flags = self._cl_environment.get_write_only_cl_mem_flags()
         read_flags = self._cl_environment.get_read_only_cl_mem_flags()
 
-        thetas_buf = cl.Buffer(self._cl_environment.context, read_flags, hostbuf=self._theta_roi[range_start:range_end])
-        phis_buf = cl.Buffer(self._cl_environment.context, read_flags, hostbuf=self._phi_roi[range_start:range_end])
-        psis_buf = cl.Buffer(self._cl_environment.context, read_flags, hostbuf=self._psi_roi[range_start:range_end])
-        evecs_buf = cl.Buffer(self._cl_environment.context, write_flags, hostbuf=self._evecs[range_start:range_end, :])
+        thetas_buf = cl.Buffer(self._cl_context.context, read_flags, hostbuf=self._theta_roi[range_start:range_end])
+        phis_buf = cl.Buffer(self._cl_context.context, read_flags, hostbuf=self._phi_roi[range_start:range_end])
+        psis_buf = cl.Buffer(self._cl_context.context, read_flags, hostbuf=self._psi_roi[range_start:range_end])
+        evecs_buf = cl.Buffer(self._cl_context.context, write_flags, hostbuf=self._evecs[range_start:range_end, :])
         buffers = [thetas_buf, phis_buf, psis_buf, evecs_buf]
 
-        self._kernel.generate_tensor(self._queue, (int(nmr_problems), ), None, *buffers)
-        event = cl.enqueue_copy(self._queue, self._evecs[range_start:range_end, :], evecs_buf, is_blocking=False)
+        self._kernel.generate_tensor(self._cl_context.queue, (int(nmr_problems), ), None, *buffers)
+        event = cl.enqueue_copy(self._cl_context.queue, self._evecs[range_start:range_end, :], evecs_buf, is_blocking=False)
 
         return event
 

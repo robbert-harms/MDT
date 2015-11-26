@@ -97,9 +97,9 @@ class SingleDirProfile(SimpleBatchProfile):
                     protocol_options=extra_cols_from_file)
 
                 if self.output_sub_dir:
-                    output_dir = pjoin('output', basename, self.output_sub_dir)
+                    output_dir = pjoin(self.output_base_dir, basename, self.output_sub_dir)
                 else:
-                    output_dir = pjoin('output', basename)
+                    output_dir = pjoin(self.output_base_dir, basename)
 
                 subjects.append(SimpleSubjectInfo(basename, dwi_fname, protocol_loader, mask_fname, output_dir))
         return subjects
