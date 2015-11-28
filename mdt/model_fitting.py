@@ -407,6 +407,9 @@ class ModelFitSliceRunner(object):
              output_folder (string): The full path to the folder where to place the output
              optimizer (AbstractOptimizer): The optimization routine to use.
              recalculate (boolean): If we want to recalculate the results if they are already present.
+
+        Returns:
+            dict: the results as a dictionary of roi lists
         """
 
     def _write_output(self, result_arrays, mask, output_path, volume_header):
@@ -472,31 +475,51 @@ class SliceBySlice(ModelFitSliceRunner):
         Args:
             output_dir (str): where to place the concatenated output
             slices_dir (str): the directory with the slices/calculated chunks
+
+        Returns:
+            dict: the results as a dictionary of roi lists
         """
-        results = {}
+        sub_dir = os.listdir(slices_dir)[0]
+        file_paths = glob.glob(os.path.join(slices_dir, sub_dir, '*.nii*'))
+        file_paths = filter(lambda d: '__slice_mask' not in d, file_paths)
+        map_names = map(lambda d: split_image_path(d)[1], file_paths)
+        results = {map_name: self._join_slices_of_map(output_dir, slices_dir, map_name) for map_name in map_names}
+        shutil.rmtree(slices_dir)
+        return results
+
+    def _join_slices_of_map(self, output_dir, slices_dir, map_name):
+        """Subroutine of _join_slices, this joines the slices of a single map over all directories
+
+        Args:
+            output_dir (str): where to place the concatenated output
+            slices_dir (str): the directory with the slices/calculated chunks
+            map_name (str): the name of the map we want to load over all directories
+
+        Returns:
+            np.array: the values of this single map in a large array
+        """
+        results = None
         mask_so_far = None
         volume_header = None
 
         for sub_dir in os.listdir(slices_dir):
-            sub_results = Nifti.read_volume_maps(os.path.join(slices_dir, sub_dir))
-            mask = sub_results['__slice_mask'].astype(np.bool)
-            del sub_results['__slice_mask']
+            sub_results = nib.load(os.path.join(slices_dir, sub_dir, map_name + '.nii.gz')).get_data()
+
+            mask_nib = nib.load(os.path.join(slices_dir, sub_dir, '__slice_mask.nii.gz'))
+            mask = mask_nib.get_data().astype(np.bool)
 
             if volume_header is None:
-                volume_header = nib.load(os.path.join(slices_dir, sub_dir, '__slice_mask.nii.gz')).get_header()
+                volume_header = mask_nib.get_header()
 
-            if not results:
+            if results is None:
                 results = sub_results
                 mask_so_far = mask
             else:
                 mask_so_far += mask
                 sub_results = apply_mask(sub_results, mask_so_far)
+                results += sub_results
 
-                for key in results.keys():
-                    results[key] += sub_results[key]
-
-        Nifti.write_volume_maps(results, output_dir, volume_header)
-        shutil.rmtree(slices_dir)
+        Nifti.write_volume_maps({map_name: results}, output_dir, volume_header)
         return create_roi(results, mask_so_far)
 
     def _prepare_slice_dir(self, slice_dir, recalculate):
