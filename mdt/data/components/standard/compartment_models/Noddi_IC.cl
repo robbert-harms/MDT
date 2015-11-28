@@ -12,8 +12,8 @@
 // do not change this value! It would require adding approximations to the functions below
 #define NODDI_IC_MAX_POLYNOMIAL_ORDER 6
 
-void Noddi_IC_LegendreGaussianIntegral(const MOT_FLOAT_TYPE x, MOT_FLOAT_TYPE* result);
-void Noddi_IC_WatsonSHCoeff(const MOT_FLOAT_TYPE kappa, MOT_FLOAT_TYPE* result);
+void Noddi_IC_LegendreGaussianIntegral(double x, double* const result);
+void Noddi_IC_WatsonSHCoeff(double kappa, double* const result);
 
 /**
  * See the header for details
@@ -36,15 +36,13 @@ MOT_FLOAT_TYPE cmNoddi_IC(const MOT_FLOAT_TYPE4 g,
         cosTheta = cosTheta / fabs(cosTheta);
     }
 
-    MOT_FLOAT_TYPE watson_coeff[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
+    double watson_coeff[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
     Noddi_IC_WatsonSHCoeff(kappa, watson_coeff);
 
-    MOT_FLOAT_TYPE LePerp = -2 * GAMMA_H_SQ * pown(G, 2) * NeumannCylPerpPGSESum(Delta, delta, d, R);
-    MOT_FLOAT_TYPE ePerp = exp(LePerp);
-    MOT_FLOAT_TYPE Lpmp = LePerp + d * b;
+    const MOT_FLOAT_TYPE LePerp = -2 * GAMMA_H_SQ * pown(G, 2) * NeumannCylPerpPGSESum(Delta, delta, d, R);
 
-    MOT_FLOAT_TYPE lgi[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
-    Noddi_IC_LegendreGaussianIntegral(Lpmp, lgi);
+    double lgi[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
+    Noddi_IC_LegendreGaussianIntegral(LePerp + d * b, lgi);
 
     MOT_FLOAT_TYPE signal = 0.0;
     for(int i = 0; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
@@ -55,7 +53,7 @@ MOT_FLOAT_TYPE cmNoddi_IC(const MOT_FLOAT_TYPE4 g,
         return 0.00001;
     }
 
-    return ePerp * signal / 2.0;
+    return exp(LePerp) * signal / 2.0;
 }
 
 /**
@@ -72,11 +70,11 @@ MOT_FLOAT_TYPE cmNoddi_IC(const MOT_FLOAT_TYPE4 g,
 
     original author: Gary Hui Zhang (gary.zhang@ucl.ac.uk)
 */
-void Noddi_IC_LegendreGaussianIntegral(const MOT_FLOAT_TYPE x, MOT_FLOAT_TYPE* const result){
+void Noddi_IC_LegendreGaussianIntegral(double x, double* const result){
 
     if(x > 0.05){
         // exact
-        MOT_FLOAT_TYPE tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
+        double tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
         tmp[0] = M_SQRTPI * erf(sqrt(x))/sqrt(x);
         for(int i = 1; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
             tmp[i] = (-exp(-x) + (i - 0.5) * tmp[i-1]) / x;
@@ -92,7 +90,7 @@ void Noddi_IC_LegendreGaussianIntegral(const MOT_FLOAT_TYPE x, MOT_FLOAT_TYPE* c
     }
     else{
         // approximate
-        MOT_FLOAT_TYPE tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER - 1];
+        double tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER - 1];
         tmp[0] = pown(x, 2);
         tmp[1] = tmp[0] * x;
         tmp[2] = tmp[1] * x;
@@ -121,11 +119,11 @@ void Noddi_IC_LegendreGaussianIntegral(const MOT_FLOAT_TYPE x, MOT_FLOAT_TYPE* c
 
     author: Gary Hui Zhang (gary.zhang@ucl.ac.uk)
 */
-void Noddi_IC_WatsonSHCoeff(const MOT_FLOAT_TYPE kappa, MOT_FLOAT_TYPE* const result){
+void Noddi_IC_WatsonSHCoeff(double kappa, double* const result){
     result[0] = M_SQRTPI * 2;
 
     if(kappa <= 30){
-        MOT_FLOAT_TYPE ks[NODDI_IC_MAX_POLYNOMIAL_ORDER - 1];
+        double ks[NODDI_IC_MAX_POLYNOMIAL_ORDER - 1];
         ks[0] = pown(kappa, 2);
         ks[1] = ks[0] * kappa;
         ks[2] = ks[1] * kappa;
@@ -134,7 +132,7 @@ void Noddi_IC_WatsonSHCoeff(const MOT_FLOAT_TYPE kappa, MOT_FLOAT_TYPE* const re
 
         if(kappa > 0.1){
             // exact
-            MOT_FLOAT_TYPE sks[NODDI_IC_MAX_POLYNOMIAL_ORDER];
+            double sks[NODDI_IC_MAX_POLYNOMIAL_ORDER];
             sks[0] = sqrt(kappa);
             sks[1] = sks[0] * kappa;
             sks[2] = sks[1] * kappa;
@@ -142,10 +140,10 @@ void Noddi_IC_WatsonSHCoeff(const MOT_FLOAT_TYPE kappa, MOT_FLOAT_TYPE* const re
             sks[4] = sks[3] * kappa;
             sks[5] = sks[4] * kappa;
 
-            MOT_FLOAT_TYPE erfik = erfi(sks[0]);
-            MOT_FLOAT_TYPE ierfik = 1/erfik;
-            MOT_FLOAT_TYPE ek = exp(kappa);
-            MOT_FLOAT_TYPE dawsonk = M_SQRTPI_2 * erfik/ek;
+            double erfik = erfi(sks[0]);
+            double ierfik = 1/erfik;
+            double ek = exp(kappa);
+            double dawsonk = M_SQRTPI_2 * erfik/ek;
 
             result[1] = 3 * sks[0] - (3 + 2 * kappa) * dawsonk;
             result[1] = sqrt(5.0) * result[1] * ek;
@@ -194,7 +192,7 @@ void Noddi_IC_WatsonSHCoeff(const MOT_FLOAT_TYPE kappa, MOT_FLOAT_TYPE* const re
     }
     else{
         // large
-        MOT_FLOAT_TYPE lnkd[NODDI_IC_MAX_POLYNOMIAL_ORDER];
+        double lnkd[NODDI_IC_MAX_POLYNOMIAL_ORDER];
         lnkd[0] = log(kappa) - log(30.0);
         lnkd[1] = lnkd[0] * lnkd[0];
         lnkd[2] = lnkd[1] * lnkd[0];

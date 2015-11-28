@@ -1,6 +1,6 @@
 import pyopencl as cl
 import numpy as np
-from mot.utils import get_cl_pragma_double, get_float_type_def
+from mot.utils import get_float_type_def
 from mot.cl_routines.base import AbstractCLRoutine
 from mot.load_balance_strategies import Worker
 
@@ -70,19 +70,19 @@ class _CEWorker(Worker):
         write_flags = self._cl_environment.get_write_only_cl_mem_flags()
         read_flags = self._cl_environment.get_read_only_cl_mem_flags()
 
-        thetas_buf = cl.Buffer(self._cl_context.context, read_flags, hostbuf=self._theta_roi[range_start:range_end])
-        phis_buf = cl.Buffer(self._cl_context.context, read_flags, hostbuf=self._phi_roi[range_start:range_end])
-        psis_buf = cl.Buffer(self._cl_context.context, read_flags, hostbuf=self._psi_roi[range_start:range_end])
-        evecs_buf = cl.Buffer(self._cl_context.context, write_flags, hostbuf=self._evecs[range_start:range_end, :])
+        thetas_buf = cl.Buffer(self._cl_run_context.context, read_flags, hostbuf=self._theta_roi[range_start:range_end])
+        phis_buf = cl.Buffer(self._cl_run_context.context, read_flags, hostbuf=self._phi_roi[range_start:range_end])
+        psis_buf = cl.Buffer(self._cl_run_context.context, read_flags, hostbuf=self._psi_roi[range_start:range_end])
+        evecs_buf = cl.Buffer(self._cl_run_context.context, write_flags, hostbuf=self._evecs[range_start:range_end, :])
         buffers = [thetas_buf, phis_buf, psis_buf, evecs_buf]
 
-        self._kernel.generate_tensor(self._cl_context.queue, (int(nmr_problems), ), None, *buffers)
-        event = cl.enqueue_copy(self._cl_context.queue, self._evecs[range_start:range_end, :], evecs_buf, is_blocking=False)
+        self._kernel.generate_tensor(self._cl_run_context.queue, (int(nmr_problems), ), None, *buffers)
+        event = cl.enqueue_copy(self._cl_run_context.queue, self._evecs[range_start:range_end, :], evecs_buf, is_blocking=False)
 
         return event
 
     def _get_kernel_source(self):
-        kernel_source = get_cl_pragma_double()
+        kernel_source = ''
         kernel_source += get_float_type_def(self._double_precision)
         kernel_source += '''
             MOT_FLOAT_TYPE4 Tensor_rotateVector(const MOT_FLOAT_TYPE4 vector, const MOT_FLOAT_TYPE4 axis_rotate,

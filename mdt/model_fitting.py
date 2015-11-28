@@ -2,9 +2,11 @@ import glob
 import logging
 import os
 import timeit
-import pickle
 import time
 import collections
+import shutil
+from contextlib import contextmanager
+import numpy as np
 
 from six import string_types
 import nibabel as nib
@@ -16,7 +18,7 @@ from mdt import __version__
 from mdt.IO import Nifti
 from mdt.utils import create_roi, configure_per_model_logging, restore_volumes, \
     load_problem_data, ProtocolProblemError, MetaOptimizerBuilder, get_cl_devices, \
-    get_model_config, apply_model_protocol_options, model_output_exists, split_image_path
+    get_model_config, apply_model_protocol_options, model_output_exists, split_image_path, apply_mask
 from mdt.batch_utils import batch_profile_factory
 from mot import runtime_configuration
 from mot.load_balance_strategies import EvenDistribution
@@ -202,7 +204,7 @@ class ModelFit(object):
                  cl_device_ind=None, double_precision=False, gradient_deviations=None, noise_std=None):
         """Setup model fitting for the given input model and data.
 
-        This does nothing by itself, please call fit_model() to actually fit_model the optimizer to fit the model.
+        To actually fit the model call run().
 
         Args:
             model (AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize.
@@ -297,7 +299,7 @@ class ModelFit(object):
         return self._run_single_model(model, recalculate, meta_optimizer_config)
 
     def _run_single_model(self, model, recalculate, meta_optimizer_config):
-        configure_per_model_logging(_get_model_output_path(self._output_folder, model))
+        configure_per_model_logging(os.path.join(self._output_folder, model.name))
 
         self._logger.info('Preparing for model {0}'.format(model.name))
         self._logger.info('Setting the noise standard deviation to {0}'.format(self._noise_std))
@@ -312,72 +314,239 @@ class ModelFit(object):
 
         model_protocol_options = get_model_config(model.name, self._model_protocol_options)
         problem_data = apply_model_protocol_options(model_protocol_options, self._problem_data)
-        return fit_single_model(model, problem_data, self._output_folder, optimizer, recalculate=recalculate)
+
+        fitter = SingleModelFit(model, problem_data, self._output_folder, optimizer, recalculate=recalculate)
+        return fitter.run()
 
 
-def fit_single_model(model, problem_data, output_folder, optimizer, recalculate=False):
-    """Fits a single model.
+class SingleModelFit(object):
 
-    This does not accept cascade models. Please use the more general ModelFit class for single and cascade models.
+    def __init__(self, model, problem_data, output_folder, optimizer, recalculate=False):
+        """Fits a single model.
 
-    Args:
-        model (AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize.
-        problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
-        output_folder (string): The full path to the folder where to place the output
-        optimizer (AbstractOptimizer): The optimization routine to use.
-        recalculate (boolean): If we want to recalculate the results if they are already present.
-    """
-    output_path = _get_model_output_path(output_folder, model)
-    logger = logging.getLogger(__name__)
-    configure_per_model_logging(output_path)
+         This does not accept cascade models. Please use the more general ModelFit class for single and cascade models.
 
-    model.set_problem_data(problem_data)
+         Args:
+             model (AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize.
+             problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
+             output_folder (string): The full path to the folder where to place the output
+             optimizer (AbstractOptimizer): The optimization routine to use.
+             recalculate (boolean): If we want to recalculate the results if they are already present.
 
-    if not model.is_protocol_sufficient(problem_data.protocol):
-        raise ProtocolProblemError(
-            'The given protocol is insufficient for this model. '
-            'The reported errors where: {}'.format(model.get_protocol_problems(problem_data.protocol)))
+         Attributes:
+             recalculate (boolean): If we want to recalculate the results if they are already present.
+         """
+        self._model = model
+        self._problem_data = problem_data
+        self._output_folder = output_folder
+        self._optimizer = optimizer
+        self.recalculate = recalculate
+        self._output_path = os.path.join(self._output_folder, self._model.name)
+        self._logger = logging.getLogger(__name__)
+        self.model_fit_slice_runner = SliceBySlice()
 
-    if recalculate:
-        if os.path.exists(output_path):
-            list(map(os.remove, glob.glob(os.path.join(output_path, '*.nii*'))))
-    else:
-        if model_output_exists(model, output_folder):
-            maps = Nifti.read_volume_maps(output_path)
-            logger.info('Not recalculating {} model'.format(model.name))
-            return create_roi(maps, problem_data.mask)
+        if not self._model.is_protocol_sufficient(problem_data.protocol):
+            raise ProtocolProblemError(
+                'The given protocol is insufficient for this model. '
+                'The reported errors where: {}'.format(self._model.get_protocol_problems(problem_data.protocol)))
 
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
+    def run(self):
+        """Fits a single model.
 
-    minimize_start_time = timeit.default_timer()
-    logger.info('Fitting {} model'.format(model.name))
+        This will use the current ModelFitSliceRunner to do the actual optimization.
+        """
+        configure_per_model_logging(self._output_path)
 
-    results, other_output = optimizer.minimize(model, full_output=True)
+        self._model.set_problem_data(self._problem_data)
 
-    _write_output(results, other_output, problem_data, output_path)
+        if self.recalculate:
+            if os.path.exists(self._output_path):
+                list(map(os.remove, glob.glob(os.path.join(self._output_path, '*.nii*'))))
+        else:
+            if model_output_exists(self._model, self._output_folder):
+                maps = Nifti.read_volume_maps(self._output_path)
+                self._logger.info('Not recalculating {} model'.format(self._model.name))
+                return create_roi(maps, self._problem_data.mask)
 
-    run_time = timeit.default_timer() - minimize_start_time
-    run_time_str = time.strftime('%H:%M:%S', time.gmtime(run_time))
-    logger.info('Fitted {0} model with runtime {1} (h:m:s).'.format(model.name, run_time_str))
-    configure_per_model_logging(None)
+        if not os.path.exists(self._output_path):
+            os.makedirs(self._output_path)
 
-    return results
+        minimize_start_time = timeit.default_timer()
+        self._logger.info('Fitting {} model'.format(self._model.name))
+
+        results = self.model_fit_slice_runner.run(self._model, self._problem_data,
+                                                  self._output_path, self._optimizer, self.recalculate)
+        self._write_protocol()
+
+        run_time = timeit.default_timer() - minimize_start_time
+        run_time_str = time.strftime('%H:%M:%S', time.gmtime(run_time))
+        self._logger.info('Fitted {0} model with runtime {1} (h:m:s).'.format(self._model.name, run_time_str))
+
+        configure_per_model_logging(None)
+
+        return results
+
+    def _write_protocol(self):
+        write_protocol(self._problem_data.protocol, os.path.join(self._output_path, 'used_protocol.prtcl'))
 
 
-def _write_output(results, other_output, problem_data, output_path):
-    volume_maps = restore_volumes(results, problem_data.mask)
-    Nifti.write_volume_maps(volume_maps, output_path, problem_data.volume_header)
+class ModelFitSliceRunner(object):
 
-    for k, v in other_output.items():
-        with open(os.path.join(output_path, k + '.pyobj'), 'wb') as f:
-            pickle.dump(v, f, protocol=pickle.HIGHEST_PROTOCOL)
+    def __init__(self):
+        self._logger = logging.getLogger(__name__)
 
-    write_protocol(problem_data.protocol, os.path.join(output_path, 'used_protocol.prtcl'))
+    def run(self, model, problem_data, output_path, optimizer, recalculate):
+        """Optimize the given dataset using the logistics the subclass.
+
+        Subclasses of this base class can implement all kind of logic to divide a large dataset in smaller chunks
+        (for example slice by slice) and run the optimizer on each slice separately and join the results afterwards.
+
+        Args:
+             model (AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize.
+             problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
+             output_folder (string): The full path to the folder where to place the output
+             optimizer (AbstractOptimizer): The optimization routine to use.
+             recalculate (boolean): If we want to recalculate the results if they are already present.
+        """
+
+    def _write_output(self, result_arrays, mask, output_path, volume_header):
+        volume_maps = restore_volumes(result_arrays, mask)
+        Nifti.write_volume_maps(volume_maps, output_path, volume_header)
 
 
-def _get_model_output_path(output_dir, model):
-    return os.path.join(output_dir, model.name)
+class AllSlicesAtOnce(ModelFitSliceRunner):
+
+    def run(self, model, problem_data, output_path, optimizer, recalculate):
+        """Run all slices at once."""
+        model.set_problem_data(problem_data)
+        results, extra_output = optimizer.minimize(model, full_output=True)
+        results.update(extra_output)
+        self._write_output(results, problem_data.mask, output_path, problem_data.volume_header)
+        return results
+
+
+class SliceBySlice(ModelFitSliceRunner):
+
+    def __init__(self, slice_dimension=2, slice_width=1):
+        """Optimize a given dataset slice by slice.
+
+        Args:
+            slice_dimension: in which dimension to slice the dataset
+            slice_width: the width of the slices in that dimension
+
+        Attributes:
+            slice_dimension: in which dimension to slice the dataset
+            slice_width: the width of the slices in that dimension
+        """
+        super(SliceBySlice, self).__init__()
+        self.slice_dimension = slice_dimension
+        self.slice_width = slice_width
+
+    def run(self, model, problem_data, output_path, optimizer, recalculate):
+        """Optimize slice by slice"""
+        mask = problem_data.mask
+        tmp_mask = np.zeros_like(mask)
+        slicing = [slice(None)] * len(mask.shape)
+        dimension_length = mask.shape[self.slice_dimension]
+        slices_dir = os.path.join(output_path, 'slices')
+        self._prepare_slice_dir(slices_dir, recalculate)
+
+        for ind_start in range(0, dimension_length, self.slice_width):
+            ind_end = min(dimension_length, ind_start + self.slice_width)
+            slicing[self.slice_dimension] = slice(ind_start, ind_end)
+
+            if mask[slicing].any():
+                with self._mask_context(problem_data, tmp_mask, ind_start, ind_end) as slice_problem_data:
+                    self._run_on_slice(model, slice_problem_data, slices_dir, optimizer, recalculate,
+                                       ind_start, ind_end)
+
+        return self._join_slices(output_path, slices_dir)
+
+    def _join_slices(self, output_dir, slices_dir):
+        """Joins all slices by joining all the items in the subdirectory of the given slices_dir.
+
+        This expects there to be a file named '__slice_mask.nii.gz' in every sub dir. This file should contain
+        a mask for exactly that slice/data calculated in that directory. We will use this mask to
+        construct the entire dataset.
+
+        Args:
+            output_dir (str): where to place the concatenated output
+            slices_dir (str): the directory with the slices/calculated chunks
+        """
+        results = {}
+        mask_so_far = None
+        volume_header = None
+
+        for sub_dir in os.listdir(slices_dir):
+            sub_results = Nifti.read_volume_maps(os.path.join(slices_dir, sub_dir))
+            mask = sub_results['__slice_mask'].astype(np.bool)
+            del sub_results['__slice_mask']
+
+            if volume_header is None:
+                volume_header = nib.load(os.path.join(slices_dir, sub_dir, '__slice_mask.nii.gz')).get_header()
+
+            if not results:
+                results = sub_results
+                mask_so_far = mask
+            else:
+                mask_so_far += mask
+                sub_results = apply_mask(sub_results, mask_so_far)
+
+                for key in results.keys():
+                    results[key] += sub_results[key]
+
+        Nifti.write_volume_maps(results, output_dir, volume_header)
+        shutil.rmtree(slices_dir)
+        return create_roi(results, mask_so_far)
+
+    def _prepare_slice_dir(self, slice_dir, recalculate):
+        if recalculate:
+            if os.path.exists(slice_dir):
+                shutil.rmtree(slice_dir)
+
+        if not os.path.exists(slice_dir):
+            os.makedirs(slice_dir)
+
+    def _run_on_slice(self, model, problem_data, slices_dir, optimizer, recalculate, ind_start, ind_end):
+        slice_dir = os.path.join(slices_dir, '{dimension}_{start}_{end}'.format(
+            dimension=self.slice_dimension, start=ind_start, end=ind_end))
+
+        model.set_problem_data(problem_data)
+
+        if recalculate and os.path.exists(slice_dir):
+            shutil.rmtree(slice_dir)
+
+        if model_output_exists(model, slice_dir, append_model_name_to_path=False):
+            self._logger.info('Skipping slices {} to {}, they already exist.'.format(ind_start, ind_end))
+        else:
+            self._logger.info('Computing slices {} to {}'.format(ind_start, ind_end))
+            results, extra_output = optimizer.minimize(model, full_output=True)
+            results.update(extra_output)
+            results.update({'__slice_mask': create_roi(problem_data.mask, problem_data.mask)})
+            self._write_output(results, problem_data.mask, slice_dir, problem_data.volume_header)
+
+    @contextmanager
+    def _mask_context(self, problem_data, tmp_mask, slice_ind_start, slice_ind_end):
+        """Create a context in which the mask in the problem data is set to a single slice mask.
+
+        Args:
+            problem_data: the problem data to set with the new mask
+            tmp_mask: the temporary mask array to use. We could have created the tmp mask in this routine,
+                but that would mean we have to do it for every new slice. Faster is to give it and this routine will
+                set it to 0.
+            slice_ind_start, the start of the slice
+            slice_ind_end: the end of the slice
+        """
+        old_mask = problem_data.mask
+
+        tmp_mask.fill(0)
+        slicing = [slice(None)] * len(old_mask.shape)
+        slicing[self.slice_dimension] = slice(slice_ind_start, slice_ind_end)
+        tmp_mask[slicing] = old_mask[slicing]
+
+        problem_data.mask = tmp_mask
+        yield problem_data
+        problem_data.mask = old_mask
 
 
 def _get_noise_std(user_noise_std, problem_data):

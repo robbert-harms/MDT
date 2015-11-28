@@ -59,8 +59,8 @@ class DMRIProblemData(AbstractProblemData):
             volume_header (nifti header): The header of the nifti file to use for writing the results.
         """
         self.dwi_volume = dwi_volume
-        self.mask = mask
         self.volume_header = volume_header
+        self._mask = mask
         self._prtcl_data_dict = prtcl_data_dict
         self._observation_list = None
 
@@ -90,8 +90,28 @@ class DMRIProblemData(AbstractProblemData):
             ndarray: The list of observations
         """
         if self._observation_list is None:
-            self._observation_list = create_roi(self.dwi_volume, self.mask)
+            self._observation_list = create_roi(self.dwi_volume, self._mask)
         return self._observation_list
+
+    @property
+    def mask(self):
+        """Return the mask in use
+
+        Returns:
+            np.array: the numpy mask array
+        """
+        return self._mask
+
+    @mask.setter
+    def mask(self, new_mask):
+        """Set the new mask and update the observations list.
+
+        Args:
+            new_mask (np.array): the new mask
+        """
+        self._mask = new_mask
+        if self._observation_list is not None:
+            self._observation_list = create_roi(self.dwi_volume, self._mask)
 
 
 class DMRICompartmentModelFunction(ModelFunction):
@@ -631,6 +651,12 @@ def configure_per_model_logging(output_path):
     for handler in handlers:
         handler.output_file = output_path
 
+    logger = logging.getLogger(__name__)
+    if output_path:
+        logger.info('Started appending to the per model log file')
+    else:
+        logger.info('Stopped appending to the per model log file')
+
 
 def recursive_merge_dict(dictionary, update_dict):
     """ Recursively merge the given dictionary with the new values.
@@ -942,7 +968,7 @@ def apply_model_protocol_options(model_protocol_options, problem_data):
     return problem_data
 
 
-def model_output_exists(model, output_folder, check_sample_output=False):
+def model_output_exists(model, output_folder, check_sample_output=False, append_model_name_to_path=True):
     """Checks if the output for the given model exists in the given output folder.
 
     This will check for a given model if the output folder exists and contains a nifti file for each parameter
@@ -958,6 +984,9 @@ def model_output_exists(model, output_folder, check_sample_output=False):
         output_folder (str): the folder where the output folder of the results should reside in
         check_sample_output (boolean): if True we also check if there is a subdir 'samples' that contains sample
             results for the given model
+        append_model_name_to_path (boolean): by default we will append the name of the model to the output folder.
+            This is to be consistent with the way the model fitting routine places the results in the
+                <output folder>/<model_name> directories. Sometimes, however you might want to skip this appending.
 
     Returns:
         boolean: true if the output folder exists and contains files for all the parameters of the model.
@@ -968,10 +997,14 @@ def model_output_exists(model, output_folder, check_sample_output=False):
 
     from mdt.models.cascade import DMRICascadeModelInterface
     if isinstance(model, DMRICascadeModelInterface):
-        return all([model_output_exists(sub_model, output_folder, check_sample_output)
+        return all([model_output_exists(sub_model, output_folder, check_sample_output, append_model_name_to_path)
                     for sub_model in model.get_model_names()])
 
-    output_path = os.path.join(output_folder, model.name)
+    if append_model_name_to_path:
+        output_path = os.path.join(output_folder, model.name)
+    else:
+        output_path = output_folder
+
     parameter_names = model.get_optimization_output_param_names()
 
     if not os.path.exists(output_path):
@@ -1067,3 +1100,40 @@ class NoiseStdCalculator(object):
         Raises:
             ValueError: if we can not calculate the sigma using this calculator an exception is raised.
         """
+
+def apply_mask(volume, mask, inplace=True):
+    """Apply a mask to the given input.
+
+    Args:
+        volume (str, ndarray, list, tuple or dict): The input file path or the image itself or a list, tuple or
+            dict.
+        mask_fname (str or ndarray): The filename of the mask or the mask itself
+        inplace (boolean): if True we apply the mask in place on the volume image. If false we do not.
+
+    Returns:
+        Depending on the input either a singla image of the same size as the input image, or a list, tuple or dict.
+        This will set for all the output images the the values to zero where the mask is zero.
+    """
+    from six import string_types
+    from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
+
+    mask = autodetect_brain_mask_loader(mask).get_data()
+
+    def apply(volume, mask):
+        if isinstance(volume, string_types):
+            volume = load_dwi(volume)[0]
+        mask = mask.reshape(mask.shape + (volume.ndim - mask.ndim) * (1,))
+
+        if inplace:
+            volume *= mask
+            return volume
+        return volume * mask
+
+    if isinstance(volume, tuple):
+        return (apply(v, mask) for v in volume)
+    elif isinstance(volume, list):
+        return [apply(v, mask) for v in volume]
+    elif isinstance(volume, dict):
+        return {k: apply(v, mask) for k, v in volume.items()}
+
+    return apply(volume, mask)

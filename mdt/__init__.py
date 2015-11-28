@@ -980,42 +980,21 @@ def extract_volumes(input_volume_fname, input_protocol, output_volume_fname, out
     write_image(output_volume_fname, image_data, input_volume[1])
 
 
-def apply_mask(dwi, mask, inplace=True):
+def apply_mask(volume, mask, inplace=True):
     """Apply a mask to the given input.
 
     Args:
-        input_fname (str, ndarray, list, tuple or dict): The input file path or the image itself or a list, tuple or
+        volume (str, ndarray, list, tuple or dict): The input file path or the image itself or a list, tuple or
             dict.
-        mask_fname (str or ndarray): The filename of the mask or the mask itself
-        inplace (boolean): if True we apply the mask in place on the dwi image. If false we do not.
+        mask (str or ndarray): The filename of the mask or the mask itself
+        inplace (boolean): if True we apply the mask in place on the volume image. If false we do not.
 
     Returns:
         Depending on the input either a singla image of the same size as the input image, or a list, tuple or dict.
         This will set for all the output images the the values to zero where the mask is zero.
     """
-    from six import string_types
-    from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
-
-    mask = autodetect_brain_mask_loader(mask).get_data()
-
-    def apply(volume, mask):
-        if isinstance(volume, string_types):
-            volume = load_dwi(volume)[0]
-        mask = mask.reshape(mask.shape + (volume.ndim - mask.ndim) * (1,))
-
-        if inplace:
-            volume *= mask
-            return volume
-        return volume * mask
-
-    if isinstance(dwi, tuple):
-        return (apply(v, mask) for v in dwi)
-    elif isinstance(dwi, list):
-        return [apply(v, mask) for v in dwi]
-    elif isinstance(dwi, dict):
-        return {k: apply(v, mask) for k, v in dwi.items()}
-
-    return apply(dwi, mask)
+    import mdt.utils
+    return mdt.utils.apply_mask(volume, mask, inplace=inplace)
 
 
 def apply_mask_to_file(input_fname, mask_fname, output_fname=None):

@@ -1,6 +1,6 @@
 import numpy as np
 import pyopencl as cl
-from mot.utils import get_cl_pragma_double, get_float_type_def
+from mot.utils import get_float_type_def
 from mot.cl_routines.base import AbstractCLRoutine
 from mot.load_balance_strategies import Worker
 
@@ -96,20 +96,20 @@ class _DTIMeasuresWorker(Worker):
         write_flags = self._cl_environment.get_write_only_cl_mem_flags()
         read_flags = self._cl_environment.get_read_only_cl_mem_flags()
 
-        eigenvalues_buf = cl.Buffer(self._cl_context.context, read_flags,
+        eigenvalues_buf = cl.Buffer(self._cl_run_context.context, read_flags,
                                     hostbuf=self._eigenvalues[range_start:range_end])
-        fa_buf = cl.Buffer(self._cl_context.context, write_flags, hostbuf=self._fa_host[range_start:range_end])
-        md_buf = cl.Buffer(self._cl_context.context, write_flags, hostbuf=self._md_host[range_start:range_end])
+        fa_buf = cl.Buffer(self._cl_run_context.context, write_flags, hostbuf=self._fa_host[range_start:range_end])
+        md_buf = cl.Buffer(self._cl_run_context.context, write_flags, hostbuf=self._md_host[range_start:range_end])
         buffers = [eigenvalues_buf, fa_buf, md_buf]
 
-        self._kernel.calculate_measures(self._cl_context.queue, (int(nmr_problems), ), None, *buffers)
-        cl.enqueue_copy(self._cl_context.queue, self._fa_host[range_start:range_end], fa_buf, is_blocking=True)
-        event = cl.enqueue_copy(self._cl_context.queue, self._md_host[range_start:range_end], md_buf, is_blocking=False)
+        self._kernel.calculate_measures(self._cl_run_context.queue, (int(nmr_problems), ), None, *buffers)
+        cl.enqueue_copy(self._cl_run_context.queue, self._fa_host[range_start:range_end], fa_buf, is_blocking=True)
+        event = cl.enqueue_copy(self._cl_run_context.queue, self._md_host[range_start:range_end], md_buf, is_blocking=False)
 
         return event
 
     def _get_kernel_source(self):
-        kernel_source = get_cl_pragma_double()
+        kernel_source = ''
         kernel_source += get_float_type_def(self._double_precision)
         kernel_source += '''
             __kernel void calculate_measures(

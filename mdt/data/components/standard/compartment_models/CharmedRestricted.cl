@@ -39,7 +39,7 @@ MOT_FLOAT_TYPE cmCharmedRestricted(const MOT_FLOAT_TYPE4 g,
     for(int i = 0; i < gamma_cyl_length; i++){
         sum += gamma_cyl_weights[i] * exp(tmp1 + (tmp2 * pown(gamma_cyl_radii_sq[i], 2) * (2 - (tmp3 * gamma_cyl_radii_sq[i]))));
     }
-    return sum;
+    return (MOT_FLOAT_TYPE)sum;
 }
 
 #endif // DMRICM_CHARMEDRESTRICTED_CL
