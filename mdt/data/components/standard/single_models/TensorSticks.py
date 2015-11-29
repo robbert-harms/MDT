@@ -1,7 +1,7 @@
 from mdt.components_loader import CompartmentModelsLoader
-from mdt.models.single import DMRISingleModelBuilder, DMRISingleModel
-from mot.evaluation_models import SumOfSquares
-from mot.signal_noise_models import JohnsonSignalNoise
+from mdt.models.single import DMRISingleModel
+from mot.model_building.evaluation_models import SumOfSquares
+from mot.model_building.signal_noise_models import JohnsonSignalNoise
 from mot.trees import CompartmentModelTree
 
 __author__ = 'Robbert Harms'
