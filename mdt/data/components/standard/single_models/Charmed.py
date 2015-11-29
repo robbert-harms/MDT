@@ -1,7 +1,7 @@
 from mdt.components_loader import CompartmentModelsLoader
-from mdt.models.single import DMRISingleModelBuilder, DMRISingleModel
-from mot.evaluation_models import SumOfSquares, GaussianEvaluationModel
-from mot.parameter_functions.transformations import SinSqrClampTransform
+from mdt.models.single import DMRISingleModel
+from mot.evaluation_models import GaussianEvaluationModel
+from mot.model_building.parameter_functions.transformations import SinSqrClampTransform
 from mot.signal_noise_models import JohnsonSignalNoise
 from mot.trees import CompartmentModelTree
 

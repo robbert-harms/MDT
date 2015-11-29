@@ -1,9 +1,10 @@
 import numpy as np
+
 from mot.base import CLDataType, ProtocolParameter, FreeParameter, ModelDataParameter
-from mot.parameter_functions.priors import AbsSinPrior, AbsSinHalfPrior
-from mot.parameter_functions.proposals import GaussianProposal
-from mot.parameter_functions.sample_statistics import CircularGaussianPSS
-from mot.parameter_functions.transformations import ClampTransform, \
+from mot.model_building.parameter_functions.priors import AbsSinPrior, AbsSinHalfPrior
+from mot.model_building.parameter_functions.proposals import GaussianProposal
+from mot.model_building.parameter_functions.sample_statistics import CircularGaussianPSS
+from mot.model_building.parameter_functions.transformations import ClampTransform, \
     AbsModPiTransform, SinSqrClampTransform, CosSqrClampTransform
 
 __author__ = 'Robbert Harms'

@@ -1,6 +1,6 @@
 from mdt.components_loader import CompartmentModelsLoader
 from mdt.models.single import DMRISingleModelBuilder
-from mot.parameter_functions.dependencies import SimpleAssignment
+from mot.model_building.parameter_functions.dependencies import SimpleAssignment
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"

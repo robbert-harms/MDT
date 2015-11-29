@@ -1,11 +1,11 @@
 from pkg_resources import resource_filename
+
 from mdt.model_parameters import get_parameter
 from mdt.utils import DMRICompartmentModelFunction
 from mdt.cl_routines.mapping.dti_measures import DTIMeasures
 from mdt.utils import eigen_vectors_from_tensor
 from mot import runtime_configuration
-from mot.parameter_functions.transformations import SinSqrClampDependentTransform
-import numpy as np
+from mot.model_building.parameter_functions.transformations import SinSqrClampDependentTransform
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"

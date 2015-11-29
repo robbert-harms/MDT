@@ -1,7 +1,8 @@
-from mot.cl_functions import Scalar
-from mot.parameter_functions.proposals import GaussianProposal
-from mot.parameter_functions.transformations import ClampTransform
 import numpy as np
+
+from mot.cl_functions import Scalar
+from mot.model_building.parameter_functions.proposals import GaussianProposal
+from mot.model_building.parameter_functions.transformations import ClampTransform
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"

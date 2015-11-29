@@ -1,4 +1,5 @@
 import numpy as np
+
 from mdt import utils
 from mdt.models.base import DMRIOptimizable
 from mot import runtime_configuration
@@ -8,9 +9,9 @@ from mdt.utils import restore_volumes, create_roi
 from mdt.model_protocol_problem import MissingColumns, InsufficientShells
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
 from mot.evaluation_models import GaussianEvaluationModel
+from mot.model_building.parameter_functions.dependencies import WeightSumToOneRule
 from mot.models.interfaces import SmoothableModelInterface, PerturbationModelInterface
 from mot.models.model_builders import SampleModelBuilder
-from mot.parameter_functions.dependencies import WeightSumToOneRule
 from mot.trees import CompartmentModelTree
 from mot.utils import set_cl_compatible_data_type
 

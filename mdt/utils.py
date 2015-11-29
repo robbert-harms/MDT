@@ -17,6 +17,7 @@ import pkg_resources
 from scipy.special import jnp_zeros
 import six
 from mdt import load_dwi
+from mdt.IO import Nifti
 
 from mdt.components_loader import get_model
 from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
@@ -1137,3 +1138,114 @@ def apply_mask(volume, mask, inplace=True):
         return {k: apply(v, mask) for k, v in volume.items()}
 
     return apply(volume, mask)
+
+
+class ModelFitStrategy(object):
+
+    def __init__(self):
+        self._logger = logging.getLogger(__name__)
+
+    def run(self, model, problem_data, output_path, optimizer, recalculate):
+        """Optimize the given dataset using the logistics the subclass.
+
+        Subclasses of this base class can implement all kind of logic to divide a large dataset in smaller chunks
+        (for example slice by slice) and run the optimizer on each slice separately and join the results afterwards.
+
+        Args:
+             model (AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize.
+             problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
+             output_folder (string): The full path to the folder where to place the output
+             optimizer (AbstractOptimizer): The optimization routine to use.
+             recalculate (boolean): If we want to recalculate the results if they are already present.
+
+        Returns:
+            dict: the results as a dictionary of roi lists
+        """
+
+    def _write_output(self, result_arrays, mask, output_path, volume_header):
+        volume_maps = restore_volumes(result_arrays, mask)
+        Nifti.write_volume_maps(volume_maps, output_path, volume_header)
+
+
+class ModelChunksFitting(ModelFitStrategy):
+    """This class is a baseclass for all model slice fitting strategies that fit the data in chunks.
+
+    These chunks can be slice by slice, or be a more elaborate scheme. We expect implementing classes to put their
+    results in subdirectories with in all subdirectories all the result maps (calculated for that chunk) along with a
+    file named '__mask.nii.gz' containing the used mask for that chunk. We will use that mask to assemble all the data
+    again (if you use the routines from this class).
+
+    """
+
+    def _prepare_chunk_dir(self, chunk_dir, recalculate):
+        """Prepare the directory for a new chunk.
+
+        Args:
+            chunk_dir (str): the full path to the chunks directory.
+            recalculate (boolean): if true and the data exists, we throw everything away to start over.
+        """
+        if recalculate:
+            if os.path.exists(chunk_dir):
+                shutil.rmtree(chunk_dir)
+
+        if not os.path.exists(chunk_dir):
+            os.makedirs(chunk_dir)
+
+    def _join_chunks(self, output_dir, chunks_dir):
+        """Joins all chunks by joining all the items in the subdirectory of the given chunks_dir.
+
+        This expects there to be a file named '__mask.nii.gz' in every sub dir. This file should contain
+        a mask for exactly that slice/data calculated in that directory. We will use this mask to
+        construct the entire dataset.
+
+        Args:
+            output_dir (str): where to place the concatenated output
+            chunks_dir (str): the directory with the slices/calculated chunks
+
+        Returns:
+            dict: the results as a dictionary of roi lists
+        """
+        sub_dir = os.listdir(chunks_dir)[0]
+        file_paths = glob.glob(os.path.join(chunks_dir, sub_dir, '*.nii*'))
+        file_paths = filter(lambda d: '__mask' not in d, file_paths)
+        map_names = map(lambda d: split_image_path(d)[1], file_paths)
+        results = {map_name: self._join_chunks_of_map(output_dir, chunks_dir, map_name) for map_name in map_names}
+        shutil.rmtree(chunks_dir)
+        return results
+
+    def _join_chunks_of_map(self, output_dir, chunks_dir, map_name):
+        """Subroutine of _join_chunks, this joines the chunks of a single map over all directories
+
+        Args:
+            output_dir (str): where to place the concatenated output
+            chunks_dir (str): the directory with the slices/calculated chunks
+            map_name (str): the name of the map we want to load over all directories
+
+        Returns:
+            np.array: the values of this single map in a large array
+        """
+        results = None
+        mask_so_far = None
+        volume_header = None
+
+        for sub_dir in os.listdir(chunks_dir):
+            sub_results = nib.load(os.path.join(chunks_dir, sub_dir, map_name + '.nii.gz')).get_data()
+
+            mask_nib = nib.load(os.path.join(chunks_dir, sub_dir, '__mask.nii.gz'))
+            mask = mask_nib.get_data().astype(np.bool)
+
+            if volume_header is None:
+                volume_header = mask_nib.get_header()
+
+            if results is None:
+                results = sub_results
+                mask_so_far = mask
+            else:
+                mask_so_far += mask
+                sub_results = apply_mask(sub_results, mask_so_far)
+                results += sub_results
+
+        Nifti.write_volume_maps({map_name: results}, output_dir, volume_header)
+        return create_roi(results, mask_so_far)
+
+

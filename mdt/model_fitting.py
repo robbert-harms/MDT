@@ -4,21 +4,17 @@ import os
 import timeit
 import time
 import collections
-import shutil
-from contextlib import contextmanager
-import numpy as np
 
 from six import string_types
 import nibabel as nib
-from mdt.models.cascade import DMRICascadeModelInterface
 
+from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.protocols import write_protocol
-from mdt.components_loader import get_model, NoiseSTDCalculatorsLoader
+from mdt.components_loader import get_model, NoiseSTDCalculatorsLoader, FitStrategies
 from mdt import __version__
 from mdt.IO import Nifti
-from mdt.utils import create_roi, configure_per_model_logging, restore_volumes, \
-    load_problem_data, ProtocolProblemError, MetaOptimizerBuilder, get_cl_devices, \
-    get_model_config, apply_model_protocol_options, model_output_exists, split_image_path, apply_mask
+from mdt.utils import create_roi, configure_per_model_logging, load_problem_data, ProtocolProblemError, MetaOptimizerBuilder, get_cl_devices, \
+    get_model_config, apply_model_protocol_options, model_output_exists, split_image_path
 from mdt.batch_utils import batch_profile_factory
 from mot import runtime_configuration
 from mot.load_balance_strategies import EvenDistribution
@@ -343,7 +339,7 @@ class SingleModelFit(object):
         self.recalculate = recalculate
         self._output_path = os.path.join(self._output_folder, self._model.name)
         self._logger = logging.getLogger(__name__)
-        self.model_fit_slice_runner = SliceBySlice()
+        self.model_fit_slice_runner = FitStrategies().load('AllSlicesAtOnce')
 
         if not self._model.is_protocol_sufficient(problem_data.protocol):
             raise ProtocolProblemError(
@@ -389,188 +385,9 @@ class SingleModelFit(object):
     def _write_protocol(self):
         write_protocol(self._problem_data.protocol, os.path.join(self._output_path, 'used_protocol.prtcl'))
 
+#todo a problem arises when we want to optimize a single slice, while the model is already  initialized with whole brain results
 
-class ModelFitSliceRunner(object):
-
-    def __init__(self):
-        self._logger = logging.getLogger(__name__)
-
-    def run(self, model, problem_data, output_path, optimizer, recalculate):
-        """Optimize the given dataset using the logistics the subclass.
-
-        Subclasses of this base class can implement all kind of logic to divide a large dataset in smaller chunks
-        (for example slice by slice) and run the optimizer on each slice separately and join the results afterwards.
-
-        Args:
-             model (AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize.
-             problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
-             output_folder (string): The full path to the folder where to place the output
-             optimizer (AbstractOptimizer): The optimization routine to use.
-             recalculate (boolean): If we want to recalculate the results if they are already present.
-
-        Returns:
-            dict: the results as a dictionary of roi lists
-        """
-
-    def _write_output(self, result_arrays, mask, output_path, volume_header):
-        volume_maps = restore_volumes(result_arrays, mask)
-        Nifti.write_volume_maps(volume_maps, output_path, volume_header)
-
-
-class AllSlicesAtOnce(ModelFitSliceRunner):
-
-    def run(self, model, problem_data, output_path, optimizer, recalculate):
-        """Run all slices at once."""
-        model.set_problem_data(problem_data)
-        results, extra_output = optimizer.minimize(model, full_output=True)
-        results.update(extra_output)
-        self._write_output(results, problem_data.mask, output_path, problem_data.volume_header)
-        return results
-
-
-class SliceBySlice(ModelFitSliceRunner):
-
-    def __init__(self, slice_dimension=2, slice_width=1):
-        """Optimize a given dataset slice by slice.
-
-        Args:
-            slice_dimension: in which dimension to slice the dataset
-            slice_width: the width of the slices in that dimension
-
-        Attributes:
-            slice_dimension: in which dimension to slice the dataset
-            slice_width: the width of the slices in that dimension
-        """
-        super(SliceBySlice, self).__init__()
-        self.slice_dimension = slice_dimension
-        self.slice_width = slice_width
-
-    def run(self, model, problem_data, output_path, optimizer, recalculate):
-        """Optimize slice by slice"""
-        mask = problem_data.mask
-        tmp_mask = np.zeros_like(mask)
-        slicing = [slice(None)] * len(mask.shape)
-        dimension_length = mask.shape[self.slice_dimension]
-        slices_dir = os.path.join(output_path, 'slices')
-        self._prepare_slice_dir(slices_dir, recalculate)
-
-        for ind_start in range(0, dimension_length, self.slice_width):
-            ind_end = min(dimension_length, ind_start + self.slice_width)
-            slicing[self.slice_dimension] = slice(ind_start, ind_end)
-
-            if mask[slicing].any():
-                with self._mask_context(problem_data, tmp_mask, ind_start, ind_end) as slice_problem_data:
-                    self._run_on_slice(model, slice_problem_data, slices_dir, optimizer, recalculate,
-                                       ind_start, ind_end)
-
-        return self._join_slices(output_path, slices_dir)
-
-    def _join_slices(self, output_dir, slices_dir):
-        """Joins all slices by joining all the items in the subdirectory of the given slices_dir.
-
-        This expects there to be a file named '__slice_mask.nii.gz' in every sub dir. This file should contain
-        a mask for exactly that slice/data calculated in that directory. We will use this mask to
-        construct the entire dataset.
-
-        Args:
-            output_dir (str): where to place the concatenated output
-            slices_dir (str): the directory with the slices/calculated chunks
-
-        Returns:
-            dict: the results as a dictionary of roi lists
-        """
-        sub_dir = os.listdir(slices_dir)[0]
-        file_paths = glob.glob(os.path.join(slices_dir, sub_dir, '*.nii*'))
-        file_paths = filter(lambda d: '__slice_mask' not in d, file_paths)
-        map_names = map(lambda d: split_image_path(d)[1], file_paths)
-        results = {map_name: self._join_slices_of_map(output_dir, slices_dir, map_name) for map_name in map_names}
-        shutil.rmtree(slices_dir)
-        return results
-
-    def _join_slices_of_map(self, output_dir, slices_dir, map_name):
-        """Subroutine of _join_slices, this joines the slices of a single map over all directories
-
-        Args:
-            output_dir (str): where to place the concatenated output
-            slices_dir (str): the directory with the slices/calculated chunks
-            map_name (str): the name of the map we want to load over all directories
-
-        Returns:
-            np.array: the values of this single map in a large array
-        """
-        results = None
-        mask_so_far = None
-        volume_header = None
-
-        for sub_dir in os.listdir(slices_dir):
-            sub_results = nib.load(os.path.join(slices_dir, sub_dir, map_name + '.nii.gz')).get_data()
-
-            mask_nib = nib.load(os.path.join(slices_dir, sub_dir, '__slice_mask.nii.gz'))
-            mask = mask_nib.get_data().astype(np.bool)
-
-            if volume_header is None:
-                volume_header = mask_nib.get_header()
-
-            if results is None:
-                results = sub_results
-                mask_so_far = mask
-            else:
-                mask_so_far += mask
-                sub_results = apply_mask(sub_results, mask_so_far)
-                results += sub_results
-
-        Nifti.write_volume_maps({map_name: results}, output_dir, volume_header)
-        return create_roi(results, mask_so_far)
-
-    def _prepare_slice_dir(self, slice_dir, recalculate):
-        if recalculate:
-            if os.path.exists(slice_dir):
-                shutil.rmtree(slice_dir)
-
-        if not os.path.exists(slice_dir):
-            os.makedirs(slice_dir)
-
-    def _run_on_slice(self, model, problem_data, slices_dir, optimizer, recalculate, ind_start, ind_end):
-        slice_dir = os.path.join(slices_dir, '{dimension}_{start}_{end}'.format(
-            dimension=self.slice_dimension, start=ind_start, end=ind_end))
-
-        model.set_problem_data(problem_data)
-
-        if recalculate and os.path.exists(slice_dir):
-            shutil.rmtree(slice_dir)
-
-        if model_output_exists(model, slice_dir, append_model_name_to_path=False):
-            self._logger.info('Skipping slices {} to {}, they already exist.'.format(ind_start, ind_end))
-        else:
-            self._logger.info('Computing slices {} to {}'.format(ind_start, ind_end))
-            results, extra_output = optimizer.minimize(model, full_output=True)
-            results.update(extra_output)
-            results.update({'__slice_mask': create_roi(problem_data.mask, problem_data.mask)})
-            self._write_output(results, problem_data.mask, slice_dir, problem_data.volume_header)
-
-    @contextmanager
-    def _mask_context(self, problem_data, tmp_mask, slice_ind_start, slice_ind_end):
-        """Create a context in which the mask in the problem data is set to a single slice mask.
-
-        Args:
-            problem_data: the problem data to set with the new mask
-            tmp_mask: the temporary mask array to use. We could have created the tmp mask in this routine,
-                but that would mean we have to do it for every new slice. Faster is to give it and this routine will
-                set it to 0.
-            slice_ind_start, the start of the slice
-            slice_ind_end: the end of the slice
-        """
-        old_mask = problem_data.mask
-
-        tmp_mask.fill(0)
-        slicing = [slice(None)] * len(old_mask.shape)
-        slicing[self.slice_dimension] = slice(slice_ind_start, slice_ind_end)
-        tmp_mask[slicing] = old_mask[slicing]
-
-        problem_data.mask = tmp_mask
-        yield problem_data
-        problem_data.mask = old_mask
-
+# this holds for the initial_parameters function in model_builders and for problems_var_data
 
 def _get_noise_std(user_noise_std, problem_data):
     logger = logging.getLogger(__name__)
