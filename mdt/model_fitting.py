@@ -386,8 +386,9 @@ class SingleModelFit(object):
         write_protocol(self._problem_data.protocol, os.path.join(self._output_path, 'used_protocol.prtcl'))
 
 #todo a problem arises when we want to optimize a single slice, while the model is already  initialized with whole brain results
-
 # this holds for the initial_parameters function in model_builders and for problems_var_data
+
+#todo slice fit strategy to users home folder
 
 def _get_noise_std(user_noise_std, problem_data):
     logger = logging.getLogger(__name__)

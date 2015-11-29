@@ -10,8 +10,8 @@ from mdt.model_protocol_problem import MissingColumns, InsufficientShells
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
 from mot.model_building.evaluation_models import GaussianEvaluationModel
 from mot.model_building.parameter_functions.dependencies import WeightSumToOneRule
-from mot.models.models import SmoothableModelInterface, PerturbationModelInterface
-from mot.models.model_builders import SampleModelBuilder
+from mot.models import SmoothableModelInterface, PerturbationModelInterface
+from mot.model_building.model_builders import SampleModelBuilder
 from mot.trees import CompartmentModelTree
 from mot.utils import set_cl_compatible_data_type
 
