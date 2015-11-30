@@ -10,7 +10,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.4.2'
+VERSION = '0.4.3'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')
@@ -1018,7 +1018,7 @@ def apply_mask_to_file(input_fname, mask_fname, output_fname=None):
     write_image(output_fname, masked, image_info[1])
 
 
-def initialize_user_settings(overwrite=True):
+def initialize_user_settings(pass_if_exists=True, keep_config=True):
     """Initializes the user settings folder using a skeleton.
 
     This will create all the necessary directories for adding components to MDT. It will also create a basic
@@ -1027,13 +1027,15 @@ def initialize_user_settings(overwrite=True):
     Each MDT version will have it's own sub-directory in the choosen folder.
 
     Args:
-        overwrite (boolean): if the folder for this version already exists, do we want to overwrite yes or no.
+        pass_if_exists (boolean): if the folder for this version already exists, do we want to pass_if_exists yes or no.
+        keep_config (boolean): if the folder for this version already exists, do we want to keep the config
+            file yes or no. This only holds for the config file.
 
     Returns:
         the path the user settings skeleton was written to
     """
     from mdt.utils import initialize_user_settings
-    return initialize_user_settings(overwrite)
+    return initialize_user_settings(pass_if_exists, keep_config)
 
 
 @contextmanager
@@ -1113,20 +1115,14 @@ def set_data_type(maps_dict, numpy_data_type=np.float32):
     return maps_dict
 
 
-def get_config_dir(for_this_version=True):
+def get_config_dir():
     """Get the location of the components.
-
-    Args:
-        for_this_version (boolean): if True we return the config dir for this version, if False we return the
-            general config dir.
 
     Return:
         str: the path to the components
     """
     import os
-    if for_this_version:
-        return os.path.join(os.path.expanduser("~"), '.mdt', __version__)
-    return os.path.join(os.path.expanduser("~"), '.mdt')
+    return os.path.join(os.path.expanduser("~"), '.mdt', __version__)
 
 
 def recalculate_ics(model, dwi_info, protocol, brain_mask, data_dir, sigma, output_dir=None, sigma_param_name=None):

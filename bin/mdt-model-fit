@@ -83,7 +83,7 @@ if __name__ == '__main__':
 
         return parser
 
-    mdt.initialize_user_settings(False)
+    mdt.initialize_user_settings(pass_if_exists=True)
 
     parser = get_arg_parser()
     argcomplete.autocomplete(parser)

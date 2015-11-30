@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import copy
 import glob
 import re
@@ -548,7 +549,7 @@ def eigen_vectors_from_tensor(theta, phi, psi):
         convert_theta_phi_psi(theta, phi, psi)
 
 
-def initialize_user_settings(overwrite=True):
+def initialize_user_settings(pass_if_exists=True, keep_config=True):
     """Initializes the user settings folder using a skeleton.
 
     This will create all the necessary directories for adding components to MDT. It will also create a basic
@@ -558,57 +559,72 @@ def initialize_user_settings(overwrite=True):
     Each MDT version will have it's own sub-directory in the config directory.
 
     Args:
-        overwrite (boolean): if the folder for this version already exists, do we want to overwrite yes or no.
+        pass_if_exists (boolean): if the folder for this version already exists, we might do nothing (if True)
+        keep_config (boolean): if the folder for this version already exists, do we want to pass_if_exists the
+            config file yes or no. This only holds for the config file.
 
     Returns:
         the path the user settings skeleton was written to
     """
     from mdt import get_config_dir
     path = get_config_dir()
-
-    base_path = get_config_dir(False)
+    base_path = os.path.dirname(get_config_dir())
 
     if not os.path.exists(base_path):
-        os.mkdir(base_path)
+        os.makedirs(base_path)
 
-    previous_versions = list(reversed(sorted(os.listdir(base_path))))
-    use_previous_version = True
-
-    if previous_versions:
-        previous_version = previous_versions[0]
+    @contextmanager
+    def tmp_save_previous_version():
+        previous_versions = list(reversed(sorted(os.listdir(base_path))))
         tmp_dir = tempfile.mkdtemp()
 
-        if os.path.exists(os.path.join(base_path, previous_version, 'components', 'user')):
-            shutil.copytree(os.path.join(base_path, previous_version, 'components', 'user'), tmp_dir + '/components/')
-        else:
-            use_previous_version = False
+        if previous_versions:
+            previous_version = previous_versions[0]
 
-    if os.path.exists(path):
-        if overwrite:
-            shutil.rmtree(path)
-        else:
-            if previous_versions:
-                shutil.rmtree(tmp_dir)
-            return path
+            if os.path.exists(os.path.join(base_path, previous_version, 'components', 'user')):
+                shutil.copytree(os.path.join(base_path, previous_version, 'components', 'user'),
+                                tmp_dir + '/components/')
 
-    cache_path = pkg_resources.resource_filename('mdt', 'data/components')
-    distutils.dir_util.copy_tree(cache_path, os.path.join(path, 'components'))
+            if os.path.isfile(os.path.join(base_path, previous_version, 'mdt.conf')):
+                shutil.copy(os.path.join(base_path, previous_version, 'mdt.conf'), tmp_dir + '/mdt.conf')
 
-    cache_path = pkg_resources.resource_filename('mdt', 'data/mdt.conf')
-    shutil.copy(cache_path, path)
-
-    if previous_versions:
-        if use_previous_version:
-            if os.path.exists(os.path.join(path, 'components', 'user')):
-                shutil.rmtree(os.path.join(path, 'components', 'user'))
-            shutil.move(tmp_dir + '/components/', os.path.join(path, 'components', 'user'))
+        yield tmp_dir
         shutil.rmtree(tmp_dir)
-    else:
-        os.mkdir(os.path.join(path, 'components', 'user'))
-        items = os.listdir(os.path.join(path, 'components', 'standard'))
-        for item in items:
-            if os.path.isdir(os.path.join(path, 'components', 'standard', item)):
-                os.mkdir(os.path.join(path, 'components', 'user', item))
+
+    def init_from_mdt():
+        cache_path = pkg_resources.resource_filename('mdt', 'data/components')
+        distutils.dir_util.copy_tree(cache_path, os.path.join(path, 'components'))
+
+        cache_path = pkg_resources.resource_filename('mdt', 'data/mdt.conf')
+        shutil.copy(cache_path, path)
+
+        if not os.path.exists(path + '/components/user/'):
+            os.makedirs(path + '/components/user/')
+
+    def copy_user_components(tmp_dir):
+        if os.path.exists(tmp_dir + '/components/'):
+            shutil.rmtree(os.path.join(path, 'components', 'user'), ignore_errors=True)
+            shutil.move(tmp_dir + '/components/', os.path.join(path, 'components', 'user'))
+
+    def copy_config(tmp_dir):
+        if os.path.exists(tmp_dir + '/mdt.conf'):
+            if os.path.exists(path + '/mdt.conf'):
+                os.remove(path + '/mdt.conf')
+            shutil.move(tmp_dir + '/mdt.conf', path + '/mdt.conf')
+
+    with tmp_save_previous_version() as tmp_dir:
+        if pass_if_exists:
+            if os.path.exists(path):
+                return path
+        else:
+            if os.path.exists(path):
+                shutil.rmtree(path)
+
+            init_from_mdt()
+            copy_user_components(tmp_dir)
+
+            if keep_config:
+                copy_config(tmp_dir)
 
     return path
 

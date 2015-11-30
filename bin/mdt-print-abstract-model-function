@@ -26,7 +26,7 @@ if __name__ == '__main__':
         parser.add_argument('model', metavar='model', choices=mdt.get_models_list(), help='the model to print')
         return parser
 
-    mdt.initialize_user_settings(False)
+    mdt.initialize_user_settings(pass_if_exists=True)
 
     parser = get_arg_parser()
     argcomplete.autocomplete(parser)
