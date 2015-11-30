@@ -103,6 +103,10 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
             grad_dev += np.eye(3).flatten(order='F')
             grad_dev = set_cl_compatible_data_type(grad_dev, CLDataType.from_string('MOT_FLOAT_TYPE*'),
                                                    self._double_precision)
+
+            if self.problems_to_analyze is not None:
+                grad_dev = grad_dev[self.problems_to_analyze, ...]
+
             var_data_dict.update({'gradient_deviations': grad_dev})
 
         return var_data_dict

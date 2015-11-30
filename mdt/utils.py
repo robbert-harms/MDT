@@ -1143,6 +1143,10 @@ def apply_mask(volume, mask, inplace=True):
 class ModelFitStrategy(object):
 
     def __init__(self):
+        """These model fit strategies use the problems_to_analyze attribute of the MOT model builder.
+
+        That attribute arranges that only a selection of the problems are analyzed instead of all of them.
+        """
         self._logger = logging.getLogger(__name__)
 
     def run(self, model, problem_data, output_path, optimizer, recalculate):
@@ -1163,8 +1167,15 @@ class ModelFitStrategy(object):
         """
 
     def _write_output(self, result_arrays, mask, output_path, volume_header):
+        """Write the result arrays to the given output folder"""
         volume_maps = restore_volumes(result_arrays, mask)
         Nifti.write_volume_maps(volume_maps, output_path, volume_header)
+
+    def _get_index_matrix(self, mask):
+        """Get a matrix with all the indices of the given mask."""
+        roi_length = np.count_nonzero(mask)
+        roi = np.arange(0, roi_length)
+        return restore_volumes(roi, mask, with_volume_dim=False)
 
 
 class ModelChunksFitting(ModelFitStrategy):
@@ -1209,11 +1220,11 @@ class ModelChunksFitting(ModelFitStrategy):
         file_paths = glob.glob(os.path.join(chunks_dir, sub_dir, '*.nii*'))
         file_paths = filter(lambda d: '__mask' not in d, file_paths)
         map_names = map(lambda d: split_image_path(d)[1], file_paths)
-        results = {map_name: self._join_chunks_of_map(output_dir, chunks_dir, map_name) for map_name in map_names}
+        results = {map_name: self._join_chunks_of_parameter(output_dir, chunks_dir, map_name) for map_name in map_names}
         shutil.rmtree(chunks_dir)
         return results
 
-    def _join_chunks_of_map(self, output_dir, chunks_dir, map_name):
+    def _join_chunks_of_parameter(self, output_dir, chunks_dir, map_name):
         """Subroutine of _join_chunks, this joines the chunks of a single map over all directories
 
         Args:

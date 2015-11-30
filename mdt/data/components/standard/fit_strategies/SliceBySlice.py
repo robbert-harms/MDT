@@ -2,7 +2,7 @@ import os
 import numpy as np
 import shutil
 from contextlib import contextmanager
-from mdt.utils import model_output_exists, create_roi, ModelChunksFitting
+from mdt.utils import model_output_exists, create_roi, ModelChunksFitting, restore_volumes
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-11-29"
@@ -35,14 +35,18 @@ class SliceBySlice(ModelChunksFitting):
         """Optimize slice by slice"""
         mask = problem_data.mask
         tmp_mask = np.zeros_like(mask)
+        indices = self._get_index_matrix(problem_data.mask)
         slices_dir = os.path.join(output_path, 'slices')
         self._prepare_chunk_dir(slices_dir, recalculate)
 
         for ind_start, ind_end, slicer in self._slicing_generator(mask):
-            if mask[slicer].any():
-                with self._mask_context(problem_data, tmp_mask, ind_start, ind_end) as slice_problem_data:
-                    self._run_on_slice(model, slice_problem_data, slices_dir, optimizer, recalculate,
-                                       ind_start, ind_end)
+            tmp_mask.fill(0)
+            tmp_mask[slicer] = mask[slicer]
+
+            if tmp_mask.any():
+                with self._selected_indices(model, indices, mask, slicer):
+                    self._run_on_slice(model, problem_data, slices_dir, optimizer, recalculate,
+                                       ind_start, ind_end, tmp_mask)
 
         return self._join_chunks(output_path, slices_dir)
 
@@ -56,11 +60,9 @@ class SliceBySlice(ModelChunksFitting):
 
             yield ind_start, ind_end, slicer
 
-    def _run_on_slice(self, model, problem_data, slices_dir, optimizer, recalculate, ind_start, ind_end):
+    def _run_on_slice(self, model, problem_data, slices_dir, optimizer, recalculate, ind_start, ind_end, tmp_mask):
         slice_dir = os.path.join(slices_dir, '{dimension}_{start}_{end}'.format(
             dimension=self.slice_dimension, start=ind_start, end=ind_end))
-
-        model.set_problem_data(problem_data)
 
         if recalculate and os.path.exists(slice_dir):
             shutil.rmtree(slice_dir)
@@ -71,28 +73,24 @@ class SliceBySlice(ModelChunksFitting):
             self._logger.info('Computing slices {} to {}'.format(ind_start, ind_end))
             results, extra_output = optimizer.minimize(model, full_output=True)
             results.update(extra_output)
-            results.update({'__mask': create_roi(problem_data.mask, problem_data.mask)})
-            self._write_output(results, problem_data.mask, slice_dir, problem_data.volume_header)
+            results.update({'__mask': create_roi(tmp_mask, tmp_mask)})
+            self._write_output(results, tmp_mask, slice_dir, problem_data.volume_header)
 
     @contextmanager
-    def _mask_context(self, problem_data, tmp_mask, slice_ind_start, slice_ind_end):
-        """Create a context in which the mask in the problem data is set to a single slice mask.
+    def _selected_indices(self, model, indices, mask, slicer):
+        """Create a context in which problems_to_analyze attribute of the models is set to the selected indices.
 
         Args:
-            problem_data: the problem data to set with the new mask
-            tmp_mask: the temporary mask array to use. We could have created the tmp mask in this routine,
-                but that would mean we have to do it for every new slice. Faster is to give it and this routine will
-                set it to 0.
-            slice_ind_start, the start of the slice
-            slice_ind_end: the end of the slice
+            model: the model to which to set the problems_to_analyze
+            indices (ndarray): the volume with the indices
+            mask (ndarray): the mask with the selected voxels
+            slicer (list of slices): the slices we want to select
         """
-        old_mask = problem_data.mask
+        old_setting = model.problems_to_analyze
 
-        tmp_mask.fill(0)
-        slicing = [slice(None)] * len(old_mask.shape)
-        slicing[self.slice_dimension] = slice(slice_ind_start, slice_ind_end)
-        tmp_mask[slicing] = old_mask[slicing]
+        masked = np.nonzero(mask[slicer].flatten())[0]
+        selected_indices = indices[slicer].flatten()[masked]
 
-        problem_data.mask = tmp_mask
-        yield problem_data
-        problem_data.mask = old_mask
+        model.problems_to_analyze = selected_indices
+        yield
+        model.problems_to_analyze = old_setting

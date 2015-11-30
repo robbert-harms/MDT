@@ -339,7 +339,7 @@ class SingleModelFit(object):
         self.recalculate = recalculate
         self._output_path = os.path.join(self._output_folder, self._model.name)
         self._logger = logging.getLogger(__name__)
-        self.model_fit_slice_runner = FitStrategies().load('AllSlicesAtOnce')
+        self.model_fit_slice_runner = FitStrategies().load('SliceBySlice')
 
         if not self._model.is_protocol_sufficient(problem_data.protocol):
             raise ProtocolProblemError(
@@ -349,7 +349,7 @@ class SingleModelFit(object):
     def run(self):
         """Fits a single model.
 
-        This will use the current ModelFitSliceRunner to do the actual optimization.
+        This will use the current ModelFitStrategy to do the actual optimization.
         """
         configure_per_model_logging(self._output_path)
 
