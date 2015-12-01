@@ -64,13 +64,13 @@ if __name__ == '__main__':
             completer = FilesCompleter(['nii', 'gz', 'hdr', 'img'], directories=False)
 
         parser.add_argument('--recalculate', dest='recalculate', action='store_true',
-                            help="Recalculate the model(s) if the output exists. Default.")
+                            help="Recalculate the model(s) if the output exists. (default)")
         parser.add_argument('--no-recalculate', dest='recalculate', action='store_false',
                             help="Do not recalculate the model(s) if the output exists.")
         parser.set_defaults(recalculate=True)
 
         parser.add_argument('--only-recalculate-last', dest='only_recalculate_last', action='store_true',
-                            help="Only recalculate the last model in a cascade. Default.")
+                            help="Only recalculate the last model in a cascade. (default)")
         parser.add_argument('--recalculate-all', dest='only_recalculate_last', action='store_false',
                             help="Recalculate all models in a cascade.")
         parser.set_defaults(only_recalculate_last=True)
@@ -78,7 +78,7 @@ if __name__ == '__main__':
         parser.add_argument('--double', dest='double_precision', action='store_true',
                             help="Calculate in double precision.")
         parser.add_argument('--float', dest='double_precision', action='store_false',
-                            help="Calculate in single precision. Default.")
+                            help="Calculate in single precision. (default)")
         parser.set_defaults(double_precision=False)
 
         return parser

@@ -465,7 +465,7 @@ def concatenate_mri_sets(items, output_volume_fname, output_protocol_fname, over
 
 
 def dwi_merge(dwi_images, output_fname, sort=True):
-    """ Merge a list of DWI images on the 4th dimension. Writes the result as a file.
+    """Merge a list of DWI images on the 4th dimension. Writes the result as a file.
 
     Please note that by default this will sort the list of DWI names based on a natural key sort. This is
     the most convenient option in the case of globbing files. You can disable this behaviour by setting the keyword
@@ -480,6 +480,9 @@ def dwi_merge(dwi_images, output_fname, sort=True):
         output_fname (str): the output filename
         sort (boolean): if true we natural sort the list of DWI images before we merge them. If false we don't.
             The default is True.
+
+    Returns:
+        list of str: the list with the filenames in the order of concatenation.
     """
     import re
     import nibabel as nib
@@ -505,6 +508,8 @@ def dwi_merge(dwi_images, output_fname, sort=True):
 
     combined_image = np.concatenate(images, axis=3)
     nib.Nifti1Image(combined_image, None, header).to_filename(output_fname)
+
+    return dwi_images
 
 
 def view_results_slice(data,
