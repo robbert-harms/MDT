@@ -153,7 +153,9 @@ def sample_model(model, dwi_info, protocol, brain_mask, output_folder,
         the full chain of the optimization
     """
     import mdt.utils
+    import collections
     from mot import runtime_configuration
+    from mot.load_balance_strategies import EvenDistribution
     from mdt.models.cascade import DMRICascadeModelInterface
     from mot.cl_routines.sampling.metropolis_hastings import MetropolisHastings
     from mdt.model_sampling import sample_single_model
@@ -173,15 +175,24 @@ def sample_model(model, dwi_info, protocol, brain_mask, output_folder,
     if isinstance(model, DMRICascadeModelInterface):
         raise ValueError('The function \'sample_model()\' does not accept cascade models.')
 
-    if cl_device_ind is not None:
-        runtime_configuration.runtime_config['cl_environments'] = [get_cl_devices()[cl_device_ind]]
+    cl_device_indices = None
+    if cl_device_ind is not None and not isinstance(cl_device_ind, collections.Iterable):
+        cl_device_indices = [cl_device_ind]
 
-    problem_data = load_problem_data(dwi_info, protocol, brain_mask)
-    if sampler is None:
-        sampler = MetropolisHastings(runtime_configuration.runtime_config['cl_environments'],
-                                     runtime_configuration.runtime_config['load_balancer'])
+    cl_envs = None
+    load_balancer = None
+    if cl_device_indices is not None:
+        all_devices = get_cl_devices()
+        cl_envs = [all_devices[ind] for ind in cl_device_indices]
+        load_balancer = EvenDistribution()
 
-    return sample_single_model(model, problem_data, output_folder, sampler, recalculate=recalculate)
+    with runtime_configuration.runtime_config_context(cl_environments=cl_envs, load_balancer=load_balancer):
+        problem_data = load_problem_data(dwi_info, protocol, brain_mask)
+        if sampler is None:
+            sampler = MetropolisHastings(runtime_configuration.runtime_config['cl_environments'],
+                                         runtime_configuration.runtime_config['load_balancer'])
+
+        return sample_single_model(model, problem_data, output_folder, sampler, recalculate=recalculate)
 
 
 def update_config(config):

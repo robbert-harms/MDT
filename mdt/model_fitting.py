@@ -18,6 +18,7 @@ from mdt.utils import create_roi, configure_per_model_logging, load_problem_data
 from mdt.batch_utils import batch_profile_factory
 from mot import runtime_configuration
 from mot.load_balance_strategies import EvenDistribution
+from mot.runtime_configuration import runtime_config_context
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-05-01"
@@ -253,12 +254,6 @@ class ModelFit(object):
 
         self._logger.info('Using MDT version {}'.format(__version__))
 
-        if self._cl_device_indices is not None:
-            all_devices = get_cl_devices()
-            runtime_configuration.runtime_config['cl_environments'] = [all_devices[ind]
-                                                                       for ind in self._cl_device_indices]
-            runtime_configuration.runtime_config['load_balancer'] = EvenDistribution()
-
     def run(self):
         """Run the model and return the resulting maps
 
@@ -295,24 +290,32 @@ class ModelFit(object):
         return self._run_single_model(model, recalculate, meta_optimizer_config)
 
     def _run_single_model(self, model, recalculate, meta_optimizer_config):
-        configure_per_model_logging(os.path.join(self._output_folder, model.name))
-
-        self._logger.info('Preparing for model {0}'.format(model.name))
-        self._logger.info('Setting the noise standard deviation to {0}'.format(self._noise_std))
-        model.evaluation_model.set_noise_level_std(self._noise_std)
-
-        optimizer = self._optimizer or MetaOptimizerBuilder(meta_optimizer_config).construct(model.name)
-
+        cl_envs = None
+        load_balancer = None
         if self._cl_device_indices is not None:
             all_devices = get_cl_devices()
-            optimizer.cl_environments = [all_devices[ind] for ind in self._cl_device_indices]
-            optimizer.load_balancer = EvenDistribution()
+            cl_envs = [all_devices[ind] for ind in self._cl_device_indices]
+            load_balancer = EvenDistribution()
 
-        model_protocol_options = get_model_config(model.name, self._model_protocol_options)
-        problem_data = apply_model_protocol_options(model_protocol_options, self._problem_data)
+        with runtime_config_context(cl_environments=cl_envs, load_balancer=load_balancer):
+            configure_per_model_logging(os.path.join(self._output_folder, model.name))
 
-        fitter = SingleModelFit(model, problem_data, self._output_folder, optimizer, recalculate=recalculate)
-        return fitter.run()
+            self._logger.info('Preparing for model {0}'.format(model.name))
+            self._logger.info('Setting the noise standard deviation to {0}'.format(self._noise_std))
+            model.evaluation_model.set_noise_level_std(self._noise_std)
+
+            optimizer = self._optimizer or MetaOptimizerBuilder(meta_optimizer_config).construct(model.name)
+
+            if self._cl_device_indices is not None:
+                all_devices = get_cl_devices()
+                optimizer.cl_environments = [all_devices[ind] for ind in self._cl_device_indices]
+                optimizer.load_balancer = EvenDistribution()
+
+            model_protocol_options = get_model_config(model.name, self._model_protocol_options)
+            problem_data = apply_model_protocol_options(model_protocol_options, self._problem_data)
+
+            fitter = SingleModelFit(model, problem_data, self._output_folder, optimizer, recalculate=recalculate)
+            return fitter.run()
 
 
 class SingleModelFit(object):

@@ -71,9 +71,9 @@ class SliceBySlice(ModelChunksFitting):
         if model_output_exists(model, slice_dir, append_model_name_to_path=False):
             self._logger.info('Skipping slices {} to {}, they already exist.'.format(ind_start, ind_end))
         else:
-            self._logger.info('Computing slices {} up to {} ({} slices in total, we are at {0:.2%})'.format(
+            self._logger.info('Computing slices {0} up to {1} ({2} slices in total, we are at {3:.2%})'.format(
                 ind_start, ind_end, tmp_mask.shape[self.slice_dimension],
-                tmp_mask.shape[self.slice_dimension] / float(ind_start - ind_end)))
+                float(ind_start) / tmp_mask.shape[self.slice_dimension]))
 
             results, extra_output = optimizer.minimize(model, full_output=True)
             results.update(extra_output)
