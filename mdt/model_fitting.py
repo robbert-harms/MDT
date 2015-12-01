@@ -10,11 +10,11 @@ import nibabel as nib
 
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.protocols import write_protocol
-from mdt.components_loader import get_model, NoiseSTDCalculatorsLoader, FitStrategies
+from mdt.components_loader import get_model, NoiseSTDCalculatorsLoader, FittingStrategies
 from mdt import __version__
 from mdt.IO import Nifti
 from mdt.utils import create_roi, configure_per_model_logging, load_problem_data, ProtocolProblemError, MetaOptimizerBuilder, get_cl_devices, \
-    get_model_config, apply_model_protocol_options, model_output_exists, split_image_path
+    get_model_config, apply_model_protocol_options, model_output_exists, split_image_path, get_fitting_strategy
 from mdt.batch_utils import batch_profile_factory
 from mot import runtime_configuration
 from mot.load_balance_strategies import EvenDistribution
@@ -339,7 +339,7 @@ class SingleModelFit(object):
         self.recalculate = recalculate
         self._output_path = os.path.join(self._output_folder, self._model.name)
         self._logger = logging.getLogger(__name__)
-        self.model_fit_slice_runner = FitStrategies().load('SliceBySlice')
+        self.model_fit_slice_runner = get_fitting_strategy(self._model)
 
         if not self._model.is_protocol_sufficient(problem_data.protocol):
             raise ProtocolProblemError(
@@ -385,10 +385,6 @@ class SingleModelFit(object):
     def _write_protocol(self):
         write_protocol(self._problem_data.protocol, os.path.join(self._output_path, 'used_protocol.prtcl'))
 
-#todo a problem arises when we want to optimize a single slice, while the model is already  initialized with whole brain results
-# this holds for the initial_parameters function in model_builders and for problems_var_data
-
-#todo slice fit strategy to users home folder
 
 def _get_noise_std(user_noise_std, problem_data):
     logger = logging.getLogger(__name__)

@@ -26,4 +26,4 @@ if __name__ == '__main__':
     argcomplete.autocomplete(parser)
     args = parser.parse_args()
 
-    mdt.initialize_user_settings(pass_if_exists=False)
+    mdt.initialize_user_settings(pass_if_exists=False, keep_config=False)

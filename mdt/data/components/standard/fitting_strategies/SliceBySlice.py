@@ -48,6 +48,7 @@ class SliceBySlice(ModelChunksFitting):
                     self._run_on_slice(model, problem_data, slices_dir, optimizer, recalculate,
                                        ind_start, ind_end, tmp_mask)
 
+        self._logger.info('Computed all slices, now merging the results')
         return self._join_chunks(output_path, slices_dir)
 
     def _slicing_generator(self, mask):
@@ -70,7 +71,10 @@ class SliceBySlice(ModelChunksFitting):
         if model_output_exists(model, slice_dir, append_model_name_to_path=False):
             self._logger.info('Skipping slices {} to {}, they already exist.'.format(ind_start, ind_end))
         else:
-            self._logger.info('Computing slices {} to {}'.format(ind_start, ind_end))
+            self._logger.info('Computing slices {} up to {} ({} slices in total, we are at {0:.2%})'.format(
+                ind_start, ind_end, tmp_mask.shape[self.slice_dimension],
+                tmp_mask.shape[self.slice_dimension] / float(ind_start - ind_end)))
+
             results, extra_output = optimizer.minimize(model, full_output=True)
             results.update(extra_output)
             results.update({'__mask': create_roi(tmp_mask, tmp_mask)})

@@ -20,7 +20,7 @@ import six
 from mdt import load_dwi
 from mdt.IO import Nifti
 
-from mdt.components_loader import get_model
+from mdt.components_loader import get_model, FittingStrategies
 from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
 from mdt.data_loaders.protocol import autodetect_protocol_loader
 from mdt.log_handlers import ModelOutputLogHandler
@@ -1276,3 +1276,15 @@ class ModelChunksFitting(ModelFitStrategy):
         return create_roi(results, mask_so_far)
 
 
+def get_fitting_strategy(model=None):
+    """Get from the config file the correct fitting strategy for the given model."""
+    strategy_name = configuration.config['fitting_strategies']['general']['name']
+    options = configuration.config['fitting_strategies']['general'].get('options', {}) or {}
+
+    if model is not None and 'single_model' in configuration.config['fitting_strategies']:
+        info_dict = get_model_config(model.name, configuration.config['fitting_strategies']['single_model'])
+        if info_dict:
+            strategy_name = info_dict['name']
+            options = info_dict.get('options', {}) or {}
+
+    return FittingStrategies().load(strategy_name, **options)

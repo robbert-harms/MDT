@@ -14,6 +14,7 @@ class AllSlicesAtOnce(ModelFitStrategy):
 
     def run(self, model, problem_data, output_path, optimizer, recalculate):
         """Run all slices at once."""
+        self._logger.info('Fitting all slices at once')
         results, extra_output = optimizer.minimize(model, full_output=True)
         results.update(extra_output)
         self._write_output(results, problem_data.mask, output_path, problem_data.volume_header)

@@ -369,11 +369,11 @@ class BatchProfilesLoader(ComponentsLoader):
                                                    UserComponentsSourceSingle('standard', 'batch_profiles')])
 
 
-class FitStrategies(ComponentsLoader):
+class FittingStrategies(ComponentsLoader):
 
     def __init__(self):
-        super(FitStrategies, self).__init__([UserComponentsSourceSingle('user', 'fit_strategies'),
-                                             UserComponentsSourceSingle('standard', 'fit_strategies')])
+        super(FittingStrategies, self).__init__([UserComponentsSourceSingle('user', 'fitting_strategies'),
+                                             UserComponentsSourceSingle('standard', 'fitting_strategies')])
 
 
 class NoiseSTDCalculatorsLoader(ComponentsLoader):
