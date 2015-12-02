@@ -1,6 +1,6 @@
 import numpy as np
 
-from mot.base import CLDataType, ProtocolParameter, FreeParameter, ModelDataParameter
+from mot.base import DataType, ProtocolParameter, FreeParameter, ModelDataParameter
 from mot.model_building.parameter_functions.priors import AbsSinPrior, AbsSinHalfPrior
 from mot.model_building.parameter_functions.proposals import GaussianProposal
 from mot.model_building.parameter_functions.sample_statistics import CircularGaussianPSS
@@ -28,31 +28,31 @@ def get_parameter(param_name):
     Returns:
         the parameter object for the requested parameter
     """
-    param_map = {'g': ProtocolParameter(CLDataType.from_string('MOT_FLOAT_TYPE4'), 'g'),
-                 'G': ProtocolParameter(CLDataType.from_string('MOT_FLOAT_TYPE'), 'G'),
-                 'Delta': ProtocolParameter(CLDataType.from_string('MOT_FLOAT_TYPE'), 'Delta'),
-                 'delta': ProtocolParameter(CLDataType.from_string('MOT_FLOAT_TYPE'), 'delta'),
-                 'b': ProtocolParameter(CLDataType.from_string('MOT_FLOAT_TYPE'), 'b'),
-                 'q': ProtocolParameter(CLDataType.from_string('MOT_FLOAT_TYPE'), 'q'),
+    param_map = {'g': ProtocolParameter(DataType.from_string('MOT_FLOAT_TYPE4'), 'g'),
+                 'G': ProtocolParameter(DataType.from_string('MOT_FLOAT_TYPE'), 'G'),
+                 'Delta': ProtocolParameter(DataType.from_string('MOT_FLOAT_TYPE'), 'Delta'),
+                 'delta': ProtocolParameter(DataType.from_string('MOT_FLOAT_TYPE'), 'delta'),
+                 'b': ProtocolParameter(DataType.from_string('MOT_FLOAT_TYPE'), 'b'),
+                 'q': ProtocolParameter(DataType.from_string('MOT_FLOAT_TYPE'), 'q'),
 
-                 'GAMMA2_G2_delta2': ProtocolParameter(CLDataType.from_string('MOT_FLOAT_TYPE'),
+                 'GAMMA2_G2_delta2': ProtocolParameter(DataType.from_string('MOT_FLOAT_TYPE'),
                                                                'GAMMA2_G2_delta2'),
-                 'TE': ProtocolParameter(CLDataType.from_string('MOT_FLOAT_TYPE'), 'TE'),
-                 'TM': ProtocolParameter(CLDataType.from_string('MOT_FLOAT_TYPE'), 'TM'),
-                 'Ti': ProtocolParameter(CLDataType.from_string('MOT_FLOAT_TYPE'), 'Ti'),
-                 'TR': ProtocolParameter(CLDataType.from_string('MOT_FLOAT_TYPE'), 'TR'),
+                 'TE': ProtocolParameter(DataType.from_string('MOT_FLOAT_TYPE'), 'TE'),
+                 'TM': ProtocolParameter(DataType.from_string('MOT_FLOAT_TYPE'), 'TM'),
+                 'Ti': ProtocolParameter(DataType.from_string('MOT_FLOAT_TYPE'), 'Ti'),
+                 'TR': ProtocolParameter(DataType.from_string('MOT_FLOAT_TYPE'), 'TR'),
 
                  'T1': FreeParameter(
-                     CLDataType.from_string('MOT_FLOAT_TYPE'), 'T1', False, 0.03, 0.0, 4.0,
+                     DataType.from_string('MOT_FLOAT_TYPE'), 'T1', False, 0.03, 0.0, 4.0,
                      parameter_transform=ClampTransform(),
                      sampling_proposal=GaussianProposal(0.0001)),
                  'T2': FreeParameter(
-                     CLDataType.from_string('MOT_FLOAT_TYPE'), 'T2', False, 0.01, 0.0, 2.0,
+                     DataType.from_string('MOT_FLOAT_TYPE'), 'T2', False, 0.01, 0.0, 2.0,
                      parameter_transform=ClampTransform(),
                      sampling_proposal=GaussianProposal(0.0001)),
 
                  'theta': FreeParameter(
-                     CLDataType.from_string('MOT_FLOAT_TYPE'), 'theta', False, 1/2.0*np.pi,
+                     DataType.from_string('MOT_FLOAT_TYPE'), 'theta', False, 1 / 2.0 * np.pi,
                      0, np.pi,
                      parameter_transform=AbsModPiTransform(),
                      sampling_proposal=GaussianProposal(0.02),
@@ -60,14 +60,14 @@ def get_parameter(param_name):
                      sampling_statistics=CircularGaussianPSS(),
                      perturbation_function=lambda v: v + np.random.normal(scale=0.1, size=v.shape)),
                  'phi': FreeParameter(
-                     CLDataType.from_string('MOT_FLOAT_TYPE'), 'phi', False, 1/2.0*np.pi, 0, np.pi,
+                     DataType.from_string('MOT_FLOAT_TYPE'), 'phi', False, 1 / 2.0 * np.pi, 0, np.pi,
                      parameter_transform=AbsModPiTransform(),
                      sampling_proposal=GaussianProposal(0.02),
                      sampling_prior=AbsSinPrior(),
                      sampling_statistics=CircularGaussianPSS(),
                      perturbation_function=lambda v: v + np.random.normal(scale=0.1, size=v.shape)),
                  'psi': FreeParameter(
-                     CLDataType.from_string('MOT_FLOAT_TYPE'), 'psi', False, 1/2.0*np.pi, 0, np.pi,
+                     DataType.from_string('MOT_FLOAT_TYPE'), 'psi', False, 1 / 2.0 * np.pi, 0, np.pi,
                      parameter_transform=AbsModPiTransform(),
                      sampling_proposal=GaussianProposal(0.02),
                      sampling_prior=AbsSinPrior(),
@@ -75,52 +75,52 @@ def get_parameter(param_name):
                      perturbation_function=lambda v: v + np.random.normal(scale=0.1, size=v.shape)),
 
                  'd': FreeParameter(
-                     CLDataType.from_string('MOT_FLOAT_TYPE'), 'd', False, 1.7e-9, 0, 1.0e-8,
+                     DataType.from_string('MOT_FLOAT_TYPE'), 'd', False, 1.7e-9, 0, 1.0e-8,
                      parameter_transform=SinSqrClampTransform(),
                      sampling_proposal=GaussianProposal(1e-14)),
 
                  'dperp0': FreeParameter(
-                     CLDataType.from_string('MOT_FLOAT_TYPE'), 'dperp0', False, 1.7e-10, 0, 1e-8,
+                     DataType.from_string('MOT_FLOAT_TYPE'), 'dperp0', False, 1.7e-10, 0, 1e-8,
                      parameter_transform=SinSqrClampTransform(),
                      sampling_proposal=GaussianProposal(1e-15)),
 
                  'dperp1': FreeParameter(
-                     CLDataType.from_string('MOT_FLOAT_TYPE'), 'dperp1', False, 1.7e-11, 0, 1e-8,
+                     DataType.from_string('MOT_FLOAT_TYPE'), 'dperp1', False, 1.7e-11, 0, 1e-8,
                      parameter_transform=SinSqrClampTransform(),
                      sampling_proposal=GaussianProposal(1e-15)),
 
                  'R': FreeParameter(
-                     CLDataType.from_string('MOT_FLOAT_TYPE'), 'R', False, 2.0e-6, 1e-6, 20e-6,
+                     DataType.from_string('MOT_FLOAT_TYPE'), 'R', False, 2.0e-6, 1e-6, 20e-6,
                      parameter_transform=CosSqrClampTransform(),
                      sampling_proposal=GaussianProposal(1e-6)),
                  'kappa': FreeParameter(
-                     CLDataType.from_string('MOT_FLOAT_TYPE'), 'kappa', False, 1, 1e-5, 2 * np.pi,
+                     DataType.from_string('MOT_FLOAT_TYPE'), 'kappa', False, 1, 1e-5, 2 * np.pi,
                      parameter_transform=CosSqrClampTransform(),
                      sampling_proposal=GaussianProposal(0.1)),
 
                  # for use in the GDRCylinder model
                  'gamma_k': FreeParameter(
-                     CLDataType.from_string('MOT_FLOAT_TYPE'), 'gamma_k', False, 1, 0, 20,
+                     DataType.from_string('MOT_FLOAT_TYPE'), 'gamma_k', False, 1, 0, 20,
                      parameter_transform=SinSqrClampTransform(),
                      sampling_proposal=GaussianProposal(1.0)),
                  'gamma_beta': FreeParameter(
-                     CLDataType.from_string('MOT_FLOAT_TYPE'), 'gamma_beta', False, 1, 1.0e-7,
+                     DataType.from_string('MOT_FLOAT_TYPE'), 'gamma_beta', False, 1, 1.0e-7,
                      3.0e-7,
                      parameter_transform=SinSqrClampTransform(),
                      sampling_proposal=GaussianProposal(1e-7)),
                  'gamma_nmr_cyl': FreeParameter(
-                     CLDataType.from_string('MOT_FLOAT_TYPE'), 'gamma_nmr_cyl', True, 5, 1, 10,
+                     DataType.from_string('MOT_FLOAT_TYPE'), 'gamma_nmr_cyl', True, 5, 1, 10,
                      parameter_transform=SinSqrClampTransform(),
                      sampling_proposal=GaussianProposal(1.0)),
 
                  # charmed default, used in GDRCylindersFixed model
                  'gamma_radii': ModelDataParameter(
-                     CLDataType.from_string('MOT_FLOAT_TYPE*'),
+                     DataType.from_string('MOT_FLOAT_TYPE*'),
                      'gamma_radii', 1e-6 * np.array([1.5, 2.5, 3.5, 4.5, 5.5, 6.5])),
 
                  # charmed default, used in GDRCylindersFixed model
                  'gamma_cyl_weights': ModelDataParameter(
-                     CLDataType.from_string('MOT_FLOAT_TYPE*'),
+                     DataType.from_string('MOT_FLOAT_TYPE*'),
                      'gamma_cyl_weights', np.array([0.0211847200855742,
                                                     0.107169623942214,
                                                     0.194400551313197,

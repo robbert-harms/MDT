@@ -3,7 +3,8 @@ import numpy as np
 from mdt import utils
 from mdt.models.base import DMRIOptimizable
 from mot import runtime_configuration
-from mot.base import CLDataType
+from mot.adapters import DataAdapter
+from mot.base import DataType
 from mot.cl_functions import Weight
 from mdt.utils import restore_volumes, create_roi
 from mdt.model_protocol_problem import MissingColumns, InsufficientShells
@@ -13,7 +14,6 @@ from mot.model_building.parameter_functions.dependencies import WeightSumToOneRu
 from mot.models import SmoothableModelInterface, PerturbationModelInterface
 from mot.model_building.model_builders import SampleModelBuilder
 from mot.trees import CompartmentModelTree
-from mot.utils import set_cl_compatible_data_type
 
 __author__ = 'Robbert Harms'
 __date__ = "2014-10-26"
@@ -101,13 +101,11 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
             # Flattening an eye(3) matrix gives the same result with F and C ordering, I nevertheless put it here
             # to emphasize that the gradient deviations matrix is in Fortran (column-major) order.
             grad_dev += np.eye(3).flatten(order='F')
-            grad_dev = set_cl_compatible_data_type(grad_dev, CLDataType.from_string('MOT_FLOAT_TYPE*'),
-                                                   self._double_precision)
-
             if self.problems_to_analyze is not None:
                 grad_dev = grad_dev[self.problems_to_analyze, ...]
 
-            var_data_dict.update({'gradient_deviations': grad_dev})
+            adapter = DataAdapter(grad_dev, DataType.from_string('MOT_FLOAT_TYPE*'), self._get_mot_float_type())
+            var_data_dict.update({'gradient_deviations': adapter.adapt_to_opencl()})
 
         return var_data_dict
 
