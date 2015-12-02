@@ -20,7 +20,6 @@ if len(_items) > 1:
 __version__ = VERSION
 
 
-
 """
 The main initialization of MDT.
 
@@ -30,6 +29,7 @@ This is important when working with MOT and the python multiprocessing library. 
 PyOpencl (via MOT) before we start the multiprocessing we will get an Out Of Memory exception when
 trying to create an kernel.
 """
+
 
 def batch_fit(data_folder, batch_profile=None, subjects_ind=None, recalculate=False,
               cl_device_ind=None, dry_run=False, double_precision=False):
@@ -44,11 +44,12 @@ def batch_fit(data_folder, batch_profile=None, subjects_ind=None, recalculate=Fa
         data_folder (str): The data folder to process
         batch_profile (BatchProfile or str): the batch profile to use, or the name of a batch profile to load.
             If not given it is auto detected.
-        subjects_ind (list of int): either a list of subjects to process or the index of a single subject to process.
-            To get a list of subjects run this function with the dry_run parameter to true.
+        subjects_ind (int or list of int): either a list of subjects to process or the index
+            of a single subject to process. To get a list of subjects run this function with the
+            dry_run parameter to true.
         recalculate (boolean): If we want to recalculate the results if they are already present.
-        cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
-            get_cl_devices().
+        cl_device_ind (int or list of int): the index of the CL device to use.
+            The index is from the list from the function get_cl_devices().
         dry_run (boolean): a dry run will do no computations, but will list all the subjects found in the
             given directory.
         double_precision (boolean): if we would like to do the calculations in double precision
@@ -113,7 +114,7 @@ def fit_model(model, dwi_info, protocol, brain_mask, output_folder, optimizer=No
 
     if gradient_deviations:
         if isinstance(gradient_deviations, six.string_types):
-            gradient_deviations = mdt.load_nifti(gradient_deviations).get_data()
+            gradient_deviations = load_nifti(gradient_deviations).get_data()
 
     if not utils.check_user_components():
         raise RuntimeError('User\'s components folder is not up to date. Please the script mdt-init-user-settings.')
@@ -250,7 +251,8 @@ def run_function_on_batch_fit_output(data_folder, func, batch_profile=None, subj
         func (python function): the python function we should call for every map and model
         batch_profile (BatchProfile or str): the batch profile to use, can also be the name
             of a batch profile to load. If not given it is auto detected.
-        subjects_ind (list of int): either a list of subjects to process or the index of a single subject to process.
+        subjects_ind (int or list of int): either a list of subjects to process or the index
+            of a single subject to process.
     """
     from mdt.batch_utils import run_function_on_batch_fit_output
     run_function_on_batch_fit_output(data_folder, func, batch_profile=batch_profile, subjects_ind=subjects_ind)
@@ -967,7 +969,7 @@ def split_dataset(input_fname, split_dimension, split_index, output_folder=None)
 
     volumes = {}
     for ind, v in enumerate(split):
-        volumes.update({basename + '_split_' + str(split_dimension) + '_' + lengths[ind]: v})
+        volumes.update({str(basename) + '_split_' + str(split_dimension) + '_' + lengths[ind]: v})
 
     Nifti.write_volume_maps(volumes, output_folder, header)
 
