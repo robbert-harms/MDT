@@ -3,7 +3,7 @@ import numpy as np
 from mdt import utils
 from mdt.models.base import DMRIOptimizable
 from mot import runtime_configuration
-from mot.adapters import DataAdapter
+from mot.adapters import SimpleDataAdapter
 from mot.base import DataType
 from mot.cl_functions import Weight
 from mdt.utils import restore_volumes, create_roi
@@ -104,8 +104,8 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
             if self.problems_to_analyze is not None:
                 grad_dev = grad_dev[self.problems_to_analyze, ...]
 
-            adapter = DataAdapter(grad_dev, DataType.from_string('MOT_FLOAT_TYPE*'), self._get_mot_float_type())
-            var_data_dict.update({'gradient_deviations': adapter.adapt_to_opencl()})
+            adapter = SimpleDataAdapter(grad_dev, DataType.from_string('MOT_FLOAT_TYPE*'), self._get_mot_float_type())
+            var_data_dict.update({'gradient_deviations': adapter.get_opencl_data()})
 
         return var_data_dict
 
