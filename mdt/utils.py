@@ -606,6 +606,11 @@ def initialize_user_settings(pass_if_exists=True, keep_config=True):
             shutil.rmtree(os.path.join(path, 'components', 'user'), ignore_errors=True)
             shutil.move(tmp_dir + '/components/', os.path.join(path, 'components', 'user'))
 
+    def make_sure_user_components_exists():
+        for folder_name in os.listdir(os.path.join(path, 'components/standard/')):
+            if not os.path.exists(path + '/components/user/' + folder_name):
+                os.mkdir(path + '/components/user/' + folder_name)
+
     def copy_config(tmp_dir):
         if os.path.exists(tmp_dir + '/mdt.conf'):
             if os.path.exists(path + '/mdt.conf'):
@@ -622,6 +627,7 @@ def initialize_user_settings(pass_if_exists=True, keep_config=True):
 
             init_from_mdt()
             copy_user_components(tmp_dir)
+            make_sure_user_components_exists()
 
             if keep_config:
                 copy_config(tmp_dir)
