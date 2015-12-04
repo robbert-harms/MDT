@@ -10,16 +10,13 @@ import collections
 import shutil
 import functools
 import tempfile
-
 from six import string_types
 import numpy as np
 import nibabel as nib
 import pkg_resources
 from scipy.special import jnp_zeros
 import six
-from mdt import load_dwi
 from mdt.IO import Nifti
-
 from mdt.components_loader import get_model, FittingStrategies
 from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
 from mdt.data_loaders.protocol import autodetect_protocol_loader
@@ -1124,7 +1121,7 @@ def apply_mask(volume, mask, inplace=True):
     Args:
         volume (str, ndarray, list, tuple or dict): The input file path or the image itself or a list, tuple or
             dict.
-        mask_fname (str or ndarray): The filename of the mask or the mask itself
+        mask (str or ndarray): The filename of the mask or the mask itself
         inplace (boolean): if True we apply the mask in place on the volume image. If false we do not.
 
     Returns:
@@ -1174,7 +1171,7 @@ class ModelFitStrategy(object):
         Args:
              model (AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize.
              problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
-             output_folder (string): The full path to the folder where to place the output
+             output_path (string): The full path to the folder where to place the output
              optimizer (AbstractOptimizer): The optimization routine to use.
              recalculate (boolean): If we want to recalculate the results if they are already present.
 

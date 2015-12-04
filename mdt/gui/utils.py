@@ -103,7 +103,7 @@ def function_message_decorator(header, footer):
 
     Args:
         header (str): the header text, we will add extra decoration to it
-        foot (str): the footer text, we will add extra decoration to it
+        footer (str): the footer text, we will add extra decoration to it
 
     Returns:
         decorator function

@@ -111,7 +111,7 @@ class ComponentsLoader(object):
         Args:
             name (str): The name of the component we want to load
             *args: passed to the component
-            **args: passed to the component
+            **kwargs: passed to the component
 
         Returns:
             the loaded module

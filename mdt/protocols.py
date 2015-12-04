@@ -84,7 +84,7 @@ class Protocol(object):
 
         Args:
             name (str): The name of the column to add
-            data (ndarray): The file to get the column from.
+            file_name (str): The file to get the column from.
             multiplication_factor (double): we might need to scale the data by a constant. For example,
                 if the data in the file is in ms we might need to scale it to seconds by multiplying with 1e-3
         Returns:
@@ -99,7 +99,7 @@ class Protocol(object):
         """Completely remove a column from this protocol.
 
         Args:
-            name (str): The name of the column to remove
+            column_name (str): The name of the column to remove
         """
         if column_name == 'g':
             del self._columns['gx']

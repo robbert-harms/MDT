@@ -60,7 +60,7 @@ class MapsVisualizer(object):
                 The dimension to display
             slice_ind (int):
                 The slice (in that dimension) to display
-            volume_index (dict):
+            volume_ind (dict):
                 The volume to display initially.
             map_titles (dict):
                 A list of names for the different maps. Use as {map_name: display_name} that is,

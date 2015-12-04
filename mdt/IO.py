@@ -164,7 +164,7 @@ class TrackMark(object):
 
         Args:
             directory (str): the directory to write to
-            result_volumes (dict): an dictionary with the volume maps (3d) with the results we want to write out
+            volumes (dict): an dictionary with the volume maps (3d) with the results we want to write out
                 The naming of the file is the key of the volume with .rawmap appended by this function.
             overwrite_volumes (boolean): if we want to overwrite already present volumes
         """

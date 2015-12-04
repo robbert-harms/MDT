@@ -11,9 +11,9 @@ meta_info = {'title': 'All slices at once',
 
 
 class AllSlicesAtOnce(ModelFitStrategy):
+    """Run all slices at once."""
 
     def run(self, model, problem_data, output_path, optimizer, recalculate):
-        """Run all slices at once."""
         self._logger.info('Fitting all slices at once')
         results, extra_output = optimizer.minimize(model, full_output=True)
         results.update(extra_output)

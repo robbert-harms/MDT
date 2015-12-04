@@ -89,10 +89,11 @@ if __name__ == '__main__':
     argcomplete.autocomplete(parser)
     args = parser.parse_args()
 
-    mask_name = os.path.splitext(os.path.basename(args.mask))[0]
+    mask_name = os.path.splitext(os.path.basename(os.path.realpath(args.mask)))[0]
     mask_name = mask_name.replace('.nii', '')
     output_folder = args.output_folder or os.path.join(os.path.dirname(args.dwi), 'output', mask_name)
 
-    mdt.fit_model(args.model, args.dwi, args.protocol, args.mask, output_folder, recalculate=args.recalculate,
+    mdt.fit_model(args.model, os.path.realpath(args.dwi), os.path.realpath(args.protocol),
+                  os.path.realpath(args.mask), output_folder, recalculate=args.recalculate,
                   only_recalculate_last=args.only_recalculate_last, cl_device_ind=args.cl_device_ind,
                   double_precision=args.double_precision, gradient_deviations=args.gradient_deviations)

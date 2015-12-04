@@ -1,0 +1,55 @@
+#!/usr/bin/env python
+# PYTHON_ARGCOMPLETE_OK
+import argparse
+import os
+import argcomplete
+import mdt
+import mdt.shell_utils
+from argcomplete.completers import FilesCompleter
+import textwrap
+import mdt.protocols
+
+__author__ = 'Robbert Harms'
+__date__ = "2015-08-18"
+__maintainer__ = "Robbert Harms"
+__email__ = "robbert.harms@maastrichtuniversity.nl"
+
+
+if __name__ == '__main__':
+
+    def get_arg_parser():
+        """For autocomplete, please execute activate-global-python-argcomplete in your bash or zsh shell."""
+
+        description = textwrap.dedent("""
+            Generate the bval and bvec file from a protocol file.
+        """)
+        description += mdt.shell_utils.get_citation_message()
+
+        epilog = textwrap.dedent("""
+        Examples of use:
+            mdt-generate-bvec-bval my_protocol.prtcl
+            mdt-generate-bvec-bval my_protocol.prtcl bvec_name.bvec bval_name.bval
+        """)
+
+        parser = argparse.ArgumentParser(description=description, epilog=epilog,
+                                         formatter_class=argparse.RawTextHelpFormatter)
+
+        parser.add_argument('protocol', help='the protocol file').completer = FilesCompleter()
+        parser.add_argument('bvec', help="the output bvec file", nargs='?', default=None).completer = FilesCompleter()
+        parser.add_argument('bval', help="the output bvec file", nargs='?', default=None).completer = FilesCompleter()
+
+        return parser
+
+    mdt.initialize_user_settings(pass_if_exists=True)
+
+    parser = get_arg_parser()
+    argcomplete.autocomplete(parser)
+    args = parser.parse_args()
+
+    protocol_base = os.path.join(os.path.dirname(os.path.realpath(args.protocol)),
+                                 os.path.splitext(os.path.basename(args.protocol))[0])
+    bvec = os.path.realpath(args.bvec) or protocol_base + '.bvec'
+    bval = os.path.realpath(args.bval) or protocol_base + '.bval'
+
+    mdt.write_protocol_bvec_bval(mdt.load_protocol(args.protocol), bvec, bval)
+

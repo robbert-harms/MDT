@@ -20,6 +20,12 @@ class AverageOfUnweightedVolumes(NoiseStdCalculator):
         take for each voxel the sqrt(E[S^2]) as estimate for the noise std in that voxel.
 
         Finally, we calculate the mean of all those voxels.
+
+        Args:
+            **kwargs
+
+        Returns:
+            float: single value representing the sigma for the given volume
         """
         if self._mask is None:
             self._mask = create_median_otsu_brain_mask(self._volume_info, self._protocol)

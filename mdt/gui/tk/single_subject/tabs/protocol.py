@@ -194,6 +194,7 @@ class ProtocolExtraOptionsWindow(SubWindow):
         super(ProtocolExtraOptionsWindow, self).__init__('Extra protocol options')
         self._parent = parent
         self._protocol_options = copy.copy(self._parent.protocol_options)
+        self._seq_timing_fields = None
 
     def render(self, window):
         subframe = ttk.Frame(window)

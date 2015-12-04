@@ -93,9 +93,9 @@ class LogDispatchHandler(logging.StreamHandler):
         Returns:
             int: the listener id number. You can use this to remove the listener again.
         """
-        id = len(LogDispatchHandler._listeners)
+        listener_id = len(LogDispatchHandler._listeners)
         LogDispatchHandler._listeners.append(listener)
-        return id
+        return listener_id
 
     @staticmethod
     def remove_listener(listener_id):

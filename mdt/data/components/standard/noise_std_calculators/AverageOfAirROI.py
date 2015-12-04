@@ -33,6 +33,7 @@ class AverageOfAirROI(NoiseStdCalculator):
 
         Args:
             roi_size (int): the size of the ROI's in all dimensions.
+            **kwargs (dict): the additional keyword arguments
 
         Raises:
             ValueError: if the volume is zero filled we would have returned a value of 0.0, instead we raise an error.
@@ -53,8 +54,11 @@ class AverageOfAirROI(NoiseStdCalculator):
 
         This can be used to visualize the ROIs.
 
+        Args:
+            roi_size (int): the size of the region of interest
+
         Returns:
-        list of list of slices: per ROI a list of slices that constitute that ROI.
+            list of list of slices: per ROI a list of slices that constitute that ROI.
         """
         dist_from_edge = 5
         s = self._signal4d.shape

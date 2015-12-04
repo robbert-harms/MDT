@@ -76,9 +76,9 @@ if __name__ == '__main__':
     argcomplete.autocomplete(parser)
     args = parser.parse_args()
 
-    dwi_name = os.path.splitext(args.dwi)[0]
+    dwi_name = os.path.splitext(os.path.realpath(args.dwi))[0]
     dwi_name = dwi_name.replace('.nii', '')
-    output_name = args.output_name or dwi_name + '_mask.nii.gz'
+    output_name = os.path.realpath(args.output_name) or dwi_name + '_mask.nii.gz'
 
     if args.cl_device_ind:
         if isinstance(args.cl_device_ind, int):
@@ -88,7 +88,8 @@ if __name__ == '__main__':
                                                                        for ind in args.cl_device_ind]
         runtime_configuration.runtime_config['load_balancer'] = EvenDistribution()
 
-    mdt.create_median_otsu_brain_mask(args.dwi, args.protocol, output_name, median_radius=args.median_radius,
+    mdt.create_median_otsu_brain_mask(os.path.realpath(args.dwi), os.path.realpath(args.protocol),
+                                      output_name, median_radius=args.median_radius,
                                       numpass=args.numpass, dilate=args.dilate)
 
     print('Saved the mask to: {}'.format(output_name))

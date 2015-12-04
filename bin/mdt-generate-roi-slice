@@ -65,8 +65,8 @@ if __name__ == '__main__':
         print('Error: dimension {0} has only {1} slices.'.format(roi_dimension, shape[roi_dimension]))
         exit(1)
 
-    mask_base_name = os.path.splitext(args.mask)[0]
+    mask_base_name = os.path.splitext(os.path.realpath(args.mask))[0]
     mask_base_name = mask_base_name.replace('.nii', '')
     output_name = args.output_name or mask_base_name + '_{0}_{1}.nii.gz'.format(roi_dimension, roi_slice)
 
-    mdt.create_slice_roi(args.mask, roi_dimension, roi_slice, output_name, overwrite_if_exists=True)
+    mdt.create_slice_roi(os.path.realpath(args.mask), roi_dimension, roi_slice, output_name, overwrite_if_exists=True)

@@ -32,7 +32,6 @@ class SliceBySlice(ModelChunksFitting):
         self.slice_width = slice_width
 
     def run(self, model, problem_data, output_path, optimizer, recalculate):
-        """Optimize slice by slice"""
         mask = problem_data.mask
         tmp_mask = np.zeros_like(mask)
         indices = self._get_index_matrix(problem_data.mask)

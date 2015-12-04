@@ -94,7 +94,7 @@ def load_from_dict(config_dict):
     Please note that the last configuration loaded overwrites the values of the previously loaded config files.
 
     Args:
-        config (dict): a dictionary with configuration options that will overwrite the current configuration.
+        config_dict (dict): a dictionary with configuration options that will overwrite the current configuration.
     """
     complete_overwrite = {'optimization_settings': {'general': 'optimizers'}}
 
