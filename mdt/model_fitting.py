@@ -264,8 +264,19 @@ class ModelFit(object):
         """
         return self._run(self._model, self._recalculate, self._only_recalculate_last, {})
 
-    def _run(self, model, recalculate, only_recalculate_last, meta_optimizer_config):
-        """Recursively calculate the (cascade) models"""
+    def _run(self, model, recalculate, only_recalculate_last, meta_optimizer_config, model_names=[]):
+        """Recursively calculate the (cascade) models
+
+        Args:
+            model: The model to fit, if cascade we recurse
+            recalculate (boolean): if we recalculate
+            only_recalculate_last: if we recalculate, if we only recalculate the last item in the first cascade
+            meta_optimizer_config: optional optimization configuration.
+            model_names (list): the list of model names, we push and pop to this list to keep the
+                names intact while recursing.
+        """
+        model_names.append(model.name)
+
         if isinstance(model, DMRICascadeModelInterface):
             results = {}
             last_result = None
@@ -283,13 +294,14 @@ class ModelFit(object):
                 new_results = self._run(sub_model, sub_recalculate, recalculate, meta_optimizer_config)
                 results.update({sub_model.name: new_results})
                 last_result = new_results
+                model_names.pop()
 
             model.reset()
             return last_result
 
-        return self._run_single_model(model, recalculate, meta_optimizer_config)
+        return self._run_single_model(model, recalculate, meta_optimizer_config, model_names)
 
-    def _run_single_model(self, model, recalculate, meta_optimizer_config):
+    def _run_single_model(self, model, recalculate, meta_optimizer_config, model_names):
         cl_envs = None
         load_balancer = None
         if self._cl_device_indices is not None:
@@ -314,13 +326,16 @@ class ModelFit(object):
             model_protocol_options = get_model_config(model.name, self._model_protocol_options)
             problem_data = apply_model_protocol_options(model_protocol_options, self._problem_data)
 
-            fitter = SingleModelFit(model, problem_data, self._output_folder, optimizer, recalculate=recalculate)
+            fitting_strategy = get_fitting_strategy(self._model)
+
+            fitter = SingleModelFit(model, problem_data, self._output_folder, optimizer, fitting_strategy,
+                                    recalculate=recalculate)
             return fitter.run()
 
 
 class SingleModelFit(object):
 
-    def __init__(self, model, problem_data, output_folder, optimizer, recalculate=False):
+    def __init__(self, model, problem_data, output_folder, optimizer, fitting_strategy, recalculate=False):
         """Fits a single model.
 
          This does not accept cascade models. Please use the more general ModelFit class for single and cascade models.
@@ -342,7 +357,7 @@ class SingleModelFit(object):
         self.recalculate = recalculate
         self._output_path = os.path.join(self._output_folder, self._model.name)
         self._logger = logging.getLogger(__name__)
-        self.model_fit_slice_runner = get_fitting_strategy(self._model)
+        self._fitting_strategy = fitting_strategy
 
         if not self._model.is_protocol_sufficient(problem_data.protocol):
             raise ProtocolProblemError(
@@ -373,8 +388,8 @@ class SingleModelFit(object):
         minimize_start_time = timeit.default_timer()
         self._logger.info('Fitting {} model'.format(self._model.name))
 
-        results = self.model_fit_slice_runner.run(self._model, self._problem_data,
-                                                  self._output_path, self._optimizer, self.recalculate)
+        results = self._fitting_strategy.run(self._model, self._problem_data,
+                                             self._output_path, self._optimizer, self.recalculate)
         self._write_protocol()
 
         run_time = timeit.default_timer() - minimize_start_time
