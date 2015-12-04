@@ -26,6 +26,7 @@ Optional items (these will take precedence if present):
     /mgh_*/diff/preproc/diff_preproc_mask.nii(.gz)
 '''}
 
+
 class HCP_MGH_Profile(SimpleBatchProfile):
 
     def _get_subjects(self):
@@ -61,7 +62,7 @@ class HCP_MGH_Profile(SimpleBatchProfile):
 
                 subjects.append(SimpleSubjectInfo(subject_id, dwi_fname, protocol_loader, mask_fname, output_dir))
         return subjects
-    
+
     def _get_subject_output_dir(self, subject_id):
         if self.output_sub_dir:
             return os.path.join(self._root_dir, subject_id, 'diff', 'preproc', self.output_base_dir, self.output_sub_dir)

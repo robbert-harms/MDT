@@ -93,7 +93,7 @@ def fit_model(model, dwi_info, protocol, brain_mask, output_folder, optimizer=No
             This is only of importance when dealing with CascadeModels.
             If set to true we only recalculate the last element in the chain (if recalculate is set to True, that is).
             If set to false, we recalculate everything. This only holds for the first level of the cascade.
-        model_protocol_options (dict): specific model protocol options to use during fitting.
+        model_protocol_options (list of dict): specific model protocol options to use during fitting.
                 This is for example used during batch fitting to limit the protocol for certain models.
                 For instance, in the Tensor model we generally only want to use the lower b-values.
         cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
@@ -305,7 +305,7 @@ def load_protocol(filename, column_names=None):
     """Load an protocol from the given protocol file, with as column names the given list of names.
 
     Args:
-        protocol_fname (string):
+        filename (string):
             The filename of the protocol file to load. This should be a comma seperated, or tab delimited file
             with equal length columns. The column names can go on the tab and should be comma or space seperated.
         column_names (tuple, optional):
@@ -499,7 +499,6 @@ def dwi_merge(dwi_images, output_fname, sort=True):
     """
     import re
     import nibabel as nib
-    import numpy as np
 
     images = []
     header = None
@@ -652,7 +651,7 @@ def load_nifti(nifti_volume):
 
     A more general function than load_dwi which is meant for raw diffusion images.
     Args:
-        volume_fname (string): The filename of the volume to load.
+        nifti_volume (string): The filename of the volume to load.
 
     Returns:
         nib image
@@ -795,7 +794,6 @@ def write_trackmark_files(input_folder, output_folder=None, eigenvalue_scalar=1e
     """
     import os
     import re
-    import numpy as np
     from mdt.IO import TrackMark
 
     if output_folder is None:

@@ -681,7 +681,7 @@ def configure_per_model_logging(output_path):
         logger.info('Stopped appending to the per model log file')
 
 
-def recursive_merge_dict(dictionary, update_dict):
+def recursive_merge_dict(dictionary, update_dict, in_place=False):
     """ Recursively merge the given dictionary with the new values.
 
     This does not merge in place, a new dictionary is returned.
@@ -689,6 +689,7 @@ def recursive_merge_dict(dictionary, update_dict):
     Args:
         dictionary (dict): the dictionary we want to update
         update_dict (dict): the dictionary with the new values
+        in_place (boolean): if true, the changes are in place in the first dict.
 
     Returns:
         dict: a combination of the two dictionaries in which the values of the last dictionary take precedence over
@@ -703,7 +704,8 @@ def recursive_merge_dict(dictionary, update_dict):
 
                 {'k1': {'k2': {'k3': 3}}, 'k4': 4}
     """
-    dictionary = copy.deepcopy(dictionary)
+    if not in_place:
+        dictionary = copy.deepcopy(dictionary)
 
     def merge(d, upd):
         for k, v in upd.items():
@@ -817,16 +819,16 @@ class MetaOptimizerBuilder(object):
         """
         self._meta_optimizer_config = meta_optimizer_config or {}
 
-    def construct(self, model_name=None):
+    def construct(self, model_names=None):
         """Construct a new meta optimizer with the options from the current configuration.
 
         If model_name is given, we try to load the specific options for that model from the configuration. If it it not
         given we load the general options under 'general/meta_optimizer'.
 
         Args:
-            the constructed meta optimizer
+            model_names (list of str): the list of model names
         """
-        optim_config = self._get_configuration_dict(model_name)
+        optim_config = self._get_configuration_dict(model_names)
 
         cl_environments = self._get_cl_environments(optim_config)
         load_balancer = self._get_load_balancer(optim_config)
@@ -863,12 +865,12 @@ class MetaOptimizerBuilder(object):
             cl_environments = [cl_environments[int(ind)] for ind in optim_config['cl_devices']]
         return cl_environments
 
-    def _get_configuration_dict(self, model_name):
+    def _get_configuration_dict(self, model_names):
         current_config = configuration.config['optimization_settings']
         optim_config = current_config['general']
 
-        if model_name is not None and 'single_model' in current_config:
-            info_dict = get_model_config(model_name, current_config['single_model'])
+        if model_names and 'model_specific' in current_config:
+            info_dict = get_model_config(model_names, current_config['model_specific'])
             if info_dict:
                 optim_config = recursive_merge_dict(optim_config, info_dict)
 
@@ -887,29 +889,6 @@ class MetaOptimizerBuilder(object):
         return smoother(size, cl_environments, load_balancer)
 
 
-def get_configuration_options(model_name):
-    """Get the configuration for this specific model.
-
-    This will first load the general configuration options and afterwards apply the specific model options
-    on top of the general configuration options. The specific model options are also loaded from the
-    current configuratin file and are found using the model name.
-
-    Args:
-        model_name (str): the model for which to load the configuration options
-
-    Returns:
-        dict: the configuration options specific to this model
-    """
-    current_config = configuration.config['optimization_settings']
-    optim_config = current_config['general'].copy()
-
-    if model_name is not None and 'single_model' in current_config:
-        info_dict = get_model_config(model_name, current_config['single_model'])
-        if info_dict:
-            optim_config = recursive_merge_dict(optim_config, info_dict)
-    return optim_config
-
-
 def get_cl_devices():
     """Get a list of all CL devices in the system.
 
@@ -921,7 +900,7 @@ def get_cl_devices():
     return CLEnvironmentFactory.all_devices()
 
 
-def get_model_config(model_name, config_list):
+def get_model_config(model_names, config_list):
     """Get from the given dictionary the config for the given model.
 
     The config list should contain dictionaries with the items 'model_name' and 'config'. Where the first is a regex
@@ -929,19 +908,34 @@ def get_model_config(model_name, config_list):
     key 'enabled' which can be set to False to exclude the config from considerations.
 
     Args:
-        model_name (str): the name of the model
-        config_list (list of dict): the list with config items with the keys 'model_name', 'config' and optionally
-            'enabled'.
+        model_names (list of str): the names of the models we want to fit. This should contain the entire
+            recursive list of cascades leading to the single model we want to get the config of
+        config_list (list of dict): the tree with config items with as keys the model names and as
+            items the configuration
 
     Returns:
-        An accumulation of all the configuration of all the models that match with the given model name.
+        An accumulation of all the configuration of all the models that match with the given model names.
     """
     if not config_list:
         return {}
+
+    def match_tree(names, tree, config):
+        if names:
+            name_regex, tree_content = list(tree.items())[0]
+            if re.match(name_regex, names[0]):
+                if isinstance(tree_content, dict):
+                    recursive_merge_dict(config, tree_content, in_place=True)
+                else:
+                    for subtree in tree_content:
+                        match_tree(names[1:], subtree, config)
+
     conf = {}
-    for info in config_list:
-        if re.match(info['model_name'], model_name) and info.get('enabled', True):
-            conf = recursive_merge_dict(conf, info['config'])
+    for index_start in range(len(model_names), 0, -1):
+        sub_model_names = model_names[index_start:]
+
+        for tree in config_list:
+            match_tree(sub_model_names, tree, conf)
+
     return conf
 
 
@@ -1282,13 +1276,20 @@ class ModelChunksFitting(ModelFitStrategy):
         return create_roi(results, mask_so_far)
 
 
-def get_fitting_strategy(model=None):
-    """Get from the config file the correct fitting strategy for the given model."""
+def get_fitting_strategy(model_names=None):
+    """Get from the config file the correct fitting strategy for the given model.
+
+    Args:
+        model_names (list of str): the list of model names (the full recursive cascade of model names)
+
+    Returns:
+        FittingStrategies: the fitting strategy to use for this model
+    """
     strategy_name = configuration.config['fitting_strategies']['general']['name']
     options = configuration.config['fitting_strategies']['general'].get('options', {}) or {}
 
-    if model is not None and 'single_model' in configuration.config['fitting_strategies']:
-        info_dict = get_model_config(model.name, configuration.config['fitting_strategies']['single_model'])
+    if model_names and 'model_specific' in configuration.config['fitting_strategies']:
+        info_dict = get_model_config(model_names, configuration.config['fitting_strategies']['model_specific'])
         if info_dict:
             strategy_name = info_dict['name']
             options = info_dict.get('options', {}) or {}

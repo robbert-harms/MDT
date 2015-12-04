@@ -43,6 +43,7 @@ These provide extra information about the protocol. They should either contain e
 or a value per protocol line.
 '''}
 
+
 class SingleDirProfile(SimpleBatchProfile):
 
     def _get_subjects(self):

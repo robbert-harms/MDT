@@ -4,10 +4,8 @@ import os
 import timeit
 import time
 import collections
-
 from six import string_types
 import nibabel as nib
-
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.protocols import write_protocol
 from mdt.components_loader import get_model, NoiseSTDCalculatorsLoader, FittingStrategies
@@ -216,7 +214,7 @@ class ModelFit(object):
                 If set to true we only recalculate the last element in the chain
                     (if recalculate is set to True, that is).
                 If set to false, we recalculate everything. This only holds for the first level of the cascade.
-            model_protocol_options (dict): specific model protocol options to use during fitting.
+            model_protocol_options (list of dict): specific model protocol options to use during fitting.
                 This is for example used during batch fitting to limit the protocol for certain models.
                 For instance, in the Tensor model we generally only want to use the lower b-values.
             cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
@@ -316,17 +314,17 @@ class ModelFit(object):
             self._logger.info('Setting the noise standard deviation to {0}'.format(self._noise_std))
             model.evaluation_model.set_noise_level_std(self._noise_std)
 
-            optimizer = self._optimizer or MetaOptimizerBuilder(meta_optimizer_config).construct(model.name)
+            optimizer = self._optimizer or MetaOptimizerBuilder(meta_optimizer_config).construct(model_names)
 
             if self._cl_device_indices is not None:
                 all_devices = get_cl_devices()
                 optimizer.cl_environments = [all_devices[ind] for ind in self._cl_device_indices]
                 optimizer.load_balancer = EvenDistribution()
 
-            model_protocol_options = get_model_config(model.name, self._model_protocol_options)
+            model_protocol_options = get_model_config(model_names, self._model_protocol_options)
             problem_data = apply_model_protocol_options(model_protocol_options, self._problem_data)
 
-            fitting_strategy = get_fitting_strategy(self._model)
+            fitting_strategy = get_fitting_strategy(model_names)
 
             fitter = SingleModelFit(model, problem_data, self._output_folder, optimizer, fitting_strategy,
                                     recalculate=recalculate)
