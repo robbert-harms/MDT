@@ -37,7 +37,8 @@ if __name__ == '__main__':
 
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
                                          formatter_class=argparse.RawTextHelpFormatter)
-        parser.add_argument('output_file',
+
+        parser.add_argument('-o', '--output_file', required=True,
                             action=mdt.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
                             help='the filename of the output file').completer = \
             FilesCompleter(['nii', 'gz', 'hdr', 'img'], directories=False)
@@ -59,7 +60,7 @@ if __name__ == '__main__':
     argcomplete.autocomplete(parser)
     args = parser.parse_args()
 
-    output_file = args.output_file
+    output_file = os.path.realpath(args.output_file)
 
     if os.path.isfile(output_file):
         os.remove(output_file)

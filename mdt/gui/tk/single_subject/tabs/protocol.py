@@ -156,7 +156,8 @@ class GenerateProtocolFileTab(TabContainer):
             protocol.add_column('maxG', self.protocol_options.maxG)
             for column in self.protocol_options.extra_column_names:
                 value = self.protocol_options.__getattribute__(column)
-                protocols.add_column_to_protocol(protocol, column, value, self.protocol_options.seq_timings_units)
+                self._add_sequence_timing_column_to_protocol(protocol, column, value,
+                                                             self.protocol_options.seq_timings_units)
 
         protocols.write_protocol(protocol, output_fname)
 
@@ -186,6 +187,23 @@ class GenerateProtocolFileTab(TabContainer):
 
     def _format_columns(self, table):
         return table.replace("\t", "\t" * 4)
+
+    def _add_sequence_timing_column_to_protocol(self, protocol, column, value, units):
+        """Adds the given value to the protocol as the given column name.
+
+        Args:
+            protocol (Protocol): the protocol object
+            column (str): the name of the column
+            value (float, str): either a single column value, or a string which we will try to interpret as a file.
+            units (str): either 's', or 'ms'
+        """
+        mult_factor = 1e-3 if units == 'ms' else 1
+
+        if value is not None:
+            if os.path.isfile(value):
+                protocol.add_column_from_file(column, value, mult_factor)
+            else:
+                protocol.add_column(column, float(value) * mult_factor)
 
 
 class ProtocolExtraOptionsWindow(SubWindow):

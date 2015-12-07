@@ -39,7 +39,7 @@ if __name__ == '__main__':
                             help='the mask to select a slice from').completer = \
             FilesCompleter(['nii', 'gz', 'hdr', 'img'], directories=False)
 
-        parser.add_argument('-d', '--dimension', type=int, help="The dimension to index (0, 1, 2, ...). Default is 1.")
+        parser.add_argument('-d', '--dimension', type=int, help="The dimension to index (0, 1, 2, ...). Default is 2.")
         parser.add_argument('-s', '--slice', type=int, help="The slice to use in the selected dimension (0, 1, 2, ...)."
                                                             "Defaults to center of chosen dimension.")
 
@@ -55,7 +55,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     shape = nib.load(args.mask).shape
-    roi_dimension = args.dimension if args.dimension is not None else 1
+    roi_dimension = args.dimension if args.dimension is not None else 2
     if roi_dimension > len(shape)-1 or roi_dimension < 0:
         print('Error: the given mask has only {0} dimensions with slices {1}.'.format(len(shape), shape))
         exit(1)
@@ -67,6 +67,10 @@ if __name__ == '__main__':
 
     mask_base_name = os.path.splitext(os.path.realpath(args.mask))[0]
     mask_base_name = mask_base_name.replace('.nii', '')
-    output_name = args.output_name or mask_base_name + '_{0}_{1}.nii.gz'.format(roi_dimension, roi_slice)
+
+    if args.output_name:
+        output_name = os.path.realpath(args.output_name)
+    else:
+        output_name = mask_base_name + '_{0}_{1}.nii.gz'.format(roi_dimension, roi_slice)
 
     mdt.create_slice_roi(os.path.realpath(args.mask), roi_dimension, roi_slice, output_name, overwrite_if_exists=True)

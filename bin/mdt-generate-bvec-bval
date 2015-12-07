@@ -48,8 +48,16 @@ if __name__ == '__main__':
 
     protocol_base = os.path.join(os.path.dirname(os.path.realpath(args.protocol)),
                                  os.path.splitext(os.path.basename(args.protocol))[0])
-    bvec = os.path.realpath(args.bvec) or protocol_base + '.bvec'
-    bval = os.path.realpath(args.bval) or protocol_base + '.bval'
 
-    mdt.write_protocol_bvec_bval(mdt.load_protocol(args.protocol), bvec, bval)
+    if args.bvec:
+        bvec = os.path.realpath(args.bvec)
+    else:
+        bvec = protocol_base + '.bvec'
+
+    if args.bval:
+        bval = os.path.realpath(args.bval)
+    else:
+        bval = protocol_base + '.bval'
+
+    mdt.write_protocol_bvec_bval(mdt.load_protocol(os.path.realpath(args.protocol)), bvec, bval)
 
