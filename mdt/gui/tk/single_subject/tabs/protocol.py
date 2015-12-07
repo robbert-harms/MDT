@@ -153,7 +153,7 @@ class GenerateProtocolFileTab(TabContainer):
         protocol = load_protocol_bval_bvec(bvec=bvec_fname, bval=bval_fname, bval_scale=bval_scale)
 
         if self.protocol_options.estimate_sequence_timings:
-            protocol.add_estimated_protocol_params(maxG=self.protocol_options.maxG)
+            protocol.add_column('maxG', self.protocol_options.maxG)
             for column in self.protocol_options.extra_column_names:
                 value = self.protocol_options.__getattribute__(column)
                 protocols.add_column_to_protocol(protocol, column, value, self.protocol_options.seq_timings_units)

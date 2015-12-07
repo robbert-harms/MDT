@@ -240,6 +240,7 @@ class ModelFit(object):
         self._logger = logging.getLogger(__name__)
         self._cl_device_indices = cl_device_ind
         self._noise_std = _get_noise_std(noise_std, self._problem_data)
+        self._model_names_list = []
 
         if gradient_deviations:
             self._logger.info('Using given gradient deviations.')
@@ -265,7 +266,7 @@ class ModelFit(object):
         """
         return self._run(self._model, self._recalculate, self._only_recalculate_last, {})
 
-    def _run(self, model, recalculate, only_recalculate_last, meta_optimizer_config, model_names=[]):
+    def _run(self, model, recalculate, only_recalculate_last, meta_optimizer_config):
         """Recursively calculate the (cascade) models
 
         Args:
@@ -273,10 +274,8 @@ class ModelFit(object):
             recalculate (boolean): if we recalculate
             only_recalculate_last: if we recalculate, if we only recalculate the last item in the first cascade
             meta_optimizer_config: optional optimization configuration.
-            model_names (list): the list of model names, we push and pop to this list to keep the
-                names intact while recursing.
         """
-        model_names.append(model.name)
+        self._model_names_list.append(model.name)
 
         if isinstance(model, DMRICascadeModelInterface):
             results = {}
@@ -295,12 +294,12 @@ class ModelFit(object):
                 new_results = self._run(sub_model, sub_recalculate, recalculate, meta_optimizer_config)
                 results.update({sub_model.name: new_results})
                 last_result = new_results
-                model_names.pop()
+                self._model_names_list.pop()
 
             model.reset()
             return last_result
 
-        return self._run_single_model(model, recalculate, meta_optimizer_config, model_names)
+        return self._run_single_model(model, recalculate, meta_optimizer_config, self._model_names_list)
 
     def _run_single_model(self, model, recalculate, meta_optimizer_config, model_names):
         cl_envs = None

@@ -111,7 +111,7 @@ class SimpleBatchProfile(BatchProfile):
         import mdt
 
         yaml_str = '''
-            - '^Tensor':
+            - '^Tensor$':
                 use_weighted: True
                 use_unweighted: True
                 # the unweighted threshold in SI units of s/m^2

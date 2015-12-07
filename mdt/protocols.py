@@ -23,12 +23,8 @@ class Protocol(object):
                 The initial list of columns used by this protocol, the keys should be the name of the
                 parameter (exactly as used in the model functions). The values should be numpy arrays of width 1, and
                 all of equal length.
-
-        Attributes:
-            max_G (double): The maximum G value in T/m. Used in estimating G, Delta and delta if not given.
         """
         super(Protocol, self).__init__()
-        self.max_G = 0.04
         self._gamma_h = 2.675987E8
         self._unweighted_threshold = 25e6
         self._columns = {}
@@ -65,9 +61,10 @@ class Protocol(object):
         Returns:
             self: for chaining
         """
-        if isinstance(data, numbers.Number):
-            data = np.ones((self._length,)) * data
-        elif not data.shape:
+        if isinstance(data, six.string_types):
+            data = float(data)
+
+        if isinstance(data, numbers.Number) or not data.shape:
             data = np.ones((self._length,)) * data
 
         s = data.shape
@@ -365,6 +362,9 @@ class Protocol(object):
         Raises:
             KeyError: If the column name could not be estimated we raise a key error.
         """
+        if column_name == 'maxG':
+            return np.ones((self._length,)) * 0.04
+
         sequence_timings = self._get_sequence_timings()
 
         if column_name in sequence_timings:
@@ -385,15 +385,10 @@ class Protocol(object):
 
         raise KeyError('The given column name "{}" could not be found in this protocol.'.format(column_name))
 
-    def _get_sequence_timings(self, max_G=None):
+    def _get_sequence_timings(self):
         """Return G, Delta and delta, estimate them if necessary.
 
         If Delta and delta are available, they are used instead of estimated Delta and delta.
-
-        Args:
-            maxG (double): The maximum G value in T/m
-            Delta (double): If set, use this Delta
-            delta (double): If set, use this delta
 
         Returns:
             the columns G, Delta and delta
@@ -421,13 +416,13 @@ class Protocol(object):
         if 'b' not in self._columns:
             return {}
 
-        max_G = max_G or self.max_G
+        maxG = self.get_column('maxG')
         bvals = self.get_column('b')
         bmax = max(self.get_b_values_shells())
 
-        Deltas = np.ones_like(bvals) * (3 * bmax / (2 * self.gamma_h**2 * max_G**2))**(1/3.0)
+        Deltas = np.ones_like(bvals) * (3 * bmax / (2 * self.gamma_h**2 * maxG**2))**(1/3.0)
         deltas = Deltas
-        G = np.sqrt(bvals / bmax) * max_G
+        G = np.sqrt(bvals / bmax) * maxG
 
         return {'G': G, 'Delta': Deltas, 'delta': deltas}
 
@@ -572,11 +567,13 @@ def write_protocol(protocol, fname, columns_list=None):
     """
     if not columns_list:
         columns_list = list(reversed(protocol.column_names))
-        preferred_order = ('gx', 'gy', 'gz', 'G', 'Delta', 'delta', 'TE', 'T1', 'b', 'q')
+        preferred_order = ('gx', 'gy', 'gz', 'G', 'Delta', 'delta', 'TE', 'T1', 'b', 'q', 'maxG')
 
         if 'G' in columns_list and 'Delta' in columns_list and 'delta' in columns_list:
             if 'b' in columns_list:
                 columns_list.remove('b')
+            if 'maxG' in columns_list:
+                columns_list.remove('maxG')
 
         final_list = []
         for p in preferred_order:
@@ -687,13 +684,9 @@ def auto_load_protocol(directory, protocol_options=None, bvec_fname=None, bval_f
 
     protocol = load_bvec_bval(bvec_fname, bval_fname, bval_scale=bval_scale)
 
-    protocol_extra_cols = ['TE', 'TR', 'Delta', 'delta']
-    protocol_maxG = 'maxG'
+    protocol_extra_cols = ['TE', 'TR', 'Delta', 'delta', 'maxG']
 
     if protocol_options:
-        if protocol_maxG in protocol_options:
-            protocol.max_G = protocol_options[protocol_maxG]
-
         for col in protocol_extra_cols:
             if col in protocol_options:
                 if isinstance(protocol_options[col], six.string_types):
@@ -701,11 +694,6 @@ def auto_load_protocol(directory, protocol_options=None, bvec_fname=None, bval_f
                 else:
                     protocol.add_column(col, protocol_options[col])
     else:
-        if os.path.isfile(os.path.join(directory, protocol_maxG)):
-            maxG = np.genfromtxt(os.path.join(directory, protocol_maxG))
-            if maxG:
-                protocol.max_G = float(maxG)
-
         for col in protocol_extra_cols:
             if os.path.isfile(os.path.join(directory, col)):
                 protocol.add_column_from_file(col, os.path.join(directory, col))
