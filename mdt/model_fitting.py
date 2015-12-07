@@ -229,7 +229,6 @@ class ModelFit(object):
             model = get_model(model)
 
         model.double_precision = double_precision
-        model.set_gradient_deviations(gradient_deviations)
 
         self._model = model
         self._problem_data = problem_data
@@ -241,6 +240,10 @@ class ModelFit(object):
         self._logger = logging.getLogger(__name__)
         self._cl_device_indices = cl_device_ind
         self._noise_std = _get_noise_std(noise_std, self._problem_data)
+
+        if gradient_deviations:
+            self._logger.info('Using given gradient deviations.')
+            model.set_gradient_deviations(gradient_deviations)
 
         if self._cl_device_indices is not None and not isinstance(self._cl_device_indices, collections.Iterable):
             self._cl_device_indices = [self._cl_device_indices]
