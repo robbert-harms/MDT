@@ -105,7 +105,7 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
                 grad_dev = grad_dev[self.problems_to_analyze, ...]
 
             adapter = SimpleDataAdapter(grad_dev, DataType.from_string('MOT_FLOAT_TYPE*'), self._get_mot_float_type())
-            var_data_dict.update({'gradient_deviations': adapter.get_opencl_data()})
+            var_data_dict.update({'gradient_deviations': adapter})
 
         return var_data_dict
 
