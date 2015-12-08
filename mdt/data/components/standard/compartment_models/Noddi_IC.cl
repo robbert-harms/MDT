@@ -142,7 +142,7 @@ void Noddi_IC_WatsonSHCoeff(const MOT_FLOAT_TYPE kappa, MOT_FLOAT_TYPE* const re
             sks[4] = sks[3] * kappa;
             sks[5] = sks[4] * kappa;
 
-            MOT_FLOAT_TYPE erfik = erfi(sks[0]);
+            MOT_FLOAT_TYPE erfik = ferfi(sks[0]);
             MOT_FLOAT_TYPE ierfik = 1/erfik;
             MOT_FLOAT_TYPE ek = exp(kappa);
             MOT_FLOAT_TYPE dawsonk = M_SQRTPI_2 * erfik/ek;

@@ -927,7 +927,7 @@ def get_model_config(model_names, config_list):
                         match_tree(names[1:], subtree, config)
 
     conf = {}
-    for index_start in range(len(model_names), 0, -1):
+    for index_start in range(len(model_names), -1, -1):
         sub_model_names = model_names[index_start:]
 
         for tree in config_list:

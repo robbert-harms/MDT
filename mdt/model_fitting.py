@@ -242,7 +242,7 @@ class ModelFit(object):
         self._noise_std = _get_noise_std(noise_std, self._problem_data)
         self._model_names_list = []
 
-        if gradient_deviations:
+        if gradient_deviations is not None:
             self._logger.info('Using given gradient deviations.')
             model.set_gradient_deviations(gradient_deviations)
 
@@ -253,8 +253,6 @@ class ModelFit(object):
             raise ProtocolProblemError(
                 'The given protocol is insufficient for this model. '
                 'The reported errors where: {}'.format(self._model.get_protocol_problems(self._problem_data.protocol)))
-
-        self._logger.info('Using MDT version {}'.format(__version__))
 
     def run(self):
         """Run the model and return the resulting maps
@@ -312,7 +310,9 @@ class ModelFit(object):
         with runtime_config_context(cl_environments=cl_envs, load_balancer=load_balancer):
             configure_per_model_logging(os.path.join(self._output_folder, model.name))
 
+            self._logger.info('Using MDT version {}'.format(__version__))
             self._logger.info('Preparing for model {0}'.format(model.name))
+            self._logger.info('Current cascade: {0}'.format(model_names))
             self._logger.info('Setting the noise standard deviation to {0}'.format(self._noise_std))
             model.evaluation_model.set_noise_level_std(self._noise_std)
 
