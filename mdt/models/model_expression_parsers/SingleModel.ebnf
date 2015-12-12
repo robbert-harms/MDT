@@ -1,0 +1,7 @@
+result = expr;
+expr = term ('+'|'-') expr | term;
+term = factor ('*'|'/') term | factor;
+factor = '(' expr ')' | model;
+model = model_name ['(' nickname ')'];
+model_name = /[a-zA-Z_]\w*/;
+nickname = /[a-zA-Z_]\w*/;

@@ -48,11 +48,7 @@ class BallStickStickStick(CascadeModelBuilder):
     description = 'Cascade for BallStickStickStick.'
     models = ('BallStickStick (Cascade)',
               'BallStickStickStick')
-
-    def _prepare_model(self, model, output_previous, output_all_previous):
-        super(BallStickStickStick, self)._prepare_model(model, output_previous, output_all_previous)
-        if model.name == 'BallStickStickStick':
-            model.init('Wstick1.w', 0.0)
+    inits = {'BallStickStickStick': [('Wstick1.w', 0.0)]}
 
 
 class BallStickStickStickExVivo(BallStickStickStick):

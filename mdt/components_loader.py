@@ -222,10 +222,10 @@ class UserComponentsSourceSingle(ComponentsSource):
 class UserComponentsSourceMulti(ComponentsSource):
     """Base class for components in which there are multiple components per file.
 
-    Inherited classes must overwrite the method: _get_components_from_module() which is used to get the components
-    in a loaded file/module.
+    Classes implementing the user components source must overwrite the method: _get_components_from_module()
+    used to get the components in a loaded file/module.
 
-    Attributes:
+    Class Attributes:
         loaded_modules_cache (dict): A cache for loaded components.
             If we do not do this, we fit_model into TypeError problems when a class is reloaded while there is already
             an instantiated object.

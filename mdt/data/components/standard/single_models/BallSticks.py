@@ -1,7 +1,6 @@
 from mdt.components_loader import CompartmentModelsLoader
-from mdt.models.single import DMRISingleModel
-from mot.model_building.evaluation_models import GaussianEvaluationModel
-from mot.trees import CompartmentModelTree
+from mdt.models.single import DMRISingleModelBuilder
+
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -9,57 +8,119 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-def get_components_list():
-    models = []
-    for x in range(1, 4):
-        models.append(get_ball_sticks(x, invivo=True))
-        models.append(get_ball_sticks(x, invivo=False))
-    return models
-
-compartments_loader = CompartmentModelsLoader()
+lc = CompartmentModelsLoader().load
 
 
-def get_ball_sticks(nmr_sticks=1, invivo=True):
-    name = 'Ball' + ('Stick' * nmr_sticks)
-    if invivo:
-        d_ani = 1.7e-9
-        d_iso = 3.0e-9
-        vivo_type = 'in-vivo'
-    else:
-        d_ani = 0.6e-9
-        d_iso = 2.0e-9
-        name += '-ExVivo'
-        vivo_type = 'ex-vivo'
+class BallStick(DMRISingleModelBuilder):
 
-    description = 'The Ball and Stick model with {0} Sticks and with {1} defaults.'.format(nmr_sticks, vivo_type)
+    name = 'BallStick'
+    ex_vivo_suitable = False
+    description = 'The default Ball & Stick model'
+    model_expression = '''
+        S0 * ( (Weight(Wball) * Ball) +
+               (Weight(Wstick) * Stick) )
+    '''
+    fixes = {'Ball.d': 3.0e-9,
+             'Stick.d': 1.7e-9}
+    post_optimization_modifiers = [('SNIF', lambda results: 1 - results['Wball.w'])]
 
-    def model_construction_cb(evaluation_model=GaussianEvaluationModel().fix('sigma', 1),
-                              signal_noise_model=None):
-        csf = (compartments_loader.get_class('Weight')('Wball'),
-               compartments_loader.load('Ball').fix('d', d_iso),
-               '*')
 
-        if nmr_sticks == 1:
-            ic = (compartments_loader.get_class('Weight')('Wstick'),
-                  compartments_loader.load('Stick').fix('d', d_ani),
-                  '*')
-        else:
-            ic = []
-            for i in range(nmr_sticks):
-                ic.append((compartments_loader.get_class('Weight')('Wstick' + repr(i)),
-                           compartments_loader.get_class('Stick')('Stick' + repr(i)).fix('d', d_ani),
-                           '*'))
-            ic.append('+')
+class BallStickExVivo(BallStick):
 
-        ml = (compartments_loader.load('S0'), (csf, ic, '+'), '*')
+    name = 'BallStick-ExVivo'
+    in_vivo_suitable = False
+    ex_vivo_suitable = True
+    description = 'The Ball & Stick model with ex vivo defaults'
+    fixes = {'Ball.d': 2.0e-9,
+             'Stick.d': 0.6e-9}
 
-        model = DMRISingleModel(name, CompartmentModelTree(ml), evaluation_model, signal_noise_model)
-        modifiers = [('SNIF', lambda results: 1 - results['Wball.w'])]
-        model.add_post_optimization_modifiers(modifiers)
-        return model
 
-    return [model_construction_cb,
-            {'name': name,
-             'in_vivo_suitable': invivo,
-             'ex_vivo_suitable': not invivo,
-             'description': description}]
+class BallStickStick(DMRISingleModelBuilder):
+
+    name = 'BallStickStick'
+    ex_vivo_suitable = False
+    description = 'The Ball & 2x Stick model'
+    model_listing = (lc('S0'),
+                     ((lc('Weight', 'Wball'),
+                       lc('Ball').fix('d', 3.0e-9),
+                       '*'),
+                      ((lc('Weight', 'Wstick0'),
+                        lc('Stick', 'Stick0').fix('d', 1.7e-9),
+                        '*'),
+                       (lc('Weight', 'Wstick1'),
+                        lc('Stick', 'Stick1').fix('d', 1.7e-9),
+                        '*'),
+                       '+'),
+                      '+'),
+                     '*')
+    post_optimization_modifiers = [('SNIF', lambda results: 1 - results['Wball.w'])]
+
+
+class BallStickStickExVivo(DMRISingleModelBuilder):
+
+    name = 'BallStickStick-ExVivo'
+    in_vivo_suitable = False
+    ex_vivo_suitable = True
+    description = 'The Ball & 2x Stick model with ex vivo defaults'
+    model_listing = (lc('S0'),
+                     ((lc('Weight', 'Wball'),
+                       lc('Ball').fix('d', 2.0e-9),
+                       '*'),
+                      ((lc('Weight', 'Wstick0'),
+                        lc('Stick', 'Stick0').fix('d', 0.6e-9),
+                        '*'),
+                       (lc('Weight', 'Wstick1'),
+                        lc('Stick', 'Stick1').fix('d', 0.6e-9),
+                        '*'),
+                       '+'),
+                      '+'),
+                     '*')
+    post_optimization_modifiers = [('SNIF', lambda results: 1 - results['Wball.w'])]
+
+
+class BallStickStickStick(DMRISingleModelBuilder):
+
+    name = 'BallStickStickStick'
+    ex_vivo_suitable = False
+    description = 'The Ball & 3x Stick model'
+    model_listing = (lc('S0'),
+                     ((lc('Weight', 'Wball'),
+                       lc('Ball').fix('d', 3.0e-9),
+                       '*'),
+                      ((lc('Weight', 'Wstick0'),
+                        lc('Stick', 'Stick0').fix('d', 1.7e-9),
+                        '*'),
+                       (lc('Weight', 'Wstick1'),
+                        lc('Stick', 'Stick1').fix('d', 1.7e-9),
+                        '*'),
+                       (lc('Weight', 'Wstick2'),
+                        lc('Stick', 'Stick2').fix('d', 1.7e-9),
+                        '*'),
+                       '+'),
+                      '+'),
+                     '*')
+    post_optimization_modifiers = [('SNIF', lambda results: 1 - results['Wball.w'])]
+
+
+class BallStickStickStickExVivo(DMRISingleModelBuilder):
+
+    name = 'BallStickStickStick-ExVivo'
+    ex_vivo_suitable = False
+    description = 'The Ball & 3x Stick model with ex vivo defaults'
+    model_listing = (lc('S0'),
+                     ((lc('Weight', 'Wball'),
+                       lc('Ball').fix('d', 2.0e-9),
+                       '*'),
+                      ((lc('Weight', 'Wstick0'),
+                        lc('Stick', 'Stick0').fix('d', 0.6e-9),
+                        '*'),
+                       (lc('Weight', 'Wstick1'),
+                        lc('Stick', 'Stick1').fix('d', 0.6e-9),
+                        '*'),
+                       (lc('Weight', 'Wstick2'),
+                        lc('Stick', 'Stick2').fix('d', 0.6e-9),
+                        '*'),
+                       '+'),
+                      '+'),
+                     '*')
+    post_optimization_modifiers = [('SNIF', lambda results: 1 - results['Wball.w'])]

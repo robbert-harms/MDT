@@ -1,7 +1,11 @@
+from copy import deepcopy
+
 import numpy as np
+import six
 
 from mdt import utils
 from mdt.models.base import DMRIOptimizable
+from mdt.models.model_expression_parsers.parser import parse
 from mot import runtime_configuration
 from mot.adapters import SimpleDataAdapter
 from mot.base import DataType
@@ -231,23 +235,42 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
 
 
 class DMRISingleModelBuilder(DMRISingleModel):
+    """The model builder to inherit from.
 
+    One can use this to create models in a declarative style. This works because in the constructor we use deepcopy
+    to copy all the relevant material before creating a new instance of the class.
+    """
     name = '<default>'
     in_vivo_suitable = True
     ex_vivo_suitable = True
     description = '<default>'
     post_optimization_modifiers = ()
     dependencies = ()
-    model_listing = ()
+    model_listing = None
+    model_expression = None
     evaluation_model = GaussianEvaluationModel().fix('sigma', 1)
     signal_noise_model = None
+    inits = {}
+    fixes = {}
 
     def __init__(self):
-        super(DMRISingleModelBuilder, self).__init__(self.name, CompartmentModelTree(self._get_model_listing()),
-                                                     self.evaluation_model, signal_noise_model=self.signal_noise_model)
+        super(DMRISingleModelBuilder, self).__init__(
+            deepcopy(self.name),
+            CompartmentModelTree(deepcopy(self._get_model_listing())),
+            deepcopy(self.evaluation_model),
+            signal_noise_model=deepcopy(self.signal_noise_model))
 
-        self.add_parameter_dependencies(self._get_dependencies())
-        self.add_post_optimization_modifiers(self._get_post_optimization_modifiers())
+        self.add_parameter_dependencies(deepcopy(self._get_dependencies()))
+        self.add_post_optimization_modifiers(deepcopy(self._get_post_optimization_modifiers()))
+
+        self._inits = self.inits
+        self._fixes = self.fixes
+
+        for full_param_name, value in self._inits.items():
+            self.init(full_param_name, value)
+
+        for full_param_name, value in self._fixes.items():
+            self.fix(full_param_name, value)
 
     @classmethod
     def meta_info(cls):
@@ -258,7 +281,9 @@ class DMRISingleModelBuilder(DMRISingleModel):
 
     @classmethod
     def _get_model_listing(cls):
-        return cls.model_listing
+        if cls.model_listing is not None:
+            return cls.model_listing
+        return parse(cls.model_expression)
 
     @classmethod
     def _get_dependencies(cls):

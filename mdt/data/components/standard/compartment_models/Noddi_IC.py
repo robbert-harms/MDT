@@ -32,7 +32,7 @@ class Noddi_IC(DMRICompartmentModelFunction):
              ),
             resource_filename(__name__, 'Noddi_IC.h'),
             resource_filename(__name__, 'Noddi_IC.cl'),
-            (CerfDawson(), CerfErfi(), FirstLegendreTerm(), 
+            (CerfDawson(), CerfErfi(), FirstLegendreTerm(),
              lib_loader.load('MRIConstants'),
              lib_loader.load('NeumannCylPerpPGSESum'))
         )
@@ -41,5 +41,5 @@ class Noddi_IC(DMRICompartmentModelFunction):
         maps = self._get_single_dir_coordinate_maps(results_dict[self.name + '.theta'],
                                                     results_dict[self.name + '.phi'],
                                                     results_dict[self.name + '.d'])
-        maps.update({self.name + '.odi': np.arctan2(1.0, results_dict[self.name + '.kappa']*10) * 2/np.pi})
+        maps.update({self.name + '.odi': np.arctan2(1.0, results_dict[self.name + '.kappa'] * 10) * 2 / np.pi})
         return maps

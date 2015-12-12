@@ -921,7 +921,8 @@ def get_model_config(model_names, config_list):
             name_regex, tree_content = list(tree.items())[0]
             if re.match(name_regex, names[0]):
                 if isinstance(tree_content, dict):
-                    recursive_merge_dict(config, tree_content, in_place=True)
+                    if len(names) == 1:
+                        recursive_merge_dict(config, tree_content, in_place=True)
                 else:
                     for subtree in tree_content:
                         match_tree(names[1:], subtree, config)

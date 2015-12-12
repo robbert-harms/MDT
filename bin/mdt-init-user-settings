@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
 import argparse
+import os
 import textwrap
 import argcomplete
 import mdt
 import mdt.shell_utils
+from mdt import get_config_dir
+
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"
@@ -16,7 +19,9 @@ if __name__ == '__main__':
     def get_arg_parser():
         description = textwrap.dedent("""
             This script is meant to update your home folder with the latest MDT models.
-        """)
+
+            The location we will write to is: {}
+        """.format(os.path.dirname(get_config_dir())))
         description += mdt.shell_utils.get_citation_message()
 
         parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)

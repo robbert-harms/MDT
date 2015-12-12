@@ -7,3 +7,4 @@ mot
 pyyaml
 nibabel
 argcomplete
+grako

@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import six
 import mdt
 from mdt.models.base import DMRIOptimizable
@@ -193,6 +195,9 @@ class CascadeModelBuilder(SimpleCascadeModel):
         name = 'BallStick (Cascade)'
         description = 'Cascade for Ballstick'
         models = ('s0', 'BallStick')
+
+    This works because in the constructor we use deepcopy to copy all the relevant material before creating a new
+    instance of the class.
     """
     name = '<default>'
     description = '<default>'
@@ -205,7 +210,12 @@ class CascadeModelBuilder(SimpleCascadeModel):
             # inheritance is used, the name and model list are already set
             super(CascadeModelBuilder, self).__init__(*args)
         else:
-            super(CascadeModelBuilder, self).__init__(self.name, list(map(mdt.get_model, self.models)))
+            super(CascadeModelBuilder, self).__init__(deepcopy(self.name), list(map(mdt.get_model, self.models)))
+
+        # make private copies of the inits and fix list. Else, if the template variables change,
+        # the change would affect all instances.
+        self._inits = deepcopy(self.inits)
+        self._fixes = deepcopy(self.fixes)
 
     @classmethod
     def meta_info(cls):
@@ -222,10 +232,10 @@ class CascadeModelBuilder(SimpleCascadeModel):
                 return v(output_previous)
             return v
 
-        if model.name in self.inits:
-            for item in self.inits[model.name]:
+        if model.name in self._inits:
+            for item in self._inits[model.name]:
                 model.init(item[0], parse_value(item[1]))
 
-        if model.name in self.fixes:
-            for item in self.fixes[model.name]:
+        if model.name in self._fixes:
+            for item in self._fixes[model.name]:
                 model.fix(item[0], parse_value(item[1]))

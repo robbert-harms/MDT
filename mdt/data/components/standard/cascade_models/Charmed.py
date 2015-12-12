@@ -53,6 +53,7 @@ class CharmedR2(CascadeModelBuilder):
                             ('w_res0.w', 'Wstick0.w'),
                             ('w_res1.w', 'Wstick1.w')]}
 
+
 class CharmedR2s0(CascadeModelBuilder):
 
     name = 'Charmed_2r (Cascade|s0)'

@@ -1,7 +1,10 @@
+import glob
+import os
 from contextlib import contextmanager
 import logging.config as logging_config
 import numpy as np
-
+from six import string_types
+import logging
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-03-10"
@@ -160,7 +163,6 @@ def sample_model(model, dwi_info, protocol, brain_mask, output_folder,
     from mdt.models.cascade import DMRICascadeModelInterface
     from mot.cl_routines.sampling.metropolis_hastings import MetropolisHastings
     from mdt.model_sampling import sample_single_model
-    from six import string_types
 
     if not utils.check_user_components():
         raise RuntimeError('User\'s components folder is not up to date. Please run mdt.initialize_user_settings().')
@@ -395,7 +397,6 @@ def create_median_otsu_brain_mask(dwi_info, protocol, output_fname=None, **kwarg
     Returns:
         ndarray: The created brain mask
     """
-    from six import string_types
     from mdt.masking import create_median_otsu_brain_mask, create_write_median_otsu_brain_mask
 
     if output_fname:
@@ -555,7 +556,6 @@ def view_results_slice(data,
                 show_sliders=False
             You can overwrite these again by specifying one of these options directly.
     """
-    from six import string_types
     from mdt.visualization import MapsVisualizer
 
     general_plot_options = general_plot_options or {}
@@ -597,6 +597,28 @@ def view_results_slice(data,
              grid_layout=grid_layout)
 
 
+def results_preselection_names(data):
+    """Generate a list of useful map names to display.
+
+    This is primarily to be used as argument to the parameter 'maps_to_show' of the function view_results_slice.
+
+    Args:
+        data (str or dict): either a directory of a dictionary of results.
+
+    Returns:
+        list of str: the list of useful map names.
+    """
+    keys = []
+    if isinstance(data, string_types):
+        for extension in ('.nii', '.nii.gz'):
+            for f in glob.glob(os.path.join(data, '*' + extension)):
+                keys.append(os.path.basename(f)[0:-len(extension)])
+    else:
+        keys = data.keys()
+
+    return list(filter(lambda v: all(m not in v for m in ('eig', '.d', '.sigma')), keys))
+
+
 def block_plots():
     """A small function to block the plots made by matplotlib.
 
@@ -617,7 +639,6 @@ def view_result_samples(data, voxel_ind=None, block=True):
             do not want the routine to block after drawing. In doing so you manually need to block. You can
             do this by calling the function block_plots()
     """
-    from six import string_types
     from mdt.visualization import SampleVisualizer
     import pickle
 
@@ -1164,12 +1185,10 @@ def recalculate_ics(model, dwi_info, protocol, brain_mask, data_dir, sigma, outp
         sigma_param_name (str): the name of the parameter to which we will set sigma. If not given we search
             the result maps for something ending in .sigma
     """
-    from six import string_types
     import mdt.utils
     from mdt.models.cascade import DMRICascadeModelInterface
     from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
     from mot import runtime_configuration
-    import logging
 
     logger = logging.getLogger(__name__)
 

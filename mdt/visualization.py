@@ -47,7 +47,7 @@ class MapsVisualizer(object):
         self._colorbar_subplots = {}
         self.axis_options = None
         self.nmr_colorbar_axis_ticks = None
-        self.grid_layout = SquareGridLayout()
+        self.grid_layout = AutoGridLayout()
 
     def show(self, dimension=None, slice_ind=None, volume_ind=None, map_titles=None, maps_to_show=None,
              general_plot_options=None, map_plot_options=None, to_file=None, block=True, maximize=False,
@@ -402,6 +402,7 @@ class SampleVisualizer(object):
 
             self._voxel_slider.set_val(voxel_ind)
             self._rerender()
+            self._voxel_slider.set_val(voxel_ind)
             self._updating_sliders = False
 
     def _setup(self):
@@ -513,7 +514,7 @@ class GridLayout(object):
         """
 
 
-class SquareGridLayout(GridLayout):
+class AutoGridLayout(GridLayout):
 
     def get_axis(self, index, nmr_plots):
         rows, cols = self._get_row_cols_square(nmr_plots)
@@ -530,6 +531,18 @@ class SquareGridLayout(GridLayout):
             rows = int(rows)
             cols = int(cols)
         return rows, cols
+
+
+class RectangularGridLayout(GridLayout):
+
+    def __init__(self, rows, cols):
+        super(RectangularGridLayout, self).__init__()
+        self.rows = rows
+        self.cols = cols
+
+    def get_axis(self, index, nmr_plots):
+        grid = GridSpec(self.rows, self.cols, **self.spacings)
+        return plt.subplot(grid[index])
 
 
 class LowerTriangleGridLayout(GridLayout):

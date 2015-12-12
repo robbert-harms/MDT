@@ -66,11 +66,11 @@ def create_median_otsu_brain_mask(dwi_info, protocol, mask_threshold=0, **kwargs
     return brain_mask
 
 
-def generate_threshold_fa_mask(fa_fname, brain_mask_fname, out_fname, fa_threshold=0.3, median_radius=1, numpass=2):
-    """Thresholds the given FA map with the given threshold, write the output to the given filename.
+def generate_simple_wm_mask(fa_fname, brain_mask_fname, out_fname, fa_threshold=0.3, median_radius=1, numpass=2):
+    """Generate a simple white matter mask by thresholding the given FA map.
 
-    The idea is to create a simple white matter mask using FA values. Everything below the given threshold will be
-    masked.
+    Everything below the given FA threshold will be masked (not used). Next, it applies the regular brain mask to
+    only retain values inside the brain.
 
     Args:
         fa_fname (str): the path to the FA file
@@ -79,7 +79,7 @@ def generate_threshold_fa_mask(fa_fname, brain_mask_fname, out_fname, fa_thresho
         fa_threshold (double): the FA threshold. Everything below this threshold is masked (set to 0). To be precise:
             where fa_data < fa_threshold set the value to 0.
         median_radius (int): the radius of the median filter
-        numpass (int): the number of passes we apply a median filter
+        numpass (int): the number of passes we apply the median filter
     """
     logger = logging.getLogger(__name__)
     logger.info('Starting calculating a white matter mask using FA.')

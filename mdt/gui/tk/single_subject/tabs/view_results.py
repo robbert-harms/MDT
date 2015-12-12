@@ -82,6 +82,11 @@ class ViewResultsTab(TabContainer):
     def _onchange_cb(self, calling_widget, *args, **kwargs):
         if calling_widget.id_key == 'input_dir_chooser':
             folder = calling_widget.get_value()
+
+            if os.path.isfile(folder):
+                calling_widget.initial_dir = os.path.dirname(folder)
+                folder = os.path.dirname(folder)
+
             result_files = glob.glob(os.path.join(folder, '*.nii*'))
 
             def get_name(img_path):
