@@ -1,30 +1,30 @@
-from contextlib import contextmanager
+import collections
 import copy
-import glob
-import re
 import distutils.dir_util
+import functools
+import glob
 import logging
 import logging.config as logging_config
 import os
-import collections
+import re
 import shutil
-import functools
 import tempfile
-from six import string_types
-import numpy as np
+from contextlib import contextmanager
 import nibabel as nib
+import numpy as np
 import pkg_resources
-from scipy.special import jnp_zeros
 import six
+from scipy.special import jnp_zeros
+from six import string_types
+import mdt.configuration as configuration
 from mdt.IO import Nifti
+from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
 from mdt.components_loader import get_model, FittingStrategies
 from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
 from mdt.data_loaders.protocol import autodetect_protocol_loader
 from mdt.log_handlers import ModelOutputLogHandler
-from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
 from mot import runtime_configuration
-from mot.base import AbstractProblemData, ModelFunction
-import mdt.configuration as configuration
+from mot.base import AbstractProblemData
 from mot.cl_environments import CLEnvironmentFactory
 from mot.cl_routines.optimizing.meta_optimizer import MetaOptimizer
 from mot.factory import get_load_balance_strategy_by_name, get_optimizer_by_name, get_filter_by_name
@@ -111,40 +111,6 @@ class DMRIProblemData(AbstractProblemData):
         self._mask = new_mask
         if self._observation_list is not None:
             self._observation_list = create_roi(self.dwi_volume, self._mask)
-
-
-class DMRICompartmentModelFunction(ModelFunction):
-
-    def __init__(self, name, cl_function_name, parameter_list, cl_header_file, cl_code_file, dependency_list):
-        super(DMRICompartmentModelFunction, self).__init__(name, cl_function_name, parameter_list,
-                                                           dependency_list=dependency_list)
-        self._cl_header_file = cl_header_file
-        self._cl_code_file = cl_code_file
-
-    def get_cl_header(self):
-        return self._get_cl_dependency_headers() + "\n" + open(os.path.abspath(self._cl_header_file), 'r').read()
-
-    def get_cl_code(self):
-        return self._get_cl_dependency_code() + "\n" + open(os.path.abspath(self._cl_code_file), 'r').read()
-
-    def _get_single_dir_coordinate_maps(self, theta, phi, r):
-        """Convert spherical coordinates to cartesian coordinates in 3d
-
-        Args:
-            theta (ndarray): the double array with the theta values
-            phi (ndarray): the double array with the phi values
-            r (ndarray): the double array with the r values
-
-        Returns:
-            three ndarrays, per vector one map
-        """
-        cartesian = spherical_to_cartesian(theta, phi)
-        extra_dict = {self.name + '.eig0.vec': cartesian, self.name + '.eig0.val': r}
-
-        for ind in range(3):
-            extra_dict.update({self.name + '.eig0.vec.' + repr(ind): cartesian[:, ind]})
-
-        return extra_dict
 
 
 class PathJoiner(object):

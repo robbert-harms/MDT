@@ -1,6 +1,5 @@
 from pkg_resources import resource_filename
-from mdt.utils import DMRICompartmentModelFunction
-
+from mdt.models.compartment_models import DMRICompartmentModelFunction
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"

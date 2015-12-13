@@ -1,7 +1,7 @@
 from pkg_resources import resource_filename
 
 from mdt.model_parameters import get_parameter
-from mdt.utils import DMRICompartmentModelFunction
+from mdt.models.compartment_models import DMRICompartmentModelFunction
 from mdt.cl_routines.mapping.dti_measures import DTIMeasures
 from mdt.utils import eigen_vectors_from_tensor
 from mot import runtime_configuration

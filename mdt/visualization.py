@@ -220,7 +220,10 @@ class MapsVisualizer(object):
 
     def _rerender_maps(self):
         for f in self._image_subplots.values():
-            self._figure.delaxes(f)
+            try:
+                self._figure.delaxes(f)
+            except KeyError:
+                pass
         self._image_subplots = {}
 
         bottom_spacing = 0.07 if self.show_sliders else 0.015

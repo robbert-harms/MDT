@@ -1,6 +1,6 @@
 from pkg_resources import resource_filename
 from mdt.model_parameters import get_parameter
-from mdt.utils import DMRICompartmentModelFunction
+from mdt.models.compartment_models import DMRICompartmentModelBuilder
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -8,21 +8,15 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class Stick(DMRICompartmentModelFunction):
+class Stick(DMRICompartmentModelBuilder):
 
-    def __init__(self, name='Stick'):
-        super(Stick, self).__init__(
-            name,
-            'cmStick',
-            (get_parameter('g'),
-             get_parameter('b'),
-             get_parameter('d'),
-             get_parameter('theta'),
-             get_parameter('phi')),
-            resource_filename(__name__, 'Stick.h'),
-            resource_filename(__name__, 'Stick.cl'),
-            ()
-        )
+    config = dict(
+        name='Stick',
+        cl_function_name='cmStick',
+        parameter_list=('g', 'b', 'd', 'theta', 'phi'),
+        cl_header_file=resource_filename(__name__, 'Stick.h'),
+        cl_code_file=resource_filename(__name__, 'Stick.cl'),
+    )
 
     def get_extra_results_maps(self, results_dict):
         return self._get_single_dir_coordinate_maps(results_dict[self.name + '.theta'],

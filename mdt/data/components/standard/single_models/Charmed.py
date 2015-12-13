@@ -1,5 +1,5 @@
 from mdt.components_loader import CompartmentModelsLoader
-from mdt.models.single import DMRISingleModel
+from mdt.models.single import DMRISingleModel, DMRISingleModelBuilder
 from mot.model_building.evaluation_models import GaussianEvaluationModel
 from mot.model_building.parameter_functions.transformations import SinSqrClampTransform
 from mot.model_building.signal_noise_models import JohnsonSignalNoise
@@ -18,6 +18,25 @@ def get_components_list():
     return models
 
 compartments_loader = CompartmentModelsLoader()
+
+
+# class Charmed(DMRISingleModelBuilder):
+#
+#     name = 'Charmed'
+#     ex_vivo_suitable = False
+#     description = 'The standard charmed model with 3 restricted compartments'
+#     signal_noise_model = JohnsonSignalNoise()
+#     model_expression = '''
+#         S0 * ( (Weight(Wball) * Ball) +
+#                (Weight(Wstick0) * Stick(Stick0)) +
+#                (Weight(Wstick1) * Stick(Stick1)) +
+#                (Weight(Wstick2) * Stick(Stick2)) )
+#     '''
+#     fixes = {'Ball.d': 3.0e-9,
+#              'Stick0.d': 1.7e-9,
+#              'Stick1.d': 1.7e-9,
+#              'Stick2.d': 1.7e-9}
+#     post_optimization_modifiers = [('SNIF', lambda results: 1 - results['Wball.w'])]
 
 
 def get_charmed(nmr_restr=3):

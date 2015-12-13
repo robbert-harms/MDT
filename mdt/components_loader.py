@@ -314,6 +314,17 @@ class UserComponentsSourceMulti(ComponentsSource):
                                'Please check the path to the components in your configuration file.'.format(self.path))
 
 
+class ParametersSource(UserComponentsSourceMulti):
+
+    def __init__(self, user_type):
+        """Source for the items in the 'parameters' dir in the components folder."""
+        super(ParametersSource, self).__init__(user_type, 'parameters')
+
+    def _get_desired_class(self):
+        from mot.base import CLFunctionParameter
+        return CLFunctionParameter
+
+
 class SingleModelSource(UserComponentsSourceMulti):
 
     def __init__(self, user_type):
@@ -321,8 +332,8 @@ class SingleModelSource(UserComponentsSourceMulti):
         super(SingleModelSource, self).__init__(user_type, 'single_models')
 
     def _get_desired_class(self):
-        from mdt.models.single import DMRISingleModelBuilder
-        return DMRISingleModelBuilder
+        from mdt.models.single import DMRISingleModel
+        return DMRISingleModel
 
 
 class CascadeSource(UserComponentsSourceMulti):
@@ -373,14 +384,14 @@ class FittingStrategies(ComponentsLoader):
 
     def __init__(self):
         super(FittingStrategies, self).__init__([UserComponentsSourceSingle('user', 'fitting_strategies'),
-                                             UserComponentsSourceSingle('standard', 'fitting_strategies')])
+                                                 UserComponentsSourceSingle('standard', 'fitting_strategies')])
 
 
 class NoiseSTDCalculatorsLoader(ComponentsLoader):
 
     def __init__(self):
         super(NoiseSTDCalculatorsLoader, self).__init__([UserComponentsSourceSingle('user', 'noise_std_calculators'),
-                                                   UserComponentsSourceSingle('standard', 'noise_std_calculators')])
+                                                         UserComponentsSourceSingle('standard', 'noise_std_calculators')])
 
 
 class CompartmentModelsLoader(ComponentsLoader):
@@ -404,6 +415,13 @@ class SingleModelsLoader(ComponentsLoader):
     def __init__(self):
         super(SingleModelsLoader, self).__init__([SingleModelSource('user'),
                                                   SingleModelSource('standard')])
+
+
+class ParametersLoader(ComponentsLoader):
+
+    def __init__(self):
+        super(ParametersLoader, self).__init__([ParametersSource('user'),
+                                                ParametersSource('standard')])
 
 
 class CascadeModelsLoader(ComponentsLoader):

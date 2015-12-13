@@ -1,6 +1,6 @@
 from pkg_resources import resource_filename
 from mdt.model_parameters import get_parameter
-from mdt.utils import DMRICompartmentModelFunction
+from mdt.models.compartment_models import DMRICompartmentModelFunction
 from mdt.components_loader import LibraryFunctionsLoader
 
 __author__ = 'Robbert Harms'
