@@ -1,6 +1,3 @@
-#ifndef DMRICM_EXPT1DECTR_H
-#define DMRICM_EXPT1DECTR_H
-
 /**
  * Author = Robbert Harms
  * Date = 2014-02-05
@@ -16,4 +13,3 @@
  */
 MOT_FLOAT_TYPE cmExpT1DecTR(const MOT_FLOAT_TYPE TR, const MOT_FLOAT_TYPE T1);
 
-#endif // DMRICM_EXPT1DECTR_H

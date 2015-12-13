@@ -1,6 +1,4 @@
-from pkg_resources import resource_filename
-from mdt.model_parameters import get_parameter
-from mdt.models.compartment_models import DMRICompartmentModelFunction
+from mdt.models.compartment_models import DMRICompartmentModelBuilder
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -8,15 +6,11 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class ExpT2Dec(DMRICompartmentModelFunction):
+class ExpT2Dec(DMRICompartmentModelBuilder):
 
-    def __init__(self, name='T2'):
-        super(ExpT2Dec, self).__init__(
-            name,
-            'cmExpT2Dec',
-            (get_parameter('TE'),
-             get_parameter('T2')),
-            resource_filename(__name__, 'ExpT2Dec.h'),
-            resource_filename(__name__, 'ExpT2Dec.cl'),
-            ()
-        )
+    config = dict(
+        name='T2',
+        cl_function_name='cmExpT2Dec',
+        parameter_list=('TE', 'T2'),
+        module_name=__name__
+    )

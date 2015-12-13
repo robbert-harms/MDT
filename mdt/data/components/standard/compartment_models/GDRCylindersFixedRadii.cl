@@ -1,6 +1,3 @@
-#ifndef DMRICM_GDRCYLINDERSFIXEDRADII_CL
-#define DMRICM_GDRCYLINDERSFIXEDRADII_CL
-
 /**
  * Author = Robbert Harms
  * Date = 2014-02-05
@@ -28,4 +25,3 @@ MOT_FLOAT_TYPE cmGDRCylindersFixedRadii(const MOT_FLOAT_TYPE4 g,
     return signal;
 }
 
-#endif // DMRICM_GDRCYLINDERSFIXEDRADII_CL

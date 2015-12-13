@@ -1,6 +1,3 @@
-#ifndef DMRICM_GDRCYLINDERS_CL
-#define DMRICM_GDRCYLINDERS_CL
-
 /**
  * Author = Robbert Harms
  * Date = 2014-02-05
@@ -10,13 +7,13 @@
  */
 
 /** Small number constant used in continued fraction gamma evaluation */
-#define GDRCYL_FPMIN 1E-30
+
 
 /** Small number constant used in gamma series evaluation */
-#define GDRCYL_EPS 3E-7
+
 
 /** Max number of iterations in series evaluation */
-#define GDRCYL_ITMAX 100
+
 
 MOT_FLOAT_TYPE gammaCDF(const MOT_FLOAT_TYPE k, const MOT_FLOAT_TYPE theta, const MOT_FLOAT_TYPE x);
 MOT_FLOAT_TYPE gammp(const MOT_FLOAT_TYPE a, const MOT_FLOAT_TYPE x);
@@ -253,4 +250,3 @@ MOT_FLOAT_TYPE findGammaCDFCrossing(MOT_FLOAT_TYPE startx, MOT_FLOAT_TYPE stopx,
 #undef GDRCYL_EPS
 #undef GDRCYL_ITMAX
 
-#endif // DMRICM_GDRCYLINDERS_CL

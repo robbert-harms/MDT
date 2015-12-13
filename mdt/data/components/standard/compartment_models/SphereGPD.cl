@@ -1,6 +1,3 @@
-#ifndef DMRICM_SPHEREGPD_CL
-#define DMRICM_SPHEREGPD_CL
-
 /**
  * Author = Robbert Harms
  * Date = 2014-02-05
@@ -44,4 +41,3 @@ MOT_FLOAT_TYPE cmSphereGPD(const MOT_FLOAT_TYPE Delta,
     return exp(-2 * GAMMA_H_SQ  * pown(G, 2) * sum);
 }
 
-#endif // DMRICM_SPHEREGPD_CL

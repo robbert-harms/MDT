@@ -1,6 +1,3 @@
-#ifndef DMRICM_CYLINDERGPD_CL
-#define DMRICM_CYLINDERGPD_CL
-
 /**
  * Author = Robbert Harms
  * Date = 2014-02-05
@@ -30,4 +27,3 @@ MOT_FLOAT_TYPE cmCylinderGPD(const MOT_FLOAT_TYPE4 g,
             exp(-(Delta - (delta/3.0)) * pown(GAMMA_H * delta * G * cos(omega), 2) * d);
 }
 
-#endif // DMRICM_CYLINDERGPD_CL

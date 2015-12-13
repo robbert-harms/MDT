@@ -1,6 +1,3 @@
-#ifndef DMRICM_CHARMEDRESTRICTED_CL
-#define DMRICM_CHARMEDRESTRICTED_CL
-
 /**
  * Author = Robbert Harms
  * Date = 2014-11-06
@@ -43,4 +40,4 @@ MOT_FLOAT_TYPE cmCharmedRestricted(const MOT_FLOAT_TYPE4 g,
     return (MOT_FLOAT_TYPE)sum;
 }
 
-#endif // DMRICM_CHARMEDRESTRICTED_CL
+

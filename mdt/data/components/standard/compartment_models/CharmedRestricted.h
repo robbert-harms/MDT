@@ -1,6 +1,3 @@
-#ifndef DMRICM_CHARMEDRESTRICTED_H
-#define DMRICM_CHARMEDRESTRICTED_H
-
 /**
  * Author = Robbert Harms
  * Date = 2014-11-06
@@ -17,4 +14,3 @@ MOT_FLOAT_TYPE cmCharmedRestricted(const MOT_FLOAT_TYPE4 g,
                                 const MOT_FLOAT_TYPE theta,
                                 const MOT_FLOAT_TYPE phi);
 
-#endif // DMRICM_CHARMEDRESTRICTED_H

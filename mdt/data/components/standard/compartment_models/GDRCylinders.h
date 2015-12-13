@@ -1,6 +1,3 @@
-#ifndef DMRICM_GDRCYLINDERS_H
-#define DMRICM_GDRCYLINDERS_H
-
 /**
  * Author = Robbert Harms
  * Date = 2014-02-05
@@ -30,4 +27,3 @@ MOT_FLOAT_TYPE cmGDRCylinders(const MOT_FLOAT_TYPE4 g,
                            const MOT_FLOAT_TYPE gamma_beta,
                            const MOT_FLOAT_TYPE gamma_nmr_cyl);
 
-#endif // DMRICM_GDRCYLINDERS_H

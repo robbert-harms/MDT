@@ -1,6 +1,4 @@
-from pkg_resources import resource_filename
-from mdt.model_parameters import get_parameter
-from mdt.models.compartment_models import DMRICompartmentModelFunction
+from mdt.models.compartment_models import DMRICompartmentModelBuilder
 from mdt.components_loader import LibraryFunctionsLoader
 from mot.cl_functions import FirstLegendreTerm, CerfErfi, CerfDawson
 import numpy as np
@@ -11,31 +9,20 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class Noddi_IC(DMRICompartmentModelFunction):
+lib_loader = LibraryFunctionsLoader()
 
-    def __init__(self, name='Noddi_IC'):
-        lib_loader = LibraryFunctionsLoader()
 
-        super(Noddi_IC, self).__init__(
-            name,
-            'cmNoddi_IC',
-            (get_parameter('g'),
-             get_parameter('b'),
-             get_parameter('G'),
-             get_parameter('Delta'),
-             get_parameter('delta'),
-             get_parameter('d'),
-             get_parameter('theta'),
-             get_parameter('phi'),
-             get_parameter('kappa'),
-             get_parameter('R')
-             ),
-            resource_filename(__name__, 'Noddi_IC.h'),
-            resource_filename(__name__, 'Noddi_IC.cl'),
-            (CerfDawson(), CerfErfi(), FirstLegendreTerm(),
-             lib_loader.load('MRIConstants'),
-             lib_loader.load('NeumannCylPerpPGSESum'))
-        )
+class Noddi_IC(DMRICompartmentModelBuilder):
+
+    config = dict(
+        name='Noddi_IC',
+        cl_function_name='cmNoddi_IC',
+        parameter_list=('g', 'b', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'kappa', 'R'),
+        module_name=__name__,
+        dependency_list=(CerfDawson(), CerfErfi(), FirstLegendreTerm(),
+                         lib_loader.load('MRIConstants'),
+                         lib_loader.load('NeumannCylPerpPGSESum'))
+    )
 
     def get_extra_results_maps(self, results_dict):
         maps = self._get_single_dir_coordinate_maps(results_dict[self.name + '.theta'],

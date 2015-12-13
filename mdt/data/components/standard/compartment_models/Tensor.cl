@@ -1,6 +1,3 @@
-#ifndef DMRICM_TENSOR_CL
-#define DMRICM_TENSOR_CL
-
 /**
  * Author = Robbert Harms
  * Date = 2014-02-05
@@ -55,4 +52,3 @@ MOT_FLOAT_TYPE4 Tensor_rotateVector(const MOT_FLOAT_TYPE4 vector, const MOT_FLOA
     return vector * cos(psi) + (cross(vector, n1) * sin(psi)) + (n1 * dot(n1, vector) * (1-cos(psi)));
 }
 
-#endif // DMRICM_TENSOR_CL

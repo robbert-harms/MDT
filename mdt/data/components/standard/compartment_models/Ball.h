@@ -1,6 +1,3 @@
-#ifndef DMRICM_BALL_H
-#define DMRICM_BALL_H
-
 /**
  * Author = Robbert Harms
  * Date = 2014-02-05
@@ -16,4 +13,3 @@
  */
 MOT_FLOAT_TYPE cmBall(const MOT_FLOAT_TYPE b, const MOT_FLOAT_TYPE d);
 
-#endif // DMRICM_BALL_H

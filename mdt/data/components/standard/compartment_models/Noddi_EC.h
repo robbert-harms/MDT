@@ -1,6 +1,3 @@
-#ifndef DMRICM_NODDIEC_H
-#define DMRICM_NODDIEC_H
-
 /**
  * Author = Robbert Harms
  * Date = 2/26/14 
@@ -27,4 +24,3 @@ MOT_FLOAT_TYPE cmNoddi_EC(const MOT_FLOAT_TYPE4 g,
                        const MOT_FLOAT_TYPE phi,
                        const MOT_FLOAT_TYPE kappa);
 
-#endif // DMRICM_NODDIEC_H

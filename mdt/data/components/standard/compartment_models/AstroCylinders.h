@@ -1,6 +1,3 @@
-#ifndef DMRICM_ASTROCYLINDERS_H
-#define DMRICM_ASTROCYLINDERS_H
-
 /**
  * Author = Robbert Harms
  * Date = 2014-02-05
@@ -17,4 +14,3 @@ MOT_FLOAT_TYPE cmAstroCylinders(const MOT_FLOAT_TYPE4 g,
                              const MOT_FLOAT_TYPE d,
                              const MOT_FLOAT_TYPE R);
 
-#endif // DMRICM_ASTROCYLINDERS_H

@@ -1,6 +1,3 @@
-#ifndef DMRICM_ZEPPELIN_H
-#define DMRICM_ZEPPELIN_H
-
 /**
  * Author = Robbert Harms
  * Date = 2014-02-26
@@ -25,4 +22,3 @@ MOT_FLOAT_TYPE cmZeppelin(const MOT_FLOAT_TYPE4 g,
                        const MOT_FLOAT_TYPE theta,
                        const MOT_FLOAT_TYPE phi);
 
-#endif // DMRICM_ZEPPELIN_H

@@ -1,8 +1,7 @@
+from pkg_resources import resource_filename
 import os
 from copy import deepcopy
-
 import six
-
 from mdt.model_parameters import get_parameter
 from mdt.utils import spherical_to_cartesian
 from mot.base import ModelFunction
@@ -37,7 +36,18 @@ class DMRICompartmentModelFunction(ModelFunction):
         return header
 
     def get_cl_code(self):
-        return self._get_cl_dependency_code() + "\n" + open(os.path.abspath(self._cl_code_file), 'r').read()
+        inclusion_guard_name = 'DMRICM_' + os.path.splitext(os.path.basename(self._cl_header_file))[0] + '_CL'
+
+        code = self._get_cl_dependency_code() + "\n"
+        code += '''
+            #ifndef {0}
+            #define {0}
+        '''.format(inclusion_guard_name)
+        code += open(os.path.abspath(self._cl_code_file), 'r').read()
+        code += '''
+            #endif // {0}
+        '''.format(inclusion_guard_name)
+        return code
 
     def _get_single_dir_coordinate_maps(self, theta, phi, r):
         """Convert spherical coordinates to cartesian coordinates in 3d
@@ -69,7 +79,15 @@ class DMRICompartmentModelBuilder(DMRICompartmentModelFunction):
         name (str): the name of the model
         description (str): model description
         cl_function_name (str): the name of the function in the CL kernel
-        parameter_list (
+        parameter_list (list): the list of parameters to use. If a parameter is a string we will load it automatically,
+            if not it is supposed to be a CLFunctionParameter instance that we append directly.
+        cl_header_file (str): the full path to the CL header file. You don't need to define this if you set
+            module_name = __name__ in your config dict
+        cl_code_file (str): the full path to the CL code file. You don't need to define this if you set
+            module_name=__name__ in your config dict
+        dependency_list (list): the list of functions this function depends on
+        module_name (str): the name of the module implementing the subclass. You always need to set this to __name__:
+            module_name=__name__
     """
     config = {}
     config_default = dict(
@@ -79,15 +97,16 @@ class DMRICompartmentModelBuilder(DMRICompartmentModelFunction):
         parameter_list=[],
         cl_header_file=None,
         cl_code_file=None,
-        dependency_list=[]
+        dependency_list=[],
+        module_name=None
     )
 
-    def __init__(self, *args):
+    def __init__(self, *args, **kwargs):
         new_args = [self.get_config_attribute('name'),
                     self.get_config_attribute('cl_function_name'),
                     self.get_parameters_list(),
-                    self.get_config_attribute('cl_header_file'),
-                    self.get_config_attribute('cl_code_file'),
+                    self.get_cl_header_file_name(),
+                    self.get_cl_code_file_name(),
                     self.get_config_attribute('dependency_list')]
 
         for ind, already_set_arg in enumerate(args):
@@ -104,6 +123,18 @@ class DMRICompartmentModelBuilder(DMRICompartmentModelFunction):
             else:
                 parameters.append(deepcopy(item))
         return parameters
+
+    @classmethod
+    def get_cl_header_file_name(cls):
+        if cls.get_config_attribute('cl_header_file') is None:
+            return resource_filename(cls.get_config_attribute('module_name'), cls.get_config_attribute('name') + '.h')
+        return cls.get_config_attribute('cl_header_file')
+
+    @classmethod
+    def get_cl_code_file_name(cls):
+        if cls.get_config_attribute('cl_code_file') is None:
+            return resource_filename(cls.get_config_attribute('module_name'), cls.get_config_attribute('name') + '.cl')
+        return cls.get_config_attribute('cl_code_file')
 
     @classmethod
     def meta_info(cls):

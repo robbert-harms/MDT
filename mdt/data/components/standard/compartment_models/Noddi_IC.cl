@@ -1,6 +1,3 @@
-#ifndef DMRICM_NODDIIC_CL
-#define DMRICM_NODDIIC_CL
-
 /**
  * Author = Robbert Harms
  * Date = 2/26/14
@@ -10,7 +7,7 @@
  */
 
 // do not change this value! It would require adding approximations to the functions below
-#define NODDI_IC_MAX_POLYNOMIAL_ORDER 6
+
 
 void Noddi_IC_LegendreGaussianIntegral(const MOT_FLOAT_TYPE x, MOT_FLOAT_TYPE* result);
 void Noddi_IC_WatsonSHCoeff(const MOT_FLOAT_TYPE kappa, MOT_FLOAT_TYPE* result);
@@ -210,4 +207,4 @@ void Noddi_IC_WatsonSHCoeff(const MOT_FLOAT_TYPE kappa, MOT_FLOAT_TYPE* const re
         result[6] = 4.65678 + 6.30069*lnkd[0] + 1.13754*lnkd[1] - 1.38393*lnkd[2] - 0.0134758*lnkd[3] + 0.331686*lnkd[4] - 0.105954*lnkd[5];
     }
 }
-#endif // DMRICM_NODDIIC_CL
+

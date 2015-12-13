@@ -1,6 +1,3 @@
-#ifndef DMRICM_TENSOR_H
-#define DMRICM_TENSOR_H
-
 /**
  * Author = Robbert Harms
  * Date = 2014-02-05
@@ -29,4 +26,3 @@ MOT_FLOAT_TYPE cmTensor(const MOT_FLOAT_TYPE4 g,
                      const MOT_FLOAT_TYPE phi,
                      const MOT_FLOAT_TYPE psi);
 
-#endif // DMRICM_TENSOR_H

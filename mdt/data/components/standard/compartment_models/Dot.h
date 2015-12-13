@@ -1,6 +1,3 @@
-#ifndef DMRICM_DOT_H
-#define DMRICM_DOT_H
-
 /**
  * Author = Robbert Harms
  * Date = 2014-02-05
@@ -14,4 +11,3 @@
  */
 MOT_FLOAT_TYPE cmDot();
 
-#endif // DMRICM_DOT_H

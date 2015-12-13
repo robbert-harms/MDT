@@ -1,7 +1,4 @@
-from pkg_resources import resource_filename
-
-from mdt.model_parameters import get_parameter
-from mdt.models.compartment_models import DMRICompartmentModelFunction
+from mdt.models.compartment_models import DMRICompartmentModelBuilder
 from mdt.cl_routines.mapping.dti_measures import DTIMeasures
 from mdt.utils import eigen_vectors_from_tensor
 from mot import runtime_configuration
@@ -13,27 +10,17 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-meta_info = {'description': 'The Tensor compartment model.'}
+class Tensor(DMRICompartmentModelBuilder):
 
+    config = dict(
+        name='Tensor',
+        cl_function_name='cmTensor',
+        parameter_list=('g', 'b', 'd', 'dperp0', 'dperp1', 'theta', 'phi', 'psi'),
+        module_name=__name__
+    )
 
-class Tensor(DMRICompartmentModelFunction):
-
-    def __init__(self, name='Tensor'):
-        super(Tensor, self).__init__(
-            name,
-            'cmTensor',
-            (get_parameter('g'),
-             get_parameter('b'),
-             get_parameter('d'),
-             get_parameter('dperp0'),
-             get_parameter('dperp1'),
-             get_parameter('theta'),
-             get_parameter('phi'),
-             get_parameter('psi')),
-            resource_filename(__name__, 'Tensor.h'),
-            resource_filename(__name__, 'Tensor.cl'),
-            ()
-        )
+    def __init__(self, *args, **kwargs):
+        super(Tensor, self).__init__(*args, **kwargs)
 
         self.get_parameter_by_name('dperp0').parameter_transform = \
             SinSqrClampDependentTransform(((self, self.get_parameter_by_name('d')),))

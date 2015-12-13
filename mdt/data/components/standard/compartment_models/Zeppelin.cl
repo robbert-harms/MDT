@@ -1,6 +1,3 @@
-#ifndef DMRICM_ZEPPELIN_CL
-#define DMRICM_ZEPPELIN_CL
-
 /**
  * Author = Robbert Harms
  * Date = 2014-02-26
@@ -30,4 +27,3 @@ MOT_FLOAT_TYPE cmZeppelin(const MOT_FLOAT_TYPE4 g,
                   + dperp));
 }
 
-#endif // DMRICM_ZEPPELIN_CL

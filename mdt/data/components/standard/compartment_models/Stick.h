@@ -1,6 +1,3 @@
-#ifndef DMRICM_STICK_H
-#define DMRICM_STICK_H
-
 /**
  * Author = Robbert Harms
  * Date = 2014-02-05
@@ -24,4 +21,3 @@ MOT_FLOAT_TYPE cmStick(const MOT_FLOAT_TYPE4 g,
                     const MOT_FLOAT_TYPE theta,
                     const MOT_FLOAT_TYPE phi);
 
-#endif // DMRICM_STICK_H

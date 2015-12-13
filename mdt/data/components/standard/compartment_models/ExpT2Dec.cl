@@ -1,6 +1,3 @@
-#ifndef DMRICM_EXPT2DEC_CL
-#define DMRICM_EXPT2DEC_CL
-
 /**
  * Author = Robbert Harms
  * Date = 2014-02-05
@@ -18,4 +15,3 @@ MOT_FLOAT_TYPE cmExpT2Dec(const MOT_FLOAT_TYPE TE, const MOT_FLOAT_TYPE T2){
     return exp(-TE / T2);
 }
 
-#endif // DMRICM_EXPT2DEC_CL
