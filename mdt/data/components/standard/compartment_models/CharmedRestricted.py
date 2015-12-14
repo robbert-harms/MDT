@@ -1,4 +1,4 @@
-from mdt.models.compartments import DMRICompartmentModelFunction
+from mdt.models.compartments import DMRICompartmentModelBuilder
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -6,7 +6,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class CharmedRestricted(DMRICompartmentModelFunction):
+class CharmedRestricted(DMRICompartmentModelBuilder):
 
     config = dict(
         name='CharmedRestricted',
