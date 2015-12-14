@@ -1,4 +1,3 @@
-import locale
 import math
 import os
 import itertools
@@ -7,10 +6,12 @@ import matplotlib
 from matplotlib.ticker import LinearLocator
 from matplotlib.widgets import Slider
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from scipy.stats import norm
+
 from mdt.utils import get_slice_in_dimension
 from matplotlib.gridspec import GridSpec
 import numpy as np
-import matplotlib.ticker as ticker
+import matplotlib.mlab as mlab
 
 
 __author__ = 'Robbert Harms'
@@ -352,9 +353,13 @@ class SampleVisualizer(object):
         self._max_voxel_ind = 0
         self._updating_sliders = False
         self._voxel_slider = None
+        self._show_trace = True
+        self._nmr_bins = 30
+        self._show_slider = True
+        self._fit_gaussian = True
 
     def show(self, voxel_ind=0, names=None, maps_to_show=None, to_file=None, block=True, maximize=False,
-             window_title=None):
+             show_trace=True, nmr_bins=20, window_title=None, show_sliders=True, fit_gaussian=True):
         """Show the samples per voxel.
         Args:
             voxel_ind (int): the voxel to show the samples from.
@@ -371,14 +376,22 @@ class SampleVisualizer(object):
             block (boolean): If we want to block after calling the plots or not. Set this to False if you
                 do not want the routine to block after drawing. In doing so you manually need to block.
             maximize (boolean): if we want to display the window maximized or not
+            show_trace (boolean): if we show the trace of each map or not
+            nmr_bins (dict or int): either a single value or one per map name
+            show_sliders (boolean): if we show the slider or not
+            fit_gaussian (boolean): if we fit and show a normal distribution (Gaussian) to the histogram or not
             window_title (str): the title of the window. If None, the default title is used
-
         """
         if names:
             self.names = names
         if maps_to_show:
             self.maps_to_show = maps_to_show
         self.voxel_ind = voxel_ind
+        self._nmr_bins = nmr_bins or self._nmr_bins
+        self._show_trace = show_trace
+        self.show_sliders = show_sliders
+        self._fit_gaussian = fit_gaussian
+
         self._setup()
 
         if maximize:
@@ -423,7 +436,11 @@ class SampleVisualizer(object):
             self._voxel_slider.on_changed(self.set_voxel)
 
     def _rerender(self):
-        grid = GridSpec(len(self.maps_to_show)*2, 1, left=0.04, right=0.96, top=0.97, bottom=0.04, hspace=0.4)
+        nmr_maps = len(self.maps_to_show)
+        if self._show_trace:
+            nmr_maps *= 2
+
+        grid = GridSpec(nmr_maps, 1, left=0.04, right=0.96, top=0.97, bottom=0.04, hspace=0.4)
 
         i = 0
         for map_name in self.maps_to_show:
@@ -433,14 +450,26 @@ class SampleVisualizer(object):
             if map_name in self.names:
                 title = self.names[map_name]
 
+            if isinstance(self._nmr_bins, dict) and map_name in self._nmr_bins:
+                nmr_bins = self._nmr_bins[map_name]
+            else:
+                nmr_bins = self._nmr_bins
+
             hist_plot = plt.subplot(grid[i])
-            hist_plot.hist(samples[self.voxel_ind, :], 10)
+            n, bins, patches = hist_plot.hist(samples[self.voxel_ind, :], nmr_bins, normed=True)
             plt.title(title)
+            i += 1
 
-            chain_plot = plt.subplot(grid[i+1])
-            chain_plot.plot(samples[self.voxel_ind, :])
+            if self._fit_gaussian:
+                mu, sigma = norm.fit(samples[self.voxel_ind, :])
+                bincenters = 0.5*(bins[1:] + bins[:-1])
+                y = mlab.normpdf(bincenters, mu, sigma)
+                hist_plot.plot(bincenters, y, 'r', linewidth=1)
 
-            i += 2
+            if self._show_trace:
+                trace_plot = plt.subplot(grid[i])
+                trace_plot.plot(samples[self.voxel_ind, :])
+                i += 1
 
 
 class _DiscreteSlider(Slider):

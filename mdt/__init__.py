@@ -1,3 +1,4 @@
+import pickle
 import glob
 import os
 from contextlib import contextmanager
@@ -628,27 +629,22 @@ def block_plots():
     plt.show()
 
 
-def view_result_samples(data, voxel_ind=None, block=True):
+def view_result_samples(data, **kwargs):
     """View the samples from the given results set.
 
     Args:
         data (string or dict): The location of the maps to load the samples from, or the samples themselves.
-        voxel_ind (int): The index of the voxel to choose. The samples are still in ROI space,
-            so a linear index suffices.
-        block (boolean): If we want to block after calling the plots or not. Set this to False if you
-            do not want the routine to block after drawing. In doing so you manually need to block. You can
-            do this by calling the function block_plots()
+        kwargs (dict): see SampleVisualizer for all the supported keywords
     """
     from mdt.visualization import SampleVisualizer
-    import pickle
 
     if isinstance(data, string_types):
         with open(data, 'rb') as f:
             data = pickle.load(f)
 
-    if voxel_ind is None:
-        voxel_ind = data[list(data.keys())[0]].shape[0] / 2
-    SampleVisualizer(data).show(voxel_ind=voxel_ind, block=block)
+    if not kwargs.get('voxel_ind'):
+        kwargs.update({'voxel_ind': data[list(data.keys())[0]].shape[0] / 2})
+    SampleVisualizer(data).show(**kwargs)
 
 
 def load_dwi(volume_fname):
