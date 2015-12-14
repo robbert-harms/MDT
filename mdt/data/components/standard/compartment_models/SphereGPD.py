@@ -1,5 +1,5 @@
 from mdt.components_loader import LibraryFunctionsLoader
-from mdt.models.compartment_models import DMRICompartmentModelBuilder
+from mdt.models.compartments import DMRICompartmentModelBuilder
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"

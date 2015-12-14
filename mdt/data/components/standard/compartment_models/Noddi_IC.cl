@@ -7,13 +7,29 @@
  */
 
 // do not change this value! It would require adding approximations to the functions below
-
+#define NODDI_IC_MAX_POLYNOMIAL_ORDER 6
 
 void Noddi_IC_LegendreGaussianIntegral(const MOT_FLOAT_TYPE x, MOT_FLOAT_TYPE* result);
 void Noddi_IC_WatsonSHCoeff(const MOT_FLOAT_TYPE kappa, MOT_FLOAT_TYPE* result);
 
 /**
- * See the header for details
+ * Generate the compartment model signal for the Noddi Intra Cellular (Stick with dispersion) model.
+ * If Radius is fixed to 0 the model behaves as a stick (with dispersion), if non-fixed the model behaves as a
+ * cylinder (with dispersion).
+ *
+ * It may seem redundant to have both G/Delta/delta and b as arguments. But that is for speed reasons. b is most
+ * of the time available anyway, and G/Delta/delta is only needed if R is not fixed (still it must be provided for).
+ *
+ * @params g from the protocol /scheme
+ * @params b from the protocol /scheme
+ * @params G from the protocol / scheme
+ * @params Delta big delta from the protocol / scheme
+ * @params delta small delta from the protocol / scheme
+ * @params d parameter
+ * @params theta parameter
+ * @params phi parameter
+ * @params kappa parameter (concentration parameter of the Watson's distribution)
+ * @params R the radius of the cylinder
  */
 MOT_FLOAT_TYPE cmNoddi_IC(const MOT_FLOAT_TYPE4 g,
                        const MOT_FLOAT_TYPE b,

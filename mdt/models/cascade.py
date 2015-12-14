@@ -213,13 +213,13 @@ class CascadeModelBuilder(SimpleCascadeModel):
             # inheritance is used, the name and model list are already set
             super(CascadeModelBuilder, self).__init__(*args)
         else:
-            super(CascadeModelBuilder, self).__init__(deepcopy(self.get_config_attribute('name')),
-                                                      list(map(mdt.get_model, self.get_config_attribute('models'))))
+            super(CascadeModelBuilder, self).__init__(deepcopy(self._get_config_attribute('name')),
+                                                      list(map(mdt.get_model, self._get_config_attribute('models'))))
 
     @classmethod
     def meta_info(cls):
-        return {'name': cls.get_config_attribute('name'),
-                'description': cls.get_config_attribute('description')}
+        return {'name': cls._get_config_attribute('name'),
+                'description': cls._get_config_attribute('description')}
 
     def _prepare_model(self, model, output_previous, output_all_previous):
         super(CascadeModelBuilder, self)._prepare_model(model, output_previous, output_all_previous)
@@ -231,14 +231,14 @@ class CascadeModelBuilder(SimpleCascadeModel):
                 return v(output_previous)
             return v
 
-        if model.name in self.get_config_attribute('inits'):
-            for item in self.get_config_attribute('inits')[model.name]:
+        if model.name in self._get_config_attribute('inits'):
+            for item in self._get_config_attribute('inits')[model.name]:
                 model.init(item[0], parse_value(item[1]))
 
-        if model.name in self.get_config_attribute('fixes'):
-            for item in self.get_config_attribute('fixes')[model.name]:
+        if model.name in self._get_config_attribute('fixes'):
+            for item in self._get_config_attribute('fixes')[model.name]:
                 model.fix(item[0], parse_value(item[1]))
 
     @classmethod
-    def get_config_attribute(cls, name):
+    def _get_config_attribute(cls, name):
         return cls.config.get(name, cls.config_default[name])

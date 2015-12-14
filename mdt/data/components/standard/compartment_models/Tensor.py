@@ -1,4 +1,4 @@
-from mdt.models.compartment_models import DMRICompartmentModelBuilder
+from mdt.models.compartments import DMRICompartmentModelBuilder
 from mdt.cl_routines.mapping.dti_measures import DTIMeasures
 from mdt.utils import eigen_vectors_from_tensor
 from mot import runtime_configuration

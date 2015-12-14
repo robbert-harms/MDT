@@ -1,4 +1,4 @@
-from mdt.models.compartment_models import DMRICompartmentModelFunction
+from mdt.models.compartments import DMRICompartmentModelFunction
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"

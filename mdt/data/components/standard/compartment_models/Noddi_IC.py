@@ -1,4 +1,4 @@
-from mdt.models.compartment_models import DMRICompartmentModelBuilder
+from mdt.models.compartments import DMRICompartmentModelBuilder
 from mdt.components_loader import LibraryFunctionsLoader
 from mot.cl_functions import FirstLegendreTerm, CerfErfi, CerfDawson
 import numpy as np

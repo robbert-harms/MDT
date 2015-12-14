@@ -285,47 +285,47 @@ class DMRISingleModelBuilder(DMRISingleModel):
 
     def __init__(self):
         super(DMRISingleModelBuilder, self).__init__(
-            deepcopy(self.get_config_attribute('name')),
+            deepcopy(self._get_config_attribute('name')),
             CompartmentModelTree(deepcopy(self._get_model_listing())),
-            deepcopy(self.get_config_attribute('evaluation_model')),
-            signal_noise_model=deepcopy(self.get_config_attribute('signal_noise_model')))
+            deepcopy(self._get_config_attribute('evaluation_model')),
+            signal_noise_model=deepcopy(self._get_config_attribute('signal_noise_model')))
 
         self.add_parameter_dependencies(deepcopy(self._get_dependencies()))
         self.add_post_optimization_modifiers(deepcopy(self._get_post_optimization_modifiers()))
 
-        for full_param_name, value in self.get_config_attribute('inits').items():
+        for full_param_name, value in self._get_config_attribute('inits').items():
             self.init(full_param_name, value)
 
-        for full_param_name, value in self.get_config_attribute('fixes').items():
+        for full_param_name, value in self._get_config_attribute('fixes').items():
             self.fix(full_param_name, value)
 
-        for full_param_name, value in self.get_config_attribute('lower_bounds').items():
+        for full_param_name, value in self._get_config_attribute('lower_bounds').items():
             self.set_lower_bound(full_param_name, value)
 
-        for full_param_name, value in self.get_config_attribute('upper_bounds').items():
+        for full_param_name, value in self._get_config_attribute('upper_bounds').items():
             self.set_upper_bound(full_param_name, value)
 
     @classmethod
     def meta_info(cls):
-        return {'name': cls.get_config_attribute('name'),
-                'in_vivo_suitable': cls.get_config_attribute('in_vivo_suitable'),
-                'ex_vivo_suitable': cls.get_config_attribute('ex_vivo_suitable'),
-                'description': cls.get_config_attribute('description')}
+        return {'name': cls._get_config_attribute('name'),
+                'in_vivo_suitable': cls._get_config_attribute('in_vivo_suitable'),
+                'ex_vivo_suitable': cls._get_config_attribute('ex_vivo_suitable'),
+                'description': cls._get_config_attribute('description')}
 
     @classmethod
     def _get_model_listing(cls):
-        if cls.get_config_attribute('model_listing') is not None:
-            return cls.get_config_attribute('model_listing')
-        return parse(cls.get_config_attribute('model_expression'))
+        if cls._get_config_attribute('model_listing') is not None:
+            return cls._get_config_attribute('model_listing')
+        return parse(cls._get_config_attribute('model_expression'))
 
     @classmethod
     def _get_dependencies(cls):
-        return cls.get_config_attribute('dependencies')
+        return cls._get_config_attribute('dependencies')
 
     @classmethod
     def _get_post_optimization_modifiers(cls):
-        return cls.get_config_attribute('post_optimization_modifiers')
+        return cls._get_config_attribute('post_optimization_modifiers')
 
     @classmethod
-    def get_config_attribute(cls, name):
+    def _get_config_attribute(cls, name):
         return cls.config.get(name, cls.config_default[name])

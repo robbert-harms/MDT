@@ -395,7 +395,7 @@ class Protocol(object):
         """
         if all(map(lambda v: v in self._columns, ['b', 'Delta', 'delta'])):
             G = np.sqrt(self._columns['b'] / (self.gamma_h**2 * self._columns['delta']**2 *
-                                                        (self._columns['Delta'] - (self._columns['delta']/3.0))))
+                                             (self._columns['Delta'] - (self._columns['delta']/3.0))))
             G[self.get_unweighted_indices()] = 0
             return {'G': G, 'Delta': self._columns['Delta'], 'delta': self._columns['delta']}
 
@@ -420,7 +420,7 @@ class Protocol(object):
         bvals = self.get_column('b')
         bmax = max(self.get_b_values_shells())
 
-        Deltas = np.ones_like(bvals) * (3 * bmax / (2 * self.gamma_h**2 * maxG**2))**(1/3.0)
+        Deltas = (3 * bmax / (2 * self.gamma_h**2 * maxG**2))**(1 / 3.0)
         deltas = Deltas
         G = np.sqrt(bvals / bmax) * maxG
 

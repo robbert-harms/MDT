@@ -1,4 +1,4 @@
-from mdt.models.compartment_models import DMRICompartmentModelBuilder
+from mdt.models.compartments import DMRICompartmentModelBuilder
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -12,5 +12,5 @@ class ExpT2Dec(DMRICompartmentModelBuilder):
         name='T2',
         cl_function_name='cmExpT2Dec',
         parameter_list=('TE', 'T2'),
-        module_name=__name__
+        cl_code_inline='return exp(-TE / T2);'
     )

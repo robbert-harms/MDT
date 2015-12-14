@@ -1,4 +1,4 @@
-from mdt.models.compartment_models import DMRICompartmentModelBuilder
+from mdt.models.compartments import DMRICompartmentModelBuilder
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -12,5 +12,10 @@ class AstroSticks(DMRICompartmentModelBuilder):
         name='AstroSticks',
         cl_function_name='cmAstroSticks',
         parameter_list=('g', 'G', 'b', 'd'),
-        module_name=__name__
+        cl_code_inline='''
+            if(b == 0){
+                return 1;
+            }
+            return sqrt(M_PI) / (2 * G * sqrt((b / pown(G, 2)) * d)) * erf(G * sqrt((b /pown(G, 2)) * d));
+        '''
     )

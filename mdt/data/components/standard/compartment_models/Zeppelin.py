@@ -1,4 +1,4 @@
-from mdt.models.compartment_models import DMRICompartmentModelBuilder
+from mdt.models.compartments import DMRICompartmentModelBuilder
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -12,5 +12,11 @@ class Zeppelin(DMRICompartmentModelBuilder):
         name='Zeppelin',
         cl_function_name='cmZeppelin',
         parameter_list=('g', 'b', 'd', 'dperp0', 'theta', 'phi'),
-        module_name=__name__
+        cl_code_inline='''
+            return exp(-b *
+                        (((d - dperp) *
+                              pown(dot(g, (MOT_FLOAT_TYPE4)(cos(phi) * sin(theta),
+                                                            sin(phi) * sin(theta), cos(theta), 0.0)), 2)
+                        ) + dperp));
+        '''
     )

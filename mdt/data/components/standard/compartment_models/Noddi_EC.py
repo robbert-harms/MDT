@@ -1,4 +1,4 @@
-from mdt.models.compartment_models import DMRICompartmentModelBuilder
+from mdt.models.compartments import DMRICompartmentModelBuilder
 from mot.cl_functions import CerfDawson
 
 __author__ = 'Robbert Harms'

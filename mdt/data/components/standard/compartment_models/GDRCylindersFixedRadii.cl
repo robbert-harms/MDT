@@ -6,6 +6,18 @@
  * Email = robbert.harms@maastrichtuniversity.nl
  */
 
+/**
+ * Generate the compartment model signal for the Gamma Distributed Radii model.
+ *
+ * This is a fixed version of the GDRCylinders model. This means that the different radii are not calculated
+ * dynamically by means of a Gamma distribution. Rather, the list of radii and the corresponding weights
+ * are given as fixed values.
+ *
+ * @params gamma_cyl_radii, the list of radii that should be used for calculating the cylinders.
+ * @params gamma_cyl_weights, the list of weights per radius.
+ * @params nmr_gamma_cyl, the number of cylinders we provided
+ *
+ */
 MOT_FLOAT_TYPE cmGDRCylindersFixedRadii(const MOT_FLOAT_TYPE4 g,
                                      const MOT_FLOAT_TYPE G,
                                      const MOT_FLOAT_TYPE Delta,
