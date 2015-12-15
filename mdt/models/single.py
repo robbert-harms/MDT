@@ -4,6 +4,7 @@ import numpy as np
 import six
 
 from mdt import utils
+from mdt.components_loader import ComponentConfig, ComponentCreator
 from mdt.models.base import DMRIOptimizable
 from mdt.models.model_expression_parsers.parser import parse
 from mot import runtime_configuration
@@ -234,13 +235,12 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
         results_dict.update(utils.calculate_information_criterions(log_likelihoods, k, n))
 
 
-class DMRISingleModelBuilder(DMRISingleModel):
-    """The model builder to inherit from.
+class DMRISingleModelConfig(ComponentConfig):
+    """The cascade config to inherit from.
 
-    One can use this to create models in a declarative style. This works because in the constructor we use deepcopy
-    to copy all the relevant material before creating a new instance of the class.
+    These configs are loaded on the fly by the DMRISingleModelCreator
 
-    config options:
+    Config options:
         name (str): the name of the model
         in_vivo_suitable (boolean): flag indicating if the model is suitable for in vivo data
         ex_vivo_suitable (boolean): flag indicating if the model is suitable for ex vivo data
@@ -251,7 +251,6 @@ class DMRISingleModelBuilder(DMRISingleModel):
         dependencies (list): the dependencies between model parameters. Example:
             dependencies = [('Noddi_EC.kappa', SimpleAssignment('Noddi_IC.kappa')),
                             ...]
-        model_listing (list): the abstract model tree as a list. If this is defined we do not use the model_expression
         model_expression (str): the model expression. For the syntax see
             mdt.models.model_expression_parsers.SingleModel.ebnf
         evaluation_model (EvaluationModel): the evaluation model to use during optimization
@@ -265,67 +264,61 @@ class DMRISingleModelBuilder(DMRISingleModel):
         lower_bounds (dict): indicating the lower bounds for the given parameters. Example:
             lower_bounds = {'Stick.theta': 0}
     """
-    config = {}
-    config_default = dict(
-        name='<default>',
-        in_vivo_suitable=True,
-        ex_vivo_suitable=True,
-        description='<default>',
-        post_optimization_modifiers=(),
-        dependencies=(),
-        model_listing=None,
-        model_expression='',
-        evaluation_model=GaussianEvaluationModel().fix('sigma', 1),
-        signal_noise_model=None,
-        inits={},
-        fixes={},
-        upper_bounds={},
-        lower_bounds={}
-    )
-
-    def __init__(self):
-        super(DMRISingleModelBuilder, self).__init__(
-            deepcopy(self._get_config_attribute('name')),
-            CompartmentModelTree(deepcopy(self._get_model_listing())),
-            deepcopy(self._get_config_attribute('evaluation_model')),
-            signal_noise_model=deepcopy(self._get_config_attribute('signal_noise_model')))
-
-        self.add_parameter_dependencies(deepcopy(self._get_dependencies()))
-        self.add_post_optimization_modifiers(deepcopy(self._get_post_optimization_modifiers()))
-
-        for full_param_name, value in self._get_config_attribute('inits').items():
-            self.init(full_param_name, value)
-
-        for full_param_name, value in self._get_config_attribute('fixes').items():
-            self.fix(full_param_name, value)
-
-        for full_param_name, value in self._get_config_attribute('lower_bounds').items():
-            self.set_lower_bound(full_param_name, value)
-
-        for full_param_name, value in self._get_config_attribute('upper_bounds').items():
-            self.set_upper_bound(full_param_name, value)
+    name = ''
+    in_vivo_suitable = True
+    ex_vivo_suitable = True
+    description = ''
+    post_optimization_modifiers = ()
+    dependencies = ()
+    model_expression = ''
+    evaluation_model = GaussianEvaluationModel().fix('sigma', 1)
+    signal_noise_model = None
+    inits = {}
+    fixes = {}
+    upper_bounds = {}
+    lower_bounds = {}
 
     @classmethod
     def meta_info(cls):
-        return {'name': cls._get_config_attribute('name'),
-                'in_vivo_suitable': cls._get_config_attribute('in_vivo_suitable'),
-                'ex_vivo_suitable': cls._get_config_attribute('ex_vivo_suitable'),
-                'description': cls._get_config_attribute('description')}
+        meta_info = deepcopy(ComponentConfig.meta_info())
+        meta_info.update({'name': cls.name,
+                          'in_vivo_suitable': cls.in_vivo_suitable,
+                          'ex_vivo_suitable': cls.ex_vivo_suitable,
+                          'description': cls.description})
+        return meta_info
 
-    @classmethod
-    def _get_model_listing(cls):
-        if cls._get_config_attribute('model_listing') is not None:
-            return cls._get_config_attribute('model_listing')
-        return parse(cls._get_config_attribute('model_expression'))
 
-    @classmethod
-    def _get_dependencies(cls):
-        return cls._get_config_attribute('dependencies')
+class DMRISingleModelCreator(ComponentCreator):
 
-    @classmethod
-    def _get_post_optimization_modifiers(cls):
-        return cls._get_config_attribute('post_optimization_modifiers')
+    def create_class(self, template):
+        """Creates classes with as base class DMRISingleModel
 
-    @classmethod
-    def _get_config_attribute(cls, name):
-        return cls.config.get(name, cls.config_default[name])
+        Args:
+            template (DMRISingleModelConfig): the single model config template
+                to use for creating the class with the right init settings.
+        """
+        class AutoCreatedDMRISingleModel(DMRISingleModel):
+
+            def __init__(self, *args):
+                super(AutoCreatedDMRISingleModel, self).__init__(
+                    deepcopy(template.name),
+                    CompartmentModelTree(parse(template.model_expression)),
+                    deepcopy(template.evaluation_model),
+                    signal_noise_model=deepcopy(template.signal_noise_model))
+
+                self.add_parameter_dependencies(deepcopy(template.dependencies))
+                self.add_post_optimization_modifiers(deepcopy(template.post_optimization_modifiers))
+
+                for full_param_name, value in template.inits.items():
+                    self.init(full_param_name, value)
+
+                for full_param_name, value in template.fixes.items():
+                    self.fix(full_param_name, value)
+
+                for full_param_name, value in template.lower_bounds.items():
+                    self.set_lower_bound(full_param_name, value)
+
+                for full_param_name, value in template.upper_bounds.items():
+                    self.set_upper_bound(full_param_name, value)
+
+        return AutoCreatedDMRISingleModel

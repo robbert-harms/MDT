@@ -1,5 +1,5 @@
 from mdt.components_loader import CompartmentModelsLoader
-from mdt.models.single import DMRISingleModel, DMRISingleModelBuilder
+from mdt.models.single import DMRISingleModel, DMRISingleModelConfig
 from mot.model_building.evaluation_models import GaussianEvaluationModel
 from mot.model_building.parameter_functions.transformations import SinSqrClampTransform
 from mot.model_building.signal_noise_models import JohnsonSignalNoise

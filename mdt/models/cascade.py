@@ -1,7 +1,6 @@
 from copy import deepcopy
-
-import six
 import mdt
+from mdt.components_loader import ComponentConfig, ComponentCreator
 from mdt.models.base import DMRIOptimizable
 from mdt.utils import simple_parameter_init, condense_protocol_problems
 
@@ -186,59 +185,34 @@ class SimpleCascadeModel(DMRICascadeModelInterface):
             model.double_precision = double_precision
 
 
-class CascadeModelBuilder(SimpleCascadeModel):
-    """The model builder to inherit from.
+class CascadeConfig(ComponentConfig):
+    """The cascade config to inherit from.
 
-    One can use this to create models in a declarative style. Example of such a model definition:
-
-    class BallStick(CascadeModelBuilder):
-        name = 'BallStick (Cascade)'
-        description = 'Cascade for Ballstick'
-        models = ('s0', 'BallStick')
-
-    This works because in the constructor we use deepcopy to copy all the relevant material before creating a new
-    instance of the class.
+    These configs are loaded on the fly by the CascadeCreator.
     """
-    config = {}
-    config_default = dict(
-        name='',
-        description='',
-        models=(),
-        inits={},
-        fixes={}
-    )
+    name = ''
+    description = ''
+    models = ()
+    inits = {}
+    fixes = {}
 
-    def __init__(self, *args, **kwargs):
-        if len(args) == 2:
-            # inheritance is used, the name and model list are already set
-            super(CascadeModelBuilder, self).__init__(*args)
-        else:
-            super(CascadeModelBuilder, self).__init__(deepcopy(self._get_config_attribute('name')),
-                                                      list(map(mdt.get_model, self._get_config_attribute('models'))))
 
-    @classmethod
-    def meta_info(cls):
-        return {'name': cls._get_config_attribute('name'),
-                'description': cls._get_config_attribute('description')}
+class CascadeCreator(ComponentCreator):
 
-    def _prepare_model(self, model, output_previous, output_all_previous):
-        super(CascadeModelBuilder, self)._prepare_model(model, output_previous, output_all_previous)
+    def create_class(self, template):
+        """Creates classes with as base class SimpleCascadeModel
 
-        def parse_value(v):
-            if isinstance(v, six.string_types):
-                return output_previous[v]
-            elif hasattr(v, '__call__'):
-                return v(output_previous)
-            return v
+        Args:
+            template (CascadeConfig): the cascade config template to use for creating the class with the right init
+                settings.
+        """
+        class AutoCreatedCascadeModel(SimpleCascadeModel):
 
-        if model.name in self._get_config_attribute('inits'):
-            for item in self._get_config_attribute('inits')[model.name]:
-                model.init(item[0], parse_value(item[1]))
+            def __init__(self, *args):
+                new_args = [deepcopy(template.name),
+                            list(map(mdt.get_model, template.models))]
+                for ind, arg in args:
+                    new_args[ind] = arg
+                super(AutoCreatedCascadeModel, self).__init__(*new_args)
 
-        if model.name in self._get_config_attribute('fixes'):
-            for item in self._get_config_attribute('fixes')[model.name]:
-                model.fix(item[0], parse_value(item[1]))
-
-    @classmethod
-    def _get_config_attribute(cls, name):
-        return cls.config.get(name, cls.config_default[name])
+        return AutoCreatedCascadeModel

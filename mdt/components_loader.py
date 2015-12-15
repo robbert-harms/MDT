@@ -38,6 +38,43 @@ def get_model(model_name, **kwargs):
             raise ValueError('The model with the name "{}" could not be found.'.format(model_name))
 
 
+class ComponentCreator(object):
+
+    def __init__(self):
+        """The base class for component creators.
+
+        Component creators, together with ComponentConfig allow you to define components using class attributes.
+
+        The idea is that the ComponentConfig contains class attributes defining the component and that the
+        ComponentCreator is able to create a class of the right type from the information in the component config.
+        """
+
+    def create_class(self, template):
+        """Create a class of the right type given the information in the template.
+
+        Args:
+            template (ComponentConfig): the information as a component config
+
+        Returns:
+            class: the class of the right type
+        """
+
+
+class ComponentConfig(object):
+    """The component configuration.
+
+    By overriding the class attributes you can define complex configurations. The actual class distilled from these
+    configurations are loaded by the ComponentCreator
+    """
+    name = ''
+    description = ''
+
+    @classmethod
+    def meta_info(cls):
+        return {'name': cls.name,
+                'description': cls.description}
+
+
 class ComponentsLoader(object):
 
     def __init__(self, sources):
@@ -236,6 +273,11 @@ class UserComponentsSourceMulti(ComponentsSource):
     loaded_modules_cache = {}
 
     def __init__(self, user_type, component_type):
+        """
+        Args:
+            user_type (str): either 'user' or 'standard'. This defines from which dir to load the components
+            component_type (str): from which dir in 'user' or 'standard' to load the components
+        """
         super(UserComponentsSourceMulti, self).__init__()
         self._user_type = user_type
         self._component_type = component_type
@@ -279,7 +321,8 @@ class UserComponentsSourceMulti(ComponentsSource):
                               self._component_type + '/' + \
                               os.path.splitext(os.path.basename(path))[0]
                 module = imp.load_source(module_name, path)
-                self.loaded_modules_cache[self._component_type][path] = [module, self._get_components_from_module(module)]
+                self.loaded_modules_cache[self._component_type][path] = [module,
+                                                                         self._get_components_from_module(module)]
 
     def _get_components_from_module(self, module):
         """Return a list of all the available components in the given module.
@@ -290,20 +333,12 @@ class UserComponentsSourceMulti(ComponentsSource):
         Returns:
             list: list of components loaded from this module
         """
-        items = inspect.getmembers(module, get_class_predicate(module, self._get_desired_class()))
-        loaded_items = [(item[1], item[1].meta_info()) for item in items]
+        loaded_items = []
 
         if hasattr(module, 'get_components_list'):
             loaded_items.extend(module.get_components_list())
 
         return loaded_items
-
-    def _get_desired_class(self):
-        """This function is used for the default implementation of _get_components_from_module.
-
-        Returns:
-            class: the name of a class we want to look for in the modules.
-        """
 
     def _get_python_component_files(self):
         return filter(lambda v: os.path.basename(v)[0:2] != '__', glob.glob(os.path.join(self.path, '*.py')))
@@ -314,37 +349,78 @@ class UserComponentsSourceMulti(ComponentsSource):
                                'Please check the path to the components in your configuration file.'.format(self.path))
 
 
-class ParametersSource(UserComponentsSourceMulti):
+class AutoUserComponentsSourceMulti(UserComponentsSourceMulti):
+
+    def __init__(self, user_type, component_type, component_class, component_creator):
+        """Create a component source that can create components using multiple types of definitions.
+
+        This will load either objects of the class defined by component_class or it will load objects
+        of type ComponentConfig using the builder defined by component_creator or it will load the objects
+        from the get_components_list function.
+
+        Args:
+            user_type (str): either 'user' or 'standard'. This defines from which dir to load the components
+            component_type (str): from which dir in 'user' or 'standard' to load the components
+            component_class (class): the class to auto load
+            component_creator (ComponentCreator): the component creator to use for components defined as a
+                ComponentConfig.
+        """
+        self._component_class = component_class
+        self._component_creator = component_creator
+        super(AutoUserComponentsSourceMulti, self).__init__(user_type, component_type)
+
+    def get_class(self, name):
+        if name not in self._components:
+            raise ImportError
+
+        base = self._components[name][0]
+        if issubclass(base, ComponentConfig):
+            return self._component_creator.create_class(base)
+
+        return super(AutoUserComponentsSourceMulti, self).get_class(name)
+
+    def _get_components_from_module(self, module):
+        """Return a list of all the available components in the given module.
+
+        Args:
+            module (module): the module from which to load the components.
+
+        Returns:
+            list: list of components loaded from this module
+        """
+        loaded_items = super(AutoUserComponentsSourceMulti, self)._get_components_from_module(module)
+
+        items = inspect.getmembers(module, get_class_predicate(module, self._component_class))
+        loaded_items.extend((item[1], item[1].meta_info()) for item in items)
+
+        items = inspect.getmembers(module, get_class_predicate(module, ComponentConfig))
+        loaded_items.extend((item[1], item[1].meta_info()) for item in items)
+
+        return loaded_items
+
+
+class ParametersSource(AutoUserComponentsSourceMulti):
 
     def __init__(self, user_type):
         """Source for the items in the 'parameters' dir in the components folder."""
-        super(ParametersSource, self).__init__(user_type, 'parameters')
-
-    def _get_desired_class(self):
         from mot.base import CLFunctionParameter
-        return CLFunctionParameter
+        super(ParametersSource, self).__init__(user_type, 'parameters', CLFunctionParameter, None) #todo
 
 
-class SingleModelSource(UserComponentsSourceMulti):
+class SingleModelSource(AutoUserComponentsSourceMulti):
 
     def __init__(self, user_type):
         """Source for the items in the 'single_models' dir in the components folder."""
-        super(SingleModelSource, self).__init__(user_type, 'single_models')
-
-    def _get_desired_class(self):
-        from mdt.models.single import DMRISingleModel
-        return DMRISingleModel
+        from mdt.models.single import DMRISingleModel, DMRISingleModelCreator
+        super(SingleModelSource, self).__init__(user_type, 'single_models', DMRISingleModel, DMRISingleModelCreator())
 
 
-class CascadeSource(UserComponentsSourceMulti):
+class CascadeSource(AutoUserComponentsSourceMulti):
 
     def __init__(self, user_type):
         """Source for the items in the 'cascade_models' dir in the components folder."""
-        super(CascadeSource, self).__init__(user_type, 'cascade_models')
-
-    def _get_desired_class(self):
-        from mdt.models.cascade import DMRICascadeModelInterface
-        return DMRICascadeModelInterface
+        from mdt.models.cascade import DMRICascadeModelInterface, CascadeCreator
+        super(CascadeSource, self).__init__(user_type, 'cascade_models', DMRICascadeModelInterface, CascadeCreator())
 
 
 class MOTSourceSingle(ComponentsSource):

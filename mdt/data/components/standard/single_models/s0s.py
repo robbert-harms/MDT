@@ -1,4 +1,4 @@
-from mdt.models.single import DMRISingleModelBuilder
+from mdt.models.single import DMRISingleModelConfig
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -6,10 +6,8 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class S0(DMRISingleModelBuilder):
+class S0(DMRISingleModelConfig):
 
-    config = dict(
-        name='s0',
-        description='Models the unweighted signal (aka. b0).',
-        model_expression='S0'
-    )
+    name = 's0'
+    description = 'Models the unweighted signal (aka. b0).'
+    model_expression = 'S0'

@@ -1,4 +1,4 @@
-from mdt.models.cascade import CascadeModelBuilder
+from mdt.models.cascade import CascadeConfig
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -6,55 +6,45 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class Tensor(CascadeModelBuilder):
+class Tensor(CascadeConfig):
 
-    config = dict(
-        name='Tensor (Cascade)',
-        description='Cascade for Tensor.',
-        models=('BallStick (Cascade)',
-                'Tensor'),
-        inits={'Tensor': [('Tensor.theta', 'Stick.theta'),
-                          ('Tensor.phi', 'Stick.phi')]}
-    )
+    name = 'Tensor (Cascade)'
+    description = 'Cascade for Tensor.'
+    models = ('BallStick (Cascade)',
+              'Tensor')
+    inits = {'Tensor': [('Tensor.theta', 'Stick.theta'),
+                        ('Tensor.phi', 'Stick.phi')]}
 
 
-class TensorFixed(CascadeModelBuilder):
+class TensorFixed(CascadeConfig):
 
-    config = dict(
-        name='Tensor (Cascade|fixed)',
-        description='Cascade for Tensor with fixed angles.',
-        models=('BallStick (Cascade)',
-                'Tensor'),
-        fixes={'Tensor': [('Tensor.theta', 'Stick.theta'),
-                          ('Tensor.phi', 'Stick.phi')]}
-    )
+    name = 'Tensor (Cascade|fixed)'
+    description = 'Cascade for Tensor with fixed angles.'
+    models = ('BallStick (Cascade)',
+              'Tensor')
+    fixes = {'Tensor': [('Tensor.theta', 'Stick.theta'),
+                        ('Tensor.phi', 'Stick.phi')]}
 
 
-class Tensors0(CascadeModelBuilder):
+class Tensors0(CascadeConfig):
 
-    config = dict(
-        name='Tensor (Cascade|s0)',
-        description='Cascade for Tensor initialized with only an S0 fit.',
-        models=('s0',
-                'Tensor')
-    )
+    name = 'Tensor (Cascade|s0)'
+    description = 'Cascade for Tensor initialized with only an S0 fit.'
+    models = ('s0',
+              'Tensor')
 
 
 class TensorExVivo(Tensor):
 
-    config = dict(
-        name='Tensor-ExVivo (Cascade)',
-        description='Cascade for Tensor with ex vivo defaults.',
-        models=('BallStick-ExVivo (Cascade)',
-                'Tensor-ExVivo')
-    )
+    name = 'Tensor-ExVivo (Cascade)'
+    description = 'Cascade for Tensor with ex vivo defaults.'
+    models = ('BallStick-ExVivo (Cascade)',
+              'Tensor-ExVivo')
 
 
 class TensorT2(Tensor):
 
-    config = dict(
-        name='Tensor-T2 (Cascade)',
-        description='Cascade for Tensor with an extra T2 model.',
-        models=('BallStick-T2 (Cascade)',
-                'Tensor-t2')
-    )
+    name = 'Tensor-T2 (Cascade)'
+    description = 'Cascade for Tensor with an extra T2 model.'
+    models = ('BallStick-T2 (Cascade)',
+              'Tensor-t2')
