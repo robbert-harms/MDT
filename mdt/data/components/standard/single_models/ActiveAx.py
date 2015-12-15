@@ -18,6 +18,6 @@ class ActiveAx(DMRISingleModelConfig):
               (Weight(Wcsf) * Ball))
     '''
     fixes = {'CylinderGPD.d': 1.7e-9,
-           'Zeppelin.d': 1.7e-9,
-           'Ball.d': 3.0e-9}
+             'Zeppelin.d': 1.7e-9,
+             'Ball.d': 3.0e-9}
     dependencies = (('Zeppelin.dperp0', SimpleAssignment('Zeppelin.d * (wec.w / (wec.w + wic.w))')),)
