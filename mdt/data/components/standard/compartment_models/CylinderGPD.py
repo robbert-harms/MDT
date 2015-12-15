@@ -1,4 +1,4 @@
-from mdt.models.compartments import DMRICompartmentModelBuilder
+from mdt.models.compartments import DMRICompartmentModelBuilder, CLCodeFromAdjacentFile
 from mdt.components_loader import LibraryFunctionsLoader
 
 __author__ = 'Robbert Harms'
@@ -16,7 +16,7 @@ class CylinderGPD(DMRICompartmentModelBuilder):
         name='CylinderGPD',
         cl_function_name='cmCylinderGPD',
         parameter_list=('g', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'R'),
-        module_name=__name__,
+        cl_code=CLCodeFromAdjacentFile(__name__),
         dependency_list=[lib_loader.load('MRIConstants'),
                          lib_loader.load('NeumannCylPerpPGSESum')]
     )

@@ -1,4 +1,4 @@
-from mdt.models.compartments import DMRICompartmentModelBuilder
+from mdt.models.compartments import DMRICompartmentModelBuilder, CLCodeFromAdjacentFile
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -12,7 +12,7 @@ class CharmedRestricted(DMRICompartmentModelBuilder):
         name='CharmedRestricted',
         cl_function_name='cmCharmedRestricted',
         parameter_list=('g', 'b', 'GAMMA2_G2_delta2', 'TE', 'd', 'theta', 'phi'),
-        module_name=__name__
+        cl_code=CLCodeFromAdjacentFile(__name__),
     )
 
     def get_extra_results_maps(self, results_dict):

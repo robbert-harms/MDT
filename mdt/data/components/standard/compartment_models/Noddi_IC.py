@@ -1,4 +1,4 @@
-from mdt.models.compartments import DMRICompartmentModelBuilder
+from mdt.models.compartments import DMRICompartmentModelBuilder, CLCodeFromAdjacentFile
 from mdt.components_loader import LibraryFunctionsLoader
 from mot.cl_functions import FirstLegendreTerm, CerfErfi, CerfDawson
 import numpy as np
@@ -18,7 +18,7 @@ class Noddi_IC(DMRICompartmentModelBuilder):
         name='Noddi_IC',
         cl_function_name='cmNoddi_IC',
         parameter_list=('g', 'b', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'kappa', 'R'),
-        module_name=__name__,
+        cl_code=CLCodeFromAdjacentFile(__name__),
         dependency_list=(CerfDawson(), CerfErfi(), FirstLegendreTerm(),
                          lib_loader.load('MRIConstants'),
                          lib_loader.load('NeumannCylPerpPGSESum'))

@@ -1,4 +1,4 @@
-from mdt.models.compartments import DMRICompartmentModelBuilder
+from mdt.models.compartments import DMRICompartmentModelBuilder, CLCodeFromAdjacentFile
 from mdt.components_loader import CompartmentModelsLoader
 
 __author__ = 'Robbert Harms'
@@ -17,7 +17,7 @@ class GDRCylindersFixedRadii(DMRICompartmentModelBuilder):
         cl_function_name='cmGDRCylindersFixedRadii',
         parameter_list=('g', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'gamma_radii',
                         'gamma_cyl_weights', 'nmr_gamma_cyl_weights'),
-        module_name=__name__,
+        cl_code=CLCodeFromAdjacentFile(__name__),
         dependency_list=(compartment_loader.load('CylinderGPD'),)
     )
 

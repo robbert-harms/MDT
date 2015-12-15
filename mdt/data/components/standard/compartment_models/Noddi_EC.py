@@ -1,4 +1,4 @@
-from mdt.models.compartments import DMRICompartmentModelBuilder
+from mdt.models.compartments import DMRICompartmentModelBuilder, CLCodeFromAdjacentFile
 from mot.cl_functions import CerfDawson
 
 __author__ = 'Robbert Harms'
@@ -13,7 +13,7 @@ class Noddi_EC(DMRICompartmentModelBuilder):
         name='Noddi_EC',
         cl_function_name='cmNoddi_EC',
         parameter_list=('g', 'b', 'd', 'dperp0', 'theta', 'phi', 'kappa'),
-        module_name=__name__,
+        cl_code=CLCodeFromAdjacentFile(__name__),
         dependency_list=(CerfDawson(),)
     )
 

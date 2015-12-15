@@ -1,4 +1,4 @@
-from mdt.models.compartments import DMRICompartmentModelBuilder
+from mdt.models.compartments import DMRICompartmentModelBuilder, CLCodeFromInlineString
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -12,5 +12,5 @@ class Ball(DMRICompartmentModelBuilder):
         name='Ball',
         cl_function_name='cmBall',
         parameter_list=('b', 'd'),
-        cl_code_inline='return exp(-d * b);'
+        cl_code=CLCodeFromInlineString('return exp(-d * b);')
     )

@@ -72,6 +72,104 @@ class DMRICompartmentModelFunction(ModelFunction):
         return extra_dict
 
 
+class CLCodeDefinition(object):
+
+    def get_code(self, config):
+        """Get the CL code for this compartment model.
+
+        Args:
+            config (CompartmentConfig): the compartment configuration
+
+        Returns:
+            str: the compartment model code.
+        """
+
+
+class CLCodeFromString(CLCodeDefinition):
+
+    def __init__(self, cl_code_str):
+        self.cl_code_str = cl_code_str
+
+    def get_code(self, config):
+        return self.cl_code_str
+
+
+class CLCodeFromInlineString(CLCodeDefinition):
+
+    def __init__(self, cl_inline_code_str):
+        self.cl_inline_code_str = cl_inline_code_str
+
+    def get_code(self, config):
+        s = _construct_cl_function_definition('MOT_FLOAT_TYPE',
+                                              config._get_config_attribute('cl_function_name'),
+                                              config._get_parameters_list())
+        s += '{\n' + self.cl_inline_code_str + '\n}'
+        return s
+
+
+class CLCodeFromFile(CLCodeDefinition):
+
+    def __init__(self, cl_code_file):
+        self.cl_code_file = cl_code_file
+
+    def get_code(self, config):
+        with open(os.path.abspath(self.cl_code_file), 'r') as f:
+            return f.read()
+
+
+class CLCodeFromAdjacentFile(CLCodeDefinition):
+
+    def __init__(self, module_name):
+        self.module_name = module_name
+
+    def get_code(self, config):
+        with open(os.path.abspath(resource_filename(self.module_name,
+                                                    config._get_config_attribute('name') + '.cl')), 'r') as f:
+            return f.read()
+
+
+class CLHeaderDefinition(object):
+
+    def get_code(self, config):
+        """Get the CL header code for this compartment model.
+
+        Args:
+            config (CompartmentConfig): the compartment configuration
+
+        Returns:
+            str: the compartment model code.
+        """
+
+
+class AutoCLHeader(CLCodeDefinition):
+
+    def get_code(self, config):
+        return _construct_cl_function_definition('MOT_FLOAT_TYPE',
+                                                 config._get_config_attribute('cl_function_name'),
+                                                 config._get_parameters_list()) + ';'
+
+
+class CLHeaderFromFile(CLCodeDefinition):
+
+    def __init__(self, cl_code_file):
+        self.cl_code_file = cl_code_file
+
+    def get_code(self, config):
+        with open(os.path.abspath(self.cl_code_file), 'r') as f:
+            return f.read()
+
+
+class CLHeaderFromAdjacentFile(CLCodeDefinition):
+
+    def __init__(self, module_name):
+        self.module_name = module_name
+
+    def get_code(self, config):
+        with open(os.path.abspath(resource_filename(self.module_name,
+                                                    config._get_config_attribute('name') + '.h')), 'r') as f:
+            return f.read()
+
+
 class DMRICompartmentModelBuilder(DMRICompartmentModelFunction):
     """The compartment model builder to inherit from.
 
@@ -84,16 +182,8 @@ class DMRICompartmentModelBuilder(DMRICompartmentModelFunction):
         cl_function_name (str): the name of the function in the CL kernel
         parameter_list (list): the list of parameters to use. If a parameter is a string we will load it automatically,
             if not it is supposed to be a CLFunctionParameter instance that we append directly.
-        cl_header_file (str): the full path to the CL header file. You don't need to define this if you set
-            module_name = __name__ in your config dict
-        cl_header (str): the CL header. This is only used if cl_header_file is not set and or no suitable
-            header file could be loaded. If not defined we auto-create one.
-        cl_code_file (str): the full path to the CL code file. You don't need to define this if you set
-            module_name=__name__ in your config dict
-        cl_code (str): the CL code to use. This is only used if cl_code_file is not set and or no suitable
-            code file could be loaded. For simple functions you can also use cl_code_inline.
-        cl_code_inline (str): the inline CL code. This is meant for simple functions for which we can autoconstruct
-            the function signature and inline this code.
+        cl_header (CLHeaderDefinition): the CL header definition to use. Defaults to AutoCLHeader.
+        cl_code (CLCodeDefinition): the CL code definition to use.
         dependency_list (list): the list of functions this function depends on
         module_name (str): the name of the module implementing the subclass. You always need to set this to __name__:
             module_name=__name__
@@ -104,13 +194,9 @@ class DMRICompartmentModelBuilder(DMRICompartmentModelFunction):
         description='',
         cl_function_name=None,
         parameter_list=[],
-        cl_header_file=None,
-        cl_header=None,
-        cl_code_file=None,
+        cl_header=AutoCLHeader(),
         cl_code=None,
-        cl_code_inline=None,
-        dependency_list=[],
-        module_name=None
+        dependency_list=[]
     )
 
     def __init__(self, *args, **kwargs):
@@ -143,43 +229,11 @@ class DMRICompartmentModelBuilder(DMRICompartmentModelFunction):
 
     @classmethod
     def _get_cl_header_from_config(cls):
-        if cls._get_config_attribute('cl_header_file'):
-            open(os.path.abspath(cls._get_config_attribute('cl_header_file')), 'r').read()
-
-        if cls._get_config_attribute('module_name'):
-            path = os.path.abspath(resource_filename(cls._get_config_attribute('module_name'),
-                                                     cls._get_config_attribute('name') + '.h'))
-            if os.path.isfile(path):
-                with open(path, 'r') as f:
-                    return f.read()
-
-        if cls._get_config_attribute('cl_header'):
-            return cls._get_config_attribute('cl_header')
-
-        return _construct_cl_function_definition('MOT_FLOAT_TYPE',
-                                                 cls._get_config_attribute('cl_function_name'),
-                                                 cls._get_parameters_list()) + ';'
+        return cls._get_config_attribute('cl_header').get_code(cls)
 
     @classmethod
     def _get_cl_code_from_config(cls):
-        if cls._get_config_attribute('cl_code_file'):
-            open(os.path.abspath(cls._get_config_attribute('cl_code_file')), 'r').read()
-
-        if cls._get_config_attribute('module_name'):
-            path = os.path.abspath(resource_filename(cls._get_config_attribute('module_name'),
-                                                     cls._get_config_attribute('name') + '.cl'))
-            if os.path.isfile(path):
-                with open(path, 'r') as f:
-                    return f.read()
-
-        if cls._get_config_attribute('cl_code'):
-            return cls._get_config_attribute('cl_code')
-
-        s = _construct_cl_function_definition('MOT_FLOAT_TYPE',
-                                              cls._get_config_attribute('cl_function_name'),
-                                              cls._get_parameters_list())
-        s += '{\n' + cls._get_config_attribute('cl_code_inline') + '\n}'
-        return s
+        return cls._get_config_attribute('cl_code').get_code(cls)
 
     @classmethod
     def _get_config_attribute(cls, name):

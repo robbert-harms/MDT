@@ -1,4 +1,4 @@
-from mdt.models.compartments import DMRICompartmentModelBuilder
+from mdt.models.compartments import DMRICompartmentModelBuilder, CLCodeFromInlineString
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -12,5 +12,5 @@ class Dot(DMRICompartmentModelBuilder):
         name='Dot',
         cl_function_name='cmDot',
         parameter_list=(),
-        cl_code_inline='return (MOT_FLOAT_TYPE)1.0;'
+        cl_code=CLCodeFromInlineString('return (MOT_FLOAT_TYPE)1.0;')
     )

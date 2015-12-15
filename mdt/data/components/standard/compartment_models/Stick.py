@@ -1,4 +1,4 @@
-from mdt.models.compartments import DMRICompartmentModelBuilder
+from mdt.models.compartments import DMRICompartmentModelBuilder, CLCodeFromInlineString
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -12,10 +12,10 @@ class Stick(DMRICompartmentModelBuilder):
         name='Stick',
         cl_function_name='cmStick',
         parameter_list=('g', 'b', 'd', 'theta', 'phi'),
-        cl_code_inline='''
+        cl_code=CLCodeFromInlineString('''
             return exp(-b * d * pown(dot(g, (MOT_FLOAT_TYPE4)(cos(phi) * sin(theta),
                                                               sin(phi) * sin(theta), cos(theta), 0.0)), 2));
-        '''
+        ''')
     )
 
     def get_extra_results_maps(self, results_dict):

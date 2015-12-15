@@ -1,4 +1,4 @@
-from mdt.models.compartments import DMRICompartmentModelBuilder
+from mdt.models.compartments import DMRICompartmentModelBuilder, CLCodeFromAdjacentFile
 from mdt.cl_routines.mapping.dti_measures import DTIMeasures
 from mdt.utils import eigen_vectors_from_tensor
 from mot import runtime_configuration
@@ -16,7 +16,7 @@ class Tensor(DMRICompartmentModelBuilder):
         name='Tensor',
         cl_function_name='cmTensor',
         parameter_list=('g', 'b', 'd', 'dperp0', 'dperp1', 'theta', 'phi', 'psi'),
-        module_name=__name__
+        cl_code=CLCodeFromAdjacentFile(__name__)
     )
 
     def __init__(self, *args, **kwargs):

@@ -1,4 +1,5 @@
-from mdt.models.compartments import DMRICompartmentModelBuilder
+from pkg_resources import resource_filename
+from mdt.models.compartments import DMRICompartmentModelBuilder, CLCodeFromAdjacentFile, AutoCLHeader
 from mdt.components_loader import LibraryFunctionsLoader
 
 __author__ = 'Robbert Harms'
@@ -16,7 +17,7 @@ class AstroCylinders(DMRICompartmentModelBuilder):
         name='AstroCylinders',
         cl_function_name='cmAstroCylinders',
         parameter_list=('g', 'b', 'G', 'Delta', 'delta', 'd', 'R'),
-        module_name=__name__,
+        cl_code=CLCodeFromAdjacentFile(__name__),
         dependency_list=[lib_loader.load('MRIConstants'),
                          lib_loader.load('NeumannCylPerpPGSESum')]
     )

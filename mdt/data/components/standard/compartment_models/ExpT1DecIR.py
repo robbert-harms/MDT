@@ -1,4 +1,4 @@
-from mdt.models.compartments import DMRICompartmentModelBuilder
+from mdt.models.compartments import DMRICompartmentModelBuilder, CLCodeFromInlineString
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -12,5 +12,5 @@ class ExpT1DecIR(DMRICompartmentModelBuilder):
         name='T1_IR',
         cl_function_name='cmExpT1DecIR',
         parameter_list=('IR', 'T1'),
-        cl_code_inline='return abs(1 - 2 * exp(-Ti / T1));'
+        cl_code=CLCodeFromInlineString('return abs(1 - 2 * exp(-Ti / T1));')
     )
