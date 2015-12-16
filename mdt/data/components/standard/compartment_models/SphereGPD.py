@@ -15,5 +15,4 @@ class SphereGPD(CompartmentConfig):
     name = 'SphereGPD'
     cl_function_name = 'cmSphereGPD'
     parameter_list = ('Delta', 'delta', 'd', 'R')
-    cl_code = CLCodeFromAdjacentFile(__name__)
     dependency_list = (lib_loader.load('MRIConstants'),)

@@ -123,11 +123,10 @@ class CLCodeFromFile(CLCodeDefinition):
 
 class CLCodeFromAdjacentFile(CLCodeDefinition):
 
-    def __init__(self, module_name):
-        self.module_name = module_name
-
     def get_code(self, config):
-        with open(os.path.abspath(resource_filename(self.module_name, config.name + '.cl')), 'r') as f:
+        module_path = os.path.abspath(inspect.getfile(config))
+        path = os.path.join(os.path.dirname(module_path), os.path.splitext(os.path.basename(module_path))[0])
+        with open(path + '.cl', 'r') as f:
             return f.read()
 
 
@@ -144,7 +143,7 @@ class CLHeaderDefinition(object):
         """
 
 
-class AutoCLHeader(CLCodeDefinition):
+class CLHeaderFromTemplate(CLCodeDefinition):
 
     def get_code(self, config):
         return _construct_cl_function_definition('MOT_FLOAT_TYPE',
@@ -187,16 +186,16 @@ class CompartmentConfig(ComponentConfig):
         cl_function_name (str): the name of the function in the CL kernel
         parameter_list (list): the list of parameters to use. If a parameter is a string we will load it automatically,
             if not it is supposed to be a CLFunctionParameter instance that we append directly.
-        cl_header (CLHeaderDefinition): the CL header definition to use. Defaults to AutoCLHeader.
-        cl_code (CLCodeDefinition): the CL code definition to use.
+        cl_header (CLHeaderDefinition): the CL header definition to use. Defaults to CLHeaderFromTemplate.
+        cl_code (CLCodeDefinition): the CL code definition to use. Defaults to CLCodeFromAdjacentFile.
         dependency_list (list): the list of functions this function depends on
     """
     name = ''
     description = ''
     cl_function_name = None
     parameter_list = []
-    cl_header = AutoCLHeader()
-    cl_code = None
+    cl_header = CLHeaderFromTemplate()
+    cl_code = CLCodeFromAdjacentFile()
     dependency_list = []
 
 

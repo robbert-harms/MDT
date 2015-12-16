@@ -13,7 +13,6 @@ class Noddi_EC(CompartmentConfig):
     name = 'Noddi_EC'
     cl_function_name = 'cmNoddi_EC'
     parameter_list = ('g', 'b', 'd', 'dperp0', 'theta', 'phi', 'kappa')
-    cl_code = CLCodeFromAdjacentFile(__name__)
     dependency_list = (CerfDawson(),)
 
     @bind_function

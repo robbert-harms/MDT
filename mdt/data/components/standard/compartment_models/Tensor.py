@@ -16,7 +16,6 @@ class Tensor(CompartmentConfig):
     name = 'Tensor'
     cl_function_name = 'cmTensor'
     parameter_list = ('g', 'b', 'd', 'dperp0', 'dperp1', 'theta', 'phi', 'psi')
-    cl_code = CLCodeFromAdjacentFile(__name__)
 
     def init(self):
         self.get_parameter_by_name('dperp0').parameter_transform = \

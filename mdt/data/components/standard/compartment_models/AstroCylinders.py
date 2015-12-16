@@ -15,6 +15,5 @@ class AstroCylinders(CompartmentConfig):
     name = 'AstroCylinders'
     cl_function_name = 'cmAstroCylinders'
     parameter_list = ('g', 'b', 'G', 'Delta', 'delta', 'd', 'R')
-    cl_code = CLCodeFromAdjacentFile(__name__)
     dependency_list = [lib_loader.load('MRIConstants'),
                        lib_loader.load('NeumannCylPerpPGSESum')]

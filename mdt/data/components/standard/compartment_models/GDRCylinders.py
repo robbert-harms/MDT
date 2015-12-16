@@ -15,7 +15,6 @@ class GDRCylinders(CompartmentConfig):
     name = 'GDRCylinders'
     cl_function_name = 'cmGDRCylinders'
     parameter_list = ('g', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'gamma_k', 'gamma_beta', 'gamma_nmr_cyl')
-    cl_code = CLCodeFromAdjacentFile(__name__)
     dependency_list = (compartment_loader.load('CylinderGPD'),)
 
     @bind_function

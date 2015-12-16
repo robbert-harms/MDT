@@ -30,7 +30,7 @@ class CharmedR1Fixed(CascadeConfig):
 
     name = 'Charmed_1r (Cascade|fixed)'
     description = 'Fixes the directions to Ball & Stick.'
-    models = ('BallStick (Cascade)'
+    models = ('BallStick (Cascade)',
               'Charmed_1r')
     inits = {'Charmed_1r': [('Tensor.theta', 'Stick.theta'),
                             ('Tensor.phi', 'Stick.phi')]}
@@ -42,7 +42,7 @@ class CharmedR2(CascadeConfig):
 
     name = 'Charmed_2r (Cascade)'
     description = 'Initializes the directions to 2x Ball & Stick.'
-    models = ('BallStickStick (Cascade)'
+    models = ('BallStickStick (Cascade)',
               'Charmed_2r')
     inits = {'Charmed_2r': [('Tensor.theta', 'Stick0.theta'),
                             ('Tensor.phi', 'Stick0.phi'),
@@ -111,7 +111,7 @@ class CharmedFixed(CascadeConfig):
 
     name = 'Charmed (Cascade|fixed)'
     description = 'Fixes the directions to 3x Ball & Stick.'
-    models = ('BallStickStickStick (Cascade)'
+    models = ('BallStickStickStick (Cascade)',
               'Charmed')
     inits = {'Charmed': [('Tensor.theta', 'Stick0.theta'),
                          ('Tensor.phi', 'Stick0.phi'),
