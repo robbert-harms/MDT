@@ -8,6 +8,8 @@ import inspect
 import os
 import imp
 #todo in P3.4 replace imp calls with importlib.SourceFileLoader(name, path).load_module(name)
+from functools import wraps
+
 from mot.base import LibraryFunction, ModelFunction
 import mot.cl_functions
 
@@ -38,15 +40,15 @@ def get_model(model_name, **kwargs):
             raise ValueError('The model with the name "{}" could not be found.'.format(model_name))
 
 
-class ComponentCreator(object):
+class ComponentBuilder(object):
 
     def __init__(self):
-        """The base class for component creators.
+        """The base class for component builders.
 
-        Component creators, together with ComponentConfig allow you to define components using class attributes.
+        Component builders, together with ComponentConfig allow you to define components using class attributes.
 
         The idea is that the ComponentConfig contains class attributes defining the component and that the
-        ComponentCreator is able to create a class of the right type from the information in the component config.
+        ComponentBuilder is able to create a class of the right type from the information in the component config.
         """
 
     def create_class(self, template):
@@ -59,12 +61,57 @@ class ComponentCreator(object):
             class: the class of the right type
         """
 
+    def _bind_functions(self, config_class, goal_class):
+        """Binds all the functions from the config class that have the property bind=True to the goal class.
+
+        This is a convenience function for component builders that would like to bind functions from the components
+        config to the actual goal class
+
+        Args:
+            config_class (ComponentConfig): the components config
+            goal_class (cls): the goal class to bind the methods to
+        """
+        methods = inspect.getmembers(config_class, predicate=inspect.isfunction)
+        for name, method in methods:
+            if hasattr(method, 'bind') and method.bind:
+                setattr(goal_class, name, method)
+
+
+def bind_function(func):
+    """This decorator is for methods in ComponentConfigs that we would like to bound to the build component.
+
+    Example usage would be if you want to inherit or overwrite a function from the build model:
+        class MyGoal(object):
+            def test(self):
+                print('test')
+
+        class MyConfig(ComponentConfig):
+            @bind_function
+            def test(self):
+                super(MyGoal, self).test()
+                print('test2')
+
+    The component builder should take care to actually bind the new method to the final object.
+
+    What this will is that it will add the property bind to True to the function.
+
+    Args:
+        func (python function): the function to bind to the build object
+    """
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+
+    wrapper.bind = True
+
+    return wrapper
+
 
 class ComponentConfig(object):
     """The component configuration.
 
     By overriding the class attributes you can define complex configurations. The actual class distilled from these
-    configurations are loaded by the ComponentCreator
+    configurations are loaded by the ComponentBuilder
     """
     name = ''
     description = ''
@@ -252,8 +299,38 @@ class UserComponentsSourceSingle(ComponentsSource):
             try:
                 return getattr(module, 'meta_info')
             except AttributeError:
-                return {}
+                try:
+                    cls = self.get_class(name)
+                    return cls.meta_info()
+                except AttributeError:
+                    return {}
         return {}
+
+
+class AutoUserComponentsSourceSingle(UserComponentsSourceSingle):
+
+    def __init__(self, user_type, component_type, component_builder):
+        """
+
+        This class extends the default single components source loader by also being able to load components defined
+        using the ComponentConfig method. This means that the components are defined as subclasses of ComponentConfig
+        and we need a ComponentBuilder to actually create the components.
+
+        Args:
+            user_type (str): either 'standard' or 'user'
+            component_type (str): the type of component we wish to load. This should be named exactly to one of the
+                directories available in mdt/data/components/
+            component_builder (ComponentBuilder): the component creator that can create components using
+                ComponentConfig classes
+        """
+        self.component_builder = component_builder
+        super(AutoUserComponentsSourceSingle, self).__init__(user_type, component_type)
+
+    def get_class(self, name):
+        cls = super(AutoUserComponentsSourceSingle, self).get_class(name)
+        if issubclass(cls, ComponentConfig):
+            return self.component_builder.create_class(cls)
+        return cls
 
 
 class UserComponentsSourceMulti(ComponentsSource):
@@ -351,7 +428,7 @@ class UserComponentsSourceMulti(ComponentsSource):
 
 class AutoUserComponentsSourceMulti(UserComponentsSourceMulti):
 
-    def __init__(self, user_type, component_type, component_class, component_creator):
+    def __init__(self, user_type, component_type, component_class, component_builder):
         """Create a component source that can create components using multiple types of definitions.
 
         This will load either objects of the class defined by component_class or it will load objects
@@ -362,11 +439,11 @@ class AutoUserComponentsSourceMulti(UserComponentsSourceMulti):
             user_type (str): either 'user' or 'standard'. This defines from which dir to load the components
             component_type (str): from which dir in 'user' or 'standard' to load the components
             component_class (class): the class to auto load
-            component_creator (ComponentCreator): the component creator to use for components defined as a
+            component_builder (ComponentBuilder): the component creator to use for components defined as a
                 ComponentConfig.
         """
         self._component_class = component_class
-        self._component_creator = component_creator
+        self.component_builder = component_builder
         super(AutoUserComponentsSourceMulti, self).__init__(user_type, component_type)
 
     def get_class(self, name):
@@ -374,8 +451,8 @@ class AutoUserComponentsSourceMulti(UserComponentsSourceMulti):
             raise ImportError
 
         base = self._components[name][0]
-        if issubclass(base, ComponentConfig):
-            return self._component_creator.create_class(base)
+        if inspect.isclass(base) and issubclass(base, ComponentConfig):
+            return self.component_builder.create_class(base)
 
         return super(AutoUserComponentsSourceMulti, self).get_class(name)
 
@@ -411,16 +488,16 @@ class SingleModelSource(AutoUserComponentsSourceMulti):
 
     def __init__(self, user_type):
         """Source for the items in the 'single_models' dir in the components folder."""
-        from mdt.models.single import DMRISingleModel, DMRISingleModelCreator
-        super(SingleModelSource, self).__init__(user_type, 'single_models', DMRISingleModel, DMRISingleModelCreator())
+        from mdt.models.single import DMRISingleModel, DMRISingleModelBuilder
+        super(SingleModelSource, self).__init__(user_type, 'single_models', DMRISingleModel, DMRISingleModelBuilder())
 
 
 class CascadeSource(AutoUserComponentsSourceMulti):
 
     def __init__(self, user_type):
         """Source for the items in the 'cascade_models' dir in the components folder."""
-        from mdt.models.cascade import DMRICascadeModelInterface, CascadeCreator
-        super(CascadeSource, self).__init__(user_type, 'cascade_models', DMRICascadeModelInterface, CascadeCreator())
+        from mdt.models.cascade import DMRICascadeModelInterface, CascadeBuilder
+        super(CascadeSource, self).__init__(user_type, 'cascade_models', DMRICascadeModelInterface, CascadeBuilder())
 
 
 class MOTSourceSingle(ComponentsSource):
@@ -473,9 +550,11 @@ class NoiseSTDCalculatorsLoader(ComponentsLoader):
 class CompartmentModelsLoader(ComponentsLoader):
 
     def __init__(self):
-        super(CompartmentModelsLoader, self).__init__([UserComponentsSourceSingle('user', 'compartment_models'),
-                                                       UserComponentsSourceSingle('standard', 'compartment_models'),
-                                                       MOTModelsSource()])
+        from mdt.models.compartments import CompartmentBuilder
+        super(CompartmentModelsLoader, self).__init__(
+            [AutoUserComponentsSourceSingle('user', 'compartment_models', CompartmentBuilder()),
+             AutoUserComponentsSourceSingle('standard', 'compartment_models', CompartmentBuilder()),
+             MOTModelsSource()])
 
 
 class LibraryFunctionsLoader(ComponentsLoader):
@@ -520,13 +599,13 @@ def get_class_predicate(module, class_type):
     Returns:
         function: a function to be used as a predicate in inspect.getmembers
     """
-    defined_in_module = lambda item: item.__module__ == module.__name__
-    is_subclass = lambda item: issubclass(item, class_type)
+    def defined_in_module(item):
+        return item.__module__ == module.__name__
 
-    def predicate_function(item):
-        return inspect.isclass(item) and defined_in_module(item) and is_subclass(item)
+    def complete_predicate(item):
+        return inspect.isclass(item) and defined_in_module(item) and issubclass(item, class_type)
 
-    return predicate_function
+    return complete_predicate
 
 
 def _get_components_path(user_type, component_type):

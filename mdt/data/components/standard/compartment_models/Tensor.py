@@ -1,4 +1,5 @@
-from mdt.models.compartments import DMRICompartmentModelBuilder, CLCodeFromAdjacentFile
+from mdt.components_loader import bind_function
+from mdt.models.compartments import CLCodeFromAdjacentFile, CompartmentConfig
 from mdt.cl_routines.mapping.dti_measures import DTIMeasures
 from mdt.utils import eigen_vectors_from_tensor
 from mot import runtime_configuration
@@ -10,24 +11,21 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class Tensor(DMRICompartmentModelBuilder):
+class Tensor(CompartmentConfig):
 
-    config = dict(
-        name='Tensor',
-        cl_function_name='cmTensor',
-        parameter_list=('g', 'b', 'd', 'dperp0', 'dperp1', 'theta', 'phi', 'psi'),
-        cl_code=CLCodeFromAdjacentFile(__name__)
-    )
+    name = 'Tensor'
+    cl_function_name = 'cmTensor'
+    parameter_list = ('g', 'b', 'd', 'dperp0', 'dperp1', 'theta', 'phi', 'psi')
+    cl_code = CLCodeFromAdjacentFile(__name__)
 
-    def __init__(self, *args, **kwargs):
-        super(Tensor, self).__init__(*args, **kwargs)
-
+    def init(self):
         self.get_parameter_by_name('dperp0').parameter_transform = \
             SinSqrClampDependentTransform(((self, self.get_parameter_by_name('d')),))
 
         self.get_parameter_by_name('dperp1').parameter_transform = \
             SinSqrClampDependentTransform(((self, self.get_parameter_by_name('dperp0')),))
 
+    @bind_function
     def get_extra_results_maps(self, results_dict):
         """This will return the eigenvectors and values for the Tensor.
 

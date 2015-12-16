@@ -1,4 +1,4 @@
-from mdt.models.compartments import DMRICompartmentModelBuilder, CLCodeFromInlineString
+from mdt.models.compartments import CompartmentConfig, CLCodeFromInlineString
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -6,11 +6,10 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class ExpT2Dec(DMRICompartmentModelBuilder):
+class ExpT2Dec(CompartmentConfig):
 
-    config = dict(
-        name='T2',
-        cl_function_name='cmExpT2Dec',
-        parameter_list=('TE', 'T2'),
-        cl_code=CLCodeFromInlineString('return exp(-TE / T2);')
-    )
+    name = 'T2'
+    cl_function_name = 'cmExpT2Dec'
+    parameter_list = ('TE', 'T2')
+    cl_code = CLCodeFromInlineString('return exp(-TE / T2);')
+

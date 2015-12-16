@@ -529,7 +529,7 @@ def dwi_merge(dwi_images, output_fname, sort=True):
 def view_results_slice(data,
                        dimension=None,
                        slice_ind=None,
-                       maps_to_show=None,
+                       maps_to_show='auto',
                        map_titles=None,
                        general_plot_options=None,
                        map_plot_options=None,
@@ -570,7 +570,10 @@ def view_results_slice(data,
         results_total = data
 
     if maps_to_show:
-        results_total = {k: results_total[k] for k in maps_to_show}
+        if maps_to_show == 'auto':
+            maps_to_show = results_preselection_names(data)
+        else:
+            results_total = {k: results_total[k] for k in maps_to_show}
 
     if article_modus:
         axis_options = axis_options or 'off'

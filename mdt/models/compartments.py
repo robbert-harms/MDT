@@ -1,7 +1,11 @@
+import inspect
+
 from pkg_resources import resource_filename
 import os
 from copy import deepcopy
 import six
+
+from mdt.components_loader import ComponentConfig, ComponentBuilder
 from mdt.model_parameters import get_parameter
 from mdt.utils import spherical_to_cartesian
 from mot.base import ModelFunction
@@ -101,8 +105,8 @@ class CLCodeFromInlineString(CLCodeDefinition):
 
     def get_code(self, config):
         s = _construct_cl_function_definition('MOT_FLOAT_TYPE',
-                                              config._get_config_attribute('cl_function_name'),
-                                              config._get_parameters_list())
+                                              config.cl_function_name,
+                                              _get_parameters_list(config.parameter_list))
         s += '{\n' + self.cl_inline_code_str + '\n}'
         return s
 
@@ -123,8 +127,7 @@ class CLCodeFromAdjacentFile(CLCodeDefinition):
         self.module_name = module_name
 
     def get_code(self, config):
-        with open(os.path.abspath(resource_filename(self.module_name,
-                                                    config._get_config_attribute('name') + '.cl')), 'r') as f:
+        with open(os.path.abspath(resource_filename(self.module_name, config.name + '.cl')), 'r') as f:
             return f.read()
 
 
@@ -145,8 +148,8 @@ class AutoCLHeader(CLCodeDefinition):
 
     def get_code(self, config):
         return _construct_cl_function_definition('MOT_FLOAT_TYPE',
-                                                 config._get_config_attribute('cl_function_name'),
-                                                 config._get_parameters_list()) + ';'
+                                                 config.cl_function_name,
+                                                 _get_parameters_list(config.parameter_list)) + ';'
 
 
 class CLHeaderFromFile(CLCodeDefinition):
@@ -165,16 +168,18 @@ class CLHeaderFromAdjacentFile(CLCodeDefinition):
         self.module_name = module_name
 
     def get_code(self, config):
-        with open(os.path.abspath(resource_filename(self.module_name,
-                                                    config._get_config_attribute('name') + '.h')), 'r') as f:
+        with open(os.path.abspath(resource_filename(self.module_name, config.name + '.h')), 'r') as f:
             return f.read()
 
 
-class DMRICompartmentModelBuilder(DMRICompartmentModelFunction):
-    """The compartment model builder to inherit from.
+class CompartmentConfig(ComponentConfig):
+    """The compartment config to inherit from.
 
-    One can use this to create models in a declarative style. This works because in the constructor we use deepcopy
-    to copy all the relevant material before creating a new instance of the class.
+    These configs are loaded on the fly by the CompartmentBuilder.
+
+    All methods you define are automatically bound to the DMRICompartmentModelFunction. Also, to do extra
+    initialization you can define a method init. This method is called after object construction to allow
+    for additional initialization. Also, this method is not added to the final object.
 
     Class attributes:
         name (str): the name of the model
@@ -185,59 +190,72 @@ class DMRICompartmentModelBuilder(DMRICompartmentModelFunction):
         cl_header (CLHeaderDefinition): the CL header definition to use. Defaults to AutoCLHeader.
         cl_code (CLCodeDefinition): the CL code definition to use.
         dependency_list (list): the list of functions this function depends on
-        module_name (str): the name of the module implementing the subclass. You always need to set this to __name__:
-            module_name=__name__
     """
-    config = {}
-    config_default = dict(
-        name='',
-        description='',
-        cl_function_name=None,
-        parameter_list=[],
-        cl_header=AutoCLHeader(),
-        cl_code=None,
-        dependency_list=[]
-    )
+    name = ''
+    description = ''
+    cl_function_name = None
+    parameter_list = []
+    cl_header = AutoCLHeader()
+    cl_code = None
+    dependency_list = []
 
-    def __init__(self, *args, **kwargs):
-        new_args = [self._get_config_attribute('name'),
-                    self._get_config_attribute('cl_function_name'),
-                    self._get_parameters_list(),
-                    self._get_cl_header_from_config(),
-                    self._get_cl_code_from_config(),
-                    self._get_config_attribute('dependency_list')]
 
-        for ind, already_set_arg in enumerate(args):
-            new_args[ind] = already_set_arg
+class CompartmentBuildingBase(DMRICompartmentModelFunction):
+    """Use this class in super calls if you want to overwrite methods in the inherited compartment configs.
 
-        super(DMRICompartmentModelBuilder, self).__init__(*new_args)
+    In python2 super needs a type to be able to do its work. This is the type you can give it to allow
+    it to do its work.
+    """
 
-    @classmethod
-    def meta_info(cls):
-        return {'name': cls._get_config_attribute('name'),
-                'description': cls._get_config_attribute('description')}
 
-    @classmethod
-    def _get_parameters_list(cls):
-        parameters = []
-        for item in cls._get_config_attribute('parameter_list'):
-            if isinstance(item, six.string_types):
-                parameters.append(get_parameter(item))
-            else:
-                parameters.append(deepcopy(item))
-        return parameters
+class CompartmentBuilder(ComponentBuilder):
 
-    @classmethod
-    def _get_cl_header_from_config(cls):
-        return cls._get_config_attribute('cl_header').get_code(cls)
+    def create_class(self, template):
+        """Creates classes with as base class CompartmentBuildingBase
 
-    @classmethod
-    def _get_cl_code_from_config(cls):
-        return cls._get_config_attribute('cl_code').get_code(cls)
+        Args:
+            template (CascadeConfig): the compartment config template to use for creating the class with the right init
+                settings.
+        """
+        class AutoCreatedDMRICompartmentModel(CompartmentBuildingBase):
 
-    @classmethod
-    def _get_config_attribute(cls, name):
-        return cls.config.get(name, cls.config_default[name])
+            def __init__(self, *args):
+                new_args = [template.name,
+                            template.cl_function_name,
+                            _get_parameters_list(template.parameter_list),
+                            template.cl_header.get_code(template),
+                            template.cl_code.get_code(template),
+                            deepcopy(template.dependency_list)]
+
+                for ind, already_set_arg in enumerate(args):
+                    new_args[ind] = already_set_arg
+
+                super(AutoCreatedDMRICompartmentModel, self).__init__(*new_args)
+
+                if hasattr(template, 'init'):
+                    template.init(self)
+
+        self._bind_functions(template, AutoCreatedDMRICompartmentModel)
+        return AutoCreatedDMRICompartmentModel
+
+
+def _get_parameters_list(parameter_list):
+    """Convert all the parameters in the given parameter list to actual parameter objects.
+
+    Args:
+        parameter_list (list): a list containing a mix of either parameter objects or strings. If it is a parameter
+            we add a copy of it to the return list. If it is a string we will autoload it.
+
+    Returns:
+        list: the list of actual parameter objects
+    """
+    parameters = []
+    for item in parameter_list:
+        if isinstance(item, six.string_types):
+            parameters.append(get_parameter(item))
+        else:
+            parameters.append(deepcopy(item))
+    return parameters
 
 
 def _construct_cl_function_definition(return_type, cl_function_name, parameters):

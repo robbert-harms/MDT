@@ -4,7 +4,7 @@ import numpy as np
 import six
 
 from mdt import utils
-from mdt.components_loader import ComponentConfig, ComponentCreator
+from mdt.components_loader import ComponentConfig, ComponentBuilder
 from mdt.models.base import DMRIOptimizable
 from mdt.models.model_expression_parsers.parser import parse
 from mot import runtime_configuration
@@ -238,7 +238,7 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
 class DMRISingleModelConfig(ComponentConfig):
     """The cascade config to inherit from.
 
-    These configs are loaded on the fly by the DMRISingleModelCreator
+    These configs are loaded on the fly by the DMRISingleModelBuilder
 
     Config options:
         name (str): the name of the model
@@ -288,7 +288,7 @@ class DMRISingleModelConfig(ComponentConfig):
         return meta_info
 
 
-class DMRISingleModelCreator(ComponentCreator):
+class DMRISingleModelBuilder(ComponentBuilder):
 
     def create_class(self, template):
         """Creates classes with as base class DMRISingleModel
@@ -321,4 +321,5 @@ class DMRISingleModelCreator(ComponentCreator):
                 for full_param_name, value in template.upper_bounds.items():
                     self.set_upper_bound(full_param_name, value)
 
+        self._bind_functions(template, AutoCreatedDMRISingleModel)
         return AutoCreatedDMRISingleModel

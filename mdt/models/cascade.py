@@ -1,6 +1,9 @@
 from copy import deepcopy
+
+import six
+
 import mdt
-from mdt.components_loader import ComponentConfig, ComponentCreator
+from mdt.components_loader import ComponentConfig, ComponentBuilder
 from mdt.models.base import DMRIOptimizable
 from mdt.utils import simple_parameter_init, condense_protocol_problems
 
@@ -188,7 +191,7 @@ class SimpleCascadeModel(DMRICascadeModelInterface):
 class CascadeConfig(ComponentConfig):
     """The cascade config to inherit from.
 
-    These configs are loaded on the fly by the CascadeCreator.
+    These configs are loaded on the fly by the CascadeBuilder.
     """
     name = ''
     description = ''
@@ -197,7 +200,7 @@ class CascadeConfig(ComponentConfig):
     fixes = {}
 
 
-class CascadeCreator(ComponentCreator):
+class CascadeBuilder(ComponentBuilder):
 
     def create_class(self, template):
         """Creates classes with as base class SimpleCascadeModel
@@ -215,4 +218,23 @@ class CascadeCreator(ComponentCreator):
                     new_args[ind] = arg
                 super(AutoCreatedCascadeModel, self).__init__(*new_args)
 
+            def _prepare_model(self, model, output_previous, output_all_previous):
+                super(AutoCreatedCascadeModel, self)._prepare_model(model, output_previous, output_all_previous)
+
+                def parse_value(v):
+                    if isinstance(v, six.string_types):
+                        return output_previous[v]
+                    elif hasattr(v, '__call__'):
+                        return v(output_previous, output_all_previous)
+                    return v
+
+                if model.name in template.inits:
+                    for item in template.inits[model.name]:
+                        model.init(item[0], parse_value(item[1]))
+
+                if model.name in template.fixes:
+                    for item in template.fixes[model.name]:
+                        model.fix(item[0], parse_value(item[1]))
+
+        self._bind_functions(template, AutoCreatedCascadeModel)
         return AutoCreatedCascadeModel

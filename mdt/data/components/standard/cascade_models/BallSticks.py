@@ -47,7 +47,7 @@ class BallStickStickStick(CascadeConfig):
     name = 'BallStickStickStick (Cascade)'
     description = 'Cascade for BallStickStickStick.'
     models = ('BallStickStick (Cascade)',
-              'BallStickStickStick'),
+              'BallStickStickStick')
     inits = {'BallStickStickStick': [('Wstick1.w', 0.0)]}
 
 
