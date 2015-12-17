@@ -15,7 +15,7 @@ MOT_FLOAT_TYPE cmCharmedRestricted(const MOT_FLOAT_TYPE4 g,
                                    const MOT_FLOAT_TYPE phi){
 
     // gamma_cyl_radii squared
-    const double gamma_cyl_radii_sq[] = {
+    const MOT_FLOAT_TYPE gamma_cyl_radii_sq[] = {
         2.25e-12, 6.25e-12, 1.225e-11,
         2.025e-11, 3.025e-11, 4.224999e-11
     };
