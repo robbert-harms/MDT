@@ -390,13 +390,18 @@ def create_roi(data, brain_mask):
     """Create and return masked data of the given brain volume and mask
 
     Args:
-        data (ndarray): a brain volume with four dimensions (x, y, z, w) where w is the length of the protocol,
-            or a list, tuple or dictionary with volumes
-        brain_mask (ndarray): the mask indicating the region of interest, dimensions: (x, y, z)
+        data (string or ndarray): a brain volume with four dimensions (x, y, z, w)
+            where w is the length of the protocol, or a list, tuple or dictionary with volumes or a string
+            with a filename of a dataset to load.
+        brain_mask (ndarray or str): the mask indicating the region of interest, dimensions: (x, y, z) or the string
+            to the brain mask to load
 
     Returns:
         Signal lists for each of the given volumes. The axis are: (voxels, protocol)
     """
+    from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
+    brain_mask = autodetect_brain_mask_loader(brain_mask).get_data()
+
     def creator(v):
         if len(v.shape) < 4:
             v = np.reshape(v, list(v.shape) + [1])
@@ -408,6 +413,8 @@ def create_roi(data, brain_mask):
         return [creator(value) for value in data]
     elif isinstance(data, tuple):
         return (creator(value) for value in data)
+    elif isinstance(data, six.string_types):
+        return creator(nib.load(data).get_data())
     else:
         return creator(data)
 

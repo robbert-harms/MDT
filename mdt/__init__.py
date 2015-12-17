@@ -543,7 +543,8 @@ def view_results_slice(data,
                        show_sliders=None,
                        figure_options=None,
                        grid_layout=None,
-                       article_modus=False):
+                       article_modus=False,
+                       rotate_images=None):
     """View from the given results the given slice.
 
     See MapsVisualizer.show() for most of the the options. The special options are listed in the section Args
@@ -598,7 +599,8 @@ def view_results_slice(data,
              nmr_colorbar_axis_ticks=nmr_colorbar_axis_ticks,
              show_sliders=show_sliders,
              figure_options=figure_options,
-             grid_layout=grid_layout)
+             grid_layout=grid_layout,
+             rotate_images=rotate_images)
 
 
 def results_preselection_names(data):
@@ -694,9 +696,11 @@ def create_roi(data, brain_mask):
     """Create and return the region of interest of the given brain volume and mask
 
     Args:
-        data: a brain volume with four dimensions (x, y, z, w) where w is the length of the protocol, or a list
-                tuple or dictionary with volumes
-        brain_mask: the mask indicating the region of interest, dimensions: (x, y, z)
+        data (string or ndarray): a brain volume with four dimensions (x, y, z, w)
+            where w is the length of the protocol, or a list, tuple or dictionary with volumes or a string
+            with a filename of a dataset to load.
+        brain_mask (ndarray or str): the mask indicating the region of interest, dimensions: (x, y, z) or the string
+            to the brain mask to load
 
     Returns:
         Signal lists for each of the given volumes. The axis are: (voxels, protocol)
@@ -807,8 +811,8 @@ def write_trackmark_files(input_folder, output_folder=None, eigenvalue_scalar=1e
         output_folder (str): The output folder. If not given set to a subfolder 'trackmark' in the input folder.
         eigenvalue_scalar (double): The scalar by which we want to scale all the eigenvalues. Trackmark accepts the
             eigenvalues in units of mm^2, while we work in m^2. So we scale our results by 1e6 in general.
-        tvl_header (list): The list with header arguments for writing the TVL. See IO.TrackMark for specifics.
-        eigen_pairs (list): The optional list with specific eigenvalues and vectors (all volume key names)
+        tvl_header (list or tuple): The list with header arguments for writing the TVL. See IO.TrackMark for specifics.
+        eigen_pairs (list or tuple): The optional list with specific eigenvalues and vectors (all volume key names)
             to use for the TVL.
             This can either be a list like: ((vec, val), (vec1, val1), ...) or instead of a single vector file it can
             also be like (vec0, vec1, vec2). For example: (((vec0, vec1, vec2), val), (vec1, val1), ...)

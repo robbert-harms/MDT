@@ -1,6 +1,8 @@
 import math
 import os
 import itertools
+from contextlib import contextmanager
+
 import matplotlib.pyplot as plt
 import matplotlib
 from matplotlib.ticker import LinearLocator
@@ -49,11 +51,12 @@ class MapsVisualizer(object):
         self.axis_options = None
         self.nmr_colorbar_axis_ticks = None
         self.grid_layout = AutoGridLayout()
+        self.rotate_images = 0
 
     def show(self, dimension=None, slice_ind=None, volume_ind=None, map_titles=None, maps_to_show=None,
              general_plot_options=None, map_plot_options=None, to_file=None, block=True, maximize=False,
              window_title=None, axis_options=None, nmr_colorbar_axis_ticks=None, show_sliders=None, figure_options=None,
-             grid_layout=None):
+             rotate_images=None, grid_layout=None):
         """Show the data contained in this visualizer using the specifics in this function call.
 
         Args:
@@ -89,6 +92,8 @@ class MapsVisualizer(object):
                 per map name an int.
             show_sliders (boolean or None): if we want to show the sliders or not. Can be None then it is not used.
             figure_options (dict) options for the figure
+            rotate_images (int): the degrees (counter-clockwise) by which to rotate the images before showing them.
+                Should be a multiple of 90.
             grid_layout (GridLayout) the grid layout to use
         """
         figure_options = figure_options or {'figsize': (18, 16)}
@@ -117,6 +122,7 @@ class MapsVisualizer(object):
 
         self.axis_options = axis_options
         self.nmr_colorbar_axis_ticks = nmr_colorbar_axis_ticks
+        self.rotate_images = rotate_images
 
         if show_sliders is not None:
             self.show_sliders = show_sliders
@@ -188,9 +194,6 @@ class MapsVisualizer(object):
             self._updating_sliders = False
 
     def _setup(self):
-        if self.font_size:
-            matplotlib.rcParams.update({'font.size': self.font_size})
-
         self._rerender_maps()
 
         y_positions = [0.038, 0.023, 0.008]
@@ -235,6 +238,10 @@ class MapsVisualizer(object):
 
             data = self._get_image(self._volumes_dict[map_name])
 
+            if self.rotate_images:
+                nmr_times = self.rotate_images//90
+                data = np.rot90(data, nmr_times)
+
             minval = self._minmax_vals[map_name][0]
             maxval = self._minmax_vals[map_name][1]
 
@@ -262,6 +269,12 @@ class MapsVisualizer(object):
             cbar.update_ticks()
             cbar.ax.get_yticklabels()[-1].set_verticalalignment('top')
             self._colorbar_subplots.update({map_name: cbar})
+
+            if self.font_size:
+                for item in ([image_subplot_axis.title, image_subplot_axis.xaxis.label,
+                              image_subplot_axis.yaxis.label] + image_subplot_axis.get_xticklabels() +
+                                 image_subplot_axis.get_yticklabels()):
+                    item.set_fontsize(self.font_size)
 
         self._figure.canvas.draw()
 
