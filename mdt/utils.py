@@ -1325,20 +1325,24 @@ class FittingProcessingWorker(ModelProcessingWorker):
         return create_roi(results, mask_so_far)
 
 
-def get_processing_strategy(model_names=None):
+def get_processing_strategy(processing_type, model_names=None):
     """Get from the config file the correct processing strategy for the given model.
 
     Args:
+        processing_type (str): 'optimization', 'sampling' or any other of the
+            processing_strategies defined in the config
         model_names (list of str): the list of model names (the full recursive cascade of model names)
 
     Returns:
         ModelProcessingStrategy: the processing strategy to use for this model
     """
-    strategy_name = configuration.config['processing_strategies']['general']['name']
-    options = configuration.config['processing_strategies']['general'].get('options', {}) or {}
+    strategy_name = configuration.config['processing_strategies'][processing_type]['general']['name']
+    options = configuration.config['processing_strategies'][processing_type]['general'].get('options', {}) or {}
 
-    if model_names and 'model_specific' in configuration.config['processing_strategies']:
-        info_dict = get_model_config(model_names, configuration.config['processing_strategies']['model_specific'])
+    if model_names and 'model_specific' in configuration.config['processing_strategies'][processing_type]:
+        info_dict = get_model_config(
+            model_names, configuration.config['processing_strategies'][processing_type]['model_specific'])
+
         if info_dict:
             strategy_name = info_dict['name']
             options = info_dict.get('options', {}) or {}

@@ -329,7 +329,7 @@ class ModelFit(object):
             model_protocol_options = get_model_config(model_names, self._model_protocol_options)
             problem_data = apply_model_protocol_options(model_protocol_options, self._problem_data)
 
-            processing_strategies = get_processing_strategy(model_names)
+            processing_strategies = get_processing_strategy('optimization', model_names)
 
             fitter = SingleModelFit(model, problem_data, self._output_folder, optimizer, processing_strategies,
                                     recalculate=recalculate)
