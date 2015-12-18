@@ -15,7 +15,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.4.5'
+VERSION = '0.5.0'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')
@@ -28,11 +28,11 @@ __version__ = VERSION
 """
 The main initialization of MDT.
 
-We inlined all the imports in the functions to do as little work as possible during initialization.
+We inlined all the MDT and MOT imports in the functions to prevent circular imports.
 
-This is important when working with MOT and the python multiprocessing library. In essence, if we import
-PyOpencl (via MOT) before we start the multiprocessing we will get an Out Of Memory exception when
-trying to create an kernel.
+Also, when working with MOT and the python multiprocessing library we run into errors if load the OpenCL stack before
+we load the python multiprocessing library. In particular, if we import PyOpencl (via MOT) before we start
+the multiprocessing we will get an Out Of Memory exception when trying to create an kernel.
 """
 
 

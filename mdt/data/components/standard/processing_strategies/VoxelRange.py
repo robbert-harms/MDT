@@ -32,13 +32,13 @@ class VoxelRange(ModelChunksProcessingStrategy):
         mask = problem_data.mask
         indices = np.arange(0, np.count_nonzero(mask))
         chunks_dir = os.path.join(output_path, 'chunks')
+        mask_list = create_roi(mask, mask)
 
         self._prepare_chunk_dir(chunks_dir, recalculate)
 
         for ind_start, ind_end in self._chunks_generator(mask):
             chunk_indices = indices[ind_start:ind_end]
 
-            mask_list = create_roi(mask, mask)
             mask_list[:] = 0
             mask_list[ind_start:ind_end] = 1
             chunk_mask = restore_volumes(mask_list, mask, with_volume_dim=False)
