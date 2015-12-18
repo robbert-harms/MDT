@@ -4,6 +4,7 @@ import os
 from contextlib import contextmanager
 import logging.config as logging_config
 import numpy as np
+import six
 from six import string_types
 import logging
 
@@ -134,8 +135,9 @@ def fit_model(model, dwi_info, protocol, brain_mask, output_folder, optimizer=No
 
 
 def sample_model(model, dwi_info, protocol, brain_mask, output_folder,
-                 sampler=None, recalculate=False, cl_device_ind=None, double_precision=True,
-                 noise_std=None):
+                 sampler=None, recalculate=False, model_protocol_options=None,
+                 cl_device_ind=None, double_precision=True,
+                 gradient_deviations=None, noise_std='auto', initialize=True, initialize_using=None):
     """Sample a single model. This does not accept cascade models, only single models.
 
     Args:
@@ -148,56 +150,47 @@ def sample_model(model, dwi_info, protocol, brain_mask, output_folder,
             model name in it (for the optimization results) and then a subdir with the samples output.
         sampler (AbstractSampler): the sampler to use
         recalculate (boolean): If we want to recalculate the results if they are already present.
+        model_protocol_options (list of dict): specific model protocol options to use during fitting.
+                This is for example used during batch fitting to limit the protocol for certain models.
+                For instance, in the Tensor model we generally only want to use the lower b-values.
         cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices().
         double_precision (boolean): if we would like to do the calculations in double precision
+        gradient_deviations (str or ndarray): set of gradient deviations to use. In HCP WUMINN format.
         noise_std (double or 'auto'): the noise level standard deviation. This is useful for model comparisons.
                 By default this is None and we set it to 1. If set to auto we try to estimate it using multiple
                 noise std calculators.
-
+        initialize (boolean): If we want to initialize the sampler with optimization output.
+            This assumes that the optimization results are in the folder:
+                <output_folder>/<model_name>/
+        initialize_using (None, str, or dict): If None, and initialize is True we will initialize from the
+            optimization maps from a model with the same name. If a string is given and initialize is True we will
+            interpret the string as a folder with the maps to load. If a dict is given and initialize is True we will
+            initialize from the dict directly.
     Returns:
         the full chain of the optimization
     """
     import mdt.utils
-    import collections
-    from mot import runtime_configuration
-    from mot.load_balance_strategies import EvenDistribution
     from mdt.models.cascade import DMRICascadeModelInterface
-    from mot.cl_routines.sampling.metropolis_hastings import MetropolisHastings
-    from mdt.model_sampling import sample_single_model
+    from mdt.model_sampling import ModelSampling
+
+    if gradient_deviations:
+        if isinstance(gradient_deviations, six.string_types):
+            gradient_deviations = load_nifti(gradient_deviations).get_data()
 
     if not utils.check_user_components():
-        raise RuntimeError('User\'s components folder is not up to date. Please run mdt.initialize_user_settings().')
+        raise RuntimeError('User\'s components folder is not up to date. Please the script mdt-init-user-settings.')
 
-    if isinstance(model, string_types):
-        model = get_model(model)
+    problem_data = utils.load_problem_data(dwi_info, protocol, brain_mask)
 
-    model.double_precision = double_precision
+    sampling = ModelSampling(model, problem_data, output_folder,
+                             sampler=sampler, recalculate=recalculate, cl_device_ind=cl_device_ind,
+                             double_precision=double_precision,
+                             model_protocol_options=model_protocol_options,
+                             gradient_deviations=gradient_deviations, noise_std='auto', initialize=initialize,
+                             initialize_using=initialize_using)
 
-    if noise_std is not None:
-        model.evaluation_model.set_noise_level_std(noise_std)
-
-    if isinstance(model, DMRICascadeModelInterface):
-        raise ValueError('The function \'sample_model()\' does not accept cascade models.')
-
-    cl_device_indices = None
-    if cl_device_ind is not None and not isinstance(cl_device_ind, collections.Iterable):
-        cl_device_indices = [cl_device_ind]
-
-    cl_envs = None
-    load_balancer = None
-    if cl_device_indices is not None:
-        all_devices = get_cl_devices()
-        cl_envs = [all_devices[ind] for ind in cl_device_indices]
-        load_balancer = EvenDistribution()
-
-    with runtime_configuration.runtime_config_context(cl_environments=cl_envs, load_balancer=load_balancer):
-        problem_data = load_problem_data(dwi_info, protocol, brain_mask)
-        if sampler is None:
-            sampler = MetropolisHastings(runtime_configuration.runtime_config['cl_environments'],
-                                         runtime_configuration.runtime_config['load_balancer'])
-
-        return sample_single_model(model, problem_data, output_folder, sampler, recalculate=recalculate)
+    sampling.run()
 
 
 def update_config(config):
@@ -1000,6 +993,7 @@ def split_dataset(input_fname, split_dimension, split_index, output_folder=None)
 
     Nifti.write_volume_maps(volumes, output_folder, header)
 
+
 def extract_volumes(input_volume_fname, input_protocol, output_volume_fname, output_protocol, protocol_indices):
     """Extract volumes from the given volume and save them to separate files.
 
@@ -1227,7 +1221,7 @@ def recalculate_ics(model, dwi_info, protocol, brain_mask, data_dir, sigma, outp
     results_maps.update({'LogLikelihood': log_likelihoods})
     results_maps.update(utils.calculate_information_criterions(log_likelihoods, k, n))
 
-    volumes = mdt.restore_volumes(results_maps, problem_data.mask)
+    volumes = mdt.utils.restore_volumes(results_maps, problem_data.mask)
 
     output_dir = output_dir or data_dir
     write_volume_maps(volumes, output_dir, problem_data.volume_header)
@@ -1244,6 +1238,9 @@ def roi_index_to_volume_index(roi_index, brain_mask):
     Args:
         roi_index (int): the index in the ROI created by that brain mask
         brain_mask (str or 3d array): the brain mask you would like to use
+
+    Returns:
+        tuple: the 3d voxel location of the indicated voxel
     """
     from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
     mask = autodetect_brain_mask_loader(brain_mask).get_data()
@@ -1252,7 +1249,7 @@ def roi_index_to_volume_index(roi_index, brain_mask):
     index_matrix = np.transpose(index_matrix, (1, 2, 3, 0))
 
     roi = create_roi(index_matrix, mask)
-    return roi[roi_index]
+    return tuple(roi[roi_index])
 
 
 def volume_index_to_roi_index(volume_index, brain_mask):
@@ -1265,6 +1262,9 @@ def volume_index_to_roi_index(volume_index, brain_mask):
     Args:
         volume_index (tuple): the volume index, a tuple or list of length 3
         brain_mask (str or 3d array): the brain mask you would like to use
+
+    Returns:
+        int: the index of the given voxel in the ROI created by the given mask
     """
     from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
     mask = autodetect_brain_mask_loader(brain_mask).get_data()

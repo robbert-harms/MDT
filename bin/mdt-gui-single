@@ -34,5 +34,9 @@ if __name__ == '__main__':
 
     mdt.initialize_user_settings(pass_if_exists=True)
 
-    cwd = os.path.realpath(args.dir) or os.getcwd()
+    if args.dir:
+        cwd = os.path.realpath(args.dir)
+    else:
+        cwd = os.getcwd()
+
     start_single_gui(cwd)

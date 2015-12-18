@@ -1127,36 +1127,50 @@ def apply_mask(volume, mask, inplace=True):
     return apply(volume, mask)
 
 
-class ModelFitStrategy(object):
+class ModelProcessingStrategy(object):
 
     def __init__(self):
-        """These model fit strategies use the problems_to_analyze attribute of the MOT model builder.
+        """Model processing strategies define in what parts the model is analyzed.
 
-        That attribute arranges that only a selection of the problems are analyzed instead of all of them.
+        This uses the problems_to_analyze attribute of the MOT model builder to select the voxels to process. That
+        attribute arranges that only a selection of the problems are analyzed instead of all of them.
         """
         self._logger = logging.getLogger(__name__)
 
-    def run(self, model, problem_data, output_path, optimizer, recalculate):
-        """Optimize the given dataset using the logistics the subclass.
+    def run(self, model, problem_data, output_path, recalculate, worker):
+        """Process the given dataset using the logistics the subclass.
 
         Subclasses of this base class can implement all kind of logic to divide a large dataset in smaller chunks
-        (for example slice by slice) and run the optimizer on each slice separately and join the results afterwards.
+        (for example slice by slice) and run the processing on each slice separately and join the results afterwards.
 
         Args:
              model (AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize.
              problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
              output_path (string): The full path to the folder where to place the output
-             optimizer (AbstractOptimizer): The optimization routine to use.
              recalculate (boolean): If we want to recalculate the results if they are already present.
+             worker (ModelProcessingWorker): the worker we use to do the processing
 
         Returns:
             dict: the results as a dictionary of roi lists
         """
 
-    def _write_output(self, result_arrays, mask, output_path, volume_header):
-        """Write the result arrays to the given output folder"""
-        volume_maps = restore_volumes(result_arrays, mask)
-        Nifti.write_volume_maps(volume_maps, output_path, volume_header)
+
+class ModelChunksProcessingStrategy(ModelProcessingStrategy):
+    """This class is a baseclass for all model slice fitting strategies that fit the data in chunks/parts.
+    """
+    def _prepare_chunk_dir(self, chunks_dir, recalculate):
+        """Prepare the directory for a new chunk.
+
+        Args:
+            chunks_dir (str): the full path to the chunks directory.
+            recalculate (boolean): if true and the data exists, we throw everything away to start over.
+        """
+        if recalculate:
+            if os.path.exists(chunks_dir):
+                shutil.rmtree(chunks_dir)
+
+        if not os.path.exists(chunks_dir):
+            os.makedirs(chunks_dir)
 
     def _get_index_matrix(self, mask):
         """Get a matrix with all the indices of the given mask."""
@@ -1164,32 +1178,90 @@ class ModelFitStrategy(object):
         roi = np.arange(0, roi_length)
         return restore_volumes(roi, mask, with_volume_dim=False)
 
-
-class ModelChunksFitting(ModelFitStrategy):
-    """This class is a baseclass for all model slice fitting strategies that fit the data in chunks.
-
-    These chunks can be slice by slice, or be a more elaborate scheme. We expect implementing classes to put their
-    results in subdirectories with in all subdirectories all the result maps (calculated for that chunk) along with a
-    file named '__mask.nii.gz' containing the used mask for that chunk. We will use that mask to assemble all the data
-    again (if you use the routines from this class).
-
-    """
-
-    def _prepare_chunk_dir(self, chunk_dir, recalculate):
-        """Prepare the directory for a new chunk.
+    @contextmanager
+    def _selected_indices(self, model, chunk_indices):
+        """Create a context in which problems_to_analyze attribute of the models is set to the selected indices.
 
         Args:
-            chunk_dir (str): the full path to the chunks directory.
-            recalculate (boolean): if true and the data exists, we throw everything away to start over.
+            model: the model to which to set the problems_to_analyze
+            chunk_indices (ndarray): the list of voxel indices we want to use for processing
         """
-        if recalculate:
-            if os.path.exists(chunk_dir):
-                shutil.rmtree(chunk_dir)
+        old_setting = model.problems_to_analyze
+        model.problems_to_analyze = chunk_indices
+        yield
+        model.problems_to_analyze = old_setting
 
-        if not os.path.exists(chunk_dir):
-            os.makedirs(chunk_dir)
 
-    def _join_chunks(self, output_dir, chunks_dir):
+class ModelProcessingWorker(object):
+
+    def process(self, model, problem_data, mask, output_dir):
+        """Process the indicated voxels in the way prescribed by this worker.
+
+        Since the processing strategy can use all voxels to do the analysis in one go, this function
+        should return all the output it can, i.e. the same kind of output as from the function combine
+
+        Args:
+            model (DMRISingleModel): the model to process
+            problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
+            mask (ndarray): the mask that was used in this processing step
+            output_dir (str): the location for the output files
+
+        Returns:
+            the results for this single processing step
+        """
+
+    def output_exists(self, model, problem_data, output_dir):
+        """Check if in the given directory all the output exists for the given model.
+
+        Args:
+            model (DMRISingleModel): the model to process
+            problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
+            output_dir (str): the location for the output files
+
+        Returns:
+            boolean: true if the output exists, false otherwise
+        """
+
+    def combine(self, output_path, chunks_dir):
+        """Combine all the calculated parts.
+
+        This function should combine all the results into one compilation.
+
+        This expects there to be a file named '__mask.nii.gz' in every sub dir. This file should contain
+        a mask for exactly that slice/data calculated in that directory. We will use those chunk masks to combine
+        the data for the whole dataset.
+
+        Args:
+            output_path (str): the location for the final combined output files
+            chunks_dir (str): the location of the directory that contains all the directories with the chunks.
+
+        Returns:
+            the processing results for as much as this is applicable
+        """
+
+
+class FittingProcessingWorker(ModelProcessingWorker):
+
+    def __init__(self, optimizer):
+        """The processing worker for model fitting.
+
+        Use this if you want to use the model processing strategy to do model fitting.
+
+        Args:
+            optimizer: the optimization routine to use
+        """
+        self._optimizer = optimizer
+
+    def process(self, model, problem_data, mask, output_dir):
+        results, extra_output = self._optimizer.minimize(model, full_output=True)
+        results.update(extra_output)
+        self._write_output(results, mask, output_dir, problem_data.volume_header)
+        return results
+
+    def output_exists(self, model, problem_data, output_dir):
+        return model_output_exists(model, output_dir, append_model_name_to_path=False)
+
+    def combine(self, output_dir, chunks_dir):
         """Joins all chunks by joining all the items in the subdirectory of the given chunks_dir.
 
         This expects there to be a file named '__mask.nii.gz' in every sub dir. This file should contain
@@ -1203,13 +1275,19 @@ class ModelChunksFitting(ModelFitStrategy):
         Returns:
             dict: the results as a dictionary of roi lists
         """
-        sub_dir = os.listdir(chunks_dir)[0]
-        file_paths = glob.glob(os.path.join(chunks_dir, sub_dir, '*.nii*'))
-        file_paths = filter(lambda d: '__mask' not in d, file_paths)
-        map_names = map(lambda d: split_image_path(d)[1], file_paths)
-        results = {map_name: self._join_chunks_of_parameter(output_dir, chunks_dir, map_name) for map_name in map_names}
-        shutil.rmtree(chunks_dir)
-        return results
+        sub_dirs = list(os.listdir(chunks_dir))
+        if sub_dirs:
+            sub_dir = os.listdir(chunks_dir)[0]
+            file_paths = glob.glob(os.path.join(chunks_dir, sub_dir, '*.nii*'))
+            file_paths = filter(lambda d: '__mask' not in d, file_paths)
+            map_names = map(lambda d: split_image_path(d)[1], file_paths)
+            results = {map_name: self._join_chunks_of_parameter(output_dir, chunks_dir, map_name) for map_name in map_names}
+            return results
+
+    def _write_output(self, result_arrays, mask, output_path, volume_header):
+        """Write the result arrays to the given output folder"""
+        volume_maps = restore_volumes(result_arrays, mask)
+        Nifti.write_volume_maps(volume_maps, output_path, volume_header)
 
     def _join_chunks_of_parameter(self, output_dir, chunks_dir, map_name):
         """Subroutine of _join_chunks, this joines the chunks of a single map over all directories
@@ -1247,20 +1325,20 @@ class ModelChunksFitting(ModelFitStrategy):
         return create_roi(results, mask_so_far)
 
 
-def get_fitting_strategy(model_names=None):
-    """Get from the config file the correct fitting strategy for the given model.
+def get_processing_strategy(model_names=None):
+    """Get from the config file the correct processing strategy for the given model.
 
     Args:
         model_names (list of str): the list of model names (the full recursive cascade of model names)
 
     Returns:
-        FittingStrategies: the fitting strategy to use for this model
+        ModelProcessingStrategy: the processing strategy to use for this model
     """
-    strategy_name = configuration.config['fitting_strategies']['general']['name']
-    options = configuration.config['fitting_strategies']['general'].get('options', {}) or {}
+    strategy_name = configuration.config['processing_strategies']['general']['name']
+    options = configuration.config['processing_strategies']['general'].get('options', {}) or {}
 
-    if model_names and 'model_specific' in configuration.config['fitting_strategies']:
-        info_dict = get_model_config(model_names, configuration.config['fitting_strategies']['model_specific'])
+    if model_names and 'model_specific' in configuration.config['processing_strategies']:
+        info_dict = get_model_config(model_names, configuration.config['processing_strategies']['model_specific'])
         if info_dict:
             strategy_name = info_dict['name']
             options = info_dict.get('options', {}) or {}
