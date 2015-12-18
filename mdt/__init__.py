@@ -151,8 +151,9 @@ def sample_model(model, dwi_info, protocol, brain_mask, output_folder,
         cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices().
         double_precision (boolean): if we would like to do the calculations in double precision
-        noise_std (double): the noise level standard deviation. This is useful for model comparisons.
-                By default this is not used and the model default is used (normally 1).
+        noise_std (double or 'auto'): the noise level standard deviation. This is useful for model comparisons.
+                By default this is None and we set it to 1. If set to auto we try to estimate it using multiple
+                noise std calculators.
 
     Returns:
         the full chain of the optimization

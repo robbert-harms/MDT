@@ -19,7 +19,7 @@ from six import string_types
 import mdt.configuration as configuration
 from mdt.IO import Nifti
 from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
-from mdt.components_loader import get_model, FittingStrategies
+from mdt.components_loader import get_model, FittingStrategies, NoiseSTDCalculatorsLoader
 from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
 from mdt.data_loaders.protocol import autodetect_protocol_loader
 from mdt.log_handlers import ModelOutputLogHandler
@@ -1266,3 +1266,42 @@ def get_fitting_strategy(model_names=None):
             options = info_dict.get('options', {}) or {}
 
     return FittingStrategies().load(strategy_name, **options)
+
+
+def estimate_noise_std(user_noise_std, problem_data):
+    """Estimate the noise standard deviation.
+
+    Args:
+        user_noise_std (float, None or 'auto'): If the given noise std is already a number we return it directly. Else,
+            if it is None we return 1.0. If it is auto we will try to estimate it using the estimators defined in the
+            configuration.
+        problem_data (DMRIProblemData): the problem data we can use to do the estimation
+
+    Returns:
+        float: the noise std for the data in problem data
+    """
+    logger = logging.getLogger(__name__)
+
+    noise_std = user_noise_std
+
+    if user_noise_std == 'auto':
+        logger.info('The noise std was set to \'auto\', we will now try to estimate one.')
+
+        loader = NoiseSTDCalculatorsLoader()
+
+        estimators = configuration.config['noise_std_estimating']['general']['estimators']
+
+        for estimator in estimators:
+            calculator = loader.get_class(estimator)
+            calculator = calculator([problem_data.dwi_volume, problem_data.volume_header], problem_data.protocol)
+            try:
+                noise_std = calculator.calculate()
+                break
+            except ValueError:
+                noise_std = 1.0
+
+        logger.info('Finished estimating the noise std, found {}.'.format(noise_std))
+    elif user_noise_std is None:
+        noise_std = 1.0
+
+    return noise_std

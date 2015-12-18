@@ -543,8 +543,9 @@ class FittingStrategies(ComponentsLoader):
 class NoiseSTDCalculatorsLoader(ComponentsLoader):
 
     def __init__(self):
-        super(NoiseSTDCalculatorsLoader, self).__init__([UserComponentsSourceSingle('user', 'noise_std_calculators'),
-                                                         UserComponentsSourceSingle('standard', 'noise_std_calculators')])
+        super(NoiseSTDCalculatorsLoader, self).__init__(
+            [UserComponentsSourceSingle('user', 'noise_std_estimators'),
+             UserComponentsSourceSingle('standard', 'noise_std_estimators')])
 
 
 class CompartmentModelsLoader(ComponentsLoader):

@@ -1,19 +1,22 @@
+import collections
 import glob
 import logging
 import os
-import timeit
 import time
-import collections
-from six import string_types
+import timeit
+
 import nibabel as nib
-from mdt.models.cascade import DMRICascadeModelInterface
-from mdt.protocols import write_protocol
-from mdt.components_loader import get_model, NoiseSTDCalculatorsLoader, FittingStrategies
+from six import string_types
+
 from mdt import __version__
 from mdt.IO import Nifti
-from mdt.utils import create_roi, configure_per_model_logging, load_problem_data, ProtocolProblemError, MetaOptimizerBuilder, get_cl_devices, \
-    get_model_config, apply_model_protocol_options, model_output_exists, split_image_path, get_fitting_strategy
 from mdt.batch_utils import batch_profile_factory
+from mdt.components_loader import get_model
+from mdt.models.cascade import DMRICascadeModelInterface
+from mdt.protocols import write_protocol
+from mdt.utils import create_roi, configure_per_model_logging, load_problem_data, ProtocolProblemError, MetaOptimizerBuilder, get_cl_devices, \
+    get_model_config, apply_model_protocol_options, model_output_exists, split_image_path, get_fitting_strategy, \
+    estimate_noise_std
 from mot import runtime_configuration
 from mot.load_balance_strategies import EvenDistribution
 from mot.runtime_configuration import runtime_config_context
@@ -166,7 +169,7 @@ class _BatchFitRunner(object):
         if gradient_deviations:
             gradient_deviations = nib.load(gradient_deviations).get_data()
 
-        noise_std = _get_noise_std(subject_info.get_noise_std(), problem_data)
+        noise_std = estimate_noise_std(subject_info.get_noise_std(), problem_data)
 
         start_time = timeit.default_timer()
         for model in self._models_to_fit:
@@ -239,7 +242,7 @@ class ModelFit(object):
         self._model_protocol_options = model_protocol_options
         self._logger = logging.getLogger(__name__)
         self._cl_device_indices = cl_device_ind
-        self._noise_std = _get_noise_std(noise_std, self._problem_data)
+        self._noise_std = estimate_noise_std(noise_std, self._problem_data)
         self._model_names_list = []
 
         if gradient_deviations is not None:
@@ -402,29 +405,3 @@ class SingleModelFit(object):
 
     def _write_protocol(self):
         write_protocol(self._problem_data.protocol, os.path.join(self._output_path, 'used_protocol.prtcl'))
-
-
-def _get_noise_std(user_noise_std, problem_data):
-    logger = logging.getLogger(__name__)
-
-    noise_std = user_noise_std
-
-    if user_noise_std == 'auto':
-        logger.info('The noise std was set to \'auto\', we will now try to estimate one.')
-
-        loader = NoiseSTDCalculatorsLoader()
-        noise_std_calculators = map(loader.get_class, loader.list_all())
-
-        for calculator_class in noise_std_calculators:
-            calculator = calculator_class([problem_data.dwi_volume, problem_data.volume_header], problem_data.protocol)
-            try:
-                noise_std = calculator.calculate()
-                break
-            except ValueError:
-                noise_std = 1.0
-
-        logger.info('Finished estimating the noise std, found {}.'.format(noise_std))
-    elif user_noise_std is None:
-        noise_std = 1.0
-
-    return noise_std
