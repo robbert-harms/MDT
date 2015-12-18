@@ -774,7 +774,7 @@ def restore_volumes(data, brain_mask, with_volume_dim=True):
 
 
 def write_trackmark_files(input_folder, output_folder=None, eigenvalue_scalar=1e6, tvl_header=(1, 1.8, 0, 0),
-                          eigen_pairs=None):
+                          eigen_pairs=None, vector_ranking=None):
     """Convert the given output directory to TrackMark files (a proprietary software package from Alard Roebroeck).
 
     Basically only the input directory is necessary and it will write the TVL and Rawmaps to a subdirectory.
@@ -791,10 +791,16 @@ def write_trackmark_files(input_folder, output_folder=None, eigenvalue_scalar=1e
     sorted by name order.
 
     To specifically tell this function which eigenpairs to use you can use the parameter eigen_pairs to give a list of
-    eigen pairs that must be used in that order. The list should specify filenames of the maps to use.
+    eigen pairs that must be used in the given order. The list should specify the names of the maps to use (without
+    the extension)
 
     It is even possible to let this function write maps for eigenvectors of which each component of the vector has it's
     own map file. Again, use the correct notation of the parameter eigen_pairs for this.
+
+    If you want to rank the eigen vectors and values per voxel to a specific ranking please use the argument vector
+    ranking to do so. This parameter should be a list with as many map names as vectors in the same order as
+    the vectors. We will then for each voxel select the vector and value for which the corresponding vector ranking is
+    highest.
 
     Next to writing the TVL file this will also write rawmaps for every map in the directory,
 
@@ -810,6 +816,8 @@ def write_trackmark_files(input_folder, output_folder=None, eigenvalue_scalar=1e
             to use for the TVL.
             This can either be a list like: ((vec, val), (vec1, val1), ...) or instead of a single vector file it can
             also be like (vec0, vec1, vec2). For example: (((vec0, vec1, vec2), val), (vec1, val1), ...)
+        vector_ranking (list): the list of map names in the same order as the eigen values/vectors that determine per
+            voxel the ranking of the vectors/values.
 
     Returns:
         None
@@ -849,7 +857,15 @@ def write_trackmark_files(input_folder, output_folder=None, eigenvalue_scalar=1e
             vals *= eigenvalue_scalar
 
     if eigen_pairs:
-        TrackMark.write_tvl_direction_pairs(os.path.join(output_folder, 'master.tvl'), tvl_header, eigen_pairs)
+        if vector_ranking is not None:
+            if len(vector_ranking) < len(eigen_pairs):
+                raise ValueError('Not enough vector rankings provided. We have {0} eigen '
+                                 'pairs and only {1} ranking maps.'.format(len(eigen_pairs), len(vector_ranking)))
+
+        vector_ranking_maps = [volumes[k] for k in vector_ranking]
+        TrackMark.write_tvl_direction_pairs(os.path.join(output_folder, 'master.tvl'), tvl_header, eigen_pairs,
+                                            vector_ranking=vector_ranking_maps)
+
     TrackMark.write_rawmaps(output_folder, volumes)
 
 

@@ -273,8 +273,11 @@ class MapsVisualizer(object):
             if self.font_size:
                 for item in ([image_subplot_axis.title, image_subplot_axis.xaxis.label,
                               image_subplot_axis.yaxis.label] + image_subplot_axis.get_xticklabels() +
-                                 image_subplot_axis.get_yticklabels()):
+                            image_subplot_axis.get_yticklabels()):
                     item.set_fontsize(self.font_size)
+
+                cbar.ax.tick_params(labelsize=self.font_size)
+                cbar.ax.yaxis.offsetText.set(size=(self.font_size-10))
 
         self._figure.canvas.draw()
 

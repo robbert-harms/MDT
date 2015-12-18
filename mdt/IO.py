@@ -1,5 +1,7 @@
 import glob
 import os
+
+import itertools
 import numpy as np
 import nibabel as nib
 import scipy.io
@@ -99,26 +101,59 @@ class TrackMark(object):
     """
 
     @staticmethod
-    def write_tvl_direction_pairs(tvl_filename, tvl_header, direction_pairs):
+    def write_tvl_direction_pairs(tvl_filename, tvl_header, direction_pairs, vector_ranking=None):
         """Write the given directions to TVL.
 
         The direction pairs should be a list with lists containing the vector and value to write. For example:
             ((vec, val), (vec1, val1), ...) up to three pairs are allowed.
 
         Args:
-            tvl_filename: the filename to write to
-            tvl_header: the header for the TVL file. This is a list of either 4 or 10 entries.
+            tvl_filename (str): the filename to write to
+            tvl_header (list): the header for the TVL file. This is a list of either 4 or 10 entries.
                 4 entries: [version, res, gap, offset]
                 10 entries: [version, x_res, x_gap, x_offset, y_res, y_gap, y_offset, z_res, z_gap, z_offset]
-            direction_pairs (list): The list with direction pairs, only three are used.
+            direction_pairs (list of ndarrays): The list with direction pairs, only three are used.
+            vector_ranking (list): the list of map names in the same order as the eigen values/vectors that determine
+                per voxel the ranking of the vectors/values.
         """
+        if vector_ranking is not None:
+            if len(vector_ranking) < len(direction_pairs):
+                raise ValueError('Not enough vector rankings provided. We have {0} eigen '
+                                 'pairs and only {1} ranking maps.'.format(len(direction_pairs), len(vector_ranking)))
+            dir_matrix = TrackMark.generate_dir_matrix_ordered(direction_pairs, vector_ranking)
+        else:
+            dir_matrix = TrackMark.generate_dir_matrix_unordered(direction_pairs)
+
+        TrackMark.write_tvl_matrix(tvl_filename, tvl_header, dir_matrix)
+
+    @staticmethod
+    def generate_dir_matrix_unordered(direction_pairs):
         direction_pairs = direction_pairs[0:3]
         dir_matrix = np.zeros(direction_pairs[0][0].shape[0:3] + (12,))
         for ind, dirs in enumerate(direction_pairs):
-            dir_matrix[..., ind*3:ind*3+3] = np.squeeze(dirs[0])
-            dir_matrix[..., 9 + ind] = np.squeeze(dirs[1])
+            dir_matrix[..., ind*3:ind*3+3] = np.ascontiguousarray(np.squeeze(dirs[0]))
+            dir_matrix[..., 9 + ind] = np.ascontiguousarray(np.squeeze(dirs[1]))
+        return dir_matrix
 
-        TrackMark.write_tvl_matrix(tvl_filename, tvl_header, dir_matrix)
+    @staticmethod
+    def generate_dir_matrix_ordered(direction_pairs, vector_ranking):
+        ranking = np.argsort(np.concatenate([vr[..., None] for vr in vector_ranking], axis=3), axis=3)
+
+        direction_pairs = direction_pairs[0:3]
+        dir_matrix = np.zeros(direction_pairs[0][0].shape[0:3] + (12,))
+
+        shape3d = direction_pairs[0][0].shape
+        for l_x, l_y, l_z in itertools.product(range(shape3d[0]), range(shape3d[1]), range(shape3d[2])):
+
+            pair_ranking = ranking[l_x, l_y, l_z]
+            for linear_ind, ranking_ind in enumerate(pair_ranking):
+                chosen_vector = direction_pairs[ranking_ind][0]
+                chosen_val = direction_pairs[ranking_ind][1]
+
+                dir_matrix[l_x, l_y, l_z, linear_ind*3:linear_ind*3+3] = chosen_vector[l_x, l_y, l_z]
+                dir_matrix[l_x, l_y, l_z, linear_ind + 9] = chosen_val[l_x, l_y, l_z]
+
+        return dir_matrix
 
     @staticmethod
     def write_tvl_matrix(tvl_filename, tvl_header, directions_matrix):
