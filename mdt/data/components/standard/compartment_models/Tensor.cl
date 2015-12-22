@@ -6,8 +6,6 @@
  * Email = robbert.harms@maastrichtuniversity.nl
  */
 
-MOT_FLOAT_TYPE4 Tensor_rotateVector(const MOT_FLOAT_TYPE4 vector, const MOT_FLOAT_TYPE4 axis_rotate, const MOT_FLOAT_TYPE psi);
-
 /**
  * Generate the compartment model signal for the Tensor model.
  * @params g the protocol gradient vector with (x, y, z)
@@ -34,21 +32,20 @@ MOT_FLOAT_TYPE cmTensor(const MOT_FLOAT_TYPE4 g,
     MOT_FLOAT_TYPE rst = sin(theta+(M_PI_2));
 
     MOT_FLOAT_TYPE4 n1 = (MOT_FLOAT_TYPE4)(cosP * sinT, sinP * sinT, cos(theta), 0.0);
-    MOT_FLOAT_TYPE4 n2 = Tensor_rotateVector((MOT_FLOAT_TYPE4)(rst * cosP, rst * sinP, cos(theta+(M_PI_2)), 0.0), n1, psi);
+
+    // rotate the Tensor
+    MOT_FLOAT_TYPE4 tmp1 = (MOT_FLOAT_TYPE4)(rst * cosP, rst * sinP, cos(theta+(M_PI_2)), 0.0);
+    MOT_FLOAT_TYPE4 n1_rotated = n1;
+    if(n1.z < 0 || ((n1.z == 0.0) && n1.x < 0.0)){
+        n1_rotated *= 1;
+    }
+    MOT_FLOAT_TYPE4 n2 = tmp1 * cos(psi) +
+                          (cross(tmp1, n1_rotated) * sin(psi)) +
+                          (n1_rotated * dot(n1_rotated, tmp1) * (1-cos(psi)));
 
     return exp(-b * (d *      pown(dot(n1, g), 2) +
                      dperp *  pown(dot(n2, g), 2) +
                      dperp2 * pown(dot(cross(n1, n2), g), 2)
                   )
                );
-
 }
-
-MOT_FLOAT_TYPE4 Tensor_rotateVector(const MOT_FLOAT_TYPE4 vector, const MOT_FLOAT_TYPE4 axis_rotate, const MOT_FLOAT_TYPE psi){
-    MOT_FLOAT_TYPE4 n1 = axis_rotate;
-    if(axis_rotate.z < 0 || ((axis_rotate.z == 0.0) && (axis_rotate.x < 0.0))){
-    	n1 *= -1;
-    }
-    return vector * cos(psi) + (cross(vector, n1) * sin(psi)) + (n1 * dot(n1, vector) * (1-cos(psi)));
-}
-
