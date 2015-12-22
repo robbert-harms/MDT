@@ -5,8 +5,7 @@ import os
 from copy import deepcopy
 import six
 
-from mdt.components_loader import ComponentConfig, ComponentBuilder
-from mdt.model_parameters import get_parameter
+from mdt.components_loader import ComponentConfig, ComponentBuilder, ParametersLoader
 from mdt.utils import spherical_to_cartesian
 from mot.base import ModelFunction
 
@@ -248,10 +247,12 @@ def _get_parameters_list(parameter_list):
     Returns:
         list: the list of actual parameter objects
     """
+    parameters_loader = ParametersLoader()
+
     parameters = []
     for item in parameter_list:
         if isinstance(item, six.string_types):
-            parameters.append(get_parameter(item))
+            parameters.append(parameters_loader.load(item))
         else:
             parameters.append(deepcopy(item))
     return parameters

@@ -481,7 +481,8 @@ class ParametersSource(AutoUserComponentsSourceMulti):
     def __init__(self, user_type):
         """Source for the items in the 'parameters' dir in the components folder."""
         from mot.base import CLFunctionParameter
-        super(ParametersSource, self).__init__(user_type, 'parameters', CLFunctionParameter, None) #todo
+        from mdt.models.parameters import ParameterBuilder
+        super(ParametersSource, self).__init__(user_type, 'parameters', CLFunctionParameter, ParameterBuilder())
 
 
 class SingleModelSource(AutoUserComponentsSourceMulti):

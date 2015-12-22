@@ -15,7 +15,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.5.0'
+VERSION = '0.5.1'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')
@@ -616,7 +616,7 @@ def results_preselection_names(data):
     else:
         keys = data.keys()
 
-    return list(filter(lambda v: all(m not in v for m in ('eig', '.d', '.sigma')), keys))
+    return list(sorted(filter(lambda v: all(m not in v for m in ('eig', '.d', '.sigma')), keys)))
 
 
 def block_plots():

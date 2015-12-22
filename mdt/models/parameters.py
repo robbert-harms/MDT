@@ -1,96 +1,109 @@
+import six
+
+from mdt.components_loader import ComponentConfig, ComponentBuilder
+from mot.base import ProtocolParameter, DataType, FreeParameter, ModelDataParameter
+from mot.model_building.parameter_functions.priors import UniformWithinBoundsPrior
+from mot.model_building.parameter_functions.proposals import GaussianProposal
+from mot.model_building.parameter_functions.sample_statistics import GaussianPSS
+from mot.model_building.parameter_functions.transformations import IdentityTransform
+
 __author__ = 'Robbert Harms'
 __date__ = "2015-12-12"
 __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class ParameterBuilder(object):
-#     """The model builder to inherit from.
-#
-#     One can use this to create models in a declarative style. This works because in the constructor we use deepcopy
-#     to copy all the relevant material before creating a new instance of the class.
-#
-#     Class attributes:
-#         name (str): the name of the model
-#         in_vivo_suitable (boolean): flag indicating if the model is suitable for in vivo data
-#         ex_vivo_suitable (boolean): flag indicating if the model is suitable for ex vivo data
-#         description (str): model description
-#         post_optimization_modifiers (list): a list of modification callbacks for use after optimization. Example:
-#             post_optimization_modifiers = [('SNIF', lambda d: 1 - d['Wcsf.w']),
-#                                            ...]
-#         dependencies (list): the dependencies between model parameters. Example:
-#             dependencies = [('Noddi_EC.kappa', SimpleAssignment('Noddi_IC.kappa')),
-#                             ...]
-#         model_listing (list): the abstract model tree as a list. If this is defined we do not use the model_expression
-#         model_expression (str): the model expression. For the syntax see
-#             mdt.models.model_expression_parsers.SingleModel.ebnf
-#         evaluation_model (EvaluationModel): the evaluation model to use during optimization
-#         signal_noise_model (SignalNoiseModel): optional signal noise decorator
-#         inits (dict): indicating the initialization values for the parameters. Example:
-#             inits = {'Stick.theta: pi}
-#         fixes (dict): indicating the constant value for the given parameters. Example:
-#             fixes = {'Ball.d': 3.0e-9}
-#         upper_bounds (dict): indicating the upper bounds for the given parameters. Example:
-#             upper_bounds = {'Stick.theta': pi}
-#         lower_bounds (dict): indicating the lower bounds for the given parameters. Example:
-#             lower_bounds = {'Stick.theta': 0}
-#     """
+class ParameterConfig(ComponentConfig):
+    """The cascade config to inherit from.
+
+    These configs are loaded on the fly by the ParametersBuilder
+
+    Config options:
+        name (str): the name of the parameter
+        description (str): the description of this parameter
+        data_type (str or DataType): either a string we load as datatype or the actual datatype itself
+        type (str): the type of parameter (free, protocol or model_data)
+    """
     name = ''
     description = ''
-    data_type = None
-    data_type_str = None
-    model = None
+    data_type = 'MOT_FLOAT_TYPE'
+    type = None
 
 
-#     post_optimization_modifiers = ()
-#     dependencies = ()
-#     model_listing = None
-#     model_expression = None
-#     evaluation_model = GaussianEvaluationModel().fix('sigma', 1)
-#     signal_noise_model = None
-#     inits = {}
-#     fixes = {}
-#     upper_bounds = {}
-#     lower_bounds = {}
-#
-    def __init__(self):
-        super(ParameterBuilder, self).__init__()
-#
-#         self.add_parameter_dependencies(deepcopy(self._get_dependencies()))
-#         self.add_post_optimization_modifiers(deepcopy(self._get_post_optimization_modifiers()))
-#
-#         self._inits = self.inits
-#         self._fixes = self.fixes
-#         self._lower_bounds = self.lower_bounds
-#         self._upper_bounds = self.upper_bounds
-#
-#         for full_param_name, value in self._inits.items():
-#             self.init(full_param_name, value)
-#
-#         for full_param_name, value in self._fixes.items():
-#             self.fix(full_param_name, value)
-#
-#         for full_param_name, value in self._lower_bounds.items():
-#             self.set_lower_bound(full_param_name, value)
-#
-#         for full_param_name, value in self._upper_bounds.items():
-#             self.set_upper_bound(full_param_name, value)
-#
-    @classmethod
-    def meta_info(cls):
-        return {'name': cls.name,
-                'description': cls.description}
-#
-#     @classmethod
-#     def _get_model_listing(cls):
-#         if cls.model_listing is not None:
-#             return cls.model_listing
-#         return parse(cls.model_expression)
-#
-#     @classmethod
-#     def _get_dependencies(cls):
-#         return cls.dependencies
-#
-#     @classmethod
-#     def _get_post_optimization_modifiers(cls):
-#         return cls.post_optimization_modifiers
+class ProtocolParameterConfig(ParameterConfig):
+    """The default config options for protocol parameters.
+
+    This sets the attribute type to protocol.
+    """
+    type = 'protocol'
+    data_type = 'MOT_FLOAT_TYPE'
+
+
+class FreeParameterConfig(ParameterConfig):
+    """The default config options for free parameters.
+
+    This sets the attribute type to free.
+    """
+    type = 'free'
+    data_type = 'MOT_FLOAT_TYPE'
+    fixed = False
+    init_value = 0.03
+    lower_bound = 0.0
+    upper_bound = 4.0
+    parameter_transform = IdentityTransform()
+    sampling_proposal = GaussianProposal(1.0)
+    sampling_prior = UniformWithinBoundsPrior()
+    sampling_statistics = GaussianPSS()
+    perturbation_function = (lambda v: v)
+
+
+class ModelDataParameterConfig(ParameterConfig):
+    """The default config options for model data parameters.
+
+    This sets the attribute type to model_data.
+    """
+    type = 'model_data'
+    value = None
+
+
+class ParameterBuilder(ComponentBuilder):
+
+    def create_class(self, template):
+        """Creates classes with as base class DMRISingleModel
+
+        Args:
+            template (ParameterConfig): the configuration for the parameter.
+        """
+        data_type = template.data_type
+        if isinstance(data_type, six.string_types):
+            data_type = DataType.from_string(data_type)
+
+        if template.type.lower() == 'protocol':
+            class AutoProtocolParameter(ProtocolParameter):
+                def __init__(self):
+                    super(AutoProtocolParameter, self).__init__(data_type, template.name)
+            return AutoProtocolParameter
+
+        elif template.type.lower() == 'free':
+            class AutoFreeParameter(FreeParameter):
+                def __init__(self):
+                    super(AutoFreeParameter, self).__init__(
+                        data_type,
+                        template.name,
+                        template.fixed,
+                        template.init_value,
+                        template.lower_bound,
+                        template.upper_bound,
+                        parameter_transform=template.parameter_transform,
+                        sampling_proposal=template.sampling_proposal,
+                        sampling_prior=template.sampling_prior,
+                        sampling_statistics=template.sampling_statistics,
+                        perturbation_function=template.perturbation_function
+                    )
+            return AutoFreeParameter
+
+        elif template.type.lower() == 'model_data':
+            class AutoModelDataParameter(ModelDataParameter):
+                def __init__(self):
+                    super(AutoModelDataParameter, self).__init__(data_type, template.name, template.value)
+            return AutoModelDataParameter
