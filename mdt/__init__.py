@@ -15,7 +15,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.5.1'
+VERSION = '0.5.2'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')
