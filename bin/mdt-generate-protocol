@@ -110,10 +110,10 @@ if __name__ == '__main__':
                     protocol.add_column(column, float(value) * mult_factor)
 
 
-        if os.path.isfile(args.maxG):
-            protocol.add_column_from_file('maxG', os.path.realpath(args.maxG), 1)
+        if os.path.isfile(str(args.maxG)):
+            protocol.add_column_from_file('maxG', os.path.realpath(str(args.maxG)), 1)
         else:
-            protocol.add_column('maxG', args.maxG)
+            protocol.add_column('maxG', float(args.maxG))
 
         if args.Delta is not None:
             add_sequence_timing_column_to_protocol(protocol, 'Delta', args.Delta, args.sequence_timing_units)
