@@ -71,7 +71,7 @@ class ComponentBuilder(object):
             config_class (ComponentConfig): the components config
             goal_class (cls): the goal class to bind the methods to
         """
-        methods = inspect.getmembers(config_class, predicate=inspect.isfunction)
+        methods = inspect.getmembers(config_class, predicate=lambda x: inspect.isfunction(x) or inspect.ismethod(x))
         for name, method in methods:
             if hasattr(method, 'bind') and method.bind:
                 setattr(goal_class, name, method)
@@ -105,7 +105,7 @@ def bound_function(func):
 
     wrapper.bind = True
 
-    return wrapper
+    return staticmethod(wrapper)
 
 
 class ComponentConfig(object):
