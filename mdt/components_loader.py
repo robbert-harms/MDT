@@ -8,7 +8,10 @@ import inspect
 import os
 import imp
 #todo in P3.4 replace imp calls with importlib.SourceFileLoader(name, path).load_module(name)
+import types
 from functools import wraps
+
+import sys
 
 from mot.base import LibraryFunction, ModelFunction
 import mot.cl_functions
@@ -74,7 +77,11 @@ class ComponentBuilder(object):
         methods = inspect.getmembers(config_class, predicate=lambda x: inspect.isfunction(x) or inspect.ismethod(x))
         for name, method in methods:
             if hasattr(method, 'bind') and method.bind:
-                setattr(goal_class, name, method)
+                #todo remove this if on the moment python 2 is no longer supported
+                if sys.version_info < (3, 0):
+                    setattr(goal_class, name, types.MethodType(method, None, goal_class))
+                else:
+                    setattr(goal_class, name, method)
 
 
 def bound_function(func):
