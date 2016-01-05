@@ -77,7 +77,7 @@ class ComponentBuilder(object):
                 setattr(goal_class, name, method)
 
 
-def bind_function(func):
+def bound_function(func):
     """This decorator is for methods in ComponentConfigs that we would like to bound to the build component.
 
     Example usage would be if you want to inherit or overwrite a function from the build model:
@@ -93,7 +93,8 @@ def bind_function(func):
 
     The component builder should take care to actually bind the new method to the final object.
 
-    What this will is that it will add the property bind to True to the function.
+    What this will do essentially is that it will add the property bind to the function. This should act as a
+    flag indicating that that function should be bound.
 
     Args:
         func (python function): the function to bind to the build object

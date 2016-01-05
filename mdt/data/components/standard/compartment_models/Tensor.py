@@ -1,5 +1,5 @@
-from mdt.components_loader import bind_function
-from mdt.models.compartments import CLCodeFromAdjacentFile, CompartmentConfig
+from mdt.components_loader import bound_function
+from mdt.models.compartments import CompartmentConfig
 from mdt.cl_routines.mapping.dti_measures import DTIMeasures
 from mdt.utils import eigen_vectors_from_tensor
 from mot import runtime_configuration
@@ -17,6 +17,7 @@ class Tensor(CompartmentConfig):
     cl_function_name = 'cmTensor'
     parameter_list = ('g', 'b', 'd', 'dperp0', 'dperp1', 'theta', 'phi', 'psi')
 
+    @staticmethod
     def init(self):
         self.get_parameter_by_name('dperp0').parameter_transform = \
             SinSqrClampDependentTransform(((self, self.get_parameter_by_name('d')),))
@@ -24,7 +25,7 @@ class Tensor(CompartmentConfig):
         self.get_parameter_by_name('dperp1').parameter_transform = \
             SinSqrClampDependentTransform(((self, self.get_parameter_by_name('dperp0')),))
 
-    @bind_function
+    @bound_function
     def get_extra_results_maps(self, results_dict):
         """This will return the eigenvectors and values for the Tensor.
 

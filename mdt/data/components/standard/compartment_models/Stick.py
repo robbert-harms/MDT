@@ -1,4 +1,4 @@
-from mdt.components_loader import bind_function
+from mdt.components_loader import bound_function
 from mdt.models.compartments import CLCodeFromInlineString, CompartmentConfig
 
 __author__ = 'Robbert Harms'
@@ -17,7 +17,7 @@ class Stick(CompartmentConfig):
                                                           sin(phi) * sin(theta), cos(theta), 0.0)), 2));
     ''')
 
-    @bind_function
+    @bound_function
     def get_extra_results_maps(self, results_dict):
         return self._get_single_dir_coordinate_maps(results_dict[self.name + '.theta'],
                                                     results_dict[self.name + '.phi'],

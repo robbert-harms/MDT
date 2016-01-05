@@ -1,5 +1,5 @@
 from mdt.models.compartments import CompartmentConfig, CLCodeFromAdjacentFile
-from mdt.components_loader import LibraryFunctionsLoader, bind_function
+from mdt.components_loader import LibraryFunctionsLoader, bound_function
 from mot.cl_functions import FirstLegendreTerm, CerfErfi, CerfDawson
 import numpy as np
 
@@ -21,7 +21,7 @@ class Noddi_IC(CompartmentConfig):
                        lib_loader.load('MRIConstants'),
                        lib_loader.load('NeumannCylPerpPGSESum'))
 
-    @bind_function
+    @bound_function
     def get_extra_results_maps(self, results_dict):
         maps = self._get_single_dir_coordinate_maps(results_dict[self.name + '.theta'],
                                                     results_dict[self.name + '.phi'],
