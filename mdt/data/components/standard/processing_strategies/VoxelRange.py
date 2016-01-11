@@ -16,27 +16,35 @@ meta_info = {'title': 'Fit in chunks of voxel ranges',
 
 class VoxelRange(ModelChunksProcessingStrategy):
 
-    def __init__(self, nmr_voxels=40000):
+    def __init__(self, nmr_voxels=40000, honor_voxels_to_analyze=True):
         """Optimize a given dataset slice by slice.
 
         Args:
             nmr_voxels (int): the number of voxels per chunk
+            honor_voxels_to_analyze (bool): if set to True, we use the model's voxels_to_analyze setting if set
+                instead of fitting all voxels in the mask
 
         Attributes:
             nmr_voxels (int): the number of voxels per chunk
+            honor_voxels_to_analyze (bool): if set to True, we use the model's voxels_to_analyze setting if set
+                instead of fitting all voxels in the mask
         """
-        super(VoxelRange, self).__init__()
+        super(VoxelRange, self).__init__(honor_voxels_to_analyze=honor_voxels_to_analyze)
         self.nmr_voxels = nmr_voxels
 
     def run(self, model, problem_data, output_path, recalculate, worker):
-        mask = problem_data.mask
-        indices = np.arange(0, np.count_nonzero(mask))
         chunks_dir = os.path.join(output_path, 'chunks')
+        mask = problem_data.mask
         mask_list = create_roi(mask, mask)
+
+        if self.honor_voxels_to_analyze and model.problems_to_analyze:
+            indices = model.problems_to_analyze
+        else:
+            indices = np.arange(0, np.count_nonzero(mask))
 
         self._prepare_chunk_dir(chunks_dir, recalculate)
 
-        for ind_start, ind_end in self._chunks_generator(mask):
+        for ind_start, ind_end in self._chunks_generator(len(indices)):
             chunk_indices = indices[ind_start:ind_end]
 
             mask_list[:] = 0
@@ -53,18 +61,16 @@ class VoxelRange(ModelChunksProcessingStrategy):
         shutil.rmtree(chunks_dir)
         return return_data
 
-    def _chunks_generator(self, mask):
+    def _chunks_generator(self, total_nmr_voxels):
         """Generate the slices/chunks we will use for the fitting.
 
         Args:
-            mask (ndarray): the mask for all the slices
+            total_nmr_voxels (int): the total number of voxels to fit
 
         Returns:
             tuple (int, int, list): the start of the slice index, the end of the slice index and the list with
                 the slices to select from the mask.
         """
-        total_nmr_voxels = np.count_nonzero(mask)
-
         for ind_start in range(0, total_nmr_voxels, self.nmr_voxels):
             ind_end = min(total_nmr_voxels, ind_start + self.nmr_voxels)
             yield ind_start, ind_end

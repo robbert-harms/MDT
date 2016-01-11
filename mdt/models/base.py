@@ -5,21 +5,25 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 class DMRIOptimizable(object):
-    """This is an interface for some base methods we expect in an MRI model.
 
-    Since we have both single dMRI models and cascade models we must have an overarching interface to make
-    sure that both type of models implement the same methods. This is that interface. The methods in this interface
-    have little to do with modelling, but unify the required methods in the cascades and single models.
-    """
+    def __init__(self, *args, **kwargs):
+        """This is an interface for some base methods we expect in an MRI model.
 
-    @property
-    def double_precision(self):
-        """If this model will calculate in double precision."""
-        return 0
+        Since we have both single dMRI models and cascade models we must have an overarching interface to make
+        sure that both type of models implement the same additional methods.
 
-    @double_precision.setter
-    def double_precision(self, double_precision):
-        """Set if this model will calculate in double precision."""
+        The methods in this interface have little to do with modelling, but unify some extra required methods
+        in the cascades and single models.
+
+        Attributes;
+            problems_to_analyze (list): the list with problems we want to analyze. Suppose we have a few thousands
+                problems defined in this model, but we want to run the optimization only on a few problems. By setting
+                this attribute to a list of problems indices only those problems will be analyzed.
+            double_precision (boolean): if we do the computations in double or float precision
+        """
+        super(DMRIOptimizable, self).__init__()
+        self.problems_to_analyze = None
+        self.double_precision = False
 
     def is_protocol_sufficient(self, protocol=None):
         """Check if the protocol holds enough information for this model to work.

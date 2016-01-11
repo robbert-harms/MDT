@@ -1,15 +1,12 @@
 from copy import deepcopy
-
 import numpy as np
-import six
-
 from mdt import utils
 from mdt.components_loader import ComponentConfig, ComponentBuilder
 from mdt.models.base import DMRIOptimizable
-from mdt.models.model_expression_parsers.parser import parse
+from mdt.models.parsers.SingleModelExpressionParser import parse
 from mot import runtime_configuration
 from mot.adapters import SimpleDataAdapter
-from mot.base import DataType
+from mot.base import CLDataType
 from mot.cl_functions import Weight
 from mdt.utils import restore_volumes, create_roi
 from mdt.model_protocol_problem import MissingColumns, InsufficientShells
@@ -109,7 +106,7 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
             if self.problems_to_analyze is not None:
                 grad_dev = grad_dev[self.problems_to_analyze, ...]
 
-            adapter = SimpleDataAdapter(grad_dev, DataType.from_string('MOT_FLOAT_TYPE*'), self._get_mot_float_type())
+            adapter = SimpleDataAdapter(grad_dev, CLDataType.from_string('MOT_FLOAT_TYPE*'), self._get_mot_float_type())
             var_data_dict.update({'gradient_deviations': adapter})
 
         return var_data_dict
@@ -252,7 +249,7 @@ class DMRISingleModelConfig(ComponentConfig):
             dependencies = [('Noddi_EC.kappa', SimpleAssignment('Noddi_IC.kappa')),
                             ...]
         model_expression (str): the model expression. For the syntax see
-            mdt.models.model_expression_parsers.SingleModel.ebnf
+            mdt.models.parsers.SingleModelExpression.ebnf
         evaluation_model (EvaluationModel): the evaluation model to use during optimization
         signal_noise_model (SignalNoiseModel): optional signal noise decorator
         inits (dict): indicating the initialization values for the parameters. Example:

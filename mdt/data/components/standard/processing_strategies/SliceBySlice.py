@@ -2,6 +2,7 @@ import os
 import numpy as np
 import shutil
 from mdt.IO import Nifti
+from mdt.components_loader import FittingStrategies
 from mdt.utils import ModelChunksProcessingStrategy
 
 __author__ = 'Robbert Harms'
@@ -32,6 +33,12 @@ class SliceBySlice(ModelChunksProcessingStrategy):
         self.slice_width = slice_width
 
     def run(self, model, problem_data, output_path, recalculate, worker):
+        if self.honor_voxels_to_analyze and model.problems_to_analyze:
+            self._logger.info('The range of problems to analyze was already set, '
+                              'we will only fit the selected problems.')
+            strategy = FittingStrategies().load('VoxelRange', honor_voxels_to_analyze=True)
+            return strategy.run(model, problem_data, output_path, recalculate, worker)
+
         mask = problem_data.mask
         chunk_mask = np.zeros_like(mask)
         indices = self._get_index_matrix(problem_data.mask)

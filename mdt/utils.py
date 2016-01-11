@@ -1156,8 +1156,17 @@ class ModelProcessingStrategy(object):
 
 
 class ModelChunksProcessingStrategy(ModelProcessingStrategy):
-    """This class is a baseclass for all model slice fitting strategies that fit the data in chunks/parts.
-    """
+
+    def __init__(self, honor_voxels_to_analyze=True):
+        """This class is a baseclass for all model slice fitting strategies that fit the data in chunks/parts.
+
+        Args:
+            honor_voxels_to_analyze (bool): if set to True, we use the model's voxels_to_analyze setting if set
+                instead of fitting all voxels in the mask
+        """
+        super(ModelChunksProcessingStrategy, self).__init__()
+        self.honor_voxels_to_analyze = honor_voxels_to_analyze
+
     def _prepare_chunk_dir(self, chunks_dir, recalculate):
         """Prepare the directory for a new chunk.
 

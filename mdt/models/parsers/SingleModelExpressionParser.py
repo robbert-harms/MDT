@@ -1,9 +1,9 @@
 import six
 from mdt.components_loader import CompartmentModelsLoader
-from .base import SingleModelSemantics, SingleModelParser
+from .SingleModelExpression import SingleModelExpressionSemantics, SingleModelExpressionParser
 
 
-class Semantics(SingleModelSemantics):
+class Semantics(SingleModelExpressionSemantics):
 
     def __init__(self):
         super(Semantics, self).__init__()
@@ -48,5 +48,5 @@ def parse(model_expression):
     Returns:
         list: the compartment model tree for use in single models.
     """
-    parser = SingleModelParser(parseinfo=False)
+    parser = SingleModelExpressionParser(parseinfo=False)
     return parser.parse(model_expression, rule_name='result', semantics=Semantics())

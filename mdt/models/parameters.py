@@ -1,7 +1,7 @@
 import six
 
 from mdt.components_loader import ComponentConfig, ComponentBuilder
-from mot.base import ProtocolParameter, DataType, FreeParameter, ModelDataParameter
+from mot.base import ProtocolParameter, CLDataType, FreeParameter, ModelDataParameter
 from mot.model_building.parameter_functions.priors import UniformWithinBoundsPrior
 from mot.model_building.parameter_functions.proposals import GaussianProposal
 from mot.model_building.parameter_functions.sample_statistics import GaussianPSS
@@ -76,7 +76,7 @@ class ParameterBuilder(ComponentBuilder):
         """
         data_type = template.data_type
         if isinstance(data_type, six.string_types):
-            data_type = DataType.from_string(data_type)
+            data_type = CLDataType.from_string(data_type)
 
         if template.type.lower() == 'protocol':
             class AutoProtocolParameter(ProtocolParameter):

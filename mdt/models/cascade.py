@@ -15,14 +15,15 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class DMRICascadeModelInterface(DMRIOptimizable):
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         """The interface to cascade models.
 
         A cascade model is a model consisting of multi-compartment models or other cascade models. The idea is that
         it contains a number of models that are to be ran one after each other and with which the output results of
         the previous fit_model(s) are used for the next fit_model.
         """
-        self._double_precision = False
+        super(DMRICascadeModelInterface, self).__init__(*args, **kwargs)
+        self.double_precision = False
 
     @property
     def name(self):
@@ -32,15 +33,6 @@ class DMRICascadeModelInterface(DMRIOptimizable):
             str: The name of this cascade model
         """
         return ''
-
-    @property
-    def double_precision(self):
-        return self._double_precision
-
-    @double_precision.setter
-    def double_precision(self, double_precision):
-        self._double_precision = double_precision
-        self._set_double_precision(double_precision)
 
     def has_next(self):
         """Check if this cascade model has a next model.
@@ -85,13 +77,6 @@ class DMRICascadeModelInterface(DMRIOptimizable):
             list of str: the names of the models in this list
         """
 
-    def _set_double_precision(self, double_precision):
-        """Set the value double precision for all models in the cascade.
-
-        Args:
-            double_precision (boolean): the value to set for all models in the cascade
-        """
-
     def set_problem_data(self, problem_data):
         """Set the problem data in every model in the cascade."""
 
@@ -114,6 +99,7 @@ class SimpleCascadeModel(DMRICascadeModelInterface):
         self._name = name
         self._model_list = model_list
         self._iteration_position = 0
+        self.problems_to_analyze = None
 
     @property
     def name(self):
@@ -129,7 +115,7 @@ class SimpleCascadeModel(DMRICascadeModelInterface):
             output_previous = output_previous_models[self._model_list[self._iteration_position - 1].name]
         self._prepare_model(next_model, output_previous, output_previous_models)
         self._iteration_position += 1
-        return next_model
+        return self._set_model_options(next_model)
 
     def reset(self):
         self._iteration_position = 0
@@ -152,7 +138,7 @@ class SimpleCascadeModel(DMRICascadeModelInterface):
     def get_model(self, name):
         for model in self._model_list:
             if model.name == name:
-                return model
+                return self._set_model_options(model)
         return None
 
     def get_model_names(self):
@@ -165,6 +151,23 @@ class SimpleCascadeModel(DMRICascadeModelInterface):
     def set_gradient_deviations(self, grad_dev):
         for model in self._model_list:
             model.set_gradient_deviations(grad_dev)
+
+    def _set_model_options(self, model):
+        """The final hook before we return a model from this class.
+
+        This can set all kind of additional extra's to the model before we return it using any of the functions
+        in this class
+
+        Args:
+         model: the model to which we want to set the final functions
+
+        Returns:
+            model: the same model with all extra's set.
+        """
+        if self.problems_to_analyze:
+            model.problems_to_analyze = self.problems_to_analyze
+        model.double_precision = self.double_precision
+        return model
 
     def _prepare_model(self, model, output_previous, output_all_previous):
         """Prepare the next model with the output of the previous model.
@@ -182,10 +185,6 @@ class SimpleCascadeModel(DMRICascadeModelInterface):
         """
         if not isinstance(model, DMRICascadeModelInterface):
             simple_parameter_init(model, output_previous)
-
-    def _set_double_precision(self, double_precision):
-        for model in self._model_list:
-            model.double_precision = double_precision
 
 
 class CascadeConfig(ComponentConfig):
