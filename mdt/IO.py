@@ -101,7 +101,8 @@ class TrackMark(object):
     """
 
     @staticmethod
-    def write_tvl_direction_pairs(tvl_filename, tvl_header, direction_pairs, vector_ranking=None):
+    def write_tvl_direction_pairs(tvl_filename, tvl_header, direction_pairs, vector_ranking=None,
+                                  direction_scalar=None):
         """Write the given directions to TVL.
 
         The direction pairs should be a list with lists containing the vector and value to write. For example:
@@ -115,6 +116,7 @@ class TrackMark(object):
             direction_pairs (list of ndarrays): The list with direction pairs, only three are used.
             vector_ranking (list): the list of map names in the same order as the eigen values/vectors that determine
                 per voxel the ranking of the vectors/values.
+            direction_scalar (float): the amount by which we scale the direction length before write out
         """
         if vector_ranking is not None:
             if len(vector_ranking) < len(direction_pairs):
@@ -123,6 +125,9 @@ class TrackMark(object):
             dir_matrix = TrackMark.generate_dir_matrix_ordered(direction_pairs, vector_ranking)
         else:
             dir_matrix = TrackMark.generate_dir_matrix_unordered(direction_pairs)
+
+        direction_scalar = direction_scalar or 1
+        dir_matrix[..., 9:] *= direction_scalar
 
         TrackMark.write_tvl_matrix(tvl_filename, tvl_header, dir_matrix)
 

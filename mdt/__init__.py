@@ -3,6 +3,8 @@ import glob
 import os
 from contextlib import contextmanager
 import logging.config as logging_config
+
+import itertools
 import numpy as np
 import six
 from six import string_types
@@ -15,7 +17,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.5.3'
+VERSION = '0.5.4'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')
@@ -839,6 +841,7 @@ def write_trackmark_files(input_folder, output_folder=None, eigenvalue_scalar=1e
         eigen_values = [volumes[k] for k in eigen_values_keys]
 
         eigen_pairs = list(zip(eigen_vectors, eigen_values))
+        eigen_pairs_keys = list(zip(eigen_vectors_keys, eigen_values_keys))
     else:
         eigen_pairs_keys = eigen_pairs
         eigen_pairs = []
@@ -851,20 +854,32 @@ def write_trackmark_files(input_folder, output_folder=None, eigenvalue_scalar=1e
             val = volumes[eigen_pair[1]]
             eigen_pairs.append((vec, val))
 
-    if eigenvalue_scalar is not None:
-        for eigen_pair in eigen_pairs:
-            vals = eigen_pair[1]
-            vals *= eigenvalue_scalar
+    vector_ranking_maps = None
+    if vector_ranking is not None:
+        if len(vector_ranking) < len(eigen_pairs):
+            raise ValueError('Not enough vector rankings provided. We have {0} eigen '
+                             'pairs and only {1} ranking maps.'.format(len(eigen_pairs), len(vector_ranking)))
+        vector_ranking_maps = [volumes[k] for k in vector_ranking]
+
+    if vector_ranking is not None:
+        ranking = np.argsort(np.concatenate([vr[..., None] for vr in vector_ranking_maps], axis=3), axis=3)
+        shape3d = ranking.shape[0:3]
+
+        ranked_vector_values = [np.zeros(shape3d) for i in range(len(vector_ranking_maps))]
+
+        for l_x, l_y, l_z in itertools.product(range(shape3d[0]), range(shape3d[1]), range(shape3d[2])):
+            pair_ranking = ranking[l_x, l_y, l_z]
+            for linear_ind, ranking_ind in enumerate(pair_ranking):
+                ranked_vector_values[linear_ind][l_x, l_y, l_z] = vector_ranking_maps[ranking_ind][l_x, l_y, l_z]
+
+        ordered_volumes = {}
+        for ind, eigen_pair in enumerate(eigen_pairs_keys):
+            ordered_volumes.update({eigen_pair[1] + ".ordered": ranked_vector_values[ind]})
+        TrackMark.write_rawmaps(output_folder, ordered_volumes)
 
     if eigen_pairs:
-        if vector_ranking is not None:
-            if len(vector_ranking) < len(eigen_pairs):
-                raise ValueError('Not enough vector rankings provided. We have {0} eigen '
-                                 'pairs and only {1} ranking maps.'.format(len(eigen_pairs), len(vector_ranking)))
-
-        vector_ranking_maps = [volumes[k] for k in vector_ranking]
         TrackMark.write_tvl_direction_pairs(os.path.join(output_folder, 'master.tvl'), tvl_header, eigen_pairs,
-                                            vector_ranking=vector_ranking_maps)
+                                            vector_ranking=vector_ranking_maps, direction_scalar=eigenvalue_scalar)
 
     TrackMark.write_rawmaps(output_folder, volumes)
 
