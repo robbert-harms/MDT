@@ -489,7 +489,12 @@ def spherical_to_cartesian(theta, phi):
     theta = np.squeeze(theta)
     phi = np.squeeze(phi)
     sin_theta = np.sin(theta)
-    return np.array([np.cos(phi) * sin_theta, np.sin(phi) * sin_theta, np.cos(theta)]).transpose()
+    return_val = np.array([np.cos(phi) * sin_theta, np.sin(phi) * sin_theta, np.cos(theta)]).transpose()
+
+    if len(return_val.shape) == 1:
+        return return_val[np.newaxis, :]
+
+    return return_val
 
 
 def eigen_vectors_from_tensor(theta, phi, psi):
