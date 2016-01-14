@@ -282,6 +282,50 @@ class SimpleSubjectInfo(SubjectInfo):
         return self._gradient_deviations
 
 
+class BatchSubjectSelection(object):
+
+    def get_selection(self, subjects):
+        """Get the selection of subjects from the given list of subjects.
+
+        Args:
+            subjects (list of SubjectInfo): the list of subjects from which we can choose which one to process
+
+        Returns:
+            list of SubjectInfo: the given list or a subset of the given list with the subjects to process.
+        """
+        pass
+
+
+class AllSubjects(BatchSubjectSelection):
+    """Selects all subjects for use in the processing"""
+
+    def get_selection(self, subjects):
+        return subjects
+
+
+class SelectedSubjects(BatchSubjectSelection):
+
+    def __init__(self, subject_ids=None, indices=None):
+        """Only process the selected subjects.
+
+        This method allows either a selection by index (unsafe for the order may change) or by subject name/ID (more
+        safe in general). Both are used simultaneously.
+
+        Args:
+            subject_ids (list of str): the list of names of subjects to process
+            indices (list of int): the list of indices of subjects we wish to process
+        """
+        self.subject_ids = subject_ids
+        self.indices = indices
+
+    def get_selection(self, subjects):
+        return_list = []
+        for ind, subject in enumerate(subjects):
+            if ind in self.indices or subject.subject_id in self.subject_ids:
+                return_list.append(subject)
+        return return_list
+
+
 class BatchFitProtocolLoader(ProtocolLoader):
 
     def __init__(self, base_dir, prtcl_fname=None, protocol_options=None, bvec_fname=None, bval_fname=None):
@@ -327,18 +371,20 @@ class BatchFitSubjectOutputInfo(object):
 
 class BatchFitOutputInfo(object):
 
-    def __init__(self, data_folder, batch_profile=None, subjects_ind=None):
+    def __init__(self, data_folder, batch_profile=None, subjects_selection=None):
         """Single point of information about batch fitting output.
 
         Args:
             data_folder (str): The data folder with the output files
             batch_profile (BatchProfile class or str): the batch profile to use, can also be the name
                 of a batch profile to load. If not given it is auto detected.
-            subjects_ind (list of int): either a list of subjects to process or the index of a single subject to process.
+            subjects_selection (BatchSubjectSelection): the subjects to use for processing.
+                If None all subjects are processed.
         """
         self._data_folder = data_folder
         self._batch_profile = batch_profile_factory(batch_profile, data_folder)
-        self._subjects = self._get_subjects(subjects_ind)
+        self._subjects_selection = subjects_selection or AllSubjects()
+        self._subjects = self._subjects_selection.get_selection(self._batch_profile.get_subjects())
         self._subjects_dirs = {subject_info.subject_id: subject_info.output_dir for subject_info in self._subjects}
         self._mask_paths = {}
 
@@ -355,7 +401,7 @@ class BatchFitOutputInfo(object):
         return list(sorted(list(s)))
 
     def get_path_to_mask_per_subject(self, mask_name, error_on_missing_mask=False):
-        """Get for every subject the path to the given mask name.
+        """Get for every subject the path to the results calculated with given mask name.
 
         If a subject does not have that mask_name it is either skipped or an error is raised, depending on the setting
         error_on_missing_mask.
@@ -413,24 +459,8 @@ class BatchFitOutputInfo(object):
                     raise ValueError('Missing the choosen mask "{0}" for subject "{1} '
                                      'and error_on_missing_mask is True"'.format(mask_name, subject_info.subject_id))
 
-    def _get_subjects(self, subjects_ind):
-        return_subjects = []
-        subjects = self._batch_profile.get_subjects()
-        if subjects_ind:
-            if hasattr(subjects_ind, '__iter__'):
-                subjects_selection = subjects_ind
-            else:
-                subjects_selection = [subjects_ind]
 
-            for subject_ind in subjects_selection:
-                if 0 <= subject_ind < len(subjects):
-                    return_subjects.append(subjects[subject_ind])
-
-            return return_subjects
-        return subjects
-
-
-def run_function_on_batch_fit_output(data_folder, func, batch_profile=None, subjects_ind=None):
+def run_function_on_batch_fit_output(data_folder, func, batch_profile=None, subjects_selection=None):
     """Run a function on the output of a batch fitting routine.
 
     This enables you to run a function on every model output from every subject. The python function should accept
@@ -438,12 +468,14 @@ def run_function_on_batch_fit_output(data_folder, func, batch_profile=None, subj
 
     Args:
         data_folder (str): The data folder with the output files
-        func (python function): the python function we should call for every map and model
+        func (python function): the python function we should call for every map and model.
+            This should accept as single parameter a BatchFitSubjectOutputInfo.
         batch_profile (BatchProfile class or str): the batch profile to use, can also be the name
             of a batch profile to load. If not given it is auto detected.
-        subjects_ind (list of int): either a list of subjects to process or the index of a single subject to process.
+        subjects_selection (BatchSubjectSelection): the subjects to use for processing.
+            If None all subjects are processed.
     """
-    output_info = BatchFitOutputInfo(data_folder, batch_profile, subjects_ind=subjects_ind)
+    output_info = BatchFitOutputInfo(data_folder, batch_profile, subjects_selection=subjects_selection)
     mask_names = output_info.get_available_masks()
     for mask_name in mask_names:
         list(map(func, output_info.subject_output_info_generator(mask_name)))
@@ -474,7 +506,7 @@ def get_best_batch_profile(data_folder):
     """Get the batch profile that best matches the given directory.
 
     Args:
-        directory (str): the directory for which to get the best batch profile.
+        data_folder (str): the directory for which to get the best batch profile.
 
     Returns:
         BatchProfile: the best matching batch profile.
@@ -495,7 +527,8 @@ def get_best_batch_profile(data_folder):
     return best_crawler
 
 
-def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, mask_name=None, symlink=False):
+def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, subjects_selection=None,
+                             mask_name=None, symlink=True):
     """Load from the given data folder all the output files and put them into the output directory.
 
     If there is more than one mask file available the user has to choose which mask to use using the mask_name
@@ -507,16 +540,14 @@ def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, mask_n
     Args:
         data_folder (str): The data folder with the output files
         output_dir (str): The path to the output folder where all the files will be put.
-        batch_profile (BatchProfile class or str): the batch profile class to use, can also be the name
+        batch_profile (BatchProfile class or str): the batch profile to use, can also be the name
             of a batch profile to load. If not given it is auto detected.
-            Please note it expects a callable that returns a batch profile instance. For example, you can use it as:
-                batch_profile=MyBatchProfile
-            but this would not work:
-                batch_profile=MyBatchProfile()
+        subjects_selection (BatchSubjectSelection): the subjects to use for processing.
+            If None all subjects are processed.
         mask_name (str): the mask to use to get the output from
         symlink (boolean): only available under Unix OS's. Creates a symlink instead of copying.
     """
-    output_info = BatchFitOutputInfo(data_folder, batch_profile)
+    output_info = BatchFitOutputInfo(data_folder, batch_profile, subjects_selection=subjects_selection)
     mask_names = output_info.get_available_masks()
     if len(mask_names) > 1:
         if mask_name is None:

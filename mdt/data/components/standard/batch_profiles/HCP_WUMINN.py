@@ -29,10 +29,10 @@ Optional items (these will take precedence if present):
 '''}
 
 
-class HCP_WUMINN_Profile(SimpleBatchProfile):
+class HCP_WUMINN(SimpleBatchProfile):
 
     def __init__(self):
-        super(HCP_WUMINN_Profile, self).__init__()
+        super(HCP_WUMINN, self).__init__()
         self.use_gradient_deviations = True
 
     def _get_subjects(self):

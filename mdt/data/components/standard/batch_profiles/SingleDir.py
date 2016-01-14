@@ -44,7 +44,7 @@ or a value per protocol line.
 '''}
 
 
-class SingleDirProfile(SimpleBatchProfile):
+class SingleDir(SimpleBatchProfile):
 
     def _get_subjects(self):
         pjoin = mdt.make_path_joiner(self._root_dir)

@@ -475,10 +475,10 @@ class AutoUserComponentsSourceMulti(UserComponentsSourceMulti):
         """
         loaded_items = super(AutoUserComponentsSourceMulti, self)._get_components_from_module(module)
 
-        items = inspect.getmembers(module, get_class_predicate(module, self._component_class))
+        items = inspect.getmembers(module, _get_class_predicate(module, self._component_class))
         loaded_items.extend((item[1], item[1].meta_info()) for item in items)
 
-        items = inspect.getmembers(module, get_class_predicate(module, ComponentConfig))
+        items = inspect.getmembers(module, _get_class_predicate(module, ComponentConfig))
         loaded_items.extend((item[1], item[1].meta_info()) for item in items)
 
         return loaded_items
@@ -523,7 +523,7 @@ class MOTLibraryFunctionSource(MOTSourceSingle):
 
     def list(self):
         module = mot.cl_functions
-        items = inspect.getmembers(module, get_class_predicate(module, LibraryFunction))
+        items = inspect.getmembers(module, _get_class_predicate(module, LibraryFunction))
         return [x[0] for x in items if x[0] != 'LibraryFunction']
 
 
@@ -531,7 +531,7 @@ class MOTModelsSource(MOTSourceSingle):
 
     def list(self):
         module = mot.cl_functions
-        items = inspect.getmembers(module, get_class_predicate(module, ModelFunction))
+        items = inspect.getmembers(module, _get_class_predicate(module, ModelFunction))
         return [x[0] for x in items if x[0] != 'ModelFunction']
 
 
@@ -542,11 +542,11 @@ class BatchProfilesLoader(ComponentsLoader):
                                                    UserComponentsSourceSingle('standard', 'batch_profiles')])
 
 
-class FittingStrategies(ComponentsLoader):
+class ProcessingStrategiesLoader(ComponentsLoader):
 
     def __init__(self):
-        super(FittingStrategies, self).__init__([UserComponentsSourceSingle('user', 'processing_strategies'),
-                                                 UserComponentsSourceSingle('standard', 'processing_strategies')])
+        super(ProcessingStrategiesLoader, self).__init__([UserComponentsSourceSingle('user', 'processing_strategies'),
+                                                          UserComponentsSourceSingle('standard', 'processing_strategies')])
 
 
 class NoiseSTDCalculatorsLoader(ComponentsLoader):
@@ -596,7 +596,52 @@ class CascadeModelsLoader(ComponentsLoader):
                                                    CascadeSource('standard')])
 
 
-def get_class_predicate(module, class_type):
+def get_component_class(component_type, component_name):
+    """Return the class of the given component.
+
+    Args:
+        component_type (str): the type of component, for example 'batch_profiles' or 'parameters'
+        component_name (str): the name of the component to load
+
+    Returns:
+        the class of the given component
+    """
+    if component_type == 'batch_profiles':
+        return BatchProfilesLoader().get_class(component_name)
+    if component_type == 'cascade_models':
+        return CascadeModelsLoader().get_class(component_name)
+    if component_type == 'compartment_models':
+        return CompartmentModelsLoader().get_class(component_name)
+    if component_type == 'library_functions':
+        return LibraryFunctionsLoader().get_class(component_name)
+    if component_type == 'noise_std_estimators':
+        return NoiseSTDCalculatorsLoader().get_class(component_name)
+    if component_type == 'parameters':
+        return ParametersLoader().get_class(component_name)
+    if component_type == 'processing_strategies':
+        return ProcessingStrategiesLoader().get_class(component_name)
+    if component_type == 'single_models':
+        return SingleModelsLoader().get_class(component_name)
+    raise ValueError('Could not find the given component type {}'.format(component_type))
+
+
+def load_component(component_type, component_name, *args, **kwargs):
+    """Load the class indicated by the given component type and name.
+
+    Args:
+        component_type (str): the type of component, for example 'batch_profiles' or 'parameters'
+        component_name (str): the name of the component to load
+        *args: passed to the component
+        **kwargs: passed to the component
+
+    Returns:
+        the loaded component
+    """
+    component = get_component_class(component_type, component_name)
+    return component(*args, **kwargs)
+
+
+def _get_class_predicate(module, class_type):
     """A predicate to be used in the function inspect.getmembers
 
     This predicate checks if the module of the item we inspect matches the given module, checks the class type

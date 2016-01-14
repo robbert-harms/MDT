@@ -39,10 +39,10 @@ It is better to create the protocol directly by creating a .prtcl file, but addi
 '''}
 
 
-class DirPerSubjectProfile(SimpleBatchProfile):
+class DirPerSubject(SimpleBatchProfile):
 
     def __init__(self):
-        super(DirPerSubjectProfile, self).__init__()
+        super(DirPerSubject, self).__init__()
         self.use_gradient_deviations = True
 
     def _get_subjects(self):

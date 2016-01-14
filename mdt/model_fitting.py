@@ -10,7 +10,7 @@ from six import string_types
 
 from mdt import __version__
 from mdt.IO import Nifti
-from mdt.batch_utils import batch_profile_factory
+from mdt.batch_utils import batch_profile_factory, AllSubjects
 from mdt.components_loader import get_model
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.protocols import write_protocol
@@ -29,7 +29,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class BatchFitting(object):
 
-    def __init__(self, data_folder, batch_profile=None, subjects_ind=None, recalculate=False,
+    def __init__(self, data_folder, batch_profile=None, subjects_selection=None, recalculate=False,
                  cl_device_ind=None, double_precision=False):
         """This class is meant to make running computations as simple as possible.
 
@@ -51,16 +51,16 @@ class BatchFitting(object):
             data_folder (str): the main directory to look for items to process.
             batch_profile (BatchProfile class or str): the batch profile to use or the name of a batch
                 profile to load from the users folder.
-            subjects_ind (list of int): either a list of subjects to process or the index of a single subject to process.
-                This indexes the list of subjects returned by the batch profile.
+            subjects_selection (BatchSubjectSelection): the subjects to use for processing.
+                If None all subjects are processed.
             recalculate (boolean): If we want to recalculate the results if they are already present.
             cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
                 get_cl_devices().
             double_precision (boolean): if we would like to do the calculations in double precision
         """
-        self._data_folder = data_folder
         self._logger = logging.getLogger(__name__)
-        self._batch_profile = batch_profile_factory(batch_profile, self._data_folder)
+        self._batch_profile = batch_profile_factory(batch_profile, data_folder)
+        self._subjects_selection = subjects_selection or AllSubjects()
         self._models_to_fit = self._batch_profile.get_models_to_fit()
         self._cl_device_ind = cl_device_ind
         self._recalculate = recalculate
@@ -68,13 +68,13 @@ class BatchFitting(object):
 
         if self._batch_profile is None:
             raise RuntimeError('No suitable batch profile could be '
-                               'found for the directory {0}'.format(os.path.abspath(self._data_folder)))
+                               'found for the directory {0}'.format(os.path.abspath(data_folder)))
 
         self._model_protocol_options = self._batch_profile.get_model_protocol_options()
 
         self._logger.info('Using MDT version {}'.format(__version__))
         self._logger.info('Using batch profile: {0}'.format(self._batch_profile))
-        self._subjects = self._get_subjects(subjects_ind)
+        self._subjects = self._subjects_selection.get_selection(self._batch_profile.get_subjects())
 
         self._logger.info('Subjects found: {0}'.format(self._batch_profile.get_subjects_count()))
 
@@ -111,24 +111,6 @@ class BatchFitting(object):
         list(map(run_func, self._subjects))
 
         return self._subjects
-
-    def _get_subjects(self, subjects_ind):
-        subjects = self._batch_profile.get_subjects()
-        if subjects_ind is not None:
-            if hasattr(subjects_ind, '__iter__'):
-                subjects_selection = subjects_ind
-            else:
-                subjects_selection = [subjects_ind]
-
-            returned_subjects = []
-            for subject_ind in subjects_selection:
-                if 0 <= subject_ind < len(subjects):
-                    returned_subjects.append(subjects[subject_ind])
-                else:
-                    logging.info('The specified subject (in config "subjects") with index number {0} '
-                                 'does not exist'.format(subject_ind))
-            return returned_subjects
-        return subjects
 
 
 class _BatchFitRunner(object):

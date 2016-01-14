@@ -12,7 +12,7 @@ class AstroSticks(CompartmentConfig):
     cl_function_name = 'cmAstroSticks'
     parameter_list = ('g', 'G', 'b', 'd')
     cl_code = CLCodeFromInlineString('''
-        if(b  =  =  0){
+        if(b == 0){
             return 1;
         }
         return sqrt(M_PI) / (2 * G * sqrt((b / pown(G, 2)) * d)) * erf(G * sqrt((b /pown(G, 2)) * d));

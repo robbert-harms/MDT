@@ -27,7 +27,7 @@ Optional items (these will take precedence if present):
 '''}
 
 
-class HCP_MGH_Profile(SimpleBatchProfile):
+class HCP_MGH(SimpleBatchProfile):
 
     def _get_subjects(self):
         dirs = sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._root_dir, '*'))])

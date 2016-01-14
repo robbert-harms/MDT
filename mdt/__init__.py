@@ -17,7 +17,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.5.4'
+VERSION = '0.6.0'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')
@@ -38,7 +38,7 @@ the multiprocessing we will get an Out Of Memory exception when trying to create
 """
 
 
-def batch_fit(data_folder, batch_profile=None, subjects_ind=None, recalculate=False,
+def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalculate=False,
               cl_device_ind=None, dry_run=False, double_precision=False):
     """Run all the available and applicable models on the data in the given folder.
 
@@ -51,9 +51,8 @@ def batch_fit(data_folder, batch_profile=None, subjects_ind=None, recalculate=Fa
         data_folder (str): The data folder to process
         batch_profile (BatchProfile or str): the batch profile to use, or the name of a batch profile to load.
             If not given it is auto detected.
-        subjects_ind (int or list of int): either a list of subjects to process or the index
-            of a single subject to process. To get a list of subjects run this function with the
-            dry_run parameter to true.
+        subjects_selection (BatchSubjectSelection): the subjects to use for processing.
+            If None all subjects are processed.
         recalculate (boolean): If we want to recalculate the results if they are already present.
         cl_device_ind (int or list of int): the index of the CL device to use.
             The index is from the list from the function get_cl_devices().
@@ -70,7 +69,7 @@ def batch_fit(data_folder, batch_profile=None, subjects_ind=None, recalculate=Fa
     if not utils.check_user_components():
         raise RuntimeError('User\'s components folder is not up to date. Please run the script mdt-init-user-settings.')
 
-    batch_fitting = BatchFitting(data_folder, batch_profile=batch_profile, subjects_ind=subjects_ind,
+    batch_fitting = BatchFitting(data_folder, batch_profile=batch_profile, subjects_selection=subjects_selection,
                                  recalculate=recalculate, cl_device_ind=cl_device_ind,
                                  double_precision=double_precision)
 
@@ -195,25 +194,8 @@ def sample_model(model, dwi_info, protocol, brain_mask, output_folder,
     sampling.run()
 
 
-def update_config(config):
-    """Update the runtime configuration in mdt.configuration with the given config values.
-
-    Args:
-        config (dict): a dictionary with configuration options that will overwrite the current configuration.
-    """
-    configuration.load_from_dict(config)
-
-
-def get_config():
-    """Get the the current runtime configuration
-
-    Returns:
-        dict: the current run time configuration.
-    """
-    return configuration.config
-
-
-def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, mask_name=None, symlink=False):
+def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, subjects_selection=None,
+                             mask_name=None, symlink=False):
     """Load from the given data folder all the output files and put them into the output directory.
 
     If there is more than one mask file available the user has to choose which mask to use using the mask_name
@@ -225,21 +207,20 @@ def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, mask_n
     Args:
         data_folder (str): The data folder with the output files
         output_dir (str): The path to the output folder where all the files will be put.
-        batch_profile (BatchProfile class or str): the batch profile class to use, can also be the name
+        batch_profile (BatchProfile class or str): the batch profile to use, can also be the name
             of a batch profile to load. If not given it is auto detected.
-            Please note it expects a callable that returns a batch profile instance. For example, you can use it as:
-                batch_profile=MyBatchProfile
-            but this would not work:
-                batch_profile=MyBatchProfile()
+        subjects_selection (BatchSubjectSelection): the subjects to use for processing.
+            If None all subjects are processed.
         mask_name (str): the mask to use to get the output from
         symlink (boolean): only available under Unix OS's. Creates a symlink instead of copying.
     """
     from mdt.batch_utils import collect_batch_fit_output
     collect_batch_fit_output(data_folder, output_dir, batch_profile=batch_profile,
+                             subjects_selection=subjects_selection,
                              mask_name=mask_name, symlink=symlink)
 
 
-def run_function_on_batch_fit_output(data_folder, func, batch_profile=None, subjects_ind=None):
+def run_function_on_batch_fit_output(data_folder, func, batch_profile=None, subjects_selection=None):
     """Run a function on the output of a batch fitting routine.
 
     This enables you to run a function on every model output from every subject. The python function should accept
@@ -247,14 +228,16 @@ def run_function_on_batch_fit_output(data_folder, func, batch_profile=None, subj
 
     Args:
         data_folder (str): The data folder with the output files
-        func (python function): the python function we should call for every map and model
+        func (python function): the python function we should call for every map and model.
+            This should accept as single parameter a BatchFitSubjectOutputInfo.
         batch_profile (BatchProfile or str): the batch profile to use, can also be the name
             of a batch profile to load. If not given it is auto detected.
-        subjects_ind (int or list of int): either a list of subjects to process or the index
-            of a single subject to process.
+        subjects_selection (BatchSubjectSelection): the subjects to use for processing.
+            If None all subjects are processed.
     """
     from mdt.batch_utils import run_function_on_batch_fit_output
-    run_function_on_batch_fit_output(data_folder, func, batch_profile=batch_profile, subjects_ind=subjects_ind)
+    run_function_on_batch_fit_output(data_folder, func, batch_profile=batch_profile,
+                                     subjects_selection=subjects_selection)
 
 
 def get_cl_devices():
@@ -987,6 +970,22 @@ def get_model(model_name, **kwargs):
     """
     import mdt.components_loader
     return components_loader.get_model(model_name, **kwargs)
+
+
+def load_component(component_type, component_name, *args, **kwargs):
+    """Load the class indicated by the given component type and name.
+
+    Args:
+        component_type (str): the type of component, for example 'batch_profiles' or 'parameters'
+        component_name (str): the name of the component to load
+        *args: passed to the component
+        **kwargs: passed to the component
+
+    Returns:
+        the loaded component
+    """
+    from mdt.components_loader import load_component
+    return load_component(component_type, component_name, *args, **kwargs)
 
 
 def split_dataset(input_fname, split_dimension, split_index, output_folder=None):

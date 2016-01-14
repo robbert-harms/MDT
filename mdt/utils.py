@@ -19,7 +19,7 @@ from six import string_types
 import mdt.configuration as configuration
 from mdt.IO import Nifti
 from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
-from mdt.components_loader import get_model, FittingStrategies, NoiseSTDCalculatorsLoader
+from mdt.components_loader import get_model, ProcessingStrategiesLoader, NoiseSTDCalculatorsLoader
 from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
 from mdt.data_loaders.protocol import autodetect_protocol_loader
 from mdt.log_handlers import ModelOutputLogHandler
@@ -1361,7 +1361,7 @@ def get_processing_strategy(processing_type, model_names=None):
             strategy_name = info_dict['name']
             options = info_dict.get('options', {}) or {}
 
-    return FittingStrategies().load(strategy_name, **options)
+    return ProcessingStrategiesLoader().load(strategy_name, **options)
 
 
 def estimate_noise_std(user_noise_std, problem_data):
