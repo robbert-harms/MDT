@@ -8,6 +8,6 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class S0(DMRISingleModelConfig):
 
-    name = 's0'
+    name = 'S0'
     description = 'Models the unweighted signal (aka. b0).'
     model_expression = 'S0'

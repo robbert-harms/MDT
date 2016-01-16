@@ -10,7 +10,7 @@ class BallStick(CascadeConfig):
 
     name = 'BallStick (Cascade)'
     description = 'Cascade for Ballstick'
-    models = ('s0',
+    models = ('S0',
               'BallStick')
 
 
@@ -18,7 +18,7 @@ class BallStickExVivo(BallStick):
 
     name = 'BallStick-ExVivo (Cascade)'
     description = 'Cascade for Ballstick with ex vivo defaults.'
-    models = ('s0',
+    models = ('S0',
               'BallStick-ExVivo')
 
 
@@ -30,8 +30,8 @@ class BallStickStick(CascadeConfig):
               'BallStickStick')
     inits = {'BallStickStick': [('Stick0.theta', 'Stick.theta'),
                                 ('Stick0.phi', 'Stick.phi'),
-                                ('Wstick0.w', 'Wstick.w'),
-                                ('Wstick1.w', 0.0)]}
+                                ('w_stick0.w', 'w_stick.w'),
+                                ('w_stick1.w', 0.0)]}
 
 
 class BallStickStickExVivo(BallStickStick):
@@ -48,7 +48,7 @@ class BallStickStickStick(CascadeConfig):
     description = 'Cascade for BallStickStickStick.'
     models = ('BallStickStick (Cascade)',
               'BallStickStickStick')
-    inits = {'BallStickStickStick': [('Wstick1.w', 0.0)]}
+    inits = {'BallStickStickStick': [('w_stick1.w', 0.0)]}
 
 
 class BallStickStickStickExVivo(BallStickStickStick):

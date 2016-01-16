@@ -26,11 +26,11 @@ class TensorFixed(CascadeConfig):
                         ('Tensor.phi', 'Stick.phi')]}
 
 
-class Tensors0(CascadeConfig):
+class TensorS0(CascadeConfig):
 
-    name = 'Tensor (Cascade|s0)'
+    name = 'Tensor (Cascade|S0)'
     description = 'Cascade for Tensor initialized with only an S0 fit.'
-    models = ('s0',
+    models = ('S0',
               'Tensor')
 
 

@@ -1,9 +1,6 @@
-from mdt.components_loader import CompartmentModelsLoader
-from mdt.models.single import DMRISingleModel, DMRISingleModelConfig
-from mot.model_building.evaluation_models import GaussianEvaluationModel
+from mdt.models.single import DMRISingleModelConfig
 from mot.model_building.parameter_functions.transformations import SinSqrClampTransform
 from mot.model_building.signal_noise_models import JohnsonSignalNoise
-from mot.trees import CompartmentModelTree
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -11,82 +8,119 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-def get_components_list():
-    models = []
-    for x in range(1, 4):
-        models.append(get_charmed(x))
-    return models
+class Charmed_r1(DMRISingleModelConfig):
 
-compartments_loader = CompartmentModelsLoader()
+    name = 'Charmed_r1'
+    ex_vivo_suitable = False
+    description = 'The Charmed (CHARMED) model with 1 restricted compartments'
+    signal_noise_model = JohnsonSignalNoise()
+
+    model_expression = '''
+        S0 * ( (Weight(w_hin0) * Tensor) +
+               (Weight(w_res0) * CharmedRestricted(CharmedRestricted0))
+               )
+    '''
+
+    lower_bounds = {'Tensor.d': 1e-9,
+                    'Tensor.dperp0': 0.3e-9,
+                    'Tensor.dperp1': 0.3e-9,
+                    'CharmedRestricted0.d': 0.3e-9}
+
+    upper_bounds = {'Tensor.d': 5e-9,
+                    'Tensor.dperp0': 5e-9,
+                    'Tensor.dperp1': 3e-9,
+                    'CharmedRestricted0.d': 3e-9}
+
+    inits = {'Tensor.d': 1.2e-9,
+             'Tensor.dperp0': 0.5e-9,
+             'Tensor.dperp1': 0.5e-9,
+             'CharmedRestricted0.d': 1e-9}
+
+    parameter_transforms = {'Tensor.dperp0': SinSqrClampTransform(),
+                            'Tensor.dperp1': SinSqrClampTransform()}
+
+    post_optimization_modifiers = [
+        ('FR', lambda results: 1 - results['w_hin0.w'])
+    ]
 
 
-# class Charmed(DMRISingleModelBuilder):
-#
-#     name = 'Charmed'
-#     ex_vivo_suitable = False
-#     description = 'The standard charmed model with 3 restricted compartments'
-#     signal_noise_model = JohnsonSignalNoise()
-#     model_expression = '''
-#         S0 * ( (Weight(Wball) * Ball) +
-#                (Weight(Wstick0) * Stick(Stick0)) +
-#                (Weight(Wstick1) * Stick(Stick1)) +
-#                (Weight(Wstick2) * Stick(Stick2)) )
-#     '''
-#     fixes = {'Ball.d': 3.0e-9,
-#              'Stick0.d': 1.7e-9,
-#              'Stick1.d': 1.7e-9,
-#              'Stick2.d': 1.7e-9}
-#     post_optimization_modifiers = [('SNIF', lambda results: 1 - results['Wball.w'])]
+class Charmed_r2(DMRISingleModelConfig):
+
+    name = 'Charmed_r2'
+    ex_vivo_suitable = False
+    description = 'The Charmed (CHARMED) model with 2 restricted compartments'
+    signal_noise_model = JohnsonSignalNoise()
+
+    model_expression = '''
+        S0 * ( (Weight(w_hin0) * Tensor) +
+               (Weight(w_res0) * CharmedRestricted(CharmedRestricted0)) +
+               (Weight(w_res1) * CharmedRestricted(CharmedRestricted1)) )
+    '''
+
+    lower_bounds = {'Tensor.d': 1e-9,
+                    'Tensor.dperp0': 0.3e-9,
+                    'Tensor.dperp1': 0.3e-9,
+                    'CharmedRestricted0.d': 0.3e-9,
+                    'CharmedRestricted1.d': 0.3e-9}
+
+    upper_bounds = {'Tensor.d': 5e-9,
+                    'Tensor.dperp0': 5e-9,
+                    'Tensor.dperp1': 3e-9,
+                    'CharmedRestricted0.d': 3e-9,
+                    'CharmedRestricted1.d': 3e-9}
+
+    inits = {'Tensor.d': 1.2e-9,
+             'Tensor.dperp0': 0.5e-9,
+             'Tensor.dperp1': 0.5e-9,
+             'CharmedRestricted0.d': 1e-9,
+             'CharmedRestricted1.d': 1e-9}
+
+    parameter_transforms = {'Tensor.dperp0': SinSqrClampTransform(),
+                            'Tensor.dperp1': SinSqrClampTransform()}
+
+    post_optimization_modifiers = [
+        ('FR', lambda results: 1 - results['w_hin0.w'])
+    ]
 
 
-def get_charmed(nmr_restr=3):
-    if nmr_restr == 3:
-        name = 'Charmed'
-    else:
-        name = 'Charmed_' + repr(nmr_restr) + 'r'
+class Charmed(DMRISingleModelConfig):
 
-    description = 'The standard charmed model, with {0} restricted compartments.'.format(nmr_restr)
+    name = 'Charmed'
+    ex_vivo_suitable = False
+    description = 'The standard Charmed (CHARMED) model with 3 restricted compartments'
+    signal_noise_model = JohnsonSignalNoise()
 
-    def model_construction_cb(evaluation_model=GaussianEvaluationModel().fix('sigma', 1),
-                              signal_noise_model=JohnsonSignalNoise()):
-        hin = (compartments_loader.get_class('Weight')('w_hin0'),
-               compartments_loader.load('Tensor').ub('d', 5e-9).lb('d', 1e-9)
-                   .ub('dperp0', 5e-9).lb('dperp0', 0.3e-9)
-                   .ub('dperp1', 3e-9).lb('dperp0', 0.3e-9)
-                   .init('d', 1.2e-9)
-                   .init('dperp0', 0.5e-9)
-                   .init('dperp1', 0.5e-9),
-               '*')
+    model_expression = '''
+        S0 * ( (Weight(w_hin0) * Tensor) +
+               (Weight(w_res0) * CharmedRestricted(CharmedRestricted0)) +
+               (Weight(w_res1) * CharmedRestricted(CharmedRestricted1)) +
+               (Weight(w_res2) * CharmedRestricted(CharmedRestricted2)) )
+    '''
 
-        hin[1].get_parameter_by_name('dperp0').parameter_transform = SinSqrClampTransform()
-        hin[1].get_parameter_by_name('dperp1').parameter_transform = SinSqrClampTransform()
+    lower_bounds = {'Tensor.d': 1e-9,
+                    'Tensor.dperp0': 0.3e-9,
+                    'Tensor.dperp1': 0.3e-9,
+                    'CharmedRestricted0.d': 0.3e-9,
+                    'CharmedRestricted1.d': 0.3e-9,
+                    'CharmedRestricted2.d': 0.3e-9}
 
-        if nmr_restr == 1:
-            res = (compartments_loader.get_class('Weight')('w_res0'),
-                   compartments_loader.get_class('CharmedRestricted')('CharmedRestricted0')
-                        .lb('d', 0.3e-9).ub('d', 3e-9).init('d', 1e-9),
-                   '*')
-        else:
-            res = []
-            for i in range(nmr_restr):
-                res.append((compartments_loader.get_class('Weight')('w_res' + repr(i)),
-                            compartments_loader.get_class('CharmedRestricted')('CharmedRestricted' + repr(i))
-                                .lb('d', 0.3e-9)
-                                .ub('d', 3e-9)
-                                .init('d', 1e-9 if i == i else 0.5e-9),
-                            '*'))
-            res.append('+')
+    upper_bounds = {'Tensor.d': 5e-9,
+                    'Tensor.dperp0': 5e-9,
+                    'Tensor.dperp1': 3e-9,
+                    'CharmedRestricted0.d': 3e-9,
+                    'CharmedRestricted1.d': 3e-9,
+                    'CharmedRestricted2.d': 3e-9}
 
-        ml = (compartments_loader.load('S0'), (hin, res, '+'), '*')
+    inits = {'Tensor.d': 1.2e-9,
+             'Tensor.dperp0': 0.5e-9,
+             'Tensor.dperp1': 0.5e-9,
+             'CharmedRestricted0.d': 1e-9,
+             'CharmedRestricted1.d': 1e-9,
+             'CharmedRestricted2.d': 1e-9}
 
-        model = DMRISingleModel(name, CompartmentModelTree(ml), evaluation_model, signal_noise_model)
-        modifiers = [('FR', lambda results: 1 - results['w_hin0.w'])]
-        model.add_post_optimization_modifiers(modifiers)
+    parameter_transforms = {'Tensor.dperp0': SinSqrClampTransform(),
+                            'Tensor.dperp1': SinSqrClampTransform()}
 
-        return model
-
-    return [model_construction_cb,
-            {'name': name,
-             'in_vivo_suitable': True,
-             'ex_vivo_suitable': False,
-             'description': description}]
+    post_optimization_modifiers = [
+        ('FR', lambda results: 1 - results['w_hin0.w'])
+    ]

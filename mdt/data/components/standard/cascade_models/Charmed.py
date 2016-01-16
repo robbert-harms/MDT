@@ -18,11 +18,11 @@ class CharmedR1(CascadeConfig):
                             ('Tensor.phi', 'Stick.phi')]}
 
 
-class CharmedR1s0(CascadeConfig):
+class CharmedR1S0(CascadeConfig):
 
-    name = 'Charmed_1r (Cascade|s0)'
+    name = 'Charmed_1r (Cascade|S0)'
     description = 'Cascade for Charmed 1r initialized with only an S0 fit.'
-    models = ('s0',
+    models = ('S0',
               'Charmed_1r')
 
 
@@ -50,15 +50,15 @@ class CharmedR2(CascadeConfig):
                             ('CharmedRestricted0.phi', 'Stick0.phi'),
                             ('CharmedRestricted1.theta', 'Stick1.theta'),
                             ('CharmedRestricted1.phi', 'Stick1.phi'),
-                            ('w_res0.w', 'Wstick0.w'),
-                            ('w_res1.w', 'Wstick1.w')]}
+                            ('w_res0.w', 'w_stick0.w'),
+                            ('w_res1.w', 'w_stick1.w')]}
 
 
-class CharmedR2s0(CascadeConfig):
+class CharmedR2S0(CascadeConfig):
 
-    name = 'Charmed_2r (Cascade|s0)'
+    name = 'Charmed_2r (Cascade|S0)'
     description = 'Initializes with only an S0 fit.'
-    models = ('s0',
+    models = ('S0',
               'Charmed_2r')
 
 
@@ -70,8 +70,8 @@ class CharmedR2Fixed(CascadeConfig):
               'Charmed_2r')
     inits = {'Charmed_2r': [('Tensor.theta', 'Stick0.theta'),
                             ('Tensor.phi', 'Stick0.phi'),
-                            ('w_res0.w', 'Wstick0.w'),
-                            ('w_res1.w', 'Wstick1.w')]}
+                            ('w_res0.w', 'w_stick0.w'),
+                            ('w_res1.w', 'w_stick1.w')]}
     fixes = {'Charmed_2r': [('CharmedRestricted0.theta', 'Stick0.theta'),
                             ('CharmedRestricted0.phi', 'Stick0.phi'),
                             ('CharmedRestricted1.theta', 'Stick1.theta'),
@@ -87,9 +87,9 @@ class Charmed(CascadeConfig):
               'Charmed')
     inits = {'Charmed': [('Tensor.theta', 'Stick0.theta'),
                          ('Tensor.phi', 'Stick0.phi'),
-                         ('w_res0.w', 'Wstick0.w'),
-                         ('w_res1.w', 'Wstick1.w'),
-                         ('w_res2.w', 'Wstick2.w'),
+                         ('w_res0.w', 'w_stick0.w'),
+                         ('w_res1.w', 'w_stick1.w'),
+                         ('w_res2.w', 'w_stick2.w'),
                          ('CharmedRestricted0.theta', 'Stick0.theta'),
                          ('CharmedRestricted0.phi', 'Stick0.phi'),
                          ('CharmedRestricted1.theta', 'Stick1.theta'),
@@ -99,11 +99,11 @@ class Charmed(CascadeConfig):
                          ]}
 
 
-class Charmeds0(CascadeConfig):
+class CharmedS0(CascadeConfig):
 
-    name = 'Charmed (Cascade|s0)'
+    name = 'Charmed (Cascade|S0)'
     description = 'Initializes with only an S0 fit.'
-    models = ('s0',
+    models = ('S0',
               'Charmed')
 
 
@@ -115,9 +115,9 @@ class CharmedFixed(CascadeConfig):
               'Charmed')
     inits = {'Charmed': [('Tensor.theta', 'Stick0.theta'),
                          ('Tensor.phi', 'Stick0.phi'),
-                         ('w_res0.w', 'Wstick0.w'),
-                         ('w_res1.w', 'Wstick1.w'),
-                         ('w_res2.w', 'Wstick2.w')]}
+                         ('w_res0.w', 'w_stick0.w'),
+                         ('w_res1.w', 'w_stick1.w'),
+                         ('w_res2.w', 'w_stick2.w')]}
     fixes = {'Charmed': [('CharmedRestricted0.theta', 'Stick0.theta'),
                          ('CharmedRestricted0.phi', 'Stick0.phi'),
                          ('CharmedRestricted1.theta', 'Stick1.theta'),

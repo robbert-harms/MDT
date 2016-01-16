@@ -12,18 +12,18 @@ class Noddi(CascadeConfig):
     description = 'Cascade for Noddi initialized from Ball&Stick.'
     models = ('BallStick (Cascade)',
               'Noddi')
-    inits = {'Noddi': [('Wic.w', lambda output_previous, output_all_previous: output_previous['Wstick.w'] / 2.0),
-                       ('Wec.w', lambda output_previous, output_all_previous: output_previous['Wstick.w'] / 2.0),
-                       ('Wcsf.w', 'Wball.w'),
+    inits = {'Noddi': [('w_ic.w', lambda output_previous, output_all_previous: output_previous['w_stick.w'] / 2.0),
+                       ('w_ec.w', lambda output_previous, output_all_previous: output_previous['w_stick.w'] / 2.0),
+                       ('w_csf.w', 'w_ball.w'),
                        ('Noddi_IC.theta', 'Stick.theta'),
                        ('Noddi_IC.phi', 'Stick.phi')]}
 
 
 class NoddiS0(CascadeConfig):
 
-    name = 'Noddi (Cascade|s0)'
+    name = 'Noddi (Cascade|S0)'
     description = 'Cascade for Noddi initialized with only an S0 fit.'
-    models = ('s0',
+    models = ('S0',
               'Noddi')
 
 
@@ -33,9 +33,9 @@ class NoddiFixed(CascadeConfig):
     description = 'Cascade for Noddi with fixed directions from Ball&Stick.'
     models = ('BallStick (Cascade)',
               'Noddi')
-    inits = {'Noddi': [('Wic.w', lambda output_previous, output_all_previous: output_previous['Wstick.w'] / 2.0),
-                       ('Wec.w', lambda output_previous, output_all_previous: output_previous['Wstick.w'] / 2.0),
-                       ('Wcsf.w', 'Wball.w')]}
+    inits = {'Noddi': [('w_ic.w', lambda output_previous, output_all_previous: output_previous['w_stick.w'] / 2.0),
+                       ('w_ec.w', lambda output_previous, output_all_previous: output_previous['w_stick.w'] / 2.0),
+                       ('w_csf.w', 'w_ball.w')]}
     fixes = {'Noddi': [('Noddi_IC.theta', 'Stick.theta'),
                        ('Noddi_IC.phi', 'Stick.phi')]}
 
@@ -46,11 +46,11 @@ class Noddi2(CascadeConfig):
     description = 'Cascade for Noddi2 initialized from Ball & 2x Stick.'
     models = ('BallStickStick (Cascade)',
               'Noddi2')
-    inits = {'Noddi': [('Wic0.w', lambda output_previous, output_all_previous: output_previous['Wstick0.w'] / 2.0),
-                       ('Wec0.w', lambda output_previous, output_all_previous: output_previous['Wstick0.w'] / 2.0),
-                       ('Wic1.w', lambda output_previous, output_all_previous: output_previous['Wstick1.w'] / 2.0),
-                       ('Wec1.w', lambda output_previous, output_all_previous: output_previous['Wstick1.w'] / 2.0),
-                       ('Wcsf.w', 'Wball.w'),
+    inits = {'Noddi': [('w_ic0.w', lambda output_previous, output_all_previous: output_previous['w_stick0.w'] / 2.0),
+                       ('w_ec0.w', lambda output_previous, output_all_previous: output_previous['w_stick0.w'] / 2.0),
+                       ('w_ic1.w', lambda output_previous, output_all_previous: output_previous['w_stick1.w'] / 2.0),
+                       ('w_ec1.w', lambda output_previous, output_all_previous: output_previous['w_stick1.w'] / 2.0),
+                       ('w_csf.w', 'w_ball.w'),
                        ('Noddi_IC0.theta', 'Stick0.theta'),
                        ('Noddi_IC0.phi', 'Stick0.phi'),
                        ('Noddi_IC1.theta', 'Stick1.theta'),
@@ -63,11 +63,11 @@ class Noddi2Fixed(CascadeConfig):
     description = 'Cascade for Noddi2 with fixed directions from Ball & 2x Stick.'
     models = ('BallStickStick (Cascade)',
               'Noddi2')
-    inits = {'Noddi': [('Wic0.w', lambda output_previous, output_all_previous: output_previous['Wstick0.w'] / 2.0),
-                       ('Wec0.w', lambda output_previous, output_all_previous: output_previous['Wstick0.w'] / 2.0),
-                       ('Wic1.w', lambda output_previous, output_all_previous: output_previous['Wstick1.w'] / 2.0),
-                       ('Wec1.w', lambda output_previous, output_all_previous: output_previous['Wstick1.w'] / 2.0),
-                       ('Wcsf.w', 'Wball.w')]}
+    inits = {'Noddi': [('w_ic0.w', lambda output_previous, output_all_previous: output_previous['w_stick0.w'] / 2.0),
+                       ('w_ec0.w', lambda output_previous, output_all_previous: output_previous['w_stick0.w'] / 2.0),
+                       ('w_ic1.w', lambda output_previous, output_all_previous: output_previous['w_stick1.w'] / 2.0),
+                       ('w_ec1.w', lambda output_previous, output_all_previous: output_previous['w_stick1.w'] / 2.0),
+                       ('w_csf.w', 'w_ball.w')]}
     fixes = {'Noddi': [('Noddi_IC0.theta', 'Stick0.theta'),
                        ('Noddi_IC0.phi', 'Stick0.phi'),
                        ('Noddi_IC1.theta', 'Stick1.theta'),

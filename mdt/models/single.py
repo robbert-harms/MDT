@@ -260,13 +260,15 @@ class DMRISingleModelConfig(ComponentConfig):
             upper_bounds = {'Stick.theta': pi}
         lower_bounds (dict): indicating the lower bounds for the given parameters. Example:
             lower_bounds = {'Stick.theta': 0}
+        parameter_transforms (dict): the lower bound to use for a specific parameter. Example:
+            parameter_transforms = {'Tensor.dperp0': SinSqrClampTransform()}
     """
     name = ''
     in_vivo_suitable = True
     ex_vivo_suitable = True
     description = ''
-    post_optimization_modifiers = ()
-    dependencies = ()
+    post_optimization_modifiers = []
+    dependencies = []
     model_expression = ''
     evaluation_model = GaussianEvaluationModel().fix('sigma', 1)
     signal_noise_model = None
@@ -274,6 +276,7 @@ class DMRISingleModelConfig(ComponentConfig):
     fixes = {}
     upper_bounds = {}
     lower_bounds = {}
+    parameter_transforms = {}
 
     @classmethod
     def meta_info(cls):
@@ -307,16 +310,19 @@ class DMRISingleModelBuilder(ComponentBuilder):
                 self.add_post_optimization_modifiers(deepcopy(template.post_optimization_modifiers))
 
                 for full_param_name, value in template.inits.items():
-                    self.init(full_param_name, value)
+                    self.init(full_param_name, deepcopy(value))
 
                 for full_param_name, value in template.fixes.items():
-                    self.fix(full_param_name, value)
+                    self.fix(full_param_name, deepcopy(value))
 
                 for full_param_name, value in template.lower_bounds.items():
-                    self.set_lower_bound(full_param_name, value)
+                    self.set_lower_bound(full_param_name, deepcopy(value))
 
                 for full_param_name, value in template.upper_bounds.items():
-                    self.set_upper_bound(full_param_name, value)
+                    self.set_upper_bound(full_param_name, deepcopy(value))
+
+                for full_param_name, value in template.parameter_transforms.items():
+                    self.set_parameter_transform(full_param_name, deepcopy(value))
 
         self._bind_functions(template, AutoCreatedDMRISingleModel)
         return AutoCreatedDMRISingleModel
