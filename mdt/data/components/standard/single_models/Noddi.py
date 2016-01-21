@@ -25,13 +25,13 @@ class Noddi(DMRISingleModelConfig):
              'Ball.d': 3.0e-9}
 
     dependencies = (
-        ('Noddi_EC.dperp0', SimpleAssignment('Noddi_EC.d * (w_ec.w / (1 - w_csf.w + {eps}))'.format(eps = 1e-5),
+        ('Noddi_EC.dperp0', SimpleAssignment('Noddi_EC.d * (w_ec.w / (1 - w_csf.w + {eps}))'.format(eps=1e-5),
                                              fixed=False)), # actually Fixed should be true, but for some reason
                                                               # this does not work in the combination of double precision
                                                               # and the AMD R9 280x card. It does however work when
                                                               # we set -cl-opt-disable. Therefore, my idea is that it
                                                               # has something to do with the AMD kernel optimizer.
-        ('Noddi_IC.kappa', SimpleAssignment('((1 - w_csf.w) >= {cutoff}) * Noddi_IC.kappa'.format(cutoff = 0.01),
+        ('Noddi_IC.kappa', SimpleAssignment('((1 - w_csf.w) >= {cutoff}) * Noddi_IC.kappa'.format(cutoff=0.01),
                                             fixed=False)),
         ('Noddi_EC.kappa', SimpleAssignment('Noddi_IC.kappa')),
         ('Noddi_EC.theta', SimpleAssignment('Noddi_IC.theta')),
@@ -40,7 +40,6 @@ class Noddi(DMRISingleModelConfig):
 
     post_optimization_modifiers = (
         ('NDI', lambda d: d['w_ic.w'] / (d['w_ic.w'] + d['w_ec.w'])),
-        ('FS', lambda d: 1 - d['w_csf.w']),
         ('ODI', lambda d: d['Noddi_IC.odi'])
     )
 
@@ -87,10 +86,9 @@ class Noddi2(DMRISingleModelConfig):
         ('Noddi_EC1.phi', SimpleAssignment('Noddi_IC1.phi')),
     )
 
-    post_optimization_modifiers = (
+    post_optimization_modifiers = [
         ('NDI0', lambda d: d['w_ic0.w'] / (d['w_ic0.w'] + d['w_ec0.w'])),
         ('ODI0', lambda d: d['Noddi_IC0.odi']),
         ('NDI1', lambda d: d['w_ic1.w'] / (d['w_ic1.w'] + d['w_ec1.w'])),
-        ('ODI1', lambda d: d['Noddi_IC1.odi']),
-        ('FS', lambda d: 1 - d['w_csf.w'])
-    )
+        ('ODI1', lambda d: d['Noddi_IC1.odi'])
+    ]

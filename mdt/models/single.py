@@ -260,8 +260,14 @@ class DMRISingleModelConfig(ComponentConfig):
             upper_bounds = {'Stick.theta': pi}
         lower_bounds (dict): indicating the lower bounds for the given parameters. Example:
             lower_bounds = {'Stick.theta': 0}
-        parameter_transforms (dict): the lower bound to use for a specific parameter. Example:
-            parameter_transforms = {'Tensor.dperp0': SinSqrClampTransform()}
+        parameter_transforms (dict): the parameter transform to use for a specific parameter. Can also be
+            a python callback function accepting as single parameter 'self', a reference to the build model.
+            Example:
+                parameter_transforms = {
+                    'Tensor.dperp0': SinSqrClampTransform(),
+                    'Tensor.dperp1': lambda self: SinSqrClampDependentTransform(
+                                                    [(self, self._get_parameter_by_name('Tensor.dperp0'))])
+                }
     """
     name = ''
     in_vivo_suitable = True
@@ -322,7 +328,10 @@ class DMRISingleModelBuilder(ComponentBuilder):
                     self.set_upper_bound(full_param_name, deepcopy(value))
 
                 for full_param_name, value in template.parameter_transforms.items():
-                    self.set_parameter_transform(full_param_name, deepcopy(value))
+                    if hasattr(value, '__call__'):
+                        self.set_parameter_transform(full_param_name, value(self))
+                    else:
+                        self.set_parameter_transform(full_param_name, deepcopy(value))
 
         self._bind_functions(template, AutoCreatedDMRISingleModel)
         return AutoCreatedDMRISingleModel

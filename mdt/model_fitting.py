@@ -4,6 +4,7 @@ import logging
 import os
 import time
 import timeit
+from contextlib import contextmanager
 
 import nibabel as nib
 from six import string_types
@@ -14,9 +15,9 @@ from mdt.batch_utils import batch_profile_factory, AllSubjects
 from mdt.components_loader import get_model
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.protocols import write_protocol
-from mdt.utils import create_roi, configure_per_model_logging, load_problem_data, ProtocolProblemError, MetaOptimizerBuilder, get_cl_devices, \
+from mdt.utils import create_roi, load_problem_data, ProtocolProblemError, MetaOptimizerBuilder, get_cl_devices, \
     get_model_config, apply_model_protocol_options, model_output_exists, split_image_path, get_processing_strategy, \
-    estimate_noise_std, FittingProcessingWorker
+    estimate_noise_std, FittingProcessingWorker, per_model_logging_context
 from mot import runtime_configuration
 from mot.load_balance_strategies import EvenDistribution
 from mot.runtime_configuration import runtime_config_context
@@ -293,34 +294,35 @@ class ModelFit(object):
             load_balancer = EvenDistribution()
 
         with runtime_config_context(cl_environments=cl_envs, load_balancer=load_balancer):
-            configure_per_model_logging(os.path.join(self._output_folder, model.name))
+            with per_model_logging_context(os.path.join(self._output_folder, model.name)):
+                self._logger.info('Using MDT version {}'.format(__version__))
+                self._logger.info('Preparing for model {0}'.format(model.name))
+                self._logger.info('Current cascade: {0}'.format(model_names))
+                self._logger.info('Setting the noise standard deviation to {0}'.format(self._noise_std))
+                model.evaluation_model.set_noise_level_std(self._noise_std)
 
-            self._logger.info('Using MDT version {}'.format(__version__))
-            self._logger.info('Preparing for model {0}'.format(model.name))
-            self._logger.info('Current cascade: {0}'.format(model_names))
-            self._logger.info('Setting the noise standard deviation to {0}'.format(self._noise_std))
-            model.evaluation_model.set_noise_level_std(self._noise_std)
+                optimizer = self._optimizer or MetaOptimizerBuilder(meta_optimizer_config).construct(model_names)
 
-            optimizer = self._optimizer or MetaOptimizerBuilder(meta_optimizer_config).construct(model_names)
+                if self._cl_device_indices is not None:
+                    all_devices = get_cl_devices()
+                    optimizer.cl_environments = [all_devices[ind] for ind in self._cl_device_indices]
+                    optimizer.load_balancer = EvenDistribution()
 
-            if self._cl_device_indices is not None:
-                all_devices = get_cl_devices()
-                optimizer.cl_environments = [all_devices[ind] for ind in self._cl_device_indices]
-                optimizer.load_balancer = EvenDistribution()
+                model_protocol_options = get_model_config(model_names, self._model_protocol_options)
+                problem_data = apply_model_protocol_options(model_protocol_options, self._problem_data)
 
-            model_protocol_options = get_model_config(model_names, self._model_protocol_options)
-            problem_data = apply_model_protocol_options(model_protocol_options, self._problem_data)
+                processing_strategy = get_processing_strategy('optimization', model_names)
 
-            processing_strategies = get_processing_strategy('optimization', model_names)
+                fitter = SingleModelFit(model, problem_data, self._output_folder, optimizer, processing_strategy,
+                                        recalculate=recalculate)
+                results = fitter.run()
 
-            fitter = SingleModelFit(model, problem_data, self._output_folder, optimizer, processing_strategies,
-                                    recalculate=recalculate)
-            return fitter.run()
+        return results
 
 
 class SingleModelFit(object):
 
-    def __init__(self, model, problem_data, output_folder, optimizer, processing_strategies, recalculate=False):
+    def __init__(self, model, problem_data, output_folder, optimizer, processing_strategy, recalculate=False):
         """Fits a single model.
 
          This does not accept cascade models. Please use the more general ModelFit class for single and cascade models.
@@ -330,20 +332,21 @@ class SingleModelFit(object):
              problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
              output_folder (string): The full path to the folder where to place the output
              optimizer (AbstractOptimizer): The optimization routine to use.
-             processing_strategies (ModelProcessingStrategy): the processing strategy to use
+             processing_strategy (ModelProcessingStrategy): the processing strategy to use
              recalculate (boolean): If we want to recalculate the results if they are already present.
 
          Attributes:
              recalculate (boolean): If we want to recalculate the results if they are already present.
          """
+        self.recalculate = recalculate
+
         self._model = model
         self._problem_data = problem_data
         self._output_folder = output_folder
-        self._optimizer = optimizer
-        self.recalculate = recalculate
         self._output_path = os.path.join(self._output_folder, self._model.name)
+        self._optimizer = optimizer
         self._logger = logging.getLogger(__name__)
-        self._processing_strategies = processing_strategies
+        self._processing_strategy = processing_strategy
 
         if not self._model.is_protocol_sufficient(problem_data.protocol):
             raise ProtocolProblemError(
@@ -355,37 +358,40 @@ class SingleModelFit(object):
 
         This will use the current ModelProcessingStrategy to do the actual optimization.
         """
-        configure_per_model_logging(self._output_path)
+        with per_model_logging_context(self._output_path):
+            self._model.set_problem_data(self._problem_data)
 
-        self._model.set_problem_data(self._problem_data)
+            if self.recalculate:
+                if os.path.exists(self._output_path):
+                    list(map(os.remove, glob.glob(os.path.join(self._output_path, '*.nii*'))))
+            else:
+                if model_output_exists(self._model, self._output_folder):
+                    maps = Nifti.read_volume_maps(self._output_path)
+                    self._logger.info('Not recalculating {} model'.format(self._model.name))
+                    return create_roi(maps, self._problem_data.mask)
 
-        if self.recalculate:
-            if os.path.exists(self._output_path):
-                list(map(os.remove, glob.glob(os.path.join(self._output_path, '*.nii*'))))
-        else:
-            if model_output_exists(self._model, self._output_folder):
-                maps = Nifti.read_volume_maps(self._output_path)
-                self._logger.info('Not recalculating {} model'.format(self._model.name))
-                return create_roi(maps, self._problem_data.mask)
+            if not os.path.exists(self._output_path):
+                os.makedirs(self._output_path)
 
-        if not os.path.exists(self._output_path):
-            os.makedirs(self._output_path)
-
-        minimize_start_time = timeit.default_timer()
-        self._logger.info('Fitting {} model'.format(self._model.name))
-
-        results = self._processing_strategies.run(self._model, self._problem_data,
-                                                  self._output_path, self.recalculate,
-                                                  FittingProcessingWorker(self._optimizer))
-        self._write_protocol()
-
-        run_time = timeit.default_timer() - minimize_start_time
-        run_time_str = time.strftime('%H:%M:%S', time.gmtime(run_time))
-        self._logger.info('Fitted {0} model with runtime {1} (h:m:s).'.format(self._model.name, run_time_str))
-
-        configure_per_model_logging(None)
+            with self._logging():
+                results = self._processing_strategy.run(self._model, self._problem_data,
+                                                        self._output_path, self.recalculate,
+                                                        FittingProcessingWorker(self._optimizer))
+                self._write_protocol()
 
         return results
 
     def _write_protocol(self):
         write_protocol(self._problem_data.protocol, os.path.join(self._output_path, 'used_protocol.prtcl'))
+
+    @contextmanager
+    def _logging(self):
+        """Adds logging information around the processing."""
+        minimize_start_time = timeit.default_timer()
+        self._logger.info('Fitting {} model'.format(self._model.name))
+
+        yield
+
+        run_time = timeit.default_timer() - minimize_start_time
+        run_time_str = time.strftime('%H:%M:%S', time.gmtime(run_time))
+        self._logger.info('Fitted {0} model with runtime {1} (h:m:s).'.format(self._model.name, run_time_str))

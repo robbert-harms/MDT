@@ -168,8 +168,9 @@ def sample_model(model, dwi_info, protocol, brain_mask, output_folder,
             optimization maps from a model with the same name. If a string is given and initialize is True we will
             interpret the string as a folder with the maps to load. If a dict is given and initialize is True we will
             initialize from the dict directly.
+
     Returns:
-        the full chain of the optimization
+        None: the chain will probably be to large to fit in memory
     """
     import mdt.utils
     from mdt.models.cascade import DMRICascadeModelInterface
@@ -623,8 +624,18 @@ def view_result_samples(data, **kwargs):
     from mdt.visualization import SampleVisualizer
 
     if isinstance(data, string_types):
-        with open(data, 'rb') as f:
-            data = pickle.load(f)
+        data_dict = {}
+
+        for fname in glob.glob(os.path.join(data, '*.samples')):
+            if os.path.isfile(fname + '.settings'):
+                with open(fname + '.settings', 'rb') as f:
+                    settings = pickle.load(f)
+                    samples = np.memmap(fname, dtype=settings['dtype'], mode='r', shape=settings['shape'])
+
+                    map_name = os.path.splitext(os.path.basename(fname))[0]
+                    data_dict.update({map_name: samples})
+
+        data = data_dict
 
     if not kwargs.get('voxel_ind'):
         kwargs.update({'voxel_ind': data[list(data.keys())[0]].shape[0] / 2})
@@ -1296,14 +1307,26 @@ def volume_index_to_roi_index(volume_index, brain_mask):
     Returns:
         int: the index of the given voxel in the ROI created by the given mask
     """
+    return create_index_matrix(brain_mask)[volume_index]
+
+
+def create_index_matrix(brain_mask):
+    """Get a matrix with on every 3d position the linear index number of that voxel.
+
+    This function is useful if you want to locate a voxel in the ROI given the position in the volume.
+
+    Args:
+        brain_mask (str or 3d array): the brain mask you would like to use
+
+    Returns:
+        3d ndarray: a 3d volume of the same size as the given mask and with as every non-zero element the position
+            of that voxel in the linear ROI list.
+    """
     from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
     mask = autodetect_brain_mask_loader(brain_mask).get_data()
-
     roi_length = np.count_nonzero(mask)
     roi = np.arange(0, roi_length)
-    vol = restore_volumes(roi, mask)
-
-    return vol[volume_index][0]
+    return restore_volumes(roi, mask, with_volume_dim=False)
 
 
 def build_optimizer(optimizer_info):

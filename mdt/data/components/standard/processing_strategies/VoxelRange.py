@@ -57,7 +57,7 @@ class VoxelRange(ModelChunksProcessingStrategy):
                                        ind_start, ind_end, chunk_mask)
 
         self._logger.info('Computed all slices, now merging the results')
-        return_data = worker.combine(output_path, chunks_dir)
+        return_data = worker.combine(model, problem_data, output_path, chunks_dir)
         shutil.rmtree(chunks_dir)
         return return_data
 

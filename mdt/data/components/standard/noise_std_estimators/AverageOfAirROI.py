@@ -12,11 +12,12 @@ class AverageOfAirROI(NoiseStdCalculator):
     def calculate(self, roi_size=2, **kwargs):
         """Calculate the standard deviation of the error using the air (voxels outside the brain),
 
-        This will find the edges in the first dimension, the quarterpoints in the second and the middle slice in the
-        last dimension to draw a ROI with the specified roi size.
+        This will find the edges in the first dimension, the quarterpoints in the second dimension
+        and the middle slice in the last dimension to draw a ROI with the specified roi size.
 
-        Next, it will append all the values of all the voxels and calculate the dot product of this vector to get the
-        sum of squares. This will be divided by the length of the array to end up with a value for E(S^2).
+        Next, it will concatenate all the values of all the voxels and gradient directions and
+        calculate the dot product of this vector to get the sum of squares.
+        This will be divided by the length of the array to end up with a value for E(S^2).
         This follows the procedure in Camino in the file /src/apps/DataStats.java (Camino 2014)
 
         Finally we follow the procedure on the Camino website:

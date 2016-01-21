@@ -1,19 +1,19 @@
+from contextlib import contextmanager
+
 from mdt import __version__
 import logging
 import os
 import shutil
 import timeit
-import pickle
 import time
-
 import collections
 from six import string_types
 from mdt.IO import Nifti
 from mdt.components_loader import get_model
 from mdt.models.cascade import DMRICascadeModelInterface
-from mdt.utils import create_roi, configure_per_model_logging, restore_volumes, \
+from mdt.utils import create_roi, configure_per_model_logging, \
     ProtocolProblemError, model_output_exists, estimate_noise_std, get_cl_devices, get_model_config, \
-    apply_model_protocol_options
+    apply_model_protocol_options, get_processing_strategy, per_model_logging_context, SamplingProcessingWorker
 from mot import runtime_configuration
 from mot.cl_routines.sampling.metropolis_hastings import MetropolisHastings
 from mot.load_balance_strategies import EvenDistribution
@@ -83,7 +83,6 @@ class ModelSampling(object):
         self._logger = logging.getLogger(__name__)
         self._cl_device_indices = cl_device_ind
         self._noise_std = estimate_noise_std(noise_std, self._problem_data)
-        self._model_names_list = []
         self._initialize = initialize
         self._initialize_using = initialize_using
 
@@ -104,8 +103,7 @@ class ModelSampling(object):
                 'The reported errors where: {}'.format(self._model.get_protocol_problems(self._problem_data.protocol)))
 
     def run(self):
-        """Sample the given model, this does not return any results since they might be too large for memory.
-        """
+        """Sample the given model, this does not return any results since those might be too large for memory."""
         cl_envs = None
         load_balancer = None
         if self._cl_device_indices is not None:
@@ -129,110 +127,116 @@ class ModelSampling(object):
             model_protocol_options = get_model_config([self._model.name], self._model_protocol_options)
             problem_data = apply_model_protocol_options(model_protocol_options, self._problem_data)
 
-            sample_single_model(self._model, problem_data, self._output_folder, self._sampler,
-                                recalculate=self._recalculate, initialize=self._initialize,
-                                initialize_using=self._initialize_using)
+            processing_strategy = get_processing_strategy('sampling', self._model.name)
+
+            sampler = SampleSingleModel(self._model, problem_data, self._output_folder, self._sampler,
+                                        processing_strategy,
+                                        recalculate=self._recalculate, initialize=self._initialize,
+                                        initialize_using=self._initialize_using)
+
+            sampler.run()
 
 
-def sample_single_model(model, problem_data, output_folder, sampler, recalculate=False, initialize=True,
-                        initialize_using=None):
-    """Sample a single model.
+class SampleSingleModel(object):
 
-    Please note that this function does not accept cascade models.
+    def __init__(self, model, problem_data, output_folder, sampler, processing_strategy,
+                 recalculate=False, initialize=True, initialize_using=None):
+        """Sample a single model.
 
-    This will place the output in the folder: <output_folder>/<model_name>/samples/
+        Please note that this function does not accept cascade models.
 
-    Args:
-        model (AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize.
-        problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
-        output_folder (string): The full path to the folder where to place the output
-        sampler (AbstractSampler): The sampling routine to use.
-        recalculate (boolean): If we want to recalculate the results if they are already present.
-        initialize (boolean): If we want to initialize the sampler with optimization output.
-            This assumes that the optimization results are in the folder:
-                <output_folder>/<model_name>/
-        initialize_using (None, str, or dict): If None, and initialize is True we will initialize from the
-            optimization maps from a model with the same name. If a string is given and initialize is True we will
-            interpret the string as a folder with the maps to load. If a dict is given and initialize is True we will
-            initialize from the dict directly.
-    """
-    output_path = os.path.join(output_folder, model.name, 'samples')
-    logger = logging.getLogger(__name__)
-    model.set_problem_data(problem_data)
+        This will place the output in the folder: <output_folder>/<model_name>/samples/
 
-    if not model.is_protocol_sufficient(problem_data.protocol):
-        raise ProtocolProblemError(
-            'The given protocol is insufficient for this model. '
-            'The reported errors where: {}'.format(model.get_protocol_problems(problem_data.protocol)))
+        Args:
+            model (AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize.
+            problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
+            output_folder (string): The full path to the folder where to place the output
+            sampler (AbstractSampler): The sampling routine to use.
+            processing_strategy (ModelProcessingStrategy): the processing strategy to use
+            recalculate (boolean): If we want to recalculate the results if they are already present.
+            initialize (boolean): If we want to initialize the sampler with optimization output.
+                This assumes that the optimization results are in the folder:
+                    <output_folder>/<model_name>/
+            initialize_using (None, str, or dict): If None, and initialize is True we will initialize from the
+                optimization maps from a model with the same name. If a string is given and initialize is True we will
+                interpret the string as a folder with the maps to load. If a dict is given and initialize is True we will
+                initialize from the dict directly.
+        """
+        self.recalculate = recalculate
 
-    if recalculate:
-        if os.path.exists(output_path):
-            shutil.rmtree(output_path)
-    else:
-        if model_output_exists(model, output_folder, check_sample_output=True):
-            logger.info('Not recalculating {} model'.format(model.name))
+        self._model = model
+        self._problem_data = problem_data
+        self._output_folder = output_folder
+        self._output_path = os.path.join(output_folder, model.name, 'samples')
+        self._sampler = sampler
+        self._logger = logging.getLogger(__name__)
+        self._processing_strategy = processing_strategy
+        self._initialize = initialize
+        self._initialize_using = initialize_using
 
-    if not os.path.isdir(output_path):
-        os.makedirs(output_path)
+        if not model.is_protocol_sufficient(problem_data.protocol):
+            raise ProtocolProblemError(
+                'The given protocol is insufficient for this model. '
+                'The reported errors where: {}'.format(model.get_protocol_problems(problem_data.protocol)))
 
-    configure_per_model_logging(output_path)
+    def run(self):
+        with per_model_logging_context(self._output_path):
+            self._model.set_problem_data(self._problem_data)
 
-    minimize_start_time = timeit.default_timer()
-    logger.info('Sampling {} model'.format(model.name))
+            if self.recalculate:
+                if os.path.exists(self._output_path):
+                    shutil.rmtree(self._output_path)
+            else:
+                if model_output_exists(self._model, self._output_path + '/volume_maps/',
+                                       append_model_name_to_path=False):
+                    self._logger.info('Not recalculating {} model'.format(self._model.name))
+                    return
 
-    init_params = _get_initialization_params(model, problem_data, output_folder, initialize, initialize_using)
+            if not os.path.isdir(self._output_path):
+                os.makedirs(self._output_path)
 
-    results, other_output = sampler.sample(model, init_params=init_params, full_output=True)
+            with self._logging():
+                self._model.set_initial_parameters(self._get_initialization_params())
 
-    _write_output(results, other_output, problem_data, output_path)
+                worker = SamplingProcessingWorker(self._sampler)
 
-    run_time = timeit.default_timer() - minimize_start_time
-    run_time_str = time.strftime('%H:%M:%S', time.gmtime(run_time))
-    logger.info('Sampled {0} model with runtime {1} (h:m:s).'.format(model.name, run_time_str))
-    configure_per_model_logging(None)
+                self._processing_strategy.run(self._model, self._problem_data,
+                                              self._output_path, self.recalculate, worker)
 
-    return results
+    def _get_initialization_params(self):
+        logger = logging.getLogger(__name__)
 
+        if self._initialize:
+            maps = None
+            if self._initialize_using is None:
+                folder = os.path.join(self._output_folder, self._model.name)
+                logger.info("Initializing sampler using maps in {}".format(folder))
+                maps = Nifti.read_volume_maps(folder)
+            elif isinstance(self._initialize_using, string_types):
+                logger.info("Initializing sampler using maps in {}".format(self._initialize_using))
+                maps = Nifti.read_volume_maps(self._initialize_using)
+            elif isinstance(self._initialize_using, dict):
+                logger.info("Initializing sampler using given maps.")
+                maps = self._initialize_using
 
-def _write_output(results, other_output, problem_data, output_path):
-    with open(os.path.join(output_path, 'samples.pyobj'), 'wb') as f:
-        pickle.dump(results, f, protocol=pickle.HIGHEST_PROTOCOL)
+            if not maps:
+                raise RuntimeError('No initialization maps found in the folder "{}"'.format(
+                    os.path.join(self._output_folder, self._model.name)))
 
-    volume_maps_dir = os.path.join(output_path, 'volume_maps')
-    if not os.path.isdir(volume_maps_dir):
-        os.makedirs(volume_maps_dir)
-
-    for key, value in other_output.items():
-        if key == 'volume_maps':
-            volume_maps = restore_volumes(value, problem_data.mask)
-            Nifti.write_volume_maps(volume_maps, volume_maps_dir, problem_data.volume_header)
+            init_params = create_roi(maps, self._problem_data.mask)
         else:
-            with open(os.path.join(output_path, key + '.pyobj'), 'wb') as f:
-                pickle.dump(value, f, protocol=pickle.HIGHEST_PROTOCOL)
+            init_params = {}
 
+        return init_params
 
-def _get_initialization_params(model, problem_data, output_folder, initialize, initialize_using):
-    logger = logging.getLogger(__name__)
+    @contextmanager
+    def _logging(self):
+        """Adds logging information around the processing."""
+        minimize_start_time = timeit.default_timer()
+        self._logger.info('Sampling {} model'.format(self._model.name))
 
-    if initialize:
-        maps = None
-        if initialize_using is None:
-            folder = os.path.join(output_folder, model.name)
-            logger.info("Initializing sampler using maps in {}".format(folder))
-            maps = Nifti.read_volume_maps(folder)
-        elif isinstance(initialize_using, string_types):
-            logger.info("Initializing sampler using maps in {}".format(initialize_using))
-            maps = Nifti.read_volume_maps(initialize_using)
-        elif isinstance(initialize_using, dict):
-            logger.info("Initializing sampler using given maps.")
-            maps = initialize_using
+        yield
 
-        if not maps:
-            raise RuntimeError('No initialization maps found in the folder "{}"'.format(
-                os.path.join(output_folder, model.name)))
-
-        init_params = create_roi(maps, problem_data.mask)
-    else:
-        init_params = {}
-
-    return init_params
+        run_time = timeit.default_timer() - minimize_start_time
+        run_time_str = time.strftime('%H:%M:%S', time.gmtime(run_time))
+        self._logger.info('Sampled {0} model with runtime {1} (h:m:s).'.format(self._model.name, run_time_str))

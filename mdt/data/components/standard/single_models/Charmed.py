@@ -36,9 +36,6 @@ class Charmed_r1(DMRISingleModelConfig):
              'Tensor.dperp1': 0.5e-9,
              'CharmedRestricted0.d': 1e-9}
 
-    parameter_transforms = {'Tensor.dperp0': SinSqrClampTransform(),
-                            'Tensor.dperp1': SinSqrClampTransform()}
-
     post_optimization_modifiers = [
         ('FR', lambda results: 1 - results['w_hin0.w'])
     ]
@@ -74,9 +71,6 @@ class Charmed_r2(DMRISingleModelConfig):
              'Tensor.dperp1': 0.5e-9,
              'CharmedRestricted0.d': 1e-9,
              'CharmedRestricted1.d': 1e-9}
-
-    parameter_transforms = {'Tensor.dperp0': SinSqrClampTransform(),
-                            'Tensor.dperp1': SinSqrClampTransform()}
 
     post_optimization_modifiers = [
         ('FR', lambda results: 1 - results['w_hin0.w'])
@@ -117,9 +111,6 @@ class Charmed(DMRISingleModelConfig):
              'CharmedRestricted0.d': 1e-9,
              'CharmedRestricted1.d': 1e-9,
              'CharmedRestricted2.d': 1e-9}
-
-    parameter_transforms = {'Tensor.dperp0': SinSqrClampTransform(),
-                            'Tensor.dperp1': SinSqrClampTransform()}
 
     post_optimization_modifiers = [
         ('FR', lambda results: 1 - results['w_hin0.w'])

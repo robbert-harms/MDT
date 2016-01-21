@@ -1,4 +1,5 @@
 from mdt.models.single import DMRISingleModelConfig
+from mot.model_building.parameter_functions.transformations import SinSqrClampDependentTransform
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -17,6 +18,12 @@ class Tensor(DMRISingleModelConfig):
     inits = {'Tensor.d': 1.7e-9,
              'Tensor.dperp0': 1.7e-10,
              'Tensor.dperp1': 1.7e-10}
+
+    parameter_transforms = {
+        'Tensor.dperp0': lambda self: SinSqrClampDependentTransform(
+            [(self, self._get_parameter_by_name('Tensor.d'))]),
+        'Tensor.dperp1': lambda self: SinSqrClampDependentTransform(
+            [(self, self._get_parameter_by_name('Tensor.dperp0'))])}
 
 
 class TensorExVivo(Tensor):

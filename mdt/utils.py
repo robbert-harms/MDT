@@ -12,11 +12,13 @@ import tempfile
 from contextlib import contextmanager
 import nibabel as nib
 import numpy as np
+import pickle
 import pkg_resources
 import six
 from scipy.special import jnp_zeros
 from six import string_types
 import mdt.configuration as configuration
+from mdt import create_index_matrix
 from mdt.IO import Nifti
 from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
 from mdt.components_loader import get_model, ProcessingStrategiesLoader, NoiseSTDCalculatorsLoader
@@ -656,6 +658,18 @@ def configure_per_model_logging(output_path):
         logger.info('Stopped appending to the per model log file')
 
 
+@contextmanager
+def per_model_logging_context(output_path):
+    """A logging context wrapper for the function configure_per_model_logging.
+
+    Args:
+        output_path: the output path where the model results are stored.
+    """
+    configure_per_model_logging(output_path)
+    yield
+    configure_per_model_logging(None)
+
+
 def recursive_merge_dict(dictionary, update_dict, in_place=False):
     """ Recursively merge the given dictionary with the new values.
 
@@ -961,7 +975,7 @@ def apply_model_protocol_options(model_protocol_options, problem_data):
     return problem_data
 
 
-def model_output_exists(model, output_folder, check_sample_output=False, append_model_name_to_path=True):
+def model_output_exists(model, output_folder, append_model_name_to_path=True):
     """Checks if the output for the given model exists in the given output folder.
 
     This will check for a given model if the output folder exists and contains a nifti file for each parameter
@@ -975,8 +989,6 @@ def model_output_exists(model, output_folder, check_sample_output=False, append_
         model (AbstractModel, CascadeModel or str): the model to check for existence, accepts cascade models.
             If a string is given the model is tried to be loaded from the components loader.
         output_folder (str): the folder where the output folder of the results should reside in
-        check_sample_output (boolean): if True we also check if there is a subdir 'samples' that contains sample
-            results for the given model
         append_model_name_to_path (boolean): by default we will append the name of the model to the output folder.
             This is to be consistent with the way the model fitting routine places the results in the
                 <output folder>/<model_name> directories. Sometimes, however you might want to skip this appending.
@@ -990,8 +1002,8 @@ def model_output_exists(model, output_folder, check_sample_output=False, append_
 
     from mdt.models.cascade import DMRICascadeModelInterface
     if isinstance(model, DMRICascadeModelInterface):
-        return all([model_output_exists(sub_model, output_folder, check_sample_output, append_model_name_to_path)
-                    for sub_model in model.get_model_names()])
+        return all(model_output_exists(sub_model, output_folder, append_model_name_to_path)
+                   for sub_model in model.get_model_names())
 
     if append_model_name_to_path:
         output_path = os.path.join(output_folder, model.name)
@@ -1005,10 +1017,6 @@ def model_output_exists(model, output_folder, check_sample_output=False, append_
 
     for parameter_name in parameter_names:
         if not glob.glob(os.path.join(output_path, parameter_name + '*')):
-            return False
-
-    if check_sample_output:
-        if not os.path.exists(os.path.join(output_path, 'samples', 'samples.pyobj')):
             return False
 
     return True
@@ -1186,12 +1194,6 @@ class ModelChunksProcessingStrategy(ModelProcessingStrategy):
         if not os.path.exists(chunks_dir):
             os.makedirs(chunks_dir)
 
-    def _get_index_matrix(self, mask):
-        """Get a matrix with all the indices of the given mask."""
-        roi_length = np.count_nonzero(mask)
-        roi = np.arange(0, roi_length)
-        return restore_volumes(roi, mask, with_volume_dim=False)
-
     @contextmanager
     def _selected_indices(self, model, chunk_indices):
         """Create a context in which problems_to_analyze attribute of the models is set to the selected indices.
@@ -1227,6 +1229,9 @@ class ModelProcessingWorker(object):
     def output_exists(self, model, problem_data, output_dir):
         """Check if in the given directory all the output exists for the given model.
 
+        This could be used by the processing strategy to check if in a given folder for a single slice all the
+        output items exist.
+
         Args:
             model (DMRISingleModel): the model to process
             problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
@@ -1236,7 +1241,7 @@ class ModelProcessingWorker(object):
             boolean: true if the output exists, false otherwise
         """
 
-    def combine(self, output_path, chunks_dir):
+    def combine(self, model, problem_data, output_path, chunks_dir):
         """Combine all the calculated parts.
 
         This function should combine all the results into one compilation.
@@ -1246,6 +1251,8 @@ class ModelProcessingWorker(object):
         the data for the whole dataset.
 
         Args:
+            model (DMRISingleModel): the model we processed
+            problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
             output_path (str): the location for the final combined output files
             chunks_dir (str): the location of the directory that contains all the directories with the chunks.
 
@@ -1269,33 +1276,27 @@ class FittingProcessingWorker(ModelProcessingWorker):
     def process(self, model, problem_data, mask, output_dir):
         results, extra_output = self._optimizer.minimize(model, full_output=True)
         results.update(extra_output)
+
         self._write_output(results, mask, output_dir, problem_data.volume_header)
+
         return results
 
     def output_exists(self, model, problem_data, output_dir):
         return model_output_exists(model, output_dir, append_model_name_to_path=False)
 
-    def combine(self, output_dir, chunks_dir):
-        """Joins all chunks by joining all the items in the subdirectory of the given chunks_dir.
-
-        This expects there to be a file named '__mask.nii.gz' in every sub dir. This file should contain
-        a mask for exactly that slice/data calculated in that directory. We will use this mask to
-        construct the entire dataset.
-
-        Args:
-            output_dir (str): where to place the concatenated output
-            chunks_dir (str): the directory with the slices/calculated chunks
-
-        Returns:
-            dict: the results as a dictionary of roi lists
-        """
+    def combine(self, model, problem_data, output_path, chunks_dir):
         sub_dirs = list(os.listdir(chunks_dir))
         if sub_dirs:
-            sub_dir = os.listdir(chunks_dir)[0]
-            file_paths = glob.glob(os.path.join(chunks_dir, sub_dir, '*.nii*'))
+            file_paths = glob.glob(os.path.join(chunks_dir, os.listdir(chunks_dir)[0], '*.nii*'))
             file_paths = filter(lambda d: '__mask' not in d, file_paths)
             map_names = map(lambda d: split_image_path(d)[1], file_paths)
-            results = {map_name: self._join_chunks_of_parameter(output_dir, chunks_dir, map_name) for map_name in map_names}
+
+            results = {}
+            for map_name in map_names:
+                map_paths = list(os.path.join(chunks_dir, sub_dir, map_name + '.nii.gz') for sub_dir in sub_dirs)
+                mask_paths = list(os.path.join(chunks_dir, sub_dir, '__mask.nii.gz') for sub_dir in sub_dirs)
+                results.update({map_name: join_parameter_maps(output_path, map_paths, mask_paths, map_name)})
+
             return results
 
     def _write_output(self, result_arrays, mask, output_path, volume_header):
@@ -1303,40 +1304,157 @@ class FittingProcessingWorker(ModelProcessingWorker):
         volume_maps = restore_volumes(result_arrays, mask)
         Nifti.write_volume_maps(volume_maps, output_path, volume_header)
 
-    def _join_chunks_of_parameter(self, output_dir, chunks_dir, map_name):
-        """Subroutine of _join_chunks, this joines the chunks of a single map over all directories
+
+class SamplingProcessingWorker(ModelProcessingWorker):
+
+    def __init__(self, sampler):
+        """The processing worker for model sampling.
+
+        Use this if you want to use the model processing strategy to do model sampling.
 
         Args:
-            output_dir (str): where to place the concatenated output
-            chunks_dir (str): the directory with the slices/calculated chunks
-            map_name (str): the name of the map we want to load over all directories
-
-        Returns:
-            np.array: the values of this single map in a large array
+            sampler (AbstractSampler): the optimization sampler to use
         """
-        results = None
-        mask_so_far = None
-        volume_header = None
+        self._sampler = sampler
 
-        for sub_dir in os.listdir(chunks_dir):
-            sub_results = nib.load(os.path.join(chunks_dir, sub_dir, map_name + '.nii.gz')).get_data()
+    def process(self, model, problem_data, mask, output_dir):
+        results, other_output = self._sampler.sample(model, full_output=True)
+        self._write_sample_results(results, output_dir)
+        self._write_maps(other_output, mask, problem_data, output_dir)
 
-            mask_nib = nib.load(os.path.join(chunks_dir, sub_dir, '__mask.nii.gz'))
-            mask = mask_nib.get_data().astype(np.bool)
+    def output_exists(self, model, problem_data, output_dir):
+        return model_output_exists(model, os.path.join(output_dir, 'volume_maps'), append_model_name_to_path=False)
 
-            if volume_header is None:
-                volume_header = mask_nib.get_header()
+    def combine(self, model, problem_data, output_path, chunks_dir):
+        self._combine_maps(output_path, chunks_dir)
+        self._combine_samples(problem_data.mask, output_path, chunks_dir)
 
-            if results is None:
-                results = sub_results
-                mask_so_far = mask
-            else:
-                mask_so_far += mask
-                sub_results = apply_mask(sub_results, mask_so_far)
-                results += sub_results
+    def _combine_maps(self, output_path, chunks_dir):
+        sub_dirs = list(os.listdir(chunks_dir))
+        if sub_dirs:
+            file_paths = glob.glob(os.path.join(chunks_dir, os.listdir(chunks_dir)[0], 'volume_maps', '*.nii*'))
+            file_paths = filter(lambda d: '__mask' not in d, file_paths)
+            map_names = map(lambda d: split_image_path(d)[1], file_paths)
 
-        Nifti.write_volume_maps({map_name: results}, output_dir, volume_header)
-        return create_roi(results, mask_so_far)
+            for map_name in map_names:
+                map_paths = list(os.path.join(chunks_dir, sub_dir, 'volume_maps', map_name + '.nii.gz')
+                                 for sub_dir in sub_dirs)
+                mask_paths = list(os.path.join(chunks_dir, sub_dir, '__mask.nii.gz') for sub_dir in sub_dirs)
+
+                join_parameter_maps(os.path.join(output_path, 'volume_maps'), map_paths, mask_paths, map_name)
+
+    def _combine_samples(self, whole_mask, output_path, chunks_dir):
+        sub_dirs = list(os.listdir(chunks_dir))
+        if sub_dirs:
+            file_paths = glob.glob(os.path.join(chunks_dir, os.listdir(chunks_dir)[0], '*.samples'))
+            map_names = map(lambda d: os.path.splitext(os.path.basename(d))[0], file_paths)
+
+            for map_name in map_names:
+                map_paths = list(os.path.join(chunks_dir, sub_dir, map_name + '.samples') for sub_dir in sub_dirs)
+                map_settings = list(os.path.join(chunks_dir, sub_dir, map_name + '.samples.settings')
+                                    for sub_dir in sub_dirs)
+                mask_paths = list(os.path.join(chunks_dir, sub_dir, '__mask.nii.gz') for sub_dir in sub_dirs)
+
+                self._join_sample_results(whole_mask, output_path, map_paths, map_settings, mask_paths, map_name)
+
+    def _write_maps(self, other_output, mask, problem_data, output_path):
+        volume_maps_dir = os.path.join(output_path, 'volume_maps')
+        volume_maps = restore_volumes(other_output, mask)
+        Nifti.write_volume_maps(volume_maps, volume_maps_dir, problem_data.volume_header)
+
+    def _write_sample_results(self, results, output_path):
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
+
+        for map_name, samples in results.items():
+            saved = np.memmap(os.path.join(output_path, map_name + '.samples'),
+                              dtype=samples.dtype, mode='w+', shape=samples.shape)
+            saved[:] = samples[:]
+            del saved
+
+            settings = {'dtype': samples.dtype, 'shape': samples.shape}
+            with open(os.path.join(output_path, map_name + '.samples.settings'), 'wb') as f:
+                pickle.dump(settings, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+    def _join_sample_results(self, whole_mask, output_path, maps, map_settings, masks, map_name):
+        """Join the sample results of a single parameter.
+
+        This uses the given masks to determine where to place which voxels.
+
+        Args:
+            whole_mask (ndarray): the complete brain mask
+            output_path (str): where to place the output file
+            maps (list of str): the list of sample files to concatenate
+            map_settings (list of str): a list with the same length as maps containing the settings for the given
+                maps
+            masks (list of str): the list of masks indicating the voxels present in the map.
+            Should have same length as maps.
+            map_name (str): the name of the output file
+        """
+        settings = []
+
+        for map_setting_file in map_settings:
+            with open(map_setting_file, 'rb') as f:
+                settings.append(pickle.load(f))
+
+        total_shape = (sum(s['shape'][0] for s in settings), settings[0]['shape'][1])
+        total = np.memmap(os.path.join(output_path, map_name + '.samples'), dtype=settings[0]['dtype'],
+                          shape=total_shape, mode='w+')
+
+        settings_total = {'dtype': settings[0]['dtype'], 'shape': total_shape}
+        with open(os.path.join(output_path, map_name + '.samples.settings'), 'wb') as f:
+            pickle.dump(settings_total, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+        whole_mask_indices = create_index_matrix(whole_mask)
+
+        for map_fname, settings, mask_fname in zip(maps, settings, masks):
+            chunk_mask = nib.load(mask_fname).get_data().astype(np.bool)
+            chunk_indices = np.squeeze(create_roi(whole_mask_indices * chunk_mask, chunk_mask))
+
+            current = np.memmap(map_fname, dtype=settings['dtype'], mode='r', shape=settings['shape'])
+            total[chunk_indices, :] = current
+            del current
+        del total
+
+
+def join_parameter_maps(output_dir, maps, masks, map_name):
+    """Join the chunks of a single parameter over all chunk dirs.
+
+    This uses the given masks to determine where to place which voxels.
+
+    Args:
+        output_dir (str): where to place the concatenated output
+        maps (list of str): the list of map filenames we want to concatenate.
+            Should have same length as masks.
+        masks (list of str): the list of masks indicating the voxels present in the map.
+            Should have same length as maps.
+        map_name (str): the name of the output map
+
+    Returns:
+        np.array: the values of the concatenated map in a large array
+    """
+    results = None
+    mask_so_far = None
+    volume_header = None
+
+    for map_fname, mask_fname in zip(maps, masks):
+        sub_results = nib.load(map_fname).get_data()
+        mask_nib = nib.load(mask_fname)
+        mask = mask_nib.get_data().astype(np.bool)
+
+        if volume_header is None:
+            volume_header = mask_nib.get_header()
+
+        if results is None:
+            results = sub_results
+            mask_so_far = mask
+        else:
+            mask_so_far += mask
+            sub_results = apply_mask(sub_results, mask_so_far)
+            results += sub_results
+
+    Nifti.write_volume_maps({map_name: results}, output_dir, volume_header)
+    return create_roi(results, mask_so_far)
 
 
 def get_processing_strategy(processing_type, model_names=None):

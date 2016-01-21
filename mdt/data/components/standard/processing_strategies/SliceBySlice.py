@@ -1,6 +1,8 @@
 import os
 import numpy as np
 import shutil
+
+from mdt import create_index_matrix
 from mdt.IO import Nifti
 from mdt.components_loader import ProcessingStrategiesLoader
 from mdt.utils import ModelChunksProcessingStrategy
@@ -41,7 +43,7 @@ class SliceBySlice(ModelChunksProcessingStrategy):
 
         mask = problem_data.mask
         chunk_mask = np.zeros_like(mask)
-        indices = self._get_index_matrix(problem_data.mask)
+        indices = create_index_matrix(problem_data.mask)
         slices_dir = os.path.join(output_path, 'slices')
 
         self._prepare_chunk_dir(slices_dir, recalculate)
@@ -58,7 +60,7 @@ class SliceBySlice(ModelChunksProcessingStrategy):
                                        ind_start, ind_end, chunk_mask)
 
         self._logger.info('Computed all slices, now merging the results')
-        return_data = worker.combine(output_path, slices_dir)
+        return_data = worker.combine(model, problem_data, output_path, slices_dir)
         shutil.rmtree(slices_dir)
         return return_data
 

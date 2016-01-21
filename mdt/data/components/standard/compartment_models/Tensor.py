@@ -17,14 +17,6 @@ class Tensor(CompartmentConfig):
     cl_function_name = 'cmTensor'
     parameter_list = ('g', 'b', 'd', 'dperp0', 'dperp1', 'theta', 'phi', 'psi')
 
-    @staticmethod
-    def init(self):
-        self.get_parameter_by_name('dperp0').parameter_transform = \
-            SinSqrClampDependentTransform(((self, self.get_parameter_by_name('d')),))
-
-        self.get_parameter_by_name('dperp1').parameter_transform = \
-            SinSqrClampDependentTransform(((self, self.get_parameter_by_name('dperp0')),))
-
     @bound_function
     def get_extra_results_maps(self, results_dict):
         """This will return the eigenvectors and values for the Tensor.
