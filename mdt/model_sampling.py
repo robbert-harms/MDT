@@ -13,7 +13,8 @@ from mdt.components_loader import get_model
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.utils import create_roi, configure_per_model_logging, \
     ProtocolProblemError, model_output_exists, estimate_noise_std, get_cl_devices, get_model_config, \
-    apply_model_protocol_options, get_processing_strategy, per_model_logging_context, SamplingProcessingWorker
+    apply_model_protocol_options, get_processing_strategy, per_model_logging_context, SamplingProcessingWorker, \
+    memory_load_samples
 from mot import runtime_configuration
 from mot.cl_routines.sampling.metropolis_hastings import MetropolisHastings
 from mot.load_balance_strategies import EvenDistribution
@@ -103,7 +104,11 @@ class ModelSampling(object):
                 'The reported errors where: {}'.format(self._model.get_protocol_problems(self._problem_data.protocol)))
 
     def run(self):
-        """Sample the given model, this does not return any results since those might be too large for memory."""
+        """Sample the given model.
+
+        Returns:
+            dict: with as keys the sampled maps and as values a memory mapped array
+        """
         cl_envs = None
         load_balancer = None
         if self._cl_device_indices is not None:
@@ -134,7 +139,7 @@ class ModelSampling(object):
                                         recalculate=self._recalculate, initialize=self._initialize,
                                         initialize_using=self._initialize_using)
 
-            sampler.run()
+            return sampler.run()
 
 
 class SampleSingleModel(object):
@@ -190,7 +195,7 @@ class SampleSingleModel(object):
                 if model_output_exists(self._model, self._output_path + '/volume_maps/',
                                        append_model_name_to_path=False):
                     self._logger.info('Not recalculating {} model'.format(self._model.name))
-                    return
+                    return memory_load_samples(self._output_path)
 
             if not os.path.isdir(self._output_path):
                 os.makedirs(self._output_path)
@@ -200,8 +205,8 @@ class SampleSingleModel(object):
 
                 worker = SamplingProcessingWorker(self._sampler)
 
-                self._processing_strategy.run(self._model, self._problem_data,
-                                              self._output_path, self.recalculate, worker)
+                return self._processing_strategy.run(self._model, self._problem_data,
+                                                     self._output_path, self.recalculate, worker)
 
     def _get_initialization_params(self):
         logger = logging.getLogger(__name__)

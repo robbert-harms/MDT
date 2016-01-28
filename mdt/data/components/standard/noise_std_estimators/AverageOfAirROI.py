@@ -63,20 +63,19 @@ class AverageOfAirROI(NoiseStdCalculator):
         """
         dist_from_edge = 5
         s = self._signal4d.shape
-        return [[slice(dist_from_edge, 2*roi_size + dist_from_edge),
-                 slice(s[1]//6 - roi_size, s[1]//6 + roi_size),
-                 slice(s[2]//2 - roi_size, s[2]//2 + roi_size)],
+        return [[slice(dist_from_edge, 2 * roi_size + dist_from_edge),
+                 slice(s[1] // 6 - roi_size, s[1] // 6 + roi_size),
+                 slice(s[2] // 2 - roi_size, s[2] // 2 + roi_size)],
 
-                [slice(dist_from_edge, 2*roi_size + dist_from_edge),
-                 slice(5 * s[1]//6 - roi_size, 5 * s[1]//6 + roi_size),
-                 slice(s[2]//2 - roi_size, s[2]//2 + roi_size)],
+                [slice(dist_from_edge, 2 * roi_size + dist_from_edge),
+                 slice(5 * s[1] // 6 - roi_size, 5 * s[1] // 6 + roi_size),
+                 slice(s[2] // 2 - roi_size, s[2] // 2 + roi_size)],
 
-                [slice(s[0]-2*roi_size-dist_from_edge, s[0] - dist_from_edge),
-                 slice(s[1]//6 - roi_size, s[1]//6 + roi_size),
-                 slice(s[2]//2 - roi_size, s[2]//2 + roi_size)],
+                [slice(s[0] - 2 * roi_size - dist_from_edge, s[0] - dist_from_edge),
+                 slice(s[1] // 6 - roi_size, s[1] // 6 + roi_size),
+                 slice(s[2] // 2 - roi_size, s[2] // 2 + roi_size)],
 
-                [slice(s[0]-2*roi_size-dist_from_edge, s[0] - dist_from_edge),
-                 slice(5 * s[1]//6 - roi_size, 5 * s[1]//6 + roi_size),
-                 slice(s[2]//2 - roi_size, s[2]//2 + roi_size)],
+                [slice(s[0] - 2 * roi_size - dist_from_edge, s[0] - dist_from_edge),
+                 slice(5 * s[1] // 6 - roi_size, 5 * s[1] // 6 + roi_size),
+                 slice(s[2] // 2 - roi_size, s[2] // 2 + roi_size)],
                 ]
-

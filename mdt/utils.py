@@ -1319,8 +1319,9 @@ class SamplingProcessingWorker(ModelProcessingWorker):
 
     def process(self, model, problem_data, mask, output_dir):
         results, other_output = self._sampler.sample(model, full_output=True)
-        self._write_sample_results(results, output_dir)
+        write_sample_results(results, output_dir)
         self._write_maps(other_output, mask, problem_data, output_dir)
+        return memory_load_samples(output_dir)
 
     def output_exists(self, model, problem_data, output_dir):
         return model_output_exists(model, os.path.join(output_dir, 'volume_maps'), append_model_name_to_path=False)
@@ -1328,6 +1329,7 @@ class SamplingProcessingWorker(ModelProcessingWorker):
     def combine(self, model, problem_data, output_path, chunks_dir):
         self._combine_maps(output_path, chunks_dir)
         self._combine_samples(problem_data.mask, output_path, chunks_dir)
+        return memory_load_samples(output_path)
 
     def _combine_maps(self, output_path, chunks_dir):
         sub_dirs = list(os.listdir(chunks_dir))
@@ -1361,20 +1363,6 @@ class SamplingProcessingWorker(ModelProcessingWorker):
         volume_maps_dir = os.path.join(output_path, 'volume_maps')
         volume_maps = restore_volumes(other_output, mask)
         Nifti.write_volume_maps(volume_maps, volume_maps_dir, problem_data.volume_header)
-
-    def _write_sample_results(self, results, output_path):
-        if not os.path.exists(output_path):
-            os.makedirs(output_path)
-
-        for map_name, samples in results.items():
-            saved = np.memmap(os.path.join(output_path, map_name + '.samples'),
-                              dtype=samples.dtype, mode='w+', shape=samples.shape)
-            saved[:] = samples[:]
-            del saved
-
-            settings = {'dtype': samples.dtype, 'shape': samples.shape}
-            with open(os.path.join(output_path, map_name + '.samples.settings'), 'wb') as f:
-                pickle.dump(settings, f, protocol=pickle.HIGHEST_PROTOCOL)
 
     def _join_sample_results(self, whole_mask, output_path, maps, map_settings, masks, map_name):
         """Join the sample results of a single parameter.
@@ -1415,6 +1403,51 @@ class SamplingProcessingWorker(ModelProcessingWorker):
             total[chunk_indices, :] = current
             del current
         del total
+
+
+def write_sample_results(results, output_path):
+    """Write the sample results to file.
+
+    This will write to files per sampled parameter. The first is a numpy array written to file, the second
+    is a python pickled dictionary with the datatype and shape of the written numpy array.
+
+    Args:
+        results (dict): the samples to write
+        output_path (str): the path to write the samples in
+    """
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+
+    for map_name, samples in results.items():
+        saved = np.memmap(os.path.join(output_path, map_name + '.samples'),
+                          dtype=samples.dtype, mode='w+', shape=samples.shape)
+        saved[:] = samples[:]
+        del saved
+
+        settings = {'dtype': samples.dtype, 'shape': samples.shape}
+        with open(os.path.join(output_path, map_name + '.samples.settings'), 'wb') as f:
+            pickle.dump(settings, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def memory_load_samples(data_folder):
+    """Load sampled results as a dictionary of numpy memmap.
+
+    Args:
+        data_folder (str): the folder from which to load the samples
+
+    Returns:
+        dict: the memory loaded samples per sampled parameter.
+    """
+    data_dict = {}
+    for fname in glob.glob(os.path.join(data_folder, '*.samples')):
+        if os.path.isfile(fname + '.settings'):
+            with open(fname + '.settings', 'rb') as f:
+                settings = pickle.load(f)
+                samples = np.memmap(fname, dtype=settings['dtype'], mode='r', shape=settings['shape'])
+
+                map_name = os.path.splitext(os.path.basename(fname))[0]
+                data_dict.update({map_name: samples})
+    return data_dict
 
 
 def join_parameter_maps(output_dir, maps, masks, map_name):

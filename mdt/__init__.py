@@ -170,7 +170,7 @@ def sample_model(model, dwi_info, protocol, brain_mask, output_folder,
             initialize from the dict directly.
 
     Returns:
-        None: the chain will probably be to large to fit in memory
+        dict: the samples per parameter as a numpy memmap.
     """
     import mdt.utils
     from mdt.models.cascade import DMRICascadeModelInterface
@@ -192,7 +192,7 @@ def sample_model(model, dwi_info, protocol, brain_mask, output_folder,
                              gradient_deviations=gradient_deviations, noise_std='auto', initialize=initialize,
                              initialize_using=initialize_using)
 
-    sampling.run()
+    return sampling.run()
 
 
 def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, subjects_selection=None,
@@ -622,20 +622,10 @@ def view_result_samples(data, **kwargs):
         kwargs (dict): see SampleVisualizer for all the supported keywords
     """
     from mdt.visualization import SampleVisualizer
+    from mdt.utils import memory_load_samples
 
     if isinstance(data, string_types):
-        data_dict = {}
-
-        for fname in glob.glob(os.path.join(data, '*.samples')):
-            if os.path.isfile(fname + '.settings'):
-                with open(fname + '.settings', 'rb') as f:
-                    settings = pickle.load(f)
-                    samples = np.memmap(fname, dtype=settings['dtype'], mode='r', shape=settings['shape'])
-
-                    map_name = os.path.splitext(os.path.basename(fname))[0]
-                    data_dict.update({map_name: samples})
-
-        data = data_dict
+        data = memory_load_samples(data)
 
     if not kwargs.get('voxel_ind'):
         kwargs.update({'voxel_ind': data[list(data.keys())[0]].shape[0] / 2})

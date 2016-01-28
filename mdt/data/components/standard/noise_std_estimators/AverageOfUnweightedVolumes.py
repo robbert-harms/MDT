@@ -17,9 +17,9 @@ class AverageOfUnweightedVolumes(NoiseStdCalculator):
 
         We first fit a S0 model to the data, and subtract this estimate from the unweighted volumes. Next, we
         compute per voxel the sum of squares divided by the number of voxels. This is the E[S^2] per voxel. We then
-        take for each voxel the sqrt(E[S^2]) as estimate for the noise std in that voxel.
+        take for each voxel the sqrt(E[S^2]/2) as estimate for the noise std in that voxel.
 
-        Finally, we calculate the mean of all those voxels.
+        Finally, we calculate the mean of all those noise std estimates.
 
         Args:
             **kwargs
@@ -39,13 +39,13 @@ class AverageOfUnweightedVolumes(NoiseStdCalculator):
         sum_of_squares = np.sum(np.power(voxel_values, 2), axis=1)
         mean_squares = sum_of_squares / voxel_values.shape[0]
 
-        sigmas = np.sqrt(mean_squares / 2.0)
+        sigmas = np.sqrt(mean_squares / 2)
         return np.mean(sigmas)
 
     def _get_s0_fit(self):
         self._logger.info('Estimating S0 for the noise standard deviation')
         tmp_dir = tempfile.mkdtemp()
-        output = fit_model('s0', self._volume_info, self._protocol, self._mask, tmp_dir, noise_std=None)
+        output = fit_model('S0', self._volume_info, self._protocol, self._mask, tmp_dir, noise_std=None)
         shutil.rmtree(tmp_dir)
         self._logger.info('Done fitting S0 for the noise standard deviation')
         return restore_volumes(output['S0.s0'], self._mask)
