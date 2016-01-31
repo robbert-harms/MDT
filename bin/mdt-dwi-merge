@@ -3,11 +3,11 @@
 import argparse
 import glob
 import os
-import argcomplete
 import mdt
-import mdt.shell_utils
 from argcomplete.completers import FilesCompleter
 import textwrap
+
+from mdt.shell_utils import BasicShellApplication
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"
@@ -15,11 +15,9 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-if __name__ == '__main__':
+class App(BasicShellApplication):
 
-    def get_arg_parser():
-        """For autocomplete, please execute activate-global-python-argcomplete in your bash or zsh shell."""
-
+    def _get_arg_parser(self):
         description = textwrap.dedent("""
             Merge a list of DWI images on the 4th dimension. Writes the result to a single image.
 
@@ -27,7 +25,7 @@ if __name__ == '__main__':
             the most convenient option in the case of globbing files. You can disable this behaviour
             using the flag --no-sort.
         """)
-        description += mdt.shell_utils.get_citation_message()
+        description += self._get_citation_message()
 
         epilog = textwrap.dedent("""
             Examples of use:
@@ -56,28 +54,28 @@ if __name__ == '__main__':
 
         return parser
 
-    parser = get_arg_parser()
-    argcomplete.autocomplete(parser)
-    args = parser.parse_args()
+    def _run(self, args):
+        output_file = os.path.realpath(args.output_file)
 
-    output_file = os.path.realpath(args.output_file)
+        if os.path.isfile(output_file):
+            os.remove(output_file)
 
-    if os.path.isfile(output_file):
-        os.remove(output_file)
+        file_names = []
+        for file in args.input_files:
+            file_names.extend(glob.glob(file))
 
-    file_names = []
-    for file in args.input_files:
-        file_names.extend(glob.glob(file))
+        concatenated_names = mdt.dwi_merge(file_names, output_file, sort=args.sort)
 
-    concatenated_names = mdt.dwi_merge(file_names, output_file, sort=args.sort)
+        if not args.no_merge_order_file:
+            info_output_file = os.path.splitext(output_file)[0].replace('.nii', '') + '_merge_order.txt'
 
-    if not args.no_merge_order_file:
-        info_output_file = os.path.splitext(output_file)[0].replace('.nii', '') + '_merge_order.txt'
+            if os.path.isfile(info_output_file):
+                os.remove(info_output_file)
 
-        if os.path.isfile(info_output_file):
-            os.remove(info_output_file)
+            with open(info_output_file, 'w') as f:
+                f.write('Files merged in this order:\n')
+                for name in concatenated_names:
+                    f.write(name + '\n')
 
-        with open(info_output_file, 'w') as f:
-            f.write('Files merged in this order:\n')
-            for name in concatenated_names:
-                f.write(name + '\n')
+if __name__ == '__main__':
+    App().run()

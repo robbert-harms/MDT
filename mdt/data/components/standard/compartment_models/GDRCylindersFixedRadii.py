@@ -20,6 +20,5 @@ class GDRCylindersFixedRadii(CompartmentConfig):
 
     @bound_function
     def get_extra_results_maps(self, results_dict):
-        return self._get_single_dir_coordinate_maps(results_dict[self.name + '.theta'],
-                                                    results_dict[self.name + '.phi'],
-                                                    results_dict[self.name + '.d'])
+        return self._get_vector_result_maps(results_dict[self.name + '.theta'],
+                                            results_dict[self.name + '.phi'])

@@ -203,7 +203,7 @@ class Protocol(object):
         Raises:
             KeyError: This function may throw a key error if the 'b' column in the protocol could not be loaded.
         """
-        return np.unique(self.get_column('b')[self.get_weighted_indices()])
+        return np.unique(self.get_column('b')[self.get_weighted_indices()]).tolist()
 
     def has_column(self, column_name):
         """Check if this protocol has a column with the given name.
@@ -234,9 +234,11 @@ class Protocol(object):
     def get_unweighted_indices(self, unweighted_threshold=None):
         """Get the indices to the unweighted volumes.
 
+        Args:
+            unweighted_threshold (float): the threshold under which we call it unweighted.
+
         Returns:
             list of int: A list of indices to the unweighted volumes.
-            unweighted_threshold (double): if given, use this unweighted threshold
         """
         unweighted_threshold = unweighted_threshold or self._unweighted_threshold
 
@@ -248,13 +250,17 @@ class Protocol(object):
 
         return np.where(g_limit + b_limit)[0]
 
-    def get_weighted_indices(self):
+    def get_weighted_indices(self, unweighted_threshold=None):
         """Get the indices to the weighted volumes.
 
+        Args:
+            unweighted_threshold (float): the threshold under which we call it unweighted.
+
         Returns:
-            list of int: A lsit of indices to the weighted volumes.
+            list of int: A list of indices to the weighted volumes.
         """
-        return sorted(set(range(self.get_column('b').shape[0])) - set(self.get_unweighted_indices()))
+        return sorted(set(range(self.get_column('b').shape[0])) -
+                      set(self.get_unweighted_indices(unweighted_threshold=unweighted_threshold)))
 
     def get_indices_bval_in_range(self, start=0, end=1.0e9, epsilon=1e-5):
         """Get the indices of the b-values in the range [start - eps, end + eps].
@@ -551,6 +557,29 @@ def load_protocol(protocol_fname, column_names=None):
     return Protocol(columns=d)
 
 
+def column_names_nice_ordering(column_names, preferred_order=None):
+    """Order the column names to a nice preferred order.
+
+    Args:
+        column_names (list of str): the list with column names
+        preferred_order (list of str): the preferred partial ordering
+
+    Returns:
+        the same list of column names ordered to the given partial ordering
+    """
+    columns_list = list(reversed(column_names))
+    preferred_order = preferred_order or ('gx', 'gy', 'gz', 'G', 'Delta', 'delta', 'TE', 'T1', 'b', 'q', 'maxG')
+
+    final_list = []
+    for p in preferred_order:
+        if p in columns_list:
+            columns_list.remove(p)
+            final_list.append(p)
+    final_list.extend(columns_list)
+
+    return final_list
+
+
 def write_protocol(protocol, fname, columns_list=None):
     """Write the given protocol to a file.
 
@@ -566,22 +595,13 @@ def write_protocol(protocol, fname, columns_list=None):
         A tuple listing the parameters that where written (and in that order)
     """
     if not columns_list:
-        columns_list = list(reversed(protocol.column_names))
-        preferred_order = ('gx', 'gy', 'gz', 'G', 'Delta', 'delta', 'TE', 'T1', 'b', 'q', 'maxG')
+        columns_list = column_names_nice_ordering(protocol.column_names)
 
         if 'G' in columns_list and 'Delta' in columns_list and 'delta' in columns_list:
             if 'b' in columns_list:
                 columns_list.remove('b')
             if 'maxG' in columns_list:
                 columns_list.remove('maxG')
-
-        final_list = []
-        for p in preferred_order:
-            if p in columns_list:
-                columns_list.remove(p)
-                final_list.append(p)
-        final_list.extend(columns_list)
-        columns_list = final_list
 
     data = protocol.get_columns(columns_list)
 

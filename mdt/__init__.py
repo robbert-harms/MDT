@@ -602,7 +602,7 @@ def results_preselection_names(data):
     else:
         keys = data.keys()
 
-    return list(sorted(filter(lambda v: all(m not in v for m in ('eig', '.d', '.sigma')), keys)))
+    return list(sorted(filter(lambda v: all(m not in v for m in ('.vec', '.d', '.sigma')), keys)))
 
 
 def block_plots():
@@ -1067,20 +1067,22 @@ def apply_mask(volume, mask, inplace=True):
     return mdt.utils.apply_mask(volume, mask, inplace=inplace)
 
 
-def apply_mask_to_file(input_fname, mask_fname, output_fname=None):
+def apply_mask_to_file(input_fname, mask, output_fname=None):
     """Apply a mask to the given input (nifti) file.
 
     If no output filename is given, the input file is overwritten.
 
     Args:
         input_fname (str): The input file path
-        mask_fname (str): The filename of the mask
+        mask (str or ndarray): The mask to use
         output_fname (str): The filename for the output file (the masked input file).
     """
+    from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
+    mask = autodetect_brain_mask_loader(mask).get_data()
+
     if output_fname is None:
         output_fname = input_fname
 
-    mask = load_brain_mask(mask_fname)
     image_info = load_dwi(input_fname)
     mask = mask.reshape(mask.shape + (image_info[0].ndim - mask.ndim) * (1,))
     masked = image_info[0]

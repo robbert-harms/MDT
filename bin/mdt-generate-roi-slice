@@ -2,12 +2,11 @@
 # PYTHON_ARGCOMPLETE_OK
 import argparse
 import os
-import argcomplete
 import mdt
-import mdt.shell_utils
 from argcomplete.completers import FilesCompleter
 import nibabel as nib
 import textwrap
+from mdt.shell_utils import BasicShellApplication
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"
@@ -15,11 +14,9 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-if __name__ == '__main__':
+class App(BasicShellApplication):
 
-    def get_arg_parser():
-        """For autocomplete, please execute activate-global-python-argcomplete in your bash or zsh shell."""
-
+    def _get_arg_parser(self):
         description = textwrap.dedent("""
             Create a (brain) mask with a region of interest that only includes the voxels in the selected slice.
         """)
@@ -50,27 +47,29 @@ if __name__ == '__main__':
 
         return parser
 
-    parser = get_arg_parser()
-    argcomplete.autocomplete(parser)
-    args = parser.parse_args()
+    def _run(self, args):
+        shape = nib.load(args.mask).shape
+        roi_dimension = args.dimension if args.dimension is not None else 2
+        if roi_dimension > len(shape)-1 or roi_dimension < 0:
+            print('Error: the given mask has only {0} dimensions with slices {1}.'.format(len(shape), shape))
+            exit(1)
 
-    shape = nib.load(args.mask).shape
-    roi_dimension = args.dimension if args.dimension is not None else 2
-    if roi_dimension > len(shape)-1 or roi_dimension < 0:
-        print('Error: the given mask has only {0} dimensions with slices {1}.'.format(len(shape), shape))
-        exit(1)
+        roi_slice = args.slice if args.slice is not None else shape[roi_dimension] // 2
+        if roi_slice > shape[roi_dimension]-1 or roi_slice < 0:
+            print('Error: dimension {0} has only {1} slices.'.format(roi_dimension, shape[roi_dimension]))
+            exit(1)
 
-    roi_slice = args.slice if args.slice is not None else shape[roi_dimension] // 2
-    if roi_slice > shape[roi_dimension]-1 or roi_slice < 0:
-        print('Error: dimension {0} has only {1} slices.'.format(roi_dimension, shape[roi_dimension]))
-        exit(1)
+        mask_base_name = os.path.splitext(os.path.realpath(args.mask))[0]
+        mask_base_name = mask_base_name.replace('.nii', '')
 
-    mask_base_name = os.path.splitext(os.path.realpath(args.mask))[0]
-    mask_base_name = mask_base_name.replace('.nii', '')
+        if args.output_name:
+            output_name = os.path.realpath(args.output_name)
+        else:
+            output_name = mask_base_name + '_{0}_{1}.nii.gz'.format(roi_dimension, roi_slice)
 
-    if args.output_name:
-        output_name = os.path.realpath(args.output_name)
-    else:
-        output_name = mask_base_name + '_{0}_{1}.nii.gz'.format(roi_dimension, roi_slice)
+        mdt.create_slice_roi(os.path.realpath(args.mask), roi_dimension, roi_slice, output_name,
+                             overwrite_if_exists=True)
 
-    mdt.create_slice_roi(os.path.realpath(args.mask), roi_dimension, roi_slice, output_name, overwrite_if_exists=True)
+
+if __name__ == '__main__':
+    App().run()

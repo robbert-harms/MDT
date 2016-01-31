@@ -1,6 +1,8 @@
 import argparse
 import textwrap
 
+import argcomplete
+
 __author__ = 'Robbert Harms'
 __date__ = "2015-10-16"
 __maintainer__ = "Robbert Harms"
@@ -21,6 +23,45 @@ def get_argparse_extension_checker(choices):
     return Act
 
 
+class BasicShellApplication(object):
+
+    def run(self):
+        parser = self._get_arg_parser()
+        argcomplete.autocomplete(parser)
+        args = parser.parse_args()
+        self._run(args)
+
+    def _run(self, args):
+        """Run the application with the given arguments.
+
+        Args:
+            args: the arguments from the argparser.
+        """
+
+    def _get_arg_parser(self):
+        """Create the auto parser. This should be implemented by the implementing class.
+
+        To enable autocomplete in your shell please execute activate-global-python-argcomplete in your shell.
+
+        """
+        description = textwrap.dedent("""
+            Basic parser introduction here.
+
+            Can be multiline.
+        """)
+
+        epilog = textwrap.dedent("""
+            Examples of use:
+                mdt-model-fit "BallStick (Cascade)" data.nii.gz data.prtcl roi_mask_0_50.nii.gz
+        """)
+        parser = argparse.ArgumentParser(description=description, epilog=epilog,
+                                         formatter_class=argparse.RawTextHelpFormatter)
+        return parser
+
+    def _get_citation_message(self):
+        return get_citation_message()
+
+
 def get_citation_message():
     """The citation message used in the shell scripts.
 
@@ -31,3 +72,5 @@ def get_citation_message():
         If you use any of the scripts/functions/tools from MDT in your research, please cite the following paper:
             <citation here>
     """)
+
+

@@ -3,7 +3,6 @@ from mdt.models.compartments import CompartmentConfig
 from mdt.cl_routines.mapping.dti_measures import DTIMeasures
 from mdt.utils import eigen_vectors_from_tensor
 from mot import runtime_configuration
-from mot.model_building.parameter_functions.transformations import SinSqrClampDependentTransform
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -32,16 +31,16 @@ class Tensor(CompartmentConfig):
 
         extra_maps = {}
         for ind in range(3):
-            extra_maps.update({self.name + '.eig' + repr(ind) + '.vec': eigen_vectors[:, ind],
-                               self.name + '.eig' + repr(ind) + '.val': eigen_values[ind]})
+            extra_maps.update({self.name + '.vec' + repr(ind): eigen_vectors[:, ind]})
 
             for dimension in range(3):
-                extra_maps.update({self.name + '.eig' + repr(ind) + '.vec.' + repr(dimension):
+                extra_maps.update({self.name + '.vec' + repr(ind) + '_' + repr(dimension):
                                    eigen_vectors[:, ind, dimension]})
 
         fa, md = DTIMeasures(runtime_configuration.runtime_config['cl_environments'],
                              runtime_configuration.runtime_config['load_balancer']).\
             concat_and_calculate(eigen_values[0], eigen_values[1], eigen_values[2])
+
         extra_maps.update({self.name + '.FA': fa, self.name + '.MD': md})
 
         extra_maps.update({self.name + '.AD': eigen_values[0]})

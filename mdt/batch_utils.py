@@ -315,8 +315,8 @@ class SelectedSubjects(BatchSubjectSelection):
             subject_ids (list of str): the list of names of subjects to process
             indices (list of int): the list of indices of subjects we wish to process
         """
-        self.subject_ids = subject_ids
-        self.indices = indices
+        self.subject_ids = subject_ids or []
+        self.indices = indices or []
 
     def get_selection(self, subjects):
         return_list = []

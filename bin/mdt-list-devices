@@ -4,8 +4,8 @@ import argparse
 import textwrap
 import argcomplete
 import mdt
+from mdt.shell_utils import BasicShellApplication
 from mot import cl_environments
-import mdt.shell_utils
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"
@@ -13,8 +13,9 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-if __name__ == '__main__':
-    def get_arg_parser():
+class App(BasicShellApplication):
+
+    def _get_arg_parser(self):
         description = textwrap.dedent("""
             This script prints information about the available devices on your computer.
         """)
@@ -24,15 +25,16 @@ if __name__ == '__main__':
         parser.add_argument('-l', '--long', action='store_true', help='print all info about the devices')
         return parser
 
-    parser = get_arg_parser()
-    argcomplete.autocomplete(parser)
-    args = parser.parse_args()
+    def _run(self, args):
+        mdt.initialize_user_settings(pass_if_exists=True)
 
-    mdt.initialize_user_settings(pass_if_exists=True)
+        for ind, env in enumerate(cl_environments.CLEnvironmentFactory.all_devices()):
+            print('Device {}:'.format(ind))
+            if args.long:
+                print(repr(env))
+            else:
+                print(str(env))
 
-    for ind, env in enumerate(cl_environments.CLEnvironmentFactory.all_devices()):
-        print('Device {}:'.format(ind))
-        if args.long:
-            print(repr(env))
-        else:
-            print(str(env))
+
+if __name__ == '__main__':
+    App().run()

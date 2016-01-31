@@ -2,10 +2,10 @@
 # PYTHON_ARGCOMPLETE_OK
 import argparse
 import os
-import argcomplete
 import mdt
-import mdt.shell_utils
 from argcomplete.completers import FilesCompleter
+
+from mdt.shell_utils import BasicShellApplication
 from mot import cl_environments
 import textwrap
 
@@ -15,11 +15,9 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-if __name__ == '__main__':
+class App(BasicShellApplication):
 
-    def get_arg_parser():
-        """For autocomplete, please execute activate-global-python-argcomplete in your bash or zsh shell."""
-
+    def _get_arg_parser(self):
         description = "Fit one of the models to the given data."
         description += mdt.shell_utils.get_citation_message()
 
@@ -83,17 +81,16 @@ if __name__ == '__main__':
 
         return parser
 
-    mdt.initialize_user_settings(pass_if_exists=True)
+    def _run(self, args):
+        mask_name = os.path.splitext(os.path.basename(os.path.realpath(args.mask)))[0]
+        mask_name = mask_name.replace('.nii', '')
+        output_folder = args.output_folder or os.path.join(os.path.dirname(args.dwi), 'output', mask_name)
 
-    parser = get_arg_parser()
-    argcomplete.autocomplete(parser)
-    args = parser.parse_args()
+        mdt.fit_model(args.model, os.path.realpath(args.dwi), os.path.realpath(args.protocol),
+                      os.path.realpath(args.mask), output_folder, recalculate=args.recalculate,
+                      only_recalculate_last=args.only_recalculate_last, cl_device_ind=args.cl_device_ind,
+                      double_precision=args.double_precision, gradient_deviations=args.gradient_deviations)
 
-    mask_name = os.path.splitext(os.path.basename(os.path.realpath(args.mask)))[0]
-    mask_name = mask_name.replace('.nii', '')
-    output_folder = args.output_folder or os.path.join(os.path.dirname(args.dwi), 'output', mask_name)
 
-    mdt.fit_model(args.model, os.path.realpath(args.dwi), os.path.realpath(args.protocol),
-                  os.path.realpath(args.mask), output_folder, recalculate=args.recalculate,
-                  only_recalculate_last=args.only_recalculate_last, cl_device_ind=args.cl_device_ind,
-                  double_precision=args.double_precision, gradient_deviations=args.gradient_deviations)
+if __name__ == '__main__':
+    App().run()

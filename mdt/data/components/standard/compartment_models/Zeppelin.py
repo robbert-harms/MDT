@@ -1,3 +1,4 @@
+from mdt.components_loader import bound_function
 from mdt.models.compartments import CompartmentConfig, CLCodeFromInlineString
 
 __author__ = 'Robbert Harms'
@@ -18,3 +19,8 @@ class Zeppelin(CompartmentConfig):
                                                         sin(phi) * sin(theta), cos(theta), 0.0)), 2)
                     ) + dperp));
     ''')
+
+    @bound_function
+    def get_extra_results_maps(self, results_dict):
+        return self._get_vector_result_maps(results_dict[self.name + '.theta'],
+                                            results_dict[self.name + '.phi'])

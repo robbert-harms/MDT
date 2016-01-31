@@ -2,12 +2,11 @@
 # PYTHON_ARGCOMPLETE_OK
 import argparse
 import os
-import argcomplete
 import mdt
-import mdt.shell_utils
 from argcomplete.completers import FilesCompleter
 import textwrap
 import mdt.protocols
+from mdt.shell_utils import BasicShellApplication
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"
@@ -15,15 +14,16 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-if __name__ == '__main__':
+class App(BasicShellApplication):
 
-    def get_arg_parser():
-        """For autocomplete, please execute activate-global-python-argcomplete in your bash or zsh shell."""
+    def __init__(self):
+        mdt.initialize_user_settings(pass_if_exists=True)
 
+    def _get_arg_parser(self):
         description = textwrap.dedent("""
             Generate the bval and bvec file from a protocol file.
         """)
-        description += mdt.shell_utils.get_citation_message()
+        description += self._get_citation_message()
 
         epilog = textwrap.dedent("""
         Examples of use:
@@ -40,24 +40,22 @@ if __name__ == '__main__':
 
         return parser
 
-    mdt.initialize_user_settings(pass_if_exists=True)
+    def _run(self, args):
+        protocol_base = os.path.join(os.path.dirname(os.path.realpath(args.protocol)),
+                                     os.path.splitext(os.path.basename(args.protocol))[0])
 
-    parser = get_arg_parser()
-    argcomplete.autocomplete(parser)
-    args = parser.parse_args()
+        if args.bvec:
+            bvec = os.path.realpath(args.bvec)
+        else:
+            bvec = protocol_base + '.bvec'
 
-    protocol_base = os.path.join(os.path.dirname(os.path.realpath(args.protocol)),
-                                 os.path.splitext(os.path.basename(args.protocol))[0])
+        if args.bval:
+            bval = os.path.realpath(args.bval)
+        else:
+            bval = protocol_base + '.bval'
 
-    if args.bvec:
-        bvec = os.path.realpath(args.bvec)
-    else:
-        bvec = protocol_base + '.bvec'
+        mdt.write_protocol_bvec_bval(mdt.load_protocol(os.path.realpath(args.protocol)), bvec, bval)
 
-    if args.bval:
-        bval = os.path.realpath(args.bval)
-    else:
-        bval = protocol_base + '.bval'
 
-    mdt.write_protocol_bvec_bval(mdt.load_protocol(os.path.realpath(args.protocol)), bvec, bval)
-
+if __name__ == '__main__':
+    App().run()

@@ -3,11 +3,9 @@
 import argparse
 import os
 import textwrap
-import argcomplete
 import mdt
-import mdt.shell_utils
 from mdt import get_config_dir
-
+from mdt.shell_utils import BasicShellApplication
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"
@@ -15,8 +13,10 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-if __name__ == '__main__':
-    def get_arg_parser():
+
+class App(BasicShellApplication):
+
+    def _get_arg_parser(self):
         description = textwrap.dedent("""
             This script is meant to update your home folder with the latest MDT models.
 
@@ -40,9 +40,10 @@ if __name__ == '__main__':
 
         return parser
 
-    parser = get_arg_parser()
-    argcomplete.autocomplete(parser)
-    args = parser.parse_args()
+    def _run(self, args):
+        mdt.initialize_user_settings(pass_if_exists=args.pass_if_exists,
+                                     keep_config=args.keep_config)
 
-    mdt.initialize_user_settings(pass_if_exists=args.pass_if_exists,
-                                 keep_config=args.keep_config)
+
+if __name__ == '__main__':
+    App().run()

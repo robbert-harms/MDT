@@ -3,11 +3,10 @@
 import argparse
 import os
 import textwrap
-import argcomplete
 from argcomplete.completers import FilesCompleter
 from mdt.gui.tkgui_main import start_single_gui
 import mdt
-import mdt.shell_utils
+from mdt.shell_utils import BasicShellApplication
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"
@@ -15,8 +14,12 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-if __name__ == '__main__':
-    def get_arg_parser():
+class App(BasicShellApplication):
+
+    def __init__(self):
+        mdt.initialize_user_settings(pass_if_exists=True)
+
+    def _get_arg_parser(self):
         description = textwrap.dedent("""
             Launches the MDT TK single subject Graphical User Interface.
         """)
@@ -27,16 +30,14 @@ if __name__ == '__main__':
                             default=None).completer = FilesCompleter()
         return parser
 
+    def _run(self, args):
+        if args.dir:
+            cwd = os.path.realpath(args.dir)
+        else:
+            cwd = os.getcwd()
 
-    parser = get_arg_parser()
-    argcomplete.autocomplete(parser)
-    args = parser.parse_args()
+        start_single_gui(cwd)
 
-    mdt.initialize_user_settings(pass_if_exists=True)
 
-    if args.dir:
-        cwd = os.path.realpath(args.dir)
-    else:
-        cwd = os.getcwd()
-
-    start_single_gui(cwd)
+if __name__ == '__main__':
+    App().run()

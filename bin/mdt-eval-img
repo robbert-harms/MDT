@@ -1,0 +1,69 @@
+#!/usr/bin/env python
+# PYTHON_ARGCOMPLETE_OK
+import argparse
+import glob
+import os
+import mdt
+from argcomplete.completers import FilesCompleter
+import textwrap
+
+from mdt.shell_utils import BasicShellApplication
+
+__author__ = 'Robbert Harms'
+__date__ = "2015-08-18"
+__maintainer__ = "Robbert Harms"
+__email__ = "robbert.harms@maastrichtuniversity.nl"
+
+
+class App(BasicShellApplication):
+
+    def _get_arg_parser(self):
+        description = textwrap.dedent("""
+            Evaluate an expression on a set of images.
+
+            This is meant to quickly convert/combine one or two maps with a mathematical expression. The expression
+            can be any valid python string.
+
+            The input list of images are loaded (as numpy arrays) and added to the array 'input', or equivalent, 'i'.
+            Next, the expression is evaluated using your input images and the result is stored in the indicated
+            position.
+        """)
+        description += self._get_citation_message()
+
+        epilog = textwrap.dedent("""
+            Examples of use:
+                mdt-eval-img fiso.nii ficvf.nii '(1-input[0]) * i[1]' Wic.w.nii.gz
+        """)
+
+        parser = argparse.ArgumentParser(description=description, epilog=epilog,
+                                         formatter_class=argparse.RawTextHelpFormatter)
+
+        parser.add_argument('input_files', metavar='input_files', nargs="+", type=str,
+                            help="The input images to use")
+
+        parser.add_argument('expr', metavar='expr', type=str,
+                            help="The expression to evaluate.")
+
+        parser.add_argument('output_file',
+                            action=mdt.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
+                            help='the base output name').completer = \
+            FilesCompleter(['nii', 'gz', 'hdr', 'img'], directories=False)
+
+        return parser
+
+    def _run(self, args):
+        output_file = os.path.realpath(args.output_file)
+
+        if os.path.isfile(output_file):
+            os.remove(output_file)
+
+        file_names = []
+        for file in args.input_files:
+            file_names.extend(glob.glob(file))
+
+        images = [mdt.load_nifti(dwi_image).get_data() for dwi_image in file_names]
+        output = eval(args.expr, globals(), {'input': images, 'i': images})
+        mdt.write_image(output_file, output, mdt.load_nifti(file_names[0]).get_header())
+
+if __name__ == '__main__':
+    App().run()

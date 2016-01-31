@@ -3,10 +3,9 @@
 import argparse
 import logging
 import os
-import argcomplete
 import mdt
-import mdt.shell_utils
 from argcomplete.completers import FilesCompleter
+from mdt.shell_utils import BasicShellApplication
 from mot import cl_environments
 from mot import runtime_configuration
 from mot.load_balance_strategies import EvenDistribution
@@ -18,13 +17,13 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-if __name__ == '__main__':
+class App(BasicShellApplication):
 
-    available_devices = {ind: env for ind, env in enumerate(cl_environments.CLEnvironmentFactory.all_devices())}
+    def __init__(self):
+        self.available_devices = {ind: env for ind, env in
+                                  enumerate(cl_environments.CLEnvironmentFactory.all_devices())}
 
-    def get_arg_parser():
-        """For autocomplete, please execute activate-global-python-argcomplete in your bash or zsh shell."""
-
+    def _get_arg_parser(self):
         description = textwrap.dedent("""
             Create a (brain) mask for the given DWI. This uses the median-otsu algorithm.
         """)
@@ -61,7 +60,7 @@ if __name__ == '__main__':
         parser.add_argument('--dilate', type=int, default=1,
                             help="Number of iterations for binary dilation (default 1).")
 
-        parser.add_argument('--cl-device-ind', type=int, nargs='*', choices=available_devices.keys(),
+        parser.add_argument('--cl-device-ind', type=int, nargs='*', choices=self.available_devices.keys(),
                             help="The index of the device we would like to use. This follows the indices "
                                  "in mdt-list-devices and defaults to the first GPU.")
 
@@ -73,25 +72,26 @@ if __name__ == '__main__':
 
         return parser
 
-    parser = get_arg_parser()
-    argcomplete.autocomplete(parser)
-    args = parser.parse_args()
+    def _run(self, args):
+        dwi_name = os.path.splitext(os.path.realpath(args.dwi))[0]
+        dwi_name = dwi_name.replace('.nii', '')
+        output_name = os.path.realpath(args.output_name) or dwi_name + '_mask.nii.gz'
 
-    dwi_name = os.path.splitext(os.path.realpath(args.dwi))[0]
-    dwi_name = dwi_name.replace('.nii', '')
-    output_name = os.path.realpath(args.output_name) or dwi_name + '_mask.nii.gz'
+        if args.cl_device_ind:
+            if isinstance(args.cl_device_ind, int):
+                runtime_configuration.runtime_config['cl_environments'] = [self.available_devices[args.cl_device_ind]]
+            else:
+                runtime_configuration.runtime_config['cl_environments'] = [self.available_devices[ind]
+                                                                           for ind in args.cl_device_ind]
+            runtime_configuration.runtime_config['load_balancer'] = EvenDistribution()
 
-    if args.cl_device_ind:
-        if isinstance(args.cl_device_ind, int):
-            runtime_configuration.runtime_config['cl_environments'] = [available_devices[args.cl_device_ind]]
-        else:
-            runtime_configuration.runtime_config['cl_environments'] = [available_devices[ind]
-                                                                       for ind in args.cl_device_ind]
-        runtime_configuration.runtime_config['load_balancer'] = EvenDistribution()
+        mdt.create_median_otsu_brain_mask(os.path.realpath(args.dwi), os.path.realpath(args.protocol),
+                                          output_name, median_radius=args.median_radius,
+                                          numpass=args.numpass, dilate=args.dilate)
 
-    mdt.create_median_otsu_brain_mask(os.path.realpath(args.dwi), os.path.realpath(args.protocol),
-                                      output_name, median_radius=args.median_radius,
-                                      numpass=args.numpass, dilate=args.dilate)
+        logger = logging.getLogger(__name__)
+        logger.info('Saved the mask to: {}'.format(output_name))
 
-    logger = logging.getLogger(__name__)
-    logger.info('Saved the mask to: {}'.format(output_name))
+
+if __name__ == '__main__':
+    App().run()

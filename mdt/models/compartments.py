@@ -55,22 +55,21 @@ class DMRICompartmentModelFunction(ModelFunction):
         '''.format(dependencies=self._get_cl_dependency_code(), inclusion_guard_name=inclusion_guard_name,
                    header=self._cl_code)
 
-    def _get_single_dir_coordinate_maps(self, theta, phi, r):
-        """Convert spherical coordinates to cartesian coordinates in 3d
+    def _get_vector_result_maps(self, theta, phi):
+        """Convert spherical coordinates to cartesian vector in 3d
 
         Args:
             theta (ndarray): the double array with the theta values
             phi (ndarray): the double array with the phi values
-            r (ndarray): the double array with the r values
 
         Returns:
-            three ndarrays, per vector one map
+            dict: containing the cartesian vector representing the fibre direction in multiple forms.
         """
         cartesian = spherical_to_cartesian(theta, phi)
-        extra_dict = {self.name + '.eig0.vec': cartesian, self.name + '.eig0.val': r}
+        extra_dict = {self.name + '.vec0': cartesian}
 
         for ind in range(3):
-            extra_dict.update({self.name + '.eig0.vec.' + repr(ind): cartesian[:, ind]})
+            extra_dict.update({self.name + '.vec0_' + repr(ind): cartesian[:, ind]})
 
         return extra_dict
 

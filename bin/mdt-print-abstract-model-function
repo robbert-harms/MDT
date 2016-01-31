@@ -2,12 +2,9 @@
 # PYTHON_ARGCOMPLETE_OK
 import argparse
 import sys
-
-import argcomplete
-
 import mdt
 from mdt.models.cascade import DMRICascadeModelInterface
-import mdt.shell_utils
+from mdt.shell_utils import BasicShellApplication
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"
@@ -15,8 +12,9 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-if __name__ == '__main__':
-    def get_arg_parser():
+class App(BasicShellApplication):
+
+    def _get_arg_parser(self):
         description = "This script prints the abstract model function for any of the (non-cascade) models in MDT.\n\n" \
                       "For example, to print the abstract 'BallStick' model function run: \n" \
                       "\tmdt-print-abstract-model-function BallStick\n"
@@ -26,17 +24,16 @@ if __name__ == '__main__':
         parser.add_argument('model', metavar='model', choices=mdt.get_models_list(), help='the model to print')
         return parser
 
-    mdt.initialize_user_settings(pass_if_exists=True)
+    def _run(self, args):
+        model_name = args.model
+        model = mdt.get_model(model_name)
 
-    parser = get_arg_parser()
-    argcomplete.autocomplete(parser)
-    args = parser.parse_args()
+        if isinstance(model, DMRICascadeModelInterface):
+            print('Printing an abstract model function is not supported for cascade models.')
+            sys.exit(2)
 
-    model_name = args.model
-    model = mdt.get_model(model_name)
+        print(model.get_abstract_model_function())
 
-    if isinstance(model, DMRICascadeModelInterface):
-        print('Printing an abstract model function is not supported for cascade models.')
-        sys.exit(2)
 
-    print(model.get_abstract_model_function())
+if __name__ == '__main__':
+    App().run()
