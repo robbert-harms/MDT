@@ -38,10 +38,10 @@ class Noddi(DMRISingleModelConfig):
         ('Noddi_EC.phi', SimpleAssignment('Noddi_IC.phi'))
     )
 
-    post_optimization_modifiers = (
+    post_optimization_modifiers = [
         ('NDI', lambda d: d['w_ic.w'] / (d['w_ic.w'] + d['w_ec.w'])),
         ('ODI', lambda d: d['Noddi_IC.odi'])
-    )
+    ]
 
 
 class Noddi2(DMRISingleModelConfig):
@@ -86,9 +86,9 @@ class Noddi2(DMRISingleModelConfig):
         ('Noddi_EC1.phi', SimpleAssignment('Noddi_IC1.phi')),
     )
 
-    post_optimization_modifiers = [
+    post_optimization_modifiers = (
         ('NDI0', lambda d: d['w_ic0.w'] / (d['w_ic0.w'] + d['w_ec0.w'])),
         ('ODI0', lambda d: d['Noddi_IC0.odi']),
         ('NDI1', lambda d: d['w_ic1.w'] / (d['w_ic1.w'] + d['w_ec1.w'])),
         ('ODI1', lambda d: d['Noddi_IC1.odi'])
-    ]
+    )

@@ -189,7 +189,7 @@ def sample_model(model, dwi_info, protocol, brain_mask, output_folder,
                              sampler=sampler, recalculate=recalculate, cl_device_ind=cl_device_ind,
                              double_precision=double_precision,
                              model_protocol_options=model_protocol_options,
-                             gradient_deviations=gradient_deviations, noise_std='auto', initialize=initialize,
+                             gradient_deviations=gradient_deviations, noise_std=noise_std, initialize=initialize,
                              initialize_using=initialize_using)
 
     return sampling.run()

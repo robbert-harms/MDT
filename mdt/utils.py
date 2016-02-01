@@ -437,6 +437,9 @@ def restore_volumes(data, brain_mask, with_volume_dim=True):
         If with_volume_ind_dim is set we return values with 4 dimensions. (x, y, z, 1). If not set we return only
         three dimensions.
     """
+    from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
+    brain_mask = autodetect_brain_mask_loader(brain_mask).get_data()
+
     shape3d = brain_mask.shape[:3]
     indices = np.ravel_multi_index(np.nonzero(brain_mask), shape3d[:3], order='C')
 
