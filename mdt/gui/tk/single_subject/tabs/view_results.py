@@ -94,7 +94,7 @@ class ViewResultsTab(TabContainer):
             self._parameter_files = {get_name(f): get_name(f) for f in result_files}
 
             items_list = sorted(self._parameter_files.keys())
-            selected_items = filter(lambda v: all(m not in v for m in ('eig', '.d', '.sigma')), items_list)
+            selected_items = filter(lambda v: all(m not in v for m in ('.vec', 'eig', '.d', '.sigma')), items_list)
 
             self._maps_chooser.set_items(items_list, default_items=selected_items)
 
