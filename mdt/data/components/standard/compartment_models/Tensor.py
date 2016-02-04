@@ -48,6 +48,10 @@ class Tensor(CompartmentConfig):
                 extra_maps.update({self.name + '.vec' + repr(ind) + '_' + repr(dimension):
                                    eigen_vectors[:, ind, dimension]})
 
+        extra_maps.update({self.name + '.d.sorted': eigen_values[:, 0],
+                           self.name + '.dperp0.sorted': eigen_values[:, 1],
+                           self.name + '.dperp1.sorted': eigen_values[:, 2]})
+
         fa, md = DTIMeasures(runtime_configuration.runtime_config['cl_environments'],
                              runtime_configuration.runtime_config['load_balancer']).\
             concat_and_calculate(np.squeeze(eigen_values[:, 0]),

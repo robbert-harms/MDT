@@ -1,3 +1,4 @@
+import logging
 from copy import deepcopy
 import numpy as np
 from mdt import utils
@@ -51,6 +52,7 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
         self.smooth_black_list = None
         self.required_nmr_shells = False
         self.gradient_deviations = None
+        self._logger = logging.getLogger(__name__)
 
     @property
     def evaluation_model(self):
@@ -98,6 +100,8 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
                 grad_dev = create_roi(self.gradient_deviations, self._problem_data.mask)
             else:
                 grad_dev = np.copy(self.gradient_deviations)
+
+            self._logger.info('Using the gradient deviations in the model optimization.')
 
             # adds the eye(3) matrix to every grad dev, so we don't have to do it in the kernel.
             # Flattening an eye(3) matrix gives the same result with F and C ordering, I nevertheless put it here

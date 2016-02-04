@@ -375,7 +375,8 @@ class SampleVisualizer(object):
         self._fit_gaussian = True
 
     def show(self, voxel_ind=0, names=None, maps_to_show=None, to_file=None, block=True, maximize=False,
-             show_trace=True, nmr_bins=20, window_title=None, show_sliders=True, fit_gaussian=True):
+             show_trace=True, nmr_bins=20, window_title=None, show_sliders=True, fit_gaussian=True,
+             figure_options=None):
         """Show the samples per voxel.
         Args:
             voxel_ind (int): the voxel to show the samples from.
@@ -397,7 +398,11 @@ class SampleVisualizer(object):
             show_sliders (boolean): if we show the slider or not
             fit_gaussian (boolean): if we fit and show a normal distribution (Gaussian) to the histogram or not
             window_title (str): the title of the window. If None, the default title is used
+            figure_options (dict) options for the figure
         """
+        figure_options = figure_options or {'figsize': (18, 16)}
+        self._figure = plt.figure(**figure_options)
+
         if names:
             self.names = names
         if maps_to_show:
