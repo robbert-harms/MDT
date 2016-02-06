@@ -17,7 +17,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.7.2'
+VERSION = '0.7.3'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')
@@ -652,6 +652,7 @@ def load_nifti(nifti_volume):
     """Load and return a nifti file.
 
     A more general function than load_dwi which is meant for raw diffusion images.
+
     Args:
         nifti_volume (string): The filename of the volume to load.
 
@@ -660,6 +661,21 @@ def load_nifti(nifti_volume):
     """
     import nibabel as nib
     return nib.load(nifti_volume)
+
+
+def load_data_volume(nifti_volume):
+    """Load and return a data volume from a nifti file (or similar data container).
+
+    This calls load_nifti and then returns the data from the nifti file. If the volume is 3d we upscale it to 4d.
+    There are no data type conversions performed.
+
+    Args:
+        nifti_volume (string): The filename of the volume to load.
+
+    Returns:
+        ndarray: the data volume as a 4d array.
+    """
+    return load_dwi(nifti_volume)[0]
 
 
 def make_path_joiner(*folder):

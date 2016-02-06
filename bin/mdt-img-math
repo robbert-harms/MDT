@@ -3,6 +3,9 @@
 import argparse
 import glob
 import os
+
+import numpy as np
+
 import mdt
 from argcomplete.completers import FilesCompleter
 import textwrap
@@ -24,15 +27,27 @@ class App(BasicShellApplication):
             This is meant to quickly convert/combine one or two maps with a mathematical expression. The expression
             can be any valid python string.
 
-            The input list of images are loaded (as numpy arrays) and added to the array 'input', or equivalent, 'i'.
-            Next, the expression is evaluated using your input images and the result is stored in the indicated
-            position.
+            The input list of images are loaded as numpy arrays and stored in the array 'input', or equivalent, 'i'.
+            Next, the expression is evaluated using the input images and the result is stored in the indicated file.
+
+            In the expression you can either use the arrays 'input', 'i' with linear indices to your input images,
+            or/and you can use alphabetic characters for each image. For example, if you have specified 2 input images
+            you can address them as:
+                input[0] or i[0] or a
+                input[1] or i[1] or b
+
+            You can use every single alphabetic character except for the i since that one is reserved for the array.
+
+            The module numpy is also available using the variable 'np'. This allows expressions like:
+                np.mean(np.concatenate(i, axis=3), axis=3)
+            to get the mean value per voxel of all the input images.
         """)
         description += self._get_citation_message()
 
         epilog = textwrap.dedent("""
             Examples of use:
-                mdt-eval-img fiso.nii ficvf.nii '(1-input[0]) * i[1]' Wic.w.nii.gz
+                mdt-img-math fiso.nii ficvf.nii '(1-input[0]) * i[1]' Wic.w.nii.gz
+                mdt-img-math fiso.nii ficvf.nii '(1-a) * b' Wic.w.nii.gz
         """)
 
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
@@ -61,9 +76,16 @@ class App(BasicShellApplication):
         for file in args.input_files:
             file_names.extend(glob.glob(file))
 
-        images = [mdt.load_nifti(dwi_image).get_data() for dwi_image in file_names]
-        output = eval(args.expr, globals(), {'input': images, 'i': images})
+        images = [mdt.load_data_volume(dwi_image) for dwi_image in file_names]
+        context_dict = {'input': images, 'i': images}
+        alpha_chars = list('abcdefghjklmnopqrstuvwxyz')
+
+        for ind, image in enumerate(images):
+            context_dict.update({alpha_chars[ind]: image})
+
+        output = eval(args.expr, {'np': np}, context_dict)
         mdt.write_image(output_file, output, mdt.load_nifti(file_names[0]).get_header())
+
 
 if __name__ == '__main__':
     App().run()
