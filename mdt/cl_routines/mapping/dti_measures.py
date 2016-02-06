@@ -72,7 +72,8 @@ class DTIMeasures(AbstractCLRoutine):
             items = s[0] * s[1]
             eigenvalues = np.reshape(eigenvalues, (s[0] * s[1], -1))
 
-        workers = self._create_workers(_DTIMeasuresWorker, [eigenvalues, fa_host, md_host, double_precision])
+        workers = self._create_workers(lambda cl_environment: _DTIMeasuresWorker(cl_environment, eigenvalues,
+                                                                                 fa_host, md_host, double_precision))
         self.load_balancer.process(workers, items)
 
         if len(s) > 2:

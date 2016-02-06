@@ -47,7 +47,8 @@ class CalculateEigenvectors(AbstractCLRoutine):
         rows = theta_roi.shape[0]
         evecs = np.zeros((rows, 3*3), dtype=np_dtype)
 
-        workers = self._create_workers(_CEWorker, [theta_roi, phi_roi, psi_roi, evecs, double_precision])
+        workers = self._create_workers(lambda cl_environment: _CEWorker(cl_environment, theta_roi, phi_roi,
+                                                                        psi_roi, evecs, double_precision))
         self.load_balancer.process(workers, rows)
 
         return np.reshape(evecs, (rows, 3, 3))
