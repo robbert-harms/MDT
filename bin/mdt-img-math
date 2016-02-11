@@ -11,6 +11,7 @@ from argcomplete.completers import FilesCompleter
 import textwrap
 
 from mdt.shell_utils import BasicShellApplication
+from mdt.utils import split_image_path
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"
@@ -48,6 +49,7 @@ class App(BasicShellApplication):
             Examples of use:
                 mdt-img-math fiso.nii ficvf.nii '(1-input[0]) * i[1]' Wic.w.nii.gz
                 mdt-img-math fiso.nii ficvf.nii '(1-a) * b' Wic.w.nii.gz
+                mdt-img-math *.nii.gz 'np.mean(np.concatenate(i, axis=3), axis=3)' output.nii.gz
         """)
 
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
@@ -64,6 +66,8 @@ class App(BasicShellApplication):
                             help='the base output name').completer = \
             FilesCompleter(['nii', 'gz', 'hdr', 'img'], directories=False)
 
+        parser.add_argument('--verbose', '-v', action='store_true', help="Verbose, prints runtime information")
+
         return parser
 
     def _run(self, args):
@@ -76,6 +80,9 @@ class App(BasicShellApplication):
         for file in args.input_files:
             file_names.extend(glob.glob(file))
 
+        if args.verbose:
+            print('')
+
         images = [mdt.load_data_volume(dwi_image) for dwi_image in file_names]
         context_dict = {'input': images, 'i': images}
         alpha_chars = list('abcdefghjklmnopqrstuvwxyz')
@@ -83,7 +90,31 @@ class App(BasicShellApplication):
         for ind, image in enumerate(images):
             context_dict.update({alpha_chars[ind]: image})
 
+            if args.verbose:
+                print('Input {ind} ({alpha}):'.format(ind=ind, alpha=alpha_chars[ind]))
+                print('    name: {}'.format(split_image_path(file_names[ind])[1]))
+                print('    shape: {}'.format(str(image.shape)))
+
+        if args.verbose:
+            print('')
+            print("Evaluating: '{expr}'".format(expr=args.expr))
+
         output = eval(args.expr, {'np': np}, context_dict)
+
+        if len(output.shape) == 3:
+            if args.verbose:
+                print('')
+                print('Output is 3d, reshaping to 4d')
+                print('Final output shape: {shape}'.format(shape=str(output.shape)))
+            output = output[..., np.newaxis]
+        else:
+            if args.verbose:
+                print('')
+                print('Output shape: {shape}'.format(shape=str(output.shape)))
+
+        if args.verbose:
+            print('')
+
         mdt.write_image(output_file, output, mdt.load_nifti(file_names[0]).get_header())
 
 

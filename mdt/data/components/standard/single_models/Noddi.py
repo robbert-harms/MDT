@@ -21,7 +21,6 @@ class NoddiTortuosityParameterDependency(AbstractParameterDependency):
             if(!isnormal(_tortuosity_mult_{d})){{
                 _tortuosity_mult_{d} = 0.01;
             }}
-            _tortuosity_mult_{d} = clamp(_tortuosity_mult_{d}, (MOT_FLOAT_TYPE)0.01, (MOT_FLOAT_TYPE)0.99);
         '''.format(d=self._d, w_ec=self._w_ec, w_ic=self._w_ic)
 
     @property

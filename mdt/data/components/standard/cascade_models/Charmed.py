@@ -8,11 +8,11 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class CharmedR1(CascadeConfig):
 
-    name = 'Charmed_1r (Cascade)'
+    name = 'Charmed_r1 (Cascade)'
     description = 'Initializes the directions to Ball & Stick.'
     models = ('BallStick (Cascade)',
-              'Charmed_1r')
-    inits = {'Charmed_1r': [('CharmedRestricted0.theta', 'Stick.theta'),
+              'Charmed_r1')
+    inits = {'Charmed_r1': [('CharmedRestricted0.theta', 'Stick.theta'),
                             ('CharmedRestricted0.phi', 'Stick.phi'),
                             ('Tensor.theta', 'Stick.theta'),
                             ('Tensor.phi', 'Stick.phi')]}
@@ -20,31 +20,31 @@ class CharmedR1(CascadeConfig):
 
 class CharmedR1S0(CascadeConfig):
 
-    name = 'Charmed_1r (Cascade|S0)'
-    description = 'Cascade for Charmed 1r initialized with only an S0 fit.'
+    name = 'Charmed_r1 (Cascade|S0)'
+    description = 'Cascade for Charmed r1 initialized with only an S0 fit.'
     models = ('S0',
-              'Charmed_1r')
+              'Charmed_r1')
 
 
 class CharmedR1Fixed(CascadeConfig):
 
-    name = 'Charmed_1r (Cascade|fixed)'
+    name = 'Charmed_r1 (Cascade|fixed)'
     description = 'Fixes the directions to Ball & Stick.'
     models = ('BallStick (Cascade)',
-              'Charmed_1r')
-    inits = {'Charmed_1r': [('Tensor.theta', 'Stick.theta'),
+              'Charmed_r1')
+    inits = {'Charmed_r1': [('Tensor.theta', 'Stick.theta'),
                             ('Tensor.phi', 'Stick.phi')]}
-    fixes = {'Charmed_1r': [('CharmedRestricted0.theta', 'Stick.theta'),
+    fixes = {'Charmed_r1': [('CharmedRestricted0.theta', 'Stick.theta'),
                             ('CharmedRestricted0.phi', 'Stick.phi')]}
 
 
 class CharmedR2(CascadeConfig):
 
-    name = 'Charmed_2r (Cascade)'
+    name = 'Charmed_r2 (Cascade)'
     description = 'Initializes the directions to 2x Ball & Stick.'
     models = ('BallStickStick (Cascade)',
-              'Charmed_2r')
-    inits = {'Charmed_2r': [('Tensor.theta', 'Stick0.theta'),
+              'Charmed_r2')
+    inits = {'Charmed_r2': [('Tensor.theta', 'Stick0.theta'),
                             ('Tensor.phi', 'Stick0.phi'),
                             ('CharmedRestricted0.theta', 'Stick0.theta'),
                             ('CharmedRestricted0.phi', 'Stick0.phi'),
@@ -56,23 +56,23 @@ class CharmedR2(CascadeConfig):
 
 class CharmedR2S0(CascadeConfig):
 
-    name = 'Charmed_2r (Cascade|S0)'
+    name = 'Charmed_r2 (Cascade|S0)'
     description = 'Initializes with only an S0 fit.'
     models = ('S0',
-              'Charmed_2r')
+              'Charmed_r2')
 
 
 class CharmedR2Fixed(CascadeConfig):
 
-    name = 'Charmed_2r (Cascade|fixed)'
+    name = 'Charmed_r2 (Cascade|fixed)'
     description = 'Fixes the directions to 2x Ball & Stick.'
     models = ('BallStickStick (Cascade)',
-              'Charmed_2r')
-    inits = {'Charmed_2r': [('Tensor.theta', 'Stick0.theta'),
+              'Charmed_r2')
+    inits = {'Charmed_r2': [('Tensor.theta', 'Stick0.theta'),
                             ('Tensor.phi', 'Stick0.phi'),
                             ('w_res0.w', 'w_stick0.w'),
                             ('w_res1.w', 'w_stick1.w')]}
-    fixes = {'Charmed_2r': [('CharmedRestricted0.theta', 'Stick0.theta'),
+    fixes = {'Charmed_r2': [('CharmedRestricted0.theta', 'Stick0.theta'),
                             ('CharmedRestricted0.phi', 'Stick0.phi'),
                             ('CharmedRestricted1.theta', 'Stick1.theta'),
                             ('CharmedRestricted1.phi', 'Stick1.phi'),
