@@ -17,12 +17,12 @@
  * @params kappa parameter (concentration parameter of the Watson's distribution)
  */
 MOT_FLOAT_TYPE cmNoddi_EC(const MOT_FLOAT_TYPE4 g,
-                       const MOT_FLOAT_TYPE b,
-                       const MOT_FLOAT_TYPE d,
-                       const MOT_FLOAT_TYPE dperp,
-                       const MOT_FLOAT_TYPE theta,
-                       const MOT_FLOAT_TYPE phi,
-                       const MOT_FLOAT_TYPE kappa){
+                          const MOT_FLOAT_TYPE b,
+                          const MOT_FLOAT_TYPE d,
+                          const MOT_FLOAT_TYPE dperp,
+                          const MOT_FLOAT_TYPE theta,
+                          const MOT_FLOAT_TYPE phi,
+                          const MOT_FLOAT_TYPE kappa){
 
     const MOT_FLOAT_TYPE kappa_scaled = kappa * 10;
     MOT_FLOAT_TYPE dw_0, dw_1;
@@ -31,7 +31,7 @@ MOT_FLOAT_TYPE cmNoddi_EC(const MOT_FLOAT_TYPE4 g,
 	    // using dw_1 as a temporary variable for holding the multiplication factor
 	    dw_1 = sqrt(kappa_scaled)/fdawson(sqrt(kappa_scaled));
 
-	    dw_0 = (-(d - dperp) + 2 * dperp     * kappa_scaled + (d - dperp) * dw_1) / (2.0 * kappa_scaled);
+	    dw_0 = ( -(d - dperp) + 2 * dperp * kappa_scaled + (d - dperp) * dw_1) / (2.0 * kappa_scaled);
 
 	    // overwrites dw_1 with the real dw_1 value, the factor is now lost
 	    dw_1 = ( (d - dperp) + 2 * (d+dperp) * kappa_scaled - (d - dperp) * dw_1) / (4.0 * kappa_scaled);
@@ -49,5 +49,3 @@ MOT_FLOAT_TYPE cmNoddi_EC(const MOT_FLOAT_TYPE4 g,
                       pown(dot(g, (MOT_FLOAT_TYPE4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0)), 2))
                      + dw_1));
 }
-
-

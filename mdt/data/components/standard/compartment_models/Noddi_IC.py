@@ -17,7 +17,7 @@ class Noddi_IC(CompartmentConfig):
     name = 'Noddi_IC'
     cl_function_name = 'cmNoddi_IC'
     parameter_list = ('g', 'b', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'kappa', 'R')
-    dependency_list = (CerfDawson(), CerfErfi(), FirstLegendreTerm(),
+    dependency_list = (CerfErfi(), FirstLegendreTerm(),
                        lib_loader.load('MRIConstants'),
                        lib_loader.load('NeumannCylPerpPGSESum'))
 
