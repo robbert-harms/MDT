@@ -299,7 +299,7 @@ class ModelFit(object):
                 self._logger.info('Preparing for model {0}'.format(model.name))
                 self._logger.info('Current cascade: {0}'.format(model_names))
                 self._logger.info('Setting the noise standard deviation to {0}'.format(self._noise_std))
-                model.evaluation_model.set_noise_level_std(self._noise_std)
+                model.evaluation_model.set_noise_level_std(self._noise_std, fix=True)
 
                 optimizer = self._optimizer or MetaOptimizerBuilder(meta_optimizer_config).construct(model_names)
 

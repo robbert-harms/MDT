@@ -122,7 +122,7 @@ class ModelSampling(object):
             self._logger.info('Using MDT version {}'.format(__version__))
             self._logger.info('Preparing for model {0}'.format(self._model.name))
             self._logger.info('Setting the noise standard deviation to {0}'.format(self._noise_std))
-            self._model.evaluation_model.set_noise_level_std(self._noise_std)
+            self._model.evaluation_model.set_noise_level_std(self._noise_std, fix=True)
 
             if self._cl_device_indices is not None:
                 all_devices = get_cl_devices()
