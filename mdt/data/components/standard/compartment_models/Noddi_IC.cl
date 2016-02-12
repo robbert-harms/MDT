@@ -45,14 +45,20 @@ MOT_FLOAT_TYPE cmNoddi_IC(const MOT_FLOAT_TYPE4 g,
     const MOT_FLOAT_TYPE kappa = kappa_non_scaled * 10;
 
     MOT_FLOAT_TYPE cosTheta = dot(g, (MOT_FLOAT_TYPE4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0.0));
-    if(fabs(cosTheta) > 1){
-        cosTheta = cosTheta / fabs(cosTheta);
+    if(cosTheta > 1){
+        cosTheta = cosTheta / cosTheta;
     }
 
     MOT_FLOAT_TYPE watson_coeff[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
     Noddi_IC_WatsonSHCoeff(kappa, watson_coeff);
 
-    MOT_FLOAT_TYPE LePerp = -2 * GAMMA_H_SQ * pown(G, 2) * NeumannCylPerpPGSESum(Delta, delta, d, R);
+    MOT_FLOAT_TYPE LePerp;
+    if(R == 0){
+        LePerp = 0;
+    }
+    else{
+        LePerp = -2 * GAMMA_H_SQ * pown(G, 2) * NeumannCylPerpPGSESum(Delta, delta, d, R);
+    }
 
     MOT_FLOAT_TYPE lgi[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
     Noddi_IC_LegendreGaussianIntegral(LePerp + d * b, lgi);
