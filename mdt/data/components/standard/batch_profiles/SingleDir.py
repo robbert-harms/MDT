@@ -94,7 +94,7 @@ class SingleDir(SimpleBatchProfile):
             if dwi_fname and (prtcl_fname or (bval_fname and bvec_fname)):
                 protocol_loader = BatchFitProtocolLoader(
                     pjoin(),
-                    prtcl_fname=prtcl_fname, bvec_fname=bvec_fname, bval_fname=bval_fname,
+                    protocol_fname=prtcl_fname, bvec_fname=bvec_fname, bval_fname=bval_fname,
                     protocol_options=extra_cols_from_file)
 
                 if self.output_sub_dir:

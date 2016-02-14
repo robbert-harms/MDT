@@ -328,7 +328,7 @@ class SelectedSubjects(BatchSubjectSelection):
 
 class BatchFitProtocolLoader(ProtocolLoader):
 
-    def __init__(self, base_dir, prtcl_fname=None, protocol_options=None, bvec_fname=None, bval_fname=None):
+    def __init__(self, base_dir, protocol_fname=None, protocol_options=None, bvec_fname=None, bval_fname=None):
         """A simple protocol loader for loading a protocol from a protocol file or bvec/bval files.
 
         This either loads the protocol file if present, or autoloads the protocol using the auto_load_protocol
@@ -336,7 +336,7 @@ class BatchFitProtocolLoader(ProtocolLoader):
         """
         super(BatchFitProtocolLoader, self).__init__()
         self._base_dir = base_dir
-        self._prtcl_fname = prtcl_fname
+        self._protocol_fname = protocol_fname
         self._bvec_fname = bvec_fname
         self._bval_fname = bval_fname
         self._protocol_options= protocol_options
@@ -344,8 +344,8 @@ class BatchFitProtocolLoader(ProtocolLoader):
     def get_protocol(self):
         super(BatchFitProtocolLoader, self).get_protocol()
 
-        if self._prtcl_fname and os.path.isfile(self._prtcl_fname):
-            return load_protocol(self._prtcl_fname)
+        if self._protocol_fname and os.path.isfile(self._protocol_fname):
+            return load_protocol(self._protocol_fname)
 
         return protocols.auto_load_protocol(self._base_dir, protocol_options=self._protocol_options,
                                             bvec_fname=self._bvec_fname, bval_fname=self._bval_fname)

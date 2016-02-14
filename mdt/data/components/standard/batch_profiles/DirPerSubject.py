@@ -79,7 +79,7 @@ class DirPerSubject(SimpleBatchProfile):
                 if dwi_fname and (protocol_fname or (bval_fname and bvec_fname)):
                     protocol_loader = BatchFitProtocolLoader(
                         os.path.join(self._root_dir, subject_id),
-                        prtcl_fname=protocol_fname, bvec_fname=bvec_fname,
+                        protocol_fname=protocol_fname, bvec_fname=bvec_fname,
                         bval_fname=bval_fname)
 
                     output_dir = self._get_subject_output_dir(subject_id)

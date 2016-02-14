@@ -66,7 +66,7 @@ class HCP_WUMINN(SimpleBatchProfile):
 
                 protocol_loader = BatchFitProtocolLoader(
                     pjoin(),
-                    prtcl_fname=prtcl_fname, bvec_fname=bvec_fname,
+                    protocol_fname=prtcl_fname, bvec_fname=bvec_fname,
                     bval_fname=bval_fname, protocol_options={'TE': 0.0895, 'maxG': 0.1})
 
                 if self.output_sub_dir:

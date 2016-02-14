@@ -194,9 +194,9 @@ class RunModelTab(TabContainer):
                     self._brain_mask_chooser.initial_file = mask_name
 
             if not self._protocol_file_chooser.is_valid():
-                prtcl_name = os.path.join(path, img_name + '.prtcl')
-                if os.path.isfile(prtcl_name):
-                    self._protocol_file_chooser.initial_file = prtcl_name
+                protocol_name = os.path.join(path, img_name + '.prtcl')
+                if os.path.isfile(protocol_name):
+                    self._protocol_file_chooser.initial_file = protocol_name
 
         if id_key != 'output_dir_chooser':
             if not self._output_dir_chooser.get_value() and self._image_vol_chooser.is_valid() \

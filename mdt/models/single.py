@@ -149,7 +149,7 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
     def get_protocol_problems(self, protocol=None):
         """See ProtocolCheckInterface"""
         if protocol is None:
-            protocol = self._problem_data.prtcl_data_dict
+            protocol = self._problem_data.protocol_data_dict
 
         problems = []
 
@@ -190,13 +190,13 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
                 MOT_FLOAT_TYPE _new_gradient_vector_length = length(_new_gradient_vector_raw);
                 g = _new_gradient_vector_raw/_new_gradient_vector_length;
             '''
-            if 'b' in list(self.get_problems_prtcl_data().keys()):
+            if 'b' in list(self.get_problems_protocol_data().keys()):
                 s += 'b *= pown(_new_gradient_vector_length, 2);' + "\n"
 
-            if 'G' in list(self.get_problems_prtcl_data().keys()):
+            if 'G' in list(self.get_problems_protocol_data().keys()):
                 s += 'G *= _new_gradient_vector_length;' + "\n"
 
-            if 'GAMMA2_G2_delta2' in list(self.get_problems_prtcl_data().keys()):
+            if 'GAMMA2_G2_delta2' in list(self.get_problems_protocol_data().keys()):
                 s += 'GAMMA2_G2_delta2 *= pown(_new_gradient_vector_length, 2);'
 
             return s
@@ -224,7 +224,7 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
             '''
 
     def _can_use_gradient_deviations(self):
-        return self.gradient_deviations is not None and 'g' in list(self.get_problems_prtcl_data().keys())
+        return self.gradient_deviations is not None and 'g' in list(self.get_problems_protocol_data().keys())
 
     def _add_finalizing_result_maps(self, results_dict):
         log_likelihood_calc = LogLikelihoodCalculator(runtime_configuration.runtime_config['cl_environments'],

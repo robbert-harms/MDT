@@ -45,11 +45,11 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class DMRIProblemData(AbstractProblemData):
 
-    def __init__(self, prtcl_data_dict, dwi_volume, mask, volume_header):
+    def __init__(self, protocol_data_dict, dwi_volume, mask, volume_header):
         """This overrides the standard problem data to also include a mask.
 
         Args:
-            prtcl_data_dict (Protocol): The protocol object used as input data to the model
+            protocol_data_dict (Protocol): The protocol object used as input data to the model
             dwi_volume (ndarray): The DWI data (4d matrix)
             mask (ndarray): The mask used to create the observations list
             volume_header (nifti header): The header of the nifti file to use for writing the results.
@@ -62,26 +62,26 @@ class DMRIProblemData(AbstractProblemData):
         self.dwi_volume = dwi_volume
         self.volume_header = volume_header
         self._mask = mask
-        self._prtcl_data_dict = prtcl_data_dict
+        self._protocol_data_dict = protocol_data_dict
         self._observation_list = None
 
     @property
     def protocol(self):
-        """Return the prtcl_data_dict.
+        """Return the protocol_data_dict.
 
         Returns:
             protocol: The protocol object given in the instantiation.
         """
-        return self.prtcl_data_dict
+        return self.protocol_data_dict
 
     @property
-    def prtcl_data_dict(self):
+    def protocol_data_dict(self):
         """Return the constant data stored in this problem data container.
 
         Returns:
             dict: The protocol data dict.
         """
-        return self._prtcl_data_dict
+        return self._protocol_data_dict
 
     @property
     def observations(self):

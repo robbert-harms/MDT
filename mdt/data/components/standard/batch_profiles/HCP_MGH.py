@@ -55,7 +55,7 @@ class HCP_MGH(SimpleBatchProfile):
 
                 protocol_loader = BatchFitProtocolLoader(
                     pjoin(),
-                    prtcl_fname=prtcl_fname, bvec_fname=bvec_fname, bval_fname=bval_fname,
+                    protocol_fname=prtcl_fname, bvec_fname=bvec_fname, bval_fname=bval_fname,
                     protocol_options={'Delta': 12.9e-3, 'delta': 21.8e-3, 'TR': 8800e-3, 'TE': 57e-3})
 
                 output_dir = self._get_subject_output_dir(subject_id)
