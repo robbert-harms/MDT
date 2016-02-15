@@ -3,7 +3,7 @@ from copy import deepcopy
 import six
 
 import mdt
-from mdt.components_loader import ComponentConfig, ComponentBuilder
+from mdt.components_loader import ComponentConfig, ComponentBuilder, bind_function
 from mdt.models.base import DMRIOptimizable
 from mdt.utils import simple_parameter_init, condense_protocol_problems
 
@@ -198,6 +198,16 @@ class CascadeConfig(ComponentConfig):
     inits = {}
     fixes = {}
 
+    @bind_function
+    def _prepare_model_cb(self, model, output_previous, output_all_previous):
+        """Finalize the preparation of the model in this callback.
+
+        This is called at the end of the regular _prepare_model function defined in the SimpleCascadeModel and
+        as implemented by the AutoCreatedCascadeModel.
+
+        Use this if you want to control more of the initialization of the next model than only the inits and fixes.
+        """
+
 
 class CascadeBuilder(ComponentBuilder):
 
@@ -234,6 +244,8 @@ class CascadeBuilder(ComponentBuilder):
                 if model.name in template.fixes:
                     for item in template.fixes[model.name]:
                         model.fix(item[0], parse_value(item[1]))
+
+                self._prepare_model_cb(model, output_previous, output_all_previous)
 
         self._bind_functions(template, AutoCreatedCascadeModel)
         return AutoCreatedCascadeModel

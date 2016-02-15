@@ -1,6 +1,6 @@
 import numpy as np
 
-from mdt.components_loader import bound_function
+from mdt.components_loader import bind_function
 from mdt.models.compartments import CompartmentConfig
 from mdt.cl_routines.mapping.dti_measures import DTIMeasures
 from mdt.utils import eigen_vectors_from_tensor
@@ -18,7 +18,7 @@ class Tensor(CompartmentConfig):
     cl_function_name = 'cmTensor'
     parameter_list = ('g', 'b', 'd', 'dperp0', 'dperp1', 'theta', 'phi', 'psi')
 
-    @bound_function
+    @bind_function
     def get_extra_results_maps(self, results_dict):
         """This will return the eigenvectors and values for the Tensor.
 

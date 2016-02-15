@@ -1,4 +1,4 @@
-from mdt.components_loader import bound_function
+from mdt.components_loader import bind_function
 from mdt.models.compartments import CompartmentConfig, CLCodeFromAdjacentFile
 from mot.cl_functions import CerfDawson
 
@@ -15,7 +15,7 @@ class Noddi_EC(CompartmentConfig):
     parameter_list = ('g', 'b', 'd', 'dperp0', 'theta', 'phi', 'kappa')
     dependency_list = (CerfDawson(),)
 
-    @bound_function
+    @bind_function
     def get_extra_results_maps(self, results_dict):
         return self._get_vector_result_maps(results_dict[self.name + '.theta'],
                                             results_dict[self.name + '.phi'])

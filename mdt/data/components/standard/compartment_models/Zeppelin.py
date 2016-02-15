@@ -1,4 +1,4 @@
-from mdt.components_loader import bound_function
+from mdt.components_loader import bind_function
 from mdt.models.compartments import CompartmentConfig, CLCodeFromInlineString
 
 __author__ = 'Robbert Harms'
@@ -20,7 +20,7 @@ class Zeppelin(CompartmentConfig):
                     ) + dperp));
     ''')
 
-    @bound_function
+    @bind_function
     def get_extra_results_maps(self, results_dict):
         return self._get_vector_result_maps(results_dict[self.name + '.theta'],
                                             results_dict[self.name + '.phi'])

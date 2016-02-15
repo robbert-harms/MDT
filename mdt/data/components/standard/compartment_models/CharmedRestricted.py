@@ -1,4 +1,4 @@
-from mdt.components_loader import bound_function
+from mdt.components_loader import bind_function
 from mdt.models.compartments import CompartmentConfig, CLCodeFromAdjacentFile
 
 __author__ = 'Robbert Harms'
@@ -13,7 +13,7 @@ class CharmedRestricted(CompartmentConfig):
     cl_function_name = 'cmCharmedRestricted'
     parameter_list = ('g', 'b', 'GAMMA2_G2_delta2', 'TE', 'd', 'theta', 'phi')
 
-    @bound_function
+    @bind_function
     def get_extra_results_maps(self, results_dict):
         return self._get_vector_result_maps(results_dict[self.name + '.theta'],
                                             results_dict[self.name + '.phi'])

@@ -1,5 +1,5 @@
 from mdt.models.compartments import CompartmentConfig, CLCodeFromAdjacentFile, CLCodeFromInlineString
-from mdt.components_loader import LibraryFunctionsLoader, bound_function
+from mdt.components_loader import LibraryFunctionsLoader, bind_function
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -27,7 +27,7 @@ class CylinderGPD(CompartmentConfig):
                 exp(-(Delta - (delta/3.0)) * pown(GAMMA_H * delta * G * cos(omega), 2) * d);
     ''')
 
-    @bound_function
+    @bind_function
     def get_extra_results_maps(self, results_dict):
         return self._get_vector_result_maps(results_dict[self.name + '.theta'],
                                             results_dict[self.name + '.phi'])

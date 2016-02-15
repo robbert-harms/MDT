@@ -22,6 +22,17 @@ its data are handled during model construction.
 """
 
 
+class s0(FreeParameterConfig):
+
+    name = 's0'
+    init_value = 1e4
+    lower_bound = 1
+    upper_bound = 1e10
+    parameter_transform = ClampTransform()
+    sampling_proposal = GaussianProposal(std=25.0)
+    perturbation_function = lambda v: np.clip(v + np.random.normal(scale=1e3, size=v.shape), 1, 1e10)
+
+
 class T1(FreeParameterConfig):
 
     name = 'T1'
