@@ -605,12 +605,12 @@ def initialize_user_settings(pass_if_exists=True, keep_config=True):
             if os.path.exists(path):
                 shutil.rmtree(path)
 
-            init_from_mdt()
-            copy_user_components(tmp_dir)
-            make_sure_user_components_exists()
+        init_from_mdt()
+        copy_user_components(tmp_dir)
+        make_sure_user_components_exists()
 
-            if keep_config:
-                copy_config(tmp_dir)
+        if keep_config:
+            copy_config(tmp_dir)
 
     return path
 
