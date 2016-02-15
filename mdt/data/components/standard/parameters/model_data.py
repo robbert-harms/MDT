@@ -7,6 +7,18 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
+"""The model data parameters.
+
+These are meant for model specific data that the model needs to work. You can of course inline these variables in
+the code for one of the models (which is faster), but in this way you can let the user change the workings of the
+model only by changing the data in the model data parameters.
+
+Please choose the parameter type for a model and parameter carefully since the type signifies how the parameter and
+its data are handled during model construction.
+
+"""
+
+
 # charmed default, used in GDRCylindersFixed model
 class gamma_radii(ModelDataParameterConfig):
 

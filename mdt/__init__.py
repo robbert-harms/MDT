@@ -1,9 +1,7 @@
-import pickle
 import glob
 import os
 from contextlib import contextmanager
 import logging.config as logging_config
-
 import itertools
 import numpy as np
 import six
@@ -126,6 +124,7 @@ def fit_model(model, dwi_info, protocol, brain_mask, output_folder, optimizer=No
         raise RuntimeError('User\'s components folder is not up to date. Please the script mdt-init-user-settings.')
 
     problem_data = utils.load_problem_data(dwi_info, protocol, brain_mask)
+
     model_fit = ModelFit(model, problem_data, output_folder, optimizer=optimizer, recalculate=recalculate,
                          only_recalculate_last=only_recalculate_last, model_protocol_options=model_protocol_options,
                          cl_device_ind=cl_device_ind, double_precision=double_precision,

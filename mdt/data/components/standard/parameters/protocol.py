@@ -6,6 +6,17 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
+"""The protocol parameters
+
+The type of these parameters signifies that the data for this parameter should come from the protocol defined in the
+model data. These will never be optimized and are always set to the data defined in the protocol.
+
+Please choose the parameter type for a model and parameter carefully since the type signifies how the parameter and
+its data are handled during model construction.
+
+"""
+
+
 class g(ProtocolParameterConfig):
     name = 'g'
     data_type = 'MOT_FLOAT_TYPE4'
