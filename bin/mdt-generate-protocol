@@ -59,6 +59,9 @@ class App(BasicShellApplication):
         parser.add_argument('--sequence-timing-units', choices=('ms', 's'), default='ms',
                             help="The units of the sequence timings. The default is 'ms' which we will convert to 's'.")
 
+        parser.add_argument('--G',
+                            help="The gradient amplitudes in T/m.")
+
         parser.add_argument('--maxG', default=0.04,
                             help="The maximum gradient amplitude in T/m. This is only useful if we need to guess "
                                  "big Delta and small delta. Default is 0.04 T/m")
@@ -96,18 +99,22 @@ class App(BasicShellApplication):
         protocol = mdt.load_protocol_bval_bvec(bvec=bvec, bval=bval, bval_scale=bval_scale_factor)
 
         if args.add_sequence_timings:
-            def add_sequence_timing_column_to_protocol(protocol, column, value, units):
-                mult_factor = 1e-3 if units == 'ms' else 1
+            def add_column_to_protocol(protocol, column, value, mult_factor):
                 if value is not None:
                     if os.path.isfile(value):
                         protocol.add_column_from_file(column, os.path.realpath(value), mult_factor)
                     else:
                         protocol.add_column(column, float(value) * mult_factor)
 
-            if os.path.isfile(str(args.maxG)):
-                protocol.add_column_from_file('maxG', os.path.realpath(str(args.maxG)), 1)
-            else:
-                protocol.add_column('maxG', float(args.maxG))
+            def add_sequence_timing_column_to_protocol(protocol, column, value, units):
+                mult_factor = 1e-3 if units == 'ms' else 1
+                add_column_to_protocol(protocol, column, value, mult_factor)
+
+            if args.G is None:
+                if os.path.isfile(str(args.maxG)):
+                    protocol.add_column_from_file('maxG', os.path.realpath(str(args.maxG)), 1)
+                else:
+                    protocol.add_column('maxG', float(args.maxG))
 
             if args.Delta is not None:
                 add_sequence_timing_column_to_protocol(protocol, 'Delta', args.Delta, args.sequence_timing_units)
@@ -117,6 +124,8 @@ class App(BasicShellApplication):
                 add_sequence_timing_column_to_protocol(protocol, 'TE', args.TE, args.sequence_timing_units)
             if args.TR is not None:
                 add_sequence_timing_column_to_protocol(protocol, 'TR', args.TR, args.sequence_timing_units)
+            if args.G is not None:
+                add_column_to_protocol(protocol, 'G', args.G, 1)
 
         mdt.protocols.write_protocol(protocol, output_prtcl)
 

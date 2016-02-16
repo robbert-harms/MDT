@@ -85,7 +85,7 @@ class DMRIProblemData(AbstractProblemData):
 
     @property
     def observations(self):
-        """Return the constant data stored in this problem data container.
+        """Return the observations stored in this problem data container.
 
         Returns:
             ndarray: The list of observations

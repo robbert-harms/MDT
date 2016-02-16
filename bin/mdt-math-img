@@ -47,9 +47,9 @@ class App(BasicShellApplication):
 
         epilog = textwrap.dedent("""
             Examples of use:
-                mdt-img-math fiso.nii ficvf.nii '(1-input[0]) * i[1]' Wic.w.nii.gz
-                mdt-img-math fiso.nii ficvf.nii '(1-a) * b' Wic.w.nii.gz
-                mdt-img-math *.nii.gz 'np.mean(np.concatenate(i, axis=3), axis=3)' output.nii.gz
+                mdt-math-img fiso.nii ficvf.nii '(1-input[0]) * i[1]' Wic.w.nii.gz
+                mdt-math-img fiso.nii ficvf.nii '(1-a) * b' Wic.w.nii.gz
+                mdt-math-img *.nii.gz 'np.mean(np.concatenate(i, axis=3), axis=3)' output.nii.gz
         """)
 
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
