@@ -1,7 +1,7 @@
 import argparse
 import textwrap
-
 import argcomplete
+import sys
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-10-16"
@@ -25,13 +25,26 @@ def get_argparse_extension_checker(choices):
 
 class BasicShellApplication(object):
 
-    def run(self):
+    @classmethod
+    def console_script(cls):
+        """Method used to start the command when launched from a distutils console script."""
+        cls().start(sys.argv[1:])
+
+    def start(self, run_args=None):
+        """ Starts a command and registers single handlers.
+
+        Args:
+            run_args (list): the list of run arguments. If None we use sys.argv[1:].
+        """
+        if run_args is None:
+            run_args = sys.argv[1:]
+
         parser = self._get_arg_parser()
         argcomplete.autocomplete(parser)
-        args = parser.parse_args()
-        self._run(args)
+        args = parser.parse_args(run_args)
+        self.run(args)
 
-    def _run(self, args):
+    def run(self, args):
         """Run the application with the given arguments.
 
         Args:
