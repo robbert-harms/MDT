@@ -14,7 +14,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 
-class App(BasicShellApplication):
+class InitUserSettings(BasicShellApplication):
 
     def _get_arg_parser(self):
         description = textwrap.dedent("""
@@ -46,4 +46,4 @@ class App(BasicShellApplication):
 
 
 if __name__ == '__main__':
-    App().run()
+    InitUserSettings().start()

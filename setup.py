@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import glob
+import inspect
+import os
 import re
-import platform
 from setuptools import setup, find_packages
 
 
@@ -21,9 +22,38 @@ requirements_tests = load_requirements('requirements_tests.txt')
 ver_dic = {}
 exec(compile(version_file_contents, "mdt/__init__.py", 'exec'), ver_dic)
 
-# scripts = glob.glob('bin/mdt-*')
-# if platform.system() == 'Windows':
-#     scripts = list(scripts) + list(glob.glob('bin_windows_extra/mdt-*.bat'))
+
+def load_entry_points():
+    entry_points = {}
+    for file in glob.glob('mdt/cli_scripts/*.py'):
+        module_name = os.path.splitext(os.path.basename(file))[0]
+        command_name = module_name.replace('_', '-')
+
+        def get_command_class():
+            with open(file) as f:
+                info = {}
+                exec(compile(f.read(), "mdt/cli_scripts/{}.py".format(module_name), 'exec'), info)
+
+                for key, value in info.items():
+                    if inspect.isclass(value):
+                        for base in value.__bases__:
+                            if base.__name__ == 'BasicShellApplication':
+                                return value
+            return None
+
+        command_class = get_command_class()
+
+        if command_class is not None:
+            class_name = command_class.__name__
+            script = '{command_name} = mdt.cli_scripts.{module_name}:{class_name}.console_script'.format(
+                command_name=command_name, module_name=module_name, class_name=class_name)
+
+            if not command_class.entry_point_type in entry_points:
+                entry_points[command_class.entry_point_type] = []
+
+            entry_points[command_class.entry_point_type].append(script)
+    return entry_points
+
 
 setup(
     name='mdt',
@@ -58,12 +88,5 @@ setup(
     ],
     test_suite='tests',
     tests_require=requirements_tests,
-    entry_points={
-        'console_scripts': [
-            'mdt-list-devices = mdt.cl_scripts.mdt_list_devices:ListDevices.console_script',
-        ],
-        'gui_scripts': [
-            'mdt-gui-single = mdt.cl_scripts.mdt_gui_single:GUISingle.console_script',
-        ]
-    }
+    entry_points=load_entry_points()
 )

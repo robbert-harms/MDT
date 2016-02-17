@@ -17,7 +17,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class App(BasicShellApplication):
+class GenerateMask(BasicShellApplication):
 
     def __init__(self):
         self.available_devices = {ind: env for ind, env in
@@ -94,4 +94,4 @@ class App(BasicShellApplication):
 
 
 if __name__ == '__main__':
-    App().run()
+    GenerateMask().start()

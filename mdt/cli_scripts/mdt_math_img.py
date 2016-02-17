@@ -19,7 +19,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class App(BasicShellApplication):
+class MathImg(BasicShellApplication):
 
     def _get_arg_parser(self):
         description = textwrap.dedent("""
@@ -119,4 +119,4 @@ class App(BasicShellApplication):
 
 
 if __name__ == '__main__':
-    App().run()
+    MathImg().start()

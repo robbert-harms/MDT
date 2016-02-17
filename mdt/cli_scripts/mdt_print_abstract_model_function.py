@@ -12,7 +12,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class App(BasicShellApplication):
+class PrintAbstractModelFunction(BasicShellApplication):
 
     def _get_arg_parser(self):
         description = "This script prints the abstract model function for any of the (non-cascade) models in MDT.\n\n" \
@@ -36,4 +36,4 @@ class App(BasicShellApplication):
 
 
 if __name__ == '__main__':
-    App().run()
+    PrintAbstractModelFunction().start()

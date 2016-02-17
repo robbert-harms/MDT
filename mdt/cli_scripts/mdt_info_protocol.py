@@ -2,7 +2,6 @@
 # PYTHON_ARGCOMPLETE_OK
 import argparse
 import os
-import argcomplete
 import mdt
 from argcomplete.completers import FilesCompleter
 import textwrap
@@ -16,7 +15,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class App(BasicShellApplication):
+class InfoProtocol(BasicShellApplication):
 
     def _get_arg_parser(self):
         description = textwrap.dedent("""
@@ -56,4 +55,4 @@ class App(BasicShellApplication):
 
 
 if __name__ == '__main__':
-    App().run()
+    InfoProtocol().start()
