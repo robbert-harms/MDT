@@ -1,5 +1,4 @@
 from mdt.models.single import DMRISingleModelConfig
-from mot.model_building.parameter_functions.transformations import SinSqrClampTransform
 from mot.model_building.signal_noise_models import JohnsonSignalNoise
 
 __author__ = 'Robbert Harms'
