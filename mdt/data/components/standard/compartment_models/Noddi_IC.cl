@@ -9,8 +9,23 @@
 // do not change this value! It would require adding approximations to the functions below
 #define NODDI_IC_MAX_POLYNOMIAL_ORDER 6
 
-void Noddi_IC_LegendreGaussianIntegral(const MOT_FLOAT_TYPE x, MOT_FLOAT_TYPE* result);
-void Noddi_IC_WatsonSHCoeff(const MOT_FLOAT_TYPE kappa, MOT_FLOAT_TYPE* result);
+// sqrt(pi)/2
+#ifndef M_SQRTPI_2
+#define M_SQRTPI_2 0.8862269254527580
+#endif
+
+// 1 / sqrt(pi)
+#ifndef M_1_SQRTPI
+#define M_1_SQRTPI 0.5641895835477562
+#endif
+
+// sqrt(pi)
+#ifndef M_SQRTPI
+#define M_SQRTPI 1.7724538509055160
+#endif
+
+void Noddi_IC_LegendreGaussianIntegral(const double x, double* result);
+void Noddi_IC_WatsonSHCoeff(const double kappa, double* result);
 
 /**
  * Generate the compartment model signal for the Noddi Intra Cellular (Stick with dispersion) model.
@@ -42,28 +57,23 @@ MOT_FLOAT_TYPE cmNoddi_IC(const MOT_FLOAT_TYPE4 g,
                           const MOT_FLOAT_TYPE kappa_non_scaled,
                           const MOT_FLOAT_TYPE R){
 
-    const MOT_FLOAT_TYPE kappa = kappa_non_scaled * 10;
+    const double kappa = (double)kappa_non_scaled * 10;
 
-    MOT_FLOAT_TYPE cosTheta = dot(g, (MOT_FLOAT_TYPE4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0.0));
-    if(cosTheta > 1){
-        cosTheta = cosTheta / cosTheta;
+    double cosTheta = dot(g, (MOT_FLOAT_TYPE4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0.0));
+    if(fabs(cosTheta) > 1){
+        cosTheta = cosTheta / fabs(cosTheta);
     }
 
-    MOT_FLOAT_TYPE watson_coeff[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
+    double watson_coeff[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
     Noddi_IC_WatsonSHCoeff(kappa, watson_coeff);
 
-    MOT_FLOAT_TYPE LePerp;
-    if(R == 0){
-        LePerp = 0;
-    }
-    else{
-        LePerp = -2 * GAMMA_H_SQ * pown(G, 2) * NeumannCylPerpPGSESum(Delta, delta, d, R);
-    }
+    double LePerp = select(-2 * GAMMA_H_SQ * pown(G, 2) * NeumannCylPerpPGSESum(Delta, delta, d, R),
+                                   0.0, (long)isequal(R, 0));
 
-    MOT_FLOAT_TYPE lgi[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
-    Noddi_IC_LegendreGaussianIntegral(LePerp + d * b, lgi);
+    double lgi[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
+    Noddi_IC_LegendreGaussianIntegral(fma((double)d, (double)b, LePerp), lgi);
 
-    MOT_FLOAT_TYPE signal = 0.0;
+    double signal = 0.0;
     for(int i = 0; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
         signal += lgi[i] * watson_coeff[i] * sqrt((i + 0.25)/M_PI) * getFirstLegendreTerm(cosTheta, 2*i);
     }
@@ -89,8 +99,8 @@ MOT_FLOAT_TYPE cmNoddi_IC(const MOT_FLOAT_TYPE4 g,
 
     original author: Gary Hui Zhang (gary.zhang@ucl.ac.uk)
 */
-void Noddi_IC_LegendreGaussianIntegral(const MOT_FLOAT_TYPE x, MOT_FLOAT_TYPE* const result){
-    MOT_FLOAT_TYPE tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
+void Noddi_IC_LegendreGaussianIntegral(const double x, double* const result){
+    double tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
 
     if(x > 0.05){
         // exact
@@ -110,10 +120,10 @@ void Noddi_IC_LegendreGaussianIntegral(const MOT_FLOAT_TYPE x, MOT_FLOAT_TYPE* c
     else{
         // approximate
         tmp[0] = pown(x, 2);
-        tmp[1] = tmp[0] * x;
-        tmp[2] = tmp[1] * x;
-        tmp[3] = tmp[2] * x;
-        tmp[4] = tmp[3] * x;
+        tmp[1] = pown(x, 3);
+        tmp[2] = pown(x, 4);
+        tmp[3] = pown(x, 5);
+        tmp[4] = pown(x, 6);
 
         result[0] = 2 - 2*x/3.0 + tmp[0]/5 - tmp[1]/21.0 + tmp[2]/108.0;
         result[1] = -4*x/15.0 + 4*tmp[0]/35.0 - 2*tmp[1]/63.0 + 2*tmp[2]/297.0;
@@ -137,93 +147,88 @@ void Noddi_IC_LegendreGaussianIntegral(const MOT_FLOAT_TYPE x, MOT_FLOAT_TYPE* c
 
     author: Gary Hui Zhang (gary.zhang@ucl.ac.uk)
 */
-void Noddi_IC_WatsonSHCoeff(const MOT_FLOAT_TYPE kappa, MOT_FLOAT_TYPE* const result){
+void Noddi_IC_WatsonSHCoeff(const double kappa, double* const result){
     result[0] = M_SQRTPI * 2;
 
-    MOT_FLOAT_TYPE tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER];
+    double tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER];
 
-    if(kappa <= 30){
-        MOT_FLOAT_TYPE ks[NODDI_IC_MAX_POLYNOMIAL_ORDER - 1];
-        ks[0] = pown(kappa, 2);
-        ks[1] = ks[0] * kappa;
-        ks[2] = ks[1] * kappa;
-        ks[3] = ks[2] * kappa;
-        ks[4] = ks[3] * kappa;
-
-        if(kappa > 0.1){
-            // exact
-            tmp[0] = sqrt(kappa);
-            tmp[1] = tmp[0] * kappa;
-            tmp[2] = tmp[1] * kappa;
-            tmp[3] = tmp[2] * kappa;
-            tmp[4] = tmp[3] * kappa;
-            tmp[5] = tmp[4] * kappa;
-
-            MOT_FLOAT_TYPE erfik = ferfi(tmp[0]);
-            MOT_FLOAT_TYPE ierfik = 1/erfik;
-            MOT_FLOAT_TYPE ek = exp(kappa);
-            MOT_FLOAT_TYPE dawsonk = M_SQRTPI_2 * erfik/ek;
-
-            result[1] = 3 * tmp[0] - (3 + 2 * kappa) * dawsonk;
-            result[1] = sqrt(5.0) * result[1] * ek;
-            result[1] = result[1]*ierfik/kappa;
-
-            result[2] = (105 + 60*kappa + 12*ks[0] )*dawsonk;
-            result[2] = result[2] -105*tmp[0] + 10*tmp[1];
-            result[2] = .375*result[2]*ek/ks[0];
-            result[2] = result[2]*ierfik;
-
-            result[3] = -3465 - 1890*kappa - 420*ks[0]  - 40*ks[1] ;
-            result[3] = result[3]*dawsonk;
-            result[3] = result[3] + 3465*tmp[0] - 420*tmp[1]  + 84*tmp[2];
-            result[3] = result[3]*sqrt(13*M_PI)/64/ks[1];
-            result[3] = result[3]/dawsonk;
-
-            result[4] = 675675 + 360360*kappa + 83160*ks[0]  + 10080*ks[1]  + 560*ks[2] ;
-            result[4] = result[4]*dawsonk;
-            result[4] = result[4] - 675675*tmp[0] + 90090*tmp[1]  - 23100*tmp[2]  + 744*tmp[3];
-            result[4] = sqrt(17.0)*result[4]*ek;
-            result[4] = result[4]/512.0/ks[2];
-            result[4] = result[4]*ierfik;
-
-            result[5] = -43648605 - 22972950*kappa - 5405400*ks[0]  - 720720*ks[1]  - 55440*ks[2]  - 2016*ks[3];
-            result[5] = result[5]*dawsonk;
-            result[5] = result[5] + 43648605*tmp[0] - 6126120*tmp[1]  + 1729728*tmp[2]  - 82368*tmp[3]  + 5104*tmp[4];
-            result[5] = sqrt(21*M_PI)*result[5]/4096.0/ks[3];
-            result[5] = result[5]/dawsonk;
-
-            result[6] = 7027425405 + 3666482820*kappa + 872972100*ks[0]  + 122522400*ks[1]   + 10810800*ks[2]  + 576576*ks[3]  + 14784*ks[4];
-            result[6] = result[6]*dawsonk;
-            result[6] = result[6] - 7027425405*tmp[0] + 1018467450*tmp[1]  - 302630328*tmp[2]  + 17153136*tmp[3]  - 1553552*tmp[4]  + 25376*tmp[5];
-            result[6] = 5*result[6]*ek;
-            result[6] = result[6]/16384.0/ks[4];
-            result[6] = result[6]*ierfik;
-        }
-        else{
-            // approximate
-            result[1] = (4/3.0*kappa + 8/63.0*ks[0]) * sqrt(M_PI/5.0);
-            result[2] = (8/21.0*ks[0] + 32/693.0*ks[1]) * (sqrt(M_PI)*0.2);
-            result[3] = (16/693.0*ks[1] + 32/10395.0*ks[2]) * sqrt(M_PI/13);
-            result[4] = (32/19305.0*ks[2]) * sqrt(M_PI/17);
-            result[5] = 64*sqrt(M_PI/21)*ks[3]/692835.0;
-            result[6] = 128*sqrt(M_PI)*ks[4]/152108775.0;
-        }
-    }
-    else{
+    if(kappa > 30){
         // large
         tmp[0] = log(kappa) - log(30.0);
-        tmp[1] = tmp[0] * tmp[0];
-        tmp[2] = tmp[1] * tmp[0];
-        tmp[3] = tmp[2] * tmp[0];
-        tmp[4] = tmp[3] * tmp[0];
-        tmp[5] = tmp[5] * tmp[0];
+        tmp[1] = pown(tmp[0], 2);
+        tmp[2] = pown(tmp[0], 3);
+        tmp[3] = pown(tmp[0], 4);
+        tmp[4] = pown(tmp[0], 5);
+        tmp[5] = pown(tmp[0], 6);
 
-        result[1] = 7.52308 + 0.411538*tmp[0] - 0.214588*tmp[1] + 0.0784091*tmp[2] - 0.023981*tmp[3] + 0.00731537*tmp[4] - 0.0026467*tmp[5];
-        result[2] = 8.93718 + 1.62147*tmp[0] - 0.733421*tmp[1] + 0.191568*tmp[2] - 0.0202906*tmp[3] - 0.00779095*tmp[4] + 0.00574847*tmp[5];
-        result[3] = 8.87905 + 3.35689*tmp[0] - 1.15935*tmp[1] + 0.0673053*tmp[2] + 0.121857*tmp[3] - 0.066642*tmp[4] + 0.0180215*tmp[5];
-        result[4] = 7.84352 + 5.03178*tmp[0] - 1.0193*tmp[1] - 0.426362*tmp[2] + 0.328816*tmp[3] - 0.0688176*tmp[4] - 0.0229398*tmp[5];
-        result[5] = 6.30113 + 6.09914*tmp[0] - 0.16088*tmp[1] - 1.05578*tmp[2] + 0.338069*tmp[3] + 0.0937157*tmp[4] - 0.106935*tmp[5];
-        result[6] = 4.65678 + 6.30069*tmp[0] + 1.13754*tmp[1] - 1.38393*tmp[2] - 0.0134758*tmp[3] + 0.331686*tmp[4] - 0.105954*tmp[5];
+        result[1] = fma(tmp[5], -0.0026467, fma(tmp[4], 0.00731537,  fma(tmp[3], -0.023981,  fma(tmp[2], 0.0784091, fma(tmp[1], -0.214588, fma(tmp[0], 0.411538, 7.52308))))));
+        result[2] = fma(tmp[5], 0.00574847, fma(tmp[4], -0.00779095, fma(tmp[3], -0.0202906, fma(tmp[2], 0.191568,  fma(tmp[1], -0.733421, fma(tmp[0], 1.62147, 8.93718))))));
+        result[3] = fma(tmp[5], 0.0180215,  fma(tmp[4], -0.066642,   fma(tmp[3], 0.121857,   fma(tmp[2], 0.0673053, fma(tmp[1], -1.15935,  fma(tmp[0], 3.35689, 8.87905))))));
+        result[4] = fma(tmp[5], -0.0229398, fma(tmp[4], -0.0688176,  fma(tmp[3], 0.328816,   fma(tmp[2], -0.426362, fma(tmp[1], -1.0193,   fma(tmp[0], 5.03178, 7.84352))))));
+        result[5] = fma(tmp[5], -0.106935,  fma(tmp[4], 0.0937157,   fma(tmp[3], 0.338069,   fma(tmp[2], -1.05578,  fma(tmp[1], -0.16088,  fma(tmp[0], 6.09914, 6.30113))))));
+        result[6] = fma(tmp[5], -0.105954,  fma(tmp[4], 0.331686,    fma(tmp[3], -0.0134758, fma(tmp[2], -1.38393,  fma(tmp[1], 1.13754,   fma(tmp[0], 6.30069, 4.65678))))));
+
+        return;
     }
+
+    double kappa_2 = pown(kappa, 2);
+    double kappa_3 = pown(kappa, 3);
+    double kappa_4 = pown(kappa, 4);
+    double kappa_5 = pown(kappa, 5);
+    double kappa_6 = pown(kappa, 6);
+
+    if(kappa > 0.1){
+        // exact
+        tmp[0] = sqrt(kappa);
+        tmp[1] = tmp[0] * kappa;
+        tmp[2] = tmp[0] * pown(kappa, 2);
+        tmp[3] = tmp[0] * pown(kappa, 3);
+        tmp[4] = tmp[0] * pown(kappa, 4);
+        tmp[5] = tmp[0] * pown(kappa, 5);
+
+        double erfik = erfi(tmp[0]);
+        double ierfik = 1/erfik;
+        double ek = exp(kappa);
+        double dawsonk = M_SQRTPI_2 * erfik/ek;
+
+        result[1] = (sqrt(5.0) * (3 * tmp[0] - (3 + 2 * kappa) * dawsonk) * ek)*ierfik/kappa;
+        result[2] = (.375*(((105 + 60*kappa + 12*kappa_2 )*dawsonk) -105*tmp[0] + 10*tmp[1])*ek/kappa_2)*ierfik;
+
+        result[3] = -3465 - 1890*kappa - 420*kappa_2  - 40*kappa_3 ;
+        result[3] = result[3]*dawsonk;
+        result[3] = result[3] + 3465*tmp[0] - 420*tmp[1]  + 84*tmp[2];
+        result[3] = result[3]*sqrt(13*M_PI)/64/kappa_3;
+        result[3] = result[3]/dawsonk;
+
+        result[4] = 675675 + 360360*kappa + 83160*kappa_2  + 10080*kappa_3  + 560*kappa_4 ;
+        result[4] = result[4]*dawsonk;
+        result[4] = result[4] - 675675*tmp[0] + 90090*tmp[1]  - 23100*tmp[2]  + 744*tmp[3];
+        result[4] = sqrt(17.0)*result[4]*ek;
+        result[4] = result[4]/512.0/kappa_4;
+        result[4] = result[4]*ierfik;
+
+        result[5] = -43648605 - 22972950*kappa - 5405400*kappa_2  - 720720*kappa_3  - 55440*kappa_4  - 2016*kappa_5;
+        result[5] = result[5]*dawsonk;
+        result[5] = result[5] + 43648605*tmp[0] - 6126120*tmp[1]  + 1729728*tmp[2]  - 82368*tmp[3]  + 5104*tmp[4];
+        result[5] = sqrt(21*M_PI)*result[5]/4096.0/kappa_5;
+        result[5] = result[5]/dawsonk;
+
+        result[6] = 7027425405 + 3666482820*kappa + 872972100*kappa_2  + 122522400*kappa_3   + 10810800*kappa_4  + 576576*kappa_5  + 14784*kappa_6;
+        result[6] = result[6]*dawsonk;
+        result[6] = result[6] - 7027425405*tmp[0] + 1018467450*tmp[1]  - 302630328*tmp[2]  + 17153136*tmp[3]  - 1553552*tmp[4]  + 25376*tmp[5];
+        result[6] = 5*result[6]*ek;
+        result[6] = result[6]/16384.0/kappa_6;
+        result[6] = result[6]*ierfik;
+
+        return;
+    }
+
+    // approximate
+    result[1] = (4 / 3.0 * kappa + 8 / 63.0 * kappa_2) * sqrt(M_PI/5.0);
+    result[2] = (8 / 21.0 * kappa_2 + 32 / 693.0 * kappa_3) * (M_SQRTPI * 0.2);
+    result[3] = (16 / 693.0 * kappa_3 + 32 / 10395.0 * kappa_4) * sqrt(M_PI/13);
+    result[4] = (32 / 19305.0 * kappa_4) * sqrt(M_PI/17);
+    result[5] = 64 * sqrt(M_PI/21) * kappa_5 / 692835.0;
+    result[6] = 128 * M_SQRTPI * kappa_6 / 152108775.0;
 }
 

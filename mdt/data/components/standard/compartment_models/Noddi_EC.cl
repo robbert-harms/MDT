@@ -29,7 +29,7 @@ MOT_FLOAT_TYPE cmNoddi_EC(const MOT_FLOAT_TYPE4 g,
 
     if(kappa_scaled > 1e-5){
 	    // using dw_1 as a temporary variable for holding the multiplication factor
-	    dw_1 = sqrt(kappa_scaled)/fdawson(sqrt(kappa_scaled));
+	    dw_1 = sqrt(kappa_scaled)/dawson(sqrt(kappa_scaled));
 
 	    dw_0 = ( -(d - dperp) + 2 * dperp * kappa_scaled + (d - dperp) * dw_1) / (2.0 * kappa_scaled);
 
