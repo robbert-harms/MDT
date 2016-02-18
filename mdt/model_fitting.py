@@ -225,7 +225,6 @@ class ModelFit(object):
         self._model_protocol_options = model_protocol_options
         self._logger = logging.getLogger(__name__)
         self._cl_device_indices = cl_device_ind
-        self._noise_std = estimate_noise_std(noise_std, self._problem_data)
         self._model_names_list = []
 
         if gradient_deviations is not None:
@@ -234,6 +233,16 @@ class ModelFit(object):
 
         if self._cl_device_indices is not None and not isinstance(self._cl_device_indices, collections.Iterable):
             self._cl_device_indices = [self._cl_device_indices]
+
+        self._cl_envs = None
+        self._load_balancer = None
+        if self._cl_device_indices is not None:
+            all_devices = get_cl_devices()
+            self._cl_envs = [all_devices[ind] for ind in self._cl_device_indices]
+            self._load_balancer = EvenDistribution()
+
+        with runtime_config_context(cl_environments=self._cl_envs, load_balancer=self._load_balancer):
+            self._noise_std = estimate_noise_std(noise_std, self._problem_data)
 
         if not model.is_protocol_sufficient(self._problem_data.protocol):
             raise ProtocolProblemError(
@@ -286,14 +295,7 @@ class ModelFit(object):
         return self._run_single_model(model, recalculate, meta_optimizer_config, self._model_names_list)
 
     def _run_single_model(self, model, recalculate, meta_optimizer_config, model_names):
-        cl_envs = None
-        load_balancer = None
-        if self._cl_device_indices is not None:
-            all_devices = get_cl_devices()
-            cl_envs = [all_devices[ind] for ind in self._cl_device_indices]
-            load_balancer = EvenDistribution()
-
-        with runtime_config_context(cl_environments=cl_envs, load_balancer=load_balancer):
+        with runtime_config_context(cl_environments=self._cl_envs, load_balancer=self._load_balancer):
             with per_model_logging_context(os.path.join(self._output_folder, model.name)):
                 self._logger.info('Using MDT version {}'.format(__version__))
                 self._logger.info('Preparing for model {0}'.format(model.name))
@@ -318,6 +320,7 @@ class ModelFit(object):
                 results = fitter.run()
 
         return results
+
 
 
 class SingleModelFit(object):
