@@ -100,38 +100,36 @@ MOT_FLOAT_TYPE cmNoddi_IC(const MOT_FLOAT_TYPE4 g,
     original author: Gary Hui Zhang (gary.zhang@ucl.ac.uk)
 */
 void Noddi_IC_LegendreGaussianIntegral(const double x, double* const result){
-    double tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
-
     if(x > 0.05){
         // exact
+        double tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
+
         tmp[0] = M_SQRTPI * erf(sqrt(x))/sqrt(x);
         for(int i = 1; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
             tmp[i] = (-exp(-x) + (i - 0.5) * tmp[i-1]) / x;
         }
 
         result[0] = tmp[0];
-        result[1] = -0.5*tmp[0] + 1.5*tmp[1];
-        result[2] = 0.375*tmp[0] - 3.75*tmp[1] + 4.375*tmp[2];
-        result[3] = -0.3125*tmp[0] + 6.5625*tmp[1] - 19.6875*tmp[2] + 14.4375*tmp[3];
-        result[4] = 0.2734375*tmp[0] - 9.84375*tmp[1] + 54.140625*tmp[2] - 93.84375*tmp[3] + 50.2734375*tmp[4];
-        result[5] = -(63/256.0)*tmp[0] + (3465/256.0)*tmp[1] - (30030/256.0)*tmp[2] + (90090/256.0)*tmp[3] - (109395/256.0)*tmp[4] + (46189/256.0)*tmp[5];
-        result[6] = (231/1024.0)*tmp[0] - (18018/1024.0)*tmp[1] + (225225/1024.0)*tmp[2] - (1021020/1024.0)*tmp[3] + (2078505/1024.0)*tmp[4] - (1939938/1024.0)*tmp[5] + (676039/1024.0)*tmp[6];
+        result[1] = fma(tmp[0], -0.5, 1.5*tmp[1]);
+        result[2] = fma(tmp[0], 0.375, fma(tmp[1], -3.75, 4.375*tmp[2]));
+        result[3] = fma(tmp[0], -0.3125, fma(tmp[1], 6.5625, fma(tmp[2], -19.6875, 14.4375*tmp[3])));
+        result[4] = fma(tmp[0], 0.2734375, fma(tmp[1], -9.84375, fma(tmp[2], 54.140625, fma(tmp[3], -93.84375, 50.2734375*tmp[4]))));
+        result[5] = fma(tmp[0], -(63/256.0), fma(tmp[1], (3465/256.0), fma(tmp[2], -(30030/256.0), fma(tmp[3], (90090/256.0), fma(tmp[4], -(109395/256.0), (46189/256.0)*tmp[5])))));
+        result[6] = fma(tmp[0], (231/1024.0), fma(tmp[1], -(18018/1024.0), fma(tmp[2], (225225/1024.0), fma(tmp[3], -(1021020/1024.0), fma(tmp[4], (2078505/1024.0), fma(tmp[5], -(1939938/1024.0), (676039/1024.0)*tmp[6]))))));
     }
     else{
         // approximate
-        tmp[0] = pown(x, 2);
-        tmp[1] = pown(x, 3);
-        tmp[2] = pown(x, 4);
-        tmp[3] = pown(x, 5);
-        tmp[4] = pown(x, 6);
+        MOT_FLOAT_TYPE x2 = pown(x, 2);
+        MOT_FLOAT_TYPE x3 = pown(x, 3);
+        MOT_FLOAT_TYPE x4 = pown(x, 4);
 
-        result[0] = 2 - 2*x/3.0 + tmp[0]/5 - tmp[1]/21.0 + tmp[2]/108.0;
-        result[1] = -4*x/15.0 + 4*tmp[0]/35.0 - 2*tmp[1]/63.0 + 2*tmp[2]/297.0;
-        result[2] = 8*tmp[0]/315.0 - 8*tmp[1]/693.0 + 4*tmp[2]/1287.0;
-        result[3] = -16*tmp[1]/9009.0 + 16*tmp[2]/19305.0;
-        result[4] = 32*tmp[2]/328185.0;
-        result[5] = -64*tmp[3]/14549535.0;
-        result[6] = 128*tmp[4]/760543875.0;
+        result[0] = 2 - 2*x/3.0 + x2/5 - x3/21.0 + x4/108.0;
+        result[1] = -4*x/15.0 + 4*x2/35.0 - 2*x3/63.0 + 2*x4/297.0;
+        result[2] = 8*x2/315.0 - 8*x3/693.0 + 4*x4/1287.0;
+        result[3] = -16*x3/9009.0 + 16*x4/19305.0;
+        result[4] = 32*x4/328185.0;
+        result[5] = -64*pown(x, 5)/14549535.0;
+        result[6] = 128*pown(x, 6)/760543875.0;
     }
 }
 
@@ -150,72 +148,65 @@ void Noddi_IC_LegendreGaussianIntegral(const double x, double* const result){
 void Noddi_IC_WatsonSHCoeff(const double kappa, double* const result){
     result[0] = M_SQRTPI * 2;
 
-    double tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER];
-
     if(kappa > 30){
         // large
-        tmp[0] = log(kappa) - log(30.0);
-        tmp[1] = pown(tmp[0], 2);
-        tmp[2] = pown(tmp[0], 3);
-        tmp[3] = pown(tmp[0], 4);
-        tmp[4] = pown(tmp[0], 5);
-        tmp[5] = pown(tmp[0], 6);
+        MOT_FLOAT_TYPE lnkd = log(kappa) - log(30.0);
+        MOT_FLOAT_TYPE lnkd2 = pown(lnkd, 2);
+        MOT_FLOAT_TYPE lnkd3 = pown(lnkd, 3);
+        MOT_FLOAT_TYPE lnkd4 = pown(lnkd, 4);
+        MOT_FLOAT_TYPE lnkd5 = pown(lnkd, 5);
+        MOT_FLOAT_TYPE lnkd6 = pown(lnkd, 6);
 
-        result[1] = fma(tmp[5], -0.0026467, fma(tmp[4], 0.00731537,  fma(tmp[3], -0.023981,  fma(tmp[2], 0.0784091, fma(tmp[1], -0.214588, fma(tmp[0], 0.411538, 7.52308))))));
-        result[2] = fma(tmp[5], 0.00574847, fma(tmp[4], -0.00779095, fma(tmp[3], -0.0202906, fma(tmp[2], 0.191568,  fma(tmp[1], -0.733421, fma(tmp[0], 1.62147, 8.93718))))));
-        result[3] = fma(tmp[5], 0.0180215,  fma(tmp[4], -0.066642,   fma(tmp[3], 0.121857,   fma(tmp[2], 0.0673053, fma(tmp[1], -1.15935,  fma(tmp[0], 3.35689, 8.87905))))));
-        result[4] = fma(tmp[5], -0.0229398, fma(tmp[4], -0.0688176,  fma(tmp[3], 0.328816,   fma(tmp[2], -0.426362, fma(tmp[1], -1.0193,   fma(tmp[0], 5.03178, 7.84352))))));
-        result[5] = fma(tmp[5], -0.106935,  fma(tmp[4], 0.0937157,   fma(tmp[3], 0.338069,   fma(tmp[2], -1.05578,  fma(tmp[1], -0.16088,  fma(tmp[0], 6.09914, 6.30113))))));
-        result[6] = fma(tmp[5], -0.105954,  fma(tmp[4], 0.331686,    fma(tmp[3], -0.0134758, fma(tmp[2], -1.38393,  fma(tmp[1], 1.13754,   fma(tmp[0], 6.30069, 4.65678))))));
+        result[1] = fma(lnkd6, (MOT_FLOAT_TYPE)-0.0026467, fma(lnkd5, (MOT_FLOAT_TYPE)0.00731537,  fma(lnkd4, (MOT_FLOAT_TYPE)-0.023981,  fma(lnkd3, (MOT_FLOAT_TYPE)0.0784091, fma(lnkd2, (MOT_FLOAT_TYPE)-0.214588, fma(lnkd, (MOT_FLOAT_TYPE)0.411538, (MOT_FLOAT_TYPE)7.52308))))));
+        result[2] = fma(lnkd6, (MOT_FLOAT_TYPE)0.00574847, fma(lnkd5, (MOT_FLOAT_TYPE)-0.00779095, fma(lnkd4, (MOT_FLOAT_TYPE)-0.0202906, fma(lnkd3, (MOT_FLOAT_TYPE)0.191568,  fma(lnkd2, (MOT_FLOAT_TYPE)-0.733421, fma(lnkd, (MOT_FLOAT_TYPE)1.62147, (MOT_FLOAT_TYPE)8.93718))))));
+        result[3] = fma(lnkd6, (MOT_FLOAT_TYPE)0.0180215,  fma(lnkd5, (MOT_FLOAT_TYPE)-0.066642,   fma(lnkd4, (MOT_FLOAT_TYPE)0.121857,   fma(lnkd3, (MOT_FLOAT_TYPE)0.0673053, fma(lnkd2, (MOT_FLOAT_TYPE)-1.15935,  fma(lnkd, (MOT_FLOAT_TYPE)3.35689, (MOT_FLOAT_TYPE)8.87905))))));
+        result[4] = fma(lnkd6, (MOT_FLOAT_TYPE)-0.0229398, fma(lnkd5, (MOT_FLOAT_TYPE)-0.0688176,  fma(lnkd4, (MOT_FLOAT_TYPE)0.328816,   fma(lnkd3, (MOT_FLOAT_TYPE)-0.426362, fma(lnkd2, (MOT_FLOAT_TYPE)-1.0193,   fma(lnkd, (MOT_FLOAT_TYPE)5.03178, (MOT_FLOAT_TYPE)7.84352))))));
+        result[5] = fma(lnkd6, (MOT_FLOAT_TYPE)-0.106935,  fma(lnkd5, (MOT_FLOAT_TYPE)0.0937157,   fma(lnkd4, (MOT_FLOAT_TYPE)0.338069,   fma(lnkd3, (MOT_FLOAT_TYPE)-1.05578,  fma(lnkd2, (MOT_FLOAT_TYPE)-0.16088,  fma(lnkd, (MOT_FLOAT_TYPE)6.09914, (MOT_FLOAT_TYPE)6.30113))))));
+        result[6] = fma(lnkd6, (MOT_FLOAT_TYPE)-0.105954,  fma(lnkd5, (MOT_FLOAT_TYPE)0.331686,    fma(lnkd4, (MOT_FLOAT_TYPE)-0.0134758, fma(lnkd3, (MOT_FLOAT_TYPE)-1.38393,  fma(lnkd2, (MOT_FLOAT_TYPE)1.13754,   fma(lnkd, (MOT_FLOAT_TYPE)6.30069, (MOT_FLOAT_TYPE)4.65678))))));
 
         return;
     }
 
-    double kappa_2 = pown(kappa, 2);
-    double kappa_3 = pown(kappa, 3);
-    double kappa_4 = pown(kappa, 4);
-    double kappa_5 = pown(kappa, 5);
-    double kappa_6 = pown(kappa, 6);
+    MOT_FLOAT_TYPE kappa_2 = pown(kappa, 2);
+    MOT_FLOAT_TYPE kappa_3 = pown(kappa, 3);
+    MOT_FLOAT_TYPE kappa_4 = pown(kappa, 4);
+    MOT_FLOAT_TYPE kappa_5 = pown(kappa, 5);
+    MOT_FLOAT_TYPE kappa_6 = pown(kappa, 6);
 
     if(kappa > 0.1){
         // exact
-        tmp[0] = sqrt(kappa);
-        tmp[1] = tmp[0] * kappa;
-        tmp[2] = tmp[0] * pown(kappa, 2);
-        tmp[3] = tmp[0] * pown(kappa, 3);
-        tmp[4] = tmp[0] * pown(kappa, 4);
-        tmp[5] = tmp[0] * pown(kappa, 5);
+        MOT_FLOAT_TYPE sqrt_kappa = sqrt(kappa);
+        MOT_FLOAT_TYPE sqrt_kappa_2 = sqrt_kappa * kappa;
+        MOT_FLOAT_TYPE sqrt_kappa_3 = sqrt_kappa * pown(kappa, 2);
+        MOT_FLOAT_TYPE sqrt_kappa_4 = sqrt_kappa * pown(kappa, 3);
+        MOT_FLOAT_TYPE sqrt_kappa_5 = sqrt_kappa * pown(kappa, 4);
+        MOT_FLOAT_TYPE sqrt_kappa_6 = sqrt_kappa * pown(kappa, 5);
 
-        double erfik = erfi(tmp[0]);
-        double ierfik = 1/erfik;
-        double ek = exp(kappa);
-        double dawsonk = M_SQRTPI_2 * erfik/ek;
+        MOT_FLOAT_TYPE erfik = erfi(sqrt_kappa);
+        MOT_FLOAT_TYPE ierfik = 1/erfik;
+        MOT_FLOAT_TYPE ek = exp(kappa);
+        MOT_FLOAT_TYPE dawsonk = M_SQRTPI_2 * erfik/ek;
 
-        result[1] = (sqrt(5.0) * (3 * tmp[0] - (3 + 2 * kappa) * dawsonk) * ek)*ierfik/kappa;
-        result[2] = (.375*(((105 + 60*kappa + 12*kappa_2 )*dawsonk) -105*tmp[0] + 10*tmp[1])*ek/kappa_2)*ierfik;
-
-        result[3] = -3465 - 1890*kappa - 420*kappa_2  - 40*kappa_3 ;
-        result[3] = result[3]*dawsonk;
-        result[3] = result[3] + 3465*tmp[0] - 420*tmp[1]  + 84*tmp[2];
-        result[3] = result[3]*sqrt(13*M_PI)/64/kappa_3;
-        result[3] = result[3]/dawsonk;
+        result[1] = (sqrt(5.0) * (3 * sqrt_kappa - (3 + 2 * kappa) * dawsonk) * ek)*ierfik/kappa;
+        result[2] = (.375*(((105 + 60*kappa + 12*kappa_2 )*dawsonk) -105*sqrt_kappa + 10*sqrt_kappa_2)*ek/kappa_2)*ierfik;
+        result[3] = ((((-3465 - 1890*kappa - 420*kappa_2  - 40*kappa_3 )*dawsonk) + 3465*sqrt_kappa - 420*sqrt_kappa_2  + 84*sqrt_kappa_3)*sqrt(13*M_PI)/64/kappa_3)/dawsonk;
 
         result[4] = 675675 + 360360*kappa + 83160*kappa_2  + 10080*kappa_3  + 560*kappa_4 ;
         result[4] = result[4]*dawsonk;
-        result[4] = result[4] - 675675*tmp[0] + 90090*tmp[1]  - 23100*tmp[2]  + 744*tmp[3];
+        result[4] = result[4] - 675675*sqrt_kappa + 90090*sqrt_kappa_2  - 23100*sqrt_kappa_3  + 744*sqrt_kappa_4;
         result[4] = sqrt(17.0)*result[4]*ek;
         result[4] = result[4]/512.0/kappa_4;
         result[4] = result[4]*ierfik;
 
         result[5] = -43648605 - 22972950*kappa - 5405400*kappa_2  - 720720*kappa_3  - 55440*kappa_4  - 2016*kappa_5;
         result[5] = result[5]*dawsonk;
-        result[5] = result[5] + 43648605*tmp[0] - 6126120*tmp[1]  + 1729728*tmp[2]  - 82368*tmp[3]  + 5104*tmp[4];
+        result[5] = result[5] + 43648605*sqrt_kappa - 6126120*sqrt_kappa_2  + 1729728*sqrt_kappa_3  - 82368*sqrt_kappa_4  + 5104*sqrt_kappa_5;
         result[5] = sqrt(21*M_PI)*result[5]/4096.0/kappa_5;
         result[5] = result[5]/dawsonk;
 
         result[6] = 7027425405 + 3666482820*kappa + 872972100*kappa_2  + 122522400*kappa_3   + 10810800*kappa_4  + 576576*kappa_5  + 14784*kappa_6;
         result[6] = result[6]*dawsonk;
-        result[6] = result[6] - 7027425405*tmp[0] + 1018467450*tmp[1]  - 302630328*tmp[2]  + 17153136*tmp[3]  - 1553552*tmp[4]  + 25376*tmp[5];
+        result[6] = result[6] - 7027425405*sqrt_kappa + 1018467450*sqrt_kappa_2  - 302630328*sqrt_kappa_3  + 17153136*sqrt_kappa_4  - 1553552*sqrt_kappa_5  + 25376*sqrt_kappa_6;
         result[6] = 5*result[6]*ek;
         result[6] = result[6]/16384.0/kappa_6;
         result[6] = result[6]*ierfik;

@@ -12,7 +12,7 @@ from mot.cl_functions import Weight
 from mdt.utils import restore_volumes, create_roi
 from mdt.model_protocol_problem import MissingColumns, InsufficientShells
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
-from mot.model_building.evaluation_models import GaussianEvaluationModel
+from mot.model_building.evaluation_models import GaussianEvaluationModel, OffsetGaussianEvaluationModel
 from mot.model_building.parameter_functions.dependencies import WeightSumToOneRule
 from mot.models import SmoothableModelInterface, PerturbationModelInterface
 from mot.model_building.model_builders import SampleModelBuilder
@@ -284,7 +284,7 @@ class DMRISingleModelConfig(ComponentConfig):
     post_optimization_modifiers = []
     dependencies = []
     model_expression = ''
-    evaluation_model = GaussianEvaluationModel().fix('sigma', 1)
+    evaluation_model = OffsetGaussianEvaluationModel().fix('sigma', 1)
     signal_noise_model = None
     inits = {}
     fixes = {}

@@ -24,28 +24,23 @@ MOT_FLOAT_TYPE cmNoddi_EC(const MOT_FLOAT_TYPE4 g,
                           const MOT_FLOAT_TYPE phi,
                           const MOT_FLOAT_TYPE kappa){
 
-    const MOT_FLOAT_TYPE kappa_scaled = kappa * 10;
-    MOT_FLOAT_TYPE dw_0, dw_1;
+    const double kappa_scaled = kappa * 10;
+    double tmp;
+    double dw_0, dw_1;
 
     if(kappa_scaled > 1e-5){
-	    // using dw_1 as a temporary variable for holding the multiplication factor
-	    dw_1 = sqrt(kappa_scaled)/dawson(sqrt(kappa_scaled));
-
-	    dw_0 = ( -(d - dperp) + 2 * dperp * kappa_scaled + (d - dperp) * dw_1) / (2.0 * kappa_scaled);
-
-	    // overwrites dw_1 with the real dw_1 value, the factor is now lost
-	    dw_1 = ( (d - dperp) + 2 * (d+dperp) * kappa_scaled - (d - dperp) * dw_1) / (4.0 * kappa_scaled);
+	    tmp = sqrt(kappa_scaled)/dawson(sqrt(kappa_scaled));
+	    dw_0 = ( -(d - dperp) + 2 * dperp * kappa_scaled + (d - dperp) * tmp) / (2.0 * kappa_scaled);
+	    dw_1 = ( (d - dperp) + 2 * (d+dperp) * kappa_scaled - (d - dperp) * tmp) / (4.0 * kappa_scaled);
     }
     else{
-        // using dw_1 as a temporary variable for holding the multiplication factor
-        dw_1 = 2 * (d - dperp) * kappa_scaled;
-
-	    dw_0 = (fma(2, dperp, d) / 3.0) + (dw_1/22.5) + ((dw_1 * kappa_scaled) / 236.0);
-
-   	    // overwrites dw_1 with the real dw_1 value, the factor is now lost
-   	    dw_1 = (fma(2, dperp, d) / 3.0) - (dw_1/45.0) - ((dw_1 * kappa_scaled) / 472.0);
+        tmp = 2 * (d - dperp) * kappa_scaled;
+        dw_0 = (fma(2, dperp, d) / 3.0) + (tmp/22.5) + ((tmp * kappa_scaled) / 236.0);
+        dw_1 = (fma(2, dperp, d) / 3.0) - (tmp/45.0) - ((tmp * kappa_scaled) / 472.0);
     }
-    return exp(-b * (((dw_0 - dw_1) *
-                      pown(dot(g, (MOT_FLOAT_TYPE4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0)), 2))
-                     + dw_1));
+
+    return (MOT_FLOAT_TYPE) exp(-b * fma((dw_0 - dw_1),
+                                         (double)pown(dot(g, (MOT_FLOAT_TYPE4)(cos(phi) * sin(theta),
+                                                                sin(phi) * sin(theta), cos(theta), 0)), 2),
+                                          dw_1));
 }
