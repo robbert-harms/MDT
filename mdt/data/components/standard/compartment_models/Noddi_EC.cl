@@ -24,9 +24,9 @@ MOT_FLOAT_TYPE cmNoddi_EC(const MOT_FLOAT_TYPE4 g,
                           const MOT_FLOAT_TYPE phi,
                           const MOT_FLOAT_TYPE kappa){
 
-    const double kappa_scaled = kappa * 10;
-    double tmp;
-    double dw_0, dw_1;
+    const MOT_FLOAT_TYPE kappa_scaled = kappa * 10;
+    MOT_FLOAT_TYPE tmp;
+    MOT_FLOAT_TYPE dw_0, dw_1;
 
     if(kappa_scaled > 1e-5){
 	    tmp = sqrt(kappa_scaled)/dawson(sqrt(kappa_scaled));
@@ -40,7 +40,7 @@ MOT_FLOAT_TYPE cmNoddi_EC(const MOT_FLOAT_TYPE4 g,
     }
 
     return (MOT_FLOAT_TYPE) exp(-b * fma((dw_0 - dw_1),
-                                         (double)pown(dot(g, (MOT_FLOAT_TYPE4)(cos(phi) * sin(theta),
+                                         pown(dot(g, (MOT_FLOAT_TYPE4)(cos(phi) * sin(theta),
                                                                 sin(phi) * sin(theta), cos(theta), 0)), 2),
-                                          dw_1));
+                                         dw_1));
 }

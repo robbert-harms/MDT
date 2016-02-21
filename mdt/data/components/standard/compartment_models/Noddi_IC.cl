@@ -24,8 +24,8 @@
 #define M_SQRTPI 1.7724538509055160
 #endif
 
-void Noddi_IC_LegendreGaussianIntegral(const double x, double* result);
-void Noddi_IC_WatsonSHCoeff(const double kappa, double* result);
+void Noddi_IC_LegendreGaussianIntegral(const MOT_FLOAT_TYPE x, MOT_FLOAT_TYPE* result);
+void Noddi_IC_WatsonSHCoeff(const MOT_FLOAT_TYPE kappa, MOT_FLOAT_TYPE* result);
 
 /**
  * Generate the compartment model signal for the Noddi Intra Cellular (Stick with dispersion) model.
@@ -57,21 +57,21 @@ MOT_FLOAT_TYPE cmNoddi_IC(const MOT_FLOAT_TYPE4 g,
                           const MOT_FLOAT_TYPE kappa_non_scaled,
                           const MOT_FLOAT_TYPE R){
 
-    const double kappa = (double)kappa_non_scaled * 10;
+    const MOT_FLOAT_TYPE kappa = kappa_non_scaled * 10;
 
-    double cosTheta = dot(g, (MOT_FLOAT_TYPE4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0.0));
+    MOT_FLOAT_TYPE cosTheta = dot(g, (MOT_FLOAT_TYPE4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0.0));
     if(fabs(cosTheta) > 1){
         cosTheta = cosTheta / fabs(cosTheta);
     }
 
-    double watson_coeff[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
+    MOT_FLOAT_TYPE watson_coeff[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
     Noddi_IC_WatsonSHCoeff(kappa, watson_coeff);
 
-    double LePerp = select(-2 * GAMMA_H_SQ * pown(G, 2) * NeumannCylPerpPGSESum(Delta, delta, d, R),
+    MOT_FLOAT_TYPE LePerp = select(-2 * GAMMA_H_SQ * pown(G, 2) * NeumannCylPerpPGSESum(Delta, delta, d, R),
                                    0.0, (long)isequal(R, 0));
 
-    double lgi[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
-    Noddi_IC_LegendreGaussianIntegral(fma((double)d, (double)b, LePerp), lgi);
+    MOT_FLOAT_TYPE lgi[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
+    Noddi_IC_LegendreGaussianIntegral(fma(d, b, LePerp), lgi);
 
     double signal = 0.0;
     for(int i = 0; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
@@ -99,10 +99,10 @@ MOT_FLOAT_TYPE cmNoddi_IC(const MOT_FLOAT_TYPE4 g,
 
     original author: Gary Hui Zhang (gary.zhang@ucl.ac.uk)
 */
-void Noddi_IC_LegendreGaussianIntegral(const double x, double* const result){
+void Noddi_IC_LegendreGaussianIntegral(const MOT_FLOAT_TYPE x, MOT_FLOAT_TYPE* const result){
     if(x > 0.05){
         // exact
-        double tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
+        MOT_FLOAT_TYPE tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
 
         tmp[0] = M_SQRTPI * erf(sqrt(x))/sqrt(x);
         for(int i = 1; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
@@ -110,12 +110,12 @@ void Noddi_IC_LegendreGaussianIntegral(const double x, double* const result){
         }
 
         result[0] = tmp[0];
-        result[1] = fma(tmp[0], -0.5, 1.5*tmp[1]);
-        result[2] = fma(tmp[0], 0.375, fma(tmp[1], -3.75, 4.375*tmp[2]));
-        result[3] = fma(tmp[0], -0.3125, fma(tmp[1], 6.5625, fma(tmp[2], -19.6875, 14.4375*tmp[3])));
-        result[4] = fma(tmp[0], 0.2734375, fma(tmp[1], -9.84375, fma(tmp[2], 54.140625, fma(tmp[3], -93.84375, 50.2734375*tmp[4]))));
-        result[5] = fma(tmp[0], -(63/256.0), fma(tmp[1], (3465/256.0), fma(tmp[2], -(30030/256.0), fma(tmp[3], (90090/256.0), fma(tmp[4], -(109395/256.0), (46189/256.0)*tmp[5])))));
-        result[6] = fma(tmp[0], (231/1024.0), fma(tmp[1], -(18018/1024.0), fma(tmp[2], (225225/1024.0), fma(tmp[3], -(1021020/1024.0), fma(tmp[4], (2078505/1024.0), fma(tmp[5], -(1939938/1024.0), (676039/1024.0)*tmp[6]))))));
+        result[1] = fma(tmp[0], (MOT_FLOAT_TYPE)-0.5,         (MOT_FLOAT_TYPE)1.5*tmp[1]);
+        result[2] = fma(tmp[0], (MOT_FLOAT_TYPE)0.375,        fma(tmp[1], (MOT_FLOAT_TYPE)-3.75,           (MOT_FLOAT_TYPE)4.375*tmp[2]));
+        result[3] = fma(tmp[0], (MOT_FLOAT_TYPE)-0.3125,      fma(tmp[1], (MOT_FLOAT_TYPE)6.5625,          fma(tmp[2], (MOT_FLOAT_TYPE)-19.6875,        (MOT_FLOAT_TYPE)14.4375*tmp[3])));
+        result[4] = fma(tmp[0], (MOT_FLOAT_TYPE)0.2734375,    fma(tmp[1], (MOT_FLOAT_TYPE)-9.84375,        fma(tmp[2], (MOT_FLOAT_TYPE)54.140625,       fma(tmp[3], (MOT_FLOAT_TYPE)-93.84375,         (MOT_FLOAT_TYPE)50.2734375*tmp[4]))));
+        result[5] = fma(tmp[0], (MOT_FLOAT_TYPE)-(63/256.0),  fma(tmp[1], (MOT_FLOAT_TYPE)(3465/256.0),    fma(tmp[2], (MOT_FLOAT_TYPE)-(30030/256.0),  fma(tmp[3], (MOT_FLOAT_TYPE)(90090/256.0),     fma(tmp[4], (MOT_FLOAT_TYPE)-(109395/256.0),  (MOT_FLOAT_TYPE)(46189/256.0)*tmp[5])))));
+        result[6] = fma(tmp[0], (MOT_FLOAT_TYPE)(231/1024.0), fma(tmp[1], (MOT_FLOAT_TYPE)-(18018/1024.0), fma(tmp[2], (MOT_FLOAT_TYPE)(225225/1024.0), fma(tmp[3], (MOT_FLOAT_TYPE)-(1021020/1024.0), fma(tmp[4], (MOT_FLOAT_TYPE)(2078505/1024.0), fma(tmp[5], (MOT_FLOAT_TYPE)-(1939938/1024.0), (MOT_FLOAT_TYPE)(676039/1024.0)*tmp[6]))))));
     }
     else{
         // approximate
@@ -145,7 +145,7 @@ void Noddi_IC_LegendreGaussianIntegral(const double x, double* const result){
 
     author: Gary Hui Zhang (gary.zhang@ucl.ac.uk)
 */
-void Noddi_IC_WatsonSHCoeff(const double kappa, double* const result){
+void Noddi_IC_WatsonSHCoeff(const MOT_FLOAT_TYPE kappa, MOT_FLOAT_TYPE* const result){
     result[0] = M_SQRTPI * 2;
 
     if(kappa > 30){
