@@ -1,5 +1,4 @@
 import glob
-import logging
 import numbers
 import os
 import itertools
@@ -30,7 +29,6 @@ class Protocol(object):
         self._unweighted_threshold = 25e6
         self._columns = {}
         self._length = None
-        self._logger = logging.getLogger(__name__)
 
         if columns:
             self._columns = columns
@@ -54,7 +52,7 @@ class Protocol(object):
         return self._gamma_h
 
     def add_column(self, name, data):
-        """Add a column to this protocol. This overrides the column if present.
+        """Add a column to this protocol.
 
         Args:
             name (str): The name of the column to add
@@ -70,15 +68,9 @@ class Protocol(object):
             data = np.ones((self._length,)) * data
 
         s = data.shape
-        if self._length and s[0] > self._length:
-            self._logger.info("The column '{}' has to many elements ({}), we will only use the first {}.".format(
-                name, s[0], self._length))
-            self._columns.update({name: data[:self._length]})
-        elif self._length and s[0] < self._length:
-            raise ValueError("Incorrect column length given for '{}', expected {} and got {}.".format(
-                name, self._length, s[0]))
-        else:
-            self._columns.update({name: data})
+        if self._length and s[0] != self._length:
+            raise ValueError("Incorrect column length given.")
+        self._columns.update({name: data})
 
         return self
 
