@@ -1,6 +1,3 @@
-import numpy as np
-
-from mdt.components_loader import bind_function
 from mdt.models.cascade import CascadeConfig
 
 __author__ = 'Robbert Harms'

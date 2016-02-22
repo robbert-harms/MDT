@@ -77,7 +77,7 @@ def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalcul
     return batch_fitting.run()
 
 
-def fit_model(model, dwi_info, protocol, brain_mask, output_folder, optimizer=None,
+def fit_model(model, problem_data, output_folder, optimizer=None,
               recalculate=False, only_recalculate_last=False, model_protocol_options=None,
               cl_device_ind=None, double_precision=False, gradient_deviations=None, noise_std='auto'):
     """Run the optimizer on the given model.
@@ -85,10 +85,8 @@ def fit_model(model, dwi_info, protocol, brain_mask, output_folder, optimizer=No
     Args:
         model (str or AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize
             or the name of an model we load with get_model()
-        dwi_info (string): Either an (ndarray, img_header) tuple or the full path to the volume (4d signal data).
-        protocol (Protocol or string): A protocol object with the right protocol for the given data,
-            or a string object with a filename to the given file.
-        brain_mask (string): A full path to a mask file that can optionally be used. If None given, no mask is used.
+        problem_data (DMRIProblemData): the problem data object containing all the info needed for diffusion
+            MRI model fitting
         output_folder (string): The path to the folder where to place the output, we will make a subdir with the
             model name in it.
         optimizer (AbstractOptimizer): The optimization routine to use.
@@ -123,8 +121,6 @@ def fit_model(model, dwi_info, protocol, brain_mask, output_folder, optimizer=No
     if not utils.check_user_components():
         raise RuntimeError('User\'s components folder is not up to date. Please the script mdt-init-user-settings.')
 
-    problem_data = utils.load_problem_data(dwi_info, protocol, brain_mask)
-
     model_fit = ModelFit(model, problem_data, output_folder, optimizer=optimizer, recalculate=recalculate,
                          only_recalculate_last=only_recalculate_last, model_protocol_options=model_protocol_options,
                          cl_device_ind=cl_device_ind, double_precision=double_precision,
@@ -134,18 +130,14 @@ def fit_model(model, dwi_info, protocol, brain_mask, output_folder, optimizer=No
     return model_fit.run()
 
 
-def sample_model(model, dwi_info, protocol, brain_mask, output_folder,
-                 sampler=None, recalculate=False, model_protocol_options=None,
+def sample_model(model, problem_data, output_folder, sampler=None, recalculate=False, model_protocol_options=None,
                  cl_device_ind=None, double_precision=True,
                  gradient_deviations=None, noise_std='auto', initialize=True, initialize_using=None):
     """Sample a single model. This does not accept cascade models, only single models.
 
     Args:
         model: the model to sample
-        dwi_info (string): Either an (ndarray, img_header) tuple or the full path to the volume (4d signal data).
-        protocol (Protocol or string): A protocol object with the right protocol for the given data,
-            or a string object with a filename to the given file.
-        brain_mask (string): A full path to a mask file that can optionally be used. If None given, no mask is used.
+        problem_data (DMRIProblemData): the problem data object, load with, for example, mdt.load_problem_data().
         output_folder (string): The path to the folder where to place the output, we will make a subdir with the
             model name in it (for the optimization results) and then a subdir with the samples output.
         sampler (AbstractSampler): the sampler to use
@@ -180,9 +172,7 @@ def sample_model(model, dwi_info, protocol, brain_mask, output_folder,
             gradient_deviations = load_nifti(gradient_deviations).get_data()
 
     if not utils.check_user_components():
-        raise RuntimeError('User\'s components folder is not up to date. Please the script mdt-init-user-settings.')
-
-    problem_data = utils.load_problem_data(dwi_info, protocol, brain_mask)
+        raise RuntimeError('User\'s components folder is not up to date. Please run the script mdt-init-user-settings.')
 
     sampling = ModelSampling(model, problem_data, output_folder,
                              sampler=sampler, recalculate=recalculate, cl_device_ind=cl_device_ind,
@@ -252,7 +242,7 @@ def get_cl_devices():
     return get_cl_devices()
 
 
-def load_problem_data(volume_info, protocol, mask):
+def load_problem_data(volume_info, protocol, mask, static_maps=None):
     """Load and create the problem data object that can be given to a model
 
     Args:
@@ -260,12 +250,15 @@ def load_problem_data(volume_info, protocol, mask):
         protocol (Protocol or string): A protocol object with the right protocol for the given data,
             or a string object with a filename to the given file.
         mask (string): A full path to a mask file that can optionally be used. If None given, no mask is used.
+        static_maps (Dict[str, val]): the dictionary with per static map the value to use.
+            The value can either be an 3d or 4d ndarray, a single number or a string. We will convert all to the
+            right format.
 
     Returns:
         The Problem data, in the ProblemData container object.
     """
     from mdt.utils import load_problem_data
-    return load_problem_data(volume_info, protocol, mask)
+    return load_problem_data(volume_info, protocol, mask, static_maps=static_maps)
 
 
 def load_protocol_bval_bvec(bvec=None, bval=None, bval_scale='auto'):

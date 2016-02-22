@@ -1,4 +1,4 @@
-from mdt.models.parameters import StaticDataParameterConfig
+from mdt.models.parameters import StaticMapParameterConfig
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-02-14"
@@ -17,20 +17,20 @@ its data are handled during model construction.
 """
 
 
-class b1_static(StaticDataParameterConfig):
+class b1_static(StaticMapParameterConfig):
 
     name = 'b1_static'
     data_type = 'MOT_FLOAT_TYPE'
     value = 1
 
 
-class T1_static(StaticDataParameterConfig):
+class T1_static(StaticMapParameterConfig):
 
     name = 'T1_static'
     data_type = 'MOT_FLOAT_TYPE'
 
 
-class T2_static(StaticDataParameterConfig):
+class T2_static(StaticMapParameterConfig):
 
     name = 'T2_static'
     data_type = 'MOT_FLOAT_TYPE'

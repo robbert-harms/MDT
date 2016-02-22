@@ -78,7 +78,7 @@ MOT_FLOAT_TYPE cmNoddi_IC(const MOT_FLOAT_TYPE4 g,
         signal += lgi[i] * watson_coeff[i] * sqrt((i + 0.25)/M_PI) * getFirstLegendreTerm(cosTheta, 2*i);
     }
 
-    if(signal <= 0){
+    if(signal <= 0 || !isnormal(signal)){
         return 0.00001;
     }
 

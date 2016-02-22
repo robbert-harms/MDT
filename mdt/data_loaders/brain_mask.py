@@ -27,7 +27,7 @@ def autodetect_brain_mask_loader(data_source):
     elif isinstance(data_source, six.string_types):
         return BrainMaskFromFileLoader(data_source)
     elif isinstance(data_source, np.ndarray):
-        return BrainMaskDirectLoader(data_source)
+        return BrainMaskFromArray(data_source)
     raise ValueError('The given data source could not be recognized.')
 
 
@@ -47,8 +47,6 @@ class BrainMaskFromFileLoader(BrainMaskLoader):
     def __init__(self, filename):
         """Loads a brain mask from the given filename.
 
-        This class may apply caching.
-
         Args:
             filename (str): the filename to load the brain mask from.
         """
@@ -62,7 +60,7 @@ class BrainMaskFromFileLoader(BrainMaskLoader):
         return self._brain_mask
 
 
-class BrainMaskDirectLoader(BrainMaskLoader):
+class BrainMaskFromArray(BrainMaskLoader):
 
     def __init__(self, mask_data):
         """Adapter for returning an already loaded brain mask.

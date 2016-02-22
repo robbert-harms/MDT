@@ -232,7 +232,11 @@ class RunModelProcess(object):
         else:
             optimizer = MetaOptimizerBuilder(self._optim_options.get_meta_optimizer_config()).construct()
 
-        mdt.fit_model(self._model_name, self._image_path, self._protocol_path, self._brain_mask_path, self._output_dir,
+        mdt.fit_model(self._model_name,
+                      mdt.load_problem_data(self._image_path,
+                                            self._protocol_path,
+                                            self._brain_mask_path),
+                      self._output_dir,
                       optimizer=optimizer,
                       recalculate=True,
                       only_recalculate_last=self._optim_options.recalculate_all,

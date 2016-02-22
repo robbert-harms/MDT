@@ -7,11 +7,11 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class Stick(CompartmentConfig):
+class SSFP_Stick(CompartmentConfig):
 
-    name = 'Stick'
-    cl_function_name = 'cmStick'
-    parameter_list = ('g', 'b', 'd', 'theta', 'phi')
+    name = 'SSFP_Stick'
+    cl_function_name = 'cmSSFP_Stick'
+    parameter_list = ('g', 'b', 'd', 'theta', 'phi', 'b1_static', 'T1_static', 'T2_static')
     cl_code = CLCodeFromInlineString('''
         return exp(-b * d * pown(dot(g, (MOT_FLOAT_TYPE4)(cos(phi) * sin(theta),
                                                           sin(phi) * sin(theta), cos(theta), 0.0)), 2));

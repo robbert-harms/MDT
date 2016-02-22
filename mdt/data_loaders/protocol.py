@@ -49,8 +49,6 @@ class ProtocolFromFileLoader(ProtocolLoader):
     def __init__(self, filename):
         """Loads a protocol from the given filename.
 
-        This class may apply caching.
-
         Args:
             filename (str): the filename to load the protocol from.
         """

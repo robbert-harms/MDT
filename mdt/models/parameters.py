@@ -1,7 +1,7 @@
 import six
 
 from mdt.components_loader import ComponentConfig, ComponentBuilder
-from mot.base import ProtocolParameter, CLDataType, FreeParameter, ModelDataParameter, StaticDataParameter
+from mot.base import ProtocolParameter, CLDataType, FreeParameter, ModelDataParameter, StaticMapParameter
 from mot.model_building.parameter_functions.priors import UniformWithinBoundsPrior
 from mot.model_building.parameter_functions.proposals import GaussianProposal
 from mot.model_building.parameter_functions.sample_statistics import GaussianPSS
@@ -66,12 +66,12 @@ class ModelDataParameterConfig(ParameterConfig):
     value = None
 
 
-class StaticDataParameterConfig(ParameterConfig):
+class StaticMapParameterConfig(ParameterConfig):
     """The default config options for static data parameters.
 
-    This sets the attribute type to static_data.
+    This sets the attribute type to static_map.
     """
-    type = 'static_data'
+    type = 'static_map'
     value = None
 
 
@@ -117,8 +117,8 @@ class ParameterBuilder(ComponentBuilder):
                     super(AutoModelDataParameter, self).__init__(data_type, template.name, template.value)
             return AutoModelDataParameter
 
-        elif template.type.lower() == 'static_data':
-            class AutoStaticDataParameter(StaticDataParameter):
+        elif template.type.lower() == 'static_map':
+            class AutoStaticMapParameter(StaticMapParameter):
                 def __init__(self):
-                    super(AutoStaticDataParameter, self).__init__(data_type, template.name, template.value)
-            return AutoStaticDataParameter
+                    super(AutoStaticMapParameter, self).__init__(data_type, template.name, template.value)
+            return AutoStaticMapParameter

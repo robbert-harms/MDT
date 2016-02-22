@@ -1,6 +1,7 @@
 import six
 import nibabel as nib
 import numpy as np
+import numbers
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-25"
@@ -8,69 +9,91 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-def autodetect_brain_mask_loader(data_source):
-    """A function to get a brain mask loader using the given data source.
+def autodetect_static_maps_loader(data_source):
+    """A function to get a static maps loader using the given data source.
 
     This tries to do auto detecting for the following data sources:
-        - BrainMaskLoader
+        - StaticMapLoader
         - strings (filenames)
         - ndarray (3d containing the mask)
+        - single float
 
     Args:
-        data_source: the data source from which to get a brain_mask loader
+        data_source: the data source from which to get a static map loader
 
     Returns:
-        BrainMaskLoader: a brain_mask loader instance.
+        StaticMapLoader: a brain_mask loader instance.
     """
-    if isinstance(data_source, BrainMaskLoader):
+    if isinstance(data_source, StaticMapLoader):
         return data_source
     elif isinstance(data_source, six.string_types):
-        return BrainMaskFromFileLoader(data_source)
+        return StaticMapFromFileLoader(data_source)
     elif isinstance(data_source, np.ndarray):
-        return BrainMaskDirectLoader(data_source)
+        return StaticMapFromArray(data_source)
+    elif isinstance(data_source, numbers.Number):
+        return StaticMapSingleValue(data_source)
+
     raise ValueError('The given data source could not be recognized.')
 
 
-class BrainMaskLoader(object):
-    """Interface for loading brain_masks from different sources."""
+class StaticMapLoader(object):
+    """Interface for loading static maps from different sources."""
 
-    def get_data(self):
-        """The public method used to get an instance of a brain mask.
+    def get_data(self, mask):
+        """The public method for getting the value of the map.
+
+        Args:
+            the mask in use, we need this to convert static maps that are not a single value to one or two
+            dimensional arrays.
 
         Returns:
-            ndarray: 3d ndarray containing the brain mask
+            ndarray: 3d ndarray containing the static map
         """
 
 
-class BrainMaskFromFileLoader(BrainMaskLoader):
+class StaticMapFromFileLoader(StaticMapLoader):
 
     def __init__(self, filename):
-        """Loads a brain mask from the given filename.
-
-        This class may apply caching.
+        """Loads a static map from the given filename.
 
         Args:
-            filename (str): the filename to load the brain mask from.
+            filename (str): the filename to load the data from
         """
         self._filename = filename
-        self._brain_mask = None
-        self._header = None
+        self._loaded_data = None
 
-    def get_data(self):
-        if self._brain_mask is None:
-            self._brain_mask = nib.load(self._filename).get_data() > 0
-        return self._brain_mask
+    def get_data(self, mask):
+        if self._loaded_data is None:
+            self._loaded_data = nib.load(self._filename).get_data()
+
+        from mdt.utils import create_roi
+        return create_roi(self._loaded_data, mask)
 
 
-class BrainMaskDirectLoader(BrainMaskLoader):
+class StaticMapFromArray(StaticMapLoader):
 
-    def __init__(self, mask_data):
-        """Adapter for returning an already loaded brain mask.
+    def __init__(self, static_map):
+        """Adapter for converting a 3d or 4d static map to the right ROI.
 
         Args:
-            ndarray (ndarray): the brain mask data (3d matrix)
+            ndarray (ndarray): the map data (3d or 4d matrix)
         """
-        self._mask_data = mask_data
+        self._static_map = static_map
 
-    def get_data(self):
-        return self._mask_data
+    def get_data(self, mask):
+        from mdt.utils import create_roi
+        return create_roi(self._static_map, mask)
+
+
+class StaticMapSingleValue(StaticMapLoader):
+
+    def __init__(self, map_value):
+        """Adapter for converting a 3d or 4d static map to the right ROI.
+
+        Args:
+            map_value (Number): the single map value
+        """
+        self._map_value = map_value
+
+    def get_data(self, mask):
+        return float(self._map_value)

@@ -2,7 +2,7 @@ import tempfile
 import shutil
 import numpy as np
 from mdt import fit_model, restore_volumes, create_roi, create_median_otsu_brain_mask
-from mdt.utils import NoiseStdCalculator
+from mdt.utils import NoiseStdCalculator, load_problem_data
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-11-20"
@@ -45,7 +45,10 @@ class AverageOfUnweightedVolumes(NoiseStdCalculator):
     def _get_s0_fit(self):
         self._logger.info('Estimating S0 for the noise standard deviation')
         tmp_dir = tempfile.mkdtemp()
-        output = fit_model('S0', self._volume_info, self._protocol, self._mask, tmp_dir, noise_std=None)
+        output = fit_model('S0',
+                           load_problem_data(self._volume_info, self._protocol, self._mask),
+                           tmp_dir,
+                           noise_std=None)
         shutil.rmtree(tmp_dir)
         self._logger.info('Done fitting S0 for the noise standard deviation')
         return restore_volumes(output['S0.s0'], self._mask)

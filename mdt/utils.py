@@ -24,6 +24,7 @@ from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
 from mdt.components_loader import get_model, ProcessingStrategiesLoader, NoiseSTDCalculatorsLoader
 from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
 from mdt.data_loaders.protocol import autodetect_protocol_loader
+from mdt.data_loaders.static_maps import autodetect_static_maps_loader
 from mdt.log_handlers import ModelOutputLogHandler
 from mot import runtime_configuration
 from mot.base import AbstractProblemData
@@ -45,7 +46,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class DMRIProblemData(AbstractProblemData):
 
-    def __init__(self, protocol_data_dict, dwi_volume, mask, volume_header):
+    def __init__(self, protocol_data_dict, dwi_volume, mask, volume_header, static_maps=None):
         """This overrides the standard problem data to also include a mask.
 
         Args:
@@ -53,10 +54,10 @@ class DMRIProblemData(AbstractProblemData):
             dwi_volume (ndarray): The DWI data (4d matrix)
             mask (ndarray): The mask used to create the observations list
             volume_header (nifti header): The header of the nifti file to use for writing the results.
+            static_maps (Dict[str, ndarray]): the static maps used as values for the static map parameters
 
         Attributes:
             dwi_volume (ndarray): The DWI volume
-            mask (ndarray): The mask used to create the observations list
             volume_header (nifti header): The header of the nifti file to use for writing the results.
         """
         self.dwi_volume = dwi_volume
@@ -64,6 +65,7 @@ class DMRIProblemData(AbstractProblemData):
         self._mask = mask
         self._protocol_data_dict = protocol_data_dict
         self._observation_list = None
+        self._static_maps = static_maps or {}
 
     @property
     def protocol(self):
@@ -102,6 +104,17 @@ class DMRIProblemData(AbstractProblemData):
             np.array: the numpy mask array
         """
         return self._mask
+
+    @property
+    def static_maps(self):
+        """Get the static maps. They are used as data for the static parameters.
+
+        Returns:
+            Dict[str, val]: per static map the value for the static map. This can either be an one or two dimensional
+                matrix containing the values for each problem instance or it can be a single value we will use
+                for all problem instances.
+        """
+        return self._static_maps
 
     @mask.setter
     def mask(self, new_mask):
@@ -392,10 +405,10 @@ def create_roi(data, brain_mask):
     """Create and return masked data of the given brain volume and mask
 
     Args:
-        data (string or ndarray): a brain volume with four dimensions (x, y, z, w)
+        data (string, ndarray or dict): a brain volume with four dimensions (x, y, z, w)
             where w is the length of the protocol, or a list, tuple or dictionary with volumes or a string
             with a filename of a dataset to load.
-        brain_mask (ndarray or str): the mask indicating the region of interest, dimensions: (x, y, z) or the string
+        brain_mask (ndarray or str): the mask indicating the region of interest with dimensions: (x, y, z) or the string
             to the brain mask to load
 
     Returns:
@@ -711,7 +724,7 @@ def recursive_merge_dict(dictionary, update_dict, in_place=False):
     return merge(dictionary, update_dict)
 
 
-def load_problem_data(volume_info, protocol, mask):
+def load_problem_data(volume_info, protocol, mask, static_maps=None):
     """Load and create the problem data object that can be given to a model
 
     Args:
@@ -719,6 +732,9 @@ def load_problem_data(volume_info, protocol, mask):
         protocol (Protocol or string): A protocol object with the right protocol for the given data,
             or a string object with a filename to the given file.
         mask (ndarray, string): A full path to a mask file or a 3d ndarray containing the mask
+        static_maps (Dict[str, val]): the dictionary with per static map the value to use.
+            The value can either be an 3d or 4d ndarray, a single number or a string. We will convert all to the
+            right format.
 
     Returns:
         DMRIProblemData: the problem data object containing all the info needed for diffusion MRI model fitting
@@ -731,7 +747,10 @@ def load_problem_data(volume_info, protocol, mask):
     else:
         signal4d, img_header = volume_info
 
-    return DMRIProblemData(protocol, signal4d, mask, img_header)
+    if static_maps is not None:
+        static_maps = {key: autodetect_static_maps_loader(val).get_data(mask) for key, val in static_maps.items()}
+
+    return DMRIProblemData(protocol, signal4d, mask, img_header, static_maps=static_maps)
 
 
 def load_dwi(volume_fname):
@@ -1078,7 +1097,7 @@ class NoiseStdCalculator(object):
                 full path to the volume (4d signal data).
             protocol (Protocol or string): A protocol object with the right protocol for the given data,
                 or a string object with a filename to the given file.
-            brain_mask (string): A full path to a mask file that can optionally be used.
+            mask (string): A full path to a mask file that can optionally be used.
                 If None given, we will create one if necessary.
         """
         self._volume_info = volume_info
