@@ -55,8 +55,7 @@ class Noddi(DMRISingleModelConfig):
 
     dependencies = (
         ('Noddi_EC.dperp0', NoddiTortuosityParameterDependency('Noddi_EC.d', 'w_ec.w', 'w_ic.w')),
-        ('Noddi_IC.kappa', SimpleAssignment('select((MOT_FLOAT_TYPE)0.0, Noddi_IC.kappa, '
-                                            '(MOT_INT_CMP_TYPE)((w_ec.w + w_ic.w) >= {cutoff}))'.format(cutoff=0.01),
+        ('Noddi_IC.kappa', SimpleAssignment('((w_ec.w + w_ic.w) >= {cutoff}) * Noddi_IC.kappa'.format(cutoff=0.01),
                                             fixed=False)),
         ('Noddi_EC.kappa', SimpleAssignment('Noddi_IC.kappa')),
         ('Noddi_EC.theta', SimpleAssignment('Noddi_IC.theta')),
