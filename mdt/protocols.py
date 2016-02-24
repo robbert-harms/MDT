@@ -388,9 +388,6 @@ class Protocol(object):
             return np.reshape((self._gamma_h * sequence_timings['G'] * sequence_timings['delta'] / (2 * np.pi)),
                               (-1, 1))
 
-        if column_name == 'GAMMA2_G2_delta2':
-            return np.reshape(np.power(self._gamma_h * sequence_timings['G'] * sequence_timings['delta'], 2), (-1, 1))
-
         if column_name == 'b':
             return np.reshape(self._gamma_h ** 2 *
                               sequence_timings['G']**2 *

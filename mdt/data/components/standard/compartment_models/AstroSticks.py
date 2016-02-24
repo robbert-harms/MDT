@@ -15,5 +15,5 @@ class AstroSticks(CompartmentConfig):
         if(b == 0){
             return 1;
         }
-        return sqrt(M_PI) / (2 * G * sqrt((b / pown(G, 2)) * d)) * erf(G * sqrt((b /pown(G, 2)) * d));
+        return sqrt(M_PI) / (2 * G * sqrt((b / (G*G)) * d)) * erf(G * sqrt((b / (G*G)) * d));
     ''')

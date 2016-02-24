@@ -11,7 +11,7 @@ class CharmedRestricted(CompartmentConfig):
 
     name = 'CharmedRestricted'
     cl_function_name = 'cmCharmedRestricted'
-    parameter_list = ('g', 'b', 'GAMMA2_G2_delta2', 'TE', 'd', 'theta', 'phi')
+    parameter_list = ('g', 'b', 'q', 'Delta', 'delta', 'TE', 'd', 'theta', 'phi')
 
     @bind_function
     def get_extra_results_maps(self, results_dict):

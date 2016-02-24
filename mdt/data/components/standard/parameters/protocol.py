@@ -42,10 +42,6 @@ class q(ProtocolParameterConfig):
     name = 'q'
 
 
-class GGD(ProtocolParameterConfig):
-    name = 'GAMMA2_G2_delta2'
-
-
 class TE(ProtocolParameterConfig):
     name = 'TE'
 

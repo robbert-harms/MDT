@@ -191,13 +191,13 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
                 g = _new_gradient_vector_raw/_new_gradient_vector_length;
             '''
             if 'b' in list(self.get_problems_protocol_data().keys()):
-                s += 'b *= pown(_new_gradient_vector_length, 2);' + "\n"
+                s += 'b *= _new_gradient_vector_length * _new_gradient_vector_length;' + "\n"
 
             if 'G' in list(self.get_problems_protocol_data().keys()):
                 s += 'G *= _new_gradient_vector_length;' + "\n"
 
-            if 'GAMMA2_G2_delta2' in list(self.get_problems_protocol_data().keys()):
-                s += 'GAMMA2_G2_delta2 *= pown(_new_gradient_vector_length, 2);'
+            if 'q' in list(self.get_problems_protocol_data().keys()):
+                s += 'q *= _new_gradient_vector_length;' + "\n"
 
             return s
 

@@ -58,7 +58,7 @@ MOT_FLOAT_TYPE cmNoddi_IC(const MOT_FLOAT_TYPE4 g,
     MOT_FLOAT_TYPE watson_coeff[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
     Noddi_IC_WatsonSHCoeff(kappa, watson_coeff);
 
-    MOT_FLOAT_TYPE LePerp = -2 * GAMMA_H_SQ * pown(G, 2) * NeumannCylPerpPGSESum(Delta, delta, d, R);
+    MOT_FLOAT_TYPE LePerp = -2 * GAMMA_H_SQ * (G*G) * NeumannCylPerpPGSESum(Delta, delta, d, R);
     MOT_FLOAT_TYPE ePerp = exp(LePerp);
     MOT_FLOAT_TYPE Lpmp = LePerp + d * b;
 
@@ -112,7 +112,7 @@ void Noddi_IC_LegendreGaussianIntegral(const MOT_FLOAT_TYPE x, MOT_FLOAT_TYPE* c
     else{
         // approximate
         MOT_FLOAT_TYPE tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER - 1];
-        tmp[0] = pown(x, 2);
+        tmp[0] = x * x;
         tmp[1] = tmp[0] * x;
         tmp[2] = tmp[1] * x;
         tmp[3] = tmp[2] * x;
@@ -145,7 +145,7 @@ void Noddi_IC_WatsonSHCoeff(const MOT_FLOAT_TYPE kappa, MOT_FLOAT_TYPE* const re
 
     if(kappa <= 30){
         MOT_FLOAT_TYPE ks[NODDI_IC_MAX_POLYNOMIAL_ORDER - 1];
-        ks[0] = pown(kappa, 2);
+        ks[0] = kappa * kappa;
         ks[1] = ks[0] * kappa;
         ks[2] = ks[1] * kappa;
         ks[3] = ks[2] * kappa;

@@ -35,7 +35,7 @@ MOT_FLOAT_TYPE NeumannCylPerpPGSESum(const MOT_FLOAT_TYPE Delta,
 
     for(int i = 0; i < cl_jnp_zeros_length; i++){
         amrdiv = cl_jnp_zeros[i] / R;
-        dam = d * pown(amrdiv, 2);
+        dam = d * amrdiv * amrdiv;
 
         sum += (2 * dam * delta
 					-  2
@@ -43,7 +43,7 @@ MOT_FLOAT_TYPE NeumannCylPerpPGSESum(const MOT_FLOAT_TYPE Delta,
 					+ (2 * exp(-dam * Delta))
 					- exp(-dam * (Delta - delta))
 					- exp(-dam * (Delta + delta)))
-				/ (pown(dam * amrdiv, 2) * (pown(R * amrdiv, 2) - 1));
+				/ ((dam * amrdiv * dam * amrdiv) * ((R * amrdiv * R * amrdiv) - 1));
     }
     return (MOT_FLOAT_TYPE)sum;
 }
