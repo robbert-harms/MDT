@@ -24,6 +24,7 @@ MOT_FLOAT_TYPE cmCharmedRestricted(const MOT_FLOAT_TYPE4 g,
     const double signal_perp_tmp2 = (99/112.0) / (d * (TE / 2.0));
 
     double sum = 0.0;
+    // R is the radius of the cylinder, this is in units of meters.
     //     cylinder_weight                                          R^4                                        R^2
     sum += 0.021184720085574 * exp(signal_par + (signal_perp_tmp1 * 5.0625e-24      * (2 - (signal_perp_tmp2 * 2.25e-12))));
     sum += 0.107169623942214 * exp(signal_par + (signal_perp_tmp1 * 3.90625e-23     * (2 - (signal_perp_tmp2 * 6.25e-12))));

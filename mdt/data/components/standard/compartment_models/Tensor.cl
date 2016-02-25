@@ -26,22 +26,21 @@ MOT_FLOAT_TYPE cmTensor(const MOT_FLOAT_TYPE4 g,
                      const MOT_FLOAT_TYPE phi,
                      const MOT_FLOAT_TYPE psi){
 
-    MOT_FLOAT_TYPE sinT = sin(theta);
-    MOT_FLOAT_TYPE sinP = sin(phi);
-    MOT_FLOAT_TYPE cosP = cos(phi);
-    MOT_FLOAT_TYPE rst = sin(theta+(M_PI_2));
+    MOT_FLOAT_TYPE cos_theta;
+    MOT_FLOAT_TYPE sin_theta = sincos(theta, &cos_theta);
+    MOT_FLOAT_TYPE cos_phi;
+    MOT_FLOAT_TYPE sin_phi = sincos(phi, &cos_phi);
+    MOT_FLOAT_TYPE cos_psi;
+    MOT_FLOAT_TYPE sin_psi = sincos(psi, &cos_psi);
 
-    MOT_FLOAT_TYPE4 n1 = (MOT_FLOAT_TYPE4)(cosP * sinT, sinP * sinT, cos(theta), 0.0);
+    MOT_FLOAT_TYPE4 n1 = (MOT_FLOAT_TYPE4)(cos_phi * sin_theta, sin_phi * sin_theta, cos_theta, 0.0);
 
-    // rotate the Tensor
-    MOT_FLOAT_TYPE4 tmp1 = (MOT_FLOAT_TYPE4)(rst * cosP, rst * sinP, cos(theta+(M_PI_2)), 0.0);
-    MOT_FLOAT_TYPE4 n1_rotated = n1;
-    if(n1.z < 0 || ((n1.z == 0.0) && n1.x < 0.0)){
-        n1_rotated *= 1;
-    }
-    MOT_FLOAT_TYPE4 n2 = tmp1 * cos(psi) +
-                          (cross(tmp1, n1_rotated) * sin(psi)) +
-                          (n1_rotated * dot(n1_rotated, tmp1) * (1-cos(psi)));
+    // rotate around n1
+    // this code is optimized for memory consumption. View the git history for human readable previous versions.
+    MOT_FLOAT_TYPE tmp = sin(theta+(M_PI_2)); // using tmp as the rotation factor (90 degrees)
+    MOT_FLOAT_TYPE4 n2 = (MOT_FLOAT_TYPE4)(tmp * cos_phi, tmp * sin_phi, cos(theta+(M_PI_2)), 0.0);
+    tmp = select(1, -1, n1.z < 0 || ((n1.z == 0.0) && n1.x < 0.0)); // using tmp as the multiplier
+    n2 = n2 * cos_psi + (cross(n2, tmp * n1) * sin_psi) + (tmp * n1 * dot(tmp * n1, n2) * (1-cos_psi));
 
     return exp(-b * (d *      pown(dot(n1, g), 2) +
                      dperp *  pown(dot(n2, g), 2) +
