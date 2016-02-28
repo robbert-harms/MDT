@@ -364,7 +364,7 @@ class SampleVisualizer(object):
         self.voxel_ind = 0
         self.maps_to_show = sorted(self._voxels.keys())
         self.names = {}
-        self._figure = plt.figure(figsize=(18, 16))
+        self._figure = None
         self.show_sliders = True
         self._max_voxel_ind = 0
         self._updating_sliders = False
