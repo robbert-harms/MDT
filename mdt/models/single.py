@@ -229,9 +229,7 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
     def _add_finalizing_result_maps(self, results_dict):
         log_likelihood_calc = LogLikelihoodCalculator(runtime_configuration.runtime_config['cl_environments'],
                                                       runtime_configuration.runtime_config['load_balancer'])
-        log_likelihoods = log_likelihood_calc.calculate(
-            self, results_dict, evaluation_model=GaussianEvaluationModel().set_noise_level_std(
-                self._evaluation_model.get_noise_level_std(), fix=True))
+        log_likelihoods = log_likelihood_calc.calculate(self, results_dict)
 
         k = self.get_nmr_estimable_parameters()
         n = self._problem_data.protocol.length
