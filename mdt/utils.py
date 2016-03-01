@@ -17,6 +17,7 @@ import pkg_resources
 import six
 from scipy.special import jnp_zeros
 from six import string_types
+import sys
 import mdt.configuration as configuration
 from mdt import create_index_matrix
 from mdt.IO import Nifti

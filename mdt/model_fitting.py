@@ -297,10 +297,10 @@ class ModelFit(object):
     def _run_single_model(self, model, recalculate, meta_optimizer_config, model_names):
         with runtime_config_context(cl_environments=self._cl_envs, load_balancer=self._load_balancer):
             with per_model_logging_context(os.path.join(self._output_folder, model.name)):
-                self._logger.info('Using MDT version {}'.format(__version__))
-                self._logger.info('Preparing for model {0}'.format(model.name))
-                self._logger.info('Current cascade: {0}'.format(model_names))
-                self._logger.info('Setting the noise standard deviation to {0}'.format(self._noise_std))
+                self._logger.debug('Using MDT version {}'.format(__version__))
+                self._logger.debug('Preparing for model {0}'.format(model.name))
+                self._logger.debug('Current cascade: {0}'.format(model_names))
+                self._logger.debug('Setting the noise standard deviation to {0}'.format(self._noise_std))
                 model.evaluation_model.set_noise_level_std(self._noise_std, fix=True)
 
                 optimizer = self._optimizer or MetaOptimizerBuilder(meta_optimizer_config).construct(model_names)

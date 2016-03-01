@@ -1,6 +1,7 @@
 import codecs
 import logging
 import os
+import sys
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-19"
@@ -13,7 +14,7 @@ class ModelOutputLogHandler(logging.StreamHandler):
     __instances__ = set()
 
     def __init__(self, mode='a', encoding=None):
-        """This logger can log information about a model optimization to the folder of the model being optimized.
+        """This logger logs information about a model optimization to the folder of the model that is being optimized.
         """
         super(ModelOutputLogHandler, self).__init__()
         self.__class__.__instances__.add(self)
@@ -41,7 +42,7 @@ class ModelOutputLogHandler(logging.StreamHandler):
             self._open()
 
     def emit(self, record):
-        if self._output_file:
+        if self._output_file and self.stream:
             super(ModelOutputLogHandler, self).emit(record)
 
     def close(self):
@@ -67,6 +68,22 @@ class ModelOutputLogHandler(logging.StreamHandler):
                 self.stream = open(self._output_file, self.mode)
             else:
                 self.stream = codecs.open(self._output_file, self.mode, self.encoding)
+
+
+
+class StdOutHandler(logging.StreamHandler):
+
+    def __init__(self, stream=None):
+        """A redirect for stdout.
+
+        This catches the errors if stdout is None.
+        """
+        stream = stream or sys.stdout
+        super(StdOutHandler, self).__init__(stream=stream)
+
+    def emit(self, record):
+        if self.stream:
+            super(StdOutHandler, self).emit(record)
 
 
 class LogDispatchHandler(logging.StreamHandler):
