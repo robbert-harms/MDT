@@ -56,3 +56,7 @@ class Ti(ProtocolParameterConfig):
 
 class TR(ProtocolParameterConfig):
     name = 'TR'
+
+
+class flip_angle(ProtocolParameterConfig):
+    name = 'flip_angle'

@@ -39,3 +39,10 @@ class S0T2T2(DMRISingleModelConfig):
             ('T2_long.T2Weighted', lambda d: d['w_long.w'] * d['T2_long.T2']),
             ('T2.T2', lambda d: d['T2_short.T2Weighted'] + d['T2_long.T2Weighted'])
         )
+
+
+class S0_TEFA(DMRISingleModelConfig):
+
+    name = 'S0-TEFA'
+    description = 'Model for GRE data with variable TE and flip angle.'
+    model_expression = 'S0 * ExpT1ExpT2GRE'
