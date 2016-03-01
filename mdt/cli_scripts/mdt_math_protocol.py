@@ -26,7 +26,10 @@ class MathProtocol(BasicShellApplication):
             The columns of the input protocol are loaded and stored as arrays with as variable names the names of the
             columns. Next, the expression is evaluated on those columns and the result is stored in the indicated file.
 
-            An additional function "rm()" is also available with wich you can remove columns from the protocol.
+            An additional function "rm(<column_name>)" is also available with wich you can remove columns from
+            the protocol, and a function "add(<column_name>, <value>)" is available to add columns. When adding
+            a column, the value can either be a scalar or a vector.
+
             Additionally the numpy library is available with prefix 'np.'.
         """)
         description += self._get_citation_message()
@@ -36,6 +39,7 @@ class MathProtocol(BasicShellApplication):
                 mdt-math-protocol protocol.prtcl 'G *= 1e-3'
                 mdt-math-protocol protocol.prtcl 'G *= 1e-3; TR /= 1000; TE /= 1000'
                 mdt-math-protocol protocol.prtcl "rm('G')"
+                mdt-math-protocol protocol.prtcl "add('TE', 50e-3)"
         """)
 
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
@@ -65,10 +69,14 @@ class MathProtocol(BasicShellApplication):
             protocol.remove_column(column_name)
             del context_dict[column_name]
 
-        exec(args.expr, {'np': np, 'rm': rm}, context_dict)
+        def add(column_name, value):
+            protocol.add_column(column_name, value)
+            context_dict[column_name] = value
+
+        exec(args.expr, {'np': np, 'rm': rm, 'add': add}, context_dict)
 
         for name, value in context_dict.items():
-            protocol.add_column(name, value)
+            protocol.update_column(name, value)
 
         mdt.write_protocol(protocol, output_file)
 

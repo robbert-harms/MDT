@@ -35,8 +35,8 @@ MOT_FLOAT_TYPE cmNoddi_EC(const MOT_FLOAT_TYPE4 g,
     }
     else{
         tmp = 2 * (d - dperp) * kappa_scaled;
-        dw_0 = (fma(2, dperp, d) / 3.0) + (tmp/22.5) + ((tmp * kappa_scaled) / 236.0);
-        dw_1 = (fma(2, dperp, d) / 3.0) - (tmp/45.0) - ((tmp * kappa_scaled) / 472.0);
+        dw_0 = ((2 * dperp + d) / 3.0) + (tmp/22.5) + ((tmp * kappa_scaled) / 236.0);
+        dw_1 = ((2 * dperp + d) / 3.0) - (tmp/45.0) - ((tmp * kappa_scaled) / 472.0);
     }
 
     return (MOT_FLOAT_TYPE) exp(-b * fma((dw_0 - dw_1),

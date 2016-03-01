@@ -7,7 +7,9 @@ from mdt import utils
 from mdt.protocols import load_protocol
 import nibabel as nib
 from mot import runtime_configuration
+from mot.cl_environments import CLEnvironmentFactory
 from mot.cl_routines.filters.median import MedianFilter
+from mot.load_balance_strategies import PreferGPU, PreferCPU
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-07-20"
@@ -95,8 +97,7 @@ def generate_simple_wm_mask(fa_fname, brain_mask_fname, out_fname, fa_threshold=
     median_filter = MedianFilter(median_radius,
                                  runtime_configuration.runtime_config['cl_environments'],
                                  runtime_configuration.runtime_config['load_balancer'])
-    for i in range(0, numpass):
-        fa_data = median_filter.filter(fa_data, mask=mask)
+    fa_data = median_filter.filter(fa_data, mask=mask, nmr_of_times=numpass)
 
     nib.Nifti1Image(fa_data, None, nib_container.get_header()).to_filename(out_fname)
     logger.info('Finished calculating a white matter mask.')
@@ -165,11 +166,9 @@ def median_otsu(unweighted_volume, median_radius=4, numpass=4, dilate=1):
         logger.info('Using device \'{}\' with compile flags {}'.format(str(env), str(env.compile_flags)))
 
     m = MedianFilter(median_radius,
-                     runtime_configuration.runtime_config['cl_environments'],
-                     runtime_configuration.runtime_config['load_balancer'])
-
-    for i in range(0, numpass):
-        b0vol = m.filter(b0vol)
+                     CLEnvironmentFactory.all_devices(),
+                     PreferCPU())
+    b0vol = m.filter(b0vol, nmr_of_times=numpass)
 
     thresh = _otsu(b0vol)
     mask = b0vol > thresh

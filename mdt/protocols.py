@@ -27,7 +27,7 @@ class Protocol(object):
         """
         super(Protocol, self).__init__()
         self._gamma_h = 2.675987E8
-        self._unweighted_threshold = 25e6
+        self._unweighted_threshold = 25e6 # s/m^2
         self._columns = {}
         self._length = None
         self._logger = logging.getLogger(__name__)
@@ -52,6 +52,21 @@ class Protocol(object):
             float: The used gamma of the H atom used by this protocol.
         """
         return self._gamma_h
+
+    def update_column(self, name, data):
+        """Updates the given column with new information.
+
+        This actually calls add_column(name, data) in the background. This function is included to allow for clearer
+        function calls.
+
+        Args:
+            name (str): The name of the column to add
+            data (ndarray): The vector to add to this protocol.
+
+        Returns:
+            self: for chaining
+        """
+        return self.add_column(name, data)
 
     def add_column(self, name, data):
         """Add a column to this protocol. This overrides the column if present.

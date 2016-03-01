@@ -8,6 +8,7 @@ import six
 from six import string_types
 import logging
 
+
 __author__ = 'Robbert Harms'
 __date__ = "2015-03-10"
 __license__ = "LGPL v3"
@@ -15,7 +16,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.7.6'
+VERSION = '0.7.7'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')
@@ -240,6 +241,45 @@ def get_cl_devices():
     """
     from mdt.utils import get_cl_devices
     return get_cl_devices()
+
+
+def get_device_ind(device_type='FIRST_GPU'):
+    """Convenience function to get the device type for a particular type of device.
+
+    If device type is not one of the defined types, we default to 'FIRST_GPU'.
+
+    Args:
+        device_type (str): choose one of 'FIRST_GPU', 'ALL_GPU', 'FIRST_CPU', 'ALL_CPU', 'ALL'
+
+    Returns
+        list: the list of device indices for the requested type of devices.
+    """
+    supported_types = ['FIRST_GPU', 'ALL_GPU', 'FIRST_CPU', 'ALL_CPU', 'ALL']
+    if device_type is None or device_type not in supported_types:
+        device_type = 'FIRST_GPU'
+
+    from mot.cl_environments import CLEnvironmentFactory
+    devices = CLEnvironmentFactory.all_devices()
+
+    if device_type == 'ALL':
+        return range(0, len(devices))
+
+    indices = []
+    if 'CPU' in device_type:
+        for ind, dev in enumerate(devices):
+            if dev.is_cpu:
+                indices.append(ind)
+    elif 'GPU' in device_type:
+        for ind, dev in enumerate(devices):
+            if dev.is_gpu:
+                indices.append(ind)
+
+    if not indices:
+        raise ValueError('No suitable CPU or GPU index found.')
+
+    if 'first' in device_type:
+        return indices[0]
+    return indices
 
 
 def load_problem_data(volume_info, protocol, mask, static_maps=None):
