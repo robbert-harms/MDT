@@ -11,4 +11,4 @@ class Dot(CompartmentConfig):
     name = 'Dot'
     cl_function_name = 'cmDot'
     parameter_list = ()
-    cl_code = CLCodeFromInlineString('return (MOT_FLOAT_TYPE)1.0;')
+    cl_code = CLCodeFromInlineString('return (mot_float_type)1.0;')

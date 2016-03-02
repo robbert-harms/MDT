@@ -26,7 +26,7 @@ class ParameterConfig(ComponentConfig):
     """
     name = ''
     description = ''
-    data_type = 'MOT_FLOAT_TYPE'
+    data_type = 'mot_float_type'
     type = None
 
 
@@ -36,7 +36,7 @@ class ProtocolParameterConfig(ParameterConfig):
     This sets the attribute type to protocol.
     """
     type = 'protocol'
-    data_type = 'MOT_FLOAT_TYPE'
+    data_type = 'mot_float_type'
 
 
 class FreeParameterConfig(ParameterConfig):
@@ -45,7 +45,7 @@ class FreeParameterConfig(ParameterConfig):
     This sets the attribute type to free.
     """
     type = 'free'
-    data_type = 'MOT_FLOAT_TYPE'
+    data_type = 'mot_float_type'
     fixed = False
     init_value = 0.03
     lower_bound = 0.0

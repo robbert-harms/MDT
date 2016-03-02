@@ -17,7 +17,7 @@ class NoddiTortuosityParameterDependency(AbstractParameterDependency):
     @property
     def pre_transform_code(self):
         return '''
-            MOT_FLOAT_TYPE _tortuosity_mult_{d} = {w_ec} / ({w_ec} + {w_ic});
+            mot_float_type _tortuosity_mult_{d} = {w_ec} / ({w_ec} + {w_ic});
             if(!isnormal(_tortuosity_mult_{d})){{
                 _tortuosity_mult_{d} = 0.01;
             }}

@@ -6,17 +6,17 @@
  * Email = robbert.harms@maastrichtuniversity.nl
  */
 
-MOT_FLOAT_TYPE cmCharmedRestricted(const MOT_FLOAT_TYPE4 g,
-                                   const MOT_FLOAT_TYPE b,
-                                   const MOT_FLOAT_TYPE q,
-                                   const MOT_FLOAT_TYPE Delta,
-                                   const MOT_FLOAT_TYPE delta,
-                                   const MOT_FLOAT_TYPE TE,
-                                   const MOT_FLOAT_TYPE d,
-                                   const MOT_FLOAT_TYPE theta,
-                                   const MOT_FLOAT_TYPE phi){
+mot_float_type cmCharmedRestricted(const mot_float_type4 g,
+                                   const mot_float_type b,
+                                   const mot_float_type q,
+                                   const mot_float_type Delta,
+                                   const mot_float_type delta,
+                                   const mot_float_type TE,
+                                   const mot_float_type d,
+                                   const mot_float_type theta,
+                                   const mot_float_type phi){
 
-    const double direction = pown(dot(g, (MOT_FLOAT_TYPE4)(cos(phi) * sin(theta),
+    const double direction = pown(dot(g, (mot_float_type4)(cos(phi) * sin(theta),
                                         sin(phi) * sin(theta), cos(theta), 0.0)), 2);
 
     const double signal_par = -(4 * (M_PI * M_PI) * (q*q) * direction * (Delta - (delta / 3.0)) * d);
@@ -33,7 +33,7 @@ MOT_FLOAT_TYPE cmCharmedRestricted(const MOT_FLOAT_TYPE4 g,
     sum += 0.214921653661151 * exp(signal_par + (signal_perp_tmp1 * 9.150625e-22    * (2 - (signal_perp_tmp2 * 3.025e-11))));
     sum += 0.195646574827541 * exp(signal_par + (signal_perp_tmp1 * 1.785061655e-21 * (2 - (signal_perp_tmp2 * 4.224999e-11))));
 
-    return (MOT_FLOAT_TYPE)sum;
+    return (mot_float_type)sum;
 }
 
 

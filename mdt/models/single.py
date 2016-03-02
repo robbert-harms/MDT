@@ -110,7 +110,7 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
             if self.problems_to_analyze is not None:
                 grad_dev = grad_dev[self.problems_to_analyze, ...]
 
-            adapter = SimpleDataAdapter(grad_dev, CLDataType.from_string('MOT_FLOAT_TYPE*'), self._get_mot_float_type())
+            adapter = SimpleDataAdapter(grad_dev, CLDataType.from_string('mot_float_type*'), self._get_mot_float_type())
             var_data_dict.update({'gradient_deviations': adapter})
 
         return var_data_dict
@@ -186,8 +186,8 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
     def _get_pre_model_expression_eval_code(self):
         if self._can_use_gradient_deviations():
             s = '''
-                MOT_FLOAT_TYPE4 _new_gradient_vector_raw = _get_new_gradient_raw(g, data->var_data_gradient_deviations);
-                MOT_FLOAT_TYPE _new_gradient_vector_length = length(_new_gradient_vector_raw);
+                mot_float_type4 _new_gradient_vector_raw = _get_new_gradient_raw(g, data->var_data_gradient_deviations);
+                mot_float_type _new_gradient_vector_length = length(_new_gradient_vector_raw);
                 g = _new_gradient_vector_raw/_new_gradient_vector_length;
             '''
             if 'b' in list(self.get_problems_protocol_data().keys()):
@@ -206,19 +206,19 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
             return '''
                 #ifndef GET_NEW_GRADIENT_RAW
                 #define GET_NEW_GRADIENT_RAW
-                MOT_FLOAT_TYPE4 _get_new_gradient_raw(MOT_FLOAT_TYPE4 g,
-                                                   global const MOT_FLOAT_TYPE* const gradient_deviations){
+                mot_float_type4 _get_new_gradient_raw(mot_float_type4 g,
+                                                   global const mot_float_type* const gradient_deviations){
 
-                    const MOT_FLOAT_TYPE4 il_0 = (MOT_FLOAT_TYPE4)(gradient_deviations[0], gradient_deviations[3],
+                    const mot_float_type4 il_0 = (mot_float_type4)(gradient_deviations[0], gradient_deviations[3],
                                                              gradient_deviations[6], 0.0);
 
-                    const MOT_FLOAT_TYPE4 il_1 = (MOT_FLOAT_TYPE4)(gradient_deviations[1], gradient_deviations[4],
+                    const mot_float_type4 il_1 = (mot_float_type4)(gradient_deviations[1], gradient_deviations[4],
                                                              gradient_deviations[7], 0.0);
 
-                    const MOT_FLOAT_TYPE4 il_2 = (MOT_FLOAT_TYPE4)(gradient_deviations[2], gradient_deviations[5],
+                    const mot_float_type4 il_2 = (mot_float_type4)(gradient_deviations[2], gradient_deviations[5],
                                                              gradient_deviations[8], 0.0);
 
-                    return (MOT_FLOAT_TYPE4)(dot(il_0, g), dot(il_1, g), dot(il_2, g), 0.0);
+                    return (mot_float_type4)(dot(il_0, g), dot(il_1, g), dot(il_2, g), 0.0);
                 }
                 #endif //GET_NEW_GRADIENT_RAW
             '''

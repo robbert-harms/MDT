@@ -15,7 +15,7 @@ class Zeppelin(CompartmentConfig):
     cl_code = CLCodeFromInlineString('''
         return exp(-b *
                     (((d - dperp) *
-                          pown(dot(g, (MOT_FLOAT_TYPE4)(cos(phi) * sin(theta),
+                          pown(dot(g, (mot_float_type4)(cos(phi) * sin(theta),
                                                         sin(phi) * sin(theta), cos(theta), 0.0)), 2)
                     ) + dperp));
     ''')

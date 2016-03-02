@@ -102,7 +102,7 @@ class CLCodeFromInlineString(CLCodeDefinition):
         self.cl_inline_code_str = cl_inline_code_str
 
     def get_code(self, config):
-        s = _construct_cl_function_definition('MOT_FLOAT_TYPE',
+        s = _construct_cl_function_definition('mot_float_type',
                                               config.cl_function_name,
                                               _get_parameters_list(config.parameter_list))
         s += '{\n' + self.cl_inline_code_str + '\n}'
@@ -144,7 +144,7 @@ class CLHeaderDefinition(object):
 class CLHeaderFromTemplate(CLCodeDefinition):
 
     def get_code(self, config):
-        return _construct_cl_function_definition('MOT_FLOAT_TYPE',
+        return _construct_cl_function_definition('mot_float_type',
                                                  config.cl_function_name,
                                                  _get_parameters_list(config.parameter_list)) + ';'
 
@@ -262,11 +262,11 @@ def _construct_cl_function_definition(return_type, cl_function_name, parameters)
 
     This will construct something like (for the Stick model):
         '''
-            MOT_FLOAT_TYPE cmStick(const MOT_FLOAT_TYPE4 g,
-                                   const MOT_FLOAT_TYPE b,
-                                   const MOT_FLOAT_TYPE d,
-                                   const MOT_FLOAT_TYPE theta,
-                                   const MOT_FLOAT_TYPE phi)
+            mot_float_type cmStick(const mot_float_type4 g,
+                                   const mot_float_type b,
+                                   const mot_float_type d,
+                                   const mot_float_type theta,
+                                   const mot_float_type phi)
         '''
 
     Args:

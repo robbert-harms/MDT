@@ -20,17 +20,17 @@ its data are handled during model construction.
 class b1_static(StaticMapParameterConfig):
 
     name = 'b1_static'
-    data_type = 'MOT_FLOAT_TYPE'
+    data_type = 'mot_float_type'
     value = 1
 
 
 class T1_static(StaticMapParameterConfig):
 
     name = 'T1_static'
-    data_type = 'MOT_FLOAT_TYPE'
+    data_type = 'mot_float_type'
 
 
 class T2_static(StaticMapParameterConfig):
 
     name = 'T2_static'
-    data_type = 'MOT_FLOAT_TYPE'
+    data_type = 'mot_float_type'

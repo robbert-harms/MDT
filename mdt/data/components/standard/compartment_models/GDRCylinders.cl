@@ -15,35 +15,35 @@
 /** Max number of iterations in series evaluation */
 #define GDRCYL_ITMAX 100
 
-MOT_FLOAT_TYPE gammaCDF(const MOT_FLOAT_TYPE k, const MOT_FLOAT_TYPE theta, const MOT_FLOAT_TYPE x);
-MOT_FLOAT_TYPE gammp(const MOT_FLOAT_TYPE a, const MOT_FLOAT_TYPE x);
-MOT_FLOAT_TYPE gser(const MOT_FLOAT_TYPE a, const MOT_FLOAT_TYPE x);
-MOT_FLOAT_TYPE gcf(const MOT_FLOAT_TYPE a, const MOT_FLOAT_TYPE x);
-MOT_FLOAT_TYPE findGammaCDFCrossing(MOT_FLOAT_TYPE startx, MOT_FLOAT_TYPE stopx, const MOT_FLOAT_TYPE offset,
-                                 const MOT_FLOAT_TYPE convergence, const MOT_FLOAT_TYPE gamma_k,
-                                 const MOT_FLOAT_TYPE gamma_beta);
+mot_float_type gammaCDF(const mot_float_type k, const mot_float_type theta, const mot_float_type x);
+mot_float_type gammp(const mot_float_type a, const mot_float_type x);
+mot_float_type gser(const mot_float_type a, const mot_float_type x);
+mot_float_type gcf(const mot_float_type a, const mot_float_type x);
+mot_float_type findGammaCDFCrossing(mot_float_type startx, mot_float_type stopx, const mot_float_type offset,
+                                 const mot_float_type convergence, const mot_float_type gamma_k,
+                                 const mot_float_type gamma_beta);
 
-MOT_FLOAT_TYPE cmGDRCylinders(const MOT_FLOAT_TYPE4 g,
-                           const MOT_FLOAT_TYPE G,
-                           const MOT_FLOAT_TYPE Delta,
-                           const MOT_FLOAT_TYPE delta,
-                           const MOT_FLOAT_TYPE d,
-                           const MOT_FLOAT_TYPE theta,
-                           const MOT_FLOAT_TYPE phi,
-                           const MOT_FLOAT_TYPE gamma_k,
-                           const MOT_FLOAT_TYPE gamma_beta,
-                           const MOT_FLOAT_TYPE gamma_nmr_cyl){
+mot_float_type cmGDRCylinders(const mot_float_type4 g,
+                           const mot_float_type G,
+                           const mot_float_type Delta,
+                           const mot_float_type delta,
+                           const mot_float_type d,
+                           const mot_float_type theta,
+                           const mot_float_type phi,
+                           const mot_float_type gamma_k,
+                           const mot_float_type gamma_beta,
+                           const mot_float_type gamma_nmr_cyl){
 
     int nmr_cyl = round(gamma_nmr_cyl);
 
-    MOT_FLOAT_TYPE lower = findGammaCDFCrossing(0, gamma_beta*gamma_k, 1.0/nmr_cyl, 1e-20, gamma_k, gamma_beta);
-    MOT_FLOAT_TYPE upper = findGammaCDFCrossing(lower, nmr_cyl*gamma_beta*gamma_k, (1-1.0/nmr_cyl), 1e-20,
+    mot_float_type lower = findGammaCDFCrossing(0, gamma_beta*gamma_k, 1.0/nmr_cyl, 1e-20, gamma_k, gamma_beta);
+    mot_float_type upper = findGammaCDFCrossing(lower, nmr_cyl*gamma_beta*gamma_k, (1-1.0/nmr_cyl), 1e-20,
                                         gamma_k, gamma_beta);
 
-    MOT_FLOAT_TYPE binWidth = (upper-lower)/nmr_cyl;
-    MOT_FLOAT_TYPE gamma_cyl_weight = 0;
-    MOT_FLOAT_TYPE gamma_cyl_radius = 0;
-    MOT_FLOAT_TYPE signal = 0;
+    mot_float_type binWidth = (upper-lower)/nmr_cyl;
+    mot_float_type gamma_cyl_weight = 0;
+    mot_float_type gamma_cyl_radius = 0;
+    mot_float_type signal = 0;
 
     for(int i = 0; i < nmr_cyl; i++){
         gamma_cyl_radius = lower + (i+0.5)*binWidth;
@@ -70,7 +70,7 @@ MOT_FLOAT_TYPE cmGDRCylinders(const MOT_FLOAT_TYPE4 g,
  *
  *
  */
-MOT_FLOAT_TYPE gammaCDF(const MOT_FLOAT_TYPE k, const MOT_FLOAT_TYPE theta, const MOT_FLOAT_TYPE x){
+mot_float_type gammaCDF(const mot_float_type k, const mot_float_type theta, const mot_float_type x){
     return gammp(k, x/theta);
 }
 
@@ -79,7 +79,7 @@ MOT_FLOAT_TYPE gammaCDF(const MOT_FLOAT_TYPE k, const MOT_FLOAT_TYPE theta, cons
  * Returns the incomplete gamma function P(a; x).
  * see NRC p. 218.
  */
-MOT_FLOAT_TYPE gammp(const MOT_FLOAT_TYPE a, const MOT_FLOAT_TYPE x){
+mot_float_type gammp(const mot_float_type a, const mot_float_type x){
     if(x<0.0 || a <= 0.0){
         return NAN;
     }
@@ -95,10 +95,10 @@ MOT_FLOAT_TYPE gammp(const MOT_FLOAT_TYPE a, const MOT_FLOAT_TYPE x){
  * Returns the incomplete gamma function P(a; x) evaluated by its
  * series representation as gamser.
  */
-MOT_FLOAT_TYPE gser(const MOT_FLOAT_TYPE a, const MOT_FLOAT_TYPE x){
-    MOT_FLOAT_TYPE sum;
-    MOT_FLOAT_TYPE del;
-    MOT_FLOAT_TYPE ap;
+mot_float_type gser(const mot_float_type a, const mot_float_type x){
+    mot_float_type sum;
+    mot_float_type del;
+    mot_float_type ap;
 
     if(x <= 0.0){
         if (x < 0.0){
@@ -127,9 +127,9 @@ MOT_FLOAT_TYPE gser(const MOT_FLOAT_TYPE a, const MOT_FLOAT_TYPE x){
  * Returns the incomplete gamma function Q(a; x) evaluated by its continued
  * fraction representation.
  */
-MOT_FLOAT_TYPE gcf(const MOT_FLOAT_TYPE a, const MOT_FLOAT_TYPE x){
+mot_float_type gcf(const mot_float_type a, const mot_float_type x){
     int i;
-    MOT_FLOAT_TYPE an,b,c,d,del,h;
+    mot_float_type an,b,c,d,del,h;
 
     //Set up for evaluating continued fraction by modified Lentz's method (x5.2) with b0 = 0.
     b=x+1.0-a;
@@ -166,13 +166,13 @@ MOT_FLOAT_TYPE gcf(const MOT_FLOAT_TYPE a, const MOT_FLOAT_TYPE x){
 }
 
 //Using Brent root finding to determine cdfs
-MOT_FLOAT_TYPE findGammaCDFCrossing(MOT_FLOAT_TYPE startx, MOT_FLOAT_TYPE stopx,
-                                 const MOT_FLOAT_TYPE offset, const MOT_FLOAT_TYPE convergence,
-                                 const MOT_FLOAT_TYPE gamma_k, const MOT_FLOAT_TYPE gamma_beta){
+mot_float_type findGammaCDFCrossing(mot_float_type startx, mot_float_type stopx,
+                                 const mot_float_type offset, const mot_float_type convergence,
+                                 const mot_float_type gamma_k, const mot_float_type gamma_beta){
 
-    MOT_FLOAT_TYPE fstartx = gammaCDF(gamma_k, gamma_beta, startx) - offset;
-    MOT_FLOAT_TYPE fstopx = gammaCDF(gamma_k, gamma_beta, stopx) - offset;
-    MOT_FLOAT_TYPE delta = fabs(stopx-startx);
+    mot_float_type fstartx = gammaCDF(gamma_k, gamma_beta, startx) - offset;
+    mot_float_type fstopx = gammaCDF(gamma_k, gamma_beta, stopx) - offset;
+    mot_float_type delta = fabs(stopx-startx);
 
     if(fstartx * fstopx > 0){
         if (fstartx>0){
@@ -186,11 +186,11 @@ MOT_FLOAT_TYPE findGammaCDFCrossing(MOT_FLOAT_TYPE startx, MOT_FLOAT_TYPE stopx,
         }
     }
 
-    MOT_FLOAT_TYPE root = startx;
-    MOT_FLOAT_TYPE froot = fstartx;
+    mot_float_type root = startx;
+    mot_float_type froot = fstartx;
     bool mflag=1;
-    MOT_FLOAT_TYPE s = 0;
-    MOT_FLOAT_TYPE de = 0;
+    mot_float_type s = 0;
+    mot_float_type de = 0;
 
     while(!(delta < convergence || fstartx == 0 || fstopx == 0)){
          if (fstartx != froot && fstopx != froot){
@@ -217,7 +217,7 @@ MOT_FLOAT_TYPE findGammaCDFCrossing(MOT_FLOAT_TYPE startx, MOT_FLOAT_TYPE stopx,
              mflag=0;
          }
 
-         MOT_FLOAT_TYPE fs=gammaCDF(gamma_k, gamma_beta, s) - offset;
+         mot_float_type fs=gammaCDF(gamma_k, gamma_beta, s) - offset;
 
          de=root;
          root=stopx;
@@ -234,8 +234,8 @@ MOT_FLOAT_TYPE findGammaCDFCrossing(MOT_FLOAT_TYPE startx, MOT_FLOAT_TYPE stopx,
 
          if (fabs(fstartx) < fabs(fstopx)){
              //swap startx and stopx
-             MOT_FLOAT_TYPE tmp=stopx;
-             MOT_FLOAT_TYPE ftmp=fstopx;
+             mot_float_type tmp=stopx;
+             mot_float_type ftmp=fstopx;
              stopx=startx;
              fstopx=fstartx;
              startx=tmp;

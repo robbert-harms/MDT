@@ -12,15 +12,15 @@
 /**
  * See the header definition for explanation
  */
-MOT_FLOAT_TYPE NeumannCylPerpPGSESum(const MOT_FLOAT_TYPE Delta,
-                                     const MOT_FLOAT_TYPE delta,
-                                     const MOT_FLOAT_TYPE d,
-                                     const MOT_FLOAT_TYPE R){
+mot_float_type NeumannCylPerpPGSESum(const mot_float_type Delta,
+                                     const mot_float_type delta,
+                                     const mot_float_type d,
+                                     const mot_float_type R){
     if(R == 0.0 || R < MOT_EPSILON){
         return 0;
     }
 
-    const MOT_FLOAT_TYPE cl_jnp_zeros[] = {
+    const mot_float_type cl_jnp_zeros[] = {
         1.84118378,   5.33144277,   8.53631637,  11.7060049 ,
         14.86358863,  18.01552786,  21.16436986,  24.31132686,
         27.45705057,  30.60192297,  33.7461829 ,  36.88998741,
@@ -30,8 +30,8 @@ MOT_FLOAT_TYPE NeumannCylPerpPGSESum(const MOT_FLOAT_TYPE Delta,
     const int cl_jnp_zeros_length = 20;
 
     double sum = 0;
-    MOT_FLOAT_TYPE dam;
-	MOT_FLOAT_TYPE amrdiv;
+    mot_float_type dam;
+	mot_float_type amrdiv;
 
     for(int i = 0; i < cl_jnp_zeros_length; i++){
         amrdiv = cl_jnp_zeros[i] / R;
@@ -45,7 +45,7 @@ MOT_FLOAT_TYPE NeumannCylPerpPGSESum(const MOT_FLOAT_TYPE Delta,
 					- exp(-dam * (Delta + delta)))
 				/ ((dam * amrdiv * dam * amrdiv) * ((R * amrdiv * R * amrdiv) - 1));
     }
-    return (MOT_FLOAT_TYPE)sum;
+    return (mot_float_type)sum;
 }
 
 #endif //NEUMANN_CYL_PERP_PGSE_SUM_CL

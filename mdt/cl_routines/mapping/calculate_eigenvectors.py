@@ -86,9 +86,9 @@ class _CEWorker(Worker):
         kernel_source = ''
         kernel_source += get_float_type_def(self._double_precision)
         kernel_source += '''
-            MOT_FLOAT_TYPE4 Tensor_rotateVector(const MOT_FLOAT_TYPE4 vector, const MOT_FLOAT_TYPE4 axis_rotate,
-                                            const MOT_FLOAT_TYPE psi){
-                MOT_FLOAT_TYPE4 n1 = axis_rotate;
+            mot_float_type4 Tensor_rotateVector(const mot_float_type4 vector, const mot_float_type4 axis_rotate,
+                                            const mot_float_type psi){
+                mot_float_type4 n1 = axis_rotate;
                 if(axis_rotate.z < 0 || ((axis_rotate.z == 0.0) && (axis_rotate.x < 0.0))){
                     n1 *= -1;
                 }
@@ -96,27 +96,27 @@ class _CEWorker(Worker):
             }
 
             __kernel void generate_tensor(
-                global MOT_FLOAT_TYPE* thetas,
-                global MOT_FLOAT_TYPE* phis,
-                global MOT_FLOAT_TYPE* psis,
-                global MOT_FLOAT_TYPE* evecs
+                global mot_float_type* thetas,
+                global mot_float_type* phis,
+                global mot_float_type* psis,
+                global mot_float_type* evecs
                 ){
                     int gid = get_global_id(0);
 
-                    MOT_FLOAT_TYPE theta = thetas[gid];
-                    MOT_FLOAT_TYPE phi = phis[gid];
-                    MOT_FLOAT_TYPE psi = psis[gid];
+                    mot_float_type theta = thetas[gid];
+                    mot_float_type phi = phis[gid];
+                    mot_float_type psi = psis[gid];
 
-                    MOT_FLOAT_TYPE sinT = sin(theta);
-                    MOT_FLOAT_TYPE sinP = sin(phi);
-                    MOT_FLOAT_TYPE cosP = cos(phi);
-                    MOT_FLOAT_TYPE rst = sin(theta+(M_PI_2));
+                    mot_float_type sinT = sin(theta);
+                    mot_float_type sinP = sin(phi);
+                    mot_float_type cosP = cos(phi);
+                    mot_float_type rst = sin(theta+(M_PI_2));
 
-                    MOT_FLOAT_TYPE4 n1 = (MOT_FLOAT_TYPE4)(cosP * sinT, sinP * sinT, cos(theta), 0.0);
-                    MOT_FLOAT_TYPE4 n2 = Tensor_rotateVector((MOT_FLOAT_TYPE4)(rst * cosP, rst * sinP,
+                    mot_float_type4 n1 = (mot_float_type4)(cosP * sinT, sinP * sinT, cos(theta), 0.0);
+                    mot_float_type4 n2 = Tensor_rotateVector((mot_float_type4)(rst * cosP, rst * sinP,
                                                                        cos(theta+(M_PI_2)), 0.0), n1, psi);
 
-                    MOT_FLOAT_TYPE4 n3 = cross(n1, n2);
+                    mot_float_type4 n3 = cross(n1, n2);
 
                     evecs[gid*9] = n1.x;
                     evecs[gid*9 + 1] = n1.y;

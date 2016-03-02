@@ -18,18 +18,18 @@
  * @params nmr_gamma_cyl, the number of cylinders we provided
  *
  */
-MOT_FLOAT_TYPE cmGDRCylindersFixedRadii(const MOT_FLOAT_TYPE4 g,
-                                     const MOT_FLOAT_TYPE G,
-                                     const MOT_FLOAT_TYPE Delta,
-                                     const MOT_FLOAT_TYPE delta,
-                                     const MOT_FLOAT_TYPE d,
-                                     const MOT_FLOAT_TYPE theta,
-                                     const MOT_FLOAT_TYPE phi,
-                                     global const MOT_FLOAT_TYPE* const gamma_cyl_radii,
-                                     global const MOT_FLOAT_TYPE* const gamma_cyl_weights,
+mot_float_type cmGDRCylindersFixedRadii(const mot_float_type4 g,
+                                     const mot_float_type G,
+                                     const mot_float_type Delta,
+                                     const mot_float_type delta,
+                                     const mot_float_type d,
+                                     const mot_float_type theta,
+                                     const mot_float_type phi,
+                                     global const mot_float_type* const gamma_cyl_radii,
+                                     global const mot_float_type* const gamma_cyl_weights,
                                      const int nmr_gamma_cyl_fixed){
 
-    MOT_FLOAT_TYPE signal = 0;
+    mot_float_type signal = 0;
     for(int i = 0; i < nmr_gamma_cyl_fixed; i++){
         signal += gamma_cyl_weights[i] *
                     cmCylinderGPD(g, G, Delta, delta, d, theta, phi, gamma_cyl_radii[i]);

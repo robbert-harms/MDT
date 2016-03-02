@@ -17,28 +17,28 @@
  * @params dperp2 parameter perpendicular diffusion 2
  * @params psi the third rotation angle
  */
-MOT_FLOAT_TYPE cmTensor(const MOT_FLOAT_TYPE4 g,
-                     const MOT_FLOAT_TYPE b,
-                     const MOT_FLOAT_TYPE d,
-                     const MOT_FLOAT_TYPE dperp,
-                     const MOT_FLOAT_TYPE dperp2,
-                     const MOT_FLOAT_TYPE theta,
-                     const MOT_FLOAT_TYPE phi,
-                     const MOT_FLOAT_TYPE psi){
+mot_float_type cmTensor(const mot_float_type4 g,
+                     const mot_float_type b,
+                     const mot_float_type d,
+                     const mot_float_type dperp,
+                     const mot_float_type dperp2,
+                     const mot_float_type theta,
+                     const mot_float_type phi,
+                     const mot_float_type psi){
 
-    MOT_FLOAT_TYPE cos_theta;
-    MOT_FLOAT_TYPE sin_theta = sincos(theta, &cos_theta);
-    MOT_FLOAT_TYPE cos_phi;
-    MOT_FLOAT_TYPE sin_phi = sincos(phi, &cos_phi);
-    MOT_FLOAT_TYPE cos_psi;
-    MOT_FLOAT_TYPE sin_psi = sincos(psi, &cos_psi);
+    mot_float_type cos_theta;
+    mot_float_type sin_theta = sincos(theta, &cos_theta);
+    mot_float_type cos_phi;
+    mot_float_type sin_phi = sincos(phi, &cos_phi);
+    mot_float_type cos_psi;
+    mot_float_type sin_psi = sincos(psi, &cos_psi);
 
-    MOT_FLOAT_TYPE4 n1 = (MOT_FLOAT_TYPE4)(cos_phi * sin_theta, sin_phi * sin_theta, cos_theta, 0.0);
+    mot_float_type4 n1 = (mot_float_type4)(cos_phi * sin_theta, sin_phi * sin_theta, cos_theta, 0.0);
 
     // rotate around n1
     // this code is optimized for memory consumption. View the git history for human readable previous versions.
-    MOT_FLOAT_TYPE tmp = sin(theta+(M_PI_2)); // using tmp as the rotation factor (90 degrees)
-    MOT_FLOAT_TYPE4 n2 = (MOT_FLOAT_TYPE4)(tmp * cos_phi, tmp * sin_phi, cos(theta+(M_PI_2)), 0.0);
+    mot_float_type tmp = sin(theta+(M_PI_2)); // using tmp as the rotation factor (90 degrees)
+    mot_float_type4 n2 = (mot_float_type4)(tmp * cos_phi, tmp * sin_phi, cos(theta+(M_PI_2)), 0.0);
     tmp = select(1, -1, n1.z < 0 || ((n1.z == 0.0) && n1.x < 0.0)); // using tmp as the multiplier
     n2 = n2 * cos_psi + (cross(n2, tmp * n1) * sin_psi) + (tmp * n1 * dot(tmp * n1, n2) * (1-cos_psi));
 

@@ -114,16 +114,16 @@ class _DTIMeasuresWorker(Worker):
         kernel_source += get_float_type_def(self._double_precision)
         kernel_source += '''
             __kernel void calculate_measures(
-                global MOT_FLOAT_TYPE* eigenvalues,
-                global MOT_FLOAT_TYPE* fas,
-                global MOT_FLOAT_TYPE* mds
+                global mot_float_type* eigenvalues,
+                global mot_float_type* fas,
+                global mot_float_type* mds
                 ){
                     int gid = get_global_id(0);
                     int voxel = gid * 3;
 
-                    MOT_FLOAT_TYPE v1 = eigenvalues[voxel];
-                    MOT_FLOAT_TYPE v2 = eigenvalues[voxel + 1];
-                    MOT_FLOAT_TYPE v3 = eigenvalues[voxel + 2];
+                    mot_float_type v1 = eigenvalues[voxel];
+                    mot_float_type v2 = eigenvalues[voxel + 1];
+                    mot_float_type v3 = eigenvalues[voxel + 2];
 
                     fas[gid] = sqrt(0.5 * (pown(v1 - v2, 2) + pown(v1 - v3, 2) + pown(v2 - v3, 2)) /
                                            (pown(v1, 2) + pown(v2, 2) + pown(v3, 2)));

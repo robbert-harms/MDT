@@ -19,7 +19,7 @@ its data are handled during model construction.
 
 class g(ProtocolParameterConfig):
     name = 'g'
-    data_type = 'MOT_FLOAT_TYPE4'
+    data_type = 'mot_float_type4'
 
 
 class b(ProtocolParameterConfig):
