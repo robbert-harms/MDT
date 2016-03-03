@@ -99,7 +99,7 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
         model_protocol_options (list of dict): specific model protocol options to use during fitting.
                 This is for example used during batch fitting to limit the protocol for certain models.
                 For instance, in the Tensor model we generally only want to use the lower b-values.
-        cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
+        cl_device_ind (int or list): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices(). This can also be a list of device indices.
         double_precision (boolean): if we would like to do the calculations in double precision
         gradient_deviations (str or ndarray): set of gradient deviations to use. In HCP WUMINN format.
