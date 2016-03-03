@@ -1,10 +1,4 @@
-import os
-import numpy as np
-import shutil
-
-from mdt import create_index_matrix
-from mdt.IO import Nifti
-from mdt.components_loader import ProcessingStrategiesLoader, load_component
+from mdt.components_loader import load_component
 from mdt.utils import ModelChunksProcessingStrategy
 
 __author__ = 'Robbert Harms'
@@ -20,12 +14,12 @@ meta_info = {'title': 'Applies the VoxelRange strategy depending on the protocol
 class ProtocolDependent(ModelChunksProcessingStrategy):
 
     def __init__(self, steps=((0, None), (100, 50000), (200, 20000))):
-        """Optimize a given dataset slice by slice.
+        """A meta strategy using VoxelRange AllVoxelsAtOnce depending on the protocol length
 
-        This will look at the protocol of the given model and determine based on the number of rows in the protocol
+        This will look at the protocol of the given model and determine, based on the number of rows in the protocol,
         which voxel range to use.
 
-        A voxel range of None or 0 means we want to fit all the voxels at once (We will use the AllVoxelsAtOnce
+        A voxel range of None or 0 means we want to fit all the voxels at once (this will use the AllVoxelsAtOnce
         strategy for that).
 
         During lookup of the protocol length we take the maximum step that is lower than the protocol length. If no
@@ -33,7 +27,7 @@ class ProtocolDependent(ModelChunksProcessingStrategy):
 
         Args:
             steps (list[tuple[int, int]]): the steps of the voxel ranges. The first item in the tuple is the
-                protocol length, the second the voxel range. We assume the voxel ranges to be in ascending order.
+                protocol length, the second the voxel range. We assume that voxel ranges are in ascending order.
         """
         super(ProtocolDependent, self).__init__()
         self._steps = steps
