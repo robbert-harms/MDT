@@ -44,7 +44,6 @@ class Charmed_r2(DMRISingleModelConfig):
     name = 'Charmed_r2'
     ex_vivo_suitable = False
     description = 'The Charmed (CHARMED) model with 2 restricted compartments'
-    signal_noise_model = JohnsonSignalNoise()
 
     model_expression = '''
         S0 * ( (Weight(w_hin0) * Tensor) +
@@ -80,7 +79,6 @@ class Charmed(DMRISingleModelConfig):
     name = 'Charmed'
     ex_vivo_suitable = False
     description = 'The standard Charmed (CHARMED) model with 3 restricted compartments'
-    signal_noise_model = JohnsonSignalNoise()
 
     model_expression = '''
         S0 * ( (Weight(w_hin0) * Tensor) +

@@ -29,7 +29,7 @@ class ModelOutputLogHandler(logging.StreamHandler):
 
     @property
     def output_file(self):
-        return self.output_file
+        return self._output_file
 
     @output_file.setter
     def output_file(self, output_file):
@@ -68,7 +68,6 @@ class ModelOutputLogHandler(logging.StreamHandler):
                 self.stream = open(self._output_file, self.mode)
             else:
                 self.stream = codecs.open(self._output_file, self.mode, self.encoding)
-
 
 
 class StdOutHandler(logging.StreamHandler):

@@ -661,18 +661,20 @@ def configure_per_model_logging(output_path):
     Args:
         output_path: the output path where the model results are stored.
     """
-    handlers = ModelOutputLogHandler.__instances__
     if output_path:
         output_path = os.path.abspath(os.path.join(output_path, 'info.log'))
 
-    for handler in handlers:
+    had_this_output_file = all(h.output_file == output_path for h in ModelOutputLogHandler.__instances__)
+
+    for handler in ModelOutputLogHandler.__instances__:
         handler.output_file = output_path
 
     logger = logging.getLogger(__name__)
-    if output_path:
-        logger.info('Started appending to the per model log file')
-    else:
-        logger.info('Stopped appending to the per model log file')
+    if not had_this_output_file:
+        if output_path:
+            logger.info('Started appending to the per model log file')
+        else:
+            logger.info('Stopped appending to the per model log file')
 
 
 @contextmanager
@@ -1079,11 +1081,14 @@ def calculate_information_criterions(log_likelihoods, k, n):
         dict with therein the BIC, AIC and AICc which stand for the
             Bayesian, Akaike and Akaike corrected Information Criterion
     """
-    return {
+    criteria = {
         'BIC': -2 * log_likelihoods + k * np.log(n),
-        'AIC': -2 * log_likelihoods + k * 2,
-        'AICc': -2 * log_likelihoods + k * 2 + (2 * k * (k + 1))/(n - k - 1)
-    }
+        'AIC': -2 * log_likelihoods + k * 2}
+
+    if n > k-1:
+        criteria.update({'AICc': -2 * log_likelihoods + k * 2 + (2 * k * (k + 1))/(n - k - 1)})
+
+    return criteria
 
 
 class NoiseStdCalculator(object):
