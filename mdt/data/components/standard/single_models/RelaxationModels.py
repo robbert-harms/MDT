@@ -11,6 +11,7 @@ class S0TM(DMRISingleModelConfig):
     name = 'S0-TM'
     description = 'Model for the Mixing time.'
     model_expression = 'S0 * ExpT1DecTM'
+    #upper_bounds = {'T1': 0.5}
 
 
 class S0T2(DMRISingleModelConfig):
@@ -18,6 +19,7 @@ class S0T2(DMRISingleModelConfig):
         name = 'S0-T2'
         description = 'Models the unweighted signal (aka. b0) with an extra T2.'
         model_expression = 'S0 * ExpT2Dec'
+        #upper_bounds = {'T2': 0.08}
 
 
 class S0T2T2(DMRISingleModelConfig):
@@ -41,8 +43,16 @@ class S0T2T2(DMRISingleModelConfig):
         )
 
 
-class S0_TEFA(DMRISingleModelConfig):
+class S0_TE_FA(DMRISingleModelConfig):
 
-    name = 'S0-TEFA'
+    name = 'S0-TE-FA'
     description = 'Model for GRE data with variable TE and flip angle.'
     model_expression = 'S0 * ExpT1ExpT2GRE'
+
+
+class S0_STEAM(DMRISingleModelConfig):
+
+    name = 'S0-STEAM'
+    description = 'Model for S0 STEAM data with variable TM and TE, even if the volumes are splitted.'
+    model_expression = 'S0 * ExpT1ExpT2STEAM'
+    #upper_bounds = {'T2': 0.08}

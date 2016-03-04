@@ -26,7 +26,7 @@ class s0(FreeParameterConfig):
 
     name = 's0'
     init_value = 1e4
-    lower_bound = 1
+    lower_bound = 1e-5
     upper_bound = 1e10
     parameter_transform = ClampTransform()
     sampling_proposal = GaussianProposal(std=25.0)
