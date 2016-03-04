@@ -114,8 +114,10 @@ class SimpleBatchProfile(BatchProfile):
             - '^Tensor$':
                 use_weighted: True
                 use_unweighted: True
+
                 # the unweighted threshold in SI units of s/m^2
                 unweighted_threshold: !!float 25e6
+
                 # Indicate to use b-values between [start - epsilon, end + epsilon], set b-values in s/m^2
                 b_value:
                     start: 0
