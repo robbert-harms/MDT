@@ -98,7 +98,8 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
             If set to false, we recalculate everything. This only holds for the first level of the cascade.
         model_protocol_options (list of dict): specific model protocol options to use during fitting.
                 This is for example used during batch fitting to limit the protocol for certain models.
-                For instance, in the Tensor model we generally only want to use the lower b-values.
+                For instance, in the Tensor model we generally only want to use the lower b-values, or for S0 only
+                the unweighted.
         cl_device_ind (int or list): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices(). This can also be a list of device indices.
         double_precision (boolean): if we would like to do the calculations in double precision
@@ -131,7 +132,8 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
     return model_fit.run()
 
 
-def sample_model(model, problem_data, output_folder, sampler=None, recalculate=False, model_protocol_options=None,
+def sample_model(model, problem_data, output_folder, sampler=None, recalculate=False,
+                 model_protocol_options=None,
                  cl_device_ind=None, double_precision=True,
                  gradient_deviations=None, noise_std='auto', initialize=True, initialize_using=None):
     """Sample a single model. This does not accept cascade models, only single models.

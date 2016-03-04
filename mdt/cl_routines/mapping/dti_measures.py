@@ -107,7 +107,7 @@ class _DTIMeasuresWorker(Worker):
         cl.enqueue_copy(self._cl_run_context.queue, self._fa_host[range_start:range_end], fa_buf, is_blocking=True)
         event = cl.enqueue_copy(self._cl_run_context.queue, self._md_host[range_start:range_end], md_buf, is_blocking=False)
 
-        return event
+        return [event]
 
     def _get_kernel_source(self):
         kernel_source = ''

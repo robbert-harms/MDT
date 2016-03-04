@@ -692,7 +692,9 @@ def per_model_logging_context(output_path):
 def recursive_merge_dict(dictionary, update_dict, in_place=False):
     """ Recursively merge the given dictionary with the new values.
 
-    This does not merge in place, a new dictionary is returned.
+    If in_place is false this does not merge in place but creates new dictionary.
+
+    If update_dict is None we return the original dictionary, or a copy if in_place is False.
 
     Args:
         dictionary (dict): the dictionary we want to update
@@ -711,18 +713,26 @@ def recursive_merge_dict(dictionary, update_dict, in_place=False):
                 gives:
 
                 {'k1': {'k2': {'k3': 3}}, 'k4': 4}
+
+            In the case of lists in the dictionary, we do no merging and always use the new value.
     """
     if not in_place:
         dictionary = copy.deepcopy(dictionary)
 
+    if not update_dict:
+        return dictionary
+
     def merge(d, upd):
-        for k, v in upd.items():
-            if isinstance(v, collections.Mapping):
-                r = merge(d.get(k, {}), v)
-                d[k] = r
-            else:
-                d[k] = upd[k]
-        return d
+        if isinstance(upd, (list, tuple)):
+            return upd
+        else:
+            for k, v in upd.items():
+                if isinstance(v, collections.Mapping):
+                    r = merge(d.get(k, {}), v)
+                    d[k] = r
+                else:
+                    d[k] = upd[k]
+            return d
 
     return merge(dictionary, update_dict)
 
@@ -971,7 +981,7 @@ def apply_model_protocol_options(model_protocol_options, problem_data):
 
     if model_protocol_options:
         protocol = problem_data.protocol
-        protocol_indices = np.array([])
+        protocol_indices = np.array([], dtype=np.int64)
 
         if model_protocol_options.get('use_weighted', False):
             if 'b_value' in model_protocol_options:

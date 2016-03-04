@@ -78,9 +78,9 @@ class _CEWorker(Worker):
         buffers = [thetas_buf, phis_buf, psis_buf, evecs_buf]
 
         self._kernel.generate_tensor(self._cl_run_context.queue, (int(nmr_problems), ), None, *buffers)
-        event = cl.enqueue_copy(self._cl_run_context.queue, self._evecs[range_start:range_end, :], evecs_buf, is_blocking=False)
-
-        return event
+        event = cl.enqueue_copy(self._cl_run_context.queue, self._evecs[range_start:range_end, :], evecs_buf,
+                                is_blocking=False)
+        return [event]
 
     def _get_kernel_source(self):
         kernel_source = ''
