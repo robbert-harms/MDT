@@ -43,9 +43,6 @@ class OptimOptions(object):
                       'Nelder-Mead Simplex': 'NMSimplex',
                       'Levenberg Marquardt': 'LevenbergMarquardt',}
 
-    smoothing_routines = {'Median filter': 'MedianFilter',
-                          'Mean filter': 'MeanFilter'}
-
     cl_environments = get_cl_environments_ordered_dict()
 
     def __init__(self):
@@ -55,13 +52,11 @@ class OptimOptions(object):
         self.optimizer = mdt_config['optimization_settings']['general']['optimizers'][0]['name']
         self.patience = mdt_config['optimization_settings']['general']['optimizers'][0]['patience']
 
-        self.smoother = mdt_config['optimization_settings']['general']['smoothing_routines'][0]['name']
-        self.smoother_size = mdt_config['optimization_settings']['general']['smoothing_routines'][0]['size']
-
-        self.recalculate_all = True
+        self.recalculate_all = False
         self.extra_optim_runs = mdt_config['optimization_settings']['general']['extra_optim_runs']
 
         self.cl_envs_indices = self._get_prefered_device_indices()
+        self.noise_std = 1.0
 
     def _get_prefered_device_indices(self):
         l = [ind for ind, env in enumerate(self.cl_environments.values()) if env.is_gpu]
@@ -73,8 +68,7 @@ class OptimOptions(object):
         return {
             'optimizers': [{'name': self.optimizer, 'patience': self.patience}],
             'extra_optim_runs': self.extra_optim_runs,
-            'extra_optim_runs_apply_smoothing': True,
-            'smoothing_routines': [{'name': self.smoother, 'size': self.smoother_size}],
+            'extra_optim_runs_apply_smoothing': False,
             'load_balancer': {'name': 'EvenDistribution'},
             'cl_devices': self.cl_envs_indices,
         }

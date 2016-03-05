@@ -199,8 +199,7 @@ class RunModelTab(TabContainer):
                     self._protocol_file_chooser.initial_file = protocol_name
 
         if id_key != 'output_dir_chooser':
-            if not self._output_dir_chooser.get_value() and self._image_vol_chooser.is_valid() \
-                    and self._brain_mask_chooser.is_valid():
+            if self._image_vol_chooser.is_valid() and self._brain_mask_chooser.is_valid():
                 mask_name = os.path.splitext(os.path.basename(self._brain_mask_chooser.get_value()))[0]
                 mask_name = mask_name.replace('.nii', '')
                 self._output_dir_chooser.initial_dir = os.path.join(os.path.dirname(
@@ -240,7 +239,8 @@ class RunModelProcess(object):
                       optimizer=optimizer,
                       recalculate=True,
                       only_recalculate_last=self._optim_options.recalculate_all,
-                      double_precision=self._optim_options.double_precision)
+                      double_precision=self._optim_options.double_precision,
+                      noise_std=self._optim_options.noise_std)
         self._finish_queue.put('DONE')
 
 
@@ -280,36 +280,16 @@ class OptimOptionsWindow(SubWindow):
             subframe,
             'extra_optim_runs',
             self._onchange_cb,
-            'Extra runs: ', '(The additional number of iterations,\n with a smoothing step in between)',
+            'Extra runs: ', '(The additional number of iterations,\n with random perturbations in between.)',
             default_val=self._optim_options.extra_optim_runs)
 
-        default_smoother = None
-        for name, val in self._optim_options.smoothing_routines.items():
-            if val == self._optim_options.smoother:
-                default_smoother = name
-                break
-
-        self._smoothing_routine_chooser = DropdownWidget(
+        self._noise_std_box = TextboxWidget(
             subframe,
-            'smoothing_routine_chooser',
+            'noise_std',
             self._onchange_cb,
-            self._optim_options.smoothing_routines.keys(),
-            default_smoother,
-            'Select smoothing routine: ',
-            '(Used before each additional optimization iteration)')
-
-        if isinstance(self._optim_options.smoother_size, numbers.Number):
-            default_smoother_size = self._optim_options.smoother_size
-        else:
-            default_smoother_size = ','.join(map(str, self._optim_options.smoother_size))
-
-        self._smoothing_size = TextboxWidget(
-            subframe,
-            'smoothing_size',
-            self._onchange_cb,
-            'Smoothing filter size: ', '(Either one integer or three comma separated.\n '
-                                       'This is the smoothing filter size in voxels.)',
-            default_val=default_smoother_size)
+            'Noise std: ',
+            '(The noise standard deviation. Use \'auto\' to \n automatically estimate it.)',
+            default_val=self._optim_options.noise_std)
 
         self._double_precision = RadioButtonWidget(
             subframe,
@@ -347,8 +327,10 @@ class OptimOptionsWindow(SubWindow):
         self._devices_chooser.set_items(list(self._optim_options.cl_environments.keys()),
                                         default_items=default_cl_environments)
 
-        self._optimizer_fields = [self._optim_routine_chooser, self._patience_box, self._extra_optim_runs,
-                            self._smoothing_routine_chooser, self._smoothing_size]
+        self._optimizer_fields = [self._optim_routine_chooser, self._patience_box, self._extra_optim_runs]
+
+        self._additional_info_fields = [self._noise_std_box]
+
         extra_fields = [self._double_precision, self._recalculate_all, self._devices_chooser]
 
         button_frame = self._get_button_frame(subframe, window)
@@ -366,6 +348,10 @@ class OptimOptionsWindow(SubWindow):
         for field in self._optimizer_fields:
             field.render(next(row_nmr))
             field.set_state('disabled' if self._optim_options.use_model_default_optimizer else 'normal')
+
+        ttk.Separator(subframe, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(5, 3))
+        for field in self._additional_info_fields:
+            field.render(next(row_nmr))
 
         ttk.Separator(subframe, orient=HORIZONTAL).grid(row=next(row_nmr), columnspan=5, sticky="EW", pady=(5, 3))
         for field in extra_fields:
@@ -420,6 +406,16 @@ class OptimOptionsWindow(SubWindow):
             for field in self._optimizer_fields:
                 field.set_state('disabled' if self._optim_options.use_model_default_optimizer else 'normal')
 
+        elif id_key == 'noise_std':
+            noise_std = calling_widget.get_value()
+            if noise_std == 'auto':
+                self._optim_options.noise_std = 'auto'
+            else:
+                try:
+                    self._optim_options.noise_std = abs(float(calling_widget.get_value()))
+                except ValueError:
+                    pass
+
         elif id_key == 'patience_box':
             try:
                 self._optim_options.patience = int(calling_widget.get_value())
@@ -427,27 +423,13 @@ class OptimOptionsWindow(SubWindow):
                 pass
 
         elif id_key == 'recalculate_all':
-            self._optim_options.recalculate_all = calling_widget.get_value()
+            self._optim_options.recalculate_all = bool(calling_widget.get_value())
 
         elif id_key == 'extra_optim_runs':
             try:
                 self._optim_options.extra_optim_runs = int(calling_widget.get_value())
             except ValueError:
                 pass
-
-        elif id_key == 'smoothing_routine_chooser':
-            smoother = self._optim_options.smoothing_routines[calling_widget.get_value()]
-            self._optim_options.smoother = smoother
-            self._smoothing_size.set_value(1)
-
-        elif id_key == 'smoothing_size':
-            try:
-                self._optim_options.smoother_size = int(calling_widget.get_value())
-            except ValueError:
-                try:
-                    self._optim_options.smoother_size = [int(v) for v in calling_widget.get_value().split(',')][0:3]
-                except ValueError:
-                    pass
 
         elif id_key == 'double_precision':
             self._optim_options.double_precision = calling_widget.get_value()

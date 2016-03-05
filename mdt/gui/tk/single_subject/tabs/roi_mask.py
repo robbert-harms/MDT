@@ -1,3 +1,7 @@
+import multiprocessing
+
+from mdt.visualization import MapsVisualizer
+
 try:
     #python 2.7
     from Tkconstants import BROWSE, W, HORIZONTAL
@@ -14,7 +18,7 @@ from itertools import count
 import os
 import nibabel as nib
 from nibabel.spatialimages import ImageFileError
-from mdt import create_slice_roi
+from mdt import create_slice_roi, load_brain_mask
 from mdt.gui.tk.utils import TabContainer
 from mdt.gui.tk.widgets import FileBrowserWidget, DropdownWidget, ListboxWidget
 from mdt.gui.utils import function_message_decorator
@@ -74,7 +78,11 @@ class GenerateROIMaskTab(TabContainer):
         self._buttons_frame = ttk.Frame(self._tab)
         self._run_slice_roi_button = ttk.Button(self._buttons_frame, text='Generate',
                                                 command=self._run_slice_roi, state='disabled')
+
+        self._view_brain_mask_button = ttk.Button(self._buttons_frame, text='View ROI',
+                                                  command=self._view_brain_mask, state='disabled')
         self._run_slice_roi_button.grid(row=0)
+        self._view_brain_mask_button.grid(row=0, column=1, padx=(10, 0))
 
     def get_tab(self):
         row_nmr = count()
@@ -135,17 +143,22 @@ class GenerateROIMaskTab(TabContainer):
                 except ImageFileError:
                     tkMessageBox.showerror('File not an image', 'The selected file could not be loaded.')
                     return
-
             elif id_key == 'roi_dimension_chooser':
                 self._update_roi_slice_chooser()
 
-            brain_mask = self._brain_mask_vol_chooser.get_value()
-            roi_dim = int(self._dimensions[self._roi_dimension_index.get_value()])
-            roi_slice = int(self._roi_slice_index.get_value()[0])
-            mask_name = os.path.splitext(os.path.basename(brain_mask))[0].replace('.nii', '')
-            output_fname = os.path.join(os.path.dirname(brain_mask), mask_name + '_' + repr(roi_dim) + '_' +
-                                        repr(roi_slice)) + '.nii.gz'
-            self._output_roi_chooser.initial_file = output_fname
+            if id_key == 'roi_slice_chooser' or id_key == 'roi_dimension_chooser' or id_key == 'brain_mask_chooser':
+                brain_mask = self._brain_mask_vol_chooser.get_value()
+                roi_dim = int(self._dimensions[self._roi_dimension_index.get_value()])
+                roi_slice = int(self._roi_slice_index.get_value()[0])
+                mask_name = os.path.splitext(os.path.basename(brain_mask))[0].replace('.nii', '')
+                output_fname = os.path.join(os.path.dirname(brain_mask), mask_name + '_' + repr(roi_dim) + '_' +
+                                            repr(roi_slice)) + '.nii.gz'
+                self._output_roi_chooser.initial_file = output_fname
+
+        if os.path.isfile(self._brain_mask_vol_chooser.get_value()) and self._output_roi_chooser.is_valid():
+            self._view_brain_mask_button.config(state='normal')
+        else:
+            self._view_brain_mask_button.config(state='disabled')
 
         all_valid = all(field.is_valid() for field in self._roi_items)
         if all_valid:
@@ -175,3 +188,28 @@ class GenerateROIMaskTab(TabContainer):
         TabContainer.last_used_image_slice_ind = roi_slice
 
         self._run_slice_roi_button.config(state='normal')
+
+    def _view_brain_mask(self):
+        brain_mask = self._brain_mask_vol_chooser.get_value()
+        roi_dim = int(self._dimensions[self._roi_dimension_index.get_value()])
+        roi_slice = int(self._roi_slice_index.get_value()[0])
+        output_fname = self._output_roi_chooser.get_value()
+
+        if os.path.isfile(brain_mask) and os.path.isfile(output_fname):
+            proc = ViewMaskProcess(brain_mask, output_fname, roi_dim, roi_slice)
+            proc.start()
+
+
+class ViewMaskProcess(multiprocessing.Process):
+
+    def __init__(self, original_mask, slice_mask, dimension, slice_ind):
+        super(ViewMaskProcess, self).__init__()
+        self._original_mask = original_mask
+        self._slice_mask= slice_mask
+        self._dimension = dimension
+        self._slice_ind = slice_ind
+
+    def run(self):
+        MapsVisualizer({'Original mask': load_brain_mask(self._original_mask),
+                        'Slice mask': load_brain_mask(self._slice_mask)}).show(dimension=self._dimension,
+                                                                               slice_ind=self._slice_ind)

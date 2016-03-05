@@ -156,9 +156,8 @@ class FileBrowserWidget(CompositeWidget):
         ttk.Label(self._root_window, text=self._label_text).grid(row=row, column=0, padx=(0, 5), pady=(5, 0), sticky=E)
         self._browse_button.grid(row=row, column=1, padx=(0, 3), pady=(5, 0), sticky=W)
         self._fname_entry.grid(row=row, column=2, pady=(5, 0), sticky=W)
-        ttk.Label(self._root_window, text=self._helper_text, font=(None, 9, 'italic')).grid(row=row, column=3,
-                                                                                            padx=(12, 0), sticky=W,
-                                                                                            pady=(5, 0))
+        ttk.Label(self._root_window, text=self._helper_text, font=(None, 9, 'italic')).grid(
+            row=row, column=3, padx=(12, 0), sticky=W, pady=(5, 0))
 
     def _get_filename(self):
         self.file_opt = options = {}
@@ -187,6 +186,10 @@ class FileBrowserWidget(CompositeWidget):
             filename = tkFileDialog.askopenfilename(**options)
         else:
             filename = tkFileDialog.asksaveasfilename(**options)
+
+        if filename[-1] == '.':
+            filename = filename[:-1]
+
         if filename:
             self._fname_var.set(filename)
 
