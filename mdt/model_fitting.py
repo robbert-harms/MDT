@@ -13,11 +13,12 @@ from mdt import __version__
 from mdt.IO import Nifti
 from mdt.batch_utils import batch_profile_factory, AllSubjects
 from mdt.components_loader import get_model
+from mdt.configuration import config
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.protocols import write_protocol
 from mdt.utils import create_roi, load_problem_data, ProtocolProblemError, MetaOptimizerBuilder, get_cl_devices, \
     get_model_config, apply_model_protocol_options, model_output_exists, split_image_path, get_processing_strategy, \
-    estimate_noise_std, FittingProcessingWorker, per_model_logging_context
+    estimate_noise_std, FittingProcessingWorker, per_model_logging_context, recursive_merge_dict
 from mot import runtime_configuration
 from mot.load_balance_strategies import EvenDistribution
 from mot.runtime_configuration import runtime_config_context
@@ -202,7 +203,8 @@ class ModelFit(object):
                 If set to false, we recalculate everything. This only holds for the first level of the cascade.
             model_protocol_options (list of dict): specific model protocol options to use during fitting.
                 This is for example used during batch fitting to limit the protocol for certain models.
-                For instance, in the Tensor model we generally only want to use the lower b-values.
+                For instance, in the Tensor model we generally only want to use the lower b-values, or for
+                S0 for example only the unweighted. This can also be defined in the config file.
             cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
                 get_cl_devices(). This can also be a list of device indices.
             double_precision (boolean): if we would like to do the calculations in double precision
@@ -222,7 +224,8 @@ class ModelFit(object):
         self._optimizer = optimizer
         self._recalculate = recalculate
         self._only_recalculate_last = only_recalculate_last
-        self._model_protocol_options = model_protocol_options
+        self._model_protocol_options = recursive_merge_dict(config.get('model_protocol_options', {}),
+                                                            model_protocol_options)
         self._logger = logging.getLogger(__name__)
         self._cl_device_indices = cl_device_ind
         self._model_names_list = []
@@ -297,10 +300,10 @@ class ModelFit(object):
     def _run_single_model(self, model, recalculate, meta_optimizer_config, model_names):
         with runtime_config_context(cl_environments=self._cl_envs, load_balancer=self._load_balancer):
             with per_model_logging_context(os.path.join(self._output_folder, model.name)):
-                self._logger.debug('Using MDT version {}'.format(__version__))
-                self._logger.debug('Preparing for model {0}'.format(model.name))
-                self._logger.debug('Current cascade: {0}'.format(model_names))
-                self._logger.debug('Setting the noise standard deviation to {0}'.format(self._noise_std))
+                self._logger.info('Using MDT version {}'.format(__version__))
+                self._logger.info('Preparing for model {0}'.format(model.name))
+                self._logger.info('Current cascade: {0}'.format(model_names))
+                self._logger.info('Setting the noise standard deviation to {0}'.format(self._noise_std))
                 model.evaluation_model.set_noise_level_std(self._noise_std, fix=True)
 
                 optimizer = self._optimizer or MetaOptimizerBuilder(meta_optimizer_config).construct(model_names)

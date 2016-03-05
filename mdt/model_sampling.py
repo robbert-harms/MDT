@@ -10,11 +10,12 @@ import collections
 from six import string_types
 from mdt.IO import Nifti
 from mdt.components_loader import get_model
+from mdt.configuration import config
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.utils import create_roi, configure_per_model_logging, \
     ProtocolProblemError, model_output_exists, estimate_noise_std, get_cl_devices, get_model_config, \
     apply_model_protocol_options, get_processing_strategy, per_model_logging_context, SamplingProcessingWorker, \
-    memory_load_samples
+    memory_load_samples, recursive_merge_dict
 from mot import runtime_configuration
 from mot.cl_routines.sampling.metropolis_hastings import MetropolisHastings
 from mot.load_balance_strategies import EvenDistribution
@@ -80,7 +81,8 @@ class ModelSampling(object):
         self._output_folder = output_folder
         self._sampler = sampler
         self._recalculate = recalculate
-        self._model_protocol_options = model_protocol_options
+        self._model_protocol_options = recursive_merge_dict(config.get('model_protocol_options', {}),
+                                                            model_protocol_options)
         self._logger = logging.getLogger(__name__)
         self._cl_device_indices = cl_device_ind
         self._noise_std = estimate_noise_std(noise_std, self._problem_data)

@@ -59,7 +59,7 @@ class DTIMeasures(AbstractCLRoutine):
         if double_precision:
             np_dtype = np.float64
 
-        eigenvalues = eigenvalues.astype(np_dtype, order='C', copy=False)
+        eigenvalues = np.require(eigenvalues, np_dtype, requirements=['C', 'A', 'O'])
 
         s = eigenvalues.shape
         if len(s) < 3:
@@ -94,20 +94,24 @@ class _DTIMeasuresWorker(Worker):
 
     def calculate(self, range_start, range_end):
         nmr_problems = range_end - range_start
-        write_flags = self._cl_environment.get_write_only_cl_mem_flags()
-        read_flags = self._cl_environment.get_read_only_cl_mem_flags()
 
-        eigenvalues_buf = cl.Buffer(self._cl_run_context.context, read_flags,
+        eigenvalues_buf = cl.Buffer(self._cl_run_context.context,
+                                    cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR,
                                     hostbuf=self._eigenvalues[range_start:range_end])
-        fa_buf = cl.Buffer(self._cl_run_context.context, write_flags, hostbuf=self._fa_host[range_start:range_end])
-        md_buf = cl.Buffer(self._cl_run_context.context, write_flags, hostbuf=self._md_host[range_start:range_end])
+        fa_buf = cl.Buffer(self._cl_run_context.context,
+                           cl.mem_flags.WRITE_ONLY | cl.mem_flags.COPY_HOST_PTR,
+                           hostbuf=self._fa_host[range_start:range_end])
+        md_buf = cl.Buffer(self._cl_run_context.context,
+                           cl.mem_flags.WRITE_ONLY | cl.mem_flags.COPY_HOST_PTR,
+                           hostbuf=self._md_host[range_start:range_end])
+
         buffers = [eigenvalues_buf, fa_buf, md_buf]
 
         self._kernel.calculate_measures(self._cl_run_context.queue, (int(nmr_problems), ), None, *buffers)
         cl.enqueue_copy(self._cl_run_context.queue, self._fa_host[range_start:range_end], fa_buf, is_blocking=True)
         event = cl.enqueue_copy(self._cl_run_context.queue, self._md_host[range_start:range_end], md_buf, is_blocking=False)
 
-        return event
+        return [event]
 
     def _get_kernel_source(self):
         kernel_source = ''
@@ -125,8 +129,10 @@ class _DTIMeasuresWorker(Worker):
                     mot_float_type v2 = eigenvalues[voxel + 1];
                     mot_float_type v3 = eigenvalues[voxel + 2];
 
-                    fas[gid] = sqrt(0.5 * (pown(v1 - v2, 2) + pown(v1 - v3, 2) + pown(v2 - v3, 2)) /
-                                           (pown(v1, 2) + pown(v2, 2) + pown(v3, 2)));
+                    fas[gid] = sqrt(0.5 * (((v1 - v2) * (v1 - v2)) +
+                                           ((v1 - v3) * (v1 - v3)) +
+                                           ((v2 - v3)  * (v2 - v3))) /
+                                                (v1 * v1 + v2 * v2 + v3 * v3));
                     mds[gid] = (v1 + v2 + v3) / 3.0;
             }
         '''
