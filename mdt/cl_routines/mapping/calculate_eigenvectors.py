@@ -14,7 +14,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class CalculateEigenvectors(AbstractCLRoutine):
 
-    def convert_theta_phi_psi(self, theta_roi, phi_roi, psi_roi, double_precision=True):
+    def convert_theta_phi_psi(self, theta_roi, phi_roi, psi_roi, double_precision=False):
         """Calculate the eigenvectors from the given theta, phi and psi angles.
 
         This will return the eigenvectors unsorted (since we know nothing about the eigenvalues).
@@ -40,18 +40,17 @@ class CalculateEigenvectors(AbstractCLRoutine):
         if double_precision:
             np_dtype = np.float64
 
-        theta_roi = theta_roi.astype(np_dtype, order='C', copy=False)
-        phi_roi = phi_roi.astype(np_dtype, order='C', copy=False)
-        psi_roi = psi_roi.astype(np_dtype, order='C', copy=False)
+        theta_roi = np.require(theta_roi, np_dtype, requirements=['C', 'A', 'O'])
+        phi_roi = np.require(phi_roi, np_dtype, requirements=['C', 'A', 'O'])
+        psi_roi = np.require(psi_roi, np_dtype, requirements=['C', 'A', 'O'])
 
         rows = theta_roi.shape[0]
-        evecs = np.zeros((rows, 3*3), dtype=np_dtype)
+        evecs = np.zeros((rows, 3, 3), dtype=np_dtype, order='C')
 
         workers = self._create_workers(lambda cl_environment: _CEWorker(cl_environment, theta_roi, phi_roi,
                                                                         psi_roi, evecs, double_precision))
         self.load_balancer.process(workers, rows)
-
-        return np.reshape(evecs, (rows, 3, 3))
+        return evecs
 
 
 class _CEWorker(Worker):
@@ -64,37 +63,41 @@ class _CEWorker(Worker):
         self._psi_roi = psi_roi
         self._evecs = evecs
         self._double_precision = double_precision
+        self._all_buffers, self._evecs_buf = self._create_buffers()
         self._kernel = self._build_kernel()
 
     def calculate(self, range_start, range_end):
         nmr_problems = range_end - range_start
-        write_flags = self._cl_environment.get_write_only_cl_mem_flags()
-        read_flags = self._cl_environment.get_read_only_cl_mem_flags()
 
-        thetas_buf = cl.Buffer(self._cl_run_context.context, read_flags, hostbuf=self._theta_roi[range_start:range_end])
-        phis_buf = cl.Buffer(self._cl_run_context.context, read_flags, hostbuf=self._phi_roi[range_start:range_end])
-        psis_buf = cl.Buffer(self._cl_run_context.context, read_flags, hostbuf=self._psi_roi[range_start:range_end])
-        evecs_buf = cl.Buffer(self._cl_run_context.context, write_flags, hostbuf=self._evecs[range_start:range_end, :])
-        buffers = [thetas_buf, phis_buf, psis_buf, evecs_buf]
+        event = self._kernel.generate_tensor(self._cl_run_context.queue, (int(nmr_problems), ), None, *self._all_buffers,
+                                             global_offset=(int(range_start),))
 
-        self._kernel.generate_tensor(self._cl_run_context.queue, (int(nmr_problems), ), None, *buffers)
-        event = cl.enqueue_copy(self._cl_run_context.queue, self._evecs[range_start:range_end, :], evecs_buf,
-                                is_blocking=False)
-        return [event]
+        return [cl.enqueue_map_buffer(self._cl_run_context.queue, self._evecs_buf,
+                                      cl.map_flags.READ, range_start * self._evecs.dtype.itemsize,
+                                      [nmr_problems, self._evecs.shape[1]], self._evecs.dtype,
+                                      order="C", wait_for=[event], is_blocking=False)[1]]
+
+    def _create_buffers(self):
+        thetas_buf = cl.Buffer(self._cl_run_context.context,
+                               cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR,
+                               hostbuf=self._theta_roi)
+        phis_buf = cl.Buffer(self._cl_run_context.context,
+                             cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR,
+                             hostbuf=self._phi_roi)
+        psis_buf = cl.Buffer(self._cl_run_context.context,
+                             cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR,
+                             hostbuf=self._psi_roi)
+        evecs_buf = cl.Buffer(self._cl_run_context.context,
+                              cl.mem_flags.WRITE_ONLY | cl.mem_flags.USE_HOST_PTR,
+                              hostbuf=self._evecs)
+
+        all_buffers = [thetas_buf, phis_buf, psis_buf, evecs_buf]
+        return all_buffers, evecs_buf
 
     def _get_kernel_source(self):
         kernel_source = ''
         kernel_source += get_float_type_def(self._double_precision)
         kernel_source += '''
-            mot_float_type4 Tensor_rotateVector(const mot_float_type4 vector, const mot_float_type4 axis_rotate,
-                                            const mot_float_type psi){
-                mot_float_type4 n1 = axis_rotate;
-                if(axis_rotate.z < 0 || ((axis_rotate.z == 0.0) && (axis_rotate.x < 0.0))){
-                    n1 *= -1;
-                }
-                return vector * cos(psi) + (cross(vector, n1) * sin(psi)) + (n1 * dot(n1, vector) * (1-cos(psi)));
-            }
-
             __kernel void generate_tensor(
                 global mot_float_type* thetas,
                 global mot_float_type* phis,
@@ -107,14 +110,20 @@ class _CEWorker(Worker):
                     mot_float_type phi = phis[gid];
                     mot_float_type psi = psis[gid];
 
-                    mot_float_type sinT = sin(theta);
-                    mot_float_type sinP = sin(phi);
-                    mot_float_type cosP = cos(phi);
-                    mot_float_type rst = sin(theta+(M_PI_2));
+                    mot_float_type cos_theta;
+                    mot_float_type sin_theta = sincos(theta, &cos_theta);
+                    mot_float_type cos_phi;
+                    mot_float_type sin_phi = sincos(phi, &cos_phi);
+                    mot_float_type cos_psi;
+                    mot_float_type sin_psi = sincos(psi, &cos_psi);
 
-                    mot_float_type4 n1 = (mot_float_type4)(cosP * sinT, sinP * sinT, cos(theta), 0.0);
-                    mot_float_type4 n2 = Tensor_rotateVector((mot_float_type4)(rst * cosP, rst * sinP,
-                                                                       cos(theta+(M_PI_2)), 0.0), n1, psi);
+                    mot_float_type4 n1 = (mot_float_type4)(cos_phi * sin_theta, sin_phi * sin_theta, cos_theta, 0.0);
+
+                    // rotate around n1
+                    mot_float_type tmp = sin(theta+(M_PI_2)); // using tmp as the rotation factor (90 degrees)
+                    mot_float_type4 n2 = (mot_float_type4)(tmp * cos_phi, tmp * sin_phi, cos(theta+(M_PI_2)), 0.0);
+                    tmp = select(1, -1, n1.z < 0 || ((n1.z == 0.0) && n1.x < 0.0)); // using tmp as the multiplier
+                    n2 = n2 * cos_psi + (cross(n2, tmp * n1) * sin_psi) + (tmp * n1 * dot(tmp * n1, n2) * (1-cos_psi));
 
                     mot_float_type4 n3 = cross(n1, n2);
 

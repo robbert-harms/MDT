@@ -34,11 +34,11 @@ class Tensor(CompartmentConfig):
 
         extra_maps = {self.name + '.eigen_ranking': ranking}
         for ind in range(3):
-            extra_maps.update({self.name + '.vec' + repr(ind): eigen_vectors[ind]})
+            extra_maps.update({self.name + '.vec' + repr(ind): eigen_vectors[:, ind, :]})
 
             for dimension in range(3):
                 extra_maps.update({self.name + '.vec' + repr(ind) + '_' + repr(dimension):
-                                   eigen_vectors[ind][:, dimension]})
+                                   eigen_vectors[:, ind, dimension]})
 
         dti_measures = DTIMeasures(runtime_configuration.runtime_config['cl_environments'],
                                    runtime_configuration.runtime_config['load_balancer'])
