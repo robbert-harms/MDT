@@ -187,7 +187,7 @@ class FileBrowserWidget(CompositeWidget):
         else:
             filename = tkFileDialog.asksaveasfilename(**options)
 
-        if filename[-1] == '.':
+        if len(filename) > 0 and filename[-1] == '.':
             filename = filename[:-1]
 
         if filename:

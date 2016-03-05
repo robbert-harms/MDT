@@ -240,7 +240,8 @@ class RunModelProcess(object):
                       recalculate=True,
                       only_recalculate_last=self._optim_options.recalculate_all,
                       double_precision=self._optim_options.double_precision,
-                      noise_std=self._optim_options.noise_std)
+                      noise_std=self._optim_options.noise_std,
+                      cl_device_ind=self._optim_options.cl_envs_indices)
         self._finish_queue.put('DONE')
 
 

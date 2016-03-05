@@ -13,7 +13,6 @@ import sys
 from pkg_resources import resource_filename
 import mdt
 from mdt.gui.tk.single_subject.tabs.brain_mask import GenerateBrainMaskTab
-from mdt.gui.tk.single_subject.tabs.concatenate_shells import ConcatenateShellsTab
 from mdt.gui.tk.single_subject.tabs.protocol import GenerateProtocolFileTab
 from mdt.gui.tk.single_subject.tabs.roi_mask import GenerateROIMaskTab
 from mdt.gui.tk.single_subject.tabs.run_model import RunModelTab
@@ -118,7 +117,6 @@ class MainNotebook(ttk.Notebook):
                      GenerateBrainMaskTab(window, cl_process_queue, output_queue),
                      GenerateROIMaskTab(window, cl_process_queue, output_queue),
                      GenerateProtocolFileTab(window, cl_process_queue, output_queue),
-                     ConcatenateShellsTab(window, cl_process_queue, output_queue),
                      ViewResultsTab(window, cl_process_queue, output_queue)]
 
         for tab in self.tabs:
