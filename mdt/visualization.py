@@ -40,13 +40,14 @@ class MapsVisualizer(object):
         self.maps_to_show = sorted(self._volumes_dict.keys())
         self.map_titles = {}
         self.general_plot_options = {}
-        self.font_size = None
+        self.font_size = 12
         self._image_subplots = {}
         self._minmax_vals = self._load_min_max_vals()
         self._dimension_slider = None
         self._index_slider = None
         self._volume_slider = None
         self._updating_sliders = False
+        self._is_in_scroll_update = False
         self._colorbar_subplots = {}
         self.axis_options = None
         self.nmr_colorbar_axis_ticks = None
@@ -148,6 +149,7 @@ class MapsVisualizer(object):
             plt.close()
         else:
             plt.draw()
+            self._figure.canvas.mpl_connect('scroll_event', self._scroll_event)
             if block:
                 plt.show(True)
 
@@ -280,6 +282,26 @@ class MapsVisualizer(object):
                 cbar.ax.yaxis.offsetText.set(size=(self.font_size-10))
 
         self._figure.canvas.draw()
+
+    def _scroll_event(self, event):
+        if not self._is_in_scroll_update:
+            for map_name, axis in self._image_subplots.items():
+                if axis == event.inaxes:
+                    min_val = self._minmax_vals[map_name][0]
+                    max_val = self._minmax_vals[map_name][1]
+
+                    vmin = self.map_plot_options.get(map_name, {}).get('vmin', min_val)
+                    vmax = self.map_plot_options.get(map_name, {}).get('vmax', max_val)
+
+                    vmin += min_val * 0.05 * event.step
+                    vmax -= max_val * 0.05 * event.step
+
+                    self.map_plot_options.update({map_name: {'vmin': vmin, 'vmax': vmax}})
+                    self._is_in_scroll_update = True
+                    self._rerender_maps()
+                    self._is_in_scroll_update = False
+                    return
+
 
     def _set_axis_options(self, map_name, plt):
         if self.axis_options is not None:
