@@ -1,15 +1,10 @@
-import math
 import os
 import itertools
-from contextlib import contextmanager
-
 import matplotlib.pyplot as plt
-import matplotlib
 from matplotlib.ticker import LinearLocator
 from matplotlib.widgets import Slider
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.stats import norm
-
 from mdt.utils import get_slice_in_dimension
 from matplotlib.gridspec import GridSpec
 import numpy as np
@@ -28,6 +23,8 @@ class MapsVisualizer(object):
     def __init__(self, volumes_dict):
         self._volumes_dict = volumes_dict
 
+        self._sorted_volumes = {}
+        self._map_scroll_positions = {}
         self._dimension = 0
         self._slice_ind = 0
         self._volume_ind = 0
@@ -43,7 +40,6 @@ class MapsVisualizer(object):
         self.font_size = None
         self._image_subplots = {}
         self._minmax_vals = self._load_min_max_vals()
-        self._sub_largest_values = self._load_sub_largest_values()
         self._dimension_slider = None
         self._index_slider = None
         self._volume_slider = None
@@ -288,16 +284,16 @@ class MapsVisualizer(object):
         if not self._is_in_scroll_update:
             for map_name, axis in self._image_subplots.items():
                 if axis == event.inaxes:
-                    min_val = self._minmax_vals[map_name][0]
-                    max_val = self._minmax_vals[map_name][1]
+                    if map_name not in self._sorted_volumes:
+                        self._sorted_volumes.update({map_name: np.sort(self._volumes_dict[map_name], axis=None)})
 
-                    vmin = self.map_plot_options.get(map_name, {}).get('vmin', min_val)
-                    vmax = self.map_plot_options.get(map_name, {}).get('vmax', max_val)
+                    if map_name not in self._map_scroll_positions:
+                        self._map_scroll_positions.update({map_name: 0})
 
-                    vmax_sub_max = self._sub_largest_values[map_name]
+                    self._map_scroll_positions[map_name] += event.step**3
 
-                    vmin += min_val * 0.01 * event.step
-                    vmax -= vmax_sub_max * 0.01 * event.step
+                    vmin = self._sorted_volumes[map_name][self._map_scroll_positions[map_name]]
+                    vmax = self._sorted_volumes[map_name][-self._map_scroll_positions[map_name]]
 
                     self.map_plot_options.update({map_name: {'vmin': vmin, 'vmax': vmax}})
                     self._is_in_scroll_update = True
@@ -372,21 +368,6 @@ class MapsVisualizer(object):
             except TypeError:
                 d.update({key: (0, 1)})
         return d
-
-    def _load_sub_largest_values(self):
-        d = {}
-        for key, value in self._volumes_dict.items():
-            try:
-                d.update({key: self._get_sub_largest_value(value)})
-            except TypeError:
-                d.update({key: (0, 1)})
-        return d
-
-    def _get_sub_largest_value(self, volume, percentage_outliers=0.0001):
-        partition_range = np.max((int(volume.size * percentage_outliers), 10))
-        ind = np.argpartition(volume, -partition_range, axis=None)[-partition_range:]
-        values = volume[np.unravel_index(ind, volume.shape)]
-        return np.sort(values)[0]
 
     def _get_max_4d_length(self):
         """Get the maximum volume index in the volumes."""
@@ -618,8 +599,8 @@ class AutoGridLayout(GridLayout):
         if nmr_plots < len(defaults):
             return defaults[nmr_plots - 1]
         else:
-            cols = math.ceil(nmr_plots / 3.0)
-            rows = math.ceil(float(nmr_plots) / cols)
+            cols = np.ceil(nmr_plots / 3.0)
+            rows = np.ceil(float(nmr_plots) / cols)
             rows = int(rows)
             cols = int(cols)
         return rows, cols
