@@ -80,7 +80,9 @@ def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalcul
 
 def fit_model(model, problem_data, output_folder, optimizer=None,
               recalculate=False, only_recalculate_last=False, model_protocol_options=None,
-              cl_device_ind=None, double_precision=False, gradient_deviations=None, noise_std='auto'):
+              use_model_protocol_options=True,
+              cl_device_ind=None, double_precision=False, gradient_deviations=None, noise_std='auto'
+              ):
     """Run the optimizer on the given model.
 
     Args:
@@ -96,10 +98,11 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
             This is only of importance when dealing with CascadeModels.
             If set to true we only recalculate the last element in the chain (if recalculate is set to True, that is).
             If set to false, we recalculate everything. This only holds for the first level of the cascade.
-        model_protocol_options (list of dict): specific model protocol options to use during fitting.
+        model_protocol_options (dict): specific model protocol options to use during fitting.
                 This is for example used during batch fitting to limit the protocol for certain models.
                 For instance, in the Tensor model we generally only want to use the lower b-values, or for S0 only
-                the unweighted.
+                the unweighted. Please note that this is merged with the options defined in the config file.
+        use_model_protocol_options (boolean): if we want to use the model protocol options or not.
         cl_device_ind (int or list): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices(). This can also be a list of device indices.
         double_precision (boolean): if we would like to do the calculations in double precision
@@ -125,6 +128,7 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
 
     model_fit = ModelFit(model, problem_data, output_folder, optimizer=optimizer, recalculate=recalculate,
                          only_recalculate_last=only_recalculate_last, model_protocol_options=model_protocol_options,
+                         use_model_protocol_options=use_model_protocol_options,
                          cl_device_ind=cl_device_ind, double_precision=double_precision,
                          gradient_deviations=gradient_deviations,
                          noise_std=noise_std)
@@ -133,8 +137,8 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
 
 
 def sample_model(model, problem_data, output_folder, sampler=None, recalculate=False,
-                 model_protocol_options=None,
-                 cl_device_ind=None, double_precision=True,
+                 model_protocol_options=None, use_model_protocol_options=True,
+                 cl_device_ind=None, double_precision=False,
                  gradient_deviations=None, noise_std='auto', initialize=True, initialize_using=None):
     """Sample a single model. This does not accept cascade models, only single models.
 
@@ -145,9 +149,11 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
             model name in it (for the optimization results) and then a subdir with the samples output.
         sampler (AbstractSampler): the sampler to use
         recalculate (boolean): If we want to recalculate the results if they are already present.
-        model_protocol_options (list of dict): specific model protocol options to use during fitting.
+        model_protocol_options (dict): specific model protocol options to use during fitting.
                 This is for example used during batch fitting to limit the protocol for certain models.
-                For instance, in the Tensor model we generally only want to use the lower b-values.
+                For instance, in the Tensor model we generally only want to use the lower b-values, or for S0 only
+                the unweighted. Please note that this is merged with the options defined in the config file.
+        use_model_protocol_options (boolean): if we want to use the model protocol options or not.
         cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices().
         double_precision (boolean): if we would like to do the calculations in double precision
@@ -181,6 +187,7 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
                              sampler=sampler, recalculate=recalculate, cl_device_ind=cl_device_ind,
                              double_precision=double_precision,
                              model_protocol_options=model_protocol_options,
+                             use_model_protocol_options=use_model_protocol_options,
                              gradient_deviations=gradient_deviations, noise_std=noise_std, initialize=initialize,
                              initialize_using=initialize_using)
 

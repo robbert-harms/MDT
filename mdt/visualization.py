@@ -40,7 +40,7 @@ class MapsVisualizer(object):
         self.maps_to_show = sorted(self._volumes_dict.keys())
         self.map_titles = {}
         self.general_plot_options = {}
-        self.font_size = 12
+        self.font_size = None
         self._image_subplots = {}
         self._minmax_vals = self._load_min_max_vals()
         self._dimension_slider = None

@@ -73,7 +73,7 @@ class DMRIProblemData(AbstractProblemData):
         """Return the protocol_data_dict.
 
         Returns:
-            protocol: The protocol object given in the instantiation.
+            Protocol: The protocol object given in the instantiation.
         """
         return self.protocol_data_dict
 
@@ -723,16 +723,13 @@ def recursive_merge_dict(dictionary, update_dict, in_place=False):
         return dictionary
 
     def merge(d, upd):
-        if isinstance(upd, (list, tuple)):
-            return upd
-        else:
-            for k, v in upd.items():
-                if isinstance(v, collections.Mapping):
-                    r = merge(d.get(k, {}), v)
-                    d[k] = r
-                else:
-                    d[k] = upd[k]
-            return d
+        for k, v in upd.items():
+            if isinstance(v, collections.Mapping):
+                r = merge(d.get(k, {}), v)
+                d[k] = r
+            else:
+                d[k] = upd[k]
+        return d
 
     return merge(dictionary, update_dict)
 
@@ -924,44 +921,75 @@ def get_cl_devices():
     return CLEnvironmentFactory.all_devices()
 
 
-def get_model_config(model_names, config_list):
+def get_model_config(model_names, config):
     """Get from the given dictionary the config for the given model.
 
-    The config list should contain dictionaries with the items 'model_name' and 'config'. Where the first is a regex
-    expression for the model name and the second the configuration we will use. It can optionally also contain the
-    key 'enabled' which can be set to False to exclude the config from considerations.
+    This tries to find the best match between the given config items (by key) and the given model list. For example
+    if model_names is ['BallStick', 'S0'] and we have the following config dict:
+        {'^S0$': 0,
+         '^BallStick$': 1
+         ('^BallStick$', '^S0$'): 2,
+         ('^BallStickStick$', '^BallStick$', '^S0$'): 3,
+         }
+
+    then this function should return 2. because that one is the best match, even though the last option is also a
+    viable match. That is, since a subset of the keys in the last option also matches the model names, it is
+    considered a match as well. Still the best match is the third option (returning 2).
 
     Args:
-        model_names (list of str): the names of the models we want to fit. This should contain the entire
-            recursive list of cascades leading to the single model we want to get the config of
-        config_list (list of dict): the tree with config items with as keys the model names and as
-            items the configuration
+        model_names (list of str): the names of the models we want to match. This should contain the entire
+            recursive list of cascades leading to the single model we want to get the config for.
+        config (dict): the config items with as keys either a single model regex for a name or a list of regex for
+            a chain of model names.
 
     Returns:
-        An accumulation of all the configuration of all the models that match with the given model names.
+        The config content of the best matching key.
     """
-    if not config_list:
+    if not config:
         return {}
 
-    def match_tree(names, tree, config):
-        if names:
-            name_regex, tree_content = list(tree.items())[0]
-            if re.match(name_regex, names[0]):
-                if isinstance(tree_content, dict):
-                    if len(names) == 1:
-                        recursive_merge_dict(config, tree_content, in_place=True)
-                else:
-                    for subtree in tree_content:
-                        match_tree(names[1:], subtree, config)
+    def get_key_length(key):
+        if isinstance(key, tuple):
+            return len(key)
+        return 1
 
-    conf = {}
-    for index_start in range(len(model_names), -1, -1):
-        sub_model_names = model_names[index_start:]
+    def is_match(model_names, config_key):
+        if isinstance(model_names, string_types):
+            model_names = [model_names]
 
-        for tree in config_list:
-            match_tree(sub_model_names, tree, conf)
+        if len(model_names) != get_key_length(config_key):
+            return False
 
-    return conf
+        if isinstance(config_key, tuple):
+            return all([re.match(config_key[ind], model_names[ind]) for ind in range(len(config_key))])
+
+        return re.match(config_key, model_names[0])
+
+    key_length_lookup = ((get_key_length(key), key) for key in config.keys())
+    ascending_keys = tuple(item[1] for item in sorted(key_length_lookup, key=lambda info: info[0]))
+
+    # direct matching
+    for key in ascending_keys:
+        if is_match(model_names, key):
+            return config[key]
+
+    # partial matching string keys to last model name
+    for key in ascending_keys:
+        if not isinstance(key, tuple):
+            if is_match(model_names[-1], key):
+                return config[key]
+
+    # partial matching tuple keys with a moving filter
+    for key in ascending_keys:
+        if isinstance(key, tuple):
+            for start_ind in range(len(key)):
+                sub_key = key[start_ind:]
+
+                if is_match(model_names, sub_key):
+                    return config[key]
+
+    # no match found
+    return {}
 
 
 def apply_model_protocol_options(model_protocol_options, problem_data):
@@ -985,7 +1013,7 @@ def apply_model_protocol_options(model_protocol_options, problem_data):
 
         if model_protocol_options.get('use_weighted', False):
             if 'b_value' in model_protocol_options:
-                options = {'start': 0, 'end': 1.5e9, 'epsilon': None}
+                options = {'start': 0, 'end': 1.5e9}
                 for key, value in model_protocol_options['b_value'].items():
                     options.update({key: value})
                 protocol_indices = protocol.get_indices_bval_in_range(**options)
@@ -998,6 +1026,9 @@ def apply_model_protocol_options(model_protocol_options, problem_data):
 
         if len(protocol_indices) != protocol.length:
             logger.info('Applying model protocol options, we will use a subset of the protocol and DWI.')
+            logger.info('Using {} out of {} volumes, indices: {}'.format(
+                len(protocol_indices), protocol.length, str(protocol_indices).replace('\n', '').replace('[  ', '[')))
+
             new_protocol = protocol.get_new_protocol_with_indices(protocol_indices)
 
             new_dwi_volume = problem_data.dwi_volume[..., protocol_indices]

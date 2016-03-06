@@ -285,17 +285,18 @@ class Protocol(object):
         return sorted(set(range(self.get_column('b').shape[0])) -
                       set(self.get_unweighted_indices(unweighted_threshold=unweighted_threshold)))
 
-    def get_indices_bval_in_range(self, start=0, end=1.0e9, epsilon=1e-5):
-        """Get the indices of the b-values in the range [start - eps, end + eps].
+    def get_indices_bval_in_range(self, start=0, end=1.0e9):
+        """Get the indices of the b-values in the range [start, end].
 
-        This can be used to get for example the indices of gradients whose b-value is in the range suitable for
-        DTI analysis. To do so, use for example as start 0 and as end 1e9.
+        This can be used to get the indices of gradients whose b-value is in the range suitable for
+        a specific analysis.
 
         Note that we use SI units and you need to specify the range in s/m^2 and not in s/mm^2.
 
         Also note that specifying 0 as start of the range does not automatically mean that the unweighted volumes are
-        returned. Sometimes the b-value of the unweighted volumes is high while the gradient 'g' is [0 0 0]. This
-        function does not make any assumptions about that and just returns indices in the given range, that gives:
+        returned. It can happen that the b-value of the unweighted volumes is higher then 0 even if the the gradient
+        'g' is [0 0 0]. This function does not make any assumptions about that and just returns indices in the given
+        range.
 
         If you want to include the unweighted volumes, make a call to get_unweighted_indices() yourself.
 
@@ -311,7 +312,7 @@ class Protocol(object):
                 If you want to include the unweighted volumes, make a call to get_unweighted_indices() yourself.
         """
         b_values = self.get_column('b')
-        return np.where(((start - epsilon) <= b_values) * (b_values <= (end + epsilon)))[0]
+        return np.where((start <= b_values) * (b_values <= end))[0]
 
     def get_all_columns(self):
         """Get all real (known) columns as a big array.

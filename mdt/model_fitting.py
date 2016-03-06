@@ -183,6 +183,7 @@ class ModelFit(object):
 
     def __init__(self, model, problem_data, output_folder, optimizer=None,
                  recalculate=False, only_recalculate_last=False, model_protocol_options=None,
+                 use_model_protocol_options=True,
                  cl_device_ind=None, double_precision=False, gradient_deviations=None, noise_std=None):
         """Setup model fitting for the given input model and data.
 
@@ -201,10 +202,11 @@ class ModelFit(object):
                 If set to true we only recalculate the last element in the chain
                     (if recalculate is set to True, that is).
                 If set to false, we recalculate everything. This only holds for the first level of the cascade.
-            model_protocol_options (list of dict): specific model protocol options to use during fitting.
+            model_protocol_options (dict): specific model protocol options to use during fitting.
                 This is for example used during batch fitting to limit the protocol for certain models.
-                For instance, in the Tensor model we generally only want to use the lower b-values, or for
-                S0 for example only the unweighted. This can also be defined in the config file.
+                For instance, in the Tensor model we generally only want to use the lower b-values, or for S0 only
+                the unweighted. Please note that this is merged with the options defined in the config file.
+            use_model_protocol_options (boolean): if we want to use the model protocol options or not.
             cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
                 get_cl_devices(). This can also be a list of device indices.
             double_precision (boolean): if we would like to do the calculations in double precision
@@ -226,6 +228,7 @@ class ModelFit(object):
         self._only_recalculate_last = only_recalculate_last
         self._model_protocol_options = recursive_merge_dict(config.get('model_protocol_options', {}),
                                                             model_protocol_options)
+        self._use_model_protocol_options = use_model_protocol_options
         self._logger = logging.getLogger(__name__)
         self._cl_device_indices = cl_device_ind
         self._model_names_list = []
@@ -313,8 +316,11 @@ class ModelFit(object):
                     optimizer.cl_environments = [all_devices[ind] for ind in self._cl_device_indices]
                     optimizer.load_balancer = EvenDistribution()
 
-                model_protocol_options = get_model_config(model_names, self._model_protocol_options)
-                problem_data = apply_model_protocol_options(model_protocol_options, self._problem_data)
+                if self._use_model_protocol_options:
+                    model_protocol_options = get_model_config(model_names, self._model_protocol_options)
+                    problem_data = apply_model_protocol_options(model_protocol_options, self._problem_data)
+                else:
+                    problem_data = self._problem_data
 
                 processing_strategy = get_processing_strategy('optimization', model_names)
 
