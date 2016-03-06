@@ -120,32 +120,31 @@ class ModelSampling(object):
             load_balancer = EvenDistribution()
 
         with runtime_config_context(cl_environments=cl_envs, load_balancer=load_balancer):
-            configure_per_model_logging(os.path.join(self._output_folder, self._model.name, 'samples'))
+            with per_model_logging_context(os.path.join(self._output_folder, self._model.name)):
+                self._logger.info('Using MDT version {}'.format(__version__))
+                self._logger.info('Preparing for model {0}'.format(self._model.name))
+                self._logger.info('Setting the noise standard deviation to {0}'.format(self._noise_std))
+                self._model.evaluation_model.set_noise_level_std(self._noise_std, fix=True)
 
-            self._logger.info('Using MDT version {}'.format(__version__))
-            self._logger.info('Preparing for model {0}'.format(self._model.name))
-            self._logger.info('Setting the noise standard deviation to {0}'.format(self._noise_std))
-            self._model.evaluation_model.set_noise_level_std(self._noise_std, fix=True)
+                if self._cl_device_indices is not None:
+                    all_devices = get_cl_devices()
+                    self._sampler.cl_environments = [all_devices[ind] for ind in self._cl_device_indices]
+                    self._sampler.load_balancer = EvenDistribution()
 
-            if self._cl_device_indices is not None:
-                all_devices = get_cl_devices()
-                self._sampler.cl_environments = [all_devices[ind] for ind in self._cl_device_indices]
-                self._sampler.load_balancer = EvenDistribution()
+                if self._use_model_protocol_options:
+                    model_protocol_options = get_model_config([self._model.name], self._model_protocol_options)
+                    problem_data = apply_model_protocol_options(model_protocol_options, self._problem_data)
+                else:
+                    problem_data = self._problem_data
 
-            if self._use_model_protocol_options:
-                model_protocol_options = get_model_config([self._model.name], self._model_protocol_options)
-                problem_data = apply_model_protocol_options(model_protocol_options, self._problem_data)
-            else:
-                problem_data = self._problem_data
+                processing_strategy = get_processing_strategy('sampling', self._model.name)
 
-            processing_strategy = get_processing_strategy('sampling', self._model.name)
+                sampler = SampleSingleModel(self._model, problem_data, self._output_folder, self._sampler,
+                                            processing_strategy,
+                                            recalculate=self._recalculate, initialize=self._initialize,
+                                            initialize_using=self._initialize_using)
 
-            sampler = SampleSingleModel(self._model, problem_data, self._output_folder, self._sampler,
-                                        processing_strategy,
-                                        recalculate=self._recalculate, initialize=self._initialize,
-                                        initialize_using=self._initialize_using)
-
-            return sampler.run()
+                return sampler.run()
 
 
 class SampleSingleModel(object):
@@ -191,7 +190,7 @@ class SampleSingleModel(object):
                 'The reported errors where: {}'.format(model.get_protocol_problems(problem_data.protocol)))
 
     def run(self):
-        with per_model_logging_context(self._output_path):
+        with per_model_logging_context(self._output_folder):
             self._model.set_problem_data(self._problem_data)
 
             if self.recalculate:
