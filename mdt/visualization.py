@@ -43,6 +43,7 @@ class MapsVisualizer(object):
         self.font_size = None
         self._image_subplots = {}
         self._minmax_vals = self._load_min_max_vals()
+        self._sub_largest_values = self._load_sub_largest_values()
         self._dimension_slider = None
         self._index_slider = None
         self._volume_slider = None
@@ -293,15 +294,16 @@ class MapsVisualizer(object):
                     vmin = self.map_plot_options.get(map_name, {}).get('vmin', min_val)
                     vmax = self.map_plot_options.get(map_name, {}).get('vmax', max_val)
 
-                    vmin += min_val * 0.05 * event.step
-                    vmax -= max_val * 0.05 * event.step
+                    vmax_sub_max = self._sub_largest_values[map_name]
+
+                    vmin += min_val * 0.01 * event.step
+                    vmax -= vmax_sub_max * 0.01 * event.step
 
                     self.map_plot_options.update({map_name: {'vmin': vmin, 'vmax': vmax}})
                     self._is_in_scroll_update = True
                     self._rerender_maps()
                     self._is_in_scroll_update = False
                     return
-
 
     def _set_axis_options(self, map_name, plt):
         if self.axis_options is not None:
@@ -370,6 +372,21 @@ class MapsVisualizer(object):
             except TypeError:
                 d.update({key: (0, 1)})
         return d
+
+    def _load_sub_largest_values(self):
+        d = {}
+        for key, value in self._volumes_dict.items():
+            try:
+                d.update({key: self._get_sub_largest_value(value)})
+            except TypeError:
+                d.update({key: (0, 1)})
+        return d
+
+    def _get_sub_largest_value(self, volume, percentage_outliers=0.0001):
+        partition_range = np.max((int(volume.size * percentage_outliers), 10))
+        ind = np.argpartition(volume, -partition_range, axis=None)[-partition_range:]
+        values = volume[np.unravel_index(ind, volume.shape)]
+        return np.sort(values)[0]
 
     def _get_max_4d_length(self):
         """Get the maximum volume index in the volumes."""
