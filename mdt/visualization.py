@@ -291,6 +291,8 @@ class MapsVisualizer(object):
                         self._map_scroll_positions.update({map_name: 0})
 
                     self._map_scroll_positions[map_name] += event.step**3
+                    self._map_scroll_positions[map_name] = min(self._map_scroll_positions[map_name],
+                                                               len(self._sorted_volumes[map_name])-1)
 
                     vmin = self._sorted_volumes[map_name][self._map_scroll_positions[map_name]]
                     vmax = self._sorted_volumes[map_name][-self._map_scroll_positions[map_name]]

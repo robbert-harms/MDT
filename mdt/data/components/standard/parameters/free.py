@@ -1,7 +1,7 @@
 import numpy as np
 from mdt.models.parameters import FreeParameterConfig
 from mot.model_building.parameter_functions.priors import AbsSinHalfPrior, AbsSinPrior
-from mot.model_building.parameter_functions.proposals import GaussianProposal
+from mot.model_building.parameter_functions.proposals import GaussianProposal, CircularGaussianProposal
 from mot.model_building.parameter_functions.sample_statistics import CircularGaussianPSS
 from mot.model_building.parameter_functions.transformations import ClampTransform, AbsModPiTransform, \
     SinSqrClampTransform, CosSqrClampTransform
@@ -60,7 +60,7 @@ class theta(FreeParameterConfig):
     lower_bound = 0
     upper_bound = np.pi
     parameter_transform = AbsModPiTransform()
-    sampling_proposal = GaussianProposal(0.02)
+    sampling_proposal = CircularGaussianProposal(np.pi, 0.02)
     sampling_prior = AbsSinHalfPrior()
     sampling_statistics = CircularGaussianPSS()
     perturbation_function = lambda v: v + np.random.normal(scale=0.1, size=v.shape)
@@ -73,7 +73,7 @@ class phi(FreeParameterConfig):
     lower_bound = 0
     upper_bound = np.pi
     parameter_transform = AbsModPiTransform()
-    sampling_proposal = GaussianProposal(0.02)
+    sampling_proposal = CircularGaussianProposal(np.pi, 0.02)
     sampling_prior = AbsSinPrior()
     sampling_statistics = CircularGaussianPSS()
     perturbation_function = lambda v: v + np.random.normal(scale=0.1, size=v.shape)
@@ -86,7 +86,7 @@ class psi(FreeParameterConfig):
     lower_bound = 0
     upper_bound = np.pi
     parameter_transform = AbsModPiTransform()
-    sampling_proposal = GaussianProposal(0.02)
+    sampling_proposal = CircularGaussianProposal(np.pi, 0.02)
     sampling_prior = AbsSinPrior()
     sampling_statistics = CircularGaussianPSS()
     perturbation_function = lambda v: v + np.random.normal(scale=0.1, size=v.shape)
