@@ -47,7 +47,8 @@ class CalculateEigenvectors(AbstractCLRoutine):
         rows = theta_roi.shape[0]
         evecs = np.zeros((rows, 3, 3), dtype=np_dtype, order='C')
 
-        workers = self._create_workers(lambda cl_environment: _CEWorker(cl_environment, theta_roi, phi_roi,
+        workers = self._create_workers(lambda cl_environment: _CEWorker(cl_environment, self.get_compile_flags_list(),
+                                                                        theta_roi, phi_roi,
                                                                         psi_roi, evecs, double_precision))
         self.load_balancer.process(workers, rows)
         return evecs
@@ -55,7 +56,7 @@ class CalculateEigenvectors(AbstractCLRoutine):
 
 class _CEWorker(Worker):
 
-    def __init__(self, cl_environment, theta_roi, phi_roi, psi_roi, evecs, double_precision):
+    def __init__(self, cl_environment, compile_flags, theta_roi, phi_roi, psi_roi, evecs, double_precision):
         super(_CEWorker, self).__init__(cl_environment)
 
         self._theta_roi = theta_roi
@@ -64,7 +65,7 @@ class _CEWorker(Worker):
         self._evecs = evecs
         self._double_precision = double_precision
         self._all_buffers, self._evecs_buf = self._create_buffers()
-        self._kernel = self._build_kernel()
+        self._kernel = self._build_kernel(compile_flags)
 
     def calculate(self, range_start, range_end):
         nmr_problems = range_end - range_start

@@ -163,7 +163,7 @@ def median_otsu(unweighted_volume, median_radius=4, numpass=4, dilate=1):
     logger.info('We will use a single precision float type for the calculations.'.format())
     for env in runtime_configuration.runtime_config['load_balancer'].\
             get_used_cl_environments(runtime_configuration.runtime_config['cl_environments']):
-        logger.info('Using device \'{}\' with compile flags {}'.format(str(env), str(env.compile_flags)))
+        logger.info('Using device \'{}\'.'.format(str(env)))
 
     m = MedianFilter(median_radius,
                      CLEnvironmentFactory.all_devices(),

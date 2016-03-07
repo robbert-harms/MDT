@@ -72,8 +72,8 @@ class DTIMeasures(AbstractCLRoutine):
             items = s[0] * s[1]
             eigenvalues = np.reshape(eigenvalues, (s[0] * s[1], -1))
 
-        workers = self._create_workers(lambda cl_environment: _DTIMeasuresWorker(cl_environment, eigenvalues,
-                                                                                 fa_host, md_host, double_precision))
+        workers = self._create_workers(lambda cl_environment: _DTIMeasuresWorker(
+            cl_environment, self.get_compile_flags_list(), eigenvalues, fa_host, md_host, double_precision))
         self.load_balancer.process(workers, items)
 
         if len(s) > 2:
@@ -84,13 +84,13 @@ class DTIMeasures(AbstractCLRoutine):
 
 class _DTIMeasuresWorker(Worker):
 
-    def __init__(self, cl_environment, eigenvalues, fa_host, md_host, double_precision):
+    def __init__(self, cl_environment, compile_flags, eigenvalues, fa_host, md_host, double_precision):
         super(_DTIMeasuresWorker, self).__init__(cl_environment)
         self._eigenvalues = eigenvalues
         self._fa_host = fa_host
         self._md_host = md_host
         self._double_precision = double_precision
-        self._kernel = self._build_kernel()
+        self._kernel = self._build_kernel(compile_flags)
 
     def calculate(self, range_start, range_end):
         nmr_problems = range_end - range_start
