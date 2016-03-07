@@ -643,7 +643,8 @@ def results_preselection_names(data):
     else:
         keys = data.keys()
 
-    return list(sorted(filter(lambda v: all(m not in v for m in ('.vec', '.d', '.sigma')), keys)))
+    filter_match = ('.vec', '.d', '.sigma', 'AIC', 'Errors.mse', 'LogLikelihood')
+    return list(sorted(filter(lambda v: all(m not in v for m in filter_match), keys)))
 
 
 def block_plots():
