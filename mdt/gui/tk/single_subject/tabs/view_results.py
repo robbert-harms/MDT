@@ -14,7 +14,7 @@ import glob
 from itertools import count
 import os
 import multiprocessing
-from mdt import view_results_slice
+from mdt import view_results_slice, results_preselection_names
 from mdt.gui.tk.utils import TabContainer
 from mdt.gui.tk.widgets import DirectoryBrowserWidget, ListboxWidget
 from mdt.utils import split_image_path
@@ -94,7 +94,7 @@ class ViewResultsTab(TabContainer):
             self._parameter_files = {get_name(f): get_name(f) for f in result_files}
 
             items_list = sorted(self._parameter_files.keys())
-            selected_items = filter(lambda v: all(m not in v for m in ('.vec', 'eig', '.d', '.sigma')), items_list)
+            selected_items = results_preselection_names(sorted(self._parameter_files.keys()))
 
             self._maps_chooser.set_items(items_list, default_items=selected_items)
 

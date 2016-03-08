@@ -630,18 +630,20 @@ def results_preselection_names(data):
     This is primarily to be used as argument to the parameter 'maps_to_show' of the function view_results_slice.
 
     Args:
-        data (str or dict): either a directory of a dictionary of results.
+        data (str or dict or list of str): either a directory or a dictionary of results or a list of map names.
 
     Returns:
-        list of str: the list of useful map names.
+        list of str: the list of useful/filtered map names.
     """
     keys = []
     if isinstance(data, string_types):
         for extension in ('.nii', '.nii.gz'):
             for f in glob.glob(os.path.join(data, '*' + extension)):
                 keys.append(os.path.basename(f)[0:-len(extension)])
-    else:
+    elif isinstance(data, dict):
         keys = data.keys()
+    else:
+        keys = data
 
     filter_match = ('.vec', '.d', '.sigma', 'AIC', 'Errors.mse', 'LogLikelihood')
     return list(sorted(filter(lambda v: all(m not in v for m in filter_match), keys)))
@@ -817,113 +819,160 @@ def restore_volumes(data, brain_mask, with_volume_dim=True):
     return restore_volumes(data, brain_mask, with_volume_dim=with_volume_dim)
 
 
-def write_trackmark_files(input_folder, output_folder=None, eigenvalue_scalar=1e6, tvl_header=(1, 1.8, 0, 0),
-                          eigen_pairs=None, vector_ranking=None):
-    """Convert the given output directory to TrackMark files (a proprietary software package from Alard Roebroeck).
-
-    Basically only the input directory is necessary and it will write the TVL and Rawmaps to a subdirectory.
-
-    The eigenvalues and vectors are searched by searching for pairs of files like:
-        <model_name>.eig<ind>.vec.nii(.gz)
-        <model_name>.eig<ind>.val.nii(.gz)
-
-    For example:
-        Tensor.eig0.vec.nii.gz (map with 3 directions for each voxel)
-        Tensor.eig0.val.nii.gz (map with 1 value for each voxel)
-
-    It will search until it has up to three different eigen pairs. It will then order them by name and use them in
-    sorted by name order.
-
-    To specifically tell this function which eigenpairs to use you can use the parameter eigen_pairs to give a list of
-    eigen pairs that must be used in the given order. The list should specify the names of the maps to use (without
-    the extension)
-
-    It is even possible to let this function write maps for eigenvectors of which each component of the vector has it's
-    own map file. Again, use the correct notation of the parameter eigen_pairs for this.
-
-    If you want to rank the eigen vectors and values per voxel to a specific ranking please use the argument vector
-    ranking to do so. This parameter should be a list with as many map names as vectors in the same order as
-    the vectors. We will then for each voxel select the vector and value for which the corresponding vector ranking is
-    highest.
-
-    Next to writing the TVL file this will also write rawmaps for every map in the directory,
-
-    If there is no sufficient material for creating a TVL, only rawmaps are created.
+def write_trackmark_rawmaps(data, output_folder, maps_to_convert=None):
+    """Convert the given nifti files in the input folder to rawmaps in the output folder.
 
     Args:
-        input_folder (str): The location of the input folder with all the Nifti maps.
-        output_folder (str): The output folder. If not given set to a subfolder 'trackmark' in the input folder.
-        eigenvalue_scalar (double): The scalar by which we want to scale all the eigenvalues. Trackmark accepts the
-            eigenvalues in units of mm^2, while we work in m^2. So we scale our results by 1e6 in general.
-        tvl_header (list or tuple): The list with header arguments for writing the TVL. See IO.TrackMark for specifics.
-        eigen_pairs (list or tuple): The optional list with specific eigenvalues and vectors (all volume key names)
-            to use for the TVL.
-            This can either be a list like: ((vec, val), (vec1, val1), ...) or instead of a single vector file it can
-            also be like (vec0, vec1, vec2). For example: (((vec0, vec1, vec2), val), (vec1, val1), ...)
-        vector_ranking (list): the list of map names in the same order as the eigen values/vectors that determine per
-            voxel the ranking of the vectors/values.
-
-    Returns:
-        None
+        data (str or dict): the name of the input folder, of a dictionary with maps to save.
+        output_folder (str): the name of the output folder. Defaults to <input_folder>/trackmark.
+        maps_to_convert (list): the list with the names of the maps we want to convert (without the extension).
     """
-    import os
-    import re
     from mdt.IO import TrackMark
 
-    if output_folder is None:
-        output_folder = os.path.join(input_folder, 'trackmark')
-
-    volumes = load_volume_maps(input_folder)
-
-    if eigen_pairs is None:
-        eigen_vectors_keys = sorted([k for k in volumes.keys() if re.match(r'(.*)\.eig[0-9]*\.vec$', k)])
-        eigen_values_keys = sorted([k for k in volumes.keys() if re.match(r'(.*)\.eig[0-9]*\.val$', k)])
-
-        eigen_vectors = [volumes[k] for k in eigen_vectors_keys]
-        eigen_values = [volumes[k] for k in eigen_values_keys]
-
-        eigen_pairs = list(zip(eigen_vectors, eigen_values))
-        eigen_pairs_keys = list(zip(eigen_vectors_keys, eigen_values_keys))
+    if isinstance(data, six.string_types):
+        volumes = load_volume_maps(data, map_names=maps_to_convert)
     else:
-        eigen_pairs_keys = eigen_pairs
-        eigen_pairs = []
-        for eigen_pair in eigen_pairs_keys:
-            if isinstance(eigen_pair[0], (list, tuple)):
-                vec = np.concatenate([np.expand_dims(volumes[k], axis=3) for k in eigen_pair[0]], axis=3)
-            else:
-                vec = volumes[eigen_pair[0]]
-
-            val = volumes[eigen_pair[1]]
-            eigen_pairs.append((vec, val))
-
-    vector_ranking_maps = None
-    if vector_ranking is not None:
-        if len(vector_ranking) < len(eigen_pairs):
-            raise ValueError('Not enough vector rankings provided. We have {0} eigen '
-                             'pairs and only {1} ranking maps.'.format(len(eigen_pairs), len(vector_ranking)))
-        vector_ranking_maps = [volumes[k] for k in vector_ranking]
-
-    if vector_ranking is not None:
-        ranking = np.argsort(np.concatenate([vr[..., None] for vr in vector_ranking_maps], axis=3), axis=3)
-        shape3d = ranking.shape[0:3]
-
-        ranked_vector_values = [np.zeros(shape3d) for i in range(len(vector_ranking_maps))]
-
-        for l_x, l_y, l_z in itertools.product(range(shape3d[0]), range(shape3d[1]), range(shape3d[2])):
-            pair_ranking = ranking[l_x, l_y, l_z]
-            for linear_ind, ranking_ind in enumerate(pair_ranking):
-                ranked_vector_values[linear_ind][l_x, l_y, l_z] = vector_ranking_maps[ranking_ind][l_x, l_y, l_z]
-
-        ordered_volumes = {}
-        for ind, eigen_pair in enumerate(eigen_pairs_keys):
-            ordered_volumes.update({eigen_pair[1] + ".ordered": ranked_vector_values[ind]})
-        TrackMark.write_rawmaps(output_folder, ordered_volumes)
-
-    if eigen_pairs:
-        TrackMark.write_tvl_direction_pairs(os.path.join(output_folder, 'master.tvl'), tvl_header, eigen_pairs,
-                                            vector_ranking=vector_ranking_maps, direction_scalar=eigenvalue_scalar)
-
+        volumes = data
+        if maps_to_convert:
+            volumes = {k: v for k, v in volumes.items() if k in maps_to_convert}
     TrackMark.write_rawmaps(output_folder, volumes)
+
+
+def write_trackmark_tvl(output_tvl, vector_directions, vector_magnitudes, tvl_header=(1, 1.8, 0, 0)):
+    """Write a list of vector directions with corresponding magnitude to a trackmark TVL file.
+
+    Note that the length of the vector_directions and vector_magnitudes should correspond to each other. Next, we only
+    use the first three elements in both lists.
+
+    Args:
+        output_tvl (str): the name of the output tvl
+        vector_directions (list of str): a list of 4d volumes with per voxel the normalized vector direction
+        vector_magnitudes (list of str): a list of 4d volumes with per voxel the vector magnitude.
+        tvl_header (list or tuple): The list with header arguments for writing the TVL. See IO.TrackMark for specifics.
+    """
+    from mdt.IO import TrackMark
+    if len(vector_directions) != len(vector_magnitudes):
+        raise ValueError('The length of the list of vector directions does not '
+                         'match with the length of the list of vector magnitudes.')
+    TrackMark.write_tvl_direction_pairs(output_tvl, tvl_header, list(zip(vector_directions, vector_magnitudes))[:3])
+
+
+def sort_maps(sort_on, extra_maps_to_sort):
+    pass
+
+
+    # @staticmethod
+    # def generate_dir_matrix_ordered(direction_pairs, vector_ranking):
+    #     ranking = np.argsort(np.concatenate([vr[..., None] for vr in vector_ranking], axis=3), axis=3)
+    #
+    #     direction_pairs = direction_pairs[0:3]
+    #     dir_matrix = np.zeros(direction_pairs[0][0].shape[0:3] + (12,))
+    #
+    #     shape3d = direction_pairs[0][0].shape
+    #     for l_x, l_y, l_z in itertools.product(range(shape3d[0]), range(shape3d[1]), range(shape3d[2])):
+    #
+    #         pair_ranking = ranking[l_x, l_y, l_z]
+    #         for linear_ind, ranking_ind in enumerate(pair_ranking):
+    #             chosen_vector = direction_pairs[ranking_ind][0]
+    #             chosen_val = direction_pairs[ranking_ind][1]
+    #
+    #             dir_matrix[l_x, l_y, l_z, linear_ind*3:linear_ind*3+3] = chosen_vector[l_x, l_y, l_z]
+    #             dir_matrix[l_x, l_y, l_z, linear_ind + 9] = chosen_val[l_x, l_y, l_z]
+    #
+    #     return dir_matrix
+
+
+
+# def write_trackmark_files(input_folder, vector_directions, vector_scalars, output_folder=None, eigenvalue_scalar=1e6,
+#                           tvl_header=(1, 1.8, 0, 0), vector_ranking=None, rawmap_names=None):
+#     """Convert the given output directory to TrackMark files (a proprietary software package from Alard Roebroeck).
+#
+#     Basically only the input directory and the list of vector files is needed. This will write the TVL and Rawmaps
+#     to the given directory.
+#
+#     The vector directions should be a list with the names (or 4d maps directory) of 4-dimension volumes with for
+#     every voxel the (normalized) coordinates in 3d space. The vector scalars should be a list of the same size as
+#     the vector scalars that holds the magnitude of the vectors.
+#
+#     Next to writing the TVL file with the given vectors, this will also write rawmaps for every map in the directory (or
+#     if rawmap_names is set, only for the list of selected rawmaps).
+#
+#     If there is no sufficient material for creating a TVL, only rawmaps are created.
+#
+#     Args:
+#         input_folder (str): The location of the input folder with all the Nifti maps.
+#         output_folder (str): The output folder. If not given set to a subfolder 'trackmark' in the input folder.
+#         eigenvalue_scalar (double): The scalar by which we want to scale all the eigenvalues. Trackmark accepts the
+#             eigenvalues in units of mm^2, while we work in m^2. So we scale our results by 1e6 in general.
+#         tvl_header (list or tuple): The list with header arguments for writing the TVL. See IO.TrackMark for specifics.
+#         eigen_pairs (list or tuple): The optional list with specific eigenvalues and vectors (all volume key names)
+#             to use for the TVL.
+#             This can either be a list like: ((vec, val), (vec1, val1), ...) or instead of a single vector file it can
+#             also be like (vec0, vec1, vec2). For example: (((vec0, vec1, vec2), val), (vec1, val1), ...)
+#         vector_ranking (list): the list of map names in the same order as the eigen values/vectors that determine per
+#             voxel the ranking of the vectors/values.
+#
+#     Returns:
+#         None
+#     """
+#     import os
+#     import re
+#     from mdt.IO import TrackMark
+#
+#     if output_folder is None:
+#         output_folder = os.path.join(input_folder, 'trackmark')
+#
+#     volumes = load_volume_maps(input_folder)
+#
+#     if eigen_pairs is None:
+#         eigen_vectors_keys = sorted([k for k in volumes.keys() if re.match(r'(.*)\.eig[0-9]*\.vec$', k)])
+#         eigen_values_keys = sorted([k for k in volumes.keys() if re.match(r'(.*)\.eig[0-9]*\.val$', k)])
+#
+#         eigen_vectors = [volumes[k] for k in eigen_vectors_keys]
+#         eigen_values = [volumes[k] for k in eigen_values_keys]
+#
+#         eigen_pairs = list(zip(eigen_vectors, eigen_values))
+#         eigen_pairs_keys = list(zip(eigen_vectors_keys, eigen_values_keys))
+#     else:
+#         eigen_pairs_keys = eigen_pairs
+#         eigen_pairs = []
+#         for eigen_pair in eigen_pairs_keys:
+#             if isinstance(eigen_pair[0], (list, tuple)):
+#                 vec = np.concatenate([np.expand_dims(volumes[k], axis=3) for k in eigen_pair[0]], axis=3)
+#             else:
+#                 vec = volumes[eigen_pair[0]]
+#
+#             val = volumes[eigen_pair[1]]
+#             eigen_pairs.append((vec, val))
+#
+#     vector_ranking_maps = None
+#     if vector_ranking is not None:
+#         if len(vector_ranking) < len(eigen_pairs):
+#             raise ValueError('Not enough vector rankings provided. We have {0} eigen '
+#                              'pairs and only {1} ranking maps.'.format(len(eigen_pairs), len(vector_ranking)))
+#         vector_ranking_maps = [volumes[k] for k in vector_ranking]
+#
+#     if vector_ranking is not None:
+#         ranking = np.argsort(np.concatenate([vr[..., None] for vr in vector_ranking_maps], axis=3), axis=3)
+#         shape3d = ranking.shape[0:3]
+#
+#         ranked_vector_values = [np.zeros(shape3d) for i in range(len(vector_ranking_maps))]
+#
+#         for l_x, l_y, l_z in itertools.product(range(shape3d[0]), range(shape3d[1]), range(shape3d[2])):
+#             pair_ranking = ranking[l_x, l_y, l_z]
+#             for linear_ind, ranking_ind in enumerate(pair_ranking):
+#                 ranked_vector_values[linear_ind][l_x, l_y, l_z] = vector_ranking_maps[ranking_ind][l_x, l_y, l_z]
+#
+#         ordered_volumes = {}
+#         for ind, eigen_pair in enumerate(eigen_pairs_keys):
+#             ordered_volumes.update({eigen_pair[1] + ".ordered": ranked_vector_values[ind]})
+#         TrackMark.write_rawmaps(output_folder, ordered_volumes)
+#
+#     if eigen_pairs:
+#         TrackMark.write_tvl_direction_pairs(os.path.join(output_folder, 'master.tvl'), tvl_header, eigen_pairs,
+#                                             vector_ranking=vector_ranking_maps, direction_scalar=eigenvalue_scalar)
+#
+#     TrackMark.write_rawmaps(output_folder, volumes)
 
 
 def load_volume_maps(directory, map_names=None):
