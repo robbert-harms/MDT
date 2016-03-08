@@ -689,6 +689,53 @@ def per_model_logging_context(output_path):
     configure_per_model_logging(None)
 
 
+def create_sort_matrix(input_4d_vol, reversed=False):
+    """Create an index matrix that sorts the given input on the 4th volume from small to large values (per voxel).
+
+    This uses
+
+    Args:
+        input_4d_vol (ndarray): the 4d input volume for which we create a sort index matrix
+        reversed (boolean): if True we reverse the sort and we sort from large to small.
+
+    Returns:
+        ndarray: a 4d matrix with on the 4th dimension the indices of the elements in sorted order.
+    """
+    sort_index = np.argsort(input_4d_vol, axis=3)
+
+    if reversed:
+        return sort_index[..., ::-1]
+
+    return sort_index
+
+
+def sort_volumes_per_voxel(input_volumes, sort_matrix):
+    """Sort the given volumes per voxel using the sort index in the given matrix.
+
+    What this essentially does is to look per voxel from which map we should take the first value. Then we place that
+    value in the first volume and we repeat for the next value and finally for the next voxel.
+
+    If the length of the 4th dimension is > 1 we suppose we shift the 4th dimension to the 5th dimension and sort
+    the array as if the 4th dimension values where a single value.
+
+    Args:
+        input_volumes (list): list of 4d ndarray
+        sort_matrix (ndarray): 4d ndarray with for every voxel the sort index
+
+    Returns:
+        list: the same input volumes but then with every voxel sorted according to the given sort index.
+    """
+    if input_volumes[0].shape[3] > 1:
+        volume = np.concatenate([np.reshape(m, m.shape[0:3] + (1,) + (m.shape[3],)) for m in input_volumes], axis=3)
+        grid = np.ogrid[[slice(x) for x in volume.shape]]
+        sorted_volume = volume[list(grid[:-2]) + [np.reshape(sort_matrix, sort_matrix.shape + (1,))] + list(grid[-1])]
+        return [sorted_volume[..., ind, :] for ind in range(len(input_volumes))]
+    else:
+        volume = np.concatenate([m for m in input_volumes], axis=3)
+        sorted_volume = volume[list(np.ogrid[[slice(x) for x in volume.shape]][:-1])+[sort_matrix]]
+        return [np.reshape(sorted_volume[..., ind], sorted_volume.shape[0:3] + (1,)) for ind in range(len(input_volumes))]
+
+
 def recursive_merge_dict(dictionary, update_dict, in_place=False):
     """ Recursively merge the given dictionary with the new values.
 

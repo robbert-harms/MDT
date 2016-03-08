@@ -857,122 +857,51 @@ def write_trackmark_tvl(output_tvl, vector_directions, vector_magnitudes, tvl_he
     TrackMark.write_tvl_direction_pairs(output_tvl, tvl_header, list(zip(vector_directions, vector_magnitudes))[:3])
 
 
-def sort_maps(sort_on, extra_maps_to_sort):
-    pass
+def sort_maps(maps_to_sort_on, extra_maps_to_sort=None, reversed=False, sort_index_map=None):
+    """Sort the given maps on the maps to sort on.
 
+    This first creates a sort matrix to index the maps in sorted order per voxel. Next, it creates the output
+    maps for the maps we sort on. If extra_maps_to_sort is given it should be of the same length as the maps_to_sort_on.
 
-    # @staticmethod
-    # def generate_dir_matrix_ordered(direction_pairs, vector_ranking):
-    #     ranking = np.argsort(np.concatenate([vr[..., None] for vr in vector_ranking], axis=3), axis=3)
-    #
-    #     direction_pairs = direction_pairs[0:3]
-    #     dir_matrix = np.zeros(direction_pairs[0][0].shape[0:3] + (12,))
-    #
-    #     shape3d = direction_pairs[0][0].shape
-    #     for l_x, l_y, l_z in itertools.product(range(shape3d[0]), range(shape3d[1]), range(shape3d[2])):
-    #
-    #         pair_ranking = ranking[l_x, l_y, l_z]
-    #         for linear_ind, ranking_ind in enumerate(pair_ranking):
-    #             chosen_vector = direction_pairs[ranking_ind][0]
-    #             chosen_val = direction_pairs[ranking_ind][1]
-    #
-    #             dir_matrix[l_x, l_y, l_z, linear_ind*3:linear_ind*3+3] = chosen_vector[l_x, l_y, l_z]
-    #             dir_matrix[l_x, l_y, l_z, linear_ind + 9] = chosen_val[l_x, l_y, l_z]
-    #
-    #     return dir_matrix
+    Args:
+        maps_to_sort_on (list): a list of string (filenames) or ndarrays we will load and compare
+        extra_maps_to_sort_on (list) an additional list we will sort based on the indices in maps_to_sort. This should
+            be of the same length as maps_to_sort_on.
+        reversed (boolean): if we want to sort from large to small instead of small to large.
+        sort_index_map (ndarray): if given we use this sort index map instead of generating one by sorting the
+            maps_to_sort_on.
 
+    Returns:
+        tuple: the first element is the list of sorted volumes, the second the list of extra sorted maps and the
+            last is the sort index map used.
+    """
+    def load_maps(map_list):
+        tmp = []
+        for data in map_list:
+            if isinstance(data, string_types):
+                tmp.append(load_data_volume(data))
+            else:
+                tmp.append(data)
+        return tmp
 
+    maps_to_sort_on = load_maps(maps_to_sort_on)
+    if extra_maps_to_sort:
+        extra_maps_to_sort = load_maps(extra_maps_to_sort)
 
-# def write_trackmark_files(input_folder, vector_directions, vector_scalars, output_folder=None, eigenvalue_scalar=1e6,
-#                           tvl_header=(1, 1.8, 0, 0), vector_ranking=None, rawmap_names=None):
-#     """Convert the given output directory to TrackMark files (a proprietary software package from Alard Roebroeck).
-#
-#     Basically only the input directory and the list of vector files is needed. This will write the TVL and Rawmaps
-#     to the given directory.
-#
-#     The vector directions should be a list with the names (or 4d maps directory) of 4-dimension volumes with for
-#     every voxel the (normalized) coordinates in 3d space. The vector scalars should be a list of the same size as
-#     the vector scalars that holds the magnitude of the vectors.
-#
-#     Next to writing the TVL file with the given vectors, this will also write rawmaps for every map in the directory (or
-#     if rawmap_names is set, only for the list of selected rawmaps).
-#
-#     If there is no sufficient material for creating a TVL, only rawmaps are created.
-#
-#     Args:
-#         input_folder (str): The location of the input folder with all the Nifti maps.
-#         output_folder (str): The output folder. If not given set to a subfolder 'trackmark' in the input folder.
-#         eigenvalue_scalar (double): The scalar by which we want to scale all the eigenvalues. Trackmark accepts the
-#             eigenvalues in units of mm^2, while we work in m^2. So we scale our results by 1e6 in general.
-#         tvl_header (list or tuple): The list with header arguments for writing the TVL. See IO.TrackMark for specifics.
-#         eigen_pairs (list or tuple): The optional list with specific eigenvalues and vectors (all volume key names)
-#             to use for the TVL.
-#             This can either be a list like: ((vec, val), (vec1, val1), ...) or instead of a single vector file it can
-#             also be like (vec0, vec1, vec2). For example: (((vec0, vec1, vec2), val), (vec1, val1), ...)
-#         vector_ranking (list): the list of map names in the same order as the eigen values/vectors that determine per
-#             voxel the ranking of the vectors/values.
-#
-#     Returns:
-#         None
-#     """
-#     import os
-#     import re
-#     from mdt.IO import TrackMark
-#
-#     if output_folder is None:
-#         output_folder = os.path.join(input_folder, 'trackmark')
-#
-#     volumes = load_volume_maps(input_folder)
-#
-#     if eigen_pairs is None:
-#         eigen_vectors_keys = sorted([k for k in volumes.keys() if re.match(r'(.*)\.eig[0-9]*\.vec$', k)])
-#         eigen_values_keys = sorted([k for k in volumes.keys() if re.match(r'(.*)\.eig[0-9]*\.val$', k)])
-#
-#         eigen_vectors = [volumes[k] for k in eigen_vectors_keys]
-#         eigen_values = [volumes[k] for k in eigen_values_keys]
-#
-#         eigen_pairs = list(zip(eigen_vectors, eigen_values))
-#         eigen_pairs_keys = list(zip(eigen_vectors_keys, eigen_values_keys))
-#     else:
-#         eigen_pairs_keys = eigen_pairs
-#         eigen_pairs = []
-#         for eigen_pair in eigen_pairs_keys:
-#             if isinstance(eigen_pair[0], (list, tuple)):
-#                 vec = np.concatenate([np.expand_dims(volumes[k], axis=3) for k in eigen_pair[0]], axis=3)
-#             else:
-#                 vec = volumes[eigen_pair[0]]
-#
-#             val = volumes[eigen_pair[1]]
-#             eigen_pairs.append((vec, val))
-#
-#     vector_ranking_maps = None
-#     if vector_ranking is not None:
-#         if len(vector_ranking) < len(eigen_pairs):
-#             raise ValueError('Not enough vector rankings provided. We have {0} eigen '
-#                              'pairs and only {1} ranking maps.'.format(len(eigen_pairs), len(vector_ranking)))
-#         vector_ranking_maps = [volumes[k] for k in vector_ranking]
-#
-#     if vector_ranking is not None:
-#         ranking = np.argsort(np.concatenate([vr[..., None] for vr in vector_ranking_maps], axis=3), axis=3)
-#         shape3d = ranking.shape[0:3]
-#
-#         ranked_vector_values = [np.zeros(shape3d) for i in range(len(vector_ranking_maps))]
-#
-#         for l_x, l_y, l_z in itertools.product(range(shape3d[0]), range(shape3d[1]), range(shape3d[2])):
-#             pair_ranking = ranking[l_x, l_y, l_z]
-#             for linear_ind, ranking_ind in enumerate(pair_ranking):
-#                 ranked_vector_values[linear_ind][l_x, l_y, l_z] = vector_ranking_maps[ranking_ind][l_x, l_y, l_z]
-#
-#         ordered_volumes = {}
-#         for ind, eigen_pair in enumerate(eigen_pairs_keys):
-#             ordered_volumes.update({eigen_pair[1] + ".ordered": ranked_vector_values[ind]})
-#         TrackMark.write_rawmaps(output_folder, ordered_volumes)
-#
-#     if eigen_pairs:
-#         TrackMark.write_tvl_direction_pairs(os.path.join(output_folder, 'master.tvl'), tvl_header, eigen_pairs,
-#                                             vector_ranking=vector_ranking_maps, direction_scalar=eigenvalue_scalar)
-#
-#     TrackMark.write_rawmaps(output_folder, volumes)
+        if len(extra_maps_to_sort) != len(maps_to_sort_on):
+            raise ValueError('The length of the maps to sort on and the extra maps to sort do not match.')
+
+    from mdt.utils import create_sort_matrix, sort_volumes_per_voxel
+
+    if sort_index_map is None:
+        sort_index_map = create_sort_matrix(np.concatenate([m for m in maps_to_sort_on], axis=3), reversed=reversed)
+
+    sorted_maps = sort_volumes_per_voxel(maps_to_sort_on, sort_index_map)
+    if extra_maps_to_sort:
+        sorted_extra_maps = sort_volumes_per_voxel(extra_maps_to_sort, sort_index_map)
+        return sorted_maps, sorted_extra_maps, sort_index_map
+
+    return sorted_maps, [], sort_index_map
 
 
 def load_volume_maps(directory, map_names=None):
