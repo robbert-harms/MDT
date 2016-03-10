@@ -43,9 +43,10 @@ class Noddi(DMRISingleModelConfig):
     description = 'The standard Noddi (NODDI) model'
 
     model_expression = '''
-        S0 * ((Weight(w_ic) * Noddi_IC) +
-              (Weight(w_ec) * Noddi_EC) +
-              (Weight(w_csf) * Ball))
+        S0 * ((Weight(w_csf) * Ball) +
+              (Weight(w_ic) * Noddi_IC) +
+              (Weight(w_ec) * Noddi_EC)
+              )
     '''
 
     fixes = {'Noddi_IC.d': 1.7e-9,

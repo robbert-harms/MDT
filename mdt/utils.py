@@ -689,21 +689,21 @@ def per_model_logging_context(output_path):
     configure_per_model_logging(None)
 
 
-def create_sort_matrix(input_4d_vol, reversed=False):
+def create_sort_matrix(input_4d_vol, reversed_sort=False):
     """Create an index matrix that sorts the given input on the 4th volume from small to large values (per voxel).
 
     This uses
 
     Args:
         input_4d_vol (ndarray): the 4d input volume for which we create a sort index matrix
-        reversed (boolean): if True we reverse the sort and we sort from large to small.
+        reversed_sort (boolean): if True we reverse the sort and we sort from large to small.
 
     Returns:
         ndarray: a 4d matrix with on the 4th dimension the indices of the elements in sorted order.
     """
     sort_index = np.argsort(input_4d_vol, axis=3)
 
-    if reversed:
+    if reversed_sort:
         return sort_index[..., ::-1]
 
     return sort_index
@@ -930,7 +930,10 @@ class MetaOptimizerBuilder(object):
     def _get_cl_environments(self, optim_config):
         cl_environments = CLEnvironmentFactory.all_devices()
         if optim_config['cl_devices']:
-            cl_environments = [cl_environments[int(ind)] for ind in optim_config['cl_devices']]
+            if isinstance(optim_config['cl_devices'], (tuple, list)):
+                cl_environments = [cl_environments[int(ind)] for ind in optim_config['cl_devices']]
+            else:
+                cl_environments = [cl_environments[int(optim_config['cl_devices'])]]
         return cl_environments
 
     def _get_configuration_dict(self, model_names):

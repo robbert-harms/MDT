@@ -139,7 +139,7 @@ class kappa(FreeParameterConfig):
     lower_bound = 1e-5
     upper_bound = 2 * np.pi
     parameter_transform = CosSqrClampTransform()
-    sampling_proposal = GaussianProposal(0.1)
+    sampling_proposal = GaussianProposal(0.01)
 
 
 # for use in the GDRCylinder model

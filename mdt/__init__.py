@@ -846,8 +846,8 @@ def write_trackmark_tvl(output_tvl, vector_directions, vector_magnitudes, tvl_he
 
     Args:
         output_tvl (str): the name of the output tvl
-        vector_directions (list of str): a list of 4d volumes with per voxel the normalized vector direction
-        vector_magnitudes (list of str): a list of 4d volumes with per voxel the vector magnitude.
+        vector_directions (list of str/ndarray): a list of 4d volumes with per voxel the normalized vector direction
+        vector_magnitudes (list of str/ndarray): a list of 4d volumes with per voxel the vector magnitude.
         tvl_header (list or tuple): The list with header arguments for writing the TVL. See IO.TrackMark for specifics.
     """
     from mdt.IO import TrackMark
@@ -857,7 +857,7 @@ def write_trackmark_tvl(output_tvl, vector_directions, vector_magnitudes, tvl_he
     TrackMark.write_tvl_direction_pairs(output_tvl, tvl_header, list(zip(vector_directions, vector_magnitudes))[:3])
 
 
-def sort_maps(maps_to_sort_on, extra_maps_to_sort=None, reversed=False, sort_index_map=None):
+def sort_maps(maps_to_sort_on, extra_maps_to_sort=None, reversed_sort=False, sort_index_map=None):
     """Sort the given maps on the maps to sort on.
 
     This first creates a sort matrix to index the maps in sorted order per voxel. Next, it creates the output
@@ -865,9 +865,9 @@ def sort_maps(maps_to_sort_on, extra_maps_to_sort=None, reversed=False, sort_ind
 
     Args:
         maps_to_sort_on (list): a list of string (filenames) or ndarrays we will load and compare
-        extra_maps_to_sort_on (list) an additional list we will sort based on the indices in maps_to_sort. This should
+        extra_maps_to_sort (list) an additional list we will sort based on the indices in maps_to_sort. This should
             be of the same length as maps_to_sort_on.
-        reversed (boolean): if we want to sort from large to small instead of small to large.
+        reversed_sort (boolean): if we want to sort from large to small instead of small to large.
         sort_index_map (ndarray): if given we use this sort index map instead of generating one by sorting the
             maps_to_sort_on.
 
@@ -894,7 +894,10 @@ def sort_maps(maps_to_sort_on, extra_maps_to_sort=None, reversed=False, sort_ind
     from mdt.utils import create_sort_matrix, sort_volumes_per_voxel
 
     if sort_index_map is None:
-        sort_index_map = create_sort_matrix(np.concatenate([m for m in maps_to_sort_on], axis=3), reversed=reversed)
+        sort_index_map = create_sort_matrix(np.concatenate([m for m in maps_to_sort_on], axis=3),
+                                            reversed_sort=reversed_sort)
+    elif isinstance(sort_index_map, string_types):
+        sort_index_map = np.round(load_data_volume(sort_index_map)).astype(np.int64)
 
     sorted_maps = sort_volumes_per_voxel(maps_to_sort_on, sort_index_map)
     if extra_maps_to_sort:
