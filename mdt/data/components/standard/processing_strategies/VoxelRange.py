@@ -84,8 +84,8 @@ class VoxelRange(ModelChunksProcessingStrategy):
         if worker.output_exists(model, problem_data, slice_dir):
             self._logger.info('Skipping voxels {} to {}, they are already processed.'.format(ind_start, ind_end))
         else:
-            self._logger.info('Computing voxels {0} up to {1} ({2} voxels in total, we are at {3:.2%})'.format(
-                ind_start, ind_end, np.count_nonzero(problem_data.mask),
+            self._logger.info('Computing voxels {0} up to {1} ({2} voxels in total, currently {3:.2%} is processed)'.
+                format(ind_start, ind_end, np.count_nonzero(problem_data.mask),
                 float(ind_start) / np.count_nonzero(problem_data.mask)))
 
             worker.process(model, problem_data, tmp_mask, slice_dir)

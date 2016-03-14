@@ -106,7 +106,8 @@ class Charmed(DMRISingleModelConfig):
              'Tensor.dperp1': 0.5e-9,
              'CharmedRestricted0.d': 1e-9,
              'CharmedRestricted1.d': 1e-9,
-             'CharmedRestricted2.d': 1e-9}
+             'CharmedRestricted2.d': 1e-9,
+             'w_res2.w': 0}
 
     post_optimization_modifiers = [
         ('FR', lambda results: 1 - results['w_hin0.w'])

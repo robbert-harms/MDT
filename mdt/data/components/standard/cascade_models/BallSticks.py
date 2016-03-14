@@ -48,7 +48,7 @@ class BallStickStickStick(CascadeConfig):
     description = 'Cascade for BallStickStickStick.'
     models = ('BallStickStick (Cascade)',
               'BallStickStickStick')
-    inits = {'BallStickStickStick': [('w_stick1.w', 0.0)]}
+    inits = {'BallStickStickStick': [('w_stick2.w', 0.0)]}
 
 
 class BallStickStickStickExVivo(BallStickStickStick):

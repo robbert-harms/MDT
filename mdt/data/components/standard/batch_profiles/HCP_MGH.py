@@ -14,6 +14,8 @@ meta_info = {'title': 'HCP MGH',
 '''
 This assumes that you downloaded and extracted the MGH data in one folder and that you now have one folder per subject.
 
+You can provide the noise standard deviation to use using a noise_std file containing a single float.
+
 Example directory layout:
     /mgh_*/diff/preproc/mri/diff_preproc.nii(.gz)
     /mgh_*/diff/preproc/bvals.txt
@@ -24,6 +26,8 @@ Optional items (these will take precedence if present):
     /mgh_*/diff/preproc/diff_preproc.bvec
     /mgh_*/diff/preproc/diff_preproc.prtcl
     /mgh_*/diff/preproc/diff_preproc_mask.nii(.gz)
+    /mgh_*/diff/preproc/mri/diff_preproc_mask.nii(.gz)
+    /mgh_*/diff/preproc/noise_std
 '''}
 
 
@@ -36,6 +40,7 @@ class HCP_MGH(SimpleBatchProfile):
             pjoin = mdt.make_path_joiner(self._root_dir, subject_id, 'diff', 'preproc')
             if os.path.isdir(pjoin()):
                 dwi_fname = list(glob.glob(pjoin('mri', 'diff_preproc.nii*')))[0]
+                noise_std = self._autoload_noise_std(subject_id, file_path=pjoin('noise_std')) or 'auto'
 
                 bval_fname = pjoin('bvals.txt')
                 if os.path.isfile(pjoin('diff_preproc.bval')):
@@ -53,6 +58,10 @@ class HCP_MGH(SimpleBatchProfile):
                 if list(glob.glob(pjoin('diff_preproc_mask.nii*'))):
                     mask_fname = list(glob.glob(pjoin('diff_preproc_mask.nii*')))[0]
 
+                if mask_fname is None:
+                    if list(glob.glob(pjoin('mri', 'diff_preproc_mask.nii*'))):
+                        mask_fname = list(glob.glob(pjoin('mri', 'diff_preproc_mask.nii*')))[0]
+
                 protocol_loader = BatchFitProtocolLoader(
                     pjoin(),
                     protocol_fname=prtcl_fname, bvec_fname=bvec_fname, bval_fname=bval_fname,
@@ -60,12 +69,14 @@ class HCP_MGH(SimpleBatchProfile):
 
                 output_dir = self._get_subject_output_dir(subject_id)
 
-                subjects.append(SimpleSubjectInfo(subject_id, dwi_fname, protocol_loader, mask_fname, output_dir))
+                subjects.append(SimpleSubjectInfo(subject_id, dwi_fname, protocol_loader, mask_fname, output_dir,
+                                                  noise_std=noise_std))
         return subjects
 
     def _get_subject_output_dir(self, subject_id):
         if self.output_sub_dir:
-            return os.path.join(self._root_dir, subject_id, 'diff', 'preproc', self.output_base_dir, self.output_sub_dir)
+            return os.path.join(self._root_dir, subject_id, 'diff', 'preproc',
+                                self.output_base_dir, self.output_sub_dir)
         return os.path.join(self._root_dir, subject_id, 'diff', 'preproc', self.output_base_dir)
 
     def __str__(self):

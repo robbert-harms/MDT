@@ -102,6 +102,8 @@ class BallStickStickStick(DMRISingleModelConfig):
              'Stick0.d': 1.7e-9,
              'Stick1.d': 1.7e-9,
              'Stick2.d': 1.7e-9}
+    inits = {'w_stick2.w': 0}
+
     post_optimization_modifiers = [('FS', lambda results: 1 - results['w_ball.w'])]
 
 

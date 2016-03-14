@@ -93,8 +93,8 @@ class SliceBySlice(ModelChunksProcessingStrategy):
         if worker.output_exists(model, problem_data, slice_dir):
             self._logger.info('Skipping slices {} to {}, they are already processed.'.format(ind_start, ind_end))
         else:
-            self._logger.info('Computing slices {0} up to {1} ({2} slices in total, we are at {3:.2%})'.format(
-                ind_start, ind_end, tmp_mask.shape[self.slice_dimension],
+            self._logger.info('Computing slices {0} up to {1} ({2} slices in total, currently {3:.2%} is processed)'.
+                format(ind_start, ind_end, tmp_mask.shape[self.slice_dimension],
                 float(ind_start) / tmp_mask.shape[self.slice_dimension]))
 
             worker.process(model, problem_data, tmp_mask, slice_dir)

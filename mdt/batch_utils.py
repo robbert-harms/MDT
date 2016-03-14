@@ -8,7 +8,7 @@ from mdt.components_loader import BatchProfilesLoader
 from mdt.data_loaders.protocol import ProtocolLoader
 from mdt.masking import create_write_median_otsu_brain_mask
 from mdt.protocols import load_protocol, load_bvec_bval
-from mdt.utils import split_image_path
+from mdt.utils import split_image_path, AutoDict
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-21"
@@ -97,13 +97,31 @@ class SimpleBatchProfile(BatchProfile):
         """
         super(SimpleBatchProfile, self).__init__()
         self._subjects_found = None
-        self.output_base_dir = 'output'
-        self.output_sub_dir = None
+        self._output_base_dir = 'output'
+        self._output_sub_dir = None
         self.models_to_fit = ('BallStick (Cascade)',
                               'Tensor (Cascade)',
                               'Noddi (Cascade)',
                               'BallStickStickStick (Cascade)',
                               'Charmed (Cascade|fixed)')
+
+    @property
+    def output_base_dir(self):
+        return self._output_base_dir
+
+    @output_base_dir.setter
+    def output_base_dir(self, output_base_dir):
+        self._output_base_dir = output_base_dir
+        self._subjects_found = None
+
+    @property
+    def output_sub_dir(self):
+        return self._output_sub_dir
+
+    @output_sub_dir.setter
+    def output_sub_dir(self, output_sub_dir):
+        self._output_sub_dir = output_sub_dir
+        self._subjects_found = None
 
     def get_models_to_fit(self):
         return self.models_to_fit
@@ -125,6 +143,25 @@ class SimpleBatchProfile(BatchProfile):
             self._subjects_found = self._get_subjects()
 
         return len(self._subjects_found)
+
+    def _autoload_noise_std(self, subject_id, file_path=None):
+        """Try to autoload the noise standard deviation from a noise_std file.
+
+        Args:
+            subject_id (str): the subject for which to load the noise std.
+            file_path (str): optionally provide the exact file to load.
+
+        Returns:
+            float or None: a float if a float could be loaded from a file noise_std, else nothing.
+        """
+        file_path = file_path or os.path.join(self._root_dir, subject_id, 'noise_std')
+        if os.path.isfile(file_path):
+            with open(file_path, 'r') as f:
+                try:
+                    return float(f.read())
+                except ValueError:
+                    return None
+        return None
 
     def _get_subjects(self):
         """Get the matching subjects from the given root dir.
@@ -213,7 +250,8 @@ class SubjectInfo(object):
 
 class SimpleSubjectInfo(SubjectInfo):
 
-    def __init__(self, subject_id, dwi_fname, protocol_loader, mask_fname, output_dir, gradient_deviations=None):
+    def __init__(self, subject_id, dwi_fname, protocol_loader, mask_fname, output_dir, gradient_deviations=None,
+                 noise_std='auto'):
         """This class contains all the information about found subjects during batch fitting.
 
         It is returned by the method get_subjects() from the class BatchProfile.
@@ -223,7 +261,10 @@ class SimpleSubjectInfo(SubjectInfo):
             dwi_fname (str): the filename with path to the dwi image
             protocol_loader (ProtocolLoader): the protocol loader that can load us the protocol
             mask_fname (str): the filename of the mask to load. If None a mask is auto generated.
-            output_dir (str): the
+            output_dir (str): the output directory
+            gradient_deviations (str) if given, the path to the gradient deviations
+            noise_std (float, str): if given, either 'auto' for automatic noise detection or a float with the noise STD
+                to use during fitting.
         """
         self._subject_id = subject_id
         self._dwi_fname = dwi_fname
@@ -231,6 +272,7 @@ class SimpleSubjectInfo(SubjectInfo):
         self._mask_fname = mask_fname
         self._output_dir = output_dir
         self._gradient_deviations = gradient_deviations
+        self._noise_std = noise_std
 
         if self._mask_fname is None:
             self._mask_fname = os.path.join(self.output_dir, 'auto_generated_mask.nii.gz')
@@ -265,6 +307,9 @@ class SimpleSubjectInfo(SubjectInfo):
     def get_gradient_deviations(self):
         return self._gradient_deviations
 
+    def get_noise_std(self):
+        return self._noise_std
+
 
 class BatchSubjectSelection(object):
 
@@ -297,7 +342,7 @@ class SelectedSubjects(BatchSubjectSelection):
 
         Args:
             subject_ids (list of str): the list of names of subjects to process
-            indices (list of int): the list of indices of subjects we wish to process
+            indices (list/tuple of int): the list of indices of subjects we wish to process
         """
         self.subject_ids = subject_ids or []
         self.indices = indices or []
@@ -458,11 +503,22 @@ def run_function_on_batch_fit_output(data_folder, func, batch_profile=None, subj
             of a batch profile to load. If not given it is auto detected.
         subjects_selection (BatchSubjectSelection): the subjects to use for processing.
             If None all subjects are processed.
+
+    Returns:
+        dict: indexed by subject->model_name->mask_name, values are the return values of the user function
     """
     output_info = BatchFitOutputInfo(data_folder, batch_profile, subjects_selection=subjects_selection)
     mask_names = output_info.get_available_masks()
+
+    results = AutoDict()
     for mask_name in mask_names:
-        list(map(func, output_info.subject_output_info_generator(mask_name)))
+        for subject in output_info.subject_output_info_generator(mask_name):
+            subject_id = subject.subject_info.subject_id
+            model_name = subject.model_name
+
+            results[subject_id][model_name][mask_name] = func(subject)
+
+    return results.to_normal_dict()
 
 
 def batch_profile_factory(batch_profile, data_folder):

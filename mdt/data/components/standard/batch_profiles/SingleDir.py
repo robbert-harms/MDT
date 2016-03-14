@@ -34,10 +34,13 @@ a bvec and bval or protocol file for the protocol information. Subject 'c' also 
 If there is a file mask.nii(.gz) present in the directory it is used as the default mask for all the subjects
 in the single directory that do not have their own mask.
 
+You can provide the noise standard deviation to use using a noise_std file (per subject) containing a single float.
+
 Optional items:
     /<name>.TE (case sensitive)
     /<name>.Delta (case sensitive)
     /<name>.delta (case sensitive)
+    /<name>.noise_std (case sensitive)
 
 These provide extra information about the protocol. They should either contain exactly 1 value (for all protocol lines),
 or a value per protocol line.
@@ -67,6 +70,8 @@ class SingleDir(SimpleBatchProfile):
                 dwi_fname = pjoin(basename + '.nii.gz')
             elif basename + '.hdr' in files and basename + '.img' in files:
                 dwi_fname = pjoin(basename + '.hdr')
+
+            noise_std = self._autoload_noise_std(basename, file_path=pjoin(basename + '.noise_std')) or 'auto'
 
             prtcl_fname = None
             if basename + '.prtcl' in files:
@@ -102,7 +107,8 @@ class SingleDir(SimpleBatchProfile):
                 else:
                     output_dir = pjoin(self.output_base_dir, basename)
 
-                subjects.append(SimpleSubjectInfo(basename, dwi_fname, protocol_loader, mask_fname, output_dir))
+                subjects.append(SimpleSubjectInfo(basename, dwi_fname, protocol_loader, mask_fname, output_dir,
+                                                  noise_std=noise_std))
         return subjects
 
     def __str__(self):

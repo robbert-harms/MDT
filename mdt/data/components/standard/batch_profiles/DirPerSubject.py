@@ -14,6 +14,8 @@ meta_info = {'title': 'Directory per subject',
 Every subject has its own directory. For every type of file (protocol, bvec, bval, TE, Delta, delta, DWI, mask)
 we use the first one found.
 
+You can provide the noise standard deviation to use using a noise_std file containing a single float.
+
 Example directory layout:
     /a/*.nii(.gz)
     /a/*bval*
@@ -31,6 +33,8 @@ Optional items:
     /*/Delta (in seconds)
 
     /*/*_mask.nii(.gz)
+
+    /*/noise_std
 
 The optional items TE, Delta and delta provide extra information about the protocol.
 They should either contain exactly 1 value (for all protocol lines), or a value per protocol line.
@@ -57,6 +61,7 @@ class DirPerSubject(SimpleBatchProfile):
             protocols = glob.glob(os.path.join(self._root_dir, subject_id, '*prtcl'))
             bvals = glob.glob(os.path.join(self._root_dir, subject_id, '*bval*'))
             bvecs = glob.glob(os.path.join(self._root_dir, subject_id, '*bvec*'))
+            noise_std = self._autoload_noise_std(subject_id) or 'auto'
 
             if dwis:
                 dwi_fname = dwis[0]
@@ -85,7 +90,7 @@ class DirPerSubject(SimpleBatchProfile):
                     output_dir = self._get_subject_output_dir(subject_id)
 
                     subjects.append(SimpleSubjectInfo(subject_id, dwi_fname, protocol_loader, mask_fname, output_dir,
-                                                      gradient_deviations=grad_dev))
+                                                      gradient_deviations=grad_dev, noise_std=noise_std))
 
         return subjects
 

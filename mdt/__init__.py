@@ -2,7 +2,6 @@ import glob
 import os
 from contextlib import contextmanager
 import logging.config as logging_config
-import itertools
 import numpy as np
 import six
 from six import string_types
@@ -16,7 +15,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.7.10'
+VERSION = '0.7.11'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')
@@ -234,10 +233,13 @@ def run_function_on_batch_fit_output(data_folder, func, batch_profile=None, subj
             of a batch profile to load. If not given it is auto detected.
         subjects_selection (BatchSubjectSelection): the subjects to use for processing.
             If None all subjects are processed.
+
+    Returns:
+        dict: indexed by subject->model_name->mask_name, values are the return values of the user function
     """
     from mdt.batch_utils import run_function_on_batch_fit_output
-    run_function_on_batch_fit_output(data_folder, func, batch_profile=batch_profile,
-                                     subjects_selection=subjects_selection)
+    return run_function_on_batch_fit_output(data_folder, func, batch_profile=batch_profile,
+                                            subjects_selection=subjects_selection)
 
 
 def get_cl_devices():

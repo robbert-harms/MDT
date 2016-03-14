@@ -1,3 +1,4 @@
+from collections import defaultdict
 import collections
 import copy
 import distutils.dir_util
@@ -1671,3 +1672,23 @@ def estimate_noise_std(user_noise_std, problem_data):
         noise_std = 1.0
 
     return noise_std
+
+
+class AutoDict(defaultdict):
+
+    def __init__(self):
+        """Create an auto-vivacious dictionary."""
+        super(AutoDict, self).__init__(AutoDict)
+
+    def to_normal_dict(self):
+        """Convert this dictionary to a normal dict (recursive).
+
+        Returns:
+            dict: a normal dictionary with the items in this dictionary.
+        """
+        results = {}
+        for key, value in self.items():
+            if isinstance(value, AutoDict):
+                value = value.to_normal_dict()
+            results.update({key: value})
+        return results

@@ -14,6 +14,8 @@ meta_info = {'title': 'HCP WU-Minn',
 '''
 This assumes that you downloaded and extracted the WU-Minn data in one folder which gives one folder per subject.
 
+You can provide the noise standard deviation to use using a noise_std file containing a single float.
+
 Example directory layout:
     /*/T1w/Diffusion/data.nii.gz
     /*/T1w/Diffusion/bvals
@@ -26,6 +28,7 @@ Optional items (these will take precedence if present):
     /*/T1w/Diffusion/data.bvec
     /*/T1w/Diffusion/data.prtcl
     /*/T1w/Diffusion/data_mask.nii(.gz)
+    /*/noise_std
 '''}
 
 
@@ -42,6 +45,8 @@ class HCP_WUMINN(SimpleBatchProfile):
             pjoin = mdt.make_path_joiner(self._root_dir, subject_id, 'T1w', 'Diffusion')
             if os.path.isdir(pjoin()):
                 dwi_fname = list(glob.glob(pjoin('data.nii*')))[0]
+
+                noise_std = self._autoload_noise_std(subject_id, file_path=pjoin('noise_std')) or 'auto'
 
                 bval_fname = pjoin('bvals')
                 if os.path.isfile(pjoin('data.bval')):
@@ -75,7 +80,7 @@ class HCP_WUMINN(SimpleBatchProfile):
                     output_dir = pjoin(self.output_base_dir)
 
                 subjects.append(SimpleSubjectInfo(subject_id, dwi_fname, protocol_loader, mask_fname,
-                                                  output_dir, gradient_deviations=grad_dev))
+                                                  output_dir, gradient_deviations=grad_dev, noise_std=noise_std))
         return subjects
 
     def __str__(self):
