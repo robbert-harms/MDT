@@ -36,11 +36,14 @@ mot_float_type cmTensor(const mot_float_type4 g,
     mot_float_type4 n1 = (mot_float_type4)(cos_phi * sin_theta, sin_phi * sin_theta, cos_theta, 0.0);
 
     // rotate around n1
-    // this code is optimized for memory consumption. View the git history for human readable previous versions.
-    mot_float_type tmp = sin(theta+(M_PI_2)); // using tmp as the rotation factor (90 degrees)
-    mot_float_type4 n2 = (mot_float_type4)(tmp * cos_phi, tmp * sin_phi, cos(theta+(M_PI_2)), 0.0);
-    tmp = select(1, -1, n1.z < 0 || ((n1.z == 0.0) && n1.x < 0.0)); // using tmp as the multiplier
-    n2 = n2 * cos_psi + (cross(n2, tmp * n1) * sin_psi) + (tmp * n1 * dot(tmp * n1, n2) * (1-cos_psi));
+    mot_float_type rotation_factor = sin(theta+(M_PI_2)); // (90 degrees rotation)
+    // temporary vector
+    mot_float_type4 n2 = (mot_float_type4)(rotation_factor * cos_phi,
+                                           rotation_factor * sin_phi,
+                                           cos(theta+(M_PI_2)),
+                                           0.0);
+    int mult = select(1, -1, n1.z < 0 || ((n1.z == 0.0) && n1.x < 0.0));
+    n2 = n2 * cos_psi + (cross(n2, mult * n1) * sin_psi) + (mult * n1 * dot(mult * n1, n2) * (1-cos_psi));
 
     return exp(-b * (d *      pown(dot(n1, g), 2) +
                      dperp *  pown(dot(n2, g), 2) +

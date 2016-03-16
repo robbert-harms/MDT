@@ -79,6 +79,10 @@ class ModelFit(BasicShellApplication):
                             help="Calculate in single precision. (default)")
         parser.set_defaults(double_precision=False)
 
+        parser.add_argument('--disable-model-protocol-options', dest='use_model_protocol_options', action='store_false',
+                            help="Disable the model protocol options from the config.")
+        parser.set_defaults(use_model_protocol_options=True)
+
         return parser
 
     def run(self, args):
@@ -92,7 +96,8 @@ class ModelFit(BasicShellApplication):
                                             os.path.realpath(args.mask)),
                       output_folder, recalculate=args.recalculate,
                       only_recalculate_last=args.only_recalculate_last, cl_device_ind=args.cl_device_ind,
-                      double_precision=args.double_precision, gradient_deviations=args.gradient_deviations)
+                      double_precision=args.double_precision, gradient_deviations=args.gradient_deviations,
+                      use_model_protocol_options=args.use_model_protocol_options)
 
 
 if __name__ == '__main__':

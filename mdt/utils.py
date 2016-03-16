@@ -606,7 +606,7 @@ def initialize_user_settings(pass_if_exists=True, keep_config=True):
             if not os.path.exists(path + '/components/user/' + folder_name):
                 os.mkdir(path + '/components/user/' + folder_name)
 
-    def copy_config(tmp_dir):
+    def copy_old_config(tmp_dir):
         if os.path.exists(tmp_dir + '/mdt.conf'):
             if os.path.exists(path + '/mdt.conf'):
                 os.remove(path + '/mdt.conf')
@@ -624,8 +624,8 @@ def initialize_user_settings(pass_if_exists=True, keep_config=True):
         copy_user_components(tmp_dir)
         make_sure_user_components_exists()
 
-        if keep_config:
-            copy_config(tmp_dir)
+        if keep_config and pass_if_exists:
+            copy_old_config(tmp_dir)
 
     return path
 
