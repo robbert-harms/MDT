@@ -72,11 +72,7 @@ class _CEWorker(Worker):
 
         event = self._kernel.generate_tensor(self._cl_run_context.queue, (int(nmr_problems), ), None, *self._all_buffers,
                                              global_offset=(int(range_start),))
-
-        return [cl.enqueue_map_buffer(self._cl_run_context.queue, self._evecs_buf,
-                                      cl.map_flags.READ, range_start * self._evecs.dtype.itemsize,
-                                      [nmr_problems, self._evecs.shape[1]], self._evecs.dtype,
-                                      order="C", wait_for=[event], is_blocking=False)[1]]
+        return [self._enqueue_readout(self._evecs_buf, self._evecs, range_start, range_end, [event])]
 
     def _create_buffers(self):
         thetas_buf = cl.Buffer(self._cl_run_context.context,
