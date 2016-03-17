@@ -83,7 +83,7 @@ class MathImg(BasicShellApplication):
         if args.verbose:
             print('')
 
-        images = [mdt.load_data_volume(dwi_image) for dwi_image in file_names]
+        images = [mdt.load_volume(dwi_image)[0] for dwi_image in file_names]
         context_dict = {'input': images, 'i': images}
         alpha_chars = list('abcdefghjklmnopqrstuvwxyz')
 

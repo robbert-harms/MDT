@@ -25,23 +25,25 @@ class InfoImg(BasicShellApplication):
         epilog = textwrap.dedent("""
             Examples of use:
                 mdt-info-img my_img.nii
+                mdt-info-img *.nii
         """)
 
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
                                          formatter_class=argparse.RawTextHelpFormatter)
 
-        parser.add_argument('image',
-                            action=mdt.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
-                            help='the input image').completer = \
-            FilesCompleter(['nii', 'gz', 'hdr', 'img'], directories=False)
+        parser.add_argument('images', metavar='images', nargs="+", type=str,
+                            help="The input images")
 
         return parser
 
     def run(self, args):
-        image = os.path.realpath(args.image)
-        img = mdt.load_nifti(image)
-        header = img.get_header()
-        self.print_info(header)
+        for image in args.images:
+            image_path = os.path.realpath(image)
+            img = mdt.load_nifti(image_path)
+            header = img.get_header()
+            print('{}'.format(image))
+            self.print_info(header)
+            print('')
 
     def print_info(self, header):
         row_format = "{:<15}{}"

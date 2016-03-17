@@ -438,12 +438,12 @@ def create_blank_mask(volume4d_path, output_fname):
     masks nothing.
 
     Args:
-        volume4d_path (str): the path to the volume you want to create a blank mask for
+        volume4d_path (str): the path to the 4d volume you want to create a blank mask for
         output_fname (str): the path to the result mask
     """
-    volume = load_dwi(volume4d_path)
-    mask = np.ones(volume.shape[:3])
-    write_image(output_fname, mask, volume.get_header())
+    volume_info = load_nifti(volume4d_path)
+    mask = np.ones(volume_info.shape[:3])
+    write_image(output_fname, mask, volume_info.get_header())
 
 
 def load_brain_mask(brain_mask_fname):
@@ -678,20 +678,21 @@ def view_result_samples(data, **kwargs):
     SampleVisualizer(data).show(**kwargs)
 
 
-def load_dwi(volume_fname):
+def load_volume(volume_fname, ensure_4d=True):
     """Load the diffusion weighted image data from the given volume filename.
 
     This does not perform any data type changes, so the input may not be in float64. If you call this function
-    to satisfy load_problem_data() then this is not a problem.
+    to satisfy load_problem_data() this is not a problem.
 
     Args:
         volume_fname (string): The filename of the volume to load.
+        ensure_4d (boolean): if True we ensure that the data matrix is in 4d.
 
     Returns:
         a tuple with (data, header) for the given file.
     """
-    from mdt.utils import load_dwi
-    return load_dwi(volume_fname)
+    from mdt.utils import load_volume
+    return load_volume(volume_fname, ensure_4d=True)
 
 
 def load_nifti(nifti_volume):
@@ -707,21 +708,6 @@ def load_nifti(nifti_volume):
     """
     import nibabel as nib
     return nib.load(nifti_volume)
-
-
-def load_data_volume(nifti_volume):
-    """Load and return a data volume from a nifti file (or similar data container).
-
-    This calls load_nifti and then returns the data from the nifti file. If the volume is 3d we upscale it to 4d.
-    There are no data type conversions performed.
-
-    Args:
-        nifti_volume (string): The filename of the volume to load.
-
-    Returns:
-        ndarray: the data volume as a 4d array.
-    """
-    return load_dwi(nifti_volume)[0]
 
 
 def make_path_joiner(*folder):
@@ -881,7 +867,7 @@ def sort_maps(maps_to_sort_on, extra_maps_to_sort=None, reversed_sort=False, sor
         tmp = []
         for data in map_list:
             if isinstance(data, string_types):
-                tmp.append(load_data_volume(data))
+                tmp.append(load_volume(data)[0])
             else:
                 tmp.append(data)
         return tmp
@@ -899,7 +885,7 @@ def sort_maps(maps_to_sort_on, extra_maps_to_sort=None, reversed_sort=False, sor
         sort_index_map = create_sort_matrix(np.concatenate([m for m in maps_to_sort_on], axis=3),
                                             reversed_sort=reversed_sort)
     elif isinstance(sort_index_map, string_types):
-        sort_index_map = np.round(load_data_volume(sort_index_map)).astype(np.int64)
+        sort_index_map = np.round(load_volume(sort_index_map)[0]).astype(np.int64)
 
     sorted_maps = sort_volumes_per_voxel(maps_to_sort_on, sort_index_map)
     if extra_maps_to_sort:
@@ -1086,7 +1072,7 @@ def extract_volumes(input_volume_fname, input_protocol, output_volume_fname, out
     new_protocol = input_protocol.get_new_protocol_with_indices(protocol_indices)
     protocols.write_protocol(new_protocol, output_protocol)
 
-    input_volume = load_dwi(input_volume_fname)
+    input_volume = load_volume(input_volume_fname)
     image_data = input_volume[0][..., protocol_indices]
     write_image(output_volume_fname, image_data, input_volume[1])
 
@@ -1124,7 +1110,7 @@ def apply_mask_to_file(input_fname, mask, output_fname=None):
     if output_fname is None:
         output_fname = input_fname
 
-    image_info = load_dwi(input_fname)
+    image_info = load_volume(input_fname)
     mask = mask.reshape(mask.shape + (image_info[0].ndim - mask.ndim) * (1,))
     masked = image_info[0]
     masked *= mask

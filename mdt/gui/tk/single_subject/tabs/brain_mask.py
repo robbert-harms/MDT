@@ -13,7 +13,7 @@ from itertools import count
 import os
 import multiprocessing
 import numpy as np
-from mdt import create_median_otsu_brain_mask, load_dwi, load_brain_mask
+from mdt import create_median_otsu_brain_mask, load_volume, load_brain_mask
 from mdt.gui.tk.widgets import FileBrowserWidget, TextboxWidget
 from mdt.gui.tk.utils import TabContainer
 from mdt.gui.utils import function_message_decorator
@@ -199,7 +199,7 @@ class ViewMaskProcess(multiprocessing.Process):
         self._brain_mask_path = brain_mask_path
 
     def run(self):
-        image_data = load_dwi(self._dwi_path)[0]
+        image_data = load_volume(self._dwi_path)[0]
         mask = np.expand_dims(load_brain_mask(self._brain_mask_path), axis=3)
         masked_image = image_data * mask
         s = image_data.shape

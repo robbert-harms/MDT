@@ -18,7 +18,6 @@ import pkg_resources
 import six
 from scipy.special import jnp_zeros
 from six import string_types
-import sys
 import mdt.configuration as configuration
 from mdt import create_index_matrix
 from mdt.IO import Nifti
@@ -716,8 +715,8 @@ def sort_volumes_per_voxel(input_volumes, sort_matrix):
     What this essentially does is to look per voxel from which map we should take the first value. Then we place that
     value in the first volume and we repeat for the next value and finally for the next voxel.
 
-    If the length of the 4th dimension is > 1 we suppose we shift the 4th dimension to the 5th dimension and sort
-    the array as if the 4th dimension values where a single value.
+    If the length of the 4th dimension is > 1 we shift the 4th dimension to the 5th dimension and sort
+    the array as if the 4th dimension values where a single value. This is useful for sorting (eigen)vector matrices.
 
     Args:
         input_volumes (list): list of 4d ndarray
@@ -801,7 +800,7 @@ def load_problem_data(volume_info, protocol, mask, static_maps=None):
     mask = autodetect_brain_mask_loader(mask).get_data()
 
     if isinstance(volume_info, string_types):
-        signal4d, img_header = load_dwi(volume_info)
+        signal4d, img_header = load_volume(volume_info)
     else:
         signal4d, img_header = volume_info
 
@@ -811,7 +810,7 @@ def load_problem_data(volume_info, protocol, mask, static_maps=None):
     return DMRIProblemData(protocol, signal4d, mask, img_header, static_maps=static_maps)
 
 
-def load_dwi(volume_fname):
+def load_volume(volume_fname, ensure_4d=True):
     """Load the diffusion weighted image data from the given volume filename.
 
     This does not perform any data type changes, so the input may not be in float64. If you call this function
@@ -819,6 +818,7 @@ def load_dwi(volume_fname):
 
     Args:
         volume_fname (string): The filename of the volume to load.
+        ensure_4d (boolean): if True we ensure that the data matrix is in 4d.
 
     Returns:
         a tuple with (data, header) for the given file.
@@ -826,8 +826,9 @@ def load_dwi(volume_fname):
     info = nib.load(volume_fname)
     header = info.get_header()
     data = info.get_data()
-    if len(data.shape) < 4:
-        data = np.expand_dims(data, axis=3)
+    if ensure_4d:
+        if len(data.shape) < 4:
+            data = np.expand_dims(data, axis=3)
     return data, header
 
 
@@ -1208,7 +1209,7 @@ class NoiseStdCalculator(object):
             self._mask = None
 
         if isinstance(volume_info, six.string_types):
-            self._signal4d, self._img_header = load_dwi(volume_info)
+            self._signal4d, self._img_header = load_volume(volume_info)
         else:
             self._signal4d, self._img_header = volume_info
 
@@ -1242,7 +1243,7 @@ def apply_mask(volume, mask, inplace=True):
 
     def apply(volume, mask):
         if isinstance(volume, string_types):
-            volume = load_dwi(volume)[0]
+            volume = load_volume(volume)[0]
         mask = mask.reshape(mask.shape + (volume.ndim - mask.ndim) * (1,))
 
         if inplace:
@@ -1663,7 +1664,9 @@ def estimate_noise_std(user_noise_std, problem_data):
             calculator = calculator([problem_data.dwi_volume, problem_data.volume_header], problem_data.protocol)
             try:
                 noise_std = calculator.calculate()
-                break
+
+                if np.isfinite(noise_std):
+                    break
             except ValueError:
                 noise_std = 1.0
 
