@@ -19,7 +19,7 @@ class GUISingle(BasicShellApplication):
     entry_point_type = 'gui_scripts'
 
     def __init__(self):
-        mdt.initialize_user_settings(pass_if_exists=True)
+        mdt.init_user_settings(pass_if_exists=True)
 
     def _get_arg_parser(self):
         description = textwrap.dedent("""

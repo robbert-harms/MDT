@@ -543,7 +543,7 @@ def eigen_vectors_from_tensor(theta, phi, psi):
         convert_theta_phi_psi(theta, phi, psi)
 
 
-def initialize_user_settings(pass_if_exists=True, keep_config=True):
+def init_user_settings(pass_if_exists=True, keep_config=True):
     """Initializes the user settings folder using a skeleton.
 
     This will create all the necessary directories for adding components to MDT. It will also create a basic

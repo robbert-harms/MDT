@@ -22,7 +22,7 @@ class ListModels(BasicShellApplication):
         return parser
 
     def run(self, args):
-        mdt.initialize_user_settings(pass_if_exists=True)
+        mdt.init_user_settings(pass_if_exists=True)
 
         meta_info = mdt.get_models_meta_info()
         models = mdt.get_models_list()

@@ -1117,7 +1117,7 @@ def apply_mask_to_file(input_fname, mask, output_fname=None):
     write_image(output_fname, masked, image_info[1])
 
 
-def initialize_user_settings(pass_if_exists=True, keep_config=True):
+def init_user_settings(pass_if_exists=True, keep_config=True):
     """Initializes the user settings folder using a skeleton.
 
     This will create all the necessary directories for adding components to MDT. It will also create a basic
@@ -1133,8 +1133,8 @@ def initialize_user_settings(pass_if_exists=True, keep_config=True):
     Returns:
         the path the user settings skeleton was written to
     """
-    from mdt.utils import initialize_user_settings
-    return initialize_user_settings(pass_if_exists, keep_config)
+    from mdt.utils import init_user_settings
+    return init_user_settings(pass_if_exists, keep_config)
 
 
 @contextmanager

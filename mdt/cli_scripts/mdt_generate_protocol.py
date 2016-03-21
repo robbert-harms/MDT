@@ -17,7 +17,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class GenerateProtocol(BasicShellApplication):
 
     def __init__(self):
-        mdt.initialize_user_settings(pass_if_exists=True)
+        mdt.init_user_settings(pass_if_exists=True)
 
     def _get_arg_parser(self):
         description = textwrap.dedent("""

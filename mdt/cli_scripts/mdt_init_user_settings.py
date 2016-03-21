@@ -41,8 +41,8 @@ class InitUserSettings(BasicShellApplication):
         return parser
 
     def run(self, args):
-        mdt.initialize_user_settings(pass_if_exists=args.pass_if_exists,
-                                     keep_config=args.keep_config)
+        mdt.init_user_settings(pass_if_exists=args.pass_if_exists,
+                               keep_config=args.keep_config)
 
 
 if __name__ == '__main__':
