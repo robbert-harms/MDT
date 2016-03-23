@@ -107,6 +107,7 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
             # Flattening an eye(3) matrix gives the same result with F and C ordering, I nevertheless put it here
             # to emphasize that the gradient deviations matrix is in Fortran (column-major) order.
             grad_dev += np.eye(3).flatten(order='F')
+
             if self.problems_to_analyze is not None:
                 grad_dev = grad_dev[self.problems_to_analyze, ...]
 

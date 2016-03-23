@@ -1636,7 +1636,7 @@ def get_processing_strategy(processing_type, model_names=None):
     return ProcessingStrategiesLoader().load(strategy_name, **options)
 
 
-def estimate_noise_std(user_noise_std, problem_data):
+def estimate_noise_std(user_noise_std, problem_data, use_given_mask=True):
     """Estimate the noise standard deviation.
 
     Args:
@@ -1644,6 +1644,8 @@ def estimate_noise_std(user_noise_std, problem_data):
             if it is None we return 1.0. If it is auto we will try to estimate it using the estimators defined in the
             configuration.
         problem_data (DMRIProblemData): the problem data we can use to do the estimation
+        use_given_mask (boolean): if true we use the given mask for estimating the noise std
+            (if a brain mask is needed).
 
     Returns:
         float: the noise std for the data in problem data
@@ -1661,7 +1663,13 @@ def estimate_noise_std(user_noise_std, problem_data):
 
         for estimator in estimators:
             calculator = loader.get_class(estimator)
-            calculator = calculator([problem_data.dwi_volume, problem_data.volume_header], problem_data.protocol)
+
+            if use_given_mask:
+                calculator = calculator([problem_data.dwi_volume, problem_data.volume_header], problem_data.protocol,
+                                        mask=problem_data.mask)
+            else:
+                calculator = calculator([problem_data.dwi_volume, problem_data.volume_header], problem_data.protocol)
+
             try:
                 noise_std = calculator.calculate()
 

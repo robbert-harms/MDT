@@ -1,6 +1,4 @@
 import os
-import collections
-import six
 import yaml
 from pkg_resources import resource_stream
 
@@ -16,7 +14,7 @@ config = {}
 def load_builtin():
     """Load the config file from the skeleton in mdt/data/mdt.conf"""
     with resource_stream('mdt', 'data/mdt.conf') as f:
-        load_from_yaml(f.read())
+        return load_from_yaml(f.read())
 
 
 def load_user_home():
@@ -25,7 +23,8 @@ def load_user_home():
     config_file = os.path.join(get_config_dir(), 'mdt.conf')
     if os.path.isfile(config_file):
         with open(config_file) as f:
-            load_from_yaml(f.read())
+            return load_from_yaml(f.read())
+    raise ValueError('Config file could not be loaded.')
 
 
 def load_specific(file_name):
@@ -40,95 +39,25 @@ def load_specific(file_name):
         file_name (str): The name of the file to load.
     """
     with open(file_name) as f:
-        load_from_yaml(f.read())
+        return load_from_yaml(f.read())
 
 
 def load_from_yaml(yaml_str):
     """Can be called to load configuration options from a YAML string.
 
-    Please note that the last configuration loaded overwrites the values of the previously loaded config files.
+    Please note that the last configuration loaded is the one used.
 
     Args:
         yaml_str (str): The string containing the YAML config to parse.
     """
     d = yaml.load(yaml_str)
     if d is not None and isinstance(d, dict):
-        load_from_dict(d)
-
-
-def get_config_from_yaml(yaml_str):
-    """Returns a configuration dict from a YAML string.
-
-    This does not add the configuration options to the current configuration.
-
-    Args:
-        yaml_str (str): the string with the YAML config contents
-
-    Returns:
-        configuration dict which can be loaded using load_from_dict()
-    """
-    d = yaml.load(yaml_str)
-    if d is not None and isinstance(d, dict):
         return d
-    return {}
+    raise ValueError('No config dict found in YAML string.')
 
 
-def get_config_from_yaml_file(file_name):
-    """Returns a configuration dict from a YAML file.
-
-    This does not add the configuration options to the current configuration.
-
-    Args:
-        file_name (str): the path to the the YAML file.
-
-    Returns:
-        configuration dict which can be loaded using load_from_dict()
-    """
-    with open(file_name) as f:
-        return get_config_from_yaml(f.read())
-
-
-def load_from_dict(config_dict):
-    """Load configuration options from a dictionary.
-
-    Please note that the last configuration loaded overwrites the values of the previously loaded config files.
-
-    Args:
-        config_dict (dict): a dictionary with configuration options that will overwrite the current configuration.
-    """
-    complete_overwrite = {'optimization_settings': {'general': 'optimizers'}}
-
-    _update_dict_recursive(config, config_dict, complete_overwrite=complete_overwrite)
-
-
-def _update_dict_recursive(d, u, complete_overwrite=None):
-    """Updates in place
-
-    Args:
-        d (dict): the dictionary we want to update
-        u (dict): the dictionary with the new values
-        complete_overwrite (dict): a dictionary with items that follow the same
-            dictionary structure as the dict d, and contains hints about which items should be completely overwritten
-            by the new dictionary if encountered.
-    """
-    complete_overwrite = complete_overwrite or {}
-
-    for k, v in u.items():
-        if isinstance(complete_overwrite, six.string_types) and k == complete_overwrite:
-            d[k] = v
-        else:
-            if isinstance(complete_overwrite, six.string_types):
-                overwrite = {}
-            else:
-                overwrite = complete_overwrite.get(k, {})
-
-            if isinstance(v, collections.Mapping):
-                r = _update_dict_recursive(d.get(k, {}), v, overwrite)
-                d[k] = r
-            else:
-                d[k] = v
-    return d
-
-
-load_builtin()
-load_user_home()
+config = load_builtin()
+try:
+    config = load_user_home()
+except ValueError:
+    pass

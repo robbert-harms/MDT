@@ -15,7 +15,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.7.14'
+VERSION = '0.7.17'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')
@@ -1138,7 +1138,7 @@ def init_user_settings(pass_if_exists=True, keep_config=True):
 
 
 @contextmanager
-def config_context(config):
+def config_context(config, config_clear=()):
     """Creates a temporary configuration context with the given config.
 
     This will temporarily alter the given configuration keys to the given values. After the context is executed
@@ -1158,13 +1158,32 @@ def config_context(config):
         This loads the configuration from a YAML string, converts it to a dict using the function
         mdt.yaml_string_to_dict() and then uses that config dict as context for the optimization.
 
+    The config_clear list can be used to clear configuration items before those items are updated with
+    the new values. This is necessary since the new config dictionary can only add or update items and can not
+    remove them. This will effectively traverse the paths in the list of given paths and pop the given item from
+    the dictionary.
+
     Args:
         config (dict): the configuration as a dictionary
+        config_clear (list of list): the configuration items to clear before we update with the config options.
+            Example: [['layer_0', 'layer_1'], ['some_other', 'somewhere']] will clear two paths (remove them from the
+            config dict before adding the new values).
     """
     import copy
     import mdt.configuration
+    from mdt.utils import recursive_merge_dict
     old_config = copy.deepcopy(mdt.configuration.config)
-    configuration.load_from_dict(config)
+    new_config = mdt.configuration.config
+
+    def remove_from_dict(d, path):
+        for p in path[:-1]:
+            d = d[p]
+        d.pop(path[-1])
+
+    for config_path in config_clear:
+        remove_from_dict(new_config, config_path)
+
+    mdt.configuration.config = recursive_merge_dict(new_config, config, in_place=True)
     yield
     mdt.configuration.config = old_config
 

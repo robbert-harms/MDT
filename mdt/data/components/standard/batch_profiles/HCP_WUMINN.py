@@ -36,7 +36,7 @@ class HCP_WUMINN(SimpleBatchProfile):
 
     def __init__(self):
         super(HCP_WUMINN, self).__init__()
-        self.use_gradient_deviations = True
+        self.use_gradient_deviations = False
 
     def _get_subjects(self):
         dirs = sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._root_dir, '*'))])
