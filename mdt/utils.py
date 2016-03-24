@@ -1223,6 +1223,7 @@ class NoiseStdCalculator(object):
             ValueError: if we can not calculate the sigma using this calculator an exception is raised.
         """
 
+
 def apply_mask(volume, mask, inplace=True):
     """Apply a mask to the given input.
 
