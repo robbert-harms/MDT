@@ -1178,7 +1178,7 @@ def calculate_information_criterions(log_likelihoods, k, n):
         'BIC': -2 * log_likelihoods + k * np.log(n),
         'AIC': -2 * log_likelihoods + k * 2}
 
-    if n > k-1:
+    if n > (k + 1):
         criteria.update({'AICc': -2 * log_likelihoods + k * 2 + (2 * k * (k + 1))/(n - k - 1)})
 
     return criteria
