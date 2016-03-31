@@ -17,9 +17,82 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
+def create_parameters_cube(primary_parameter_index, randomize_parameter_indices, grid_size,
+                           default_values, lower_bounds, upper_bounds, dtype=np.float32):
+    """Create a simple 3d parameters cube.
+
+    On the first dimension we put a linearly spaced primary parameter and on the second dimension we randomly change
+    the other indicated parameters. The 3d dimension holds the parameter realizations for the other dimensions.
+
+    Args:
+        primary_parameter_index (int): the index of the primary parameter for the values on the first axis
+        randomize_parameter_indices (list of int): the indices of the parameter we sample randomly using a uniform
+            distribution on the half open interval between the [lower, upper) bounds. See np.random.uniform.
+        grid_size (tuple of int): the size of the generated grid, the first value refers to the first dimension, the
+            second to the second dimension.
+        default_values (list of float): the default values for each of the parameters in the model
+        lower_bounds (list of float): the lower bounds used for the generation of the grid
+        upper_bounds (list of float): the upper bounds used for the generation of the grid
+        dtype (dtype): the numpy data type for this grid
+
+    Returns:
+        ndarray: a three dimensional cube for the parameters
+    """
+    grid = permutate_parameters([primary_parameter_index], default_values, lower_bounds, upper_bounds, grid_size[0],
+                                dtype=dtype)
+    grid = np.reshape(grid, (grid.shape[0], 1, grid.shape[1]))
+    grid = np.repeat(grid, grid_size[1], axis=1)
+
+    for param_ind in randomize_parameter_indices:
+        grid[:, :, param_ind] = np.random.uniform(lower_bounds[param_ind], upper_bounds[param_ind], size=grid_size)
+
+    return grid
+
+
+def add_noise_realizations(signal_cube, nmr_noise_realizations, noise_snr, unweighted_signal_height):
+    """Add noise realizations to a signal cube.
+
+    A signal cube is a 3d matrix with on the first and second dimension changing parameters and on the last dimension
+    the signals per protocol line. This function adds a dimension to the matrix for the multiple noise realizations. The
+    added dimension will be the new third dimension on the matrix.
+
+    Args:
+        signal_cube (ndarray): the 3d matrix with the signals
+        nmr_noise_realizations (int): the number of noise realizations to use on the third axis
+        noise_snr (float): the desired SNR. The noise level is calculated by:
+            noise_level = unweighted_signal_height / SNR
+        unweighted_signal_height (float): the height of the unweighted signal used for the noise level calculation.
+
+    Returns:
+        ndarray: a 4d cube with on the newly added third dimension the noise realizations
+    """
+    signals = np.reshape(signal_cube, signal_cube.shape[0: 2] + (1, signal_cube.shape[2]))
+    signals = np.repeat(signals, nmr_noise_realizations, axis=2)
+    return make_rician_distributed(signals, unweighted_signal_height / noise_snr)
+
+
+def simulate_signals_param_cube(model_name, protocol, parameters_cube):
+    """Generate the signal for the given model for a generated parameters cube.
+
+    Args:
+        model_name (str): the name of the model we want to generate the values for
+        protocol (Protocol): the protocol object we use for generating the signals
+        parameters_cube (ndarray): the 3d matrix with the parameters for every problem instance
+
+    Returns:
+        signal estimates as a cube
+    """
+    parameters = np.reshape(parameters_cube, (-1, parameters_cube.shape[-1]))
+    simulated_signals = simulate_signals(model_name, protocol, parameters)
+    return np.reshape(simulated_signals, parameters_cube.shape[0:2] + (simulated_signals.shape[-1], ))
+
+
 def permutate_parameters(var_params_ind, default_values, lower_bounds, upper_bounds, grid_size,
-                         np_dtype=np.float32):
+                         dtype=np.float32):
     """Generate the combination of parameters for a simulation.
+
+    This is useful if you want to generate a list of different parameter combinations. You do not need to use
+    this if you want to simulate only one parameter.
 
     This generates for each of the parameters of interest a linearly indexed range of parameter values
     starting with the lower bounds and ending at the upper bound (both inclusive). The length of the list is determined
@@ -35,7 +108,7 @@ def permutate_parameters(var_params_ind, default_values, lower_bounds, upper_bou
         grid_size (int or list of int): the size of the grid. If a single int is given we assume a grid
             equal in all dimensions. If a list is given it should match the number of variable parameter indices
             and should contain a grid size for each parameter.
-        np_dtype (dtype): the data type of the result matrix
+        dtype (dtype): the data type of the result matrix
 
     Returns:
         ndarray: the matrix with all combinations of the parameters of interest and with all other parameters set to
@@ -44,7 +117,7 @@ def permutate_parameters(var_params_ind, default_values, lower_bounds, upper_bou
     if isinstance(grid_size, numbers.Number):
         grid_size = [int(grid_size)] * len(var_params_ind)
 
-    result = np.reshape(default_values, [len(lower_bounds), 1]).astype(np_dtype)
+    result = np.reshape(default_values, [len(lower_bounds), 1]).astype(dtype)
 
     repeat_mult = 1
     for linear_ind, params_ind in enumerate(var_params_ind):
@@ -59,6 +132,9 @@ def permutate_parameters(var_params_ind, default_values, lower_bounds, upper_bou
 
 def get_permuted_indices(nmr_var_params, grid_size):
     """Get for every parameter of interest the locations per parameter value.
+
+    This is useful if you want to generate a list of different parameter combinations. You do not need to use
+    this if you want to simulate only one parameter.
 
     Suppose you have three variable parameters and you generate all permutations using permutate_parameters(), then you
     might want to know for any given parameter and for any value of that parameter at which indices that parameter
@@ -88,10 +164,13 @@ def get_permuted_indices(nmr_var_params, grid_size):
 def simulate_signals(model_name, protocol, parameters):
     """Generate the signal for the given model for each of the parameters.
 
+    This function only accepts a 2d list of parameters. For a generated parameters cube use function
+    simulate_signals_param_cube.
+
     Args:
         model_name (str): the name of the model we want to generate the values for
         protocol (Protocol): the protocol object we use for generating the signals
-        parameters (ndarray): the matrix with the parameters for every problem instance
+        parameters (ndarray): the 2d matrix with the parameters for every problem instance
 
     Returns:
         signal estimates
@@ -109,12 +188,12 @@ def make_rician_distributed(signals, noise_level):
     """Make the given signal Rician distributed.
 
     To calculate the noise level divide the signal of the unweighted volumes by the SNR you want. For example,
-    for a unweighted signal b0=1e4 and a desired SNR of 20, you need an noise level of 1000/20 = 50.
+    for a unweighted signal b0=1e4 and a desired SNR of 20, you need an noise level of 1e4/20 = 500.
 
     Args:
         signals: the signals to make Rician distributed
         noise_level: the level of noise to add. The actual Rician stdev depends on the signal. See ricestat in
-            the mathworks library.
+            the mathworks library. The noise level can be calculated using b0/SNR.
 
     Returns:
         ndarray: Rician distributed signals.
@@ -127,7 +206,7 @@ def make_rician_distributed(signals, noise_level):
 def list_2d_to_4d(item_list):
     """Convert a 2d signal/parameter list to a 4d volume.
 
-    The only thing this does is to prepend to singleton volumes to the signal list to make it 4d.
+    This appends two singleton volumes to the signal list to make it 4d.
 
     Args:
          item_list (2d ndarray): the list with on the first dimension every problem and on the second
@@ -139,8 +218,8 @@ def list_2d_to_4d(item_list):
     return np.reshape(item_list, (1, 1) + item_list.shape)
 
 
-def volume4d_to_file(file_name, data):
-    """Save the 4d volume to the given file.
+def save_data_volume(file_name, data):
+    """Save the 3d/4d volume to the given file.
 
     Args:
         file_name (str): the output file name. If the directory does not exist we create one.
@@ -152,7 +231,7 @@ def volume4d_to_file(file_name, data):
     img.to_filename(file_name)
 
 
-def save_list_as_4d_volume(file_name, data):
+def save_2d_list_as_4d_volume(file_name, data):
     """Save the given 2d list with values as a 4d volume.
 
     This is a convenience function that calls list_2d_to_4d and volume4d_to_file after each other.
@@ -161,7 +240,7 @@ def save_list_as_4d_volume(file_name, data):
         file_name (str): the output file name. If the directory does not exist we create one.
         data (ndarray): the 2d array to save
     """
-    volume4d_to_file(file_name, list_2d_to_4d(data))
+    save_data_volume(file_name, list_2d_to_4d(data))
 
 
 def get_unweighted_volumes(signals, protocol):
