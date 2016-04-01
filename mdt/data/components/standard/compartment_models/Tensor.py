@@ -4,7 +4,6 @@ from mdt.components_loader import bind_function
 from mdt.models.compartments import CompartmentConfig
 from mdt.cl_routines.mapping.dti_measures import DTIMeasures
 from mdt.utils import eigen_vectors_from_tensor
-from mot import runtime_configuration
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -40,9 +39,7 @@ class Tensor(CompartmentConfig):
                 extra_maps.update({self.name + '.vec' + repr(ind) + '_' + repr(dimension):
                                    eigen_vectors[:, ind, dimension]})
 
-        dti_measures = DTIMeasures(runtime_configuration.runtime_config['cl_environments'],
-                                   runtime_configuration.runtime_config['load_balancer'])
-
+        dti_measures = DTIMeasures()
         fa, md = dti_measures.concat_and_calculate(eigen_values[:, 0], eigen_values[:, 1], eigen_values[:, 2])
 
         extra_maps.update({self.name + '.FA': fa,

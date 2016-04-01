@@ -15,7 +15,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.7.17'
+VERSION = '0.7.18'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')
@@ -1266,7 +1266,6 @@ def recalculate_ics(model, dwi_info, protocol, brain_mask, data_dir, sigma, outp
     from mdt.models.cascade import DMRICascadeModelInterface
     from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
     from mot.model_building.evaluation_models import GaussianEvaluationModel
-    from mot import runtime_configuration
 
     logger = logging.getLogger(__name__)
 
@@ -1292,8 +1291,7 @@ def recalculate_ics(model, dwi_info, protocol, brain_mask, data_dir, sigma, outp
 
     model.fix(sigma_param_name, sigma)
 
-    log_likelihood_calc = LogLikelihoodCalculator(runtime_configuration.runtime_config['cl_environments'],
-                                                  runtime_configuration.runtime_config['load_balancer'])
+    log_likelihood_calc = LogLikelihoodCalculator()
     log_likelihoods = log_likelihood_calc.calculate(
         model, results_maps, evaluation_model=GaussianEvaluationModel().set_noise_level_std(sigma, fix=True))
 

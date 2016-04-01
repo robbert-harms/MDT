@@ -6,10 +6,10 @@ from six import string_types
 from mdt import utils
 from mdt.protocols import load_protocol
 import nibabel as nib
-from mot import runtime_configuration
 from mot.cl_environments import CLEnvironmentFactory
 from mot.cl_routines.filters.median import MedianFilter
-from mot.load_balance_strategies import PreferGPU, PreferCPU
+from mot.load_balance_strategies import PreferCPU
+import mot.configuration
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-07-20"
@@ -94,9 +94,7 @@ def generate_simple_wm_mask(fa_fname, brain_mask_fname, out_fname, fa_threshold=
 
     mask = utils.load_brain_mask(brain_mask_fname)
 
-    median_filter = MedianFilter(median_radius,
-                                 runtime_configuration.runtime_config['cl_environments'],
-                                 runtime_configuration.runtime_config['load_balancer'])
+    median_filter = MedianFilter(median_radius)
     fa_data = median_filter.filter(fa_data, mask=mask, nmr_of_times=numpass)
 
     nib.Nifti1Image(fa_data, None, nib_container.get_header()).to_filename(out_fname)
@@ -161,8 +159,7 @@ def median_otsu(unweighted_volume, median_radius=4, numpass=4, dilate=1):
 
     logger = logging.getLogger(__name__)
     logger.info('We will use a single precision float type for the calculations.'.format())
-    for env in runtime_configuration.runtime_config['load_balancer'].\
-            get_used_cl_environments(runtime_configuration.runtime_config['cl_environments']):
+    for env in mot.configuration.get_load_balancer().get_used_cl_environments(mot.configuration.get_cl_environments()):
         logger.info('Using device \'{}\'.'.format(str(env)))
 
     m = MedianFilter(median_radius,

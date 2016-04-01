@@ -5,7 +5,6 @@ from mdt import utils
 from mdt.components_loader import ComponentConfig, ComponentBuilder
 from mdt.models.base import DMRIOptimizable
 from mdt.models.parsers.SingleModelExpressionParser import parse
-from mot import runtime_configuration
 from mot.adapters import SimpleDataAdapter
 from mot.base import CLDataType
 from mot.cl_functions import Weight
@@ -228,8 +227,7 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
         return self.gradient_deviations is not None and 'g' in list(self.get_problems_protocol_data().keys())
 
     def _add_finalizing_result_maps(self, results_dict):
-        log_likelihood_calc = LogLikelihoodCalculator(runtime_configuration.runtime_config['cl_environments'],
-                                                      runtime_configuration.runtime_config['load_balancer'])
+        log_likelihood_calc = LogLikelihoodCalculator()
         log_likelihoods = log_likelihood_calc.calculate(self, results_dict)
 
         k = self.get_nmr_estimable_parameters()

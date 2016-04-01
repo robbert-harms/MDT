@@ -19,9 +19,9 @@ from mdt.protocols import write_protocol
 from mdt.utils import create_roi, load_problem_data, ProtocolProblemError, MetaOptimizerBuilder, get_cl_devices, \
     get_model_config, apply_model_protocol_options, model_output_exists, split_image_path, get_processing_strategy, \
     estimate_noise_std, FittingProcessingWorker, per_model_logging_context, recursive_merge_dict
-from mot import runtime_configuration
 from mot.load_balance_strategies import EvenDistribution
-from mot.runtime_configuration import runtime_config_context
+import mot.configuration
+from mot.configuration import RuntimeConfigurationAction
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-05-01"
@@ -81,7 +81,7 @@ class BatchFitting(object):
         self._logger.info('Subjects found: {0}'.format(self._batch_profile.get_subjects_count()))
 
         if self._cl_device_ind is not None:
-            runtime_configuration.runtime_config['cl_environments'] = [get_cl_devices()[self._cl_device_ind]]
+            mot.configuration.set_cl_environments([get_cl_devices()[self._cl_device_ind]])
 
     def get_all_subjects_info(self):
         """Get a dictionary with the info of all the found subjects.
@@ -247,7 +247,8 @@ class ModelFit(object):
             self._cl_envs = [all_devices[ind] for ind in self._cl_device_indices]
             self._load_balancer = EvenDistribution()
 
-        with runtime_config_context(cl_environments=self._cl_envs, load_balancer=self._load_balancer):
+        with mot.configuration.config_context(RuntimeConfigurationAction(cl_environments=self._cl_envs,
+                                                                         load_balancer=self._load_balancer)):
             self._noise_std = estimate_noise_std(noise_std, self._problem_data)
 
         if not model.is_protocol_sufficient(self._problem_data.protocol):
@@ -301,7 +302,8 @@ class ModelFit(object):
         return self._run_single_model(model, recalculate, meta_optimizer_config, self._model_names_list)
 
     def _run_single_model(self, model, recalculate, meta_optimizer_config, model_names):
-        with runtime_config_context(cl_environments=self._cl_envs, load_balancer=self._load_balancer):
+        with mot.configuration.config_context(RuntimeConfigurationAction(cl_environments=self._cl_envs,
+                                                                         load_balancer=self._load_balancer)):
             with per_model_logging_context(os.path.join(self._output_folder, model.name)):
                 self._logger.info('Using MDT version {}'.format(__version__))
                 self._logger.info('Preparing for model {0}'.format(model.name))

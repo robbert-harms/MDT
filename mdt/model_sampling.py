@@ -16,10 +16,10 @@ from mdt.utils import create_roi, configure_per_model_logging, \
     ProtocolProblemError, model_output_exists, estimate_noise_std, get_cl_devices, get_model_config, \
     apply_model_protocol_options, get_processing_strategy, per_model_logging_context, SamplingProcessingWorker, \
     memory_load_samples, recursive_merge_dict
-from mot import runtime_configuration
 from mot.cl_routines.sampling.metropolis_hastings import MetropolisHastings
+from mot.configuration import config_context
 from mot.load_balance_strategies import EvenDistribution
-from mot.runtime_configuration import runtime_config_context
+from mot.configuration import RuntimeConfigurationAction
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-05-01"
@@ -91,8 +91,7 @@ class ModelSampling(object):
         self._initialize_using = initialize_using
 
         if self._sampler is None:
-            self._sampler = MetropolisHastings(runtime_configuration.runtime_config['cl_environments'],
-                                               runtime_configuration.runtime_config['load_balancer'])
+            self._sampler = MetropolisHastings()
 
         if self._cl_device_indices is not None and not isinstance(self._cl_device_indices, collections.Iterable):
             self._cl_device_indices = [self._cl_device_indices]
@@ -119,7 +118,7 @@ class ModelSampling(object):
             cl_envs = [all_devices[ind] for ind in self._cl_device_indices]
             load_balancer = EvenDistribution()
 
-        with runtime_config_context(cl_environments=cl_envs, load_balancer=load_balancer):
+        with config_context(RuntimeConfigurationAction(cl_environments=cl_envs, load_balancer=load_balancer)):
             with per_model_logging_context(os.path.join(self._output_folder, self._model.name)):
                 self._logger.info('Using MDT version {}'.format(__version__))
                 self._logger.info('Preparing for model {0}'.format(self._model.name))

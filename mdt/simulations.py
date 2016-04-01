@@ -2,14 +2,10 @@ import numbers
 import os
 import nibabel as nib
 import numpy as np
-import six
-
 import mdt
-from mot import runtime_configuration
+from mdt.components_loader import NoiseSTDCalculatorsLoader
 from mot.base import SimpleProblemData
 from mot.cl_routines.mapping.evaluate_model import EvaluateModelPerProtocol
-from mot.cl_routines.optimizing.powell import Powell
-from mot.runtime_configuration import runtime_config
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-03-17"
@@ -49,7 +45,7 @@ def create_parameters_cube(primary_parameter_index, randomize_parameter_indices,
     return grid
 
 
-def add_noise_realizations(signal_cube, nmr_noise_realizations, noise_snr, unweighted_signal_height):
+def add_noise_realizations(signal_cube, nmr_noise_realizations, noise_sigma):
     """Add noise realizations to a signal cube.
 
     A signal cube is a 3d matrix with on the first and second dimension changing parameters and on the last dimension
@@ -59,16 +55,15 @@ def add_noise_realizations(signal_cube, nmr_noise_realizations, noise_snr, unwei
     Args:
         signal_cube (ndarray): the 3d matrix with the signals
         nmr_noise_realizations (int): the number of noise realizations to use on the third axis
-        noise_snr (float): the desired SNR. The noise level is calculated by:
+        noise_sigma (float): the noise level, given by:
             noise_level = unweighted_signal_height / SNR
-        unweighted_signal_height (float): the height of the unweighted signal used for the noise level calculation.
 
     Returns:
         ndarray: a 4d cube with on the newly added third dimension the noise realizations
     """
     signals = np.reshape(signal_cube, signal_cube.shape[0: 2] + (1, signal_cube.shape[2]))
     signals = np.repeat(signals, nmr_noise_realizations, axis=2)
-    return make_rician_distributed(signals, unweighted_signal_height / noise_snr)
+    return make_rician_distributed(signals, noise_sigma)
 
 
 def simulate_signals_param_cube(model_name, protocol, parameters_cube):
@@ -180,7 +175,7 @@ def simulate_signals(model_name, protocol, parameters):
     model = mdt.get_model(model_name)
     model.set_problem_data(problem_data)
 
-    signal_evaluate = EvaluateModelPerProtocol(**runtime_configuration.runtime_config)
+    signal_evaluate = EvaluateModelPerProtocol()
     return signal_evaluate.calculate(model, parameters)
 
 
@@ -261,7 +256,7 @@ def get_unweighted_volumes(signals, protocol):
     return unweighted_signals, unweighted_protocol
 
 
-def estimate_noise_std(simulated_noisy_signals, protocol):
+def estimate_noise_std(simulated_noisy_signals, protocol, noise_estimator_name='AllUnweightedVolumes'):
     """Estimate the noise on the noisy simulated dataset.
 
     This routine tries to estimate the noise level of the added noise. It first fits an S0 model to the data with
@@ -271,32 +266,15 @@ def estimate_noise_std(simulated_noisy_signals, protocol):
     Args:
         simulated_noisy_signals (ndarray): the list with per problem the noisy simulated signal
         protocol (Protocol): the protocol object
+        noise_estimator_name (str): the name of the noise estimator to load
 
     Returns:
         float: the noise standard deviation
     """
-    if isinstance(protocol, six.string_types):
-        protocol = mdt.load_protocol(protocol)
+    mask = np.ones(simulated_noisy_signals.shape[0:3])
 
-    optimizer = Powell(cl_environments=runtime_config['cl_environments'],
-                       load_balancer=runtime_config['load_balancer'],
-                       patience=2)
+    loader = NoiseSTDCalculatorsLoader()
+    cls = loader.get_class(noise_estimator_name)
+    calculator = cls(simulated_noisy_signals, protocol, mask=mask)
 
-    unweighted_signals, unweighted_protocol = get_unweighted_volumes(simulated_noisy_signals, protocol)
-    problem_data = SimpleProblemData(unweighted_protocol, unweighted_signals)
-    problem_data.protocol = unweighted_protocol
-
-    s0_model = mdt.get_model('S0')
-    s0_model.set_problem_data(problem_data)
-    s0_model.evaluation_model.set_noise_level_std(1, fix=True)
-
-    s0_estimate = optimizer.minimize(s0_model, full_output=False)['S0.s0']
-    s0_estimate = np.reshape(s0_estimate, s0_estimate.shape + (1,))
-
-    baseline_images = unweighted_signals - s0_estimate
-
-    sum_of_squares = np.sum(np.power(baseline_images, 2), axis=1)
-    mean_squares = sum_of_squares / baseline_images.shape[0]
-
-    sigmas = np.sqrt(mean_squares / 2)
-    return np.mean(sigmas)
+    return calculator.calculate()

@@ -27,7 +27,6 @@ from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
 from mdt.data_loaders.protocol import autodetect_protocol_loader
 from mdt.data_loaders.static_maps import autodetect_static_maps_loader
 from mdt.log_handlers import ModelOutputLogHandler
-from mot import runtime_configuration
 from mot.base import AbstractProblemData
 from mot.cl_environments import CLEnvironmentFactory
 from mot.cl_routines.optimizing.meta_optimizer import MetaOptimizer
@@ -538,9 +537,7 @@ def eigen_vectors_from_tensor(theta, phi, psi):
 
         The resulting eigenvectors are the same as those from the Tensor.
     """
-    return CalculateEigenvectors(runtime_configuration.runtime_config['cl_environments'],
-                                 runtime_configuration.runtime_config['load_balancer']).\
-        convert_theta_phi_psi(theta, phi, psi)
+    return CalculateEigenvectors().convert_theta_phi_psi(theta, phi, psi)
 
 
 def init_user_settings(pass_if_exists=True, keep_config=True):
@@ -810,22 +807,20 @@ def load_problem_data(volume_info, protocol, mask, static_maps=None):
     return DMRIProblemData(protocol, signal4d, mask, img_header, static_maps=static_maps)
 
 
-def load_volume(volume_fname, ensure_4d=True):
+def load_volume(volume_fname, ensure_4d=True, dtype=np.float64):
     """Load the diffusion weighted image data from the given volume filename.
-
-    This does not perform any data type changes, so the input may not be in float64. If you call this function
-    to satisfy load_problem_data() then this is not a problem.
 
     Args:
         volume_fname (string): The filename of the volume to load.
         ensure_4d (boolean): if True we ensure that the data matrix is in 4d.
+        dtype (dtype): the numpy datatype for the loaded images
 
     Returns:
         a tuple with (data, header) for the given file.
     """
     info = nib.load(volume_fname)
     header = info.get_header()
-    data = info.get_data()
+    data = info.get_data().astype(dtype)
     if ensure_4d:
         if len(data.shape) < 4:
             data = np.expand_dims(data, axis=3)
@@ -1184,22 +1179,22 @@ def calculate_information_criterions(log_likelihoods, k, n):
     return criteria
 
 
-class NoiseStdCalculator(object):
+class NoiseStdEstimator(object):
 
-    def __init__(self, volume_info, protocol, mask=None):
+    def __init__(self, volume, protocol, mask=None):
         """Calculator for the standard deviation of the error.
 
         This is usually called sigma named after the use of this value in the Gaussian noise model.
 
         Args:
-            volume_info (string or tuple): Either an (ndarray, img_header) tuple or the
-                full path to the volume (4d signal data).
+            volume (ndarray or string): the volume for which to calculate the noise, can be a string with the file
+                to load.
             protocol (Protocol or string): A protocol object with the right protocol for the given data,
                 or a string object with a filename to the given file.
             mask (string): A full path to a mask file that can optionally be used.
                 If None given, we will create one if necessary.
         """
-        self._volume_info = volume_info
+        self._volume = volume
         self._protocol = autodetect_protocol_loader(protocol).get_protocol()
         self._logger = logging.getLogger(__name__)
 
@@ -1208,10 +1203,10 @@ class NoiseStdCalculator(object):
         else:
             self._mask = None
 
-        if isinstance(volume_info, six.string_types):
-            self._signal4d, self._img_header = load_volume(volume_info)
+        if isinstance(self._volume, six.string_types):
+            self._signal4d = load_volume(self._volume)[0]
         else:
-            self._signal4d, self._img_header = volume_info
+            self._signal4d = self._volume
 
     def calculate(self, **kwargs):
         """Calculate the sigma used in the evaluation models for the multi-compartment models.
@@ -1222,6 +1217,13 @@ class NoiseStdCalculator(object):
         Raises:
             ValueError: if we can not calculate the sigma using this calculator an exception is raised.
         """
+
+
+class NoiseStdEstimationNotPossible(Exception):
+    """An exception that can be raised by any NoiseStdEstimator.
+
+    This indicates that the noise std can not be calculated by the exception raising estimation routine.
+    """
 
 
 def apply_mask(volume, mask, inplace=True):
@@ -1665,18 +1667,17 @@ def estimate_noise_std(user_noise_std, problem_data, use_given_mask=True):
         for estimator in estimators:
             calculator = loader.get_class(estimator)
 
+            mask = None
             if use_given_mask:
-                calculator = calculator([problem_data.dwi_volume, problem_data.volume_header], problem_data.protocol,
-                                        mask=problem_data.mask)
-            else:
-                calculator = calculator([problem_data.dwi_volume, problem_data.volume_header], problem_data.protocol)
+                mask = problem_data.mask
 
+            calculator = calculator(problem_data.dwi_volume, problem_data.protocol, mask=mask)
             try:
                 noise_std = calculator.calculate()
 
                 if np.isfinite(noise_std):
                     break
-            except ValueError:
+            except NoiseStdEstimationNotPossible:
                 noise_std = 1.0
 
         logger.info('Finished estimating the noise std, found {}.'.format(noise_std))

@@ -5,9 +5,10 @@ import logging
 import os
 import mdt
 from argcomplete.completers import FilesCompleter
+
+import mot.configuration
 from mdt.shell_utils import BasicShellApplication
 from mot import cl_environments
-from mot import runtime_configuration
 from mot.load_balance_strategies import EvenDistribution
 import textwrap
 
@@ -79,11 +80,11 @@ class GenerateMask(BasicShellApplication):
 
         if args.cl_device_ind:
             if isinstance(args.cl_device_ind, int):
-                runtime_configuration.runtime_config['cl_environments'] = [self.available_devices[args.cl_device_ind]]
+                mot.configuration.set_cl_environments([self.available_devices[args.cl_device_ind]])
             else:
-                runtime_configuration.runtime_config['cl_environments'] = [self.available_devices[ind]
-                                                                           for ind in args.cl_device_ind]
-            runtime_configuration.runtime_config['load_balancer'] = EvenDistribution()
+                mot.configuration.set_cl_environments([self.available_devices[ind] for ind in args.cl_device_ind])
+
+            mot.configuration.set_load_balancer(EvenDistribution())
 
         mdt.create_median_otsu_brain_mask(os.path.realpath(args.dwi), os.path.realpath(args.protocol),
                                           output_name, median_radius=args.median_radius,
