@@ -16,9 +16,7 @@ class AverageOfAirROI(NoiseStdEstimator):
         and the middle slice in the last dimension to draw a ROI with the specified roi size.
 
         Next, it will concatenate all the values of all the voxels and gradient directions and
-        calculate the dot product of this vector to get the sum of squares.
-        This will be divided by the length of the array to end up with a value for E(S^2).
-        This follows the procedure in Camino in the file /src/apps/DataStats.java (Camino 2014)
+        calculate the mean of the squares E(S^2).
 
         Finally we follow the procedure on the Camino website:
         (http://cmic.cs.ucl.ac.uk/camino/index.php?n=Man.Datastats)
@@ -26,8 +24,6 @@ class AverageOfAirROI(NoiseStdEstimator):
             An estimate of the noise level sigma (standard deviation of each component of the complex noise on
             the signal) is sqrt(E(S^2)/2) from an ROI entirely in background.
         "
-
-        If the volume is zero filled we will raise an exception.
 
         Args:
             roi_size (int): the size of the ROI's in all dimensions.

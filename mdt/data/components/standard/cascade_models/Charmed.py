@@ -15,7 +15,8 @@ class CharmedR1(CascadeConfig):
     inits = {'Charmed_r1': [('CharmedRestricted0.theta', 'Stick.theta'),
                             ('CharmedRestricted0.phi', 'Stick.phi'),
                             ('Tensor.theta', 'Stick.theta'),
-                            ('Tensor.phi', 'Stick.phi')]}
+                            ('Tensor.phi', 'Stick.phi'),
+                            ('w_res0.w', 'w_stick.w')]}
 
 
 class CharmedR1S0(CascadeConfig):
@@ -33,7 +34,8 @@ class CharmedR1Fixed(CascadeConfig):
     models = ('BallStick (Cascade)',
               'Charmed_r1')
     inits = {'Charmed_r1': [('Tensor.theta', 'Stick.theta'),
-                            ('Tensor.phi', 'Stick.phi')]}
+                            ('Tensor.phi', 'Stick.phi'),
+                            ('w_res0.w', 'w_stick.w')]}
     fixes = {'Charmed_r1': [('CharmedRestricted0.theta', 'Stick.theta'),
                             ('CharmedRestricted0.phi', 'Stick.phi')]}
 

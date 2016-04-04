@@ -18,16 +18,18 @@ class ApplyMask(BasicShellApplication):
 
     def _get_arg_parser(self):
         description = textwrap.dedent("""
-            Multiply a given volume (or list of volumes) with a mask.
+            Mask the background using the given mask.
 
-            Please note that this changes the input files.
+            This function multiplies a given volume (or list of volumes) with a binary mask.
+
+            Please note that this changes the input files (changes are in-place).
         """)
         description += mdt.shell_utils.get_citation_message()
 
         epilog = textwrap.dedent("""
             Examples of use:
-                mdt-apply-mask data.nii.gz roi_mask_0_50.nii.gz
-                mdt-apply-mask *.nii.gz my_mask.nii.gz
+                mdt-apply-mask data.nii.gz -m roi_mask_0_50.nii.gz
+                mdt-apply-mask *.nii.gz -m my_mask.nii.gz
         """)
 
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
@@ -36,7 +38,7 @@ class ApplyMask(BasicShellApplication):
         parser.add_argument('input_files', metavar='input_files', nargs="+", type=str,
                             help="The input images to use")
 
-        parser.add_argument('-m', '--mask',
+        parser.add_argument('-m', '--mask', required=True,
                             action=mdt.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
                             help='the (brain) mask to use').completer = FilesCompleter(['nii', 'gz', 'hdr', 'img'],
                                                                                        directories=False)
