@@ -24,34 +24,25 @@ exec(compile(version_file_contents, "mdt/__init__.py", 'exec'), ver_dic)
 
 
 def load_entry_points():
-    entry_points = {}
+    entry_points = {'console_scripts': []}
     for file in glob.glob('mdt/cli_scripts/*.py'):
         module_name = os.path.splitext(os.path.basename(file))[0]
         command_name = module_name.replace('_', '-')
 
-        def get_command_class():
+        def get_command_class_name():
             with open(file) as f:
-                info = {}
-                exec(compile(f.read(), "mdt/cli_scripts/{}.py".format(module_name), 'exec'), info)
+                match = re.search(r'class (\w*)\(', f.read())
+                if match:
+                    return match.group(1)
+                return None
 
-                for key, value in info.items():
-                    if inspect.isclass(value):
-                        for base in value.__bases__:
-                            if base.__name__ == 'BasicShellApplication':
-                                return value
-            return None
+        command_class_name = get_command_class_name()
 
-        command_class = get_command_class()
-
-        if command_class is not None:
-            class_name = command_class.__name__
+        if command_class_name is not None:
             script = '{command_name} = mdt.cli_scripts.{module_name}:{class_name}.console_script'.format(
-                command_name=command_name, module_name=module_name, class_name=class_name)
+                command_name=command_name, module_name=module_name, class_name=command_class_name)
+            entry_points['console_scripts'].append(script)
 
-            if not command_class.entry_point_type in entry_points:
-                entry_points[command_class.entry_point_type] = []
-
-            entry_points[command_class.entry_point_type].append(script)
     return entry_points
 
 

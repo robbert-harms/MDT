@@ -25,12 +25,6 @@ def get_argparse_extension_checker(choices):
 
 class BasicShellApplication(object):
 
-    """The entry point type.
-
-    This defines in which category in the entry_points dict of the setup.py this script will go.
-    """
-    entry_point_type = 'console_scripts'
-
     @classmethod
     def console_script(cls):
         """Method used to start the command when launched from a distutils console script."""

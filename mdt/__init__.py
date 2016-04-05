@@ -15,7 +15,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.7.19'
+VERSION = '0.7.20'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')
@@ -1406,9 +1406,13 @@ def build_optimizer(optimizer_info):
     return MetaOptimizerBuilder(optimizer_info).construct()
 
 
-from mdt import configuration
 try:
-    conf = configuration.config['logging']['info_dict']
-    logging_config.dictConfig(configuration.config['logging']['info_dict'])
-except ValueError:
-    print('Logging disabled')
+    from mdt import configuration
+    try:
+        conf = configuration.config['logging']['info_dict']
+        logging_config.dictConfig(configuration.config['logging']['info_dict'])
+    except ValueError:
+        print('Logging disabled')
+except ImportError:
+    # We are probably importing this file in the setup.py for installation.
+    pass
