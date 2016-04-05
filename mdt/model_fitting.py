@@ -153,7 +153,7 @@ class _BatchFitRunner(object):
         if gradient_deviations:
             gradient_deviations = nib.load(gradient_deviations).get_data()
 
-        noise_std = estimate_noise_std(subject_info.get_noise_std(), problem_data)
+        noise_std = self._get_noise_std(subject_info.get_noise_std(), problem_data)
 
         start_time = timeit.default_timer()
         for model in self._models_to_fit:
@@ -177,6 +177,15 @@ class _BatchFitRunner(object):
                 logger.info('Done fitting model {0} on subject {1}'.format(model, subject_info.subject_id))
         logger.info('Fitted all models on subject {0} in time {1} (h:m:s)'.format(
             subject_info.subject_id, time.strftime('%H:%M:%S', time.gmtime(timeit.default_timer() - start_time))))
+
+    def _get_noise_std(self, noise_std, problem_data):
+        if noise_std == 'auto':
+            logger = logging.getLogger(__name__)
+            logger.info('The noise std was set to \'auto\', we will estimate one.')
+            return estimate_noise_std(problem_data)
+        elif noise_std is None:
+            noise_std = 1.0
+        return noise_std
 
 
 class ModelFit(object):
@@ -249,7 +258,7 @@ class ModelFit(object):
 
         with mot.configuration.config_context(RuntimeConfigurationAction(cl_environments=self._cl_envs,
                                                                          load_balancer=self._load_balancer)):
-            self._noise_std = estimate_noise_std(noise_std, self._problem_data)
+            self._noise_std = self._get_noise_std(noise_std)
 
         if not model.is_protocol_sufficient(self._problem_data.protocol):
             raise ProtocolProblemError(
@@ -331,6 +340,14 @@ class ModelFit(object):
                 results = fitter.run()
 
         return results
+
+    def _get_noise_std(self, noise_std):
+        if noise_std == 'auto':
+            self._logger.info('The noise std was set to \'auto\', we will estimate one.')
+            return estimate_noise_std(self._problem_data)
+        elif noise_std is None:
+            noise_std = 1.0
+        return noise_std
 
 
 class SingleModelFit(object):

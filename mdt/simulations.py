@@ -277,4 +277,4 @@ def estimate_noise_std(simulated_noisy_signals, protocol, noise_estimator_name='
     cls = loader.get_class(noise_estimator_name)
     calculator = cls(simulated_noisy_signals, protocol, mask=mask)
 
-    return calculator.calculate()
+    return calculator.estimate()

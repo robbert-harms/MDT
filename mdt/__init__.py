@@ -15,7 +15,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.7.18'
+VERSION = '0.7.19'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')
@@ -240,6 +240,24 @@ def run_function_on_batch_fit_output(data_folder, func, batch_profile=None, subj
     from mdt.batch_utils import run_function_on_batch_fit_output
     return run_function_on_batch_fit_output(data_folder, func, batch_profile=batch_profile,
                                             subjects_selection=subjects_selection)
+
+
+def estimate_noise_std(problem_data, estimation_cls_name=None):
+    """Estimate the noise standard deviation.
+
+    Args:
+        problem_data (DMRIProblemData): the problem data we can use to do the estimation
+        estimation_cls_name (str): the name of the estimation class to load. If none given we try each defined in the
+            current config.
+
+    Returns:
+        float: the noise std for the data in problem data
+
+    Raises:
+        NoiseStdEstimationNotPossible: if the noise could not be estimated
+    """
+    from mdt.utils import estimate_noise_std
+    return estimate_noise_std(problem_data, estimation_cls_name=estimation_cls_name)
 
 
 def get_cl_devices():

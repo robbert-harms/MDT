@@ -1179,12 +1179,10 @@ def calculate_information_criterions(log_likelihoods, k, n):
     return criteria
 
 
-class NoiseStdEstimator(object):
+class ComplexNoiseStdEstimator(object):
 
     def __init__(self, volume, protocol, mask=None):
-        """Calculator for the standard deviation of the error.
-
-        This is usually called sigma named after the use of this value in the Gaussian noise model.
+        """Calculator for the standard deviation of the Gaussian error in the complex signal images.
 
         Args:
             volume (ndarray or string): the volume for which to calculate the noise, can be a string with the file
@@ -1208,19 +1206,19 @@ class NoiseStdEstimator(object):
         else:
             self._signal4d = self._volume
 
-    def calculate(self, **kwargs):
-        """Calculate the sigma used in the evaluation models for the multi-compartment models.
+    def estimate(self, **kwargs):
+        """Perform the actual estimation defined in the implementing class.
 
         Returns:
             float: single value representing the sigma for the given volume
 
         Raises:
-            ValueError: if we can not calculate the sigma using this calculator an exception is raised.
+            NoiseStdEstimationNotPossible: if we can not estimate the sigma using this estimator
         """
 
 
 class NoiseStdEstimationNotPossible(Exception):
-    """An exception that can be raised by any NoiseStdEstimator.
+    """An exception that can be raised by any ComplexNoiseStdEstimator.
 
     This indicates that the noise std can not be calculated by the exception raising estimation routine.
     """
@@ -1639,52 +1637,44 @@ def get_processing_strategy(processing_type, model_names=None):
     return ProcessingStrategiesLoader().load(strategy_name, **options)
 
 
-def estimate_noise_std(user_noise_std, problem_data, use_given_mask=True):
+def estimate_noise_std(problem_data, estimation_cls_name=None):
     """Estimate the noise standard deviation.
 
     Args:
-        user_noise_std (float, None or 'auto'): If the given noise std is already a number we return it directly. Else,
-            if it is None we return 1.0. If it is auto we will try to estimate it using the estimators defined in the
-            configuration.
         problem_data (DMRIProblemData): the problem data we can use to do the estimation
-        use_given_mask (boolean): if true we use the given mask for estimating the noise std
-            (if a brain mask is needed).
+        estimation_cls_name (str): the name of the estimation class to load. If none given we try each defined in the
+            current config.
 
     Returns:
         float: the noise std for the data in problem data
+
+    Raises:
+        NoiseStdEstimationNotPossible: if the noise could not be estimated
     """
-    logger = logging.getLogger(__name__)
+    loader = NoiseSTDCalculatorsLoader()
 
-    noise_std = user_noise_std
-
-    if user_noise_std == 'auto':
-        logger.info('The noise std was set to \'auto\', we will now try to estimate one.')
-
-        loader = NoiseSTDCalculatorsLoader()
-
+    if estimation_cls_name:
+        estimators = [estimation_cls_name]
+    else:
         estimators = configuration.config['noise_std_estimating']['general']['estimators']
 
-        for estimator in estimators:
-            calculator = loader.get_class(estimator)
+    for estimator in estimators:
+        calculator = loader.get_class(estimator)
+        calculator = calculator(problem_data.dwi_volume, problem_data.protocol, mask=problem_data.mask)
 
-            mask = None
-            if use_given_mask:
-                mask = problem_data.mask
-
-            calculator = calculator(problem_data.dwi_volume, problem_data.protocol, mask=mask)
+        if len(estimators) == 1:
+            noise_std = calculator.estimate()
+            if np.isfinite(noise_std):
+                return noise_std
+        else:
             try:
-                noise_std = calculator.calculate()
-
+                noise_std = calculator.estimate()
                 if np.isfinite(noise_std):
-                    break
+                    return noise_std
             except NoiseStdEstimationNotPossible:
-                noise_std = 1.0
+                pass
 
-        logger.info('Finished estimating the noise std, found {}.'.format(noise_std))
-    elif user_noise_std is None:
-        noise_std = 1.0
-
-    return noise_std
+    raise NoiseStdEstimationNotPossible('Estimating the noise was not possible.')
 
 
 class AutoDict(defaultdict):

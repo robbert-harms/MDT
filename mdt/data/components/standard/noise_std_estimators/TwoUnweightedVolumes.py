@@ -1,6 +1,6 @@
 import numpy as np
 from mdt import create_roi, create_median_otsu_brain_mask
-from mdt.utils import NoiseStdEstimator, NoiseStdEstimationNotPossible
+from mdt.utils import ComplexNoiseStdEstimator, NoiseStdEstimationNotPossible
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-11-20"
@@ -8,9 +8,9 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class TwoUnweightedVolumes(NoiseStdEstimator):
+class TwoUnweightedVolumes(ComplexNoiseStdEstimator):
 
-    def calculate(self, **kwargs):
+    def estimate(self, **kwargs):
         """Calculate the standard deviation of the error using the first two unweighted volumes/
 
         This subtracts the values of the first two unweighted volumes from each other, calculates the std over
