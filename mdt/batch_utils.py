@@ -103,7 +103,9 @@ class SimpleBatchProfile(BatchProfile):
                               'Tensor (Cascade)',
                               'Noddi (Cascade)',
                               'BallStickStickStick (Cascade)',
-                              'Charmed (Cascade|fixed)')
+                              'Charmed_r1 (Cascade)'
+                              'Charmed_r2 (Cascade)'
+                              'Charmed (Cascade)')
 
     @property
     def output_base_dir(self):
