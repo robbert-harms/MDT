@@ -103,8 +103,8 @@ class SimpleBatchProfile(BatchProfile):
                               'Tensor (Cascade)',
                               'Noddi (Cascade)',
                               'BallStickStickStick (Cascade)',
-                              'Charmed_r1 (Cascade)'
-                              'Charmed_r2 (Cascade)'
+                              'Charmed_r1 (Cascade)',
+                              'Charmed_r2 (Cascade)',
                               'Charmed (Cascade)')
 
     @property
