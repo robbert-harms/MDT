@@ -266,7 +266,8 @@ class MapsVisualizer(object):
             self._set_colorbar_axis_ticks(map_name, cbar)
             cbar.formatter.set_powerlimits((-3, 4))
             cbar.update_ticks()
-            cbar.ax.get_yticklabels()[-1].set_verticalalignment('top')
+            if cbar.ax.get_yticklabels():
+                cbar.ax.get_yticklabels()[-1].set_verticalalignment('top')
             self._colorbar_subplots.update({map_name: cbar})
 
             if self.font_size:
