@@ -11,7 +11,7 @@ class S0TM(DMRISingleModelConfig):
     name = 'S0-TM'
     description = 'Model for the Mixing time.'
     model_expression = 'S0 * ExpT1DecTM'
-    #upper_bounds = {'T1': 0.5}
+    #upper_bounds = {'T1.T1': 0.5}
 
 
 class S0T2(DMRISingleModelConfig):

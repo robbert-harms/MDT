@@ -50,6 +50,18 @@ class BallStickExVivo(BallStick):
              'Stick.d': 0.6e-9}
 
 
+class StickExVivo(DMRISingleModelConfig):
+
+    name = 'Stick-ExVivo'
+    in_vivo_suitable = False
+    ex_vivo_suitable = True
+    description = 'The Stick model with ex vivo defaults',
+    fixes = {'Stick.d': 0.6e-9}
+    model_expression = '''
+        S0 * Stick
+    '''
+
+
 class BallStickT2ExVivo(BallStickExVivo):
 
     name = 'BallStick-T2-ExVivo'
@@ -58,6 +70,20 @@ class BallStickT2ExVivo(BallStickExVivo):
             S0 * ExpT2Dec * ( (Weight(w_ball) * Ball) +
                               (Weight(w_stick) * Stick) )
         '''
+
+
+class StickStickExVivo(DMRISingleModelConfig):
+
+    name = 'StickStick-ExVivo'
+    in_vivo_suitable = False
+    ex_vivo_suitable = True
+    description = 'The 2x Stick model ex vivo defaults'
+    model_expression = '''
+            S0 * ( (Weight(w_stick0) * Stick(Stick0)) +
+                   (Weight(w_stick1) * Stick(Stick1)) )
+        '''
+    fixes = {'Stick0.d': 1.7e-9,
+             'Stick1.d': 1.7e-9}
 
 
 class BallStickStick(DMRISingleModelConfig):
