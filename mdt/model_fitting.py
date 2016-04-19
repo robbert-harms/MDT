@@ -19,7 +19,8 @@ from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.protocols import write_protocol
 from mdt.utils import create_roi, load_problem_data, ProtocolProblemError, MetaOptimizerBuilder, get_cl_devices, \
     get_model_config, apply_model_protocol_options, model_output_exists, split_image_path, get_processing_strategy, \
-    estimate_noise_std, FittingProcessingWorker, per_model_logging_context, recursive_merge_dict
+    estimate_noise_std, FittingProcessingWorker, per_model_logging_context, recursive_merge_dict, \
+    NoiseStdEstimationNotPossible
 from mot.load_balance_strategies import EvenDistribution
 import mot.configuration
 from mot.configuration import RuntimeConfigurationAction
@@ -185,7 +186,11 @@ class _BatchFitRunner(object):
         if noise_std == 'auto':
             logger = logging.getLogger(__name__)
             logger.info('The noise std was set to \'auto\', we will estimate one.')
-            return estimate_noise_std(problem_data)
+            try:
+                return estimate_noise_std(problem_data)
+            except NoiseStdEstimationNotPossible:
+                logger.warn('Failed to estimate a noise std for this subject. We will continue with an std of 1.')
+                return 1
         elif noise_std is None:
             noise_std = 1.0
         return noise_std

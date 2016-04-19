@@ -1,5 +1,6 @@
 from mdt.utils import ComplexNoiseStdEstimator, NoiseStdEstimationNotPossible, create_roi
 import numpy as np
+from scipy.ndimage.morphology import binary_dilation
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-04-11"
@@ -7,14 +8,13 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class AverageOfAir(ComplexNoiseStdEstimator):
+class AverageOfAir_DilatedMask(ComplexNoiseStdEstimator):
 
     def estimate(self, **kwargs):
         """Calculate the standard deviation of the error using the air (voxels outside the brain),
 
-        This procedure first finds the extreme points of the given brain mask in all dimensions. Next, it extends
-        this mask (as a sort cross) in all dimensions to mask out the mask and possible ghostings. Finally we mask the
-        first 10 voxels at the edges of the brain since the may be zero-filled. We use all remainder voxels for
+        This procedure first dilates the given brian mask a little bit to smooth out the edges. Finally we mask the
+        first n voxels at the edges of the brain since the may be zero-filled. We use all remainder voxels for
         the noise std calculation.
 
         We then calculate per voxel the std of the noise and use that to estimate the noise of the original complex
@@ -38,15 +38,8 @@ class AverageOfAir(ComplexNoiseStdEstimator):
         Returns:
             ndarray: The first dimension is the list of voxels, the second the signal per voxel.
         """
-        indices = np.where(self._mask > 0)
-        max_dims = np.max(indices, axis=1)
-        min_dims = np.min(indices, axis=1)
-
         mask = np.copy(self._mask)
-
-        mask[min_dims[0]:max_dims[0]] = True
-        mask[:, min_dims[1]:max_dims[1], :] = True
-        mask[..., min_dims[2]:max_dims[2]] = True
+        mask = binary_dilation(mask, iterations=1)
 
         mask[0:border_offset] = True
         mask[-border_offset:] = True
