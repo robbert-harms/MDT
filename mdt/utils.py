@@ -778,7 +778,7 @@ def recursive_merge_dict(dictionary, update_dict, in_place=False):
     return merge(dictionary, update_dict)
 
 
-def load_problem_data(volume_info, protocol, mask, static_maps=None):
+def load_problem_data(volume_info, protocol, mask, static_maps=None, dtype=np.float32):
     """Load and create the problem data object that can be given to a model
 
     Args:
@@ -789,6 +789,7 @@ def load_problem_data(volume_info, protocol, mask, static_maps=None):
         static_maps (Dict[str, val]): the dictionary with per static map the value to use.
             The value can either be an 3d or 4d ndarray, a single number or a string. We will convert all to the
             right format.
+        dtype (dtype) the datatype in which to load the signal volume.
 
     Returns:
         DMRIProblemData: the problem data object containing all the info needed for diffusion MRI model fitting
@@ -797,7 +798,7 @@ def load_problem_data(volume_info, protocol, mask, static_maps=None):
     mask = autodetect_brain_mask_loader(mask).get_data()
 
     if isinstance(volume_info, string_types):
-        signal4d, img_header = load_volume(volume_info, dtype=np.float32)
+        signal4d, img_header = load_volume(volume_info, dtype=dtype)
     else:
         signal4d, img_header = volume_info
 
@@ -807,7 +808,7 @@ def load_problem_data(volume_info, protocol, mask, static_maps=None):
     return DMRIProblemData(protocol, signal4d, mask, img_header, static_maps=static_maps)
 
 
-def load_volume(volume_fname, ensure_4d=True, dtype=np.float64):
+def load_volume(volume_fname, ensure_4d=True, dtype=np.float32):
     """Load the diffusion weighted image data from the given volume filename.
 
     Args:
@@ -1658,15 +1659,16 @@ def estimate_noise_std(problem_data, estimation_cls_name=None):
     else:
         estimators = configuration.config['noise_std_estimating']['general']['estimators']
 
-    for estimator in estimators:
-        calculator = loader.get_class(estimator)
+    if len(estimators) == 1:
+        calculator = loader.get_class(estimators[0])
         calculator = calculator(problem_data.dwi_volume, problem_data.protocol, mask=problem_data.mask)
-
-        if len(estimators) == 1:
-            noise_std = calculator.estimate()
-            if np.isfinite(noise_std):
-                return noise_std
-        else:
+        noise_std = calculator.estimate()
+        if np.isfinite(noise_std):
+            return noise_std
+    else:
+        for estimator in estimators:
+            calculator = loader.get_class(estimator)
+            calculator = calculator(problem_data.dwi_volume, problem_data.protocol, mask=problem_data.mask)
             try:
                 noise_std = calculator.estimate()
                 if np.isfinite(noise_std):

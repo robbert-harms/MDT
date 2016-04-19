@@ -27,7 +27,7 @@ class TwoUnweightedVolumes(ComplexNoiseStdEstimator):
         unweighted_indices = self._protocol.get_unweighted_indices()
         unweighted_volumes = self._signal4d[..., unweighted_indices]
 
-        if len(unweighted_volumes) < 2:
+        if len(unweighted_indices) < 2:
             raise NoiseStdEstimationNotPossible('Not enough unweighted volumes for this estimator.')
 
         diff = unweighted_volumes[..., 0] - unweighted_volumes[..., 1]

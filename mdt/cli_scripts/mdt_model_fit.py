@@ -52,14 +52,18 @@ class ModelFit(BasicShellApplication):
                             help='the directory for the output, defaults to "output/<mask_name>" '
                                  'in the same directory as the dwi volume').completer = FilesCompleter()
 
-        parser.add_argument('--cl-device-ind', type=int, nargs='*', choices=available_devices,
-                            help="The index of the device we would like to use. This follows the indices "
-                                 "in mdt-list-devices and defaults to the first GPU.")
+        parser.add_argument('-n', '--noise-std', default='auto',
+                            help='the noise std, defaults to "auto" for automatic noise estimation.'
+                                 'Either set this to a value or to "auto".')
 
         parser.add_argument('--gradient-deviations',
                             action=mdt.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
                             help="The volume with the gradient deviations to use, in HCP WUMINN format.").\
             completer = FilesCompleter(['nii', 'gz', 'hdr', 'img'], directories=False)
+
+        parser.add_argument('--cl-device-ind', type=int, nargs='*', choices=available_devices,
+                            help="The index of the device we would like to use. This follows the indices "
+                                 "in mdt-list-devices and defaults to the first GPU.")
 
         parser.add_argument('--recalculate', dest='recalculate', action='store_true',
                             help="Recalculate the model(s) if the output exists. (default)")
@@ -90,6 +94,10 @@ class ModelFit(BasicShellApplication):
         mask_name = mask_name.replace('.nii', '')
         output_folder = args.output_folder or os.path.join(os.path.dirname(args.dwi), 'output', mask_name)
 
+        noise_std = 'auto'
+        if args.noise_std != 'auto':
+            noise_std = float(args.noise_std)
+
         mdt.fit_model(args.model,
                       mdt.load_problem_data(os.path.realpath(args.dwi),
                                             os.path.realpath(args.protocol),
@@ -97,7 +105,8 @@ class ModelFit(BasicShellApplication):
                       output_folder, recalculate=args.recalculate,
                       only_recalculate_last=args.only_recalculate_last, cl_device_ind=args.cl_device_ind,
                       double_precision=args.double_precision, gradient_deviations=args.gradient_deviations,
-                      use_model_protocol_options=args.use_model_protocol_options)
+                      use_model_protocol_options=args.use_model_protocol_options,
+                      noise_std=noise_std)
 
 
 if __name__ == '__main__':

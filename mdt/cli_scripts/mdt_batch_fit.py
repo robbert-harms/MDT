@@ -1,0 +1,126 @@
+#!/usr/bin/env python
+# PYTHON_ARGCOMPLETE_OK
+import argparse
+import os
+import mdt
+from argcomplete.completers import FilesCompleter
+from mdt.batch_utils import batch_profile_factory, SelectedSubjects
+from mdt.components_loader import BatchProfilesLoader
+
+from mdt.shell_utils import BasicShellApplication
+from mot import cl_environments
+import textwrap
+
+__author__ = 'Robbert Harms'
+__date__ = "2015-08-18"
+__maintainer__ = "Robbert Harms"
+__email__ = "robbert.harms@maastrichtuniversity.nl"
+
+
+class BatchFit(BasicShellApplication):
+
+    def _get_arg_parser(self):
+        description = textwrap.dedent("""
+            Fits a batch profile to a set of data.
+
+            This script can be used to fit multiple models to multiple datasets. To function correctly, this routine
+            needs to know how to interpret the data, which is done using the batch profiles. These profiles
+            tell the batch fit routine which subjects there are and how the data should be loaded. If no
+            batch profile is given, this routine will try to auto-detect a good batch profile.
+
+            The most common batch profile is the 'DirPerSubject' profile. This profile assumes that every subject has
+            its own subdirectory under the given data folder. For details look up the batch profile in your home folder.
+
+            A few of the batch profile settings can be altered with arguments to this script. For example,
+            use_gradient_deviations and models_to_fit override the values in the batch profile.
+        """)
+        description += mdt.shell_utils.get_citation_message()
+
+        epilog = textwrap.dedent("""
+            Examples of use:
+                mdt-batch-fit .
+                mdt-batch-fit /data/mgh --batch-profile 'HCP_MGH'
+                mdt-batch-fit . --subjects-index 0 1 2 --subjects-id 1003 1004
+                mdt-batch-fit . --dry-run
+        """)
+
+        available_devices = list((ind for ind, env in enumerate(cl_environments.CLEnvironmentFactory.all_devices())))
+        batch_profiles = BatchProfilesLoader().list_all()
+
+        parser = argparse.ArgumentParser(description=description, epilog=epilog,
+                                         formatter_class=argparse.RawTextHelpFormatter)
+
+        parser.add_argument('data_folder', help='the directory with the subject to fit').completer = FilesCompleter()
+
+        parser.add_argument('-b', '--batch_profile', default=None, choices=batch_profiles,
+                            help='The batch profile (by name) to use during fitting. If not given a'
+                                 'batch profile is auto-detected.')
+
+        parser.add_argument('--cl-device-ind', type=int, nargs='*', choices=available_devices,
+                            help="The index of the device we would like to use. This follows the indices "
+                                 "in mdt-list-devices and defaults to the first GPU.")
+
+        parser.add_argument('--recalculate', dest='recalculate', action='store_true',
+                            help="Recalculate the model(s) if the output exists.")
+        parser.add_argument('--no-recalculate', dest='recalculate', action='store_false',
+                            help="Do not recalculate the model(s) if the output exists. (default)")
+        parser.set_defaults(recalculate=False)
+
+        parser.add_argument('--use-gradient-deviations', dest='use_gradient_deviations', action='store_true',
+                            help="Uses the gradient deviations. If not set, the default in the profile is used.")
+        parser.add_argument('--no-gradient-deviations', dest='use_gradient_deviations', action='store_false',
+                            help="Disable the use of gradient deviations. If not set, the default "
+                                 "in the profile is used.")
+        parser.set_defaults(use_gradient_deviations=None)
+
+        parser.add_argument('--double', dest='double_precision', action='store_true',
+                            help="Calculate in double precision.")
+        parser.add_argument('--float', dest='double_precision', action='store_false',
+                            help="Calculate in single precision. (default)")
+        parser.set_defaults(double_precision=False)
+
+        parser.add_argument('--subjects-index', type=int, nargs='*',
+                            help="The index of the subjects we would like to fit. This reduces the set of"
+                                 "subjects.")
+
+        parser.add_argument('--subjects-id', type=str, nargs='*',
+                            help="The id of the subjects we would like to fit. This reduces the set of"
+                                 "subjects.")
+
+        parser.add_argument('--models-to-fit', type=str, nargs='*',
+                            help="The models to fit, this overrides the models in the batch profile.")
+
+        parser.add_argument('--dry-run', dest='dry_run', action='store_true',
+                            help="Shows what it will do without the dry run argument.")
+        parser.set_defaults(dry_run=False)
+
+        return parser
+
+    def run(self, args):
+        batch_profile = batch_profile_factory(args.batch_profile, os.path.realpath(args.data_folder))
+
+        if args.use_gradient_deviations is not None:
+            batch_profile.use_gradient_deviations = args.use_gradient_deviations
+
+        if args.models_to_fit is not None:
+            batch_profile.models_to_fit = args.models_to_fit
+
+        subjects_selection = None
+        if args.subjects_index or args.subjects_id:
+            indices = args.subjects_index if args.subjects_index else []
+            subject_ids = args.subjects_id if args.subjects_id else []
+
+            subjects_selection = SelectedSubjects(indices=indices, subject_ids=subject_ids)
+
+        mdt.batch_fit(os.path.realpath(args.data_folder),
+                      subjects_selection=subjects_selection,
+                      batch_profile=batch_profile,
+                      recalculate=args.recalculate,
+                      cl_device_ind=args.cl_device_ind,
+                      double_precision=args.double_precision,
+                      dry_run=args.dry_run
+                      )
+
+
+if __name__ == '__main__':
+    BatchFit().start()

@@ -27,7 +27,7 @@ class AllUnweightedVolumes(ComplexNoiseStdEstimator):
         unweighted_indices = self._protocol.get_unweighted_indices()
         unweighted_volumes = self._signal4d[..., unweighted_indices]
 
-        if len(unweighted_volumes) < 2:
+        if len(unweighted_indices) < 2:
             raise NoiseStdEstimationNotPossible('Not enough unweighted volumes for this estimator.')
 
         voxel_list = create_roi(unweighted_volumes, self._mask)

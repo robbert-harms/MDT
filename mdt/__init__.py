@@ -311,7 +311,7 @@ def get_device_ind(device_type='FIRST_GPU'):
     return indices
 
 
-def load_problem_data(volume_info, protocol, mask, static_maps=None):
+def load_problem_data(volume_info, protocol, mask, static_maps=None, dtype=np.float32):
     """Load and create the problem data object that can be given to a model
 
     Args:
@@ -322,12 +322,13 @@ def load_problem_data(volume_info, protocol, mask, static_maps=None):
         static_maps (Dict[str, val]): the dictionary with per static map the value to use.
             The value can either be an 3d or 4d ndarray, a single number or a string. We will convert all to the
             right format.
+        dtype (dtype) the datatype in which to load the signal volume.
 
     Returns:
         The Problem data, in the ProblemData container object.
     """
     from mdt.utils import load_problem_data
-    return load_problem_data(volume_info, protocol, mask, static_maps=static_maps)
+    return load_problem_data(volume_info, protocol, mask, static_maps=static_maps, dtype=dtype)
 
 
 def load_protocol_bval_bvec(bvec=None, bval=None, bval_scale='auto'):
@@ -710,7 +711,7 @@ def load_volume(volume_fname, ensure_4d=True):
         a tuple with (data, header) for the given file.
     """
     from mdt.utils import load_volume
-    return load_volume(volume_fname, ensure_4d=True)
+    return load_volume(volume_fname, ensure_4d=ensure_4d)
 
 
 def load_nifti(nifti_volume):

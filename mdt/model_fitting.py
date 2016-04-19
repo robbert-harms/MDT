@@ -7,6 +7,7 @@ import timeit
 from contextlib import contextmanager
 
 import nibabel as nib
+import numpy as np
 from six import string_types
 
 from mdt import __version__
@@ -79,6 +80,7 @@ class BatchFitting(object):
         self._subjects = self._subjects_selection.get_selection(self._batch_profile.get_subjects())
 
         self._logger.info('Subjects found: {0}'.format(self._batch_profile.get_subjects_count()))
+        self._logger.info('Subjects to process: {0}'.format(len(self._subjects)))
 
         if self._cl_device_ind is not None:
             mot.configuration.set_cl_environments([get_cl_devices()[self._cl_device_ind]])
@@ -145,7 +147,8 @@ class _BatchFitRunner(object):
             return
 
         logger.info('Loading the data (DWI, mask and protocol) of subject {0}'.format(subject_info.subject_id))
-        problem_data = load_problem_data(subject_info.get_dwi_info(), protocol, brain_mask_fname)
+        problem_data = load_problem_data(subject_info.get_dwi_info(), protocol, brain_mask_fname,
+                                         dtype=np.float64 if self._double_precision else np.float32)
 
         write_protocol(protocol, os.path.join(output_dir, 'used_protocol.prtcl'))
 

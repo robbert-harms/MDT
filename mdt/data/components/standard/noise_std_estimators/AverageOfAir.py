@@ -32,7 +32,7 @@ class AverageOfAir(ComplexNoiseStdEstimator):
 
         return np.median(np.sqrt(2.0 / (4.0 - np.pi)) * np.std(voxels, axis=1))
 
-    def _get_air_voxels(self, border_offset=5):
+    def _get_air_voxels(self, border_offset=3):
         """Get a two dimensional list with all the voxels in the air.
 
         Returns:
