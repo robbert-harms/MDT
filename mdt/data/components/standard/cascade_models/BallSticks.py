@@ -14,6 +14,11 @@ class BallStick(CascadeConfig):
               'BallStick')
 
 
+class BallStickS0(BallStick):
+
+    name = 'BallStick (Cascade|S0)'
+
+
 class BallStickExVivo(BallStick):
 
     name = 'BallStick-ExVivo (Cascade)'
