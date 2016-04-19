@@ -797,7 +797,7 @@ def load_problem_data(volume_info, protocol, mask, static_maps=None):
     mask = autodetect_brain_mask_loader(mask).get_data()
 
     if isinstance(volume_info, string_types):
-        signal4d, img_header = load_volume(volume_info)
+        signal4d, img_header = load_volume(volume_info, dtype=np.float32)
     else:
         signal4d, img_header = volume_info
 
@@ -820,7 +820,7 @@ def load_volume(volume_fname, ensure_4d=True, dtype=np.float64):
     """
     info = nib.load(volume_fname)
     header = info.get_header()
-    data = info.get_data().astype(dtype)
+    data = info.get_data().astype(dtype, copy=False)
     if ensure_4d:
         if len(data.shape) < 4:
             data = np.expand_dims(data, axis=3)
