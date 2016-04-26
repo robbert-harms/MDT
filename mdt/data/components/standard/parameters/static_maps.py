@@ -34,3 +34,10 @@ class T2_static(StaticMapParameterConfig):
 
     name = 'T2_static'
     data_type = 'mot_float_type'
+
+
+#class TM_0(StaticMapParameterConfig):
+
+#    name = 'TM_0'
+#    data_type = 'mot_float_type'
+

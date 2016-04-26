@@ -11,5 +11,5 @@ class ExpT1ExpT2STEAM(CompartmentConfig):
     cl_function_name = 'cmExpT1ExpT2STEAM'
     parameter_list = ('TM', 'TE', 'T1', 'T2')
     cl_code = CLCodeFromInlineString("""
-        return 1/2 * exp(- TE / T2 ) * exp(- TM / T1 );
+        return 1/2.0 * exp(-TE / T2) * exp(-TM / T1);
     """)

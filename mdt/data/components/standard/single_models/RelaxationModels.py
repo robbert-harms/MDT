@@ -43,16 +43,24 @@ class S0T2T2(DMRISingleModelConfig):
         )
 
 
-class S0_TE_FA(DMRISingleModelConfig):
+class GRE_Relax(DMRISingleModelConfig):
 
-    name = 'S0-TE-FA'
-    description = 'Model for GRE data with variable TE and flip angle.'
+    name = 'GRE_Relax'
+    description = 'Model for estimating T1 and T2 from GRE data with variable TE, TR and flip angle.'
     model_expression = 'S0 * ExpT1ExpT2GRE'
+    inits = {'ExpT1ExpT2GRE.T1': 0.3,
+             'ExpT1ExpT2GRE.T2': 0.05}
+    upper_bounds = {'ExpT1ExpT2GRE.T1': 1,
+                    'ExpT1ExpT2GRE.T2': 0.5}
 
 
-class S0_STEAM(DMRISingleModelConfig):
+class STEAM_Relax(DMRISingleModelConfig):
 
-    name = 'S0-STEAM'
-    description = 'Model for S0 STEAM data with variable TM and TE, even if the volumes are splitted.'
+    name = 'STEAM_Relax'
+    description = 'Model for estimating T1 and T2 from data with a variable TM and TE.'
     model_expression = 'S0 * ExpT1ExpT2STEAM'
-    #upper_bounds = {'T2': 0.08}
+    inits = {
+             'ExpT1ExpT2STEAM.T2': 0.03}
+    fixes = {'ExpT1ExpT2STEAM.T1': 0.125}
+    upper_bounds = {'ExpT1ExpT2STEAM.T1': 1,
+                    'ExpT1ExpT2STEAM.T2': 0.1}
