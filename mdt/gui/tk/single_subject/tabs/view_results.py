@@ -1,4 +1,5 @@
 import sys
+import threading
 from mdt.gui.utils import StdRedirect
 
 try:
@@ -13,7 +14,6 @@ except ImportError:
 import glob
 from itertools import count
 import os
-import multiprocessing
 from mdt import view_results_slice, results_preselection_names
 from mdt.gui.tk.utils import TabContainer
 from mdt.gui.tk.widgets import DirectoryBrowserWidget, ListboxWidget
@@ -119,7 +119,7 @@ class ViewResultsTab(TabContainer):
             view_process.start()
 
 
-class ViewResultsProcess(multiprocessing.Process):
+class ViewResultsProcess(threading.Thread):
 
     def __init__(self, output_queue, input_dir, maps_to_show, dimension, slice_ind):
         super(ViewResultsProcess, self).__init__()
@@ -129,7 +129,7 @@ class ViewResultsProcess(multiprocessing.Process):
         self._dimension = dimension
         self._slice_ind = slice_ind
 
-    def run(self):
+    def start(self):
         redirect = StdRedirect(self._output_queue)
         sys.stdout = redirect
         sys.stderr = redirect
