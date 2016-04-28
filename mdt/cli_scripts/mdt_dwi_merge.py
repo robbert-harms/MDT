@@ -15,13 +15,13 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class DWIMerge(BasicShellApplication):
+class VolumeMerge(BasicShellApplication):
 
     def _get_arg_parser(self):
         description = textwrap.dedent("""
-            Merge a list of DWI images on the 4th dimension. Writes the result to a single image.
+            Merge a list of volume images on the 4th dimension. Writes the result to a single image.
 
-            Please note that by default this will sort the list of DWI names based on a natural key sort. This is
+            Please note that by default this will sort the list of volume names based on a natural key sort. This is
             the most convenient option in the case of globbing files. You can disable this behaviour
             using the flag --no-sort.
         """)
@@ -29,8 +29,8 @@ class DWIMerge(BasicShellApplication):
 
         epilog = textwrap.dedent("""
             Examples of use:
-                mdt-dwi-merge merged.nii.gz *.nii.gz
-                mdt-dwi-merge --no-sort merged.nii.gz *.nii.gz
+                mdt-volume-merge merged.nii.gz *.nii.gz
+                mdt-volume-merge --no-sort merged.nii.gz *.nii.gz
         """)
 
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
@@ -64,7 +64,7 @@ class DWIMerge(BasicShellApplication):
         for file in args.input_files:
             file_names.extend(glob.glob(file))
 
-        concatenated_names = mdt.dwi_merge(file_names, output_file, sort=args.sort)
+        concatenated_names = mdt.volume_merge(file_names, output_file, sort=args.sort)
 
         if not args.no_merge_order_file:
             info_output_file = os.path.splitext(output_file)[0].replace('.nii', '') + '_merge_order.txt'
@@ -78,4 +78,4 @@ class DWIMerge(BasicShellApplication):
                     f.write(name + '\n')
 
 if __name__ == '__main__':
-    DWIMerge().start()
+    VolumeMerge().start()

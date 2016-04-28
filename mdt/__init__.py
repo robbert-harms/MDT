@@ -521,19 +521,17 @@ def concatenate_mri_sets(items, output_volume_fname, output_protocol_fname, over
     write_protocol(protocol, output_protocol_fname)
 
 
-def dwi_merge(dwi_images, output_fname, sort=True):
-    """Merge a list of DWI images on the 4th dimension. Writes the result as a file.
+def volume_merge(volume_paths, output_fname, sort=False):
+    """Merge a list of volumes on the 4th dimension. Writes the result as a file.
 
-    Please note that by default this will sort the list of DWI names based on a natural key sort. This is
-    the most convenient option in the case of globbing files. You can disable this behaviour by setting the keyword
-    argument 'sort' to False
+    You can enable sorting the list of volume names based on a natural key sort. This is
+    the most convenient option in the case of globbing files. By default this behaviour is disabled.
 
-    Example usage is:
-        mdt.dwi_merge(glob.glob(pjoin('raw', '*b278*.nii')),
-                      pjoin('b278.nii.gz'))
+    Example usage with globbing:
+        mdt.volume_merge(glob.glob('*.nii'), 'merged.nii.gz', True)
 
     Args:
-        dwi_images (list of str): the list with the input filenames
+        volume_paths (list of str): the list with the input filenames
         output_fname (str): the output filename
         sort (boolean): if true we natural sort the list of DWI images before we merge them. If false we don't.
             The default is True.
@@ -550,10 +548,10 @@ def dwi_merge(dwi_images, output_fname, sort=True):
     if sort:
         def natural_key(_str):
             return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', _str)]
-        dwi_images.sort(key=natural_key)
+        volume_paths.sort(key=natural_key)
 
-    for dwi_image in dwi_images:
-        nib_container = nib.load(dwi_image)
+    for volume in volume_paths:
+        nib_container = nib.load(volume)
         header = header or nib_container.get_header()
         image_data = nib_container.get_data()
 
@@ -565,7 +563,7 @@ def dwi_merge(dwi_images, output_fname, sort=True):
     combined_image = np.concatenate(images, axis=3)
     nib.Nifti1Image(combined_image, None, header).to_filename(output_fname)
 
-    return dwi_images
+    return volume_paths
 
 
 def view_results_slice(data,
@@ -1405,6 +1403,18 @@ def build_optimizer(optimizer_info):
     if isinstance(optimizer_info, six.string_types):
         optimizer_info = yaml.load(optimizer_info)
     return MetaOptimizerBuilder(optimizer_info).construct()
+
+
+def get_data_shape(image_file):
+    """Get the data shape of an image on file.
+
+    Args:
+        image_file (str): the filename of the image to get the shape of
+
+    Returns:
+        tuple: the shape of the image file
+    """
+    return load_nifti(image_file).get_header().get_data_shape()
 
 
 try:
