@@ -454,18 +454,18 @@ def restore_volumes(data, brain_mask, with_volume_dim=True):
     brain_mask = autodetect_brain_mask_loader(brain_mask).get_data()
 
     shape3d = brain_mask.shape[:3]
-    indices = np.ravel_multi_index(np.nonzero(brain_mask), shape3d[:3], order='C')
+    indices = np.ravel_multi_index(np.nonzero(brain_mask)[:3], shape3d, order='C')
 
     def restorer(voxel_list):
         s = voxel_list.shape
 
         def restore_3d(voxels):
-            volume_length = functools.reduce(lambda x, y: x*y, shape3d[:3])
+            volume_length = functools.reduce(lambda x, y: x*y, shape3d)
 
             return_volume = np.zeros((volume_length,), dtype=voxels.dtype, order='C')
             return_volume[indices] = voxels
 
-            return np.reshape(return_volume, shape3d[:3])
+            return np.reshape(return_volume, shape3d)
 
         if len(s) > 1 and s[1] > 1:
             if with_volume_dim:
