@@ -1248,6 +1248,9 @@ def apply_mask(volume, mask, inplace=True):
             volume = load_volume(volume)[0]
         mask = mask.reshape(mask.shape + (volume.ndim - mask.ndim) * (1,))
 
+        if len(mask.shape) < 4:
+            mask = mask.reshape(mask.shape + (1,))
+
         if len(volume.shape) < 4:
             volume = volume.reshape(volume.shape + (1,))
 
