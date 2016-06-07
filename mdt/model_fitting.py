@@ -84,7 +84,10 @@ class BatchFitting(object):
         self._logger.info('Subjects to process: {0}'.format(len(self._subjects)))
 
         if self._cl_device_ind is not None:
-            mot.configuration.set_cl_environments([get_cl_devices()[self._cl_device_ind]])
+            if not isinstance(self._cl_device_ind, collections.Iterable):
+                self._cl_device_ind = [self._cl_device_ind]
+            devices = get_cl_devices()
+            mot.configuration.set_cl_environments([devices[ind] for ind in self._cl_device_ind])
 
     def get_all_subjects_info(self):
         """Get a dictionary with the info of all the found subjects.
