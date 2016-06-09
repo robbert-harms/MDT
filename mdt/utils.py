@@ -809,12 +809,12 @@ def load_problem_data(volume_info, protocol, mask, static_maps=None, dtype=np.fl
 
 
 def load_volume(volume_fname, ensure_4d=True, dtype=np.float32):
-    """Load the diffusion weighted image data from the given volume filename.
+    """Load the given image data from the given volume filename.
 
     Args:
         volume_fname (string): The filename of the volume to load.
-        ensure_4d (boolean): if True we ensure that the data matrix is in 4d.
-        dtype (dtype): the numpy datatype for the loaded images
+        ensure_4d (boolean): if True we ensure that the output data matrix is in 4d.
+        dtype (dtype): the numpy datatype we use for the output matrix
 
     Returns:
         a tuple with (data, header) for the given file.
@@ -1659,6 +1659,7 @@ def estimate_noise_std(problem_data, estimation_cls_name=None):
         NoiseStdEstimationNotPossible: if the noise could not be estimated
     """
     loader = NoiseSTDCalculatorsLoader()
+    logger = logging.getLogger(__name__)
 
     if estimation_cls_name:
         estimators = [estimation_cls_name]
@@ -1670,6 +1671,7 @@ def estimate_noise_std(problem_data, estimation_cls_name=None):
         calculator = calculator(problem_data.dwi_volume, problem_data.protocol, mask=problem_data.mask)
         noise_std = calculator.estimate()
         if np.isfinite(noise_std):
+            logger.info('Found noise sigma {} using estimator {}.'.format(noise_std, estimators[0]))
             return noise_std
     else:
         for estimator in estimators:
@@ -1678,6 +1680,7 @@ def estimate_noise_std(problem_data, estimation_cls_name=None):
             try:
                 noise_std = calculator.estimate()
                 if np.isfinite(noise_std):
+                    logger.info('Found noise sigma {} using estimator {}.'.format(noise_std, estimator))
                     return noise_std
             except NoiseStdEstimationNotPossible:
                 pass
