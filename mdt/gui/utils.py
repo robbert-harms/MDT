@@ -56,7 +56,7 @@ class OptimOptions(object):
         self.extra_optim_runs = mdt_config['optimization_settings']['general']['extra_optim_runs']
 
         self.cl_envs_indices = self._get_prefered_device_indices()
-        self.noise_std = 1.0
+        self.noise_std = 'auto'
 
     def _get_prefered_device_indices(self):
         l = [ind for ind, env in enumerate(self.cl_environments.values()) if env.is_gpu]

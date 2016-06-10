@@ -5,8 +5,7 @@ import os
 import textwrap
 from argcomplete.completers import FilesCompleter
 from mdt.gui.tkgui_main import start_single_gui
-import mdt
-from mdt.shell_utils import BasicShellApplication
+from mdt.shell_utils import BasicShellApplication, get_citation_message
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"
@@ -17,13 +16,20 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class GUISingle(BasicShellApplication):
 
     def __init__(self):
-        mdt.init_user_settings(pass_if_exists=True)
+        """
+        Normally we would load here the user settings. This can not be
+        done however since it would load the MOT utils before the GUI is launched. This will give OpenCL errors
+        ("RuntimeError: CommandQueue failed: out of host memory") when creating the queue.
+
+        Hence we do not use:
+            mdt.init_user_settings(pass_if_exists=True)
+        """
 
     def _get_arg_parser(self):
         description = textwrap.dedent("""
             Launches the MDT TK single subject Graphical User Interface.
         """)
-        description += mdt.shell_utils.get_citation_message()
+        description += get_citation_message()
 
         parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument('-d', '--dir', metavar='dir', type=str, help='the base directory for the file choosers',
