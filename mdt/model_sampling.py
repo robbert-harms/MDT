@@ -1,5 +1,7 @@
 from contextlib import contextmanager
 
+import numpy as np
+
 from mdt import __version__
 import logging
 import os
@@ -15,7 +17,7 @@ from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.utils import create_roi, \
     ProtocolProblemError, model_output_exists, get_cl_devices, get_model_config, \
     apply_model_protocol_options, get_processing_strategy, per_model_logging_context, SamplingProcessingWorker, \
-    memory_load_samples, recursive_merge_dict, estimate_noise_std
+    memory_load_samples, recursive_merge_dict, estimate_noise_std, get_noise_std_value
 from mot.cl_routines.sampling.metropolis_hastings import MetropolisHastings
 from mot.configuration import config_context
 from mot.load_balance_strategies import EvenDistribution
@@ -86,7 +88,7 @@ class ModelSampling(object):
         self._use_model_protocol_options = use_model_protocol_options
         self._logger = logging.getLogger(__name__)
         self._cl_device_indices = cl_device_ind
-        self._noise_std = self._get_noise_std(noise_std)
+        self._noise_std = get_noise_std_value(noise_std, problem_data)
         self._initialize = initialize
         self._initialize_using = initialize_using
 
@@ -122,8 +124,14 @@ class ModelSampling(object):
             with per_model_logging_context(os.path.join(self._output_folder, self._model.name)):
                 self._logger.info('Using MDT version {}'.format(__version__))
                 self._logger.info('Preparing for model {0}'.format(self._model.name))
-                self._logger.info('Setting the noise standard deviation to {0}'.format(self._noise_std))
-                self._model.evaluation_model.set_noise_level_std(self._noise_std, fix=True)
+
+                if isinstance(self._noise_std, np.ndarray):
+                    self._logger.info('Setting the noise standard deviation to a voxel-wise value.')
+                    self._model.evaluation_model.set_noise_level_std(
+                        create_roi(self._noise_std, self._problem_data.mask), fix=True)
+                else:
+                    self._logger.info('Setting the noise standard deviation globally to {0}'.format(self._noise_std))
+                    self._model.evaluation_model.set_noise_level_std(self._noise_std, fix=True)
 
                 if self._cl_device_indices is not None:
                     all_devices = get_cl_devices()
@@ -144,14 +152,6 @@ class ModelSampling(object):
                                             initialize_using=self._initialize_using)
 
                 return sampler.run()
-
-    def _get_noise_std(self, noise_std):
-        if noise_std == 'auto':
-            self._logger.info('The noise std was set to \'auto\', we will estimate one.')
-            return estimate_noise_std(self._problem_data)
-        elif noise_std is None:
-            noise_std = 1.0
-        return noise_std
 
 
 class SampleSingleModel(object):

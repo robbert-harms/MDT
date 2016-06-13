@@ -47,7 +47,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class DMRIProblemData(AbstractProblemData):
 
     def __init__(self, protocol_data_dict, dwi_volume, mask, volume_header, static_maps=None):
-        """This overrides the standard problem data to also include a mask.
+        """This overrides the standard problem data to include a mask.
 
         Args:
             protocol_data_dict (Protocol): The protocol object used as input data to the model
@@ -1182,36 +1182,33 @@ def calculate_information_criterions(log_likelihoods, k, n):
 
 class ComplexNoiseStdEstimator(object):
 
-    def __init__(self, volume, protocol, mask=None):
-        """Calculator for the standard deviation of the Gaussian error in the complex signal images.
+    def __init__(self, problem_data):
+        """Estimation routine for estimating the standard deviation of the Gaussian error in the complex signal images.
+
+        This interface has two main functions, estimate_global and estimate_local. The first is for getting a
+        single noise std. for all voxels in the dataset. The second should estimate the noise std. per voxel.
 
         Args:
-            volume (ndarray or string): the volume for which to calculate the noise, can be a string with the file
-                to load.
-            protocol (Protocol or string): A protocol object with the right protocol for the given data,
-                or a string object with a filename to the given file.
-            mask (string): A full path to a mask file that can optionally be used.
-                If None given, we will create one if necessary.
+            problem_data the full set of problem data
         """
-        self._volume = volume
-        self._protocol = autodetect_protocol_loader(protocol).get_protocol()
+        self._problem_data = problem_data
         self._logger = logging.getLogger(__name__)
 
-        if mask is not None:
-            self._mask = autodetect_brain_mask_loader(mask).get_data()
-        else:
-            self._mask = None
-
-        if isinstance(self._volume, six.string_types):
-            self._signal4d = load_volume(self._volume)[0]
-        else:
-            self._signal4d = self._volume
-
-    def estimate(self, **kwargs):
-        """Perform the actual estimation defined in the implementing class.
+    def estimate_global(self, **kwargs):
+        """Get a noise std for the entire volume.
 
         Returns:
             float: single value representing the sigma for the given volume
+
+        Raises:
+            NoiseStdEstimationNotPossible: if we can not estimate the sigma using this estimator
+        """
+
+    def estimate_local(self, **kwargs):
+        """Get a noise std for every voxel
+
+        Returns:
+            ndarray: a noise std for every voxel
 
         Raises:
             NoiseStdEstimationNotPossible: if we can not estimate the sigma using this estimator
@@ -1221,7 +1218,7 @@ class ComplexNoiseStdEstimator(object):
 class NoiseStdEstimationNotPossible(Exception):
     """An exception that can be raised by any ComplexNoiseStdEstimator.
 
-    This indicates that the noise std can not be calculated by the exception raising estimation routine.
+    This indicates that the noise std can not be estimated.
     """
 
 
@@ -1644,16 +1641,19 @@ def get_processing_strategy(processing_type, model_names=None):
     return ProcessingStrategiesLoader().load(strategy_name, **options)
 
 
-def estimate_noise_std(problem_data, estimation_cls_name=None):
+def estimate_noise_std(problem_data, estimation_cls_name=None, voxel_wise=False):
     """Estimate the noise standard deviation.
 
     Args:
         problem_data (DMRIProblemData): the problem data we can use to do the estimation
         estimation_cls_name (str): the name of the estimation class to load. If none given we try each defined in the
             current config.
+        voxel_wise (boolean): if False we return a single noise std for all voxels. If True we return a
+            noise std per voxel.
 
     Returns:
-        float: the noise std for the data in problem data
+        if voxel_wise is set to False we return a single float with the noise std for all voxels.
+        else, if voxel_wise is set to True we return a distinct noise std for every voxel in the volume.
 
     Raises:
         NoiseStdEstimationNotPossible: if the noise could not be estimated
@@ -1661,31 +1661,81 @@ def estimate_noise_std(problem_data, estimation_cls_name=None):
     loader = NoiseSTDCalculatorsLoader()
     logger = logging.getLogger(__name__)
 
+    def estimate(estimator_name):
+        estimator = loader.get_class(estimator_name)(problem_data)
+
+        if voxel_wise:
+            noise_std = estimator.estimate_local()
+            logger.info('Found local noise sigma using estimator {}.'.format(estimator_name))
+            return noise_std
+        else:
+            noise_std = estimator.estimate_global()
+            if np.isfinite(noise_std) and noise_std > 0:
+                logger.info('Found global noise std {} using estimator {}.'.format(noise_std, estimator_name))
+                return noise_std
+
     if estimation_cls_name:
         estimators = [estimation_cls_name]
     else:
         estimators = configuration.config['noise_std_estimating']['general']['estimators']
 
     if len(estimators) == 1:
-        calculator = loader.get_class(estimators[0])
-        calculator = calculator(problem_data.dwi_volume, problem_data.protocol, mask=problem_data.mask)
-        noise_std = calculator.estimate()
-        if np.isfinite(noise_std):
-            logger.info('Found noise sigma {} using estimator {}.'.format(noise_std, estimators[0]))
-            return noise_std
+        return estimate(estimators[0])
     else:
         for estimator in estimators:
-            calculator = loader.get_class(estimator)
-            calculator = calculator(problem_data.dwi_volume, problem_data.protocol, mask=problem_data.mask)
             try:
-                noise_std = calculator.estimate()
-                if np.isfinite(noise_std):
-                    logger.info('Found noise sigma {} using estimator {}.'.format(noise_std, estimator))
-                    return noise_std
+                return estimate(estimator)
             except NoiseStdEstimationNotPossible:
                 pass
 
     raise NoiseStdEstimationNotPossible('Estimating the noise was not possible.')
+
+
+def get_noise_std_value(noise_std, problem_data):
+    """Convert the variable valued noise std to an actual noise std.
+
+    This is meant to be used by the fitting and sampling routines to return a proper value for the
+    noise std given the user provided noise std and the problem data.
+
+    Args:
+        noise_std (None, double, ndarray, 'auto', 'auto-local' or 'auto-global'): the noise level standard deviation.
+            The different values can be:
+                None: set to 1
+                double: use a single value for all voxels
+                ndarray: use a value per voxel. If given this should be a value for the entire dataset.
+                'auto': defaults to 'auto-global'
+                'auto-global': estimates one noise std value for all the voxels
+                'auto-local': estimates one noise std value per voxel
+
+        problem_data: if we need to estimate the noise std, the problem data to use
+
+    Returns:
+        either a single value or a ndarray with a value for every voxel in the volume
+    """
+    if noise_std is None:
+        return 1
+    elif isinstance(noise_std, np.ndarray):
+        return noise_std
+
+    elif noise_std == 'auto' or noise_std == 'auto-global':
+        logger = logging.getLogger(__name__)
+        logger.info('The noise std was set to \'{}\', we will estimate a global noise std.'.format(noise_std))
+        try:
+            return estimate_noise_std(problem_data)
+        except NoiseStdEstimationNotPossible:
+            logger.warn('Failed to estimate a noise std for this subject. We will continue with an std of 1.')
+            return 1
+
+    elif noise_std == 'auto-local':
+        logger = logging.getLogger(__name__)
+        logger.info('The noise std was set to \'local\', we will estimate a local noise std.')
+        try:
+            return estimate_noise_std(problem_data, voxel_wise=True)
+        except NoiseStdEstimationNotPossible:
+            logger.warn('Failed to estimate a noise std for this subject. We will continue with an std of 1.')
+            return 1
+
+    return noise_std
 
 
 class AutoDict(defaultdict):

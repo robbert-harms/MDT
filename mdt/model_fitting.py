@@ -5,8 +5,6 @@ import os
 import time
 import timeit
 from contextlib import contextmanager
-
-import nibabel as nib
 import numpy as np
 from six import string_types
 
@@ -19,8 +17,8 @@ from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.protocols import write_protocol
 from mdt.utils import create_roi, load_problem_data, ProtocolProblemError, MetaOptimizerBuilder, get_cl_devices, \
     get_model_config, apply_model_protocol_options, model_output_exists, split_image_path, get_processing_strategy, \
-    estimate_noise_std, FittingProcessingWorker, per_model_logging_context, recursive_merge_dict, \
-    NoiseStdEstimationNotPossible
+    FittingProcessingWorker, per_model_logging_context, recursive_merge_dict, \
+    get_noise_std_value
 from mot.load_balance_strategies import EvenDistribution
 import mot.configuration
 from mot.configuration import RuntimeConfigurationAction
@@ -129,6 +127,7 @@ class _BatchFitRunner(object):
         self._recalculate = recalculate
         self._cl_device_ind = cl_device_ind
         self._double_precision = double_precision
+        self._logger = logging.getLogger(__name__)
 
     def __call__(self, subject_info):
         """Run the batch fitting on the given subject.
@@ -138,65 +137,53 @@ class _BatchFitRunner(object):
         Args:
             batch_instance (dict): contains the items: 'subject', 'config', 'output_dir'
         """
-        logger = logging.getLogger(__name__)
-
         output_dir = subject_info.output_dir
 
         protocol = subject_info.get_protocol_loader().get_protocol()
         brain_mask_fname = subject_info.get_mask_filename()
 
-        if all(model_output_exists(model, os.path.join(output_dir, split_image_path(brain_mask_fname)[1]))
-               for model in self._models_to_fit) and not self._recalculate:
-            logger.info('Skipping subject {0}, output exists'.format(subject_info.subject_id))
+        if self._output_exists(output_dir, brain_mask_fname):
+            self._logger.info('Skipping subject {0}, output exists'.format(subject_info.subject_id))
             return
 
-        logger.info('Loading the data (DWI, mask and protocol) of subject {0}'.format(subject_info.subject_id))
-        problem_data = load_problem_data(subject_info.get_dwi_info(), protocol, brain_mask_fname,
-                                         dtype=np.float64 if self._double_precision else np.float32)
-
-        write_protocol(protocol, os.path.join(output_dir, 'used_protocol.prtcl'))
+        self._logger.info('Loading the data (DWI, mask and protocol) of subject {0}'.format(subject_info.subject_id))
+        data_type = np.float64 if self._double_precision else np.float32
+        problem_data = load_problem_data(subject_info.get_dwi_info(), protocol, brain_mask_fname, dtype=data_type)
 
         gradient_deviations = subject_info.get_gradient_deviations()
-        if gradient_deviations:
-            gradient_deviations = nib.load(gradient_deviations).get_data()
+        noise_std = get_noise_std_value(subject_info.get_noise_std(), problem_data)
 
-        noise_std = self._get_noise_std(subject_info.get_noise_std(), problem_data)
+        with self._timer(subject_info.subject_id):
+            for model in self._models_to_fit:
+                self._logger.info('Going to fit model {0} on subject {1}'.format(model, subject_info.subject_id))
+                try:
+                    model_fit = ModelFit(model,
+                                         problem_data,
+                                         os.path.join(output_dir, split_image_path(brain_mask_fname)[1]),
+                                         recalculate=self._recalculate,
+                                         only_recalculate_last=True,
+                                         model_protocol_options=self._model_protocol_options,
+                                         cl_device_ind=self._cl_device_ind,
+                                         double_precision=self._double_precision,
+                                         gradient_deviations=gradient_deviations,
+                                         noise_std=noise_std)
+                    model_fit.run()
+                except ProtocolProblemError as ex:
+                    self._logger.info('Could not fit model {0} on subject {1} '
+                                      'due to protocol problems. {2}'.format(model, subject_info.subject_id, ex))
+                else:
+                    self._logger.info('Done fitting model {0} on subject {1}'.format(model, subject_info.subject_id))
 
+    @contextmanager
+    def _timer(self, subject_id):
         start_time = timeit.default_timer()
-        for model in self._models_to_fit:
-            logger.info('Going to fit model {0} on subject {1}'.format(model, subject_info.subject_id))
-            try:
-                model_fit = ModelFit(model,
-                                     problem_data,
-                                     os.path.join(output_dir, split_image_path(brain_mask_fname)[1]),
-                                     recalculate=self._recalculate,
-                                     only_recalculate_last=True,
-                                     model_protocol_options=self._model_protocol_options,
-                                     cl_device_ind=self._cl_device_ind,
-                                     double_precision=self._double_precision,
-                                     gradient_deviations=gradient_deviations,
-                                     noise_std=noise_std)
-                model_fit.run()
-            except ProtocolProblemError as ex:
-                logger.info('Could not fit model {0} on subject {1} '
-                            'due to protocol problems. {2}'.format(model, subject_info.subject_id, ex))
-            else:
-                logger.info('Done fitting model {0} on subject {1}'.format(model, subject_info.subject_id))
-        logger.info('Fitted all models on subject {0} in time {1} (h:m:s)'.format(
-            subject_info.subject_id, time.strftime('%H:%M:%S', time.gmtime(timeit.default_timer() - start_time))))
+        yield
+        self._logger.info('Fitted all models on subject {0} in time {1} (h:m:s)'.format(
+            subject_id, time.strftime('%H:%M:%S', time.gmtime(timeit.default_timer() - start_time))))
 
-    def _get_noise_std(self, noise_std, problem_data):
-        if noise_std == 'auto':
-            logger = logging.getLogger(__name__)
-            logger.info('The noise std was set to \'auto\', we will estimate one.')
-            try:
-                return estimate_noise_std(problem_data)
-            except NoiseStdEstimationNotPossible:
-                logger.warn('Failed to estimate a noise std for this subject. We will continue with an std of 1.')
-                return 1
-        elif noise_std is None:
-            noise_std = 1.0
-        return noise_std
+    def _output_exists(self, output_dir, brain_mask_fname):
+        path = os.path.join(output_dir, split_image_path(brain_mask_fname)[1])
+        return all(model_output_exists(model, path) for model in self._models_to_fit) and not self._recalculate
 
 
 class ModelFit(object):
@@ -231,9 +218,15 @@ class ModelFit(object):
                 get_cl_devices(). This can also be a list of device indices.
             double_precision (boolean): if we would like to do the calculations in double precision
             gradient_deviations (ndarray): set of gradient deviations to use. In HCP WUMINN format.
-            noise_std (double or 'auto'): the noise level standard deviation. This is useful for model comparisons.
-                By default this is None and we set it to 1. If set to auto we try to estimate it using multiple
-                noise std calculators.
+            noise_std (None, double, ndarray, 'auto', 'auto-local' or 'auto-global'): the noise level standard deviation.
+                The value can be either:
+                    None: set to 1
+                    double: use a single value for all voxels
+                    ndarray: use a value per voxel
+                    'auto': defaults to 'auto-global'
+                    'auto-global': estimates one noise std value for all the voxels
+                    'auto-local': estimates one noise std value per voxel
+
         """
         if isinstance(model, string_types):
             model = get_model(model)
@@ -269,7 +262,7 @@ class ModelFit(object):
 
         with mot.configuration.config_context(RuntimeConfigurationAction(cl_environments=self._cl_envs,
                                                                          load_balancer=self._load_balancer)):
-            self._noise_std = self._get_noise_std(noise_std)
+            self._noise_std = get_noise_std_value(noise_std, self._problem_data)
 
         if not model.is_protocol_sufficient(self._problem_data.protocol):
             raise ProtocolProblemError(
@@ -328,8 +321,14 @@ class ModelFit(object):
                 self._logger.info('Using MDT version {}'.format(__version__))
                 self._logger.info('Preparing for model {0}'.format(model.name))
                 self._logger.info('Current cascade: {0}'.format(model_names))
-                self._logger.info('Setting the noise standard deviation to {0}'.format(self._noise_std))
-                model.evaluation_model.set_noise_level_std(self._noise_std, fix=True)
+
+                if isinstance(self._noise_std, np.ndarray):
+                    self._logger.info('Setting the noise standard deviation to a voxel-wise value.')
+                    model.evaluation_model.set_noise_level_std(
+                        create_roi(self._noise_std, self._problem_data.mask), fix=True)
+                else:
+                    self._logger.info('Setting the noise standard deviation globally to {0}'.format(self._noise_std))
+                    model.evaluation_model.set_noise_level_std(self._noise_std, fix=True)
 
                 optimizer = self._optimizer or MetaOptimizerBuilder(meta_optimizer_config).construct(model_names)
 
@@ -351,14 +350,6 @@ class ModelFit(object):
                 results = fitter.run()
 
         return results
-
-    def _get_noise_std(self, noise_std):
-        if noise_std == 'auto':
-            self._logger.info('The noise std was set to \'auto\', we will estimate one.')
-            return estimate_noise_std(self._problem_data)
-        elif noise_std is None:
-            noise_std = 1.0
-        return noise_std
 
 
 class SingleModelFit(object):

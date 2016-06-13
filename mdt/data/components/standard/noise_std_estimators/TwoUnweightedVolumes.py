@@ -1,5 +1,5 @@
 import numpy as np
-from mdt import create_roi, create_median_otsu_brain_mask
+from mdt import create_roi
 from mdt.utils import ComplexNoiseStdEstimator, NoiseStdEstimationNotPossible
 
 __author__ = 'Robbert Harms'
@@ -10,7 +10,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class TwoUnweightedVolumes(ComplexNoiseStdEstimator):
 
-    def estimate(self, **kwargs):
+    def estimate_global(self, **kwargs):
         """Calculate the standard deviation of the error using the first two unweighted volumes/
 
         This subtracts the values of the first two unweighted volumes from each other, calculates the std over
@@ -21,16 +21,25 @@ class TwoUnweightedVolumes(ComplexNoiseStdEstimator):
         Returns:
             float: single value representing the sigma for the given volume
         """
-        if self._mask is None:
-            self._mask = create_median_otsu_brain_mask(self._signal4d, self._protocol)
-
-        unweighted_indices = self._protocol.get_unweighted_indices()
-        unweighted_volumes = self._signal4d[..., unweighted_indices]
+        unweighted_indices = self._problem_data.protocol.get_unweighted_indices()
+        unweighted_volumes = self._problem_data.dwi_volume[..., unweighted_indices]
 
         if len(unweighted_indices) < 2:
             raise NoiseStdEstimationNotPossible('Not enough unweighted volumes for this estimator.')
 
         diff = unweighted_volumes[..., 0] - unweighted_volumes[..., 1]
-        voxel_values = create_roi(diff, self._mask)
+        voxel_values = create_roi(diff, self._problem_data.mask)
         return np.std(voxel_values) / np.sqrt(2)
 
+    def estimate_local(self, **kwargs):
+        """Calculate the standard deviation of the error using all unweighted volumes.
+
+        This calculates per voxel the std over all unweighted volumes, per voxel.
+
+        Returns:
+            ndarray: a noise std for every voxel
+
+        Raises:
+            NoiseStdEstimationNotPossible: if we can not estimate the sigma using this estimator
+        """
+        raise NoiseStdEstimationNotPossible('This routine can only estimate a global noise std.')

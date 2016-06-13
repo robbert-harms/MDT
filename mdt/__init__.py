@@ -65,7 +65,7 @@ def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalcul
     from mdt.model_fitting import BatchFitting
 
     if not utils.check_user_components():
-        raise RuntimeError('User\'s components folder is not up to date. Please run the script mdt-init-user-settings.')
+        raise RuntimeError('Your components folder is not up to date. Please run the script mdt-init-user-settings.')
 
     batch_fitting = BatchFitting(data_folder, batch_profile=batch_profile, subjects_selection=subjects_selection,
                                  recalculate=recalculate, cl_device_ind=cl_device_ind,
@@ -106,9 +106,14 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
             utils.get_cl_devices(). This can also be a list of device indices.
         double_precision (boolean): if we would like to do the calculations in double precision
         gradient_deviations (str or ndarray): set of gradient deviations to use. In HCP WUMINN format.
-        noise_std (double or 'auto'): the noise level standard deviation. This is useful for model comparisons.
-                By default this is None and we set it to 1. If set to auto we try to estimate it using multiple
-                noise std calculators.
+        noise_std (None, double, ndarray, 'auto', 'auto-local' or 'auto-global'): the noise level standard deviation.
+                The value can be either:
+                    None: set to 1
+                    double: use a single value for all voxels
+                    ndarray: use a value per voxel
+                    'auto': defaults to 'auto-global'
+                    'auto-global': estimates one noise std value for all the voxels
+                    'auto-local': estimates one noise std value per voxel
 
     Returns:
         the output of the optimization. If a cascade is given, only the results of the last model in the cascade is
@@ -123,7 +128,7 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
             gradient_deviations = load_nifti(gradient_deviations).get_data()
 
     if not utils.check_user_components():
-        raise RuntimeError('User\'s components folder is not up to date. Please the script mdt-init-user-settings.')
+        raise RuntimeError('Your components folder is not up to date. Please run the script mdt-init-user-settings.')
 
     model_fit = ModelFit(model, problem_data, output_folder, optimizer=optimizer, recalculate=recalculate,
                          only_recalculate_last=only_recalculate_last, model_protocol_options=model_protocol_options,
@@ -157,9 +162,14 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
             utils.get_cl_devices().
         double_precision (boolean): if we would like to do the calculations in double precision
         gradient_deviations (str or ndarray): set of gradient deviations to use. In HCP WUMINN format.
-        noise_std (double or 'auto'): the noise level standard deviation. This is useful for model comparisons.
-                By default this is None and we set it to 1. If set to auto we try to estimate it using multiple
-                noise std calculators.
+                noise_std (None, double, ndarray, 'auto', 'auto-local' or 'auto-global'): the noise level standard deviation.
+                The value can be either:
+                    None: set to 1
+                    double: use a single value for all voxels
+                    ndarray: use a value per voxel
+                    'auto': defaults to 'auto-global'
+                    'auto-global': estimates one noise std value for all the voxels
+                    'auto-local': estimates one noise std value per voxel
         initialize (boolean): If we want to initialize the sampler with optimization output.
             This assumes that the optimization results are in the folder:
                 <output_folder>/<model_name>/
@@ -180,7 +190,7 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
             gradient_deviations = load_nifti(gradient_deviations).get_data()
 
     if not utils.check_user_components():
-        raise RuntimeError('User\'s components folder is not up to date. Please run the script mdt-init-user-settings.')
+        raise RuntimeError('Your components folder is not up to date. Please run the script mdt-init-user-settings.')
 
     sampling = ModelSampling(model, problem_data, output_folder,
                              sampler=sampler, recalculate=recalculate, cl_device_ind=cl_device_ind,
@@ -242,22 +252,25 @@ def run_function_on_batch_fit_output(data_folder, func, batch_profile=None, subj
                                             subjects_selection=subjects_selection)
 
 
-def estimate_noise_std(problem_data, estimation_cls_name=None):
+def estimate_noise_std(problem_data, estimation_cls_name=None, voxel_wise=False):
     """Estimate the noise standard deviation.
 
     Args:
         problem_data (DMRIProblemData): the problem data we can use to do the estimation
         estimation_cls_name (str): the name of the estimation class to load. If none given we try each defined in the
             current config.
+        voxel_wise (boolean): if False we return a single noise std for all voxels. If True we return a
+            noise std per voxel.
 
     Returns:
-        float: the noise std for the data in problem data
+        if voxel_wise is set to False we return a single float with the noise std for all voxels.
+        else, if voxel_wise is set to True we return a distinct noise std for every voxel in the volume.
 
     Raises:
         NoiseStdEstimationNotPossible: if the noise could not be estimated
     """
     from mdt.utils import estimate_noise_std
-    return estimate_noise_std(problem_data, estimation_cls_name=estimation_cls_name)
+    return estimate_noise_std(problem_data, estimation_cls_name=estimation_cls_name, voxel_wise=voxel_wise)
 
 
 def get_cl_devices():
@@ -1013,8 +1026,22 @@ def get_model(model_name, **kwargs):
     Returns:
         Either a cascade model or a single model. In any case, a model that can be given to the fit_model function.
     """
-    import mdt.components_loader
-    return components_loader.get_model(model_name, **kwargs)
+    from mdt.components_loader import get_model
+    return get_model(model_name, **kwargs)
+
+
+def get_batch_profile(batch_profile_name, *args, **kwargs):
+    """Load one of the batch profiles.
+
+    This is short for load_component('batch_profiles', batch_profile_name).
+
+    Args:
+        batch_profile_name (str): the name of the batch profile to load
+
+    Returns:
+        BatchProfile: the batch profile for use in batch fitting routines.
+    """
+    return load_component('batch_profiles', batch_profile_name, *args, **kwargs)
 
 
 def load_component(component_type, component_name, *args, **kwargs):
