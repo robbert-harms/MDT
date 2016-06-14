@@ -15,7 +15,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.7.20'
+VERSION = '0.7.21'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')
@@ -106,14 +106,12 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
             utils.get_cl_devices(). This can also be a list of device indices.
         double_precision (boolean): if we would like to do the calculations in double precision
         gradient_deviations (str or ndarray): set of gradient deviations to use. In HCP WUMINN format.
-        noise_std (None, double, ndarray, 'auto', 'auto-local' or 'auto-global'): the noise level standard deviation.
+        noise_std (None, double, ndarray, or 'auto'): the noise level standard deviation.
                 The value can be either:
                     None: set to 1
                     double: use a single value for all voxels
                     ndarray: use a value per voxel
                     'auto': defaults to 'auto-global'
-                    'auto-global': estimates one noise std value for all the voxels
-                    'auto-local': estimates one noise std value per voxel
 
     Returns:
         the output of the optimization. If a cascade is given, only the results of the last model in the cascade is
@@ -162,14 +160,12 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
             utils.get_cl_devices().
         double_precision (boolean): if we would like to do the calculations in double precision
         gradient_deviations (str or ndarray): set of gradient deviations to use. In HCP WUMINN format.
-                noise_std (None, double, ndarray, 'auto', 'auto-local' or 'auto-global'): the noise level standard deviation.
+                noise_std (None, double, ndarray or 'auto'): the noise level standard deviation.
                 The value can be either:
                     None: set to 1
                     double: use a single value for all voxels
                     ndarray: use a value per voxel
-                    'auto': defaults to 'auto-global'
-                    'auto-global': estimates one noise std value for all the voxels
-                    'auto-local': estimates one noise std value per voxel
+                    'auto': tries to estimate the noise std from the data
         initialize (boolean): If we want to initialize the sampler with optimization output.
             This assumes that the optimization results are in the folder:
                 <output_folder>/<model_name>/
@@ -252,25 +248,22 @@ def run_function_on_batch_fit_output(data_folder, func, batch_profile=None, subj
                                             subjects_selection=subjects_selection)
 
 
-def estimate_noise_std(problem_data, estimation_cls_name=None, voxel_wise=False):
+def estimate_noise_std(problem_data, estimation_cls_name=None):
     """Estimate the noise standard deviation.
 
     Args:
         problem_data (DMRIProblemData): the problem data we can use to do the estimation
         estimation_cls_name (str): the name of the estimation class to load. If none given we try each defined in the
             current config.
-        voxel_wise (boolean): if False we return a single noise std for all voxels. If True we return a
-            noise std per voxel.
 
     Returns:
-        if voxel_wise is set to False we return a single float with the noise std for all voxels.
-        else, if voxel_wise is set to True we return a distinct noise std for every voxel in the volume.
+        the noise std estimated from the data. This can either be a single float, or an ndarray.
 
     Raises:
         NoiseStdEstimationNotPossible: if the noise could not be estimated
     """
     from mdt.utils import estimate_noise_std
-    return estimate_noise_std(problem_data, estimation_cls_name=estimation_cls_name, voxel_wise=voxel_wise)
+    return estimate_noise_std(problem_data, estimation_cls_name=estimation_cls_name)
 
 
 def get_cl_devices():

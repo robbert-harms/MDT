@@ -9,7 +9,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class AverageOfAir_ExtendedMask(ComplexNoiseStdEstimator):
 
-    def estimate_global(self, **kwargs):
+    def estimate(self, **kwargs):
         """Calculate the standard deviation of the error using the air (voxels outside the brain),
 
         This procedure first finds the extreme points of the given brain mask in all dimensions. Next, it extends
@@ -32,9 +32,6 @@ class AverageOfAir_ExtendedMask(ComplexNoiseStdEstimator):
             raise NoiseStdEstimationNotPossible('No voxels in air found.')
 
         return np.median(np.sqrt(2.0 / (4.0 - np.pi)) * np.std(voxels, axis=1))
-
-    def estimate_local(self, **kwargs):
-        raise NoiseStdEstimationNotPossible('This routine can only estimate a global noise std.')
 
     def _get_air_voxels(self, border_offset=3):
         """Get a two dimensional list with all the voxels in the air.

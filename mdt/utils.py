@@ -1185,30 +1185,17 @@ class ComplexNoiseStdEstimator(object):
     def __init__(self, problem_data):
         """Estimation routine for estimating the standard deviation of the Gaussian error in the complex signal images.
 
-        This interface has two main functions, estimate_global and estimate_local. The first is for getting a
-        single noise std. for all voxels in the dataset. The second should estimate the noise std. per voxel.
-
         Args:
             problem_data the full set of problem data
         """
         self._problem_data = problem_data
         self._logger = logging.getLogger(__name__)
 
-    def estimate_global(self, **kwargs):
+    def estimate(self, **kwargs):
         """Get a noise std for the entire volume.
 
         Returns:
-            float: single value representing the sigma for the given volume
-
-        Raises:
-            NoiseStdEstimationNotPossible: if we can not estimate the sigma using this estimator
-        """
-
-    def estimate_local(self, **kwargs):
-        """Get a noise std for every voxel
-
-        Returns:
-            ndarray: a noise std for every voxel
+            float or ndarray: the noise sigma of the Gaussian noise in the original complex image domain
 
         Raises:
             NoiseStdEstimationNotPossible: if we can not estimate the sigma using this estimator
@@ -1641,19 +1628,16 @@ def get_processing_strategy(processing_type, model_names=None):
     return ProcessingStrategiesLoader().load(strategy_name, **options)
 
 
-def estimate_noise_std(problem_data, estimation_cls_name=None, voxel_wise=False):
+def estimate_noise_std(problem_data, estimation_cls_name=None):
     """Estimate the noise standard deviation.
 
     Args:
         problem_data (DMRIProblemData): the problem data we can use to do the estimation
         estimation_cls_name (str): the name of the estimation class to load. If none given we try each defined in the
             current config.
-        voxel_wise (boolean): if False we return a single noise std for all voxels. If True we return a
-            noise std per voxel.
 
     Returns:
-        if voxel_wise is set to False we return a single float with the noise std for all voxels.
-        else, if voxel_wise is set to True we return a distinct noise std for every voxel in the volume.
+        the noise std estimated from the data. This can either be a single float, or an ndarray.
 
     Raises:
         NoiseStdEstimationNotPossible: if the noise could not be estimated
@@ -1663,16 +1647,15 @@ def estimate_noise_std(problem_data, estimation_cls_name=None, voxel_wise=False)
 
     def estimate(estimator_name):
         estimator = loader.get_class(estimator_name)(problem_data)
+        noise_std = estimator.estimate()
 
-        if voxel_wise:
-            noise_std = estimator.estimate_local()
-            logger.info('Found local noise sigma using estimator {}.'.format(estimator_name))
+        if isinstance(noise_std, np.ndarray):
+            logger.info('Found voxel-wise noise std using estimator {}.'.format(noise_std, estimator_name))
             return noise_std
-        else:
-            noise_std = estimator.estimate_global()
-            if np.isfinite(noise_std) and noise_std > 0:
-                logger.info('Found global noise std {} using estimator {}.'.format(noise_std, estimator_name))
-                return noise_std
+
+        if np.isfinite(noise_std) and noise_std > 0:
+            logger.info('Found global noise std {} using estimator {}.'.format(noise_std, estimator_name))
+            return noise_std
 
     if estimation_cls_name:
         estimators = [estimation_cls_name]
@@ -1703,9 +1686,7 @@ def get_noise_std_value(noise_std, problem_data):
                 None: set to 1
                 double: use a single value for all voxels
                 ndarray: use a value per voxel. If given this should be a value for the entire dataset.
-                'auto': defaults to 'auto-global'
-                'auto-global': estimates one noise std value for all the voxels
-                'auto-local': estimates one noise std value per voxel
+                'auto': tries to estimate the noise std from the data
 
         problem_data: if we need to estimate the noise std, the problem data to use
 
@@ -1717,20 +1698,11 @@ def get_noise_std_value(noise_std, problem_data):
     elif isinstance(noise_std, np.ndarray):
         return noise_std
 
-    elif noise_std == 'auto' or noise_std == 'auto-global':
+    elif noise_std == 'auto':
         logger = logging.getLogger(__name__)
-        logger.info('The noise std was set to \'{}\', we will estimate a global noise std.'.format(noise_std))
+        logger.info('The noise std was set to \'auto\', we will now estimate a noise std.')
         try:
             return estimate_noise_std(problem_data)
-        except NoiseStdEstimationNotPossible:
-            logger.warn('Failed to estimate a noise std for this subject. We will continue with an std of 1.')
-            return 1
-
-    elif noise_std == 'auto-local':
-        logger = logging.getLogger(__name__)
-        logger.info('The noise std was set to \'local\', we will estimate a local noise std.')
-        try:
-            return estimate_noise_std(problem_data, voxel_wise=True)
         except NoiseStdEstimationNotPossible:
             logger.warn('Failed to estimate a noise std for this subject. We will continue with an std of 1.')
             return 1

@@ -17,7 +17,7 @@ from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.utils import create_roi, \
     ProtocolProblemError, model_output_exists, get_cl_devices, get_model_config, \
     apply_model_protocol_options, get_processing_strategy, per_model_logging_context, SamplingProcessingWorker, \
-    memory_load_samples, recursive_merge_dict, estimate_noise_std, get_noise_std_value
+    memory_load_samples, recursive_merge_dict, get_noise_std_value
 from mot.cl_routines.sampling.metropolis_hastings import MetropolisHastings
 from mot.configuration import config_context
 from mot.load_balance_strategies import EvenDistribution

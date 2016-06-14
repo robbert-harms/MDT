@@ -10,7 +10,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class AllUnweightedVolumes(ComplexNoiseStdEstimator):
 
-    def estimate_global(self, **kwargs):
+    def estimate(self, **kwargs):
         """Calculate the standard deviation of the error using all unweighted volumes.
 
         This calculates per voxel the std over all unweighted volumes and takes the mean of those estimates as
@@ -29,22 +29,3 @@ class AllUnweightedVolumes(ComplexNoiseStdEstimator):
 
         voxel_list = create_roi(unweighted_volumes, self._problem_data.mask)
         return np.mean(np.std(voxel_list, axis=1))
-
-    def estimate_local(self, **kwargs):
-        """Calculate the standard deviation of the error using all unweighted volumes.
-
-        This calculates per voxel the std over all unweighted volumes, per voxel.
-
-        Returns:
-            ndarray: a noise std for every voxel
-
-        Raises:
-            NoiseStdEstimationNotPossible: if we can not estimate the sigma using this estimator
-        """
-        unweighted_indices = self._problem_data.protocol.get_unweighted_indices()
-        unweighted_volumes = self._problem_data.dwi_volume[..., unweighted_indices]
-
-        if len(unweighted_indices) < 2:
-            raise NoiseStdEstimationNotPossible('Not enough unweighted volumes for this estimator.')
-
-        return np.std(unweighted_volumes, axis=3)

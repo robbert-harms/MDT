@@ -10,7 +10,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class TwoUnweightedVolumes(ComplexNoiseStdEstimator):
 
-    def estimate_global(self, **kwargs):
+    def estimate(self, **kwargs):
         """Calculate the standard deviation of the error using the first two unweighted volumes/
 
         This subtracts the values of the first two unweighted volumes from each other, calculates the std over
@@ -30,16 +30,3 @@ class TwoUnweightedVolumes(ComplexNoiseStdEstimator):
         diff = unweighted_volumes[..., 0] - unweighted_volumes[..., 1]
         voxel_values = create_roi(diff, self._problem_data.mask)
         return np.std(voxel_values) / np.sqrt(2)
-
-    def estimate_local(self, **kwargs):
-        """Calculate the standard deviation of the error using all unweighted volumes.
-
-        This calculates per voxel the std over all unweighted volumes, per voxel.
-
-        Returns:
-            ndarray: a noise std for every voxel
-
-        Raises:
-            NoiseStdEstimationNotPossible: if we can not estimate the sigma using this estimator
-        """
-        raise NoiseStdEstimationNotPossible('This routine can only estimate a global noise std.')
