@@ -15,7 +15,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.7.20'
+VERSION = '0.7.21'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')
@@ -65,7 +65,7 @@ def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalcul
     from mdt.model_fitting import BatchFitting
 
     if not utils.check_user_components():
-        raise RuntimeError('User\'s components folder is not up to date. Please run the script mdt-init-user-settings.')
+        raise RuntimeError('Your components folder is not up to date. Please run the script mdt-init-user-settings.')
 
     batch_fitting = BatchFitting(data_folder, batch_profile=batch_profile, subjects_selection=subjects_selection,
                                  recalculate=recalculate, cl_device_ind=cl_device_ind,
@@ -106,9 +106,12 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
             utils.get_cl_devices(). This can also be a list of device indices.
         double_precision (boolean): if we would like to do the calculations in double precision
         gradient_deviations (str or ndarray): set of gradient deviations to use. In HCP WUMINN format.
-        noise_std (double or 'auto'): the noise level standard deviation. This is useful for model comparisons.
-                By default this is None and we set it to 1. If set to auto we try to estimate it using multiple
-                noise std calculators.
+        noise_std (None, double, ndarray, or 'auto'): the noise level standard deviation.
+                The value can be either:
+                    None: set to 1
+                    double: use a single value for all voxels
+                    ndarray: use a value per voxel
+                    'auto': defaults to 'auto-global'
 
     Returns:
         the output of the optimization. If a cascade is given, only the results of the last model in the cascade is
@@ -123,7 +126,7 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
             gradient_deviations = load_nifti(gradient_deviations).get_data()
 
     if not utils.check_user_components():
-        raise RuntimeError('User\'s components folder is not up to date. Please the script mdt-init-user-settings.')
+        raise RuntimeError('Your components folder is not up to date. Please run the script mdt-init-user-settings.')
 
     model_fit = ModelFit(model, problem_data, output_folder, optimizer=optimizer, recalculate=recalculate,
                          only_recalculate_last=only_recalculate_last, model_protocol_options=model_protocol_options,
@@ -157,9 +160,12 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
             utils.get_cl_devices().
         double_precision (boolean): if we would like to do the calculations in double precision
         gradient_deviations (str or ndarray): set of gradient deviations to use. In HCP WUMINN format.
-        noise_std (double or 'auto'): the noise level standard deviation. This is useful for model comparisons.
-                By default this is None and we set it to 1. If set to auto we try to estimate it using multiple
-                noise std calculators.
+                noise_std (None, double, ndarray or 'auto'): the noise level standard deviation.
+                The value can be either:
+                    None: set to 1
+                    double: use a single value for all voxels
+                    ndarray: use a value per voxel
+                    'auto': tries to estimate the noise std from the data
         initialize (boolean): If we want to initialize the sampler with optimization output.
             This assumes that the optimization results are in the folder:
                 <output_folder>/<model_name>/
@@ -180,7 +186,7 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
             gradient_deviations = load_nifti(gradient_deviations).get_data()
 
     if not utils.check_user_components():
-        raise RuntimeError('User\'s components folder is not up to date. Please run the script mdt-init-user-settings.')
+        raise RuntimeError('Your components folder is not up to date. Please run the script mdt-init-user-settings.')
 
     sampling = ModelSampling(model, problem_data, output_folder,
                              sampler=sampler, recalculate=recalculate, cl_device_ind=cl_device_ind,
@@ -251,7 +257,7 @@ def estimate_noise_std(problem_data, estimation_cls_name=None):
             current config.
 
     Returns:
-        float: the noise std for the data in problem data
+        the noise std estimated from the data. This can either be a single float, or an ndarray.
 
     Raises:
         NoiseStdEstimationNotPossible: if the noise could not be estimated
@@ -1013,8 +1019,22 @@ def get_model(model_name, **kwargs):
     Returns:
         Either a cascade model or a single model. In any case, a model that can be given to the fit_model function.
     """
-    import mdt.components_loader
-    return components_loader.get_model(model_name, **kwargs)
+    from mdt.components_loader import get_model
+    return get_model(model_name, **kwargs)
+
+
+def get_batch_profile(batch_profile_name, *args, **kwargs):
+    """Load one of the batch profiles.
+
+    This is short for load_component('batch_profiles', batch_profile_name).
+
+    Args:
+        batch_profile_name (str): the name of the batch profile to load
+
+    Returns:
+        BatchProfile: the batch profile for use in batch fitting routines.
+    """
+    return load_component('batch_profiles', batch_profile_name, *args, **kwargs)
 
 
 def load_component(component_type, component_name, *args, **kwargs):

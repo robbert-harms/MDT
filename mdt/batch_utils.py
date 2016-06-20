@@ -7,8 +7,9 @@ from mdt import protocols
 from mdt.components_loader import BatchProfilesLoader
 from mdt.data_loaders.protocol import ProtocolLoader
 from mdt.masking import create_write_median_otsu_brain_mask
-from mdt.protocols import load_protocol, load_bvec_bval
+from mdt.protocols import load_protocol
 from mdt.utils import split_image_path, AutoDict
+import nibabel as nib
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-21"
@@ -236,7 +237,7 @@ class SubjectInfo(object):
         """Get a possible gradient deviation image to use.
 
         Returns:
-            str: the filename of the gradient deviations to use, None if not applicable.
+            ndarray: the gradient deviations to use, None if not applicable.
         """
         return None
 
@@ -307,7 +308,9 @@ class SimpleSubjectInfo(SubjectInfo):
         return self._mask_fname
 
     def get_gradient_deviations(self):
-        return self._gradient_deviations
+        if self._gradient_deviations is not None:
+            return nib.load(self._gradient_deviations).get_data()
+        return None
 
     def get_noise_std(self):
         return self._noise_std

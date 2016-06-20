@@ -275,6 +275,6 @@ def estimate_noise_std(simulated_noisy_signals, protocol, noise_estimator_name='
 
     loader = NoiseSTDCalculatorsLoader()
     cls = loader.get_class(noise_estimator_name)
-    calculator = cls(simulated_noisy_signals, protocol, mask=mask)
+    calculator = cls(mdt.load_problem_data(simulated_noisy_signals, protocol, mask))
 
     return calculator.estimate()

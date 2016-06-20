@@ -1,5 +1,5 @@
 import numpy as np
-from mdt import create_roi, create_median_otsu_brain_mask
+from mdt import create_roi
 from mdt.utils import ComplexNoiseStdEstimator, NoiseStdEstimationNotPossible
 
 __author__ = 'Robbert Harms'
@@ -21,14 +21,11 @@ class AllUnweightedVolumes(ComplexNoiseStdEstimator):
         Returns:
             float: single value representing the sigma for the given volume
         """
-        if self._mask is None:
-            self._mask = create_median_otsu_brain_mask(self._signal4d, self._protocol)
-
-        unweighted_indices = self._protocol.get_unweighted_indices()
-        unweighted_volumes = self._signal4d[..., unweighted_indices]
+        unweighted_indices = self._problem_data.protocol.get_unweighted_indices()
+        unweighted_volumes = self._problem_data.dwi_volume[..., unweighted_indices]
 
         if len(unweighted_indices) < 2:
             raise NoiseStdEstimationNotPossible('Not enough unweighted volumes for this estimator.')
 
-        voxel_list = create_roi(unweighted_volumes, self._mask)
+        voxel_list = create_roi(unweighted_volumes, self._problem_data.mask)
         return np.mean(np.std(voxel_list, axis=1))

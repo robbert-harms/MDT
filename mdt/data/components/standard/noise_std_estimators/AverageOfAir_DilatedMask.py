@@ -14,11 +14,12 @@ class AverageOfAir_DilatedMask(ComplexNoiseStdEstimator):
         """Calculate the standard deviation of the error using the air (voxels outside the brain),
 
         This procedure first dilates the given brian mask a little bit to smooth out the edges. Finally we mask the
-        first n voxels at the edges of the brain since the may be zero-filled. We use all remainder voxels for
+        first n voxels at the edges of the data volume since the may be zero-filled. We use all the remaining voxels for
         the noise std calculation.
 
         We then calculate per voxel the std of the noise and use that to estimate the noise of the original complex
-        image domain using:  sigma_complex = sqrt(2.0 / (4.0 - PI)) * stddev(signal in background region)
+        image domain using:
+            sigma_complex = sqrt(2.0 / (4.0 - PI)) * stddev(signal in background region)
 
         Finally, we take the median value of all calculated std's.
 
@@ -38,7 +39,7 @@ class AverageOfAir_DilatedMask(ComplexNoiseStdEstimator):
         Returns:
             ndarray: The first dimension is the list of voxels, the second the signal per voxel.
         """
-        mask = np.copy(self._mask)
+        mask = np.copy(self._problem_data.mask)
         mask = binary_dilation(mask, iterations=1)
 
         mask[0:border_offset] = True
@@ -48,4 +49,4 @@ class AverageOfAir_DilatedMask(ComplexNoiseStdEstimator):
         mask[..., 0:border_offset] = True
         mask[..., -border_offset:] = True
 
-        return create_roi(self._signal4d, np.invert(mask))
+        return create_roi(self._problem_data.dwi_volume, np.invert(mask))

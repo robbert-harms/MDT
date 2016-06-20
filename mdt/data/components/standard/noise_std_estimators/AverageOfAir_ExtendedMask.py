@@ -14,16 +14,17 @@ class AverageOfAir_ExtendedMask(ComplexNoiseStdEstimator):
 
         This procedure first finds the extreme points of the given brain mask in all dimensions. Next, it extends
         this mask (as a sort cross) in all dimensions to mask out the mask and possible ghostings. Finally we mask the
-        first 10 voxels at the edges of the brain since the may be zero-filled. We use all remainder voxels for
+        first N voxels at the edges of the brain since the may be zero-filled. We use all the remaining voxels for
         the noise std calculation.
 
         We then calculate per voxel the std of the noise and use that to estimate the noise of the original complex
-        image domain using:  sigma_complex = sqrt(2.0 / (4.0 - PI)) * stddev(signal in background region)
+        image domain using:
+            sigma_complex = sqrt(2.0 / (4.0 - PI)) * stddev(signal in background region)
 
         Finally, we take the median value of all calculated std's.
 
         Raises:
-            NoiseStdEstimationNotPossible: if the no voxels are left after the masking procedure
+            NoiseStdEstimationNotPossible: if no voxels are left after the masking procedure
         """
         voxels = self._get_air_voxels()
 
@@ -38,11 +39,11 @@ class AverageOfAir_ExtendedMask(ComplexNoiseStdEstimator):
         Returns:
             ndarray: The first dimension is the list of voxels, the second the signal per voxel.
         """
-        indices = np.where(self._mask > 0)
+        indices = np.where(self._problem_data.mask > 0)
         max_dims = np.max(indices, axis=1)
         min_dims = np.min(indices, axis=1)
 
-        mask = np.copy(self._mask)
+        mask = np.copy(self._problem_data.mask)
 
         mask[min_dims[0]:max_dims[0]] = True
         mask[:, min_dims[1]:max_dims[1], :] = True
@@ -55,4 +56,4 @@ class AverageOfAir_ExtendedMask(ComplexNoiseStdEstimator):
         mask[..., 0:border_offset] = True
         mask[..., -border_offset:] = True
 
-        return create_roi(self._signal4d, np.invert(mask))
+        return create_roi(self._problem_data.dwi_volume, np.invert(mask))
