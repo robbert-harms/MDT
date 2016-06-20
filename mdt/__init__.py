@@ -1280,7 +1280,8 @@ def get_config_dir():
     return os.path.join(os.path.expanduser("~"), '.mdt', __version__)
 
 
-def recalculate_ics(model, problem_data, data_dir, sigma, output_dir=None, sigma_param_name=None):
+def recalculate_ics(model, problem_data, data_dir, sigma, output_dir=None, sigma_param_name=None,
+                    evaluation_model=None):
     """Recalculate the information criterion maps.
 
     This will write the results either to the original data directory, or to the given output dir.
@@ -1295,11 +1296,12 @@ def recalculate_ics(model, problem_data, data_dir, sigma, output_dir=None, sigma
         output_dir (str): if given, we write the output to this directory instead of the data dir.
         sigma_param_name (str): the name of the parameter to which we will set sigma. If not given we search
             the result maps for something ending in .sigma
+        evaluation_model: the evaluation model, we will manually fix the sigma in this function
     """
     import mdt.utils
     from mdt.models.cascade import DMRICascadeModelInterface
     from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
-    from mot.model_building.evaluation_models import GaussianEvaluationModel
+    from mot.model_building.evaluation_models import OffsetGaussianEvaluationModel
 
     logger = logging.getLogger(__name__)
 
@@ -1324,9 +1326,11 @@ def recalculate_ics(model, problem_data, data_dir, sigma, output_dir=None, sigma
 
     model.fix(sigma_param_name, sigma)
 
+    evaluation_model = evaluation_model or OffsetGaussianEvaluationModel()
+    evaluation_model.set_noise_level_std(sigma, fix=True)
+
     log_likelihood_calc = LogLikelihoodCalculator()
-    log_likelihoods = log_likelihood_calc.calculate(
-        model, results_maps, evaluation_model=GaussianEvaluationModel().set_noise_level_std(sigma, fix=True))
+    log_likelihoods = log_likelihood_calc.calculate(model, results_maps, evaluation_model=evaluation_model)
 
     k = model.get_nmr_estimable_parameters()
     n = problem_data.protocol.length
