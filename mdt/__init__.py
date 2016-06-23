@@ -1280,7 +1280,8 @@ def get_config_dir():
     return os.path.join(os.path.expanduser("~"), '.mdt', __version__)
 
 
-def recalculate_ics(model, dwi_info, protocol, brain_mask, data_dir, sigma, output_dir=None, sigma_param_name=None):
+def recalculate_ics(model, problem_data, data_dir, sigma, output_dir=None, sigma_param_name=None,
+                    evaluation_model=None):
     """Recalculate the information criterion maps.
 
     This will write the results either to the original data directory, or to the given output dir.
@@ -1288,21 +1289,19 @@ def recalculate_ics(model, dwi_info, protocol, brain_mask, data_dir, sigma, outp
     Args:
         model (str or AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize
             or the name of an model we load with get_model()
-        dwi_info (string): Either an (ndarray, img_header) tuple or the full path to the volume (4d signal data).
-        protocol (Protocol or string): A protocol object with the right protocol for the given data,
-            or a string object with a filename to the given file.
-        brain_mask (string): A full path to a mask file that can optionally be used. If None given, no mask is used.
+        problem_data (DMRIProblemData): the problem data object
         data_dir (str): the directory containing the results for the given model
         sigma (float): the new noise sigma we use for calculating the log likelihood and then the
             information criteria's.
         output_dir (str): if given, we write the output to this directory instead of the data dir.
         sigma_param_name (str): the name of the parameter to which we will set sigma. If not given we search
             the result maps for something ending in .sigma
+        evaluation_model: the evaluation model, we will manually fix the sigma in this function
     """
     import mdt.utils
     from mdt.models.cascade import DMRICascadeModelInterface
     from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
-    from mot.model_building.evaluation_models import GaussianEvaluationModel
+    from mot.model_building.evaluation_models import OffsetGaussianEvaluationModel
 
     logger = logging.getLogger(__name__)
 
@@ -1312,7 +1311,6 @@ def recalculate_ics(model, dwi_info, protocol, brain_mask, data_dir, sigma, outp
     if isinstance(model, DMRICascadeModelInterface):
         raise ValueError('This function does not accept cascade models.')
 
-    problem_data = utils.load_problem_data(dwi_info, protocol, brain_mask)
     model.set_problem_data(problem_data)
 
     results_maps = create_roi(load_volume_maps(data_dir), problem_data.mask)
@@ -1328,9 +1326,11 @@ def recalculate_ics(model, dwi_info, protocol, brain_mask, data_dir, sigma, outp
 
     model.fix(sigma_param_name, sigma)
 
+    evaluation_model = evaluation_model or OffsetGaussianEvaluationModel()
+    evaluation_model.set_noise_level_std(sigma, fix=True)
+
     log_likelihood_calc = LogLikelihoodCalculator()
-    log_likelihoods = log_likelihood_calc.calculate(
-        model, results_maps, evaluation_model=GaussianEvaluationModel().set_noise_level_std(sigma, fix=True))
+    log_likelihoods = log_likelihood_calc.calculate(model, results_maps, evaluation_model=evaluation_model)
 
     k = model.get_nmr_estimable_parameters()
     n = problem_data.protocol.length
