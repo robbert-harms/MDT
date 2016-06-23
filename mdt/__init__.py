@@ -670,7 +670,7 @@ def results_preselection_names(data):
     else:
         keys = data
 
-    filter_match = ('.vec', '.d', '.sigma', 'AIC', 'Errors.mse', 'LogLikelihood', '.eigen_ranking')
+    filter_match = ('.vec', '.d', '.sigma', 'AIC', 'Errors.mse', 'Errors.sse', '.eigen_ranking')
     return list(sorted(filter(lambda v: all(m not in v for m in filter_match), keys)))
 
 
