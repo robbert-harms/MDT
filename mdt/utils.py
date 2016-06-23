@@ -1406,8 +1406,16 @@ class FittingProcessingWorker(ModelProcessingWorker):
 
             results = {}
             for map_name in map_names:
-                map_paths = list(os.path.join(chunks_dir, sub_dir, map_name + '.nii.gz') for sub_dir in sub_dirs)
-                mask_paths = list(os.path.join(chunks_dir, sub_dir, '__mask.nii.gz') for sub_dir in sub_dirs)
+                map_paths = []
+                mask_paths = []
+
+                for sub_dir in sub_dirs:
+                    map_file = os.path.join(chunks_dir, sub_dir, map_name + '.nii.gz')
+
+                    if os.path.exists(map_file):
+                        map_paths.append(map_file)
+                        mask_paths.append(os.path.join(chunks_dir, sub_dir, '__mask.nii.gz'))
+
                 results.update({map_name: join_parameter_maps(output_path, map_paths, mask_paths, map_name)})
 
             return results
