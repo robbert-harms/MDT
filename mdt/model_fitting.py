@@ -223,10 +223,10 @@ class ModelFit(object):
                 The value can be either:
                     None: set to 1
                     double: use a single value for all voxels
-                    ndarray: use a value per voxel
-                    'auto': defaults to 'auto-global'
-                    'auto-global': estimates one noise std value for all the voxels
-                    'auto-local': estimates one noise std value per voxel
+                    ndarray: use a value per voxel (this should not be a roi list, it should be an actual volume
+                        of the same size as the dataset)
+                    string: a filename we will try to parse as a noise std
+                    'auto': try to estimate the noise std
 
         """
         if isinstance(model, string_types):

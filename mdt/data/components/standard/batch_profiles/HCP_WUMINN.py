@@ -28,7 +28,7 @@ Optional items (these will take precedence if present):
     /*/T1w/Diffusion/data.bvec
     /*/T1w/Diffusion/data.prtcl
     /*/T1w/Diffusion/data_mask.nii(.gz)
-    /*/noise_std
+    /*/T1w/Diffusion/noise_std
 '''}
 
 

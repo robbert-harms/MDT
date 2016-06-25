@@ -4,7 +4,6 @@ import argparse
 import os
 import mdt
 from argcomplete.completers import FilesCompleter
-
 from mdt.shell_utils import BasicShellApplication
 from mot import cl_environments
 import textwrap
@@ -18,7 +17,14 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class ModelFit(BasicShellApplication):
 
     def _get_arg_parser(self):
-        description = "Fit one of the models to the given data."
+        description = textwrap.dedent("""
+            Fit one of the models to the given data.
+
+            This function can use two kinds of noise standard deviation, a global or a local (voxel wise).
+            If the argument -n / --noise-std is not set, MDT uses a default automatic noise estimation which
+            may be either global or local. To use a predefined global noise std please set the argument to a
+            floating point value. To use a voxel wise noise std, please give it a filename with a map to load.
+        """)
         description += mdt.shell_utils.get_citation_message()
 
         epilog = textwrap.dedent("""
@@ -54,7 +60,7 @@ class ModelFit(BasicShellApplication):
 
         parser.add_argument('-n', '--noise-std', default='auto',
                             help='the noise std, defaults to "auto" for automatic noise estimation.'
-                                 'Either set this to a value or to "auto".')
+                                 'Either set this to a value, to the literal "auto" or to a filename.')
 
         parser.add_argument('--gradient-deviations',
                             action=mdt.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
@@ -94,10 +100,6 @@ class ModelFit(BasicShellApplication):
         mask_name = mask_name.replace('.nii', '')
         output_folder = args.output_folder or os.path.join(os.path.dirname(args.dwi), 'output', mask_name)
 
-        noise_std = 'auto'
-        if args.noise_std != 'auto':
-            noise_std = float(args.noise_std)
-
         mdt.fit_model(args.model,
                       mdt.load_problem_data(os.path.realpath(args.dwi),
                                             os.path.realpath(args.protocol),
@@ -106,7 +108,7 @@ class ModelFit(BasicShellApplication):
                       only_recalculate_last=args.only_recalculate_last, cl_device_ind=args.cl_device_ind,
                       double_precision=args.double_precision, gradient_deviations=args.gradient_deviations,
                       use_model_protocol_options=args.use_model_protocol_options,
-                      noise_std=noise_std)
+                      noise_std=args.noise_std)
 
 
 if __name__ == '__main__':

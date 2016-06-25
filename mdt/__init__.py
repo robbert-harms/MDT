@@ -15,7 +15,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.7.21'
+VERSION = '0.7.22'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')
@@ -110,8 +110,11 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
                 The value can be either:
                     None: set to 1
                     double: use a single value for all voxels
-                    ndarray: use a value per voxel
-                    'auto': defaults to 'auto-global'
+                    ndarray: use a value per voxel (this should not be a roi list, it should be an actual volume
+                        of the same size as the dataset)
+                    string: a filename we will try to parse as a noise std
+                    'auto': try to estimate the noise std
+
 
     Returns:
         the output of the optimization. If a cascade is given, only the results of the last model in the cascade is
@@ -165,6 +168,7 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
                     None: set to 1
                     double: use a single value for all voxels
                     ndarray: use a value per voxel
+                    string: a filename we will try to parse as a noise std
                     'auto': tries to estimate the noise std from the data
         initialize (boolean): If we want to initialize the sampler with optimization output.
             This assumes that the optimization results are in the folder:

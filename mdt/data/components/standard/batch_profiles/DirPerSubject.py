@@ -34,12 +34,10 @@ Optional items:
 
     /*/*_mask.nii(.gz)
 
-    /*/noise_std
+    /*/noise_std.{txt,nii,nii.gz}
 
 The optional items TE, Delta and delta provide extra information about the protocol.
 They should either contain exactly 1 value (for all protocol lines), or a value per protocol line.
-
-It is better to create the protocol directly by creating a .prtcl file, but adding single value files is also possible.
 '''}
 
 
@@ -55,7 +53,7 @@ class DirPerSubject(SimpleBatchProfile):
 
         for subject_id in dirs:
             niftis = glob.glob(os.path.join(self._root_dir, subject_id, '*.nii*'))
-            dwis = list(filter(lambda v: '_mask' not in v and 'grad_dev' not in v, niftis))
+            dwis = list(filter(lambda v: all(name not in v for name in ['_mask', 'grad_dev', 'noise_std']), niftis))
             masks = list(filter(lambda v: '_mask' in v, niftis))
             grad_devs = list(filter(lambda v: 'grad_dev' in v, niftis))
             protocols = glob.glob(os.path.join(self._root_dir, subject_id, '*prtcl'))

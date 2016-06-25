@@ -26,6 +26,7 @@ from mdt.IO import Nifti
 from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
 from mdt.components_loader import get_model, ProcessingStrategiesLoader, NoiseSTDCalculatorsLoader
 from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
+from mdt.data_loaders.noise_std import autodetect_noise_std_loader
 from mdt.data_loaders.protocol import autodetect_protocol_loader
 from mdt.data_loaders.static_maps import autodetect_static_maps_loader
 from mdt.exceptions import NoiseStdEstimationNotPossible
@@ -1645,6 +1646,8 @@ def estimate_noise_std(problem_data, estimation_cls_name=None):
     loader = NoiseSTDCalculatorsLoader()
     logger = logging.getLogger(__name__)
 
+    logger.info('Trying to estimate a noise std.')
+
     def estimate(estimator_name):
         estimator = loader.get_class(estimator_name)(problem_data)
         noise_std = estimator.estimate()
@@ -1681,7 +1684,7 @@ def get_noise_std_value(noise_std, problem_data):
     noise std given the user provided noise std and the problem data.
 
     Args:
-        noise_std (None, double, ndarray, 'auto', 'auto-local' or 'auto-global'): the noise level standard deviation.
+        noise_std: the noise level standard deviation.
             The different values can be:
                 None: set to 1
                 double: use a single value for all voxels
@@ -1695,19 +1698,13 @@ def get_noise_std_value(noise_std, problem_data):
     """
     if noise_std is None:
         return 1
-    elif isinstance(noise_std, np.ndarray):
-        return noise_std
 
-    elif noise_std == 'auto':
+    try:
+        return autodetect_noise_std_loader(noise_std).get_noise_std(problem_data)
+    except NoiseStdEstimationNotPossible:
         logger = logging.getLogger(__name__)
-        logger.info('The noise std was set to \'auto\', we will now estimate a noise std.')
-        try:
-            return estimate_noise_std(problem_data)
-        except NoiseStdEstimationNotPossible:
-            logger.warn('Failed to estimate a noise std for this subject. We will continue with an std of 1.')
-            return 1
-
-    return noise_std
+        logger.warn('Failed to obtain a noise std for this subject. We will continue with an std of 1.')
+        return 1
 
 
 class AutoDict(defaultdict):

@@ -158,12 +158,9 @@ class SimpleBatchProfile(BatchProfile):
             float or None: a float if a float could be loaded from a file noise_std, else nothing.
         """
         file_path = file_path or os.path.join(self._root_dir, subject_id, 'noise_std')
-        if os.path.isfile(file_path):
-            with open(file_path, 'r') as f:
-                try:
-                    return float(f.read())
-                except ValueError:
-                    return None
+        noise_std_files = glob.glob(file_path + '.*')
+        if len(noise_std_files):
+            return noise_std_files[0]
         return None
 
     def _get_subjects(self):

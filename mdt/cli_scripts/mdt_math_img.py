@@ -60,6 +60,7 @@ class MathImg(BasicShellApplication):
                 mdt-math-img fiso.nii ficvf.nii '(1-a) * b' -o Wic.w.nii.gz
                 mdt-math-img *.nii.gz 'np.mean(np.concatenate(i, axis=3), axis=3)' -o output.nii.gz
                 mdt-math-img FA.nii.gz 'np.mean(a)'
+                mdt-math-img FA.nii white_matter_mask.nii 'np.mean(mdt.create_roi(a, b))'
                 mdt-math-img images*.nii.gz mask.nii 'list(map(lambda f: np.mean(mdt.create_roi(f, i[-1])), i[0:-1]))'
         """)
 
@@ -82,7 +83,9 @@ class MathImg(BasicShellApplication):
         return parser
 
     def run(self, args):
-        if args.output_file is not None:
+        write_output = args.output_file is not None
+
+        if write_output:
             output_file = os.path.realpath(args.output_file)
 
             if os.path.isfile(output_file):
@@ -133,7 +136,7 @@ class MathImg(BasicShellApplication):
         if args.verbose:
             print('')
 
-        if args.output_file is not None:
+        if write_output:
             mdt.write_image(output_file, output, mdt.load_nifti(file_names[0]).get_header())
 
 

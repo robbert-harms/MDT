@@ -27,7 +27,7 @@ Optional items (these will take precedence if present):
     /mgh_*/diff/preproc/diff_preproc.prtcl
     /mgh_*/diff/preproc/diff_preproc_mask.nii(.gz)
     /mgh_*/diff/preproc/mri/diff_preproc_mask.nii(.gz)
-    /mgh_*/diff/preproc/noise_std
+    /mgh_*/diff/preproc/noise_std.{txt,nii,nii.gz}
 '''}
 
 

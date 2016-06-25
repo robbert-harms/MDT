@@ -22,7 +22,7 @@ def autodetect_static_maps_loader(data_source):
         data_source: the data source from which to get a static map loader
 
     Returns:
-        StaticMapLoader: a brain_mask loader instance.
+        StaticMapLoader: a static map loader instance.
     """
     if isinstance(data_source, StaticMapLoader):
         return data_source

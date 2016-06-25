@@ -34,16 +34,14 @@ a bvec and bval or protocol file for the protocol information. Subject 'c' also 
 If there is a file mask.nii(.gz) present in the directory it is used as the default mask for all the subjects
 in the single directory that do not have their own mask.
 
-You can provide the noise standard deviation to use using a noise_std file (per subject) containing a single float.
+You can provide the noise standard deviation to use using a noise_std file (per subject). This should either
+be a .txt file (global noise) or a nifti file (voxel wise noise).
 
-Optional items:
-    /<name>.TE (case sensitive)
-    /<name>.Delta (case sensitive)
-    /<name>.delta (case sensitive)
-    /<name>.noise_std (case sensitive)
-
-These provide extra information about the protocol. They should either contain exactly 1 value (for all protocol lines),
-or a value per protocol line.
+Optional items (all case sensitive):
+    /<name>.TE
+    /<name>.Delta
+    /<name>.delta
+    /<name>.noise_std.{txt,nii,nii.gz}
 '''}
 
 
