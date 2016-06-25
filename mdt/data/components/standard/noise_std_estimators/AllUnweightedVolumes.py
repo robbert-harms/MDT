@@ -1,6 +1,7 @@
 import numpy as np
 from mdt import create_roi
-from mdt.utils import ComplexNoiseStdEstimator, NoiseStdEstimationNotPossible
+from mdt.utils import ComplexNoiseStdEstimator
+from mdt.exceptions import NoiseStdEstimationNotPossible
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-11-20"

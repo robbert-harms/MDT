@@ -6,6 +6,7 @@ import itertools
 import numpy as np
 import copy
 import six
+from mdt.exceptions import ProtocolIOError
 
 __author__ = 'Robbert Harms'
 __date__ = "2014-02-06"
@@ -401,14 +402,14 @@ class Protocol(object):
             return sequence_timings[column_name]
 
         if column_name == 'q':
-            return np.reshape((self._gamma_h * sequence_timings['G'] * sequence_timings['delta'] / (2 * np.pi)),
+            return np.reshape(np.array(self._gamma_h * sequence_timings['G'] * sequence_timings['delta'] / (2 * np.pi)),
                               (-1, 1))
 
         if column_name == 'b':
-            return np.reshape(self._gamma_h ** 2 *
+            return np.reshape(np.array(self._gamma_h ** 2 *
                               sequence_timings['G']**2 *
                               sequence_timings['delta']**2 *
-                              (sequence_timings['Delta'] - (sequence_timings['delta']/3)), (-1, 1))
+                              (sequence_timings['Delta'] - (sequence_timings['delta']/3))), (-1, 1))
 
         raise KeyError('The given column name "{}" could not be found in this protocol.'.format(column_name))
 
@@ -418,7 +419,7 @@ class Protocol(object):
         If Delta and delta are available, they are used instead of estimated Delta and delta.
 
         Returns:
-            the columns G, Delta and delta
+            dict: the columns G, Delta and delta
         """
         if all(map(lambda v: v in self._columns, ['b', 'Delta', 'delta'])):
             G = np.sqrt(self._columns['b'] / (self.gamma_h**2 * self._columns['delta']**2 *
@@ -539,14 +540,12 @@ def write_bvec_bval(protocol, bvec_fname, bval_fname, column_based=True, bval_sc
     np.savetxt(bval_fname, b)
 
 
-def load_protocol(protocol_fname, column_names=None):
+def load_protocol(protocol_fname):
     """Load an protocol from the given protocol file, with as column names the given list of names.
 
     Args:
         protocol_fname (string): The filename of the protocol file to load.
             This should be a comma seperated, or tab delimited file with equal length columns.
-        column_names (tuple): A tuple or list of the columns names. Please note that every column should be named.
-            The gradient vector for example should be listed as 'gx', 'gy', 'gz'.
 
     Returns:
         An protocol with all the columns loaded.
@@ -554,17 +553,10 @@ def load_protocol(protocol_fname, column_names=None):
     with open(protocol_fname) as f:
         protocol = f.readlines()
 
-    if not column_names:
-        if protocol[0][0] == '#':
-            line = protocol[0][1:-1]
-            sep = ' '
-            if ',' in line:
-                sep = ','
-            cols = line.split(sep)
-            cols = [c.strip() for c in cols]
-            column_names = cols
-        else:
-            ValueError('No column names given and none in protocol file.')
+    if protocol[0][0] != '#':
+        raise ProtocolIOError('No column names defined in protocol.')
+
+    column_names = [c.strip() for c in protocol[0][1:-1].split(',')]
 
     data = np.genfromtxt(protocol_fname)
     s = data.shape
@@ -575,10 +567,11 @@ def load_protocol(protocol_fname, column_names=None):
     else:
         for i in range(s[1]):
             d.update({column_names[i]: data[:, i]})
+
     return Protocol(columns=d)
 
 
-def column_names_nice_ordering(column_names, preferred_order=None):
+def get_column_names_preferred_order(column_names, preferred_order=None):
     """Order the column names to a nice preferred order.
 
     Args:
@@ -616,7 +609,7 @@ def write_protocol(protocol, fname, columns_list=None):
         A tuple listing the parameters that where written (and in that order)
     """
     if not columns_list:
-        columns_list = column_names_nice_ordering(protocol.column_names)
+        columns_list = get_column_names_preferred_order(protocol.column_names)
 
         if 'G' in columns_list and 'Delta' in columns_list and 'delta' in columns_list:
             if 'b' in columns_list:

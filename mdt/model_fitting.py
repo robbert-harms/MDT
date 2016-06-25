@@ -15,10 +15,11 @@ from mdt.components_loader import get_model
 from mdt.configuration import config
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.protocols import write_protocol
-from mdt.utils import create_roi, load_problem_data, ProtocolProblemError, MetaOptimizerBuilder, get_cl_devices, \
+from mdt.utils import create_roi, load_problem_data, MetaOptimizerBuilder, get_cl_devices, \
     get_model_config, apply_model_protocol_options, model_output_exists, split_image_path, get_processing_strategy, \
     FittingProcessingWorker, per_model_logging_context, recursive_merge_dict, \
     get_noise_std_value
+from mdt.exceptions import InsufficientProtocolError
 from mot.load_balance_strategies import EvenDistribution
 import mot.configuration
 from mot.configuration import RuntimeConfigurationAction
@@ -168,7 +169,7 @@ class _BatchFitRunner(object):
                                          gradient_deviations=gradient_deviations,
                                          noise_std=noise_std)
                     model_fit.run()
-                except ProtocolProblemError as ex:
+                except InsufficientProtocolError as ex:
                     self._logger.info('Could not fit model {0} on subject {1} '
                                       'due to protocol problems. {2}'.format(model, subject_info.subject_id, ex))
                 else:
@@ -265,7 +266,7 @@ class ModelFit(object):
             self._noise_std = get_noise_std_value(noise_std, self._problem_data)
 
         if not model.is_protocol_sufficient(self._problem_data.protocol):
-            raise ProtocolProblemError(
+            raise InsufficientProtocolError(
                 'The given protocol is insufficient for this model. '
                 'The reported errors where: {}'.format(self._model.get_protocol_problems(self._problem_data.protocol)))
 
@@ -381,7 +382,7 @@ class SingleModelFit(object):
         self._processing_strategy = processing_strategy
 
         if not self._model.is_protocol_sufficient(problem_data.protocol):
-            raise ProtocolProblemError(
+            raise InsufficientProtocolError(
                 'The given protocol is insufficient for this model. '
                 'The reported errors where: {}'.format(self._model.get_protocol_problems(problem_data.protocol)))
 

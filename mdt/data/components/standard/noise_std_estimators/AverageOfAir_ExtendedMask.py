@@ -1,4 +1,5 @@
-from mdt.utils import ComplexNoiseStdEstimator, NoiseStdEstimationNotPossible, create_roi
+from mdt.utils import ComplexNoiseStdEstimator, create_roi
+from mdt.exceptions import NoiseStdEstimationNotPossible
 import numpy as np
 
 __author__ = 'Robbert Harms'

@@ -1,4 +1,3 @@
-from collections import defaultdict
 import collections
 import copy
 import distutils.dir_util
@@ -7,17 +6,20 @@ import glob
 import logging
 import logging.config as logging_config
 import os
+import pickle
 import re
 import shutil
 import tempfile
+from collections import defaultdict
 from contextlib import contextmanager
+
 import nibabel as nib
 import numpy as np
-import pickle
 import pkg_resources
 import six
 from scipy.special import jnp_zeros
 from six import string_types
+
 import mdt.configuration as configuration
 from mdt import create_index_matrix
 from mdt.IO import Nifti
@@ -26,6 +28,7 @@ from mdt.components_loader import get_model, ProcessingStrategiesLoader, NoiseST
 from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
 from mdt.data_loaders.protocol import autodetect_protocol_loader
 from mdt.data_loaders.static_maps import autodetect_static_maps_loader
+from mdt.exceptions import NoiseStdEstimationNotPossible
 from mdt.log_handlers import ModelOutputLogHandler
 from mot.base import AbstractProblemData
 from mot.cl_environments import CLEnvironmentFactory
@@ -859,10 +862,6 @@ def flatten(input_it):
                 yield j
 
 
-class ProtocolProblemError(Exception):
-    pass
-
-
 class MetaOptimizerBuilder(object):
 
     def __init__(self, meta_optimizer_config=None):
@@ -1200,13 +1199,6 @@ class ComplexNoiseStdEstimator(object):
         Raises:
             NoiseStdEstimationNotPossible: if we can not estimate the sigma using this estimator
         """
-
-
-class NoiseStdEstimationNotPossible(Exception):
-    """An exception that can be raised by any ComplexNoiseStdEstimator.
-
-    This indicates that the noise std can not be estimated.
-    """
 
 
 def apply_mask(volume, mask, inplace=True):

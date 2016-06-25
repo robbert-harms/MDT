@@ -15,9 +15,10 @@ from mdt.components_loader import get_model
 from mdt.configuration import config
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.utils import create_roi, \
-    ProtocolProblemError, model_output_exists, get_cl_devices, get_model_config, \
+    model_output_exists, get_cl_devices, get_model_config, \
     apply_model_protocol_options, get_processing_strategy, per_model_logging_context, SamplingProcessingWorker, \
     memory_load_samples, recursive_merge_dict, get_noise_std_value
+from mdt.exceptions import InsufficientProtocolError
 from mot.cl_routines.sampling.metropolis_hastings import MetropolisHastings
 from mot.configuration import config_context
 from mot.load_balance_strategies import EvenDistribution
@@ -103,7 +104,7 @@ class ModelSampling(object):
             model.set_gradient_deviations(gradient_deviations)
 
         if not model.is_protocol_sufficient(self._problem_data.protocol):
-            raise ProtocolProblemError(
+            raise InsufficientProtocolError(
                 'The given protocol is insufficient for this model. '
                 'The reported errors where: {}'.format(self._model.get_protocol_problems(self._problem_data.protocol)))
 
@@ -192,7 +193,7 @@ class SampleSingleModel(object):
         self._initialize_using = initialize_using
 
         if not model.is_protocol_sufficient(problem_data.protocol):
-            raise ProtocolProblemError(
+            raise InsufficientProtocolError(
                 'The given protocol is insufficient for this model. '
                 'The reported errors where: {}'.format(model.get_protocol_problems(problem_data.protocol)))
 

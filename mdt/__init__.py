@@ -352,22 +352,19 @@ def load_protocol_bval_bvec(bvec=None, bval=None, bval_scale='auto'):
     return load_bvec_bval(bvec, bval, bval_scale=bval_scale)
 
 
-def load_protocol(filename, column_names=None):
+def load_protocol(filename):
     """Load an protocol from the given protocol file, with as column names the given list of names.
 
     Args:
         filename (string):
             The filename of the protocol file to load. This should be a comma seperated, or tab delimited file
             with equal length columns. The column names can go on the tab and should be comma or space seperated.
-        column_names (tuple, optional):
-            A tuple or list of the columns names. Please note that every column should be named. The gradient vector
-            for example should be listed as 'gx', 'gy', 'gz'.
 
     Returns:
         An protocol with all the columns loaded.
     """
     from mdt.protocols import load_protocol
-    return load_protocol(filename, column_names)
+    return load_protocol(filename)
 
 
 def auto_load_protocol(directory, protocol_options=None, bvec_fname=None, bval_fname=None, bval_scale='auto'):
