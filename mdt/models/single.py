@@ -256,7 +256,7 @@ class DMRISingleModelConfig(ComponentConfig):
         model_expression (str): the model expression. For the syntax see
             mdt.models.parsers.SingleModelExpression.ebnf
         evaluation_model (EvaluationModel): the evaluation model to use during optimization
-        signal_noise_model (SignalNoiseModel): optional signal noise decorator
+        signal_noise_model (SignalNoiseModel): optional text_message_signal noise decorator
         inits (dict): indicating the initialization values for the parameters. Example:
             inits = {'Stick.theta: pi}
         fixes (dict): indicating the constant value for the given parameters. Example:

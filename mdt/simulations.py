@@ -46,9 +46,9 @@ def create_parameters_cube(primary_parameter_index, randomize_parameter_indices,
 
 
 def add_noise_realizations(signal_cube, nmr_noise_realizations, noise_sigma):
-    """Add noise realizations to a signal cube.
+    """Add noise realizations to a text_message_signal cube.
 
-    A signal cube is a 3d matrix with on the first and second dimension changing parameters and on the last dimension
+    A text_message_signal cube is a 3d matrix with on the first and second dimension changing parameters and on the last dimension
     the signals per protocol line. This function adds a dimension to the matrix for the multiple noise realizations. The
     added dimension will be the new third dimension on the matrix.
 
@@ -67,7 +67,7 @@ def add_noise_realizations(signal_cube, nmr_noise_realizations, noise_sigma):
 
 
 def simulate_signals_param_cube(model_name, protocol, parameters_cube):
-    """Generate the signal for the given model for a generated parameters cube.
+    """Generate the text_message_signal for the given model for a generated parameters cube.
 
     Args:
         model_name (str): the name of the model we want to generate the values for
@@ -75,7 +75,7 @@ def simulate_signals_param_cube(model_name, protocol, parameters_cube):
         parameters_cube (ndarray): the 3d matrix with the parameters for every problem instance
 
     Returns:
-        signal estimates as a cube
+        text_message_signal estimates as a cube
     """
     parameters = np.reshape(parameters_cube, (-1, parameters_cube.shape[-1]))
     simulated_signals = simulate_signals(model_name, protocol, parameters)
@@ -157,7 +157,7 @@ def get_permuted_indices(nmr_var_params, grid_size):
 
 
 def simulate_signals(model_name, protocol, parameters):
-    """Generate the signal for the given model for each of the parameters.
+    """Generate the text_message_signal for the given model for each of the parameters.
 
     This function only accepts a 2d list of parameters. For a generated parameters cube use function
     simulate_signals_param_cube.
@@ -168,7 +168,7 @@ def simulate_signals(model_name, protocol, parameters):
         parameters (ndarray): the 2d matrix with the parameters for every problem instance
 
     Returns:
-        signal estimates
+        text_message_signal estimates
     """
     problem_data = SimpleProblemData(protocol, None)
 
@@ -180,14 +180,14 @@ def simulate_signals(model_name, protocol, parameters):
 
 
 def make_rician_distributed(signals, noise_level):
-    """Make the given signal Rician distributed.
+    """Make the given text_message_signal Rician distributed.
 
-    To calculate the noise level divide the signal of the unweighted volumes by the SNR you want. For example,
-    for a unweighted signal b0=1e4 and a desired SNR of 20, you need an noise level of 1e4/20 = 500.
+    To calculate the noise level divide the text_message_signal of the unweighted volumes by the SNR you want. For example,
+    for a unweighted text_message_signal b0=1e4 and a desired SNR of 20, you need an noise level of 1e4/20 = 500.
 
     Args:
         signals: the signals to make Rician distributed
-        noise_level: the level of noise to add. The actual Rician stdev depends on the signal. See ricestat in
+        noise_level: the level of noise to add. The actual Rician stdev depends on the text_message_signal. See ricestat in
             the mathworks library. The noise level can be calculated using b0/SNR.
 
     Returns:
@@ -199,9 +199,9 @@ def make_rician_distributed(signals, noise_level):
 
 
 def list_2d_to_4d(item_list):
-    """Convert a 2d signal/parameter list to a 4d volume.
+    """Convert a 2d text_message_signal/parameter list to a 4d volume.
 
-    This appends two singleton volumes to the signal list to make it 4d.
+    This appends two singleton volumes to the text_message_signal list to make it 4d.
 
     Args:
          item_list (2d ndarray): the list with on the first dimension every problem and on the second
@@ -260,11 +260,11 @@ def estimate_noise_std(simulated_noisy_signals, protocol, noise_estimator_name='
     """Estimate the noise on the noisy simulated dataset.
 
     This routine tries to estimate the noise level of the added noise. It first fits an S0 model to the data with
-    a noise std of 1. It then removes this estimated S0 from the given signal and tries to estimate the noise std
+    a noise std of 1. It then removes this estimated S0 from the given text_message_signal and tries to estimate the noise std
     on the result.
 
     Args:
-        simulated_noisy_signals (ndarray): the list with per problem the noisy simulated signal
+        simulated_noisy_signals (ndarray): the list with per problem the noisy simulated text_message_signal
         protocol (Protocol): the protocol object
         noise_estimator_name (str): the name of the noise estimator to load
 

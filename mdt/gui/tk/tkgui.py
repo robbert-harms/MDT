@@ -18,7 +18,8 @@ from mdt.gui.tk.single_subject.tabs.roi_mask import GenerateROIMaskTab
 from mdt.gui.tk.single_subject.tabs.run_model import RunModelTab
 from mdt.gui.tk.single_subject.tabs.view_results import ViewResultsTab
 from mdt.gui.tk.widgets import CompositeWidget, LoggingTextArea
-from mdt.gui.utils import print_welcome_message, LogMonitorThread
+from mdt.gui.utils import print_welcome_message
+from mdt.gui.tk.utils import LogMonitorThread
 import mdt.utils
 import mdt.protocols
 import mdt.configuration

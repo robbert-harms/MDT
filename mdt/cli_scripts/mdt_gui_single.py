@@ -4,12 +4,6 @@ import argparse
 import os
 import textwrap
 from argcomplete.completers import FilesCompleter
-
-
-# from mdt.gui.tkgui_main import start_single_model_gui
-from mdt.gui.qt_main import start_single_model_gui
-
-
 from mdt.shell_utils import BasicShellApplication, get_citation_message
 
 __author__ = 'Robbert Harms'
@@ -39,6 +33,10 @@ class GUISingle(BasicShellApplication):
         parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument('-d', '--dir', metavar='dir', type=str, help='the base directory for the file choosers',
                             default=None).completer = FilesCompleter()
+
+        parser.add_argument('-tk', dest='tk', action='store_true', help="Launch the TK gui (default)")
+        parser.add_argument('-qt', dest='qt', action='store_true', help="Launch the QT gui")
+
         return parser
 
     def run(self, args):
@@ -47,8 +45,12 @@ class GUISingle(BasicShellApplication):
         else:
             cwd = os.getcwd()
 
-        start_single_model_gui(cwd)
+        if args.qt:
+            from mdt.gui.qt_main import start_single_model_gui
+        else:
+            from mdt.gui.tkgui_main import start_single_model_gui
 
+        start_single_model_gui(cwd)
 
 if __name__ == '__main__':
     GUISingle().start()

@@ -1,5 +1,5 @@
 <RCC>
-  <qresource prefix="gui_single">
+  <qresource lang="English" prefix="gui_single">
     <file>../logo.gif</file>
   </qresource>
 </RCC>

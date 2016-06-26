@@ -325,14 +325,14 @@ def load_problem_data(volume_info, protocol, mask, static_maps=None, dtype=np.fl
     """Load and create the problem data object that can be given to a model
 
     Args:
-        volume_info (string): Either an (ndarray, img_header) tuple or the full path to the volume (4d signal data).
+        volume_info (string): Either an (ndarray, img_header) tuple or the full path to the volume (4d text_message_signal data).
         protocol (Protocol or string): A protocol object with the right protocol for the given data,
             or a string object with a filename to the given file.
         mask (string): A full path to a mask file that can optionally be used. If None given, no mask is used.
         static_maps (Dict[str, val]): the dictionary with per static map the value to use.
             The value can either be an 3d or 4d ndarray, a single number or a string. We will convert all to the
             right format.
-        dtype (dtype) the datatype in which to load the signal volume.
+        dtype (dtype) the datatype in which to load the text_message_signal volume.
 
     Returns:
         The Problem data, in the ProblemData container object.

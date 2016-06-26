@@ -1,6 +1,6 @@
 import sys
 import threading
-from mdt.gui.utils import StdRedirect
+from mdt.gui.utils import ForwardingListener
 
 try:
     #python 2.7
@@ -130,7 +130,7 @@ class ViewResultsProcess(threading.Thread):
         self._slice_ind = slice_ind
 
     def start(self):
-        redirect = StdRedirect(self._output_queue)
+        redirect = ForwardingListener(self._output_queue)
         sys.stdout = redirect
         sys.stderr = redirect
         view_results_slice(self._input_dir, maps_to_show=self._maps_to_show,

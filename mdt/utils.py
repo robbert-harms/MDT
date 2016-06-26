@@ -336,14 +336,14 @@ def create_slice_roi(brain_mask, roi_dimension, roi_slice):
 
 
 def concatenate_two_mri_measurements(datasets):
-    """ Concatenate the given datasets (combination of signal list and protocols)
+    """ Concatenate the given datasets (combination of text_message_signal list and protocols)
 
     For example, as input one can give:
         ((protocol_1, signal4d_1), (protocol_2, signal4d_2))
     And the expected output is:
         (protocol, signal_list)
 
-    Where the signal_list is for every voxel a concatenation of the given signal lists, and the protocol is a
+    Where the signal_list is for every voxel a concatenation of the given text_message_signal lists, and the protocol is a
     concatenation of the given protocols.
 
     Args:
@@ -786,14 +786,14 @@ def load_problem_data(volume_info, protocol, mask, static_maps=None, dtype=np.fl
     """Load and create the problem data object that can be given to a model
 
     Args:
-        volume_info (string): Either an (ndarray, img_header) tuple or the full path to the volume (4d signal data).
+        volume_info (string): Either an (ndarray, img_header) tuple or the full path to the volume (4d text_message_signal data).
         protocol (Protocol or string): A protocol object with the right protocol for the given data,
             or a string object with a filename to the given file.
         mask (ndarray, string): A full path to a mask file or a 3d ndarray containing the mask
         static_maps (Dict[str, val]): the dictionary with per static map the value to use.
             The value can either be an 3d or 4d ndarray, a single number or a string. We will convert all to the
             right format.
-        dtype (dtype) the datatype in which to load the signal volume.
+        dtype (dtype) the datatype in which to load the text_message_signal volume.
 
     Returns:
         DMRIProblemData: the problem data object containing all the info needed for diffusion MRI model fitting
@@ -1183,7 +1183,7 @@ def calculate_information_criterions(log_likelihoods, k, n):
 class ComplexNoiseStdEstimator(object):
 
     def __init__(self, problem_data):
-        """Estimation routine for estimating the standard deviation of the Gaussian error in the complex signal images.
+        """Estimation routine for estimating the standard deviation of the Gaussian error in the complex text_message_signal images.
 
         Args:
             problem_data the full set of problem data

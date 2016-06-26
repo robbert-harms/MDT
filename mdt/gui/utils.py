@@ -1,21 +1,9 @@
-try:
-    #python 2.7
-    from Queue import Queue
-    from Queue import Empty
-except ImportError:
-    # python 3.4
-    from queue import Queue
-    from queue import Empty
-
 from collections import OrderedDict
 from functools import wraps
-import threading
-import time
-import mdt
+import mot.cl_environments
 from mdt.configuration import config as mdt_config
 from mdt.log_handlers import LogListenerInterface
-from mdt.utils import check_user_components, MetaOptimizerBuilder
-import mot.cl_environments
+from mdt.utils import MetaOptimizerBuilder
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-20"
@@ -134,35 +122,6 @@ def print_welcome_message():
     print('-------------------------------------')
 
 
-class LogMonitorThread(threading.Thread):
-
-    def __init__(self, queue, logging_text_area):
-        """Log monitor to watch the given queue and write the output to the given log listener.
-
-        Call the method send_stop_signal() to send_stop_signal this thread.
-
-        Args:
-            logging_text_area (LoggingTextArea): the text area to log to
-            queue (multiprocessing.Queue): the queue to which we will listen
-        """
-        super(LogMonitorThread, self).__init__()
-        self._stop_event = threading.Event()
-        self._queue = queue
-        self._logging_text_area = logging_text_area
-
-    def send_stop_signal(self):
-        self._stop_event.set()
-
-    def run(self):
-        while not self._stop_event.isSet():
-            try:
-                message = self._queue.get(0)
-                self._logging_text_area.write(message)
-                time.sleep(0.001)
-            except Empty:
-                pass
-
-
 class ForwardingListener(LogListenerInterface):
 
     def __init__(self, queue):
@@ -181,15 +140,3 @@ class ForwardingListener(LogListenerInterface):
 
     def write(self, string):
         self._queue.put(string)
-
-
-class StdRedirect(object):
-
-    def __init__(self, queue):
-        self._queue = queue
-
-    def write(self, message):
-        self._queue.put(message)
-
-    def flush(self):
-        pass
