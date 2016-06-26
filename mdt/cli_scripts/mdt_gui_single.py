@@ -4,7 +4,12 @@ import argparse
 import os
 import textwrap
 from argcomplete.completers import FilesCompleter
-from mdt.gui.tkgui_main import start_single_gui
+
+
+# from mdt.gui.tkgui_main import start_single_model_gui
+from mdt.gui.qt_main import start_single_model_gui
+
+
 from mdt.shell_utils import BasicShellApplication, get_citation_message
 
 __author__ = 'Robbert Harms'
@@ -27,7 +32,7 @@ class GUISingle(BasicShellApplication):
 
     def _get_arg_parser(self):
         description = textwrap.dedent("""
-            Launches the MDT TK single subject Graphical User Interface.
+            Launches the MDT single subject Graphical User Interface.
         """)
         description += get_citation_message()
 
@@ -42,7 +47,7 @@ class GUISingle(BasicShellApplication):
         else:
             cwd = os.getcwd()
 
-        start_single_gui(cwd)
+        start_single_model_gui(cwd)
 
 
 if __name__ == '__main__':

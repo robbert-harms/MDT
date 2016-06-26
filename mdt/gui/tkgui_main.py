@@ -7,8 +7,8 @@ except ImportError:
     from queue import Queue
     from queue import Empty
 
-import time
 import multiprocessing
+import time
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-27"
@@ -29,9 +29,6 @@ class StdRedirect(object):
 
 
 def cl_process_runner(input_queue, output_queue):
-    import pyopencl
-    import mdt
-    import mot
     import sys
     from mdt.log_handlers import LogDispatchHandler
     from mdt.gui.utils import ForwardingListener
@@ -63,14 +60,14 @@ def cl_process_runner(input_queue, output_queue):
         time.sleep(0.01)
 
 
-def start_single_gui(*args, **kwargs):
+def start_single_model_gui(*args, **kwargs):
     manager = multiprocessing.Manager()
     input_queue = manager.Queue()
     output_queue = manager.Queue()
 
     mp = multiprocessing.Pool(1, cl_process_runner, (input_queue, output_queue))
 
-    from mdt.gui import tkgui
+    from mdt.gui.tk import tkgui
     window = tkgui.get_window(input_queue, output_queue, *args, **kwargs)
     window.mainloop()
 
@@ -78,3 +75,7 @@ def start_single_gui(*args, **kwargs):
 
     mp.close()
     mp.join()
+
+
+if __name__ == '__main__':
+    start_single_model_gui()
