@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>835</width>
+    <width>870</width>
     <height>650</height>
    </rect>
   </property>
@@ -43,7 +43,7 @@
        </sizepolicy>
       </property>
       <property name="currentIndex">
-       <number>3</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="runModelTab">
        <attribute name="title">
@@ -81,11 +81,25 @@
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
+      <property name="font">
+       <font>
+        <family>Droid Sans Mono</family>
+       </font>
+      </property>
       <property name="frameShape">
        <enum>QFrame::StyledPanel</enum>
       </property>
       <property name="frameShadow">
        <enum>QFrame::Sunken</enum>
+      </property>
+      <property name="verticalScrollBarPolicy">
+       <enum>Qt::ScrollBarAsNeeded</enum>
+      </property>
+      <property name="horizontalScrollBarPolicy">
+       <enum>Qt::ScrollBarAsNeeded</enum>
+      </property>
+      <property name="lineWrapMode">
+       <enum>QPlainTextEdit::NoWrap</enum>
       </property>
       <property name="readOnly">
        <bool>true</bool>
@@ -105,7 +119,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>835</width>
+     <width>870</width>
      <height>27</height>
     </rect>
    </property>

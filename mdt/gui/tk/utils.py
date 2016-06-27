@@ -92,13 +92,13 @@ class TabContainer(object):
 class LogMonitorThread(threading.Thread):
 
     def __init__(self, queue, logging_text_area):
-        """Log monitor to watch the given queue and write the output to the given log listener.
+        """Log monitor to watch the given _logging_update_queue and write the output to the given log listener.
 
         Call the method send_stop_signal() to send_stop_signal this thread.
 
         Args:
             logging_text_area (LoggingTextArea): the text area to log to
-            queue (multiprocessing.Queue): the queue to which we will listen
+            queue (multiprocessing.Queue): the _logging_update_queue to which we will listen
         """
         super(LogMonitorThread, self).__init__()
         self._stop_event = threading.Event()

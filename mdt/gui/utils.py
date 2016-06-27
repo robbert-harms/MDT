@@ -125,13 +125,13 @@ def print_welcome_message():
 class ForwardingListener(LogListenerInterface):
 
     def __init__(self, queue):
-        """Forwards all incoming messages to the given queue.
+        """Forwards all incoming messages to the given _logging_update_queue.
 
         Instances of this class can be used as a log listener to the MDT LogDispatchHandler and as a
         sys.stdout replacement.
 
         Args:
-            queue (Queue): the queue to forward the messages to
+            queue (Queue): the _logging_update_queue to forward the messages to
         """
         self._queue = queue
 

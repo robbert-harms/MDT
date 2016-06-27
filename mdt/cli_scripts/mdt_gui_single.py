@@ -18,7 +18,7 @@ class GUISingle(BasicShellApplication):
         """
         Normally we would load here the user settings. This can not be
         done however since it would load the MOT utils before the GUI is launched. This will give OpenCL errors
-        ("RuntimeError: CommandQueue failed: out of host memory") when creating the queue.
+        ("RuntimeError: CommandQueue failed: out of host memory") when creating the _logging_update_queue.
 
         Hence we do not use:
             mdt.init_user_settings(pass_if_exists=True)

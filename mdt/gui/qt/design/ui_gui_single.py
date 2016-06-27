@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(950, 650)
+        MainWindow.resize(870, 650)
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/gui_single/logo.gif"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         MainWindow.setWindowIcon(icon)
@@ -50,8 +50,14 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.loggingTextBox.sizePolicy().hasHeightForWidth())
         self.loggingTextBox.setSizePolicy(sizePolicy)
+        font = QtGui.QFont()
+        font.setFamily("Droid Sans Mono")
+        self.loggingTextBox.setFont(font)
         self.loggingTextBox.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.loggingTextBox.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.loggingTextBox.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+        self.loggingTextBox.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+        self.loggingTextBox.setLineWrapMode(QtWidgets.QPlainTextEdit.NoWrap)
         self.loggingTextBox.setReadOnly(True)
         self.loggingTextBox.setPlainText("")
         self.loggingTextBox.setTabStopWidth(80)
@@ -59,7 +65,7 @@ class Ui_MainWindow(object):
         self.verticalLayout.addWidget(self.loggingTextBox)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 950, 27))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 870, 27))
         self.menubar.setObjectName("menubar")
         self.menuMenu = QtWidgets.QMenu(self.menubar)
         self.menuMenu.setObjectName("menuMenu")
@@ -74,7 +80,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuMenu.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.MainTabs.setCurrentIndex(3)
+        self.MainTabs.setCurrentIndex(1)
         self.actionExit.triggered.connect(MainWindow.close)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 

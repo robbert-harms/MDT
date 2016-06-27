@@ -4,20 +4,20 @@ import os
 from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QFileDialog
 
-from mdt import results_preselection_names, view_results_slice, load_nifti
+from mdt import results_preselection_names, load_nifti, view_results_slice
 from mdt.gui.qt.design.ui_view_results_tab import Ui_ViewResultsTabContent
 from mdt.utils import split_image_path
 
 __author__ = 'Robbert Harms'
-__date__ = "2016-06-26"
+__date__ = "2016-06-27"
 __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 class ViewResultsTab(Ui_ViewResultsTabContent):
 
-    def __init__(self, initial_directory, **kwargs):
-        self.initial_directory = initial_directory
+    def __init__(self, shared_state, computations_thread):
+        self._shared_state = shared_state
         self._parameter_files = {}
         self._folder = None
 
@@ -26,17 +26,13 @@ class ViewResultsTab(Ui_ViewResultsTabContent):
 
         self.selectFolderButton.clicked.connect(
             lambda: self.selectedFolderText.setText(QFileDialog().getExistingDirectory(
-                caption='Select directory to view', directory=self.initial_directory))
+                caption='Select directory to view', directory=self._shared_state.base_dir))
         )
 
         self.selectedFolderText.textChanged.connect(self.directory_updated)
         self.viewButton.clicked.connect(self.view_maps)
         self.invertSelectionButton.clicked.connect(self.invert_selection)
         self.deselectAllButton.clicked.connect(self.deselect_all)
-        self.initialDimensionChooser.setValue(2)
-        self.initialDimensionChooser.setMaximum(2)
-        self.initialDimensionChooser.setMinimum(0)
-        self.initialSliceChooser.setMinimum(0)
 
     @pyqtSlot(str)
     def directory_updated(self, folder):
