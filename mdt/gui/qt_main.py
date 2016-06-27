@@ -2,6 +2,8 @@ import sys
 
 import signal
 
+import time
+
 from mdt.gui.qt.tabs.generate_brain_mask_tab import GenerateBrainMaskTab
 from mdt.gui.qt.tabs.view_results_tab import ViewResultsTab
 
@@ -11,8 +13,9 @@ try:
 except ImportError:
     # python 3.4
     from queue import Queue
-from PyQt5.QtCore import QThread, QTimer
-from PyQt5.QtWidgets import QMainWindow, QApplication
+from PyQt5 import QtGui
+from PyQt5.QtCore import QThread, QTimer, pyqtSlot
+from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog
 from mdt.gui.qt.design.ui_gui_single import Ui_MainWindow
 from mdt.gui.qt.utils import MessageReceiver, SharedState
 from mdt.gui.utils import print_welcome_message, ForwardingListener
@@ -31,15 +34,16 @@ class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
         self.setupUi(self)
         self._q_app = q_app
         self._shared_state = shared_state
-        self._computations_thread = QThread(self)
+        self._computations_thread = ComputationsThread(self)
+        self._computations_thread.start()
 
         self._stdout_old = sys.stdout
         self._stderr_old = sys.stderr
         self._logging_update_queue = Queue()
-        self._logging_update_thread = QThread(self)
+        self._logging_update_thread = QThread()
 
         self._message_receiver = MessageReceiver(self._logging_update_queue)
-        self._message_receiver.text_message_signal.connect(self.loggingTextBox.insertPlainText)
+        self._message_receiver.text_message_signal.connect(self.update_log)
 
         self._message_receiver.moveToThread(self._logging_update_thread)
         self._logging_update_thread.started.connect(self._message_receiver.run)
@@ -47,7 +51,11 @@ class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
         self._connect_output_textbox()
 
         self.actionExit.setShortcuts(['Ctrl+q', 'Ctrl+w'])
+        self.action_saveLog.triggered.connect(self.save_log)
         self._center()
+
+        self.executionStatusLabel.setText('Idle')
+        self.executionStatusIcon.setPixmap(QtGui.QPixmap(":/gui_single/icon_status_red.png"))
 
         GenerateBrainMaskTab(shared_state, self._computations_thread).setupUi(self.generateBrainMaskTab)
         ViewResultsTab(shared_state, self._computations_thread).setupUi(self.viewResultsTab)
@@ -73,12 +81,56 @@ class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
         frameGm.moveCenter(centerPoint)
         self.move(frameGm.topLeft())
 
+    def send_sigint(self, *args):
+        self.close()
 
-def sigint_handler(*args):
-    
+    @pyqtSlot()
+    def save_log(self):
+        name = QFileDialog.getSaveFileName(self, 'Save log', directory=self._shared_state.base_dir,
+                                           filter='Text file (*.txt);;All files (*)')[0]
+        if name:
+            with open(name, 'w') as file:
+                text = self.loggingTextBox.toPlainText()
+                file.write(text)
+
+    @pyqtSlot()
+    def computations_started(self):
+        self.executionStatusLabel.setText('Computing')
+        self.executionStatusIcon.setPixmap(QtGui.QPixmap(":/gui_single/icon_status_green.png"))
+
+    @pyqtSlot()
+    def computations_finished(self):
+        self.executionStatusLabel.setText('Idle')
+        self.executionStatusIcon.setPixmap(QtGui.QPixmap(":/gui_single/icon_status_red.png"))
+
+    @pyqtSlot(str)
+    def update_log(self, string):
+        self.loggingTextBox.insertPlainText(string)
+        sb = self.loggingTextBox.verticalScrollBar()
+        sb.setValue(sb.maximum())
+
+
+class ComputationsThread(QThread):
+
+    def __init__(self, main_window, *args, **kwargs):
+        """This is the thread handler for the computations.
+
+        When running computations using this thread please connect signals to the starting and finished slot of this
+        class. These handlers notify the main window of the computations.
+        """
+        super(ComputationsThread, self).__init__(*args, **kwargs)
+        self.main_window = main_window
+
+    @pyqtSlot()
+    def starting(self):
+        self.main_window.computations_started()
+
+    @pyqtSlot()
+    def finished(self):
+        self.main_window.computations_finished()
+
 
 def start_single_model_gui(base_dir=None):
-    signal.signal(signal.SIGINT, sigint_handler)
     state = SharedState()
     state.base_dir = base_dir
 
@@ -89,6 +141,9 @@ def start_single_model_gui(base_dir=None):
     timer.timeout.connect(lambda: None)
 
     single_model_gui = MDTGUISingleModel(app, state)
+
+    signal.signal(signal.SIGINT, single_model_gui.send_sigint)
+
     single_model_gui.show()
     sys.exit(app.exec_())
 
