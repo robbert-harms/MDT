@@ -15,7 +15,7 @@ except ImportError:
     from queue import Queue
 from PyQt5 import QtGui
 from PyQt5.QtCore import QThread, QTimer, pyqtSlot
-from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog
+from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QStyleFactory
 from mdt.gui.qt.design.ui_gui_single import Ui_MainWindow
 from mdt.gui.qt.utils import MessageReceiver, SharedState
 from mdt.gui.utils import print_welcome_message, ForwardingListener

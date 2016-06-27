@@ -92,8 +92,13 @@ class GenerateBrainMaskTab(Ui_GenerateBrainMaskTabContent):
                                             mask_threshold=self.finalThresholdInput.value())
         self._computations_thread.start()
         self._generate_mask_worker.moveToThread(self._computations_thread)
+
         self._generate_mask_worker.starting.connect(self._computations_thread.starting)
         self._generate_mask_worker.finished.connect(self._computations_thread.finished)
+
+        self._generate_mask_worker.starting.connect(lambda: self.generateButton.setEnabled(False))
+        self._generate_mask_worker.finished.connect(lambda: self.generateButton.setEnabled(True))
+
         self._generate_mask_worker.starting.emit()
 
 
