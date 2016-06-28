@@ -604,6 +604,9 @@ def view_results_slice(data,
                 nmr_colorbar_axis_ticks=4
                 show_sliders=False
             You can overwrite these again by specifying one of these options directly.
+
+    Returns:
+        MapViewSettings: the settings set by the user in the viewer.
     """
     from mdt.visualization import MapsVisualizer
 
@@ -632,22 +635,23 @@ def view_results_slice(data,
     viz = MapsVisualizer(results_total)
     if font_size:
         viz.font_size = font_size
-    viz.show(dimension=dimension,
-             slice_ind=slice_ind,
-             maps_to_show=maps_to_show,
-             map_titles=map_titles,
-             general_plot_options=general_plot_options,
-             map_plot_options=map_plot_options,
-             to_file=to_file,
-             block=block,
-             maximize=maximize,
-             window_title=window_title,
-             axis_options=axis_options,
-             nmr_colorbar_axis_ticks=nmr_colorbar_axis_ticks,
-             show_sliders=show_sliders,
-             figure_options=figure_options,
-             grid_layout=grid_layout,
-             rotate_images=rotate_images)
+    return viz.show(
+        dimension=dimension,
+        slice_ind=slice_ind,
+        maps_to_show=maps_to_show,
+        map_titles=map_titles,
+        general_plot_options=general_plot_options,
+        map_plot_options=map_plot_options,
+        to_file=to_file,
+        block=block,
+        maximize=maximize,
+        window_title=window_title,
+        axis_options=axis_options,
+        nmr_colorbar_axis_ticks=nmr_colorbar_axis_ticks,
+        show_sliders=show_sliders,
+        figure_options=figure_options,
+        grid_layout=grid_layout,
+        rotate_images=rotate_images)
 
 
 def results_preselection_names(data):

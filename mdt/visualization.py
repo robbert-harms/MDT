@@ -22,12 +22,8 @@ class MapsVisualizer(object):
 
     def __init__(self, volumes_dict):
         self._volumes_dict = volumes_dict
-
         self._sorted_volumes = {}
         self._map_scroll_positions = {}
-        self._dimension = 0
-        self._slice_ind = 0
-        self._volume_ind = 0
         self.show_sliders = True
         self.show_slider_volume_ind = self._get_max_4d_length() > 1
         self.general_plot_options = {}
@@ -50,6 +46,7 @@ class MapsVisualizer(object):
         self.nmr_colorbar_axis_ticks = None
         self.grid_layout = AutoGridLayout()
         self.rotate_images = 0
+        self._map_view_settings = MapViewSettings()
 
     def show(self, dimension=None, slice_ind=None, volume_ind=None, map_titles=None, maps_to_show=None,
              general_plot_options=None, map_plot_options=None, to_file=None, block=True, maximize=False,
@@ -93,22 +90,26 @@ class MapsVisualizer(object):
             rotate_images (int): the degrees (counter-clockwise) by which to rotate the images before showing them.
                 Should be a multiple of 90.
             grid_layout (GridLayout) the grid layout to use
+
+        Returns:
+            MapViewSettings: the settings set by the user in the viewer.
         """
+        self._map_view_settings = MapViewSettings()
         figure_options = figure_options or {'figsize': (18, 16)}
         self._figure = plt.figure(**figure_options)
 
-        if dimension is not None:
-            self._dimension = dimension
+        if dimension is None:
+            self._map_view_settings.dimension_index = 2
         else:
-            self._dimension = 2
+            self._map_view_settings.dimension_index = dimension
 
-        if slice_ind is not None:
-            self._slice_ind = slice_ind
+        if slice_ind is None:
+            self._map_view_settings.slice_index = int(self._volumes_shape[self._map_view_settings.dimension_index] / 2.0)
         else:
-            self._slice_ind = int(self._volumes_shape[self._dimension] / 2.0)
+            self._map_view_settings.slice_index = slice_ind
 
         if volume_ind is not None:
-            self._volume_ind = volume_ind
+            self._map_view_settings.volume_index = volume_ind
         if map_titles:
             self.map_titles = map_titles
         if maps_to_show:
@@ -121,6 +122,7 @@ class MapsVisualizer(object):
         self.axis_options = axis_options
         self.nmr_colorbar_axis_ticks = nmr_colorbar_axis_ticks
         self.rotate_images = rotate_images
+        self.show_slider_volume_ind = self._get_max_4d_length(maps_to_show) > 1
 
         if show_sliders is not None:
             self.show_sliders = show_sliders
@@ -150,15 +152,17 @@ class MapsVisualizer(object):
             if block:
                 plt.show(True)
 
+        return self._map_view_settings
+
     def set_dimension(self, val):
         val = round(val)
         if not self._updating_sliders:
             self._updating_sliders = True
-            self._dimension = int(round(val))
+            self._map_view_settings.dimension_index = int(round(val))
 
-            if self._slice_ind >= self._volumes_shape[self._dimension]:
-                self._slice_ind = self._volumes_shape[self._dimension] / 2
-            self._index_slider.set_max(self._volumes_shape[self._dimension] - 1)
+            if self._map_view_settings.slice_index >= self._volumes_shape[self._map_view_settings.dimension_index]:
+                self._map_view_settings.slice_index = self._volumes_shape[self._map_view_settings.dimension_index] / 2
+            self._index_slider.set_max(self._volumes_shape[self._map_view_settings.dimension_index] - 1)
 
             self._dimension_slider.set_val(val)
             self._rerender_maps()
@@ -169,11 +173,12 @@ class MapsVisualizer(object):
 
         if not self._updating_sliders:
             self._updating_sliders = True
-            self._slice_ind = val
+            self._map_view_settings.slice_index = val
 
-            if self._slice_ind < 0 or self._slice_ind >= self._volumes_shape[self._dimension]:
-                self._slice_ind = self._volumes_shape[self._dimension] / 2
-                self._index_slider.set_max(self._volumes_shape[self._dimension] - 1)
+            if self._map_view_settings.slice_index < 0 or \
+                    self._map_view_settings.slice_index >= self._volumes_shape[self._map_view_settings.dimension_index]:
+                self._map_view_settings.slice_index = self._volumes_shape[self._map_view_settings.dimension_index] / 2
+                self._index_slider.set_max(self._volumes_shape[self._map_view_settings.dimension_index] - 1)
 
             self._index_slider.set_val(val)
             self._rerender_maps()
@@ -187,7 +192,7 @@ class MapsVisualizer(object):
 
         if not self._updating_sliders:
             self._updating_sliders = True
-            self._volume_ind = val
+            self._map_view_settings.volume_index = val
             self._volume_slider.set_val(val)
             self._rerender_maps()
             self._updating_sliders = False
@@ -202,14 +207,14 @@ class MapsVisualizer(object):
         if self.show_sliders:
             ax = self._figure.add_axes([0.25, y_positions[0], 0.5, 0.01], axisbg='Wheat')
             self._dimension_slider = _DiscreteSlider(ax, 'Dimension', 0, 2,
-                                                     valinit=self._dimension, valfmt='%i',
+                                                     valinit=self._map_view_settings.dimension_index, valfmt='%i',
                                                      color='DarkSeaGreen', closedmin=True, closedmax=True)
             self._dimension_slider.on_changed(self.set_dimension)
 
             ax = self._figure.add_axes([0.25, y_positions[1], 0.5, 0.01], axisbg='Wheat')
             self._index_slider = _DiscreteSlider(ax, 'Slice index', 0,
-                                                 self._volumes_shape[self._dimension] - 1,
-                                                 valinit=self._slice_ind,
+                                                 self._volumes_shape[self._map_view_settings.dimension_index] - 1,
+                                                 valinit=self._map_view_settings.slice_index,
                                                  valfmt='%i', color='DarkSeaGreen', closedmin=True, closedmax=False)
             self._index_slider.on_changed(self.set_slice_ind)
 
@@ -217,7 +222,7 @@ class MapsVisualizer(object):
                 ax = self._figure.add_axes([0.25, y_positions[2], 0.5, 0.01], axisbg='Wheat')
                 self._volume_slider = _DiscreteSlider(ax, 'Volume', 0,
                                                       self._get_max_4d_length() - 1,
-                                                      valinit=self._volume_ind,
+                                                      valinit=self._map_view_settings.volume_index,
                                                       valfmt='%i', color='DarkSeaGreen', closedmin=True, closedmax=False)
                 self._volume_slider.on_changed(self.set_volume_ind)
 
@@ -343,10 +348,10 @@ class MapsVisualizer(object):
         After getting the right image it will apply the transformations in _apply_transformations to position the
         image in a nice way.
         """
-        data = get_slice_in_dimension(data, self._dimension, self._slice_ind)
+        data = get_slice_in_dimension(data, self._map_view_settings.dimension_index, self._map_view_settings.slice_index)
         if len(data.shape) > 2:
-            if data.shape[2] > self._volume_ind:
-                data = np.squeeze(data[:, :, self._volume_ind])
+            if data.shape[2] > self._map_view_settings.volume_index:
+                data = np.squeeze(data[:, :, self._map_view_settings.volume_index])
             else:
                 data = np.squeeze(data[:, :, 0])
         data = self._apply_transformations(data)
@@ -372,12 +377,28 @@ class MapsVisualizer(object):
                 d.update({key: (0, 1)})
         return d
 
-    def _get_max_4d_length(self):
+    def _get_max_4d_length(self, maps_to_show=None):
         """Get the maximum volume index in the volumes."""
-        l = [v.shape[3] for v in self._volumes_dict.values() if len(v.shape) > 3]
+        if maps_to_show:
+            l = []
+            for map_name in maps_to_show:
+                volume = self._volumes_dict[map_name]
+                if len(volume.shape) > 3:
+                    l.append(volume.shape[3])
+        else:
+            l = [v.shape[3] for v in self._volumes_dict.values() if len(v.shape) > 3]
+
         if not l:
             return 0
         return max(l)
+
+
+class MapViewSettings(object):
+
+    def __init__(self):
+        self.dimension_index = 0
+        self.slice_index = 0
+        self.volume_index = 0
 
 
 class SampleVisualizer(object):

@@ -275,7 +275,20 @@
      <item row="6" column="1">
       <layout class="QHBoxLayout" name="horizontalLayout_7">
        <item>
-        <widget class="QDoubleSpinBox" name="finalThresholdInput"/>
+        <widget class="QDoubleSpinBox" name="finalThresholdInput">
+         <property name="locale">
+          <locale language="C" country="AnyCountry"/>
+         </property>
+         <property name="prefix">
+          <string/>
+         </property>
+         <property name="suffix">
+          <string/>
+         </property>
+         <property name="maximum">
+          <double>1000000.000000000000000</double>
+         </property>
+        </widget>
        </item>
        <item>
         <spacer name="horizontalSpacer_4">
