@@ -36,8 +36,6 @@ class GenerateBrainMaskTab(Ui_GenerateBrainMaskTabContent):
         self.selectedOutputText.textChanged.connect(self._check_enable_action_buttons)
         self.selectedProtocolText.textChanged.connect(self._check_enable_action_buttons)
 
-        self.generateButton.setDisabled(False)
-
     @pyqtSlot()
     def _select_image(self):
         open_file, used_filter = QFileDialog().getOpenFileName(
@@ -122,11 +120,5 @@ class GenerateMaskWorker(QObject):
     @function_message_decorator('Started creating a mask.', 'Finished creating a mask.')
     @pyqtSlot()
     def run(self):
-        # create_median_otsu_brain_mask(*self._args, **self._kwargs)
-
-        import time
-        for i in range(1000):
-            print(i)
-            time.sleep(0.1)
-
+        create_median_otsu_brain_mask(*self._args, **self._kwargs)
         self.finished.emit()
