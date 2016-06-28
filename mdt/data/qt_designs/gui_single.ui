@@ -84,7 +84,6 @@
        <attribute name="title">
         <string>View results</string>
        </attribute>
-       <zorder>loggingTextBox</zorder>
       </widget>
      </widget>
     </item>

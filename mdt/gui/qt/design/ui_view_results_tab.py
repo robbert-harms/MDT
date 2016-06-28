@@ -130,6 +130,13 @@ class Ui_ViewResultsTabContent(object):
         self.initialSliceChooser = QtWidgets.QSpinBox(ViewResultsTabContent)
         self.initialSliceChooser.setObjectName("initialSliceChooser")
         self.horizontalLayout_4.addWidget(self.initialSliceChooser)
+        self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_5.setContentsMargins(3, -1, -1, -1)
+        self.horizontalLayout_5.setObjectName("horizontalLayout_5")
+        self.maximumIndexLabel = QtWidgets.QLabel(ViewResultsTabContent)
+        self.maximumIndexLabel.setObjectName("maximumIndexLabel")
+        self.horizontalLayout_5.addWidget(self.maximumIndexLabel)
+        self.horizontalLayout_4.addLayout(self.horizontalLayout_5)
         spacerItem2 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout_4.addItem(spacerItem2)
         self.gridLayout.addLayout(self.horizontalLayout_4, 5, 1, 1, 1)
@@ -148,13 +155,18 @@ class Ui_ViewResultsTabContent(object):
         spacerItem3 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem3)
         self.verticalLayout.addLayout(self.horizontalLayout)
-        self.label.raise_()
-        self.label.raise_()
         self.line_2.raise_()
         self.line.raise_()
 
         self.retranslateUi(ViewResultsTabContent)
         QtCore.QMetaObject.connectSlotsByName(ViewResultsTabContent)
+        ViewResultsTabContent.setTabOrder(self.selectFolderButton, self.selectedFolderText)
+        ViewResultsTabContent.setTabOrder(self.selectedFolderText, self.selectMaps)
+        ViewResultsTabContent.setTabOrder(self.selectMaps, self.deselectAllButton)
+        ViewResultsTabContent.setTabOrder(self.deselectAllButton, self.invertSelectionButton)
+        ViewResultsTabContent.setTabOrder(self.invertSelectionButton, self.initialDimensionChooser)
+        ViewResultsTabContent.setTabOrder(self.initialDimensionChooser, self.initialSliceChooser)
+        ViewResultsTabContent.setTabOrder(self.initialSliceChooser, self.viewButton)
 
     def retranslateUi(self, ViewResultsTabContent):
         _translate = QtCore.QCoreApplication.translate
@@ -170,5 +182,6 @@ class Ui_ViewResultsTabContent(object):
         self.label_4.setText(_translate("ViewResultsTabContent", "(Choose a directory with .nii(.gz) files)"))
         self.label_7.setText(_translate("ViewResultsTabContent", "Initial dimension:"))
         self.label_9.setText(_translate("ViewResultsTabContent", "Initial slice:"))
+        self.maximumIndexLabel.setText(_translate("ViewResultsTabContent", "/ x"))
         self.viewButton.setText(_translate("ViewResultsTabContent", "View"))
 

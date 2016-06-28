@@ -28,7 +28,6 @@ class UpdateDescriptor(object):
     def __get__(self, instance, owner):
         return getattr(instance, '_' + self._attribute_name)
 
-    @pyqtSlot()
     def __set__(self, instance, value):
         setattr(instance, '_' + self._attribute_name, value)
         instance.state_updated_signal.emit(self._attribute_name)
@@ -43,15 +42,19 @@ class SharedState(QObject):
 
         Attributes:
             base_dir (str): the base dir for all file opening operations
+            dimension_index (int): the dimension index used in various operations
+            slice_index (int): the slice index used in various operations
         """
         super(SharedState, self).__init__(*args, **kwargs)
 
-        shared_attributes = {'base_dir': None}
+        shared_attributes = {'base_dir': None,
+                             'dimension_index': 0,
+                             'slice_index': 0}
 
         for key, value in shared_attributes.items():
             setattr(self, '_' + key, value)
             setattr(SharedState, key, UpdateDescriptor(key))
-
+    
 
 class MessageReceiver(QObject):
 
@@ -71,7 +74,6 @@ class MessageReceiver(QObject):
         self.queue = queue
         self.is_running = True
 
-    @pyqtSlot()
     def run(self):
         while self.is_running:
             if not self.queue.empty():

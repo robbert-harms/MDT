@@ -396,6 +396,7 @@ class MapsVisualizer(object):
 class MapViewSettings(object):
 
     def __init__(self):
+        """A container for all the view settings that the user can alter during viewing the maps."""
         self.dimension_index = 0
         self.slice_index = 0
         self.volume_index = 0

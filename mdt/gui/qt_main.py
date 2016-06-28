@@ -105,9 +105,16 @@ class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
 
     @pyqtSlot(str)
     def update_log(self, string):
-        self.loggingTextBox.insertPlainText(string)
         sb = self.loggingTextBox.verticalScrollBar()
-        sb.setValue(sb.maximum())
+        scrollbar_position = sb.value()
+        autoscroll = scrollbar_position == sb.maximum()
+        self.loggingTextBox.moveCursor(QtGui.QTextCursor.End)
+        self.loggingTextBox.insertPlainText(string)
+
+        if autoscroll:
+            sb.setValue(sb.maximum())
+        else:
+            sb.setValue(scrollbar_position)
 
 
 class ComputationsThread(QThread):

@@ -33,6 +33,8 @@ class ViewResultsTab(Ui_ViewResultsTabContent):
         self.viewButton.clicked.connect(self.view_maps)
         self.invertSelectionButton.clicked.connect(self.invert_selection)
         self.deselectAllButton.clicked.connect(self.deselect_all)
+        self.initialSliceChooser.valueChanged.connect(lambda v: setattr(self._shared_state, 'slice_index', v))
+        self.initialDimensionChooser.valueChanged.connect(lambda v: setattr(self._shared_state, 'dimension_index', v))
 
     @pyqtSlot(str)
     def directory_updated(self, folder):
@@ -62,6 +64,7 @@ class ViewResultsTab(Ui_ViewResultsTabContent):
             maximum = shape[self.initialDimensionChooser.value()]
             self.initialSliceChooser.setMaximum(maximum)
             self.initialSliceChooser.setValue(maximum // 2.0)
+            self.maximumIndexLabel.setText('/ {}'.format(maximum))
 
     @pyqtSlot()
     def invert_selection(self):
@@ -81,4 +84,6 @@ class ViewResultsTab(Ui_ViewResultsTabContent):
                 maps_to_show.append(item.text())
 
         if maps_to_show:
-            view_results_slice(self._folder, maps_to_show=maps_to_show)
+            view_results_slice(self._folder, maps_to_show=maps_to_show,
+                               dimension=self.initialDimensionChooser.value(),
+                               slice_ind=self.initialSliceChooser.value())
