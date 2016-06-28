@@ -5,6 +5,7 @@ import signal
 import time
 
 from mdt.gui.qt.tabs.generate_brain_mask_tab import GenerateBrainMaskTab
+from mdt.gui.qt.tabs.generate_roi_mask_tab import GenerateROIMaskTab
 from mdt.gui.qt.tabs.view_results_tab import ViewResultsTab
 
 try:
@@ -59,6 +60,7 @@ class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
 
         GenerateBrainMaskTab(shared_state, self._computations_thread).setupUi(self.generateBrainMaskTab)
         ViewResultsTab(shared_state, self._computations_thread).setupUi(self.viewResultsTab)
+        GenerateROIMaskTab(shared_state, self._computations_thread).setupUi(self.generateROIMaskTab)
 
     def _connect_output_textbox(self):
         sys.stdout = ForwardingListener(self._logging_update_queue)

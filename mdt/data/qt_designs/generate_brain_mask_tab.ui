@@ -117,7 +117,7 @@
         </font>
        </property>
        <property name="text">
-        <string>(Select the measured 4d diffusion weighted image)</string>
+        <string>(Select the 4d diffusion weighted image)</string>
        </property>
       </widget>
      </item>
@@ -408,6 +408,19 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>selectImageButton</tabstop>
+  <tabstop>selectedImageText</tabstop>
+  <tabstop>selectProtocolButton</tabstop>
+  <tabstop>selectedProtocolText</tabstop>
+  <tabstop>selectOutputButton</tabstop>
+  <tabstop>selectedOutputText</tabstop>
+  <tabstop>medianRadiusInput</tabstop>
+  <tabstop>numberOfPassesInput</tabstop>
+  <tabstop>finalThresholdInput</tabstop>
+  <tabstop>generateButton</tabstop>
+  <tabstop>viewButton</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

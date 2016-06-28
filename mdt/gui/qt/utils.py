@@ -1,5 +1,5 @@
 import time
-from PyQt5.QtCore import QObject, pyqtSlot, pyqtSignal
+from PyQt5.QtCore import QObject, pyqtSignal
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-06-26"
@@ -54,7 +54,8 @@ class SharedState(QObject):
         for key, value in shared_attributes.items():
             setattr(self, '_' + key, value)
             setattr(SharedState, key, UpdateDescriptor(key))
-    
+            setattr(self, 'set_' + key, lambda v: setattr(self, key, v))
+
 
 class MessageReceiver(QObject):
 

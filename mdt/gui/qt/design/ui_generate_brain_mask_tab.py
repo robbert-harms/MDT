@@ -189,6 +189,16 @@ class Ui_GenerateBrainMaskTabContent(object):
 
         self.retranslateUi(GenerateBrainMaskTabContent)
         QtCore.QMetaObject.connectSlotsByName(GenerateBrainMaskTabContent)
+        GenerateBrainMaskTabContent.setTabOrder(self.selectImageButton, self.selectedImageText)
+        GenerateBrainMaskTabContent.setTabOrder(self.selectedImageText, self.selectProtocolButton)
+        GenerateBrainMaskTabContent.setTabOrder(self.selectProtocolButton, self.selectedProtocolText)
+        GenerateBrainMaskTabContent.setTabOrder(self.selectedProtocolText, self.selectOutputButton)
+        GenerateBrainMaskTabContent.setTabOrder(self.selectOutputButton, self.selectedOutputText)
+        GenerateBrainMaskTabContent.setTabOrder(self.selectedOutputText, self.medianRadiusInput)
+        GenerateBrainMaskTabContent.setTabOrder(self.medianRadiusInput, self.numberOfPassesInput)
+        GenerateBrainMaskTabContent.setTabOrder(self.numberOfPassesInput, self.finalThresholdInput)
+        GenerateBrainMaskTabContent.setTabOrder(self.finalThresholdInput, self.generateButton)
+        GenerateBrainMaskTabContent.setTabOrder(self.generateButton, self.viewButton)
 
     def retranslateUi(self, GenerateBrainMaskTabContent):
         _translate = QtCore.QCoreApplication.translate
@@ -198,7 +208,7 @@ class Ui_GenerateBrainMaskTabContent(object):
         self.label_5.setText(_translate("GenerateBrainMaskTabContent", "(To create one, please see the tab \"Generate protocol file\")"))
         self.label_12.setText(_translate("GenerateBrainMaskTabContent", "Number of passes:"))
         self.selectImageButton.setText(_translate("GenerateBrainMaskTabContent", "Browse"))
-        self.label_4.setText(_translate("GenerateBrainMaskTabContent", "(Select the measured 4d diffusion weighted image)"))
+        self.label_4.setText(_translate("GenerateBrainMaskTabContent", "(Select the 4d diffusion weighted image)"))
         self.selectOutputButton.setText(_translate("GenerateBrainMaskTabContent", "Browse"))
         self.label_8.setText(_translate("GenerateBrainMaskTabContent", "Select output file:"))
         self.label_11.setText(_translate("GenerateBrainMaskTabContent", "Median radius:"))

@@ -33,8 +33,8 @@ class ViewResultsTab(Ui_ViewResultsTabContent):
         self.viewButton.clicked.connect(self.view_maps)
         self.invertSelectionButton.clicked.connect(self.invert_selection)
         self.deselectAllButton.clicked.connect(self.deselect_all)
-        self.initialSliceChooser.valueChanged.connect(lambda v: setattr(self._shared_state, 'slice_index', v))
-        self.initialDimensionChooser.valueChanged.connect(lambda v: setattr(self._shared_state, 'dimension_index', v))
+        self.initialSliceChooser.valueChanged.connect(self._shared_state.set_slice_index)
+        self.initialDimensionChooser.valueChanged.connect(self._shared_state.set_dimension_index)
 
     @pyqtSlot(str)
     def directory_updated(self, folder):

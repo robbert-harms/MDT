@@ -44,7 +44,7 @@ class GenerateBrainMaskTab(Ui_GenerateBrainMaskTabContent):
 
         if open_file:
             self.selectedImageText.setText(open_file)
-        self._shared_state.base_dir = os.path.dirname(open_file)
+            self._shared_state.base_dir = os.path.dirname(open_file)
 
     @pyqtSlot()
     def _select_protocol(self):
@@ -54,12 +54,12 @@ class GenerateBrainMaskTab(Ui_GenerateBrainMaskTabContent):
 
         if open_file:
             self.selectedProtocolText.setText(open_file)
-        self._shared_state.base_dir = os.path.dirname(open_file)
+            self._shared_state.base_dir = os.path.dirname(open_file)
 
     @pyqtSlot()
     def _select_output(self):
         output_file_name, used_filter = QFileDialog().getSaveFileName(
-            caption='Select the 4d diffusion weighted image', directory=self._shared_state.base_dir,
+            caption='Select the output file', directory=self._shared_state.base_dir,
             filter=';;'.join(image_files_filters))
 
         if output_file_name:
@@ -67,7 +67,8 @@ class GenerateBrainMaskTab(Ui_GenerateBrainMaskTabContent):
 
     def _check_enable_action_buttons(self):
         self.generateButton.setEnabled(os.path.isfile(self.selectedImageText.text()) and
-                                       os.path.isfile(self.selectedProtocolText.text()))
+                                       os.path.isfile(self.selectedProtocolText.text())
+                                       and os.path.isdir(os.path.dirname(self.selectedOutputText.text())))
         self.viewButton.setEnabled(os.path.isfile(self.selectedImageText.text()) and
                                    os.path.isfile(self.selectedOutputText.text()))
 
