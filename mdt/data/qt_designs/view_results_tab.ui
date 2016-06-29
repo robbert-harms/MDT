@@ -266,9 +266,16 @@
           <number>3</number>
          </property>
          <item>
+          <widget class="QLabel" name="label_8">
+           <property name="text">
+            <string>/ </string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QLabel" name="maximumIndexLabel">
            <property name="text">
-            <string>/ x</string>
+            <string>x</string>
            </property>
           </widget>
          </item>

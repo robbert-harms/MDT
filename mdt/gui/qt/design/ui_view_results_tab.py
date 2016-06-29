@@ -133,6 +133,9 @@ class Ui_ViewResultsTabContent(object):
         self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_5.setContentsMargins(3, -1, -1, -1)
         self.horizontalLayout_5.setObjectName("horizontalLayout_5")
+        self.label_8 = QtWidgets.QLabel(ViewResultsTabContent)
+        self.label_8.setObjectName("label_8")
+        self.horizontalLayout_5.addWidget(self.label_8)
         self.maximumIndexLabel = QtWidgets.QLabel(ViewResultsTabContent)
         self.maximumIndexLabel.setObjectName("maximumIndexLabel")
         self.horizontalLayout_5.addWidget(self.maximumIndexLabel)
@@ -182,6 +185,7 @@ class Ui_ViewResultsTabContent(object):
         self.label_4.setText(_translate("ViewResultsTabContent", "(Choose a directory with .nii(.gz) files)"))
         self.label_7.setText(_translate("ViewResultsTabContent", "Initial dimension:"))
         self.label_9.setText(_translate("ViewResultsTabContent", "Initial slice:"))
-        self.maximumIndexLabel.setText(_translate("ViewResultsTabContent", "/ x"))
+        self.label_8.setText(_translate("ViewResultsTabContent", "/ "))
+        self.maximumIndexLabel.setText(_translate("ViewResultsTabContent", "x"))
         self.viewButton.setText(_translate("ViewResultsTabContent", "View"))
 

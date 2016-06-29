@@ -64,7 +64,7 @@ class ViewResultsTab(Ui_ViewResultsTabContent):
             maximum = shape[self.initialDimensionChooser.value()]
             self.initialSliceChooser.setMaximum(maximum)
             self.initialSliceChooser.setValue(maximum // 2.0)
-            self.maximumIndexLabel.setText('/ {}'.format(maximum))
+            self.maximumIndexLabel.setText(str(maximum))
 
     @pyqtSlot()
     def invert_selection(self):

@@ -6,7 +6,6 @@ import mdt
 from argcomplete.completers import FilesCompleter
 import textwrap
 
-from mdt.protocols import get_column_names_preferred_order
 from mdt.shell_utils import BasicShellApplication
 
 __author__ = 'Robbert Harms'
@@ -51,7 +50,7 @@ class InfoProtocol(BasicShellApplication):
         print(row_format.format('shells', ', '.join(map(lambda s: '{:0=.3f}e9'.format(s/1e9),
                                                         protocol.get_b_values_shells()))))
         print(row_format.format('nmr_columns', protocol.number_of_columns))
-        print(row_format.format('columns', ', '.join(get_column_names_preferred_order(protocol.column_names))))
+        print(row_format.format('columns', ', '.join(protocol.column_names)))
 
 
 if __name__ == '__main__':

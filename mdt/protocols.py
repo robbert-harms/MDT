@@ -32,6 +32,12 @@ class Protocol(object):
         self._columns = {}
         self._length = None
         self._logger = logging.getLogger(__name__)
+        self._preferred_column_order = ('gx', 'gy', 'gz', 'G', 'Delta', 'delta', 'TE', 'T1', 'b', 'q', 'maxG')
+        self._virtual_columns = [VirtualColumnQ(),
+                                 VirtualColumnB(),
+                                 SimpleVirtualColumn('Delta', lambda protocol: get_sequence_timings(protocol)['Delta']),
+                                 SimpleVirtualColumn('delta', lambda protocol: get_sequence_timings(protocol)['delta']),
+                                 SimpleVirtualColumn('G', lambda protocol: get_sequence_timings(protocol)['G'])]
 
         if columns:
             self._columns = columns
@@ -94,7 +100,12 @@ class Protocol(object):
             raise ValueError("Incorrect column length given for '{}', expected {} and got {}.".format(
                 name, self._length, s[0]))
         else:
-            self._columns.update({name: data})
+
+            if name == 'g' and len(data.shape) > 1 and data.shape[1] == 3:
+                self._columns.update({'gx': data[:, 0], 'gy': data[:, 1], 'gz': data[:, 2]})
+            else:
+                self._columns.update({name: data})
+            self._length = self._columns[list(self._columns.keys())[0]].shape[0]
 
         return self
 
@@ -200,7 +211,16 @@ class Protocol(object):
         Returns:
             list of str: The names of the columns.
         """
-        return list(self._columns.keys())
+        return self._column_names_in_preferred_order(self._columns.keys())
+
+    @property
+    def estimated_column_names(self):
+        """Get the names of the virtual columns.
+
+        This will only return the names of the virtual columns for which no real column exists.
+        """
+        return self._column_names_in_preferred_order([e.column_name for e in self._virtual_columns if
+                                                      e.column_name not in self.column_names])
 
     def keys(self):
         return self._columns.keys()
@@ -232,7 +252,7 @@ class Protocol(object):
     def has_column(self, column_name):
         """Check if this protocol has a column with the given name.
 
-        This will also return true if the column can be estimated from the other columns. See has_unestimated_column()
+        This will also return true if the column can be estimated from the other columns. See is_column_real()
         to get information for columns that are really known.
 
         Returns:
@@ -243,12 +263,12 @@ class Protocol(object):
         except KeyError:
             return False
 
-    def has_unestimated_column(self, column_name):
+    def is_column_real(self, column_name):
         """Check if this protocol has real column information for the column with the given name.
 
         For example, the other function has_column('G') will normally return true since 'G' can be estimated from 'b'.
-        This function however will return false if the column needs to be estimated and will
-        return true if the column is truly known.
+        This function will return false if the column needs to be estimated and will return true if real data
+        is available for the columnn.
 
         Returns:
             boolean: true if there is really a column with the given name, false otherwise.
@@ -387,72 +407,156 @@ class Protocol(object):
     def _get_estimated_column(self, column_name):
         """Try to load an estimated column from this protocol.
 
+        This uses the list of virtual columns to try to estimate the requested column.
+
         Returns:
             An estimated column, that is, a column we estimate from the other columns.
 
         Raises:
             KeyError: If the column name could not be estimated we raise a key error.
         """
-        if column_name == 'maxG':
-            return np.ones((self._length,)) * 0.04
-
-        sequence_timings = self._get_sequence_timings()
-
-        if column_name in sequence_timings:
-            return sequence_timings[column_name]
-
-        if column_name == 'q':
-            return np.reshape(np.array(self._gamma_h * sequence_timings['G'] * sequence_timings['delta'] / (2 * np.pi)),
-                              (-1, 1))
-
-        if column_name == 'b':
-            return np.reshape(np.array(self._gamma_h ** 2 *
-                              sequence_timings['G']**2 *
-                              sequence_timings['delta']**2 *
-                              (sequence_timings['Delta'] - (sequence_timings['delta']/3))), (-1, 1))
+        for virtual_column in self._virtual_columns:
+            if virtual_column.column_name == column_name:
+                return np.reshape(virtual_column.get_column(self), (-1, 1))
 
         raise KeyError('The given column name "{}" could not be found in this protocol.'.format(column_name))
 
-    def _get_sequence_timings(self):
-        """Return G, Delta and delta, estimate them if necessary.
+    def _column_names_in_preferred_order(self, column_names):
+        """Sort the given column names in the preferred order.
 
-        If Delta and delta are available, they are used instead of estimated Delta and delta.
+        Column names not in the list of preferred ordering are appended to the end of the list.
+
+        Args:
+            column_names (list): the list of column names
 
         Returns:
-            dict: the columns G, Delta and delta
+            list: the list of column names in the preferred order
         """
-        if all(map(lambda v: v in self._columns, ['b', 'Delta', 'delta'])):
-            G = np.sqrt(self._columns['b'] / (self.gamma_h**2 * self._columns['delta']**2 *
-                                             (self._columns['Delta'] - (self._columns['delta']/3.0))))
-            G[self.get_unweighted_indices()] = 0
-            return {'G': G, 'Delta': self._columns['Delta'], 'delta': self._columns['delta']}
+        columns_list = [n for n in column_names]
+        final_list = []
+        for column_name in self._preferred_column_order:
+            if column_name in columns_list:
+                columns_list.remove(column_name)
+                final_list.append(column_name)
 
-        if all(map(lambda v: v in self._columns, ['b', 'Delta', 'G'])):
-            roots = np.roots([-1/3.0, self._columns['Delta'],
-                              -self._columns['b']/(self._gamma_h**2 * self._columns['G']**2)])
-            delta = list(itertools.dropwhile(np.isreal, roots))[0]
-            return {'G': self._columns['G'], 'Delta': self._columns['Delta'], 'delta': delta}
+        final_list.extend(columns_list)
+        return final_list
 
-        if all(map(lambda v: v in self._columns, ['b', 'G', 'delta'])):
-            Delta = ((self._columns['b'] - self._gamma_h**2 * self._columns['G']**2 * self._columns['delta']**3/3.0) /
-                        (self._gamma_h**2 * self._columns['G']**2 * self._columns['delta']**2))
-            return {'G': self._columns['G'], 'delta': self._columns['delta'], 'Delta': Delta}
 
-        if all(map(lambda v: v in self._columns, ['G', 'delta', 'Delta'])):
-            return {'G': self._columns['G'], 'delta': self._columns['delta'], 'Delta': self._columns['Delta']}
+class VirtualColumn(object):
 
-        if 'b' not in self._columns:
-            return {}
+    def __init__(self, column_name):
+        """The interface for generating virtual columns.
 
-        maxG = self.get_column('maxG')
-        bvals = self.get_column('b')
-        bmax = max(self.get_b_values_shells())
+        Virtual columns are columns generated on the fly from the other parts of the protocol. They are
+        generally only generated if the column it tries to generate is not in the protocol.
 
-        Deltas = (3 * bmax / (2 * self.gamma_h**2 * maxG**2))**(1 / 3.0)
-        deltas = Deltas
-        G = np.sqrt(bvals / bmax) * maxG
+        Args:
+            column_name (str): the name of the column this object generates.
+        """
+        self.column_name = column_name
 
-        return {'G': G, 'Delta': Deltas, 'delta': deltas}
+    def get_column(self, protocol):
+        """Get the column given the information in the given protocol.
+
+        Args:
+            protocol (Protocol): the protocol object to use as a basis for generating the column
+
+        Returns:
+            ndarray: the single column as a 2d matrix
+        """
+
+
+class SimpleVirtualColumn(VirtualColumn):
+
+    def __init__(self, column_name, generate_function):
+        """Create a simple virtual column that uses the given generate function to get the column.
+
+        Args:
+            column_name (str): the name of the column
+            generate_function (python function): the function to generate the column
+        """
+        super(SimpleVirtualColumn, self).__init__(column_name)
+        self._generate_function = generate_function
+
+    def get_column(self, protocol):
+        return self._generate_function(protocol)
+
+
+class VirtualColumnQ(VirtualColumn):
+
+    def __init__(self):
+        super(VirtualColumnQ, self).__init__('q')
+
+    def get_column(self, protocol):
+        sequence_timings = get_sequence_timings(protocol)
+        return np.reshape(np.array(protocol.gamma_h * sequence_timings['G'] * sequence_timings['delta'] / (2 * np.pi)),
+                          (-1, 1))
+
+
+class VirtualColumnB(VirtualColumn):
+
+    def __init__(self):
+        super(VirtualColumnB, self).__init__('b')
+
+    def get_column(self, protocol):
+        sequence_timings = get_sequence_timings(protocol)
+        return np.reshape(np.array(protocol.gamma_h ** 2 *
+                                   sequence_timings['G'] ** 2 *
+                                   sequence_timings['delta'] ** 2 *
+                                   (sequence_timings['Delta'] - (sequence_timings['delta'] / 3))), (-1, 1))
+
+
+def get_sequence_timings(protocol):
+    """Return G, Delta and delta, estimate them if necessary.
+
+    If Delta and delta are available, they are used instead of estimated Delta and delta.
+
+    Returns:
+        dict: the columns G, Delta and delta
+    """
+    if all(map(protocol.is_column_real, ['b', 'Delta', 'delta'])):
+        G = np.sqrt(protocol.get_column('b') / (protocol.gamma_h ** 2 * protocol.get_column('delta') ** 2 *
+                                                (protocol.get_column('Delta') - (protocol.get_column('delta') / 3.0))))
+        G[protocol.get_unweighted_indices()] = 0
+        return {'G': G, 'Delta': protocol.get_column('Delta'), 'delta': protocol.get_column('delta')}
+
+    if all(map(protocol.is_column_real, ['b', 'Delta', 'G'])):
+        roots = np.roots([-1 / 3.0, protocol.get_column('Delta'),
+                          -protocol.get_column('b') / (protocol.gamma_h ** 2 * protocol.get_column('G') ** 2)])
+        delta = list(itertools.dropwhile(np.isreal, roots))[0]
+        return {'G': protocol.get_column('G'), 'Delta': protocol.get_column('Delta'), 'delta': delta}
+
+    if all(map(protocol.is_column_real, ['b', 'G', 'delta'])):
+        Delta = (
+        (protocol.get_column('b') - protocol.gamma_h ** 2 * protocol.get_column('G') ** 2
+            * protocol.get_column('delta') ** 3 / 3.0) /
+        (protocol.gamma_h ** 2 * protocol.get_column('G') ** 2 * protocol.get_column('delta') ** 2))
+        return {'G': protocol.get_column('G'), 'delta': protocol.get_column('delta'), 'Delta': Delta}
+
+    if all(map(protocol.is_column_real, ['G', 'delta', 'Delta'])):
+        return {'G': protocol.get_column('G'), 'delta': protocol.get_column('delta'),
+                'Delta': protocol.get_column('Delta')}
+
+    if not protocol.is_column_real('b'):
+        raise KeyError('Can not estimate the sequence timings.')
+
+    if protocol.has_column('maxG'):
+        maxG = protocol.get_column('maxG')
+    else:
+        maxG = np.reshape(np.ones((protocol.length,)) * 0.04, (-1, 1))
+
+    bvals = protocol.get_column('b')
+    if protocol.get_b_values_shells():
+        bmax = max(protocol.get_b_values_shells())
+    else:
+        bmax = 1
+
+    Deltas = (3 * bmax / (2 * protocol.gamma_h ** 2 * maxG ** 2)) ** (1 / 3.0)
+    deltas = Deltas
+    G = np.sqrt(bvals / bmax) * maxG
+
+    return {'G': G, 'Delta': Deltas, 'delta': deltas}
 
 
 def load_bvec_bval(bvec_file, bval_file, column_based='auto', bval_scale='auto'):
@@ -571,29 +675,6 @@ def load_protocol(protocol_fname):
     return Protocol(columns=d)
 
 
-def get_column_names_preferred_order(column_names, preferred_order=None):
-    """Order the column names to a nice preferred order.
-
-    Args:
-        column_names (list of str): the list with column names
-        preferred_order (list of str): the preferred partial ordering
-
-    Returns:
-        the same list of column names ordered to the given partial ordering
-    """
-    columns_list = list(reversed(column_names))
-    preferred_order = preferred_order or ('gx', 'gy', 'gz', 'G', 'Delta', 'delta', 'TE', 'T1', 'b', 'q', 'maxG')
-
-    final_list = []
-    for p in preferred_order:
-        if p in columns_list:
-            columns_list.remove(p)
-            final_list.append(p)
-    final_list.extend(columns_list)
-
-    return final_list
-
-
 def write_protocol(protocol, fname, columns_list=None):
     """Write the given protocol to a file.
 
@@ -609,7 +690,7 @@ def write_protocol(protocol, fname, columns_list=None):
         A tuple listing the parameters that where written (and in that order)
     """
     if not columns_list:
-        columns_list = get_column_names_preferred_order(protocol.column_names)
+        columns_list = protocol.column_names
 
         if 'G' in columns_list and 'Delta' in columns_list and 'delta' in columns_list:
             if 'b' in columns_list:

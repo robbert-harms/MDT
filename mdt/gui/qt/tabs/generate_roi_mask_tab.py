@@ -38,18 +38,16 @@ class GenerateROIMaskTab(Ui_GenerateROIMaskTabContent):
         self.dimensionInput.valueChanged.connect(self.update_dimension)
         self.sliceInput.valueChanged.connect(self.update_slice_index)
 
-    @pyqtSlot()
     def _select_mask(self):
         open_file, used_filter = QFileDialog().getOpenFileName(
             caption='Select the brain mask', directory=self._shared_state.base_dir,
             filter=';;'.join(image_files_filters))
 
-        if open_file:
+        if os.path.isfile(open_file):
             self.selectedMaskText.setText(open_file)
             self.mask_file_changed()
             self._shared_state.base_dir = os.path.dirname(open_file)
 
-    @pyqtSlot()
     def _select_output_file(self):
         output_file_name, used_filter = QFileDialog().getSaveFileName(
             caption='Select the output file', directory=self._shared_state.base_dir,
@@ -109,10 +107,10 @@ class GenerateROIMaskTab(Ui_GenerateROIMaskTabContent):
             dimension_max = load_nifti(self.selectedMaskText.text()).shape[self.dimensionInput.value()]
             self.sliceInput.setMaximum(dimension_max)
             self.sliceInput.setValue(0)
-            self.maxSliceLabel.setText('/ {}'.format(dimension_max))
+            self.maxSliceLabel.setText(str(dimension_max))
         else:
             self.sliceInput.setValue(0)
-            self.maxSliceLabel.setText('/ x')
+            self.maxSliceLabel.setText('x')
 
     def update_output_file_text(self):
         folder, basename, ext = split_image_path(self.selectedMaskText.text())
