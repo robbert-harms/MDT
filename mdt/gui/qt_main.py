@@ -2,8 +2,6 @@ import sys
 
 import signal
 
-import time
-
 from mdt.gui.qt.tabs.generate_brain_mask_tab import GenerateBrainMaskTab
 from mdt.gui.qt.tabs.generate_protocol_tab import GenerateProtocolTab
 from mdt.gui.qt.tabs.generate_roi_mask_tab import GenerateROIMaskTab
