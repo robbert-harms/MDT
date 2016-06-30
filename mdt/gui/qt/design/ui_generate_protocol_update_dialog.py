@@ -2,7 +2,8 @@
 
 # Form implementation generated from reading ui file 'generate_protocol_update_dialog.ui'
 #
-# Created by: PyQt5 UI code generator 5.4.2
+# Created: Thu Jun 30 14:02:51 2016
+#      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -11,7 +12,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_UpdateColumnDialog(object):
     def setupUi(self, UpdateColumnDialog):
         UpdateColumnDialog.setObjectName("UpdateColumnDialog")
-        UpdateColumnDialog.resize(731, 304)
+        UpdateColumnDialog.resize(831, 357)
         self.verticalLayout = QtWidgets.QVBoxLayout(UpdateColumnDialog)
         self.verticalLayout.setObjectName("verticalLayout")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout()
@@ -40,11 +41,11 @@ class Ui_UpdateColumnDialog(object):
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.fileInput = QtWidgets.QPushButton(UpdateColumnDialog)
-        self.fileInput.setEnabled(False)
+        self.fileInput.setEnabled(True)
         self.fileInput.setObjectName("fileInput")
         self.horizontalLayout.addWidget(self.fileInput)
         self.selectedFile = QtWidgets.QLineEdit(UpdateColumnDialog)
-        self.selectedFile.setEnabled(False)
+        self.selectedFile.setEnabled(True)
         self.selectedFile.setObjectName("selectedFile")
         self.horizontalLayout.addWidget(self.selectedFile)
         self.gridLayout.addLayout(self.horizontalLayout, 4, 1, 1, 1)
@@ -141,8 +142,8 @@ class Ui_UpdateColumnDialog(object):
         self.label_4.setText(_translate("UpdateColumnDialog", "Add a column to the current protocol or overwrite an existing column."))
         self.fileInput.setText(_translate("UpdateColumnDialog", "Browse"))
         self.label_2.setText(_translate("UpdateColumnDialog", "Method:"))
-        self.inputMethodSelector.setItemText(0, _translate("UpdateColumnDialog", "Single value"))
-        self.inputMethodSelector.setItemText(1, _translate("UpdateColumnDialog", "From file"))
+        self.inputMethodSelector.setItemText(0, _translate("UpdateColumnDialog", "From file"))
+        self.inputMethodSelector.setItemText(1, _translate("UpdateColumnDialog", "Single value"))
         self.label.setText(_translate("UpdateColumnDialog", "Column name: "))
         self.label_11.setText(_translate("UpdateColumnDialog", "(A single value for every row)"))
         self.label_10.setText(_translate("UpdateColumnDialog", "(The column name, for example \"g\", \"b\" or \"TE\")"))

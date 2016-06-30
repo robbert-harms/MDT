@@ -1,3 +1,4 @@
+import operator
 import glob
 import logging
 import numbers
@@ -30,7 +31,6 @@ class Protocol(object):
         self._gamma_h = 2.675987E8
         self._unweighted_threshold = 25e6 # s/m^2
         self._columns = {}
-        self._length = None
         self._logger = logging.getLogger(__name__)
         self._preferred_column_order = ('gx', 'gy', 'gz', 'G', 'Delta', 'delta', 'TE', 'T1', 'b', 'q', 'maxG')
         self._virtual_columns = [VirtualColumnQ(),
@@ -41,7 +41,6 @@ class Protocol(object):
 
         if columns:
             self._columns = columns
-            self._length = columns[list(columns.keys())[0]].shape[0]
 
             for k, v in columns.items():
                 s = v.shape
@@ -89,24 +88,24 @@ class Protocol(object):
             data = float(data)
 
         if isinstance(data, numbers.Number) or not data.shape:
-            data = np.ones((self._length,)) * data
+            if self._columns:
+                data = np.ones((self.length,)) * data
+            else:
+                data = np.ones((1,)) * data
 
         s = data.shape
-        if self._length and s[0] > self._length:
+        if self.length and s[0] > self.length:
             self._logger.info("The column '{}' has to many elements ({}), we will only use the first {}.".format(
-                name, s[0], self._length))
-            self._columns.update({name: data[:self._length]})
-        elif self._length and s[0] < self._length:
+                name, s[0], self.length))
+            self._columns.update({name: data[:self.length]})
+        elif self.length and s[0] < self.length:
             raise ValueError("Incorrect column length given for '{}', expected {} and got {}.".format(
-                name, self._length, s[0]))
+                name, self.length, s[0]))
         else:
-
             if name == 'g' and len(data.shape) > 1 and data.shape[1] == 3:
                 self._columns.update({'gx': data[:, 0], 'gy': data[:, 1], 'gz': data[:, 2]})
             else:
                 self._columns.update({name: data})
-            self._length = self._columns[list(self._columns.keys())[0]].shape[0]
-
         return self
 
     def add_column_from_file(self, name, file_name, multiplication_factor=1):
@@ -122,6 +121,11 @@ class Protocol(object):
         Returns:
             self: for chaining
         """
+        if name == 'g':
+            self._columns.update(get_g_columns(file_name))
+            for column_name in ('gx', 'gy', 'gz'):
+                self._columns[column_name] *= multiplication_factor
+            return self
         data = np.genfromtxt(file_name)
         data *= multiplication_factor
         self.add_column(name, data)
@@ -189,7 +193,9 @@ class Protocol(object):
         Returns:
             int: The length of the protocol.
         """
-        return self._length
+        if self._columns:
+            return self._columns[list(self._columns.keys())[0]].shape[0]
+        return 0
 
     @property
     def number_of_columns(self):
@@ -581,7 +587,7 @@ def load_bvec_bval(bvec_file, bval_file, column_based='auto', bval_scale='auto')
     Returns:
         Protocol the loaded protocol.
     """
-    bvec = np.genfromtxt(bvec_file)
+    bvec = get_g_columns(bvec_file, column_based=column_based)
     bval = np.expand_dims(np.genfromtxt(bval_file), axis=1)
 
     if bval_scale == 'auto' and bval[0, 0] < 1e4:
@@ -589,8 +595,32 @@ def load_bvec_bval(bvec_file, bval_file, column_based='auto', bval_scale='auto')
     else:
         bval *= bval_scale
 
+    columns = {'b': bval}
+    columns.update(bvec)
+
+    if bvec['gx'].shape[0] != bval.shape[0]:
+        raise ValueError('Columns not of same length.')
+
+    return Protocol(columns=columns)
+
+
+def get_g_columns(bvec_file, column_based='auto'):
+    """Get the columns of a bvec file. Use auto transpose if needed.
+
+    Args:
+        bvec_file (str): The filename of the bvec file
+        column_based (boolean): If true, this supposes that the bvec (the vector file) has 3 rows (gx, gy, gz)
+            and is space or tab seperated
+            If false, the vectors are each one a different line.
+            If 'auto' it is autodetected, this is the default.
+
+    Returns:
+        dict: the loaded bvec matrix separated into 'gx', 'gy' and 'gz'
+    """
+    bvec = np.genfromtxt(bvec_file)
+
     if len(bvec.shape) < 2:
-        raise ValueError('Bval file does not have enough dimensions.')
+        raise ValueError('Bvec file does not have enough dimensions.')
 
     if column_based == 'auto':
         if bvec.shape[1] > bvec.shape[0]:
@@ -598,12 +628,9 @@ def load_bvec_bval(bvec_file, bval_file, column_based='auto', bval_scale='auto')
     elif column_based:
         bvec = bvec.transpose()
 
-    columns = {'gx': bvec[:, 0], 'gy': bvec[:, 1], 'gz': bvec[:, 2], 'b': bval}
-
-    if bvec.shape[0] != bval.shape[0]:
-        raise ValueError('Columns not of same length.')
-
-    return Protocol(columns=columns)
+    return {'gx': np.reshape(bvec[:, 0], (-1, 1)),
+            'gy': np.reshape(bvec[:, 1], (-1, 1)),
+            'gz': np.reshape(bvec[:, 2], (-1, 1))}
 
 
 def write_bvec_bval(protocol, bvec_fname, bval_fname, column_based=True, bval_scale=1):

@@ -33,97 +33,100 @@
      <verstretch>0</verstretch>
     </sizepolicy>
    </property>
-   <layout class="QVBoxLayout" name="verticalLayout">
+   <layout class="QVBoxLayout" name="verticalLayout_2">
     <property name="spacing">
      <number>0</number>
     </property>
     <property name="leftMargin">
-     <number>0</number>
+     <number>3</number>
     </property>
     <property name="topMargin">
      <number>0</number>
     </property>
     <property name="rightMargin">
-     <number>0</number>
+     <number>3</number>
     </property>
     <property name="bottomMargin">
      <number>0</number>
     </property>
     <item>
-     <widget class="QTabWidget" name="MainTabs">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-        <horstretch>0</horstretch>
-        <verstretch>1</verstretch>
-       </sizepolicy>
+     <widget class="QSplitter" name="splitter">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
       </property>
-      <property name="currentIndex">
-       <number>3</number>
-      </property>
-      <widget class="QWidget" name="runModelTab">
-       <attribute name="title">
-        <string>Run model</string>
-       </attribute>
+      <widget class="QTabWidget" name="MainTabs">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>1</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="currentIndex">
+        <number>3</number>
+       </property>
+       <widget class="QWidget" name="runModelTab">
+        <attribute name="title">
+         <string>Run model</string>
+        </attribute>
+       </widget>
+       <widget class="QWidget" name="generateBrainMaskTab">
+        <attribute name="title">
+         <string>Generate brain mask</string>
+        </attribute>
+       </widget>
+       <widget class="QWidget" name="generateROIMaskTab">
+        <attribute name="title">
+         <string>Generate ROI mask</string>
+        </attribute>
+       </widget>
+       <widget class="QWidget" name="generateProtocolTab">
+        <attribute name="title">
+         <string>Generate protocol file</string>
+        </attribute>
+       </widget>
+       <widget class="QWidget" name="viewResultsTab">
+        <attribute name="title">
+         <string>View results</string>
+        </attribute>
+       </widget>
       </widget>
-      <widget class="QWidget" name="generateBrainMaskTab">
-       <attribute name="title">
-        <string>Generate brain mask</string>
-       </attribute>
+      <widget class="QPlainTextEdit" name="loggingTextBox">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="font">
+        <font>
+         <family>Droid Sans Mono</family>
+        </font>
+       </property>
+       <property name="frameShape">
+        <enum>QFrame::StyledPanel</enum>
+       </property>
+       <property name="frameShadow">
+        <enum>QFrame::Sunken</enum>
+       </property>
+       <property name="verticalScrollBarPolicy">
+        <enum>Qt::ScrollBarAsNeeded</enum>
+       </property>
+       <property name="horizontalScrollBarPolicy">
+        <enum>Qt::ScrollBarAsNeeded</enum>
+       </property>
+       <property name="lineWrapMode">
+        <enum>QPlainTextEdit::NoWrap</enum>
+       </property>
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+       <property name="plainText">
+        <string/>
+       </property>
+       <property name="tabStopWidth">
+        <number>80</number>
+       </property>
       </widget>
-      <widget class="QWidget" name="generateROIMaskTab">
-       <attribute name="title">
-        <string>Generate ROI mask</string>
-       </attribute>
-      </widget>
-      <widget class="QWidget" name="generateProtocolTab">
-       <attribute name="title">
-        <string>Generate protocol file</string>
-       </attribute>
-      </widget>
-      <widget class="QWidget" name="viewResultsTab">
-       <attribute name="title">
-        <string>View results</string>
-       </attribute>
-      </widget>
-     </widget>
-    </item>
-    <item>
-     <widget class="QPlainTextEdit" name="loggingTextBox">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="font">
-       <font>
-        <family>Droid Sans Mono</family>
-       </font>
-      </property>
-      <property name="frameShape">
-       <enum>QFrame::StyledPanel</enum>
-      </property>
-      <property name="frameShadow">
-       <enum>QFrame::Sunken</enum>
-      </property>
-      <property name="verticalScrollBarPolicy">
-       <enum>Qt::ScrollBarAsNeeded</enum>
-      </property>
-      <property name="horizontalScrollBarPolicy">
-       <enum>Qt::ScrollBarAsNeeded</enum>
-      </property>
-      <property name="lineWrapMode">
-       <enum>QPlainTextEdit::NoWrap</enum>
-      </property>
-      <property name="readOnly">
-       <bool>true</bool>
-      </property>
-      <property name="plainText">
-       <string/>
-      </property>
-      <property name="tabStopWidth">
-       <number>80</number>
-      </property>
      </widget>
     </item>
     <item>
@@ -174,7 +177,7 @@
      <x>0</x>
      <y>0</y>
      <width>870</width>
-     <height>27</height>
+     <height>33</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuMenu">

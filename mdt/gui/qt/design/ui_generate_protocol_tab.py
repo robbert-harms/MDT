@@ -2,7 +2,8 @@
 
 # Form implementation generated from reading ui file 'generate_protocol_tab.ui'
 #
-# Created by: PyQt5 UI code generator 5.4.2
+# Created: Thu Jun 30 14:02:51 2016
+#      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -35,6 +36,7 @@ class Ui_GenerateProtocolTabContent(object):
         self.line.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line.setLineWidth(1)
         self.line.setFrameShape(QtWidgets.QFrame.HLine)
+        self.line.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line.setObjectName("line")
         self.verticalLayout.addWidget(self.line)
         self.protocol_table = QtWidgets.QTableWidget(GenerateProtocolTabContent)
@@ -126,24 +128,27 @@ class Ui_GenerateProtocolTabContent(object):
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setContentsMargins(-1, 0, -1, 0)
         self.horizontalLayout.setObjectName("horizontalLayout")
-        self.saveButton = QtWidgets.QPushButton(GenerateProtocolTabContent)
-        self.saveButton.setObjectName("saveButton")
-        self.horizontalLayout.addWidget(self.saveButton)
+        self.loadGB = QtWidgets.QPushButton(GenerateProtocolTabContent)
+        self.loadGB.setObjectName("loadGB")
+        self.horizontalLayout.addWidget(self.loadGB)
         self.loadProtocolButton = QtWidgets.QPushButton(GenerateProtocolTabContent)
         self.loadProtocolButton.setObjectName("loadProtocolButton")
         self.horizontalLayout.addWidget(self.loadProtocolButton)
         self.loadColumnButton = QtWidgets.QPushButton(GenerateProtocolTabContent)
         self.loadColumnButton.setObjectName("loadColumnButton")
         self.horizontalLayout.addWidget(self.loadColumnButton)
+        self.saveButton = QtWidgets.QPushButton(GenerateProtocolTabContent)
+        self.saveButton.setObjectName("saveButton")
+        self.horizontalLayout.addWidget(self.saveButton)
+        self.clearButton = QtWidgets.QPushButton(GenerateProtocolTabContent)
+        self.clearButton.setObjectName("clearButton")
+        self.horizontalLayout.addWidget(self.clearButton)
         spacerItem6 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem6)
         self.verticalLayout.addLayout(self.horizontalLayout)
 
         self.retranslateUi(GenerateProtocolTabContent)
         QtCore.QMetaObject.connectSlotsByName(GenerateProtocolTabContent)
-        GenerateProtocolTabContent.setTabOrder(self.protocol_table, self.saveButton)
-        GenerateProtocolTabContent.setTabOrder(self.saveButton, self.loadProtocolButton)
-        GenerateProtocolTabContent.setTabOrder(self.loadProtocolButton, self.loadColumnButton)
 
     def retranslateUi(self, GenerateProtocolTabContent):
         _translate = QtCore.QCoreApplication.translate
@@ -162,7 +167,9 @@ class Ui_GenerateProtocolTabContent(object):
         self.nmrUnweighted.setText(_translate("GenerateProtocolTabContent", "0"))
         self.label_4.setText(_translate("GenerateProtocolTabContent", "Different shells:"))
         self.differentShells.setText(_translate("GenerateProtocolTabContent", "-"))
-        self.saveButton.setText(_translate("GenerateProtocolTabContent", "Save as"))
+        self.loadGB.setText(_translate("GenerateProtocolTabContent", "Load g && b"))
         self.loadProtocolButton.setText(_translate("GenerateProtocolTabContent", "Load protocol"))
         self.loadColumnButton.setText(_translate("GenerateProtocolTabContent", "Add / Update column"))
+        self.saveButton.setText(_translate("GenerateProtocolTabContent", "Save as"))
+        self.clearButton.setText(_translate("GenerateProtocolTabContent", "Clear"))
 

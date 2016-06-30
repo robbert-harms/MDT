@@ -7,7 +7,7 @@ QT_RESOURCE_DIR = ./
 QT_COMPILED_DIR = ../../gui/qt/design
  
 # UI files to compile
-QT_UI_FILES = gui_single.ui generate_protocol_tab.ui view_results_tab.ui generate_brain_mask_tab.ui generate_roi_mask_tab.ui generate_protocol_update_dialog.ui
+QT_UI_FILES = gui_single.ui generate_protocol_tab.ui view_results_tab.ui generate_brain_mask_tab.ui generate_roi_mask_tab.ui generate_protocol_update_dialog.ui generate_protocol_load_gb_dialog.ui
 
 # Qt resource files to compile
 QT_RESOURCES = gui_single.qrc

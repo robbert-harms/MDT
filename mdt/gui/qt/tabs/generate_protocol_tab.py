@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QFileDialog, QTableWidgetItem, QAbstractItemView, QM
     QDialog, QDialogButtonBox
 
 import mdt
+from mdt.gui.qt.design.ui_generate_protocol_load_gb_dialog import Ui_LoadGBDialog
 from mdt.gui.qt.design.ui_generate_protocol_tab import Ui_GenerateProtocolTabContent
 from mdt.gui.qt.design.ui_generate_protocol_update_dialog import Ui_UpdateColumnDialog
 from mdt.gui.qt.utils import protocol_files_filters
@@ -33,13 +34,13 @@ class GenerateProtocolTab(Ui_GenerateProtocolTabContent):
         self.loadProtocolButton.clicked.connect(lambda: self._select_protocol())
         self.saveButton.clicked.connect(lambda: self._save_protocol())
         self.loadColumnButton.clicked.connect(lambda: self._load_column_action())
+        self.loadGB.clicked.connect(lambda: self._load_g_and_b())
+        self.clearButton.clicked.connect(self._clear_table)
 
         headers = self.protocol_table.horizontalHeader()
         headers.setContextMenuPolicy(Qt.CustomContextMenu)
         headers.customContextMenuRequested.connect(self.show_header_context_menu)
         headers.setSelectionMode(QAbstractItemView.SingleSelection)
-
-        # self.load_protocol('/home/robbert/phd-data/dti_test/4Ddwi_b1000.prtcl')
 
     def _select_protocol(self):
         open_file, used_filter = QFileDialog().getOpenFileName(
@@ -58,6 +59,11 @@ class GenerateProtocolTab(Ui_GenerateProtocolTabContent):
         if os.path.isdir(os.path.dirname(output_file_name)) and self._protocol.length:
             mdt.write_protocol(self._protocol, output_file_name)
             print('Saved protocol as: {}'.format(output_file_name))
+
+    @pyqtSlot()
+    def _clear_table(self):
+        self._protocol = Protocol()
+        self._update_views()
 
     def load_protocol(self, file_name):
         self._protocol = mdt.protocols.load_protocol(file_name)
@@ -163,11 +169,20 @@ class GenerateProtocolTab(Ui_GenerateProtocolTabContent):
             dialog.update_protocol(self._protocol)
             self._update_views()
 
+    def _load_g_and_b(self):
+        dialog = LoadGBDialog(self._shared_state, self._tab_content)
+        return_value = dialog.exec_()
+
+        if return_value:
+            self._protocol = dialog.get_protocol()
+            self._update_views()
+
 
 class LoadColumnDialog(Ui_UpdateColumnDialog, QDialog):
 
     def __init__(self, shared_state, parent):
         super(LoadColumnDialog, self).__init__(parent)
+        self._input_options = {'from_file': 0, 'from_value': 1}
         self.setupUi(self)
         self._shared_state = shared_state
         self.inputMethodSelector.currentIndexChanged.connect(self.enable_correct_inputs)
@@ -176,6 +191,7 @@ class LoadColumnDialog(Ui_UpdateColumnDialog, QDialog):
         self.singleValueInput.textChanged.connect(self._update_ok_button)
         self.fileInput.clicked.connect(lambda: self._select_value_file())
         self.selectedFile.textChanged.connect(self._update_ok_button)
+        self.enable_correct_inputs(self.inputMethodSelector.currentIndex())
 
     def update_protocol(self, protocol):
         column_name = self.columnNameInput.text()
@@ -185,7 +201,7 @@ class LoadColumnDialog(Ui_UpdateColumnDialog, QDialog):
             except ValueError:
                 scale = 1
 
-            if self.inputMethodSelector.currentIndex() == 0:
+            if self.inputMethodSelector.currentIndex() == self._input_options['from_value']:
                 value = float(self.singleValueInput.text())
                 protocol.add_column(column_name, value * scale)
             else:
@@ -193,7 +209,7 @@ class LoadColumnDialog(Ui_UpdateColumnDialog, QDialog):
 
     @pyqtSlot(int)
     def enable_correct_inputs(self, selection):
-        if selection == 0:
+        if selection == self._input_options['from_value']:
             self.singleValueInput.setDisabled(False)
             self.fileInput.setDisabled(True)
             self.selectedFile.setDisabled(True)
@@ -204,10 +220,10 @@ class LoadColumnDialog(Ui_UpdateColumnDialog, QDialog):
 
     @pyqtSlot()
     def _update_ok_button(self):
-        self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(self.columnNameInput.text() and self._has_value())
+        self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(self.columnNameInput.text() != '' and self._has_value())
 
     def _has_value(self):
-        if self.inputMethodSelector.currentIndex() == 0:
+        if self.inputMethodSelector.currentIndex() == self._input_options['from_value']:
             if self.singleValueInput.text() != '':
                 try:
                     float(self.singleValueInput.text())
@@ -226,4 +242,78 @@ class LoadColumnDialog(Ui_UpdateColumnDialog, QDialog):
 
         if open_file:
             self.selectedFile.setText(open_file)
+            self._shared_state.base_dir = os.path.dirname(open_file)
             self._update_ok_button()
+
+
+class LoadGBDialog(Ui_LoadGBDialog, QDialog):
+
+    def __init__(self, shared_state, parent):
+        super(LoadGBDialog, self).__init__(parent)
+    #     self._input_options = {'from_file': 0, 'from_value': 1}
+        self.setupUi(self)
+    #     self._shared_state = shared_state
+    #     self.inputMethodSelector.currentIndexChanged.connect(self.enable_correct_inputs)
+    #     self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(False)
+    #     self.columnNameInput.textChanged.connect(self._update_ok_button)
+    #     self.singleValueInput.textChanged.connect(self._update_ok_button)
+    #     self.fileInput.clicked.connect(lambda: self._select_value_file())
+    #     self.selectedFile.textChanged.connect(self._update_ok_button)
+    #     self.enable_correct_inputs(self.inputMethodSelector.currentIndex())
+
+    def get_protocol(self):
+        return mdt.load_protocol_bval_bvec(bvec=self.bvecFileInput.text(),
+                                           bval=self.bvalFileInput.text(),
+                                           bval_scale=self.bvalScale.text())
+
+    # def update_protocol(self, protocol):
+    #     column_name = self.columnNameInput.text()
+    #     if column_name:
+    #         try:
+    #             scale = float(self.valueScale.text())
+    #         except ValueError:
+    #             scale = 1
+    #
+    #         if self.inputMethodSelector.currentIndex() == self._input_options['from_value']:
+    #             value = float(self.singleValueInput.text())
+    #             protocol.add_column(column_name, value * scale)
+    #         else:
+    #             protocol.add_column_from_file(column_name, self.selectedFile.text(), scale)
+    #
+    # @pyqtSlot(int)
+    # def enable_correct_inputs(self, selection):
+    #     if selection == self._input_options['from_value']:
+    #         self.singleValueInput.setDisabled(False)
+    #         self.fileInput.setDisabled(True)
+    #         self.selectedFile.setDisabled(True)
+    #     else:
+    #         self.singleValueInput.setDisabled(True)
+    #         self.fileInput.setDisabled(False)
+    #         self.selectedFile.setDisabled(False)
+    #
+    # @pyqtSlot()
+    # def _update_ok_button(self):
+    #     self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(self.columnNameInput.text() != '' and self._has_value())
+    #
+    # def _has_value(self):
+    #     if self.inputMethodSelector.currentIndex() == self._input_options['from_value']:
+    #         if self.singleValueInput.text() != '':
+    #             try:
+    #                 float(self.singleValueInput.text())
+    #                 return True
+    #             except ValueError:
+    #                 pass
+    #         return False
+    #     else:
+    #         if os.path.isfile(self.selectedFile.text()):
+    #             return True
+    #     return False
+    #
+    # def _select_value_file(self):
+    #     open_file, used_filter = QFileDialog().getOpenFileName(
+    #         caption='Select the column info file', directory=self._shared_state.base_dir)
+    #
+    #     if open_file:
+    #         self.selectedFile.setText(open_file)
+    #         self._shared_state.base_dir = os.path.dirname(open_file)
+    #         self._update_ok_button()

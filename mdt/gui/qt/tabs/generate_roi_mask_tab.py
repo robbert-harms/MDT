@@ -106,7 +106,7 @@ class GenerateROIMaskTab(Ui_GenerateROIMaskTabContent):
         if os.path.isfile(self.selectedMaskText.text()):
             dimension_max = load_nifti(self.selectedMaskText.text()).shape[self.dimensionInput.value()]
             self.sliceInput.setMaximum(dimension_max)
-            self.sliceInput.setValue(0)
+            self.sliceInput.setValue(dimension_max // 2.0)
             self.maxSliceLabel.setText(str(dimension_max))
         else:
             self.sliceInput.setValue(0)

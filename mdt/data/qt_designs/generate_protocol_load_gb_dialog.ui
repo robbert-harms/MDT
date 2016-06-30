@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>UpdateColumnDialog</class>
- <widget class="QDialog" name="UpdateColumnDialog">
+ <class>LoadGBDialog</class>
+ <widget class="QDialog" name="LoadGBDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
     <width>831</width>
-    <height>357</height>
+    <height>271</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Add / Update column</string>
+   <string>Load g &amp; b</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
@@ -27,7 +27,7 @@
         </font>
        </property>
        <property name="text">
-        <string>Add / Update column</string>
+        <string>Load g &amp; b</string>
        </property>
       </widget>
      </item>
@@ -39,7 +39,7 @@
         </font>
        </property>
        <property name="text">
-        <string>Add a column to the current protocol or overwrite an existing column.</string>
+        <string>Load the bvec (g) and bval (b) in the protocol</string>
        </property>
       </widget>
      </item>
@@ -54,10 +54,10 @@
    </item>
    <item>
     <layout class="QGridLayout" name="gridLayout">
-     <item row="4" column="1">
+     <item row="1" column="1">
       <layout class="QHBoxLayout" name="horizontalLayout">
        <item>
-        <widget class="QPushButton" name="fileInput">
+        <widget class="QPushButton" name="bvalFileChooser">
          <property name="enabled">
           <bool>true</bool>
          </property>
@@ -67,7 +67,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="selectedFile">
+        <widget class="QLineEdit" name="bvalFileInput">
          <property name="enabled">
           <bool>true</bool>
          </property>
@@ -75,38 +75,7 @@
        </item>
       </layout>
      </item>
-     <item row="1" column="0">
-      <widget class="QLabel" name="label_2">
-       <property name="text">
-        <string>Method:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="1">
-      <widget class="QComboBox" name="inputMethodSelector">
-       <item>
-        <property name="text">
-         <string>From file</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Single value</string>
-        </property>
-       </item>
-      </widget>
-     </item>
-     <item row="0" column="0">
-      <widget class="QLabel" name="label">
-       <property name="text">
-        <string>Column name: </string>
-       </property>
-      </widget>
-     </item>
-     <item row="6" column="1">
-      <widget class="QLineEdit" name="valueScale"/>
-     </item>
-     <item row="3" column="2">
+     <item row="0" column="2">
       <widget class="QLabel" name="label_11">
        <property name="font">
         <font>
@@ -114,40 +83,25 @@
         </font>
        </property>
        <property name="text">
-        <string>(A single value for every row)</string>
+        <string>(The file containing the gradient directions)</string>
        </property>
       </widget>
      </item>
-     <item row="0" column="2">
-      <widget class="QLabel" name="label_10">
-       <property name="font">
-        <font>
-         <italic>true</italic>
-        </font>
-       </property>
-       <property name="text">
-        <string>(The column name, for example &quot;g&quot;, &quot;b&quot; or &quot;TE&quot;)</string>
-       </property>
-      </widget>
-     </item>
-     <item row="6" column="0">
-      <widget class="QLabel" name="label_7">
-       <property name="text">
-        <string>Scale:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="0">
+     <item row="0" column="0">
       <widget class="QLabel" name="label_5">
        <property name="text">
-        <string>Single value:</string>
+        <string>Bvec (g) file:</string>
        </property>
       </widget>
      </item>
-     <item row="0" column="1">
-      <widget class="QLineEdit" name="columnNameInput"/>
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_6">
+       <property name="text">
+        <string>Bval (b) file:</string>
+       </property>
+      </widget>
      </item>
-     <item row="4" column="2">
+     <item row="1" column="2">
       <widget class="QLabel" name="label_12">
        <property name="font">
         <font>
@@ -155,11 +109,25 @@
         </font>
        </property>
        <property name="text">
-        <string>(File with a single value, a row, a column or a matrix)</string>
+        <string>(The file containing the b-values)</string>
        </property>
       </widget>
      </item>
-     <item row="6" column="2">
+     <item row="0" column="1">
+      <layout class="QHBoxLayout" name="horizontalLayout_2">
+       <item>
+        <widget class="QPushButton" name="bvecFileChooser">
+         <property name="text">
+          <string>Browse</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="bvecFileInput"/>
+       </item>
+      </layout>
+     </item>
+     <item row="2" column="2">
       <widget class="QLabel" name="label_13">
        <property name="font">
         <font>
@@ -167,31 +135,22 @@
         </font>
        </property>
        <property name="text">
-        <string>(Optionally, scale the input with this amount)</string>
+        <string>(We expect the b-values in the
+protocol in units of s/m^2)</string>
        </property>
       </widget>
      </item>
-     <item row="2" column="0" colspan="3">
-      <widget class="Line" name="line_2">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-      </widget>
-     </item>
-     <item row="4" column="0">
-      <widget class="QLabel" name="label_6">
+     <item row="2" column="1">
+      <widget class="QLineEdit" name="bvalScale">
        <property name="text">
-        <string>File input:</string>
+        <string>1e6</string>
        </property>
       </widget>
      </item>
-     <item row="3" column="1">
-      <widget class="QLineEdit" name="singleValueInput"/>
-     </item>
-     <item row="5" column="0" colspan="3">
-      <widget class="Line" name="line_4">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+     <item row="2" column="0">
+      <widget class="QLabel" name="label_7">
+       <property name="text">
+        <string>B-value rescale:</string>
        </property>
       </widget>
      </item>
@@ -230,18 +189,15 @@
   </layout>
  </widget>
  <tabstops>
-  <tabstop>columnNameInput</tabstop>
-  <tabstop>inputMethodSelector</tabstop>
-  <tabstop>singleValueInput</tabstop>
-  <tabstop>fileInput</tabstop>
-  <tabstop>selectedFile</tabstop>
+  <tabstop>bvalFileChooser</tabstop>
+  <tabstop>bvalFileInput</tabstop>
  </tabstops>
  <resources/>
  <connections>
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>UpdateColumnDialog</receiver>
+   <receiver>LoadGBDialog</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -257,7 +213,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>UpdateColumnDialog</receiver>
+   <receiver>LoadGBDialog</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">

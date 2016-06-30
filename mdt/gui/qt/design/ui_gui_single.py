@@ -2,7 +2,8 @@
 
 # Form implementation generated from reading ui file 'gui_single.ui'
 #
-# Created by: PyQt5 UI code generator 5.4.2
+# Created: Thu Jun 30 14:02:51 2016
+#      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -28,11 +29,14 @@ class Ui_MainWindow(object):
         sizePolicy.setHeightForWidth(self.centralwidget.sizePolicy().hasHeightForWidth())
         self.centralwidget.setSizePolicy(sizePolicy)
         self.centralwidget.setObjectName("centralwidget")
-        self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
-        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
-        self.verticalLayout.setSpacing(0)
-        self.verticalLayout.setObjectName("verticalLayout")
-        self.MainTabs = QtWidgets.QTabWidget(self.centralwidget)
+        self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.centralwidget)
+        self.verticalLayout_2.setSpacing(0)
+        self.verticalLayout_2.setContentsMargins(3, 0, 3, 0)
+        self.verticalLayout_2.setObjectName("verticalLayout_2")
+        self.splitter = QtWidgets.QSplitter(self.centralwidget)
+        self.splitter.setOrientation(QtCore.Qt.Vertical)
+        self.splitter.setObjectName("splitter")
+        self.MainTabs = QtWidgets.QTabWidget(self.splitter)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(1)
@@ -54,8 +58,7 @@ class Ui_MainWindow(object):
         self.viewResultsTab = QtWidgets.QWidget()
         self.viewResultsTab.setObjectName("viewResultsTab")
         self.MainTabs.addTab(self.viewResultsTab, "")
-        self.verticalLayout.addWidget(self.MainTabs)
-        self.loggingTextBox = QtWidgets.QPlainTextEdit(self.centralwidget)
+        self.loggingTextBox = QtWidgets.QPlainTextEdit(self.splitter)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -73,10 +76,10 @@ class Ui_MainWindow(object):
         self.loggingTextBox.setPlainText("")
         self.loggingTextBox.setTabStopWidth(80)
         self.loggingTextBox.setObjectName("loggingTextBox")
-        self.verticalLayout.addWidget(self.loggingTextBox)
+        self.verticalLayout_2.addWidget(self.splitter)
         self.horizontalLayout = QtWidgets.QHBoxLayout()
-        self.horizontalLayout.setContentsMargins(-1, 0, 8, -1)
         self.horizontalLayout.setSpacing(8)
+        self.horizontalLayout.setContentsMargins(-1, 0, 8, -1)
         self.horizontalLayout.setObjectName("horizontalLayout")
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem)
@@ -86,10 +89,10 @@ class Ui_MainWindow(object):
         self.executionStatusIcon = QtWidgets.QLabel(self.centralwidget)
         self.executionStatusIcon.setObjectName("executionStatusIcon")
         self.horizontalLayout.addWidget(self.executionStatusIcon)
-        self.verticalLayout.addLayout(self.horizontalLayout)
+        self.verticalLayout_2.addLayout(self.horizontalLayout)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 870, 27))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 870, 33))
         self.menubar.setObjectName("menubar")
         self.menuMenu = QtWidgets.QMenu(self.menubar)
         self.menuMenu.setObjectName("menuMenu")
