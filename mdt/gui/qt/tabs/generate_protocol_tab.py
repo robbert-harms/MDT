@@ -183,8 +183,8 @@ class LoadColumnDialog(Ui_UpdateColumnDialog, QDialog):
     def __init__(self, shared_state, parent):
         super(LoadColumnDialog, self).__init__(parent)
         self._input_options = {'from_file': 0, 'from_value': 1}
-        self.setupUi(self)
         self._shared_state = shared_state
+        self.setupUi(self)
         self.inputMethodSelector.currentIndexChanged.connect(self.enable_correct_inputs)
         self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(False)
         self.columnNameInput.textChanged.connect(self._update_ok_button)
@@ -250,70 +250,43 @@ class LoadGBDialog(Ui_LoadGBDialog, QDialog):
 
     def __init__(self, shared_state, parent):
         super(LoadGBDialog, self).__init__(parent)
-    #     self._input_options = {'from_file': 0, 'from_value': 1}
+        self._shared_state = shared_state
         self.setupUi(self)
-    #     self._shared_state = shared_state
-    #     self.inputMethodSelector.currentIndexChanged.connect(self.enable_correct_inputs)
-    #     self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(False)
-    #     self.columnNameInput.textChanged.connect(self._update_ok_button)
-    #     self.singleValueInput.textChanged.connect(self._update_ok_button)
-    #     self.fileInput.clicked.connect(lambda: self._select_value_file())
-    #     self.selectedFile.textChanged.connect(self._update_ok_button)
-    #     self.enable_correct_inputs(self.inputMethodSelector.currentIndex())
+        self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(False)
+        self.bvecFileInput.textChanged.connect(self._update_ok_button)
+        self.bvalFileInput.textChanged.connect(self._update_ok_button)
+        self.bvecFileChooser.clicked.connect(lambda: self._select_bvec_file())
+        self.bvalFileChooser.clicked.connect(lambda: self._select_bval_file())
 
     def get_protocol(self):
+        try:
+            bval_scale = float(self.bvalScale.text())
+        except:
+            bval_scale = 1
+
         return mdt.load_protocol_bval_bvec(bvec=self.bvecFileInput.text(),
                                            bval=self.bvalFileInput.text(),
-                                           bval_scale=self.bvalScale.text())
+                                           bval_scale=bval_scale)
 
-    # def update_protocol(self, protocol):
-    #     column_name = self.columnNameInput.text()
-    #     if column_name:
-    #         try:
-    #             scale = float(self.valueScale.text())
-    #         except ValueError:
-    #             scale = 1
-    #
-    #         if self.inputMethodSelector.currentIndex() == self._input_options['from_value']:
-    #             value = float(self.singleValueInput.text())
-    #             protocol.add_column(column_name, value * scale)
-    #         else:
-    #             protocol.add_column_from_file(column_name, self.selectedFile.text(), scale)
-    #
-    # @pyqtSlot(int)
-    # def enable_correct_inputs(self, selection):
-    #     if selection == self._input_options['from_value']:
-    #         self.singleValueInput.setDisabled(False)
-    #         self.fileInput.setDisabled(True)
-    #         self.selectedFile.setDisabled(True)
-    #     else:
-    #         self.singleValueInput.setDisabled(True)
-    #         self.fileInput.setDisabled(False)
-    #         self.selectedFile.setDisabled(False)
-    #
-    # @pyqtSlot()
-    # def _update_ok_button(self):
-    #     self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(self.columnNameInput.text() != '' and self._has_value())
-    #
-    # def _has_value(self):
-    #     if self.inputMethodSelector.currentIndex() == self._input_options['from_value']:
-    #         if self.singleValueInput.text() != '':
-    #             try:
-    #                 float(self.singleValueInput.text())
-    #                 return True
-    #             except ValueError:
-    #                 pass
-    #         return False
-    #     else:
-    #         if os.path.isfile(self.selectedFile.text()):
-    #             return True
-    #     return False
-    #
-    # def _select_value_file(self):
-    #     open_file, used_filter = QFileDialog().getOpenFileName(
-    #         caption='Select the column info file', directory=self._shared_state.base_dir)
-    #
-    #     if open_file:
-    #         self.selectedFile.setText(open_file)
-    #         self._shared_state.base_dir = os.path.dirname(open_file)
-    #         self._update_ok_button()
+    @pyqtSlot()
+    def _update_ok_button(self):
+        enable = os.path.isfile(self.bvalFileInput.text()) and os.path.isfile(self.bvecFileInput.text())
+        self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(enable)
+
+    def _select_bvec_file(self):
+        open_file, used_filter = QFileDialog().getOpenFileName(
+            caption='Select the bvec file', directory=self._shared_state.base_dir)
+
+        if open_file:
+            self.bvecFileInput.setText(open_file)
+            self._shared_state.base_dir = os.path.dirname(open_file)
+            self._update_ok_button()
+
+    def _select_bval_file(self):
+        open_file, used_filter = QFileDialog().getOpenFileName(
+            caption='Select the bval file', directory=self._shared_state.base_dir)
+
+        if open_file:
+            self.bvalFileInput.setText(open_file)
+            self._shared_state.base_dir = os.path.dirname(open_file)
+            self._update_ok_button()

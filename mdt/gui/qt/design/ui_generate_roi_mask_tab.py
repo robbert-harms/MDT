@@ -2,8 +2,7 @@
 
 # Form implementation generated from reading ui file 'generate_roi_mask_tab.ui'
 #
-# Created: Thu Jun 30 14:02:51 2016
-#      by: PyQt5 UI code generator 5.2.1
+# Created by: PyQt5 UI code generator 5.4.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -17,8 +16,8 @@ class Ui_GenerateROIMaskTabContent(object):
         self.verticalLayout.setContentsMargins(-1, 11, -1, -1)
         self.verticalLayout.setObjectName("verticalLayout")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout()
-        self.verticalLayout_2.setSpacing(0)
         self.verticalLayout_2.setContentsMargins(-1, -1, -1, 0)
+        self.verticalLayout_2.setSpacing(0)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.label = QtWidgets.QLabel(GenerateROIMaskTabContent)
         font = QtGui.QFont()
@@ -37,7 +36,6 @@ class Ui_GenerateROIMaskTabContent(object):
         self.line.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line.setLineWidth(1)
         self.line.setFrameShape(QtWidgets.QFrame.HLine)
-        self.line.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line.setObjectName("line")
         self.verticalLayout.addWidget(self.line)
         self.gridLayout = QtWidgets.QGridLayout()

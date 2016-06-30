@@ -2,8 +2,7 @@
 
 # Form implementation generated from reading ui file 'generate_protocol_update_dialog.ui'
 #
-# Created: Thu Jun 30 14:02:51 2016
-#      by: PyQt5 UI code generator 5.2.1
+# Created by: PyQt5 UI code generator 5.4.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -12,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_UpdateColumnDialog(object):
     def setupUi(self, UpdateColumnDialog):
         UpdateColumnDialog.setObjectName("UpdateColumnDialog")
-        UpdateColumnDialog.resize(831, 357)
+        UpdateColumnDialog.resize(831, 304)
         self.verticalLayout = QtWidgets.QVBoxLayout(UpdateColumnDialog)
         self.verticalLayout.setObjectName("verticalLayout")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout()
