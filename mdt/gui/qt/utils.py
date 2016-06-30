@@ -52,9 +52,14 @@ class SharedState(QObject):
                              'slice_index': 0}
 
         for key, value in shared_attributes.items():
+            def get_attribute_setter(attribute_key):
+                def setter(value):
+                    setattr(self, attribute_key, value)
+                return setter
+
             setattr(self, '_' + key, value)
             setattr(SharedState, key, UpdateDescriptor(key))
-            setattr(self, 'set_' + key, lambda v: setattr(self, key, v))
+            setattr(self, 'set_' + key, get_attribute_setter(key))
 
 
 class MessageReceiver(QObject):

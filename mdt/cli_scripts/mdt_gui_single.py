@@ -37,6 +37,9 @@ class GUISingle(BasicShellApplication):
         parser.add_argument('-tk', dest='tk', action='store_true', help="Launch the TK gui (default)")
         parser.add_argument('-qt', dest='qt', action='store_true', help="Launch the QT gui")
 
+        parser.add_argument('-m', '--view_maps', dest='maps', action='store_true', help="Directly open the tab "
+                                                                                   "for viewing maps")
+
         return parser
 
     def run(self, args):
@@ -50,7 +53,12 @@ class GUISingle(BasicShellApplication):
         else:
             from mdt.gui.tkgui_main import start_single_model_gui
 
-        start_single_model_gui(cwd)
+        action = None
+        if args.maps:
+            action = 'view_maps'
+
+        start_single_model_gui(cwd, action)
+
 
 if __name__ == '__main__':
     GUISingle().start()

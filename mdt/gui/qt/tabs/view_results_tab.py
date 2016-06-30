@@ -24,10 +24,7 @@ class ViewResultsTab(Ui_ViewResultsTabContent):
     def setupUi(self, ViewResultsTabContent):
         super(ViewResultsTab, self).setupUi(ViewResultsTabContent)
 
-        self.selectFolderButton.clicked.connect(
-            lambda: self.selectedFolderText.setText(QFileDialog().getExistingDirectory(
-                caption='Select directory to view', directory=self._shared_state.base_dir))
-        )
+        self.selectFolderButton.clicked.connect(lambda: self._select_folder())
 
         self.selectedFolderText.textChanged.connect(self.directory_updated)
         self.viewButton.clicked.connect(self.view_maps)
@@ -35,6 +32,22 @@ class ViewResultsTab(Ui_ViewResultsTabContent):
         self.deselectAllButton.clicked.connect(self.deselect_all)
         self.initialSliceChooser.valueChanged.connect(self._shared_state.set_slice_index)
         self.initialDimensionChooser.valueChanged.connect(self._shared_state.set_dimension_index)
+        self.initialSliceChooser.setMaximum(0)
+
+    def open_dir(self, directory):
+        self.selectedFolderText.setText(directory)
+        self.directory_updated(directory)
+
+    def _select_folder(self):
+        initial_dir = self._shared_state.base_dir
+        if self.selectedFolderText.text() != '':
+            initial_dir = self.selectedFolderText.text()
+
+        folder = QFileDialog().getExistingDirectory(caption='Select directory to view', directory=initial_dir)
+
+        if os.path.isdir(folder):
+            self.selectedFolderText.setText(folder)
+            self._shared_state.base_dir = folder
 
     @pyqtSlot(str)
     def directory_updated(self, folder):
@@ -63,7 +76,10 @@ class ViewResultsTab(Ui_ViewResultsTabContent):
             shape = load_nifti(result_files[0]).shape
             maximum = shape[self.initialDimensionChooser.value()]
             self.initialSliceChooser.setMaximum(maximum)
-            self.initialSliceChooser.setValue(maximum // 2.0)
+
+            if self.initialSliceChooser.value() == 0 or self.initialSliceChooser.value() >= maximum:
+                self.initialSliceChooser.setValue(maximum // 2.0)
+
             self.maximumIndexLabel.setText(str(maximum))
 
     @pyqtSlot()

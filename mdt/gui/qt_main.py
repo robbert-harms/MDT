@@ -57,10 +57,17 @@ class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
         self.executionStatusLabel.setText('Idle')
         self.executionStatusIcon.setPixmap(QtGui.QPixmap(":/gui_single/icon_status_red.png"))
 
-        GenerateBrainMaskTab(shared_state, self._computations_thread).setupUi(self.generateBrainMaskTab)
-        ViewResultsTab(shared_state, self._computations_thread).setupUi(self.viewResultsTab)
-        GenerateROIMaskTab(shared_state, self._computations_thread).setupUi(self.generateROIMaskTab)
-        GenerateProtocolTab(shared_state, self._computations_thread).setupUi(self.generateProtocolTab)
+        self.generate_mask_tab = GenerateBrainMaskTab(shared_state, self._computations_thread)
+        self.generate_mask_tab.setupUi(self.generateBrainMaskTab)
+
+        self.view_results_tab = ViewResultsTab(shared_state, self._computations_thread)
+        self.view_results_tab.setupUi(self.viewResultsTab)
+
+        self.generate_roi_mask_tab = GenerateROIMaskTab(shared_state, self._computations_thread)
+        self.generate_roi_mask_tab.setupUi(self.generateROIMaskTab)
+
+        self.generate_protocol_tab = GenerateProtocolTab(shared_state, self._computations_thread)
+        self.generate_protocol_tab.setupUi(self.generateProtocolTab)
 
     def _connect_output_textbox(self):
         sys.stdout = ForwardingListener(self._logging_update_queue)
@@ -139,21 +146,34 @@ class ComputationsThread(QThread):
         self.main_window.computations_finished()
 
 
-def start_single_model_gui(base_dir=None):
+def start_single_model_gui(base_dir=None, action=None):
+    """Start the single model GUI.
+
+    Args:
+        base_dir (str): the starting directory for all file opening actions
+        action (str): an action command for opening tabs and files. Possible actions:
+            - view_maps: opens the view maps tab and opens the base_dir
+
+    """
     state = SharedState()
     state.base_dir = base_dir
 
     app = QApplication([])
 
+    # catches the sigint
     timer = QTimer()
     timer.start(500)
     timer.timeout.connect(lambda: None)
 
     single_model_gui = MDTGUISingleModel(app, state)
-
     signal.signal(signal.SIGINT, single_model_gui.send_sigint)
 
     single_model_gui.show()
+
+    if action == 'view_maps':
+        single_model_gui.MainTabs.setCurrentIndex(4)
+        single_model_gui.view_results_tab.open_dir(base_dir)
+
     sys.exit(app.exec_())
 
 

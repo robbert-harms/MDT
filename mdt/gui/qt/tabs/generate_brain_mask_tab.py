@@ -37,8 +37,12 @@ class GenerateBrainMaskTab(Ui_GenerateBrainMaskTabContent):
         self.selectedProtocolText.textChanged.connect(self._check_enable_action_buttons)
 
     def _select_image(self):
+        initial_dir = self._shared_state.base_dir
+        if self.selectedImageText.text() != '':
+            initial_dir = self.selectedImageText.text()
+
         open_file, used_filter = QFileDialog().getOpenFileName(
-            caption='Select the 4d diffusion weighted image', directory=self._shared_state.base_dir,
+            caption='Select the 4d diffusion weighted image', directory=initial_dir,
             filter=';;'.join(image_files_filters))
 
         if os.path.isfile(open_file):
@@ -46,8 +50,12 @@ class GenerateBrainMaskTab(Ui_GenerateBrainMaskTabContent):
             self._shared_state.base_dir = os.path.dirname(open_file)
 
     def _select_protocol(self):
+        initial_dir = self._shared_state.base_dir
+        if self.selectedProtocolText.text() != '':
+            initial_dir = self.selectedProtocolText.text()
+
         open_file, used_filter = QFileDialog().getOpenFileName(
-            caption='Select the protocol', directory=self._shared_state.base_dir,
+            caption='Select the protocol', directory=initial_dir,
             filter=';;'.join(protocol_files_filters))
 
         if os.path.isfile(open_file):
@@ -55,8 +63,12 @@ class GenerateBrainMaskTab(Ui_GenerateBrainMaskTabContent):
             self._shared_state.base_dir = os.path.dirname(open_file)
 
     def _select_output(self):
+        initial_dir = self._shared_state.base_dir
+        if self.selectedOutputText.text() != '':
+            initial_dir = self.selectedOutputText.text()
+
         output_file_name, used_filter = QFileDialog().getSaveFileName(
-            caption='Select the output file', directory=self._shared_state.base_dir,
+            caption='Select the output file', directory=initial_dir,
             filter=';;'.join(image_files_filters))
 
         if output_file_name:

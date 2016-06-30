@@ -39,8 +39,12 @@ class GenerateROIMaskTab(Ui_GenerateROIMaskTabContent):
         self.sliceInput.valueChanged.connect(self.update_slice_index)
 
     def _select_mask(self):
+        initial_dir = self._shared_state.base_dir
+        if self.selectedMaskText.text() != '':
+            initial_dir = self.selectedMaskText.text()
+
         open_file, used_filter = QFileDialog().getOpenFileName(
-            caption='Select the brain mask', directory=self._shared_state.base_dir,
+            caption='Select the brain mask', directory=initial_dir,
             filter=';;'.join(image_files_filters))
 
         if os.path.isfile(open_file):
@@ -113,17 +117,18 @@ class GenerateROIMaskTab(Ui_GenerateROIMaskTabContent):
             self.maxSliceLabel.setText('x')
 
     def update_output_file_text(self):
-        folder, basename, ext = split_image_path(self.selectedMaskText.text())
-        folder_base = os.path.join(folder, basename)
+        if os.path.isfile(self.selectedMaskText.text()):
+            folder, basename, ext = split_image_path(self.selectedMaskText.text())
+            folder_base = os.path.join(folder, basename)
 
-        if self.selectedOutputFileText.text() == '':
-            self.selectedOutputFileText.setText('{}_{}_{}.nii.gz'.format(folder_base,
-                                                                         self.dimensionInput.value(),
-                                                                         self.sliceInput.value()))
-        elif self.selectedOutputFileText.text()[0:len(folder_base)] == folder_base:
-            self.selectedOutputFileText.setText('{}_{}_{}.nii.gz'.format(folder_base,
-                                                                         self.dimensionInput.value(),
-                                                                         self.sliceInput.value()))
+            if self.selectedOutputFileText.text() == '':
+                self.selectedOutputFileText.setText('{}_{}_{}.nii.gz'.format(folder_base,
+                                                                             self.dimensionInput.value(),
+                                                                             self.sliceInput.value()))
+            elif self.selectedOutputFileText.text()[0:len(folder_base)] == folder_base:
+                self.selectedOutputFileText.setText('{}_{}_{}.nii.gz'.format(folder_base,
+                                                                             self.dimensionInput.value(),
+                                                                             self.sliceInput.value()))
 
 
 class GenerateROIMaskWorker(QObject):

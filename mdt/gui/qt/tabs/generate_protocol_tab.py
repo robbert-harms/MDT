@@ -237,8 +237,11 @@ class LoadColumnDialog(Ui_UpdateColumnDialog, QDialog):
         return False
 
     def _select_value_file(self):
-        open_file, used_filter = QFileDialog().getOpenFileName(
-            caption='Select the column info file', directory=self._shared_state.base_dir)
+        initial_dir = self._shared_state.base_dir
+        if self.selectedFile.text() != '':
+            initial_dir = self.selectedFile.text()
+
+        open_file, used_filter = QFileDialog().getOpenFileName(caption='Select the column info file', directory=initial_dir)
 
         if open_file:
             self.selectedFile.setText(open_file)
@@ -274,8 +277,11 @@ class LoadGBDialog(Ui_LoadGBDialog, QDialog):
         self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(enable)
 
     def _select_bvec_file(self):
-        open_file, used_filter = QFileDialog().getOpenFileName(
-            caption='Select the bvec file', directory=self._shared_state.base_dir)
+        initial_dir = self._shared_state.base_dir
+        if self.bvecFileInput.text() != '':
+            initial_dir = self.bvecFileInput.text()
+
+        open_file, used_filter = QFileDialog().getOpenFileName(caption='Select the bvec file', directory=initial_dir)
 
         if open_file:
             self.bvecFileInput.setText(open_file)
@@ -283,8 +289,11 @@ class LoadGBDialog(Ui_LoadGBDialog, QDialog):
             self._update_ok_button()
 
     def _select_bval_file(self):
-        open_file, used_filter = QFileDialog().getOpenFileName(
-            caption='Select the bval file', directory=self._shared_state.base_dir)
+        initial_dir = self._shared_state.base_dir
+        if self.bvalFileInput.text() != '':
+            initial_dir = self.bvalFileInput.text()
+
+        open_file, used_filter = QFileDialog().getOpenFileName(caption='Select the bval file', directory=initial_dir)
 
         if open_file:
             self.bvalFileInput.setText(open_file)
