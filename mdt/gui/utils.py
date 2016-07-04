@@ -17,7 +17,7 @@ def get_cl_environments_ordered_dict():
     Returns:
         OrderedDict: an ordered dict with all the CL environments
     """
-    cl_environments = mot.cl_environments.CLEnvironmentFactory.all_devices()
+    cl_environments = mot.cl_environments.CLEnvironmentFactory.smart_device_selection()
     cl_env_dict = OrderedDict()
     for ind, env in enumerate(cl_environments):
         s = repr(ind) + ') ' + str(env)

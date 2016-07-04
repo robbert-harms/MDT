@@ -18,7 +18,7 @@ class ModelFit(BasicShellApplication):
 
     def __init__(self):
         self.available_devices = list((ind for ind, env in
-                                       enumerate(cl_environments.CLEnvironmentFactory.all_devices())))
+                                       enumerate(cl_environments.CLEnvironmentFactory.smart_device_selection())))
 
     def _get_arg_parser(self):
         description = textwrap.dedent("""

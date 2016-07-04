@@ -926,7 +926,7 @@ class MetaOptimizerBuilder(object):
         return load_balancer
 
     def _get_cl_environments(self, optim_config):
-        cl_environments = CLEnvironmentFactory.all_devices()
+        cl_environments = CLEnvironmentFactory.smart_device_selection()
         if optim_config['cl_devices']:
             if isinstance(optim_config['cl_devices'], (tuple, list)):
                 cl_environments = [cl_environments[int(ind)] for ind in optim_config['cl_devices']]
@@ -966,7 +966,7 @@ def get_cl_devices():
     Returns:
         A list of CLEnvironments, one for each device in the system.
     """
-    return CLEnvironmentFactory.all_devices()
+    return CLEnvironmentFactory.smart_device_selection()
 
 
 def get_model_config(model_names, config):
