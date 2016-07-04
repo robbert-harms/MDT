@@ -13,7 +13,7 @@ def load_requirements(fname):
         return [line.strip() for line in fo if not is_comment(line) and line.strip()]
 
 with open('README.rst', 'rt') as f: readme = f.read()
-with open('HISTORY.rst', 'rt') as f: history = f.read().replace('.. :changelog:', '')
+with open('docs/history.rst', 'rt') as f: history = f.read().replace('.. :changelog:', '')
 with open('mdt/__init__.py') as f: version_file_contents = f.read()
 
 requirements = load_requirements('requirements.txt')

@@ -162,9 +162,7 @@ def median_otsu(unweighted_volume, median_radius=4, numpass=4, dilate=1):
     for env in mot.configuration.get_load_balancer().get_used_cl_environments(mot.configuration.get_cl_environments()):
         logger.info('Using device \'{}\'.'.format(str(env)))
 
-    m = MedianFilter(median_radius,
-                     CLEnvironmentFactory.all_devices(),
-                     PreferCPU())
+    m = MedianFilter(median_radius)
     b0vol = m.filter(b0vol, nmr_of_times=numpass)
 
     thresh = _otsu(b0vol)

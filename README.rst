@@ -18,6 +18,7 @@ A diffusion toolkit for parallelized sampling and optimization of diffusion data
 * Documentation: https://mdt.readthedocs.org.
 
 Features
---------
+========
 
 * TODO
+

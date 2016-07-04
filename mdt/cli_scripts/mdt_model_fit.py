@@ -16,6 +16,10 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class ModelFit(BasicShellApplication):
 
+    def __init__(self):
+        self.available_devices = list((ind for ind, env in
+                                       enumerate(cl_environments.CLEnvironmentFactory.all_devices())))
+
     def _get_arg_parser(self):
         description = textwrap.dedent("""
             Fit one of the models to the given data.
@@ -35,8 +39,6 @@ class ModelFit(BasicShellApplication):
                 mdt-model-fit "BallStick (Cascade)" data.nii.gz data.prtcl data_mask.nii.gz --cl-device-ind 1
                 mdt-model-fit "BallStick (Cascade)" data.nii.gz data.prtcl data_mask.nii.gz --cl-device-ind {0, 1}
         """)
-
-        available_devices = list((ind for ind, env in enumerate(cl_environments.CLEnvironmentFactory.all_devices())))
 
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
                                          formatter_class=argparse.RawTextHelpFormatter)
@@ -67,7 +69,7 @@ class ModelFit(BasicShellApplication):
                             help="The volume with the gradient deviations to use, in HCP WUMINN format.").\
             completer = FilesCompleter(['nii', 'gz', 'hdr', 'img'], directories=False)
 
-        parser.add_argument('--cl-device-ind', type=int, nargs='*', choices=available_devices,
+        parser.add_argument('--cl-device-ind', type=int, nargs='*', choices=self.available_devices,
                             help="The index of the device we would like to use. This follows the indices "
                                  "in mdt-list-devices and defaults to the first GPU.")
 

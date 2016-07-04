@@ -1,21 +1,52 @@
 mdt.models package
 ==================
 
+Subpackages
+-----------
+
+.. toctree::
+
+    mdt.models.parsers
+
 Submodules
 ----------
 
-mdt.models.DMRICompositeModels module
--------------------------------------
+mdt.models.base module
+----------------------
 
-.. automodule:: mdt.models.DMRICompositeModels
+.. automodule:: mdt.models.base
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.models.ModelFunctions module
---------------------------------
+mdt.models.cascade module
+-------------------------
 
-.. automodule:: mdt.models.ModelFunctions
+.. automodule:: mdt.models.cascade
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+mdt.models.compartments module
+------------------------------
+
+.. automodule:: mdt.models.compartments
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+mdt.models.parameters module
+----------------------------
+
+.. automodule:: mdt.models.parameters
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+mdt.models.single module
+------------------------
+
+.. automodule:: mdt.models.single
     :members:
     :undoc-members:
     :show-inheritance:

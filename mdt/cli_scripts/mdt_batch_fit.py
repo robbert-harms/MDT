@@ -19,6 +19,10 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class BatchFit(BasicShellApplication):
 
+    def __init__(self):
+        self.available_devices = list((ind for ind, env in
+                                       enumerate(cl_environments.CLEnvironmentFactory.all_devices())))
+
     def _get_arg_parser(self):
         description = textwrap.dedent("""
             Fits a batch profile to a set of data.
@@ -43,8 +47,6 @@ class BatchFit(BasicShellApplication):
                 mdt-batch-fit . --subjects-index 0 1 2 --subjects-id 1003 1004
                 mdt-batch-fit . --dry-run
         """)
-
-        available_devices = list((ind for ind, env in enumerate(cl_environments.CLEnvironmentFactory.all_devices())))
         batch_profiles = BatchProfilesLoader().list_all()
 
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
@@ -56,7 +58,7 @@ class BatchFit(BasicShellApplication):
                             help='The batch profile (by name) to use during fitting. If not given a'
                                  'batch profile is auto-detected.')
 
-        parser.add_argument('--cl-device-ind', type=int, nargs='*', choices=available_devices,
+        parser.add_argument('--cl-device-ind', type=int, nargs='*', choices=self.available_devices,
                             help="The index of the device we would like to use. This follows the indices "
                                  "in mdt-list-devices and defaults to the first GPU.")
 

@@ -20,16 +20,11 @@ import os
 # directory, add these directories to sys.path here. If the directory is
 # relative to the documentation root, use os.path.abspath to make it
 # absolute, like shown here.
-#sys.path.insert(0, os.path.abspath('.'))
+#sys.path.insert(0, os.path.abspath('..'))
 
-# Get the project root dir, which is the parent dir of this
-cwd = os.getcwd()
-project_root = os.path.dirname(cwd)
-
-# Insert the project root dir as the first element in the PYTHONPATH.
-# This lets us ensure that the source package is imported, and that its
-# version is used.
-sys.path.insert(0, project_root)
+# Building from inside the docs/ directory?
+if os.path.basename(os.getcwd()) == 'docs':
+	sys.path.insert(1, os.path.abspath(os.path.join('..')))
 
 import mdt
 
@@ -43,7 +38,7 @@ import mdt
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.viewcode', 'sphinx.ext.napoleon']
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ['templates']
 
 # The suffix of source filenames.
 source_suffix = '.rst'
@@ -79,7 +74,7 @@ release = mdt.__version__
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['_build']
+exclude_patterns = ['build']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
