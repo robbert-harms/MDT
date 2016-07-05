@@ -2,7 +2,7 @@ from mdt.models.compartments import CompartmentConfig, CLCodeFromInlineString
 
 __author__ = 'Francisco.Lagos'
 
-# For SE volumes: FA2 = FA3 and FA2 has to be HALF OF THE FLIP ANGLE USED IN THE PROTOCOL!, also SEf = 0 and TM = 0.
+# For SE volumes: FA2 = FA3 and FA2 (and FA3) has to be HALF OF THE FLIP ANGLE USED IN THE PROTOCOL!, also SEf = 0 and TM = 0.
 # For STE volumes: SEf = 1.
 
 class ExpT1ExpT2STEAM(CompartmentConfig):

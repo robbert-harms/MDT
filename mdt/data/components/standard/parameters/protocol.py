@@ -60,3 +60,19 @@ class TR(ProtocolParameterConfig):
 
 class flip_angle(ProtocolParameterConfig):
     name = 'flip_angle'
+
+
+class FA1(ProtocolParameterConfig):
+    name = 'FA1'
+
+
+class FA2(ProtocolParameterConfig):
+    name = 'FA2'
+
+
+class FA3(ProtocolParameterConfig):
+    name = 'FA3'
+
+
+class SEf(ProtocolParameterConfig):
+    name = 'SEf'

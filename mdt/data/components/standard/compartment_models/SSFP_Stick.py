@@ -11,7 +11,7 @@ class SSFP_Stick(CompartmentConfig):
 
     name = 'SSFP_Stick'
     cl_function_name = 'cmSSFP_Stick'
-    parameter_list = ('g', 'b', 'd', 'theta', 'phi', 'b1_static', 'T1_static', 'T2_static')
+    parameter_list = ('g', 'd', 'TR', 'flip_angle', 'b1map', 'T1map', 'T2map')
     cl_code = CLCodeFromInlineString('''
         return exp(-b * d * pown(dot(g, (mot_float_type4)(cos(phi) * sin(theta),
                                                           sin(phi) * sin(theta), cos(theta), 0.0)), 2));
