@@ -8,7 +8,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class ExpT2Dec(CompartmentConfig):
 
-    name = 'T2'
+    name = 'ExpT2Dec'
     cl_function_name = 'cmExpT2Dec'
     parameter_list = ('TE', 'T2')
     cl_code = CLCodeFromInlineString('return exp(-TE / T2);')

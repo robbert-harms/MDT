@@ -19,7 +19,7 @@ class S0T2(DMRISingleModelConfig):
         name = 'S0-T2'
         description = 'Models the unweighted text_message_signal (aka. b0) with an extra T2.'
         model_expression = 'S0 * ExpT2Dec'
-        #upper_bounds = {'T2': 0.08}
+        upper_bounds = {'ExpT2Dec.T2': 0.1}
 
 
 class S0T2T2(DMRISingleModelConfig):
@@ -43,24 +43,44 @@ class S0T2T2(DMRISingleModelConfig):
         )
 
 
-class GRE_Relax(DMRISingleModelConfig):
+class GRE_Relax_PBS(DMRISingleModelConfig):
 
-    name = 'GRE_Relax'
+    name = 'GRE_Relax_PBS'
     description = 'Model for estimating T1 and T2 from GRE data with variable TE, TR and flip angle.'
-    model_expression = 'S0 * ExpT1ExpT2GRE'
-    inits = {'ExpT1ExpT2GRE.T1': 0.3,
-             'ExpT1ExpT2GRE.T2': 0.05}
-    upper_bounds = {'ExpT1ExpT2GRE.T1': 1,
-                    'ExpT1ExpT2GRE.T2': 0.5}
+    model_expression = 'S0 * ExpT1ExpT2sGRE'
+    inits = {'ExpT1ExpT2sGRE.T1': 0.3,
+             'ExpT1ExpT2sGRE.T2s': 0.01}
+    upper_bounds = {'ExpT1ExpT2sGRE.T1': 0.6,
+                    'ExpT1ExpT2sGRE.T2s': 0.04}
 
 
-class STEAM_Relax(DMRISingleModelConfig):
+class GRE_Relax_Flu(DMRISingleModelConfig):
 
-    name = 'STEAM_Relax'
+    name = 'GRE_Relax_Flu'
+    description = 'Model for estimating T1 and T2 from GRE data with variable TE, TR and flip angle.'
+    model_expression = 'S0 * ExpT1ExpT2sGRE'
+    inits = {'ExpT1ExpT2sGRE.T1': 0.2,
+             'ExpT1ExpT2sGRE.T2s': 0.01}
+    upper_bounds = {'ExpT1ExpT2sGRE.T1': 0.3,
+                    'ExpT1ExpT2sGRE.T2s': 0.05}
+
+
+class STEAM_Relax_PBS(DMRISingleModelConfig):
+
+    name = 'STEAM_Relax_PBS'
     description = 'Model for estimating T1 and T2 from data with a variable TM and TE.'
     model_expression = 'S0 * ExpT1ExpT2STEAM'
-    inits = {
-             'ExpT1ExpT2STEAM.T2': 0.03}
-    fixes = {'ExpT1ExpT2STEAM.T1': 0.125}
-    upper_bounds = {'ExpT1ExpT2STEAM.T1': 1,
+    inits = {'ExpT1ExpT2STEAM.T2': 0.03,
+             'ExpT1ExpT2STEAM.T1': 0.3}
+    upper_bounds = {'ExpT1ExpT2STEAM.T1': 0.6,
+                    'ExpT1ExpT2STEAM.T2': 0.1}
+
+class STEAM_Relax_Flu(DMRISingleModelConfig):
+
+    name = 'STEAM_Relax_Flu'
+    description = 'Model for estimating T1 and T2 from data with a variable TM and TE.'
+    model_expression = 'S0 * ExpT1ExpT2STEAM'
+    inits = {'ExpT1ExpT2STEAM.T2': 0.03,
+             'ExpT1ExpT2STEAM.T1': 0.2}
+    upper_bounds = {'ExpT1ExpT2STEAM.T1': 0.3,
                     'ExpT1ExpT2STEAM.T2': 0.1}

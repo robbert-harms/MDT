@@ -53,6 +53,16 @@ class T2(FreeParameterConfig):
     sampling_proposal = GaussianProposal(0.0001)
 
 
+class T2s(FreeParameterConfig):
+
+    name = 'T2s'
+    init_value = 0.01
+    lower_bound = 0.0
+    upper_bound = 1.0
+    parameter_transform = ClampTransform()
+    sampling_proposal = GaussianProposal(0.0001)
+
+
 class theta(FreeParameterConfig):
 
     name = 'theta'
