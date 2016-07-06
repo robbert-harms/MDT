@@ -27,7 +27,7 @@ class ListDevices(BasicShellApplication):
     def run(self, args):
         mdt.init_user_settings(pass_if_exists=True)
 
-        for ind, env in enumerate(cl_environments.CLEnvironmentFactory.all_devices()):
+        for ind, env in enumerate(cl_environments.CLEnvironmentFactory.smart_device_selection()):
             print('Device {}:'.format(ind))
             if args.long:
                 print(repr(env))
