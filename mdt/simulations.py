@@ -5,7 +5,7 @@ import numpy as np
 import mdt
 from mdt.components_loader import NoiseSTDCalculatorsLoader
 from mot.base import SimpleProblemData
-from mot.cl_routines.mapping.evaluate_model import EvaluateModelPerProtocol
+from mot.cl_routines.mapping.calculate_model_estimates import CalculateModelEstimates
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-03-17"
@@ -175,7 +175,7 @@ def simulate_signals(model_name, protocol, parameters):
     model = mdt.get_model(model_name)
     model.set_problem_data(problem_data)
 
-    signal_evaluate = EvaluateModelPerProtocol()
+    signal_evaluate = CalculateModelEstimates()
     return signal_evaluate.calculate(model, parameters)
 
 
