@@ -115,8 +115,7 @@ def print_welcome_message():
     This prints to stdout. We expect the GUI to catch the stdout events and redirect them to the GUI.
     """
     from mdt import VERSION
-    welcome_str = 'Welcome to MDT version ' + VERSION + '.'
-    print(welcome_str)
+    print('Welcome to MDT version {}.'.format(VERSION))
     print('')
     print('This area is reserved for log output.')
     print('-------------------------------------')
