@@ -1068,7 +1068,11 @@ def apply_model_protocol_options(model_protocol_options, problem_data):
 
         if model_protocol_options.get('use_unweighted', False):
             unweighted_threshold = model_protocol_options.get('unweighted_threshold', None)
-            protocol_indices = np.append(protocol_indices, protocol.get_unweighted_indices(unweighted_threshold))
+
+            if protocol.has_column('g') and protocol.has_column('b'):
+                protocol_indices = np.append(protocol_indices, protocol.get_unweighted_indices(unweighted_threshold))
+            else:
+                protocol_indices = list(range(protocol.length))
 
         protocol_indices = np.unique(protocol_indices)
 
