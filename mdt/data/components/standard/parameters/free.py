@@ -53,6 +53,52 @@ class T2(FreeParameterConfig):
     sampling_proposal = GaussianProposal(0.0001)
 
 
+class T2s(FreeParameterConfig):
+
+    name = 'T2s'
+    init_value = 0.01
+    lower_bound = 0.0
+    upper_bound = 1.0
+    parameter_transform = ClampTransform()
+    sampling_proposal = GaussianProposal(0.0001)
+
+
+class R1(FreeParameterConfig):
+    """R1 = 1/T1, for linear T1Dec or other models.
+    """
+
+    name = 'R1'
+    init_value = 2
+    lower_bound = 0.25
+    upper_bound = 100.0
+    parameter_transform = ClampTransform()
+    sampling_proposal = GaussianProposal(0.0001)
+
+
+class R2(FreeParameterConfig):
+    """R2 = 1/T2, for linear T2Dec or other models.
+    """
+
+    name = 'R2'
+    init_value = 5
+    lower_bound = 0.5
+    upper_bound = 500.0
+    parameter_transform = ClampTransform()
+    sampling_proposal = GaussianProposal(0.0001)
+
+
+class R2s(FreeParameterConfig):
+    """R2s = 1/T2s, for lineaR T2sDec or other models.
+    """
+
+    name = 'R2s'
+    init_value = 10
+    lower_bound = 1
+    upper_bound = 50.0
+    parameter_transform = ClampTransform()
+    sampling_proposal = GaussianProposal(0.0001)
+
+
 class theta(FreeParameterConfig):
 
     name = 'theta'
