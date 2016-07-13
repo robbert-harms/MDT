@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'fit_model_tab.ui'
 #
-# Created: Wed Jul 13 15:44:29 2016
+# Created: Wed Jul 13 15:56:41 2016
 #      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -162,7 +162,14 @@ class Ui_FitModelTabContent(object):
         self.retranslateUi(FitModelTabContent)
         QtCore.QMetaObject.connectSlotsByName(FitModelTabContent)
         FitModelTabContent.setTabOrder(self.selectDWI, self.selectedDWI)
-        FitModelTabContent.setTabOrder(self.selectedDWI, self.runButton)
+        FitModelTabContent.setTabOrder(self.selectedDWI, self.selectMask)
+        FitModelTabContent.setTabOrder(self.selectMask, self.selectedMask)
+        FitModelTabContent.setTabOrder(self.selectedMask, self.selectProtocol)
+        FitModelTabContent.setTabOrder(self.selectProtocol, self.selectedProtocol)
+        FitModelTabContent.setTabOrder(self.selectedProtocol, self.selectOutputFolder)
+        FitModelTabContent.setTabOrder(self.selectOutputFolder, self.selectedOutputFolder)
+        FitModelTabContent.setTabOrder(self.selectedOutputFolder, self.modelSelection)
+        FitModelTabContent.setTabOrder(self.modelSelection, self.runButton)
 
     def retranslateUi(self, FitModelTabContent):
         _translate = QtCore.QCoreApplication.translate
