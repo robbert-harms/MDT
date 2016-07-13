@@ -215,6 +215,7 @@ class MapsVisualizer(object):
                                                      color='DarkSeaGreen', closedmin=True, closedmax=True)
             self._dimension_slider.on_changed(self.set_dimension)
             self._dimension_slider.valtext.set_picker(True)
+            self._dimension_slider.valtext.value_type = int
             self._dimension_slider.valtext.update_cb = lambda value: self.set_dimension(value)
 
             ax = self._figure.add_axes([0.25, y_positions[1], 0.5, 0.01], axisbg='Wheat')
@@ -224,6 +225,7 @@ class MapsVisualizer(object):
                                                  valfmt='%i', color='DarkSeaGreen', closedmin=True, closedmax=False)
             self._index_slider.on_changed(self.set_slice_ind)
             self._index_slider.valtext.set_picker(True)
+            self._index_slider.valtext.value_type = int
             self._index_slider.valtext.update_cb = lambda value: self.set_slice_ind(value)
 
             if self.show_slider_volume_ind:
@@ -234,6 +236,7 @@ class MapsVisualizer(object):
                                                       valfmt='%i', color='DarkSeaGreen', closedmin=True, closedmax=False)
                 self._volume_slider.on_changed(self.set_volume_ind)
                 self._volume_slider.valtext.set_picker(True)
+                self._volume_slider.valtext.value_type = int
                 self._volume_slider.valtext.update_cb = lambda value: self.set_volume_ind(value)
 
         self._figure.canvas.mpl_connect('pick_event', self._global_click_listener)
@@ -459,12 +462,15 @@ class TextChangeManager(object):
         if not self._text_element:
             return
 
-        if event.key == 'enter':
+        if event.key == 'backspace':
+            self._char_buffer.pop()
+            self._text_element.set_text(''.join(self._char_buffer))
+        elif event.key == 'enter':
             try:
-                self._text_element.update_cb(float(''.join(self._char_buffer)))
+                self._text_element.update_cb(self._text_element.value_type(''.join(self._char_buffer)))
                 self._unset_current(reset_text=False)
             except ValueError:
-                pass
+                self._unset_current()
         else:
             self._char_buffer.append(event.key)
             self._text_element.set_text(''.join(self._char_buffer))
