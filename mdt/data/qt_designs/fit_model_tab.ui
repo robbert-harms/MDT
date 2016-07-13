@@ -333,6 +333,13 @@
  <tabstops>
   <tabstop>selectDWI</tabstop>
   <tabstop>selectedDWI</tabstop>
+  <tabstop>selectMask</tabstop>
+  <tabstop>selectedMask</tabstop>
+  <tabstop>selectProtocol</tabstop>
+  <tabstop>selectedProtocol</tabstop>
+  <tabstop>selectOutputFolder</tabstop>
+  <tabstop>selectedOutputFolder</tabstop>
+  <tabstop>modelSelection</tabstop>
   <tabstop>runButton</tabstop>
  </tabstops>
  <resources/>

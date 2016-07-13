@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'gui_single.ui'
+# Form implementation generated from reading ui file 'main_gui.ui'
 #
-# Created: Wed Jul 13 15:26:37 2016
+# Created: Wed Jul 13 15:44:29 2016
 #      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -19,7 +19,7 @@ class Ui_MainWindow(object):
         sizePolicy.setHeightForWidth(MainWindow.sizePolicy().hasHeightForWidth())
         MainWindow.setSizePolicy(sizePolicy)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/gui_single/logo.gif"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/main_gui/logo.gif"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         MainWindow.setWindowIcon(icon)
         MainWindow.setTabShape(QtWidgets.QTabWidget.Rounded)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
@@ -132,4 +132,4 @@ class Ui_MainWindow(object):
         self.action_saveLog.setShortcut(_translate("MainWindow", "Ctrl+S"))
         self.action_RuntimeSettings.setText(_translate("MainWindow", "&Runtime settings"))
 
-from . import gui_single_rc
+from . import main_gui_rc

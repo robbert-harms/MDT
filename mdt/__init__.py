@@ -26,7 +26,7 @@ __version__ = VERSION
 
 
 """
-The start_single_model_gui initialization of MDT.
+The start_gui initialization of MDT.
 
 We inlined all the MDT and MOT imports in the functions to prevent circular imports.
 

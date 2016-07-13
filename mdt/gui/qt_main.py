@@ -21,7 +21,7 @@ except ImportError:
 from PyQt5 import QtGui
 from PyQt5.QtCore import QThread, QTimer, pyqtSlot
 from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QDialog, QDialogButtonBox
-from mdt.gui.qt.design.ui_gui_single import Ui_MainWindow
+from mdt.gui.qt.design.ui_main_gui import Ui_MainWindow
 from mdt.gui.qt.utils import MessageReceiver, SharedState
 from mdt.gui.utils import print_welcome_message, ForwardingListener
 from mdt.log_handlers import LogDispatchHandler
@@ -62,7 +62,7 @@ class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
         self.action_RuntimeSettings.triggered.connect(lambda: RuntimeSettingsDialog(self).exec_())
 
         self.executionStatusLabel.setText('Idle')
-        self.executionStatusIcon.setPixmap(QtGui.QPixmap(":/gui_single/icon_status_red.png"))
+        self.executionStatusIcon.setPixmap(QtGui.QPixmap(":/main_gui/icon_status_red.png"))
 
         self.fit_model_tab = FitModelTab(shared_state, self._computations_thread)
         self.fit_model_tab.setupUi(self.fitModelTab)
@@ -120,12 +120,12 @@ class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
     @pyqtSlot()
     def computations_started(self):
         self.executionStatusLabel.setText('Computing')
-        self.executionStatusIcon.setPixmap(QtGui.QPixmap(":/gui_single/icon_status_green.png"))
+        self.executionStatusIcon.setPixmap(QtGui.QPixmap(":/main_gui/icon_status_green.png"))
 
     @pyqtSlot()
     def computations_finished(self):
         self.executionStatusLabel.setText('Idle')
-        self.executionStatusIcon.setPixmap(QtGui.QPixmap(":/gui_single/icon_status_red.png"))
+        self.executionStatusIcon.setPixmap(QtGui.QPixmap(":/main_gui/icon_status_red.png"))
 
     @pyqtSlot(str)
     def update_log(self, string):
@@ -188,7 +188,7 @@ class RuntimeSettingsDialog(Ui_RuntimeSettingsDialog, QDialog):
         mot.configuration.set_load_balancer(EvenDistribution())
 
 
-def start_single_model_gui(base_dir=None, action=None):
+def start_gui(base_dir=None, action=None):
     """Start the single model GUI.
 
     Args:
@@ -220,4 +220,4 @@ def start_single_model_gui(base_dir=None, action=None):
 
 
 if __name__ == '__main__':
-    start_single_model_gui()
+    start_gui()

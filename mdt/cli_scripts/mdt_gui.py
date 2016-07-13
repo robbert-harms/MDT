@@ -12,7 +12,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class GUISingle(BasicShellApplication):
+class GUI(BasicShellApplication):
 
     def __init__(self):
         """
@@ -20,13 +20,14 @@ class GUISingle(BasicShellApplication):
         done however since it would load the MOT utils before the GUI is launched. This will give OpenCL errors
         ("RuntimeError: CommandQueue failed: out of host memory") when creating the _logging_update_queue.
 
+        #TODO fix this when QT is used
         Hence we do not use:
             mdt.init_user_settings(pass_if_exists=True)
         """
 
     def _get_arg_parser(self):
         description = textwrap.dedent("""
-            Launches the MDT single subject Graphical User Interface.
+            Launches the MDT Graphical User Interface.
         """)
         description += get_citation_message()
 
@@ -48,17 +49,17 @@ class GUISingle(BasicShellApplication):
         else:
             cwd = os.getcwd()
 
-        if args.qt:
-            from mdt.gui.qt_main import start_single_model_gui
-        else:
-            from mdt.gui.tkgui_main import start_single_model_gui
-
         action = None
         if args.maps:
             action = 'view_maps'
 
-        start_single_model_gui(cwd, action)
+        if args.qt:
+            from mdt.gui.qt_main import start_gui
+            start_gui(cwd, action)
+        else:
+            from mdt.gui.tkgui_main import start_single_model_gui
+            start_single_model_gui(cwd, action)
 
 
 if __name__ == '__main__':
-    GUISingle().start()
+    GUI().start()

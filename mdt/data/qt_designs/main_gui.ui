@@ -20,8 +20,8 @@
    <string>Maastricht Diffusion Toolbox</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="gui_single.qrc">
-    <normaloff>:/gui_single/logo.gif</normaloff>:/gui_single/logo.gif</iconset>
+   <iconset resource="main_gui.qrc">
+    <normaloff>:/main_gui/logo.gif</normaloff>:/main_gui/logo.gif</iconset>
   </property>
   <property name="tabShape">
    <enum>QTabWidget::Rounded</enum>
@@ -215,7 +215,7 @@
   </action>
  </widget>
  <resources>
-  <include location="gui_single.qrc"/>
+  <include location="main_gui.qrc"/>
  </resources>
  <connections>
   <connection>
