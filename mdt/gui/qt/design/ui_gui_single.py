@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui_single.ui'
 #
-# Created: Mon Jul  4 16:02:20 2016
+# Created: Wed Jul 13 15:26:37 2016
 #      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -43,9 +43,9 @@ class Ui_MainWindow(object):
         sizePolicy.setHeightForWidth(self.MainTabs.sizePolicy().hasHeightForWidth())
         self.MainTabs.setSizePolicy(sizePolicy)
         self.MainTabs.setObjectName("MainTabs")
-        self.runModelTab = QtWidgets.QWidget()
-        self.runModelTab.setObjectName("runModelTab")
-        self.MainTabs.addTab(self.runModelTab, "")
+        self.fitModelTab = QtWidgets.QWidget()
+        self.fitModelTab.setObjectName("fitModelTab")
+        self.MainTabs.addTab(self.fitModelTab, "")
         self.generateBrainMaskTab = QtWidgets.QWidget()
         self.generateBrainMaskTab.setObjectName("generateBrainMaskTab")
         self.MainTabs.addTab(self.generateBrainMaskTab, "")
@@ -101,20 +101,24 @@ class Ui_MainWindow(object):
         self.actionExit.setObjectName("actionExit")
         self.action_saveLog = QtWidgets.QAction(MainWindow)
         self.action_saveLog.setObjectName("action_saveLog")
+        self.action_RuntimeSettings = QtWidgets.QAction(MainWindow)
+        self.action_RuntimeSettings.setObjectName("action_RuntimeSettings")
+        self.menuMenu.addAction(self.action_RuntimeSettings)
+        self.menuMenu.addSeparator()
         self.menuMenu.addAction(self.action_saveLog)
         self.menuMenu.addSeparator()
         self.menuMenu.addAction(self.actionExit)
         self.menubar.addAction(self.menuMenu.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.MainTabs.setCurrentIndex(4)
+        self.MainTabs.setCurrentIndex(0)
         self.actionExit.triggered.connect(MainWindow.close)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "Maastricht Diffusion Toolbox"))
-        self.MainTabs.setTabText(self.MainTabs.indexOf(self.runModelTab), _translate("MainWindow", "Run model"))
+        self.MainTabs.setTabText(self.MainTabs.indexOf(self.fitModelTab), _translate("MainWindow", "Fit model"))
         self.MainTabs.setTabText(self.MainTabs.indexOf(self.generateBrainMaskTab), _translate("MainWindow", "Generate brain mask"))
         self.MainTabs.setTabText(self.MainTabs.indexOf(self.generateROIMaskTab), _translate("MainWindow", "Generate ROI mask"))
         self.MainTabs.setTabText(self.MainTabs.indexOf(self.generateProtocolTab), _translate("MainWindow", "Generate protocol file"))
@@ -126,5 +130,6 @@ class Ui_MainWindow(object):
         self.actionExit.setShortcut(_translate("MainWindow", "Ctrl+Q"))
         self.action_saveLog.setText(_translate("MainWindow", "Save log"))
         self.action_saveLog.setShortcut(_translate("MainWindow", "Ctrl+S"))
+        self.action_RuntimeSettings.setText(_translate("MainWindow", "&Runtime settings"))
 
 from . import gui_single_rc

@@ -49,7 +49,8 @@ class SharedState(QObject):
 
         shared_attributes = {'base_dir': None,
                              'dimension_index': 0,
-                             'slice_index': 0}
+                             'slice_index': 0,
+                             'output_folder': None}
 
         for key, value in shared_attributes.items():
             def get_attribute_setter(attribute_key):
@@ -86,3 +87,9 @@ class MessageReceiver(QObject):
                 self.text_message_signal.emit(self.queue.get())
             time.sleep(0.001)
         self.finished.emit()
+
+
+class MainTab(object):
+
+    def tab_opened(self):
+        """Called when this tab is selected by the user."""

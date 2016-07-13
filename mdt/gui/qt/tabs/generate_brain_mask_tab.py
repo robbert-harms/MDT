@@ -6,7 +6,7 @@ from PyQt5.QtCore import pyqtSlot, QObject, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog
 
 from mdt import view_results_slice, load_volume, load_brain_mask, create_median_otsu_brain_mask
-from mdt.gui.qt.utils import image_files_filters, protocol_files_filters
+from mdt.gui.qt.utils import image_files_filters, protocol_files_filters, MainTab
 from mdt.gui.qt.design.ui_generate_brain_mask_tab import Ui_GenerateBrainMaskTabContent
 from mdt.gui.utils import function_message_decorator
 
@@ -16,7 +16,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class GenerateBrainMaskTab(Ui_GenerateBrainMaskTabContent):
+class GenerateBrainMaskTab(MainTab, Ui_GenerateBrainMaskTabContent):
 
     def __init__(self, shared_state, computations_thread):
         self._shared_state = shared_state

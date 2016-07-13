@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QFileDialog
 
 from mdt import view_results_slice, load_volume, create_slice_roi, load_nifti
 from mdt.gui.qt.design.ui_generate_roi_mask_tab import Ui_GenerateROIMaskTabContent
-from mdt.gui.qt.utils import image_files_filters
+from mdt.gui.qt.utils import image_files_filters, MainTab
 from mdt.gui.utils import function_message_decorator
 from mdt.utils import split_image_path
 
@@ -15,7 +15,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class GenerateROIMaskTab(Ui_GenerateROIMaskTabContent):
+class GenerateROIMaskTab(MainTab, Ui_GenerateROIMaskTabContent):
 
     def __init__(self, shared_state, computations_thread):
         self._shared_state = shared_state

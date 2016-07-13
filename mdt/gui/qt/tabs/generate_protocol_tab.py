@@ -10,7 +10,7 @@ import mdt
 from mdt.gui.qt.design.ui_generate_protocol_load_gb_dialog import Ui_LoadGBDialog
 from mdt.gui.qt.design.ui_generate_protocol_tab import Ui_GenerateProtocolTabContent
 from mdt.gui.qt.design.ui_generate_protocol_update_dialog import Ui_UpdateColumnDialog
-from mdt.gui.qt.utils import protocol_files_filters
+from mdt.gui.qt.utils import protocol_files_filters, MainTab
 from mdt.protocols import Protocol
 
 __author__ = 'Robbert Harms'
@@ -19,7 +19,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class GenerateProtocolTab(Ui_GenerateProtocolTabContent):
+class GenerateProtocolTab(MainTab, Ui_GenerateProtocolTabContent):
 
     def __init__(self, shared_state, computations_thread):
         self._shared_state = shared_state

@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import QFileDialog
 
 from mdt import results_preselection_names, load_nifti, view_results_slice
 from mdt.gui.qt.design.ui_view_results_tab import Ui_ViewResultsTabContent
+from mdt.gui.qt.utils import MainTab
 from mdt.utils import split_image_path
 
 __author__ = 'Robbert Harms'
@@ -14,7 +15,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class ViewResultsTab(Ui_ViewResultsTabContent):
+class ViewResultsTab(MainTab, Ui_ViewResultsTabContent):
 
     def __init__(self, shared_state, computations_thread):
         self._shared_state = shared_state
@@ -103,3 +104,7 @@ class ViewResultsTab(Ui_ViewResultsTabContent):
             view_results_slice(self._folder, maps_to_show=maps_to_show,
                                dimension=self.initialDimensionChooser.value(),
                                slice_ind=self.initialSliceChooser.value())
+
+    def tab_opened(self):
+        if self._shared_state.output_folder != '':
+            self.selectedFolderText.setText(self._shared_state.output_folder)

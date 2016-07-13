@@ -68,7 +68,7 @@ def start_single_model_gui(*args, **kwargs):
     mp = multiprocessing.Pool(1, cl_process_runner, (input_queue, output_queue))
 
     from mdt.gui.tk import tkgui
-    window = tkgui.get_window(input_queue, output_queue, *args, **kwargs)
+    window = tkgui.get_window(input_queue, output_queue, **kwargs)
     window.mainloop()
 
     input_queue.put(None)
