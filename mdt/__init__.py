@@ -15,7 +15,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.7.22'
+VERSION = '0.7.23'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')
@@ -37,6 +37,7 @@ the multiprocessing we will get an Out Of Memory exception when trying to create
 
 
 def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalculate=False,
+              models_to_fit=None, cascade_subdir=False,
               cl_device_ind=None, dry_run=False, double_precision=False):
     """Run all the available and applicable models on the data in the given folder.
 
@@ -52,6 +53,13 @@ def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalcul
         subjects_selection (BatchSubjectSelection): the subjects to use for processing.
             If None all subjects are processed.
         recalculate (boolean): If we want to recalculate the results if they are already present.
+        models_to_fit (list of str): A list of models to fit to the data. This overrides the models in
+                the batch config.
+        cascade_subdir (boolean): if we want to create a subdirectory for every cascade model.
+            Per default we output the maps of cascaded results in the same directory, this allows reusing cascaded
+            results for other cascades (for example, if you cascade BallStick -> Noddi you can use the BallStick results
+            also for BallStick -> Charmed). This flag disables that behaviour and instead outputs the results of
+            a cascade model to a subdirectory for that cascade. This does not apply recursive.
         cl_device_ind (int or list of int): the index of the CL device to use.
             The index is from the list from the function get_cl_devices().
         dry_run (boolean): a dry run will do no computations, but will list all the subjects found in the
@@ -68,8 +76,8 @@ def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalcul
         raise RuntimeError('Your components folder is not up to date. Please run the script mdt-init-user-settings.')
 
     batch_fitting = BatchFitting(data_folder, batch_profile=batch_profile, subjects_selection=subjects_selection,
-                                 recalculate=recalculate, cl_device_ind=cl_device_ind,
-                                 double_precision=double_precision)
+                                 recalculate=recalculate, models_to_fit=models_to_fit, cascade_subdir=cascade_subdir,
+                                 cl_device_ind=cl_device_ind, double_precision=double_precision)
 
     if dry_run:
         return batch_fitting.get_subjects_info()
@@ -79,9 +87,8 @@ def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalcul
 
 def fit_model(model, problem_data, output_folder, optimizer=None,
               recalculate=False, only_recalculate_last=False, model_protocol_options=None,
-              use_model_protocol_options=True,
-              cl_device_ind=None, double_precision=False, gradient_deviations=None, noise_std='auto'
-              ):
+              use_model_protocol_options=True, cascade_subdir=False,
+              cl_device_ind=None, double_precision=False, gradient_deviations=None, noise_std='auto'):
     """Run the optimizer on the given model.
 
     Args:
@@ -102,6 +109,11 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
                 For instance, in the Tensor model we generally only want to use the lower b-values, or for S0 only
                 the unweighted. Please note that this is merged with the options defined in the config file.
         use_model_protocol_options (boolean): if we want to use the model protocol options or not.
+        cascade_subdir (boolean): if we want to create a subdirectory for the given model if it is a cascade model.
+            Per default we output the maps of cascaded results in the same directory, this allows reusing cascaded
+            results for other cascades (for example, if you cascade BallStick -> Noddi you can use the BallStick results
+            also for BallStick -> Charmed). This flag disables that behaviour and instead outputs the results of
+            a cascade model to a subdirectory for that cascade. This does not apply recursive.
         cl_device_ind (int or list): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices(). This can also be a list of device indices.
         double_precision (boolean): if we would like to do the calculations in double precision
@@ -114,7 +126,6 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
                         of the same size as the dataset)
                     string: a filename we will try to parse as a noise std
                     'auto': try to estimate the noise std
-
 
     Returns:
         the output of the optimization. If a cascade is given, only the results of the last model in the cascade is
@@ -134,6 +145,7 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
     model_fit = ModelFit(model, problem_data, output_folder, optimizer=optimizer, recalculate=recalculate,
                          only_recalculate_last=only_recalculate_last, model_protocol_options=model_protocol_options,
                          use_model_protocol_options=use_model_protocol_options,
+                         cascade_subdir=cascade_subdir,
                          cl_device_ind=cl_device_ind, double_precision=double_precision,
                          gradient_deviations=gradient_deviations,
                          noise_std=noise_std)

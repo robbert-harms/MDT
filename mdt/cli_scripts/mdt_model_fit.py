@@ -95,6 +95,10 @@ class ModelFit(BasicShellApplication):
                             help="Disable the model protocol options from the config.")
         parser.set_defaults(use_model_protocol_options=True)
 
+        parser.add_argument('--cascade_subdir', dest='cascade_subdir', action='store_true',
+                            help="If we want to create a subdirectory for a cascade model (non-recursive).")
+        parser.set_defaults(cascade_subdir=False)
+
         return parser
 
     def run(self, args):
@@ -110,7 +114,8 @@ class ModelFit(BasicShellApplication):
                       only_recalculate_last=args.only_recalculate_last, cl_device_ind=args.cl_device_ind,
                       double_precision=args.double_precision, gradient_deviations=args.gradient_deviations,
                       use_model_protocol_options=args.use_model_protocol_options,
-                      noise_std=args.noise_std)
+                      noise_std=args.noise_std,
+                      cascade_subdir=args.cascade_subdir)
 
 
 if __name__ == '__main__':

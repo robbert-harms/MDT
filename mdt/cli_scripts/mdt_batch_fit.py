@@ -96,6 +96,10 @@ class BatchFit(BasicShellApplication):
                             help="Shows what it will do without the dry run argument.")
         parser.set_defaults(dry_run=False)
 
+        parser.add_argument('--cascade_subdir', dest='cascade_subdir', action='store_true',
+                            help="If we want to create a subdirectory for every cascade model.")
+        parser.set_defaults(cascade_subdir=False)
+
         return parser
 
     def run(self, args):
@@ -120,7 +124,8 @@ class BatchFit(BasicShellApplication):
                       recalculate=args.recalculate,
                       cl_device_ind=args.cl_device_ind,
                       double_precision=args.double_precision,
-                      dry_run=args.dry_run
+                      dry_run=args.dry_run,
+                      cascade_subdir=args.cascade_subdir
                       )
 
 

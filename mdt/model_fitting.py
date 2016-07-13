@@ -33,6 +33,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class BatchFitting(object):
 
     def __init__(self, data_folder, batch_profile=None, subjects_selection=None, recalculate=False,
+                 models_to_fit=None, cascade_subdir=False,
                  cl_device_ind=None, double_precision=False):
         """This class is meant to make running computations as simple as possible.
 
@@ -57,6 +58,14 @@ class BatchFitting(object):
             subjects_selection (BatchSubjectSelection): the subjects to use for processing.
                 If None all subjects are processed.
             recalculate (boolean): If we want to recalculate the results if they are already present.
+            cascade_subdir (boolean): if we want to create a subdirectory for every cascade model.
+                Per default we output the maps of cascaded results in the same directory, this allows reusing cascaded
+                results for other cascades (for example, if you cascade BallStick -> Noddi you can use
+                the BallStick results also for BallStick -> Charmed). This flag disables that behaviour and instead
+                outputs the results of a cascade model to a subdirectory for that cascade.
+                This does not apply recursive.
+            models_to_fit (list of str): A list of models to fit to the data. This overrides the models in
+                the batch config.
             cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
                 get_cl_devices().
             double_precision (boolean): if we would like to do the calculations in double precision
@@ -64,10 +73,16 @@ class BatchFitting(object):
         self._logger = logging.getLogger(__name__)
         self._batch_profile = batch_profile_factory(batch_profile, data_folder)
         self._subjects_selection = subjects_selection or AllSubjects()
-        self._models_to_fit = self._batch_profile.get_models_to_fit()
+
+        if models_to_fit:
+            self._models_to_fit = models_to_fit
+        else:
+            self._models_to_fit = self._batch_profile.get_models_to_fit()
+
         self._cl_device_ind = cl_device_ind
         self._recalculate = recalculate
         self._double_precision = double_precision
+        self._cascade_subdir = cascade_subdir
 
         if self._batch_profile is None:
             raise RuntimeError('No suitable batch profile could be '
@@ -114,7 +129,7 @@ class BatchFitting(object):
         self._logger.info('Running computations on {0} subjects'.format(len(self._subjects)))
 
         run_func = _BatchFitRunner(self._model_protocol_options, self._models_to_fit,
-                                   self._recalculate, self._cl_device_ind, self._double_precision)
+                                   self._recalculate, self._cascade_subdir, self._cl_device_ind, self._double_precision)
         list(map(run_func, self._subjects))
 
         return self._subjects
@@ -122,10 +137,12 @@ class BatchFitting(object):
 
 class _BatchFitRunner(object):
 
-    def __init__(self, model_protocol_options, models_to_fit, recalculate, cl_device_ind, double_precision):
+    def __init__(self, model_protocol_options, models_to_fit, recalculate, cascade_subdir, cl_device_ind,
+                 double_precision):
         self._model_protocol_options = model_protocol_options
         self._models_to_fit = models_to_fit
         self._recalculate = recalculate
+        self._cascade_subdir = cascade_subdir
         self._cl_device_ind = cl_device_ind
         self._double_precision = double_precision
         self._logger = logging.getLogger(__name__)
@@ -164,6 +181,7 @@ class _BatchFitRunner(object):
                                          recalculate=self._recalculate,
                                          only_recalculate_last=True,
                                          model_protocol_options=self._model_protocol_options,
+                                         cascade_subdir=self._cascade_subdir,
                                          cl_device_ind=self._cl_device_ind,
                                          double_precision=self._double_precision,
                                          gradient_deviations=gradient_deviations,
@@ -191,7 +209,7 @@ class ModelFit(object):
 
     def __init__(self, model, problem_data, output_folder, optimizer=None,
                  recalculate=False, only_recalculate_last=False, model_protocol_options=None,
-                 use_model_protocol_options=True,
+                 use_model_protocol_options=True, cascade_subdir=False,
                  cl_device_ind=None, double_precision=False, gradient_deviations=None, noise_std=None):
         """Setup model fitting for the given input model and data.
 
@@ -215,6 +233,11 @@ class ModelFit(object):
                 For instance, in the Tensor model we generally only want to use the lower b-values, or for S0 only
                 the unweighted. Please note that this is merged with the options defined in the config file.
             use_model_protocol_options (boolean): if we want to use the model protocol options or not.
+            cascade_subdir (boolean): if we want to create a subdirectory for the given model if it is a cascade model.
+                Per default we output the maps of cascaded results in the same directory, this allows reusing cascaded
+                results for other cascades (for example, if you cascade BallStick -> Noddi you can use the BallStick
+                results also for BallStick -> Charmed). This flag disables that behaviour and instead outputs the
+                results of a cascade model to a subdirectory for that cascade. This does not apply recursive.
             cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
                 get_cl_devices(). This can also be a list of device indices.
             double_precision (boolean): if we would like to do the calculations in double precision
@@ -227,7 +250,6 @@ class ModelFit(object):
                         of the same size as the dataset)
                     string: a filename we will try to parse as a noise std
                     'auto': try to estimate the noise std
-
         """
         if isinstance(model, string_types):
             model = get_model(model)
@@ -237,6 +259,8 @@ class ModelFit(object):
         self._model = model
         self._problem_data = problem_data
         self._output_folder = output_folder
+        if cascade_subdir and isinstance(self._model, DMRICascadeModelInterface):
+            self._output_folder += '/{}'.format(self._model.name)
         self._optimizer = optimizer
         self._recalculate = recalculate
         self._only_recalculate_last = only_recalculate_last

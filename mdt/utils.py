@@ -895,44 +895,21 @@ class MetaOptimizerBuilder(object):
             model_names (list of str): the list of model names
         """
         optim_config = self._get_configuration_dict(model_names)
+        meta_optimizer = MetaOptimizer()
 
-        cl_environments = self._get_cl_environments(optim_config)
-        load_balancer = self._get_load_balancer(optim_config)
-
-        meta_optimizer = MetaOptimizer(cl_environments, load_balancer)
-
-        meta_optimizer.optimizer = self._get_optimizer(optim_config['optimizers'][0], cl_environments, load_balancer)
-        meta_optimizer.extra_optim_runs_optimizers = [self._get_optimizer(optim_config['optimizers'][i],
-                                                                          cl_environments, load_balancer)
+        meta_optimizer.optimizer = self._get_optimizer(optim_config['optimizers'][0])
+        meta_optimizer.extra_optim_runs_optimizers = [self._get_optimizer(optim_config['optimizers'][i])
                                                       for i in range(1, len(optim_config['optimizers']))]
 
         for attr in ('extra_optim_runs', 'extra_optim_runs_apply_smoothing', 'extra_optim_runs_use_perturbation'):
             meta_optimizer.__setattr__(attr, optim_config[attr])
 
         if 'smoothing_routines' in optim_config and len(optim_config['smoothing_routines']):
-            meta_optimizer.smoother = self._get_smoother(optim_config['smoothing_routines'][0],
-                                                         cl_environments, load_balancer)
-            meta_optimizer.extra_optim_runs_smoothers = [self._get_smoother(optim_config['smoothing_routines'][i],
-                                                                            cl_environments, load_balancer)
+            meta_optimizer.smoother = self._get_smoother(optim_config['smoothing_routines'][0])
+            meta_optimizer.extra_optim_runs_smoothers = [self._get_smoother(optim_config['smoothing_routines'][i])
                                                          for i in range(1, len(optim_config['smoothing_routines']))]
 
         return meta_optimizer
-
-    def _get_load_balancer(self, optim_config):
-        load_balancer = get_load_balance_strategy_by_name(optim_config['load_balancer']['name'])()
-        for attr, value in optim_config['load_balancer'].items():
-            if attr != 'name':
-                load_balancer.__setattr__(attr, value)
-        return load_balancer
-
-    def _get_cl_environments(self, optim_config):
-        cl_environments = CLEnvironmentFactory.smart_device_selection()
-        if optim_config['cl_devices']:
-            if isinstance(optim_config['cl_devices'], (tuple, list)):
-                cl_environments = [cl_environments[int(ind)] for ind in optim_config['cl_devices']]
-            else:
-                cl_environments = [cl_environments[int(optim_config['cl_devices'])]]
-        return cl_environments
 
     def _get_configuration_dict(self, model_names):
         current_config = configuration.config['optimization_settings']
@@ -946,16 +923,15 @@ class MetaOptimizerBuilder(object):
         optim_config = recursive_merge_dict(optim_config, self._meta_optimizer_config)
         return optim_config
 
-    def _get_optimizer(self, options, cl_environments, load_balancer):
+    def _get_optimizer(self, options):
         optimizer = get_optimizer_by_name(options['name'])
-        patience = options['patience']
+        patience = options.get('patience', None)
         optimizer_options = options.get('optimizer_options')
-        return optimizer(cl_environments, load_balancer, patience=patience, optimizer_options=optimizer_options)
+        return optimizer(patience=patience, optimizer_options=optimizer_options)
 
-    def _get_smoother(self, options, cl_environments, load_balancer):
+    def _get_smoother(self, options):
         smoother = get_filter_by_name(options['name'])
-        size = options['size']
-        return smoother(size, cl_environments, load_balancer)
+        return smoother(options.get('size', None))
 
 
 def get_cl_devices():
