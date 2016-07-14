@@ -17,7 +17,7 @@ class S0TM(DMRISingleModelConfig):
 class S0T2(DMRISingleModelConfig):
 
         name = 'S0-T2'
-        description = 'Models the unweighted text_message_signal (aka. b0) with an extra T2.'
+        description = 'Models the unweighted signal (aka. b0) with an extra T2.'
         model_expression = 'S0 * ExpT2Dec'
 
         # for proper initialization, please take the highest S0 value in your data.
@@ -29,7 +29,7 @@ class S0T2(DMRISingleModelConfig):
 class S0LinT2(DMRISingleModelConfig):
 
         name = 'S0LinT2'
-        description = 'Models the unweighted text_message_signal (aka. b0) with an extra T2.'
+        description = 'Models the unweighted signal (aka. b0) with an extra T2.'
         model_expression = 'S0 + LinT2Dec'
         inits = {'S0.s0': 1.0}
         upper_bounds = {'LinT2Dec.R2': 1000,
@@ -39,7 +39,7 @@ class S0LinT2(DMRISingleModelConfig):
 class S0T2T2(DMRISingleModelConfig):
 
         name = 'S0-T2T2'
-        description = 'Model for the unweighted text_message_signal with two T2 models, one for short T2 and one for long T2.'
+        description = 'Model for the unweighted signal with two T2 models, one for short T2 and one for long T2.'
 
         model_expression = '''
             S0 * ( (Weight(w_long) * ExpT2Dec(T2_long)) +

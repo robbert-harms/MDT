@@ -20,7 +20,7 @@ class AverageOfAir_DilatedMask(ComplexNoiseStdEstimator):
 
         We then calculate per voxel the std of the noise and use that to estimate the noise of the original complex
         image domain using:
-            sigma_complex = sqrt(2.0 / (4.0 - PI)) * stddev(text_message_signal in background region)
+            sigma_complex = sqrt(2.0 / (4.0 - PI)) * stddev(signal in background region)
 
         Finally, we take the median value of all calculated std's.
 
@@ -38,7 +38,7 @@ class AverageOfAir_DilatedMask(ComplexNoiseStdEstimator):
         """Get a two dimensional list with all the voxels in the air.
 
         Returns:
-            ndarray: The first dimension is the list of voxels, the second the text_message_signal per voxel.
+            ndarray: The first dimension is the list of voxels, the second the signal per voxel.
         """
         mask = np.copy(self._problem_data.mask)
         mask = binary_dilation(mask, iterations=1)
