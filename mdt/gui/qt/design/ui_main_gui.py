@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'main_gui.ui'
 #
-# Created: Wed Jul 13 15:56:41 2016
+# Created: Thu Jul 14 16:24:43 2016
 #      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -96,6 +96,8 @@ class Ui_MainWindow(object):
         self.menubar.setObjectName("menubar")
         self.menuMenu = QtWidgets.QMenu(self.menubar)
         self.menuMenu.setObjectName("menuMenu")
+        self.menuHelp = QtWidgets.QMenu(self.menubar)
+        self.menuHelp.setObjectName("menuHelp")
         MainWindow.setMenuBar(self.menubar)
         self.actionExit = QtWidgets.QAction(MainWindow)
         self.actionExit.setObjectName("actionExit")
@@ -103,12 +105,16 @@ class Ui_MainWindow(object):
         self.action_saveLog.setObjectName("action_saveLog")
         self.action_RuntimeSettings = QtWidgets.QAction(MainWindow)
         self.action_RuntimeSettings.setObjectName("action_RuntimeSettings")
+        self.actionAbout = QtWidgets.QAction(MainWindow)
+        self.actionAbout.setObjectName("actionAbout")
         self.menuMenu.addAction(self.action_RuntimeSettings)
         self.menuMenu.addSeparator()
         self.menuMenu.addAction(self.action_saveLog)
         self.menuMenu.addSeparator()
         self.menuMenu.addAction(self.actionExit)
+        self.menuHelp.addAction(self.actionAbout)
         self.menubar.addAction(self.menuMenu.menuAction())
+        self.menubar.addAction(self.menuHelp.menuAction())
 
         self.retranslateUi(MainWindow)
         self.MainTabs.setCurrentIndex(0)
@@ -126,10 +132,12 @@ class Ui_MainWindow(object):
         self.executionStatusLabel.setText(_translate("MainWindow", "TextLabel"))
         self.executionStatusIcon.setText(_translate("MainWindow", "TextLabel"))
         self.menuMenu.setTitle(_translate("MainWindow", "&File"))
+        self.menuHelp.setTitle(_translate("MainWindow", "&Help"))
         self.actionExit.setText(_translate("MainWindow", "&Quit"))
         self.actionExit.setShortcut(_translate("MainWindow", "Ctrl+Q"))
         self.action_saveLog.setText(_translate("MainWindow", "Save log"))
         self.action_saveLog.setShortcut(_translate("MainWindow", "Ctrl+S"))
         self.action_RuntimeSettings.setText(_translate("MainWindow", "&Runtime settings"))
+        self.actionAbout.setText(_translate("MainWindow", "About"))
 
 from . import main_gui_rc

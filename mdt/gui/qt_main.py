@@ -3,6 +3,7 @@ import sys
 import signal
 import mdt.utils
 import mot.configuration
+from mdt.gui.qt.design.ui_about_dialog import Ui_AboutDialog
 from mdt.gui.qt.design.ui_runtime_settings_dialog import Ui_RuntimeSettingsDialog
 from mdt.gui.qt.tabs.fit_model_tab import FitModelTab
 from mdt.gui.qt.tabs.generate_brain_mask_tab import GenerateBrainMaskTab
@@ -60,6 +61,7 @@ class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
         self._center()
 
         self.action_RuntimeSettings.triggered.connect(lambda: RuntimeSettingsDialog(self).exec_())
+        self.actionAbout.triggered.connect(lambda: AboutDialog(self).exec_())
 
         self.executionStatusLabel.setText('Idle')
         self.executionStatusIcon.setPixmap(QtGui.QPixmap(":/main_gui/icon_status_red.png"))
@@ -186,6 +188,14 @@ class RuntimeSettingsDialog(Ui_RuntimeSettingsDialog, QDialog):
                      if self.cldevicesSelection.item(ind).isSelected()]
         mot.configuration.set_cl_environments([self.all_cl_devices[ind] for ind in selection])
         mot.configuration.set_load_balancer(EvenDistribution())
+
+
+class AboutDialog(Ui_AboutDialog, QDialog):
+
+    def __init__(self, parent):
+        super(AboutDialog, self).__init__(parent)
+        self.setupUi(self)
+        self.contentLabel.setText(self.contentLabel.text().replace('{version}', mdt.__version__))
 
 
 def start_gui(base_dir=None, action=None):
