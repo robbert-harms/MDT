@@ -56,7 +56,7 @@ class SliceBySlice(ModelChunksProcessingStrategy):
 
             if chunk_mask.any():
                 with self._selected_indices(model, chunk_indices):
-                    self._run_on_slice(model, problem_data, slices_dir, recalculate, worker,
+                    self._run_on_slice(model, problem_data, output_path, slices_dir, recalculate, worker,
                                        ind_start, ind_end, chunk_mask)
 
         self._logger.info('Computed all slices, now merging the results')
@@ -83,7 +83,8 @@ class SliceBySlice(ModelChunksProcessingStrategy):
 
             yield ind_start, ind_end, slicer
 
-    def _run_on_slice(self, model, problem_data, slices_dir, recalculate, worker, ind_start, ind_end, tmp_mask):
+    def _run_on_slice(self, model, problem_data, output_path, slices_dir, recalculate, worker,
+                      ind_start, ind_end, tmp_mask):
         slice_dir = os.path.join(slices_dir, '{dimension}_{start}_{end}'.format(
             dimension=self.slice_dimension, start=ind_start, end=ind_end))
 
@@ -97,5 +98,5 @@ class SliceBySlice(ModelChunksProcessingStrategy):
                 format(ind_start, ind_end, tmp_mask.shape[self.slice_dimension],
                 float(ind_start) / tmp_mask.shape[self.slice_dimension]))
 
-            worker.process(model, problem_data, tmp_mask, slice_dir)
+            worker.process(model, problem_data, tmp_mask, output_path, slice_dir)
             Nifti.write_volume_maps({'__mask': tmp_mask}, slice_dir, problem_data.volume_header)

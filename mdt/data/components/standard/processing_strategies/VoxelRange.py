@@ -53,7 +53,7 @@ class VoxelRange(ModelChunksProcessingStrategy):
 
             if len(chunk_indices):
                 with self._selected_indices(model, chunk_indices):
-                    self._run_on_slice(model, problem_data, chunks_dir, recalculate, worker,
+                    self._run_on_chunk(model, problem_data, output_path, chunks_dir, recalculate, worker,
                                        ind_start, ind_end, chunk_mask)
 
         self._logger.info('Computed all slices, now merging the results')
@@ -75,7 +75,8 @@ class VoxelRange(ModelChunksProcessingStrategy):
             ind_end = min(total_nmr_voxels, ind_start + self.nmr_voxels)
             yield ind_start, ind_end
 
-    def _run_on_slice(self, model, problem_data, slices_dir, recalculate, worker, ind_start, ind_end, tmp_mask):
+    def _run_on_chunk(self, model, problem_data, output_path, slices_dir, recalculate, worker,
+                      ind_start, ind_end, tmp_mask):
         slice_dir = os.path.join(slices_dir, '{start}_{end}'.format(start=ind_start, end=ind_end))
 
         if recalculate and os.path.exists(slice_dir):
@@ -88,5 +89,5 @@ class VoxelRange(ModelChunksProcessingStrategy):
                 format(ind_start, ind_end, np.count_nonzero(problem_data.mask),
                 float(ind_start) / np.count_nonzero(problem_data.mask)))
 
-            worker.process(model, problem_data, tmp_mask, slice_dir)
+            worker.process(model, problem_data, tmp_mask, output_path, slice_dir)
             Nifti.write_volume_maps({'__mask': tmp_mask}, slice_dir, problem_data.volume_header)

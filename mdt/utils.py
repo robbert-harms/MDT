@@ -1296,17 +1296,22 @@ class ModelChunksProcessingStrategy(ModelProcessingStrategy):
 
 class ModelProcessingWorker(object):
 
-    def process(self, model, problem_data, mask, output_dir):
+    def process(self, model, problem_data, mask, output_dir, chunk_dir):
         """Process the indicated voxels in the way prescribed by this worker.
 
         Since the processing strategy can use all voxels to do the analysis in one go, this function
-        should return all the output it can, i.e. the same kind of output as from the function combine
+        should return all the output it can, i.e. the same kind of output as from the function 'combine()'.
+
+        This function is given both the output_dir as well as the chunk_dir. It should normally place the computed
+        items in the chunk dir, however it can place output in the output dir as well for final storage (so it does
+        not need to combine these afterwards).
 
         Args:
             model (DMRISingleModel): the model to process
             problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
             mask (ndarray): the mask that was used in this processing step
-            output_dir (str): the location for the output files
+            output_dir (str): the location of the final combined output items
+            chunk_dir (str): the location for the output files of this chunk
 
         Returns:
             the results for this single processing step
@@ -1315,31 +1320,32 @@ class ModelProcessingWorker(object):
     def output_exists(self, model, problem_data, output_dir):
         """Check if in the given directory all the output exists for the given model.
 
-        This could be used by the processing strategy to check if in a given folder for a single slice all the
-        output items exist.
+        This function can be used to check if the output exists of the total computation, but also if
+        the output of a single chunk exists. The output_dir can therefore be pointing to a chunk dir or to the
+        global computations dir.
 
         Args:
             model (DMRISingleModel): the model to process
             problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
-            output_dir (str): the location for the output files
+            output_dir (str): the location of all the output files
 
         Returns:
             boolean: true if the output exists, false otherwise
         """
 
-    def combine(self, model, problem_data, output_path, chunks_dir):
+    def combine(self, model, problem_data, output_dir, chunks_dir):
         """Combine all the calculated parts.
 
         This function should combine all the results into one compilation.
 
-        This expects there to be a file named '__mask.nii.gz' in every sub dir. This file should contain
-        a mask for exactly that slice/data calculated in that directory. We will use those chunk masks to combine
+        This function normally expects there to be a file named '__mask.nii.gz' in every sub dir. This file contains
+        a mask that highlights the data calculated in that directory. We will use those chunk masks to combine
         the data for the whole dataset.
 
         Args:
             model (DMRISingleModel): the model we processed
             problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
-            output_path (str): the location for the final combined output files
+            output_dir (str): the location to store the final (combined) output files
             chunks_dir (str): the location of the directory that contains all the directories with the chunks.
 
         Returns:
@@ -1359,18 +1365,17 @@ class FittingProcessingWorker(ModelProcessingWorker):
         """
         self._optimizer = optimizer
 
-    def process(self, model, problem_data, mask, output_dir):
+    def process(self, model, problem_data, mask, output_dir, chunk_dir):
         results, extra_output = self._optimizer.minimize(model, full_output=True)
         results.update(extra_output)
 
-        self._write_output(results, mask, output_dir, problem_data.volume_header)
-
+        self._write_output(results, mask, chunk_dir, problem_data.volume_header)
         return results
 
     def output_exists(self, model, problem_data, output_dir):
         return model_output_exists(model, output_dir, append_model_name_to_path=False)
 
-    def combine(self, model, problem_data, output_path, chunks_dir):
+    def combine(self, model, problem_data, output_dir, chunks_dir):
         sub_dirs = list(os.listdir(chunks_dir))
         if sub_dirs:
             file_paths = glob.glob(os.path.join(chunks_dir, os.listdir(chunks_dir)[0], '*.nii*'))
@@ -1389,7 +1394,7 @@ class FittingProcessingWorker(ModelProcessingWorker):
                         map_paths.append(map_file)
                         mask_paths.append(os.path.join(chunks_dir, sub_dir, '__mask.nii.gz'))
 
-                results.update({map_name: join_parameter_maps(output_path, map_paths, mask_paths, map_name)})
+                results.update({map_name: join_parameter_maps(output_dir, map_paths, mask_paths, map_name)})
 
             return results
 
@@ -1411,19 +1416,21 @@ class SamplingProcessingWorker(ModelProcessingWorker):
         """
         self._sampler = sampler
 
-    def process(self, model, problem_data, mask, output_dir):
+    def process(self, model, problem_data, mask, output_dir, chunk_dir):
         results, other_output = self._sampler.sample(model, full_output=True)
-        write_sample_results(results, output_dir)
-        self._write_maps(other_output, mask, problem_data, output_dir)
-        return memory_load_samples(output_dir)
+
+        roi_indices = np.squeeze(create_roi(create_index_matrix(problem_data.mask), mask))
+        write_sample_results(np.count_nonzero(problem_data.mask), results, roi_indices, output_dir)
+
+        self._write_maps(other_output, mask, problem_data, chunk_dir)
+        return memory_load_samples(chunk_dir)
 
     def output_exists(self, model, problem_data, output_dir):
         return model_output_exists(model, os.path.join(output_dir, 'volume_maps'), append_model_name_to_path=False)
 
-    def combine(self, model, problem_data, output_path, chunks_dir):
-        self._combine_maps(output_path, chunks_dir)
-        self._combine_samples(problem_data.mask, output_path, chunks_dir)
-        return memory_load_samples(output_path)
+    def combine(self, model, problem_data, output_dir, chunks_dir):
+        self._combine_maps(output_dir, chunks_dir)
+        return memory_load_samples(output_dir)
 
     def _combine_maps(self, output_path, chunks_dir):
         sub_dirs = list(os.listdir(chunks_dir))
@@ -1439,88 +1446,48 @@ class SamplingProcessingWorker(ModelProcessingWorker):
 
                 join_parameter_maps(os.path.join(output_path, 'volume_maps'), map_paths, mask_paths, map_name)
 
-    def _combine_samples(self, whole_mask, output_path, chunks_dir):
-        sub_dirs = list(os.listdir(chunks_dir))
-        if sub_dirs:
-            file_paths = glob.glob(os.path.join(chunks_dir, os.listdir(chunks_dir)[0], '*.samples'))
-            map_names = map(lambda d: os.path.splitext(os.path.basename(d))[0], file_paths)
-
-            for map_name in map_names:
-                map_paths = list(os.path.join(chunks_dir, sub_dir, map_name + '.samples') for sub_dir in sub_dirs)
-                map_settings = list(os.path.join(chunks_dir, sub_dir, map_name + '.samples.settings')
-                                    for sub_dir in sub_dirs)
-                mask_paths = list(os.path.join(chunks_dir, sub_dir, '__mask.nii.gz') for sub_dir in sub_dirs)
-
-                self._join_sample_results(whole_mask, output_path, map_paths, map_settings, mask_paths, map_name)
-
     def _write_maps(self, other_output, mask, problem_data, output_path):
         volume_maps_dir = os.path.join(output_path, 'volume_maps')
         volume_maps = restore_volumes(other_output, mask)
         Nifti.write_volume_maps(volume_maps, volume_maps_dir, problem_data.volume_header)
 
-    def _join_sample_results(self, whole_mask, output_path, maps, map_settings, masks, map_name):
-        """Join the sample results of a single parameter.
 
-        This uses the given masks to determine where to place which voxels.
-
-        Args:
-            whole_mask (ndarray): the complete brain mask
-            output_path (str): where to place the output file
-            maps (list of str): the list of sample files to concatenate
-            map_settings (list of str): a list with the same length as maps containing the settings for the given
-                maps
-            masks (list of str): the list of masks indicating the voxels present in the map.
-            Should have same length as maps.
-            map_name (str): the name of the output file
-        """
-        settings = []
-
-        for map_setting_file in map_settings:
-            with open(map_setting_file, 'rb') as f:
-                settings.append(pickle.load(f))
-
-        total_shape = (sum(s['shape'][0] for s in settings), settings[0]['shape'][1])
-        total = np.memmap(os.path.join(output_path, map_name + '.samples'), dtype=settings[0]['dtype'],
-                          shape=total_shape, mode='w+')
-
-        settings_total = {'dtype': settings[0]['dtype'], 'shape': total_shape}
-        with open(os.path.join(output_path, map_name + '.samples.settings'), 'wb') as f:
-            pickle.dump(settings_total, f, protocol=pickle.HIGHEST_PROTOCOL)
-
-        whole_mask_indices = create_index_matrix(whole_mask)
-
-        for map_fname, settings, mask_fname in zip(maps, settings, masks):
-            chunk_mask = nib.load(mask_fname).get_data().astype(np.bool)
-            chunk_indices = np.squeeze(create_roi(whole_mask_indices * chunk_mask, chunk_mask))
-
-            current = np.memmap(map_fname, dtype=settings['dtype'], mode='r', shape=settings['shape'])
-            total[chunk_indices, :] = current
-            del current
-        del total
-
-
-def write_sample_results(results, output_path):
+def write_sample_results(total_nmr_voxels, results, voxel_indices, output_path):
     """Write the sample results to file.
 
     This will write to files per sampled parameter. The first is a numpy array written to file, the second
     is a python pickled dictionary with the datatype and shape of the written numpy array.
 
+    If the given sample files do not exists, it will create one with enough storage to hold all the samples
+    for the given total_nmr_voxels. On storing it should also be given a list of voxel indices with the indices
+    of the voxels that are being stored.
+
     Args:
+        total_nmr_voxels (int): the total number of voxels to save samples for
         results (dict): the samples to write
+        voxel_indices (ndarray or list of int): the list of the indices to where to save the results to
         output_path (str): the path to write the samples in
     """
     if not os.path.exists(output_path):
         os.makedirs(output_path)
 
     for map_name, samples in results.items():
-        saved = np.memmap(os.path.join(output_path, map_name + '.samples'),
-                          dtype=samples.dtype, mode='w+', shape=samples.shape)
-        saved[:] = samples[:]
+        total_sample_shape = (total_nmr_voxels, samples.shape[1])
+
+        samples_path = os.path.join(output_path, map_name + '_test.samples')
+        mode = 'r+'
+        if not os.path.isfile(samples_path):
+            mode = 'w+'
+
+        saved = np.memmap(samples_path, dtype=samples.dtype, mode=mode, shape=total_sample_shape)
+        saved[voxel_indices, :] = samples[:]
         del saved
 
-        settings = {'dtype': samples.dtype, 'shape': samples.shape}
-        with open(os.path.join(output_path, map_name + '.samples.settings'), 'wb') as f:
-            pickle.dump(settings, f, protocol=pickle.HIGHEST_PROTOCOL)
+        settings_path = os.path.join(output_path, map_name + '_test.samples.settings')
+        if not os.path.exists(settings_path):
+            with open(settings_path, 'wb') as f:
+                settings = {'dtype': samples.dtype, 'shape': total_sample_shape}
+                pickle.dump(settings, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 def memory_load_samples(data_folder):
