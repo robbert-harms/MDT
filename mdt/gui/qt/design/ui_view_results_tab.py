@@ -2,8 +2,7 @@
 
 # Form implementation generated from reading ui file 'view_results_tab.ui'
 #
-# Created: Thu Jul 14 16:24:43 2016
-#      by: PyQt5 UI code generator 5.2.1
+# Created by: PyQt5 UI code generator 5.4.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -36,7 +35,6 @@ class Ui_ViewResultsTabContent(object):
         self.line.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line.setLineWidth(1)
         self.line.setFrameShape(QtWidgets.QFrame.HLine)
-        self.line.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line.setObjectName("line")
         self.verticalLayout.addWidget(self.line)
         self.gridLayout = QtWidgets.QGridLayout()
@@ -107,8 +105,8 @@ class Ui_ViewResultsTabContent(object):
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout_4.addItem(spacerItem)
         self.horizontalLayout_9 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_9.setSpacing(0)
         self.horizontalLayout_9.setContentsMargins(-1, -1, 6, -1)
+        self.horizontalLayout_9.setSpacing(0)
         self.horizontalLayout_9.setObjectName("horizontalLayout_9")
         self.label_7 = QtWidgets.QLabel(ViewResultsTabContent)
         self.label_7.setObjectName("label_7")
@@ -122,8 +120,8 @@ class Ui_ViewResultsTabContent(object):
         spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout_4.addItem(spacerItem1)
         self.horizontalLayout_10 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_10.setSpacing(0)
         self.horizontalLayout_10.setContentsMargins(-1, -1, 6, -1)
+        self.horizontalLayout_10.setSpacing(0)
         self.horizontalLayout_10.setObjectName("horizontalLayout_10")
         self.label_9 = QtWidgets.QLabel(ViewResultsTabContent)
         self.label_9.setObjectName("label_9")
@@ -160,6 +158,8 @@ class Ui_ViewResultsTabContent(object):
         spacerItem3 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem3)
         self.verticalLayout.addLayout(self.horizontalLayout)
+        self.line_2.raise_()
+        self.line.raise_()
 
         self.retranslateUi(ViewResultsTabContent)
         QtCore.QMetaObject.connectSlotsByName(ViewResultsTabContent)

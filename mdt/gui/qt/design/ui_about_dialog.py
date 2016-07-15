@@ -2,8 +2,7 @@
 
 # Form implementation generated from reading ui file 'about_dialog.ui'
 #
-# Created: Thu Jul 14 16:24:43 2016
-#      by: PyQt5 UI code generator 5.2.1
+# Created by: PyQt5 UI code generator 5.4.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -12,16 +11,17 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_AboutDialog(object):
     def setupUi(self, AboutDialog):
         AboutDialog.setObjectName("AboutDialog")
-        AboutDialog.resize(706, 443)
+        AboutDialog.resize(645, 448)
         self.verticalLayout = QtWidgets.QVBoxLayout(AboutDialog)
-        self.verticalLayout.setSpacing(3)
         self.verticalLayout.setContentsMargins(6, 6, 6, 6)
+        self.verticalLayout.setSpacing(3)
         self.verticalLayout.setObjectName("verticalLayout")
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setSpacing(0)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout()
-        self.verticalLayout_2.setContentsMargins(-1, -1, 14, -1)
+        self.verticalLayout_2.setContentsMargins(-1, -1, 16, -1)
+        self.verticalLayout_2.setSpacing(0)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.label_2 = QtWidgets.QLabel(AboutDialog)
         self.label_2.setText("")
@@ -60,6 +60,8 @@ class Ui_AboutDialog(object):
         spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout_3.addItem(spacerItem1)
         self.horizontalLayout.addLayout(self.verticalLayout_3)
+        spacerItem2 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout.addItem(spacerItem2)
         self.verticalLayout.addLayout(self.horizontalLayout)
         self.buttonBox = QtWidgets.QDialogButtonBox(AboutDialog)
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
@@ -80,13 +82,13 @@ class Ui_AboutDialog(object):
         self.contentLabel.setText(_translate("AboutDialog", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
-"</style></head><body style=\" font-family:\'Noto Sans\'; font-size:13pt; font-weight:400; font-style:normal;\">\n"
-"<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Version: {version}</p>\n"
-"<p style=\" margin-top:20px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">The Maastricht Diffusion Toolbox is a model recovery toolbox primarily meant for diffusion MRI analysis</p>\n"
-"<p style=\" margin-top:20px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Software development by Robbert Harms, under the (Phd) supervision of Alard Roebroeck (Maastricht University)</p>\n"
-"<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Contributors:</p>\n"
-"<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\"><li style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Robbert Harms</li>\n"
-"<li style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Alard Roebroeck</li>\n"
-"<li style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Francisco Fritz</li></ul></body></html>"))
+"</style></head><body style=\" font-family:\'Droid Sans\'; font-size:10pt; font-weight:400; font-style:normal;\">\n"
+"<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Noto Sans\'; font-size:13pt;\">Version: {version}</span></p>\n"
+"<p style=\" margin-top:20px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Noto Sans\'; font-size:13pt;\">The Maastricht Diffusion Toolbox is a model recovery toolbox primarily meant for diffusion MRI analysis</span></p>\n"
+"<p style=\" margin-top:20px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Noto Sans\'; font-size:13pt;\">Software development by Robbert Harms, under the (Phd) supervision of Alard Roebroeck, at Maastricht University.</span></p>\n"
+"<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Noto Sans\'; font-size:13pt;\">Contributors:</span></p>\n"
+"<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\"><li style=\" font-family:\'Noto Sans\'; font-size:13pt;\" style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Robbert Harms</li>\n"
+"<li style=\" font-family:\'Noto Sans\'; font-size:13pt;\" style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Alard Roebroeck</li>\n"
+"<li style=\" font-family:\'Noto Sans\'; font-size:13pt;\" style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Francisco Fritz</li></ul></body></html>"))
 
 from . import main_gui_rc
