@@ -734,7 +734,8 @@ def sort_volumes_per_voxel(input_volumes, sort_matrix):
     else:
         volume = np.concatenate([m for m in input_volumes], axis=3)
         sorted_volume = volume[list(np.ogrid[[slice(x) for x in volume.shape]][:-1])+[sort_matrix]]
-        return [np.reshape(sorted_volume[..., ind], sorted_volume.shape[0:3] + (1,)) for ind in range(len(input_volumes))]
+        return [np.reshape(sorted_volume[..., ind], sorted_volume.shape[0:3] + (1,))
+                for ind in range(len(input_volumes))]
 
 
 def recursive_merge_dict(dictionary, update_dict, in_place=False):
