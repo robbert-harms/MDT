@@ -1378,26 +1378,31 @@ class FittingProcessingWorker(ModelProcessingWorker):
 
     def combine(self, model, problem_data, output_dir, chunks_dir):
         sub_dirs = list(os.listdir(chunks_dir))
+
         if sub_dirs:
             file_paths = glob.glob(os.path.join(chunks_dir, os.listdir(chunks_dir)[0], '*.nii*'))
             file_paths = filter(lambda d: '__mask' not in d, file_paths)
-            map_names = map(lambda d: split_image_path(d)[1], file_paths)
 
-            results = {}
-            for map_name in map_names:
-                map_paths = []
-                mask_paths = []
+            if len(sub_dirs) == 1:
+                list(map(lambda v: shutil.move(v, output_dir), file_paths))
+            else:
+                map_names = map(lambda d: split_image_path(d)[1], file_paths)
 
-                for sub_dir in sub_dirs:
-                    map_file = os.path.join(chunks_dir, sub_dir, map_name + '.nii.gz')
+                results = {}
+                for map_name in map_names:
+                    map_paths = []
+                    mask_paths = []
 
-                    if os.path.exists(map_file):
-                        map_paths.append(map_file)
-                        mask_paths.append(os.path.join(chunks_dir, sub_dir, '__mask.nii.gz'))
+                    for sub_dir in sub_dirs:
+                        map_file = os.path.join(chunks_dir, sub_dir, map_name + '.nii.gz')
 
-                results.update({map_name: join_parameter_maps(output_dir, map_paths, mask_paths, map_name)})
+                        if os.path.exists(map_file):
+                            map_paths.append(map_file)
+                            mask_paths.append(os.path.join(chunks_dir, sub_dir, '__mask.nii.gz'))
 
-            return results
+                    results.update({map_name: join_parameter_maps(output_dir, map_paths, mask_paths, map_name)})
+
+                return results
 
     def _write_output(self, result_arrays, mask, output_path, volume_header):
         """Write the result arrays to the given output folder"""
