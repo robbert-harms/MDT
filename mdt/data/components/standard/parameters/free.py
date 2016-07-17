@@ -42,6 +42,20 @@ class T1(FreeParameterConfig):
     parameter_transform = ClampTransform()
     sampling_proposal = GaussianProposal(0.0001)
 
+"""" This parameter is defined ONLY for Linear decay T1 fitting in GRE data WITH TR constant. Curiously, this parameter is also defined in SSFP
+model equation. However, in SSFP this parameter is FROM PROTOCOL! E1 = exp ( - TR / T1 ). After estimation of this parameter,
+T1 can be recovered by applying the next equation - TR / log ( E1 ).
+"""""
+
+class E1(FreeParameterConfig):
+
+    name = 'E1'
+    init_value = 0.37
+    lower_bound = 0.0
+    upper_bound = 1.0
+    parameter_transform = ClampTransform()
+    sampling_proposal = GaussianProposal(0.0001)
+
 
 class T2(FreeParameterConfig):
 

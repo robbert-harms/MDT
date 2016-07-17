@@ -60,3 +60,13 @@ class TR(ProtocolParameterConfig):
 
 class flip_angle(ProtocolParameterConfig):
     name = 'flip_angle'
+
+""""These variables are for STEAM/TSE sequences, depending on the model in which they are used.
+"""""
+
+class Refoc_fa1(ProtocolParameterConfig):
+    name = 'Refoc_fa1'
+
+
+class Refoc_fa2(ProtocolParameterConfig):
+    name = 'Refoc_fa2'

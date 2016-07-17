@@ -10,5 +10,5 @@ class ExpT1DecIR(CompartmentConfig):
 
     name = 'T1_IR'
     cl_function_name = 'cmExpT1DecIR'
-    parameter_list = ('IR', 'T1')
-    cl_code = CLCodeFromInlineString('return abs(1 - 2 * exp(-Ti / T1));')
+    parameter_list = ('Ti', 'TR', 'E', 'T1')
+    cl_code = CLCodeFromInlineString('return abs(1 - 2 * E * exp(-Ti / T1) + exp( - TR / T1) );')

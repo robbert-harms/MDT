@@ -23,6 +23,16 @@ class b1_static(StaticMapParameterConfig):
     data_type = 'mot_float_type'
     value = 1
 
+"""" S_weighted. This parameter is created *only for linear T1 decay fitting* of GRE data with variable flip angle. S_weighted
+is defined as the input data divided by the tan(flip_angle) ->  S_weighted = data / tan (flip_angle * B1_map)
+"""""
+
+class Sw_static(StaticMapParameterConfig):
+
+    name = 'Sw_static'
+    data_type = 'mot_float_type*'
+    value = 1
+
 
 class T1_static(StaticMapParameterConfig):
 

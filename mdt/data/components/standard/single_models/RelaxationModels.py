@@ -1,3 +1,4 @@
+from mot.model_building.evaluation_models import GaussianEvaluationModel
 from mdt.models.single import DMRISingleModelConfig
 
 __author__ = 'Robbert Harms'
@@ -31,9 +32,43 @@ class S0LinT2(DMRISingleModelConfig):
         name = 'S0LinT2'
         description = 'Models the unweighted signal (aka. b0) with an extra T2.'
         model_expression = 'S0 + LinT2Dec'
-        inits = {'S0.s0': 1.0}
         upper_bounds = {'LinT2Dec.R2': 1000,
-                        'S0.s0': 4.6}  # In this model, S0 is actually ln(S0).
+                        'S0.s0': 7.0}  # In this model, S0 is actually ln(S0).
+
+
+class S0T2(DMRISingleModelConfig):
+
+        name = 'S0-T2'
+        description = 'Models the unweighted text_message_signal (aka. b0) with an extra T2.'
+        model_expression = 'S0 * ExpT2Dec'
+
+        # for proper initialization, please take the highest S0 value in your data.
+        #inits = {'S0.s0': 50.0}
+        upper_bounds = {'ExpT2Dec.T2': 0.15}
+
+
+class S0_IRT1(DMRISingleModelConfig):
+
+        name = 'S0-ExpT1DecIR'
+        description = 'Model with multi-IR data (?)'
+        model_expression = 'S0 * ExpT1DecIR'
+
+        # for proper initialization, please take the highest S0 value in your data.
+        inits = {'S0.s0': 50.0}
+        upper_bounds = {'ExpT1DecIR.T2': 0.10,
+                        'S0.s0': 150}
+
+
+class S0T1GRE(DMRISingleModelConfig):
+
+        name = 'S0-T1GRE'
+        description = 'Models the unweighted text_message_signal (aka. b0) with an extra T1.'
+        model_expression = 'S0 * ExpT1DecGRE'
+
+        # for proper initialization, please take the highest S0 value in your data.
+        inits = {'S0.s0': 50.0}
+        upper_bounds = {'ExpT1DecGRE.T1': 1.0,
+                        'S0.s0': 150}
 
 
 class S0T2T2(DMRISingleModelConfig):
@@ -81,15 +116,16 @@ class STEAM_Relax(DMRISingleModelConfig):
                     'ExpT1ExpT2STEAM.T2': 0.1}
 
 
-class GRE_Relax_lineal(DMRISingleModelConfig):
-
-    name = 'GRE_Relax_lineal'
-    description = 'Model for estimating T1 of GRE data using B1+ map and several FA/TR variations.'
-    model_expression = 'S0 * LinealT1GRE'
+class S0LinearGRE(DMRISingleModelConfig):
+    # S0 is not the "real" s0 of the data, it is s0*(1 - exp(-TR / T1)). Then, s0 can be only calculated AFTER T1 estimation.
+    name = 'S0-LinearGRE'
+    description = 'Model for estimating T1 of GRE data using B1+ map and several FA variations.'
+    model_expression = 'S0 + LinT1GRE'
+    evaluation_model = GaussianEvaluationModel()
 
 
 class MPM_Final(DMRISingleModelConfig):
 
     name = 'MPM_Final'
     description = 'Model for estimating biological microstructure of the tissue/sample.'
-    model_expression = 'S0 * LinealT1GRE'
+    model_expression = 'S0 * MPM_Fit'

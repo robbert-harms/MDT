@@ -2,7 +2,7 @@ from contextlib import contextmanager
 
 import numpy as np
 
-from mdt import __version__
+from mdt import __version__, load_volume
 import logging
 import os
 import shutil
@@ -235,7 +235,12 @@ class SampleSingleModel(object):
                 maps = Nifti.read_volume_maps(self._initialize_using)
             elif isinstance(self._initialize_using, dict):
                 logger.info("Initializing sampler using given maps.")
-                maps = self._initialize_using
+                maps = {}
+                for key, value in self._initialize_using.items():
+                    if isinstance(value, string_types):
+                        maps[key] = load_volume(value, ensure_4d=True)[0]
+                    else:
+                        maps[key] = value
 
             if not maps:
                 raise RuntimeError('No initialization maps found in the folder "{}"'.format(
