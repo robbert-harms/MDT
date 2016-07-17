@@ -17,7 +17,7 @@ from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.utils import create_roi, \
     model_output_exists, get_cl_devices, get_model_config, \
     apply_model_protocol_options, get_processing_strategy, per_model_logging_context, SamplingProcessingWorker, \
-    memory_load_samples, recursive_merge_dict, get_noise_std_value
+    memory_load_samples, recursive_merge_dict, get_noise_std_value, is_scalar
 from mdt.exceptions import InsufficientProtocolError
 from mot.cl_routines.sampling.metropolis_hastings import MetropolisHastings
 from mot.configuration import config_context
@@ -126,13 +126,13 @@ class ModelSampling(object):
                 self._logger.info('Using MDT version {}'.format(__version__))
                 self._logger.info('Preparing for model {0}'.format(self._model.name))
 
-                if isinstance(self._noise_std, np.ndarray):
+                if is_scalar(self._noise_std):
+                    self._logger.info('Setting the noise standard deviation globally to {0}'.format(self._noise_std))
+                    self._model.evaluation_model.set_noise_level_std(self._noise_std, fix=True)
+                else:
                     self._logger.info('Setting the noise standard deviation to a voxel-wise value.')
                     self._model.evaluation_model.set_noise_level_std(
                         create_roi(self._noise_std, self._problem_data.mask), fix=True)
-                else:
-                    self._logger.info('Setting the noise standard deviation globally to {0}'.format(self._noise_std))
-                    self._model.evaluation_model.set_noise_level_std(self._noise_std, fix=True)
 
                 if self._cl_device_indices is not None:
                     all_devices = get_cl_devices()

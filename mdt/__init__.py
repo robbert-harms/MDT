@@ -628,7 +628,13 @@ def view_results_slice(data,
         general_plot_options.update({'cmap': 'hot'})
 
     if isinstance(data, string_types):
-        results_total = load_volume_maps(data)
+        map_names = None
+        if maps_to_show:
+            if maps_to_show == 'auto':
+                map_names = results_preselection_names(data)
+            else:
+                map_names = maps_to_show
+        results_total = load_volume_maps(data, map_names=map_names)
     else:
         results_total = data
 

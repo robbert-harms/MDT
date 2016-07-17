@@ -1,7 +1,6 @@
 import collections
 import copy
 import distutils.dir_util
-import functools
 import glob
 import logging
 import logging.config as logging_config
@@ -34,7 +33,8 @@ from mdt.log_handlers import ModelOutputLogHandler
 from mot.base import AbstractProblemData
 from mot.cl_environments import CLEnvironmentFactory
 from mot.cl_routines.optimizing.meta_optimizer import MetaOptimizer
-from mot.factory import get_load_balance_strategy_by_name, get_optimizer_by_name, get_filter_by_name
+from mot.factory import get_optimizer_by_name, get_filter_by_name
+import mot.utils
 
 try:
     import codecs
@@ -422,9 +422,10 @@ def create_roi(data, brain_mask):
     brain_mask = autodetect_brain_mask_loader(brain_mask).get_data()
 
     def creator(v):
-        if len(v.shape) < 4:
-            v = np.reshape(v, list(v.shape) + [1])
-        return np.transpose(np.array([np.extract(brain_mask, v[..., i]) for i in range(v.shape[3])]))
+        return_val = v[brain_mask]
+        if len(return_val.shape) == 1:
+            return_val = np.expand_dims(return_val, axis=1)
+        return return_val
 
     if isinstance(data, dict):
         return {key: creator(value) for key, value in data.items()}
@@ -464,17 +465,18 @@ def restore_volumes(data, brain_mask, with_volume_dim=True):
         s = voxel_list.shape
 
         def restore_3d(voxels):
-            volume_length = functools.reduce(lambda x, y: x*y, shape3d)
-
-            return_volume = np.zeros((volume_length,), dtype=voxels.dtype, order='C')
+            return_volume = np.zeros((brain_mask.size,), dtype=voxels.dtype, order='C')
             return_volume[indices] = voxels
-
             return np.reshape(return_volume, shape3d)
+
+        def restore_4d(voxels):
+            return_volume = np.zeros((brain_mask.size, s[1]), dtype=voxels.dtype, order='C')
+            return_volume[indices] = voxels
+            return np.reshape(return_volume, brain_mask.shape + (s[1], ))
 
         if len(s) > 1 and s[1] > 1:
             if with_volume_dim:
-                volumes = [np.expand_dims(restore_3d(voxel_list[:, i]), axis=3) for i in range(s[1])]
-                return np.concatenate(volumes, axis=3)
+                return restore_4d(voxel_list)
             else:
                 return restore_3d(voxel_list[:, 0])
         else:
@@ -1678,3 +1680,14 @@ class AutoDict(defaultdict):
                 value = value.to_normal_dict()
             results.update({key: value})
         return results
+
+
+def is_scalar(value):
+    """Test if the given value is a scalar.
+
+    This function also works with memmapped array values, in contrast to the numpy isscalar method.
+
+    Args:
+        value: the value to test for being a scalar value
+    """
+    return mot.utils.is_scalar(value)
