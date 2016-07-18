@@ -18,7 +18,7 @@ from mdt.protocols import write_protocol
 from mdt.utils import create_roi, load_problem_data, MetaOptimizerBuilder, get_cl_devices, \
     get_model_config, apply_model_protocol_options, model_output_exists, split_image_path, get_processing_strategy, \
     FittingProcessingWorker, per_model_logging_context, recursive_merge_dict, \
-    get_noise_std_value
+    get_noise_std_value, is_scalar
 from mdt.exceptions import InsufficientProtocolError
 from mot.load_balance_strategies import EvenDistribution
 import mot.configuration
@@ -347,13 +347,13 @@ class ModelFit(object):
                 self._logger.info('Preparing for model {0}'.format(model.name))
                 self._logger.info('Current cascade: {0}'.format(model_names))
 
-                if isinstance(self._noise_std, np.ndarray):
+                if is_scalar(self._noise_std):
+                    self._logger.info('Setting the noise standard deviation globally to {0}'.format(self._noise_std))
+                    model.evaluation_model.set_noise_level_std(self._noise_std, fix=True)
+                else:
                     self._logger.info('Setting the noise standard deviation to a voxel-wise value.')
                     model.evaluation_model.set_noise_level_std(
                         create_roi(self._noise_std, self._problem_data.mask), fix=True)
-                else:
-                    self._logger.info('Setting the noise standard deviation globally to {0}'.format(self._noise_std))
-                    model.evaluation_model.set_noise_level_std(self._noise_std, fix=True)
 
                 optimizer = self._optimizer or MetaOptimizerBuilder(meta_optimizer_config).construct(model_names)
 
