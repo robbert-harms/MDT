@@ -1383,10 +1383,12 @@ class FittingProcessingWorker(ModelProcessingWorker):
 
         if sub_dirs:
             file_paths = glob.glob(os.path.join(chunks_dir, os.listdir(chunks_dir)[0], '*.nii*'))
-            file_paths = filter(lambda d: '__mask' not in d, file_paths)
+            file_paths = list(filter(lambda d: '__mask' not in d, file_paths))
 
             if len(sub_dirs) == 1:
                 list(map(lambda v: shutil.move(v, output_dir), file_paths))
+                return create_roi(Nifti.read_volume_maps(output_dir),
+                                  os.path.join(chunks_dir, os.path.dirname(file_paths[0]), '__mask.nii.gz'))
             else:
                 map_names = map(lambda d: split_image_path(d)[1], file_paths)
 
