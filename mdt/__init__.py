@@ -714,10 +714,10 @@ def view_result_samples(data, **kwargs):
         kwargs (dict): see SampleVisualizer for all the supported keywords
     """
     from mdt.visualization import SampleVisualizer
-    from mdt.utils import memory_load_samples
+    from mdt.utils import load_samples
 
     if isinstance(data, string_types):
-        data = memory_load_samples(data)
+        data = load_samples(data)
 
     if not kwargs.get('voxel_ind'):
         kwargs.update({'voxel_ind': data[list(data.keys())[0]].shape[0] / 2})

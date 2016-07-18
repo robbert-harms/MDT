@@ -16,6 +16,7 @@ import nibabel as nib
 import numpy as np
 import pkg_resources
 import six
+from numpy.lib.format import open_memmap
 from scipy.special import jnp_zeros
 from six import string_types
 
@@ -842,7 +843,7 @@ def load_brain_mask(brain_mask_fname):
         brain_mask_fname (string): The filename of the brain mask to load.
 
     Returns:
-        The loaded brain mask data
+        ndarray: The loaded brain mask data
     """
     return nib.load(brain_mask_fname).get_data() > 0
 
@@ -1355,6 +1356,53 @@ class ModelProcessingWorker(object):
             the processing results for as much as this is applicable
         """
 
+    @staticmethod
+    def _combine_volumes(output_dir, chunks_dir, maps_subdir=''):
+        """Combine volumes found in subdirectories to a final volume.
+
+        Args:
+            output_dir (str): the location for the output files
+            chunks_dir (str): the directory in which all the chunks are located
+            maps_subdir (str): we may have per chunk a subdirectory in which the maps are located. This
+                parameter is for that subdir. Example search: <chunks_dir>/<chunk>/<maps_subdir>/*.nii*
+
+        Returns:
+            dict: the dictionary with the ROIs for every volume, by parameter name
+        """
+        chunk_pjoin = PathJoiner(chunks_dir)
+        chunk_dirs = list(filter(lambda d: os.path.isdir(chunk_pjoin(d)), os.listdir(chunks_dir)))
+
+        if chunk_dirs:
+            map_names = list(map(lambda p: os.path.splitext(os.path.basename(p))[0],
+                                 glob.glob(chunk_pjoin(os.listdir(chunks_dir)[0], maps_subdir, '*.npy'))))
+
+            for chunk_dir in chunk_dirs:
+                mask = load_brain_mask(chunk_pjoin(chunk_dir, '__mask.nii.gz'))
+
+                for map_name in map_names:
+                    chunk_map_value = np.load(chunk_pjoin(chunk_dir, maps_subdir, map_name + '.npy'))
+
+                    map_4d_dim_len = 1
+                    if len(chunk_map_value.shape) > 1:
+                        map_4d_dim_len = chunk_map_value.shape[1]
+
+                    tmp_matrix_path = chunk_pjoin(map_name + '.npy')
+
+                    mode = 'r+'
+                    if not os.path.isfile(tmp_matrix_path):
+                        mode = 'w+'
+
+                    tmp_matrix = open_memmap(tmp_matrix_path, mode=mode, dtype=chunk_map_value.dtype,
+                                             shape=mask.shape + (map_4d_dim_len,))
+
+                    indices = np.ravel_multi_index(np.nonzero(mask)[:3], mask.shape, order='C')
+                    np.ravel(tmp_matrix)[indices] = chunk_map_value
+
+            for map_name in map_names:
+                data = np.load(chunk_pjoin(map_name + '.npy'))
+                Nifti.write_volume_maps({map_name: data}, os.path.join(output_dir, maps_subdir),
+                                        nib.load(chunk_pjoin(chunk_dirs[0], '__mask.nii.gz')).get_header())
+
 
 class FittingProcessingWorker(ModelProcessingWorker):
 
@@ -1372,46 +1420,22 @@ class FittingProcessingWorker(ModelProcessingWorker):
         results, extra_output = self._optimizer.minimize(model, full_output=True)
         results.update(extra_output)
 
-        self._write_output(results, mask, chunk_dir, problem_data.volume_header)
+        self._write_output(results, chunk_dir)
         return results
 
     def output_exists(self, model, problem_data, output_dir):
         return model_output_exists(model, output_dir, append_model_name_to_path=False)
 
     def combine(self, model, problem_data, output_dir, chunks_dir):
-        sub_dirs = list(os.listdir(chunks_dir))
+        self._combine_volumes(output_dir, chunks_dir)
+        return create_roi(Nifti.read_volume_maps(output_dir), problem_data.mask)
 
-        if sub_dirs:
-            file_paths = glob.glob(os.path.join(chunks_dir, os.listdir(chunks_dir)[0], '*.nii*'))
-            file_paths = list(filter(lambda d: '__mask' not in d, file_paths))
-
-            if len(sub_dirs) == 1:
-                list(map(lambda v: shutil.move(v, output_dir), file_paths))
-                return create_roi(Nifti.read_volume_maps(output_dir),
-                                  os.path.join(chunks_dir, os.path.dirname(file_paths[0]), '__mask.nii.gz'))
-            else:
-                map_names = map(lambda d: split_image_path(d)[1], file_paths)
-
-                results = {}
-                for map_name in map_names:
-                    map_paths = []
-                    mask_paths = []
-
-                    for sub_dir in sub_dirs:
-                        map_file = os.path.join(chunks_dir, sub_dir, map_name + '.nii.gz')
-
-                        if os.path.exists(map_file):
-                            map_paths.append(map_file)
-                            mask_paths.append(os.path.join(chunks_dir, sub_dir, '__mask.nii.gz'))
-
-                    results.update({map_name: join_parameter_maps(output_dir, map_paths, mask_paths, map_name)})
-
-                return results
-
-    def _write_output(self, result_arrays, mask, output_path, volume_header):
+    def _write_output(self, results, chunk_dir):
         """Write the result arrays to the given output folder"""
-        volume_maps = restore_volumes(result_arrays, mask)
-        Nifti.write_volume_maps(volume_maps, output_path, volume_header)
+        for param_name, result_array in results.items():
+            if not os.path.exists(chunk_dir):
+                os.makedirs(chunk_dir)
+            np.save(os.path.join(chunk_dir, param_name + '.npy'), result_array, allow_pickle=False)
 
 
 class SamplingProcessingWorker(ModelProcessingWorker):
@@ -1430,135 +1454,69 @@ class SamplingProcessingWorker(ModelProcessingWorker):
         results, other_output = self._sampler.sample(model, full_output=True)
 
         roi_indices = np.squeeze(create_roi(create_index_matrix(problem_data.mask), mask))
-        write_sample_results(np.count_nonzero(problem_data.mask), results, roi_indices, output_dir)
+        self._write_sample_results(np.count_nonzero(problem_data.mask), results, roi_indices, output_dir)
 
-        self._write_maps(other_output, mask, problem_data, chunk_dir)
-        return memory_load_samples(chunk_dir)
+        self._write_maps(other_output, chunk_dir)
+        return load_samples(chunk_dir)
 
     def output_exists(self, model, problem_data, output_dir):
         return model_output_exists(model, os.path.join(output_dir, 'volume_maps'), append_model_name_to_path=False)
 
     def combine(self, model, problem_data, output_dir, chunks_dir):
-        self._combine_maps(output_dir, chunks_dir)
-        return memory_load_samples(output_dir)
+        self._combine_volumes(output_dir, chunks_dir, maps_subdir='volume_maps')
+        return load_samples(output_dir)
 
-    def _combine_maps(self, output_path, chunks_dir):
-        sub_dirs = list(os.listdir(chunks_dir))
-        if sub_dirs:
-            file_paths = glob.glob(os.path.join(chunks_dir, os.listdir(chunks_dir)[0], 'volume_maps', '*.nii*'))
-            file_paths = filter(lambda d: '__mask' not in d, file_paths)
-            map_names = map(lambda d: split_image_path(d)[1], file_paths)
+    def _write_maps(self, results, chunk_dir):
+        for param_name, result_array in results.items():
+            if not os.path.exists(os.path.join(chunk_dir, 'volume_maps')):
+                os.makedirs(os.path.join(chunk_dir, 'volume_maps'))
+            np.save(os.path.join(chunk_dir, 'volume_maps', param_name + '.npy'), result_array, allow_pickle=False)
 
-            for map_name in map_names:
-                map_paths = list(os.path.join(chunks_dir, sub_dir, 'volume_maps', map_name + '.nii.gz')
-                                 for sub_dir in sub_dirs)
-                mask_paths = list(os.path.join(chunks_dir, sub_dir, '__mask.nii.gz') for sub_dir in sub_dirs)
+    @staticmethod
+    def _write_sample_results(total_nmr_voxels, results, voxel_indices, output_path):
+        """Write the sample results to file.
 
-                join_parameter_maps(os.path.join(output_path, 'volume_maps'), map_paths, mask_paths, map_name)
+        This will write to files per sampled parameter. The first is a numpy array written to file, the second
+        is a python pickled dictionary with the datatype and shape of the written numpy array.
 
-    def _write_maps(self, other_output, mask, problem_data, output_path):
-        volume_maps_dir = os.path.join(output_path, 'volume_maps')
-        volume_maps = restore_volumes(other_output, mask)
-        Nifti.write_volume_maps(volume_maps, volume_maps_dir, problem_data.volume_header)
+        If the given sample files do not exists, it will create one with enough storage to hold all the samples
+        for the given total_nmr_voxels. On storing it should also be given a list of voxel indices with the indices
+        of the voxels that are being stored.
 
+        Args:
+            total_nmr_voxels (int): the total number of voxels to save samples for
+            results (dict): the samples to write
+            voxel_indices (ndarray or list of int): the list of the indices to where to save the results to
+            output_path (str): the path to write the samples in
+        """
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
 
-def write_sample_results(total_nmr_voxels, results, voxel_indices, output_path):
-    """Write the sample results to file.
-
-    This will write to files per sampled parameter. The first is a numpy array written to file, the second
-    is a python pickled dictionary with the datatype and shape of the written numpy array.
-
-    If the given sample files do not exists, it will create one with enough storage to hold all the samples
-    for the given total_nmr_voxels. On storing it should also be given a list of voxel indices with the indices
-    of the voxels that are being stored.
-
-    Args:
-        total_nmr_voxels (int): the total number of voxels to save samples for
-        results (dict): the samples to write
-        voxel_indices (ndarray or list of int): the list of the indices to where to save the results to
-        output_path (str): the path to write the samples in
-    """
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
-
-    for map_name, samples in results.items():
-        total_sample_shape = (total_nmr_voxels, samples.shape[1])
-
-        samples_path = os.path.join(output_path, map_name + '_test.samples')
-        mode = 'r+'
-        if not os.path.isfile(samples_path):
+        for map_name, samples in results.items():
+            samples_path = os.path.join(output_path, map_name + '.samples.npy')
             mode = 'w+'
-
-        saved = np.memmap(samples_path, dtype=samples.dtype, mode=mode, shape=total_sample_shape)
-        saved[voxel_indices, :] = samples[:]
-        del saved
-
-        settings_path = os.path.join(output_path, map_name + '_test.samples.settings')
-        if not os.path.exists(settings_path):
-            with open(settings_path, 'wb') as f:
-                settings = {'dtype': samples.dtype, 'shape': total_sample_shape}
-                pickle.dump(settings, f, protocol=pickle.HIGHEST_PROTOCOL)
+            if os.path.isfile(samples_path):
+                mode = 'r+'
+            saved = open_memmap(samples_path, mode=mode, dtype=samples.dtype, shape=(total_nmr_voxels, samples.shape[1]))
+            saved[voxel_indices, :] = samples
 
 
-def memory_load_samples(data_folder):
+def load_samples(data_folder, mode='c'):
     """Load sampled results as a dictionary of numpy memmap.
 
     Args:
         data_folder (str): the folder from which to load the samples
+        mode (str): the mode in which to open the memory mapped sample files (see numpy mode parameter)
 
     Returns:
         dict: the memory loaded samples per sampled parameter.
     """
     data_dict = {}
-    for fname in glob.glob(os.path.join(data_folder, '*.samples')):
-        if os.path.isfile(fname + '.settings'):
-            with open(fname + '.settings', 'rb') as f:
-                settings = pickle.load(f)
-                samples = np.memmap(fname, dtype=settings['dtype'], mode='r', shape=settings['shape'])
-
-                map_name = os.path.splitext(os.path.basename(fname))[0]
-                data_dict.update({map_name: samples})
+    for fname in glob.glob(os.path.join(data_folder, '*.samples.npy')):
+        samples = open_memmap(fname, mode=mode)
+        map_name = os.path.basename(fname)[0:-len('.samples.npy')]
+        data_dict.update({map_name: samples})
     return data_dict
-
-
-def join_parameter_maps(output_dir, maps, masks, map_name):
-    """Join the chunks of a single parameter over all chunk dirs.
-
-    This uses the given masks to determine where to place which voxels.
-
-    Args:
-        output_dir (str): where to place the concatenated output
-        maps (list of str): the list of map filenames we want to concatenate.
-            Should have same length as masks.
-        masks (list of str): the list of masks indicating the voxels present in the map.
-            Should have same length as maps.
-        map_name (str): the name of the output map
-
-    Returns:
-        np.array: the values of the concatenated map in a large array
-    """
-    results = None
-    mask_so_far = None
-    volume_header = None
-
-    for map_fname, mask_fname in zip(maps, masks):
-        sub_results = nib.load(map_fname).get_data()
-        mask_nib = nib.load(mask_fname)
-        mask = mask_nib.get_data().astype(np.bool)
-
-        if volume_header is None:
-            volume_header = mask_nib.get_header()
-
-        if results is None:
-            results = sub_results
-            mask_so_far = mask
-        else:
-            mask_so_far += mask
-            sub_results = apply_mask(sub_results, mask_so_far)
-            results += sub_results
-
-    Nifti.write_volume_maps({map_name: results}, output_dir, volume_header)
-    return create_roi(results, mask_so_far)
 
 
 def get_processing_strategy(processing_type, model_names=None):

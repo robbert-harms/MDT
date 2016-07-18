@@ -17,7 +17,7 @@ from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.utils import create_roi, \
     model_output_exists, get_cl_devices, get_model_config, \
     apply_model_protocol_options, get_processing_strategy, per_model_logging_context, SamplingProcessingWorker, \
-    memory_load_samples, recursive_merge_dict, get_noise_std_value, is_scalar
+    load_samples, recursive_merge_dict, get_noise_std_value, is_scalar
 from mdt.exceptions import InsufficientProtocolError
 from mot.cl_routines.sampling.metropolis_hastings import MetropolisHastings
 from mot.configuration import config_context
@@ -208,7 +208,7 @@ class SampleSingleModel(object):
                 if model_output_exists(self._model, self._output_path + '/volume_maps/',
                                        append_model_name_to_path=False):
                     self._logger.info('Not recalculating {} model'.format(self._model.name))
-                    return memory_load_samples(self._output_path)
+                    return load_samples(self._output_path)
 
             if not os.path.isdir(self._output_path):
                 os.makedirs(self._output_path)
