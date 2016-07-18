@@ -1435,7 +1435,7 @@ class FittingProcessingWorker(ModelProcessingWorker):
         for param_name, result_array in results.items():
             if not os.path.exists(chunk_dir):
                 os.makedirs(chunk_dir)
-            np.save(os.path.join(chunk_dir, param_name + '.npy'), result_array, allow_pickle=False)
+            np.save(os.path.join(chunk_dir, param_name + '.npy'), result_array)
 
 
 class SamplingProcessingWorker(ModelProcessingWorker):
@@ -1470,7 +1470,7 @@ class SamplingProcessingWorker(ModelProcessingWorker):
         for param_name, result_array in results.items():
             if not os.path.exists(os.path.join(chunk_dir, 'volume_maps')):
                 os.makedirs(os.path.join(chunk_dir, 'volume_maps'))
-            np.save(os.path.join(chunk_dir, 'volume_maps', param_name + '.npy'), result_array, allow_pickle=False)
+            np.save(os.path.join(chunk_dir, 'volume_maps', param_name + '.npy'), result_array)
 
     @staticmethod
     def _write_sample_results(total_nmr_voxels, results, voxel_indices, output_path):
