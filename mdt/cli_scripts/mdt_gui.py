@@ -5,6 +5,8 @@ import os
 import textwrap
 from argcomplete.completers import FilesCompleter
 from mdt.shell_utils import BasicShellApplication, get_citation_message
+from mdt.gui.qt_main import start_gui
+import mdt
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"
@@ -15,15 +17,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class GUI(BasicShellApplication):
 
     def __init__(self):
-        """
-        Normally we would load here the user settings. This can not be
-        done however since it would load the MOT utils before the GUI is launched. This will give OpenCL errors
-        ("RuntimeError: CommandQueue failed: out of host memory") when creating the _logging_update_queue.
-
-        #TODO fix this when QT is used
-        Hence we do not use:
-            mdt.init_user_settings(pass_if_exists=True)
-        """
+        mdt.init_user_settings(pass_if_exists=True)
 
     def _get_arg_parser(self):
         description = textwrap.dedent("""
@@ -35,11 +29,8 @@ class GUI(BasicShellApplication):
         parser.add_argument('-d', '--dir', metavar='dir', type=str, help='the base directory for the file choosers',
                             default=None).completer = FilesCompleter()
 
-        parser.add_argument('-tk', dest='tk', action='store_true', help="Launch the TK gui (default)")
-        parser.add_argument('-qt', dest='qt', action='store_true', help="Launch the QT gui")
-
-        parser.add_argument('-m', '--view_maps', dest='maps', action='store_true', help="Directly open the tab "
-                                                                                   "for viewing maps")
+        parser.add_argument('-m', '--view_maps', dest='maps', action='store_true',
+                            help="Directly open the tab for viewing maps")
 
         return parser
 
@@ -53,13 +44,7 @@ class GUI(BasicShellApplication):
         if args.maps:
             action = 'view_maps'
 
-        if args.qt:
-            from mdt.gui.qt_main import start_gui
-            start_gui(cwd, action)
-        else:
-            from mdt.gui.tkgui_main import start_single_model_gui
-            start_single_model_gui(cwd, action)
-
+        start_gui(cwd, action)
 
 if __name__ == '__main__':
     GUI().start()
