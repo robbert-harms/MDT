@@ -132,7 +132,6 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
     """
     import mdt.utils
     from mdt.model_fitting import ModelFit
-    import six
 
     if not utils.check_user_components():
         raise RuntimeError('Your components folder is not up to date. Please run the script mdt-init-user-settings.')
