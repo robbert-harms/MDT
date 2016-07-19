@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_AboutDialog(object):
     def setupUi(self, AboutDialog):
         AboutDialog.setObjectName("AboutDialog")
-        AboutDialog.resize(645, 448)
+        AboutDialog.resize(594, 379)
         self.verticalLayout = QtWidgets.QVBoxLayout(AboutDialog)
         self.verticalLayout.setContentsMargins(6, 6, 6, 6)
         self.verticalLayout.setSpacing(3)
@@ -35,7 +35,7 @@ class Ui_AboutDialog(object):
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.label = QtWidgets.QLabel(AboutDialog)
         font = QtGui.QFont()
-        font.setPointSize(16)
+        font.setPointSize(14)
         font.setBold(True)
         font.setWeight(75)
         self.label.setFont(font)
@@ -43,7 +43,7 @@ class Ui_AboutDialog(object):
         self.verticalLayout_3.addWidget(self.label)
         self.label_3 = QtWidgets.QLabel(AboutDialog)
         font = QtGui.QFont()
-        font.setPointSize(14)
+        font.setPointSize(12)
         font.setItalic(True)
         self.label_3.setFont(font)
         self.label_3.setObjectName("label_3")
@@ -52,6 +52,9 @@ class Ui_AboutDialog(object):
         self.contentBoxLayout.setContentsMargins(0, 20, -1, -1)
         self.contentBoxLayout.setObjectName("contentBoxLayout")
         self.contentLabel = QtWidgets.QLabel(AboutDialog)
+        font = QtGui.QFont()
+        font.setPointSize(11)
+        self.contentLabel.setFont(font)
         self.contentLabel.setTextFormat(QtCore.Qt.RichText)
         self.contentLabel.setWordWrap(True)
         self.contentLabel.setObjectName("contentLabel")
@@ -82,13 +85,13 @@ class Ui_AboutDialog(object):
         self.contentLabel.setText(_translate("AboutDialog", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
-"</style></head><body style=\" font-family:\'Droid Sans\'; font-size:10pt; font-weight:400; font-style:normal;\">\n"
-"<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Noto Sans\'; font-size:13pt;\">Version: {version}</span></p>\n"
-"<p style=\" margin-top:20px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Noto Sans\'; font-size:13pt;\">The Maastricht Diffusion Toolbox is a model recovery toolbox primarily meant for diffusion MRI analysis</span></p>\n"
-"<p style=\" margin-top:20px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Noto Sans\'; font-size:13pt;\">Software development by Robbert Harms, under the (Phd) supervision of Alard Roebroeck, at Maastricht University.</span></p>\n"
-"<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Noto Sans\'; font-size:13pt;\">Contributors:</span></p>\n"
-"<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\"><li style=\" font-family:\'Noto Sans\'; font-size:13pt;\" style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Robbert Harms</li>\n"
-"<li style=\" font-family:\'Noto Sans\'; font-size:13pt;\" style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Alard Roebroeck</li>\n"
-"<li style=\" font-family:\'Noto Sans\'; font-size:13pt;\" style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Francisco Fritz</li></ul></body></html>"))
+"</style></head><body style=\" font-family:\'Droid Sans\'; font-size:9pt; font-weight:400; font-style:normal;\">\n"
+"<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:11pt;\">Version: {version}</span></p>\n"
+"<p style=\" margin-top:20px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:11pt;\">The Maastricht Diffusion Toolbox is a model recovery toolbox primarily meant for diffusion MRI analysis.</span></p>\n"
+"<p style=\" margin-top:20px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:11pt;\">Software development by Robbert Harms, under the (Phd) supervision of Alard Roebroeck, at Maastricht University.</span></p>\n"
+"<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:11pt;\">Contributors:</span></p>\n"
+"<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\"><li style=\" font-size:11pt;\" style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Robbert Harms</li>\n"
+"<li style=\" font-size:11pt;\" style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Alard Roebroeck</li>\n"
+"<li style=\" font-size:11pt;\" style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Francisco Fritz</li></ul></body></html>"))
 
 from . import main_gui_rc

@@ -4,8 +4,9 @@ import six
 
 import mdt
 from mdt.components_loader import ComponentConfig, ComponentBuilder, bind_function
+from mdt.model_protocol_problem import NamedProtocolProblem
 from mdt.models.base import DMRIOptimizable
-from mdt.utils import simple_parameter_init, condense_protocol_problems
+from mdt.utils import simple_parameter_init
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-04-24"
@@ -127,7 +128,10 @@ class SimpleCascadeModel(DMRICascadeModelInterface):
         return True
 
     def get_protocol_problems(self, protocol=None):
-        return condense_protocol_problems([model.get_protocol_problems(protocol) for model in self._model_list])
+        problems = []
+        for model in self._model_list:
+            problems.extend(map(lambda p: NamedProtocolProblem(p, model.name), model.get_protocol_problems(protocol)))
+        return problems
 
     def get_required_protocol_names(self):
         protocol_names = []
