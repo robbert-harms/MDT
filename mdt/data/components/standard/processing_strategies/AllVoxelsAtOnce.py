@@ -22,4 +22,5 @@ class AllVoxelsAtOnce(ModelChunksProcessingStrategy):
             return strategy.run(model, problem_data, output_path, recalculate, worker)
         else:
             self._logger.info('Processing all voxels at once')
-            return worker.process(model, problem_data, problem_data.mask, output_path, output_path)
+            worker.process(model, problem_data, problem_data.mask, output_path + '/' + self.tmp_results_subdir)
+            return worker.combine(model, problem_data, output_path + '/' + self.tmp_results_subdir, output_path)
