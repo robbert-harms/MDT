@@ -196,42 +196,6 @@ class PathJoiner(object):
         return os.path.abspath(os.path.join(self._path, *args))
 
 
-def condense_protocol_problems(protocol_problems_list):
-    """Condenses the protocol problems list by combining similar problems objects.
-
-    This uses the function 'merge' from the protocol problems to merge similar items into one.
-
-    Args:
-        protocol_problems_list (list of ModelProtocolProblem): the list with the problem objects.
-
-    Returns:
-        list of ModelProtocolProblem: A condensed list of the problems
-    """
-    result_list = []
-    protocol_problems_list = list(protocol_problems_list)
-    has_merged = False
-
-    for i, mpp in enumerate(protocol_problems_list):
-        merged_this = False
-
-        if mpp is not None and mpp:
-            for j in range(i + 1, len(protocol_problems_list)):
-                for mpp_item in flatten(mpp):
-                    if mpp_item.can_merge(protocol_problems_list[j]):
-                        result_list.append(mpp_item.merge(protocol_problems_list[j]))
-                        protocol_problems_list[j] = None
-                        has_merged = True
-                        merged_this = True
-                        break
-
-            if not merged_this:
-                result_list.append(mpp)
-
-    if has_merged:
-        return condense_protocol_problems(result_list)
-    return list(flatten(result_list))
-
-
 def split_dataset(dataset, split_dimension, split_index):
     """Split the given dataset along the given dimension on the given index.
 

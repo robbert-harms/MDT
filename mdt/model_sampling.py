@@ -194,7 +194,7 @@ class SampleSingleModel(object):
 
         if not model.is_protocol_sufficient(problem_data.protocol):
             raise InsufficientProtocolError(
-                'The given protocol is insufficient for this model. '
+                'The provided protocol is insufficient for this model. '
                 'The reported errors where: {}'.format(model.get_protocol_problems(problem_data.protocol)))
 
     def run(self):
