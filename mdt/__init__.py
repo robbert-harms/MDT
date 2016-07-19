@@ -88,7 +88,7 @@ def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalcul
 def fit_model(model, problem_data, output_folder, optimizer=None,
               recalculate=False, only_recalculate_last=False, model_protocol_options=None,
               use_model_protocol_options=True, cascade_subdir=False,
-              cl_device_ind=None, double_precision=False, gradient_deviations=None, noise_std='auto'):
+              cl_device_ind=None, double_precision=False, noise_std='auto'):
     """Run the optimizer on the given model.
 
     Args:
@@ -117,7 +117,6 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
         cl_device_ind (int or list): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices(). This can also be a list of device indices.
         double_precision (boolean): if we would like to do the calculations in double precision
-        gradient_deviations (str or ndarray): set of gradient deviations to use. In HCP WUMINN format.
         noise_std (None, double, ndarray, or 'auto'): the noise level standard deviation.
                 The value can be either:
                     None: set to 1
@@ -135,10 +134,6 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
     from mdt.model_fitting import ModelFit
     import six
 
-    if gradient_deviations:
-        if isinstance(gradient_deviations, six.string_types):
-            gradient_deviations = load_nifti(gradient_deviations).get_data()
-
     if not utils.check_user_components():
         raise RuntimeError('Your components folder is not up to date. Please run the script mdt-init-user-settings.')
 
@@ -147,7 +142,6 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
                          use_model_protocol_options=use_model_protocol_options,
                          cascade_subdir=cascade_subdir,
                          cl_device_ind=cl_device_ind, double_precision=double_precision,
-                         gradient_deviations=gradient_deviations,
                          noise_std=noise_std)
 
     return model_fit.run()
@@ -156,7 +150,7 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
 def sample_model(model, problem_data, output_folder, sampler=None, recalculate=False,
                  model_protocol_options=None, use_model_protocol_options=True,
                  cl_device_ind=None, double_precision=False,
-                 gradient_deviations=None, noise_std='auto', initialize=True, initialize_using=None):
+                 noise_std='auto', initialize=True, initialize_using=None):
     """Sample a single model. This does not accept cascade models, only single models.
 
     Args:
@@ -174,14 +168,13 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
         cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices().
         double_precision (boolean): if we would like to do the calculations in double precision
-        gradient_deviations (str or ndarray): set of gradient deviations to use. In HCP WUMINN format.
-                noise_std (None, double, ndarray or 'auto'): the noise level standard deviation.
-                The value can be either:
-                    None: set to 1
-                    double: use a single value for all voxels
-                    ndarray: use a value per voxel
-                    string: a filename we will try to parse as a noise std
-                    'auto': tries to estimate the noise std from the data
+        noise_std (None, double, ndarray or 'auto'): the noise level standard deviation.
+            The value can be either:
+                None: set to 1
+                double: use a single value for all voxels
+                ndarray: use a value per voxel
+                string: a filename we will try to parse as a noise std
+                'auto': tries to estimate the noise std from the data
         initialize (boolean): If we want to initialize the sampler with optimization output.
             This assumes that the optimization results are in the folder:
                 <output_folder>/<model_name>/
@@ -197,10 +190,6 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
     from mdt.models.cascade import DMRICascadeModelInterface
     from mdt.model_sampling import ModelSampling
 
-    if gradient_deviations:
-        if isinstance(gradient_deviations, six.string_types):
-            gradient_deviations = load_nifti(gradient_deviations).get_data()
-
     if not utils.check_user_components():
         raise RuntimeError('Your components folder is not up to date. Please run the script mdt-init-user-settings.')
 
@@ -209,7 +198,7 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
                              double_precision=double_precision,
                              model_protocol_options=model_protocol_options,
                              use_model_protocol_options=use_model_protocol_options,
-                             gradient_deviations=gradient_deviations, noise_std=noise_std, initialize=initialize,
+                             noise_std=noise_std, initialize=initialize,
                              initialize_using=initialize_using)
 
     return sampling.run()
@@ -333,7 +322,7 @@ def get_device_ind(device_type='FIRST_GPU'):
     return indices
 
 
-def load_problem_data(volume_info, protocol, mask, static_maps=None, dtype=np.float32):
+def load_problem_data(volume_info, protocol, mask, static_maps=None, gradient_deviations=None, dtype=np.float32):
     """Load and create the problem data object that can be given to a model
 
     Args:
@@ -344,13 +333,16 @@ def load_problem_data(volume_info, protocol, mask, static_maps=None, dtype=np.fl
         static_maps (Dict[str, val]): the dictionary with per static map the value to use.
             The value can either be an 3d or 4d ndarray, a single number or a string. We will convert all to the
             right format.
+        gradient_deviations (str or ndarray): set of gradient deviations to use. In HCP WUMINN format. Set to None to
+            disable
         dtype (dtype) the datatype in which to load the signal volume.
 
     Returns:
         The Problem data, in the ProblemData container object.
     """
     from mdt.utils import load_problem_data
-    return load_problem_data(volume_info, protocol, mask, static_maps=static_maps, dtype=dtype)
+    return load_problem_data(volume_info, protocol, mask, static_maps=static_maps,
+                             gradient_deviations=gradient_deviations, dtype=dtype)
 
 
 def load_protocol_bval_bvec(bvec=None, bval=None, bval_scale='auto'):

@@ -34,8 +34,7 @@ class ModelSampling(object):
 
     def __init__(self, model, problem_data, output_folder,
                  sampler=None, recalculate=False, cl_device_ind=None, double_precision=True,
-                 model_protocol_options=None, use_model_protocol_options=True,
-                 gradient_deviations=None, noise_std='auto',
+                 model_protocol_options=None, use_model_protocol_options=True, noise_std='auto',
                  initialize=True, initialize_using=None):
         """Sample a single model. This does not accept cascade models, only single models.
 
@@ -56,7 +55,6 @@ class ModelSampling(object):
             noise_std (double or 'auto'): the noise level standard deviation. This is useful for model comparisons.
                     By default this is None and we set it to 1. If set to auto we try to estimate it using multiple
                     noise std calculators.
-            gradient_deviations (str or ndarray): set of gradient deviations to use. In HCP WUMINN format.
             noise_std (double or 'auto'): the noise level standard deviation. This is useful for model comparisons.
                 By default this is None and we set it to 1. If set to auto we try to estimate it using multiple
                 noise std calculators.
@@ -98,10 +96,6 @@ class ModelSampling(object):
 
         if self._cl_device_indices is not None and not isinstance(self._cl_device_indices, collections.Iterable):
             self._cl_device_indices = [self._cl_device_indices]
-
-        if gradient_deviations is not None:
-            self._logger.info('Using given gradient deviations.')
-            model.set_gradient_deviations(gradient_deviations)
 
         if not model.is_protocol_sufficient(self._problem_data.protocol):
             raise InsufficientProtocolError(

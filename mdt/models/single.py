@@ -35,22 +35,18 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
         to check if the protocol is correct for the model we try to fit.
 
         Attributes:
-            white_list (list): The list of names of maps that must be smoothed. Set to None to ignore, set to [] to
-                filter no maps.
-            black_list (list): The list of names of maps that must not be smoothed. Set to None to ignore, set to [] to
-                allow all maps.
+            smooth_white_list (list): The list of names of maps that must be smoothed. Set to None to ignore,
+                set to [] to filter no maps.
+            smooth_black_list (list): The list of names of maps that must not be smoothed. Set to None to ignore,
+                set to [] to allow all maps.
             required_nmr_shells (int): Define the minimum number of unique shells necessary for this model.
                 The default is false, which means that we don't check for this.
-            grad_dev (ndarray): contains the effects of gradient nonlinearities on the bvals and bvecs for each voxel.
-                This should be a 2d matrix with per voxel 9 values that constitute the gradient deviation in
-                Fortran (column-major) order. This data is used as defined by the HCP WUMINN study.
         """
         super(DMRISingleModel, self).__init__(model_name, model_tree, evaluation_model, signal_noise_model,
                                               problem_data=problem_data)
         self.smooth_white_list = None
         self.smooth_black_list = None
         self.required_nmr_shells = False
-        self.gradient_deviations = None
         self._logger = logging.getLogger(__name__)
 
     @property
@@ -74,31 +70,14 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
         self.smooth_white_list = white_list
         self.smooth_black_list = black_list
 
-    def set_gradient_deviations(self, grad_dev):
-        """Set the gradient deviations.
-
-        Args:
-            grad_dev (ndarray): the gradient deviations containing per voxel 9 values that constitute the gradient
-                non-linearities. The matrix can either be a 4d matrix or a 2d matrix.
-
-                If it is a 4d matrix the first 3 dimensions are supposed to be the voxel index and the 4th
-                should contain the grad dev data.
-
-                If it is a 2 dimensional matrix, the first dimension is the voxel index and the second should contain
-                the gradient deviation data. In this case the nmr of voxels should coincide with the number of voxels
-                in the ROI of the DWI.
-        """
-        self.gradient_deviations = grad_dev
-        return self
-
     def get_problems_var_data(self):
         var_data_dict = super(DMRISingleModel, self).get_problems_var_data()
 
-        if self.gradient_deviations is not None:
-            if len(self.gradient_deviations.shape) > 2:
-                grad_dev = create_roi(self.gradient_deviations, self._problem_data.mask)
+        if self._problem_data.gradient_deviations is not None:
+            if len(self._problem_data.gradient_deviations.shape) > 2:
+                grad_dev = create_roi(self._problem_data.gradient_deviations, self._problem_data.mask)
             else:
-                grad_dev = np.copy(self.gradient_deviations)
+                grad_dev = np.copy(self._problem_data.gradient_deviations)
 
             self._logger.info('Using the gradient deviations in the model optimization.')
 
@@ -224,7 +203,8 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
             '''
 
     def _can_use_gradient_deviations(self):
-        return self.gradient_deviations is not None and 'g' in list(self.get_problems_protocol_data().keys())
+        return self._problem_data.gradient_deviations is not None \
+               and 'g' in list(self.get_problems_protocol_data().keys())
 
     def _add_finalizing_result_maps(self, results_dict):
         log_likelihood_calc = LogLikelihoodCalculator()

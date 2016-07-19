@@ -2,13 +2,15 @@ import glob
 import logging
 import os
 import shutil
+
+import numpy as np
 from six import string_types
 from mdt import protocols
 from mdt.components_loader import BatchProfilesLoader
 from mdt.data_loaders.protocol import ProtocolLoader
 from mdt.masking import create_write_median_otsu_brain_mask
 from mdt.protocols import load_protocol
-from mdt.utils import split_image_path, AutoDict
+from mdt.utils import split_image_path, AutoDict, load_problem_data
 import nibabel as nib
 
 __author__ = 'Robbert Harms'
@@ -208,19 +210,16 @@ class SubjectInfo(object):
         """
         return ''
 
-    def get_protocol_loader(self):
-        """Get the protocol to use, or a filename of a protocol file to load.
+    def get_problem_data(self, dtype=np.float32):
+        """Get the DMRIProblemData for this subject.
+
+        This is the data we will use during model fitting.
+
+        Args:
+            dtype (numpy dtype): the datatype we will use for the problem data
 
         Returns:
-            ProtocolLoader: the protocol loader
-        """
-
-    def get_dwi_info(self):
-        """Get the diffusion weighted image information.
-
-        Returns:
-            (img, header) tuple or str: either a string with the filename of the image to load or the actual
-                image itself with a header in a tuple.
+            DMRIProblemData: the problem data to use during model fitting
         """
 
     def get_mask_filename(self):
@@ -229,14 +228,6 @@ class SubjectInfo(object):
         Returns:
             str: the filename of the mask to load
         """
-
-    def get_gradient_deviations(self):
-        """Get a possible gradient deviation image to use.
-
-        Returns:
-            ndarray: the gradient deviations to use, None if not applicable.
-        """
-        return None
 
     def get_noise_std(self):
         """Get the noise standard deviation to use during fitting.
@@ -285,26 +276,26 @@ class SimpleSubjectInfo(SubjectInfo):
     def output_dir(self):
         return self._output_dir
 
+    def get_problem_data(self, dtype=np.float32):
+        protocol = self._protocol_loader.get_protocol()
+        brain_mask_fname = self.get_mask_filename()
+        return load_problem_data(self._dwi_fname, protocol, brain_mask_fname, dtype=dtype,
+                                 gradient_deviations=self._get_gradient_deviations())
+
     def get_subject_id(self):
         return self.subject_id
-
-    def get_protocol_loader(self):
-        return self._protocol_loader
-
-    def get_dwi_info(self):
-        return self._dwi_fname
 
     def get_mask_filename(self):
         if not os.path.isfile(self._mask_fname):
             logger = logging.getLogger(__name__)
             logger.info('Creating a brain mask for subject {0}'.format(self.subject_id))
 
-            protocol = self.get_protocol_loader().get_protocol()
-            create_write_median_otsu_brain_mask(self.get_dwi_info(), protocol, self._mask_fname)
+            protocol = self._protocol_loader.get_protocol()
+            create_write_median_otsu_brain_mask(self._dwi_fname, protocol, self._mask_fname)
 
         return self._mask_fname
 
-    def get_gradient_deviations(self):
+    def _get_gradient_deviations(self):
         if self._gradient_deviations is not None:
             return nib.load(self._gradient_deviations).get_data()
         return None

@@ -81,9 +81,6 @@ class DMRICascadeModelInterface(DMRIOptimizable):
     def set_problem_data(self, problem_data):
         """Set the problem data in every model in the cascade."""
 
-    def set_gradient_deviations(self, grad_dev):
-        """Set the gradient deviations in every model."""
-
 
 class SimpleCascadeModel(DMRICascadeModelInterface):
 
@@ -151,10 +148,6 @@ class SimpleCascadeModel(DMRICascadeModelInterface):
     def set_problem_data(self, problem_data):
         for model in self._model_list:
             model.set_problem_data(problem_data)
-
-    def set_gradient_deviations(self, grad_dev):
-        for model in self._model_list:
-            model.set_gradient_deviations(grad_dev)
 
     def _set_model_options(self, model):
         """The final hook before we return a model from this class.

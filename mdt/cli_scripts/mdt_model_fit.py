@@ -109,10 +109,11 @@ class ModelFit(BasicShellApplication):
         mdt.fit_model(args.model,
                       mdt.load_problem_data(os.path.realpath(args.dwi),
                                             os.path.realpath(args.protocol),
-                                            os.path.realpath(args.mask)),
+                                            os.path.realpath(args.mask),
+                                            gradient_deviations=args.gradient_deviations),
                       output_folder, recalculate=args.recalculate,
                       only_recalculate_last=args.only_recalculate_last, cl_device_ind=args.cl_device_ind,
-                      double_precision=args.double_precision, gradient_deviations=args.gradient_deviations,
+                      double_precision=args.double_precision,
                       use_model_protocol_options=args.use_model_protocol_options,
                       noise_std=args.noise_std,
                       cascade_subdir=args.cascade_subdir)

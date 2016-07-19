@@ -5,7 +5,6 @@ import glob
 import logging
 import logging.config as logging_config
 import os
-import pickle
 import re
 import shutil
 import tempfile
@@ -51,7 +50,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class DMRIProblemData(AbstractProblemData):
 
-    def __init__(self, protocol_data_dict, dwi_volume, mask, volume_header, static_maps=None):
+    def __init__(self, protocol_data_dict, dwi_volume, mask, volume_header, static_maps=None, gradient_deviations=None):
         """This overrides the standard problem data to include a mask.
 
         Args:
@@ -60,7 +59,9 @@ class DMRIProblemData(AbstractProblemData):
             mask (ndarray): The mask used to create the observations list
             volume_header (nifti header): The header of the nifti file to use for writing the results.
             static_maps (Dict[str, ndarray]): the static maps used as values for the static map parameters
-
+            gradient_deviations (ndarray): the gradient deviations containing per voxel 9 values that constitute the
+                gradient non-linearities. Of the 4d matrix the first 3 dimensions are supposed to be the voxel
+                index and the 4th should contain the grad dev data.
         Attributes:
             dwi_volume (ndarray): The DWI volume
             volume_header (nifti header): The header of the nifti file to use for writing the results.
@@ -71,6 +72,7 @@ class DMRIProblemData(AbstractProblemData):
         self._protocol_data_dict = protocol_data_dict
         self._observation_list = None
         self._static_maps = static_maps or {}
+        self.gradient_deviations = gradient_deviations
 
     @property
     def protocol(self):
@@ -750,7 +752,7 @@ def recursive_merge_dict(dictionary, update_dict, in_place=False):
     return merge(dictionary, update_dict)
 
 
-def load_problem_data(volume_info, protocol, mask, static_maps=None, dtype=np.float32):
+def load_problem_data(volume_info, protocol, mask, static_maps=None, gradient_deviations=None, dtype=np.float32):
     """Load and create the problem data object that can be given to a model
 
     Args:
@@ -761,6 +763,8 @@ def load_problem_data(volume_info, protocol, mask, static_maps=None, dtype=np.fl
         static_maps (Dict[str, val]): the dictionary with per static map the value to use.
             The value can either be an 3d or 4d ndarray, a single number or a string. We will convert all to the
             right format.
+        gradient_deviations (str or ndarray): set of gradient deviations to use. In HCP WUMINN format. Set to None to
+            disable
         dtype (dtype) the datatype in which to load the signal volume.
 
     Returns:
@@ -774,10 +778,14 @@ def load_problem_data(volume_info, protocol, mask, static_maps=None, dtype=np.fl
     else:
         signal4d, img_header = volume_info
 
+    if isinstance(gradient_deviations, six.string_types):
+        gradient_deviations = load_volume(gradient_deviations, ensure_4d=True)[0]
+
     if static_maps is not None:
         static_maps = {key: autodetect_static_maps_loader(val).get_data(mask) for key, val in static_maps.items()}
 
-    return DMRIProblemData(protocol, signal4d, mask, img_header, static_maps=static_maps)
+    return DMRIProblemData(protocol, signal4d, mask, img_header, static_maps=static_maps,
+                           gradient_deviations=gradient_deviations)
 
 
 def load_volume(volume_fname, ensure_4d=True, dtype=np.float32):

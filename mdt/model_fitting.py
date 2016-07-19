@@ -15,7 +15,7 @@ from mdt.components_loader import get_model
 from mdt.configuration import config
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.protocols import write_protocol
-from mdt.utils import create_roi, load_problem_data, MetaOptimizerBuilder, get_cl_devices, \
+from mdt.utils import create_roi, MetaOptimizerBuilder, get_cl_devices, \
     get_model_config, apply_model_protocol_options, model_output_exists, split_image_path, get_processing_strategy, \
     FittingProcessingWorker, per_model_logging_context, recursive_merge_dict, \
     get_noise_std_value, is_scalar
@@ -157,7 +157,6 @@ class _BatchFitRunner(object):
         """
         output_dir = subject_info.output_dir
 
-        protocol = subject_info.get_protocol_loader().get_protocol()
         brain_mask_fname = subject_info.get_mask_filename()
 
         if self._output_exists(output_dir, brain_mask_fname):
@@ -166,9 +165,7 @@ class _BatchFitRunner(object):
 
         self._logger.info('Loading the data (DWI, mask and protocol) of subject {0}'.format(subject_info.subject_id))
         data_type = np.float64 if self._double_precision else np.float32
-        problem_data = load_problem_data(subject_info.get_dwi_info(), protocol, brain_mask_fname, dtype=data_type)
-
-        gradient_deviations = subject_info.get_gradient_deviations()
+        problem_data = subject_info.get_problem_data(dtype=data_type)
         noise_std = get_noise_std_value(subject_info.get_noise_std(), problem_data)
 
         with self._timer(subject_info.subject_id):
@@ -184,7 +181,6 @@ class _BatchFitRunner(object):
                                          cascade_subdir=self._cascade_subdir,
                                          cl_device_ind=self._cl_device_ind,
                                          double_precision=self._double_precision,
-                                         gradient_deviations=gradient_deviations,
                                          noise_std=noise_std)
                     model_fit.run()
                 except InsufficientProtocolError as ex:
@@ -210,7 +206,7 @@ class ModelFit(object):
     def __init__(self, model, problem_data, output_folder, optimizer=None,
                  recalculate=False, only_recalculate_last=False, model_protocol_options=None,
                  use_model_protocol_options=True, cascade_subdir=False,
-                 cl_device_ind=None, double_precision=False, gradient_deviations=None, noise_std=None):
+                 cl_device_ind=None, double_precision=False, noise_std=None):
         """Setup model fitting for the given input model and data.
 
         To actually fit the model call run().
@@ -241,7 +237,6 @@ class ModelFit(object):
             cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
                 get_cl_devices(). This can also be a list of device indices.
             double_precision (boolean): if we would like to do the calculations in double precision
-            gradient_deviations (ndarray): set of gradient deviations to use. In HCP WUMINN format.
             noise_std (None, double, ndarray, 'auto', 'auto-local' or 'auto-global'): the noise level standard deviation.
                 The value can be either:
                     None: set to 1
@@ -270,10 +265,6 @@ class ModelFit(object):
         self._logger = logging.getLogger(__name__)
         self._cl_device_indices = cl_device_ind
         self._model_names_list = []
-
-        if gradient_deviations is not None:
-            self._logger.info('Using given gradient deviations.')
-            model.set_gradient_deviations(gradient_deviations)
 
         if self._cl_device_indices is not None and not isinstance(self._cl_device_indices, collections.Iterable):
             self._cl_device_indices = [self._cl_device_indices]
