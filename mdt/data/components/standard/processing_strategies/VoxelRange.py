@@ -1,7 +1,6 @@
 import os
 import numpy as np
 import shutil
-from mdt.IO import Nifti
 from mdt.utils import ModelChunksProcessingStrategy, create_roi, restore_volumes
 
 __author__ = 'Robbert Harms'
@@ -33,16 +32,18 @@ class VoxelRange(ModelChunksProcessingStrategy):
         self.nmr_voxels = nmr_voxels
 
     def run(self, model, problem_data, output_path, recalculate, worker):
-        chunks_dir = os.path.join(output_path, 'chunks')
+        tmp_storage_dir = os.path.join(output_path, self.tmp_results_subdir)
         mask = problem_data.mask
         mask_list = create_roi(mask, mask)
 
         if self.honor_voxels_to_analyze and model.problems_to_analyze:
+            self._logger.info('The range of problems to analyze was already set, '
+                              'we will only fit the selected problems.')
             indices = model.problems_to_analyze
         else:
             indices = np.arange(0, np.count_nonzero(mask))
 
-        self._prepare_chunk_dir(chunks_dir, recalculate)
+        self._prepare_tmp_storage_dir(tmp_storage_dir, recalculate)
 
         for ind_start, ind_end in self._chunks_generator(len(indices)):
             chunk_indices = indices[ind_start:ind_end]
@@ -53,12 +54,11 @@ class VoxelRange(ModelChunksProcessingStrategy):
 
             if len(chunk_indices):
                 with self._selected_indices(model, chunk_indices):
-                    self._run_on_chunk(model, problem_data, output_path, chunks_dir, recalculate, worker,
-                                       ind_start, ind_end, chunk_mask)
+                    self._run_on_chunk(model, problem_data, tmp_storage_dir, worker, ind_start, ind_end, chunk_mask)
 
         self._logger.info('Computed all slices, now merging the results')
-        return_data = worker.combine(model, problem_data, output_path, chunks_dir)
-        shutil.rmtree(chunks_dir)
+        return_data = worker.combine(model, problem_data, tmp_storage_dir, output_path)
+        shutil.rmtree(tmp_storage_dir)
         return return_data
 
     def _chunks_generator(self, total_nmr_voxels):
@@ -75,19 +75,12 @@ class VoxelRange(ModelChunksProcessingStrategy):
             ind_end = min(total_nmr_voxels, ind_start + self.nmr_voxels)
             yield ind_start, ind_end
 
-    def _run_on_chunk(self, model, problem_data, output_path, slices_dir, recalculate, worker,
-                      ind_start, ind_end, tmp_mask):
-        slice_dir = os.path.join(slices_dir, '{start}_{end}'.format(start=ind_start, end=ind_end))
-
-        if recalculate and os.path.exists(slice_dir):
-            shutil.rmtree(slice_dir)
-
-        if worker.output_exists(model, problem_data, slice_dir):
+    def _run_on_chunk(self, model, problem_data, tmp_storage_dir, worker, ind_start, ind_end, tmp_mask):
+        if worker.output_exists(model, tmp_mask, tmp_storage_dir):
             self._logger.info('Skipping voxels {} to {}, they are already processed.'.format(ind_start, ind_end))
         else:
             self._logger.info('Computing voxels {0} up to {1} ({2} voxels in total, currently {3:.2%} is processed)'.
-                format(ind_start, ind_end, np.count_nonzero(problem_data.mask),
-                float(ind_start) / np.count_nonzero(problem_data.mask)))
+                              format(ind_start, ind_end, np.count_nonzero(problem_data.mask),
+                                     float(ind_start) / np.count_nonzero(problem_data.mask)))
 
-            worker.process(model, problem_data, tmp_mask, output_path, slice_dir)
-            Nifti.write_volume_maps({'__mask': tmp_mask}, slice_dir, problem_data.volume_header)
+            worker.process(model, problem_data, tmp_mask, tmp_storage_dir)

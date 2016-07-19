@@ -1269,20 +1269,25 @@ class ModelChunksProcessingStrategy(ModelProcessingStrategy):
         """
         super(ModelChunksProcessingStrategy, self).__init__()
         self.honor_voxels_to_analyze = honor_voxels_to_analyze
+        self.tmp_results_subdir = 'tmp_results'
 
-    def _prepare_chunk_dir(self, chunks_dir, recalculate):
-        """Prepare the directory for a new chunk.
+    @staticmethod
+    def _prepare_tmp_storage_dir(tmp_storage_dir, recalculate):
+        """Prepare the directory for the temporary storage.
+
+        If recalculate is set to True we will remove the storage dir if it exists. Else if False, we will create the
+        dir if it does not exist.
 
         Args:
-            chunks_dir (str): the full path to the chunks directory.
+            tmp_storage_dir (str): the full path to the chunks directory.
             recalculate (boolean): if true and the data exists, we throw everything away to start over.
         """
         if recalculate:
-            if os.path.exists(chunks_dir):
-                shutil.rmtree(chunks_dir)
+            if os.path.exists(tmp_storage_dir):
+                shutil.rmtree(tmp_storage_dir)
 
-        if not os.path.exists(chunks_dir):
-            os.makedirs(chunks_dir)
+        if not os.path.exists(tmp_storage_dir):
+            os.makedirs(tmp_storage_dir)
 
     @contextmanager
     def _selected_indices(self, model, chunk_indices):
@@ -1300,64 +1305,84 @@ class ModelChunksProcessingStrategy(ModelProcessingStrategy):
 
 class ModelProcessingWorker(object):
 
-    def process(self, model, problem_data, mask, output_dir, chunk_dir):
+    def process(self, model, problem_data, mask, tmp_storage_dir):
         """Process the indicated voxels in the way prescribed by this worker.
 
         Since the processing strategy can use all voxels to do the analysis in one go, this function
         should return all the output it can, i.e. the same kind of output as from the function 'combine()'.
 
-        This function is given both the output_dir as well as the chunk_dir. It should normally place the computed
-        items in the chunk dir, however it can place output in the output dir as well for final storage (so it does
-        not need to combine these afterwards).
-
         Args:
             model (DMRISingleModel): the model to process
             problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
             mask (ndarray): the mask that was used in this processing step
-            output_dir (str): the location of the final combined output items
-            chunk_dir (str): the location for the output files of this chunk
+            tmp_storage_dir (str): the location for the output files of this chunk
 
         Returns:
             the results for this single processing step
         """
 
-    def output_exists(self, model, problem_data, output_dir):
-        """Check if in the given directory all the output exists for the given model.
-
-        This function can be used to check if the output exists of the total computation, but also if
-        the output of a single chunk exists. The output_dir can therefore be pointing to a chunk dir or to the
-        global computations dir.
+    def output_exists(self, model, mask, tmp_storage_dir):
+        """Check if in the given directory the output exists for this model and mask.
 
         Args:
             model (DMRISingleModel): the model to process
-            problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
-            output_dir (str): the location of all the output files
+            mask (ndarray): The mask for which to check if those results are present
+            tmp_storage_dir (str): the location of all the output files
 
         Returns:
             boolean: true if the output exists, false otherwise
         """
 
-    def combine(self, model, problem_data, output_dir, chunks_dir):
+    def combine(self, model, problem_data, tmp_storage_dir, output_dir):
         """Combine all the calculated parts.
-
-        This function should combine all the results into one compilation.
-
-        This function normally expects there to be a file named '__mask.nii.gz' in every sub dir. This file contains
-        a mask that highlights the data calculated in that directory. We will use those chunk masks to combine
-        the data for the whole dataset.
 
         Args:
             model (DMRISingleModel): the model we processed
             problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
             output_dir (str): the location to store the final (combined) output files
-            chunks_dir (str): the location of the directory that contains all the directories with the chunks.
+            tmp_storage_dir (str): the location of the directory that contains all the directories with the chunks.
 
         Returns:
             the processing results for as much as this is applicable
         """
 
     @staticmethod
-    def _combine_volumes(output_dir, chunks_dir, maps_subdir=''):
+    def _write_volumes(results, mask, tmp_dir):
+        """Write the result arrays to the temporary storage
+
+        Args:
+            results (dict): the dictionary with the results to save
+            mask (ndarray): the mask we can use to find the indices of the results
+            tmp_dir (str): the directory to save the intermediate results to
+        """
+        if not os.path.exists(tmp_dir):
+            os.makedirs(tmp_dir)
+
+        for param_name, result_array in results.items():
+            storage_path = os.path.join(tmp_dir, param_name + '.npy')
+
+            map_4d_dim_len = 1
+            if len(result_array.shape) > 1:
+                map_4d_dim_len = result_array.shape[1]
+            else:
+                result_array = np.reshape(result_array, (-1, 1))
+
+            mode = 'w+'
+            if os.path.isfile(storage_path):
+                mode = 'r+'
+            tmp_matrix = open_memmap(storage_path, mode=mode, dtype=result_array.dtype,
+                                     shape=mask.shape + (map_4d_dim_len,))
+            tmp_matrix[mask] = result_array
+
+        mask_path = os.path.join(tmp_dir, '__mask.npy')
+        mode = 'w+'
+        if os.path.isfile(mask_path):
+            mode = 'r+'
+        tmp_mask = open_memmap(mask_path, mode=mode, dtype=np.bool, shape=mask.shape)
+        tmp_mask[:] = np.logical_or(tmp_mask, mask)
+
+    @staticmethod
+    def _combine_volumes(output_dir, chunks_dir, volume_header, maps_subdir=''):
         """Combine volumes found in subdirectories to a final volume.
 
         Args:
@@ -1369,39 +1394,13 @@ class ModelProcessingWorker(object):
         Returns:
             dict: the dictionary with the ROIs for every volume, by parameter name
         """
-        chunk_pjoin = PathJoiner(chunks_dir)
-        chunk_dirs = list(filter(lambda d: os.path.isdir(chunk_pjoin(d)), os.listdir(chunks_dir)))
+        map_names = list(map(lambda p: os.path.splitext(os.path.basename(p))[0],
+                             glob.glob(os.path.join(chunks_dir, maps_subdir, '*.npy'))))
+        map_names = list(filter(lambda d: '__mask' not in d, map_names))
 
-        if chunk_dirs:
-            map_names = list(map(lambda p: os.path.splitext(os.path.basename(p))[0],
-                                 glob.glob(chunk_pjoin(os.listdir(chunks_dir)[0], maps_subdir, '*.npy'))))
-
-            for chunk_dir in chunk_dirs:
-                mask = load_brain_mask(chunk_pjoin(chunk_dir, '__mask.nii.gz'))
-
-                for map_name in map_names:
-                    chunk_map_value = np.load(chunk_pjoin(chunk_dir, maps_subdir, map_name + '.npy'))
-
-                    map_4d_dim_len = 1
-                    if len(chunk_map_value.shape) > 1:
-                        map_4d_dim_len = chunk_map_value.shape[1]
-
-                    tmp_matrix_path = chunk_pjoin(map_name + '.npy')
-
-                    mode = 'r+'
-                    if not os.path.isfile(tmp_matrix_path):
-                        mode = 'w+'
-
-                    tmp_matrix = open_memmap(tmp_matrix_path, mode=mode, dtype=chunk_map_value.dtype,
-                                             shape=mask.shape + (map_4d_dim_len,))
-
-                    indices = np.ravel_multi_index(np.nonzero(mask)[:3], mask.shape, order='C')
-                    np.ravel(tmp_matrix)[indices] = chunk_map_value
-
-            for map_name in map_names:
-                data = np.load(chunk_pjoin(map_name + '.npy'))
-                Nifti.write_volume_maps({map_name: data}, os.path.join(output_dir, maps_subdir),
-                                        nib.load(chunk_pjoin(chunk_dirs[0], '__mask.nii.gz')).get_header())
+        for map_name in map_names:
+            data = np.load(os.path.join(chunks_dir, maps_subdir, map_name + '.npy'))
+            Nifti.write_volume_maps({map_name: data}, os.path.join(output_dir, maps_subdir), volume_header)
 
 
 class FittingProcessingWorker(ModelProcessingWorker):
@@ -1416,26 +1415,22 @@ class FittingProcessingWorker(ModelProcessingWorker):
         """
         self._optimizer = optimizer
 
-    def process(self, model, problem_data, mask, output_dir, chunk_dir):
+    def process(self, model, problem_data, mask, tmp_storage_dir):
         results, extra_output = self._optimizer.minimize(model, full_output=True)
         results.update(extra_output)
 
-        self._write_output(results, chunk_dir)
+        self._write_volumes(results, mask, tmp_storage_dir)
         return results
 
-    def output_exists(self, model, problem_data, output_dir):
-        return model_output_exists(model, output_dir, append_model_name_to_path=False)
+    def output_exists(self, model, mask, tmp_storage_dir):
+        mask_path = os.path.join(tmp_storage_dir, '__mask.npy')
+        return (model_output_exists(model, tmp_storage_dir, append_model_name_to_path=False)
+                and os.path.exists(mask_path)
+                and np.all(np.load(mask_path)[mask]))
 
-    def combine(self, model, problem_data, output_dir, chunks_dir):
-        self._combine_volumes(output_dir, chunks_dir)
+    def combine(self, model, problem_data, tmp_storage_dir, output_dir):
+        self._combine_volumes(output_dir, tmp_storage_dir, problem_data.volume_header)
         return create_roi(Nifti.read_volume_maps(output_dir), problem_data.mask)
-
-    def _write_output(self, results, chunk_dir):
-        """Write the result arrays to the given output folder"""
-        for param_name, result_array in results.items():
-            if not os.path.exists(chunk_dir):
-                os.makedirs(chunk_dir)
-            np.save(os.path.join(chunk_dir, param_name + '.npy'), result_array)
 
 
 class SamplingProcessingWorker(ModelProcessingWorker):
@@ -1450,30 +1445,31 @@ class SamplingProcessingWorker(ModelProcessingWorker):
         """
         self._sampler = sampler
 
-    def process(self, model, problem_data, mask, output_dir, chunk_dir):
+    def process(self, model, problem_data, mask, tmp_storage_dir):
         results, other_output = self._sampler.sample(model, full_output=True)
 
-        roi_indices = np.squeeze(create_roi(create_index_matrix(problem_data.mask), mask))
-        self._write_sample_results(np.count_nonzero(problem_data.mask), results, roi_indices, output_dir)
+        self._write_sample_results(results, problem_data.mask, mask, tmp_storage_dir)
+        self._write_volumes(other_output, mask, os.path.join(tmp_storage_dir, 'volume_maps'))
 
-        self._write_maps(other_output, chunk_dir)
-        return load_samples(chunk_dir)
+        return load_samples(tmp_storage_dir)
 
-    def output_exists(self, model, problem_data, output_dir):
-        return model_output_exists(model, os.path.join(output_dir, 'volume_maps'), append_model_name_to_path=False)
+    def output_exists(self, model, mask, tmp_storage_dir):
+        mask_path = os.path.join(tmp_storage_dir, 'volume_maps', '__mask.npy')
+        return (model_output_exists(model, os.path.join(tmp_storage_dir, 'volume_maps'),
+                                    append_model_name_to_path=False)
+                and os.path.exists(mask_path)
+                and np.all(np.load(mask_path)[mask]))
 
-    def combine(self, model, problem_data, output_dir, chunks_dir):
-        self._combine_volumes(output_dir, chunks_dir, maps_subdir='volume_maps')
+    def combine(self, model, problem_data, tmp_storage_dir, output_dir):
+        self._combine_volumes(output_dir, tmp_storage_dir, problem_data.volume_header, maps_subdir='volume_maps')
+
+        for samples in glob.glob(os.path.join(tmp_storage_dir, '*.samples.npy')):
+            shutil.move(samples, output_dir)
+
         return load_samples(output_dir)
 
-    def _write_maps(self, results, chunk_dir):
-        for param_name, result_array in results.items():
-            if not os.path.exists(os.path.join(chunk_dir, 'volume_maps')):
-                os.makedirs(os.path.join(chunk_dir, 'volume_maps'))
-            np.save(os.path.join(chunk_dir, 'volume_maps', param_name + '.npy'), result_array)
-
     @staticmethod
-    def _write_sample_results(total_nmr_voxels, results, voxel_indices, output_path):
+    def _write_sample_results(results, full_mask, current_mask, output_path):
         """Write the sample results to file.
 
         This will write to files per sampled parameter. The first is a numpy array written to file, the second
@@ -1484,11 +1480,14 @@ class SamplingProcessingWorker(ModelProcessingWorker):
         of the voxels that are being stored.
 
         Args:
-            total_nmr_voxels (int): the total number of voxels to save samples for
             results (dict): the samples to write
-            voxel_indices (ndarray or list of int): the list of the indices to where to save the results to
+            full_mask (ndarray): the complete mask for the entire brain
+            current_mask (ndarray): subset of the full mask with the voxels we currently analyze
             output_path (str): the path to write the samples in
         """
+        total_nmr_voxels = np.count_nonzero(full_mask)
+        voxel_indices = np.squeeze(create_roi(create_index_matrix(full_mask), current_mask))
+
         if not os.path.exists(output_path):
             os.makedirs(output_path)
 
@@ -1497,7 +1496,8 @@ class SamplingProcessingWorker(ModelProcessingWorker):
             mode = 'w+'
             if os.path.isfile(samples_path):
                 mode = 'r+'
-            saved = open_memmap(samples_path, mode=mode, dtype=samples.dtype, shape=(total_nmr_voxels, samples.shape[1]))
+            saved = open_memmap(samples_path, mode=mode, dtype=samples.dtype,
+                                shape=(total_nmr_voxels, samples.shape[1]))
             saved[voxel_indices, :] = samples
 
 
