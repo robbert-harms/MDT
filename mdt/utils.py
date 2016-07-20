@@ -27,7 +27,6 @@ from mdt.components_loader import get_model, ProcessingStrategiesLoader, NoiseST
 from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
 from mdt.data_loaders.noise_std import autodetect_noise_std_loader
 from mdt.data_loaders.protocol import autodetect_protocol_loader
-from mdt.data_loaders.static_maps import autodetect_static_maps_loader
 from mdt.exceptions import NoiseStdEstimationNotPossible
 from mdt.log_handlers import ModelOutputLogHandler
 from mot.base import AbstractProblemData
@@ -144,6 +143,24 @@ class DMRIProblemData(AbstractProblemData):
                 matrix containing the values for each problem instance or it can be a single value we will use
                 for all problem instances.
         """
+        if self._static_maps is not None:
+            return_items = {}
+
+            for key, val in self._static_maps.items():
+
+                loaded_val = None
+
+                if isinstance(val, six.string_types):
+                    loaded_val = create_roi(nib.load(val).get_data(), self.mask)
+                elif isinstance(val, np.ndarray):
+                    loaded_val = create_roi(val, self.mask)
+                elif is_scalar(val):
+                    loaded_val = val
+
+                return_items[key] = loaded_val
+
+            return return_items
+
         return self._static_maps
 
     @mask.setter
@@ -830,10 +847,6 @@ def load_problem_data(volume_info, protocol, mask, static_maps=None, gradient_de
 
     if isinstance(gradient_deviations, six.string_types):
         gradient_deviations = load_volume(gradient_deviations, ensure_4d=True)[0]
-
-    if static_maps is not None:
-        #todo make the roi creation part of the problem data object
-        static_maps = {key: autodetect_static_maps_loader(val).get_data(mask) for key, val in static_maps.items()}
 
     return DMRIProblemData(protocol, signal4d, mask, img_header, static_maps=static_maps, noise_std=noise_std,
                            gradient_deviations=gradient_deviations)
