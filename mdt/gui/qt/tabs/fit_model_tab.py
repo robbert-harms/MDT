@@ -46,6 +46,14 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
         self.modelSelection.addItems(list(sorted(mdt.get_models_list())))
         self.modelSelection.setCurrentText('BallStick (Cascade)')
 
+
+        self.selectedDWI.setText('/home/robbert/phd-data/dti_test/4Ddwi_b1000.nii')
+        self.selectedProtocol.setText('/home/robbert/phd-data/dti_test/4Ddwi_b1000.prtcl')
+        self.selectedMask.setText('/home/robbert/phd-data/dti_test/4Ddwi_b1000_mask_2_25.nii.gz')
+        self.selectedOutputFolder.setText('/home/robbert/phd-data/dti_test/output/4Ddwi_b1000_mask_2_25')
+        self.runButton.setDisabled(False)
+
+
     def _select_dwi(self):
         initial_dir = self._shared_state.base_dir
         if self.selectedDWI.text() != '':
@@ -132,10 +140,10 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
             model,
             mdt.load_problem_data(self.selectedDWI.text(),
                                   self.selectedProtocol.text(),
-                                  self.selectedMask.text()),
+                                  self.selectedMask.text(),
+                                  noise_std=self._optim_options.noise_std),
             self.selectedOutputFolder.text(),
             recalculate=True,
-            noise_std=self._optim_options.noise_std,
             double_precision=self._optim_options.double_precision,
             only_recalculate_last=not self._optim_options.recalculate_all,
             optimizer=self._optim_options.get_optimizer())
@@ -221,11 +229,15 @@ class OptimizationOptionsDialog(Ui_OptimizationOptionsDialog, QDialog):
     def write_config(self):
         """Write to the config the user selected options"""
         noise_std_value = self.noiseStd.text()
-        self._config.noise_std = noise_std_value
-        try:
-            self._config.noise_std = float(noise_std_value)
-        except ValueError:
-            pass
+        if noise_std_value == '':
+            self._config.noise_std = None
+        else:
+            self._config.noise_std = noise_std_value
+            try:
+                self._config.noise_std = float(noise_std_value)
+            except ValueError:
+                pass
+
         self._config.double_precision = self.doublePrecision.isChecked()
         self._config.recalculate_all = self.recalculateAll_True.isChecked()
         self._config.use_model_default_optimizer = self.defaultOptimizer_True.isChecked()
@@ -234,7 +246,8 @@ class OptimizationOptionsDialog(Ui_OptimizationOptionsDialog, QDialog):
 
     def _load_config(self):
         """Load the settings from the config into the GUI"""
-        self.noiseStd.setText(str(self._config.noise_std))
+        if self._config.noise_std is not None:
+            self.noiseStd.setText(str(self._config.noise_std))
         self.doublePrecision.setChecked(self._config.double_precision)
         self.recalculateAll_True.setChecked(self._config.recalculate_all)
         self.defaultOptimizer_False.setChecked(not self._config.use_model_default_optimizer)
@@ -262,7 +275,7 @@ class OptimizationOptionsDialog(Ui_OptimizationOptionsDialog, QDialog):
         except ValueError:
             pass
 
-        enabled = noise_std_value == 'auto' or noise_std_value_is_float or os.path.isfile(noise_std_value)
+        enabled = noise_std_value == '' or noise_std_value_is_float or os.path.isfile(noise_std_value)
 
         if self.defaultOptimizer_False.isChecked():
             try:
@@ -298,7 +311,7 @@ class OptimOptions(object):
         self.recalculate_all = False
         self.extra_optim_runs = mdt.configuration.config['optimization_settings']['general']['extra_optim_runs']
 
-        self.noise_std = 'auto'
+        self.noise_std = None
 
     def get_optimizer(self):
         if self.use_model_default_optimizer:

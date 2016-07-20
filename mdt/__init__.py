@@ -88,7 +88,7 @@ def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalcul
 def fit_model(model, problem_data, output_folder, optimizer=None,
               recalculate=False, only_recalculate_last=False, model_protocol_options=None,
               use_model_protocol_options=True, cascade_subdir=False,
-              cl_device_ind=None, double_precision=False, noise_std='auto'):
+              cl_device_ind=None, double_precision=False):
     """Run the optimizer on the given model.
 
     Args:
@@ -117,14 +117,6 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
         cl_device_ind (int or list): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices(). This can also be a list of device indices.
         double_precision (boolean): if we would like to do the calculations in double precision
-        noise_std (None, double, ndarray, or 'auto'): the noise level standard deviation.
-                The value can be either:
-                    None: set to 1
-                    double: use a single value for all voxels
-                    ndarray: use a value per voxel (this should not be a roi list, it should be an actual volume
-                        of the same size as the dataset)
-                    string: a filename we will try to parse as a noise std
-                    'auto': try to estimate the noise std
 
     Returns:
         the output of the optimization. If a cascade is given, only the results of the last model in the cascade is
@@ -140,16 +132,14 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
                          only_recalculate_last=only_recalculate_last, model_protocol_options=model_protocol_options,
                          use_model_protocol_options=use_model_protocol_options,
                          cascade_subdir=cascade_subdir,
-                         cl_device_ind=cl_device_ind, double_precision=double_precision,
-                         noise_std=noise_std)
+                         cl_device_ind=cl_device_ind, double_precision=double_precision)
 
     return model_fit.run()
 
 
 def sample_model(model, problem_data, output_folder, sampler=None, recalculate=False,
                  model_protocol_options=None, use_model_protocol_options=True,
-                 cl_device_ind=None, double_precision=False,
-                 noise_std='auto', initialize=True, initialize_using=None):
+                 cl_device_ind=None, double_precision=False, initialize=True, initialize_using=None):
     """Sample a single model. This does not accept cascade models, only single models.
 
     Args:
@@ -167,13 +157,6 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
         cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices().
         double_precision (boolean): if we would like to do the calculations in double precision
-        noise_std (None, double, ndarray or 'auto'): the noise level standard deviation.
-            The value can be either:
-                None: set to 1
-                double: use a single value for all voxels
-                ndarray: use a value per voxel
-                string: a filename we will try to parse as a noise std
-                'auto': tries to estimate the noise std from the data
         initialize (boolean): If we want to initialize the sampler with optimization output.
             This assumes that the optimization results are in the folder:
                 <output_folder>/<model_name>/
@@ -197,7 +180,7 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
                              double_precision=double_precision,
                              model_protocol_options=model_protocol_options,
                              use_model_protocol_options=use_model_protocol_options,
-                             noise_std=noise_std, initialize=initialize,
+                             initialize=initialize,
                              initialize_using=initialize_using)
 
     return sampling.run()
@@ -321,7 +304,8 @@ def get_device_ind(device_type='FIRST_GPU'):
     return indices
 
 
-def load_problem_data(volume_info, protocol, mask, static_maps=None, gradient_deviations=None, dtype=np.float32):
+def load_problem_data(volume_info, protocol, mask, static_maps=None, gradient_deviations=None,
+                      noise_std=None, dtype=np.float32):
     """Load and create the problem data object that can be given to a model
 
     Args:
@@ -334,6 +318,8 @@ def load_problem_data(volume_info, protocol, mask, static_maps=None, gradient_de
             right format.
         gradient_deviations (str or ndarray): set of gradient deviations to use. In HCP WUMINN format. Set to None to
             disable
+        noise_std (number or ndarray): either None for automatic detection,
+            or a scalar, or an 3d matrix with one value per voxel.
         dtype (dtype) the datatype in which to load the signal volume.
 
     Returns:
@@ -341,7 +327,7 @@ def load_problem_data(volume_info, protocol, mask, static_maps=None, gradient_de
     """
     from mdt.utils import load_problem_data
     return load_problem_data(volume_info, protocol, mask, static_maps=static_maps,
-                             gradient_deviations=gradient_deviations, dtype=dtype)
+                             gradient_deviations=gradient_deviations, noise_std=noise_std, dtype=dtype)
 
 
 def load_protocol_bval_bvec(bvec=None, bval=None, bval_scale='auto'):

@@ -17,8 +17,7 @@ from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.protocols import write_protocol
 from mdt.utils import create_roi, MetaOptimizerBuilder, get_cl_devices, \
     get_model_config, apply_model_protocol_options, model_output_exists, split_image_path, get_processing_strategy, \
-    FittingProcessingWorker, per_model_logging_context, recursive_merge_dict, \
-    get_noise_std_value, is_scalar
+    FittingProcessingWorker, per_model_logging_context, recursive_merge_dict
 from mdt.exceptions import InsufficientProtocolError
 from mot.load_balance_strategies import EvenDistribution
 import mot.configuration
@@ -166,7 +165,6 @@ class _BatchFitRunner(object):
         self._logger.info('Loading the data (DWI, mask and protocol) of subject {0}'.format(subject_info.subject_id))
         data_type = np.float64 if self._double_precision else np.float32
         problem_data = subject_info.get_problem_data(dtype=data_type)
-        noise_std = get_noise_std_value(subject_info.get_noise_std(), problem_data)
 
         with self._timer(subject_info.subject_id):
             for model in self._models_to_fit:
@@ -180,8 +178,7 @@ class _BatchFitRunner(object):
                                          model_protocol_options=self._model_protocol_options,
                                          cascade_subdir=self._cascade_subdir,
                                          cl_device_ind=self._cl_device_ind,
-                                         double_precision=self._double_precision,
-                                         noise_std=noise_std)
+                                         double_precision=self._double_precision)
                     model_fit.run()
                 except InsufficientProtocolError as ex:
                     self._logger.info('Could not fit model {0} on subject {1} '
@@ -206,7 +203,7 @@ class ModelFit(object):
     def __init__(self, model, problem_data, output_folder, optimizer=None,
                  recalculate=False, only_recalculate_last=False, model_protocol_options=None,
                  use_model_protocol_options=True, cascade_subdir=False,
-                 cl_device_ind=None, double_precision=False, noise_std=None):
+                 cl_device_ind=None, double_precision=False):
         """Setup model fitting for the given input model and data.
 
         To actually fit the model call run().
@@ -237,14 +234,6 @@ class ModelFit(object):
             cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
                 get_cl_devices(). This can also be a list of device indices.
             double_precision (boolean): if we would like to do the calculations in double precision
-            noise_std (None, double, ndarray, 'auto', 'auto-local' or 'auto-global'): the noise level standard deviation.
-                The value can be either:
-                    None: set to 1
-                    double: use a single value for all voxels
-                    ndarray: use a value per voxel (this should not be a roi list, it should be an actual volume
-                        of the same size as the dataset)
-                    string: a filename we will try to parse as a noise std
-                    'auto': try to estimate the noise std
         """
         if isinstance(model, string_types):
             model = get_model(model)
@@ -275,10 +264,6 @@ class ModelFit(object):
             all_devices = get_cl_devices()
             self._cl_envs = [all_devices[ind] for ind in self._cl_device_indices]
             self._load_balancer = EvenDistribution()
-
-        with mot.configuration.config_context(RuntimeConfigurationAction(cl_environments=self._cl_envs,
-                                                                         load_balancer=self._load_balancer)):
-            self._noise_std = get_noise_std_value(noise_std, self._problem_data)
 
         if not model.is_protocol_sufficient(self._problem_data.protocol):
             raise InsufficientProtocolError(
@@ -337,14 +322,6 @@ class ModelFit(object):
                 self._logger.info('Using MDT version {}'.format(__version__))
                 self._logger.info('Preparing for model {0}'.format(model.name))
                 self._logger.info('Current cascade: {0}'.format(model_names))
-
-                if is_scalar(self._noise_std):
-                    self._logger.info('Setting the noise standard deviation globally to {0}'.format(self._noise_std))
-                    model.evaluation_model.set_noise_level_std(self._noise_std, fix=True)
-                else:
-                    self._logger.info('Setting the noise standard deviation to a voxel-wise value.')
-                    model.evaluation_model.set_noise_level_std(
-                        create_roi(self._noise_std, self._problem_data.mask), fix=True)
 
                 optimizer = self._optimizer or MetaOptimizerBuilder(meta_optimizer_config).construct(model_names)
 

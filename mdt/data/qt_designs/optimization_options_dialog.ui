@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>797</width>
-    <height>335</height>
+    <width>843</width>
+    <height>337</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -81,7 +81,7 @@
         </font>
        </property>
        <property name="text">
-        <string>(Set either to 'auto', a single float or a path to a nifti file)</string>
+        <string>(Empty for auto detection, or set a scalar or a path to a nifti file)</string>
        </property>
       </widget>
      </item>
@@ -422,8 +422,8 @@
   </connection>
  </connections>
  <buttongroups>
-  <buttongroup name="floatPrecisionGroup"/>
-  <buttongroup name="recalculateAllGroup"/>
   <buttongroup name="defaultOptimizerGroup"/>
+  <buttongroup name="recalculateAllGroup"/>
+  <buttongroup name="floatPrecisionGroup"/>
  </buttongroups>
 </ui>

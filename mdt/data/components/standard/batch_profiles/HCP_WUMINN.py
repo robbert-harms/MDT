@@ -46,7 +46,7 @@ class HCP_WUMINN(SimpleBatchProfile):
             if os.path.isdir(pjoin()):
                 dwi_fname = list(glob.glob(pjoin('data.nii*')))[0]
 
-                noise_std = self._autoload_noise_std(subject_id, file_path=pjoin('noise_std')) or 'auto'
+                noise_std = self._autoload_noise_std(subject_id, file_path=pjoin('noise_std'))
 
                 bval_fname = pjoin('bvals')
                 if os.path.isfile(pjoin('data.bval')):

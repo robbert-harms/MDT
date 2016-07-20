@@ -17,7 +17,7 @@ from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.utils import create_roi, \
     model_output_exists, get_cl_devices, get_model_config, \
     apply_model_protocol_options, get_processing_strategy, per_model_logging_context, SamplingProcessingWorker, \
-    load_samples, recursive_merge_dict, get_noise_std_value, is_scalar
+    load_samples, recursive_merge_dict
 from mdt.exceptions import InsufficientProtocolError
 from mot.cl_routines.sampling.metropolis_hastings import MetropolisHastings
 from mot.configuration import config_context
@@ -34,7 +34,7 @@ class ModelSampling(object):
 
     def __init__(self, model, problem_data, output_folder,
                  sampler=None, recalculate=False, cl_device_ind=None, double_precision=True,
-                 model_protocol_options=None, use_model_protocol_options=True, noise_std='auto',
+                 model_protocol_options=None, use_model_protocol_options=True,
                  initialize=True, initialize_using=None):
         """Sample a single model. This does not accept cascade models, only single models.
 
@@ -52,12 +52,6 @@ class ModelSampling(object):
             cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
                 utils.get_cl_devices().
             double_precision (boolean): if we would like to do the calculations in double precision
-            noise_std (double or 'auto'): the noise level standard deviation. This is useful for model comparisons.
-                    By default this is None and we set it to 1. If set to auto we try to estimate it using multiple
-                    noise std calculators.
-            noise_std (double or 'auto'): the noise level standard deviation. This is useful for model comparisons.
-                By default this is None and we set it to 1. If set to auto we try to estimate it using multiple
-                noise std calculators.
             initialize (boolean): If we want to initialize the sampler with optimization output.
                 This assumes that the optimization results are in the folder:
                     <output_folder>/<model_name>/
@@ -87,7 +81,6 @@ class ModelSampling(object):
         self._use_model_protocol_options = use_model_protocol_options
         self._logger = logging.getLogger(__name__)
         self._cl_device_indices = cl_device_ind
-        self._noise_std = get_noise_std_value(noise_std, problem_data)
         self._initialize = initialize
         self._initialize_using = initialize_using
 
@@ -119,14 +112,6 @@ class ModelSampling(object):
             with per_model_logging_context(os.path.join(self._output_folder, self._model.name)):
                 self._logger.info('Using MDT version {}'.format(__version__))
                 self._logger.info('Preparing for model {0}'.format(self._model.name))
-
-                if is_scalar(self._noise_std):
-                    self._logger.info('Setting the noise standard deviation globally to {0}'.format(self._noise_std))
-                    self._model.evaluation_model.set_noise_level_std(self._noise_std, fix=True)
-                else:
-                    self._logger.info('Setting the noise standard deviation to a voxel-wise value.')
-                    self._model.evaluation_model.set_noise_level_std(
-                        create_roi(self._noise_std, self._problem_data.mask), fix=True)
 
                 if self._cl_device_indices is not None:
                     all_devices = get_cl_devices()

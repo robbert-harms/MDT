@@ -229,20 +229,11 @@ class SubjectInfo(object):
             str: the filename of the mask to load
         """
 
-    def get_noise_std(self):
-        """Get the noise standard deviation to use during fitting.
-
-        Returns:
-            The noise std to use. This can either be a value, None, or the string 'auto'. If auto we try to auto detect it.
-            If None it is set to 1.0
-        """
-        return 'auto'
-
 
 class SimpleSubjectInfo(SubjectInfo):
 
     def __init__(self, subject_id, dwi_fname, protocol_loader, mask_fname, output_dir, gradient_deviations=None,
-                 noise_std='auto'):
+                 noise_std=None):
         """This class contains all the information about found subjects during batch fitting.
 
         It is returned by the method get_subjects() from the class BatchProfile.
@@ -254,8 +245,8 @@ class SimpleSubjectInfo(SubjectInfo):
             mask_fname (str): the filename of the mask to load. If None a mask is auto generated.
             output_dir (str): the output directory
             gradient_deviations (str) if given, the path to the gradient deviations
-            noise_std (float, str): if given, either 'auto' for automatic noise detection or a float with the noise STD
-                to use during fitting.
+            noise_std (float, ndarray, str): either None for automatic noise detection or a float with the noise STD
+                to use during fitting or an ndarray with one value per voxel.
         """
         self._subject_id = subject_id
         self._dwi_fname = dwi_fname
@@ -280,7 +271,7 @@ class SimpleSubjectInfo(SubjectInfo):
         protocol = self._protocol_loader.get_protocol()
         brain_mask_fname = self.get_mask_filename()
         return load_problem_data(self._dwi_fname, protocol, brain_mask_fname, dtype=dtype,
-                                 gradient_deviations=self._get_gradient_deviations())
+                                 gradient_deviations=self._get_gradient_deviations(), noise_std=self._noise_std)
 
     def get_subject_id(self):
         return self.subject_id
@@ -299,9 +290,6 @@ class SimpleSubjectInfo(SubjectInfo):
         if self._gradient_deviations is not None:
             return nib.load(self._gradient_deviations).get_data()
         return None
-
-    def get_noise_std(self):
-        return self._noise_std
 
 
 class BatchSubjectSelection(object):

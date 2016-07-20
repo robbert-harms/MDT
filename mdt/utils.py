@@ -50,8 +50,9 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class DMRIProblemData(AbstractProblemData):
 
-    def __init__(self, protocol_data_dict, dwi_volume, mask, volume_header, static_maps=None, gradient_deviations=None):
-        """This overrides the standard problem data to include a mask.
+    def __init__(self, protocol_data_dict, dwi_volume, mask, volume_header, static_maps=None, gradient_deviations=None,
+                 noise_std=None):
+        """An implementation of the problem data for diffusion MRI models.
 
         Args:
             protocol_data_dict (Protocol): The protocol object used as input data to the model
@@ -62,10 +63,14 @@ class DMRIProblemData(AbstractProblemData):
             gradient_deviations (ndarray): the gradient deviations containing per voxel 9 values that constitute the
                 gradient non-linearities. Of the 4d matrix the first 3 dimensions are supposed to be the voxel
                 index and the 4th should contain the grad dev data.
+            noise_std (number or ndarray): either None for automatic detection,
+                or a scalar, or an 3d matrix with one value per voxel.
+
         Attributes:
             dwi_volume (ndarray): The DWI volume
             volume_header (nifti header): The header of the nifti file to use for writing the results.
         """
+        self._logger = logging.getLogger(__name__)
         self.dwi_volume = dwi_volume
         self.volume_header = volume_header
         self._mask = mask
@@ -73,6 +78,24 @@ class DMRIProblemData(AbstractProblemData):
         self._observation_list = None
         self._static_maps = static_maps or {}
         self.gradient_deviations = gradient_deviations
+        self._noise_std = noise_std
+
+    def copy_new_data(self, *args, **kwargs):
+        """Create a copy of this problem data, while setting some of the arguments to new values.
+
+        You can use any of the arguments (args and kwargs) of the constructor for this call.
+        If given we will use those values instead of the values in this problem data object for the copy.
+        """
+        new_args = [self._protocol_data_dict, self.dwi_volume, self._mask, self.volume_header]
+        for ind, value in enumerate(args):
+            new_args[ind] = value
+
+        new_kwargs = dict(static_maps=self._static_maps, gradient_deviations=self.gradient_deviations,
+                          noise_std=self._noise_std)
+        for key, value in kwargs.items():
+            new_kwargs[key] = value
+
+        return DMRIProblemData(*new_args, **new_kwargs)
 
     @property
     def protocol(self):
@@ -133,6 +156,30 @@ class DMRIProblemData(AbstractProblemData):
         self._mask = new_mask
         if self._observation_list is not None:
             self._observation_list = create_roi(self.dwi_volume, self._mask)
+
+    @property
+    def noise_std(self):
+        """The noise standard deviation we will use during model evaluation.
+
+        During optimization or sampling the model will be evaluated against the observations using an evaluation
+        model. Most of these evaluation models need to have a standard deviation.
+
+        Returns:
+            number of ndarray: either a scalar or a 2d matrix with one value per problem instance.
+        """
+        try:
+            noise_std = autodetect_noise_std_loader(self._noise_std).get_noise_std(self)
+        except NoiseStdEstimationNotPossible:
+            logger = logging.getLogger(__name__)
+            logger.warn('Failed to obtain a noise std for this subject. We will continue with an std of 1.')
+            noise_std = 1
+
+        if is_scalar(noise_std):
+            self._logger.info('Using a scalar noise standard deviation of {0}'.format(noise_std))
+            return noise_std
+        else:
+            self._logger.info('Using a voxel wise noise standard deviation.')
+            return create_roi(noise_std, self.mask)
 
 
 class PathJoiner(object):
@@ -752,7 +799,8 @@ def recursive_merge_dict(dictionary, update_dict, in_place=False):
     return merge(dictionary, update_dict)
 
 
-def load_problem_data(volume_info, protocol, mask, static_maps=None, gradient_deviations=None, dtype=np.float32):
+def load_problem_data(volume_info, protocol, mask, static_maps=None, gradient_deviations=None,
+                      noise_std=None, dtype=np.float32):
     """Load and create the problem data object that can be given to a model
 
     Args:
@@ -764,7 +812,9 @@ def load_problem_data(volume_info, protocol, mask, static_maps=None, gradient_de
             The value can either be an 3d or 4d ndarray, a single number or a string. We will convert all to the
             right format.
         gradient_deviations (str or ndarray): set of gradient deviations to use. In HCP WUMINN format. Set to None to
-            disable
+            disable.
+        noise_std (number or ndarray): either None for automatic detection,
+            or a scalar, or an 3d matrix with one value per voxel.
         dtype (dtype) the datatype in which to load the signal volume.
 
     Returns:
@@ -782,9 +832,10 @@ def load_problem_data(volume_info, protocol, mask, static_maps=None, gradient_de
         gradient_deviations = load_volume(gradient_deviations, ensure_4d=True)[0]
 
     if static_maps is not None:
+        #todo make the roi creation part of the problem data object
         static_maps = {key: autodetect_static_maps_loader(val).get_data(mask) for key, val in static_maps.items()}
 
-    return DMRIProblemData(protocol, signal4d, mask, img_header, static_maps=static_maps,
+    return DMRIProblemData(protocol, signal4d, mask, img_header, static_maps=static_maps, noise_std=noise_std,
                            gradient_deviations=gradient_deviations)
 
 
@@ -1037,8 +1088,7 @@ def apply_model_protocol_options(model_protocol_options, problem_data):
 
             new_dwi_volume = problem_data.dwi_volume[..., protocol_indices]
 
-            return DMRIProblemData(new_protocol, new_dwi_volume, problem_data.mask,
-                                   problem_data.volume_header)
+            return problem_data.copy_new_data(new_protocol, new_dwi_volume)
         else:
             logger.info('No model protocol options to apply, using original protocol.')
 
@@ -1562,36 +1612,6 @@ def estimate_noise_std(problem_data, estimation_cls_name=None):
                 pass
 
     raise NoiseStdEstimationNotPossible('Estimating the noise was not possible.')
-
-
-def get_noise_std_value(noise_std, problem_data):
-    """Convert the variable valued noise std to an actual noise std.
-
-    This is meant to be used by the fitting and sampling routines to return a proper value for the
-    noise std given the user provided noise std and the problem data.
-
-    Args:
-        noise_std: the noise level standard deviation.
-            The different values can be:
-                None: set to 1
-                double: use a single value for all voxels
-                ndarray: use a value per voxel. If given this should be a value for the entire dataset.
-                'auto': tries to estimate the noise std from the data
-
-        problem_data: if we need to estimate the noise std, the problem data to use
-
-    Returns:
-        either a single value or a ndarray with a value for every voxel in the volume
-    """
-    if noise_std is None:
-        return 1
-
-    try:
-        return autodetect_noise_std_loader(noise_std).get_noise_std(problem_data)
-    except NoiseStdEstimationNotPossible:
-        logger = logging.getLogger(__name__)
-        logger.warn('Failed to obtain a noise std for this subject. We will continue with an std of 1.')
-        return 1
 
 
 class AutoDict(defaultdict):

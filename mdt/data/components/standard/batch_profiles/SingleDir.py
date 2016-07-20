@@ -69,7 +69,7 @@ class SingleDir(SimpleBatchProfile):
             elif basename + '.hdr' in files and basename + '.img' in files:
                 dwi_fname = pjoin(basename + '.hdr')
 
-            noise_std = self._autoload_noise_std(basename, file_path=pjoin(basename + '.noise_std')) or 'auto'
+            noise_std = self._autoload_noise_std(basename, file_path=pjoin(basename + '.noise_std'))
 
             prtcl_fname = None
             if basename + '.prtcl' in files:

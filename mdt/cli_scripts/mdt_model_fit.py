@@ -60,9 +60,9 @@ class ModelFit(BasicShellApplication):
                             help='the directory for the output, defaults to "output/<mask_name>" '
                                  'in the same directory as the dwi volume').completer = FilesCompleter()
 
-        parser.add_argument('-n', '--noise-std', default='auto',
-                            help='the noise std, defaults to "auto" for automatic noise estimation.'
-                                 'Either set this to a value, to the literal "auto" or to a filename.')
+        parser.add_argument('-n', '--noise-std', default=None,
+                            help='the noise std, defaults to None for automatic noise estimation.'
+                                 'Either set this to a value, or to a filename.')
 
         parser.add_argument('--gradient-deviations',
                             action=mdt.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
@@ -110,12 +110,12 @@ class ModelFit(BasicShellApplication):
                       mdt.load_problem_data(os.path.realpath(args.dwi),
                                             os.path.realpath(args.protocol),
                                             os.path.realpath(args.mask),
-                                            gradient_deviations=args.gradient_deviations),
+                                            gradient_deviations=args.gradient_deviations,
+                                            noise_std=args.noise_std),
                       output_folder, recalculate=args.recalculate,
                       only_recalculate_last=args.only_recalculate_last, cl_device_ind=args.cl_device_ind,
                       double_precision=args.double_precision,
                       use_model_protocol_options=args.use_model_protocol_options,
-                      noise_std=args.noise_std,
                       cascade_subdir=args.cascade_subdir)
 
 

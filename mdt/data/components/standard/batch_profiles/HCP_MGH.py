@@ -40,7 +40,7 @@ class HCP_MGH(SimpleBatchProfile):
             pjoin = mdt.make_path_joiner(self._root_dir, subject_id, 'diff', 'preproc')
             if os.path.isdir(pjoin()):
                 dwi_fname = list(glob.glob(pjoin('mri', 'diff_preproc.nii*')))[0]
-                noise_std = self._autoload_noise_std(subject_id, file_path=pjoin('noise_std')) or 'auto'
+                noise_std = self._autoload_noise_std(subject_id, file_path=pjoin('noise_std'))
 
                 bval_fname = pjoin('bvals.txt')
                 if os.path.isfile(pjoin('diff_preproc.bval')):

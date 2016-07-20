@@ -11,7 +11,7 @@ from mot.cl_functions import Weight
 from mdt.utils import restore_volumes, create_roi
 from mdt.model_protocol_problem import MissingColumns, InsufficientShells
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
-from mot.model_building.evaluation_models import GaussianEvaluationModel, OffsetGaussianEvaluationModel
+from mot.model_building.evaluation_models import OffsetGaussianEvaluationModel
 from mot.model_building.parameter_functions.dependencies import WeightSumToOneRule
 from mot.models import SmoothableModelInterface, PerturbationModelInterface
 from mot.model_building.model_builders import SampleModelBuilder
@@ -48,10 +48,6 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
         self.smooth_black_list = None
         self.required_nmr_shells = False
         self._logger = logging.getLogger(__name__)
-
-    @property
-    def evaluation_model(self):
-        return self._evaluation_model
 
     def set_smooth_lists(self, white_list=None, black_list=None):
         """Set the list with maps to filter.
@@ -261,7 +257,7 @@ class DMRISingleModelConfig(ComponentConfig):
     post_optimization_modifiers = []
     dependencies = []
     model_expression = ''
-    evaluation_model = OffsetGaussianEvaluationModel().fix('sigma', 1)
+    evaluation_model = OffsetGaussianEvaluationModel()
     signal_noise_model = None
     inits = {}
     fixes = {}

@@ -59,7 +59,7 @@ class DirPerSubject(SimpleBatchProfile):
             protocols = glob.glob(os.path.join(self._root_dir, subject_id, '*prtcl'))
             bvals = glob.glob(os.path.join(self._root_dir, subject_id, '*bval*'))
             bvecs = glob.glob(os.path.join(self._root_dir, subject_id, '*bvec*'))
-            noise_std = self._autoload_noise_std(subject_id) or 'auto'
+            noise_std = self._autoload_noise_std(subject_id)
 
             if dwis:
                 dwi_fname = dwis[0]
