@@ -1,3 +1,5 @@
+import shutil
+
 from mdt.components_loader import ProcessingStrategiesLoader
 from mdt.utils import ModelChunksProcessingStrategy
 
@@ -22,5 +24,11 @@ class AllVoxelsAtOnce(ModelChunksProcessingStrategy):
             return strategy.run(model, problem_data, output_path, recalculate, worker)
         else:
             self._logger.info('Processing all voxels at once')
-            worker.process(model, problem_data, problem_data.mask, output_path + '/' + self.tmp_results_subdir)
-            return worker.combine(model, problem_data, output_path + '/' + self.tmp_results_subdir, output_path)
+
+            tmp_storage_dir = output_path + '/' + self.tmp_results_subdir
+
+            worker.process(model, problem_data, problem_data.mask, tmp_storage_dir)
+            return_data = worker.combine(model, problem_data, tmp_storage_dir, output_path)
+
+            shutil.rmtree(tmp_storage_dir)
+            return return_data

@@ -341,7 +341,9 @@ class MapsVisualizer(object):
 
         def rerender_single_map(frame):
             self._image_subplot_figures[map_name].set_clim(vmin, vmax)
-        animation.FuncAnimation(self._figure, rerender_single_map, frames=1, blit=True)
+            return [self._image_subplot_axis[map_name]]
+
+        animation.FuncAnimation(self._figure, rerender_single_map, repeat=False, frames=1, blit=True)
 
     def _set_axis_options(self, map_name, plt):
         if self.axis_options is not None:
@@ -429,11 +431,11 @@ class MapsVisualizer(object):
     def _global_click_listener(self, event):
         if isinstance(event.artist, Text):
             animation.FuncAnimation(self._figure, lambda _: self._text_change_manager.click_event(event),
-                                    frames=1, blit=True)
+                                    frames=1, repeat=False, blit=True)
 
     def _global_key_pressed_listener(self, event):
         animation.FuncAnimation(self._figure, lambda _: self._text_change_manager.key_press_event(event),
-                                frames=1, blit=True)
+                                frames=1, repeat=False, blit=True)
 
 
 class TextChangeManager(object):
