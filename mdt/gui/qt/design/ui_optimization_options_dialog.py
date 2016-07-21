@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_OptimizationOptionsDialog(object):
     def setupUi(self, OptimizationOptionsDialog):
         OptimizationOptionsDialog.setObjectName("OptimizationOptionsDialog")
-        OptimizationOptionsDialog.resize(797, 335)
+        OptimizationOptionsDialog.resize(843, 337)
         self.verticalLayout = QtWidgets.QVBoxLayout(OptimizationOptionsDialog)
         self.verticalLayout.setObjectName("verticalLayout")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout()
@@ -206,7 +206,7 @@ class Ui_OptimizationOptionsDialog(object):
         self.label_3.setText(_translate("OptimizationOptionsDialog", "Optimization options"))
         self.label_4.setText(_translate("OptimizationOptionsDialog", "Advanced options for the model fitting procedure"))
         self.label_13.setText(_translate("OptimizationOptionsDialog", "(For cascades, if we want to recalculate the entire chain)"))
-        self.label_14.setText(_translate("OptimizationOptionsDialog", "(Set either to \'auto\', a single float or a path to a nifti file)"))
+        self.label_14.setText(_translate("OptimizationOptionsDialog", "(Empty for auto detection, or set a scalar or a path to a nifti file)"))
         self.recalculateAll_True.setText(_translate("OptimizationOptionsDialog", "Yes   "))
         self.recalculateAll_False.setText(_translate("OptimizationOptionsDialog", "No"))
         self.label_10.setText(_translate("OptimizationOptionsDialog", "(Enables manual selection of the optimization routine)"))

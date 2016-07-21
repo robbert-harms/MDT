@@ -15,7 +15,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.7.25'
+VERSION = '0.7.26'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')
@@ -305,7 +305,7 @@ def get_device_ind(device_type='FIRST_GPU'):
 
 
 def load_problem_data(volume_info, protocol, mask, static_maps=None, gradient_deviations=None,
-                      noise_std=None, dtype=np.float32):
+                      noise_std=None):
     """Load and create the problem data object that can be given to a model
 
     Args:
@@ -320,14 +320,13 @@ def load_problem_data(volume_info, protocol, mask, static_maps=None, gradient_de
             disable
         noise_std (number or ndarray): either None for automatic detection,
             or a scalar, or an 3d matrix with one value per voxel.
-        dtype (dtype) the datatype in which to load the signal volume.
 
     Returns:
         The Problem data, in the ProblemData container object.
     """
     from mdt.utils import load_problem_data
     return load_problem_data(volume_info, protocol, mask, static_maps=static_maps,
-                             gradient_deviations=gradient_deviations, noise_std=noise_std, dtype=dtype)
+                             gradient_deviations=gradient_deviations, noise_std=noise_std)
 
 
 def load_protocol_bval_bvec(bvec=None, bval=None, bval_scale='auto'):
@@ -701,23 +700,6 @@ def view_result_samples(data, **kwargs):
     SampleVisualizer(data).show(**kwargs)
 
 
-def load_volume(volume_fname, ensure_4d=True):
-    """Load the diffusion weighted image data from the given volume filename.
-
-    This does not perform any data type changes, so the input may not be in float64. If you call this function
-    to satisfy load_problem_data() this is not a problem.
-
-    Args:
-        volume_fname (string): The filename of the volume to load.
-        ensure_4d (boolean): if True we ensure that the data matrix is in 4d.
-
-    Returns:
-        a tuple with (data, header) for the given file.
-    """
-    from mdt.utils import load_volume
-    return load_volume(volume_fname, ensure_4d=ensure_4d)
-
-
 def load_nifti(nifti_volume):
     """Load and return a nifti file.
 
@@ -890,7 +872,7 @@ def sort_maps(maps_to_sort_on, extra_maps_to_sort=None, reversed_sort=False, sor
         tmp = []
         for data in map_list:
             if isinstance(data, string_types):
-                tmp.append(load_volume(data)[0])
+                tmp.append(load_nifti(data).get_data())
             else:
                 tmp.append(data)
         return tmp
@@ -908,7 +890,7 @@ def sort_maps(maps_to_sort_on, extra_maps_to_sort=None, reversed_sort=False, sor
         sort_index_map = create_sort_matrix(np.concatenate([m for m in maps_to_sort_on], axis=3),
                                             reversed_sort=reversed_sort)
     elif isinstance(sort_index_map, string_types):
-        sort_index_map = np.round(load_volume(sort_index_map)[0]).astype(np.int64)
+        sort_index_map = np.round(load_nifti(sort_index_map).get_data()).astype(np.int64)
 
     sorted_maps = sort_volumes_per_voxel(maps_to_sort_on, sort_index_map)
     if extra_maps_to_sort:
@@ -1109,9 +1091,9 @@ def extract_volumes(input_volume_fname, input_protocol, output_volume_fname, out
     new_protocol = input_protocol.get_new_protocol_with_indices(protocol_indices)
     protocols.write_protocol(new_protocol, output_protocol)
 
-    input_volume = load_volume(input_volume_fname)
-    image_data = input_volume[0][..., protocol_indices]
-    write_image(output_volume_fname, image_data, input_volume[1])
+    input_volume = load_nifti(input_volume_fname)
+    image_data = input_volume.get_data()[..., protocol_indices]
+    write_image(output_volume_fname, image_data, input_volume.get_header())
 
 
 def apply_mask(volume, mask, inplace=True):
@@ -1147,11 +1129,7 @@ def apply_mask_to_file(input_fname, mask, output_fname=None):
     if output_fname is None:
         output_fname = input_fname
 
-    image_info = load_volume(input_fname)
-    mask = mask.reshape(mask.shape + (image_info[0].ndim - mask.ndim) * (1,))
-    masked = image_info[0]
-    masked *= mask
-    write_image(output_fname, masked, image_info[1])
+    write_image(output_fname, apply_mask(input_fname, mask), load_nifti(input_fname).get_header())
 
 
 def init_user_settings(pass_if_exists=True, keep_config=True):

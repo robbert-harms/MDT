@@ -1,9 +1,9 @@
 import os
-
+import nibabel as nib
 from PyQt5.QtCore import pyqtSlot, QObject, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog
 
-from mdt import view_results_slice, load_volume, create_slice_roi, load_nifti
+from mdt import view_results_slice, create_slice_roi, load_nifti
 from mdt.gui.qt.design.ui_generate_roi_mask_tab import Ui_GenerateROIMaskTabContent
 from mdt.gui.qt.utils import image_files_filters, MainTab
 from mdt.gui.utils import function_message_decorator
@@ -68,8 +68,8 @@ class GenerateROIMaskTab(MainTab, Ui_GenerateROIMaskTabContent):
 
     @pyqtSlot()
     def view_mask(self):
-        view_results_slice({'Original mask': load_volume(self.selectedMaskText.text())[0],
-                            'Slice mask': load_volume(self.selectedOutputFileText.text())[0]},
+        view_results_slice({'Original mask': nib.load(self.selectedMaskText.text()).get_data(),
+                            'Slice mask': nib.load(self.selectedOutputFileText.text()).get_data()},
                            dimension=self.dimensionInput.value(),
                            slice_ind=self.sliceInput.value())
 

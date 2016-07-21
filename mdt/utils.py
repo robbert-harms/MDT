@@ -817,7 +817,7 @@ def recursive_merge_dict(dictionary, update_dict, in_place=False):
 
 
 def load_problem_data(volume_info, protocol, mask, static_maps=None, gradient_deviations=None,
-                      noise_std=None, dtype=np.float32):
+                      noise_std=None):
     """Load and create the problem data object that can be given to a model
 
     Args:
@@ -832,7 +832,6 @@ def load_problem_data(volume_info, protocol, mask, static_maps=None, gradient_de
             disable.
         noise_std (number or ndarray): either None for automatic detection,
             or a scalar, or an 3d matrix with one value per voxel.
-        dtype (dtype) the datatype in which to load the signal volume.
 
     Returns:
         DMRIProblemData: the problem data object containing all the info needed for diffusion MRI model fitting
@@ -841,35 +840,17 @@ def load_problem_data(volume_info, protocol, mask, static_maps=None, gradient_de
     mask = autodetect_brain_mask_loader(mask).get_data()
 
     if isinstance(volume_info, string_types):
-        signal4d, img_header = load_volume(volume_info, dtype=dtype)
+        info = nib.load(volume_info)
+        signal4d = info.get_data()
+        img_header = info.get_header()
     else:
         signal4d, img_header = volume_info
 
     if isinstance(gradient_deviations, six.string_types):
-        gradient_deviations = load_volume(gradient_deviations, ensure_4d=True)[0]
+        gradient_deviations = nib.load(gradient_deviations).get_data()
 
     return DMRIProblemData(protocol, signal4d, mask, img_header, static_maps=static_maps, noise_std=noise_std,
                            gradient_deviations=gradient_deviations)
-
-
-def load_volume(volume_fname, ensure_4d=True, dtype=np.float32):
-    """Load the given image data from the given volume filename.
-
-    Args:
-        volume_fname (string): The filename of the volume to load.
-        ensure_4d (boolean): if True we ensure that the output data matrix is in 4d.
-        dtype (dtype): the numpy datatype we use for the output matrix
-
-    Returns:
-        a tuple with (data, header) for the given file.
-    """
-    info = nib.load(volume_fname)
-    header = info.get_header()
-    data = info.get_data().astype(dtype, copy=False)
-    if ensure_4d:
-        if len(data.shape) < 4:
-            data = np.expand_dims(data, axis=3)
-    return data, header
 
 
 def load_brain_mask(brain_mask_fname):
@@ -1225,8 +1206,8 @@ def apply_mask(volume, mask, inplace=True):
     """Apply a mask to the given input.
 
     Args:
-        volume (str, ndarray, list, tuple or dict): The input file path or the image itself or a list, tuple or
-            dict.
+        volume (str, ndarray, list, tuple or dict): The input file path or the image itself or a list,
+            tuple or dict.
         mask (str or ndarray): The filename of the mask or the mask itself
         inplace (boolean): if True we apply the mask in place on the volume image. If false we do not.
 
@@ -1241,7 +1222,8 @@ def apply_mask(volume, mask, inplace=True):
 
     def apply(volume, mask):
         if isinstance(volume, string_types):
-            volume = load_volume(volume)[0]
+            volume = nib.load(volume).get_data()
+
         mask = mask.reshape(mask.shape + (volume.ndim - mask.ndim) * (1,))
 
         if len(mask.shape) < 4:

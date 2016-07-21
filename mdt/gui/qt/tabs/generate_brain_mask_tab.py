@@ -1,11 +1,12 @@
 import os
-
+import nibabel as nib
 import numpy as np
+
 
 from PyQt5.QtCore import pyqtSlot, QObject, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog
 
-from mdt import view_results_slice, load_volume, load_brain_mask, create_median_otsu_brain_mask
+from mdt import view_results_slice, load_brain_mask, create_median_otsu_brain_mask
 from mdt.gui.qt.utils import image_files_filters, protocol_files_filters, MainTab
 from mdt.gui.qt.design.ui_generate_brain_mask_tab import Ui_GenerateBrainMaskTabContent
 from mdt.gui.utils import function_message_decorator
@@ -84,7 +85,7 @@ class GenerateBrainMaskTab(MainTab, Ui_GenerateBrainMaskTabContent):
     @pyqtSlot()
     def view_mask(self):
         mask = np.expand_dims(load_brain_mask(self.selectedOutputText.text()), axis=3)
-        image_data = load_volume(self.selectedImageText.text())[0]
+        image_data = nib.load(self.selectedImageText.text()).get_data()
         masked_image = image_data * mask
 
         view_results_slice({'Masked': masked_image,

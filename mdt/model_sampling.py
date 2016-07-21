@@ -1,8 +1,6 @@
+import nibabel as nib
 from contextlib import contextmanager
-
-import numpy as np
-
-from mdt import __version__, load_volume
+from mdt import __version__
 import logging
 import os
 import shutil
@@ -217,7 +215,7 @@ class SampleSingleModel(object):
                 maps = {}
                 for key, value in self._initialize_using.items():
                     if isinstance(value, string_types):
-                        maps[key] = load_volume(value, ensure_4d=True)[0]
+                        maps[key] = nib.load(value).get_data()
                     else:
                         maps[key] = value
 
