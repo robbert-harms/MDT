@@ -61,3 +61,21 @@ try:
     config = load_user_home()
 except ValueError:
     pass
+
+
+def gzip_optimization_results():
+    """Check if we should write the volume maps from the optimization gzipped or not.
+
+    Returns:
+        boolean: True if the results of optimization computations should be gzipped, False otherwise.
+    """
+    return config['output_format']['optimization']['gzip']
+
+
+def gzip_sampling_results():
+    """Check if we should write the volume maps from the sampling gzipped or not.
+
+    Returns:
+        boolean: True if the results of sampling computations should be gzipped, False otherwise.
+    """
+    return config['output_format']['optimization']['gzip']

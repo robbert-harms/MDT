@@ -1322,6 +1322,9 @@ class ModelChunksProcessingStrategy(ModelProcessingStrategy):
 
 class ModelProcessingWorker(object):
 
+    def __init__(self):
+        self._write_volumes_gzipped = True
+
     def process(self, model, problem_data, mask, tmp_storage_dir):
         """Process the indicated voxels in the way prescribed by this worker.
 
@@ -1398,8 +1401,7 @@ class ModelProcessingWorker(object):
         tmp_mask = open_memmap(mask_path, mode=mode, dtype=np.bool, shape=mask.shape)
         tmp_mask[:] = np.logical_or(tmp_mask, mask)
 
-    @staticmethod
-    def _combine_volumes(output_dir, chunks_dir, volume_header, maps_subdir=''):
+    def _combine_volumes(self, output_dir, chunks_dir, volume_header, maps_subdir=''):
         """Combine volumes found in subdirectories to a final volume.
 
         Args:
@@ -1417,7 +1419,8 @@ class ModelProcessingWorker(object):
 
         for map_name in map_names:
             data = np.load(os.path.join(chunks_dir, maps_subdir, map_name + '.npy'))
-            Nifti.write_volume_maps({map_name: data}, os.path.join(output_dir, maps_subdir), volume_header)
+            Nifti.write_volume_maps({map_name: data}, os.path.join(output_dir, maps_subdir), volume_header,
+                                    gzip=self._write_volumes_gzipped)
 
 
 class FittingProcessingWorker(ModelProcessingWorker):
@@ -1430,7 +1433,9 @@ class FittingProcessingWorker(ModelProcessingWorker):
         Args:
             optimizer: the optimization routine to use
         """
+        super(FittingProcessingWorker, self).__init__()
         self._optimizer = optimizer
+        self._write_volumes_gzipped = configuration.gzip_optimization_results()
 
     def process(self, model, problem_data, mask, tmp_storage_dir):
         results, extra_output = self._optimizer.minimize(model, full_output=True)
@@ -1460,7 +1465,9 @@ class SamplingProcessingWorker(ModelProcessingWorker):
         Args:
             sampler (AbstractSampler): the optimization sampler to use
         """
+        super(SamplingProcessingWorker, self).__init__()
         self._sampler = sampler
+        self._write_volumes_gzipped = configuration.gzip_sampling_results()
 
     def process(self, model, problem_data, mask, tmp_storage_dir):
         results, other_output = self._sampler.sample(model, full_output=True)
