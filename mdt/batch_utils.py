@@ -270,7 +270,7 @@ class SimpleSubjectInfo(SubjectInfo):
     def get_problem_data(self, dtype=np.float32):
         protocol = self._protocol_loader.get_protocol()
         brain_mask_fname = self.get_mask_filename()
-        return load_problem_data(self._dwi_fname, protocol, brain_mask_fname, dtype=dtype,
+        return load_problem_data(self._dwi_fname, protocol, brain_mask_fname,
                                  gradient_deviations=self._get_gradient_deviations(), noise_std=self._noise_std)
 
     def get_subject_id(self):
