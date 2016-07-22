@@ -72,7 +72,7 @@ def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalcul
     import mdt.utils
     from mdt.model_fitting import BatchFitting
 
-    if not utils.check_user_components():
+    if not mdt.utils.check_user_components():
         raise RuntimeError('Your components folder is not up to date. Please run the script mdt-init-user-settings.')
 
     batch_fitting = BatchFitting(data_folder, batch_profile=batch_profile, subjects_selection=subjects_selection,
@@ -121,7 +121,7 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
     import mdt.utils
     from mdt.model_fitting import ModelFit
 
-    if not utils.check_user_components():
+    if not mdt.utils.check_user_components():
         raise RuntimeError('Your components folder is not up to date. Please run the script mdt-init-user-settings.')
 
     model_fit = ModelFit(model, problem_data, output_folder, optimizer=optimizer, recalculate=recalculate,
@@ -163,7 +163,7 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
     import mdt.utils
     from mdt.model_sampling import ModelSampling
 
-    if not utils.check_user_components():
+    if not mdt.utils.check_user_components():
         raise RuntimeError('Your components folder is not up to date. Please run the script mdt-init-user-settings.')
 
     sampling = ModelSampling(model, problem_data, output_folder,

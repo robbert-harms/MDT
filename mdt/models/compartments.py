@@ -7,7 +7,7 @@ import six
 
 from mdt.components_loader import ComponentConfig, ComponentBuilder, ParametersLoader
 from mdt.utils import spherical_to_cartesian
-from mot.base import ModelFunction
+from mot.base import ModelFunction, CurrentObservationParam
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-12-13"
@@ -251,7 +251,10 @@ def _get_parameters_list(parameter_list):
     parameters = []
     for item in parameter_list:
         if isinstance(item, six.string_types):
-            parameters.append(parameters_loader.load(item))
+            if item == '_observation':
+                parameters.append(CurrentObservationParam())
+            else:
+                parameters.append(parameters_loader.load(item))
         else:
             parameters.append(deepcopy(item))
     return parameters
