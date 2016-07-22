@@ -3,7 +3,7 @@ from copy import deepcopy
 import six
 
 import mdt
-from mdt.components_loader import ComponentConfig, ComponentBuilder, bind_function
+from mdt.components_loader import ComponentConfig, ComponentBuilder, bind_function, method_binding_meta
 from mdt.model_protocol_problem import NamedProtocolProblem
 from mdt.models.base import DMRIOptimizable
 from mdt.utils import simple_parameter_init
@@ -215,7 +215,7 @@ class CascadeBuilder(ComponentBuilder):
             template (CascadeConfig): the cascade config template to use for creating the class with the right init
                 settings.
         """
-        class AutoCreatedCascadeModel(SimpleCascadeModel):
+        class AutoCreatedCascadeModel(method_binding_meta(template, SimpleCascadeModel)):
 
             def __init__(self, *args):
                 new_args = [deepcopy(template.name),
@@ -244,5 +244,4 @@ class CascadeBuilder(ComponentBuilder):
 
                 self._prepare_model_cb(model, output_previous, output_all_previous)
 
-        self._bind_functions(template, AutoCreatedCascadeModel)
         return AutoCreatedCascadeModel

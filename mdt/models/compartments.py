@@ -5,7 +5,7 @@ import os
 from copy import deepcopy
 import six
 
-from mdt.components_loader import ComponentConfig, ComponentBuilder, ParametersLoader
+from mdt.components_loader import ComponentConfig, ComponentBuilder, ParametersLoader, method_binding_meta
 from mdt.utils import spherical_to_cartesian
 from mot.base import ModelFunction, CurrentObservationParam
 
@@ -214,7 +214,7 @@ class CompartmentBuilder(ComponentBuilder):
             template (CascadeConfig): the compartment config template to use for creating the class with the right init
                 settings.
         """
-        class AutoCreatedDMRICompartmentModel(CompartmentBuildingBase):
+        class AutoCreatedDMRICompartmentModel(method_binding_meta(template, CompartmentBuildingBase)):
 
             def __init__(self, *args):
                 new_args = [template.name,
@@ -232,7 +232,6 @@ class CompartmentBuilder(ComponentBuilder):
                 if hasattr(template, 'init'):
                     template.init(self)
 
-        self._bind_functions(template, AutoCreatedDMRICompartmentModel)
         return AutoCreatedDMRICompartmentModel
 
 

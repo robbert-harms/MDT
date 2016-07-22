@@ -1,5 +1,4 @@
 import collections
-import copy
 import distutils.dir_util
 import glob
 import logging
@@ -950,58 +949,6 @@ def get_cl_devices():
         A list of CLEnvironments, one for each device in the system.
     """
     return CLEnvironmentFactory.smart_device_selection()
-
-
-def apply_model_protocol_options(model_protocol_options, problem_data):
-    """Apply the model specific protocol options.
-
-    This will check the configuration if there are model specific options for the protocol/DWI data. If so, we
-    will create and return a new problem data object. If not so, we will return the old one.
-
-    Args:
-        model_protocol_options (dict): a dictionary with the model protocol options to apply to this problem data
-        problem_data (DMRIProblemData): the problem data object to which the protocol options are applied
-
-    Returns:
-        a new problem data object with the correct protocol (and DWI data), or the old one
-    """
-    logger = logging.getLogger(__name__)
-
-    if model_protocol_options:
-        protocol = problem_data.protocol
-        protocol_indices = np.array([], dtype=np.int64)
-
-        if model_protocol_options.get('use_weighted', False):
-            if 'b_value' in model_protocol_options:
-                options = {'start': 0, 'end': 1.5e9}
-                for key, value in model_protocol_options['b_value'].items():
-                    options.update({key: value})
-                protocol_indices = protocol.get_indices_bval_in_range(**options)
-
-        if model_protocol_options.get('use_unweighted', False):
-            unweighted_threshold = model_protocol_options.get('unweighted_threshold', None)
-
-            if protocol.has_column('g') and protocol.has_column('b'):
-                protocol_indices = np.append(protocol_indices, protocol.get_unweighted_indices(unweighted_threshold))
-            else:
-                protocol_indices = list(range(protocol.length))
-
-        protocol_indices = np.unique(protocol_indices)
-
-        if len(protocol_indices) != protocol.length:
-            logger.info('Applying model protocol options, we will use a subset of the protocol and DWI.')
-            logger.info('Using {} out of {} volumes, indices: {}'.format(
-                len(protocol_indices), protocol.length, str(protocol_indices).replace('\n', '').replace('[  ', '[')))
-
-            new_protocol = protocol.get_new_protocol_with_indices(protocol_indices)
-
-            new_dwi_volume = problem_data.dwi_volume[..., protocol_indices]
-
-            return problem_data.copy_with_updates(new_protocol, new_dwi_volume)
-        else:
-            logger.info('No model protocol options to apply, using original protocol.')
-
-    return problem_data
 
 
 def model_output_exists(model, output_folder, append_model_name_to_path=True):

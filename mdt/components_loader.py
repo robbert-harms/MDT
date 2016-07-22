@@ -8,10 +8,8 @@ import inspect
 import os
 import imp
 #todo in P3.4 replace imp calls with importlib.SourceFileLoader(name, path).load_module(name)
-import types
-from functools import wraps
 
-import sys
+from six import with_metaclass
 
 from mot.base import LibraryFunction, ModelFunction
 import mot.cl_functions
@@ -64,25 +62,6 @@ class ComponentBuilder(object):
             class: the class of the right type
         """
 
-    def _bind_functions(self, config_class, goal_class):
-        """Binds all the functions from the config class that have the property bind=True to the goal class.
-
-        This is a convenience function for component builders that would like to bind functions from the components
-        config to the actual goal class
-
-        Args:
-            config_class (ComponentConfig): the components config
-            goal_class (cls): the goal class to bind the methods to
-        """
-        methods = inspect.getmembers(config_class, predicate=lambda x: inspect.isfunction(x) or inspect.ismethod(x))
-        for name, method in methods:
-            if hasattr(method, 'bind') and method.bind:
-                #todo remove this if on the moment python 2 is no longer supported
-                if sys.version_info < (3, 0):
-                    setattr(goal_class, name, types.MethodType(method, None, goal_class))
-                else:
-                    setattr(goal_class, name, method)
-
 
 def bind_function(func):
     """This decorator is for methods in ComponentConfigs that we would like to bound to the build component.
@@ -106,16 +85,48 @@ def bind_function(func):
     Args:
         func (python function): the function to bind to the build object
     """
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        return func(*args, **kwargs)
-
-    wrapper.bind = True
-
-    return staticmethod(wrapper)
+    func._bind = True
+    return func
 
 
-class ComponentConfig(object):
+def method_binding_meta(template, *bases):
+    """Adds all bound functions from the ComponentConfig to the class being constructed.
+
+     This returns a metaclass similar to the with_metaclass of the six library.
+
+     Args:
+         template (ComponentConfig): the component config with the _bound_methods attribute which we will all add
+            to the attributes of the to creating class.
+     """
+    class ApplyMethodBinding(type):
+        def __new__(mcs, name, bases, attributes):
+            attributes.update(template._bound_methods)
+            return super(ApplyMethodBinding, mcs).__new__(mcs, name, bases, attributes)
+
+    class metaclass(ApplyMethodBinding):
+        def __new__(cls, name, this_bases, d):
+            return ApplyMethodBinding(name, bases, d)
+
+    return type.__new__(metaclass, 'temporary_class', (), {})
+
+
+class FindBoundMethods(type):
+
+    def __new__(mcs, name, bases, attributes):
+        """This meta class adds all functions with the_bind property set to True to the _bound_methods list.
+
+        This is just a small wrapper to easily find all functions that we want to bind to the final created component.
+        """
+        result = super(FindBoundMethods, mcs).__new__(mcs, name, bases, attributes)
+        bound_methods = {value.__name__: value for value in attributes.values() if hasattr(value, '_bind')}
+        for base in bases:
+            if hasattr(base, '_bound_methods'):
+                bound_methods.update(base._bound_methods)
+        result._bound_methods = bound_methods
+        return result
+
+
+class ComponentConfig(with_metaclass(FindBoundMethods, object)):
     """The component configuration.
 
     By overriding the class attributes you can define complex configurations. The actual class distilled from these

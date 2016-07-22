@@ -91,10 +91,6 @@ class ModelFit(BasicShellApplication):
                             help="Calculate in single precision. (default)")
         parser.set_defaults(double_precision=False)
 
-        parser.add_argument('--disable-model-protocol-options', dest='use_model_protocol_options', action='store_false',
-                            help="Disable the model protocol options from the config.")
-        parser.set_defaults(use_model_protocol_options=True)
-
         parser.add_argument('--cascade_subdir', dest='cascade_subdir', action='store_true',
                             help="If we want to create a subdirectory for a cascade model (non-recursive).")
         parser.set_defaults(cascade_subdir=False)
@@ -115,7 +111,6 @@ class ModelFit(BasicShellApplication):
                       output_folder, recalculate=args.recalculate,
                       only_recalculate_last=args.only_recalculate_last, cl_device_ind=args.cl_device_ind,
                       double_precision=args.double_precision,
-                      use_model_protocol_options=args.use_model_protocol_options,
                       cascade_subdir=args.cascade_subdir)
 
 

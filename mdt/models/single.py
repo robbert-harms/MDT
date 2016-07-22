@@ -2,7 +2,7 @@ import logging
 from copy import deepcopy
 import numpy as np
 from mdt import utils
-from mdt.components_loader import ComponentConfig, ComponentBuilder
+from mdt.components_loader import ComponentConfig, ComponentBuilder, method_binding_meta
 from mdt.models.base import DMRIOptimizable
 from mdt.models.parsers.SingleModelExpressionParser import parse
 from mot.adapters import SimpleDataAdapter
@@ -42,6 +42,12 @@ class DMRISingleModel(SampleModelBuilder, DMRIOptimizable, PerturbationModelInte
                                               problem_data=problem_data)
         self.required_nmr_shells = False
         self._logger = logging.getLogger(__name__)
+
+    def set_problem_data(self, problem_data):
+        """Overwrites the super implementation by adding a call to _prepare_problem_data() before the problem data is
+        added to the model.
+        """
+        return super(DMRISingleModel, self).set_problem_data(self._prepare_problem_data(problem_data))
 
     def get_problems_var_data(self):
         var_data_dict = super(DMRISingleModel, self).get_problems_var_data()
@@ -169,6 +175,49 @@ class DMRISingleModel(SampleModelBuilder, DMRIOptimizable, PerturbationModelInte
         results_dict.update({'LogLikelihood': log_likelihoods})
         results_dict.update(utils.calculate_information_criterions(log_likelihoods, k, n))
 
+    def _prepare_problem_data(self, problem_data):
+        """Update the problem data to make it suitable for this model.
+
+        Some of the models in diffusion MRI can only handle a subset of all volumes. For example, the S0 model
+        can only work with the unweigthed signals, or the Tensor model that can only handle a b-value up to 1.5e9 s/m^2.
+
+        Overwrite this function to limit the problem data to a suitable range.
+
+        Args:
+            problem_data (DMRIProblemData): the problem data set by the user
+
+        Returns:
+            DMRIProblemData: either the same problem data or a changed copy.
+        """
+        protocol = problem_data.protocol
+        indices = self._get_suitable_volume_indices(problem_data)
+
+        if len(indices) != protocol.length:
+            self._logger.info('Applying model protocol options, we will use a subset of the protocol and DWI.')
+            self._logger.info('Using {} out of {} volumes, indices: {}'.format(
+                len(indices), protocol.length, str(indices).replace('\n', '').replace('[  ', '[')))
+
+            new_protocol = protocol.get_new_protocol_with_indices(indices)
+            new_dwi_volume = problem_data.dwi_volume[..., indices]
+            return problem_data.copy_with_updates(new_protocol, new_dwi_volume)
+        else:
+            self._logger.info('No model protocol options to apply, using original protocol.')
+        return problem_data
+
+    def _get_suitable_volume_indices(self, problem_data):
+        """Usable in combination with _prepare_problem_data, return the suitable volume indices.
+
+        Get a list of volume indices that the model can use. This function is meant to remove common boilerplate code
+        from writing your own _prepare_problem_data object.
+
+        Args:
+            problem_data (DMRIProblemData): the problem data set by the user
+
+        Returns:
+            list: the list of indices we want to use for this model.
+        """
+        return list(range(problem_data.protocol.length))
+
 
 class DMRISingleModelConfig(ComponentConfig):
     """The cascade config to inherit from.
@@ -241,7 +290,7 @@ class DMRISingleModelBuilder(ComponentBuilder):
             template (DMRISingleModelConfig): the single model config template
                 to use for creating the class with the right init settings.
         """
-        class AutoCreatedDMRISingleModel(DMRISingleModel):
+        class AutoCreatedDMRISingleModel(method_binding_meta(template, DMRISingleModel)):
 
             def __init__(self, *args):
                 super(AutoCreatedDMRISingleModel, self).__init__(
@@ -271,5 +320,4 @@ class DMRISingleModelBuilder(ComponentBuilder):
                     else:
                         self.set_parameter_transform(full_param_name, deepcopy(value))
 
-        self._bind_functions(template, AutoCreatedDMRISingleModel)
         return AutoCreatedDMRISingleModel

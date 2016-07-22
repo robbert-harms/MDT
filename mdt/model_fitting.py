@@ -12,11 +12,10 @@ from mdt import __version__
 from mdt.IO import Nifti
 from mdt.batch_utils import batch_profile_factory, AllSubjects
 from mdt.components_loader import get_model
-from mdt.configuration import config, get_model_config, get_processing_strategy
+from mdt.configuration import get_processing_strategy
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.protocols import write_protocol
-from mdt.utils import create_roi, MetaOptimizerBuilder, get_cl_devices, \
-    apply_model_protocol_options, model_output_exists, split_image_path, \
+from mdt.utils import create_roi, MetaOptimizerBuilder, get_cl_devices, model_output_exists, split_image_path, \
     FittingProcessingWorker, per_model_logging_context
 from mdt.exceptions import InsufficientProtocolError
 from mot.load_balance_strategies import EvenDistribution
@@ -196,7 +195,7 @@ class _BatchFitRunner(object):
 class ModelFit(object):
 
     def __init__(self, model, problem_data, output_folder, optimizer=None,
-                 recalculate=False, only_recalculate_last=False, use_model_protocol_options=True, cascade_subdir=False,
+                 recalculate=False, only_recalculate_last=False, cascade_subdir=False,
                  cl_device_ind=None, double_precision=False):
         """Setup model fitting for the given input model and data.
 
@@ -215,7 +214,6 @@ class ModelFit(object):
                 If set to true we only recalculate the last element in the chain
                     (if recalculate is set to True, that is).
                 If set to false, we recalculate everything. This only holds for the first level of the cascade.
-            use_model_protocol_options (boolean): if we want to use the model protocol options or not.
             cascade_subdir (boolean): if we want to create a subdirectory for the given model if it is a cascade model.
                 Per default we output the maps of cascaded results in the same directory, this allows reusing cascaded
                 results for other cascades (for example, if you cascade BallStick -> Noddi you can use the BallStick
@@ -238,7 +236,6 @@ class ModelFit(object):
         self._optimizer = optimizer
         self._recalculate = recalculate
         self._only_recalculate_last = only_recalculate_last
-        self._use_model_protocol_options = use_model_protocol_options
         self._logger = logging.getLogger(__name__)
         self._cl_device_indices = cl_device_ind
         self._model_names_list = []
@@ -318,15 +315,9 @@ class ModelFit(object):
                     optimizer.cl_environments = [all_devices[ind] for ind in self._cl_device_indices]
                     optimizer.load_balancer = EvenDistribution()
 
-                if self._use_model_protocol_options:
-                    model_protocol_options = get_model_config(model_names, config.get('model_protocol_options', {}))
-                    problem_data = apply_model_protocol_options(model_protocol_options, self._problem_data)
-                else:
-                    problem_data = self._problem_data
-
                 processing_strategy = get_processing_strategy('optimization', model_names)
 
-                fitter = SingleModelFit(model, problem_data, self._output_folder, optimizer, processing_strategy,
+                fitter = SingleModelFit(model, self._problem_data, self._output_folder, optimizer, processing_strategy,
                                         recalculate=recalculate)
                 results = fitter.run()
 

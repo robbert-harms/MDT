@@ -1,4 +1,4 @@
-from mdt.models.compartments import CompartmentConfig, CLCodeFromAdjacentFile
+from mdt.models.compartments import CompartmentConfig
 from mdt.components_loader import CompartmentModelsLoader, bind_function
 
 __author__ = 'Robbert Harms'

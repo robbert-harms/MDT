@@ -86,8 +86,7 @@ def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalcul
 
 
 def fit_model(model, problem_data, output_folder, optimizer=None,
-              recalculate=False, only_recalculate_last=False,
-              use_model_protocol_options=True, cascade_subdir=False,
+              recalculate=False, only_recalculate_last=False, cascade_subdir=False,
               cl_device_ind=None, double_precision=False):
     """Run the optimizer on the given model.
 
@@ -104,7 +103,6 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
             This is only of importance when dealing with CascadeModels.
             If set to true we only recalculate the last element in the chain (if recalculate is set to True, that is).
             If set to false, we recalculate everything. This only holds for the first level of the cascade.
-        use_model_protocol_options (boolean): if we want to use the model protocol options or not.
         cascade_subdir (boolean): if we want to create a subdirectory for the given model if it is a cascade model.
             Per default we output the maps of cascaded results in the same directory, this allows reusing cascaded
             results for other cascades (for example, if you cascade BallStick -> Noddi you can use the BallStick results
@@ -126,7 +124,6 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
 
     model_fit = ModelFit(model, problem_data, output_folder, optimizer=optimizer, recalculate=recalculate,
                          only_recalculate_last=only_recalculate_last,
-                         use_model_protocol_options=use_model_protocol_options,
                          cascade_subdir=cascade_subdir,
                          cl_device_ind=cl_device_ind, double_precision=double_precision)
 
@@ -134,7 +131,6 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
 
 
 def sample_model(model, problem_data, output_folder, sampler=None, recalculate=False,
-                 use_model_protocol_options=True,
                  cl_device_ind=None, double_precision=False, initialize=True, initialize_using=None):
     """Sample a single model. This does not accept cascade models, only single models.
 
@@ -145,7 +141,6 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
             model name in it (for the optimization results) and then a subdir with the samples output.
         sampler (AbstractSampler): the sampler to use
         recalculate (boolean): If we want to recalculate the results if they are already present.
-        use_model_protocol_options (boolean): if we want to use the model protocol options or not.
         cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices().
         double_precision (boolean): if we would like to do the calculations in double precision
@@ -169,7 +164,6 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
     sampling = ModelSampling(model, problem_data, output_folder,
                              sampler=sampler, recalculate=recalculate, cl_device_ind=cl_device_ind,
                              double_precision=double_precision,
-                             use_model_protocol_options=use_model_protocol_options,
                              initialize=initialize,
                              initialize_using=initialize_using)
 

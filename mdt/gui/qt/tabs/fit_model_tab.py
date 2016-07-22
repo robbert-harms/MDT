@@ -46,14 +46,6 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
         self.modelSelection.addItems(list(sorted(mdt.get_models_list())))
         self.modelSelection.setCurrentText('BallStick (Cascade)')
 
-
-        self.selectedDWI.setText('/home/robbert/phd-data/dti_test/4Ddwi_b1000.nii')
-        self.selectedProtocol.setText('/home/robbert/phd-data/dti_test/4Ddwi_b1000.prtcl')
-        self.selectedMask.setText('/home/robbert/phd-data/dti_test/4Ddwi_b1000_mask_2_25.nii.gz')
-        self.selectedOutputFolder.setText('/home/robbert/phd-data/dti_test/output/4Ddwi_b1000_mask_2_25')
-        self.runButton.setDisabled(False)
-
-
     def _select_dwi(self):
         initial_dir = self._shared_state.base_dir
         if self.selectedDWI.text() != '':
