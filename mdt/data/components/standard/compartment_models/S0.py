@@ -10,5 +10,5 @@ class S0(CompartmentConfig):
 
     name = 'S0'
     cl_function_name = 'cmS0'
-    parameter_list = ('s0')
+    parameter_list = ('s0',)
     cl_code = CLCodeFromInlineString('return s0;')
