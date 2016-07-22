@@ -430,7 +430,9 @@ def create_roi(data, brain_mask):
             to the brain mask to load
 
     Returns:
-        Signal lists for each of the given volumes. The axis are: (voxels, protocol)
+        ndarray, tuple, dict: If a single ndarray is given we will return the ROI for that array. If
+            an iterable is given we will return a tuple. If a dict is given we return a dict.
+            For each result the axis are: (voxels, protocol)
     """
     from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
     brain_mask = autodetect_brain_mask_loader(brain_mask).get_data()
@@ -442,15 +444,74 @@ def create_roi(data, brain_mask):
         return return_val
 
     if isinstance(data, dict):
-        return {key: creator(value) for key, value in data.items()}
-    elif isinstance(data, list):
-        return [creator(value) for value in data]
-    elif isinstance(data, tuple):
-        return (creator(value) for value in data)
+        return DeferredROICreationDict(data, brain_mask)
+    elif isinstance(data, (list, tuple)):
+        return DeferredROICreationTuple(data, brain_mask)
     elif isinstance(data, six.string_types):
         return creator(nib.load(data).get_data())
-    else:
-        return creator(data)
+    return creator(data)
+
+
+class DeferredROICreationDict(collections.MutableMapping):
+
+    def __init__(self, items, mask):
+        """Deferred ROI creation of the given items using the given mask.
+
+        On the moment one of the keys of this dict class is requested we will create the ROI if it does not yet exists.
+        The advantage of this class is that it saves memory by deferring the loading until an item is really needed.
+
+        Args:
+            items (dict): the items we want to create a ROI of
+            mask (ndarray): the matrix we use for creating the ROI
+        """
+        self._items = items.copy()
+        self._mask = mask
+        self._computed_rois = {}
+
+    def __delitem__(self, key):
+        del self._items[key]
+        if key in self._computed_rois:
+            del self._computed_rois[key]
+
+    def __getitem__(self, key):
+        if key not in self._computed_rois:
+            self._computed_rois[key] = create_roi(self._items[key], self._mask)
+        return self._computed_rois[key]
+
+    def __iter__(self):
+        for key in self._items.keys():
+            yield key
+
+    def __len__(self):
+        return len(self._items)
+
+    def __setitem__(self, key, value):
+        self._computed_rois[key] = value
+
+
+class DeferredROICreationTuple(collections.Sequence):
+
+    def __init__(self, items, mask):
+        """Deferred ROI creation of the given items using the given mask.
+
+        On the moment one of the items of this class is requested we will create the ROI if it does not yet exists.
+        The advantage of this class is that it saves memory by deferring the loading until an item is really needed.
+
+        Args:
+            items (list, tuple): the items we want to create a ROI of
+            mask (ndarray): the matrix we use for creating the ROI
+        """
+        self._items = items
+        self._mask = mask
+        self._computed_rois = {}
+
+    def __getitem__(self, index):
+        if index not in self._computed_rois:
+            self._computed_rois[index] = create_roi(self._items[index], self._mask)
+        return self._computed_rois[index]
+
+    def __len__(self):
+        return len(self._items)
 
 
 def restore_volumes(data, brain_mask, with_volume_dim=True):

@@ -75,12 +75,7 @@ class Nifti(object):
                 map_name = os.path.basename(f)[0:-len(extension)]
 
                 if map_names is None or map_name in map_names:
-                    d = nib.load(f).get_data()
-                    s = d.shape
-                    if len(s) > 3 and s[3] == 1:
-                        d = np.squeeze(d, axis=(3,))
-
-                    maps.update({map_name: d})
+                    maps.update({map_name: nib.load(f).get_data()})
         return maps
 
     @staticmethod
