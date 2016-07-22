@@ -91,7 +91,8 @@ class ModelSampling(object):
         if not model.is_protocol_sufficient(self._problem_data.protocol):
             raise InsufficientProtocolError(
                 'The given protocol is insufficient for this model. '
-                'The reported errors where: {}'.format(self._model.get_protocol_problems(self._problem_data.protocol)))
+                'The reported errors where: {}'.format(self._model.get_protocol_problems(
+                    self._problem_data.protocol)))
 
     def run(self):
         """Sample the given model.

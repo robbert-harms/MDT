@@ -38,7 +38,7 @@ class ProtocolDependent(ModelChunksProcessingStrategy):
 
     def _get_strategy(self, problem_data):
         for col_length, voxel_range in reversed(self._steps):
-            if int(col_length) < problem_data.protocol.length:
+            if int(col_length) < problem_data.get_nmr_inst_per_problem():
                 if voxel_range:
                     return load_component('processing_strategies', 'VoxelRange', nmr_voxels=int(voxel_range))
 

@@ -15,7 +15,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-VERSION = '0.8.00'
+VERSION = '0.8.3'
 VERSION_STATUS = ''
 
 _items = VERSION.split('-')
@@ -1311,7 +1311,7 @@ def recalculate_ics(model, problem_data, data_dir, sigma, output_dir=None, sigma
     log_likelihoods = log_likelihood_calc.calculate(model, results_maps, evaluation_model=evaluation_model)
 
     k = model.get_nmr_estimable_parameters()
-    n = problem_data.protocol.length
+    n = problem_data.get_nmr_inst_per_problem()
     results_maps.update({'LogLikelihood': log_likelihoods})
     results_maps.update(utils.calculate_information_criterions(log_likelihoods, k, n))
 

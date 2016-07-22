@@ -49,12 +49,12 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class DMRIProblemData(AbstractProblemData):
 
-    def __init__(self, protocol_data_dict, dwi_volume, mask, volume_header, static_maps=None, gradient_deviations=None,
+    def __init__(self, protocol, dwi_volume, mask, volume_header, static_maps=None, gradient_deviations=None,
                  noise_std=None):
         """An implementation of the problem data for diffusion MRI models.
 
         Args:
-            protocol_data_dict (Protocol): The protocol object used as input data to the model
+            protocol (Protocol): The protocol object used as input data to the model
             dwi_volume (ndarray): The DWI data (4d matrix)
             mask (ndarray): The mask used to create the observations list
             volume_header (nifti header): The header of the nifti file to use for writing the results.
@@ -73,19 +73,19 @@ class DMRIProblemData(AbstractProblemData):
         self.dwi_volume = dwi_volume
         self.volume_header = volume_header
         self._mask = mask
-        self._protocol_data_dict = protocol_data_dict
+        self._protocol = protocol
         self._observation_list = None
         self._static_maps = static_maps or {}
         self.gradient_deviations = gradient_deviations
         self._noise_std = noise_std
 
-    def copy_new_data(self, *args, **kwargs):
+    def copy_with_updates(self, *args, **kwargs):
         """Create a copy of this problem data, while setting some of the arguments to new values.
 
         You can use any of the arguments (args and kwargs) of the constructor for this call.
         If given we will use those values instead of the values in this problem data object for the copy.
         """
-        new_args = [self._protocol_data_dict, self.dwi_volume, self._mask, self.volume_header]
+        new_args = [self._protocol, self.dwi_volume, self._mask, self.volume_header]
         for ind, value in enumerate(args):
             new_args[ind] = value
 
@@ -96,31 +96,15 @@ class DMRIProblemData(AbstractProblemData):
 
         return DMRIProblemData(*new_args, **new_kwargs)
 
+    def get_nmr_inst_per_problem(self):
+        return self._protocol.length
+
     @property
     def protocol(self):
-        """Return the protocol_data_dict.
-
-        Returns:
-            Protocol: The protocol object given in the instantiation.
-        """
-        return self.protocol_data_dict
-
-    @property
-    def protocol_data_dict(self):
-        """Return the constant data stored in this problem data container.
-
-        Returns:
-            dict: The protocol data dict.
-        """
-        return self._protocol_data_dict
+        return self._protocol
 
     @property
     def observations(self):
-        """Return the observations stored in this problem data container.
-
-        Returns:
-            ndarray: The list of observations
-        """
         if self._observation_list is None:
             self._observation_list = create_roi(self.dwi_volume, self._mask)
         return self._observation_list
@@ -133,6 +117,16 @@ class DMRIProblemData(AbstractProblemData):
             np.array: the numpy mask array
         """
         return self._mask
+
+    @mask.setter
+    def mask(self, new_mask):
+        """Set the new mask and update the observations list.
+
+        Args:
+            new_mask (np.array): the new mask
+        """
+        self._mask = new_mask
+        self._observation_list = None
 
     @property
     def static_maps(self):
@@ -162,17 +156,6 @@ class DMRIProblemData(AbstractProblemData):
             return return_items
 
         return self._static_maps
-
-    @mask.setter
-    def mask(self, new_mask):
-        """Set the new mask and update the observations list.
-
-        Args:
-            new_mask (np.array): the new mask
-        """
-        self._mask = new_mask
-        if self._observation_list is not None:
-            self._observation_list = create_roi(self.dwi_volume, self._mask)
 
     @property
     def noise_std(self):
@@ -816,8 +799,7 @@ def recursive_merge_dict(dictionary, update_dict, in_place=False):
     return merge(dictionary, update_dict)
 
 
-def load_problem_data(volume_info, protocol, mask, static_maps=None, gradient_deviations=None,
-                      noise_std=None):
+def load_problem_data(volume_info, protocol, mask, static_maps=None, gradient_deviations=None, noise_std=None):
     """Load and create the problem data object that can be given to a model
 
     Args:
@@ -1082,7 +1064,7 @@ def apply_model_protocol_options(model_protocol_options, problem_data):
 
             new_dwi_volume = problem_data.dwi_volume[..., protocol_indices]
 
-            return problem_data.copy_new_data(new_protocol, new_dwi_volume)
+            return problem_data.copy_with_updates(new_protocol, new_dwi_volume)
         else:
             logger.info('No model protocol options to apply, using original protocol.')
 
@@ -1418,9 +1400,10 @@ class ModelProcessingWorker(object):
         map_names = list(filter(lambda d: '__mask' not in d, map_names))
 
         for map_name in map_names:
-            data = np.load(os.path.join(chunks_dir, maps_subdir, map_name + '.npy'))
+            data = np.load(os.path.join(chunks_dir, maps_subdir, map_name + '.npy'), mmap_mode='r')
             Nifti.write_volume_maps({map_name: data}, os.path.join(output_dir, maps_subdir), volume_header,
                                     gzip=self._write_volumes_gzipped)
+            del data
 
 
 class FittingProcessingWorker(ModelProcessingWorker):
@@ -1448,7 +1431,7 @@ class FittingProcessingWorker(ModelProcessingWorker):
         mask_path = os.path.join(tmp_storage_dir, '__mask.npy')
         return (model_output_exists(model, tmp_storage_dir, append_model_name_to_path=False)
                 and os.path.exists(mask_path)
-                and np.all(np.load(mask_path)[mask]))
+                and np.all(np.load(mask_path, mmap_mode='r')[mask]))
 
     def combine(self, model, problem_data, tmp_storage_dir, output_dir):
         self._combine_volumes(output_dir, tmp_storage_dir, problem_data.volume_header)

@@ -124,7 +124,7 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
     def get_protocol_problems(self, protocol=None):
         """See ProtocolCheckInterface"""
         if protocol is None:
-            protocol = self._problem_data.protocol_data_dict
+            protocol = self._problem_data.protocol
 
         problems = []
 
@@ -207,7 +207,7 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
         log_likelihoods = log_likelihood_calc.calculate(self, results_dict)
 
         k = self.get_nmr_estimable_parameters()
-        n = self._problem_data.protocol.length
+        n = self._problem_data.get_nmr_inst_per_problem()
 
         results_dict.update({'LogLikelihood': log_likelihoods})
         results_dict.update(utils.calculate_information_criterions(log_likelihoods, k, n))
