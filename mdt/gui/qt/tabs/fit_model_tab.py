@@ -305,11 +305,11 @@ class OptimOptions(object):
         self.use_model_default_optimizer = True
         self.double_precision = False
 
-        self.optimizer = mdt.configuration.config['optimization_settings']['general']['optimizers'][0]['name']
-        self.patience = mdt.configuration.config['optimization_settings']['general']['optimizers'][0]['patience']
+        settings = mdt.configuration.OptimizationSettings.get_optimizer_configs()[0]
+        self.optimizer = settings.name
+        self.patience = settings.patience
 
         self.recalculate_all = False
-        self.extra_optim_runs = mdt.configuration.config['optimization_settings']['general']['extra_optim_runs']
 
         self.noise_std = None
 
@@ -319,8 +319,6 @@ class OptimOptions(object):
 
         optimizer_config = {
             'optimizers': [{'name': self.optimizer, 'patience': self.patience}],
-            'extra_optim_runs': self.extra_optim_runs,
-            'extra_optim_runs_apply_smoothing': False,
             'load_balancer': {'name': 'EvenDistribution'},
         }
         return MetaOptimizerBuilder(optimizer_config).construct()

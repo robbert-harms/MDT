@@ -51,16 +51,6 @@ class BatchProfile(object):
             list: the list of models we want to fit to the subjects
         """
 
-    def get_model_protocol_options(self):
-        """Get the protocol options we would like to use.
-
-        These protocol options define per model which shells to use from the data. These are merged with the
-        model protocol options defined in the protocol.
-
-        Returns:
-            dict: configuration dictionary
-        """
-
     def get_subjects(self):
         """Get the information about all the subjects in the current folder.
 

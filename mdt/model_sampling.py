@@ -10,11 +10,11 @@ import collections
 from six import string_types
 from mdt.IO import Nifti
 from mdt.components_loader import get_model
-from mdt.configuration import config
+from mdt.configuration import config, get_model_config, get_processing_strategy
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.utils import create_roi, \
-    model_output_exists, get_cl_devices, get_model_config, \
-    apply_model_protocol_options, get_processing_strategy, per_model_logging_context, SamplingProcessingWorker, \
+    model_output_exists, get_cl_devices, \
+    apply_model_protocol_options, per_model_logging_context, SamplingProcessingWorker, \
     load_samples, recursive_merge_dict
 from mdt.exceptions import InsufficientProtocolError
 from mot.cl_routines.sampling.metropolis_hastings import MetropolisHastings
@@ -32,7 +32,7 @@ class ModelSampling(object):
 
     def __init__(self, model, problem_data, output_folder,
                  sampler=None, recalculate=False, cl_device_ind=None, double_precision=True,
-                 model_protocol_options=None, use_model_protocol_options=True,
+                 use_model_protocol_options=True,
                  initialize=True, initialize_using=None):
         """Sample a single model. This does not accept cascade models, only single models.
 
@@ -44,9 +44,7 @@ class ModelSampling(object):
                 model name in it (for the optimization results) and then a subdir with the samples output.
             sampler (AbstractSampler): the sampler to use, if not set we will use MCMC
             recalculate (boolean): If we want to recalculate the results if they are already present.
-            model_protocol_options (dict): specific model protocol options to use during fitting.
-                This is for example used during batch fitting to limit the protocol for certain models.
-                For instance, in the Tensor model we generally only want to use the lower b-values.
+            use_model_protocol_options (boolean): if we want to use the model protocol options or not.
             cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
                 utils.get_cl_devices().
             double_precision (boolean): if we would like to do the calculations in double precision
@@ -74,8 +72,6 @@ class ModelSampling(object):
         self._output_folder = output_folder
         self._sampler = sampler
         self._recalculate = recalculate
-        self._model_protocol_options = recursive_merge_dict(config.get('model_protocol_options', {}),
-                                                            model_protocol_options)
         self._use_model_protocol_options = use_model_protocol_options
         self._logger = logging.getLogger(__name__)
         self._cl_device_indices = cl_device_ind
@@ -118,7 +114,8 @@ class ModelSampling(object):
                     self._sampler.load_balancer = EvenDistribution()
 
                 if self._use_model_protocol_options:
-                    model_protocol_options = get_model_config([self._model.name], self._model_protocol_options)
+                    model_protocol_options = get_model_config([self._model.name],
+                                                              config.get('model_protocol_options', {}))
                     problem_data = apply_model_protocol_options(model_protocol_options, self._problem_data)
                 else:
                     problem_data = self._problem_data

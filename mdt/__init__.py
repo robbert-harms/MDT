@@ -86,7 +86,7 @@ def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalcul
 
 
 def fit_model(model, problem_data, output_folder, optimizer=None,
-              recalculate=False, only_recalculate_last=False, model_protocol_options=None,
+              recalculate=False, only_recalculate_last=False,
               use_model_protocol_options=True, cascade_subdir=False,
               cl_device_ind=None, double_precision=False):
     """Run the optimizer on the given model.
@@ -104,10 +104,6 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
             This is only of importance when dealing with CascadeModels.
             If set to true we only recalculate the last element in the chain (if recalculate is set to True, that is).
             If set to false, we recalculate everything. This only holds for the first level of the cascade.
-        model_protocol_options (dict): specific model protocol options to use during fitting.
-                This is for example used during batch fitting to limit the protocol for certain models.
-                For instance, in the Tensor model we generally only want to use the lower b-values, or for S0 only
-                the unweighted. Please note that this is merged with the options defined in the config file.
         use_model_protocol_options (boolean): if we want to use the model protocol options or not.
         cascade_subdir (boolean): if we want to create a subdirectory for the given model if it is a cascade model.
             Per default we output the maps of cascaded results in the same directory, this allows reusing cascaded
@@ -129,7 +125,7 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
         raise RuntimeError('Your components folder is not up to date. Please run the script mdt-init-user-settings.')
 
     model_fit = ModelFit(model, problem_data, output_folder, optimizer=optimizer, recalculate=recalculate,
-                         only_recalculate_last=only_recalculate_last, model_protocol_options=model_protocol_options,
+                         only_recalculate_last=only_recalculate_last,
                          use_model_protocol_options=use_model_protocol_options,
                          cascade_subdir=cascade_subdir,
                          cl_device_ind=cl_device_ind, double_precision=double_precision)
@@ -138,7 +134,7 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
 
 
 def sample_model(model, problem_data, output_folder, sampler=None, recalculate=False,
-                 model_protocol_options=None, use_model_protocol_options=True,
+                 use_model_protocol_options=True,
                  cl_device_ind=None, double_precision=False, initialize=True, initialize_using=None):
     """Sample a single model. This does not accept cascade models, only single models.
 
@@ -149,10 +145,6 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
             model name in it (for the optimization results) and then a subdir with the samples output.
         sampler (AbstractSampler): the sampler to use
         recalculate (boolean): If we want to recalculate the results if they are already present.
-        model_protocol_options (dict): specific model protocol options to use during fitting.
-                This is for example used during batch fitting to limit the protocol for certain models.
-                For instance, in the Tensor model we generally only want to use the lower b-values, or for S0 only
-                the unweighted. Please note that this is merged with the options defined in the config file.
         use_model_protocol_options (boolean): if we want to use the model protocol options or not.
         cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices().
@@ -169,7 +161,6 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
         dict: the samples per parameter as a numpy memmap.
     """
     import mdt.utils
-    from mdt.models.cascade import DMRICascadeModelInterface
     from mdt.model_sampling import ModelSampling
 
     if not utils.check_user_components():
@@ -178,7 +169,6 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
     sampling = ModelSampling(model, problem_data, output_folder,
                              sampler=sampler, recalculate=recalculate, cl_device_ind=cl_device_ind,
                              double_precision=double_precision,
-                             model_protocol_options=model_protocol_options,
                              use_model_protocol_options=use_model_protocol_options,
                              initialize=initialize,
                              initialize_using=initialize_using)
@@ -235,13 +225,12 @@ def run_function_on_batch_fit_output(data_folder, func, batch_profile=None, subj
                                             subjects_selection=subjects_selection)
 
 
-def estimate_noise_std(problem_data, estimation_cls_name=None):
+def estimate_noise_std(problem_data, estimator=None):
     """Estimate the noise standard deviation.
 
     Args:
         problem_data (DMRIProblemData): the problem data we can use to do the estimation
-        estimation_cls_name (str): the name of the estimation class to load. If none given we try each defined in the
-            current config.
+        estimator (ComplexNoiseStdEstimator): the class to use for the noise estimation.
 
     Returns:
         the noise std estimated from the data. This can either be a single float, or an ndarray.
@@ -250,7 +239,7 @@ def estimate_noise_std(problem_data, estimation_cls_name=None):
         NoiseStdEstimationNotPossible: if the noise could not be estimated
     """
     from mdt.utils import estimate_noise_std
-    return estimate_noise_std(problem_data, estimation_cls_name=estimation_cls_name)
+    return estimate_noise_std(problem_data, estimator=estimator)
 
 
 def get_cl_devices():
@@ -1153,8 +1142,8 @@ def init_user_settings(pass_if_exists=True, keep_config=True):
 
 
 @contextmanager
-def config_context(config, config_clear=()):
-    """Creates a temporary configuration context with the given config.
+def config_context(config_action):
+    """Creates a temporary configuration context with the given config action.
 
     This will temporarily alter the given configuration keys to the given values. After the context is executed
     the configuration will revert to the original settings.
@@ -1167,40 +1156,17 @@ def config_context(config, config_clear=()):
                     -   name: 'NMSimplex'
                         patience: 10
         '''
-        with mdt.config_context(mdt.yaml_string_to_dict(config)):
+        with mdt.config_context(mdt.configuration.YamlStringAction(config)):
             mdt.fit_model(...)
 
-        This loads the configuration from a YAML string, converts it to a dict using the function
-        mdt.yaml_string_to_dict() and then uses that config dict as context for the optimization.
-
-    The config_clear list can be used to clear configuration items before those items are updated with
-    the new values. This is necessary since the new config dictionary can only add or update items and can not
-    remove them. This will effectively traverse the paths in the list of given paths and pop the given item from
-    the dictionary.
+        This loads the configuration from a YAML string and uses that configuration as the context.
 
     Args:
-        config (dict): the configuration as a dictionary
-        config_clear (list of list): the configuration items to clear before we update with the config options.
-            Example: [['layer_0', 'layer_1'], ['some_other', 'somewhere']] will clear two paths (remove them from the
-            config dict before adding the new values).
+        config_action (ConfigAction): the configuration action to apply
     """
-    import copy
-    import mdt.configuration
-    from mdt.utils import recursive_merge_dict
-    old_config = copy.deepcopy(mdt.configuration.config)
-    new_config = mdt.configuration.config
-
-    def remove_from_dict(d, path):
-        for p in path[:-1]:
-            d = d[p]
-        d.pop(path[-1])
-
-    for config_path in config_clear:
-        remove_from_dict(new_config, config_path)
-
-    mdt.configuration.config = recursive_merge_dict(new_config, config, in_place=True)
+    config_action.apply()
     yield
-    mdt.configuration.config = old_config
+    config_action.unapply()
 
 
 def yaml_string_to_dict(yaml_str):
@@ -1382,27 +1348,6 @@ def create_index_matrix(brain_mask):
     return restore_volumes(roi, mask, with_volume_dim=False)
 
 
-def build_optimizer(optimizer_info):
-    """Build an optimizer either from a YAML string or a dictionary.
-
-    This uses the MetaOptimizerBuilder from mdt.utils to create a optimizer. This optimizer can then be used
-    as input to the fit_model routine.
-
-    Args:
-        optimizer_info (str or dict): either a YAML string or a dict containing the information about the optimizer
-            to build.
-
-    Returns:
-        optimizer: a MetaOptimizer with the specific settings
-    """
-    import six
-    import yaml
-    from mdt.utils import MetaOptimizerBuilder
-    if isinstance(optimizer_info, six.string_types):
-        optimizer_info = yaml.load(optimizer_info)
-    return MetaOptimizerBuilder(optimizer_info).construct()
-
-
 def get_data_shape(image_file):
     """Get the data shape of an image on file.
 
@@ -1416,10 +1361,9 @@ def get_data_shape(image_file):
 
 
 try:
-    from mdt import configuration
+    from mdt.configuration import get_logging_configuration_dict
     try:
-        conf = configuration.config['logging']['info_dict']
-        logging_config.dictConfig(configuration.config['logging']['info_dict'])
+        logging_config.dictConfig(get_logging_configuration_dict())
     except ValueError:
         print('Logging disabled')
 except ImportError:

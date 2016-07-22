@@ -5,7 +5,6 @@ import glob
 import logging
 import logging.config as logging_config
 import os
-import re
 import shutil
 import tempfile
 from collections import defaultdict
@@ -20,10 +19,13 @@ from scipy.special import jnp_zeros
 from six import string_types
 
 import mdt.configuration as configuration
+import mot.utils
 from mdt import create_index_matrix
 from mdt.IO import Nifti
 from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
-from mdt.components_loader import get_model, ProcessingStrategiesLoader, NoiseSTDCalculatorsLoader
+from mdt.components_loader import get_model
+from mdt.configuration import get_model_config, get_logging_configuration_dict, get_noise_std_estimators, \
+    recursive_merge_dict
 from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
 from mdt.data_loaders.noise_std import autodetect_noise_std_loader
 from mdt.data_loaders.protocol import autodetect_protocol_loader
@@ -32,8 +34,7 @@ from mdt.log_handlers import ModelOutputLogHandler
 from mot.base import AbstractProblemData
 from mot.cl_environments import CLEnvironmentFactory
 from mot.cl_routines.optimizing.meta_optimizer import MetaOptimizer
-from mot.factory import get_optimizer_by_name, get_filter_by_name
-import mot.utils
+from mot.factory import get_optimizer_by_name
 
 try:
     import codecs
@@ -726,10 +727,9 @@ def setup_logging(disable_existing_loggers=None):
         disable_existing_loggers (boolean): If we would like to disable the existing loggers when creating this one.
             None means use the default from the config, True and False overwrite the config.
     """
-    conf = configuration.config['logging']['info_dict']
+    conf = get_logging_configuration_dict()
     if disable_existing_loggers is not None:
         conf['disable_existing_loggers'] = True
-
     logging_config.dictConfig(conf)
 
 
@@ -813,51 +813,6 @@ def sort_volumes_per_voxel(input_volumes, sort_matrix):
         sorted_volume = volume[list(np.ogrid[[slice(x) for x in volume.shape]][:-1])+[sort_matrix]]
         return [np.reshape(sorted_volume[..., ind], sorted_volume.shape[0:3] + (1,))
                 for ind in range(len(input_volumes))]
-
-
-def recursive_merge_dict(dictionary, update_dict, in_place=False):
-    """ Recursively merge the given dictionary with the new values.
-
-    If in_place is false this does not merge in place but creates new dictionary.
-
-    If update_dict is None we return the original dictionary, or a copy if in_place is False.
-
-    Args:
-        dictionary (dict): the dictionary we want to update
-        update_dict (dict): the dictionary with the new values
-        in_place (boolean): if true, the changes are in place in the first dict.
-
-    Returns:
-        dict: a combination of the two dictionaries in which the values of the last dictionary take precedence over
-            that of the first.
-            Example:
-                recursive_merge_dict(
-                    {'k1': {'k2': 2}},
-                    {'k1': {'k2': {'k3': 3}}, 'k4': 4}
-                )
-
-                gives:
-
-                {'k1': {'k2': {'k3': 3}}, 'k4': 4}
-
-            In the case of lists in the dictionary, we do no merging and always use the new value.
-    """
-    if not in_place:
-        dictionary = copy.deepcopy(dictionary)
-
-    if not update_dict:
-        return dictionary
-
-    def merge(d, upd):
-        for k, v in upd.items():
-            if isinstance(v, collections.Mapping):
-                r = merge(d.get(k, {}), v)
-                d[k] = r
-            else:
-                d[k] = upd[k]
-        return d
-
-    return merge(dictionary, update_dict)
 
 
 def load_problem_data(volume_info, protocol, mask, static_maps=None, gradient_deviations=None, noise_std=None):
@@ -964,15 +919,7 @@ class MetaOptimizerBuilder(object):
         meta_optimizer.optimizer = self._get_optimizer(optim_config['optimizers'][0])
         meta_optimizer.extra_optim_runs_optimizers = [self._get_optimizer(optim_config['optimizers'][i])
                                                       for i in range(1, len(optim_config['optimizers']))]
-
-        for attr in ('extra_optim_runs', 'extra_optim_runs_apply_smoothing', 'extra_optim_runs_use_perturbation'):
-            meta_optimizer.__setattr__(attr, optim_config[attr])
-
-        if 'smoothing_routines' in optim_config and len(optim_config['smoothing_routines']):
-            meta_optimizer.smoother = self._get_smoother(optim_config['smoothing_routines'][0])
-            meta_optimizer.extra_optim_runs_smoothers = [self._get_smoother(optim_config['smoothing_routines'][i])
-                                                         for i in range(1, len(optim_config['smoothing_routines']))]
-
+        meta_optimizer.extra_optim_runs = optim_config['extra_optim_runs']
         return meta_optimizer
 
     def _get_configuration_dict(self, model_names):
@@ -993,10 +940,6 @@ class MetaOptimizerBuilder(object):
         optimizer_options = options.get('optimizer_options')
         return optimizer(patience=patience, optimizer_options=optimizer_options)
 
-    def _get_smoother(self, options):
-        smoother = get_filter_by_name(options['name'])
-        return smoother(options.get('size', None))
-
 
 def get_cl_devices():
     """Get a list of all CL devices in the system.
@@ -1007,77 +950,6 @@ def get_cl_devices():
         A list of CLEnvironments, one for each device in the system.
     """
     return CLEnvironmentFactory.smart_device_selection()
-
-
-def get_model_config(model_names, config):
-    """Get from the given dictionary the config for the given model.
-
-    This tries to find the best match between the given config items (by key) and the given model list. For example
-    if model_names is ['BallStick', 'S0'] and we have the following config dict:
-        {'^S0$': 0,
-         '^BallStick$': 1
-         ('^BallStick$', '^S0$'): 2,
-         ('^BallStickStick$', '^BallStick$', '^S0$'): 3,
-         }
-
-    then this function should return 2. because that one is the best match, even though the last option is also a
-    viable match. That is, since a subset of the keys in the last option also matches the model names, it is
-    considered a match as well. Still the best match is the third option (returning 2).
-
-    Args:
-        model_names (list of str): the names of the models we want to match. This should contain the entire
-            recursive list of cascades leading to the single model we want to get the config for.
-        config (dict): the config items with as keys either a single model regex for a name or a list of regex for
-            a chain of model names.
-
-    Returns:
-        The config content of the best matching key.
-    """
-    if not config:
-        return {}
-
-    def get_key_length(key):
-        if isinstance(key, tuple):
-            return len(key)
-        return 1
-
-    def is_match(model_names, config_key):
-        if isinstance(model_names, string_types):
-            model_names = [model_names]
-
-        if len(model_names) != get_key_length(config_key):
-            return False
-
-        if isinstance(config_key, tuple):
-            return all([re.match(config_key[ind], model_names[ind]) for ind in range(len(config_key))])
-
-        return re.match(config_key, model_names[0])
-
-    key_length_lookup = ((get_key_length(key), key) for key in config.keys())
-    ascending_keys = tuple(item[1] for item in sorted(key_length_lookup, key=lambda info: info[0]))
-
-    # direct matching
-    for key in ascending_keys:
-        if is_match(model_names, key):
-            return config[key]
-
-    # partial matching string keys to last model name
-    for key in ascending_keys:
-        if not isinstance(key, tuple):
-            if is_match(model_names[-1], key):
-                return config[key]
-
-    # partial matching tuple keys with a moving filter
-    for key in ascending_keys:
-        if isinstance(key, tuple):
-            for start_ind in range(len(key)):
-                sub_key = key[start_ind:]
-
-                if is_match(model_names, sub_key):
-                    return config[key]
-
-    # no match found
-    return {}
 
 
 def apply_model_protocol_options(model_protocol_options, problem_data):
@@ -1191,14 +1063,10 @@ def split_image_path(image_path):
     folder = os.path.dirname(image_path)
     basename = os.path.basename(image_path)
 
-    extension = ''
-    if '.nii.gz' in basename:
-        extension = '.nii.gz'
-    elif '.nii' in basename:
-        extension = '.nii'
-
-    basename = basename.replace(extension, '')
-    return folder, basename, extension
+    for extension in ['.nii.gz', '.nii']:
+        if basename[-len(extension):] == extension:
+            return folder, basename[0:-len(extension)], extension
+    return folder, basename, ''
 
 
 def calculate_information_criterions(log_likelihoods, k, n):
@@ -1225,14 +1093,21 @@ def calculate_information_criterions(log_likelihoods, k, n):
 
 class ComplexNoiseStdEstimator(object):
 
-    def __init__(self, problem_data):
+    def __init__(self):
         """Estimation routine for estimating the standard deviation of the Gaussian error in the complex signal images.
+        """
+        self._problem_data = None
+        self._logger = logging.getLogger(__name__)
+
+    def set_problem_data(self, problem_data):
+        """Set the problem data this complex noise std estimator will work on.
 
         Args:
-            problem_data the full set of problem data
+            problem_data (DMRIProblemData): the full set of problem data. If not set now you can set it using
+                the function set_problem_data()
         """
         self._problem_data = problem_data
-        self._logger = logging.getLogger(__name__)
+        return self
 
     def estimate(self, **kwargs):
         """Get a noise std for the entire volume.
@@ -1587,38 +1462,13 @@ def load_samples(data_folder, mode='c'):
     return data_dict
 
 
-def get_processing_strategy(processing_type, model_names=None):
-    """Get from the config file the correct processing strategy for the given model.
-
-    Args:
-        processing_type (str): 'optimization', 'sampling' or any other of the
-            processing_strategies defined in the config
-        model_names (list of str): the list of model names (the full recursive cascade of model names)
-
-    Returns:
-        ModelProcessingStrategy: the processing strategy to use for this model
-    """
-    strategy_name = configuration.config['processing_strategies'][processing_type]['general']['name']
-    options = configuration.config['processing_strategies'][processing_type]['general'].get('options', {}) or {}
-
-    if model_names and 'model_specific' in configuration.config['processing_strategies'][processing_type]:
-        info_dict = get_model_config(
-            model_names, configuration.config['processing_strategies'][processing_type]['model_specific'])
-
-        if info_dict:
-            strategy_name = info_dict['name']
-            options = info_dict.get('options', {}) or {}
-
-    return ProcessingStrategiesLoader().load(strategy_name, **options)
-
-
-def estimate_noise_std(problem_data, estimation_cls_name=None):
+def estimate_noise_std(problem_data, estimator=None):
     """Estimate the noise standard deviation.
 
     Args:
         problem_data (DMRIProblemData): the problem data we can use to do the estimation
-        estimation_cls_name (str): the name of the estimation class to load. If none given we try each defined in the
-            current config.
+        estimator (ComplexNoiseStdEstimator): the estimator to use for the estimation. If not set we use
+            the one in the configuration.
 
     Returns:
         the noise std estimated from the data. This can either be a single float, or an ndarray.
@@ -1626,27 +1476,25 @@ def estimate_noise_std(problem_data, estimation_cls_name=None):
     Raises:
         NoiseStdEstimationNotPossible: if the noise could not be estimated
     """
-    loader = NoiseSTDCalculatorsLoader()
     logger = logging.getLogger(__name__)
-
     logger.info('Trying to estimate a noise std.')
 
-    def estimate(estimator_name):
-        estimator = loader.get_class(estimator_name)(problem_data)
+    def estimate(estimation_routine):
+        estimator = estimation_routine.set_problem_data(problem_data)
         noise_std = estimator.estimate()
 
         if isinstance(noise_std, np.ndarray):
-            logger.info('Found voxel-wise noise std using estimator {}.'.format(noise_std, estimator_name))
+            logger.info('Found voxel-wise noise std using estimator {}.'.format(noise_std, estimation_routine))
             return noise_std
 
         if np.isfinite(noise_std) and noise_std > 0:
-            logger.info('Found global noise std {} using estimator {}.'.format(noise_std, estimator_name))
+            logger.info('Found global noise std {} using estimator {}.'.format(noise_std, estimation_routine))
             return noise_std
 
-    if estimation_cls_name:
-        estimators = [estimation_cls_name]
+    if estimator:
+        estimators = [estimator]
     else:
-        estimators = configuration.config['noise_std_estimating']['general']['estimators']
+        estimators = get_noise_std_estimators()
 
     if len(estimators) == 1:
         return estimate(estimators[0])

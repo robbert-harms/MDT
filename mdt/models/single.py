@@ -8,12 +8,12 @@ from mdt.models.parsers.SingleModelExpressionParser import parse
 from mot.adapters import SimpleDataAdapter
 from mot.base import CLDataType
 from mot.cl_functions import Weight
-from mdt.utils import restore_volumes, create_roi
+from mdt.utils import create_roi
 from mdt.model_protocol_problem import MissingColumns, InsufficientShells
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
 from mot.model_building.evaluation_models import OffsetGaussianEvaluationModel
 from mot.model_building.parameter_functions.dependencies import WeightSumToOneRule
-from mot.models import SmoothableModelInterface, PerturbationModelInterface
+from mot.models import PerturbationModelInterface
 from mot.model_building.model_builders import SampleModelBuilder
 from mot.trees import CompartmentModelTree
 
@@ -24,47 +24,24 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimizable, PerturbationModelInterface):
+class DMRISingleModel(SampleModelBuilder, DMRIOptimizable, PerturbationModelInterface):
 
     def __init__(self, model_name, model_tree, evaluation_model, signal_noise_model=None, problem_data=None):
         """Create a composite dMRI sample model.
 
-        This also implements the smoothing interface to allow spatial smoothing of the data during meta-optimization.
+        This also implements the perturbation interface to allow perturbation of the data during meta-optimization.
 
         It furthermore implements some protocol check functions. These are used by the fit_model functions in MDT
         to check if the protocol is correct for the model we try to fit.
 
         Attributes:
-            smooth_white_list (list): The list of names of maps that must be smoothed. Set to None to ignore,
-                set to [] to filter no maps.
-            smooth_black_list (list): The list of names of maps that must not be smoothed. Set to None to ignore,
-                set to [] to allow all maps.
             required_nmr_shells (int): Define the minimum number of unique shells necessary for this model.
                 The default is false, which means that we don't check for this.
         """
         super(DMRISingleModel, self).__init__(model_name, model_tree, evaluation_model, signal_noise_model,
                                               problem_data=problem_data)
-        self.smooth_white_list = None
-        self.smooth_black_list = None
         self.required_nmr_shells = False
         self._logger = logging.getLogger(__name__)
-
-    def set_smooth_lists(self, white_list=None, black_list=None):
-        """Set the list with maps to filter.
-
-        If the white list is set the black list is ignored. If the white list is not set and the black list is set
-        then the black list is used.
-
-        The white list regulates the maps that must be smoothed. The black list lists those that must be ignored.
-
-        Args:
-            white_list (list): The list of names of maps that must be smoothed. Set to None to ignore, set to [] to
-                filter no maps.
-            black_list (list): The list of names of maps that must not be smoothed. Set to None to ignore, set to [] to
-                allow all maps.
-        """
-        self.smooth_white_list = white_list
-        self.smooth_black_list = black_list
 
     def get_problems_var_data(self):
         var_data_dict = super(DMRISingleModel, self).get_problems_var_data()
@@ -89,26 +66,6 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
             var_data_dict.update({'gradient_deviations': adapter})
 
         return var_data_dict
-
-    def smooth(self, results, smoother):
-        if self.smooth_white_list is not None:
-            smoothable = [e for e in self.get_optimized_param_names() if e in self.smooth_white_list]
-        elif self.smooth_black_list is not None:
-            smoothable = [e for e in self.get_optimized_param_names() if e not in self.smooth_black_list]
-        else:
-            smoothable = self.get_optimized_param_names()
-
-        if smoothable:
-            mask = self._problem_data.mask
-            to_smooth = {key: value for key, value in results.items() if key in smoothable}
-            not_to_smooth = {key: value for key, value in results.items() if key not in smoothable}
-
-            roi_smoothed = smoother.filter(restore_volumes(to_smooth, mask, with_volume_dim=False), mask,
-                                           self.double_precision)
-            smoothed_results = create_roi(roi_smoothed, mask)
-            smoothed_results.update(not_to_smooth)
-            return smoothed_results
-        return results
 
     def perturbate(self, results):
         for map_name in self.get_optimized_param_names():

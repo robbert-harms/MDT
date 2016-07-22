@@ -12,12 +12,12 @@ from mdt import __version__
 from mdt.IO import Nifti
 from mdt.batch_utils import batch_profile_factory, AllSubjects
 from mdt.components_loader import get_model
-from mdt.configuration import config
+from mdt.configuration import config, get_model_config, get_processing_strategy
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.protocols import write_protocol
 from mdt.utils import create_roi, MetaOptimizerBuilder, get_cl_devices, \
-    get_model_config, apply_model_protocol_options, model_output_exists, split_image_path, get_processing_strategy, \
-    FittingProcessingWorker, per_model_logging_context, recursive_merge_dict
+    apply_model_protocol_options, model_output_exists, split_image_path, \
+    FittingProcessingWorker, per_model_logging_context
 from mdt.exceptions import InsufficientProtocolError
 from mot.load_balance_strategies import EvenDistribution
 import mot.configuration
@@ -87,8 +87,6 @@ class BatchFitting(object):
             raise RuntimeError('No suitable batch profile could be '
                                'found for the directory {0}'.format(os.path.abspath(data_folder)))
 
-        self._model_protocol_options = self._batch_profile.get_model_protocol_options()
-
         self._logger.info('Using MDT version {}'.format(__version__))
         self._logger.info('Using batch profile: {0}'.format(self._batch_profile))
         self._subjects = self._subjects_selection.get_selection(self._batch_profile.get_subjects())
@@ -127,8 +125,8 @@ class BatchFitting(object):
         """Run the computations on the current dir with all the configured options. """
         self._logger.info('Running computations on {0} subjects'.format(len(self._subjects)))
 
-        run_func = _BatchFitRunner(self._model_protocol_options, self._models_to_fit,
-                                   self._recalculate, self._cascade_subdir, self._cl_device_ind, self._double_precision)
+        run_func = _BatchFitRunner(self._models_to_fit, self._recalculate, self._cascade_subdir,
+                                   self._cl_device_ind, self._double_precision)
         list(map(run_func, self._subjects))
 
         return self._subjects
@@ -136,9 +134,7 @@ class BatchFitting(object):
 
 class _BatchFitRunner(object):
 
-    def __init__(self, model_protocol_options, models_to_fit, recalculate, cascade_subdir, cl_device_ind,
-                 double_precision):
-        self._model_protocol_options = model_protocol_options
+    def __init__(self, models_to_fit, recalculate, cascade_subdir, cl_device_ind, double_precision):
         self._models_to_fit = models_to_fit
         self._recalculate = recalculate
         self._cascade_subdir = cascade_subdir
@@ -175,7 +171,6 @@ class _BatchFitRunner(object):
                                          os.path.join(output_dir, split_image_path(brain_mask_fname)[1]),
                                          recalculate=self._recalculate,
                                          only_recalculate_last=True,
-                                         model_protocol_options=self._model_protocol_options,
                                          cascade_subdir=self._cascade_subdir,
                                          cl_device_ind=self._cl_device_ind,
                                          double_precision=self._double_precision)
@@ -201,8 +196,7 @@ class _BatchFitRunner(object):
 class ModelFit(object):
 
     def __init__(self, model, problem_data, output_folder, optimizer=None,
-                 recalculate=False, only_recalculate_last=False, model_protocol_options=None,
-                 use_model_protocol_options=True, cascade_subdir=False,
+                 recalculate=False, only_recalculate_last=False, use_model_protocol_options=True, cascade_subdir=False,
                  cl_device_ind=None, double_precision=False):
         """Setup model fitting for the given input model and data.
 
@@ -221,10 +215,6 @@ class ModelFit(object):
                 If set to true we only recalculate the last element in the chain
                     (if recalculate is set to True, that is).
                 If set to false, we recalculate everything. This only holds for the first level of the cascade.
-            model_protocol_options (dict): specific model protocol options to use during fitting.
-                This is for example used during batch fitting to limit the protocol for certain models.
-                For instance, in the Tensor model we generally only want to use the lower b-values, or for S0 only
-                the unweighted. Please note that this is merged with the options defined in the config file.
             use_model_protocol_options (boolean): if we want to use the model protocol options or not.
             cascade_subdir (boolean): if we want to create a subdirectory for the given model if it is a cascade model.
                 Per default we output the maps of cascaded results in the same directory, this allows reusing cascaded
@@ -248,8 +238,6 @@ class ModelFit(object):
         self._optimizer = optimizer
         self._recalculate = recalculate
         self._only_recalculate_last = only_recalculate_last
-        self._model_protocol_options = recursive_merge_dict(config.get('model_protocol_options', {}),
-                                                            model_protocol_options)
         self._use_model_protocol_options = use_model_protocol_options
         self._logger = logging.getLogger(__name__)
         self._cl_device_indices = cl_device_ind
@@ -279,16 +267,15 @@ class ModelFit(object):
         Returns:
             The result maps for the model we are running.
         """
-        return self._run(self._model, self._recalculate, self._only_recalculate_last, {})
+        return self._run(self._model, self._recalculate, self._only_recalculate_last)
 
-    def _run(self, model, recalculate, only_recalculate_last, meta_optimizer_config):
+    def _run(self, model, recalculate, only_recalculate_last):
         """Recursively calculate the (cascade) models
 
         Args:
             model: The model to fit, if cascade we recurse
             recalculate (boolean): if we recalculate
             only_recalculate_last: if we recalculate, if we only recalculate the last item in the first cascade
-            meta_optimizer_config: optional optimization configuration.
         """
         self._model_names_list.append(model.name)
 
@@ -306,7 +293,7 @@ class ModelFit(object):
                     else:
                         sub_recalculate = True
 
-                new_results = self._run(sub_model, sub_recalculate, recalculate, meta_optimizer_config)
+                new_results = self._run(sub_model, sub_recalculate, recalculate)
                 results.update({sub_model.name: new_results})
                 last_result = new_results
                 self._model_names_list.pop()
@@ -314,9 +301,9 @@ class ModelFit(object):
             model.reset()
             return last_result
 
-        return self._run_single_model(model, recalculate, meta_optimizer_config, self._model_names_list)
+        return self._run_single_model(model, recalculate, self._model_names_list)
 
-    def _run_single_model(self, model, recalculate, meta_optimizer_config, model_names):
+    def _run_single_model(self, model, recalculate, model_names):
         with mot.configuration.config_context(RuntimeConfigurationAction(cl_environments=self._cl_envs,
                                                                          load_balancer=self._load_balancer)):
             with per_model_logging_context(os.path.join(self._output_folder, model.name)):
@@ -324,7 +311,7 @@ class ModelFit(object):
                 self._logger.info('Preparing for model {0}'.format(model.name))
                 self._logger.info('Current cascade: {0}'.format(model_names))
 
-                optimizer = self._optimizer or MetaOptimizerBuilder(meta_optimizer_config).construct(model_names)
+                optimizer = self._optimizer or MetaOptimizerBuilder().construct(model_names)
 
                 if self._cl_device_indices is not None:
                     all_devices = get_cl_devices()
@@ -332,7 +319,7 @@ class ModelFit(object):
                     optimizer.load_balancer = EvenDistribution()
 
                 if self._use_model_protocol_options:
-                    model_protocol_options = get_model_config(model_names, self._model_protocol_options)
+                    model_protocol_options = get_model_config(model_names, config.get('model_protocol_options', {}))
                     problem_data = apply_model_protocol_options(model_protocol_options, self._problem_data)
                 else:
                     problem_data = self._problem_data
