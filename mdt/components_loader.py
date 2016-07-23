@@ -64,20 +64,24 @@ class ComponentBuilder(object):
 
 
 def bind_function(func):
-    """This decorator is for methods in ComponentConfigs that we would like to bound to the build component.
+    """This decorator is for methods in ComponentConfigs that we would like to bind to the constructed component.
 
-    Example usage would be if you want to inherit or overwrite a function from the build model:
+    Example suppose you want to inherit or overwrite a function in the constructed model, then in your template/config
+    you should define the function and add @bind_function to it as a decorator, like this:
+
+        # the class we want to create
         class MyGoal(object):
             def test(self):
                 print('test')
 
+        # the template class from which we want to construct a new MyGoal, note the @bind_function
         class MyConfig(ComponentConfig):
             @bind_function
             def test(self):
                 super(MyGoal, self).test()
                 print('test2')
 
-    The component builder should take care to actually bind the new method to the final object.
+    The component builder takes care to actually bind the new method to the final object.
 
     What this will do essentially is that it will add the property bind to the function. This should act as a
     flag indicating that that function should be bound.
@@ -103,11 +107,7 @@ def method_binding_meta(template, *bases):
             attributes.update(template._bound_methods)
             return super(ApplyMethodBinding, mcs).__new__(mcs, name, bases, attributes)
 
-    class metaclass(ApplyMethodBinding):
-        def __new__(cls, name, this_bases, d):
-            return ApplyMethodBinding(name, bases, d)
-
-    return type.__new__(metaclass, 'temporary_class', (), {})
+    return with_metaclass(ApplyMethodBinding, *bases)
 
 
 class FindBoundMethods(type):

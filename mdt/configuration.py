@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from pkg_resources import resource_stream
 from six import string_types
 
+from mot.factory import get_optimizer_by_name
 from mdt.components_loader import ProcessingStrategiesLoader, NoiseSTDCalculatorsLoader
 
 __author__ = 'Robbert Harms'
@@ -16,7 +17,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 """The config dictionary."""
-config = {}
+_config = {}
 
 
 def load_builtin():
@@ -64,9 +65,9 @@ def load_from_yaml(yaml_str):
     raise ValueError('No config dict found in YAML string.')
 
 
-config = load_builtin()
+_config = load_builtin()
 try:
-    config = load_user_home()
+    _config = load_user_home()
 except ValueError:
     pass
 
@@ -77,7 +78,7 @@ def gzip_optimization_results():
     Returns:
         boolean: True if the results of optimization computations should be gzipped, False otherwise.
     """
-    return config['output_format']['optimization']['gzip']
+    return _config['output_format']['optimization']['gzip']
 
 
 def gzip_sampling_results():
@@ -86,7 +87,7 @@ def gzip_sampling_results():
     Returns:
         boolean: True if the results of sampling computations should be gzipped, False otherwise.
     """
-    return config['output_format']['optimization']['gzip']
+    return _config['output_format']['optimization']['gzip']
 
 
 def get_logging_configuration_dict():
@@ -98,7 +99,7 @@ def get_logging_configuration_dict():
     Returns:
         dict: the configuration dict for use with dictConfig of the Python logging modules
     """
-    return config['logging']['info_dict']
+    return _config['logging']['info_dict']
 
 
 class OptimizationSettings(object):
@@ -114,11 +115,11 @@ class OptimizationSettings(object):
         Returns:
             list of OptimizerConfig: the optimization configuration objects per defined optimizer for this model.
         """
-        settings = [OptimizerConfig(m['name'], m['patience']) for m in
-                    config['optimization_settings']['general']['optimizers']]
+        settings = [OptimizerConfig(m['name'], m.get('patience', None), m.get('optimizer_options', None)) for m in
+                    _config['optimization_settings']['general']['optimizers']]
 
         if model_names is not None:
-            model_config = get_model_config(model_names, config['optimization_settings']['model_specific'])
+            model_config = get_model_config(model_names, _config['optimization_settings']['model_specific'])
             if model_config:
                 return [OptimizerConfig(m['name'], m['patience']) for m in model_config['optimizers']]
 
@@ -137,13 +138,22 @@ class OptimizationSettings(object):
         """
         return [el.name for el in OptimizationSettings.get_optimizer_configs(model_name)]
 
+    @staticmethod
+    def get_extra_optim_runs():
+        return int(_config['optimization_settings']['general']['extra_optim_runs'])
+
 
 class OptimizerConfig(object):
 
-    def __init__(self, name, patience):
+    def __init__(self, name, patience=None, optimizer_options=None):
         """Container object for an optimization routine settings"""
         self.name = name
         self.patience = patience
+        self.optimizer_options = optimizer_options
+
+    def build_optimizer(self):
+        optimizer = get_optimizer_by_name(self.name)
+        return optimizer(patience=self.patience, optimizer_options=self.optimizer_options)
 
 
 def get_model_config(model_names, config):
@@ -228,11 +238,11 @@ def get_processing_strategy(processing_type, model_names=None):
     Returns:
         ModelProcessingStrategy: the processing strategy to use for this model
     """
-    strategy_name = config['processing_strategies'][processing_type]['general']['name']
-    options = config['processing_strategies'][processing_type]['general'].get('options', {}) or {}
+    strategy_name = _config['processing_strategies'][processing_type]['general']['name']
+    options = _config['processing_strategies'][processing_type]['general'].get('options', {}) or {}
 
-    if model_names and 'model_specific' in config['processing_strategies'][processing_type]:
-        info_dict = get_model_config(model_names, config['processing_strategies'][processing_type]['model_specific'])
+    if model_names and 'model_specific' in _config['processing_strategies'][processing_type]:
+        info_dict = get_model_config(model_names, _config['processing_strategies'][processing_type]['model_specific'])
 
         if info_dict:
             strategy_name = info_dict['name']
@@ -248,7 +258,7 @@ def get_noise_std_estimators():
         list of ComplexNoiseStdEstimator: the noise estimators to use for finding the complex noise
     """
     loader = NoiseSTDCalculatorsLoader()
-    return [loader.load(c) for c in config['noise_std_estimating']['general']['estimators']]
+    return [loader.load(c) for c in _config['noise_std_estimating']['general']['estimators']]
 
 
 @contextmanager
@@ -280,6 +290,16 @@ class ConfigAction(object):
         """Reset the current configuration to the previous state."""
 
 
+class VoidConfigAction(ConfigAction):
+    """Does nothing. Meant as a container to not have to check for None's everywhere."""
+
+    def apply(self):
+        pass
+
+    def unapply(self):
+        pass
+
+
 class SimpleConfigAction(ConfigAction):
 
     def __init__(self):
@@ -295,13 +315,13 @@ class SimpleConfigAction(ConfigAction):
 
     def apply(self):
         """Apply the current action to the current runtime configuration."""
-        self._old_config = deepcopy(config)
+        self._old_config = deepcopy(_config)
         self._apply()
 
     def unapply(self):
         """Reset the current configuration to the previous state."""
-        global config
-        config = self._old_config
+        global _config
+        _config = self._old_config
 
     def _apply(self):
         """Implement this function add apply() logic after this class saves the current config."""
@@ -314,8 +334,8 @@ class YamlStringAction(SimpleConfigAction):
         self._yaml_str = yaml_str
 
     def _apply(self):
-        global config
-        config = recursive_merge_dict(config, self._get_dict_from_yaml(), in_place=True)
+        global _config
+        _config = recursive_merge_dict(_config, self._get_dict_from_yaml(), in_place=True)
 
     def _get_dict_from_yaml(self):
         d = yaml.load(self._yaml_str)

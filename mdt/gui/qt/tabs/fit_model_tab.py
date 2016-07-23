@@ -309,8 +309,12 @@ class OptimOptions(object):
         if self.use_model_default_optimizer:
             return None
 
-        optimizer_config = {
-            'optimizers': [{'name': self.optimizer, 'patience': self.patience}],
-            'load_balancer': {'name': 'EvenDistribution'},
-        }
-        return MetaOptimizerBuilder(optimizer_config).construct()
+        config_action = mdt.configuration.YamlStringAction('''
+            optimization_settings:
+                general:
+                    optimizers:
+                        -   name: {name}
+                            patience: {patience}
+        '''.format(name=self.optimizer, patience=self.patience))
+
+        return MetaOptimizerBuilder(config_action).construct()

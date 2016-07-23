@@ -19,12 +19,12 @@ from six import string_types
 
 import mdt.configuration as configuration
 import mot.utils
+from configuration import config_context
 from mdt import create_index_matrix
 from mdt.IO import Nifti
 from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
 from mdt.components_loader import get_model
-from mdt.configuration import get_model_config, get_logging_configuration_dict, get_noise_std_estimators, \
-    recursive_merge_dict
+from mdt.configuration import get_logging_configuration_dict, get_noise_std_estimators
 from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
 from mdt.data_loaders.noise_std import autodetect_noise_std_loader
 from mdt.data_loaders.protocol import autodetect_protocol_loader
@@ -33,7 +33,6 @@ from mdt.log_handlers import ModelOutputLogHandler
 from mot.base import AbstractProblemData
 from mot.cl_environments import CLEnvironmentFactory
 from mot.cl_routines.optimizing.meta_optimizer import MetaOptimizer
-from mot.factory import get_optimizer_by_name
 
 try:
     import codecs
@@ -883,61 +882,36 @@ def flatten(input_it):
 
 class MetaOptimizerBuilder(object):
 
-    def __init__(self, meta_optimizer_config=None):
+    def __init__(self, config_action=configuration.VoidConfigAction()):
         """Create a new meta optimizer builder.
 
-        This will create a new MetaOptimizer using settings from the config file or from the meta_optimizer_config
-        parameter in this constructor.
-
-        If meta_optimizer_config is set it takes precedence over the values in the configuration.
+        This will create a new MetaOptimizer using settings from the config file. You can update the config
+        during optimizer creation using a config action.
 
         Args;
-            meta_optimizer_config (dict): optimizer configuration settings
-                The dict should only contain the elements inside optimization_settings.general
-                Example config dict:
-                    meta_optimizer_config = {
-                        'optimizers': [{'name': 'NMSimplex', 'patience': 30, 'optimizer_options': {} }],
-                        'extra_optim_runs': 0,
-                        ...
-                    }
+            config_action (ConfigAction): the configuration action to apply during optimizer creation.
         """
-        self._meta_optimizer_config = meta_optimizer_config or {}
+        self._config_action = config_action
 
     def construct(self, model_names=None):
         """Construct a new meta optimizer with the options from the current configuration.
 
         If model_name is given, we try to load the specific options for that model from the configuration. If it it not
-        given we load the general options under 'general/meta_optimizer'.
+        given we load the general options under 'general'.
 
         Args:
             model_names (list of str): the list of model names
         """
-        optim_config = self._get_configuration_dict(model_names)
-        meta_optimizer = MetaOptimizer()
+        with config_context(self._config_action):
+            meta_optimizer = MetaOptimizer()
 
-        meta_optimizer.optimizer = self._get_optimizer(optim_config['optimizers'][0])
-        meta_optimizer.extra_optim_runs_optimizers = [self._get_optimizer(optim_config['optimizers'][i])
-                                                      for i in range(1, len(optim_config['optimizers']))]
-        meta_optimizer.extra_optim_runs = optim_config['extra_optim_runs']
-        return meta_optimizer
+            optimizer_settings = configuration.OptimizationSettings.get_optimizer_configs(model_names)
 
-    def _get_configuration_dict(self, model_names):
-        current_config = configuration.config['optimization_settings']
-        optim_config = current_config['general']
-
-        if model_names and 'model_specific' in current_config:
-            info_dict = get_model_config(model_names, current_config['model_specific'])
-            if info_dict:
-                optim_config = recursive_merge_dict(optim_config, info_dict)
-
-        optim_config = recursive_merge_dict(optim_config, self._meta_optimizer_config)
-        return optim_config
-
-    def _get_optimizer(self, options):
-        optimizer = get_optimizer_by_name(options['name'])
-        patience = options.get('patience', None)
-        optimizer_options = options.get('optimizer_options')
-        return optimizer(patience=patience, optimizer_options=optimizer_options)
+            meta_optimizer.optimizer = optimizer_settings[0].build_optimizer()
+            meta_optimizer.extra_optim_runs_optimizers = [optimizer_settings[i].build_optimizer()
+                                                          for i in range(1, len(optimizer_settings))]
+            meta_optimizer.extra_optim_runs = configuration.OptimizationSettings.get_extra_optim_runs()
+            return meta_optimizer
 
 
 def get_cl_devices():
