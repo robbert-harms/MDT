@@ -17,14 +17,13 @@ from numpy.lib.format import open_memmap
 from scipy.special import jnp_zeros
 from six import string_types
 
-import mdt.configuration as configuration
 import mot.utils
-from configuration import config_context
 from mdt import create_index_matrix
 from mdt.IO import Nifti
 from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
 from mdt.components_loader import get_model
-from mdt.configuration import get_logging_configuration_dict, get_noise_std_estimators
+from mdt.configuration import get_logging_configuration_dict, get_noise_std_estimators, config_context, VoidConfigAction, \
+    OptimizationSettings, gzip_optimization_results, gzip_sampling_results
 from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
 from mdt.data_loaders.noise_std import autodetect_noise_std_loader
 from mdt.data_loaders.protocol import autodetect_protocol_loader
@@ -882,7 +881,7 @@ def flatten(input_it):
 
 class MetaOptimizerBuilder(object):
 
-    def __init__(self, config_action=configuration.VoidConfigAction()):
+    def __init__(self, config_action=VoidConfigAction()):
         """Create a new meta optimizer builder.
 
         This will create a new MetaOptimizer using settings from the config file. You can update the config
@@ -905,12 +904,12 @@ class MetaOptimizerBuilder(object):
         with config_context(self._config_action):
             meta_optimizer = MetaOptimizer()
 
-            optimizer_settings = configuration.OptimizationSettings.get_optimizer_configs(model_names)
+            optimizer_settings = OptimizationSettings.get_optimizer_configs(model_names)
 
             meta_optimizer.optimizer = optimizer_settings[0].build_optimizer()
             meta_optimizer.extra_optim_runs_optimizers = [optimizer_settings[i].build_optimizer()
                                                           for i in range(1, len(optimizer_settings))]
-            meta_optimizer.extra_optim_runs = configuration.OptimizationSettings.get_extra_optim_runs()
+            meta_optimizer.extra_optim_runs = OptimizationSettings.get_extra_optim_runs()
             return meta_optimizer
 
 
@@ -1275,7 +1274,7 @@ class FittingProcessingWorker(ModelProcessingWorker):
         """
         super(FittingProcessingWorker, self).__init__()
         self._optimizer = optimizer
-        self._write_volumes_gzipped = configuration.gzip_optimization_results()
+        self._write_volumes_gzipped = gzip_optimization_results()
 
     def process(self, model, problem_data, mask, tmp_storage_dir):
         results, extra_output = self._optimizer.minimize(model, full_output=True)
@@ -1307,7 +1306,7 @@ class SamplingProcessingWorker(ModelProcessingWorker):
         """
         super(SamplingProcessingWorker, self).__init__()
         self._sampler = sampler
-        self._write_volumes_gzipped = configuration.gzip_sampling_results()
+        self._write_volumes_gzipped = gzip_sampling_results()
 
     def process(self, model, problem_data, mask, tmp_storage_dir):
         results, other_output = self._sampler.sample(model, full_output=True)

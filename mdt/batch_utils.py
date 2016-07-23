@@ -4,6 +4,7 @@ import os
 import shutil
 
 import numpy as np
+import six
 from six import string_types
 from mdt import protocols
 from mdt.components_loader import BatchProfilesLoader
@@ -305,25 +306,49 @@ class AllSubjects(BatchSubjectSelection):
 
 class SelectedSubjects(BatchSubjectSelection):
 
-    def __init__(self, subject_ids=None, indices=None):
+    def __init__(self, subject_ids=None, indices=None, start_from=None):
         """Only process the selected subjects.
 
         This method allows either a selection by index (unsafe for the order may change) or by subject name/ID (more
-        safe in general). Both are used simultaneously.
+        safe in general). If start_from is given it additionally limits the list of selected subjects to include
+        only those after that subject. If only start_from is given we will process all subjects after that subject.
+        All options can be used simultaneously.
+
+        If subject_ids or indices is None, we will ignore that option. Set to an empty list to enable filtering
+        everything.
 
         Args:
             subject_ids (list of str): the list of names of subjects to process
             indices (list/tuple of int): the list of indices of subjects we wish to process
+            start_from (list or int): the index of the name of the subject from which we want to start processing.
         """
-        self.subject_ids = subject_ids or []
-        self.indices = indices or []
+        self.subject_ids = subject_ids
+        self.indices = indices
+        self.start_from = start_from
 
     def get_selection(self, subjects):
+        starting_pos = self._get_starting_pos(subjects)
+
         return_list = []
         for ind, subject in enumerate(subjects):
-            if ind in self.indices or subject.subject_id in self.subject_ids:
-                return_list.append(subject)
+            if ind >= starting_pos:
+                if ((self.indices is None or ind in self.indices) or
+                        (self.subject_ids is None or subject.subject_id in self.subject_ids)):
+                    return_list.append(subject)
         return return_list
+
+    def _get_starting_pos(self, subjects):
+        if self.start_from is None:
+            return 0
+
+        if isinstance(self.start_from, six.string_types):
+            for ind, subject in enumerate(subjects):
+                if subject.subject_id == self.start_from:
+                    return ind
+
+        for ind, subject in enumerate(subjects):
+            if ind == int(self.start_from):
+                return ind
 
 
 class BatchFitProtocolLoader(ProtocolLoader):
