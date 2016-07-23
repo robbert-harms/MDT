@@ -1,6 +1,6 @@
 import numpy as np
 
-from components_loader import bind_function
+from mdt.components_loader import bind_function
 from mdt.models.single import DMRISingleModelConfig
 
 __author__ = 'Robbert Harms'
