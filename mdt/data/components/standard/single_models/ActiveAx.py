@@ -9,7 +9,6 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class ActiveAx(DMRISingleModelConfig):
 
-    name = 'ActiveAx'
     ex_vivo_suitable = False
     description = 'The standard ActiveAx model'
     model_expression = '''

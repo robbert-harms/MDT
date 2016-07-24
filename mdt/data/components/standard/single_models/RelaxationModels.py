@@ -1,3 +1,6 @@
+import numpy as np
+
+from mdt.components_loader import bind_function
 from mot.model_building.evaluation_models import GaussianEvaluationModel
 from mdt.models.single import DMRISingleModelConfig
 
@@ -17,79 +20,71 @@ class S0TM(DMRISingleModelConfig):
 
 class S0T2(DMRISingleModelConfig):
 
-        name = 'S0-T2'
-        description = 'Models the unweighted signal (aka. b0) with an extra T2.'
-        model_expression = 'S0 * ExpT2Dec'
+    name = 'S0-T2'
+    description = 'Models the unweighted signal (aka. b0) with an extra T2.'
+    model_expression = 'S0 * ExpT2Dec'
 
-        # for proper initialization, please take the highest S0 value in your data.
-        inits = {'S0.s0': 50.0}
-        upper_bounds = {'ExpT2Dec.T2': 0.10,
-                        'S0.s0': 150}
-
-
-class S0LinT2(DMRISingleModelConfig):
-
-        name = 'S0LinT2'
-        description = 'Models the unweighted signal (aka. b0) with an extra T2.'
-        model_expression = 'S0 + LinT2Dec'
-        upper_bounds = {'LinT2Dec.R2': 1000,
-                        'S0.s0': 7.0}  # In this model, S0 is actually ln(S0).
+    # for proper initialization, please take the highest S0 value in your data.
+    inits = {'S0.s0': 50.0}
+    upper_bounds = {'ExpT2Dec.T2': 0.10,
+                    'S0.s0': 150}
 
 
-class S0T2(DMRISingleModelConfig):
+class S0T2Linear(DMRISingleModelConfig):
 
-        name = 'S0-T2'
-        description = 'Models the unweighted text_message_signal (aka. b0) with an extra T2.'
-        model_expression = 'S0 * ExpT2Dec'
+    description = 'Models the unweighted signal (aka. b0) with an extra T2.'
+    model_expression = 'S0 + LinT2Dec'
+    upper_bounds = {'LinT2Dec.R2': 1000,
+                    'S0.s0': 7.0}
 
-        # for proper initialization, please take the highest S0 value in your data.
-        #inits = {'S0.s0': 50.0}
-        upper_bounds = {'ExpT2Dec.T2': 0.15}
+    @bind_function
+    def _transform_observations(self, observations):
+        return np.log(observations)
 
 
 class S0_IRT1(DMRISingleModelConfig):
 
-        name = 'S0-ExpT1DecIR'
-        description = 'Model with multi-IR data (?)'
-        model_expression = 'S0 * ExpT1DecIR'
+    name = 'S0-ExpT1DecIR'
+    description = 'Model with multi-IR data (?)'
+    model_expression = 'S0 * ExpT1DecIR'
 
-        # for proper initialization, please take the highest S0 value in your data.
-        inits = {'S0.s0': 50.0}
-        upper_bounds = {'ExpT1DecIR.T2': 0.10,
-                        'S0.s0': 150}
+    # for proper initialization, please take the highest S0 value in your data.
+    inits = {'S0.s0': 50.0}
+    upper_bounds = {'ExpT1DecIR.T2': 0.10,
+                    'S0.s0': 150}
 
 
 class S0T1GRE(DMRISingleModelConfig):
 
-        name = 'S0-T1GRE'
-        description = 'Models the unweighted text_message_signal (aka. b0) with an extra T1.'
-        model_expression = 'S0 * ExpT1DecGRE'
+    name = 'S0-T1GRE'
+    description = 'Models the unweighted text_message_signal (aka. b0) with an extra T1.'
+    model_expression = 'S0 * ExpT1DecGRE'
 
-        # for proper initialization, please take the highest S0 value in your data.
-        inits = {'S0.s0': 50.0}
-        upper_bounds = {'ExpT1DecGRE.T1': 1.0,
-                        'S0.s0': 150}
+    # for proper initialization, please take the highest S0 value in your data.
+    inits = {'S0.s0': 50.0}
+    upper_bounds = {'ExpT1DecGRE.T1': 1.0,
+                    'S0.s0': 150}
 
 
 class S0T2T2(DMRISingleModelConfig):
 
-        name = 'S0-T2T2'
-        description = 'Model for the unweighted signal with two T2 models, one for short T2 and one for long T2.'
+    name = 'S0-T2T2'
+    description = 'Model for the unweighted signal with two T2 models, one for short T2 and one for long T2.'
 
-        model_expression = '''
+    model_expression = '''
             S0 * ( (Weight(w_long) * ExpT2Dec(T2_long)) +
                    (Weight(w_short) * ExpT2Dec(T2_short))
                  )
         '''
 
-        fixes = {'T2_long.T2': 0.5}
-        upper_bounds = {'T2_short.T2': 0.08}
+    fixes = {'T2_long.T2': 0.5}
+    upper_bounds = {'T2_short.T2': 0.08}
 
-        post_optimization_modifiers = (
-            ('T2_short.T2Weighted', lambda d: d['w_short.w'] * d['T2_short.T2']),
-            ('T2_long.T2Weighted', lambda d: d['w_long.w'] * d['T2_long.T2']),
-            ('T2.T2', lambda d: d['T2_short.T2Weighted'] + d['T2_long.T2Weighted'])
-        )
+    post_optimization_modifiers = (
+        ('T2_short.T2Weighted', lambda d: d['w_short.w'] * d['T2_short.T2']),
+        ('T2_long.T2Weighted', lambda d: d['w_long.w'] * d['T2_long.T2']),
+        ('T2.T2', lambda d: d['T2_short.T2Weighted'] + d['T2_long.T2Weighted'])
+    )
 
 
 class GRE_Relax(DMRISingleModelConfig):
@@ -116,9 +111,12 @@ class STEAM_Relax(DMRISingleModelConfig):
                     'ExpT1ExpT2STEAM.T2': 0.1}
 
 
-class S0LinearGRE(DMRISingleModelConfig):
-    # S0 is not the "real" s0 of the data, it is s0*(1 - exp(-TR / T1)). Then, s0 can be only calculated AFTER T1 estimation.
-    name = 'S0-LinearGRE'
+class S0GRELinear(DMRISingleModelConfig):
+    """S0 is not the "real" s0 of the data, it is s0*(1 - exp(-TR / T1)).
+
+    The real s0 can be only calculated AFTER T1 estimation.
+    """
+    name = 'S0-GRE-Linear'
     description = 'Model for estimating T1 of GRE data using B1+ map and several FA variations.'
     model_expression = 'S0 + LinT1GRE'
     evaluation_model = GaussianEvaluationModel()

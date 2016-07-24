@@ -1013,24 +1013,11 @@ def calculate_information_criterions(log_likelihoods, k, n):
 
 class ComplexNoiseStdEstimator(object):
 
-    def __init__(self):
-        """Estimation routine for estimating the standard deviation of the Gaussian error in the complex signal images.
-        """
-        self._problem_data = None
-        self._logger = logging.getLogger(__name__)
-
-    def set_problem_data(self, problem_data):
-        """Set the problem data this complex noise std estimator will work on.
+    def estimate(self, problem_data, **kwargs):
+        """Get a noise std for the entire volume.
 
         Args:
-            problem_data (DMRIProblemData): the full set of problem data. If not set now you can set it using
-                the function set_problem_data()
-        """
-        self._problem_data = problem_data
-        return self
-
-    def estimate(self, **kwargs):
-        """Get a noise std for the entire volume.
+            problem_data (DMRIProblemData): the problem data for which to find a noise std
 
         Returns:
             float or ndarray: the noise sigma of the Gaussian noise in the original complex image domain
@@ -1038,6 +1025,7 @@ class ComplexNoiseStdEstimator(object):
         Raises:
             NoiseStdEstimationNotPossible: if we can not estimate the sigma using this estimator
         """
+        raise NotImplementedError()
 
 
 def apply_mask(volume, mask, inplace=True):
@@ -1400,8 +1388,7 @@ def estimate_noise_std(problem_data, estimator=None):
     logger.info('Trying to estimate a noise std.')
 
     def estimate(estimation_routine):
-        estimator = estimation_routine.set_problem_data(problem_data)
-        noise_std = estimator.estimate()
+        noise_std = estimator.estimate(problem_data)
 
         if isinstance(noise_std, np.ndarray):
             logger.info('Found voxel-wise noise std using estimator {}.'.format(noise_std, estimation_routine))

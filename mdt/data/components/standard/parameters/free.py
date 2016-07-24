@@ -24,7 +24,6 @@ its data are handled during model construction.
 
 class s0(FreeParameterConfig):
 
-    name = 's0'
     init_value = 1e4
     lower_bound = 1e-5
     upper_bound = 1e10
@@ -35,21 +34,22 @@ class s0(FreeParameterConfig):
 
 class T1(FreeParameterConfig):
 
-    name = 'T1'
     init_value = 0.03
     lower_bound = 0.0
     upper_bound = 4.0
     parameter_transform = ClampTransform()
     sampling_proposal = GaussianProposal(0.0001)
 
-"""" This parameter is defined ONLY for Linear decay T1 fitting in GRE data WITH TR constant. Curiously, this parameter is also defined in SSFP
-model equation. However, in SSFP this parameter is FROM PROTOCOL! E1 = exp ( - TR / T1 ). After estimation of this parameter,
-T1 can be recovered by applying the next equation - TR / log ( E1 ).
-"""""
 
 class E1(FreeParameterConfig):
+    """This parameter is defined *only* for linear decay T1 fitting in GRE data *with* TR constant.
 
-    name = 'E1'
+    This parameter is also defined in the SSFP equation. However, in SSFP this parameter is from the protocol (!)
+        E1 = exp( -TR / T1 ).
+    After estimation of this parameter, T1 can be recovered by applying the next equation:
+        -TR / log( E1 ).
+    """
+
     init_value = 0.37
     lower_bound = 0.0
     upper_bound = 1.0
@@ -59,7 +59,6 @@ class E1(FreeParameterConfig):
 
 class T2(FreeParameterConfig):
 
-    name = 'T2'
     init_value = 0.01
     lower_bound = 0.0
     upper_bound = 2.0
@@ -69,7 +68,6 @@ class T2(FreeParameterConfig):
 
 class T2s(FreeParameterConfig):
 
-    name = 'T2s'
     init_value = 0.01
     lower_bound = 0.0
     upper_bound = 1.0
@@ -78,10 +76,8 @@ class T2s(FreeParameterConfig):
 
 
 class R1(FreeParameterConfig):
-    """R1 = 1/T1, for linear T1Dec or other models.
-    """
+    """R1 = 1/T1, for linear T1Dec or other models. """
 
-    name = 'R1'
     init_value = 2
     lower_bound = 0.25
     upper_bound = 100.0
@@ -90,10 +86,8 @@ class R1(FreeParameterConfig):
 
 
 class R2(FreeParameterConfig):
-    """R2 = 1/T2, for linear T2Dec or other models.
-    """
+    """R2 = 1/T2, for linear T2Dec or other models."""
 
-    name = 'R2'
     init_value = 5
     lower_bound = 0.5
     upper_bound = 500.0
@@ -102,10 +96,8 @@ class R2(FreeParameterConfig):
 
 
 class R2s(FreeParameterConfig):
-    """R2s = 1/T2s, for lineaR T2sDec or other models.
-    """
+    """R2s = 1/T2s, for lineaR T2sDec or other models."""
 
-    name = 'R2s'
     init_value = 10
     lower_bound = 1
     upper_bound = 50.0
@@ -115,7 +107,6 @@ class R2s(FreeParameterConfig):
 
 class theta(FreeParameterConfig):
 
-    name = 'theta'
     init_value = 1 / 2.0 * np.pi
     lower_bound = 0
     upper_bound = np.pi
@@ -128,7 +119,6 @@ class theta(FreeParameterConfig):
 
 class phi(FreeParameterConfig):
 
-    name = 'phi'
     init_value = 1 / 2.0 * np.pi
     lower_bound = 0
     upper_bound = np.pi
@@ -141,7 +131,6 @@ class phi(FreeParameterConfig):
 
 class psi(FreeParameterConfig):
 
-    name = 'psi'
     init_value = 1 / 2.0 * np.pi
     lower_bound = 0
     upper_bound = np.pi
@@ -154,7 +143,6 @@ class psi(FreeParameterConfig):
 
 class d(FreeParameterConfig):
 
-    name = 'd'
     init_value = 1.7e-9
     lower_bound = 0
     upper_bound = 1.0e-8
@@ -164,7 +152,6 @@ class d(FreeParameterConfig):
 
 class dperp0(FreeParameterConfig):
 
-    name = 'dperp0'
     init_value = 1.7e-10
     lower_bound = 0
     upper_bound = 1.0e-8
@@ -174,7 +161,6 @@ class dperp0(FreeParameterConfig):
 
 class dperp1(FreeParameterConfig):
 
-    name = 'dperp1'
     init_value = 1.7e-11
     lower_bound = 0
     upper_bound = 1.0e-8
@@ -184,7 +170,6 @@ class dperp1(FreeParameterConfig):
 
 class R(FreeParameterConfig):
 
-    name = 'R'
     init_value = 2.0e-6
     lower_bound = 1e-6
     upper_bound = 20e-6
@@ -194,7 +179,6 @@ class R(FreeParameterConfig):
 
 class kappa(FreeParameterConfig):
 
-    name = 'kappa'
     init_value = 1
     lower_bound = 1e-5
     upper_bound = 2 * np.pi
@@ -205,7 +189,6 @@ class kappa(FreeParameterConfig):
 # for use in the GDRCylinder model
 class gamma_k(FreeParameterConfig):
 
-    name = 'gamma_k'
     init_value = 1
     lower_bound = 0
     upper_bound = 20
@@ -216,7 +199,6 @@ class gamma_k(FreeParameterConfig):
 # for use in the GDRCylinder model
 class gamma_beta(FreeParameterConfig):
 
-    name = 'gamma_beta'
     init_value = 1
     lower_bound = 1.0e-7
     upper_bound = 3.0e-7
@@ -227,7 +209,6 @@ class gamma_beta(FreeParameterConfig):
 # for use in the GDRCylinder model
 class gamma_nmr_cyl(FreeParameterConfig):
 
-    name = 'gamma_nmr_cyl'
     init_value = 5
     lower_bound = 1
     upper_bound = 10

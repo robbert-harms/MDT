@@ -19,7 +19,7 @@ class ParameterConfig(ComponentConfig):
     These configs are loaded on the fly by the ParametersBuilder
 
     Config options:
-        name (str): the name of the parameter
+        name (str): the name of the parameter, defaults to the class name
         description (str): the description of this parameter
         data_type (str or DataType): either a string we load as datatype or the actual datatype itself
         type (str): the type of parameter (free, protocol or model_data)

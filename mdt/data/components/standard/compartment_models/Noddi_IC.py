@@ -1,6 +1,6 @@
-from mdt.models.compartments import CompartmentConfig, CLCodeFromAdjacentFile
+from mdt.models.compartments import CompartmentConfig
 from mdt.components_loader import LibraryFunctionsLoader, bind_function
-from mot.cl_functions import FirstLegendreTerm, CerfErfi, CerfDawson
+from mot.cl_functions import FirstLegendreTerm, CerfErfi
 import numpy as np
 
 __author__ = 'Robbert Harms'
@@ -14,8 +14,6 @@ lib_loader = LibraryFunctionsLoader()
 
 class Noddi_IC(CompartmentConfig):
 
-    name = 'Noddi_IC'
-    cl_function_name = 'cmNoddi_IC'
     parameter_list = ('g', 'b', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'kappa', 'R')
     dependency_list = (CerfErfi(), FirstLegendreTerm(),
                        lib_loader.load('MRIConstants'),

@@ -1,4 +1,4 @@
-from mdt.models.compartments import CompartmentConfig, CLCodeFromAdjacentFile, CLCodeFromInlineString
+from mdt.models.compartments import CompartmentConfig
 from mdt.components_loader import LibraryFunctionsLoader
 
 __author__ = 'Robbert Harms'
@@ -12,12 +12,10 @@ lib_loader = LibraryFunctionsLoader()
 
 class AstroCylinders(CompartmentConfig):
 
-    name = 'AstroCylinders'
-    cl_function_name = 'cmAstroCylinders'
     parameter_list = ('g', 'b', 'G', 'Delta', 'delta', 'd', 'R')
     dependency_list = [lib_loader.load('MRIConstants'),
                        lib_loader.load('NeumannCylPerpPGSESum')]
-    cl_code = CLCodeFromInlineString('''
+    cl_code = '''
         mot_float_type sum = NeumannCylPerpPGSESum(Delta, delta, d, R);
 
         mot_float_type lperp = (-2 * GAMMA_H_SQ * sum);
@@ -26,4 +24,4 @@ class AstroCylinders(CompartmentConfig):
         return (sqrt(M_PI) / (2 * G * sqrt(lperp - lpar)))
                     * exp(pown(G, 2) * lperp)
                     * erf(G * sqrt(lperp - lpar));
-    ''')
+    '''

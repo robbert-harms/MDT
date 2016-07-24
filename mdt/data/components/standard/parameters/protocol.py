@@ -18,55 +18,51 @@ its data are handled during model construction.
 
 
 class g(ProtocolParameterConfig):
-    name = 'g'
     data_type = 'mot_float_type4'
 
 
 class b(ProtocolParameterConfig):
-    name = 'b'
-
+    pass
 
 class G(ProtocolParameterConfig):
-    name = 'G'
+    pass
 
 
 class Delta(ProtocolParameterConfig):
-    name = 'Delta'
+    pass
 
 
 class delta(ProtocolParameterConfig):
-    name = 'delta'
+    pass
 
 
 class q(ProtocolParameterConfig):
-    name = 'q'
+    pass
 
 
 class TE(ProtocolParameterConfig):
-    name = 'TE'
+    pass
 
 
 class TM(ProtocolParameterConfig):
-    name = 'TM'
+    pass
 
 
 class Ti(ProtocolParameterConfig):
-    name = 'Ti'
+    pass
 
 
 class TR(ProtocolParameterConfig):
-    name = 'TR'
+    pass
 
 
 class flip_angle(ProtocolParameterConfig):
-    name = 'flip_angle'
+    pass
 
-""""These variables are for STEAM/TSE sequences, depending on the model in which they are used.
-"""""
 
+#The next variables are for STEAM/TSE sequences, depending on the model in which they are used.
 class Refoc_fa1(ProtocolParameterConfig):
-    name = 'Refoc_fa1'
-
+    pass
 
 class Refoc_fa2(ProtocolParameterConfig):
-    name = 'Refoc_fa2'
+    pass

@@ -9,8 +9,6 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class CharmedRestricted(CompartmentConfig):
 
-    name = 'CharmedRestricted'
-    cl_function_name = 'cmCharmedRestricted'
     parameter_list = ('g', 'b', 'q', 'Delta', 'delta', 'TE', 'd', 'theta', 'phi')
 
     @bind_function

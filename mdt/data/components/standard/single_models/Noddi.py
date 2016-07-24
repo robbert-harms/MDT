@@ -38,7 +38,6 @@ class NoddiTortuosityParameterDependency(AbstractParameterDependency):
 
 class Noddi(DMRISingleModelConfig):
 
-    name = 'Noddi'
     ex_vivo_suitable = False
     description = 'The standard Noddi (NODDI) model'
 
@@ -69,7 +68,6 @@ class Noddi(DMRISingleModelConfig):
 
 class Noddi2(DMRISingleModelConfig):
 
-    name = 'Noddi2'
     ex_vivo_suitable = False
     description = 'The Noddi model with two IC and EC compartments'
 

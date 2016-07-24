@@ -1,4 +1,4 @@
-from mdt.models.compartments import CompartmentConfig, CLCodeFromAdjacentFile, CLCodeFromInlineString
+from mdt.models.compartments import CompartmentConfig
 from mdt.components_loader import LibraryFunctionsLoader, bind_function
 
 __author__ = 'Robbert Harms'
@@ -12,12 +12,10 @@ lib_loader = LibraryFunctionsLoader()
 
 class CylinderGPD(CompartmentConfig):
 
-    name = 'CylinderGPD'
-    cl_function_name = 'cmCylinderGPD'
     parameter_list = ('g', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'R')
     dependency_list = [lib_loader.load('MRIConstants'),
                        lib_loader.load('NeumannCylPerpPGSESum')]
-    cl_code = CLCodeFromInlineString('''
+    cl_code = '''
         mot_float_type sum = NeumannCylPerpPGSESum(Delta, delta, d, R);
 
         const mot_float_type4 n = (mot_float_type4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0.0);
@@ -25,7 +23,7 @@ class CylinderGPD(CompartmentConfig):
 
         return exp(-2 * GAMMA_H_SQ * pown(G * sin(omega), 2) * sum) *
                 exp(-(Delta - (delta/3.0)) * pown(GAMMA_H * delta * G * cos(omega), 2) * d);
-    ''')
+    '''
 
     @bind_function
     def get_extra_results_maps(self, results_dict):

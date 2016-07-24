@@ -1,5 +1,5 @@
 from mdt.components_loader import LibraryFunctionsLoader
-from mdt.models.compartments import CompartmentConfig, CLCodeFromAdjacentFile
+from mdt.models.compartments import CompartmentConfig
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -12,7 +12,5 @@ lib_loader = LibraryFunctionsLoader()
 
 class SphereGPD(CompartmentConfig):
 
-    name = 'SphereGPD'
-    cl_function_name = 'cmSphereGPD'
     parameter_list = ('Delta', 'delta', 'd', 'R')
     dependency_list = (lib_loader.load('MRIConstants'),)

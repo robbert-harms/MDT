@@ -1,4 +1,4 @@
-from mdt.models.compartments import CompartmentConfig, CLCodeFromInlineString
+from mdt.models.compartments import CompartmentConfig
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -8,8 +8,6 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class ExpT2Dec(CompartmentConfig):
 
-    name = 'ExpT2Dec'
-    cl_function_name = 'cmExpT2Dec'
     parameter_list = ('TE', 'T2')
-    cl_code = CLCodeFromInlineString('return exp(-TE / T2);')
+    cl_code = 'return exp(-TE / T2);'
 

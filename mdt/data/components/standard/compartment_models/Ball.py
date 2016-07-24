@@ -1,4 +1,4 @@
-from mdt.models.compartments import CLCodeFromInlineString, CompartmentConfig
+from mdt.models.compartments import CompartmentConfig
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -8,7 +8,5 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class Ball(CompartmentConfig):
 
-    name = 'Ball'
-    cl_function_name = 'cmBall'
     parameter_list = ('b', 'd')
-    cl_code = CLCodeFromInlineString('return exp(-d * b);')
+    cl_code = 'return exp(-d * b);'

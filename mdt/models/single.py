@@ -225,7 +225,7 @@ class DMRISingleModelConfig(ComponentConfig):
     These configs are loaded on the fly by the DMRISingleModelBuilder
 
     Config options:
-        name (str): the name of the model
+        name (str): the name of the model, defaults to the class name
         in_vivo_suitable (boolean): flag indicating if the model is suitable for in vivo data
         ex_vivo_suitable (boolean): flag indicating if the model is suitable for ex vivo data
         description (str): model description
