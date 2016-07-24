@@ -52,6 +52,11 @@ class T2_static(StaticMapParameterConfig):
     data_type = 'mot_float_type'
 
 
+class T2s_static(StaticMapParameterConfig):
+
+    name = 'T2s_static'
+    data_type = 'mot_float_type'
+
 #class TM_0(StaticMapParameterConfig):
 
 #    name = 'TM_0'
