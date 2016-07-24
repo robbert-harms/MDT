@@ -311,11 +311,12 @@ class SelectedSubjects(BatchSubjectSelection):
 
         This method allows either a selection by index (unsafe for the order may change) or by subject name/ID (more
         safe in general). If start_from is given it additionally limits the list of selected subjects to include
-        only those after that subject. If only start_from is given we will process all subjects after that subject.
-        All options can be used simultaneously.
+        only those after that index.
 
-        If subject_ids or indices is None, we will ignore that option. Set to an empty list to enable filtering
-        everything.
+        This essentially creates three different subsets of the given list of subjects and will only process
+        those subjects in the intersection of all those sets.
+
+        Set any one of the options to None to ignore them.
 
         Args:
             subject_ids (list of str): the list of names of subjects to process
@@ -329,13 +330,16 @@ class SelectedSubjects(BatchSubjectSelection):
     def get_selection(self, subjects):
         starting_pos = self._get_starting_pos(subjects)
 
-        return_list = []
-        for ind, subject in enumerate(subjects):
-            if ind >= starting_pos:
-                if ((self.indices is None or ind in self.indices) or
-                        (self.subject_ids is None or subject.subject_id in self.subject_ids)):
-                    return_list.append(subject)
-        return return_list
+        if self.indices is None and self.subject_ids is None:
+            return subjects[starting_pos:]
+
+        if self.indices:
+            subjects = [subject for ind, subject in enumerate(subjects) if ind in self.indices and ind >= starting_pos]
+
+        if self.subject_ids:
+            subjects = list(filter(lambda subject: subject.subject_id in self.subject_ids, subjects))
+
+        return subjects
 
     def _get_starting_pos(self, subjects):
         if self.start_from is None:
