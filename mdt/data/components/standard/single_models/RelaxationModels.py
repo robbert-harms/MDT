@@ -34,7 +34,7 @@ class S0T2Linear(DMRISingleModelConfig):
 
     description = 'Models the unweighted signal (aka. b0) with an extra T2.'
     model_expression = 'S0 + LinT2Dec'
-    upper_bounds = {'LinT2Dec.R2': 1000,
+    upper_bounds = {'LinT2Dec.R2': -1000,
                     'S0.s0': 7.0}
 
     @bind_function
@@ -122,8 +122,8 @@ class S0GRELinear(DMRISingleModelConfig):
     evaluation_model = GaussianEvaluationModel()
 
 
-class MPM_Final(DMRISingleModelConfig):
+class MPM(DMRISingleModelConfig):
 
-    name = 'MPM_Final'
+    name = 'MPM'
     description = 'Model for estimating biological microstructure of the tissue/sample.'
     model_expression = 'S0 * MPM_Fit'
