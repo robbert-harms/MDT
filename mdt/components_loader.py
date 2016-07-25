@@ -99,12 +99,12 @@ def method_binding_meta(template, *bases):
      This returns a metaclass similar to the with_metaclass of the six library.
 
      Args:
-         template (ComponentConfig): the component config with the _bound_methods attribute which we will all add
+         template (ComponentConfig): the component config with the bound_methods attribute which we will all add
             to the attributes of the to creating class.
      """
     class ApplyMethodBinding(type):
         def __new__(mcs, name, bases, attributes):
-            attributes.update(template._bound_methods)
+            attributes.update(template.bound_methods)
             return super(ApplyMethodBinding, mcs).__new__(mcs, name, bases, attributes)
 
     return with_metaclass(ApplyMethodBinding, *bases)
@@ -116,15 +116,15 @@ class ComponentConfigMeta(type):
         """A pre-processor for the components.
 
         On the moment this meta class does two things, first it adds all functions with the '_bind' property
-        to the _bound_methods list for binding them later to the constructed class. Second, it sets the 'name' attribute
+        to the bound_methods list for binding them later to the constructed class. Second, it sets the 'name' attribute
         of the component to the class name if there is no name attribute defined.
         """
         result = super(ComponentConfigMeta, mcs).__new__(mcs, name, bases, attributes)
         bound_methods = {value.__name__: value for value in attributes.values() if hasattr(value, '_bind')}
         for base in bases:
-            if hasattr(base, '_bound_methods'):
-                bound_methods.update(base._bound_methods)
-        result._bound_methods = bound_methods
+            if hasattr(base, 'bound_methods'):
+                bound_methods.update(base.bound_methods)
+        result.bound_methods = bound_methods
 
         if 'name' not in attributes:
             result.name = name
