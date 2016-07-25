@@ -22,8 +22,8 @@ from mdt import create_index_matrix
 from mdt.IO import Nifti
 from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
 from mdt.components_loader import get_model
-from mdt.configuration import get_logging_configuration_dict, get_noise_std_estimators, config_context, VoidConfigAction, \
-    OptimizationSettings, gzip_optimization_results, gzip_sampling_results
+from mdt.configuration import get_logging_configuration_dict, get_noise_std_estimators, config_context, \
+    VoidConfigAction, OptimizationSettings, gzip_optimization_results, gzip_sampling_results
 from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
 from mdt.data_loaders.noise_std import autodetect_noise_std_loader
 from mdt.data_loaders.protocol import autodetect_protocol_loader
@@ -234,12 +234,12 @@ class PathJoiner(object):
         self._path = os.path.join(self._path, *args)
         return self
 
-    def reset(self, *args):
+    def reset(self):
         """Reset the path to the path at construction time"""
         self._path = self._initial_path
         return self
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args):
         return os.path.abspath(os.path.join(self._path, *args))
 
 
@@ -1284,25 +1284,35 @@ class FittingProcessingWorker(ModelProcessingWorker):
 
 class SamplingProcessingWorker(ModelProcessingWorker):
 
-    def __init__(self, sampler):
+    class SampleChainNotStored(object):
+        pass
+
+    def __init__(self, sampler, store_samples=False):
         """The processing worker for model sampling.
 
         Use this if you want to use the model processing strategy to do model sampling.
 
         Args:
             sampler (AbstractSampler): the optimization sampler to use
+            store_samples (boolean): if set to False we will store none of the samples. Use this
+                if you are only interested in the volume maps and not in the entire sample chain.
+                If set to True the process and combine function will no longer return any results.
         """
         super(SamplingProcessingWorker, self).__init__()
         self._sampler = sampler
         self._write_volumes_gzipped = gzip_sampling_results()
+        self._store_samples = store_samples
 
     def process(self, model, problem_data, mask, tmp_storage_dir):
         results, other_output = self._sampler.sample(model, full_output=True)
 
-        self._write_sample_results(results, problem_data.mask, mask, tmp_storage_dir)
         self._write_volumes(other_output, mask, os.path.join(tmp_storage_dir, 'volume_maps'))
 
-        return load_samples(tmp_storage_dir)
+        if self._store_samples:
+            self._write_sample_results(results, problem_data.mask, mask, tmp_storage_dir)
+            return load_samples(tmp_storage_dir)
+
+        return SamplingProcessingWorker.SampleChainNotStored()
 
     def output_exists(self, model, mask, tmp_storage_dir):
         mask_path = os.path.join(tmp_storage_dir, 'volume_maps', '__mask.npy')
@@ -1314,10 +1324,12 @@ class SamplingProcessingWorker(ModelProcessingWorker):
     def combine(self, model, problem_data, tmp_storage_dir, output_dir):
         self._combine_volumes(output_dir, tmp_storage_dir, problem_data.volume_header, maps_subdir='volume_maps')
 
-        for samples in glob.glob(os.path.join(tmp_storage_dir, '*.samples.npy')):
-            shutil.move(samples, output_dir)
+        if self._store_samples:
+            for samples in glob.glob(os.path.join(tmp_storage_dir, '*.samples.npy')):
+                shutil.move(samples, output_dir)
+            return load_samples(output_dir)
 
-        return load_samples(output_dir)
+        return SamplingProcessingWorker.SampleChainNotStored()
 
     @staticmethod
     def _write_sample_results(results, full_mask, current_mask, output_path):

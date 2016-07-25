@@ -131,7 +131,8 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
 
 
 def sample_model(model, problem_data, output_folder, sampler=None, recalculate=False,
-                 cl_device_ind=None, double_precision=False, initialize=True, initialize_using=None):
+                 cl_device_ind=None, double_precision=False, initialize=True, initialize_using=None,
+                 store_samples=True):
     """Sample a single model. This does not accept cascade models, only single models.
 
     Args:
@@ -151,6 +152,8 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
             optimization maps from a model with the same name. If a string is given and initialize is True we will
             interpret the string as a folder with the maps to load. If a dict is given and initialize is True we will
             initialize from the dict directly.
+        store_samples (boolean): if set to False we will store none of the samples. Use this
+                if you are only interested in the volume maps and not in the entire sample chain.
 
     Returns:
         dict: the samples per parameter as a numpy memmap.
@@ -165,7 +168,7 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
                              sampler=sampler, recalculate=recalculate, cl_device_ind=cl_device_ind,
                              double_precision=double_precision,
                              initialize=initialize,
-                             initialize_using=initialize_using)
+                             initialize_using=initialize_using, store_samples=store_samples)
 
     return sampling.run()
 

@@ -1,6 +1,4 @@
 import inspect
-
-from pkg_resources import resource_filename
 import os
 from copy import deepcopy
 import six
@@ -145,7 +143,10 @@ def _construct_cl_function_definition(return_type, cl_function_name, parameters)
 class CompartmentConfigMeta(ComponentConfigMeta):
 
     def __new__(mcs, name, bases, attributes):
-        """Adds the cl_function_name to the template if not defined."""
+        """Extends the default meta class with extra functionality for the compartments.
+
+        This adds the cl_function_name if it is not defined, and creates the correct cl_code and cl_header.
+        """
         result = super(CompartmentConfigMeta, mcs).__new__(mcs, name, bases, attributes)
 
         if 'cl_function_name' not in attributes:

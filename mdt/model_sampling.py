@@ -30,7 +30,7 @@ class ModelSampling(object):
 
     def __init__(self, model, problem_data, output_folder,
                  sampler=None, recalculate=False, cl_device_ind=None, double_precision=True,
-                 initialize=True, initialize_using=None):
+                 initialize=True, initialize_using=None, store_samples=True):
         """Sample a single model. This does not accept cascade models, only single models.
 
         Args:
@@ -51,6 +51,8 @@ class ModelSampling(object):
                 optimization maps from a model with the same name. If a string is given and initialize is True we will
                 interpret the string as a folder with the maps to load. If a dict is given and initialize is True we will
                 initialize from the dict directly.
+            store_samples (boolean): if set to False we will store none of the samples. Use this
+                if you are only interested in the volume maps and not in the entire sample chain.
 
         Returns:
             the full chain of the optimization
@@ -72,6 +74,7 @@ class ModelSampling(object):
         self._cl_device_indices = cl_device_ind
         self._initialize = initialize
         self._initialize_using = initialize_using
+        self._store_samples = store_samples
 
         if self._sampler is None:
             self._sampler = MetropolisHastings()
@@ -113,7 +116,8 @@ class ModelSampling(object):
                 sampler = SampleSingleModel(self._model, self._problem_data, self._output_folder, self._sampler,
                                             processing_strategy,
                                             recalculate=self._recalculate, initialize=self._initialize,
-                                            initialize_using=self._initialize_using)
+                                            initialize_using=self._initialize_using,
+                                            store_samples=self._store_samples)
 
                 return sampler.run()
 
@@ -121,7 +125,7 @@ class ModelSampling(object):
 class SampleSingleModel(object):
 
     def __init__(self, model, problem_data, output_folder, sampler, processing_strategy,
-                 recalculate=False, initialize=True, initialize_using=None):
+                 recalculate=False, initialize=True, initialize_using=None, store_samples=True):
         """Sample a single model.
 
         Please note that this function does not accept cascade models.
@@ -140,8 +144,10 @@ class SampleSingleModel(object):
                     <output_folder>/<model_name>/
             initialize_using (None, str, or dict): If None, and initialize is True we will initialize from the
                 optimization maps from a model with the same name. If a string is given and initialize is True we will
-                interpret the string as a folder with the maps to load. If a dict is given and initialize is True we will
-                initialize from the dict directly.
+                interpret the string as a folder with the maps to load. If a dict is given and initialize is True we
+                will initialize from the dict directly.
+            store_samples (boolean): if set to False we will store none of the samples. Use this
+                if you are only interested in the volume maps and not in the entire sample chain.
         """
         self.recalculate = recalculate
 
@@ -154,6 +160,7 @@ class SampleSingleModel(object):
         self._processing_strategy = processing_strategy
         self._initialize = initialize
         self._initialize_using = initialize_using
+        self._store_samples = store_samples
 
         if not model.is_protocol_sufficient(problem_data.protocol):
             raise InsufficientProtocolError(
@@ -179,7 +186,7 @@ class SampleSingleModel(object):
             with self._logging():
                 self._model.set_initial_parameters(self._get_initialization_params())
 
-                worker = SamplingProcessingWorker(self._sampler)
+                worker = SamplingProcessingWorker(self._sampler, self._store_samples)
 
                 return self._processing_strategy.run(self._model, self._problem_data,
                                                      self._output_path, self.recalculate, worker)
