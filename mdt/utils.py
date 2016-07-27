@@ -1577,16 +1577,10 @@ def roi_index_to_volume_index(roi_index, brain_mask):
         brain_mask (str or 3d array): the brain mask you would like to use
 
     Returns:
-        tuple: the 3d voxel location of the indicated voxel
+        ndarray: the 3d voxel location(s) of the indicated voxel(s)
     """
-    # todo rewrite to decrease memory consumption
     mask = autodetect_brain_mask_loader(brain_mask).get_data()
-
-    index_matrix = np.indices(mask.shape[0:3])
-    index_matrix = np.transpose(index_matrix, (1, 2, 3, 0))
-
-    roi = create_roi(index_matrix, mask)
-    return tuple(roi[roi_index])
+    return np.array(np.where(mask))[:, roi_index].transpose()
 
 
 def volume_index_to_roi_index(volume_index, brain_mask):
