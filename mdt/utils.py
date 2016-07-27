@@ -1579,6 +1579,7 @@ def roi_index_to_volume_index(roi_index, brain_mask):
     Returns:
         tuple: the 3d voxel location of the indicated voxel
     """
+    # todo rewrite to decrease memory consumption
     mask = autodetect_brain_mask_loader(brain_mask).get_data()
 
     index_matrix = np.indices(mask.shape[0:3])
