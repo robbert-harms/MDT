@@ -13,7 +13,7 @@ from mdt.components_loader import get_model
 from mdt.configuration import get_processing_strategy
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.utils import create_roi, \
-    model_output_exists, get_cl_devices, per_model_logging_context, SamplingProcessingWorker, load_samples
+    model_output_exists, get_cl_devices, per_model_logging_context, SamplingProcessingWorker, load_samples, is_scalar
 from mdt.exceptions import InsufficientProtocolError
 from mot.cl_routines.sampling.metropolis_hastings import MetropolisHastings
 from mot.configuration import config_context
@@ -199,28 +199,30 @@ class SampleSingleModel(object):
             if self._initialize_using is None:
                 folder = os.path.join(self._output_folder, self._model.name)
                 logger.info("Initializing sampler using maps in {}".format(folder))
-                maps = Nifti.read_volume_maps(folder)
+                maps = create_roi(Nifti.read_volume_maps(folder), self._problem_data.mask)
+
             elif isinstance(self._initialize_using, string_types):
                 logger.info("Initializing sampler using maps in {}".format(self._initialize_using))
-                maps = Nifti.read_volume_maps(self._initialize_using)
+                maps = create_roi(Nifti.read_volume_maps(self._initialize_using), self._problem_data.mask)
+
             elif isinstance(self._initialize_using, dict):
                 logger.info("Initializing sampler using given maps.")
                 maps = {}
                 for key, value in self._initialize_using.items():
                     if isinstance(value, string_types):
-                        maps[key] = nib.load(value).get_data()
-                    else:
+                        maps[key] = create_roi(nib.load(value).get_data(), self._problem_data.mask)
+                    elif is_scalar(value):
                         maps[key] = value
+                    else:
+                        maps[key] = create_roi(value, self._problem_data.mask)
 
             if not maps:
                 raise RuntimeError('No initialization maps found in the folder "{}"'.format(
                     os.path.join(self._output_folder, self._model.name)))
 
-            init_params = create_roi(maps, self._problem_data.mask)
-        else:
-            init_params = {}
+            return maps
 
-        return init_params
+        return {}
 
     @contextmanager
     def _logging(self):

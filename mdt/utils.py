@@ -476,6 +476,14 @@ class DeferredROICreationDict(collections.MutableMapping):
             self._computed_rois[key] = create_roi(self._items[key], self._mask)
         return self._computed_rois[key]
 
+    def __contains__(self, key):
+        try:
+            self._items[key]
+        except KeyError:
+            return False
+        else:
+            return True
+
     def __iter__(self):
         for key in self._items.keys():
             yield key
