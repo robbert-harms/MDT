@@ -1124,24 +1124,22 @@ def apply_mask_to_file(input_fname, mask, output_fname=None):
     write_image(output_fname, apply_mask(input_fname, mask), load_nifti(input_fname).get_header())
 
 
-def init_user_settings(pass_if_exists=True, keep_config=True):
+def init_user_settings(pass_if_exists=True):
     """Initializes the user settings folder using a skeleton.
 
     This will create all the necessary directories for adding components to MDT. It will also create a basic
     configuration file for setting global wide MDT options.
 
-    Each MDT version will have it's own sub-directory in the choosen folder.
+    Each MDT version will have it's own sub-directory in the chosen folder.
 
     Args:
         pass_if_exists (boolean): if the folder for this version already exists, do we want to pass_if_exists yes or no.
-        keep_config (boolean): if the folder for this version already exists, do we want to keep the config
-            file yes or no. This only holds for the config file.
 
     Returns:
         the path the user settings skeleton was written to
     """
     from mdt.utils import init_user_settings
-    return init_user_settings(pass_if_exists, keep_config)
+    return init_user_settings(pass_if_exists)
 
 
 @contextmanager

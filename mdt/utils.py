@@ -627,7 +627,7 @@ def eigen_vectors_from_tensor(theta, phi, psi):
     return CalculateEigenvectors().convert_theta_phi_psi(theta, phi, psi)
 
 
-def init_user_settings(pass_if_exists=True, keep_config=True):
+def init_user_settings(pass_if_exists=True):
     """Initializes the user settings folder using a skeleton.
 
     This will create all the necessary directories for adding components to MDT. It will also create a basic
@@ -638,8 +638,6 @@ def init_user_settings(pass_if_exists=True, keep_config=True):
 
     Args:
         pass_if_exists (boolean): if the folder for this version already exists, we might do nothing (if True)
-        keep_config (boolean): if the folder for this version already exists, do we want to pass_if_exists the
-            config file yes or no. This only holds for the config file.
 
     Returns:
         the path the user settings skeleton was written to
@@ -674,7 +672,7 @@ def init_user_settings(pass_if_exists=True, keep_config=True):
         distutils.dir_util.copy_tree(cache_path, os.path.join(path, 'components'))
 
         cache_path = pkg_resources.resource_filename('mdt', 'data/mdt.conf')
-        shutil.copy(cache_path, path)
+        shutil.copy(cache_path, path + '/mdt.default.conf')
 
         if not os.path.exists(path + '/components/user/'):
             os.makedirs(path + '/components/user/')
@@ -706,9 +704,7 @@ def init_user_settings(pass_if_exists=True, keep_config=True):
         init_from_mdt()
         copy_user_components(tmp_dir)
         make_sure_user_components_exists()
-
-        if keep_config and pass_if_exists:
-            copy_old_config(tmp_dir)
+        copy_old_config(tmp_dir)
 
     return path
 

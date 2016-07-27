@@ -1,8 +1,6 @@
 import os
 import re
 from copy import deepcopy
-
-import collections
 import yaml
 from contextlib import contextmanager
 from pkg_resources import resource_stream
@@ -16,14 +14,45 @@ __date__ = "2015-06-23"
 __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
-"""The config dictionary."""
+""" The current configuration """
 _config = {}
+
+
+def config_insert(keys, value):
+    """Insert the given value in the given key.
+
+    This will create all layers of the dictionary if needed.
+
+    Args:
+        key (list of str): the position of the input value
+        value (object): the value to put at the position of the key.
+    """
+    config = _config
+    for key in keys[:-1]:
+        if key not in config:
+            config[key] = {}
+        config = config[key]
+
+    config[keys[-1]] = value
+
+
+def ensure_exists(keys):
+    """Ensure the given layer of keys exists.
+
+    Args:
+        key (list of str): the positions to ensure exist
+    """
+    config = _config
+    for key in keys:
+        if key not in config:
+            config[key] = {}
+        config = config[key]
 
 
 def load_builtin():
     """Load the config file from the skeleton in mdt/data/mdt.conf"""
     with resource_stream('mdt', 'data/mdt.conf') as f:
-        return load_from_yaml(f.read())
+        load_from_yaml(f.read())
 
 
 def load_user_home():
@@ -32,8 +61,9 @@ def load_user_home():
     config_file = os.path.join(get_config_dir(), 'mdt.conf')
     if os.path.isfile(config_file):
         with open(config_file) as f:
-            return load_from_yaml(f.read())
-    raise ValueError('Config file could not be loaded.')
+            load_from_yaml(f.read())
+    else:
+        raise ValueError('Config file could not be loaded.')
 
 
 def load_specific(file_name):
@@ -48,28 +78,154 @@ def load_specific(file_name):
         file_name (str): The name of the file to load.
     """
     with open(file_name) as f:
-        return load_from_yaml(f.read())
+        load_from_yaml(f.read())
 
 
 def load_from_yaml(yaml_str):
     """Can be called to load configuration options from a YAML string.
 
-    Please note that the last configuration loaded is the one used.
+    This will update the current configuration with the new options.
 
     Args:
         yaml_str (str): The string containing the YAML config to parse.
     """
-    d = yaml.load(yaml_str)
-    if d is not None and isinstance(d, dict):
-        return d
-    raise ValueError('No config dict found in YAML string.')
+    config_dict = yaml.load(yaml_str) or {}
+    load_from_dict(config_dict)
 
 
-_config = load_builtin()
-try:
-    _config = load_user_home()
-except ValueError:
-    pass
+def load_from_dict(config_dict):
+    """Load configuration options from a given dictionary.
+
+    Args:
+        config_dict (dict): the dictionary from which to load the configurations
+    """
+    for key, value in config_dict.items():
+        loader = get_section_loader(key)
+        loader.load(value)
+
+
+class ConfigSectionLoader(object):
+
+    def load(self, value):
+        """Loader that knows how to load the given value in its specific configuration section.
+
+        The implementing class must know how to load the values in the correct way in the configuration.
+
+        Args:
+            value: the value to load in the configuration
+        """
+
+
+class OutputFormatLoader(ConfigSectionLoader):
+    """Loader for the top level key output_format. """
+
+    def load(self, value):
+        for item in ['optimization', 'sampling']:
+            options = value.get(item, {})
+
+            if 'gzip' in options:
+                config_insert(['output_format', item, 'gzip'], bool(options['gzip']))
+
+
+class LoggingLoader(ConfigSectionLoader):
+    """Loader for the top level key logging. """
+
+    def load(self, value):
+        ensure_exists(['logging', 'info_dict'])
+        if 'info_dict' in value:
+            self._load_info_dict(value['info_dict'])
+
+    def _load_info_dict(self, info_dict):
+        for item in ['version', 'disable_existing_loggers', 'formatters', 'handlers', 'loggers', 'root']:
+            if item in info_dict:
+                config_insert(['logging', 'info_dict', item], info_dict[item])
+
+
+class OptimizationSettingsLoader(ConfigSectionLoader):
+    """Loads the optimization section"""
+
+    def load(self, value):
+        ensure_exists(['optimization_settings', 'general'])
+        ensure_exists(['optimization_settings', 'model_specific'])
+
+        if 'general' in value:
+            self._load_general(value['general'])
+        if 'model_specific' in value:
+            self._load_model_specific(value['model_specific'])
+
+    def _load_general(self, options):
+        for item in ['optimizers', 'extra_optim_runs']:
+            if item in options:
+                config_insert(['optimization_settings', 'general', item], options[item])
+
+    def _load_model_specific(self, model_specific):
+        for key, value in model_specific.items():
+            config_insert(['optimization_settings', 'model_specific', key], value)
+
+
+class ProcessingStrategySectionLoader(ConfigSectionLoader):
+    """Loads the config section processing_strategies"""
+
+    def load(self, value):
+        if 'optimization' in value:
+            self._load_options('optimization', value['optimization'])
+        if 'sampling' in value:
+            self._load_options('sampling', value['sampling'])
+
+    def _load_options(self, current_type, options):
+        if 'general' in options:
+            config_insert(['processing_strategies', current_type, 'general'], options['general'])
+
+        ensure_exists(['processing_strategies', current_type, 'model_specific'])
+        if 'model_specific' in options:
+            for key, value in options['model_specific'].items():
+                config_insert(['processing_strategies', current_type, 'model_specific', key], value)
+
+
+class TmpResultsDirSectionLoader(ConfigSectionLoader):
+    """Load the section tmp_results_dir"""
+
+    def load(self, value):
+        config_insert(['tmp_results_dir'], value)
+
+
+class NoiseStdEstimationSectionLoader(ConfigSectionLoader):
+    """Load the section noise_std_estimating"""
+
+    def load(self, value):
+        if 'general' in value:
+            if 'estimators' in value['general']:
+                config_insert(['noise_std_estimating', 'general', 'estimators'], value['general']['estimators'])
+
+
+def get_section_loader(section):
+    """Get the section loader to use for the given top level section.
+
+    Args:
+        section (str): the section key we want to get the loader for
+
+    Returns:
+        ConfigSectionLoader: the config section loader for this top level section of the configuration.
+    """
+    if section == 'output_format':
+        return OutputFormatLoader()
+
+    if section == 'logging':
+        return LoggingLoader()
+
+    if section == 'optimization_settings':
+        return OptimizationSettingsLoader()
+
+    if section == 'processing_strategies':
+        return ProcessingStrategySectionLoader()
+
+    if section == 'tmp_results_dir':
+        return TmpResultsDirSectionLoader()
+
+    if section == 'noise_std_estimating':
+        return NoiseStdEstimationSectionLoader()
+
+    raise ValueError('Could not find a suitable configuration loader for the section {}.'.format(section))
 
 
 def gzip_optimization_results():
@@ -87,11 +243,53 @@ def gzip_sampling_results():
     Returns:
         boolean: True if the results of sampling computations should be gzipped, False otherwise.
     """
-    return _config['output_format']['optimization']['gzip']
+    return _config['output_format']['sampling']['gzip']
 
 
 def get_tmp_results_dir():
+    """Get the default tmp results directory.
+
+    This is the default directory for saving temporary computation results. Set to None to disable this and
+    use the model directory.
+
+    Returns:
+        str or None: the tmp results dir to use during optimization and sampling
+    """
     return _config['tmp_results_dir']
+
+
+def get_processing_strategy(processing_type, model_names=None):
+    """Get the correct processing strategy for the given model.
+
+    Args:
+        processing_type (str): 'optimization', 'sampling' or any other of the
+            processing_strategies defined in the config
+        model_names (list of str): the list of model names (the full recursive cascade of model names)
+
+    Returns:
+        ModelProcessingStrategy: the processing strategy to use for this model
+    """
+    strategy_name = _config['processing_strategies'][processing_type]['general']['name']
+    options = _config['processing_strategies'][processing_type]['general'].get('options', {}) or {}
+
+    if model_names and 'model_specific' in _config['processing_strategies'][processing_type]:
+        info_dict = get_model_config(model_names, _config['processing_strategies'][processing_type]['model_specific'])
+
+        if info_dict:
+            strategy_name = info_dict['name']
+            options = info_dict.get('options', {}) or {}
+
+    return ProcessingStrategiesLoader().load(strategy_name, **options)
+
+
+def get_noise_std_estimators():
+    """Get the noise std estimators for finding the std of the noise.
+
+    Returns:
+        list of ComplexNoiseStdEstimator: the noise estimators to use for finding the complex noise
+    """
+    loader = NoiseSTDCalculatorsLoader()
+    return [loader.load(c) for c in _config['noise_std_estimating']['general']['estimators']]
 
 
 def get_logging_configuration_dict():
@@ -231,40 +429,6 @@ def get_model_config(model_names, config):
     return {}
 
 
-def get_processing_strategy(processing_type, model_names=None):
-    """Get the correct processing strategy for the given model.
-
-    Args:
-        processing_type (str): 'optimization', 'sampling' or any other of the
-            processing_strategies defined in the config
-        model_names (list of str): the list of model names (the full recursive cascade of model names)
-
-    Returns:
-        ModelProcessingStrategy: the processing strategy to use for this model
-    """
-    strategy_name = _config['processing_strategies'][processing_type]['general']['name']
-    options = _config['processing_strategies'][processing_type]['general'].get('options', {}) or {}
-
-    if model_names and 'model_specific' in _config['processing_strategies'][processing_type]:
-        info_dict = get_model_config(model_names, _config['processing_strategies'][processing_type]['model_specific'])
-
-        if info_dict:
-            strategy_name = info_dict['name']
-            options = info_dict.get('options', {}) or {}
-
-    return ProcessingStrategiesLoader().load(strategy_name, **options)
-
-
-def get_noise_std_estimators():
-    """Get the noise std estimators for finding the std of the noise.
-
-    Returns:
-        list of ComplexNoiseStdEstimator: the noise estimators to use for finding the complex noise
-    """
-    loader = NoiseSTDCalculatorsLoader()
-    return [loader.load(c) for c in _config['noise_std_estimating']['general']['estimators']]
-
-
 @contextmanager
 def config_context(config_action):
     """Creates a context in which the config action is applied and unapplies the configuration after execution.
@@ -338,56 +502,12 @@ class YamlStringAction(SimpleConfigAction):
         self._yaml_str = yaml_str
 
     def _apply(self):
-        global _config
-        _config = recursive_merge_dict(_config, self._get_dict_from_yaml(), in_place=True)
-
-    def _get_dict_from_yaml(self):
-        d = yaml.load(self._yaml_str)
-        if d is not None:
-            return d
-        return {}
+        load_from_yaml(self._yaml_str)
 
 
-def recursive_merge_dict(dictionary, update_dict, in_place=False):
-    """ Recursively merge the given dictionary with the new values.
-
-    If in_place is false this does not merge in place but creates new dictionary.
-
-    If update_dict is None we return the original dictionary, or a copy if in_place is False.
-
-    Args:
-        dictionary (dict): the dictionary we want to update
-        update_dict (dict): the dictionary with the new values
-        in_place (boolean): if true, the changes are in place in the first dict.
-
-    Returns:
-        dict: a combination of the two dictionaries in which the values of the last dictionary take precedence over
-            that of the first.
-            Example:
-                recursive_merge_dict(
-                    {'k1': {'k2': 2}},
-                    {'k1': {'k2': {'k3': 3}}, 'k4': 4}
-                )
-
-                gives:
-
-                {'k1': {'k2': {'k3': 3}}, 'k4': 4}
-
-            In the case of lists in the dictionary, we do no merging and always use the new value.
-    """
-    if not in_place:
-        dictionary = deepcopy(dictionary)
-
-    if not update_dict:
-        return dictionary
-
-    def merge(d, upd):
-        for k, v in upd.items():
-            if isinstance(v, collections.Mapping):
-                r = merge(d.get(k, {}), v)
-                d[k] = r
-            else:
-                d[k] = upd[k]
-        return d
-
-    return merge(dictionary, update_dict)
+"""Load the default configuration, and if possible, the users configuration."""
+load_builtin()
+try:
+    load_user_home()
+except ValueError:
+    pass
