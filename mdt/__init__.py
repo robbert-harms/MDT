@@ -65,10 +65,7 @@ def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalcul
         dry_run (boolean): a dry run will do no computations, but will list all the subjects found in the
             given directory.
         double_precision (boolean): if we would like to do the calculations in double precision
-        tmp_results_dir (str): The temporary dir for the calculations. If set to None we write the temporary
-                results in the results folder of each subject. Else, if set to a specific path we will store the
-                temporary results in a subfolder in the given folder (the subfolder will be a hash of
-                the original folder).
+        tmp_results_dir (str): The temporary dir for the calculations. Set to None to use the config default.
 
     Returns:
         The list of subjects we will calculate / have calculated.
@@ -116,10 +113,7 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
         cl_device_ind (int or list): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices(). This can also be a list of device indices.
         double_precision (boolean): if we would like to do the calculations in double precision
-        tmp_results_dir (str): The temporary dir for the calculations. If set to None we write the temporary
-                results in the results folder of each subject. Else, if set to a specific path we will store the
-                temporary results in a subfolder in the given folder (the subfolder will be a hash of
-                the original folder).
+        tmp_results_dir (str): The temporary dir for the calculations. Set to None to use the config default.
 
     Returns:
         the output of the optimization. If a cascade is given, only the results of the last model in the cascade is
@@ -164,10 +158,7 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
             initialize from the dict directly.
         store_samples (boolean): if set to False we will store none of the samples. Use this
                 if you are only interested in the volume maps and not in the entire sample chain.
-        tmp_results_dir (str): The temporary dir for the calculations. If set to None we write the temporary
-                results in the results folder of each subject. Else, if set to a specific path we will store the
-                temporary results in a subfolder in the given folder (the subfolder will be a hash of
-                the original folder).
+        tmp_results_dir (str): The temporary dir for the calculations. Set to None to use the config default.
 
     Returns:
         dict: the samples per parameter as a numpy memmap, if store_samples is True

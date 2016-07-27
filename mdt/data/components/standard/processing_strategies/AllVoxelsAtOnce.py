@@ -1,3 +1,5 @@
+import numpy as np
+
 from mdt.components_loader import ProcessingStrategiesLoader
 from mdt.utils import SimpleProcessingStrategy
 
@@ -27,7 +29,7 @@ class AllVoxelsAtOnce(SimpleProcessingStrategy):
             self._logger.info('Processing all voxels at once')
 
             with self._tmp_storage_dir(output_path, recalculate) as tmp_storage_dir:
-                worker.process(model, problem_data, problem_data.mask, tmp_storage_dir)
+                worker.process(model, problem_data, np.arange(0, np.count_nonzero(problem_data.mask)), tmp_storage_dir)
                 return_data = worker.combine(model, problem_data, tmp_storage_dir, output_path)
 
             return return_data

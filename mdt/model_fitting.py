@@ -12,7 +12,7 @@ from mdt import __version__
 from mdt.IO import Nifti
 from mdt.batch_utils import batch_profile_factory, AllSubjects
 from mdt.components_loader import get_model
-from mdt.configuration import get_processing_strategy
+from mdt.configuration import get_processing_strategy, get_tmp_results_dir
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.protocols import write_protocol
 from mdt.utils import create_roi, MetaOptimizerBuilder, get_cl_devices, model_output_exists, split_image_path, \
@@ -67,10 +67,7 @@ class BatchFitting(object):
             cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
                 get_cl_devices().
             double_precision (boolean): if we would like to do the calculations in double precision
-            tmp_results_dir (str): The temporary dir for the calculations. If set to None we write the temporary
-                results in the results folder of each subject. Else, if set to a specific path we will store the
-                temporary results in a subfolder in the given folder (the subfolder will be a hash of
-                the original folder).
+            tmp_results_dir (str): The temporary dir for the calculations. Set to None to use the config default.
         """
         self._logger = logging.getLogger(__name__)
         self._batch_profile = batch_profile_factory(batch_profile, data_folder)
@@ -229,10 +226,7 @@ class ModelFit(object):
             cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
                 get_cl_devices(). This can also be a list of device indices.
             double_precision (boolean): if we would like to do the calculations in double precision
-            tmp_results_dir (str): The temporary dir for the calculations. If set to None we write the temporary
-                results in the results folder of each subject. Else, if set to a specific path we will store the
-                temporary results in a subfolder in the given folder (the subfolder will be a hash of
-                the original folder).
+            tmp_results_dir (str): The temporary dir for the calculations. Set to None to use the config default.
         """
         if isinstance(model, string_types):
             model = get_model(model)
@@ -250,7 +244,7 @@ class ModelFit(object):
         self._logger = logging.getLogger(__name__)
         self._cl_device_indices = cl_device_ind
         self._model_names_list = []
-        self._tmp_results_dir = tmp_results_dir
+        self._tmp_results_dir = tmp_results_dir or get_tmp_results_dir()
 
         if self._cl_device_indices is not None and not isinstance(self._cl_device_indices, collections.Iterable):
             self._cl_device_indices = [self._cl_device_indices]

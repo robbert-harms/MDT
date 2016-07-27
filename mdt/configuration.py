@@ -90,6 +90,10 @@ def gzip_sampling_results():
     return _config['output_format']['optimization']['gzip']
 
 
+def get_tmp_results_dir():
+    return _config['tmp_results_dir']
+
+
 def get_logging_configuration_dict():
     """Get the configutation dictionary for the logging.dictConfig().
 
