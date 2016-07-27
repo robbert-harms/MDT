@@ -8,6 +8,7 @@ import shutil
 import tempfile
 from collections import defaultdict
 from contextlib import contextmanager
+import hashlib
 
 import nibabel as nib
 import numpy as np
@@ -18,7 +19,6 @@ from scipy.special import jnp_zeros
 from six import string_types
 
 import mot.utils
-from mdt import create_index_matrix
 from mdt.IO import Nifti
 from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
 from mdt.components_loader import get_model
@@ -1083,13 +1083,30 @@ def apply_mask(volume, mask, inplace=True):
 
 class ModelProcessingStrategy(object):
 
-    def __init__(self):
+    def __init__(self, tmp_dir=None):
         """Model processing strategies define in what parts the model is analyzed.
 
         This uses the problems_to_analyze attribute of the MOT model builder to select the voxels to process. That
         attribute arranges that only a selection of the problems are analyzed instead of all of them.
+
+        Args:
+            tmp_dir (str): The temporary dir for the calculations. If set to None we write the temporary results in the
+                results folder of each subject. Else, if set set to a specific path we will store the temporary results
+                in a subfolder in the given folder (the subfolder will be a hash of the original folder).
         """
         self._logger = logging.getLogger(__name__)
+        self._tmp_dir = tmp_dir
+
+    def set_tmp_dir(self, tmp_dir):
+        """Set the temporary directory for the calculations. This overwrites the current value.
+
+        Args:
+            tmp_dir (str): The temporary dir for the calculations. If set to None we write the temporary results in the
+                results folder of each subject. Else, if set to a specific path we will store the temporary results
+                in a subfolder in the given folder (the subfolder will be a hash of the original folder).
+        """
+        self._tmp_dir = tmp_dir
+        return self
 
     def run(self, model, problem_data, output_path, recalculate, worker):
         """Process the given dataset using the logistics the subclass.
@@ -1109,18 +1126,48 @@ class ModelProcessingStrategy(object):
         """
 
 
-class ModelChunksProcessingStrategy(ModelProcessingStrategy):
+class SimpleProcessingStrategy(ModelProcessingStrategy):
 
-    def __init__(self, honor_voxels_to_analyze=True):
+    def __init__(self, tmp_dir=None, honor_voxels_to_analyze=True):
         """This class is a baseclass for all model slice fitting strategies that fit the data in chunks/parts.
 
         Args:
             honor_voxels_to_analyze (bool): if set to True, we use the model's voxels_to_analyze setting if set
                 instead of fitting all voxels in the mask
         """
-        super(ModelChunksProcessingStrategy, self).__init__()
-        self.honor_voxels_to_analyze = honor_voxels_to_analyze
-        self.tmp_results_subdir = 'tmp_results'
+        super(SimpleProcessingStrategy, self).__init__(tmp_dir=tmp_dir)
+        self._honor_voxels_to_analyze = honor_voxels_to_analyze
+
+    @contextmanager
+    def _tmp_storage_dir(self, model_output_path, recalculate):
+        """Creates a temporary storage dir for the calculations. Removes the dir after calculations.
+
+        Use this manager as a context for running the calculations.
+
+        Args:
+            model_output_path (str): the output path of the final model results. We use this to create the tmp_dir.
+             recalculate (boolean): if true and the data exists, we throw everything away to start over.
+        """
+        tmp_storage_dir = self._get_tmp_results_dir(model_output_path)
+        self._prepare_tmp_storage_dir(tmp_storage_dir, recalculate)
+        yield tmp_storage_dir
+        shutil.rmtree(tmp_storage_dir)
+
+    def _get_tmp_results_dir(self, model_output_path):
+        """Get the temporary results dir we need to use for processing.
+
+        If self._tmp_dir is set to a non null value we will use a subdirectory in self._tmp_dir.
+        Else, if self._tmp_dir is null, we will use a subdir of the model_output_path.
+
+        Args:
+            model_output_path (str): the output path of the final model results.
+
+        Returns:
+            str: the path to store the temporary results in
+        """
+        if self._tmp_dir is None:
+            return os.path.join(model_output_path, 'tmp_results')
+        return os.path.join(self._tmp_dir, hashlib.md5(model_output_path.encode('utf-8')).hexdigest())
 
     @staticmethod
     def _prepare_tmp_storage_dir(tmp_storage_dir, recalculate):
@@ -1154,12 +1201,53 @@ class ModelChunksProcessingStrategy(ModelProcessingStrategy):
         model.problems_to_analyze = old_setting
 
 
+class ChunksProcessingStrategy(SimpleProcessingStrategy):
+
+    def run(self, model, problem_data, output_path, recalculate, worker):
+        """Compute all the slices using the implemented chunks generator"""
+        with self._tmp_storage_dir(output_path, recalculate) as tmp_storage_dir:
+            voxels_processed = 0
+
+            for chunk_indices in self._chunks_generator(model, problem_data, output_path, worker):
+                with self._selected_indices(model, chunk_indices):
+                    self._run_on_chunk(model, problem_data, tmp_storage_dir, worker, chunk_indices, voxels_processed)
+
+                voxels_processed += len(chunk_indices)
+
+            self._logger.info('Computed all slices, now merging the results')
+            return_data = worker.combine(model, problem_data, tmp_storage_dir, output_path)
+
+        return return_data
+
+    def _chunks_generator(self, model, problem_data, output_path, worker):
+        """Generate the slices/chunks we will use for the fitting.
+
+        Yields:
+            ndarray: the roi indices per chunk we want to process
+        """
+        raise NotImplementedError
+
+    def _run_on_chunk(self, model, problem_data, tmp_storage_dir, worker, voxel_indices, voxels_processed):
+        """Run the worker on the given chunk."""
+        if worker.voxels_are_processed(model, problem_data, voxel_indices, tmp_storage_dir):
+            self._logger.info('Computations are at {0:.2%}, skipping next {1} voxels, they are already processed.'.
+                              format(voxels_processed / np.count_nonzero(problem_data.mask),
+                                     len(voxel_indices), ))
+        else:
+            self._logger.info('Computations are at {0:.2%}, processing next {1} voxels ({2} voxels in total).'.
+                              format(voxels_processed / np.count_nonzero(problem_data.mask),
+                                     len(voxel_indices),
+                                     np.count_nonzero(problem_data.mask)))
+
+            worker.process(model, problem_data, voxel_indices, tmp_storage_dir)
+
+
 class ModelProcessingWorker(object):
 
     def __init__(self):
         self._write_volumes_gzipped = True
 
-    def process(self, model, problem_data, mask, tmp_storage_dir):
+    def process(self, model, problem_data, roi_indices, tmp_storage_dir):
         """Process the indicated voxels in the way prescribed by this worker.
 
         Since the processing strategy can use all voxels to do the analysis in one go, this function
@@ -1168,19 +1256,20 @@ class ModelProcessingWorker(object):
         Args:
             model (DMRISingleModel): the model to process
             problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
-            mask (ndarray): the mask that was used in this processing step
+            roi_indices (ndarray): The list of roi indices we want to compute
             tmp_storage_dir (str): the location for the output files of this chunk
 
         Returns:
             the results for this single processing step
         """
 
-    def output_exists(self, model, mask, tmp_storage_dir):
-        """Check if in the given directory the output exists for this model and mask.
+    def voxels_are_processed(self, model, problem_data, voxel_indices, tmp_storage_dir):
+        """Check if in the given storage dir the given voxels are calculated already.
 
         Args:
             model (DMRISingleModel): the model to process
-            mask (ndarray): The mask for which to check if those results are present
+            problem_data (DMRIProblemData): The problem data we can use during the check
+            voxel_indices (ndarray): The list of voxel indices we want to check for being computed already
             tmp_storage_dir (str): the location of all the output files
 
         Returns:
@@ -1201,16 +1290,19 @@ class ModelProcessingWorker(object):
         """
 
     @staticmethod
-    def _write_volumes(results, mask, tmp_dir):
+    def _write_volumes(problem_data, roi_indices, results, tmp_dir):
         """Write the result arrays to the temporary storage
 
         Args:
+            problem_data (DMRIProblemData): the problem data we can draw information from
             results (dict): the dictionary with the results to save
-            mask (ndarray): the mask we can use to find the indices of the results
+            roi_indices (ndarray): the indices of the voxels we computed
             tmp_dir (str): the directory to save the intermediate results to
         """
         if not os.path.exists(tmp_dir):
             os.makedirs(tmp_dir)
+
+        volume_indices = np.array(roi_index_to_volume_index(roi_indices, problem_data.mask))
 
         for param_name, result_array in results.items():
             storage_path = os.path.join(tmp_dir, param_name + '.npy')
@@ -1225,15 +1317,15 @@ class ModelProcessingWorker(object):
             if os.path.isfile(storage_path):
                 mode = 'r+'
             tmp_matrix = open_memmap(storage_path, mode=mode, dtype=result_array.dtype,
-                                     shape=mask.shape + (map_4d_dim_len,))
-            tmp_matrix[mask] = result_array
+                                     shape=problem_data.mask.shape[0:3] + (map_4d_dim_len,))
+            tmp_matrix[volume_indices[:, 0], volume_indices[:, 1], volume_indices[:, 2]] = result_array
 
         mask_path = os.path.join(tmp_dir, '__mask.npy')
         mode = 'w+'
         if os.path.isfile(mask_path):
             mode = 'r+'
-        tmp_mask = open_memmap(mask_path, mode=mode, dtype=np.bool, shape=mask.shape)
-        tmp_mask[:] = np.logical_or(tmp_mask, mask)
+        tmp_mask = open_memmap(mask_path, mode=mode, dtype=np.bool, shape=problem_data.mask.shape)
+        tmp_mask[volume_indices[:, 0], volume_indices[:, 1], volume_indices[:, 2]] = True
 
     def _combine_volumes(self, output_dir, chunks_dir, volume_header, maps_subdir=''):
         """Combine volumes found in subdirectories to a final volume.
@@ -1272,18 +1364,22 @@ class FittingProcessingWorker(ModelProcessingWorker):
         self._optimizer = optimizer
         self._write_volumes_gzipped = gzip_optimization_results()
 
-    def process(self, model, problem_data, mask, tmp_storage_dir):
+    def process(self, model, problem_data, roi_indices, tmp_storage_dir):
         results, extra_output = self._optimizer.minimize(model, full_output=True)
         results.update(extra_output)
 
-        self._write_volumes(results, mask, tmp_storage_dir)
+        self._write_volumes(problem_data, roi_indices, results, tmp_storage_dir)
         return results
 
-    def output_exists(self, model, mask, tmp_storage_dir):
+    def voxels_are_processed(self, model, problem_data, voxel_indices, tmp_storage_dir):
         mask_path = os.path.join(tmp_storage_dir, '__mask.npy')
+        volume_indices = np.array(roi_index_to_volume_index(voxel_indices, problem_data.mask))
+
         return (model_output_exists(model, tmp_storage_dir, append_model_name_to_path=False)
                 and os.path.exists(mask_path)
-                and np.all(np.load(mask_path, mmap_mode='r')[mask]))
+                and np.all(np.load(mask_path, mmap_mode='r')[volume_indices[:, 0],
+                                                             volume_indices[:, 1],
+                                                             volume_indices[:, 2]]))
 
     def combine(self, model, problem_data, tmp_storage_dir, output_dir):
         self._combine_volumes(output_dir, tmp_storage_dir, problem_data.volume_header)
@@ -1311,23 +1407,26 @@ class SamplingProcessingWorker(ModelProcessingWorker):
         self._write_volumes_gzipped = gzip_sampling_results()
         self._store_samples = store_samples
 
-    def process(self, model, problem_data, mask, tmp_storage_dir):
+    def process(self, model, problem_data, roi_indices, tmp_storage_dir):
         results, other_output = self._sampler.sample(model, full_output=True)
 
-        self._write_volumes(other_output, mask, os.path.join(tmp_storage_dir, 'volume_maps'))
+        self._write_volumes(problem_data, roi_indices, other_output, os.path.join(tmp_storage_dir, 'volume_maps'))
 
         if self._store_samples:
-            self._write_sample_results(results, problem_data.mask, mask, tmp_storage_dir)
-            return load_samples(tmp_storage_dir)
+            self._write_sample_results(results, problem_data.mask, roi_indices, tmp_storage_dir)
+            return {k: v[roi_indices, :] for k, v in load_samples(tmp_storage_dir).items()}
 
         return SamplingProcessingWorker.SampleChainNotStored()
 
-    def output_exists(self, model, mask, tmp_storage_dir):
+    def voxels_are_processed(self, model, problem_data, voxel_indices, tmp_storage_dir):
         mask_path = os.path.join(tmp_storage_dir, 'volume_maps', '__mask.npy')
+        volume_indices = np.array(roi_index_to_volume_index(voxel_indices, problem_data.mask))
         return (model_output_exists(model, os.path.join(tmp_storage_dir, 'volume_maps'),
                                     append_model_name_to_path=False)
                 and os.path.exists(mask_path)
-                and np.all(np.load(mask_path)[mask]))
+                and np.all(np.load(mask_path)[volume_indices[:, 0],
+                                              volume_indices[:, 1],
+                                              volume_indices[:, 2]]))
 
     def combine(self, model, problem_data, tmp_storage_dir, output_dir):
         self._combine_volumes(output_dir, tmp_storage_dir, problem_data.volume_header, maps_subdir='volume_maps')
@@ -1340,7 +1439,7 @@ class SamplingProcessingWorker(ModelProcessingWorker):
         return SamplingProcessingWorker.SampleChainNotStored()
 
     @staticmethod
-    def _write_sample_results(results, full_mask, current_mask, output_path):
+    def _write_sample_results(results, full_mask, roi_indices, output_path):
         """Write the sample results to file.
 
         This will write to files per sampled parameter. The first is a numpy array written to file, the second
@@ -1353,11 +1452,10 @@ class SamplingProcessingWorker(ModelProcessingWorker):
         Args:
             results (dict): the samples to write
             full_mask (ndarray): the complete mask for the entire brain
-            current_mask (ndarray): subset of the full mask with the voxels we currently analyze
+            roi_indices (ndarray): the roi indices of the voxels we computed
             output_path (str): the path to write the samples in
         """
         total_nmr_voxels = np.count_nonzero(full_mask)
-        voxel_indices = np.squeeze(create_roi(create_index_matrix(full_mask), current_mask))
 
         if not os.path.exists(output_path):
             os.makedirs(output_path)
@@ -1369,7 +1467,7 @@ class SamplingProcessingWorker(ModelProcessingWorker):
                 mode = 'r+'
             saved = open_memmap(samples_path, mode=mode, dtype=samples.dtype,
                                 shape=(total_nmr_voxels, samples.shape[1]))
-            saved[voxel_indices, :] = samples
+            saved[roi_indices, :] = samples
 
 
 def load_samples(data_folder, mode='c'):
@@ -1464,3 +1562,63 @@ def is_scalar(value):
         value: the value to test for being a scalar value
     """
     return mot.utils.is_scalar(value)
+
+
+def roi_index_to_volume_index(roi_index, brain_mask):
+    """Get the 3d index of a voxel given the linear index in a ROI created with the given brain mask.
+
+    This is the inverse function of volume_index_to_roi_index.
+
+    This function is useful if you, for example, have sampling results of a specific voxel
+    and you want to locate that voxel in the brain maps.
+
+    Args:
+        roi_index (int): the index in the ROI created by that brain mask
+        brain_mask (str or 3d array): the brain mask you would like to use
+
+    Returns:
+        tuple: the 3d voxel location of the indicated voxel
+    """
+    mask = autodetect_brain_mask_loader(brain_mask).get_data()
+
+    index_matrix = np.indices(mask.shape[0:3])
+    index_matrix = np.transpose(index_matrix, (1, 2, 3, 0))
+
+    roi = create_roi(index_matrix, mask)
+    return tuple(roi[roi_index])
+
+
+def volume_index_to_roi_index(volume_index, brain_mask):
+    """Get the ROI index given the volume index (in 3d).
+
+    This is the inverse function of roi_index_to_volume_index.
+
+    This function is useful if you want to locate a voxel in the ROI given the position in the volume.
+
+    Args:
+        volume_index (tuple): the volume index, a tuple or list of length 3
+        brain_mask (str or 3d array): the brain mask you would like to use
+
+    Returns:
+        int: the index of the given voxel in the ROI created by the given mask
+    """
+    return create_index_matrix(brain_mask)[volume_index]
+
+
+def create_index_matrix(brain_mask):
+    """Get a matrix with on every 3d position the linear index number of that voxel.
+
+    This function is useful if you want to locate a voxel in the ROI given the position in the volume.
+
+    Args:
+        brain_mask (str or 3d array): the brain mask you would like to use
+
+    Returns:
+        3d ndarray: a 3d volume of the same size as the given mask and with as every non-zero element the position
+            of that voxel in the linear ROI list.
+    """
+    mask = autodetect_brain_mask_loader(brain_mask).get_data()
+    roi_length = np.count_nonzero(mask)
+    roi = np.arange(0, roi_length)
+    return restore_volumes(roi, mask, with_volume_dim=False)
+

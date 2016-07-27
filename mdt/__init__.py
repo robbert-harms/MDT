@@ -1299,14 +1299,8 @@ def roi_index_to_volume_index(roi_index, brain_mask):
     Returns:
         tuple: the 3d voxel location of the indicated voxel
     """
-    from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
-    mask = autodetect_brain_mask_loader(brain_mask).get_data()
-
-    index_matrix = np.indices(mask.shape[0:3])
-    index_matrix = np.transpose(index_matrix, (1, 2, 3, 0))
-
-    roi = create_roi(index_matrix, mask)
-    return tuple(roi[roi_index])
+    import mdt.utils
+    return mdt.utils.roi_index_to_volume_index(roi_index, brain_mask)
 
 
 def volume_index_to_roi_index(volume_index, brain_mask):
@@ -1323,7 +1317,8 @@ def volume_index_to_roi_index(volume_index, brain_mask):
     Returns:
         int: the index of the given voxel in the ROI created by the given mask
     """
-    return create_index_matrix(brain_mask)[volume_index]
+    import mdt.utils
+    return mdt.utils.volume_index_to_roi_index(volume_index, brain_mask)
 
 
 def create_index_matrix(brain_mask):
@@ -1338,11 +1333,8 @@ def create_index_matrix(brain_mask):
         3d ndarray: a 3d volume of the same size as the given mask and with as every non-zero element the position
             of that voxel in the linear ROI list.
     """
-    from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
-    mask = autodetect_brain_mask_loader(brain_mask).get_data()
-    roi_length = np.count_nonzero(mask)
-    roi = np.arange(0, roi_length)
-    return restore_volumes(roi, mask, with_volume_dim=False)
+    import mdt.utils
+    return mdt.utils.create_index_matrix(brain_mask)
 
 
 def get_data_shape(image_file):

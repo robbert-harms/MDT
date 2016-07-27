@@ -111,7 +111,7 @@ class ModelSampling(object):
                     self._sampler.cl_environments = [all_devices[ind] for ind in self._cl_device_indices]
                     self._sampler.load_balancer = EvenDistribution()
 
-                processing_strategy = get_processing_strategy('sampling', self._model.name)
+                processing_strategy = get_processing_strategy('sampling', model_names=self._model.name)
 
                 sampler = SampleSingleModel(self._model, self._problem_data, self._output_folder, self._sampler,
                                             processing_strategy,

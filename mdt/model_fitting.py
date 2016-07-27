@@ -315,7 +315,9 @@ class ModelFit(object):
                     optimizer.cl_environments = [all_devices[ind] for ind in self._cl_device_indices]
                     optimizer.load_balancer = EvenDistribution()
 
-                processing_strategy = get_processing_strategy('optimization', model_names)
+                processing_strategy = get_processing_strategy('optimization', model_names=model_names)
+                # processing_strategy.set_tmp_dir('/tmp/mdt')
+                #todo fix
 
                 fitter = SingleModelFit(model, self._problem_data, self._output_folder, optimizer, processing_strategy,
                                         recalculate=recalculate)
