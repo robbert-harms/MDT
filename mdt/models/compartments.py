@@ -152,8 +152,10 @@ class CompartmentConfigMeta(ComponentConfigMeta):
         if 'cl_function_name' not in attributes:
             result.cl_function_name = 'cm{}'.format(name)
 
-        result.cl_code = mcs._get_cl_code(result, bases, attributes)
-        result.cl_header = mcs._get_cl_header(result, bases, attributes)
+        # to prevent the base from loading the initial meta class.
+        if any(isinstance(base, CompartmentConfigMeta) for base in bases):
+            result.cl_code = mcs._get_cl_code(result, bases, attributes)
+            result.cl_header = mcs._get_cl_header(result, bases, attributes)
 
         return result
 
