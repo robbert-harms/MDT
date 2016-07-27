@@ -32,7 +32,7 @@ class BatchFitting(object):
 
     def __init__(self, data_folder, batch_profile=None, subjects_selection=None, recalculate=False,
                  models_to_fit=None, cascade_subdir=False,
-                 cl_device_ind=None, double_precision=False):
+                 cl_device_ind=None, double_precision=False, tmp_results_dir=None):
         """This class is meant to make running computations as simple as possible.
 
         The idea is that a single folder is enough to fit_model the computations. One can optionally give it the
@@ -67,10 +67,15 @@ class BatchFitting(object):
             cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
                 get_cl_devices().
             double_precision (boolean): if we would like to do the calculations in double precision
+            tmp_results_dir (str): The temporary dir for the calculations. If set to None we write the temporary
+                results in the results folder of each subject. Else, if set to a specific path we will store the
+                temporary results in a subfolder in the given folder (the subfolder will be a hash of
+                the original folder).
         """
         self._logger = logging.getLogger(__name__)
         self._batch_profile = batch_profile_factory(batch_profile, data_folder)
         self._subjects_selection = subjects_selection or AllSubjects()
+        self._tmp_results_dir = tmp_results_dir
 
         if models_to_fit:
             self._models_to_fit = models_to_fit
@@ -125,7 +130,7 @@ class BatchFitting(object):
         self._logger.info('Running computations on {0} subjects'.format(len(self._subjects)))
 
         run_func = _BatchFitRunner(self._models_to_fit, self._recalculate, self._cascade_subdir,
-                                   self._cl_device_ind, self._double_precision)
+                                   self._cl_device_ind, self._double_precision, self._tmp_results_dir)
         list(map(run_func, self._subjects))
 
         return self._subjects
@@ -133,13 +138,14 @@ class BatchFitting(object):
 
 class _BatchFitRunner(object):
 
-    def __init__(self, models_to_fit, recalculate, cascade_subdir, cl_device_ind, double_precision):
+    def __init__(self, models_to_fit, recalculate, cascade_subdir, cl_device_ind, double_precision, tmp_results_dir):
         self._models_to_fit = models_to_fit
         self._recalculate = recalculate
         self._cascade_subdir = cascade_subdir
         self._cl_device_ind = cl_device_ind
         self._double_precision = double_precision
         self._logger = logging.getLogger(__name__)
+        self._tmp_results_dir = tmp_results_dir
 
     def __call__(self, subject_info):
         """Run the batch fitting on the given subject.
@@ -172,7 +178,8 @@ class _BatchFitRunner(object):
                                          only_recalculate_last=True,
                                          cascade_subdir=self._cascade_subdir,
                                          cl_device_ind=self._cl_device_ind,
-                                         double_precision=self._double_precision)
+                                         double_precision=self._double_precision,
+                                         tmp_results_dir=self._tmp_results_dir)
                     model_fit.run()
                 except InsufficientProtocolError as ex:
                     self._logger.info('Could not fit model {0} on subject {1} '
@@ -196,7 +203,7 @@ class ModelFit(object):
 
     def __init__(self, model, problem_data, output_folder, optimizer=None,
                  recalculate=False, only_recalculate_last=False, cascade_subdir=False,
-                 cl_device_ind=None, double_precision=False):
+                 cl_device_ind=None, double_precision=False, tmp_results_dir=None):
         """Setup model fitting for the given input model and data.
 
         To actually fit the model call run().
@@ -222,6 +229,10 @@ class ModelFit(object):
             cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
                 get_cl_devices(). This can also be a list of device indices.
             double_precision (boolean): if we would like to do the calculations in double precision
+            tmp_results_dir (str): The temporary dir for the calculations. If set to None we write the temporary
+                results in the results folder of each subject. Else, if set to a specific path we will store the
+                temporary results in a subfolder in the given folder (the subfolder will be a hash of
+                the original folder).
         """
         if isinstance(model, string_types):
             model = get_model(model)
@@ -239,6 +250,7 @@ class ModelFit(object):
         self._logger = logging.getLogger(__name__)
         self._cl_device_indices = cl_device_ind
         self._model_names_list = []
+        self._tmp_results_dir = tmp_results_dir
 
         if self._cl_device_indices is not None and not isinstance(self._cl_device_indices, collections.Iterable):
             self._cl_device_indices = [self._cl_device_indices]
@@ -316,8 +328,7 @@ class ModelFit(object):
                     optimizer.load_balancer = EvenDistribution()
 
                 processing_strategy = get_processing_strategy('optimization', model_names=model_names)
-                # processing_strategy.set_tmp_dir('/tmp/mdt')
-                #todo fix
+                processing_strategy.set_tmp_dir(self._tmp_results_dir)
 
                 fitter = SingleModelFit(model, self._problem_data, self._output_folder, optimizer, processing_strategy,
                                         recalculate=recalculate)

@@ -38,7 +38,7 @@ the multiprocessing we will get an Out Of Memory exception when trying to create
 
 def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalculate=False,
               models_to_fit=None, cascade_subdir=False,
-              cl_device_ind=None, dry_run=False, double_precision=False):
+              cl_device_ind=None, dry_run=False, double_precision=False, tmp_results_dir=None):
     """Run all the available and applicable models on the data in the given folder.
 
     See the class AutoRun for more details and options.
@@ -65,6 +65,10 @@ def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalcul
         dry_run (boolean): a dry run will do no computations, but will list all the subjects found in the
             given directory.
         double_precision (boolean): if we would like to do the calculations in double precision
+        tmp_results_dir (str): The temporary dir for the calculations. If set to None we write the temporary
+                results in the results folder of each subject. Else, if set to a specific path we will store the
+                temporary results in a subfolder in the given folder (the subfolder will be a hash of
+                the original folder).
 
     Returns:
         The list of subjects we will calculate / have calculated.
@@ -77,7 +81,8 @@ def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalcul
 
     batch_fitting = BatchFitting(data_folder, batch_profile=batch_profile, subjects_selection=subjects_selection,
                                  recalculate=recalculate, models_to_fit=models_to_fit, cascade_subdir=cascade_subdir,
-                                 cl_device_ind=cl_device_ind, double_precision=double_precision)
+                                 cl_device_ind=cl_device_ind, double_precision=double_precision,
+                                 tmp_results_dir=tmp_results_dir)
 
     if dry_run:
         return batch_fitting.get_subjects_info()
@@ -87,7 +92,7 @@ def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalcul
 
 def fit_model(model, problem_data, output_folder, optimizer=None,
               recalculate=False, only_recalculate_last=False, cascade_subdir=False,
-              cl_device_ind=None, double_precision=False):
+              cl_device_ind=None, double_precision=False, tmp_results_dir=None):
     """Run the optimizer on the given model.
 
     Args:
@@ -111,6 +116,10 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
         cl_device_ind (int or list): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices(). This can also be a list of device indices.
         double_precision (boolean): if we would like to do the calculations in double precision
+        tmp_results_dir (str): The temporary dir for the calculations. If set to None we write the temporary
+                results in the results folder of each subject. Else, if set to a specific path we will store the
+                temporary results in a subfolder in the given folder (the subfolder will be a hash of
+                the original folder).
 
     Returns:
         the output of the optimization. If a cascade is given, only the results of the last model in the cascade is
@@ -125,14 +134,15 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
     model_fit = ModelFit(model, problem_data, output_folder, optimizer=optimizer, recalculate=recalculate,
                          only_recalculate_last=only_recalculate_last,
                          cascade_subdir=cascade_subdir,
-                         cl_device_ind=cl_device_ind, double_precision=double_precision)
+                         cl_device_ind=cl_device_ind, double_precision=double_precision,
+                         tmp_results_dir=tmp_results_dir)
 
     return model_fit.run()
 
 
 def sample_model(model, problem_data, output_folder, sampler=None, recalculate=False,
                  cl_device_ind=None, double_precision=False, initialize=True, initialize_using=None,
-                 store_samples=True):
+                 store_samples=True, tmp_results_dir=None):
     """Sample a single model. This does not accept cascade models, only single models.
 
     Args:
@@ -154,9 +164,13 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
             initialize from the dict directly.
         store_samples (boolean): if set to False we will store none of the samples. Use this
                 if you are only interested in the volume maps and not in the entire sample chain.
+        tmp_results_dir (str): The temporary dir for the calculations. If set to None we write the temporary
+                results in the results folder of each subject. Else, if set to a specific path we will store the
+                temporary results in a subfolder in the given folder (the subfolder will be a hash of
+                the original folder).
 
     Returns:
-        dict: the samples per parameter as a numpy memmap.
+        dict: the samples per parameter as a numpy memmap, if store_samples is True
     """
     import mdt.utils
     from mdt.model_sampling import ModelSampling
@@ -168,7 +182,8 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
                              sampler=sampler, recalculate=recalculate, cl_device_ind=cl_device_ind,
                              double_precision=double_precision,
                              initialize=initialize,
-                             initialize_using=initialize_using, store_samples=store_samples)
+                             initialize_using=initialize_using, store_samples=store_samples,
+                             tmp_results_dir=tmp_results_dir)
 
     return sampling.run()
 

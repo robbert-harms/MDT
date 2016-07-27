@@ -30,7 +30,7 @@ class ModelSampling(object):
 
     def __init__(self, model, problem_data, output_folder,
                  sampler=None, recalculate=False, cl_device_ind=None, double_precision=True,
-                 initialize=True, initialize_using=None, store_samples=True):
+                 initialize=True, initialize_using=None, store_samples=True, tmp_results_dir=None):
         """Sample a single model. This does not accept cascade models, only single models.
 
         Args:
@@ -53,9 +53,13 @@ class ModelSampling(object):
                 initialize from the dict directly.
             store_samples (boolean): if set to False we will store none of the samples. Use this
                 if you are only interested in the volume maps and not in the entire sample chain.
+            tmp_results_dir (str): The temporary dir for the calculations. If set to None we write the temporary
+                results in the results folder of each subject. Else, if set to a specific path we will store the
+                temporary results in a subfolder in the given folder (the subfolder will be a hash of
+                the original folder).
 
         Returns:
-            the full chain of the optimization
+            the full chain of the optimization if store_samples is True
         """
         if isinstance(model, string_types):
             model = get_model(model)
@@ -75,6 +79,7 @@ class ModelSampling(object):
         self._initialize = initialize
         self._initialize_using = initialize_using
         self._store_samples = store_samples
+        self._tmp_results_dir = tmp_results_dir
 
         if self._sampler is None:
             self._sampler = MetropolisHastings()
@@ -112,6 +117,7 @@ class ModelSampling(object):
                     self._sampler.load_balancer = EvenDistribution()
 
                 processing_strategy = get_processing_strategy('sampling', model_names=self._model.name)
+                processing_strategy.set_tmp_dir(self._tmp_results_dir)
 
                 sampler = SampleSingleModel(self._model, self._problem_data, self._output_folder, self._sampler,
                                             processing_strategy,
