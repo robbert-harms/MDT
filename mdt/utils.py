@@ -687,24 +687,36 @@ def init_user_settings(pass_if_exists=True):
             if not os.path.exists(path + '/components/user/' + folder_name):
                 os.mkdir(path + '/components/user/' + folder_name)
 
-    def copy_old_config(tmp_dir):
-        if os.path.exists(tmp_dir + '/mdt.conf'):
-            if os.path.exists(path + '/mdt.conf'):
-                os.remove(path + '/mdt.conf')
-            shutil.move(tmp_dir + '/mdt.conf', path + '/mdt.conf')
+    def copy_old_config(current_config_value, tmp_dir):
+        if current_config_value is not None:
+            with open(path + '/mdt.conf', 'w') as f:
+                f.write(current_config_value)
+        else:
+            if os.path.exists(tmp_dir + '/mdt.conf'):
+                if os.path.exists(path + '/mdt.conf'):
+                    os.remove(path + '/mdt.conf')
+                shutil.move(tmp_dir + '/mdt.conf', path + '/mdt.conf')
+
+    def get_current_config_value():
+        with open(path + '/mdt.conf', 'r') as f:
+            return f.read()
 
     with tmp_save_previous_version() as tmp_dir:
+        current_config_value = None
+
         if pass_if_exists:
             if os.path.exists(path):
                 return path
         else:
+            current_config_value = get_current_config_value()
+
             if os.path.exists(path):
                 shutil.rmtree(path)
 
         init_from_mdt()
         copy_user_components(tmp_dir)
         make_sure_user_components_exists()
-        copy_old_config(tmp_dir)
+        copy_old_config(current_config_value, tmp_dir)
 
     return path
 

@@ -664,7 +664,8 @@ def results_preselection_names(data):
     else:
         keys = data
 
-    filter_match = ('.vec', '.d', '.sigma', 'AIC', 'Errors.mse', 'Errors.sse', '.eigen_ranking', 'SignalEstimates')
+    filter_match = ('.vec', '.d', '.sigma', 'AIC', 'Errors.mse', 'Errors.sse', '.eigen_ranking',
+                    'SignalEstimates', 'UsedMask')
     return list(sorted(filter(lambda v: all(m not in v for m in filter_match), keys)))
 
 
