@@ -1558,7 +1558,7 @@ def is_scalar(value):
     return mot.utils.is_scalar(value)
 
 
-def roi_index_to_volume_index(roi_index, brain_mask):
+def roi_index_to_volume_index(roi_indices, brain_mask):
     """Get the 3d index of a voxel given the linear index in a ROI created with the given brain mask.
 
     This is the inverse function of volume_index_to_roi_index.
@@ -1567,7 +1567,7 @@ def roi_index_to_volume_index(roi_index, brain_mask):
     and you want to locate that voxel in the brain maps.
 
     Args:
-        roi_index (int or ndarray): the index in the ROI created by that brain mask
+        roi_indices (int or ndarray): the index in the ROI created by that brain mask
         brain_mask (str or 3d array): the brain mask you would like to use
 
     Returns:
@@ -1575,22 +1575,29 @@ def roi_index_to_volume_index(roi_index, brain_mask):
     """
     mask = autodetect_brain_mask_loader(brain_mask).get_data()
 
-    if is_scalar(roi_index):
-        roi_index = [roi_index]
+    if is_scalar(roi_indices):
+        roi_indices = [roi_indices]
 
-    voxel_indices = np.zeros([len(roi_index), 3], dtype=np.int32)
-    counter = 0
+    roi_indices_map = {ind: 0 for ind in roi_indices}
+    current_roi_index = 0
+    indices_added = 0
 
-    it = np.nditer(mask, flags=['multi_index'], order='C')
+    it = np.nditer(mask, flags=['multi_index'], order='C', op_flags=[['readonly']])
     while not it.finished:
         if it[0]:
-            voxel_indices[counter, :] = it.multi_index
+            if current_roi_index in roi_indices_map:
+                roi_indices_map[current_roi_index] = it.multi_index
+                indices_added += 1
 
-            if counter == len(roi_index):
+            if indices_added == len(roi_indices):
                 break
 
-            counter += 1
+            current_roi_index += 1
         it.iternext()
+
+    voxel_indices = np.zeros((len(roi_indices), 3), dtype=np.int32)
+    for ind, roi_index in enumerate(roi_indices):
+        voxel_indices[ind, :] = roi_indices_map[roi_index]
 
     return voxel_indices
 
