@@ -1582,7 +1582,7 @@ def roi_index_to_volume_index(roi_index, brain_mask):
     if is_scalar(roi_index):
         roi_index = [roi_index]
 
-    voxel_indices = np.zeros([len(roi_index), 3])
+    voxel_indices = np.zeros([len(roi_index), 3], dtype=np.int32)
     counter = 0
 
     it = np.nditer(mask, flags=['multi_index'], order='C')
