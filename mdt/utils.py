@@ -1412,7 +1412,7 @@ class SamplingProcessingWorker(ModelProcessingWorker):
 
         if self._store_samples:
             self._write_sample_results(results, problem_data.mask, roi_indices, tmp_storage_dir)
-            return {k: v[roi_indices, :] for k, v in load_samples(tmp_storage_dir).items()}
+            return results
 
         return SamplingProcessingWorker.SampleChainNotStored()
 
@@ -1571,14 +1571,32 @@ def roi_index_to_volume_index(roi_index, brain_mask):
     and you want to locate that voxel in the brain maps.
 
     Args:
-        roi_index (int): the index in the ROI created by that brain mask
+        roi_index (int or ndarray): the index in the ROI created by that brain mask
         brain_mask (str or 3d array): the brain mask you would like to use
 
     Returns:
         ndarray: the 3d voxel location(s) of the indicated voxel(s)
     """
     mask = autodetect_brain_mask_loader(brain_mask).get_data()
-    return np.array(np.where(mask))[:, roi_index].transpose()
+
+    if is_scalar(roi_index):
+        roi_index = [roi_index]
+
+    voxel_indices = np.zeros([len(roi_index), 3])
+    counter = 0
+
+    it = np.nditer(mask, flags=['multi_index'], order='C')
+    while not it.finished:
+        if it[0]:
+            voxel_indices[counter, :] = it.multi_index
+
+            if counter == len(roi_index):
+                break
+
+            counter += 1
+        it.iternext()
+
+    return voxel_indices
 
 
 def volume_index_to_roi_index(volume_index, brain_mask):
