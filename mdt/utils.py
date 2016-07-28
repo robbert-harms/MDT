@@ -1244,6 +1244,7 @@ class ModelProcessingWorker(object):
 
     def __init__(self):
         self._write_volumes_gzipped = True
+        self._used_mask_name = 'UsedMask'
 
     def process(self, model, problem_data, roi_indices, tmp_storage_dir):
         """Process the indicated voxels in the way prescribed by this worker.
@@ -1287,8 +1288,7 @@ class ModelProcessingWorker(object):
             the processing results for as much as this is applicable
         """
 
-    @staticmethod
-    def _write_volumes(problem_data, roi_indices, results, tmp_dir):
+    def _write_volumes(self, problem_data, roi_indices, results, tmp_dir):
         """Write the result arrays to the temporary storage
 
         Args:
@@ -1318,7 +1318,7 @@ class ModelProcessingWorker(object):
                                      shape=problem_data.mask.shape[0:3] + (map_4d_dim_len,))
             tmp_matrix[volume_indices[:, 0], volume_indices[:, 1], volume_indices[:, 2]] = result_array
 
-        mask_path = os.path.join(tmp_dir, '__mask.npy')
+        mask_path = os.path.join(tmp_dir, '{}.npy'.format(self._used_mask_name))
         mode = 'w+'
         if os.path.isfile(mask_path):
             mode = 'r+'
@@ -1339,7 +1339,6 @@ class ModelProcessingWorker(object):
         """
         map_names = list(map(lambda p: os.path.splitext(os.path.basename(p))[0],
                              glob.glob(os.path.join(chunks_dir, maps_subdir, '*.npy'))))
-        map_names = list(filter(lambda d: '__mask' not in d, map_names))
 
         for map_name in map_names:
             data = np.load(os.path.join(chunks_dir, maps_subdir, map_name + '.npy'), mmap_mode='r')
@@ -1417,7 +1416,7 @@ class SamplingProcessingWorker(ModelProcessingWorker):
         return SamplingProcessingWorker.SampleChainNotStored()
 
     def voxels_are_processed(self, model, problem_data, voxel_indices, tmp_storage_dir):
-        mask_path = os.path.join(tmp_storage_dir, 'volume_maps', '__mask.npy')
+        mask_path = os.path.join(tmp_storage_dir, 'volume_maps', '{}.npy'.format(self._used_mask_name))
         volume_indices = np.array(roi_index_to_volume_index(voxel_indices, problem_data.mask))
         return (model_output_exists(model, os.path.join(tmp_storage_dir, 'volume_maps'),
                                     append_model_name_to_path=False)
@@ -1438,10 +1437,7 @@ class SamplingProcessingWorker(ModelProcessingWorker):
 
     @staticmethod
     def _write_sample_results(results, full_mask, roi_indices, output_path):
-        """Write the sample results to file.
-
-        This will write to files per sampled parameter. The first is a numpy array written to file, the second
-        is a python pickled dictionary with the datatype and shape of the written numpy array.
+        """Write the sample results to a .npy file.
 
         If the given sample files do not exists, it will create one with enough storage to hold all the samples
         for the given total_nmr_voxels. On storing it should also be given a list of voxel indices with the indices
