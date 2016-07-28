@@ -12,11 +12,11 @@ from mdt import __version__
 from mdt.IO import Nifti
 from mdt.batch_utils import batch_profile_factory, AllSubjects
 from mdt.components_loader import get_model
-from mdt.configuration import get_processing_strategy, get_tmp_results_dir
+from mdt.configuration import get_processing_strategy
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.protocols import write_protocol
 from mdt.utils import create_roi, MetaOptimizerBuilder, get_cl_devices, model_output_exists, split_image_path, \
-    FittingProcessingWorker, per_model_logging_context
+    FittingProcessingWorker, per_model_logging_context, get_temporary_results_dir
 from mdt.exceptions import InsufficientProtocolError
 from mot.load_balance_strategies import EvenDistribution
 import mot.configuration
@@ -32,7 +32,7 @@ class BatchFitting(object):
 
     def __init__(self, data_folder, batch_profile=None, subjects_selection=None, recalculate=False,
                  models_to_fit=None, cascade_subdir=False,
-                 cl_device_ind=None, double_precision=False, tmp_results_dir=None):
+                 cl_device_ind=None, double_precision=False, tmp_results_dir=True):
         """This class is meant to make running computations as simple as possible.
 
         The idea is that a single folder is enough to fit_model the computations. One can optionally give it the
@@ -67,7 +67,8 @@ class BatchFitting(object):
             cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
                 get_cl_devices().
             double_precision (boolean): if we would like to do the calculations in double precision
-            tmp_results_dir (str): The temporary dir for the calculations. Set to None to use the config default.
+            tmp_results_dir (str, True or None): The temporary dir for the calculations. Set to a string to use
+                that path directly, set to True to use the config value, set to None to disable.
         """
         self._logger = logging.getLogger(__name__)
         self._batch_profile = batch_profile_factory(batch_profile, data_folder)
@@ -200,7 +201,7 @@ class ModelFit(object):
 
     def __init__(self, model, problem_data, output_folder, optimizer=None,
                  recalculate=False, only_recalculate_last=False, cascade_subdir=False,
-                 cl_device_ind=None, double_precision=False, tmp_results_dir=None):
+                 cl_device_ind=None, double_precision=False, tmp_results_dir=True):
         """Setup model fitting for the given input model and data.
 
         To actually fit the model call run().
@@ -226,7 +227,8 @@ class ModelFit(object):
             cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
                 get_cl_devices(). This can also be a list of device indices.
             double_precision (boolean): if we would like to do the calculations in double precision
-            tmp_results_dir (str): The temporary dir for the calculations. Set to None to use the config default.
+            tmp_results_dir (str, True or None): The temporary dir for the calculations. Set to a string to use
+                that path directly, set to True to use the config value, set to None to disable.
         """
         if isinstance(model, string_types):
             model = get_model(model)
@@ -244,7 +246,7 @@ class ModelFit(object):
         self._logger = logging.getLogger(__name__)
         self._cl_device_indices = cl_device_ind
         self._model_names_list = []
-        self._tmp_results_dir = tmp_results_dir or get_tmp_results_dir()
+        self._tmp_results_dir = get_temporary_results_dir(tmp_results_dir)
 
         if self._cl_device_indices is not None and not isinstance(self._cl_device_indices, collections.Iterable):
             self._cl_device_indices = [self._cl_device_indices]

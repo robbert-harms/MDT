@@ -10,10 +10,11 @@ import collections
 from six import string_types
 from mdt.IO import Nifti
 from mdt.components_loader import get_model
-from mdt.configuration import get_processing_strategy, get_tmp_results_dir
+from mdt.configuration import get_processing_strategy
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.utils import create_roi, \
-    model_output_exists, get_cl_devices, per_model_logging_context, SamplingProcessingWorker, load_samples, is_scalar
+    model_output_exists, get_cl_devices, per_model_logging_context, SamplingProcessingWorker, load_samples, is_scalar, \
+    get_temporary_results_dir
 from mdt.exceptions import InsufficientProtocolError
 from mot.cl_routines.sampling.metropolis_hastings import MetropolisHastings
 from mot.configuration import config_context
@@ -30,7 +31,7 @@ class ModelSampling(object):
 
     def __init__(self, model, problem_data, output_folder,
                  sampler=None, recalculate=False, cl_device_ind=None, double_precision=True,
-                 initialize=True, initialize_using=None, store_samples=True, tmp_results_dir=None):
+                 initialize=True, initialize_using=None, store_samples=True, tmp_results_dir=True):
         """Sample a single model. This does not accept cascade models, only single models.
 
         Args:
@@ -49,11 +50,12 @@ class ModelSampling(object):
                     <output_folder>/<model_name>/
             initialize_using (None, str, or dict): If None, and initialize is True we will initialize from the
                 optimization maps from a model with the same name. If a string is given and initialize is True we will
-                interpret the string as a folder with the maps to load. If a dict is given and initialize is True we will
-                initialize from the dict directly.
+                interpret the string as a folder with the maps to load. If a dict is given and initialize is
+                True we will initialize from the dict directly.
             store_samples (boolean): if set to False we will store none of the samples. Use this
                 if you are only interested in the volume maps and not in the entire sample chain.
-            tmp_results_dir (str): The temporary dir for the calculations. Set to None to use the config default.
+            tmp_results_dir (str, True or None): The temporary dir for the calculations. Set to a string to use
+                that path directly, set to True to use the config value, set to None to disable.
 
         Returns:
             the full chain of the optimization if store_samples is True
@@ -76,7 +78,7 @@ class ModelSampling(object):
         self._initialize = initialize
         self._initialize_using = initialize_using
         self._store_samples = store_samples
-        self._tmp_results_dir = tmp_results_dir or get_tmp_results_dir()
+        self._tmp_results_dir = get_temporary_results_dir(tmp_results_dir)
 
         if self._sampler is None:
             self._sampler = MetropolisHastings()

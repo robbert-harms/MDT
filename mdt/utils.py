@@ -23,7 +23,7 @@ from mdt.IO import Nifti
 from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
 from mdt.components_loader import get_model
 from mdt.configuration import get_logging_configuration_dict, get_noise_std_estimators, config_context, \
-    VoidConfigAction, OptimizationSettings, gzip_optimization_results, gzip_sampling_results
+    VoidConfigAction, OptimizationSettings, gzip_optimization_results, gzip_sampling_results, get_tmp_results_dir
 from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
 from mdt.data_loaders.noise_std import autodetect_noise_std_loader
 from mdt.data_loaders.protocol import autodetect_protocol_loader
@@ -1163,6 +1163,8 @@ class SimpleProcessingStrategy(ModelProcessingStrategy):
         """
         if self._tmp_dir is None:
             return os.path.join(model_output_path, 'tmp_results')
+
+        self._logger.info('Using user defined path for saving the temporary results: {}.'.format(self._tmp_dir))
         return os.path.join(self._tmp_dir, hashlib.md5(model_output_path.encode('utf-8')).hexdigest())
 
     @staticmethod
@@ -1613,3 +1615,20 @@ def create_index_matrix(brain_mask):
     roi = np.arange(0, roi_length)
     return restore_volumes(roi, mask, with_volume_dim=False)
 
+
+def get_temporary_results_dir(user_value):
+    """Get the temporary results dir from the user value and from the config.
+
+    Args:
+        user_value (string, boolean or None): if a string is given we will use that directly. If a boolean equal to
+            True is given we will use the configuration defined value. If None is given we will not use a specific
+            temporary results dir.
+
+    Returns:
+        str or None: either the temporary results dir or None
+    """
+    if isinstance(user_value, string_types):
+        return user_value
+    if user_value is True:
+        return get_tmp_results_dir()
+    return None
