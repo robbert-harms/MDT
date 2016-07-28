@@ -698,8 +698,10 @@ def init_user_settings(pass_if_exists=True):
                 shutil.move(tmp_dir + '/mdt.conf', path + '/mdt.conf')
 
     def get_current_config_value():
-        with open(path + '/mdt.conf', 'r') as f:
-            return f.read()
+        if os.path.isfile(path + '/mdt.conf'):
+            with open(path + '/mdt.conf', 'r') as f:
+                return f.read()
+        return None
 
     with tmp_save_previous_version() as tmp_dir:
         current_config_value = None
