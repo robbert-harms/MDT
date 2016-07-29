@@ -2,7 +2,8 @@
 
 # Form implementation generated from reading ui file 'generate_brain_mask_tab.ui'
 #
-# Created by: PyQt5 UI code generator 5.4.2
+# Created: Fri Jul 29 15:04:50 2016
+#      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -16,8 +17,8 @@ class Ui_GenerateBrainMaskTabContent(object):
         self.verticalLayout.setContentsMargins(-1, 11, -1, -1)
         self.verticalLayout.setObjectName("verticalLayout")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout()
-        self.verticalLayout_2.setContentsMargins(-1, -1, -1, 0)
         self.verticalLayout_2.setSpacing(0)
+        self.verticalLayout_2.setContentsMargins(-1, -1, -1, 0)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.label = QtWidgets.QLabel(GenerateBrainMaskTabContent)
         font = QtGui.QFont()
@@ -36,6 +37,7 @@ class Ui_GenerateBrainMaskTabContent(object):
         self.line.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line.setLineWidth(1)
         self.line.setFrameShape(QtWidgets.QFrame.HLine)
+        self.line.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line.setObjectName("line")
         self.verticalLayout.addWidget(self.line)
         self.gridLayout = QtWidgets.QGridLayout()

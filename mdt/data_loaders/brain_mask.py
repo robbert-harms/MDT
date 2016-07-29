@@ -71,4 +71,4 @@ class BrainMaskFromArray(BrainMaskLoader):
         self._mask_data = mask_data
 
     def get_data(self):
-        return self._mask_data
+        return self._mask_data > 0
