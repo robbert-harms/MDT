@@ -1478,7 +1478,7 @@ class SamplingProcessingWorker(ModelProcessingWorker):
             saved[roi_indices, :] = samples
 
 
-def load_samples(data_folder, mode='c'):
+def load_samples(data_folder, mode='r'):
     """Load sampled results as a dictionary of numpy memmap.
 
     Args:

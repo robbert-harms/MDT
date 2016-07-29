@@ -2,7 +2,8 @@
 
 # Form implementation generated from reading ui file 'about_dialog.ui'
 #
-# Created by: PyQt5 UI code generator 5.4.2
+# Created: Fri Jul 29 15:04:50 2016
+#      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -13,15 +14,15 @@ class Ui_AboutDialog(object):
         AboutDialog.setObjectName("AboutDialog")
         AboutDialog.resize(594, 379)
         self.verticalLayout = QtWidgets.QVBoxLayout(AboutDialog)
-        self.verticalLayout.setContentsMargins(6, 6, 6, 6)
         self.verticalLayout.setSpacing(3)
+        self.verticalLayout.setContentsMargins(6, 6, 6, 6)
         self.verticalLayout.setObjectName("verticalLayout")
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setSpacing(0)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout()
-        self.verticalLayout_2.setContentsMargins(-1, -1, 16, -1)
         self.verticalLayout_2.setSpacing(0)
+        self.verticalLayout_2.setContentsMargins(-1, -1, 16, -1)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.label_2 = QtWidgets.QLabel(AboutDialog)
         self.label_2.setText("")
