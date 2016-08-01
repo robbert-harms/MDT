@@ -1,5 +1,5 @@
 from mdt.components_loader import load_component
-from mdt.utils import SimpleProcessingStrategy
+from mdt.processing_strategies import SimpleProcessingStrategy
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-11-29"
@@ -32,9 +32,9 @@ class ProtocolDependent(SimpleProcessingStrategy):
         super(ProtocolDependent, self).__init__(**kwargs)
         self._steps = steps
 
-    def run(self, model, problem_data, output_path, recalculate, worker):
+    def run(self, model, problem_data, output_path, recalculate, worker_generator):
         strategy = self._get_strategy(problem_data)
-        return strategy.run(model, problem_data, output_path, recalculate, worker)
+        return strategy.run(model, problem_data, output_path, recalculate, worker_generator)
 
     def _get_strategy(self, problem_data):
         for col_length, voxel_range in reversed(self._steps):
@@ -43,4 +43,5 @@ class ProtocolDependent(SimpleProcessingStrategy):
                     return load_component('processing_strategies', 'VoxelRange', nmr_voxels=int(voxel_range),
                                           tmp_dir=self._tmp_dir, honor_voxels_to_analyze=self._honor_voxels_to_analyze)
 
-        return load_component('processing_strategies', 'AllVoxelsAtOnce', tmp_dir=self._tmp_dir)
+        return load_component('processing_strategies', 'AllVoxelsAtOnce', tmp_dir=self._tmp_dir,
+                              honor_voxels_to_analyze=self._honor_voxels_to_analyze)

@@ -1,5 +1,4 @@
-import numpy as np
-from mdt.utils import ChunksProcessingStrategy
+from mdt.processing_strategies import ChunksProcessingStrategy
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-11-29"
@@ -25,14 +24,7 @@ class VoxelRange(ChunksProcessingStrategy):
         super(VoxelRange, self).__init__(**kwargs)
         self.nmr_voxels = nmr_voxels
 
-    def _chunks_generator(self, model, problem_data, output_path, worker):
-        if self._honor_voxels_to_analyze and model.problems_to_analyze:
-            self._logger.info('The range of problems to analyze was already set, '
-                              'we will only fit the selected problems.')
-            roi_indices = model.problems_to_analyze
-        else:
-            roi_indices = np.arange(0, np.count_nonzero(problem_data.mask))
-
-        for ind_start in range(0, len(roi_indices), self.nmr_voxels):
-            ind_end = min(len(roi_indices), ind_start + self.nmr_voxels)
-            yield roi_indices[ind_start:ind_end]
+    def _chunks_generator(self, model, problem_data, output_path, worker, total_roi_indices):
+        for ind_start in range(0, len(total_roi_indices), self.nmr_voxels):
+            ind_end = min(len(total_roi_indices), ind_start + self.nmr_voxels)
+            yield total_roi_indices[ind_start:ind_end]

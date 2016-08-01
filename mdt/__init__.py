@@ -686,7 +686,6 @@ def view_result_samples(data, **kwargs):
         kwargs (dict): see SampleVisualizer for all the supported keywords
     """
     from mdt.visualization import SampleVisualizer
-    from mdt.utils import load_samples
 
     if isinstance(data, string_types):
         data = load_samples(data)
@@ -694,6 +693,20 @@ def view_result_samples(data, **kwargs):
     if not kwargs.get('voxel_ind'):
         kwargs.update({'voxel_ind': data[list(data.keys())[0]].shape[0] / 2})
     SampleVisualizer(data).show(**kwargs)
+
+
+def load_samples(data_folder, mode='r'):
+    """Load sampled results as a dictionary of numpy memmap.
+
+    Args:
+        data_folder (str): the folder from which to load the samples
+        mode (str): the mode in which to open the memory mapped sample files (see numpy mode parameter)
+
+    Returns:
+        dict: the memory loaded samples per sampled parameter.
+    """
+    from mdt.utils import load_samples
+    return load_samples(data_folder, mode=mode)
 
 
 def load_nifti(nifti_volume):
@@ -1167,8 +1180,13 @@ def config_context(config_action):
         This loads the configuration from a YAML string and uses that configuration as the context.
 
     Args:
-        config_action (ConfigAction): the configuration action to apply
+        config_action (ConfigAction or str): the configuration action to apply. If a string is given we will
+            load it using the YamlStringAction config action.
     """
+    if isinstance(config_action, string_types):
+        from mdt.configuration import YamlStringAction
+        config_action = YamlStringAction(config_action)
+
     config_action.apply()
     yield
     config_action.unapply()
@@ -1301,7 +1319,7 @@ def roi_index_to_volume_index(roi_index, brain_mask):
     and you want to locate that voxel in the brain maps.
 
     Args:
-        roi_index (int): the index in the ROI created by that brain mask
+        roi_index (int, list, ndarray): the index in the ROI created by that brain mask
         brain_mask (str or 3d array): the brain mask you would like to use
 
     Returns:

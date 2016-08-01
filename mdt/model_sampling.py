@@ -13,8 +13,9 @@ from mdt.components_loader import get_model
 from mdt.configuration import get_processing_strategy
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.utils import create_roi, \
-    model_output_exists, get_cl_devices, per_model_logging_context, SamplingProcessingWorker, load_samples, is_scalar, \
+    model_output_exists, get_cl_devices, per_model_logging_context, load_samples, is_scalar, \
     get_temporary_results_dir
+from mdt.processing_strategies import SimpleModelProcessingWorkerGenerator, SamplingProcessingWorker
 from mdt.exceptions import InsufficientProtocolError
 from mot.cl_routines.sampling.metropolis_hastings import MetropolisHastings
 from mot.configuration import config_context
@@ -191,10 +192,11 @@ class SampleSingleModel(object):
             with self._logging():
                 self._model.set_initial_parameters(self._get_initialization_params())
 
-                worker = SamplingProcessingWorker(self._sampler, self._store_samples)
+                worker_generator = SimpleModelProcessingWorkerGenerator(
+                    lambda *args: SamplingProcessingWorker(self._sampler, self._store_samples, *args))
 
                 return self._processing_strategy.run(self._model, self._problem_data,
-                                                     self._output_path, self.recalculate, worker)
+                                                     self._output_path, self.recalculate, worker_generator)
 
     def _get_initialization_params(self):
         logger = logging.getLogger(__name__)

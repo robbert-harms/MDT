@@ -284,6 +284,8 @@ class Protocol(object):
     def get_unweighted_indices(self, unweighted_threshold=None):
         """Get the indices to the unweighted volumes.
 
+        If the column 'b' could not be found, assume that all measurements are unweighted.
+
         Args:
             unweighted_threshold (float): the threshold under which we call it unweighted.
 
@@ -292,13 +294,16 @@ class Protocol(object):
         """
         unweighted_threshold = unweighted_threshold or self._unweighted_threshold
 
-        b = self.get_column('b')
-        g = self.get_column('g')
+        try:
+            b = self.get_column('b')
+            g = self.get_column('g')
 
-        g_limit = np.sqrt(g[:, 0]**2 + g[:, 1]**2 + g[:, 2]**2) < 0.99
-        b_limit = b[:, 0] < unweighted_threshold
+            g_limit = np.sqrt(g[:, 0]**2 + g[:, 1]**2 + g[:, 2]**2) < 0.99
+            b_limit = b[:, 0] < unweighted_threshold
 
-        return np.where(g_limit + b_limit)[0]
+            return np.where(g_limit + b_limit)[0]
+        except KeyError:
+            return range(self.length)
 
     def get_weighted_indices(self, unweighted_threshold=None):
         """Get the indices to the weighted volumes.

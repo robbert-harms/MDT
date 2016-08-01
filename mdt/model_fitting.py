@@ -16,7 +16,8 @@ from mdt.configuration import get_processing_strategy
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.protocols import write_protocol
 from mdt.utils import create_roi, MetaOptimizerBuilder, get_cl_devices, model_output_exists, split_image_path, \
-    FittingProcessingWorker, per_model_logging_context, get_temporary_results_dir
+    per_model_logging_context, get_temporary_results_dir
+from mdt.processing_strategies import SimpleModelProcessingWorkerGenerator, FittingProcessingWorker
 from mdt.exceptions import InsufficientProtocolError
 from mot.load_balance_strategies import EvenDistribution
 import mot.configuration
@@ -387,9 +388,9 @@ class SingleModelFit(object):
                 os.makedirs(self._output_path)
 
             with self._logging():
-                results = self._processing_strategy.run(self._model, self._problem_data,
-                                                        self._output_path, self.recalculate,
-                                                        FittingProcessingWorker(self._optimizer))
+                results = self._processing_strategy.run(
+                    self._model, self._problem_data, self._output_path, self.recalculate,
+                    SimpleModelProcessingWorkerGenerator(lambda *args: FittingProcessingWorker(self._optimizer, *args)))
                 self._write_protocol()
 
         return results
