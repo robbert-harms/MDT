@@ -21,7 +21,7 @@ import mot.utils
 from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
 from mdt.components_loader import get_model
 from mdt.configuration import get_logging_configuration_dict, get_noise_std_estimators, config_context, \
-    VoidConfigAction, OptimizationSettings, get_tmp_results_dir
+    VoidConfigAction, OptimizationSettings, get_tmp_results_dir, SamplingSettings
 from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
 from mdt.data_loaders.noise_std import autodetect_noise_std_loader
 from mdt.data_loaders.protocol import autodetect_protocol_loader
@@ -30,6 +30,7 @@ from mdt.log_handlers import ModelOutputLogHandler
 from mot.base import AbstractProblemData
 from mot.cl_environments import CLEnvironmentFactory
 from mot.cl_routines.optimizing.meta_optimizer import MetaOptimizer
+from mot.cl_routines.sampling.meta_sampler import MetaSampler
 
 try:
     import codecs
@@ -386,7 +387,7 @@ def get_slice_in_dimension(volume, dimension, index):
     """From the given volume get a slice on the given dimension (x, y, z, ...) and then on the given index.
 
     Args:
-        volume (ndarray);: the volume, 3d, 4d or more
+        volume (ndarray): the volume, 3d, 4d or more
         dimension (int): the dimension on which we want a slice
         index (int): the index of the slice
 
@@ -923,7 +924,7 @@ class MetaOptimizerBuilder(object):
         """Construct a new meta optimizer with the options from the current configuration.
 
         If model_name is given, we try to load the specific options for that model from the configuration. If it it not
-        given we load the general options under 'general'.
+        given we load the general options.
 
         Args:
             model_names (list of str): the list of model names
@@ -938,6 +939,35 @@ class MetaOptimizerBuilder(object):
                                                           for i in range(1, len(optimizer_settings))]
             meta_optimizer.extra_optim_runs = OptimizationSettings.get_extra_optim_runs()
             return meta_optimizer
+
+
+class MetaSamplerBuilder(object):
+
+    def __init__(self, config_action=VoidConfigAction()):
+        """Create a new meta sampler builder.
+
+        This will create a new MetaSampler using settings from the config file. You can update the config
+        during sampler creation using a config action.
+
+        Args;
+            config_action (ConfigAction): the configuration action to apply during optimizer creation.
+        """
+        self._config_action = config_action
+
+    def construct(self, model_name=None):
+        """Construct a new meta sampler with the options from the current configuration.
+
+        If model_name is given, we try to load the specific options for that model from the configuration. If it it not
+        given we load the general options.
+
+        Args:
+            model_name (str): the model name for which we want to build the sampler
+        """
+        with config_context(self._config_action):
+            meta_sampler = MetaSampler()
+            sampler_settings = SamplingSettings.get_sampler_configs(model_name)
+            meta_sampler.sampler = sampler_settings[0].build_sampler()
+            return meta_sampler
 
 
 def get_cl_devices():
@@ -1245,8 +1275,7 @@ def create_index_matrix(brain_mask):
             of that voxel in the linear ROI list.
     """
     mask = autodetect_brain_mask_loader(brain_mask).get_data()
-    roi_length = np.count_nonzero(mask)
-    roi = np.arange(0, roi_length)
+    roi = np.arange(0, np.count_nonzero(mask))
     return restore_volumes(roi, mask, with_volume_dim=False)
 
 

@@ -11,7 +11,7 @@ from numpy.lib.format import open_memmap
 
 from mdt.IO import Nifti
 from mdt.configuration import gzip_optimization_results, gzip_sampling_results
-from mdt.utils import create_roi, roi_index_to_volume_index, load_samples
+from mdt.utils import create_roi, load_samples
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-07-29"
@@ -148,19 +148,19 @@ class ChunksProcessingStrategy(SimpleProcessingStrategy):
         with self._tmp_storage_dir(output_path, recalculate) as tmp_storage_dir:
             voxels_processed = 0
 
-            worker = worker_generator.create_worker(model, problem_data, tmp_storage_dir, self._honor_voxels_to_analyze)
+            worker = worker_generator.create_worker(model, problem_data, output_path,
+                                                    tmp_storage_dir, self._honor_voxels_to_analyze)
 
             total_roi_indices = worker.get_voxels_to_compute()
 
             for chunk_indices in self._chunks_generator(model, problem_data, output_path, worker, total_roi_indices):
                 with self._selected_indices(model, chunk_indices):
-                    self._run_on_chunk(model, problem_data, tmp_storage_dir, worker, chunk_indices,
-                                       total_roi_indices, voxels_processed)
+                    self._run_on_chunk(problem_data, worker, chunk_indices, total_roi_indices, voxels_processed)
 
                 voxels_processed += len(chunk_indices)
 
             self._logger.info('Computed all voxels, now creating nifti\'s')
-            return_data = worker.combine(output_path)
+            return_data = worker.combine()
 
         return return_data
 
@@ -172,8 +172,7 @@ class ChunksProcessingStrategy(SimpleProcessingStrategy):
         """
         raise NotImplementedError
 
-    def _run_on_chunk(self, model, problem_data, tmp_storage_dir, worker, voxel_indices,
-                      voxels_to_process, voxels_processed):
+    def _run_on_chunk(self, problem_data, worker, voxel_indices, voxels_to_process, voxels_processed):
         """Run the worker on the given chunk."""
         total_nmr_voxels = np.count_nonzero(problem_data.mask)
         total_processed = (total_nmr_voxels - len(voxels_to_process)) + voxels_processed
@@ -188,12 +187,13 @@ class ChunksProcessingStrategy(SimpleProcessingStrategy):
 
 class ModelProcessingWorkerCreator(object):
 
-    def create_worker(self, model, problem_data, tmp_storage_dir, honor_voxels_to_analyze):
+    def create_worker(self, model, problem_data, output_dir, tmp_storage_dir, honor_voxels_to_analyze):
         """Create and return the worker that the processing strategy will use.
 
         Args:
             model (DMRISingleModel): the model to process
             problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
+            output_dir (str): the location for the final output files
             tmp_storage_dir (str): the location for the temporary output files
             honor_voxels_to_analyze (boolean): if we should honor the voxels_to_analyze list in the model if applicable.
 
@@ -212,19 +212,21 @@ class SimpleModelProcessingWorkerGenerator(ModelProcessingWorkerCreator):
         """
         self._callback_function = callback_function
 
-    def create_worker(self, model, problem_data, tmp_storage_dir, honor_voxels_to_analyze):
-        return self._callback_function(model, problem_data, tmp_storage_dir, honor_voxels_to_analyze)
+    def create_worker(self, model, problem_data, output_dir, tmp_storage_dir, honor_voxels_to_analyze):
+        return self._callback_function(model, problem_data, output_dir, tmp_storage_dir, honor_voxels_to_analyze)
 
 
 class ModelProcessingWorker(object):
 
-    def __init__(self, model, problem_data, tmp_storage_dir, honor_voxels_to_analyze):
+    def __init__(self, model, problem_data, output_dir, tmp_storage_dir, honor_voxels_to_analyze):
         self._write_volumes_gzipped = True
         self._used_mask_name = 'UsedMask'
         self._model = model
         self._problem_data = problem_data
+        self._output_dir = output_dir
         self._tmp_storage_dir = tmp_storage_dir
         self._honor_voxels_to_analyze = honor_voxels_to_analyze
+        self._roi_lookup_path = os.path.join(self._tmp_storage_dir, '_roi_voxel_lookup_table.npy')
         self._volume_indices = self._create_roi_to_volume_index_lookup_table()
 
     def process(self, roi_indices):
@@ -264,18 +266,15 @@ class ModelProcessingWorker(object):
         if os.path.exists(mask_path):
             return roi_list[np.logical_not(np.squeeze(create_roi(np.load(mask_path, mmap_mode='r'),
                                                                  self._problem_data.mask)[roi_list]))]
-
         return roi_list
 
-    def combine(self, output_dir):
+    def combine(self):
         """Combine all the calculated parts.
-
-        Args:
-            output_dir (str): the location to store the final (combined) output files
 
         Returns:
             the processing results for as much as this is applicable
         """
+        os.remove(self._roi_lookup_path)
 
     def _write_volumes(self, roi_indices, results, tmp_dir):
         """Write the result arrays to the temporary storage
@@ -325,10 +324,16 @@ class ModelProcessingWorker(object):
         Returns:
             dict: the dictionary with the ROIs for every volume, by parameter name
         """
+        if not os.path.exists(os.path.join(output_dir, maps_subdir)):
+            os.makedirs(os.path.join(output_dir, maps_subdir))
+
         map_names = list(map(lambda p: os.path.splitext(os.path.basename(p))[0],
                              glob.glob(os.path.join(chunks_dir, maps_subdir, '*.npy'))))
 
-        basic_info = (chunks_dir, maps_subdir, output_dir, maps_subdir, volume_header, self._write_volumes_gzipped)
+        basic_info = (os.path.join(chunks_dir, maps_subdir),
+                      os.path.join(output_dir, maps_subdir),
+                      volume_header,
+                      self._write_volumes_gzipped)
         info_list = [(map_name, basic_info) for map_name in map_names]
 
         pool = Pool()
@@ -354,11 +359,10 @@ class ModelProcessingWorker(object):
         Returns:
             memmap ndarray: the memory mapped array which
         """
-        storage_path = self._tmp_storage_dir + '_roi_voxel_lookup_table.npy'
-        if os.path.isfile(storage_path):
-            os.remove(storage_path)
-        np.save(storage_path, np.argwhere(self._problem_data.mask))
-        return np.load(storage_path, mmap_mode='r')
+        if os.path.isfile(self._roi_lookup_path):
+            os.remove(self._roi_lookup_path)
+        np.save(self._roi_lookup_path, np.argwhere(self._problem_data.mask))
+        return np.load(self._roi_lookup_path, mmap_mode='r')
 
 
 def _combine_volumes_write_out(info_pair):
@@ -367,11 +371,10 @@ def _combine_volumes_write_out(info_pair):
     Needs to be used by ModelProcessingWorker._combine_volumes
     """
     map_name, info_list = info_pair
-    chunks_dir, maps_subdir, output_dir, maps_subdir, volume_header, write_gzipped = info_list
+    chunks_dir, output_dir, volume_header, write_gzipped = info_list
 
-    data = np.load(os.path.join(chunks_dir, maps_subdir, map_name + '.npy'), mmap_mode='r')
-    Nifti.write_volume_maps({map_name: data}, os.path.join(output_dir, maps_subdir), volume_header,
-                            gzip=write_gzipped)
+    data = np.load(os.path.join(chunks_dir, map_name + '.npy'), mmap_mode='r')
+    Nifti.write_volume_maps({map_name: data}, output_dir, volume_header, gzip=write_gzipped)
     del data
 
 
@@ -396,9 +399,10 @@ class FittingProcessingWorker(ModelProcessingWorker):
         self._write_volumes(roi_indices, results, self._tmp_storage_dir)
         return results
 
-    def combine(self, output_dir):
-        self._combine_volumes(output_dir, self._tmp_storage_dir, self._problem_data.volume_header)
-        return create_roi(Nifti.read_volume_maps(output_dir), self._problem_data.mask)
+    def combine(self):
+        super(FittingProcessingWorker, self).combine()
+        self._combine_volumes(self._output_dir, self._tmp_storage_dir, self._problem_data.volume_header)
+        return create_roi(Nifti.read_volume_maps(self._output_dir), self._problem_data.mask)
 
 
 class SamplingProcessingWorker(ModelProcessingWorker):
@@ -428,24 +432,24 @@ class SamplingProcessingWorker(ModelProcessingWorker):
         self._write_volumes(roi_indices, other_output, os.path.join(self._tmp_storage_dir, 'volume_maps'))
 
         if self._store_samples:
-            self._write_sample_results(results, self._problem_data.mask, roi_indices, self._tmp_storage_dir)
+            self._write_sample_results(results, self._problem_data.mask, roi_indices)
             return results
 
         return SamplingProcessingWorker.SampleChainNotStored()
 
-    def combine(self, output_dir):
-        self._combine_volumes(output_dir, self._tmp_storage_dir,
+    def combine(self):
+        super(SamplingProcessingWorker, self).combine()
+        self._combine_volumes(self._output_dir, self._tmp_storage_dir,
                               self._problem_data.volume_header, maps_subdir='volume_maps')
 
         if self._store_samples:
             for samples in glob.glob(os.path.join(self._tmp_storage_dir, '*.samples.npy')):
-                shutil.move(samples, output_dir)
-            return load_samples(output_dir)
+                shutil.move(samples, self._output_dir)
+            return load_samples(self._output_dir)
 
         return SamplingProcessingWorker.SampleChainNotStored()
 
-    @staticmethod
-    def _write_sample_results(results, full_mask, roi_indices, output_path):
+    def _write_sample_results(self, results, full_mask, roi_indices):
         """Write the sample results to a .npy file.
 
         If the given sample files do not exists, it will create one with enough storage to hold all the samples
@@ -456,15 +460,14 @@ class SamplingProcessingWorker(ModelProcessingWorker):
             results (dict): the samples to write
             full_mask (ndarray): the complete mask for the entire brain
             roi_indices (ndarray): the roi indices of the voxels we computed
-            output_path (str): the path to write the samples in
         """
         total_nmr_voxels = np.count_nonzero(full_mask)
 
-        if not os.path.exists(output_path):
-            os.makedirs(output_path)
+        if not os.path.exists(self._output_dir):
+            os.makedirs(self._output_dir)
 
         for map_name, samples in results.items():
-            samples_path = os.path.join(output_path, map_name + '.samples.npy')
+            samples_path = os.path.join(self._output_dir, map_name + '.samples.npy')
             mode = 'w+'
             if os.path.isfile(samples_path):
                 mode = 'r+'

@@ -384,7 +384,8 @@ class MapsVisualizer(object):
         After getting the right image it will apply the transformations in _apply_transformations to position the
         image in a nice way.
         """
-        data = get_slice_in_dimension(data, self._map_view_settings.dimension_index, self._map_view_settings.slice_index)
+        data = get_slice_in_dimension(data, self._map_view_settings.dimension_index,
+                                      self._map_view_settings.slice_index)
         if len(data.shape) > 2:
             if data.shape[2] > self._map_view_settings.volume_index:
                 data = np.squeeze(data[:, :, self._map_view_settings.volume_index])

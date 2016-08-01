@@ -14,10 +14,9 @@ from mdt.configuration import get_processing_strategy
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.utils import create_roi, \
     model_output_exists, get_cl_devices, per_model_logging_context, load_samples, is_scalar, \
-    get_temporary_results_dir
+    get_temporary_results_dir, MetaSamplerBuilder
 from mdt.processing_strategies import SimpleModelProcessingWorkerGenerator, SamplingProcessingWorker
 from mdt.exceptions import InsufficientProtocolError
-from mot.cl_routines.sampling.metropolis_hastings import MetropolisHastings
 from mot.configuration import config_context
 from mot.load_balance_strategies import EvenDistribution
 from mot.configuration import RuntimeConfigurationAction
@@ -82,7 +81,7 @@ class ModelSampling(object):
         self._tmp_results_dir = get_temporary_results_dir(tmp_results_dir)
 
         if self._sampler is None:
-            self._sampler = MetropolisHastings()
+            self._sampler = MetaSamplerBuilder().construct(self._model.name)
 
         if self._cl_device_indices is not None and not isinstance(self._cl_device_indices, collections.Iterable):
             self._cl_device_indices = [self._cl_device_indices]
