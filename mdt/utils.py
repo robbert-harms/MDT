@@ -4,6 +4,7 @@ import glob
 import logging
 import logging.config as logging_config
 import os
+import re
 import shutil
 import tempfile
 from collections import defaultdict
@@ -17,6 +18,8 @@ from numpy.lib.format import open_memmap
 from scipy.special import jnp_zeros
 from six import string_types
 
+from mdt.protocols import load_protocol, write_protocol
+from mdt.configuration import get_config_dir
 import mot.utils
 from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
 from mdt.components_loader import get_model
@@ -142,7 +145,7 @@ class DMRIProblemData(AbstractProblemData):
                 loaded_val = None
 
                 if isinstance(val, six.string_types):
-                    loaded_val = create_roi(nib.load(val).get_data(), self.mask)
+                    loaded_val = create_roi(load_nifti(val).get_data(), self.mask)
                 elif isinstance(val, np.ndarray):
                     loaded_val = create_roi(val, self.mask)
                 elif is_scalar(val):
@@ -326,7 +329,7 @@ def read_split_write_volume(volume_fname, first_output_fname, second_output_fnam
         split_dimension (int): The dimension along which to split the dataset
         split_index (int): The index on the given dimension to split the volume(s)
     """
-    signal_img = nib.load(volume_fname)
+    signal_img = load_nifti(volume_fname)
     signal4d = signal_img.get_data()
     img_header = signal_img.get_header()
 
@@ -456,7 +459,7 @@ def create_roi(data, brain_mask):
     elif isinstance(data, (list, tuple)):
         return DeferredROICreationTuple(data, brain_mask)
     elif isinstance(data, six.string_types):
-        return creator(nib.load(data).get_data())
+        return creator(load_nifti(data).get_data())
     return creator(data)
 
 
@@ -652,7 +655,7 @@ def init_user_settings(pass_if_exists=True):
     Returns:
         the path the user settings skeleton was written to
     """
-    from mdt import get_config_dir
+    from mdt.configuration import get_config_dir
     path = get_config_dir()
     base_path = os.path.dirname(get_config_dir())
 
@@ -739,7 +742,6 @@ def check_user_components():
     Returns:
         bool: True if the .mdt folder for this version exists. False otherwise.
     """
-    from mdt import get_config_dir
     return os.path.isdir(get_config_dir())
 
 
@@ -863,14 +865,14 @@ def load_problem_data(volume_info, protocol, mask, static_maps=None, gradient_de
     mask = autodetect_brain_mask_loader(mask).get_data()
 
     if isinstance(volume_info, string_types):
-        info = nib.load(volume_info)
+        info = load_nifti(volume_info)
         signal4d = info.get_data()
         img_header = info.get_header()
     else:
         signal4d, img_header = volume_info
 
     if isinstance(gradient_deviations, six.string_types):
-        gradient_deviations = nib.load(gradient_deviations).get_data()
+        gradient_deviations = load_nifti(gradient_deviations).get_data()
 
     return DMRIProblemData(protocol, signal4d, mask, img_header, static_maps=static_maps, noise_std=noise_std,
                            gradient_deviations=gradient_deviations)
@@ -880,12 +882,29 @@ def load_brain_mask(brain_mask_fname):
     """Load the brain mask from the given file.
 
     Args:
-        brain_mask_fname (string): The filename of the brain mask to load.
+        brain_mask_fname (string): The path of the brain mask to load.
 
     Returns:
         ndarray: The loaded brain mask data
     """
-    return nib.load(brain_mask_fname).get_data() > 0
+    path = nifti_filepath_resolution(brain_mask_fname)
+    return load_nifti(path).get_data() > 0
+
+
+def load_nifti(nifti_volume):
+    """Load and return a nifti file.
+
+    This will apply path resolution if a filename without extension is given. See the function
+    mdt.utils.nifti_filepath_resolution() for details.
+
+    Args:
+        nifti_volume (string): The filename of the volume to load.
+
+    Returns:
+        nib image proxy (from nib.load)
+    """
+    path = nifti_filepath_resolution(nifti_volume)
+    return nib.load(path)
 
 
 def flatten(input_it):
@@ -1105,7 +1124,7 @@ def apply_mask(volume, mask, inplace=True):
 
     def apply(volume, mask):
         if isinstance(volume, string_types):
-            volume = nib.load(volume).get_data()
+            volume = load_nifti(volume).get_data()
 
         mask = mask.reshape(mask.shape + (volume.ndim - mask.ndim) * (1,))
 
@@ -1284,7 +1303,7 @@ def get_temporary_results_dir(user_value):
 
     Args:
         user_value (string, boolean or None): if a string is given we will use that directly. If a boolean equal to
-            True is given we will use the configuration defined value. If None is given we will not use a specific
+            True is given we will use the configuration defined value. If None/False is given we will not use a specific
             temporary results dir.
 
     Returns:
@@ -1295,3 +1314,132 @@ def get_temporary_results_dir(user_value):
     if user_value is True:
         return get_tmp_results_dir()
     return None
+
+
+def nifti_filepath_resolution(file_path):
+    """Tries to resolve the filename to a nifti based on only the filename.
+
+    For example, this resolves the path: /tmp/mask to:
+        /tmp/mask if exists
+        /tmp/mask.nii if exist
+        /tmp/mask.nii.gz if exists
+
+    Hence, the lookup order is: path, path.nii, path.nii.gz
+
+    If a file with an extension is given we will do no further resolving and return the path as is.
+
+    Args:
+        file_path (str): the path to the nifti file, can be without extension.
+
+    Returns:
+        str: the file path we resolved to the final file.
+
+    Raises:
+        ValueError: if no nifti file could be found
+    """
+    if file_path[:-len('.nii')] == '.nii' or file_path[:-len('.nii.gz')] == '.nii.gz':
+        return file_path
+
+    if os.path.isfile(file_path):
+        return file_path
+    elif os.path.isfile(file_path + '.nii'):
+        return file_path + '.nii'
+    elif os.path.isfile(file_path + '.nii.gz'):
+        return file_path + '.nii.gz'
+    raise ValueError('No nifti file could be found using the path {}.'.format(file_path))
+
+
+def create_blank_mask(volume4d_path, output_fname):
+    """Create a blank mask for the given 4d volume.
+
+    Sometimes you want to use all the voxels in the given dataset, without masking any voxel. Since the optimization
+    routines require a mask, you have to submit one. The solution is to use a blank mask, that is, a mask that
+    masks nothing.
+
+    Args:
+        volume4d_path (str): the path to the 4d volume you want to create a blank mask for
+        output_fname (str): the path to the result mask
+    """
+    volume_info = load_nifti(volume4d_path)
+    mask = np.ones(volume_info.shape[:3])
+    nib.Nifti1Image(mask, None, volume_info.get_header()).to_filename(output_fname)
+
+
+def volume_merge(volume_paths, output_fname, sort=False):
+    """Merge a list of volumes on the 4th dimension. Writes the result as a file.
+
+    You can enable sorting the list of volume names based on a natural key sort. This is
+    the most convenient option in the case of globbing files. By default this behaviour is disabled.
+
+    Example usage with globbing:
+        mdt.volume_merge(glob.glob('*.nii'), 'merged.nii.gz', True)
+
+    Args:
+        volume_paths (list of str): the list with the input filenames
+        output_fname (str): the output filename
+        sort (boolean): if true we natural sort the list of DWI images before we merge them. If false we don't.
+            The default is True.
+
+    Returns:
+        list of str: the list with the filenames in the order of concatenation.
+    """
+    images = []
+    header = None
+
+    if sort:
+        def natural_key(_str):
+            return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', _str)]
+        volume_paths.sort(key=natural_key)
+
+    for volume in volume_paths:
+        nib_container = load_nifti(volume)
+        header = header or nib_container.get_header()
+        image_data = nib_container.get_data()
+
+        if len(image_data.shape) < 4:
+            image_data = np.expand_dims(image_data, axis=3)
+
+        images.append(image_data)
+
+    combined_image = np.concatenate(images, axis=3)
+    nib.Nifti1Image(combined_image, None, header).to_filename(output_fname)
+
+    return volume_paths
+
+
+def concatenate_mri_sets(items, output_volume_fname, output_protocol_fname, overwrite_if_exists=False):
+    """Concatenate two or more DMRI datasets. Normally used to concatenate different DWI shells into one image.
+
+    This writes a single volume and a single protocol file.
+
+    Args:
+        items (tuple of dict): A tuple of dicts with volume filenames and protocol filenames
+            (
+             {'volume': volume_fname,
+              'protocol': protocol_filename
+             }, ...
+            )
+        output_volume_fname (string): The name of the output volume
+        output_protocol_fname (string): The name of the output protocol file
+        overwrite_if_exists (boolean, optional, default false): Overwrite the output files if they already exists.
+    """
+    if not items:
+        return
+
+    if os.path.exists(output_volume_fname) and os.path.exists(output_protocol_fname) and not overwrite_if_exists:
+        return
+
+    to_concat = []
+    nii_header = None
+
+    for e in items:
+        signal_img = load_nifti(e['volume'])
+        signal4d = signal_img.get_data()
+        nii_header = signal_img.get_header()
+
+        protocol = load_protocol(e['protocol'])
+        to_concat.append((protocol, signal4d))
+
+    protocol, signal4d = concatenate_two_mri_measurements(to_concat)
+    nib.Nifti1Image(signal4d, None, nii_header).to_filename(output_volume_fname)
+    write_protocol(protocol, output_protocol_fname)

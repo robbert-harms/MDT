@@ -1,3 +1,4 @@
+import os
 import six
 import nibabel as nib
 import numpy as np
@@ -56,7 +57,10 @@ class BrainMaskFromFileLoader(BrainMaskLoader):
 
     def get_data(self):
         if self._brain_mask is None:
-            self._brain_mask = nib.load(self._filename).get_data() > 0
+            from mdt.utils import nifti_filepath_resolution
+            file_path = nifti_filepath_resolution(self._filename)
+
+            self._brain_mask = nib.load(file_path).get_data() > 0
         return self._brain_mask
 
 

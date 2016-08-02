@@ -2,8 +2,7 @@
 
 # Form implementation generated from reading ui file 'main_gui.ui'
 #
-# Created: Fri Jul 29 15:04:50 2016
-#      by: PyQt5 UI code generator 5.2.1
+# Created by: PyQt5 UI code generator 5.4.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -30,8 +29,8 @@ class Ui_MainWindow(object):
         self.centralwidget.setSizePolicy(sizePolicy)
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.centralwidget)
-        self.verticalLayout_2.setSpacing(0)
         self.verticalLayout_2.setContentsMargins(3, 0, 3, 0)
+        self.verticalLayout_2.setSpacing(0)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.splitter = QtWidgets.QSplitter(self.centralwidget)
         self.splitter.setOrientation(QtCore.Qt.Vertical)
@@ -78,8 +77,8 @@ class Ui_MainWindow(object):
         self.loggingTextBox.setObjectName("loggingTextBox")
         self.verticalLayout_2.addWidget(self.splitter)
         self.horizontalLayout = QtWidgets.QHBoxLayout()
-        self.horizontalLayout.setSpacing(8)
         self.horizontalLayout.setContentsMargins(-1, 0, 8, -1)
+        self.horizontalLayout.setSpacing(8)
         self.horizontalLayout.setObjectName("horizontalLayout")
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem)

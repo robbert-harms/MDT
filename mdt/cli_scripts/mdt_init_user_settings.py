@@ -4,7 +4,7 @@ import argparse
 import os
 import textwrap
 import mdt
-from mdt import get_config_dir
+from mdt.configuration import get_config_dir
 from mdt.shell_utils import BasicShellApplication
 
 __author__ = 'Robbert Harms'

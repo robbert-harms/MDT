@@ -1,6 +1,5 @@
 import glob
 import os
-from contextlib import contextmanager
 import logging.config as logging_config
 import numpy as np
 import six
@@ -25,67 +24,28 @@ if len(_items) > 1:
 __version__ = VERSION
 
 
-"""
-The start_gui initialization of MDT.
+try:
+    from mdt.configuration import get_logging_configuration_dict
+    try:
+        logging_config.dictConfig(get_logging_configuration_dict())
+    except ValueError:
+        print('Logging disabled')
+except ImportError:
+    # We are probably importing this file in the setup.py for installation.
+    pass
 
-We inlined all the MDT and MOT imports in the functions to prevent circular imports.
 
-Also, when working with MOT and the python multiprocessing library we run into errors if load the OpenCL stack before
-we load the python multiprocessing library. In particular, if we import PyOpencl (via MOT) before we start
-the multiprocessing we will get an Out Of Memory exception when trying to create an kernel.
-"""
+from mdt.utils import estimate_noise_std, get_cl_devices, load_problem_data, create_blank_mask, create_index_matrix, \
+    volume_index_to_roi_index, roi_index_to_volume_index, load_brain_mask, init_user_settings, restore_volumes, \
+    apply_mask, create_roi, volume_merge, concatenate_mri_sets
 
+from mdt.batch_utils import collect_batch_fit_output, run_function_on_batch_fit_output
 
-def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalculate=False,
-              models_to_fit=None, cascade_subdir=False,
-              cl_device_ind=None, dry_run=False, double_precision=False, tmp_results_dir=True):
-    """Run all the available and applicable models on the data in the given folder.
+from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, write_protocol, write_bvec_bval
 
-    See the class AutoRun for more details and options.
+from mdt.components_loader import load_component, get_model
 
-    Setting the cl_device_ind has the side effect that it changes the current run time cl_device settings in the MOT
-    toolkit.
-
-    Args:
-        data_folder (str): The data folder to process
-        batch_profile (BatchProfile or str): the batch profile to use, or the name of a batch profile to load.
-            If not given it is auto detected.
-        subjects_selection (BatchSubjectSelection): the subjects to use for processing.
-            If None all subjects are processed.
-        recalculate (boolean): If we want to recalculate the results if they are already present.
-        models_to_fit (list of str): A list of models to fit to the data. This overrides the models in
-                the batch config.
-        cascade_subdir (boolean): if we want to create a subdirectory for every cascade model.
-            Per default we output the maps of cascaded results in the same directory, this allows reusing cascaded
-            results for other cascades (for example, if you cascade BallStick -> Noddi you can use the BallStick results
-            also for BallStick -> Charmed). This flag disables that behaviour and instead outputs the results of
-            a cascade model to a subdirectory for that cascade. This does not apply recursive.
-        cl_device_ind (int or list of int): the index of the CL device to use.
-            The index is from the list from the function get_cl_devices().
-        dry_run (boolean): a dry run will do no computations, but will list all the subjects found in the
-            given directory.
-        double_precision (boolean): if we would like to do the calculations in double precision
-        tmp_results_dir (str, True or None): The temporary dir for the calculations. Set to a string to use
-                that path directly, set to True to use the config value, set to None to disable.
-
-    Returns:
-        The list of subjects we will calculate / have calculated.
-    """
-    import mdt.utils
-    from mdt.model_fitting import BatchFitting
-
-    if not mdt.utils.check_user_components():
-        raise RuntimeError('Your components folder is not up to date. Please run the script mdt-init-user-settings.')
-
-    batch_fitting = BatchFitting(data_folder, batch_profile=batch_profile, subjects_selection=subjects_selection,
-                                 recalculate=recalculate, models_to_fit=models_to_fit, cascade_subdir=cascade_subdir,
-                                 cl_device_ind=cl_device_ind, double_precision=double_precision,
-                                 tmp_results_dir=tmp_results_dir)
-
-    if dry_run:
-        return batch_fitting.get_subjects_info()
-
-    return batch_fitting.run()
+from mdt.configuration import config_context
 
 
 def fit_model(model, problem_data, output_folder, optimizer=None,
@@ -182,82 +142,56 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
     return sampling.run()
 
 
-def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, subjects_selection=None,
-                             mask_name=None, symlink=False):
-    """Load from the given data folder all the output files and put them into the output directory.
+def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalculate=False,
+              models_to_fit=None, cascade_subdir=False, cl_device_ind=None, dry_run=False,
+              double_precision=False, tmp_results_dir=True):
+    """Run all the available and applicable models on the data in the given folder.
 
-    If there is more than one mask file available the user has to choose which mask to use using the mask_name
-    keyword argument. If it is not given an error is raised.
+    See the class AutoRun for more details and options.
 
-    The results for the chosen mask it placed in the output folder per subject. Example:
-        <output_dir>/<subject_id>/<results>
+    Setting the cl_device_ind has the side effect that it changes the current run time cl_device settings in the MOT
+    toolkit.
 
     Args:
-        data_folder (str): The data folder with the output files
-        output_dir (str): The path to the output folder where all the files will be put.
-        batch_profile (BatchProfile class or str): the batch profile to use, can also be the name
-            of a batch profile to load. If not given it is auto detected.
+        data_folder (str): The data folder to process
+        batch_profile (BatchProfile or str): the batch profile to use, or the name of a batch profile to load.
+            If not given it is auto detected.
         subjects_selection (BatchSubjectSelection): the subjects to use for processing.
             If None all subjects are processed.
-        mask_name (str): the mask to use to get the output from
-        symlink (boolean): only available under Unix OS's. Creates a symlink instead of copying.
-    """
-    from mdt.batch_utils import collect_batch_fit_output
-    collect_batch_fit_output(data_folder, output_dir, batch_profile=batch_profile,
-                             subjects_selection=subjects_selection,
-                             mask_name=mask_name, symlink=symlink)
-
-
-def run_function_on_batch_fit_output(data_folder, func, batch_profile=None, subjects_selection=None):
-    """Run a function on the output of a batch fitting routine.
-
-    This enables you to run a function on every model output from every subject. The python function should accept
-    as single argument an instance of the class BatchFitSubjectOutputInfo.
-
-    Args:
-        data_folder (str): The data folder with the output files
-        func (python function): the python function we should call for every map and model.
-            This should accept as single parameter a BatchFitSubjectOutputInfo.
-        batch_profile (BatchProfile or str): the batch profile to use, can also be the name
-            of a batch profile to load. If not given it is auto detected.
-        subjects_selection (BatchSubjectSelection): the subjects to use for processing.
-            If None all subjects are processed.
+        recalculate (boolean): If we want to recalculate the results if they are already present.
+        models_to_fit (list of str): A list of models to fit to the data. This overrides the models in
+                the batch config.
+        cascade_subdir (boolean): if we want to create a subdirectory for every cascade model.
+            Per default we output the maps of cascaded results in the same directory, this allows reusing cascaded
+            results for other cascades (for example, if you cascade BallStick -> Noddi you can use the BallStick results
+            also for BallStick -> Charmed). This flag disables that behaviour and instead outputs the results of
+            a cascade model to a subdirectory for that cascade. This does not apply recursive.
+        cl_device_ind (int or list of int): the index of the CL device to use.
+            The index is from the list from the function get_cl_devices().
+        dry_run (boolean): a dry run will do no computations, but will list all the subjects found in the
+            given directory.
+        double_precision (boolean): if we would like to do the calculations in double precision
+        tmp_results_dir (str, True or None): The temporary dir for the calculations. Set to a string to use
+                that path directly, set to True to use the config value, set to None to disable.
 
     Returns:
-        dict: indexed by subject->model_name->mask_name, values are the return values of the user function
+        The list of subjects we will calculate / have calculated.
     """
-    from mdt.batch_utils import run_function_on_batch_fit_output
-    return run_function_on_batch_fit_output(data_folder, func, batch_profile=batch_profile,
-                                            subjects_selection=subjects_selection)
+    import mdt.utils
+    from mdt.model_fitting import BatchFitting
 
+    if not mdt.utils.check_user_components():
+        raise RuntimeError('Your components folder is not up to date. Please run the script mdt-init-user-settings.')
 
-def estimate_noise_std(problem_data, estimator=None):
-    """Estimate the noise standard deviation.
+    batch_fitting = BatchFitting(data_folder, batch_profile=batch_profile, subjects_selection=subjects_selection,
+                                 recalculate=recalculate, models_to_fit=models_to_fit, cascade_subdir=cascade_subdir,
+                                 cl_device_ind=cl_device_ind, double_precision=double_precision,
+                                 tmp_results_dir=tmp_results_dir)
 
-    Args:
-        problem_data (DMRIProblemData): the problem data we can use to do the estimation
-        estimator (ComplexNoiseStdEstimator): the class to use for the noise estimation.
+    if dry_run:
+        return batch_fitting.get_subjects_info()
 
-    Returns:
-        the noise std estimated from the data. This can either be a single float, or an ndarray.
-
-    Raises:
-        NoiseStdEstimationNotPossible: if the noise could not be estimated
-    """
-    from mdt.utils import estimate_noise_std
-    return estimate_noise_std(problem_data, estimator=estimator)
-
-
-def get_cl_devices():
-    """Get a list of all CL devices in the system.
-
-    The indices of the devices can be used in the model fitting functions for 'cl_device_ind'.
-
-    Returns:
-        A list of CLEnvironments, one for each device in the system.
-    """
-    from mdt.utils import get_cl_devices
-    return get_cl_devices()
+    return batch_fitting.run()
 
 
 def get_device_ind(device_type='FIRST_GPU'):
@@ -299,119 +233,6 @@ def get_device_ind(device_type='FIRST_GPU'):
     return indices
 
 
-def load_problem_data(volume_info, protocol, mask, static_maps=None, gradient_deviations=None,
-                      noise_std=None):
-    """Load and create the problem data object that can be given to a model
-
-    Args:
-        volume_info (string): Either an (ndarray, img_header) tuple or the full path to the volume (4d signal data).
-        protocol (Protocol or string): A protocol object with the right protocol for the given data,
-            or a string object with a filename to the given file.
-        mask (string): A full path to a mask file that can optionally be used. If None given, no mask is used.
-        static_maps (Dict[str, val]): the dictionary with per static map the value to use.
-            The value can either be an 3d or 4d ndarray, a single number or a string. We will convert all to the
-            right format.
-        gradient_deviations (str or ndarray): set of gradient deviations to use. In HCP WUMINN format. Set to None to
-            disable
-        noise_std (number or ndarray): either None for automatic detection,
-            or a scalar, or an 3d matrix with one value per voxel.
-
-    Returns:
-        The Problem data, in the ProblemData container object.
-    """
-    from mdt.utils import load_problem_data
-    return load_problem_data(volume_info, protocol, mask, static_maps=static_maps,
-                             gradient_deviations=gradient_deviations, noise_std=noise_std)
-
-
-def load_protocol_bval_bvec(bvec=None, bval=None, bval_scale='auto'):
-    """Create a protocol out of a bvac filename and a bvec filename.
-
-    Args:
-        bval (string): The bval filename
-        bvec (string): The bvec filename
-        bval_scale (double): The scale by which to scale the values in the bval file.
-
-    Returns:
-        A Protocol object.
-    """
-    from mdt.protocols import load_bvec_bval
-    return load_bvec_bval(bvec, bval, bval_scale=bval_scale)
-
-
-def load_protocol(filename):
-    """Load an protocol from the given protocol file, with as column names the given list of names.
-
-    Args:
-        filename (string):
-            The filename of the protocol file to load. This should be a comma seperated, or tab delimited file
-            with equal length columns. The column names can go on the tab and should be comma or space seperated.
-
-    Returns:
-        An protocol with all the columns loaded.
-    """
-    from mdt.protocols import load_protocol
-    return load_protocol(filename)
-
-
-def auto_load_protocol(directory, protocol_options=None, bvec_fname=None, bval_fname=None, bval_scale='auto'):
-    """Load a protocol from the given directory.
-
-    This will first try to load the first .prtcl file found. If none present it will try to find bval and bvec files
-    to load. If present it will also try to load additional columns.
-
-    For more detail see auto_load_protocol in the protocols module.
-
-    Args:
-        directory (str): the directory to load the protocol from
-        protocol_options (dict): mapping protocol items to filenames (as a subpath of the given directory)
-            or mapping them to values (one value or one value per bvec line)
-        bvec_fname (str): if given, the filename of the bvec file (as a subpath of the given directory)
-        bval_fname (str): if given, the filename of the bvec file (as a subpath of the given directory)
-
-    Returns:
-        Protocol: a loaded protocol file.
-
-    Raises:
-        ValueError: if not enough information could be found. (No protocol or no bvec/bval combo).
-    """
-    import mdt.protocols
-    return mdt.protocols.auto_load_protocol(directory, protocol_options=protocol_options,
-                                            bvec_fname=bvec_fname, bval_fname=bval_fname,
-                                            bval_scale=bval_scale)
-
-
-def write_protocol(protocol, fname, columns_list=None):
-    """Write a protocol to a file.
-
-    Args:
-        protocol (Protocol): The protocol object information to write
-        fname (string): The filename to write to
-        columns_list (list, optional): Only write these columns (and in this order).
-    """
-    from mdt.protocols import write_protocol
-    write_protocol(protocol, fname, columns_list=columns_list)
-
-
-def write_protocol_bvec_bval(protocol, bvec_fname, bval_fname, column_based=True, bval_scale='auto'):
-    """Write a protocol to two files bval and bvec
-
-    Args:
-        protocol (Protocol): The protocol object information to write
-        bvec_fname (string): The filename of the b-vector
-        bval_fname (string): The filename of the b values
-        column_based (boolean, optional, default true): If true, this supposes that the bvec (the vector file)
-            will have 3 rows (gx, gy, gz)
-            and will be space or tab seperated and that the bval file (the b values) are one one single line
-            with space or tab separated b values.
-        bval_scale (double or 'auto'): the amount by which we want to scale (multiply) the b-values.
-            The default is auto, this checks if the first b-value is higher than 1e4 and if so multiplies it by
-            1e-6 else multiplies by 1.
-    """
-    from mdt.protocols import write_bvec_bval
-    write_bvec_bval(protocol, bvec_fname, bval_fname, column_based=column_based, bval_scale=bval_scale)
-
-
 def create_median_otsu_brain_mask(dwi_info, protocol, output_fname=None, **kwargs):
     """Create a brain mask and optionally write it.
 
@@ -437,123 +258,6 @@ def create_median_otsu_brain_mask(dwi_info, protocol, output_fname=None, **kwarg
             raise ValueError('No header obtainable, can not write the brain mask.')
         return create_write_median_otsu_brain_mask(dwi_info, protocol, output_fname, **kwargs)
     return create_median_otsu_brain_mask(dwi_info, protocol, **kwargs)
-
-
-def create_blank_mask(volume4d_path, output_fname):
-    """Create a blank mask for the given 4d volume.
-
-    Sometimes you want to use all the voxels in the given dataset, without masking any voxel. Since the optimization
-    routines require a mask, you have to submit one. The solution is to use a blank mask, that is, a mask that
-    masks nothing.
-
-    Args:
-        volume4d_path (str): the path to the 4d volume you want to create a blank mask for
-        output_fname (str): the path to the result mask
-    """
-    volume_info = load_nifti(volume4d_path)
-    mask = np.ones(volume_info.shape[:3])
-    write_image(output_fname, mask, volume_info.get_header())
-
-
-def load_brain_mask(brain_mask_fname):
-    """Load the brain mask from the given file.
-
-    Args:
-        brain_mask_fname (string): The filename of the brain mask to load.
-
-    Returns:
-        The loaded brain mask data
-    """
-    from mdt.utils import load_brain_mask
-    return load_brain_mask(brain_mask_fname)
-
-
-def concatenate_mri_sets(items, output_volume_fname, output_protocol_fname, overwrite_if_exists=False):
-    """Concatenate two or more DMRI datasets. Normally used to concatenate different DWI shells into one image.
-
-    This writes a single volume and a single protocol file.
-
-    Args:
-        items (tuple): A tuple of dicts with volume filenames and protocol filenames
-            (
-             {'volume': volume_fname,
-              'protocol': protocol_filename
-             }, ...
-            )
-        output_volume_fname (string): The name of the output volume
-        output_protocol_fname (string): The name of the output protocol file
-        overwrite_if_exists (boolean, optional, default false): Overwrite the output files if they already exists.
-    """
-    import os
-    import nibabel as nib
-    from mdt.utils import concatenate_two_mri_measurements
-    from mdt.protocols import write_protocol
-
-    if not items:
-        return
-
-    if os.path.exists(output_volume_fname) and os.path.exists(output_protocol_fname) and not overwrite_if_exists:
-        return
-
-    to_concat = []
-    nii_header = None
-
-    for e in items:
-        signal_img = nib.load(e['volume'])
-        signal4d = signal_img.get_data()
-        nii_header = signal_img.get_header()
-
-        protocol = load_protocol(e['protocol'])
-        to_concat.append((protocol, signal4d))
-
-    protocol, signal4d = concatenate_two_mri_measurements(to_concat)
-    nib.Nifti1Image(signal4d, None, nii_header).to_filename(output_volume_fname)
-    write_protocol(protocol, output_protocol_fname)
-
-
-def volume_merge(volume_paths, output_fname, sort=False):
-    """Merge a list of volumes on the 4th dimension. Writes the result as a file.
-
-    You can enable sorting the list of volume names based on a natural key sort. This is
-    the most convenient option in the case of globbing files. By default this behaviour is disabled.
-
-    Example usage with globbing:
-        mdt.volume_merge(glob.glob('*.nii'), 'merged.nii.gz', True)
-
-    Args:
-        volume_paths (list of str): the list with the input filenames
-        output_fname (str): the output filename
-        sort (boolean): if true we natural sort the list of DWI images before we merge them. If false we don't.
-            The default is True.
-
-    Returns:
-        list of str: the list with the filenames in the order of concatenation.
-    """
-    import re
-    import nibabel as nib
-
-    images = []
-    header = None
-
-    if sort:
-        def natural_key(_str):
-            return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', _str)]
-        volume_paths.sort(key=natural_key)
-
-    for volume in volume_paths:
-        nib_container = nib.load(volume)
-        header = header or nib_container.get_header()
-        image_data = nib_container.get_data()
-
-        if len(image_data.shape) < 4:
-            image_data = np.expand_dims(image_data, axis=3)
-
-        images.append(image_data)
-
-    combined_image = np.concatenate(images, axis=3)
-    nib.Nifti1Image(combined_image, None, header).to_filename(output_fname)
-
-    return volume_paths
 
 
 def view_results_slice(data,
@@ -712,16 +416,17 @@ def load_samples(data_folder, mode='r'):
 def load_nifti(nifti_volume):
     """Load and return a nifti file.
 
-    A more general function than load_dwi which is meant for raw diffusion images.
+    This will apply path resolution if a filename without extension is given. See the function
+    mdt.utils.nifti_filepath_resolution() for details.
 
     Args:
         nifti_volume (string): The filename of the volume to load.
 
     Returns:
-        nib image
+        nib image proxy (from nib.load)
     """
-    import nibabel as nib
-    return nib.load(nifti_volume)
+    from mdt.utils import load_nifti
+    return load_nifti(nifti_volume)
 
 
 def make_path_joiner(*folder):
@@ -732,23 +437,6 @@ def make_path_joiner(*folder):
     """
     from mdt.utils import PathJoiner
     return PathJoiner(*folder)
-
-
-def create_roi(data, brain_mask):
-    """Create and return the region of interest of the given brain volume and mask
-
-    Args:
-        data (string or ndarray): a brain volume with four dimensions (x, y, z, w)
-            where w is the length of the protocol, or a list, tuple or dictionary with volumes or a string
-            with a filename of a dataset to load.
-        brain_mask (ndarray or str): the mask indicating the region of interest, dimensions: (x, y, z) or the string
-            to the brain mask to load
-
-    Returns:
-        Signal lists for each of the given volumes. The axis are: (voxels, protocol)
-    """
-    from mdt.utils import create_roi
-    return create_roi(data, brain_mask)
 
 
 def create_slice_roi(brain_mask_fname, roi_dimension, roi_slice, output_fname, overwrite_if_exists=False):
@@ -770,7 +458,6 @@ def create_slice_roi(brain_mask_fname, roi_dimension, roi_slice, output_fname, o
         A brain mask of the same dimensions as the original mask, but with only one slice set to one.
     """
     import os
-    import nibabel as nib
     from mdt.utils import create_slice_roi
 
     if os.path.exists(output_fname) and not overwrite_if_exists:
@@ -779,7 +466,7 @@ def create_slice_roi(brain_mask_fname, roi_dimension, roi_slice, output_fname, o
     if not os.path.isdir(os.path.dirname(output_fname)):
         os.makedirs(os.path.dirname(output_fname))
 
-    brain_mask_img = nib.load(brain_mask_fname)
+    brain_mask_img = load_nifti(brain_mask_fname)
     brain_mask = brain_mask_img.get_data()
     img_header = brain_mask_img.get_header()
     roi_mask = create_slice_roi(brain_mask, roi_dimension, roi_slice)
@@ -797,28 +484,6 @@ def write_image(fname, data, header):
     """
     import nibabel as nib
     nib.Nifti1Image(data, None, header).to_filename(fname)
-
-
-def restore_volumes(data, brain_mask, with_volume_dim=True):
-    """Restore the given data to a whole brain volume
-
-    The data can be a list, tuple or dictionary or directly a two dimensional list of data points
-
-    This is the inverse function of create_roi().
-
-    Args:
-        data: the data as a x dimensional list of voxels, or, a list, tuple, or dict of those voxel lists
-        brain_mask: the brain_mask which was used to generate the data list
-        with_volume_dim (boolean): If true we return values with 4 dimensions. The extra dimension is for
-            the volume index. If false we return 3 dimensions.
-
-    Returns:
-        Either a single whole volume, a list, tuple or dict of whole volumes, depending on the given data.
-        If with_volume_ind_dim is set we return values with 4 dimensions. (x, y, z, 1). If not set we return only
-        three dimensions.
-    """
-    from mdt.utils import restore_volumes
-    return restore_volumes(data, brain_mask, with_volume_dim=with_volume_dim)
 
 
 def write_trackmark_rawmaps(data, output_folder, maps_to_convert=None):
@@ -1000,20 +665,6 @@ def get_models_meta_info():
     return meta_info
 
 
-def get_model(model_name, **kwargs):
-    """Load one of the available models.
-
-    Args:
-        model_name (str): One of the models from get_list_of_single_models() or get_list_of_cascade_models()
-        **kwargs: Extra keyword arguments used for the initialization of the model
-
-    Returns:
-        Either a cascade model or a single model. In any case, a model that can be given to the fit_model function.
-    """
-    from mdt.components_loader import get_model
-    return get_model(model_name, **kwargs)
-
-
 def get_batch_profile(batch_profile_name, *args, **kwargs):
     """Load one of the batch profiles.
 
@@ -1026,22 +677,6 @@ def get_batch_profile(batch_profile_name, *args, **kwargs):
         BatchProfile: the batch profile for use in batch fitting routines.
     """
     return load_component('batch_profiles', batch_profile_name, *args, **kwargs)
-
-
-def load_component(component_type, component_name, *args, **kwargs):
-    """Load the class indicated by the given component type and name.
-
-    Args:
-        component_type (str): the type of component, for example 'batch_profiles' or 'parameters'
-        component_name (str): the name of the component to load
-        *args: passed to the component
-        **kwargs: passed to the component
-
-    Returns:
-        the loaded component
-    """
-    from mdt.components_loader import load_component
-    return load_component(component_type, component_name, *args, **kwargs)
 
 
 def split_dataset(input_fname, split_dimension, split_index, output_folder=None):
@@ -1058,13 +693,12 @@ def split_dataset(input_fname, split_dimension, split_index, output_folder=None)
         of the splitted data.
     """
     import os
-    import nibabel as nib
     import mdt.utils
     from mdt.IO import Nifti
 
     if output_folder is None:
         output_folder = os.path.dirname(input_fname)
-    dataset = nib.load(input_fname)
+    dataset = load_nifti(input_fname)
     data = dataset.get_data()
     header = dataset.get_header()
     split = utils.split_dataset(data, split_dimension, split_index)
@@ -1105,23 +739,6 @@ def extract_volumes(input_volume_fname, input_protocol, output_volume_fname, out
     write_image(output_volume_fname, image_data, input_volume.get_header())
 
 
-def apply_mask(volume, mask, inplace=True):
-    """Apply a mask to the given input.
-
-    Args:
-        volume (str, ndarray, list, tuple or dict): The input file path or the image itself or a list, tuple or
-            dict.
-        mask (str or ndarray): The filename of the mask or the mask itself
-        inplace (boolean): if True we apply the mask in place on the volume image. If false we do not.
-
-    Returns:
-        Depending on the input either a singla image of the same size as the input image, or a list, tuple or dict.
-        This will set for all the output images the the values to zero where the mask is zero.
-    """
-    import mdt.utils
-    return mdt.utils.apply_mask(volume, mask, inplace=inplace)
-
-
 def apply_mask_to_file(input_fname, mask, output_fname=None):
     """Apply a mask to the given input (nifti) file.
 
@@ -1139,112 +756,6 @@ def apply_mask_to_file(input_fname, mask, output_fname=None):
         output_fname = input_fname
 
     write_image(output_fname, apply_mask(input_fname, mask), load_nifti(input_fname).get_header())
-
-
-def init_user_settings(pass_if_exists=True):
-    """Initializes the user settings folder using a skeleton.
-
-    This will create all the necessary directories for adding components to MDT. It will also create a basic
-    configuration file for setting global wide MDT options.
-
-    Each MDT version will have it's own sub-directory in the chosen folder.
-
-    Args:
-        pass_if_exists (boolean): if the folder for this version already exists, do we want to pass_if_exists yes or no.
-
-    Returns:
-        the path the user settings skeleton was written to
-    """
-    from mdt.utils import init_user_settings
-    return init_user_settings(pass_if_exists)
-
-
-@contextmanager
-def config_context(config_action):
-    """Creates a temporary configuration context with the given config action.
-
-    This will temporarily alter the given configuration keys to the given values. After the context is executed
-    the configuration will revert to the original settings.
-
-    Example usage:
-        config = '''
-        optimization_settings:
-            general:
-                optimizers:
-                    -   name: 'NMSimplex'
-                        patience: 10
-        '''
-        with mdt.config_context(mdt.configuration.YamlStringAction(config)):
-            mdt.fit_model(...)
-
-        This loads the configuration from a YAML string and uses that configuration as the context.
-
-    Args:
-        config_action (ConfigAction or str): the configuration action to apply. If a string is given we will
-            load it using the YamlStringAction config action.
-    """
-    if isinstance(config_action, string_types):
-        from mdt.configuration import YamlStringAction
-        config_action = YamlStringAction(config_action)
-
-    config_action.apply()
-    yield
-    config_action.unapply()
-
-
-def yaml_string_to_dict(yaml_str):
-    """Returns a dict from a YAML string.
-
-    Args:
-        yaml_str (str): the string with the YAML contents
-
-    Returns:
-        dict: with the yaml content
-    """
-    import yaml
-    d = yaml.load(yaml_str)
-    if d is not None:
-        return d
-    return {}
-
-
-def yaml_file_to_dict(file_name):
-    """Returns a dict from a YAML file.
-
-    Args:
-        file_name (str): the path to the the YAML file.
-
-    Returns:
-        dict: with the yaml content
-    """
-    with open(file_name) as f:
-        return yaml_string_to_dict(f.read())
-
-
-def set_data_type(maps_dict, numpy_data_type=np.float32):
-    """Convert all maps in the given dictionary to the given numpy data type.
-
-    Args:
-        maps_dict (dict): the dictionary with the parameter maps
-        numpy_data_type (np datatype): the data type to convert the maps to. Use for example np.float32 for float and
-            np.float64 for double.
-
-    Returns:
-        the same dictionary with updated maps. This means the conversion happens in-place.
-    """
-    for k, v in maps_dict.items():
-        maps_dict[k] = v.astype(numpy_data_type)
-    return maps_dict
-
-
-def get_config_dir():
-    """Get the location of the components.
-
-    Return:
-        str: the path to the components
-    """
-    import os
-    return os.path.join(os.path.expanduser("~"), '.mdt', __version__)
 
 
 def recalculate_ics(model, problem_data, data_dir, sigma, output_dir=None, sigma_param_name=None,
@@ -1308,79 +819,3 @@ def recalculate_ics(model, problem_data, data_dir, sigma, output_dir=None, sigma
 
     output_dir = output_dir or data_dir
     write_volume_maps(volumes, output_dir, problem_data.volume_header)
-
-
-def roi_index_to_volume_index(roi_index, brain_mask):
-    """Get the 3d index of a voxel given the linear index in a ROI created with the given brain mask.
-
-    This is the inverse function of volume_index_to_roi_index.
-
-    This function is useful if you, for example, have sampling results of a specific voxel
-    and you want to locate that voxel in the brain maps.
-
-    Args:
-        roi_index (int, list, ndarray): the index in the ROI created by that brain mask
-        brain_mask (str or 3d array): the brain mask you would like to use
-
-    Returns:
-        tuple: the 3d voxel location of the indicated voxel
-    """
-    import mdt.utils
-    return mdt.utils.roi_index_to_volume_index(roi_index, brain_mask)
-
-
-def volume_index_to_roi_index(volume_index, brain_mask):
-    """Get the ROI index given the volume index (in 3d).
-
-    This is the inverse function of roi_index_to_volume_index.
-
-    This function is useful if you want to locate a voxel in the ROI given the position in the volume.
-
-    Args:
-        volume_index (tuple): the volume index, a tuple or list of length 3
-        brain_mask (str or 3d array): the brain mask you would like to use
-
-    Returns:
-        int: the index of the given voxel in the ROI created by the given mask
-    """
-    import mdt.utils
-    return mdt.utils.volume_index_to_roi_index(volume_index, brain_mask)
-
-
-def create_index_matrix(brain_mask):
-    """Get a matrix with on every 3d position the linear index number of that voxel.
-
-    This function is useful if you want to locate a voxel in the ROI given the position in the volume.
-
-    Args:
-        brain_mask (str or 3d array): the brain mask you would like to use
-
-    Returns:
-        3d ndarray: a 3d volume of the same size as the given mask and with as every non-zero element the position
-            of that voxel in the linear ROI list.
-    """
-    import mdt.utils
-    return mdt.utils.create_index_matrix(brain_mask)
-
-
-def get_data_shape(image_file):
-    """Get the data shape of an image on file.
-
-    Args:
-        image_file (str): the filename of the image to get the shape of
-
-    Returns:
-        tuple: the shape of the image file
-    """
-    return load_nifti(image_file).get_header().get_data_shape()
-
-
-try:
-    from mdt.configuration import get_logging_configuration_dict
-    try:
-        logging_config.dictConfig(get_logging_configuration_dict())
-    except ValueError:
-        print('Logging disabled')
-except ImportError:
-    # We are probably importing this file in the setup.py for installation.
-    pass

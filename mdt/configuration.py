@@ -18,6 +18,16 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 _config = {}
 
 
+def get_config_dir():
+    """Get the location of the components.
+
+    Return:
+        str: the path to the components
+    """
+    from mdt import __version__
+    return os.path.join(os.path.expanduser("~"), '.mdt', __version__)
+
+
 def config_insert(keys, value):
     """Insert the given value in the given key.
 
@@ -57,7 +67,6 @@ def load_builtin():
 
 def load_user_home():
     """Load the config file from user home directory"""
-    from mdt import get_config_dir
     config_file = os.path.join(get_config_dir(), 'mdt.conf')
     if os.path.isfile(config_file):
         with open(config_file) as f:
@@ -480,11 +489,31 @@ def get_model_config(model_names, config):
 
 @contextmanager
 def config_context(config_action):
-    """Creates a context in which the config action is applied and unapplies the configuration after execution.
+    """Creates a temporary configuration context with the given config action.
+
+    This will temporarily alter the given configuration keys to the given values. After the context is executed
+    the configuration will revert to the original settings.
+
+    Example usage:
+        config = '''
+        optimization_settings:
+            general:
+                optimizers:
+                    -   name: 'NMSimplex'
+                        patience: 10
+        '''
+        with mdt.config_context(mdt.configuration.YamlStringAction(config)):
+            mdt.fit_model(...)
+
+        This loads the configuration from a YAML string and uses that configuration as the context.
 
     Args:
-        config_action (ConfigAction): the configuration action to use
+        config_action (ConfigAction or str): the configuration action to apply. If a string is given we will
+            load it using the YamlStringAction config action.
     """
+    if isinstance(config_action, string_types):
+        config_action = YamlStringAction(config_action)
+
     config_action.apply()
     yield
     config_action.unapply()

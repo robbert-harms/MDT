@@ -686,5 +686,5 @@ def _get_components_path(user_type, component_type):
         user_type (str): either 'standard' or 'user'
         component_type (str): one of the dir names in standard and user
     """
-    from mdt import get_config_dir
+    from mdt.configuration import get_config_dir
     return os.path.join(get_config_dir(), 'components', user_type, component_type)

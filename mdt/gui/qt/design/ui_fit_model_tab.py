@@ -2,8 +2,7 @@
 
 # Form implementation generated from reading ui file 'fit_model_tab.ui'
 #
-# Created: Fri Jul 29 15:04:50 2016
-#      by: PyQt5 UI code generator 5.2.1
+# Created by: PyQt5 UI code generator 5.4.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -36,7 +35,6 @@ class Ui_FitModelTabContent(object):
         self.line.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line.setLineWidth(1)
         self.line.setFrameShape(QtWidgets.QFrame.HLine)
-        self.line.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line.setObjectName("line")
         self.verticalLayout.addWidget(self.line)
         self.gridLayout = QtWidgets.QGridLayout()
@@ -177,6 +175,8 @@ class Ui_FitModelTabContent(object):
         self.verticalLayout.addLayout(self.horizontalLayout)
         spacerItem2 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout.addItem(spacerItem2)
+        self.line_2.raise_()
+        self.line.raise_()
 
         self.retranslateUi(FitModelTabContent)
         QtCore.QMetaObject.connectSlotsByName(FitModelTabContent)

@@ -51,7 +51,7 @@ class BatchFitting(object):
         MOT toolkit.
 
         Args:
-            data_folder (str): the start_gui directory to look for items to process.
+            data_folder (str): the main directory to look for items to process.
             batch_profile (BatchProfile class or str): the batch profile to use or the name of a batch
                 profile to load from the users folder.
             subjects_selection (BatchSubjectSelection): the subjects to use for processing.

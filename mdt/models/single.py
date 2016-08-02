@@ -193,7 +193,7 @@ class DMRISingleModel(SampleModelBuilder, DMRIOptimizable, PerturbationModelInte
         indices = self._get_suitable_volume_indices(problem_data)
 
         if len(indices) != protocol.length:
-            self._logger.info('Applying model protocol options, we will use a subset of the protocol and DWI.')
+            self._logger.info('For this model, {}, we will use a subset of the protocol and DWI.'.format(self._name))
             self._logger.info('Using {} out of {} volumes, indices: {}'.format(
                 len(indices), protocol.length, str(indices).replace('\n', '').replace('[  ', '[')))
 
