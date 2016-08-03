@@ -11,7 +11,7 @@ from mdt.gui.qt.design.ui_generate_protocol_load_gb_dialog import Ui_LoadGBDialo
 from mdt.gui.qt.design.ui_generate_protocol_tab import Ui_GenerateProtocolTabContent
 from mdt.gui.qt.design.ui_generate_protocol_update_dialog import Ui_UpdateColumnDialog
 from mdt.gui.qt.utils import protocol_files_filters, MainTab
-from mdt.protocols import Protocol
+from mdt.protocols import Protocol, load_bvec_bval
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-06-27"
@@ -267,9 +267,9 @@ class LoadGBDialog(Ui_LoadGBDialog, QDialog):
         except:
             bval_scale = 1
 
-        return mdt.load_protocol_bval_bvec(bvec=self.bvecFileInput.text(),
-                                           bval=self.bvalFileInput.text(),
-                                           bval_scale=bval_scale)
+        return load_bvec_bval(bvec=self.bvecFileInput.text(),
+                              bval=self.bvalFileInput.text(),
+                              bval_scale=bval_scale)
 
     @pyqtSlot()
     def _update_ok_button(self):

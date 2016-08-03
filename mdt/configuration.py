@@ -496,7 +496,7 @@ def config_context(config_action):
 
     Example usage:
         config = '''
-        optimization_settings:
+        optimization:
             general:
                 optimizers:
                     -   name: 'NMSimplex'

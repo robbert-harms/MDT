@@ -1,4 +1,4 @@
-.PHONY: clean clean-build clean-pyc clean-test clean-qt-designs lint test tests test-all coverage docs qt-designs release dist install uninstall
+.PHONY: clean clean-build clean-pyc clean-test clean-qt-designs lint test tests test-all coverage docs qt-designs release dist install uninstall dist-deb
 
 help:
 	@echo "clean - remove all build, test, coverage and Python artifacts (no uninstall)"
@@ -15,9 +15,10 @@ help:
 	@echo "qt-designs - build all the QT designs and objects"
 	@echo "release - package and upload a release"
 	@echo "dist - create the package"
+	@echo "dist-deb - create a debian package"
 	@echo "install - installs the package using pip"
 	@echo "uninstall - uninstalls the package using pip"
-	
+
 clean: clean-build clean-pyc clean-test clean-qt-designs
 
 clean-build:
@@ -39,7 +40,7 @@ clean-test:
 	rm -fr htmlcov/
 
 clean-qt-designs:
-	$(MAKE) -C mdt/data/qt_designs/ clean	
+	$(MAKE) -C mdt/data/qt_designs/ clean
 
 lint:
 	flake8 mdt tests
@@ -81,5 +82,10 @@ dist: clean qt-designs
 install: dist
 	pip install --upgrade --no-deps --force-reinstall dist/mdt-*.tar.gz
 
-uninstall: 
+uninstall:
 	pip uninstall -y mdt
+
+dist-deb: dist
+	py2dsc -d dist/deb --with-python3=True --with-python2=False dist/mdt*.tar.gz
+	python setup.py prepare_debian_dist
+	cd dist/deb/*/; fakeroot debian/rules binary

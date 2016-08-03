@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import glob
-import inspect
 import os
 import re
-from setuptools import setup, find_packages
+
+import shutil
+from setuptools import setup, find_packages, Command
 
 
 def load_requirements(fname):
@@ -12,16 +13,25 @@ def load_requirements(fname):
     with open(fname) as fo:
         return [line.strip() for line in fo if not is_comment(line) and line.strip()]
 
-with open('README.rst', 'rt') as f: readme = f.read()
-with open('docs/history.rst', 'rt') as f: history = f.read().replace('.. :changelog:', '')
-with open('mdt/__init__.py') as f: version_file_contents = f.read()
+with open('README.rst', 'rt') as f:
+    readme = f.read()
+
+with open('docs/history.rst', 'rt') as f:
+    history = f.read().replace('.. :changelog:', '')
+
+with open('mdt/__init__.py') as f:
+    lines = []
+    for line_ind, line in enumerate(f.readlines()):
+        lines.append(line)
+        if line[0: len('__version__')] == '__version__':
+            break
+    version_file_contents = "\n".join(lines)
 
 requirements = load_requirements('requirements.txt')
 requirements_tests = load_requirements('requirements_tests.txt')
 
 ver_dic = {}
 exec(compile(version_file_contents, "mdt/__init__.py", 'exec'), ver_dic)
-
 
 def load_entry_points():
     entry_points = {'console_scripts': []}
@@ -45,11 +55,10 @@ def load_entry_points():
 
     return entry_points
 
-
-setup(
+info_dict = dict(
     name='mdt',
     version=ver_dic["VERSION"],
-    description='A diffusion toolkit for parallelized sampling and optimization of diffusion data.',
+    description='Parallized neuro-imaging model recovery toolbox',
     long_description=readme + '\n\n' + history,
     author='Robbert Harms',
     author_email='robbert.harms@maastrichtuniversity.nl',
@@ -65,6 +74,7 @@ setup(
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)',
+        'Development Status :: 5 - Production/Stable',
         'Natural Language :: English',
         'Operating System :: POSIX :: Linux',
         'Operating System :: MacOS :: MacOS X',
@@ -81,3 +91,57 @@ setup(
     tests_require=requirements_tests,
     entry_points=load_entry_points()
 )
+
+
+class PrepareDebianDist(Command):
+    description = "Prepares the debian dist prior to packaging."
+    user_options = []
+
+    def initialize_options(self):
+        self.cwd = None
+
+    def finalize_options(self):
+        self.cwd = os.getcwd()
+
+    def run(self):
+        deb_info_path = './dist/deb/mdt-{}/debian'.format(ver_dic["VERSION"])
+        with open(deb_info_path + '/rules'.format(ver_dic["VERSION"]), 'a') as f:
+            f.write('\noverride_dh_auto_test:\n\techo "Skip dh_auto_test"')
+
+        self._set_copyright_file(deb_info_path)
+        self._set_description(deb_info_path)
+        shutil.copy('debian/menu.ex', deb_info_path + '/menu.ex')
+
+    def _set_copyright_file(self, deb_info_path):
+        shutil.copy('debian/copyright', deb_info_path + '/copyright')
+
+        with open(deb_info_path + '/copyright', 'r') as file:
+            copyright_info = file.read()
+
+        copyright_info = copyright_info.replace('{{source}}', info_dict['url'])
+        copyright_info = copyright_info.replace('{{years}}', '2016-2017')
+        copyright_info = copyright_info.replace('{{author}}', info_dict['author'])
+        copyright_info = copyright_info.replace('{{email}}', info_dict['author_email'])
+
+        with open(deb_info_path + '/copyright', 'w') as file:
+            file.write(copyright_info)
+
+    def _set_description(self, deb_info_path):
+        with open(deb_info_path + '/control', 'r') as file:
+            control = file.readlines()
+            lines = []
+            for line in control:
+                if line[0:len('Description')] == 'Description':
+                    lines.append('Description: Maastricht Diffusion Toolbox\n')
+                    break
+                lines.append(line)
+
+        control = "".join(lines)
+        control += ' The Maastricht Diffusion Toolbox is a model recovery toolbox primarily meant ' \
+                   'for diffusion MRI analysis.'
+
+        with open(deb_info_path + '/control', 'w') as file:
+            file.write(control)
+
+info_dict.update(cmdclass={'prepare_debian_dist': PrepareDebianDist})
+setup(**info_dict)

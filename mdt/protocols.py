@@ -1,6 +1,5 @@
-import operator
+import collections
 import glob
-import logging
 import numbers
 import os
 import itertools
@@ -16,7 +15,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class Protocol(object):
+class Protocol(collections.MutableMapping):
 
     def __init__(self, columns=None):
         """Create a new protocol. Optionally initializes the protocol with the given set of columns.
@@ -31,7 +30,6 @@ class Protocol(object):
         self._gamma_h = 2.675987E8
         self._unweighted_threshold = 25e6 # s/m^2
         self._columns = {}
-        self._logger = logging.getLogger(__name__)
         self._preferred_column_order = ('gx', 'gy', 'gz', 'G', 'Delta', 'delta', 'TE', 'T1', 'b', 'q', 'maxG')
         self._virtual_columns = [VirtualColumnQ(),
                                  VirtualColumnB(),
@@ -228,9 +226,6 @@ class Protocol(object):
         return self._column_names_in_preferred_order([e.column_name for e in self._virtual_columns if
                                                       e.column_name not in self.column_names])
 
-    def keys(self):
-        return self._columns.keys()
-
     def get_nmr_shells(self):
         """Get the number of unique shells in this protocol.
 
@@ -383,21 +378,6 @@ class Protocol(object):
         """
         return Protocol(columns={k: v[indices] for k, v in self._columns.items()})
 
-    def __len__(self):
-        return self.length
-
-    def __contains__(self, column):
-        return self.has_column(column)
-
-    def __getitem__(self, column):
-        return self.get_column(column)
-
-    def __str__(self):
-        s = 'Column names: ' + ', '.join(self.column_names) + "\n"
-        s += 'Data: ' + "\n"
-        s += np.array_str(self.get_all_columns())
-        return s
-
     def _get_real_column(self, column_name):
         """Try to load a real column from this protocol.
 
@@ -427,8 +407,8 @@ class Protocol(object):
             KeyError: If the column name could not be estimated we raise a key error.
         """
         for virtual_column in self._virtual_columns:
-            if virtual_column.column_name == column_name:
-                return np.reshape(virtual_column.get_column(self), (-1, 1))
+            if virtual_column.name == column_name:
+                return np.reshape(virtual_column.get_values(self), (-1, 1))
 
         raise KeyError('The given column name "{}" could not be found in this protocol.'.format(column_name))
 
@@ -453,45 +433,74 @@ class Protocol(object):
         final_list.extend(columns_list)
         return final_list
 
+    def __len__(self):
+        return self.length
+
+    def __contains__(self, column):
+        return self.has_column(column)
+
+    def __getitem__(self, column):
+        return self.get_column(column)
+
+    def __delitem__(self, key):
+        return self.remove_column(key)
+
+    def __iter__(self):
+        for key in self._columns.keys():
+            yield key
+
+    def __setitem__(self, key, value):
+        return self.add_column(key, value)
+
+    def __str__(self):
+        s = 'Column names: ' + ', '.join(self.column_names) + "\n"
+        s += 'Data: ' + "\n"
+        s += np.array_str(self.get_all_columns())
+        return s
+
 
 class VirtualColumn(object):
 
-    def __init__(self, column_name):
+    def __init__(self, name):
         """The interface for generating virtual columns.
 
         Virtual columns are columns generated on the fly from the other parts of the protocol. They are
         generally only generated if the column it tries to generate is not in the protocol.
 
-        Args:
-            column_name (str): the name of the column this object generates.
-        """
-        self.column_name = column_name
+        In the Protocol they are used separately from the RealColumns. The VirtualColumns can always be added to
+        the Protocol, but are only used when needed. The RealColumns can overrule VirtualColumns by their presence.
+        All that logic is in the Protocol itself.
 
-    def get_column(self, protocol):
+        Args:
+            name (str): the name of the column this object generates.
+        """
+        self.name = name
+
+    def get_values(self, parent_protocol):
         """Get the column given the information in the given protocol.
 
         Args:
-            protocol (Protocol): the protocol object to use as a basis for generating the column
+            parent_protocol (Protocol): the protocol object to use as a basis for generating the column
 
         Returns:
-            ndarray: the single column as a 2d matrix
+            ndarray: the single column as a row vector or 2d matrix of shape nx1
         """
 
 
 class SimpleVirtualColumn(VirtualColumn):
 
-    def __init__(self, column_name, generate_function):
+    def __init__(self, name, generate_function):
         """Create a simple virtual column that uses the given generate function to get the column.
 
         Args:
-            column_name (str): the name of the column
+            name (str): the name of the column
             generate_function (python function): the function to generate the column
         """
-        super(SimpleVirtualColumn, self).__init__(column_name)
+        super(SimpleVirtualColumn, self).__init__(name)
         self._generate_function = generate_function
 
-    def get_column(self, protocol):
-        return self._generate_function(protocol)
+    def get_values(self, parent_protocol):
+        return self._generate_function(parent_protocol)
 
 
 class VirtualColumnQ(VirtualColumn):
@@ -499,10 +508,11 @@ class VirtualColumnQ(VirtualColumn):
     def __init__(self):
         super(VirtualColumnQ, self).__init__('q')
 
-    def get_column(self, protocol):
-        sequence_timings = get_sequence_timings(protocol)
-        return np.reshape(np.array(protocol.gamma_h * sequence_timings['G'] * sequence_timings['delta'] / (2 * np.pi)),
-                          (-1, 1))
+    def get_values(self, parent_protocol):
+        sequence_timings = get_sequence_timings(parent_protocol)
+        return np.reshape(np.array(parent_protocol.gamma_h *
+                                   sequence_timings['G'] *
+                                   sequence_timings['delta'] / (2 * np.pi)), (-1, 1))
 
 
 class VirtualColumnB(VirtualColumn):
@@ -510,9 +520,9 @@ class VirtualColumnB(VirtualColumn):
     def __init__(self):
         super(VirtualColumnB, self).__init__('b')
 
-    def get_column(self, protocol):
-        sequence_timings = get_sequence_timings(protocol)
-        return np.reshape(np.array(protocol.gamma_h ** 2 *
+    def get_values(self, parent_protocol):
+        sequence_timings = get_sequence_timings(parent_protocol)
+        return np.reshape(np.array(parent_protocol.gamma_h ** 2 *
                                    sequence_timings['G'] ** 2 *
                                    sequence_timings['delta'] ** 2 *
                                    (sequence_timings['Delta'] - (sequence_timings['delta'] / 3))), (-1, 1))
@@ -523,41 +533,58 @@ def get_sequence_timings(protocol):
 
     If Delta and delta are available, they are used instead of estimated Delta and delta.
 
+    Args:
+        protocol (Protocol): the protocol for which we want to get the sequence timings.
+
     Returns:
         dict: the columns G, Delta and delta
     """
-    if all(map(protocol.is_column_real, ['b', 'Delta', 'delta'])):
-        G = np.sqrt(protocol.get_column('b') / (protocol.gamma_h ** 2 * protocol.get_column('delta') ** 2 *
-                                                (protocol.get_column('Delta') - (protocol.get_column('delta') / 3.0))))
+    def all_real(columns):
+        return all(map(protocol.is_column_real, columns))
+
+    if all_real(['G', 'delta', 'Delta']):
+        return {name: protocol[name] for name in ['G', 'delta', 'Delta']}
+
+    if all_real(['b', 'Delta', 'delta']):
+        G = np.sqrt(protocol['b'] / (protocol.gamma_h ** 2 * protocol['delta'] ** 2 *
+                                     (protocol['Delta'] - (protocol['delta'] / 3.0))))
         G[protocol.get_unweighted_indices()] = 0
-        return {'G': G, 'Delta': protocol.get_column('Delta'), 'delta': protocol.get_column('delta')}
+        return {'G': G, 'Delta': protocol['Delta'], 'delta': protocol['delta']}
 
-    if all(map(protocol.is_column_real, ['b', 'Delta', 'G'])):
-        roots = np.roots([-1 / 3.0, protocol.get_column('Delta'),
-                          -protocol.get_column('b') / (protocol.gamma_h ** 2 * protocol.get_column('G') ** 2)])
-        delta = list(itertools.dropwhile(np.isreal, roots))[0]
-        return {'G': protocol.get_column('G'), 'Delta': protocol.get_column('Delta'), 'delta': delta}
+    if all_real(['b', 'Delta', 'G']):
+        input_array = np.zeros((protocol.length, 4))
+        input_array[:, 0] = -1 / 3.0
+        input_array[:, 1] = np.squeeze(protocol['Delta'])
+        input_array[:, 2] = 0
+        input_array[:, 3] = np.squeeze(-protocol['b'] / (protocol.gamma_h ** 2 * protocol['G'] ** 2))
 
-    if all(map(protocol.is_column_real, ['b', 'G', 'delta'])):
-        Delta = (
-        (protocol.get_column('b') - protocol.gamma_h ** 2 * protocol.get_column('G') ** 2
-            * protocol.get_column('delta') ** 3 / 3.0) /
-        (protocol.gamma_h ** 2 * protocol.get_column('G') ** 2 * protocol.get_column('delta') ** 2))
-        return {'G': protocol.get_column('G'), 'delta': protocol.get_column('delta'), 'Delta': Delta}
+        b = protocol['b']
+        delta = np.zeros((protocol.length, 1))
 
-    if all(map(protocol.is_column_real, ['G', 'delta', 'Delta'])):
-        return {'G': protocol.get_column('G'), 'delta': protocol.get_column('delta'),
-                'Delta': protocol.get_column('Delta')}
+        for ind in range(protocol.length):
+            if b[ind] == 0:
+                delta[ind] = 0
+            else:
+                roots = np.roots(input_array[ind])
+                delta[ind] = roots[0]
+
+        return {'G': protocol['G'], 'Delta': protocol['Delta'], 'delta': delta}
+
+    if all_real(['b', 'G', 'delta']):
+        Delta = np.nan_to_num(np.array((protocol['b'] - protocol.gamma_h ** 2 * protocol['G'] ** 2
+                                        * protocol['delta'] ** 3 / 3.0) /
+                                       (protocol.gamma_h ** 2 * protocol['G'] ** 2 * protocol['delta'] ** 2)))
+        return {'G': protocol['G'], 'delta': protocol['delta'], 'Delta': Delta}
 
     if not protocol.is_column_real('b'):
-        raise KeyError('Can not estimate the sequence timings.')
+        raise KeyError('Can not estimate the sequence timings, column "b" is not provided.')
 
     if protocol.has_column('maxG'):
-        maxG = protocol.get_column('maxG')
+        maxG = protocol['maxG']
     else:
         maxG = np.reshape(np.ones((protocol.length,)) * 0.04, (-1, 1))
 
-    bvals = protocol.get_column('b')
+    bvals = protocol['b']
     if protocol.get_b_values_shells():
         bmax = max(protocol.get_b_values_shells())
     else:
@@ -570,16 +597,16 @@ def get_sequence_timings(protocol):
     return {'G': G, 'Delta': Deltas, 'delta': deltas}
 
 
-def load_bvec_bval(bvec_file, bval_file, column_based='auto', bval_scale='auto'):
-    """Load an BG scheme object from a bvec and bval file.
+def load_bvec_bval(bvec, bval, column_based='auto', bval_scale='auto'):
+    """Load an protocol from a bvec and bval file.
 
     If column_based
     This supposes that the bvec (the vector file) has 3 rows (gx, gy, gz) and is space or tab seperated.
     The bval file (the b values) are one one single line with space or tab separated b values.
 
     Args:
-        bvec_file (str): The filename of the bvec file
-        bval_file (str): The filename of the bval file
+        bvec (str): The filename of the bvec file
+        bval (str): The filename of the bval file
         column_based (boolean): If true, this supposes that the bvec (the vector file) has 3 rows (gx, gy, gz)
             and is space or tab seperated and that the bval file (the b values) are one one single line
             with space or tab separated b values.
@@ -592,8 +619,8 @@ def load_bvec_bval(bvec_file, bval_file, column_based='auto', bval_scale='auto')
     Returns:
         Protocol the loaded protocol.
     """
-    bvec = get_g_columns(bvec_file, column_based=column_based)
-    bval = np.expand_dims(np.genfromtxt(bval_file), axis=1)
+    bvec = get_g_columns(bvec, column_based=column_based)
+    bval = np.expand_dims(np.genfromtxt(bval), axis=1)
 
     if bval_scale == 'auto' and bval[0, 0] < 1e4:
         bval *= 1e6

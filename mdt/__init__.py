@@ -805,7 +805,7 @@ def recalculate_ics(model, problem_data, data_dir, sigma, output_dir=None, sigma
     model.fix(sigma_param_name, sigma)
 
     evaluation_model = evaluation_model or OffsetGaussianEvaluationModel()
-    evaluation_model.set_noise_level_std(sigma, fix=True)
+    evaluation_model.set_noise_level_std(sigma)
 
     log_likelihood_calc = LogLikelihoodCalculator()
     log_likelihoods = log_likelihood_calc.calculate(model, results_maps, evaluation_model=evaluation_model)
