@@ -18,11 +18,11 @@ from numpy.lib.format import open_memmap
 from scipy.special import jnp_zeros
 from six import string_types
 
-from mdt.protocols import load_protocol, write_protocol
-from mdt.configuration import get_config_dir
 import mot.utils
+from mdt.IO import Nifti
 from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
 from mdt.components_loader import get_model
+from mdt.configuration import get_config_dir
 from mdt.configuration import get_logging_configuration_dict, get_noise_std_estimators, config_context, \
     VoidConfigAction, OptimizationSettings, get_tmp_results_dir, SamplingSettings
 from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
@@ -30,10 +30,13 @@ from mdt.data_loaders.noise_std import autodetect_noise_std_loader
 from mdt.data_loaders.protocol import autodetect_protocol_loader
 from mdt.exceptions import NoiseStdEstimationNotPossible
 from mdt.log_handlers import ModelOutputLogHandler
+from mdt.protocols import load_protocol, write_protocol
 from mot.base import AbstractProblemData
 from mot.cl_environments import CLEnvironmentFactory
+from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
 from mot.cl_routines.optimizing.meta_optimizer import MetaOptimizer
 from mot.cl_routines.sampling.meta_sampler import MetaSampler
+from mot.model_building.evaluation_models import OffsetGaussianEvaluationModel
 
 try:
     import codecs
@@ -301,6 +304,33 @@ def split_dataset(dataset, split_dimension, split_index):
     return dataset[ind_1], dataset[ind_2]
 
 
+def split_write_dataset(input_fname, split_dimension, split_index, output_folder=None):
+    """Split the given dataset using the function split_dataset and write the output files.
+
+    Args:
+        dataset (str): The filename of a volume to split
+        split_dimension (int): The dimension along which to split the dataset
+        split_index (int): The index on the given dimension to split the volume(s)
+    """
+    if output_folder is None:
+        output_folder = os.path.dirname(input_fname)
+
+    dataset = load_nifti(input_fname)
+    data = dataset.get_data()
+
+    split = split_dataset(data, split_dimension, split_index)
+
+    basename = os.path.basename(input_fname).split('.')[0]
+    length = data.shape[split_dimension]
+    lengths = (repr(0) + 'to' + repr(split_index-1), repr(split_index) + 'to' + repr(length-1))
+
+    volumes = {}
+    for ind, v in enumerate(split):
+        volumes.update({str(basename) + '_split_' + str(split_dimension) + '_' + lengths[ind]: v})
+
+    Nifti.write_volume_maps(volumes, output_folder, dataset.get_header())
+
+
 def get_bessel_roots(number_of_roots=30, np_data_type=np.float64):
     """These roots are used in some of the compartment models. It are the roots of the equation J'_1(x) = 0.
 
@@ -350,14 +380,45 @@ def create_slice_roi(brain_mask, roi_dimension, roi_slice):
     Returns:
         A brain mask of the same dimensions as the original mask, but with only one slice activated.
     """
-    roi_mask = get_slice_in_dimension(brain_mask, roi_dimension, roi_slice)
-    brain_mask = np.zeros_like(brain_mask)
+    roi_mask = np.zeros_like(brain_mask)
 
-    ind_pos = [slice(None)] * brain_mask.ndim
+    ind_pos = [slice(None)] * roi_mask.ndim
     ind_pos[roi_dimension] = roi_slice
-    brain_mask[tuple(ind_pos)] = roi_mask
+    roi_mask[tuple(ind_pos)] = get_slice_in_dimension(brain_mask, roi_dimension, roi_slice)
 
-    return brain_mask
+    return roi_mask
+
+
+def write_slice_roi(brain_mask_fname, roi_dimension, roi_slice, output_fname, overwrite_if_exists=False):
+    """Create a region of interest out of the given brain mask by taking one specific slice out of the mask.
+
+    This will both write and return the created slice ROI.
+
+    We need a filename as input brain mask since we need the header of the file to be able to write the output file
+    with the same header.
+
+    Args:
+        brain_mask_fname (string): The filename of the brain_mask used to create the new brain mask
+        roi_dimension (int): The dimension to take a slice out of
+        roi_slice (int): The index on the given dimension.
+        output_fname (string): The output filename
+        overwrite_if_exists (boolean, optional, default false): If we want to overwrite the file if it already exists
+
+    Returns:
+        A brain mask of the same dimensions as the original mask, but with only one slice set to one.
+    """
+    if os.path.exists(output_fname) and not overwrite_if_exists:
+        return load_brain_mask(output_fname)
+
+    if not os.path.isdir(os.path.dirname(output_fname)):
+        os.makedirs(os.path.dirname(output_fname))
+
+    brain_mask_img = load_nifti(brain_mask_fname)
+    brain_mask = brain_mask_img.get_data()
+    img_header = brain_mask_img.get_header()
+    roi_mask = create_slice_roi(brain_mask, roi_dimension, roi_slice)
+    nib.Nifti1Image(roi_mask, None, img_header).to_filename(output_fname)
+    return roi_mask
 
 
 def concatenate_two_mri_measurements(datasets):
@@ -1149,6 +1210,24 @@ def apply_mask(volume, mask, inplace=True):
     return apply(volume, mask)
 
 
+def apply_mask_to_file(input_fname, mask, output_fname=None):
+    """Apply a mask to the given input (nifti) file.
+
+    If no output filename is given, the input file is overwritten.
+
+    Args:
+        input_fname (str): The input file path
+        mask (str or ndarray): The mask to use
+        output_fname (str): The filename for the output file (the masked input file).
+    """
+    mask = autodetect_brain_mask_loader(mask).get_data()
+
+    if output_fname is None:
+        output_fname = input_fname
+
+    nib.Nifti1Image(apply_mask(input_fname, mask), None, load_nifti(input_fname).get_header()).to_filename(output_fname)
+
+
 def load_samples(data_folder, mode='r'):
     """Load sampled results as a dictionary of numpy memmap.
 
@@ -1443,3 +1522,112 @@ def concatenate_mri_sets(items, output_volume_fname, output_protocol_fname, over
     protocol, signal4d = concatenate_two_mri_measurements(to_concat)
     nib.Nifti1Image(signal4d, None, nii_header).to_filename(output_volume_fname)
     write_protocol(protocol, output_protocol_fname)
+
+
+def create_median_otsu_brain_mask(dwi_info, protocol, output_fname=None, **kwargs):
+    """Create a brain mask and optionally write it.
+
+    It will always return the mask. If output_fname is set it will also write the mask.
+
+    Args:
+        dwi_info (string or (image, header) pair or image):
+            - the filename of the input file;
+            - or a tuple with as first index a ndarray with the DWI and as second index the header;
+            - or only the image as an ndarray
+        protocol (string or Protocol): The filename of the protocol file or a Protocol object
+        output_fname (string): the filename of the output file. If None, no output is written.
+            If dwi_info is only an image also no file is written.
+        **kwargs: the additional arguments for the function median_otsu.
+
+    Returns:
+        ndarray: The created brain mask
+    """
+    from mdt.masking import create_median_otsu_brain_mask, create_write_median_otsu_brain_mask
+
+    if output_fname:
+        if not isinstance(dwi_info, (string_types, tuple, list)):
+            raise ValueError('No header obtainable, can not write the brain mask.')
+        return create_write_median_otsu_brain_mask(dwi_info, protocol, output_fname, **kwargs)
+    return create_median_otsu_brain_mask(dwi_info, protocol, **kwargs)
+
+
+def extract_volumes(input_volume_fname, input_protocol, output_volume_fname, output_protocol, volume_indices):
+    """Extract volumes from the given volume and save them to separate files.
+
+    This will index the given input volume in the 4th dimension, as is usual in multi shell DWI files.
+
+    Args:
+        input_volume_fname (str): the input volume from which to get the specific volumes
+        input_protocol (str or Protocol): the input protocol, either a file or preloaded protocol object
+        output_volume_fname (str): the output filename for the selected volumes
+        output_protocol (str): the output protocol for the selected volumes
+        volume_indices (list): the desired indices, indexing the input_volume
+    """
+    input_protocol = autodetect_protocol_loader(input_protocol).get_protocol()
+
+    new_protocol = input_protocol.get_new_protocol_with_indices(volume_indices)
+    write_protocol(new_protocol, output_protocol)
+
+    input_volume = load_nifti(input_volume_fname)
+    image_data = input_volume.get_data()[..., volume_indices]
+    nib.Nifti1Image(image_data, None, input_volume.get_header()).to_filename(output_volume_fname)
+
+
+def recalculate_error_measures(model, problem_data, data_dir, sigma, output_dir=None, sigma_param_name=None,
+                               evaluation_model=None):
+    """Recalculate the information criterion maps.
+
+    This will write the results either to the original data directory, or to the given output dir.
+
+    Args:
+        model (str or AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize
+            or the name of an model we load with get_model()
+        problem_data (DMRIProblemData): the problem data object
+        data_dir (str): the directory containing the results for the given model
+        sigma (float): the new noise sigma we use for calculating the log likelihood and then the
+            information criteria's.
+        output_dir (str): if given, we write the output to this directory instead of the data dir.
+        sigma_param_name (str): the name of the parameter to which we will set sigma. If not given we search
+            the result maps for something ending in .sigma
+        evaluation_model: the evaluation model, we will manually fix the sigma in this function
+    """
+    from mdt.models.cascade import DMRICascadeModelInterface
+
+    logger = logging.getLogger(__name__)
+
+    if isinstance(model, string_types):
+        model = get_model(model)
+
+    if isinstance(model, DMRICascadeModelInterface):
+        raise ValueError('This function does not accept cascade models.')
+
+    model.set_problem_data(problem_data)
+
+    results_maps = create_roi(Nifti.read_volume_maps(data_dir), problem_data.mask)
+
+    if sigma_param_name is None:
+        sigma_params = list(filter(lambda key: '.sigma' in key, model.get_optimization_output_param_names()))
+
+        if not sigma_params:
+            raise ValueError('Could not find a suitable parameter to set sigma for.')
+
+        sigma_param_name = sigma_params[0]
+        logger.info('Setting the given sigma value to the model parameter {}.'.format(sigma_param_name))
+
+    model.fix(sigma_param_name, sigma)
+
+    evaluation_model = evaluation_model or OffsetGaussianEvaluationModel()
+    evaluation_model.set_noise_level_std(sigma)
+
+    log_likelihood_calc = LogLikelihoodCalculator()
+    log_likelihoods = log_likelihood_calc.calculate(model, results_maps, evaluation_model=evaluation_model)
+
+    k = model.get_nmr_estimable_parameters()
+    n = problem_data.get_nmr_inst_per_problem()
+    results_maps.update({'LogLikelihood': log_likelihoods})
+    results_maps.update(calculate_information_criterions(log_likelihoods, k, n))
+
+    volumes = restore_volumes(results_maps, problem_data.mask)
+
+    output_dir = output_dir or data_dir
+    Nifti.write_volume_maps(volumes, output_dir, problem_data.volume_header)

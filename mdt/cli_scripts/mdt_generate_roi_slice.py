@@ -6,6 +6,8 @@ import mdt
 from argcomplete.completers import FilesCompleter
 import nibabel as nib
 import textwrap
+
+import mdt.utils
 from mdt.shell_utils import BasicShellApplication
 
 __author__ = 'Robbert Harms'
@@ -67,8 +69,8 @@ class GenerateRoiSlice(BasicShellApplication):
         else:
             output_name = mask_base_name + '_{0}_{1}.nii.gz'.format(roi_dimension, roi_slice)
 
-        mdt.create_slice_roi(os.path.realpath(args.mask), roi_dimension, roi_slice, output_name,
-                             overwrite_if_exists=True)
+        mdt.utils.write_slice_roi(os.path.realpath(args.mask), roi_dimension, roi_slice, output_name,
+                                  overwrite_if_exists=True)
 
 
 if __name__ == '__main__':

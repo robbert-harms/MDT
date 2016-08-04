@@ -3,11 +3,11 @@ import nibabel as nib
 from PyQt5.QtCore import pyqtSlot, QObject, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog
 
-from mdt import view_results_slice, create_slice_roi, load_nifti
+from mdt import view_results_slice, load_nifti
 from mdt.gui.qt.design.ui_generate_roi_mask_tab import Ui_GenerateROIMaskTabContent
 from mdt.gui.qt.utils import image_files_filters, MainTab
 from mdt.gui.utils import function_message_decorator
-from mdt.utils import split_image_path
+from mdt.utils import split_image_path, write_slice_roi
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-06-26"
@@ -149,6 +149,6 @@ class GenerateROIMaskWorker(QObject):
     @function_message_decorator('Started with generating a slice ROI', 'Finished generating a slice ROI')
     @pyqtSlot()
     def run(self):
-        create_slice_roi(self._kwargs['mask'], self._kwargs['dimension'],
-                         self._kwargs['slice'], self._kwargs['output'], overwrite_if_exists=True)
+        write_slice_roi(self._kwargs['mask'], self._kwargs['dimension'],
+                        self._kwargs['slice'], self._kwargs['output'], overwrite_if_exists=True)
         self.finished.emit()

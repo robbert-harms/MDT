@@ -1,11 +1,12 @@
 import glob
-import os
 import logging.config as logging_config
+import os
 import numpy as np
 import six
 from six import string_types
-import logging
+from inspect import stack
 
+from mdt.user_script_info import easy_save_user_script_info
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-03-10"
@@ -37,20 +38,17 @@ except ImportError:
 
 from mdt.utils import estimate_noise_std, get_cl_devices, load_problem_data, create_blank_mask, create_index_matrix, \
     volume_index_to_roi_index, roi_index_to_volume_index, load_brain_mask, init_user_settings, restore_volumes, \
-    apply_mask, create_roi, volume_merge, concatenate_mri_sets
-
+    apply_mask, create_roi, volume_merge, concatenate_mri_sets, create_median_otsu_brain_mask, load_samples, \
+    load_nifti, write_slice_roi, split_write_dataset, apply_mask_to_file, extract_volumes, recalculate_error_measures
 from mdt.batch_utils import collect_batch_fit_output, run_function_on_batch_fit_output
-
 from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, write_protocol, write_bvec_bval
-
 from mdt.components_loader import load_component, get_model
-
 from mdt.configuration import config_context
 
 
 def fit_model(model, problem_data, output_folder, optimizer=None,
               recalculate=False, only_recalculate_last=False, cascade_subdir=False,
-              cl_device_ind=None, double_precision=False, tmp_results_dir=True):
+              cl_device_ind=None, double_precision=False, tmp_results_dir=True, save_user_script_info=True):
     """Run the optimizer on the given model.
 
     Args:
@@ -75,7 +73,12 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
             utils.get_cl_devices(). This can also be a list of device indices.
         double_precision (boolean): if we would like to do the calculations in double precision
         tmp_results_dir (str, True or None): The temporary dir for the calculations. Set to a string to use
-                that path directly, set to True to use the config value, set to None to disable.
+            that path directly, set to True to use the config value, set to None to disable.
+        save_user_script_info (boolean, str or SaveUserScriptInfo): The info we need to save about the script the
+            user is currently executing. If True (default) we use the stack to lookup the script the user is executing
+            and save that using a SaveFromScript saver. If a string is given we use that filename again for the
+            SaveFromScript saver. If False or None, we do not write any information. If a SaveUserScriptInfo is
+            given we use that directly.
 
     Returns:
         the output of the optimization. If a cascade is given, only the results of the last model in the cascade is
@@ -93,12 +96,15 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
                          cl_device_ind=cl_device_ind, double_precision=double_precision,
                          tmp_results_dir=tmp_results_dir)
 
-    return model_fit.run()
+    results = model_fit.run()
+    easy_save_user_script_info(save_user_script_info, output_folder + '/used_scripts.py',
+                               stack()[1][0].f_globals.get('__file__'))
+    return results
 
 
 def sample_model(model, problem_data, output_folder, sampler=None, recalculate=False,
                  cl_device_ind=None, double_precision=False, initialize=True, initialize_using=None,
-                 store_samples=True, tmp_results_dir=True):
+                 store_samples=True, tmp_results_dir=True, save_user_script_info=True):
     """Sample a single model. This does not accept cascade models, only single models.
 
     Args:
@@ -122,6 +128,11 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
                 if you are only interested in the volume maps and not in the entire sample chain.
         tmp_results_dir (str, True or None): The temporary dir for the calculations. Set to a string to use
                 that path directly, set to True to use the config value, set to None to disable.
+        save_user_script_info (boolean, str or SaveUserScriptInfo): The info we need to save about the script the
+            user is currently executing. If True (default) we use the stack to lookup the script the user is executing
+            and save that using a SaveFromScript saver. If a string is given we use that filename again for the
+            SaveFromScript saver. If False or None, we do not write any information. If a SaveUserScriptInfo is
+            given we use that directly.
 
     Returns:
         dict: the samples per parameter as a numpy memmap, if store_samples is True
@@ -139,7 +150,10 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
                              initialize_using=initialize_using, store_samples=store_samples,
                              tmp_results_dir=tmp_results_dir)
 
-    return sampling.run()
+    results = sampling.run()
+    easy_save_user_script_info(save_user_script_info, output_folder + '/used_scripts.py',
+                               stack()[1][0].f_globals.get('__file__'))
+    return results
 
 
 def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalculate=False,
@@ -231,33 +245,6 @@ def get_device_ind(device_type='FIRST_GPU'):
     if 'first' in device_type:
         return indices[0]
     return indices
-
-
-def create_median_otsu_brain_mask(dwi_info, protocol, output_fname=None, **kwargs):
-    """Create a brain mask and optionally write it.
-
-    It will always return the mask. If output_fname is set it will also write the mask.
-
-    Args:
-        dwi_info (string or (image, header) pair or image):
-            - the filename of the input file;
-            - or a tuple with as first index a ndarray with the DWI and as second index the header;
-            - or only the image as an ndarray
-        protocol (string or Protocol): The filename of the protocol file or a Protocol object
-        output_fname (string): the filename of the output file. If None, no output is written.
-            If dwi_info is only an image also no file is written.
-        **kwargs: the additional arguments for median_otsu.
-
-    Returns:
-        ndarray: The created brain mask
-    """
-    from mdt.masking import create_median_otsu_brain_mask, create_write_median_otsu_brain_mask
-
-    if output_fname:
-        if not isinstance(dwi_info, (string_types, tuple, list)):
-            raise ValueError('No header obtainable, can not write the brain mask.')
-        return create_write_median_otsu_brain_mask(dwi_info, protocol, output_fname, **kwargs)
-    return create_median_otsu_brain_mask(dwi_info, protocol, **kwargs)
 
 
 def view_results_slice(data,
@@ -399,36 +386,6 @@ def view_result_samples(data, **kwargs):
     SampleVisualizer(data).show(**kwargs)
 
 
-def load_samples(data_folder, mode='r'):
-    """Load sampled results as a dictionary of numpy memmap.
-
-    Args:
-        data_folder (str): the folder from which to load the samples
-        mode (str): the mode in which to open the memory mapped sample files (see numpy mode parameter)
-
-    Returns:
-        dict: the memory loaded samples per sampled parameter.
-    """
-    from mdt.utils import load_samples
-    return load_samples(data_folder, mode=mode)
-
-
-def load_nifti(nifti_volume):
-    """Load and return a nifti file.
-
-    This will apply path resolution if a filename without extension is given. See the function
-    mdt.utils.nifti_filepath_resolution() for details.
-
-    Args:
-        nifti_volume (string): The filename of the volume to load.
-
-    Returns:
-        nib image proxy (from nib.load)
-    """
-    from mdt.utils import load_nifti
-    return load_nifti(nifti_volume)
-
-
 def make_path_joiner(*folder):
     """Generates and returns an instance of utils.PathJoiner to quickly join pathnames.
 
@@ -437,41 +394,6 @@ def make_path_joiner(*folder):
     """
     from mdt.utils import PathJoiner
     return PathJoiner(*folder)
-
-
-def create_slice_roi(brain_mask_fname, roi_dimension, roi_slice, output_fname, overwrite_if_exists=False):
-    """Create a region of interest out of the given brain mask by taking one specific slice out of the mask.
-
-    This will both write and return the created slice ROI.
-
-    We need a filename as input brain mask since we need the header of the file to be able to write the output file
-    with the same header.
-
-    Args:
-        brain_mask (string): The filename of the brain_mask used to create the new brain mask
-        roi_dimension (int): The dimension to take a slice out of
-        roi_slice (int): The index on the given dimension.
-        output_fname (string): The output filename
-        overwrite_if_exists (boolean, optional, default false): If we want to overwrite the file if it already exists
-
-    Returns:
-        A brain mask of the same dimensions as the original mask, but with only one slice set to one.
-    """
-    import os
-    from mdt.utils import create_slice_roi
-
-    if os.path.exists(output_fname) and not overwrite_if_exists:
-        return load_brain_mask(output_fname)
-
-    if not os.path.isdir(os.path.dirname(output_fname)):
-        os.makedirs(os.path.dirname(output_fname))
-
-    brain_mask_img = load_nifti(brain_mask_fname)
-    brain_mask = brain_mask_img.get_data()
-    img_header = brain_mask_img.get_header()
-    roi_mask = create_slice_roi(brain_mask, roi_dimension, roi_slice)
-    write_image(output_fname, roi_mask, img_header)
-    return roi_mask
 
 
 def write_image(fname, data, header):
@@ -677,145 +599,3 @@ def get_batch_profile(batch_profile_name, *args, **kwargs):
         BatchProfile: the batch profile for use in batch fitting routines.
     """
     return load_component('batch_profiles', batch_profile_name, *args, **kwargs)
-
-
-def split_dataset(input_fname, split_dimension, split_index, output_folder=None):
-    """Split the given dataset along the given dimension on the given index.
-
-    Args:
-        dataset (ndarray, list, tuple or dict): The single or list of volume which to split in two
-        split_dimension (int): The dimension along which to split the dataset
-        split_index (int): The index on the given dimension to split the volume(s)
-
-    Returns:
-        If dataset is a single volume return the two volumes that when concatenated give the original volume back.
-        If it is a list, tuple or dict return two of those with exactly the same indices but with each holding one half
-        of the splitted data.
-    """
-    import os
-    import mdt.utils
-    from mdt.IO import Nifti
-
-    if output_folder is None:
-        output_folder = os.path.dirname(input_fname)
-    dataset = load_nifti(input_fname)
-    data = dataset.get_data()
-    header = dataset.get_header()
-    split = utils.split_dataset(data, split_dimension, split_index)
-
-    basename = os.path.basename(input_fname).split('.')[0]
-    length = data.shape[split_dimension]
-    lengths = (repr(0) + 'to' + repr(split_index-1), repr(split_index) + 'to' + repr(length-1))
-
-    volumes = {}
-    for ind, v in enumerate(split):
-        volumes.update({str(basename) + '_split_' + str(split_dimension) + '_' + lengths[ind]: v})
-
-    Nifti.write_volume_maps(volumes, output_folder, header)
-
-
-def extract_volumes(input_volume_fname, input_protocol, output_volume_fname, output_protocol, protocol_indices):
-    """Extract volumes from the given volume and save them to separate files.
-
-    This will index the given input volume in the 4th dimension, as is usual in multi shell DWI files.
-
-    Args:
-        input_volume_fname (str): the input volume from which to get the specific volumes
-        input_protocol (str or Protocol): the input protocol, either a file or preloaded protocol object
-        output_volume_fname (str): the output filename for the selected volumes
-        output_protocol (str): the output protocol for the selected volumes
-        protocol_indices (list): the desired indices, indexing the input_volume
-    """
-    from mdt.data_loaders.protocol import autodetect_protocol_loader
-    import mdt.protocols
-
-    input_protocol = autodetect_protocol_loader(input_protocol).get_protocol()
-
-    new_protocol = input_protocol.get_new_protocol_with_indices(protocol_indices)
-    protocols.write_protocol(new_protocol, output_protocol)
-
-    input_volume = load_nifti(input_volume_fname)
-    image_data = input_volume.get_data()[..., protocol_indices]
-    write_image(output_volume_fname, image_data, input_volume.get_header())
-
-
-def apply_mask_to_file(input_fname, mask, output_fname=None):
-    """Apply a mask to the given input (nifti) file.
-
-    If no output filename is given, the input file is overwritten.
-
-    Args:
-        input_fname (str): The input file path
-        mask (str or ndarray): The mask to use
-        output_fname (str): The filename for the output file (the masked input file).
-    """
-    from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
-    mask = autodetect_brain_mask_loader(mask).get_data()
-
-    if output_fname is None:
-        output_fname = input_fname
-
-    write_image(output_fname, apply_mask(input_fname, mask), load_nifti(input_fname).get_header())
-
-
-def recalculate_ics(model, problem_data, data_dir, sigma, output_dir=None, sigma_param_name=None,
-                    evaluation_model=None):
-    """Recalculate the information criterion maps.
-
-    This will write the results either to the original data directory, or to the given output dir.
-
-    Args:
-        model (str or AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize
-            or the name of an model we load with get_model()
-        problem_data (DMRIProblemData): the problem data object
-        data_dir (str): the directory containing the results for the given model
-        sigma (float): the new noise sigma we use for calculating the log likelihood and then the
-            information criteria's.
-        output_dir (str): if given, we write the output to this directory instead of the data dir.
-        sigma_param_name (str): the name of the parameter to which we will set sigma. If not given we search
-            the result maps for something ending in .sigma
-        evaluation_model: the evaluation model, we will manually fix the sigma in this function
-    """
-    import mdt.utils
-    from mdt.models.cascade import DMRICascadeModelInterface
-    from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
-    from mot.model_building.evaluation_models import OffsetGaussianEvaluationModel
-
-    logger = logging.getLogger(__name__)
-
-    if isinstance(model, string_types):
-        model = get_model(model)
-
-    if isinstance(model, DMRICascadeModelInterface):
-        raise ValueError('This function does not accept cascade models.')
-
-    model.set_problem_data(problem_data)
-
-    results_maps = create_roi(load_volume_maps(data_dir), problem_data.mask)
-
-    if sigma_param_name is None:
-        sigma_params = list(filter(lambda key: '.sigma' in key, model.get_optimization_output_param_names()))
-
-        if not sigma_params:
-            raise ValueError('Could not find a suitable parameter to set sigma for.')
-
-        sigma_param_name = sigma_params[0]
-        logger.info('Setting the given sigma value to the model parameter {}.'.format(sigma_param_name))
-
-    model.fix(sigma_param_name, sigma)
-
-    evaluation_model = evaluation_model or OffsetGaussianEvaluationModel()
-    evaluation_model.set_noise_level_std(sigma)
-
-    log_likelihood_calc = LogLikelihoodCalculator()
-    log_likelihoods = log_likelihood_calc.calculate(model, results_maps, evaluation_model=evaluation_model)
-
-    k = model.get_nmr_estimable_parameters()
-    n = problem_data.get_nmr_inst_per_problem()
-    results_maps.update({'LogLikelihood': log_likelihoods})
-    results_maps.update(utils.calculate_information_criterions(log_likelihoods, k, n))
-
-    volumes = mdt.utils.restore_volumes(results_maps, problem_data.mask)
-
-    output_dir = output_dir or data_dir
-    write_volume_maps(volumes, output_dir, problem_data.volume_header)
