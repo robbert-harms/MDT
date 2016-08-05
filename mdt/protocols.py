@@ -223,8 +223,8 @@ class Protocol(collections.MutableMapping):
 
         This will only return the names of the virtual columns for which no real column exists.
         """
-        return self._column_names_in_preferred_order([e.column_name for e in self._virtual_columns if
-                                                      e.column_name not in self.column_names])
+        return self._column_names_in_preferred_order([e.name for e in self._virtual_columns if
+                                                      e.name not in self.column_names])
 
     def get_nmr_shells(self):
         """Get the number of unique shells in this protocol.
