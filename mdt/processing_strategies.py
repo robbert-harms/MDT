@@ -4,7 +4,6 @@ import logging
 import os
 import shutil
 from contextlib import contextmanager
-from multiprocessing.pool import Pool
 
 import numpy as np
 from numpy.lib.format import open_memmap
@@ -153,11 +152,13 @@ class ChunksProcessingStrategy(SimpleProcessingStrategy):
 
             total_roi_indices = worker.get_voxels_to_compute()
 
-            for chunk_indices in self._chunks_generator(model, problem_data, output_path, worker, total_roi_indices):
-                with self._selected_indices(model, chunk_indices):
-                    self._run_on_chunk(problem_data, worker, chunk_indices, total_roi_indices, voxels_processed)
+            if len(total_roi_indices):
+                for chunk_indices in self._chunks_generator(model, problem_data, output_path, worker,
+                                                            total_roi_indices):
+                    with self._selected_indices(model, chunk_indices):
+                        self._run_on_chunk(problem_data, worker, chunk_indices, total_roi_indices, voxels_processed)
 
-                voxels_processed += len(chunk_indices)
+                    voxels_processed += len(chunk_indices)
 
             self._logger.info('Computed all voxels, now creating nifti\'s')
             return_data = worker.combine()
@@ -336,8 +337,7 @@ class ModelProcessingWorker(object):
                       self._write_volumes_gzipped)
         info_list = [(map_name, basic_info) for map_name in map_names]
 
-        pool = Pool()
-        pool.map(_combine_volumes_write_out, info_list)
+        list(map(_combine_volumes_write_out, info_list))
 
     def _create_roi_to_volume_index_lookup_table(self):
         """Creates and returns a lookup table for roi index -> volume index.

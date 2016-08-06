@@ -15,7 +15,7 @@ lib_loader = LibraryFunctionsLoader()
 class Noddi_IC(CompartmentConfig):
 
     parameter_list = ('g', 'b', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'kappa', 'R')
-    dependency_list = (CerfErfi(), FirstLegendreTerm(),
+    dependency_list = (CerfErfi(),
                        lib_loader.load('MRIConstants'),
                        lib_loader.load('NeumannCylPerpPGSESum'))
 

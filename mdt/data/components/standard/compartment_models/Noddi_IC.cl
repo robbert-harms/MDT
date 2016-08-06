@@ -17,6 +17,8 @@
 
 void Noddi_IC_LegendreGaussianIntegral(const mot_float_type x, mot_float_type* result);
 void Noddi_IC_WatsonSHCoeff(const mot_float_type kappa, mot_float_type* result);
+void create_legendre_terms(const mot_float_type x, mot_float_type* const legendre_terms);
+
 
 /**
  * Generate the compartment model signal for the Noddi Intra Cellular (Stick with dispersion) model.
@@ -65,12 +67,57 @@ mot_float_type cmNoddi_IC(const mot_float_type4 g,
     mot_float_type lgi[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
     Noddi_IC_LegendreGaussianIntegral(Lpmp, lgi);
 
+    mot_float_type legendre_terms[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
+    create_legendre_terms(cosTheta, legendre_terms);
+
     mot_float_type signal = 0.0;
     for(int i = 0; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
-        signal += lgi[i] * watson_coeff[i] * sqrt((i + 0.25)/M_PI) * getFirstLegendreTerm(cosTheta, 2*i);
+        signal += lgi[i] * watson_coeff[i] * legendre_terms[i] * sqrt((i + 0.25)/M_PI);
     }
 
     return ePerp * signal / 2.0;
+}
+
+/**
+ * This will create the legendre terms we need for the NODDI IC model.
+ *
+ * For the NODDI IC model we need to have a few legendre terms for the same position (argument to x)
+ * with linearly increasing degrees of step size 2.
+ *
+ * This is a specialized version of the function of the function firstLegendreTerm in the MOT library.
+ *
+ * That is, this will fill the given array legendre_terms with the values:
+ * [0] = firstLegendreTerm(x, 0)
+ * [1] = firstLegendreTerm(x, 2 * 1)
+ * [2] = firstLegendreTerm(x, 2 * 2)
+ * [3] = firstLegendreTerm(x, 2 * 3)
+ * ...
+ */
+void create_legendre_terms(const mot_float_type x, mot_float_type* const legendre_terms){
+    if(fabs(x) == 1.0){
+        // Since we are after the legendre terms with a list with n = [0, 2*1, 2*2, 2*3, 2*4, ...]
+        // the legendre terms collaps to this loop if fabs(x) == 1.0
+        for(int i = 0; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
+            legendre_terms[i] = 1.0;
+        }
+    }
+    else{
+        legendre_terms[0] = 1.0;
+
+        mot_float_type P0 = 1.0;
+        mot_float_type P1 = x;
+        mot_float_type Pn;
+
+        for(int k = 1; k < 2 * NODDI_IC_MAX_POLYNOMIAL_ORDER; k++){
+            Pn = ((2 * k + 1) * x * P1 - (k * P0)) / (k + 1);
+            P0 = P1;
+            P1 = Pn;
+
+            if(k % 2 == 1){
+                legendre_terms[(k + 1) / 2] = Pn;
+            }
+        }
+    }
 }
 
 /**
