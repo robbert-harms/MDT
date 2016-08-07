@@ -275,6 +275,7 @@ class ModelProcessingWorker(object):
         Returns:
             the processing results for as much as this is applicable
         """
+        del self._volume_indices
         os.remove(self._roi_lookup_path)
 
     def _write_volumes(self, roi_indices, results, tmp_dir):
