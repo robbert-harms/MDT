@@ -177,7 +177,7 @@
      <x>0</x>
      <y>0</y>
      <width>870</width>
-     <height>33</height>
+     <height>27</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuMenu">
@@ -185,8 +185,6 @@
      <string>&amp;File</string>
     </property>
     <addaction name="action_RuntimeSettings"/>
-    <addaction name="separator"/>
-    <addaction name="action_saveLog"/>
     <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
@@ -205,14 +203,6 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Q</string>
-   </property>
-  </action>
-  <action name="action_saveLog">
-   <property name="text">
-    <string>Save log</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+S</string>
    </property>
   </action>
   <action name="action_RuntimeSettings">

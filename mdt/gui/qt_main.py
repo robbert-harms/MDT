@@ -21,7 +21,7 @@ except ImportError:
     from queue import Queue
 from PyQt5 import QtGui
 from PyQt5.QtCore import QThread, QTimer, pyqtSlot
-from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QDialog, QDialogButtonBox
+from PyQt5.QtWidgets import QMainWindow, QApplication, QDialog, QDialogButtonBox
 from mdt.gui.qt.design.ui_main_gui import Ui_MainWindow
 from mdt.gui.qt.utils import MessageReceiver, SharedState
 from mdt.gui.utils import print_welcome_message, ForwardingListener
@@ -57,7 +57,6 @@ class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
         self._connect_output_textbox()
 
         self.actionExit.setShortcuts(['Ctrl+q', 'Ctrl+w'])
-        self.action_saveLog.triggered.connect(self.save_log)
         self._center()
 
         self.action_RuntimeSettings.triggered.connect(lambda: RuntimeSettingsDialog(self).exec_())
@@ -109,15 +108,6 @@ class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
 
     def send_sigint(self, *args):
         self.close()
-
-    @pyqtSlot()
-    def save_log(self):
-        name = QFileDialog.getSaveFileName(self, 'Save log', directory=self._shared_state.base_dir,
-                                           filter='Text file (*.txt);;All files (*)')[0]
-        if name:
-            with open(name, 'w') as file:
-                text = self.loggingTextBox.toPlainText()
-                file.write(text)
 
     @pyqtSlot()
     def computations_started(self):
