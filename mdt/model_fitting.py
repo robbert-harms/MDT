@@ -156,9 +156,7 @@ class _BatchFitRunner(object):
         """
         output_dir = subject_info.output_dir
 
-        brain_mask_fname = subject_info.get_mask_filename()
-
-        if self._output_exists(output_dir, brain_mask_fname):
+        if all(model_output_exists(model, output_dir) for model in self._models_to_fit) and not self._recalculate:
             self._logger.info('Skipping subject {0}, output exists'.format(subject_info.subject_id))
             return
 
@@ -172,7 +170,7 @@ class _BatchFitRunner(object):
                 try:
                     model_fit = ModelFit(model,
                                          problem_data,
-                                         os.path.join(output_dir, split_image_path(brain_mask_fname)[1]),
+                                         output_dir,
                                          recalculate=self._recalculate,
                                          only_recalculate_last=True,
                                          cascade_subdir=self._cascade_subdir,
@@ -192,10 +190,6 @@ class _BatchFitRunner(object):
         yield
         self._logger.info('Fitted all models on subject {0} in time {1} (h:m:s)'.format(
             subject_id, time.strftime('%H:%M:%S', time.gmtime(timeit.default_timer() - start_time))))
-
-    def _output_exists(self, output_dir, brain_mask_fname):
-        path = os.path.join(output_dir, split_image_path(brain_mask_fname)[1])
-        return all(model_output_exists(model, path) for model in self._models_to_fit) and not self._recalculate
 
 
 class ModelFit(object):

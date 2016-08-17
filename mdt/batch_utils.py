@@ -2,14 +2,14 @@ import glob
 import logging
 import os
 import shutil
-
 import numpy as np
 import six
 from six import string_types
 from mdt import protocols
-from mdt.components_loader import BatchProfilesLoader
+from mdt.components_loader import BatchProfilesLoader, get_model
 from mdt.data_loaders.protocol import ProtocolLoader
 from mdt.masking import create_write_median_otsu_brain_mask
+from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.protocols import load_protocol
 from mdt.utils import split_image_path, AutoDict, load_problem_data
 import nibabel as nib
@@ -93,6 +93,7 @@ class SimpleBatchProfile(BatchProfile):
         self._subjects_found = None
         self._output_base_dir = 'output'
         self._output_sub_dir = None
+        self._append_mask_name_to_output_sub_dir = True
         self.models_to_fit = ('BallStick (Cascade)',
                               'Tensor (Cascade)',
                               'Noddi (Cascade)',
@@ -109,6 +110,14 @@ class SimpleBatchProfile(BatchProfile):
     def output_base_dir(self, output_base_dir):
         self._output_base_dir = output_base_dir
         self._subjects_found = None
+
+    @property
+    def append_mask_name_to_output_sub_dir(self):
+        return self._append_mask_name_to_output_sub_dir
+
+    @append_mask_name_to_output_sub_dir.setter
+    def append_mask_name_to_output_sub_dir(self, append_mask_name_to_output_sub_dir):
+        self._append_mask_name_to_output_sub_dir = append_mask_name_to_output_sub_dir
 
     @property
     def output_sub_dir(self):
@@ -166,19 +175,27 @@ class SimpleBatchProfile(BatchProfile):
         """
         return []
 
-    def _get_subject_output_dir(self, subject_id):
+    def _get_subject_output_dir(self, subject_id, mask_fname, subject_base_dir=None):
         """Helper function for generating the output directory for a subject.
 
         Args:
             subject_id (str): the id of the subject to use
+            mask_fname (str): the name of the mask we are using for this subject
+            subject_base_dir (str): the base directory for this subject, defaults to
+                self._root_dir / subject_id / self.output_base_dir
 
         Returns:
             str: the path for the output directory
         """
-        dir_items = [self._root_dir, subject_id, self.output_base_dir]
+        output_dir = subject_base_dir or os.path.join(self._root_dir, subject_id, self.output_base_dir)
+
         if self.output_sub_dir:
-            dir_items.append(self.output_sub_dir)
-        return os.path.join(*dir_items)
+            output_dir = os.path.join(output_dir, self.output_sub_dir)
+
+        if self._append_mask_name_to_output_sub_dir and mask_fname:
+            output_dir = os.path.join(output_dir, split_image_path(mask_fname)[1])
+
+        return output_dir
 
 
 class SubjectInfo(object):
@@ -382,20 +399,25 @@ class BatchFitProtocolLoader(ProtocolLoader):
 
 class BatchFitSubjectOutputInfo(object):
 
-    def __init__(self, subject_info, output_path, mask_name, model_name):
+    def __init__(self, subject_info, output_path, model_name):
         """This class is used in conjunction with the function run_function_on_batch_fit_output().
 
         Args:
             subject_info (SubjectInfo): the information about the subject before batch fitting
             output_path (str): the full path to the directory with the maps
-            mask_name (str): the name of the mask (not a path)
             model_name (str): the name of the model (not a path)
         """
         self.subject_info = subject_info
         self.output_path = output_path
-        self.mask_name = mask_name
         self.model_name = model_name
-        self.available_map_names = [split_image_path(v)[1] for v in glob.glob(os.path.join(self.output_path, '*.nii*'))]
+
+    @property
+    def mask_name(self):
+        return split_image_path(self.subject_info.get_mask_filename())[1]
+
+    @property
+    def subject_id(self):
+        return self.subject_info.subject_id
 
 
 class BatchFitOutputInfo(object):
@@ -414,86 +436,40 @@ class BatchFitOutputInfo(object):
         self._batch_profile = batch_profile_factory(batch_profile, data_folder)
         self._subjects_selection = subjects_selection or AllSubjects()
         self._subjects = self._subjects_selection.get_selection(self._batch_profile.get_subjects())
-        self._subjects_dirs = {subject_info.subject_id: subject_info.output_dir for subject_info in self._subjects}
         self._mask_paths = {}
 
-    def get_available_masks(self):
-        """Searches all the subjects and lists the unique available masks.
-
-        Returns:
-            list: the list of the available maps. Not all subjects may have the available mask.
-        """
-        s = set()
-        for subject_id, path in self._subjects_dirs.items():
-            masks = (p for p in os.listdir(path) if os.path.isdir(os.path.join(path, p)))
-            list(map(s.add, masks))
-        return list(sorted(list(s)))
-
-    def get_path_to_mask_per_subject(self, mask_name, error_on_missing_mask=False):
-        """Get for every subject the path to the results calculated with given mask name.
-
-        If a subject does not have that mask_name it is either skipped or an error is raised, depending on the setting
-        error_on_missing_mask.
-
-        Args:
-            mask_name (str): the name of the mask we return the path to per subject
-            error_on_missing_mask (boolean): if we don't have the mask for one subject should we raise an error or skip
-                the subject?
-
-        Returns:
-            dict: per subject ID the path to the mask
-        """
-        if mask_name in self._mask_paths:
-            return self._mask_paths[mask_name]
-
-        paths = {}
-        for subject_id, path in self._subjects_dirs.items():
-            mask_dir = os.path.join(path, mask_name)
-            if os.path.isdir(mask_dir):
-                paths.update({subject_id: mask_dir})
-            else:
-                if error_on_missing_mask:
-                    raise ValueError('Missing the choosen mask "{0}" for subject "{1} '
-                                     'and error_on_missing_mask is True"'.format(mask_name, subject_id))
-
-        self._mask_paths.update({mask_name: paths})
-        return paths
-
-    def subject_output_info_generator(self, mask_name, error_on_missing_mask=False):
+    def subject_output_info_generator(self):
         """Generates for every subject an output info object which contains all relevant information about the subject.
-
-        If a subject does not have that mask_name it is either skipped or an error is raised, depending on the setting
-        error_on_missing_mask.
-
-        Args:
-            mask_name (str): the name of the mask we return the path to per subject
-            error_on_missing_mask (boolean): if true, if we don't have the given mask for a subject we raise an error.
-                If false, if we don't have a mask for a subject we do nothing.
 
         Returns:
             generator: returns an BatchFitSubjectOutputInfo per subject
         """
-        mask_paths = self.get_path_to_mask_per_subject(mask_name, error_on_missing_mask)
+        model_names = self._get_single_model_names(self._batch_profile.get_models_to_fit())
 
         for subject_info in self._subjects:
-            if subject_info.subject_id in mask_paths:
-                mask_path = mask_paths[subject_info.subject_id]
+            for model_name in model_names:
+                output_path = os.path.join(subject_info.output_dir, model_name)
+                if os.path.isdir(output_path):
+                    yield BatchFitSubjectOutputInfo(subject_info, output_path, model_name)
 
-                for model_name in os.listdir(mask_path):
-                    output_path = os.path.join(mask_path, model_name)
-                    if os.path.isdir(output_path):
-                        yield BatchFitSubjectOutputInfo(subject_info, output_path, mask_name, model_name)
+    @staticmethod
+    def _get_single_model_names(model_names):
+        """Get the single model names given the list of model names from the BatchProfile"""
+        single_model_names = []
+        for model_name in model_names:
+            model = get_model(model_name)
+            if isinstance(model, DMRICascadeModelInterface):
+                single_model_names.extend(BatchFitOutputInfo._get_single_model_names(model.get_model_names()))
             else:
-                if error_on_missing_mask:
-                    raise ValueError('Missing the choosen mask "{0}" for subject "{1} '
-                                     'and error_on_missing_mask is True"'.format(mask_name, subject_info.subject_id))
+                single_model_names.append(model_name)
+        return list(set(single_model_names))
 
 
 def run_function_on_batch_fit_output(data_folder, func, batch_profile=None, subjects_selection=None):
     """Run a function on the output of a batch fitting routine.
 
-    This enables you to run a function on every model output from every subject. The python function should accept
-    as single argument an instance of the class BatchFitSubjectOutputInfo.
+    This enables you to run a function on every model output from every subject. The callback python function
+    should accept as single argument an instance of the class BatchFitSubjectOutputInfo.
 
     Args:
         data_folder (str): The data folder with the output files
@@ -505,18 +481,13 @@ def run_function_on_batch_fit_output(data_folder, func, batch_profile=None, subj
             If None all subjects are processed.
 
     Returns:
-        dict: indexed by subject->model_name->mask_name, values are the return values of the user function
+        dict: indexed by subject->model_name, values are the return values of the users function
     """
     output_info = BatchFitOutputInfo(data_folder, batch_profile, subjects_selection=subjects_selection)
-    mask_names = output_info.get_available_masks()
 
     results = AutoDict()
-    for mask_name in mask_names:
-        for subject in output_info.subject_output_info_generator(mask_name):
-            subject_id = subject.subject_info.subject_id
-            model_name = subject.model_name
-
-            results[subject_id][model_name][mask_name] = func(subject)
+    for subject in output_info.subject_output_info_generator():
+        results[subject.subject_id][subject.model_name] = func(subject)
 
     return results.to_normal_dict()
 
@@ -567,15 +538,14 @@ def get_best_batch_profile(data_folder):
     return best_crawler
 
 
-def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, subjects_selection=None,
-                             mask_name=None, symlink=True):
+def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, subjects_selection=None, symlink=True):
     """Load from the given data folder all the output files and put them into the output directory.
 
     If there is more than one mask file available the user has to choose which mask to use using the mask_name
     keyword argument. If it is not given an error is raised.
 
     The results for the chosen mask it placed in the output folder per subject. Example:
-        <output_dir>/<subject_id>/<results>
+        <output_dir>/<subject_id>/<model_name>
 
     Args:
         data_folder (str): The data folder with the output files
@@ -584,34 +554,24 @@ def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, subjec
             of a batch profile to load. If not given it is auto detected.
         subjects_selection (BatchSubjectSelection): the subjects to use for processing.
             If None all subjects are processed.
-        mask_name (str): the mask to use to get the output from
         symlink (boolean): only available under Unix OS's. Creates a symlink instead of copying.
     """
-    output_info = BatchFitOutputInfo(data_folder, batch_profile, subjects_selection=subjects_selection)
-    mask_names = output_info.get_available_masks()
-    if len(mask_names) > 1:
-        if mask_name is None:
-            raise ValueError('There are results of more than one mask. '
-                             'Please choose one out of ({}) '
-                             'using the \'mask_name\' keyword.'.format(', '.join(mask_names)))
-    else:
-        mask_name = mask_names[0]
+    def copy_function(subject_info):
+        if not os.path.exists(os.path.join(output_dir, subject_info.subject_id)):
+            os.makedirs(os.path.join(output_dir, subject_info.subject_id))
 
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    mask_paths = output_info.get_path_to_mask_per_subject(mask_name)
-
-    for subject_id, mask_path in mask_paths.items():
-        subject_out = os.path.join(output_dir, subject_id)
+        subject_out = os.path.join(output_dir, subject_info.subject_id, subject_info.model_name)
 
         if os.path.exists(subject_out) or os.path.islink(subject_out):
             if os.path.islink(subject_out):
                 os.unlink(subject_out)
             else:
-                shutil.rmtree(output_dir)
+                shutil.rmtree(subject_out)
 
         if symlink:
-            os.symlink(mask_path, subject_out)
+            os.symlink(subject_info.output_path, subject_out)
         else:
-            shutil.copytree(mask_path, subject_out)
+            shutil.copytree(subject_info.output_path, subject_out)
+
+    run_function_on_batch_fit_output(data_folder, copy_function, batch_profile=batch_profile,
+                                     subjects_selection=subjects_selection)

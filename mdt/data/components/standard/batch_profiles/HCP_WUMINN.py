@@ -75,10 +75,7 @@ class HCP_WUMINN(SimpleBatchProfile):
                     bval_fname=bval_fname, protocol_options={'Delta': 43.1e-3, 'delta': 10.6e-3,
                                                              'TE': 0.0895, 'maxG': 0.974, 'TR': 5520e-3})
 
-                if self.output_sub_dir:
-                    output_dir = pjoin(self.output_base_dir, self.output_sub_dir)
-                else:
-                    output_dir = pjoin(self.output_base_dir)
+                output_dir = self._get_subject_output_dir(subject_id, mask_fname)
 
                 subjects.append(SimpleSubjectInfo(subject_id, dwi_fname, protocol_loader, mask_fname,
                                                   output_dir, gradient_deviations=grad_dev, noise_std=noise_std))
