@@ -2,7 +2,8 @@
 
 # Form implementation generated from reading ui file 'generate_protocol_tab.ui'
 #
-# Created by: PyQt5 UI code generator 5.4.2
+# Created: Wed Aug 17 22:19:12 2016
+#      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -35,6 +36,7 @@ class Ui_GenerateProtocolTabContent(object):
         self.line.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line.setLineWidth(1)
         self.line.setFrameShape(QtWidgets.QFrame.HLine)
+        self.line.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line.setObjectName("line")
         self.verticalLayout.addWidget(self.line)
         self.protocol_table = QtWidgets.QTableWidget(GenerateProtocolTabContent)

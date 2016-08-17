@@ -127,15 +127,56 @@ def load_from_dict(config_dict):
         loader.load(value)
 
 
+def update_gui_config(update_dict):
+    """Update the GUI configuration file with the given settings.
+
+    Args:
+        update_dict (dict): the items to update in the GUI config file
+    """
+    update_write_config(os.path.join(get_config_dir(), 'mdt.gui.conf'), update_dict)
+
+
+def update_write_config(config_file, update_dict):
+    """Update a given configuration file with updated values.
+
+    If the configuration file does not exist, a new one is created.
+
+    Args:
+        config_file (str): the location of the config file to update
+        update_dict (dict): the items to update in the config file
+    """
+    if not os.path.exists(config_file):
+        with open(config_file, 'a'):
+            pass
+
+    with open(config_file, 'r') as f:
+        config_dict = yaml.load(f.read()) or {}
+
+    for key, value in update_dict.items():
+        loader = get_section_loader(key)
+        loader.update(config_dict, value)
+
+    with open(config_file, 'w') as f:
+        yaml.dump(config_dict, f)
+
+
 class ConfigSectionLoader(object):
 
     def load(self, value):
-        """Loader that knows how to load the given value in its specific configuration section.
-
-        The implementing class must know how to load the values in the correct way in the configuration.
+        """Load the given configuration value into the current configuration.
 
         Args:
             value: the value to load in the configuration
+        """
+
+    def update(self, config_dict, updates):
+        """Update the given configuration dictionary with the values in the given updates dict.
+
+        This enables automating updating a configuration file. Updates are written in place.
+
+        Args:
+            config_dict (dict): the current configuration dict
+            updates (dict): the updated values to add to the given config dict.
         """
 
 
@@ -257,6 +298,11 @@ class RuntimeSettingsLoader(ConfigSectionLoader):
 
                 mot.configuration.set_cl_environments([all_devices[ind] for ind in indices])
                 mot.configuration.set_load_balancer(EvenDistribution())
+
+    def update(self, config_dict, updates):
+        if 'runtime_settings' not in config_dict:
+            config_dict.update({'runtime_settings': {}})
+        config_dict['runtime_settings'].update(updates)
 
 
 def get_section_loader(section):

@@ -136,7 +136,12 @@ class GenerateProtocolTab(MainTab, Ui_GenerateProtocolTabContent):
 
     def _get_column_names(self):
         real_column_names = self._protocol.column_names
-        estimated_column_names = self._protocol.estimated_column_names
+
+        if len(real_column_names):
+            estimated_column_names = self._protocol.estimated_column_names
+        else:
+            estimated_column_names = []
+
         all_column_names = real_column_names + estimated_column_names
 
         return [real_column_names, estimated_column_names, all_column_names]

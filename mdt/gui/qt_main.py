@@ -1,6 +1,7 @@
 import signal
 import sys
 
+from mdt.configuration import update_gui_config
 from mdt.gui.design.ui_about_dialog import Ui_AboutDialog
 from mdt.gui.tabs.fit_model_tab import FitModelTab
 from mdt.gui.tabs.generate_brain_mask_tab import GenerateBrainMaskTab
@@ -162,6 +163,7 @@ class RuntimeSettingsDialog(Ui_RuntimeSettingsDialog, QDialog):
 
         self.all_cl_devices = CLEnvironmentFactory.smart_device_selection()
         self.user_selected_devices = mot.configuration.get_cl_environments()
+        self.cldevicesSelection.itemSelectionChanged.connect(self.selection_updated)
 
         self.cldevicesSelection.insertItems(0, [str(cl_device) for cl_device in self.all_cl_devices])
 
@@ -174,11 +176,18 @@ class RuntimeSettingsDialog(Ui_RuntimeSettingsDialog, QDialog):
 
         self.buttonBox.button(QDialogButtonBox.Ok).clicked.connect(self._update_settings)
 
+    @pyqtSlot()
+    def selection_updated(self):
+        self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(
+            any(self.cldevicesSelection.item(ind).isSelected() for ind in range(self.cldevicesSelection.count())))
+
     def _update_settings(self):
         selection = [ind for ind in range(self.cldevicesSelection.count())
                      if self.cldevicesSelection.item(ind).isSelected()]
         mot.configuration.set_cl_environments([self.all_cl_devices[ind] for ind in selection])
         mot.configuration.set_load_balancer(EvenDistribution())
+
+        update_gui_config({'runtime_settings': {'cl_device_ind': selection}})
 
 
 class AboutDialog(Ui_AboutDialog, QDialog):
