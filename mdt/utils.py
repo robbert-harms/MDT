@@ -1266,8 +1266,8 @@ def estimate_noise_std(problem_data, estimator=None):
     def estimate(estimation_routine):
         noise_std = estimator.estimate(problem_data)
 
-        if isinstance(noise_std, np.ndarray):
-            logger.info('Found voxel-wise noise std using estimator {}.'.format(noise_std, estimation_routine))
+        if isinstance(noise_std, np.ndarray) and not is_scalar(noise_std):
+            logger.info('Found voxel-wise noise std using estimator {}.'.format(estimation_routine))
             return noise_std
 
         if np.isfinite(noise_std) and noise_std > 0:
