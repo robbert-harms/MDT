@@ -4,9 +4,10 @@ import argparse
 import os
 import textwrap
 from argcomplete.completers import FilesCompleter
-from mdt.shell_utils import BasicShellApplication, get_citation_message
+
+from mdt import init_user_settings
 from mdt.gui.qt_main import start_gui
-import mdt
+from mdt.shell_utils import BasicShellApplication, get_citation_message
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"
@@ -17,7 +18,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class GUI(BasicShellApplication):
 
     def __init__(self):
-        mdt.init_user_settings(pass_if_exists=True)
+        init_user_settings(pass_if_exists=True)
 
     def _get_arg_parser(self):
         description = textwrap.dedent("""

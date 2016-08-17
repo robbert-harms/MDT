@@ -5,8 +5,8 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QFileDialog
 
 from mdt import results_preselection_names, load_nifti, view_results_slice
-from mdt.gui.qt.design.ui_view_results_tab import Ui_ViewResultsTabContent
-from mdt.gui.qt.utils import MainTab
+from mdt.gui.design.ui_view_results_tab import Ui_ViewResultsTabContent
+from mdt.gui.utils import MainTab
 from mdt.utils import split_image_path
 
 __author__ = 'Robbert Harms'

@@ -1,15 +1,16 @@
+import signal
 import sys
 
-import signal
+from mdt.gui.design.ui_about_dialog import Ui_AboutDialog
+from mdt.gui.tabs.fit_model_tab import FitModelTab
+from mdt.gui.tabs.generate_brain_mask_tab import GenerateBrainMaskTab
+from mdt.gui.tabs.generate_protocol_tab import GenerateProtocolTab
+from mdt.gui.tabs.generate_roi_mask_tab import GenerateROIMaskTab
+from mdt.gui.tabs.view_results_tab import ViewResultsTab
+
 import mdt.utils
 import mot.configuration
-from mdt.gui.qt.design.ui_about_dialog import Ui_AboutDialog
-from mdt.gui.qt.design.ui_runtime_settings_dialog import Ui_RuntimeSettingsDialog
-from mdt.gui.qt.tabs.fit_model_tab import FitModelTab
-from mdt.gui.qt.tabs.generate_brain_mask_tab import GenerateBrainMaskTab
-from mdt.gui.qt.tabs.generate_protocol_tab import GenerateProtocolTab
-from mdt.gui.qt.tabs.generate_roi_mask_tab import GenerateROIMaskTab
-from mdt.gui.qt.tabs.view_results_tab import ViewResultsTab
+from mdt.gui.design.ui_runtime_settings_dialog import Ui_RuntimeSettingsDialog
 from mot.cl_environments import CLEnvironmentFactory
 from mot.load_balance_strategies import EvenDistribution
 
@@ -22,9 +23,9 @@ except ImportError:
 from PyQt5 import QtGui
 from PyQt5.QtCore import QThread, QTimer, pyqtSlot
 from PyQt5.QtWidgets import QMainWindow, QApplication, QDialog, QDialogButtonBox
-from mdt.gui.qt.design.ui_main_gui import Ui_MainWindow
-from mdt.gui.qt.utils import MessageReceiver, SharedState
-from mdt.gui.utils import print_welcome_message, ForwardingListener
+from mdt.gui.design.ui_main_gui import Ui_MainWindow
+from mdt.gui.utils import MessageReceiver, SharedState
+from mdt.gui.utils import print_welcome_message, ForwardingListener, SharedState, MessageReceiver
 from mdt.log_handlers import LogDispatchHandler
 
 __author__ = 'Robbert Harms'
@@ -197,6 +198,11 @@ def start_gui(base_dir=None, action=None):
             - view_maps: opens the view maps tab and opens the base_dir
 
     """
+    try:
+        mdt.configuration.load_user_gui()
+    except IOError:
+        pass
+
     state = SharedState()
     state.base_dir = base_dir
 
