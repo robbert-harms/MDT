@@ -57,7 +57,7 @@ class S0_IRT1(DMRISingleModelConfig):
 class S0T1GRE(DMRISingleModelConfig):
 
     name = 'S0-T1GRE'
-    description = 'Models the unweighted text_message_signal (aka. b0) with an extra T1.'
+    description = 'Models the unweighted signal (aka. b0) with an extra T1.'
     model_expression = 'S0 * ExpT1DecGRE'
 
     # for proper initialization, please take the highest S0 value in your data.

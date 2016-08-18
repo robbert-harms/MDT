@@ -10,4 +10,3 @@ class ExpT2Dec(CompartmentConfig):
 
     parameter_list = ('TE', 'T2')
     cl_code = 'return exp(-TE / T2);'
-

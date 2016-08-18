@@ -6,8 +6,6 @@ import six
 from six import string_types
 from inspect import stack
 
-from mdt.user_script_info import easy_save_user_script_info
-
 __author__ = 'Robbert Harms'
 __date__ = "2015-03-10"
 __license__ = "LGPL v3"
@@ -36,6 +34,7 @@ except ImportError:
     pass
 
 
+from mdt.user_script_info import easy_save_user_script_info
 from mdt.utils import estimate_noise_std, get_cl_devices, load_problem_data, create_blank_mask, create_index_matrix, \
     volume_index_to_roi_index, roi_index_to_volume_index, load_brain_mask, init_user_settings, restore_volumes, \
     apply_mask, create_roi, volume_merge, concatenate_mri_sets, create_median_otsu_brain_mask, load_samples, \

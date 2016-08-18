@@ -1,12 +1,13 @@
 import os
+
 import nibabel as nib
 from PyQt5.QtCore import pyqtSlot, QObject, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog
 
 from mdt import view_results_slice, load_nifti
-from mdt.gui.qt.design.ui_generate_roi_mask_tab import Ui_GenerateROIMaskTabContent
-from mdt.gui.qt.utils import image_files_filters, MainTab
-from mdt.gui.utils import function_message_decorator
+from mdt.gui.design.ui_generate_roi_mask_tab import Ui_GenerateROIMaskTabContent
+from mdt.gui.utils import image_files_filters, MainTab
+from mdt.gui.utils import function_message_decorator, image_files_filters, MainTab
 from mdt.utils import split_image_path, write_slice_roi
 
 __author__ = 'Robbert Harms'

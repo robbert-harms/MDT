@@ -1,16 +1,20 @@
 import os
-from PyQt5 import QtCore
+from collections import OrderedDict
 
+import numpy as np
+from PyQt5 import QtCore
+from PyQt5.QtCore import QVariant
 from PyQt5.QtCore import pyqtSlot, Qt
 from PyQt5.QtGui import QBrush
 from PyQt5.QtWidgets import QFileDialog, QTableWidgetItem, QAbstractItemView, QMenu, QMessageBox, \
     QDialog, QDialogButtonBox
+from mdt.gui.design.ui_generate_protocol_tab import Ui_GenerateProtocolTabContent
+from mdt.gui.design.ui_generate_protocol_update_dialog import Ui_UpdateColumnDialog
 
 import mdt
-from mdt.gui.qt.design.ui_generate_protocol_load_gb_dialog import Ui_LoadGBDialog
-from mdt.gui.qt.design.ui_generate_protocol_tab import Ui_GenerateProtocolTabContent
-from mdt.gui.qt.design.ui_generate_protocol_update_dialog import Ui_UpdateColumnDialog
-from mdt.gui.qt.utils import protocol_files_filters, MainTab
+from mdt.gui.design.ui_generate_protocol_load_gb_dialog import Ui_LoadGBDialog
+from mdt.gui.utils import MainTab
+from mdt.gui.utils import protocol_files_filters, MainTab
 from mdt.protocols import Protocol, load_bvec_bval
 
 __author__ = 'Robbert Harms'
@@ -27,6 +31,8 @@ class GenerateProtocolTab(MainTab, Ui_GenerateProtocolTabContent):
         self._opened_file = self._shared_state.base_dir
         self._tab_content = None
 
+        self._system_columns = OrderedDict([['#', self._create_volume_number_column]])
+
     def setupUi(self, tab_content):
         super(GenerateProtocolTab, self).setupUi(tab_content)
         self._tab_content = tab_content
@@ -36,6 +42,8 @@ class GenerateProtocolTab(MainTab, Ui_GenerateProtocolTabContent):
         self.loadColumnButton.clicked.connect(lambda: self._load_column_action())
         self.loadGB.clicked.connect(lambda: self._load_g_and_b())
         self.clearButton.clicked.connect(self._clear_table)
+
+        self.protocol_table.setSortingEnabled(True)
 
         headers = self.protocol_table.horizontalHeader()
         headers.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -95,13 +103,13 @@ class GenerateProtocolTab(MainTab, Ui_GenerateProtocolTabContent):
         self.nmrColumns.setText(str(self._protocol.number_of_columns))
 
         try:
-            self.differentShells.setText(', '.join(map(lambda s: '{:0=.3f}e9'.format(s/1e9),
-                                                       self._protocol.get_b_values_shells())))
+            self.differentShells.setText(
+                ', '.join(map(lambda s: '{:0=.3f}e9'.format(s/1e9), self._protocol.get_b_values_shells())))
         except KeyError:
             self.differentShells.setText('-')
 
     def _update_table_view(self):
-        real_column_names, estimated_column_names, all_column_names = self._get_column_names()
+        all_column_names, real_column_names, estimated_column_names, system_column_names = self._get_column_names()
 
         self.protocol_table.clear()
         self.protocol_table.setRowCount(self._protocol.length)
@@ -109,44 +117,70 @@ class GenerateProtocolTab(MainTab, Ui_GenerateProtocolTabContent):
 
         for index, column_name in enumerate(all_column_names):
             header_cell = QTableWidgetItem(column_name)
-            if index >= len(real_column_names):
+            if column_name in estimated_column_names:
                 header_cell.setToolTip('This column is estimated from the other columns in the protocol.')
             self.protocol_table.setHorizontalHeaderItem(index, header_cell)
 
         for column_ind, column_name in enumerate(all_column_names):
-            estimated_column = column_ind >= len(real_column_names)
+            if column_name in system_column_names:
+                generate_function = self._system_columns[column_name]
+                cells = generate_function()
+                for row, cell in enumerate(cells):
+                    self.protocol_table.setItem(row, column_ind, cell)
+            else:
+                try:
+                    values = self._protocol.get_column(column_name)
+                    for row in range(self._protocol.length):
+                        cell = NumericalSortedTableItem('{:e}'.format(values[row, 0]))
+                        cell.setFlags(QtCore.Qt.ItemIsEnabled)
 
-            try:
-                values = self._protocol.get_column(column_name)
-                for row in range(self._protocol.length):
-                    cell = QTableWidgetItem('{:e}'.format(values[row, 0]))
-                    cell.setFlags(QtCore.Qt.ItemIsEnabled)
+                        if column_name in estimated_column_names:
+                            cell.setBackground(QBrush(Qt.lightGray))
 
-                    if estimated_column:
+                        self.protocol_table.setItem(row, column_ind, cell)
+                except KeyError:
+                    for row in range(self._protocol.length):
+                        cell = QTableWidgetItem('?')
+                        cell.setFlags(QtCore.Qt.ItemIsEnabled)
                         cell.setBackground(QBrush(Qt.lightGray))
+                        self.protocol_table.setItem(row, column_ind, cell)
 
-                    self.protocol_table.setItem(row, column_ind, cell)
-            except KeyError:
-                for row in range(self._protocol.length):
-                    cell = QTableWidgetItem('?')
-                    cell.setFlags(QtCore.Qt.ItemIsEnabled)
-                    cell.setBackground(QBrush(Qt.lightGray))
-                    self.protocol_table.setItem(row, column_ind, cell)
+        self.protocol_table.resizeColumnsToContents()
 
     def _get_column_names(self):
         real_column_names = self._protocol.column_names
-        estimated_column_names = self._protocol.estimated_column_names
-        all_column_names = real_column_names + estimated_column_names
 
-        return [real_column_names, estimated_column_names, all_column_names]
+        if len(real_column_names):
+            estimated_column_names = self._protocol.estimated_column_names
+        else:
+            estimated_column_names = []
+
+        system_column_names = list(self._system_columns.keys())
+
+        all_column_names = system_column_names + real_column_names + estimated_column_names
+
+        return [all_column_names, real_column_names, estimated_column_names, system_column_names]
+
+    def _create_volume_number_column(self):
+        """Callback function to generate the volume number column cells.
+
+        This should return a list of cells in the correct order.
+        """
+        cells = []
+        for volume_nmr in range(self._protocol.length):
+            cell = NumericalSortedTableItem(str(volume_nmr))
+            cell.setFlags(QtCore.Qt.ItemIsEnabled)
+            cell.setBackground(QBrush(Qt.lightGray))
+            cells.append(cell)
+        return cells
 
     @pyqtSlot()
     def show_header_context_menu(self, position):
-        real_column_names, estimated_column_names, all_column_names = self._get_column_names()
+        all_column_names, real_column_names, estimated_column_names, system_column_names = self._get_column_names()
         column_index = self.protocol_table.horizontalHeader().logicalIndexAt(position)
         column_name = all_column_names[column_index]
 
-        if column_index < len(real_column_names):
+        if column_name in real_column_names:
             menu = QMenu()
             remove_action = menu.addAction("&Remove column")
             ac = menu.exec_(self.protocol_table.horizontalHeader().mapToGlobal(position))
@@ -176,6 +210,21 @@ class GenerateProtocolTab(MainTab, Ui_GenerateProtocolTabContent):
         if return_value:
             self._protocol = dialog.get_protocol()
             self._update_views()
+
+
+class NumericalSortedTableItem(QTableWidgetItem):
+
+    def __lt__(self, other):
+        if isinstance(other, QTableWidgetItem):
+            try:
+                this_value = float(self.text())
+                other_value = float(other.text())
+
+                return this_value < other_value
+            except ValueError:
+                pass
+
+        return super(NumericalSortedTableItem, self).__lt__(other)
 
 
 class LoadColumnDialog(Ui_UpdateColumnDialog, QDialog):

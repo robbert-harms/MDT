@@ -39,7 +39,7 @@
         </font>
        </property>
        <property name="text">
-        <string>Runtime settings for all compute operations</string>
+        <string>Runtime settings for all compute operations.</string>
        </property>
       </widget>
      </item>

@@ -741,12 +741,12 @@ def init_user_settings(pass_if_exists=True):
         os.makedirs(base_path)
 
     @contextmanager
-    def tmp_save_previous_version():
-        previous_versions = list(reversed(sorted(os.listdir(base_path))))
+    def tmp_save_latest_version():
+        versions_available = list(reversed(sorted(os.listdir(base_path))))
         tmp_dir = tempfile.mkdtemp()
 
-        if previous_versions:
-            previous_version = previous_versions[0]
+        if versions_available:
+            previous_version = versions_available[0]
 
             if os.path.exists(os.path.join(base_path, previous_version, 'components', 'user')):
                 shutil.copytree(os.path.join(base_path, previous_version, 'components', 'user'),
@@ -754,6 +754,9 @@ def init_user_settings(pass_if_exists=True):
 
             if os.path.isfile(os.path.join(base_path, previous_version, 'mdt.conf')):
                 shutil.copy(os.path.join(base_path, previous_version, 'mdt.conf'), tmp_dir + '/mdt.conf')
+
+            if os.path.isfile(os.path.join(base_path, previous_version, 'mdt.gui.conf')):
+                shutil.copy(os.path.join(base_path, previous_version, 'mdt.gui.conf'), tmp_dir + '/mdt.gui.conf')
 
         yield tmp_dir
         shutil.rmtree(tmp_dir)
@@ -778,38 +781,23 @@ def init_user_settings(pass_if_exists=True):
             if not os.path.exists(path + '/components/user/' + folder_name):
                 os.mkdir(path + '/components/user/' + folder_name)
 
-    def copy_old_config(current_config_value, tmp_dir):
-        if current_config_value is not None:
-            with open(path + '/mdt.conf', 'w') as f:
-                f.write(current_config_value)
-        else:
-            if os.path.exists(tmp_dir + '/mdt.conf'):
-                if os.path.exists(path + '/mdt.conf'):
-                    os.remove(path + '/mdt.conf')
-                shutil.move(tmp_dir + '/mdt.conf', path + '/mdt.conf')
+    def copy_old_configs(tmp_dir):
+        for config_file in ['mdt.conf', 'mdt.gui.conf']:
+            if os.path.exists(tmp_dir + '/' + config_file):
+                shutil.copy(tmp_dir + '/' + config_file, path + '/' + config_file)
 
-    def get_current_config_value():
-        if os.path.isfile(path + '/mdt.conf'):
-            with open(path + '/mdt.conf', 'r') as f:
-                return f.read()
-        return None
-
-    with tmp_save_previous_version() as tmp_dir:
-        current_config_value = None
-
+    with tmp_save_latest_version() as tmp_dir:
         if pass_if_exists:
             if os.path.exists(path):
                 return path
         else:
-            current_config_value = get_current_config_value()
-
             if os.path.exists(path):
                 shutil.rmtree(path)
 
         init_from_mdt()
         copy_user_components(tmp_dir)
         make_sure_user_components_exists()
-        copy_old_config(current_config_value, tmp_dir)
+        copy_old_configs(tmp_dir)
 
     return path
 
@@ -1283,8 +1271,8 @@ def estimate_noise_std(problem_data, estimator=None):
     def estimate(estimation_routine):
         noise_std = estimator.estimate(problem_data)
 
-        if isinstance(noise_std, np.ndarray):
-            logger.info('Found voxel-wise noise std using estimator {}.'.format(noise_std, estimation_routine))
+        if isinstance(noise_std, np.ndarray) and not is_scalar(noise_std):
+            logger.info('Found voxel-wise noise std using estimator {}.'.format(estimation_routine))
             return noise_std
 
         if np.isfinite(noise_std) and noise_std > 0:

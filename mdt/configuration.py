@@ -1,6 +1,8 @@
 import os
 import re
 from copy import deepcopy
+
+import collections
 import yaml
 from contextlib import contextmanager
 from pkg_resources import resource_stream
@@ -8,6 +10,8 @@ from six import string_types
 
 from mot.factory import get_optimizer_by_name, get_sampler_by_name
 from mdt.components_loader import ProcessingStrategiesLoader, NoiseSTDCalculatorsLoader
+import mot.configuration
+from mot.load_balance_strategies import EvenDistribution
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-23"
@@ -66,13 +70,23 @@ def load_builtin():
 
 
 def load_user_home():
-    """Load the config file from user home directory"""
+    """Load the config file from the user home directory"""
     config_file = os.path.join(get_config_dir(), 'mdt.conf')
     if os.path.isfile(config_file):
         with open(config_file) as f:
             load_from_yaml(f.read())
     else:
-        raise ValueError('Config file could not be loaded.')
+        raise IOError('Config file could not be loaded.')
+
+
+def load_user_gui():
+    """Load the gui specific config file from the user home directory"""
+    config_file = os.path.join(get_config_dir(), 'mdt.gui.conf')
+    if os.path.isfile(config_file):
+        with open(config_file) as f:
+            load_from_yaml(f.read())
+    else:
+        raise IOError('Config file could not be loaded.')
 
 
 def load_specific(file_name):
@@ -113,15 +127,56 @@ def load_from_dict(config_dict):
         loader.load(value)
 
 
+def update_gui_config(update_dict):
+    """Update the GUI configuration file with the given settings.
+
+    Args:
+        update_dict (dict): the items to update in the GUI config file
+    """
+    update_write_config(os.path.join(get_config_dir(), 'mdt.gui.conf'), update_dict)
+
+
+def update_write_config(config_file, update_dict):
+    """Update a given configuration file with updated values.
+
+    If the configuration file does not exist, a new one is created.
+
+    Args:
+        config_file (str): the location of the config file to update
+        update_dict (dict): the items to update in the config file
+    """
+    if not os.path.exists(config_file):
+        with open(config_file, 'a'):
+            pass
+
+    with open(config_file, 'r') as f:
+        config_dict = yaml.load(f.read()) or {}
+
+    for key, value in update_dict.items():
+        loader = get_section_loader(key)
+        loader.update(config_dict, value)
+
+    with open(config_file, 'w') as f:
+        yaml.dump(config_dict, f)
+
+
 class ConfigSectionLoader(object):
 
     def load(self, value):
-        """Loader that knows how to load the given value in its specific configuration section.
-
-        The implementing class must know how to load the values in the correct way in the configuration.
+        """Load the given configuration value into the current configuration.
 
         Args:
             value: the value to load in the configuration
+        """
+
+    def update(self, config_dict, updates):
+        """Update the given configuration dictionary with the values in the given updates dict.
+
+        This enables automating updating a configuration file. Updates are written in place.
+
+        Args:
+            config_dict (dict): the current configuration dict
+            updates (dict): the updated values to add to the given config dict.
         """
 
 
@@ -229,6 +284,30 @@ class NoiseStdEstimationSectionLoader(ConfigSectionLoader):
                 config_insert(['noise_std_estimating', 'general', 'estimators'], value['general']['estimators'])
 
 
+class RuntimeSettingsLoader(ConfigSectionLoader):
+
+    def load(self, value):
+        if 'cl_device_ind' in value:
+            if value['cl_device_ind'] is not None:
+                from mdt.utils import get_cl_devices
+                all_devices = get_cl_devices()
+
+                indices = value['cl_device_ind']
+                if not isinstance(indices, collections.Iterable):
+                    indices = [indices]
+
+                devices = [all_devices[ind] for ind in indices if ind < len(indices)]
+
+                if devices:
+                    mot.configuration.set_cl_environments(devices)
+                    mot.configuration.set_load_balancer(EvenDistribution())
+
+    def update(self, config_dict, updates):
+        if 'runtime_settings' not in config_dict:
+            config_dict.update({'runtime_settings': {}})
+        config_dict['runtime_settings'].update(updates)
+
+
 def get_section_loader(section):
     """Get the section loader to use for the given top level section.
 
@@ -258,6 +337,9 @@ def get_section_loader(section):
 
     if section == 'noise_std_estimating':
         return NoiseStdEstimationSectionLoader()
+
+    if section == 'runtime_settings':
+        return RuntimeSettingsLoader()
 
     raise ValueError('Could not find a suitable configuration loader for the section {}.'.format(section))
 
@@ -587,5 +669,5 @@ class YamlStringAction(SimpleConfigAction):
 load_builtin()
 try:
     load_user_home()
-except ValueError:
+except IOError:
     pass
