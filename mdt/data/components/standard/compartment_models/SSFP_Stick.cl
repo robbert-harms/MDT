@@ -1,6 +1,6 @@
 /**
  * Author = Francisco L. Fritz
- * Date = 2014-11-06
+ * Date = 2016-18-08
  * License = LGPL v3
  * Maintainer = Francisco L. Fritz
  * Email = francisco.lagos@maastrichtuniversity.nl
