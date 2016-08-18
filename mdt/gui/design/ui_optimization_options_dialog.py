@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'optimization_options_dialog.ui'
 #
-# Created: Wed Aug 17 22:19:12 2016
+# Created: Thu Aug 18 23:06:41 2016
 #      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!

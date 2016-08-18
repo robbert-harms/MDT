@@ -103,8 +103,12 @@ class GenerateProtocolTab(MainTab, Ui_GenerateProtocolTabContent):
         self.nmrColumns.setText(str(self._protocol.number_of_columns))
 
         try:
-            self.differentShells.setText(
-                ', '.join(map(lambda s: '{:0=.3f}e9'.format(s/1e9), self._protocol.get_b_values_shells())))
+            shells = self._protocol.get_b_values_shells()
+            shells_text = []
+            for shell in shells:
+                occurrences = self._protocol.count_occurences('b', shell)
+                shells_text.append('{0:0=.3f}e9 ({1})'.format(shell/1e9, occurrences))
+            self.differentShells.setText(', '.join(shells_text))
         except KeyError:
             self.differentShells.setText('-')
 

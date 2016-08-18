@@ -116,22 +116,19 @@ class MathImg(BasicShellApplication):
 
         output = eval(args.expr, context_dict)
 
-        if isinstance(output, np.ndarray) and len(output.shape) == 3:
-            if args.verbose:
-                print('')
-                print('Output is 3d, reshaping to 4d')
-                print('Final output shape: {shape}'.format(shape=str(output.shape)))
-            output = output[..., np.newaxis]
-        else:
-            if args.verbose:
-                print('')
-                if isinstance(output, np.ndarray):
-                    print('Output shape: {shape}'.format(shape=str(output.shape)))
-                else:
-                    print('Output is not matrix like')
-                print('Output: ')
-                print('')
+        if args.verbose:
+            print('')
+            if isinstance(output, np.ndarray):
+                print('Output shape: {shape}'.format(shape=str(output.shape)))
+            else:
+                print('Output is single value')
+
+            print('Output: ')
+            print('')
             print(output)
+        else:
+            if not write_output:
+                print(output)
 
         if args.verbose:
             print('')

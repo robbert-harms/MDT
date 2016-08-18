@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'main_gui.ui'
 #
-# Created: Wed Aug 17 22:19:12 2016
+# Created: Thu Aug 18 23:06:40 2016
 #      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -49,9 +49,6 @@ class Ui_MainWindow(object):
         self.generateBrainMaskTab = QtWidgets.QWidget()
         self.generateBrainMaskTab.setObjectName("generateBrainMaskTab")
         self.MainTabs.addTab(self.generateBrainMaskTab, "")
-        self.generateROIMaskTab = QtWidgets.QWidget()
-        self.generateROIMaskTab.setObjectName("generateROIMaskTab")
-        self.MainTabs.addTab(self.generateROIMaskTab, "")
         self.generateProtocolTab = QtWidgets.QWidget()
         self.generateProtocolTab.setObjectName("generateProtocolTab")
         self.MainTabs.addTab(self.generateProtocolTab, "")
@@ -92,7 +89,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_2.addLayout(self.horizontalLayout)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 870, 27))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 870, 33))
         self.menubar.setObjectName("menubar")
         self.menuMenu = QtWidgets.QMenu(self.menubar)
         self.menuMenu.setObjectName("menuMenu")
@@ -113,7 +110,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuHelp.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.MainTabs.setCurrentIndex(0)
+        self.MainTabs.setCurrentIndex(2)
         self.actionExit.triggered.connect(MainWindow.close)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
@@ -122,7 +119,6 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(_translate("MainWindow", "Maastricht Diffusion Toolbox"))
         self.MainTabs.setTabText(self.MainTabs.indexOf(self.fitModelTab), _translate("MainWindow", "Fit model"))
         self.MainTabs.setTabText(self.MainTabs.indexOf(self.generateBrainMaskTab), _translate("MainWindow", "Generate brain mask"))
-        self.MainTabs.setTabText(self.MainTabs.indexOf(self.generateROIMaskTab), _translate("MainWindow", "Generate ROI mask"))
         self.MainTabs.setTabText(self.MainTabs.indexOf(self.generateProtocolTab), _translate("MainWindow", "Generate protocol file"))
         self.MainTabs.setTabText(self.MainTabs.indexOf(self.viewResultsTab), _translate("MainWindow", "View results"))
         self.executionStatusLabel.setText(_translate("MainWindow", "TextLabel"))

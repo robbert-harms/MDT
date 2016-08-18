@@ -62,7 +62,7 @@
         </sizepolicy>
        </property>
        <property name="currentIndex">
-        <number>0</number>
+        <number>2</number>
        </property>
        <widget class="QWidget" name="fitModelTab">
         <attribute name="title">
@@ -72,11 +72,6 @@
        <widget class="QWidget" name="generateBrainMaskTab">
         <attribute name="title">
          <string>Generate brain mask</string>
-        </attribute>
-       </widget>
-       <widget class="QWidget" name="generateROIMaskTab">
-        <attribute name="title">
-         <string>Generate ROI mask</string>
         </attribute>
        </widget>
        <widget class="QWidget" name="generateProtocolTab">
@@ -177,7 +172,7 @@
      <x>0</x>
      <y>0</y>
      <width>870</width>
-     <height>27</height>
+     <height>33</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuMenu">

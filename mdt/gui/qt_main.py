@@ -6,7 +6,6 @@ from mdt.gui.design.ui_about_dialog import Ui_AboutDialog
 from mdt.gui.tabs.fit_model_tab import FitModelTab
 from mdt.gui.tabs.generate_brain_mask_tab import GenerateBrainMaskTab
 from mdt.gui.tabs.generate_protocol_tab import GenerateProtocolTab
-from mdt.gui.tabs.generate_roi_mask_tab import GenerateROIMaskTab
 from mdt.gui.tabs.view_results_tab import ViewResultsTab
 
 import mdt.utils
@@ -76,15 +75,10 @@ class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
         self.view_results_tab = ViewResultsTab(shared_state, self._computations_thread)
         self.view_results_tab.setupUi(self.viewResultsTab)
 
-        self.generate_roi_mask_tab = GenerateROIMaskTab(shared_state, self._computations_thread)
-        self.generate_roi_mask_tab.setupUi(self.generateROIMaskTab)
-
         self.generate_protocol_tab = GenerateProtocolTab(shared_state, self._computations_thread)
         self.generate_protocol_tab.setupUi(self.generateProtocolTab)
 
-        self.tabs = [self.fit_model_tab, self.generate_mask_tab, self.generate_roi_mask_tab,
-                     self.generate_protocol_tab, self.view_results_tab]
-
+        self.tabs = [self.fit_model_tab, self.generate_mask_tab, self.generate_protocol_tab, self.view_results_tab]
         self.MainTabs.currentChanged.connect(lambda index: self.tabs[index].tab_opened())
 
     def _connect_output_textbox(self):

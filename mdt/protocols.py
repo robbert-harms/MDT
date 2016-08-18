@@ -250,6 +250,17 @@ class Protocol(collections.MutableMapping):
         """
         return np.unique(self.get_column('b')[self.get_weighted_indices()]).tolist()
 
+    def count_occurences(self, column, value):
+        """Count the occurences of the given value in the given column.
+
+        This can for example be used to count the occurences of a single b-value in the protocol.
+
+        Args:
+            column (str): the name of the column
+            value (float): the value to count for occurences
+        """
+        return sum(1 for v in self[column] if v == value)
+
     def has_column(self, column_name):
         """Check if this protocol has a column with the given name.
 
