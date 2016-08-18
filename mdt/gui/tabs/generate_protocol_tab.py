@@ -50,8 +50,6 @@ class GenerateProtocolTab(MainTab, Ui_GenerateProtocolTabContent):
         headers.customContextMenuRequested.connect(self.show_header_context_menu)
         headers.setSelectionMode(QAbstractItemView.SingleSelection)
 
-        self.load_protocol('/media/robbert/01bbb411-36d7-466c-b8f9-ec690d605355/bin/hcp_mgh/mgh_1001/diff/preproc/output/mdt_paper_old/cascading/cascades/used_protocol.prtcl')
-
     def _select_protocol(self):
         open_file, used_filter = QFileDialog().getOpenFileName(
             caption='Select the protocol', directory=self._shared_state.base_dir,
