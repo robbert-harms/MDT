@@ -185,6 +185,23 @@ class DMRIProblemData(AbstractProblemData):
             return create_roi(noise_std, self.mask)
 
 
+class MockDMRIProblemData(DMRIProblemData):
+
+    def __init__(self, protocol=None, dwi_volume=None, mask=None, volume_header=None,
+                 **kwargs):
+        """A mock DMRI problem data object that returns None for everything unless given.
+        """
+        super(MockDMRIProblemData, self).__init__(protocol, dwi_volume, mask, volume_header, **kwargs)
+
+    @property
+    def observations(self):
+        return self._observation_list
+
+    @property
+    def noise_std(self):
+        return self._noise_std
+
+
 class PathJoiner(object):
 
     def __init__(self, *args):
