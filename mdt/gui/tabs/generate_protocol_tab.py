@@ -131,7 +131,7 @@ class GenerateProtocolTab(MainTab, Ui_GenerateProtocolTabContent):
                 try:
                     values = self._protocol.get_column(column_name)
                     for row in range(self._protocol.length):
-                        cell = QTableWidgetItem('{:e}'.format(values[row, 0]))
+                        cell = NumericalSortedTableItem('{:e}'.format(values[row, 0]))
                         cell.setFlags(QtCore.Qt.ItemIsEnabled)
 
                         if column_name in estimated_column_names:
