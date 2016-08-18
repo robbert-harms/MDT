@@ -4,7 +4,7 @@ import nibabel as nib
 import numpy as np
 import mdt
 from mdt.components_loader import NoiseSTDCalculatorsLoader
-from mot.base import SimpleProblemData
+from mdt.utils import MockDMRIProblemData
 from mot.cl_routines.mapping.calculate_model_estimates import CalculateModelEstimates
 
 __author__ = 'Robbert Harms'
@@ -172,7 +172,7 @@ def simulate_signals(model_name, protocol, parameters):
     Returns:
         signal estimates
     """
-    problem_data = SimpleProblemData(protocol, None)
+    problem_data = MockDMRIProblemData(protocol, None, None, None)
 
     model = mdt.get_model(model_name)
     model.set_problem_data(problem_data)
