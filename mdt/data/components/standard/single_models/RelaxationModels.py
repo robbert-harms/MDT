@@ -68,23 +68,23 @@ class S0T1GRE(DMRISingleModelConfig):
 
 class S0T2T2(DMRISingleModelConfig):
 
-    name = 'S0-T2T2'
-    description = 'Model for the unweighted signal with two T2 models, one for short T2 and one for long T2.'
+        name = 'S0-T2T2'
+        description = 'Model for the unweighted text_message_signal with two T2 models, one for short T2 and one for long T2.'
 
-    model_expression = '''
+        model_expression = '''
             S0 * ( (Weight(w_long) * ExpT2Dec(T2_long)) +
                    (Weight(w_short) * ExpT2Dec(T2_short))
                  )
         '''
 
-    fixes = {'T2_long.T2': 0.5}
-    upper_bounds = {'T2_short.T2': 0.08}
+        fixes = {'T2_long.T2': 0.5}
+        upper_bounds = {'T2_short.T2': 0.08}
 
-    post_optimization_modifiers = (
-        ('T2_short.T2Weighted', lambda d: d['w_short.w'] * d['T2_short.T2']),
-        ('T2_long.T2Weighted', lambda d: d['w_long.w'] * d['T2_long.T2']),
-        ('T2.T2', lambda d: d['T2_short.T2Weighted'] + d['T2_long.T2Weighted'])
-    )
+        post_optimization_modifiers = (
+            ('T2_short.T2Weighted', lambda d: d['w_short.w'] * d['T2_short.T2']),
+            ('T2_long.T2Weighted', lambda d: d['w_long.w'] * d['T2_long.T2']),
+            ('T2.T2', lambda d: d['T2_short.T2Weighted'] + d['T2_long.T2Weighted'])
+        )
 
 
 class GRE_Relax(DMRISingleModelConfig):

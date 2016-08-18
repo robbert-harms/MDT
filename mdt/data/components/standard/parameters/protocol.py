@@ -59,7 +59,6 @@ class TR(ProtocolParameterConfig):
 class flip_angle(ProtocolParameterConfig):
     pass
 
-
 #The next variables are for STEAM/TSE sequences, depending on the model in which they are used.
 class Refoc_fa1(ProtocolParameterConfig):
     pass

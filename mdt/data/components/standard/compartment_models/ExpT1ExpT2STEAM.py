@@ -1,6 +1,8 @@
-from mdt.models.compartments import CompartmentConfig
+from mdt.models.compartments import CompartmentConfig, CLCodeFromInlineString
 
 __author__ = 'Francisco.Lagos'
+
+#From protocol, if the text_message_signal is SE, we can setup TM = 0 in all the volumes, which returns to the standard SE text_message_signal decay
 
 
 class ExpT1ExpT2STEAM(CompartmentConfig):

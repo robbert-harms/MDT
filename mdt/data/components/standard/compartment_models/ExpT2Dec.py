@@ -1,4 +1,4 @@
-from mdt.models.compartments import CompartmentConfig
+from mdt.models.compartments import CompartmentConfig, CLCodeFromInlineString
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
