@@ -296,8 +296,11 @@ class RuntimeSettingsLoader(ConfigSectionLoader):
                 if not isinstance(indices, collections.Iterable):
                     indices = [indices]
 
-                mot.configuration.set_cl_environments([all_devices[ind] for ind in indices])
-                mot.configuration.set_load_balancer(EvenDistribution())
+                devices = [all_devices[ind] for ind in indices if ind < len(indices)]
+
+                if devices:
+                    mot.configuration.set_cl_environments(devices)
+                    mot.configuration.set_load_balancer(EvenDistribution())
 
     def update(self, config_dict, updates):
         if 'runtime_settings' not in config_dict:
