@@ -1,5 +1,4 @@
 from mdt.models.single import DMRISingleModelConfig
-from mot.model_building.signal_noise_models import JohnsonSignalNoise
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -9,7 +8,6 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class Charmed_r1(DMRISingleModelConfig):
 
-    name = 'Charmed_r1'
     ex_vivo_suitable = False
     description = 'The Charmed (CHARMED) model with 1 restricted compartments'
 
@@ -41,7 +39,6 @@ class Charmed_r1(DMRISingleModelConfig):
 
 class Charmed_r2(DMRISingleModelConfig):
 
-    name = 'Charmed_r2'
     ex_vivo_suitable = False
     description = 'The Charmed (CHARMED) model with 2 restricted compartments'
 
@@ -76,7 +73,6 @@ class Charmed_r2(DMRISingleModelConfig):
 
 class Charmed(DMRISingleModelConfig):
 
-    name = 'Charmed'
     ex_vivo_suitable = False
     description = 'The standard Charmed (CHARMED) model with 3 restricted compartments'
 
@@ -112,3 +108,7 @@ class Charmed(DMRISingleModelConfig):
     post_optimization_modifiers = [
         ('FR', lambda results: 1 - results['w_hin0.w'])
     ]
+
+
+class Charmed_r3(Charmed):
+    pass

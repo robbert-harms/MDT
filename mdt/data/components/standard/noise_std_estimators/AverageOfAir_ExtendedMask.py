@@ -10,7 +10,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class AverageOfAir_ExtendedMask(ComplexNoiseStdEstimator):
 
-    def estimate(self, **kwargs):
+    def estimate(self, problem_data, **kwargs):
         """Calculate the standard deviation of the error using the air (voxels outside the brain),
 
         This procedure first finds the extreme points of the given brain mask in all dimensions. Next, it extends
@@ -20,31 +20,28 @@ class AverageOfAir_ExtendedMask(ComplexNoiseStdEstimator):
 
         We then calculate per voxel the std of the noise and use that to estimate the noise of the original complex
         image domain using:
-            sigma_complex = sqrt(2.0 / (4.0 - PI)) * stddev(text_message_signal in background region)
+            sigma_complex = sqrt(2.0 / (4.0 - PI)) * stddev(signal in background region)
 
         Finally, we take the median value of all calculated std's.
-
-        Raises:
-            NoiseStdEstimationNotPossible: if no voxels are left after the masking procedure
         """
-        voxels = self._get_air_voxels()
+        voxels = self._get_air_voxels(problem_data)
 
         if not len(voxels):
             raise NoiseStdEstimationNotPossible('No voxels in air found.')
 
         return np.median(np.sqrt(2.0 / (4.0 - np.pi)) * np.std(voxels, axis=1))
 
-    def _get_air_voxels(self, border_offset=3):
+    def _get_air_voxels(self, problem_data, border_offset=3):
         """Get a two dimensional list with all the voxels in the air.
 
         Returns:
-            ndarray: The first dimension is the list of voxels, the second the text_message_signal per voxel.
+            ndarray: The first dimension is the list of voxels, the second the signal per voxel.
         """
-        indices = np.where(self._problem_data.mask > 0)
+        indices = np.where(problem_data.mask > 0)
         max_dims = np.max(indices, axis=1)
         min_dims = np.min(indices, axis=1)
 
-        mask = np.copy(self._problem_data.mask)
+        mask = np.copy(problem_data.mask)
 
         mask[min_dims[0]:max_dims[0]] = True
         mask[:, min_dims[1]:max_dims[1], :] = True
@@ -57,4 +54,7 @@ class AverageOfAir_ExtendedMask(ComplexNoiseStdEstimator):
         mask[..., 0:border_offset] = True
         mask[..., -border_offset:] = True
 
-        return create_roi(self._problem_data.dwi_volume, np.invert(mask))
+        return create_roi(problem_data.dwi_volume, np.invert(mask))
+
+    def __str__(self):
+        return __name__

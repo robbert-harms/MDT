@@ -33,6 +33,10 @@ Optional items (these will take precedence if present):
 
 class HCP_MGH(SimpleBatchProfile):
 
+    def __init__(self):
+        super(HCP_MGH, self).__init__()
+        self._output_base_dir = 'diff/preproc/output'
+
     def _get_subjects(self):
         dirs = sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._root_dir, '*'))])
         subjects = []
@@ -40,7 +44,7 @@ class HCP_MGH(SimpleBatchProfile):
             pjoin = mdt.make_path_joiner(self._root_dir, subject_id, 'diff', 'preproc')
             if os.path.isdir(pjoin()):
                 dwi_fname = list(glob.glob(pjoin('mri', 'diff_preproc.nii*')))[0]
-                noise_std = self._autoload_noise_std(subject_id, file_path=pjoin('noise_std')) or 'auto'
+                noise_std = self._autoload_noise_std(subject_id, file_path=pjoin('noise_std'))
 
                 bval_fname = pjoin('bvals.txt')
                 if os.path.isfile(pjoin('diff_preproc.bval')):
@@ -65,19 +69,13 @@ class HCP_MGH(SimpleBatchProfile):
                 protocol_loader = BatchFitProtocolLoader(
                     pjoin(),
                     protocol_fname=prtcl_fname, bvec_fname=bvec_fname, bval_fname=bval_fname,
-                    protocol_options={'Delta': 12.9e-3, 'delta': 21.8e-3, 'TR': 8800e-3, 'TE': 57e-3})
+                    protocol_options={'Delta': 21.8e-3, 'delta': 12.9e-3, 'TR': 8800e-3, 'TE': 57e-3})
 
-                output_dir = self._get_subject_output_dir(subject_id)
+                output_dir = self._get_subject_output_dir(subject_id, mask_fname)
 
                 subjects.append(SimpleSubjectInfo(subject_id, dwi_fname, protocol_loader, mask_fname, output_dir,
                                                   noise_std=noise_std))
         return subjects
-
-    def _get_subject_output_dir(self, subject_id):
-        if self.output_sub_dir:
-            return os.path.join(self._root_dir, subject_id, 'diff', 'preproc',
-                                self.output_base_dir, self.output_sub_dir)
-        return os.path.join(self._root_dir, subject_id, 'diff', 'preproc', self.output_base_dir)
 
     def __str__(self):
         return meta_info['title']

@@ -7,6 +7,7 @@ from argcomplete.completers import FilesCompleter
 import textwrap
 import mdt.protocols
 from mdt.shell_utils import BasicShellApplication
+from mdt.protocols import write_bvec_bval
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"
@@ -54,7 +55,7 @@ class GenerateBvecBval(BasicShellApplication):
         else:
             bval = protocol_base + '.bval'
 
-        mdt.write_protocol_bvec_bval(mdt.load_protocol(os.path.realpath(args.protocol)), bvec, bval)
+        write_bvec_bval(mdt.load_protocol(os.path.realpath(args.protocol)), bvec, bval)
 
 
 if __name__ == '__main__':

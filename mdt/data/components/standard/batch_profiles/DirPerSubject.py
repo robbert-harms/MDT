@@ -59,7 +59,7 @@ class DirPerSubject(SimpleBatchProfile):
             protocols = glob.glob(os.path.join(self._root_dir, subject_id, '*prtcl'))
             bvals = glob.glob(os.path.join(self._root_dir, subject_id, '*bval*'))
             bvecs = glob.glob(os.path.join(self._root_dir, subject_id, '*bvec*'))
-            noise_std = self._autoload_noise_std(subject_id) or 'auto'
+            noise_std = self._autoload_noise_std(subject_id)
 
             if dwis:
                 dwi_fname = dwis[0]
@@ -85,7 +85,7 @@ class DirPerSubject(SimpleBatchProfile):
                         protocol_fname=protocol_fname, bvec_fname=bvec_fname,
                         bval_fname=bval_fname)
 
-                    output_dir = self._get_subject_output_dir(subject_id)
+                    output_dir = self._get_subject_output_dir(subject_id, mask_fname)
 
                     subjects.append(SimpleSubjectInfo(subject_id, dwi_fname, protocol_loader, mask_fname, output_dir,
                                                       gradient_deviations=grad_dev, noise_std=noise_std))

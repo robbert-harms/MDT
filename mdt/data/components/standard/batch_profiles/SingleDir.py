@@ -69,7 +69,7 @@ class SingleDir(SimpleBatchProfile):
             elif basename + '.hdr' in files and basename + '.img' in files:
                 dwi_fname = pjoin(basename + '.hdr')
 
-            noise_std = self._autoload_noise_std(basename, file_path=pjoin(basename + '.noise_std')) or 'auto'
+            noise_std = self._autoload_noise_std(basename, file_path=pjoin(basename + '.noise_std'))
 
             prtcl_fname = None
             if basename + '.prtcl' in files:
@@ -100,10 +100,7 @@ class SingleDir(SimpleBatchProfile):
                     protocol_fname=prtcl_fname, bvec_fname=bvec_fname, bval_fname=bval_fname,
                     protocol_options=extra_cols_from_file)
 
-                if self.output_sub_dir:
-                    output_dir = pjoin(self.output_base_dir, basename, self.output_sub_dir)
-                else:
-                    output_dir = pjoin(self.output_base_dir, basename)
+                output_dir = self._get_subject_output_dir(basename, mask_fname, pjoin(self.output_base_dir, basename))
 
                 subjects.append(SimpleSubjectInfo(basename, dwi_fname, protocol_loader, mask_fname, output_dir,
                                                   noise_std=noise_std))

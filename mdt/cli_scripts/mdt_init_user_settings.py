@@ -4,14 +4,13 @@ import argparse
 import os
 import textwrap
 import mdt
-from mdt import get_config_dir
+from mdt.configuration import get_config_dir
 from mdt.shell_utils import BasicShellApplication
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"
 __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
-
 
 
 class InitUserSettings(BasicShellApplication):
@@ -32,17 +31,10 @@ class InitUserSettings(BasicShellApplication):
                             help="always overwrite the config directory with the default settings")
         parser.set_defaults(pass_if_exists=False)
 
-        parser.add_argument('--keep-config', dest='keep_config', action='store_true',
-                            help="keep the user's config if present (default)")
-        parser.add_argument('--overwrite-config', dest='keep_config', action='store_false',
-                            help="overwrite the config with the default config file")
-        parser.set_defaults(keep_config=False)
-
         return parser
 
     def run(self, args):
-        mdt.init_user_settings(pass_if_exists=args.pass_if_exists,
-                               keep_config=args.keep_config)
+        mdt.init_user_settings(pass_if_exists=args.pass_if_exists)
 
 
 if __name__ == '__main__':

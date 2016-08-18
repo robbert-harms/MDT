@@ -2,13 +2,16 @@ import glob
 import logging
 import os
 import shutil
+import numpy as np
+import six
 from six import string_types
 from mdt import protocols
-from mdt.components_loader import BatchProfilesLoader
+from mdt.components_loader import BatchProfilesLoader, get_model
 from mdt.data_loaders.protocol import ProtocolLoader
 from mdt.masking import create_write_median_otsu_brain_mask
+from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.protocols import load_protocol
-from mdt.utils import split_image_path, AutoDict
+from mdt.utils import split_image_path, AutoDict, load_problem_data
 import nibabel as nib
 
 __author__ = 'Robbert Harms'
@@ -47,16 +50,6 @@ class BatchProfile(object):
 
         Returns:
             list: the list of models we want to fit to the subjects
-        """
-
-    def get_model_protocol_options(self):
-        """Get the protocol options we would like to use.
-
-        These protocol options define per model which shells to use from the data. These are merged with the
-        model protocol options defined in the protocol.
-
-        Returns:
-            dict: configuration dictionary
         """
 
     def get_subjects(self):
@@ -100,6 +93,7 @@ class SimpleBatchProfile(BatchProfile):
         self._subjects_found = None
         self._output_base_dir = 'output'
         self._output_sub_dir = None
+        self._append_mask_name_to_output_sub_dir = True
         self.models_to_fit = ('BallStick (Cascade)',
                               'Tensor (Cascade)',
                               'Noddi (Cascade)',
@@ -116,6 +110,14 @@ class SimpleBatchProfile(BatchProfile):
     def output_base_dir(self, output_base_dir):
         self._output_base_dir = output_base_dir
         self._subjects_found = None
+
+    @property
+    def append_mask_name_to_output_sub_dir(self):
+        return self._append_mask_name_to_output_sub_dir
+
+    @append_mask_name_to_output_sub_dir.setter
+    def append_mask_name_to_output_sub_dir(self, append_mask_name_to_output_sub_dir):
+        self._append_mask_name_to_output_sub_dir = append_mask_name_to_output_sub_dir
 
     @property
     def output_sub_dir(self):
@@ -173,19 +175,27 @@ class SimpleBatchProfile(BatchProfile):
         """
         return []
 
-    def _get_subject_output_dir(self, subject_id):
+    def _get_subject_output_dir(self, subject_id, mask_fname, subject_base_dir=None):
         """Helper function for generating the output directory for a subject.
 
         Args:
             subject_id (str): the id of the subject to use
+            mask_fname (str): the name of the mask we are using for this subject
+            subject_base_dir (str): the base directory for this subject, defaults to
+                self._root_dir / subject_id / self.output_base_dir
 
         Returns:
             str: the path for the output directory
         """
-        dir_items = [self._root_dir, subject_id, self.output_base_dir]
+        output_dir = subject_base_dir or os.path.join(self._root_dir, subject_id, self.output_base_dir)
+
         if self.output_sub_dir:
-            dir_items.append(self.output_sub_dir)
-        return os.path.join(*dir_items)
+            output_dir = os.path.join(output_dir, self.output_sub_dir)
+
+        if self._append_mask_name_to_output_sub_dir and mask_fname:
+            output_dir = os.path.join(output_dir, split_image_path(mask_fname)[1])
+
+        return output_dir
 
 
 class SubjectInfo(object):
@@ -208,19 +218,16 @@ class SubjectInfo(object):
         """
         return ''
 
-    def get_protocol_loader(self):
-        """Get the protocol to use, or a filename of a protocol file to load.
+    def get_problem_data(self, dtype=np.float32):
+        """Get the DMRIProblemData for this subject.
+
+        This is the data we will use during model fitting.
+
+        Args:
+            dtype (numpy dtype): the datatype we will use for the problem data
 
         Returns:
-            ProtocolLoader: the protocol loader
-        """
-
-    def get_dwi_info(self):
-        """Get the diffusion weighted image information.
-
-        Returns:
-            (img, header) tuple or str: either a string with the filename of the image to load or the actual
-                image itself with a header in a tuple.
+            DMRIProblemData: the problem data to use during model fitting
         """
 
     def get_mask_filename(self):
@@ -230,28 +237,11 @@ class SubjectInfo(object):
             str: the filename of the mask to load
         """
 
-    def get_gradient_deviations(self):
-        """Get a possible gradient deviation image to use.
-
-        Returns:
-            ndarray: the gradient deviations to use, None if not applicable.
-        """
-        return None
-
-    def get_noise_std(self):
-        """Get the noise standard deviation to use during fitting.
-
-        Returns:
-            The noise std to use. This can either be a value, None, or the string 'auto'. If auto we try to auto detect it.
-            If None it is set to 1.0
-        """
-        return 'auto'
-
 
 class SimpleSubjectInfo(SubjectInfo):
 
     def __init__(self, subject_id, dwi_fname, protocol_loader, mask_fname, output_dir, gradient_deviations=None,
-                 noise_std='auto'):
+                 noise_std=None):
         """This class contains all the information about found subjects during batch fitting.
 
         It is returned by the method get_subjects() from the class BatchProfile.
@@ -263,8 +253,8 @@ class SimpleSubjectInfo(SubjectInfo):
             mask_fname (str): the filename of the mask to load. If None a mask is auto generated.
             output_dir (str): the output directory
             gradient_deviations (str) if given, the path to the gradient deviations
-            noise_std (float, str): if given, either 'auto' for automatic noise detection or a float with the noise STD
-                to use during fitting.
+            noise_std (float, ndarray, str): either None for automatic noise detection or a float with the noise STD
+                to use during fitting or an ndarray with one value per voxel.
         """
         self._subject_id = subject_id
         self._dwi_fname = dwi_fname
@@ -285,32 +275,29 @@ class SimpleSubjectInfo(SubjectInfo):
     def output_dir(self):
         return self._output_dir
 
+    def get_problem_data(self, dtype=np.float32):
+        protocol = self._protocol_loader.get_protocol()
+        brain_mask_fname = self.get_mask_filename()
+        return load_problem_data(self._dwi_fname, protocol, brain_mask_fname,
+                                 gradient_deviations=self._get_gradient_deviations(), noise_std=self._noise_std)
+
     def get_subject_id(self):
         return self.subject_id
-
-    def get_protocol_loader(self):
-        return self._protocol_loader
-
-    def get_dwi_info(self):
-        return self._dwi_fname
 
     def get_mask_filename(self):
         if not os.path.isfile(self._mask_fname):
             logger = logging.getLogger(__name__)
             logger.info('Creating a brain mask for subject {0}'.format(self.subject_id))
 
-            protocol = self.get_protocol_loader().get_protocol()
-            create_write_median_otsu_brain_mask(self.get_dwi_info(), protocol, self._mask_fname)
+            protocol = self._protocol_loader.get_protocol()
+            create_write_median_otsu_brain_mask(self._dwi_fname, protocol, self._mask_fname)
 
         return self._mask_fname
 
-    def get_gradient_deviations(self):
+    def _get_gradient_deviations(self):
         if self._gradient_deviations is not None:
             return nib.load(self._gradient_deviations).get_data()
         return None
-
-    def get_noise_std(self):
-        return self._noise_std
 
 
 class BatchSubjectSelection(object):
@@ -336,25 +323,53 @@ class AllSubjects(BatchSubjectSelection):
 
 class SelectedSubjects(BatchSubjectSelection):
 
-    def __init__(self, subject_ids=None, indices=None):
+    def __init__(self, subject_ids=None, indices=None, start_from=None):
         """Only process the selected subjects.
 
         This method allows either a selection by index (unsafe for the order may change) or by subject name/ID (more
-        safe in general). Both are used simultaneously.
+        safe in general). If start_from is given it additionally limits the list of selected subjects to include
+        only those after that index.
+
+        This essentially creates three different subsets of the given list of subjects and will only process
+        those subjects in the intersection of all those sets.
+
+        Set any one of the options to None to ignore them.
 
         Args:
             subject_ids (list of str): the list of names of subjects to process
             indices (list/tuple of int): the list of indices of subjects we wish to process
+            start_from (list or int): the index of the name of the subject from which we want to start processing.
         """
-        self.subject_ids = subject_ids or []
-        self.indices = indices or []
+        self.subject_ids = subject_ids
+        self.indices = indices
+        self.start_from = start_from
 
     def get_selection(self, subjects):
-        return_list = []
+        starting_pos = self._get_starting_pos(subjects)
+
+        if self.indices is None and self.subject_ids is None:
+            return subjects[starting_pos:]
+
+        if self.indices:
+            subjects = [subject for ind, subject in enumerate(subjects) if ind in self.indices and ind >= starting_pos]
+
+        if self.subject_ids:
+            subjects = list(filter(lambda subject: subject.subject_id in self.subject_ids, subjects))
+
+        return subjects
+
+    def _get_starting_pos(self, subjects):
+        if self.start_from is None:
+            return 0
+
+        if isinstance(self.start_from, six.string_types):
+            for ind, subject in enumerate(subjects):
+                if subject.subject_id == self.start_from:
+                    return ind
+
         for ind, subject in enumerate(subjects):
-            if ind in self.indices or subject.subject_id in self.subject_ids:
-                return_list.append(subject)
-        return return_list
+            if ind == int(self.start_from):
+                return ind
 
 
 class BatchFitProtocolLoader(ProtocolLoader):
@@ -384,20 +399,25 @@ class BatchFitProtocolLoader(ProtocolLoader):
 
 class BatchFitSubjectOutputInfo(object):
 
-    def __init__(self, subject_info, output_path, mask_name, model_name):
+    def __init__(self, subject_info, output_path, model_name):
         """This class is used in conjunction with the function run_function_on_batch_fit_output().
 
         Args:
             subject_info (SubjectInfo): the information about the subject before batch fitting
             output_path (str): the full path to the directory with the maps
-            mask_name (str): the name of the mask (not a path)
             model_name (str): the name of the model (not a path)
         """
         self.subject_info = subject_info
         self.output_path = output_path
-        self.mask_name = mask_name
         self.model_name = model_name
-        self.available_map_names = [split_image_path(v)[1] for v in glob.glob(os.path.join(self.output_path, '*.nii*'))]
+
+    @property
+    def mask_name(self):
+        return split_image_path(self.subject_info.get_mask_filename())[1]
+
+    @property
+    def subject_id(self):
+        return self.subject_info.subject_id
 
 
 class BatchFitOutputInfo(object):
@@ -416,86 +436,40 @@ class BatchFitOutputInfo(object):
         self._batch_profile = batch_profile_factory(batch_profile, data_folder)
         self._subjects_selection = subjects_selection or AllSubjects()
         self._subjects = self._subjects_selection.get_selection(self._batch_profile.get_subjects())
-        self._subjects_dirs = {subject_info.subject_id: subject_info.output_dir for subject_info in self._subjects}
         self._mask_paths = {}
 
-    def get_available_masks(self):
-        """Searches all the subjects and lists the unique available masks.
-
-        Returns:
-            list: the list of the available maps. Not all subjects may have the available mask.
-        """
-        s = set()
-        for subject_id, path in self._subjects_dirs.items():
-            masks = (p for p in os.listdir(path) if os.path.isdir(os.path.join(path, p)))
-            list(map(s.add, masks))
-        return list(sorted(list(s)))
-
-    def get_path_to_mask_per_subject(self, mask_name, error_on_missing_mask=False):
-        """Get for every subject the path to the results calculated with given mask name.
-
-        If a subject does not have that mask_name it is either skipped or an error is raised, depending on the setting
-        error_on_missing_mask.
-
-        Args:
-            mask_name (str): the name of the mask we return the path to per subject
-            error_on_missing_mask (boolean): if we don't have the mask for one subject should we raise an error or skip
-                the subject?
-
-        Returns:
-            dict: per subject ID the path to the mask
-        """
-        if mask_name in self._mask_paths:
-            return self._mask_paths[mask_name]
-
-        paths = {}
-        for subject_id, path in self._subjects_dirs.items():
-            mask_dir = os.path.join(path, mask_name)
-            if os.path.isdir(mask_dir):
-                paths.update({subject_id: mask_dir})
-            else:
-                if error_on_missing_mask:
-                    raise ValueError('Missing the choosen mask "{0}" for subject "{1} '
-                                     'and error_on_missing_mask is True"'.format(mask_name, subject_id))
-
-        self._mask_paths.update({mask_name: paths})
-        return paths
-
-    def subject_output_info_generator(self, mask_name, error_on_missing_mask=False):
+    def subject_output_info_generator(self):
         """Generates for every subject an output info object which contains all relevant information about the subject.
-
-        If a subject does not have that mask_name it is either skipped or an error is raised, depending on the setting
-        error_on_missing_mask.
-
-        Args:
-            mask_name (str): the name of the mask we return the path to per subject
-            error_on_missing_mask (boolean): if true, if we don't have the given mask for a subject we raise an error.
-                If false, if we don't have a mask for a subject we do nothing.
 
         Returns:
             generator: returns an BatchFitSubjectOutputInfo per subject
         """
-        mask_paths = self.get_path_to_mask_per_subject(mask_name, error_on_missing_mask)
+        model_names = self._get_single_model_names(self._batch_profile.get_models_to_fit())
 
         for subject_info in self._subjects:
-            if subject_info.subject_id in mask_paths:
-                mask_path = mask_paths[subject_info.subject_id]
+            for model_name in model_names:
+                output_path = os.path.join(subject_info.output_dir, model_name)
+                if os.path.isdir(output_path):
+                    yield BatchFitSubjectOutputInfo(subject_info, output_path, model_name)
 
-                for model_name in os.listdir(mask_path):
-                    output_path = os.path.join(mask_path, model_name)
-                    if os.path.isdir(output_path):
-                        yield BatchFitSubjectOutputInfo(subject_info, output_path, mask_name, model_name)
+    @staticmethod
+    def _get_single_model_names(model_names):
+        """Get the single model names given the list of model names from the BatchProfile"""
+        single_model_names = []
+        for model_name in model_names:
+            model = get_model(model_name)
+            if isinstance(model, DMRICascadeModelInterface):
+                single_model_names.extend(BatchFitOutputInfo._get_single_model_names(model.get_model_names()))
             else:
-                if error_on_missing_mask:
-                    raise ValueError('Missing the choosen mask "{0}" for subject "{1} '
-                                     'and error_on_missing_mask is True"'.format(mask_name, subject_info.subject_id))
+                single_model_names.append(model_name)
+        return list(set(single_model_names))
 
 
 def run_function_on_batch_fit_output(data_folder, func, batch_profile=None, subjects_selection=None):
     """Run a function on the output of a batch fitting routine.
 
-    This enables you to run a function on every model output from every subject. The python function should accept
-    as single argument an instance of the class BatchFitSubjectOutputInfo.
+    This enables you to run a function on every model output from every subject. The callback python function
+    should accept as single argument an instance of the class BatchFitSubjectOutputInfo.
 
     Args:
         data_folder (str): The data folder with the output files
@@ -507,18 +481,13 @@ def run_function_on_batch_fit_output(data_folder, func, batch_profile=None, subj
             If None all subjects are processed.
 
     Returns:
-        dict: indexed by subject->model_name->mask_name, values are the return values of the user function
+        dict: indexed by subject->model_name, values are the return values of the users function
     """
     output_info = BatchFitOutputInfo(data_folder, batch_profile, subjects_selection=subjects_selection)
-    mask_names = output_info.get_available_masks()
 
     results = AutoDict()
-    for mask_name in mask_names:
-        for subject in output_info.subject_output_info_generator(mask_name):
-            subject_id = subject.subject_info.subject_id
-            model_name = subject.model_name
-
-            results[subject_id][model_name][mask_name] = func(subject)
+    for subject in output_info.subject_output_info_generator():
+        results[subject.subject_id][subject.model_name] = func(subject)
 
     return results.to_normal_dict()
 
@@ -569,15 +538,14 @@ def get_best_batch_profile(data_folder):
     return best_crawler
 
 
-def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, subjects_selection=None,
-                             mask_name=None, symlink=True):
+def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, subjects_selection=None, symlink=True):
     """Load from the given data folder all the output files and put them into the output directory.
 
     If there is more than one mask file available the user has to choose which mask to use using the mask_name
     keyword argument. If it is not given an error is raised.
 
     The results for the chosen mask it placed in the output folder per subject. Example:
-        <output_dir>/<subject_id>/<results>
+        <output_dir>/<subject_id>/<model_name>
 
     Args:
         data_folder (str): The data folder with the output files
@@ -586,34 +554,24 @@ def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, subjec
             of a batch profile to load. If not given it is auto detected.
         subjects_selection (BatchSubjectSelection): the subjects to use for processing.
             If None all subjects are processed.
-        mask_name (str): the mask to use to get the output from
         symlink (boolean): only available under Unix OS's. Creates a symlink instead of copying.
     """
-    output_info = BatchFitOutputInfo(data_folder, batch_profile, subjects_selection=subjects_selection)
-    mask_names = output_info.get_available_masks()
-    if len(mask_names) > 1:
-        if mask_name is None:
-            raise ValueError('There are results of more than one mask. '
-                             'Please choose one out of ({}) '
-                             'using the \'mask_name\' keyword.'.format(', '.join(mask_names)))
-    else:
-        mask_name = mask_names[0]
+    def copy_function(subject_info):
+        if not os.path.exists(os.path.join(output_dir, subject_info.subject_id)):
+            os.makedirs(os.path.join(output_dir, subject_info.subject_id))
 
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    mask_paths = output_info.get_path_to_mask_per_subject(mask_name)
-
-    for subject_id, mask_path in mask_paths.items():
-        subject_out = os.path.join(output_dir, subject_id)
+        subject_out = os.path.join(output_dir, subject_info.subject_id, subject_info.model_name)
 
         if os.path.exists(subject_out) or os.path.islink(subject_out):
             if os.path.islink(subject_out):
                 os.unlink(subject_out)
             else:
-                shutil.rmtree(output_dir)
+                shutil.rmtree(subject_out)
 
         if symlink:
-            os.symlink(mask_path, subject_out)
+            os.symlink(subject_info.output_path, subject_out)
         else:
-            shutil.copytree(mask_path, subject_out)
+            shutil.copytree(subject_info.output_path, subject_out)
+
+    run_function_on_batch_fit_output(data_folder, copy_function, batch_profile=batch_profile,
+                                     subjects_selection=subjects_selection)

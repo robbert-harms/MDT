@@ -1,11 +1,19 @@
+import signal
 import sys
 
-import signal
+from mdt.configuration import update_gui_config
+from mdt.gui.design.ui_about_dialog import Ui_AboutDialog
+from mdt.gui.tabs.fit_model_tab import FitModelTab
+from mdt.gui.tabs.generate_brain_mask_tab import GenerateBrainMaskTab
+from mdt.gui.tabs.generate_protocol_tab import GenerateProtocolTab
+from mdt.gui.tabs.generate_roi_mask_tab import GenerateROIMaskTab
+from mdt.gui.tabs.view_results_tab import ViewResultsTab
 
-from mdt.gui.qt.tabs.generate_brain_mask_tab import GenerateBrainMaskTab
-from mdt.gui.qt.tabs.generate_protocol_tab import GenerateProtocolTab
-from mdt.gui.qt.tabs.generate_roi_mask_tab import GenerateROIMaskTab
-from mdt.gui.qt.tabs.view_results_tab import ViewResultsTab
+import mdt.utils
+import mot.configuration
+from mdt.gui.design.ui_runtime_settings_dialog import Ui_RuntimeSettingsDialog
+from mot.cl_environments import CLEnvironmentFactory
+from mot.load_balance_strategies import EvenDistribution
 
 try:
     #python 2.7
@@ -15,10 +23,10 @@ except ImportError:
     from queue import Queue
 from PyQt5 import QtGui
 from PyQt5.QtCore import QThread, QTimer, pyqtSlot
-from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QStyleFactory
-from mdt.gui.qt.design.ui_gui_single import Ui_MainWindow
-from mdt.gui.qt.utils import MessageReceiver, SharedState
-from mdt.gui.utils import print_welcome_message, ForwardingListener
+from PyQt5.QtWidgets import QMainWindow, QApplication, QDialog, QDialogButtonBox
+from mdt.gui.design.ui_main_gui import Ui_MainWindow
+from mdt.gui.utils import MessageReceiver, SharedState
+from mdt.gui.utils import print_welcome_message, ForwardingListener, SharedState, MessageReceiver
 from mdt.log_handlers import LogDispatchHandler
 
 __author__ = 'Robbert Harms'
@@ -51,11 +59,16 @@ class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
         self._connect_output_textbox()
 
         self.actionExit.setShortcuts(['Ctrl+q', 'Ctrl+w'])
-        self.action_saveLog.triggered.connect(self.save_log)
         self._center()
 
+        self.action_RuntimeSettings.triggered.connect(lambda: RuntimeSettingsDialog(self).exec_())
+        self.actionAbout.triggered.connect(lambda: AboutDialog(self).exec_())
+
         self.executionStatusLabel.setText('Idle')
-        self.executionStatusIcon.setPixmap(QtGui.QPixmap(":/gui_single/icon_status_red.png"))
+        self.executionStatusIcon.setPixmap(QtGui.QPixmap(":/main_gui/icon_status_red.png"))
+
+        self.fit_model_tab = FitModelTab(shared_state, self._computations_thread)
+        self.fit_model_tab.setupUi(self.fitModelTab)
 
         self.generate_mask_tab = GenerateBrainMaskTab(shared_state, self._computations_thread)
         self.generate_mask_tab.setupUi(self.generateBrainMaskTab)
@@ -68,6 +81,11 @@ class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
 
         self.generate_protocol_tab = GenerateProtocolTab(shared_state, self._computations_thread)
         self.generate_protocol_tab.setupUi(self.generateProtocolTab)
+
+        self.tabs = [self.fit_model_tab, self.generate_mask_tab, self.generate_roi_mask_tab,
+                     self.generate_protocol_tab, self.view_results_tab]
+
+        self.MainTabs.currentChanged.connect(lambda index: self.tabs[index].tab_opened())
 
     def _connect_output_textbox(self):
         sys.stdout = ForwardingListener(self._logging_update_queue)
@@ -94,23 +112,14 @@ class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
         self.close()
 
     @pyqtSlot()
-    def save_log(self):
-        name = QFileDialog.getSaveFileName(self, 'Save log', directory=self._shared_state.base_dir,
-                                           filter='Text file (*.txt);;All files (*)')[0]
-        if name:
-            with open(name, 'w') as file:
-                text = self.loggingTextBox.toPlainText()
-                file.write(text)
-
-    @pyqtSlot()
     def computations_started(self):
         self.executionStatusLabel.setText('Computing')
-        self.executionStatusIcon.setPixmap(QtGui.QPixmap(":/gui_single/icon_status_green.png"))
+        self.executionStatusIcon.setPixmap(QtGui.QPixmap(":/main_gui/icon_status_green.png"))
 
     @pyqtSlot()
     def computations_finished(self):
         self.executionStatusLabel.setText('Idle')
-        self.executionStatusIcon.setPixmap(QtGui.QPixmap(":/gui_single/icon_status_red.png"))
+        self.executionStatusIcon.setPixmap(QtGui.QPixmap(":/main_gui/icon_status_red.png"))
 
     @pyqtSlot(str)
     def update_log(self, string):
@@ -146,7 +155,50 @@ class ComputationsThread(QThread):
         self.main_window.computations_finished()
 
 
-def start_single_model_gui(base_dir=None, action=None):
+class RuntimeSettingsDialog(Ui_RuntimeSettingsDialog, QDialog):
+
+    def __init__(self, parent):
+        super(RuntimeSettingsDialog, self).__init__(parent)
+        self.setupUi(self)
+
+        self.all_cl_devices = CLEnvironmentFactory.smart_device_selection()
+        self.user_selected_devices = mot.configuration.get_cl_environments()
+        self.cldevicesSelection.itemSelectionChanged.connect(self.selection_updated)
+
+        self.cldevicesSelection.insertItems(0, [str(cl_device) for cl_device in self.all_cl_devices])
+
+        load_balancer = mot.configuration.get_load_balancer()
+        lb_used_devices = load_balancer.get_used_cl_environments(self.all_cl_devices)
+
+        for ind, device in enumerate(self.all_cl_devices):
+            self.cldevicesSelection.item(ind).setSelected(device in self.user_selected_devices
+                                                          and device in lb_used_devices)
+
+        self.buttonBox.button(QDialogButtonBox.Ok).clicked.connect(self._update_settings)
+
+    @pyqtSlot()
+    def selection_updated(self):
+        self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(
+            any(self.cldevicesSelection.item(ind).isSelected() for ind in range(self.cldevicesSelection.count())))
+
+    def _update_settings(self):
+        selection = [ind for ind in range(self.cldevicesSelection.count())
+                     if self.cldevicesSelection.item(ind).isSelected()]
+        mot.configuration.set_cl_environments([self.all_cl_devices[ind] for ind in selection])
+        mot.configuration.set_load_balancer(EvenDistribution())
+
+        update_gui_config({'runtime_settings': {'cl_device_ind': selection}})
+
+
+class AboutDialog(Ui_AboutDialog, QDialog):
+
+    def __init__(self, parent):
+        super(AboutDialog, self).__init__(parent)
+        self.setupUi(self)
+        self.contentLabel.setText(self.contentLabel.text().replace('{version}', mdt.__version__))
+
+
+def start_gui(base_dir=None, action=None):
     """Start the single model GUI.
 
     Args:
@@ -155,6 +207,11 @@ def start_single_model_gui(base_dir=None, action=None):
             - view_maps: opens the view maps tab and opens the base_dir
 
     """
+    try:
+        mdt.configuration.load_user_gui()
+    except IOError:
+        pass
+
     state = SharedState()
     state.base_dir = base_dir
 
@@ -178,4 +235,4 @@ def start_single_model_gui(base_dir=None, action=None):
 
 
 if __name__ == '__main__':
-    start_single_model_gui()
+    start_gui()

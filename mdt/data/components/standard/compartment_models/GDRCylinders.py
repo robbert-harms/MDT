@@ -1,4 +1,4 @@
-from mdt.models.compartments import CompartmentConfig, CLCodeFromAdjacentFile
+from mdt.models.compartments import CompartmentConfig
 from mdt.components_loader import CompartmentModelsLoader, bind_function
 
 __author__ = 'Robbert Harms'
@@ -12,8 +12,6 @@ compartment_loader = CompartmentModelsLoader()
 
 class GDRCylinders(CompartmentConfig):
 
-    name = 'GDRCylinders'
-    cl_function_name = 'cmGDRCylinders'
     parameter_list = ('g', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'gamma_k', 'gamma_beta', 'gamma_nmr_cyl')
     dependency_list = (compartment_loader.load('CylinderGPD'),)
 

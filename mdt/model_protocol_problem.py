@@ -17,31 +17,6 @@ class ModelProtocolProblem(object):
     def __repr__(self):
         return self.__str__()
 
-    def can_merge(self, other_problem):
-        """If this problem object can merge with the other problem object.
-
-        This can for example always return False if this object can not merge at all. Or can say True to anything
-        for merging anything.
-
-        In general it will return True if the problems are of the same class.
-
-        Args:
-            other_problem (ModelProtocolProblem): The protocol problem to merge with this one.
-
-        Returns:
-            boolean: True if this problem can merge with the other_problem, false otherwise.
-        """
-
-    def merge(self, other_problem):
-        """Merge another model protocol problem of the same kind into one problem.
-
-        Args:
-            other_problem (ModelProtocolProblem): The protocol problem to merge with this one.
-
-        Returns:
-            ModelProtocolProblem: A new protocol problem with merged information.
-        """
-
 
 class MissingColumns(ModelProtocolProblem):
 
@@ -51,12 +26,6 @@ class MissingColumns(ModelProtocolProblem):
 
     def __str__(self):
         return 'Missing columns: ' + ', '.join(self.missing_columns)
-
-    def can_merge(self, other_problem):
-        return isinstance(other_problem, MissingColumns)
-
-    def merge(self, other_problem):
-        return MissingColumns(self.missing_columns + other_problem.missing_columns)
 
 
 class InsufficientShells(ModelProtocolProblem):
@@ -69,12 +38,6 @@ class InsufficientShells(ModelProtocolProblem):
     def __str__(self):
         return 'Required number of shells is {}, this protocol has {}.'.format(
             self.required_nmr_shells, self.nmr_shells)
-
-    def can_merge(self, other_problem):
-        return isinstance(other_problem, InsufficientShells)
-
-    def merge(self, other_problem):
-        return InsufficientShells(self.nmr_shells, max(self.required_nmr_shells, other_problem.required_nmr_shells))
 
 
 class NamedProtocolProblem(ModelProtocolProblem):
@@ -92,9 +55,3 @@ class NamedProtocolProblem(ModelProtocolProblem):
 
     def __str__(self):
         return "{0}: {1}".format(self._model_name, self._model_protocol_problem)
-
-    def can_merge(self, other_problem):
-        return False
-
-    def merge(self, other_problem):
-        raise ValueError("This class does not support merging.")

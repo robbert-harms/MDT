@@ -1,12 +1,9 @@
 import collections
-import copy
 import distutils.dir_util
-import functools
 import glob
 import logging
 import logging.config as logging_config
 import os
-import pickle
 import re
 import shutil
 import tempfile
@@ -17,24 +14,29 @@ import nibabel as nib
 import numpy as np
 import pkg_resources
 import six
+from numpy.lib.format import open_memmap
 from scipy.special import jnp_zeros
 from six import string_types
 
-import mdt.configuration as configuration
-from mdt import create_index_matrix
+import mot.utils
 from mdt.IO import Nifti
 from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
-from mdt.components_loader import get_model, ProcessingStrategiesLoader, NoiseSTDCalculatorsLoader
+from mdt.components_loader import get_model
+from mdt.configuration import get_config_dir
+from mdt.configuration import get_logging_configuration_dict, get_noise_std_estimators, config_context, \
+    VoidConfigAction, OptimizationSettings, get_tmp_results_dir, SamplingSettings
 from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
 from mdt.data_loaders.noise_std import autodetect_noise_std_loader
 from mdt.data_loaders.protocol import autodetect_protocol_loader
-from mdt.data_loaders.static_maps import autodetect_static_maps_loader
 from mdt.exceptions import NoiseStdEstimationNotPossible
 from mdt.log_handlers import ModelOutputLogHandler
+from mdt.protocols import load_protocol, write_protocol
 from mot.base import AbstractProblemData
 from mot.cl_environments import CLEnvironmentFactory
+from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
 from mot.cl_routines.optimizing.meta_optimizer import MetaOptimizer
-from mot.factory import get_load_balance_strategy_by_name, get_optimizer_by_name, get_filter_by_name
+from mot.cl_routines.sampling.meta_sampler import MetaSampler
+from mot.model_building.evaluation_models import OffsetGaussianEvaluationModel
 
 try:
     import codecs
@@ -50,52 +52,62 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class DMRIProblemData(AbstractProblemData):
 
-    def __init__(self, protocol_data_dict, dwi_volume, mask, volume_header, static_maps=None):
-        """This overrides the standard problem data to include a mask.
+    def __init__(self, protocol, dwi_volume, mask, volume_header, static_maps=None, gradient_deviations=None,
+                 noise_std=None):
+        """An implementation of the problem data for diffusion MRI models.
 
         Args:
-            protocol_data_dict (Protocol): The protocol object used as input data to the model
+            protocol (Protocol): The protocol object used as input data to the model
             dwi_volume (ndarray): The DWI data (4d matrix)
             mask (ndarray): The mask used to create the observations list
             volume_header (nifti header): The header of the nifti file to use for writing the results.
             static_maps (Dict[str, ndarray]): the static maps used as values for the static map parameters
+            gradient_deviations (ndarray): the gradient deviations containing per voxel 9 values that constitute the
+                gradient non-linearities. Of the 4d matrix the first 3 dimensions are supposed to be the voxel
+                index and the 4th should contain the grad dev data.
+            noise_std (number or ndarray): either None for automatic detection,
+                or a scalar, or an 3d matrix with one value per voxel.
 
         Attributes:
             dwi_volume (ndarray): The DWI volume
             volume_header (nifti header): The header of the nifti file to use for writing the results.
         """
+        self._logger = logging.getLogger(__name__)
         self.dwi_volume = dwi_volume
         self.volume_header = volume_header
         self._mask = mask
-        self._protocol_data_dict = protocol_data_dict
+        self._protocol = protocol
         self._observation_list = None
         self._static_maps = static_maps or {}
+        self.gradient_deviations = gradient_deviations
+        self._noise_std = noise_std
+
+    def copy_with_updates(self, *args, **kwargs):
+        """Create a copy of this problem data, while setting some of the arguments to new values.
+
+        You can use any of the arguments (args and kwargs) of the constructor for this call.
+        If given we will use those values instead of the values in this problem data object for the copy.
+        """
+        new_args = [self._protocol, self.dwi_volume, self._mask, self.volume_header]
+        for ind, value in enumerate(args):
+            new_args[ind] = value
+
+        new_kwargs = dict(static_maps=self._static_maps, gradient_deviations=self.gradient_deviations,
+                          noise_std=self._noise_std)
+        for key, value in kwargs.items():
+            new_kwargs[key] = value
+
+        return DMRIProblemData(*new_args, **new_kwargs)
+
+    def get_nmr_inst_per_problem(self):
+        return self._protocol.length
 
     @property
     def protocol(self):
-        """Return the protocol_data_dict.
-
-        Returns:
-            Protocol: The protocol object given in the instantiation.
-        """
-        return self.protocol_data_dict
-
-    @property
-    def protocol_data_dict(self):
-        """Return the constant data stored in this problem data container.
-
-        Returns:
-            dict: The protocol data dict.
-        """
-        return self._protocol_data_dict
+        return self._protocol
 
     @property
     def observations(self):
-        """Return the observations stored in this problem data container.
-
-        Returns:
-            ndarray: The list of observations
-        """
         if self._observation_list is None:
             self._observation_list = create_roi(self.dwi_volume, self._mask)
         return self._observation_list
@@ -109,6 +121,16 @@ class DMRIProblemData(AbstractProblemData):
         """
         return self._mask
 
+    @mask.setter
+    def mask(self, new_mask):
+        """Set the new mask and update the observations list.
+
+        Args:
+            new_mask (np.array): the new mask
+        """
+        self._mask = new_mask
+        self._observation_list = None
+
     @property
     def static_maps(self):
         """Get the static maps. They are used as data for the static parameters.
@@ -118,18 +140,49 @@ class DMRIProblemData(AbstractProblemData):
                 matrix containing the values for each problem instance or it can be a single value we will use
                 for all problem instances.
         """
+        if self._static_maps is not None:
+            return_items = {}
+
+            for key, val in self._static_maps.items():
+
+                loaded_val = None
+
+                if isinstance(val, six.string_types):
+                    loaded_val = create_roi(load_nifti(val).get_data(), self.mask)
+                elif isinstance(val, np.ndarray):
+                    loaded_val = create_roi(val, self.mask)
+                elif is_scalar(val):
+                    loaded_val = val
+
+                return_items[key] = loaded_val
+
+            return return_items
+
         return self._static_maps
 
-    @mask.setter
-    def mask(self, new_mask):
-        """Set the new mask and update the observations list.
+    @property
+    def noise_std(self):
+        """The noise standard deviation we will use during model evaluation.
 
-        Args:
-            new_mask (np.array): the new mask
+        During optimization or sampling the model will be evaluated against the observations using an evaluation
+        model. Most of these evaluation models need to have a standard deviation.
+
+        Returns:
+            number of ndarray: either a scalar or a 2d matrix with one value per problem instance.
         """
-        self._mask = new_mask
-        if self._observation_list is not None:
-            self._observation_list = create_roi(self.dwi_volume, self._mask)
+        try:
+            noise_std = autodetect_noise_std_loader(self._noise_std).get_noise_std(self)
+        except NoiseStdEstimationNotPossible:
+            logger = logging.getLogger(__name__)
+            logger.warn('Failed to obtain a noise std for this subject. We will continue with an std of 1.')
+            noise_std = 1
+
+        if is_scalar(noise_std):
+            self._logger.info('Using a scalar noise standard deviation of {0}'.format(noise_std))
+            return noise_std
+        else:
+            self._logger.info('Using a voxel wise noise standard deviation.')
+            return create_roi(noise_std, self.mask)
 
 
 class PathJoiner(object):
@@ -186,49 +239,24 @@ class PathJoiner(object):
         self._path = os.path.join(self._path, *args)
         return self
 
-    def reset(self, *args):
+    def reset(self):
         """Reset the path to the path at construction time"""
         self._path = self._initial_path
         return self
 
-    def __call__(self, *args, **kwargs):
+    def make_dirs(self, mode=0o777):
+        """Create the directories if they do not exists.
+
+        This uses os.makedirs to make the directories. The given argument mode is handed to os.makedirs.
+
+        Args:
+            mode: the mode parameter for os.makedirs
+        """
+        if not os.path.exists(self._path):
+            os.makedirs(self._path, mode)
+
+    def __call__(self, *args):
         return os.path.abspath(os.path.join(self._path, *args))
-
-
-def condense_protocol_problems(protocol_problems_list):
-    """Condenses the protocol problems list by combining similar problems objects.
-
-    This uses the function 'merge' from the protocol problems to merge similar items into one.
-
-    Args:
-        protocol_problems_list (list of ModelProtocolProblem): the list with the problem objects.
-
-    Returns:
-        list of ModelProtocolProblem: A condensed list of the problems
-    """
-    result_list = []
-    protocol_problems_list = list(protocol_problems_list)
-    has_merged = False
-
-    for i, mpp in enumerate(protocol_problems_list):
-        merged_this = False
-
-        if mpp is not None and mpp:
-            for j in range(i + 1, len(protocol_problems_list)):
-                for mpp_item in flatten(mpp):
-                    if mpp_item.can_merge(protocol_problems_list[j]):
-                        result_list.append(mpp_item.merge(protocol_problems_list[j]))
-                        protocol_problems_list[j] = None
-                        has_merged = True
-                        merged_this = True
-                        break
-
-            if not merged_this:
-                result_list.append(mpp)
-
-    if has_merged:
-        return condense_protocol_problems(result_list)
-    return list(flatten(result_list))
 
 
 def split_dataset(dataset, split_dimension, split_index):
@@ -276,6 +304,33 @@ def split_dataset(dataset, split_dimension, split_index):
     return dataset[ind_1], dataset[ind_2]
 
 
+def split_write_dataset(input_fname, split_dimension, split_index, output_folder=None):
+    """Split the given dataset using the function split_dataset and write the output files.
+
+    Args:
+        dataset (str): The filename of a volume to split
+        split_dimension (int): The dimension along which to split the dataset
+        split_index (int): The index on the given dimension to split the volume(s)
+    """
+    if output_folder is None:
+        output_folder = os.path.dirname(input_fname)
+
+    dataset = load_nifti(input_fname)
+    data = dataset.get_data()
+
+    split = split_dataset(data, split_dimension, split_index)
+
+    basename = os.path.basename(input_fname).split('.')[0]
+    length = data.shape[split_dimension]
+    lengths = (repr(0) + 'to' + repr(split_index-1), repr(split_index) + 'to' + repr(length-1))
+
+    volumes = {}
+    for ind, v in enumerate(split):
+        volumes.update({str(basename) + '_split_' + str(split_dimension) + '_' + lengths[ind]: v})
+
+    Nifti.write_volume_maps(volumes, output_folder, dataset.get_header())
+
+
 def get_bessel_roots(number_of_roots=30, np_data_type=np.float64):
     """These roots are used in some of the compartment models. It are the roots of the equation J'_1(x) = 0.
 
@@ -304,7 +359,7 @@ def read_split_write_volume(volume_fname, first_output_fname, second_output_fnam
         split_dimension (int): The dimension along which to split the dataset
         split_index (int): The index on the given dimension to split the volume(s)
     """
-    signal_img = nib.load(volume_fname)
+    signal_img = load_nifti(volume_fname)
     signal4d = signal_img.get_data()
     img_header = signal_img.get_header()
 
@@ -325,25 +380,56 @@ def create_slice_roi(brain_mask, roi_dimension, roi_slice):
     Returns:
         A brain mask of the same dimensions as the original mask, but with only one slice activated.
     """
-    roi_mask = get_slice_in_dimension(brain_mask, roi_dimension, roi_slice)
-    brain_mask = np.zeros_like(brain_mask)
+    roi_mask = np.zeros_like(brain_mask)
 
-    ind_pos = [slice(None)] * brain_mask.ndim
+    ind_pos = [slice(None)] * roi_mask.ndim
     ind_pos[roi_dimension] = roi_slice
-    brain_mask[tuple(ind_pos)] = roi_mask
+    roi_mask[tuple(ind_pos)] = get_slice_in_dimension(brain_mask, roi_dimension, roi_slice)
 
-    return brain_mask
+    return roi_mask
+
+
+def write_slice_roi(brain_mask_fname, roi_dimension, roi_slice, output_fname, overwrite_if_exists=False):
+    """Create a region of interest out of the given brain mask by taking one specific slice out of the mask.
+
+    This will both write and return the created slice ROI.
+
+    We need a filename as input brain mask since we need the header of the file to be able to write the output file
+    with the same header.
+
+    Args:
+        brain_mask_fname (string): The filename of the brain_mask used to create the new brain mask
+        roi_dimension (int): The dimension to take a slice out of
+        roi_slice (int): The index on the given dimension.
+        output_fname (string): The output filename
+        overwrite_if_exists (boolean, optional, default false): If we want to overwrite the file if it already exists
+
+    Returns:
+        A brain mask of the same dimensions as the original mask, but with only one slice set to one.
+    """
+    if os.path.exists(output_fname) and not overwrite_if_exists:
+        return load_brain_mask(output_fname)
+
+    if not os.path.isdir(os.path.dirname(output_fname)):
+        os.makedirs(os.path.dirname(output_fname))
+
+    brain_mask_img = load_nifti(brain_mask_fname)
+    brain_mask = brain_mask_img.get_data()
+    img_header = brain_mask_img.get_header()
+    roi_mask = create_slice_roi(brain_mask, roi_dimension, roi_slice)
+    nib.Nifti1Image(roi_mask, None, img_header).to_filename(output_fname)
+    return roi_mask
 
 
 def concatenate_two_mri_measurements(datasets):
-    """ Concatenate the given datasets (combination of text_message_signal list and protocols)
+    """ Concatenate the given datasets (combination of signal list and protocols)
 
     For example, as input one can give:
         ((protocol_1, signal4d_1), (protocol_2, signal4d_2))
     And the expected output is:
         (protocol, signal_list)
 
-    Where the signal_list is for every voxel a concatenation of the given text_message_signal lists, and the protocol is a
+    Where the signal_list is for every voxel a concatenation of the given signal lists, and the protocol is a
     concatenation of the given protocols.
 
     Args:
@@ -365,7 +451,7 @@ def get_slice_in_dimension(volume, dimension, index):
     """From the given volume get a slice on the given dimension (x, y, z, ...) and then on the given index.
 
     Args:
-        volume (ndarray);: the volume, 3d, 4d or more
+        volume (ndarray): the volume, 3d, 4d or more
         dimension (int): the dimension on which we want a slice
         index (int): the index of the slice
 
@@ -416,26 +502,96 @@ def create_roi(data, brain_mask):
             to the brain mask to load
 
     Returns:
-        Signal lists for each of the given volumes. The axis are: (voxels, protocol)
+        ndarray, tuple, dict: If a single ndarray is given we will return the ROI for that array. If
+            an iterable is given we will return a tuple. If a dict is given we return a dict.
+            For each result the axis are: (voxels, protocol)
     """
     from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
     brain_mask = autodetect_brain_mask_loader(brain_mask).get_data()
 
     def creator(v):
-        if len(v.shape) < 4:
-            v = np.reshape(v, list(v.shape) + [1])
-        return np.transpose(np.array([np.extract(brain_mask, v[..., i]) for i in range(v.shape[3])]))
+        return_val = v[brain_mask]
+        if len(return_val.shape) == 1:
+            return_val = np.expand_dims(return_val, axis=1)
+        return return_val
 
     if isinstance(data, dict):
-        return {key: creator(value) for key, value in data.items()}
-    elif isinstance(data, list):
-        return [creator(value) for value in data]
-    elif isinstance(data, tuple):
-        return (creator(value) for value in data)
+        return DeferredROICreationDict(data, brain_mask)
+    elif isinstance(data, (list, tuple)):
+        return DeferredROICreationTuple(data, brain_mask)
     elif isinstance(data, six.string_types):
-        return creator(nib.load(data).get_data())
-    else:
-        return creator(data)
+        return creator(load_nifti(data).get_data())
+    return creator(data)
+
+
+class DeferredROICreationDict(collections.MutableMapping):
+
+    def __init__(self, items, mask):
+        """Deferred ROI creation of the given items using the given mask.
+
+        On the moment one of the keys of this dict class is requested we will create the ROI if it does not yet exists.
+        The advantage of this class is that it saves memory by deferring the loading until an item is really needed.
+
+        Args:
+            items (dict): the items we want to create a ROI of
+            mask (ndarray): the matrix we use for creating the ROI
+        """
+        self._items = items.copy()
+        self._mask = mask
+        self._computed_rois = {}
+
+    def __delitem__(self, key):
+        del self._items[key]
+        if key in self._computed_rois:
+            del self._computed_rois[key]
+
+    def __getitem__(self, key):
+        if key not in self._computed_rois:
+            self._computed_rois[key] = create_roi(self._items[key], self._mask)
+        return self._computed_rois[key]
+
+    def __contains__(self, key):
+        try:
+            self._items[key]
+        except KeyError:
+            return False
+        else:
+            return True
+
+    def __iter__(self):
+        for key in self._items.keys():
+            yield key
+
+    def __len__(self):
+        return len(self._items)
+
+    def __setitem__(self, key, value):
+        self._computed_rois[key] = value
+
+
+class DeferredROICreationTuple(collections.Sequence):
+
+    def __init__(self, items, mask):
+        """Deferred ROI creation of the given items using the given mask.
+
+        On the moment one of the items of this class is requested we will create the ROI if it does not yet exists.
+        The advantage of this class is that it saves memory by deferring the loading until an item is really needed.
+
+        Args:
+            items (list, tuple): the items we want to create a ROI of
+            mask (ndarray): the matrix we use for creating the ROI
+        """
+        self._items = items
+        self._mask = mask
+        self._computed_rois = {}
+
+    def __getitem__(self, index):
+        if index not in self._computed_rois:
+            self._computed_rois[index] = create_roi(self._items[index], self._mask)
+        return self._computed_rois[index]
+
+    def __len__(self):
+        return len(self._items)
 
 
 def restore_volumes(data, brain_mask, with_volume_dim=True):
@@ -464,17 +620,18 @@ def restore_volumes(data, brain_mask, with_volume_dim=True):
         s = voxel_list.shape
 
         def restore_3d(voxels):
-            volume_length = functools.reduce(lambda x, y: x*y, shape3d)
-
-            return_volume = np.zeros((volume_length,), dtype=voxels.dtype, order='C')
+            return_volume = np.zeros((brain_mask.size,), dtype=voxels.dtype, order='C')
             return_volume[indices] = voxels
-
             return np.reshape(return_volume, shape3d)
+
+        def restore_4d(voxels):
+            return_volume = np.zeros((brain_mask.size, s[1]), dtype=voxels.dtype, order='C')
+            return_volume[indices] = voxels
+            return np.reshape(return_volume, brain_mask.shape + (s[1], ))
 
         if len(s) > 1 and s[1] > 1:
             if with_volume_dim:
-                volumes = [np.expand_dims(restore_3d(voxel_list[:, i]), axis=3) for i in range(s[1])]
-                return np.concatenate(volumes, axis=3)
+                return restore_4d(voxel_list)
             else:
                 return restore_3d(voxel_list[:, 0])
         else:
@@ -544,7 +701,7 @@ def eigen_vectors_from_tensor(theta, phi, psi):
     return CalculateEigenvectors().convert_theta_phi_psi(theta, phi, psi)
 
 
-def init_user_settings(pass_if_exists=True, keep_config=True):
+def init_user_settings(pass_if_exists=True):
     """Initializes the user settings folder using a skeleton.
 
     This will create all the necessary directories for adding components to MDT. It will also create a basic
@@ -555,13 +712,11 @@ def init_user_settings(pass_if_exists=True, keep_config=True):
 
     Args:
         pass_if_exists (boolean): if the folder for this version already exists, we might do nothing (if True)
-        keep_config (boolean): if the folder for this version already exists, do we want to pass_if_exists the
-            config file yes or no. This only holds for the config file.
 
     Returns:
         the path the user settings skeleton was written to
     """
-    from mdt import get_config_dir
+    from mdt.configuration import get_config_dir
     path = get_config_dir()
     base_path = os.path.dirname(get_config_dir())
 
@@ -569,12 +724,12 @@ def init_user_settings(pass_if_exists=True, keep_config=True):
         os.makedirs(base_path)
 
     @contextmanager
-    def tmp_save_previous_version():
-        previous_versions = list(reversed(sorted(os.listdir(base_path))))
+    def tmp_save_latest_version():
+        versions_available = list(reversed(sorted(os.listdir(base_path))))
         tmp_dir = tempfile.mkdtemp()
 
-        if previous_versions:
-            previous_version = previous_versions[0]
+        if versions_available:
+            previous_version = versions_available[0]
 
             if os.path.exists(os.path.join(base_path, previous_version, 'components', 'user')):
                 shutil.copytree(os.path.join(base_path, previous_version, 'components', 'user'),
@@ -582,6 +737,9 @@ def init_user_settings(pass_if_exists=True, keep_config=True):
 
             if os.path.isfile(os.path.join(base_path, previous_version, 'mdt.conf')):
                 shutil.copy(os.path.join(base_path, previous_version, 'mdt.conf'), tmp_dir + '/mdt.conf')
+
+            if os.path.isfile(os.path.join(base_path, previous_version, 'mdt.gui.conf')):
+                shutil.copy(os.path.join(base_path, previous_version, 'mdt.gui.conf'), tmp_dir + '/mdt.gui.conf')
 
         yield tmp_dir
         shutil.rmtree(tmp_dir)
@@ -591,7 +749,7 @@ def init_user_settings(pass_if_exists=True, keep_config=True):
         distutils.dir_util.copy_tree(cache_path, os.path.join(path, 'components'))
 
         cache_path = pkg_resources.resource_filename('mdt', 'data/mdt.conf')
-        shutil.copy(cache_path, path)
+        shutil.copy(cache_path, path + '/mdt.default.conf')
 
         if not os.path.exists(path + '/components/user/'):
             os.makedirs(path + '/components/user/')
@@ -606,13 +764,12 @@ def init_user_settings(pass_if_exists=True, keep_config=True):
             if not os.path.exists(path + '/components/user/' + folder_name):
                 os.mkdir(path + '/components/user/' + folder_name)
 
-    def copy_old_config(tmp_dir):
-        if os.path.exists(tmp_dir + '/mdt.conf'):
-            if os.path.exists(path + '/mdt.conf'):
-                os.remove(path + '/mdt.conf')
-            shutil.move(tmp_dir + '/mdt.conf', path + '/mdt.conf')
+    def copy_old_configs(tmp_dir):
+        for config_file in ['mdt.conf', 'mdt.gui.conf']:
+            if os.path.exists(tmp_dir + '/' + config_file):
+                shutil.copy(tmp_dir + '/' + config_file, path + '/' + config_file)
 
-    with tmp_save_previous_version() as tmp_dir:
+    with tmp_save_latest_version() as tmp_dir:
         if pass_if_exists:
             if os.path.exists(path):
                 return path
@@ -623,9 +780,7 @@ def init_user_settings(pass_if_exists=True, keep_config=True):
         init_from_mdt()
         copy_user_components(tmp_dir)
         make_sure_user_components_exists()
-
-        if keep_config and pass_if_exists:
-            copy_old_config(tmp_dir)
+        copy_old_configs(tmp_dir)
 
     return path
 
@@ -636,7 +791,6 @@ def check_user_components():
     Returns:
         bool: True if the .mdt folder for this version exists. False otherwise.
     """
-    from mdt import get_config_dir
     return os.path.isdir(get_config_dir())
 
 
@@ -649,10 +803,9 @@ def setup_logging(disable_existing_loggers=None):
         disable_existing_loggers (boolean): If we would like to disable the existing loggers when creating this one.
             None means use the default from the config, True and False overwrite the config.
     """
-    conf = configuration.config['logging']['info_dict']
+    conf = get_logging_configuration_dict()
     if disable_existing_loggers is not None:
         conf['disable_existing_loggers'] = True
-
     logging_config.dictConfig(conf)
 
 
@@ -734,66 +887,25 @@ def sort_volumes_per_voxel(input_volumes, sort_matrix):
     else:
         volume = np.concatenate([m for m in input_volumes], axis=3)
         sorted_volume = volume[list(np.ogrid[[slice(x) for x in volume.shape]][:-1])+[sort_matrix]]
-        return [np.reshape(sorted_volume[..., ind], sorted_volume.shape[0:3] + (1,)) for ind in range(len(input_volumes))]
+        return [np.reshape(sorted_volume[..., ind], sorted_volume.shape[0:3] + (1,))
+                for ind in range(len(input_volumes))]
 
 
-def recursive_merge_dict(dictionary, update_dict, in_place=False):
-    """ Recursively merge the given dictionary with the new values.
-
-    If in_place is false this does not merge in place but creates new dictionary.
-
-    If update_dict is None we return the original dictionary, or a copy if in_place is False.
-
-    Args:
-        dictionary (dict): the dictionary we want to update
-        update_dict (dict): the dictionary with the new values
-        in_place (boolean): if true, the changes are in place in the first dict.
-
-    Returns:
-        dict: a combination of the two dictionaries in which the values of the last dictionary take precedence over
-            that of the first.
-            Example:
-                recursive_merge_dict(
-                    {'k1': {'k2': 2}},
-                    {'k1': {'k2': {'k3': 3}}, 'k4': 4}
-                )
-
-                gives:
-
-                {'k1': {'k2': {'k3': 3}}, 'k4': 4}
-
-            In the case of lists in the dictionary, we do no merging and always use the new value.
-    """
-    if not in_place:
-        dictionary = copy.deepcopy(dictionary)
-
-    if not update_dict:
-        return dictionary
-
-    def merge(d, upd):
-        for k, v in upd.items():
-            if isinstance(v, collections.Mapping):
-                r = merge(d.get(k, {}), v)
-                d[k] = r
-            else:
-                d[k] = upd[k]
-        return d
-
-    return merge(dictionary, update_dict)
-
-
-def load_problem_data(volume_info, protocol, mask, static_maps=None, dtype=np.float32):
+def load_problem_data(volume_info, protocol, mask, static_maps=None, gradient_deviations=None, noise_std=None):
     """Load and create the problem data object that can be given to a model
 
     Args:
-        volume_info (string): Either an (ndarray, img_header) tuple or the full path to the volume (4d text_message_signal data).
+        volume_info (string): Either an (ndarray, img_header) tuple or the full path to the volume (4d signal data).
         protocol (Protocol or string): A protocol object with the right protocol for the given data,
             or a string object with a filename to the given file.
         mask (ndarray, string): A full path to a mask file or a 3d ndarray containing the mask
         static_maps (Dict[str, val]): the dictionary with per static map the value to use.
             The value can either be an 3d or 4d ndarray, a single number or a string. We will convert all to the
             right format.
-        dtype (dtype) the datatype in which to load the text_message_signal volume.
+        gradient_deviations (str or ndarray): set of gradient deviations to use. In HCP WUMINN format. Set to None to
+            disable.
+        noise_std (number or ndarray): either None for automatic detection,
+            or a scalar, or an 3d matrix with one value per voxel.
 
     Returns:
         DMRIProblemData: the problem data object containing all the info needed for diffusion MRI model fitting
@@ -802,46 +914,46 @@ def load_problem_data(volume_info, protocol, mask, static_maps=None, dtype=np.fl
     mask = autodetect_brain_mask_loader(mask).get_data()
 
     if isinstance(volume_info, string_types):
-        signal4d, img_header = load_volume(volume_info, dtype=dtype)
+        info = load_nifti(volume_info)
+        signal4d = info.get_data()
+        img_header = info.get_header()
     else:
         signal4d, img_header = volume_info
 
-    if static_maps is not None:
-        static_maps = {key: autodetect_static_maps_loader(val).get_data(mask) for key, val in static_maps.items()}
+    if isinstance(gradient_deviations, six.string_types):
+        gradient_deviations = load_nifti(gradient_deviations).get_data()
 
-    return DMRIProblemData(protocol, signal4d, mask, img_header, static_maps=static_maps)
-
-
-def load_volume(volume_fname, ensure_4d=True, dtype=np.float32):
-    """Load the given image data from the given volume filename.
-
-    Args:
-        volume_fname (string): The filename of the volume to load.
-        ensure_4d (boolean): if True we ensure that the output data matrix is in 4d.
-        dtype (dtype): the numpy datatype we use for the output matrix
-
-    Returns:
-        a tuple with (data, header) for the given file.
-    """
-    info = nib.load(volume_fname)
-    header = info.get_header()
-    data = info.get_data().astype(dtype, copy=False)
-    if ensure_4d:
-        if len(data.shape) < 4:
-            data = np.expand_dims(data, axis=3)
-    return data, header
+    return DMRIProblemData(protocol, signal4d, mask, img_header, static_maps=static_maps, noise_std=noise_std,
+                           gradient_deviations=gradient_deviations)
 
 
 def load_brain_mask(brain_mask_fname):
     """Load the brain mask from the given file.
 
     Args:
-        brain_mask_fname (string): The filename of the brain mask to load.
+        brain_mask_fname (string): The path of the brain mask to load.
 
     Returns:
-        The loaded brain mask data
+        ndarray: The loaded brain mask data
     """
-    return nib.load(brain_mask_fname).get_data() > 0
+    path = nifti_filepath_resolution(brain_mask_fname)
+    return load_nifti(path).get_data() > 0
+
+
+def load_nifti(nifti_volume):
+    """Load and return a nifti file.
+
+    This will apply path resolution if a filename without extension is given. See the function
+    mdt.utils.nifti_filepath_resolution() for details.
+
+    Args:
+        nifti_volume (string): The filename of the volume to load.
+
+    Returns:
+        nib image proxy (from nib.load)
+    """
+    path = nifti_filepath_resolution(nifti_volume)
+    return nib.load(path)
 
 
 def flatten(input_it):
@@ -865,97 +977,65 @@ def flatten(input_it):
 
 class MetaOptimizerBuilder(object):
 
-    def __init__(self, meta_optimizer_config=None):
+    def __init__(self, config_action=VoidConfigAction()):
         """Create a new meta optimizer builder.
 
-        This will create a new MetaOptimizer using settings from the config file or from the meta_optimizer_config
-        parameter in this constructor.
-
-        If meta_optimizer_config is set it takes precedence over the values in the configuration.
+        This will create a new MetaOptimizer using settings from the config file. You can update the config
+        during optimizer creation using a config action.
 
         Args;
-            meta_optimizer_config (dict): optimizer configuration settings
-                The dict should only contain the elements inside optimization_settings.general
-                Example config dict:
-                    meta_optimizer_config = {
-                        'optimizers': [{'name': 'NMSimplex', 'patience': 30, 'optimizer_options': {} }],
-                        'extra_optim_runs': 0,
-                        ...
-                    }
+            config_action (ConfigAction): the configuration action to apply during optimizer creation.
         """
-        self._meta_optimizer_config = meta_optimizer_config or {}
+        self._config_action = config_action
 
     def construct(self, model_names=None):
         """Construct a new meta optimizer with the options from the current configuration.
 
         If model_name is given, we try to load the specific options for that model from the configuration. If it it not
-        given we load the general options under 'general/meta_optimizer'.
+        given we load the general options.
 
         Args:
             model_names (list of str): the list of model names
         """
-        optim_config = self._get_configuration_dict(model_names)
+        with config_context(self._config_action):
+            meta_optimizer = MetaOptimizer()
 
-        cl_environments = self._get_cl_environments(optim_config)
-        load_balancer = self._get_load_balancer(optim_config)
+            optimizer_settings = OptimizationSettings.get_optimizer_configs(model_names)
 
-        meta_optimizer = MetaOptimizer(cl_environments, load_balancer)
+            meta_optimizer.optimizer = optimizer_settings[0].build_optimizer()
+            meta_optimizer.extra_optim_runs_optimizers = [optimizer_settings[i].build_optimizer()
+                                                          for i in range(1, len(optimizer_settings))]
+            meta_optimizer.extra_optim_runs = OptimizationSettings.get_extra_optim_runs()
+            return meta_optimizer
 
-        meta_optimizer.optimizer = self._get_optimizer(optim_config['optimizers'][0], cl_environments, load_balancer)
-        meta_optimizer.extra_optim_runs_optimizers = [self._get_optimizer(optim_config['optimizers'][i],
-                                                                          cl_environments, load_balancer)
-                                                      for i in range(1, len(optim_config['optimizers']))]
 
-        for attr in ('extra_optim_runs', 'extra_optim_runs_apply_smoothing', 'extra_optim_runs_use_perturbation'):
-            meta_optimizer.__setattr__(attr, optim_config[attr])
+class MetaSamplerBuilder(object):
 
-        if 'smoothing_routines' in optim_config and len(optim_config['smoothing_routines']):
-            meta_optimizer.smoother = self._get_smoother(optim_config['smoothing_routines'][0],
-                                                         cl_environments, load_balancer)
-            meta_optimizer.extra_optim_runs_smoothers = [self._get_smoother(optim_config['smoothing_routines'][i],
-                                                                            cl_environments, load_balancer)
-                                                         for i in range(1, len(optim_config['smoothing_routines']))]
+    def __init__(self, config_action=VoidConfigAction()):
+        """Create a new meta sampler builder.
 
-        return meta_optimizer
+        This will create a new MetaSampler using settings from the config file. You can update the config
+        during sampler creation using a config action.
 
-    def _get_load_balancer(self, optim_config):
-        load_balancer = get_load_balance_strategy_by_name(optim_config['load_balancer']['name'])()
-        for attr, value in optim_config['load_balancer'].items():
-            if attr != 'name':
-                load_balancer.__setattr__(attr, value)
-        return load_balancer
+        Args;
+            config_action (ConfigAction): the configuration action to apply during optimizer creation.
+        """
+        self._config_action = config_action
 
-    def _get_cl_environments(self, optim_config):
-        cl_environments = CLEnvironmentFactory.smart_device_selection()
-        if optim_config['cl_devices']:
-            if isinstance(optim_config['cl_devices'], (tuple, list)):
-                cl_environments = [cl_environments[int(ind)] for ind in optim_config['cl_devices']]
-            else:
-                cl_environments = [cl_environments[int(optim_config['cl_devices'])]]
-        return cl_environments
+    def construct(self, model_name=None):
+        """Construct a new meta sampler with the options from the current configuration.
 
-    def _get_configuration_dict(self, model_names):
-        current_config = configuration.config['optimization_settings']
-        optim_config = current_config['general']
+        If model_name is given, we try to load the specific options for that model from the configuration. If it it not
+        given we load the general options.
 
-        if model_names and 'model_specific' in current_config:
-            info_dict = get_model_config(model_names, current_config['model_specific'])
-            if info_dict:
-                optim_config = recursive_merge_dict(optim_config, info_dict)
-
-        optim_config = recursive_merge_dict(optim_config, self._meta_optimizer_config)
-        return optim_config
-
-    def _get_optimizer(self, options, cl_environments, load_balancer):
-        optimizer = get_optimizer_by_name(options['name'])
-        patience = options['patience']
-        optimizer_options = options.get('optimizer_options')
-        return optimizer(cl_environments, load_balancer, patience=patience, optimizer_options=optimizer_options)
-
-    def _get_smoother(self, options, cl_environments, load_balancer):
-        smoother = get_filter_by_name(options['name'])
-        size = options['size']
-        return smoother(size, cl_environments, load_balancer)
+        Args:
+            model_name (str): the model name for which we want to build the sampler
+        """
+        with config_context(self._config_action):
+            meta_sampler = MetaSampler()
+            sampler_settings = SamplingSettings.get_sampler_configs(model_name)
+            meta_sampler.sampler = sampler_settings[0].build_sampler()
+            return meta_sampler
 
 
 def get_cl_devices():
@@ -967,126 +1047,6 @@ def get_cl_devices():
         A list of CLEnvironments, one for each device in the system.
     """
     return CLEnvironmentFactory.smart_device_selection()
-
-
-def get_model_config(model_names, config):
-    """Get from the given dictionary the config for the given model.
-
-    This tries to find the best match between the given config items (by key) and the given model list. For example
-    if model_names is ['BallStick', 'S0'] and we have the following config dict:
-        {'^S0$': 0,
-         '^BallStick$': 1
-         ('^BallStick$', '^S0$'): 2,
-         ('^BallStickStick$', '^BallStick$', '^S0$'): 3,
-         }
-
-    then this function should return 2. because that one is the best match, even though the last option is also a
-    viable match. That is, since a subset of the keys in the last option also matches the model names, it is
-    considered a match as well. Still the best match is the third option (returning 2).
-
-    Args:
-        model_names (list of str): the names of the models we want to match. This should contain the entire
-            recursive list of cascades leading to the single model we want to get the config for.
-        config (dict): the config items with as keys either a single model regex for a name or a list of regex for
-            a chain of model names.
-
-    Returns:
-        The config content of the best matching key.
-    """
-    if not config:
-        return {}
-
-    def get_key_length(key):
-        if isinstance(key, tuple):
-            return len(key)
-        return 1
-
-    def is_match(model_names, config_key):
-        if isinstance(model_names, string_types):
-            model_names = [model_names]
-
-        if len(model_names) != get_key_length(config_key):
-            return False
-
-        if isinstance(config_key, tuple):
-            return all([re.match(config_key[ind], model_names[ind]) for ind in range(len(config_key))])
-
-        return re.match(config_key, model_names[0])
-
-    key_length_lookup = ((get_key_length(key), key) for key in config.keys())
-    ascending_keys = tuple(item[1] for item in sorted(key_length_lookup, key=lambda info: info[0]))
-
-    # direct matching
-    for key in ascending_keys:
-        if is_match(model_names, key):
-            return config[key]
-
-    # partial matching string keys to last model name
-    for key in ascending_keys:
-        if not isinstance(key, tuple):
-            if is_match(model_names[-1], key):
-                return config[key]
-
-    # partial matching tuple keys with a moving filter
-    for key in ascending_keys:
-        if isinstance(key, tuple):
-            for start_ind in range(len(key)):
-                sub_key = key[start_ind:]
-
-                if is_match(model_names, sub_key):
-                    return config[key]
-
-    # no match found
-    return {}
-
-
-def apply_model_protocol_options(model_protocol_options, problem_data):
-    """Apply the model specific protocol options.
-
-    This will check the configuration if there are model specific options for the protocol/DWI data. If so, we
-    will create and return a new problem data object. If not so, we will return the old one.
-
-    Args:
-        model_protocol_options (dict): a dictionary with the model protocol options to apply to this problem data
-        problem_data (DMRIProblemData): the problem data object to which the protocol options are applied
-
-    Returns:
-        a new problem data object with the correct protocol (and DWI data), or the old one
-    """
-    logger = logging.getLogger(__name__)
-
-    if model_protocol_options:
-        protocol = problem_data.protocol
-        protocol_indices = np.array([], dtype=np.int64)
-
-        if model_protocol_options.get('use_weighted', False):
-            if 'b_value' in model_protocol_options:
-                options = {'start': 0, 'end': 1.5e9}
-                for key, value in model_protocol_options['b_value'].items():
-                    options.update({key: value})
-                protocol_indices = protocol.get_indices_bval_in_range(**options)
-
-        if model_protocol_options.get('use_unweighted', False):
-            unweighted_threshold = model_protocol_options.get('unweighted_threshold', None)
-            protocol_indices = np.append(protocol_indices, protocol.get_unweighted_indices(unweighted_threshold))
-
-        protocol_indices = np.unique(protocol_indices)
-
-        if len(protocol_indices) != protocol.length:
-            logger.info('Applying model protocol options, we will use a subset of the protocol and DWI.')
-            logger.info('Using {} out of {} volumes, indices: {}'.format(
-                len(protocol_indices), protocol.length, str(protocol_indices).replace('\n', '').replace('[  ', '[')))
-
-            new_protocol = protocol.get_new_protocol_with_indices(protocol_indices)
-
-            new_dwi_volume = problem_data.dwi_volume[..., protocol_indices]
-
-            return DMRIProblemData(new_protocol, new_dwi_volume, problem_data.mask,
-                                   problem_data.volume_header)
-        else:
-            logger.info('No model protocol options to apply, using original protocol.')
-
-    return problem_data
 
 
 def model_output_exists(model, output_folder, append_model_name_to_path=True):
@@ -1148,14 +1108,10 @@ def split_image_path(image_path):
     folder = os.path.dirname(image_path)
     basename = os.path.basename(image_path)
 
-    extension = ''
-    if '.nii.gz' in basename:
-        extension = '.nii.gz'
-    elif '.nii' in basename:
-        extension = '.nii'
-
-    basename = basename.replace(extension, '')
-    return folder, basename, extension
+    for extension in ['.nii.gz', '.nii']:
+        if basename[-len(extension):] == extension:
+            return folder, basename[0:-len(extension)], extension
+    return folder, basename, ''
 
 
 def calculate_information_criterions(log_likelihoods, k, n):
@@ -1182,17 +1138,11 @@ def calculate_information_criterions(log_likelihoods, k, n):
 
 class ComplexNoiseStdEstimator(object):
 
-    def __init__(self, problem_data):
-        """Estimation routine for estimating the standard deviation of the Gaussian error in the complex text_message_signal images.
+    def estimate(self, problem_data, **kwargs):
+        """Get a noise std for the entire volume.
 
         Args:
-            problem_data the full set of problem data
-        """
-        self._problem_data = problem_data
-        self._logger = logging.getLogger(__name__)
-
-    def estimate(self, **kwargs):
-        """Get a noise std for the entire volume.
+            problem_data (DMRIProblemData): the problem data for which to find a noise std
 
         Returns:
             float or ndarray: the noise sigma of the Gaussian noise in the original complex image domain
@@ -1200,14 +1150,15 @@ class ComplexNoiseStdEstimator(object):
         Raises:
             NoiseStdEstimationNotPossible: if we can not estimate the sigma using this estimator
         """
+        raise NotImplementedError()
 
 
 def apply_mask(volume, mask, inplace=True):
     """Apply a mask to the given input.
 
     Args:
-        volume (str, ndarray, list, tuple or dict): The input file path or the image itself or a list, tuple or
-            dict.
+        volume (str, ndarray, list, tuple or dict): The input file path or the image itself or a list,
+            tuple or dict.
         mask (str or ndarray): The filename of the mask or the mask itself
         inplace (boolean): if True we apply the mask in place on the volume image. If false we do not.
 
@@ -1222,7 +1173,8 @@ def apply_mask(volume, mask, inplace=True):
 
     def apply(volume, mask):
         if isinstance(volume, string_types):
-            volume = load_volume(volume)[0]
+            volume = load_nifti(volume).get_data()
+
         mask = mask.reshape(mask.shape + (volume.ndim - mask.ndim) * (1,))
 
         if len(mask.shape) < 4:
@@ -1246,396 +1198,49 @@ def apply_mask(volume, mask, inplace=True):
     return apply(volume, mask)
 
 
-class ModelProcessingStrategy(object):
+def apply_mask_to_file(input_fname, mask, output_fname=None):
+    """Apply a mask to the given input (nifti) file.
 
-    def __init__(self):
-        """Model processing strategies define in what parts the model is analyzed.
-
-        This uses the problems_to_analyze attribute of the MOT model builder to select the voxels to process. That
-        attribute arranges that only a selection of the problems are analyzed instead of all of them.
-        """
-        self._logger = logging.getLogger(__name__)
-
-    def run(self, model, problem_data, output_path, recalculate, worker):
-        """Process the given dataset using the logistics the subclass.
-
-        Subclasses of this base class can implement all kind of logic to divide a large dataset in smaller chunks
-        (for example slice by slice) and run the processing on each slice separately and join the results afterwards.
-
-        Args:
-             model (AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize.
-             problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
-             output_path (string): The full path to the folder where to place the output
-             recalculate (boolean): If we want to recalculate the results if they are already present.
-             worker (ModelProcessingWorker): the worker we use to do the processing
-
-        Returns:
-            dict: the results as a dictionary of roi lists
-        """
-
-
-class ModelChunksProcessingStrategy(ModelProcessingStrategy):
-
-    def __init__(self, honor_voxels_to_analyze=True):
-        """This class is a baseclass for all model slice fitting strategies that fit the data in chunks/parts.
-
-        Args:
-            honor_voxels_to_analyze (bool): if set to True, we use the model's voxels_to_analyze setting if set
-                instead of fitting all voxels in the mask
-        """
-        super(ModelChunksProcessingStrategy, self).__init__()
-        self.honor_voxels_to_analyze = honor_voxels_to_analyze
-
-    def _prepare_chunk_dir(self, chunks_dir, recalculate):
-        """Prepare the directory for a new chunk.
-
-        Args:
-            chunks_dir (str): the full path to the chunks directory.
-            recalculate (boolean): if true and the data exists, we throw everything away to start over.
-        """
-        if recalculate:
-            if os.path.exists(chunks_dir):
-                shutil.rmtree(chunks_dir)
-
-        if not os.path.exists(chunks_dir):
-            os.makedirs(chunks_dir)
-
-    @contextmanager
-    def _selected_indices(self, model, chunk_indices):
-        """Create a context in which problems_to_analyze attribute of the models is set to the selected indices.
-
-        Args:
-            model: the model to which to set the problems_to_analyze
-            chunk_indices (ndarray): the list of voxel indices we want to use for processing
-        """
-        old_setting = model.problems_to_analyze
-        model.problems_to_analyze = chunk_indices
-        yield
-        model.problems_to_analyze = old_setting
-
-
-class ModelProcessingWorker(object):
-
-    def process(self, model, problem_data, mask, output_dir):
-        """Process the indicated voxels in the way prescribed by this worker.
-
-        Since the processing strategy can use all voxels to do the analysis in one go, this function
-        should return all the output it can, i.e. the same kind of output as from the function combine
-
-        Args:
-            model (DMRISingleModel): the model to process
-            problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
-            mask (ndarray): the mask that was used in this processing step
-            output_dir (str): the location for the output files
-
-        Returns:
-            the results for this single processing step
-        """
-
-    def output_exists(self, model, problem_data, output_dir):
-        """Check if in the given directory all the output exists for the given model.
-
-        This could be used by the processing strategy to check if in a given folder for a single slice all the
-        output items exist.
-
-        Args:
-            model (DMRISingleModel): the model to process
-            problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
-            output_dir (str): the location for the output files
-
-        Returns:
-            boolean: true if the output exists, false otherwise
-        """
-
-    def combine(self, model, problem_data, output_path, chunks_dir):
-        """Combine all the calculated parts.
-
-        This function should combine all the results into one compilation.
-
-        This expects there to be a file named '__mask.nii.gz' in every sub dir. This file should contain
-        a mask for exactly that slice/data calculated in that directory. We will use those chunk masks to combine
-        the data for the whole dataset.
-
-        Args:
-            model (DMRISingleModel): the model we processed
-            problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
-            output_path (str): the location for the final combined output files
-            chunks_dir (str): the location of the directory that contains all the directories with the chunks.
-
-        Returns:
-            the processing results for as much as this is applicable
-        """
-
-
-class FittingProcessingWorker(ModelProcessingWorker):
-
-    def __init__(self, optimizer):
-        """The processing worker for model fitting.
-
-        Use this if you want to use the model processing strategy to do model fitting.
-
-        Args:
-            optimizer: the optimization routine to use
-        """
-        self._optimizer = optimizer
-
-    def process(self, model, problem_data, mask, output_dir):
-        results, extra_output = self._optimizer.minimize(model, full_output=True)
-        results.update(extra_output)
-
-        self._write_output(results, mask, output_dir, problem_data.volume_header)
-
-        return results
-
-    def output_exists(self, model, problem_data, output_dir):
-        return model_output_exists(model, output_dir, append_model_name_to_path=False)
-
-    def combine(self, model, problem_data, output_path, chunks_dir):
-        sub_dirs = list(os.listdir(chunks_dir))
-        if sub_dirs:
-            file_paths = glob.glob(os.path.join(chunks_dir, os.listdir(chunks_dir)[0], '*.nii*'))
-            file_paths = filter(lambda d: '__mask' not in d, file_paths)
-            map_names = map(lambda d: split_image_path(d)[1], file_paths)
-
-            results = {}
-            for map_name in map_names:
-                map_paths = []
-                mask_paths = []
-
-                for sub_dir in sub_dirs:
-                    map_file = os.path.join(chunks_dir, sub_dir, map_name + '.nii.gz')
-
-                    if os.path.exists(map_file):
-                        map_paths.append(map_file)
-                        mask_paths.append(os.path.join(chunks_dir, sub_dir, '__mask.nii.gz'))
-
-                results.update({map_name: join_parameter_maps(output_path, map_paths, mask_paths, map_name)})
-
-            return results
-
-    def _write_output(self, result_arrays, mask, output_path, volume_header):
-        """Write the result arrays to the given output folder"""
-        volume_maps = restore_volumes(result_arrays, mask)
-        Nifti.write_volume_maps(volume_maps, output_path, volume_header)
-
-
-class SamplingProcessingWorker(ModelProcessingWorker):
-
-    def __init__(self, sampler):
-        """The processing worker for model sampling.
-
-        Use this if you want to use the model processing strategy to do model sampling.
-
-        Args:
-            sampler (AbstractSampler): the optimization sampler to use
-        """
-        self._sampler = sampler
-
-    def process(self, model, problem_data, mask, output_dir):
-        results, other_output = self._sampler.sample(model, full_output=True)
-        write_sample_results(results, output_dir)
-        self._write_maps(other_output, mask, problem_data, output_dir)
-        return memory_load_samples(output_dir)
-
-    def output_exists(self, model, problem_data, output_dir):
-        return model_output_exists(model, os.path.join(output_dir, 'volume_maps'), append_model_name_to_path=False)
-
-    def combine(self, model, problem_data, output_path, chunks_dir):
-        self._combine_maps(output_path, chunks_dir)
-        self._combine_samples(problem_data.mask, output_path, chunks_dir)
-        return memory_load_samples(output_path)
-
-    def _combine_maps(self, output_path, chunks_dir):
-        sub_dirs = list(os.listdir(chunks_dir))
-        if sub_dirs:
-            file_paths = glob.glob(os.path.join(chunks_dir, os.listdir(chunks_dir)[0], 'volume_maps', '*.nii*'))
-            file_paths = filter(lambda d: '__mask' not in d, file_paths)
-            map_names = map(lambda d: split_image_path(d)[1], file_paths)
-
-            for map_name in map_names:
-                map_paths = list(os.path.join(chunks_dir, sub_dir, 'volume_maps', map_name + '.nii.gz')
-                                 for sub_dir in sub_dirs)
-                mask_paths = list(os.path.join(chunks_dir, sub_dir, '__mask.nii.gz') for sub_dir in sub_dirs)
-
-                join_parameter_maps(os.path.join(output_path, 'volume_maps'), map_paths, mask_paths, map_name)
-
-    def _combine_samples(self, whole_mask, output_path, chunks_dir):
-        sub_dirs = list(os.listdir(chunks_dir))
-        if sub_dirs:
-            file_paths = glob.glob(os.path.join(chunks_dir, os.listdir(chunks_dir)[0], '*.samples'))
-            map_names = map(lambda d: os.path.splitext(os.path.basename(d))[0], file_paths)
-
-            for map_name in map_names:
-                map_paths = list(os.path.join(chunks_dir, sub_dir, map_name + '.samples') for sub_dir in sub_dirs)
-                map_settings = list(os.path.join(chunks_dir, sub_dir, map_name + '.samples.settings')
-                                    for sub_dir in sub_dirs)
-                mask_paths = list(os.path.join(chunks_dir, sub_dir, '__mask.nii.gz') for sub_dir in sub_dirs)
-
-                self._join_sample_results(whole_mask, output_path, map_paths, map_settings, mask_paths, map_name)
-
-    def _write_maps(self, other_output, mask, problem_data, output_path):
-        volume_maps_dir = os.path.join(output_path, 'volume_maps')
-        volume_maps = restore_volumes(other_output, mask)
-        Nifti.write_volume_maps(volume_maps, volume_maps_dir, problem_data.volume_header)
-
-    def _join_sample_results(self, whole_mask, output_path, maps, map_settings, masks, map_name):
-        """Join the sample results of a single parameter.
-
-        This uses the given masks to determine where to place which voxels.
-
-        Args:
-            whole_mask (ndarray): the complete brain mask
-            output_path (str): where to place the output file
-            maps (list of str): the list of sample files to concatenate
-            map_settings (list of str): a list with the same length as maps containing the settings for the given
-                maps
-            masks (list of str): the list of masks indicating the voxels present in the map.
-            Should have same length as maps.
-            map_name (str): the name of the output file
-        """
-        settings = []
-
-        for map_setting_file in map_settings:
-            with open(map_setting_file, 'rb') as f:
-                settings.append(pickle.load(f))
-
-        total_shape = (sum(s['shape'][0] for s in settings), settings[0]['shape'][1])
-        total = np.memmap(os.path.join(output_path, map_name + '.samples'), dtype=settings[0]['dtype'],
-                          shape=total_shape, mode='w+')
-
-        settings_total = {'dtype': settings[0]['dtype'], 'shape': total_shape}
-        with open(os.path.join(output_path, map_name + '.samples.settings'), 'wb') as f:
-            pickle.dump(settings_total, f, protocol=pickle.HIGHEST_PROTOCOL)
-
-        whole_mask_indices = create_index_matrix(whole_mask)
-
-        for map_fname, settings, mask_fname in zip(maps, settings, masks):
-            chunk_mask = nib.load(mask_fname).get_data().astype(np.bool)
-            chunk_indices = np.squeeze(create_roi(whole_mask_indices * chunk_mask, chunk_mask))
-
-            current = np.memmap(map_fname, dtype=settings['dtype'], mode='r', shape=settings['shape'])
-            total[chunk_indices, :] = current
-            del current
-        del total
-
-
-def write_sample_results(results, output_path):
-    """Write the sample results to file.
-
-    This will write to files per sampled parameter. The first is a numpy array written to file, the second
-    is a python pickled dictionary with the datatype and shape of the written numpy array.
+    If no output filename is given, the input file is overwritten.
 
     Args:
-        results (dict): the samples to write
-        output_path (str): the path to write the samples in
+        input_fname (str): The input file path
+        mask (str or ndarray): The mask to use
+        output_fname (str): The filename for the output file (the masked input file).
     """
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
+    mask = autodetect_brain_mask_loader(mask).get_data()
 
-    for map_name, samples in results.items():
-        saved = np.memmap(os.path.join(output_path, map_name + '.samples'),
-                          dtype=samples.dtype, mode='w+', shape=samples.shape)
-        saved[:] = samples[:]
-        del saved
+    if output_fname is None:
+        output_fname = input_fname
 
-        settings = {'dtype': samples.dtype, 'shape': samples.shape}
-        with open(os.path.join(output_path, map_name + '.samples.settings'), 'wb') as f:
-            pickle.dump(settings, f, protocol=pickle.HIGHEST_PROTOCOL)
+    nib.Nifti1Image(apply_mask(input_fname, mask), None, load_nifti(input_fname).get_header()).to_filename(output_fname)
 
 
-def memory_load_samples(data_folder):
+def load_samples(data_folder, mode='r'):
     """Load sampled results as a dictionary of numpy memmap.
 
     Args:
         data_folder (str): the folder from which to load the samples
+        mode (str): the mode in which to open the memory mapped sample files (see numpy mode parameter)
 
     Returns:
         dict: the memory loaded samples per sampled parameter.
     """
     data_dict = {}
-    for fname in glob.glob(os.path.join(data_folder, '*.samples')):
-        if os.path.isfile(fname + '.settings'):
-            with open(fname + '.settings', 'rb') as f:
-                settings = pickle.load(f)
-                samples = np.memmap(fname, dtype=settings['dtype'], mode='r', shape=settings['shape'])
-
-                map_name = os.path.splitext(os.path.basename(fname))[0]
-                data_dict.update({map_name: samples})
+    for fname in glob.glob(os.path.join(data_folder, '*.samples.npy')):
+        samples = open_memmap(fname, mode=mode)
+        map_name = os.path.basename(fname)[0:-len('.samples.npy')]
+        data_dict.update({map_name: samples})
     return data_dict
 
 
-def join_parameter_maps(output_dir, maps, masks, map_name):
-    """Join the chunks of a single parameter over all chunk dirs.
-
-    This uses the given masks to determine where to place which voxels.
-
-    Args:
-        output_dir (str): where to place the concatenated output
-        maps (list of str): the list of map filenames we want to concatenate.
-            Should have same length as masks.
-        masks (list of str): the list of masks indicating the voxels present in the map.
-            Should have same length as maps.
-        map_name (str): the name of the output map
-
-    Returns:
-        np.array: the values of the concatenated map in a large array
-    """
-    results = None
-    mask_so_far = None
-    volume_header = None
-
-    for map_fname, mask_fname in zip(maps, masks):
-        sub_results = nib.load(map_fname).get_data()
-        mask_nib = nib.load(mask_fname)
-        mask = mask_nib.get_data().astype(np.bool)
-
-        if volume_header is None:
-            volume_header = mask_nib.get_header()
-
-        if results is None:
-            results = sub_results
-            mask_so_far = mask
-        else:
-            mask_so_far += mask
-            sub_results = apply_mask(sub_results, mask_so_far)
-            results += sub_results
-
-    Nifti.write_volume_maps({map_name: results}, output_dir, volume_header)
-    return create_roi(results, mask_so_far)
-
-
-def get_processing_strategy(processing_type, model_names=None):
-    """Get from the config file the correct processing strategy for the given model.
-
-    Args:
-        processing_type (str): 'optimization', 'sampling' or any other of the
-            processing_strategies defined in the config
-        model_names (list of str): the list of model names (the full recursive cascade of model names)
-
-    Returns:
-        ModelProcessingStrategy: the processing strategy to use for this model
-    """
-    strategy_name = configuration.config['processing_strategies'][processing_type]['general']['name']
-    options = configuration.config['processing_strategies'][processing_type]['general'].get('options', {}) or {}
-
-    if model_names and 'model_specific' in configuration.config['processing_strategies'][processing_type]:
-        info_dict = get_model_config(
-            model_names, configuration.config['processing_strategies'][processing_type]['model_specific'])
-
-        if info_dict:
-            strategy_name = info_dict['name']
-            options = info_dict.get('options', {}) or {}
-
-    return ProcessingStrategiesLoader().load(strategy_name, **options)
-
-
-def estimate_noise_std(problem_data, estimation_cls_name=None):
+def estimate_noise_std(problem_data, estimator=None):
     """Estimate the noise standard deviation.
 
     Args:
         problem_data (DMRIProblemData): the problem data we can use to do the estimation
-        estimation_cls_name (str): the name of the estimation class to load. If none given we try each defined in the
-            current config.
+        estimator (ComplexNoiseStdEstimator): the estimator to use for the estimation. If not set we use
+            the one in the configuration.
 
     Returns:
         the noise std estimated from the data. This can either be a single float, or an ndarray.
@@ -1643,27 +1248,24 @@ def estimate_noise_std(problem_data, estimation_cls_name=None):
     Raises:
         NoiseStdEstimationNotPossible: if the noise could not be estimated
     """
-    loader = NoiseSTDCalculatorsLoader()
     logger = logging.getLogger(__name__)
-
     logger.info('Trying to estimate a noise std.')
 
-    def estimate(estimator_name):
-        estimator = loader.get_class(estimator_name)(problem_data)
-        noise_std = estimator.estimate()
+    def estimate(estimation_routine):
+        noise_std = estimator.estimate(problem_data)
 
-        if isinstance(noise_std, np.ndarray):
-            logger.info('Found voxel-wise noise std using estimator {}.'.format(noise_std, estimator_name))
+        if isinstance(noise_std, np.ndarray) and not is_scalar(noise_std):
+            logger.info('Found voxel-wise noise std using estimator {}.'.format(estimation_routine))
             return noise_std
 
         if np.isfinite(noise_std) and noise_std > 0:
-            logger.info('Found global noise std {} using estimator {}.'.format(noise_std, estimator_name))
+            logger.info('Found global noise std {} using estimator {}.'.format(noise_std, estimation_routine))
             return noise_std
 
-    if estimation_cls_name:
-        estimators = [estimation_cls_name]
+    if estimator:
+        estimators = [estimator]
     else:
-        estimators = configuration.config['noise_std_estimating']['general']['estimators']
+        estimators = get_noise_std_estimators()
 
     if len(estimators) == 1:
         return estimate(estimators[0])
@@ -1675,36 +1277,6 @@ def estimate_noise_std(problem_data, estimation_cls_name=None):
                 pass
 
     raise NoiseStdEstimationNotPossible('Estimating the noise was not possible.')
-
-
-def get_noise_std_value(noise_std, problem_data):
-    """Convert the variable valued noise std to an actual noise std.
-
-    This is meant to be used by the fitting and sampling routines to return a proper value for the
-    noise std given the user provided noise std and the problem data.
-
-    Args:
-        noise_std: the noise level standard deviation.
-            The different values can be:
-                None: set to 1
-                double: use a single value for all voxels
-                ndarray: use a value per voxel. If given this should be a value for the entire dataset.
-                'auto': tries to estimate the noise std from the data
-
-        problem_data: if we need to estimate the noise std, the problem data to use
-
-    Returns:
-        either a single value or a ndarray with a value for every voxel in the volume
-    """
-    if noise_std is None:
-        return 1
-
-    try:
-        return autodetect_noise_std_loader(noise_std).get_noise_std(problem_data)
-    except NoiseStdEstimationNotPossible:
-        logger = logging.getLogger(__name__)
-        logger.warn('Failed to obtain a noise std for this subject. We will continue with an std of 1.')
-        return 1
 
 
 class AutoDict(defaultdict):
@@ -1725,3 +1297,325 @@ class AutoDict(defaultdict):
                 value = value.to_normal_dict()
             results.update({key: value})
         return results
+
+
+def is_scalar(value):
+    """Test if the given value is a scalar.
+
+    This function also works with memmapped array values, in contrast to the numpy isscalar method.
+
+    Args:
+        value: the value to test for being a scalar value
+    """
+    return mot.utils.is_scalar(value)
+
+
+def roi_index_to_volume_index(roi_indices, brain_mask):
+    """Get the 3d index of a voxel given the linear index in a ROI created with the given brain mask.
+
+    This is the inverse function of volume_index_to_roi_index.
+
+    This function is useful if you, for example, have sampling results of a specific voxel
+    and you want to locate that voxel in the brain maps.
+
+    Please note that this function can be memory intensive for a large list of roi_indices
+
+    Args:
+        roi_indices (int or ndarray): the index in the ROI created by that brain mask
+        brain_mask (str or 3d array): the brain mask you would like to use
+
+    Returns:
+        ndarray: the 3d voxel location(s) of the indicated voxel(s)
+    """
+    mask = autodetect_brain_mask_loader(brain_mask).get_data()
+    return np.argwhere(mask)[roi_indices, :]
+
+
+def volume_index_to_roi_index(volume_index, brain_mask):
+    """Get the ROI index given the volume index (in 3d).
+
+    This is the inverse function of roi_index_to_volume_index.
+
+    This function is useful if you want to locate a voxel in the ROI given the position in the volume.
+
+    Args:
+        volume_index (tuple): the volume index, a tuple or list of length 3
+        brain_mask (str or 3d array): the brain mask you would like to use
+
+    Returns:
+        int: the index of the given voxel in the ROI created by the given mask
+    """
+    return create_index_matrix(brain_mask)[volume_index]
+
+
+def create_index_matrix(brain_mask):
+    """Get a matrix with on every 3d position the linear index number of that voxel.
+
+    This function is useful if you want to locate a voxel in the ROI given the position in the volume.
+
+    Args:
+        brain_mask (str or 3d array): the brain mask you would like to use
+
+    Returns:
+        3d ndarray: a 3d volume of the same size as the given mask and with as every non-zero element the position
+            of that voxel in the linear ROI list.
+    """
+    mask = autodetect_brain_mask_loader(brain_mask).get_data()
+    roi = np.arange(0, np.count_nonzero(mask))
+    return restore_volumes(roi, mask, with_volume_dim=False)
+
+
+def get_temporary_results_dir(user_value):
+    """Get the temporary results dir from the user value and from the config.
+
+    Args:
+        user_value (string, boolean or None): if a string is given we will use that directly. If a boolean equal to
+            True is given we will use the configuration defined value. If None/False is given we will not use a specific
+            temporary results dir.
+
+    Returns:
+        str or None: either the temporary results dir or None
+    """
+    if isinstance(user_value, string_types):
+        return user_value
+    if user_value is True:
+        return get_tmp_results_dir()
+    return None
+
+
+def nifti_filepath_resolution(file_path):
+    """Tries to resolve the filename to a nifti based on only the filename.
+
+    For example, this resolves the path: /tmp/mask to:
+        /tmp/mask if exists
+        /tmp/mask.nii if exist
+        /tmp/mask.nii.gz if exists
+
+    Hence, the lookup order is: path, path.nii, path.nii.gz
+
+    If a file with an extension is given we will do no further resolving and return the path as is.
+
+    Args:
+        file_path (str): the path to the nifti file, can be without extension.
+
+    Returns:
+        str: the file path we resolved to the final file.
+
+    Raises:
+        ValueError: if no nifti file could be found
+    """
+    if file_path[:-len('.nii')] == '.nii' or file_path[:-len('.nii.gz')] == '.nii.gz':
+        return file_path
+
+    if os.path.isfile(file_path):
+        return file_path
+    elif os.path.isfile(file_path + '.nii'):
+        return file_path + '.nii'
+    elif os.path.isfile(file_path + '.nii.gz'):
+        return file_path + '.nii.gz'
+    raise ValueError('No nifti file could be found using the path {}.'.format(file_path))
+
+
+def create_blank_mask(volume4d_path, output_fname):
+    """Create a blank mask for the given 4d volume.
+
+    Sometimes you want to use all the voxels in the given dataset, without masking any voxel. Since the optimization
+    routines require a mask, you have to submit one. The solution is to use a blank mask, that is, a mask that
+    masks nothing.
+
+    Args:
+        volume4d_path (str): the path to the 4d volume you want to create a blank mask for
+        output_fname (str): the path to the result mask
+    """
+    volume_info = load_nifti(volume4d_path)
+    mask = np.ones(volume_info.shape[:3])
+    nib.Nifti1Image(mask, None, volume_info.get_header()).to_filename(output_fname)
+
+
+def volume_merge(volume_paths, output_fname, sort=False):
+    """Merge a list of volumes on the 4th dimension. Writes the result as a file.
+
+    You can enable sorting the list of volume names based on a natural key sort. This is
+    the most convenient option in the case of globbing files. By default this behaviour is disabled.
+
+    Example usage with globbing:
+        mdt.volume_merge(glob.glob('*.nii'), 'merged.nii.gz', True)
+
+    Args:
+        volume_paths (list of str): the list with the input filenames
+        output_fname (str): the output filename
+        sort (boolean): if true we natural sort the list of DWI images before we merge them. If false we don't.
+            The default is True.
+
+    Returns:
+        list of str: the list with the filenames in the order of concatenation.
+    """
+    images = []
+    header = None
+
+    if sort:
+        def natural_key(_str):
+            return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', _str)]
+        volume_paths.sort(key=natural_key)
+
+    for volume in volume_paths:
+        nib_container = load_nifti(volume)
+        header = header or nib_container.get_header()
+        image_data = nib_container.get_data()
+
+        if len(image_data.shape) < 4:
+            image_data = np.expand_dims(image_data, axis=3)
+
+        images.append(image_data)
+
+    combined_image = np.concatenate(images, axis=3)
+    nib.Nifti1Image(combined_image, None, header).to_filename(output_fname)
+
+    return volume_paths
+
+
+def concatenate_mri_sets(items, output_volume_fname, output_protocol_fname, overwrite_if_exists=False):
+    """Concatenate two or more DMRI datasets. Normally used to concatenate different DWI shells into one image.
+
+    This writes a single volume and a single protocol file.
+
+    Args:
+        items (tuple of dict): A tuple of dicts with volume filenames and protocol filenames
+            (
+             {'volume': volume_fname,
+              'protocol': protocol_filename
+             }, ...
+            )
+        output_volume_fname (string): The name of the output volume
+        output_protocol_fname (string): The name of the output protocol file
+        overwrite_if_exists (boolean, optional, default false): Overwrite the output files if they already exists.
+    """
+    if not items:
+        return
+
+    if os.path.exists(output_volume_fname) and os.path.exists(output_protocol_fname) and not overwrite_if_exists:
+        return
+
+    to_concat = []
+    nii_header = None
+
+    for e in items:
+        signal_img = load_nifti(e['volume'])
+        signal4d = signal_img.get_data()
+        nii_header = signal_img.get_header()
+
+        protocol = load_protocol(e['protocol'])
+        to_concat.append((protocol, signal4d))
+
+    protocol, signal4d = concatenate_two_mri_measurements(to_concat)
+    nib.Nifti1Image(signal4d, None, nii_header).to_filename(output_volume_fname)
+    write_protocol(protocol, output_protocol_fname)
+
+
+def create_median_otsu_brain_mask(dwi_info, protocol, output_fname=None, **kwargs):
+    """Create a brain mask and optionally write it.
+
+    It will always return the mask. If output_fname is set it will also write the mask.
+
+    Args:
+        dwi_info (string or (image, header) pair or image):
+            - the filename of the input file;
+            - or a tuple with as first index a ndarray with the DWI and as second index the header;
+            - or only the image as an ndarray
+        protocol (string or Protocol): The filename of the protocol file or a Protocol object
+        output_fname (string): the filename of the output file. If None, no output is written.
+            If dwi_info is only an image also no file is written.
+        **kwargs: the additional arguments for the function median_otsu.
+
+    Returns:
+        ndarray: The created brain mask
+    """
+    from mdt.masking import create_median_otsu_brain_mask, create_write_median_otsu_brain_mask
+
+    if output_fname:
+        if not isinstance(dwi_info, (string_types, tuple, list)):
+            raise ValueError('No header obtainable, can not write the brain mask.')
+        return create_write_median_otsu_brain_mask(dwi_info, protocol, output_fname, **kwargs)
+    return create_median_otsu_brain_mask(dwi_info, protocol, **kwargs)
+
+
+def extract_volumes(input_volume_fname, input_protocol, output_volume_fname, output_protocol, volume_indices):
+    """Extract volumes from the given volume and save them to separate files.
+
+    This will index the given input volume in the 4th dimension, as is usual in multi shell DWI files.
+
+    Args:
+        input_volume_fname (str): the input volume from which to get the specific volumes
+        input_protocol (str or Protocol): the input protocol, either a file or preloaded protocol object
+        output_volume_fname (str): the output filename for the selected volumes
+        output_protocol (str): the output protocol for the selected volumes
+        volume_indices (list): the desired indices, indexing the input_volume
+    """
+    input_protocol = autodetect_protocol_loader(input_protocol).get_protocol()
+
+    new_protocol = input_protocol.get_new_protocol_with_indices(volume_indices)
+    write_protocol(new_protocol, output_protocol)
+
+    input_volume = load_nifti(input_volume_fname)
+    image_data = input_volume.get_data()[..., volume_indices]
+    nib.Nifti1Image(image_data, None, input_volume.get_header()).to_filename(output_volume_fname)
+
+
+def recalculate_error_measures(model, problem_data, data_dir, sigma, output_dir=None, sigma_param_name=None,
+                               evaluation_model=None):
+    """Recalculate the information criterion maps.
+
+    This will write the results either to the original data directory, or to the given output dir.
+
+    Args:
+        model (str or AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize
+            or the name of an model we load with get_model()
+        problem_data (DMRIProblemData): the problem data object
+        data_dir (str): the directory containing the results for the given model
+        sigma (float): the new noise sigma we use for calculating the log likelihood and then the
+            information criteria's.
+        output_dir (str): if given, we write the output to this directory instead of the data dir.
+        sigma_param_name (str): the name of the parameter to which we will set sigma. If not given we search
+            the result maps for something ending in .sigma
+        evaluation_model: the evaluation model, we will manually fix the sigma in this function
+    """
+    from mdt.models.cascade import DMRICascadeModelInterface
+
+    logger = logging.getLogger(__name__)
+
+    if isinstance(model, string_types):
+        model = get_model(model)
+
+    if isinstance(model, DMRICascadeModelInterface):
+        raise ValueError('This function does not accept cascade models.')
+
+    model.set_problem_data(problem_data)
+
+    results_maps = create_roi(Nifti.read_volume_maps(data_dir), problem_data.mask)
+
+    if sigma_param_name is None:
+        sigma_params = list(filter(lambda key: '.sigma' in key, model.get_optimization_output_param_names()))
+
+        if not sigma_params:
+            raise ValueError('Could not find a suitable parameter to set sigma for.')
+
+        sigma_param_name = sigma_params[0]
+        logger.info('Setting the given sigma value to the model parameter {}.'.format(sigma_param_name))
+
+    model.fix(sigma_param_name, sigma)
+
+    evaluation_model = evaluation_model or OffsetGaussianEvaluationModel()
+    evaluation_model.set_noise_level_std(sigma)
+
+    log_likelihood_calc = LogLikelihoodCalculator()
+    log_likelihoods = log_likelihood_calc.calculate(model, results_maps, evaluation_model=evaluation_model)
+
+    k = model.get_nmr_estimable_parameters()
+    n = problem_data.get_nmr_inst_per_problem()
+    results_maps.update({'LogLikelihood': log_likelihoods})
+    results_maps.update(calculate_information_criterions(log_likelihoods, k, n))
+
+    volumes = restore_volumes(results_maps, problem_data.mask)
+
+    output_dir = output_dir or data_dir
+    Nifti.write_volume_maps(volumes, output_dir, problem_data.volume_header)

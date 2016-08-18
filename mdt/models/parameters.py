@@ -1,6 +1,6 @@
 import six
 
-from mdt.components_loader import ComponentConfig, ComponentBuilder
+from mdt.components_loader import ComponentConfig, ComponentBuilder, method_binding_meta
 from mot.base import ProtocolParameter, CLDataType, FreeParameter, ModelDataParameter, StaticMapParameter
 from mot.model_building.parameter_functions.priors import UniformWithinBoundsPrior
 from mot.model_building.parameter_functions.proposals import GaussianProposal
@@ -19,7 +19,7 @@ class ParameterConfig(ComponentConfig):
     These configs are loaded on the fly by the ParametersBuilder
 
     Config options:
-        name (str): the name of the parameter
+        name (str): the name of the parameter, defaults to the class name
         description (str): the description of this parameter
         data_type (str or DataType): either a string we load as datatype or the actual datatype itself
         type (str): the type of parameter (free, protocol or model_data)
@@ -88,13 +88,13 @@ class ParameterBuilder(ComponentBuilder):
             data_type = CLDataType.from_string(data_type)
 
         if template.type.lower() == 'protocol':
-            class AutoProtocolParameter(ProtocolParameter):
+            class AutoProtocolParameter(method_binding_meta(template, ProtocolParameter)):
                 def __init__(self):
                     super(AutoProtocolParameter, self).__init__(data_type, template.name)
             return AutoProtocolParameter
 
         elif template.type.lower() == 'free':
-            class AutoFreeParameter(FreeParameter):
+            class AutoFreeParameter(method_binding_meta(template, FreeParameter)):
                 def __init__(self):
                     super(AutoFreeParameter, self).__init__(
                         data_type,
@@ -112,13 +112,13 @@ class ParameterBuilder(ComponentBuilder):
             return AutoFreeParameter
 
         elif template.type.lower() == 'model_data':
-            class AutoModelDataParameter(ModelDataParameter):
+            class AutoModelDataParameter(method_binding_meta(template, ModelDataParameter)):
                 def __init__(self):
                     super(AutoModelDataParameter, self).__init__(data_type, template.name, template.value)
             return AutoModelDataParameter
 
         elif template.type.lower() == 'static_map':
-            class AutoStaticMapParameter(StaticMapParameter):
+            class AutoStaticMapParameter(method_binding_meta(template, StaticMapParameter)):
                 def __init__(self):
                     super(AutoStaticMapParameter, self).__init__(data_type, template.name, template.value)
             return AutoStaticMapParameter

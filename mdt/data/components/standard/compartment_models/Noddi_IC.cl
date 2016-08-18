@@ -9,14 +9,14 @@
 // do not change this value! It would require adding approximations to the functions below
 #define NODDI_IC_MAX_POLYNOMIAL_ORDER 6
 // sqrt(pi)/2
-#define M_SQRTPI_2 0.8862269254527580
-// 1 / sqrt(pi)
-#define M_1_SQRTPI 0.5641895835477562
+#define M_SQRTPI_2_F 0.8862269254527580f
 // sqrt(pi)
-#define M_SQRTPI 1.7724538509055160
+#define M_SQRTPI_F 1.7724538509055160f
 
 void Noddi_IC_LegendreGaussianIntegral(const mot_float_type x, mot_float_type* result);
 void Noddi_IC_WatsonSHCoeff(const mot_float_type kappa, mot_float_type* result);
+void Noddi_IC_create_legendre_terms(const mot_float_type x, mot_float_type* const legendre_terms);
+
 
 /**
  * Generate the compartment model signal for the Noddi Intra Cellular (Stick with dispersion) model.
@@ -55,22 +55,75 @@ mot_float_type cmNoddi_IC(const mot_float_type4 g,
         cosTheta = cosTheta / fabs(cosTheta);
     }
 
-    mot_float_type watson_coeff[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
-    Noddi_IC_WatsonSHCoeff(kappa, watson_coeff);
-
     mot_float_type LePerp = -2 * GAMMA_H_SQ * (G*G) * NeumannCylPerpPGSESum(Delta, delta, d, R);
     mot_float_type ePerp = exp(LePerp);
     mot_float_type Lpmp = LePerp + d * b;
 
+    mot_float_type watson_coeff[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
+    Noddi_IC_WatsonSHCoeff(kappa, watson_coeff);
+
     mot_float_type lgi[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
     Noddi_IC_LegendreGaussianIntegral(Lpmp, lgi);
 
+    // split the summation into two parts to save one array (reusing the lgi array for the legendre terms)
+    for(int i = 0; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
+        watson_coeff[i] *= lgi[i] * sqrt((i + 0.25)/M_PI_F);
+    }
+
+    Noddi_IC_create_legendre_terms(cosTheta, lgi);
+
     mot_float_type signal = 0.0;
     for(int i = 0; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
-        signal += lgi[i] * watson_coeff[i] * sqrt((i + 0.25)/M_PI) * getFirstLegendreTerm(cosTheta, 2*i);
+        signal += lgi[i] * watson_coeff[i];
     }
 
     return ePerp * signal / 2.0;
+}
+
+/**
+ * This will create the legendre terms we need for the NODDI IC model.
+ *
+ * For the NODDI IC model we need to have a few legendre terms for the same position (argument to x)
+ * with linearly increasing degrees of step size 2.
+ *
+ * This is a specialized version of the function of the function firstLegendreTerm in the MOT library.
+ *
+ * That is, this will fill the given array legendre_terms with the values:
+ * [0] = firstLegendreTerm(x, 0)
+ * [1] = firstLegendreTerm(x, 2 * 1)
+ * [2] = firstLegendreTerm(x, 2 * 2)
+ * [3] = firstLegendreTerm(x, 2 * 3)
+ * ...
+ */
+void Noddi_IC_create_legendre_terms(const mot_float_type x, mot_float_type* const legendre_terms){
+    // this is the default if fabs(x) == 1.0
+    // to eliminate the branch I added this to the front, this saves an if/else.
+    // also, since we are after the legendre terms with a list with n = [0, 2*1, 2*2, 2*3, 2*4, ...]
+    // the legendre terms collaps to this loop if fabs(x) == 1.0
+    if(fabs(x) == 1.0){
+        for(int i = 0; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
+            legendre_terms[i] = 1.0;
+        }
+        return;
+    }
+
+    legendre_terms[0] = 1.0;
+
+    mot_float_type P0 = 1.0;
+    mot_float_type P1 = x;
+    mot_float_type Pn;
+
+    for(int k = 1; k < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; k++){
+        Pn = ((2 * k + 1) * x * P1 - (k * P0)) / (k + 1);
+        P0 = P1;
+        P1 = Pn;
+
+        legendre_terms[k] = Pn;
+
+        Pn = ((2 * (k+1) + 1) * x * P1 - ((k+1) * P0)) / ((k+1) + 1);
+        P0 = P1;
+        P1 = Pn;
+    }
 }
 
 /**
@@ -92,7 +145,7 @@ void Noddi_IC_LegendreGaussianIntegral(const mot_float_type x, mot_float_type* c
     if(x > 0.05){
         // exact
         mot_float_type tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
-        tmp[0] = M_SQRTPI * erf(sqrt(x))/sqrt(x);
+        tmp[0] = M_SQRTPI_F * erf(sqrt(x))/sqrt(x);
         for(int i = 1; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
             tmp[i] = (-exp(-x) + (i - 0.5) * tmp[i-1]) / x;
         }
@@ -137,7 +190,7 @@ void Noddi_IC_LegendreGaussianIntegral(const mot_float_type x, mot_float_type* c
     author: Gary Hui Zhang (gary.zhang@ucl.ac.uk)
 */
 void Noddi_IC_WatsonSHCoeff(const mot_float_type kappa, mot_float_type* const result){
-    result[0] = M_SQRTPI * 2;
+    result[0] = M_SQRTPI_F * 2;
 
     if(kappa <= 30){
         mot_float_type ks[NODDI_IC_MAX_POLYNOMIAL_ORDER - 1];
@@ -160,7 +213,7 @@ void Noddi_IC_WatsonSHCoeff(const mot_float_type kappa, mot_float_type* const re
             mot_float_type erfik = ferfi(sks[0]);
             mot_float_type ierfik = 1/erfik;
             mot_float_type ek = exp(kappa);
-            mot_float_type dawsonk = M_SQRTPI_2 * erfik/ek;
+            mot_float_type dawsonk = M_SQRTPI_2_F * erfik/ek;
 
             result[1] = 3 * sks[0] - (3 + 2 * kappa) * dawsonk;
             result[1] = sqrt(5.0) * result[1] * ek;
@@ -174,7 +227,7 @@ void Noddi_IC_WatsonSHCoeff(const mot_float_type kappa, mot_float_type* const re
             result[3] = -3465 - 1890*kappa - 420*ks[0]  - 40*ks[1] ;
             result[3] = result[3]*dawsonk;
             result[3] = result[3] + 3465*sks[0] - 420*sks[1]  + 84*sks[2];
-            result[3] = result[3]*sqrt(13*M_PI)/64/ks[1];
+            result[3] = result[3]*sqrt(13*M_PI_F)/64/ks[1];
             result[3] = result[3]/dawsonk;
 
             result[4] = 675675 + 360360*kappa + 83160*ks[0]  + 10080*ks[1]  + 560*ks[2] ;
@@ -187,7 +240,7 @@ void Noddi_IC_WatsonSHCoeff(const mot_float_type kappa, mot_float_type* const re
             result[5] = -43648605 - 22972950*kappa - 5405400*ks[0]  - 720720*ks[1]  - 55440*ks[2]  - 2016*ks[3];
             result[5] = result[5]*dawsonk;
             result[5] = result[5] + 43648605*sks[0] - 6126120*sks[1]  + 1729728*sks[2]  - 82368*sks[3]  + 5104*sks[4];
-            result[5] = sqrt(21*M_PI)*result[5]/4096.0/ks[3];
+            result[5] = sqrt(21*M_PI_F)*result[5]/4096.0/ks[3];
             result[5] = result[5]/dawsonk;
 
             result[6] = 7027425405 + 3666482820*kappa + 872972100*ks[0]  + 122522400*ks[1]   + 10810800*ks[2]  + 576576*ks[3]  + 14784*ks[4];
@@ -199,12 +252,12 @@ void Noddi_IC_WatsonSHCoeff(const mot_float_type kappa, mot_float_type* const re
         }
         else{
             // approximate
-            result[1] = (4/3.0*kappa + 8/63.0*ks[0]) * sqrt(M_PI/5.0);
-            result[2] = (8/21.0*ks[0] + 32/693.0*ks[1]) * (sqrt(M_PI)*0.2);
-            result[3] = (16/693.0*ks[1] + 32/10395.0*ks[2]) * sqrt(M_PI/13);
-            result[4] = (32/19305.0*ks[2]) * sqrt(M_PI/17);
-            result[5] = 64*sqrt(M_PI/21)*ks[3]/692835.0;
-            result[6] = 128*sqrt(M_PI)*ks[4]/152108775.0;
+            result[1] = (4/3.0*kappa + 8/63.0*ks[0]) * sqrt(M_PI_F/5.0);
+            result[2] = (8/21.0*ks[0] + 32/693.0*ks[1]) * (sqrt(M_PI_F)*0.2);
+            result[3] = (16/693.0*ks[1] + 32/10395.0*ks[2]) * sqrt(M_PI_F/13);
+            result[4] = (32/19305.0*ks[2]) * sqrt(M_PI_F/17);
+            result[5] = 64*sqrt(M_PI_F/21)*ks[3]/692835.0;
+            result[6] = 128*sqrt(M_PI_F)*ks[4]/152108775.0;
         }
     }
     else{
@@ -226,6 +279,5 @@ void Noddi_IC_WatsonSHCoeff(const mot_float_type kappa, mot_float_type* const re
     }
 }
 
-#undef M_SQRTPI_2
-#undef M_1_SQRTPI
-#undef M_SQRTPI
+#undef M_SQRTPI_2_F
+#undef M_SQRTPI_F

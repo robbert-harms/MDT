@@ -1,7 +1,0 @@
-<RCC>
-  <qresource lang="English" prefix="gui_single">
-    <file>../logo.gif</file>
-    <file>icon_status_green.png</file>
-    <file>icon_status_red.png</file>
-  </qresource>
-</RCC>

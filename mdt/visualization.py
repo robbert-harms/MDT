@@ -1,6 +1,8 @@
 import os
 import itertools
 import matplotlib.pyplot as plt
+from matplotlib import animation
+from matplotlib.text import Text
 from matplotlib.ticker import LinearLocator
 from matplotlib.widgets import Slider
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -34,19 +36,20 @@ class MapsVisualizer(object):
         self.map_titles = {}
         self.general_plot_options = {}
         self.font_size = None
-        self._image_subplots = {}
+        self._image_subplot_axis = {}
+        self._image_subplot_figures = {}
         self._minmax_vals = self._load_min_max_vals()
         self._dimension_slider = None
         self._index_slider = None
         self._volume_slider = None
         self._updating_sliders = False
-        self._is_in_scroll_update = False
         self._colorbar_subplots = {}
         self.axis_options = None
         self.nmr_colorbar_axis_ticks = None
         self.grid_layout = AutoGridLayout()
         self.rotate_images = 0
         self._map_view_settings = MapViewSettings()
+        self._text_change_manager = TextChangeManager()
 
     def show(self, dimension=None, slice_ind=None, volume_ind=None, map_titles=None, maps_to_show=None,
              general_plot_options=None, map_plot_options=None, to_file=None, block=True, maximize=False,
@@ -155,10 +158,11 @@ class MapsVisualizer(object):
         return self._map_view_settings
 
     def set_dimension(self, val):
-        val = round(val)
+        val = min(int(round(val)), len(self._volumes_shape)-1)
+
         if not self._updating_sliders:
             self._updating_sliders = True
-            self._map_view_settings.dimension_index = int(round(val))
+            self._map_view_settings.dimension_index = val
 
             if self._map_view_settings.slice_index >= self._volumes_shape[self._map_view_settings.dimension_index]:
                 self._map_view_settings.slice_index = self._volumes_shape[self._map_view_settings.dimension_index] / 2
@@ -210,6 +214,9 @@ class MapsVisualizer(object):
                                                      valinit=self._map_view_settings.dimension_index, valfmt='%i',
                                                      color='DarkSeaGreen', closedmin=True, closedmax=True)
             self._dimension_slider.on_changed(self.set_dimension)
+            self._dimension_slider.valtext.set_picker(True)
+            self._dimension_slider.valtext.value_type = int
+            self._dimension_slider.valtext.update_cb = lambda value: self.set_dimension(value)
 
             ax = self._figure.add_axes([0.25, y_positions[1], 0.5, 0.01], axisbg='Wheat')
             self._index_slider = _DiscreteSlider(ax, 'Slice index', 0,
@@ -217,6 +224,9 @@ class MapsVisualizer(object):
                                                  valinit=self._map_view_settings.slice_index,
                                                  valfmt='%i', color='DarkSeaGreen', closedmin=True, closedmax=False)
             self._index_slider.on_changed(self.set_slice_ind)
+            self._index_slider.valtext.set_picker(True)
+            self._index_slider.valtext.value_type = int
+            self._index_slider.valtext.update_cb = lambda value: self.set_slice_ind(value)
 
             if self.show_slider_volume_ind:
                 ax = self._figure.add_axes([0.25, y_positions[2], 0.5, 0.01], axisbg='Wheat')
@@ -225,14 +235,22 @@ class MapsVisualizer(object):
                                                       valinit=self._map_view_settings.volume_index,
                                                       valfmt='%i', color='DarkSeaGreen', closedmin=True, closedmax=False)
                 self._volume_slider.on_changed(self.set_volume_ind)
+                self._volume_slider.valtext.set_picker(True)
+                self._volume_slider.valtext.value_type = int
+                self._volume_slider.valtext.update_cb = lambda value: self.set_volume_ind(value)
+
+        self._figure.canvas.mpl_connect('pick_event', self._global_click_listener)
+        self._figure.canvas.mpl_connect('key_press_event', self._global_key_pressed_listener)
 
     def _rerender_maps(self):
-        for f in self._image_subplots.values():
+        for f in self._image_subplot_axis.values():
             try:
                 self._figure.delaxes(f)
             except KeyError:
                 pass
-        self._image_subplots = {}
+        self._image_subplot_axis = {}
+        self._image_subplot_figures = {}
+        self._colorbar_subplots = {}
 
         bottom_spacing = 0.07 if self.show_sliders else 0.015
         self.grid_layout.spacings = dict(left=0.04, right=0.96, top=0.97, bottom=bottom_spacing, wspace=0.5)
@@ -263,7 +281,8 @@ class MapsVisualizer(object):
             self._set_axis_options(map_name, plt)
 
             plt.title(title)
-            self._image_subplots.update({map_name: image_subplot_axis})
+            self._image_subplot_axis.update({map_name: image_subplot_axis})
+            self._image_subplot_figures.update({map_name: vf})
 
             divider = make_axes_locatable(image_subplot_axis)
             cax = divider.append_axes("right", size="5%", pad=0.05)
@@ -287,27 +306,44 @@ class MapsVisualizer(object):
         self._figure.canvas.draw()
 
     def _scroll_event(self, event):
-        if not self._is_in_scroll_update:
-            for map_name, axis in self._image_subplots.items():
-                if axis == event.inaxes:
-                    if map_name not in self._sorted_volumes:
-                        self._sorted_volumes.update({map_name: np.sort(self._volumes_dict[map_name], axis=None)})
+        el_found = list(filter(lambda item: item[1] == event.inaxes, self._image_subplot_axis.items()))
+        if not el_found:
+            return
 
-                    if map_name not in self._map_scroll_positions:
-                        self._map_scroll_positions.update({map_name: 0})
+        map_name, axis = el_found[0]
 
-                    self._map_scroll_positions[map_name] += event.step**3
-                    self._map_scroll_positions[map_name] = min(self._map_scroll_positions[map_name],
-                                                               len(self._sorted_volumes[map_name])-1)
+        if map_name not in self._sorted_volumes:
+            self._sorted_volumes.update({map_name: np.unique(np.around(self._volumes_dict[map_name], decimals=3))})
 
-                    vmin = self._sorted_volumes[map_name][self._map_scroll_positions[map_name]]
-                    vmax = self._sorted_volumes[map_name][-self._map_scroll_positions[map_name]]
+        if map_name not in self._map_scroll_positions:
+            self._map_scroll_positions.update({map_name: 0})
 
-                    self.map_plot_options.update({map_name: {'vmin': vmin, 'vmax': vmax}})
-                    self._is_in_scroll_update = True
-                    self._rerender_maps()
-                    self._is_in_scroll_update = False
-                    return
+        self._map_scroll_positions[map_name] += event.step**3
+        self._map_scroll_positions[map_name] = min(self._map_scroll_positions[map_name],
+                                                   len(self._sorted_volumes[map_name])-1)
+
+        if np.max(self._sorted_volumes[map_name]) == 0:
+            vmax = 0
+        else:
+            vmax = self._sorted_volumes[map_name][self._map_scroll_positions[map_name]]
+
+        if np.min(self._sorted_volumes[map_name]) == 0:
+            vmin = 0
+        else:
+            vmin = self._sorted_volumes[map_name][-self._map_scroll_positions[map_name]]
+
+        if vmin > vmax:
+            tmp = vmin
+            vmin = vmax
+            vmax = tmp
+
+        self.map_plot_options.update({map_name: {'vmin': vmin, 'vmax': vmax}})
+
+        def rerender_single_map(frame):
+            self._image_subplot_figures[map_name].set_clim(vmin, vmax)
+            return [self._image_subplot_axis[map_name]]
+
+        animation.FuncAnimation(self._figure, rerender_single_map, repeat=False, frames=1, blit=True)
 
     def _set_axis_options(self, map_name, plt):
         if self.axis_options is not None:
@@ -348,7 +384,8 @@ class MapsVisualizer(object):
         After getting the right image it will apply the transformations in _apply_transformations to position the
         image in a nice way.
         """
-        data = get_slice_in_dimension(data, self._map_view_settings.dimension_index, self._map_view_settings.slice_index)
+        data = get_slice_in_dimension(data, self._map_view_settings.dimension_index,
+                                      self._map_view_settings.slice_index)
         if len(data.shape) > 2:
             if data.shape[2] > self._map_view_settings.volume_index:
                 data = np.squeeze(data[:, :, self._map_view_settings.volume_index])
@@ -391,6 +428,62 @@ class MapsVisualizer(object):
         if not l:
             return 0
         return max(l)
+
+    def _global_click_listener(self, event):
+        if isinstance(event.artist, Text):
+            animation.FuncAnimation(self._figure, lambda _: self._text_change_manager.click_event(event),
+                                    frames=1, repeat=False, blit=True)
+
+    def _global_key_pressed_listener(self, event):
+        animation.FuncAnimation(self._figure, lambda _: self._text_change_manager.key_press_event(event),
+                                frames=1, repeat=False, blit=True)
+
+
+class TextChangeManager(object):
+
+    def __init__(self):
+        self._text_element = None
+        self._previous_color = None
+        self._previous_text = None
+        self.highlight_color = 'teal'
+        self._char_buffer = []
+
+    def click_event(self, event):
+        text_element = event.artist
+        if self._text_element == text_element:
+            self._unset_current()
+        else:
+            if self._text_element:
+                self._unset_current()
+
+            self._text_element = text_element
+            self._previous_color = text_element.get_color()
+            self._previous_text = text_element.get_text()
+            self._text_element.set_color(self.highlight_color)
+
+    def key_press_event(self, event):
+        if not self._text_element:
+            return
+
+        if event.key == 'backspace':
+            self._char_buffer.pop()
+            self._text_element.set_text(''.join(self._char_buffer))
+        elif event.key == 'enter':
+            try:
+                self._text_element.update_cb(self._text_element.value_type(''.join(self._char_buffer)))
+                self._unset_current(reset_text=False)
+            except ValueError:
+                self._unset_current()
+        else:
+            self._char_buffer.append(event.key)
+            self._text_element.set_text(''.join(self._char_buffer))
+
+    def _unset_current(self, reset_text=True):
+        self._text_element.set_color(self._previous_color)
+        if reset_text:
+            self._text_element.set_text(self._previous_text)
+        self._text_element = None
+        self._char_buffer = []
 
 
 class MapViewSettings(object):
@@ -542,8 +635,10 @@ class _DiscreteSlider(Slider):
     """A matplotlib slider widget with discrete steps."""
 
     def __init__(self, *args, **kwargs):
-        """Identical to Slider.__init__, except for the "increment" kwarg.
-        "increment" specifies the step size that the slider will be discritized
+        """Identical to Slider.__init__, except for the "increment" and kwarg.
+
+        Args:
+            increment (float): specifies the step size that the slider will be discritized
         to."""
         self.inc = kwargs.pop('increment', 0.25)
         Slider.__init__(self, *args, **kwargs)

@@ -1,83 +1,14 @@
-from collections import OrderedDict
+import time
 from functools import wraps
-import mot.cl_environments
-from mdt.configuration import config as mdt_config
+
+from PyQt5.QtCore import QObject, pyqtSignal
+
 from mdt.log_handlers import LogListenerInterface
-from mdt.utils import MetaOptimizerBuilder
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-20"
 __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
-
-
-def get_cl_environments_ordered_dict():
-    """Get an ordered dictionary with all the CL environments.
-
-    Returns:
-        OrderedDict: an ordered dict with all the CL environments
-    """
-    cl_environments = mot.cl_environments.CLEnvironmentFactory.smart_device_selection()
-    cl_env_dict = OrderedDict()
-    for ind, env in enumerate(cl_environments):
-        s = repr(ind) + ') ' + str(env)
-        cl_env_dict.update({s: env})
-    return cl_env_dict
-
-
-class OptimOptions(object):
-
-    optim_routines = {'Powell\'s method': 'Powell',
-                      'Nelder-Mead Simplex': 'NMSimplex',
-                      'Levenberg Marquardt': 'LevenbergMarquardt',}
-
-    cl_environments = get_cl_environments_ordered_dict()
-
-    def __init__(self):
-        self.use_model_default_optimizer = True
-        self.double_precision = False
-
-        self.optimizer = mdt_config['optimization_settings']['general']['optimizers'][0]['name']
-        self.patience = mdt_config['optimization_settings']['general']['optimizers'][0]['patience']
-
-        self.recalculate_all = False
-        self.extra_optim_runs = mdt_config['optimization_settings']['general']['extra_optim_runs']
-
-        self.cl_envs_indices = self._get_prefered_device_indices()
-        self.noise_std = 'auto'
-
-    def _get_prefered_device_indices(self):
-        l = [ind for ind, env in enumerate(self.cl_environments.values()) if env.is_gpu]
-        if l:
-            return l
-        return [0]
-
-    def get_meta_optimizer_config(self):
-        return {
-            'optimizers': [{'name': self.optimizer, 'patience': self.patience}],
-            'extra_optim_runs': self.extra_optim_runs,
-            'extra_optim_runs_apply_smoothing': False,
-            'load_balancer': {'name': 'EvenDistribution'},
-            'cl_devices': self.cl_envs_indices,
-        }
-
-    def get_optimizer(self):
-        optimizer_config = self.get_meta_optimizer_config()
-        return MetaOptimizerBuilder(optimizer_config).construct()
-
-
-class ProtocolOptions(object):
-
-    def __init__(self):
-        """Simple container class for storing and passing protocol options."""
-        self.estimate_sequence_timings = False
-        self.seq_timings_units = 'ms'
-        self.maxG = 0.04
-        self.Delta = None
-        self.delta = None
-        self.TE = None
-
-        self.extra_column_names = ['Delta', 'delta', 'TE']
 
 
 def function_message_decorator(header, footer):
@@ -115,8 +46,7 @@ def print_welcome_message():
     This prints to stdout. We expect the GUI to catch the stdout events and redirect them to the GUI.
     """
     from mdt import VERSION
-    welcome_str = 'Welcome to MDT version ' + VERSION + '.'
-    print(welcome_str)
+    print('Welcome to MDT version {}.'.format(VERSION))
     print('')
     print('This area is reserved for log output.')
     print('-------------------------------------')
@@ -140,3 +70,90 @@ class ForwardingListener(LogListenerInterface):
 
     def write(self, string):
         self._queue.put(string)
+
+
+image_files_filters = ['Nifti (*.nii *.nii.gz)',
+                       'IMG, HDR (*.img)',
+                       'All files (*)']
+protocol_files_filters = ['MDT protocol (*.prtcl)',
+                          'Text files (*.txt)',
+                          'All files (*)']
+
+
+class UpdateDescriptor(object):
+
+    def __init__(self, attribute_name):
+        """Descriptor that will emit a state_updated_signal at each update.
+
+        This accesses from the instance the attribute name prepended with an underscore (_).
+        """
+        self._attribute_name = attribute_name
+
+    def __get__(self, instance, owner):
+        return getattr(instance, '_' + self._attribute_name)
+
+    def __set__(self, instance, value):
+        setattr(instance, '_' + self._attribute_name, value)
+        instance.state_updated_signal.emit(self._attribute_name)
+
+
+class SharedState(QObject):
+
+    state_updated_signal = pyqtSignal(str)
+
+    def __init__(self, *args, **kwargs):
+        """The shared state for the single model GUI
+
+        Attributes:
+            base_dir (str): the base dir for all file opening operations
+            dimension_index (int): the dimension index used in various operations
+            slice_index (int): the slice index used in various operations
+        """
+        super(SharedState, self).__init__(*args, **kwargs)
+
+        shared_attributes = {'base_dir': None,
+                             'dimension_index': 0,
+                             'slice_index': 0,
+                             'output_folder': None}
+
+        for key, value in shared_attributes.items():
+            def get_attribute_setter(attribute_key):
+                def setter(value):
+                    setattr(self, attribute_key, value)
+                return setter
+
+            setattr(self, '_' + key, value)
+            setattr(SharedState, key, UpdateDescriptor(key))
+            setattr(self, 'set_' + key, get_attribute_setter(key))
+
+
+class MessageReceiver(QObject):
+
+    text_message_signal = pyqtSignal(str)
+    finished = pyqtSignal()
+
+    def __init__(self, queue, *args, **kwargs):
+        """A QObject (to be run in a QThread) which sits waiting for data to come through a Queue.Queue().
+
+        It blocks until data is available, and one it has got something from the _logging_update_queue, it sends
+        it to the "MainThread" by emitting a Qt Signal.
+
+        Attributes:
+            is_running (boolean): set to False to stop the receiver.
+        """
+        super(MessageReceiver, self).__init__(*args, **kwargs)
+        self.queue = queue
+        self.is_running = True
+
+    def run(self):
+        while self.is_running:
+            if not self.queue.empty():
+                self.text_message_signal.emit(self.queue.get())
+            time.sleep(0.001)
+        self.finished.emit()
+
+
+class MainTab(object):
+
+    def tab_opened(self):
+        """Called when this tab is selected by the user."""

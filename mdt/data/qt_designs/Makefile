@@ -4,13 +4,13 @@
 QT_RESOURCE_DIR = ./
  
 # Directory for compiled QT_RESOURCES
-QT_COMPILED_DIR = ../../gui/qt/design
+QT_COMPILED_DIR = ../../gui/design
  
 # UI files to compile
-QT_UI_FILES = gui_single.ui generate_protocol_tab.ui view_results_tab.ui generate_brain_mask_tab.ui generate_roi_mask_tab.ui generate_protocol_update_dialog.ui generate_protocol_load_gb_dialog.ui
+QT_UI_FILES = main_gui.ui generate_protocol_tab.ui view_results_tab.ui generate_brain_mask_tab.ui generate_roi_mask_tab.ui generate_protocol_update_dialog.ui generate_protocol_load_gb_dialog.ui fit_model_tab.ui runtime_settings_dialog.ui about_dialog.ui optimization_options_dialog.ui
 
 # Qt resource files to compile
-QT_RESOURCES = gui_single.qrc
+QT_RESOURCES = main_gui.qrc
  
 # the binaries
 PYUIC = pyuic5 --from-imports

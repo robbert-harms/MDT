@@ -1,5 +1,5 @@
 from mdt.components_loader import bind_function
-from mdt.models.compartments import CompartmentConfig, CLCodeFromAdjacentFile
+from mdt.models.compartments import CompartmentConfig
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -9,8 +9,6 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class CharmedRestricted(CompartmentConfig):
 
-    name = 'CharmedRestricted'
-    cl_function_name = 'cmCharmedRestricted'
     parameter_list = ('g', 'b', 'q', 'Delta', 'delta', 'TE', 'd', 'theta', 'phi')
 
     @bind_function

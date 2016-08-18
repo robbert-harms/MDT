@@ -3,11 +3,11 @@
 import argparse
 import glob
 import os
-import mdt
 from argcomplete.completers import FilesCompleter
 import textwrap
 
-from mdt.shell_utils import BasicShellApplication
+from mdt.utils import volume_merge
+from mdt.shell_utils import BasicShellApplication, get_argparse_extension_checker
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"
@@ -37,7 +37,7 @@ class VolumeMerge(BasicShellApplication):
                                          formatter_class=argparse.RawTextHelpFormatter)
 
         parser.add_argument('-o', '--output_file', required=True,
-                            action=mdt.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
+                            action=get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
                             help='the filename of the output file').completer = \
             FilesCompleter(['nii', 'gz', 'hdr', 'img'], directories=False)
 
@@ -64,7 +64,7 @@ class VolumeMerge(BasicShellApplication):
         for file in args.input_files:
             file_names.extend(glob.glob(file))
 
-        concatenated_names = mdt.volume_merge(file_names, output_file, sort=args.sort)
+        concatenated_names = volume_merge(file_names, output_file, sort=args.sort)
 
         if not args.no_merge_order_file:
             info_output_file = os.path.splitext(output_file)[0].replace('.nii', '') + '_merge_order.txt'

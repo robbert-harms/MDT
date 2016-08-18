@@ -11,22 +11,22 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class AllUnweightedVolumes(ComplexNoiseStdEstimator):
 
-    def estimate(self, **kwargs):
+    def estimate(self, problem_data, **kwargs):
         """Calculate the standard deviation of the error using all unweighted volumes.
 
         This calculates per voxel the std over all unweighted volumes and takes the mean of those estimates as
         the standard deviation of the noise.
 
         The method is taken from Camino (http://camino.cs.ucl.ac.uk/index.php?n=Man.Estimatesnr).
-
-        Returns:
-            float: single value representing the sigma for the given volume
         """
-        unweighted_indices = self._problem_data.protocol.get_unweighted_indices()
-        unweighted_volumes = self._problem_data.dwi_volume[..., unweighted_indices]
+        unweighted_indices = problem_data.protocol.get_unweighted_indices()
+        unweighted_volumes = problem_data.dwi_volume[..., unweighted_indices]
 
         if len(unweighted_indices) < 2:
             raise NoiseStdEstimationNotPossible('Not enough unweighted volumes for this estimator.')
 
-        voxel_list = create_roi(unweighted_volumes, self._problem_data.mask)
+        voxel_list = create_roi(unweighted_volumes, problem_data.mask)
         return np.mean(np.std(voxel_list, axis=1))
+
+    def __str__(self):
+        return __name__

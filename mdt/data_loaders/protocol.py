@@ -1,4 +1,9 @@
+import logging
+import os
+
 import six
+
+from mdt import protocols
 from mdt.protocols import Protocol, load_protocol
 
 __author__ = 'Robbert Harms'
@@ -12,9 +17,11 @@ def autodetect_protocol_loader(data_source):
 
     This tries to do auto detecting for the following data sources:
         - ProtocolLoader
-        - strings (filenames)
+        - strings (filename or directory)
         - functions
         - protocol objects
+
+    If a directory is given we try to auto load the protocol from sources in that directory.
 
     Args:
         data_source: the data source from which to get a protocol loader
@@ -25,7 +32,10 @@ def autodetect_protocol_loader(data_source):
     if isinstance(data_source, ProtocolLoader):
         return data_source
     elif isinstance(data_source, six.string_types):
-        return ProtocolFromFileLoader(data_source)
+        if os.path.isfile(data_source):
+            return ProtocolFromFileLoader(data_source)
+        else:
+            return ProtocolFromDirLoader(data_source)
     elif hasattr(data_source, '__call__'):
         return ProtocolFromFunctionLoader(data_source)
     elif isinstance(data_source, Protocol):
@@ -52,12 +62,31 @@ class ProtocolFromFileLoader(ProtocolLoader):
         Args:
             filename (str): the filename to load the protocol from.
         """
+        super(ProtocolFromFileLoader, self).__init__()
         self._filename = filename
         self._protocol = None
 
     def get_protocol(self):
         if self._protocol is None:
             self._protocol = load_protocol(self._filename)
+        return self._protocol
+
+
+class ProtocolFromDirLoader(ProtocolLoader):
+
+    def __init__(self, directory):
+        """Loads a protocol from the given filename.
+
+        Args:
+            directory (str): the directory to load the protocol from.
+        """
+        super(ProtocolFromDirLoader, self).__init__()
+        self._directory = directory
+        self._protocol = None
+
+    def get_protocol(self):
+        if self._protocol is None:
+            self._protocol = protocols.auto_load_protocol(self._directory)
         return self._protocol
 
 
@@ -69,6 +98,7 @@ class ProtocolDirectLoader(ProtocolLoader):
         Args:
             protocol (Protocol): the loaded protocol to return.
         """
+        super(ProtocolDirectLoader, self).__init__()
         self._protocol = protocol
 
     def get_protocol(self):
@@ -85,6 +115,7 @@ class ProtocolFromFunctionLoader(ProtocolLoader):
         Args:
             func: the callback function to call on the moment the protocol is to be loaded.
         """
+        super(ProtocolFromFunctionLoader, self).__init__()
         self._func = func
         self._protocol = None
 

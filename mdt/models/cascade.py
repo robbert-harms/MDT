@@ -3,9 +3,10 @@ from copy import deepcopy
 import six
 
 import mdt
-from mdt.components_loader import ComponentConfig, ComponentBuilder, bind_function
+from mdt.components_loader import ComponentConfig, ComponentBuilder, bind_function, method_binding_meta
+from mdt.model_protocol_problem import NamedProtocolProblem
 from mdt.models.base import DMRIOptimizable
-from mdt.utils import simple_parameter_init, condense_protocol_problems
+from mdt.utils import simple_parameter_init
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-04-24"
@@ -80,9 +81,6 @@ class DMRICascadeModelInterface(DMRIOptimizable):
     def set_problem_data(self, problem_data):
         """Set the problem data in every model in the cascade."""
 
-    def set_gradient_deviations(self, grad_dev):
-        """Set the gradient deviations in every model."""
-
 
 class SimpleCascadeModel(DMRICascadeModelInterface):
 
@@ -127,7 +125,10 @@ class SimpleCascadeModel(DMRICascadeModelInterface):
         return True
 
     def get_protocol_problems(self, protocol=None):
-        return condense_protocol_problems([model.get_protocol_problems(protocol) for model in self._model_list])
+        problems = []
+        for model in self._model_list:
+            problems.extend(map(lambda p: NamedProtocolProblem(p, model.name), model.get_protocol_problems(protocol)))
+        return problems
 
     def get_required_protocol_names(self):
         protocol_names = []
@@ -147,10 +148,6 @@ class SimpleCascadeModel(DMRICascadeModelInterface):
     def set_problem_data(self, problem_data):
         for model in self._model_list:
             model.set_problem_data(problem_data)
-
-    def set_gradient_deviations(self, grad_dev):
-        for model in self._model_list:
-            model.set_gradient_deviations(grad_dev)
 
     def _set_model_options(self, model):
         """The final hook before we return a model from this class.
@@ -218,7 +215,7 @@ class CascadeBuilder(ComponentBuilder):
             template (CascadeConfig): the cascade config template to use for creating the class with the right init
                 settings.
         """
-        class AutoCreatedCascadeModel(SimpleCascadeModel):
+        class AutoCreatedCascadeModel(method_binding_meta(template, SimpleCascadeModel)):
 
             def __init__(self, *args):
                 new_args = [deepcopy(template.name),
@@ -247,5 +244,4 @@ class CascadeBuilder(ComponentBuilder):
 
                 self._prepare_model_cb(model, output_previous, output_all_previous)
 
-        self._bind_functions(template, AutoCreatedCascadeModel)
         return AutoCreatedCascadeModel

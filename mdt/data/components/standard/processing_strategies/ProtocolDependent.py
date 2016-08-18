@@ -1,5 +1,5 @@
 from mdt.components_loader import load_component
-from mdt.utils import ModelChunksProcessingStrategy
+from mdt.processing_strategies import SimpleProcessingStrategy
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-11-29"
@@ -11,9 +11,9 @@ meta_info = {'title': 'Applies the VoxelRange strategy depending on the protocol
              'description': 'This looks at the size of the protocol and based on that determines the voxel range.'}
 
 
-class ProtocolDependent(ModelChunksProcessingStrategy):
+class ProtocolDependent(SimpleProcessingStrategy):
 
-    def __init__(self, steps=((0, None), (100, 50000), (200, 20000))):
+    def __init__(self, steps=((0, None), (100, 50000), (200, 20000)), **kwargs):
         """A meta strategy using VoxelRange AllVoxelsAtOnce depending on the protocol length
 
         This will look at the protocol of the given model and determine, based on the number of rows in the protocol,
@@ -29,17 +29,19 @@ class ProtocolDependent(ModelChunksProcessingStrategy):
             steps (list[tuple[int, int]]): the steps of the voxel ranges. The first item in the tuple is the
                 protocol length, the second the voxel range. We assume that voxel ranges are in ascending order.
         """
-        super(ProtocolDependent, self).__init__()
+        super(ProtocolDependent, self).__init__(**kwargs)
         self._steps = steps
 
-    def run(self, model, problem_data, output_path, recalculate, worker):
+    def run(self, model, problem_data, output_path, recalculate, worker_generator):
         strategy = self._get_strategy(problem_data)
-        return strategy.run(model, problem_data, output_path, recalculate, worker)
+        return strategy.run(model, problem_data, output_path, recalculate, worker_generator)
 
     def _get_strategy(self, problem_data):
         for col_length, voxel_range in reversed(self._steps):
-            if int(col_length) < problem_data.protocol.length:
+            if int(col_length) < problem_data.get_nmr_inst_per_problem():
                 if voxel_range:
-                    return load_component('processing_strategies', 'VoxelRange', nmr_voxels=int(voxel_range))
+                    return load_component('processing_strategies', 'VoxelRange', nmr_voxels=int(voxel_range),
+                                          tmp_dir=self._tmp_dir, honor_voxels_to_analyze=self._honor_voxels_to_analyze)
 
-        return load_component('processing_strategies', 'AllVoxelsAtOnce')
+        return load_component('processing_strategies', 'AllVoxelsAtOnce', tmp_dir=self._tmp_dir,
+                              honor_voxels_to_analyze=self._honor_voxels_to_analyze)

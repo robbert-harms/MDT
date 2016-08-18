@@ -1,5 +1,5 @@
 from mdt.components_loader import bind_function
-from mdt.models.compartments import CompartmentConfig, CLCodeFromInlineString
+from mdt.models.compartments import CompartmentConfig
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -9,16 +9,14 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class Zeppelin(CompartmentConfig):
 
-    name = 'Zeppelin'
-    cl_function_name = 'cmZeppelin'
     parameter_list = ('g', 'b', 'd', 'dperp0', 'theta', 'phi')
-    cl_code = CLCodeFromInlineString('''
+    cl_code = '''
         return exp(-b *
                     (((d - dperp) *
                           pown(dot(g, (mot_float_type4)(cos(phi) * sin(theta),
                                                         sin(phi) * sin(theta), cos(theta), 0.0)), 2)
                     ) + dperp));
-    ''')
+    '''
 
     @bind_function
     def get_extra_results_maps(self, results_dict):

@@ -2,11 +2,11 @@
 # PYTHON_ARGCOMPLETE_OK
 import argparse
 import os
-import mdt
 from argcomplete.completers import FilesCompleter
 import textwrap
 import mdt.protocols
-from mdt.shell_utils import BasicShellApplication
+from mdt.shell_utils import BasicShellApplication, get_citation_message
+from mdt.protocols import load_bvec_bval
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"
@@ -27,7 +27,7 @@ class GenerateProtocol(BasicShellApplication):
             This is a column based file which can hold, next to the b-values and gradient directions,
             the big Delta, small delta, gradient amplitude G and more of these extra acquisition details.
         """)
-        description += mdt.shell_utils.get_citation_message()
+        description += get_citation_message()
 
         epilog = textwrap.dedent("""
         Examples of use:
@@ -96,20 +96,9 @@ class GenerateProtocol(BasicShellApplication):
 
         bval_scale_factor = args.bval_scale_factor or 'auto'
 
-        protocol = mdt.load_protocol_bval_bvec(bvec=bvec, bval=bval, bval_scale=bval_scale_factor)
+        protocol = load_bvec_bval(bvec=bvec, bval=bval, bval_scale=bval_scale_factor)
 
         if args.add_sequence_timings:
-            def add_column_to_protocol(protocol, column, value, mult_factor):
-                if value is not None:
-                    if os.path.isfile(value):
-                        protocol.add_column_from_file(column, os.path.realpath(value), mult_factor)
-                    else:
-                        protocol.add_column(column, float(value) * mult_factor)
-
-            def add_sequence_timing_column_to_protocol(protocol, column, value, units):
-                mult_factor = 1e-3 if units == 'ms' else 1
-                add_column_to_protocol(protocol, column, value, mult_factor)
-
             if args.G is None:
                 if os.path.isfile(str(args.maxG)):
                     protocol.add_column_from_file('maxG', os.path.realpath(str(args.maxG)), 1)
@@ -128,6 +117,19 @@ class GenerateProtocol(BasicShellApplication):
                 add_column_to_protocol(protocol, 'G', args.G, 1)
 
         mdt.protocols.write_protocol(protocol, output_prtcl)
+
+
+def add_column_to_protocol(protocol, column, value, mult_factor):
+    if value is not None:
+        if os.path.isfile(value):
+            protocol.add_column_from_file(column, os.path.realpath(value), mult_factor)
+        else:
+            protocol.add_column(column, float(value) * mult_factor)
+
+
+def add_sequence_timing_column_to_protocol(protocol, column, value, units):
+    mult_factor = 1e-3 if units == 'ms' else 1
+    add_column_to_protocol(protocol, column, value, mult_factor)
 
 
 if __name__ == '__main__':

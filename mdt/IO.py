@@ -1,7 +1,5 @@
 import glob
 import os
-
-import itertools
 import numpy as np
 import nibabel as nib
 import scipy.io
@@ -30,21 +28,26 @@ class Nifti(object):
         Nifti.write_volume_maps({name: result_volume}, directory, nifti_header, overwrite_volumes)
 
     @staticmethod
-    def write_volume_maps(result_volumes, directory, nifti_header, overwrite_volumes=True):
+    def write_volume_maps(result_volumes, directory, nifti_header, overwrite_volumes=True, gzip=None):
         """Write a number of maps (image result volumes) to the specific directory.
 
         Args:
-            result_volumes: an dictionary with the volume maps (3d) with the results we want to write out
-                The naming of the file is the key of the volume with .nii.gz appended by this function
-            directory: the directory to write to
+            result_volumes (dict): the volume maps (3d) with the results we want to write out
+                The naming of the file is the key of the volume with the extension appended by this function
+            directory (str): the directory to write to
             nifti_header: the nifti header to use for each of the volumes
-            overwrite_volumes: defaults to True, if we want to overwrite the volumes if they exists
+            overwrite_volumes (boolean): defaults to True, if we want to overwrite the volumes if they exists
+            gzip (boolean): if True we write the files as .nii.gz, if False we write the files as .nii
         """
         if not os.path.exists(directory):
             os.makedirs(directory)
 
         for key, volume in result_volumes.items():
-            filename = key + '.nii.gz'
+            extension = '.nii'
+            if gzip:
+                extension += '.gz'
+            filename = key + extension
+
             full_filename = os.path.abspath(os.path.join(directory, filename))
 
             if os.path.exists(full_filename):
@@ -72,12 +75,7 @@ class Nifti(object):
                 map_name = os.path.basename(f)[0:-len(extension)]
 
                 if map_names is None or map_name in map_names:
-                    d = nib.load(f).get_data()
-                    s = d.shape
-                    if len(s) > 3 and s[3] == 1:
-                        d = np.squeeze(d, axis=(3,))
-
-                    maps.update({map_name: d})
+                    maps.update({map_name: nib.load(f).get_data()})
         return maps
 
     @staticmethod

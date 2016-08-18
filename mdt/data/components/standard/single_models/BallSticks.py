@@ -8,7 +8,6 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class BallStick(DMRISingleModelConfig):
 
-    name = 'BallStick'
     ex_vivo_suitable = False
     description = 'The default Ball & Stick model'
     model_expression = '''
@@ -88,7 +87,6 @@ class StickStickExVivo(DMRISingleModelConfig):
 
 class BallStickStick(DMRISingleModelConfig):
 
-    name = 'BallStickStick'
     ex_vivo_suitable = False
     description = 'The Ball & 2x Stick model'
     model_expression = '''
@@ -115,7 +113,6 @@ class BallStickStickExVivo(BallStickStick):
 
 class BallStickStickStick(DMRISingleModelConfig):
 
-    name = 'BallStickStickStick'
     ex_vivo_suitable = False
     description = 'The Ball & 3x Stick model'
     model_expression = '''

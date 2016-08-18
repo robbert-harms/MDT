@@ -1,4 +1,5 @@
 import argparse
+import os
 import textwrap
 import argcomplete
 import sys
@@ -9,11 +10,15 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-def get_argparse_extension_checker(choices):
+def get_argparse_extension_checker(choices, dir_allowed=False):
 
     class Act(argparse.Action):
         def __call__(self, parser, namespace, fname, option_string=None):
             is_valid = any(map(lambda choice: fname[-len(choice):] == choice, choices))
+
+            if not is_valid and dir_allowed and os.path.isdir(fname):
+                is_valid = True
+
             if is_valid:
                 setattr(namespace, self.dest, fname)
             else:

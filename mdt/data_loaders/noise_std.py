@@ -30,7 +30,7 @@ def autodetect_noise_std_loader(data_source):
     if isinstance(data_source, NoiseStdLoader):
         return data_source
 
-    elif data_source == 'auto':
+    elif data_source is None:
         return NoiseEstimationLoader()
 
     elif isinstance(data_source, numbers.Number):

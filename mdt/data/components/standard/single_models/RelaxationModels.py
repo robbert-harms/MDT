@@ -1,3 +1,7 @@
+import numpy as np
+
+from mdt.components_loader import bind_function
+from mot.model_building.evaluation_models import GaussianEvaluationModel
 from mdt.models.single import DMRISingleModelConfig
 
 __author__ = 'Robbert Harms'
@@ -16,10 +20,50 @@ class S0TM(DMRISingleModelConfig):
 
 class S0T2(DMRISingleModelConfig):
 
-        name = 'S0-T2'
-        description = 'Models the unweighted text_message_signal (aka. b0) with an extra T2.'
-        model_expression = 'S0 * ExpT2Dec'
-        upper_bounds = {'ExpT2Dec.T2': 0.1}
+    name = 'S0-T2'
+    description = 'Models the unweighted signal (aka. b0) with an extra T2.'
+    model_expression = 'S0 * ExpT2Dec'
+
+    # for proper initialization, please take the highest S0 value in your data.
+    inits = {'S0.s0': 50.0}
+    upper_bounds = {'ExpT2Dec.T2': 0.10,
+                    'S0.s0': 150}
+
+
+class S0T2Linear(DMRISingleModelConfig):
+
+    description = 'Models the unweighted signal (aka. b0) with an extra T2.'
+    model_expression = 'S0 + LinT2Dec'
+    upper_bounds = {'LinT2Dec.R2': -1000,
+                    'S0.s0': 7.0}
+
+    @bind_function
+    def _transform_observations(self, observations):
+        return np.log(observations)
+
+
+class S0_IRT1(DMRISingleModelConfig):
+
+    name = 'S0-ExpT1DecIR'
+    description = 'Model with multi-IR data (?)'
+    model_expression = 'S0 * ExpT1DecIR'
+
+    # for proper initialization, please take the highest S0 value in your data.
+    inits = {'S0.s0': 50.0}
+    upper_bounds = {'ExpT1DecIR.T2': 0.10,
+                    'S0.s0': 150}
+
+
+class S0T1GRE(DMRISingleModelConfig):
+
+    name = 'S0-T1GRE'
+    description = 'Models the unweighted text_message_signal (aka. b0) with an extra T1.'
+    model_expression = 'S0 * ExpT1DecGRE'
+
+    # for proper initialization, please take the highest S0 value in your data.
+    inits = {'S0.s0': 50.0}
+    upper_bounds = {'ExpT1DecGRE.T1': 1.0,
+                    'S0.s0': 150}
 
 
 class S0T2T2(DMRISingleModelConfig):
@@ -43,44 +87,44 @@ class S0T2T2(DMRISingleModelConfig):
         )
 
 
-class GRE_Relax_PBS(DMRISingleModelConfig):
+class GRE_Relax(DMRISingleModelConfig):
 
-    name = 'GRE_Relax_PBS'
+    name = 'GRE_Relax'
     description = 'Model for estimating T1 and T2 from GRE data with variable TE, TR and flip angle.'
-    model_expression = 'S0 * ExpT1ExpT2sGRE'
-    inits = {'ExpT1ExpT2sGRE.T1': 0.3,
-             'ExpT1ExpT2sGRE.T2s': 0.01}
-    upper_bounds = {'ExpT1ExpT2sGRE.T1': 0.6,
-                    'ExpT1ExpT2sGRE.T2s': 0.04}
+    model_expression = 'S0 * ExpT1ExpT2GRE'
+    inits = {'ExpT1ExpT2GRE.T1': 0.2,
+             'ExpT1ExpT2GRE.T2': 0.05,
+             'S0.s0': 1e3}
+    upper_bounds = {'ExpT1ExpT2GRE.T1': 1,
+                    'ExpT1ExpT2GRE.T2': 0.5,
+                    'S0.s0': 1e4}
 
 
-class GRE_Relax_Flu(DMRISingleModelConfig):
+class STEAM_Relax(DMRISingleModelConfig):
 
-    name = 'GRE_Relax_Flu'
-    description = 'Model for estimating T1 and T2 from GRE data with variable TE, TR and flip angle.'
-    model_expression = 'S0 * ExpT1ExpT2sGRE'
-    inits = {'ExpT1ExpT2sGRE.T1': 0.2,
-             'ExpT1ExpT2sGRE.T2s': 0.01}
-    upper_bounds = {'ExpT1ExpT2sGRE.T1': 0.3,
-                    'ExpT1ExpT2sGRE.T2s': 0.05}
-
-
-class STEAM_Relax_PBS(DMRISingleModelConfig):
-
-    name = 'STEAM_Relax_PBS'
+    name = 'STEAM_Relax'
     description = 'Model for estimating T1 and T2 from data with a variable TM and TE.'
     model_expression = 'S0 * ExpT1ExpT2STEAM'
     inits = {'ExpT1ExpT2STEAM.T2': 0.03,
-             'ExpT1ExpT2STEAM.T1': 0.3}
-    upper_bounds = {'ExpT1ExpT2STEAM.T1': 0.6,
+             'ExpT1ExpT2STEAM.T1': 0.15}
+    upper_bounds = {'ExpT1ExpT2STEAM.T1': 0.5,
                     'ExpT1ExpT2STEAM.T2': 0.1}
 
-class STEAM_Relax_Flu(DMRISingleModelConfig):
 
-    name = 'STEAM_Relax_Flu'
-    description = 'Model for estimating T1 and T2 from data with a variable TM and TE.'
-    model_expression = 'S0 * ExpT1ExpT2STEAM'
-    inits = {'ExpT1ExpT2STEAM.T2': 0.03,
-             'ExpT1ExpT2STEAM.T1': 0.2}
-    upper_bounds = {'ExpT1ExpT2STEAM.T1': 0.3,
-                    'ExpT1ExpT2STEAM.T2': 0.1}
+class S0GRELinear(DMRISingleModelConfig):
+    """S0 is not the "real" s0 of the data, it is s0*(1 - exp(-TR / T1)).
+
+    The real s0 can be only calculated AFTER T1 estimation.
+    """
+    name = 'S0-GRE-Linear'
+    description = 'Model for estimating T1 of GRE data using B1+ map and several FA variations.'
+    model_expression = 'S0 + LinT1GRE'
+    evaluation_model = GaussianEvaluationModel()
+
+
+class MPM(DMRISingleModelConfig):
+
+    name = 'MPM'
+    description = 'Model for estimating biological microstructure of the tissue/sample.'
+    model_expression = 'S0 * MPM_Fit'
+    upper_bounds = {'MPM_Fit.T1': 0.8}

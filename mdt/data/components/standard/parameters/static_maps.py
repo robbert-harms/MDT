@@ -19,25 +19,37 @@ its data are handled during model construction.
 
 class b1_static(StaticMapParameterConfig):
 
-    name = 'b1_static'
+    data_type = 'mot_float_type'
+    value = 1
+
+
+class fa_static(StaticMapParameterConfig):
+
+    data_type = 'mot_float_type'
+    value = 1
+
+
+class Sw_static(StaticMapParameterConfig):
+    """This parameter is created *only for linear T1 decay fitting* of GRE data with variable flip angle.
+
+    S_weighted is defined as the input data divided by the
+        tan(flip_angle) ->  S_weighted = data / tan (flip_angle * B1_map)
+    """
+
     data_type = 'mot_float_type'
     value = 1
 
 
 class T1_static(StaticMapParameterConfig):
 
-    name = 'T1_static'
     data_type = 'mot_float_type'
 
 
 class T2_static(StaticMapParameterConfig):
 
-    name = 'T2_static'
     data_type = 'mot_float_type'
 
 
-#class TM_0(StaticMapParameterConfig):
+class T2s_static(StaticMapParameterConfig):
 
-#    name = 'TM_0'
-#    data_type = 'mot_float_type'
-
+    data_type = 'mot_float_type'

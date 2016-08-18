@@ -13,8 +13,6 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class Tensor(CompartmentConfig):
 
-    name = 'Tensor'
-    cl_function_name = 'cmTensor'
     parameter_list = ('g', 'b', 'd', 'dperp0', 'dperp1', 'theta', 'phi', 'psi')
 
     @bind_function

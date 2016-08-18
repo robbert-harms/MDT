@@ -1,4 +1,4 @@
-from mdt.models.compartments import CompartmentConfig, CLCodeFromInlineString
+from mdt.models.compartments import CompartmentConfig
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -8,7 +8,5 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class Dot(CompartmentConfig):
 
-    name = 'Dot'
-    cl_function_name = 'cmDot'
     parameter_list = ()
-    cl_code = CLCodeFromInlineString('return (mot_float_type)1.0;')
+    cl_code = 'return (mot_float_type)1.0;'

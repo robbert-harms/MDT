@@ -2,18 +2,18 @@ import logging
 from copy import deepcopy
 import numpy as np
 from mdt import utils
-from mdt.components_loader import ComponentConfig, ComponentBuilder
+from mdt.components_loader import ComponentConfig, ComponentBuilder, method_binding_meta
 from mdt.models.base import DMRIOptimizable
 from mdt.models.parsers.SingleModelExpressionParser import parse
 from mot.adapters import SimpleDataAdapter
 from mot.base import CLDataType
 from mot.cl_functions import Weight
-from mdt.utils import restore_volumes, create_roi
+from mdt.utils import create_roi
 from mdt.model_protocol_problem import MissingColumns, InsufficientShells
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
-from mot.model_building.evaluation_models import GaussianEvaluationModel, OffsetGaussianEvaluationModel
+from mot.model_building.evaluation_models import OffsetGaussianEvaluationModel
 from mot.model_building.parameter_functions.dependencies import WeightSumToOneRule
-from mot.models import SmoothableModelInterface, PerturbationModelInterface
+from mot.models import PerturbationModelInterface
 from mot.model_building.model_builders import SampleModelBuilder
 from mot.trees import CompartmentModelTree
 
@@ -24,81 +24,39 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimizable, PerturbationModelInterface):
+class DMRISingleModel(SampleModelBuilder, DMRIOptimizable, PerturbationModelInterface):
 
     def __init__(self, model_name, model_tree, evaluation_model, signal_noise_model=None, problem_data=None):
         """Create a composite dMRI sample model.
 
-        This also implements the smoothing interface to allow spatial smoothing of the data during meta-optimization.
+        This also implements the perturbation interface to allow perturbation of the data during meta-optimization.
 
         It furthermore implements some protocol check functions. These are used by the fit_model functions in MDT
         to check if the protocol is correct for the model we try to fit.
 
         Attributes:
-            white_list (list): The list of names of maps that must be smoothed. Set to None to ignore, set to [] to
-                filter no maps.
-            black_list (list): The list of names of maps that must not be smoothed. Set to None to ignore, set to [] to
-                allow all maps.
             required_nmr_shells (int): Define the minimum number of unique shells necessary for this model.
                 The default is false, which means that we don't check for this.
-            grad_dev (ndarray): contains the effects of gradient nonlinearities on the bvals and bvecs for each voxel.
-                This should be a 2d matrix with per voxel 9 values that constitute the gradient deviation in
-                Fortran (column-major) order. This data is used as defined by the HCP WUMINN study.
         """
         super(DMRISingleModel, self).__init__(model_name, model_tree, evaluation_model, signal_noise_model,
                                               problem_data=problem_data)
-        self.smooth_white_list = None
-        self.smooth_black_list = None
         self.required_nmr_shells = False
-        self.gradient_deviations = None
         self._logger = logging.getLogger(__name__)
 
-    @property
-    def evaluation_model(self):
-        return self._evaluation_model
-
-    def set_smooth_lists(self, white_list=None, black_list=None):
-        """Set the list with maps to filter.
-
-        If the white list is set the black list is ignored. If the white list is not set and the black list is set
-        then the black list is used.
-
-        The white list regulates the maps that must be smoothed. The black list lists those that must be ignored.
-
-        Args:
-            white_list (list): The list of names of maps that must be smoothed. Set to None to ignore, set to [] to
-                filter no maps.
-            black_list (list): The list of names of maps that must not be smoothed. Set to None to ignore, set to [] to
-                allow all maps.
+    def set_problem_data(self, problem_data):
+        """Overwrites the super implementation by adding a call to _prepare_problem_data() before the problem data is
+        added to the model.
         """
-        self.smooth_white_list = white_list
-        self.smooth_black_list = black_list
-
-    def set_gradient_deviations(self, grad_dev):
-        """Set the gradient deviations.
-
-        Args:
-            grad_dev (ndarray): the gradient deviations containing per voxel 9 values that constitute the gradient
-                non-linearities. The matrix can either be a 4d matrix or a 2d matrix.
-
-                If it is a 4d matrix the first 3 dimensions are supposed to be the voxel index and the 4th
-                should contain the grad dev data.
-
-                If it is a 2 dimensional matrix, the first dimension is the voxel index and the second should contain
-                the gradient deviation data. In this case the nmr of voxels should coincide with the number of voxels
-                in the ROI of the DWI.
-        """
-        self.gradient_deviations = grad_dev
-        return self
+        return super(DMRISingleModel, self).set_problem_data(self._prepare_problem_data(problem_data))
 
     def get_problems_var_data(self):
         var_data_dict = super(DMRISingleModel, self).get_problems_var_data()
 
-        if self.gradient_deviations is not None:
-            if len(self.gradient_deviations.shape) > 2:
-                grad_dev = create_roi(self.gradient_deviations, self._problem_data.mask)
+        if self._problem_data.gradient_deviations is not None:
+            if len(self._problem_data.gradient_deviations.shape) > 2:
+                grad_dev = create_roi(self._problem_data.gradient_deviations, self._problem_data.mask)
             else:
-                grad_dev = np.copy(self.gradient_deviations)
+                grad_dev = np.copy(self._problem_data.gradient_deviations)
 
             self._logger.info('Using the gradient deviations in the model optimization.')
 
@@ -115,26 +73,6 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
 
         return var_data_dict
 
-    def smooth(self, results, smoother):
-        if self.smooth_white_list is not None:
-            smoothable = [e for e in self.get_optimized_param_names() if e in self.smooth_white_list]
-        elif self.smooth_black_list is not None:
-            smoothable = [e for e in self.get_optimized_param_names() if e not in self.smooth_black_list]
-        else:
-            smoothable = self.get_optimized_param_names()
-
-        if smoothable:
-            mask = self._problem_data.mask
-            to_smooth = {key: value for key, value in results.items() if key in smoothable}
-            not_to_smooth = {key: value for key, value in results.items() if key not in smoothable}
-
-            roi_smoothed = smoother.filter(restore_volumes(to_smooth, mask, with_volume_dim=False), mask,
-                                           self.double_precision)
-            smoothed_results = create_roi(roi_smoothed, mask)
-            smoothed_results.update(not_to_smooth)
-            return smoothed_results
-        return results
-
     def perturbate(self, results):
         for map_name in self.get_optimized_param_names():
             if map_name in results:
@@ -149,7 +87,7 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
     def get_protocol_problems(self, protocol=None):
         """See ProtocolCheckInterface"""
         if protocol is None:
-            protocol = self._problem_data.protocol_data_dict
+            protocol = self._problem_data.protocol
 
         problems = []
 
@@ -224,17 +162,61 @@ class DMRISingleModel(SampleModelBuilder, SmoothableModelInterface, DMRIOptimiza
             '''
 
     def _can_use_gradient_deviations(self):
-        return self.gradient_deviations is not None and 'g' in list(self.get_problems_protocol_data().keys())
+        return self._problem_data.gradient_deviations is not None \
+               and 'g' in list(self.get_problems_protocol_data().keys())
 
     def _add_finalizing_result_maps(self, results_dict):
         log_likelihood_calc = LogLikelihoodCalculator()
         log_likelihoods = log_likelihood_calc.calculate(self, results_dict)
 
         k = self.get_nmr_estimable_parameters()
-        n = self._problem_data.protocol.length
+        n = self._problem_data.get_nmr_inst_per_problem()
 
         results_dict.update({'LogLikelihood': log_likelihoods})
         results_dict.update(utils.calculate_information_criterions(log_likelihoods, k, n))
+
+    def _prepare_problem_data(self, problem_data):
+        """Update the problem data to make it suitable for this model.
+
+        Some of the models in diffusion MRI can only handle a subset of all volumes. For example, the S0 model
+        can only work with the unweigthed signals, or the Tensor model that can only handle a b-value up to 1.5e9 s/m^2.
+
+        Overwrite this function to limit the problem data to a suitable range.
+
+        Args:
+            problem_data (DMRIProblemData): the problem data set by the user
+
+        Returns:
+            DMRIProblemData: either the same problem data or a changed copy.
+        """
+        protocol = problem_data.protocol
+        indices = self._get_suitable_volume_indices(problem_data)
+
+        if len(indices) != protocol.length:
+            self._logger.info('For this model, {}, we will use a subset of the protocol and DWI.'.format(self._name))
+            self._logger.info('Using {} out of {} volumes, indices: {}'.format(
+                len(indices), protocol.length, str(indices).replace('\n', '').replace('[  ', '[')))
+
+            new_protocol = protocol.get_new_protocol_with_indices(indices)
+            new_dwi_volume = problem_data.dwi_volume[..., indices]
+            return problem_data.copy_with_updates(new_protocol, new_dwi_volume)
+        else:
+            self._logger.info('No model protocol options to apply, using original protocol.')
+        return problem_data
+
+    def _get_suitable_volume_indices(self, problem_data):
+        """Usable in combination with _prepare_problem_data, return the suitable volume indices.
+
+        Get a list of volume indices that the model can use. This function is meant to remove common boilerplate code
+        from writing your own _prepare_problem_data object.
+
+        Args:
+            problem_data (DMRIProblemData): the problem data set by the user
+
+        Returns:
+            list: the list of indices we want to use for this model.
+        """
+        return list(range(problem_data.protocol.length))
 
 
 class DMRISingleModelConfig(ComponentConfig):
@@ -243,7 +225,7 @@ class DMRISingleModelConfig(ComponentConfig):
     These configs are loaded on the fly by the DMRISingleModelBuilder
 
     Config options:
-        name (str): the name of the model
+        name (str): the name of the model, defaults to the class name
         in_vivo_suitable (boolean): flag indicating if the model is suitable for in vivo data
         ex_vivo_suitable (boolean): flag indicating if the model is suitable for ex vivo data
         description (str): model description
@@ -256,7 +238,7 @@ class DMRISingleModelConfig(ComponentConfig):
         model_expression (str): the model expression. For the syntax see
             mdt.models.parsers.SingleModelExpression.ebnf
         evaluation_model (EvaluationModel): the evaluation model to use during optimization
-        signal_noise_model (SignalNoiseModel): optional text_message_signal noise decorator
+        signal_noise_model (SignalNoiseModel): optional signal noise decorator
         inits (dict): indicating the initialization values for the parameters. Example:
             inits = {'Stick.theta: pi}
         fixes (dict): indicating the constant value for the given parameters. Example:
@@ -281,7 +263,7 @@ class DMRISingleModelConfig(ComponentConfig):
     post_optimization_modifiers = []
     dependencies = []
     model_expression = ''
-    evaluation_model = OffsetGaussianEvaluationModel().fix('sigma', 1)
+    evaluation_model = OffsetGaussianEvaluationModel()
     signal_noise_model = None
     inits = {}
     fixes = {}
@@ -308,7 +290,7 @@ class DMRISingleModelBuilder(ComponentBuilder):
             template (DMRISingleModelConfig): the single model config template
                 to use for creating the class with the right init settings.
         """
-        class AutoCreatedDMRISingleModel(DMRISingleModel):
+        class AutoCreatedDMRISingleModel(method_binding_meta(template, DMRISingleModel)):
 
             def __init__(self, *args):
                 super(AutoCreatedDMRISingleModel, self).__init__(
@@ -338,5 +320,4 @@ class DMRISingleModelBuilder(ComponentBuilder):
                     else:
                         self.set_parameter_transform(full_param_name, deepcopy(value))
 
-        self._bind_functions(template, AutoCreatedDMRISingleModel)
         return AutoCreatedDMRISingleModel
