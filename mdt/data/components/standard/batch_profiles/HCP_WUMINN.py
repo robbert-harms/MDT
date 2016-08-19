@@ -37,6 +37,7 @@ class HCP_WUMINN(SimpleBatchProfile):
     def __init__(self):
         super(HCP_WUMINN, self).__init__()
         self.use_gradient_deviations = False
+        self._output_base_dir = 'T1w/Diffusion/output'
 
     def _get_subjects(self):
         dirs = sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._root_dir, '*'))])
@@ -73,7 +74,7 @@ class HCP_WUMINN(SimpleBatchProfile):
                     pjoin(),
                     protocol_fname=prtcl_fname, bvec_fname=bvec_fname,
                     bval_fname=bval_fname, protocol_options={'Delta': 43.1e-3, 'delta': 10.6e-3,
-                                                             'TE': 0.0895, 'TR': 5520e-3})
+                                                             'TE': 89.5e-3, 'TR': 5520e-3})
 
                 output_dir = self._get_subject_output_dir(subject_id, mask_fname)
 
