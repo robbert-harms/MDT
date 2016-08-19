@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'fit_model_tab.ui'
 #
-# Created: Thu Aug 18 23:06:41 2016
+# Created: Fri Aug 19 15:38:41 2016
 #      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!
