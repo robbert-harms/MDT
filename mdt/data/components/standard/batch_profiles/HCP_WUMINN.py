@@ -73,7 +73,7 @@ class HCP_WUMINN(SimpleBatchProfile):
                     pjoin(),
                     protocol_fname=prtcl_fname, bvec_fname=bvec_fname,
                     bval_fname=bval_fname, protocol_options={'Delta': 43.1e-3, 'delta': 10.6e-3,
-                                                             'TE': 0.0895, 'maxG': 0.974, 'TR': 5520e-3})
+                                                             'TE': 0.0895, 'TR': 5520e-3})
 
                 output_dir = self._get_subject_output_dir(subject_id, mask_fname)
 
