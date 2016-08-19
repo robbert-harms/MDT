@@ -38,6 +38,12 @@ class HCP_WUMINN(SimpleBatchProfile):
         super(HCP_WUMINN, self).__init__()
         self.use_gradient_deviations = False
         self._output_base_dir = 'T1w/Diffusion/output'
+        self.models_to_fit = ('BallStick (Cascade)',
+                              'Tensor (Cascade)',
+                              'Noddi (Cascade|fixed)',
+                              'Charmed_r1 (Cascade|fixed)',
+                              'Charmed_r2 (Cascade|fixed)',
+                              'Charmed (Cascade|fixed)')
 
     def _get_subjects(self):
         dirs = sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._root_dir, '*'))])
