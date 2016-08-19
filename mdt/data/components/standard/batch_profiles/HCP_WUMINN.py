@@ -38,6 +38,7 @@ class HCP_WUMINN(SimpleBatchProfile):
         super(HCP_WUMINN, self).__init__()
         self.use_gradient_deviations = False
         self._output_base_dir = 'T1w/Diffusion/output'
+        self._append_mask_name_to_output_sub_dir = False
         self.models_to_fit = ('BallStick (Cascade)',
                               'Tensor (Cascade)',
                               'Noddi (Cascade|fixed)',
