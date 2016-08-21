@@ -454,15 +454,26 @@ class BatchFitOutputInfo(object):
 
     @staticmethod
     def _get_single_model_names(model_names):
-        """Get the single model names given the list of model names from the BatchProfile"""
-        single_model_names = []
-        for model_name in model_names:
-            model = get_model(model_name)
-            if isinstance(model, DMRICascadeModelInterface):
-                single_model_names.extend(BatchFitOutputInfo._get_single_model_names(model.get_model_names()))
-            else:
-                single_model_names.append(model_name)
-        return list(set(single_model_names))
+        """Resolve the single model names from the list of (possibly cascade) model names from the BatchProfile"""
+        lookup_cache = {}
+
+        def get_names(current_names):
+            single_model_names = []
+
+            for model_name in current_names:
+                if model_name not in lookup_cache:
+                    model = get_model(model_name)
+                    if isinstance(model, DMRICascadeModelInterface):
+                        resolved_names = get_names(model.get_model_names())
+                        lookup_cache[model_name] = resolved_names
+                    else:
+                        lookup_cache[model_name] = [model_name]
+
+                single_model_names.extend(lookup_cache[model_name])
+
+            return single_model_names
+
+        return list(set(get_names(model_names)))
 
 
 def run_function_on_batch_fit_output(data_folder, func, batch_profile=None, subjects_selection=None):
@@ -538,7 +549,8 @@ def get_best_batch_profile(data_folder):
     return best_crawler
 
 
-def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, subjects_selection=None, symlink=True):
+def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, subjects_selection=None, symlink=True,
+                             move=False):
     """Load from the given data folder all the output files and put them into the output directory.
 
     If there is more than one mask file available the user has to choose which mask to use using the mask_name
@@ -555,6 +567,8 @@ def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, subjec
         subjects_selection (BatchSubjectSelection): the subjects to use for processing.
             If None all subjects are processed.
         symlink (boolean): only available under Unix OS's. Creates a symlink instead of copying.
+        move (boolean): instead of copying the files, move them to a new position. If set, this overrules the parameter
+            symlink.
     """
     def copy_function(subject_info):
         if not os.path.exists(os.path.join(output_dir, subject_info.subject_id)):
@@ -568,10 +582,13 @@ def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, subjec
             else:
                 shutil.rmtree(subject_out)
 
-        if symlink:
-            os.symlink(subject_info.output_path, subject_out)
+        if move:
+            shutil.move(subject_info.output_path, subject_out)
         else:
-            shutil.copytree(subject_info.output_path, subject_out)
+            if symlink:
+                os.symlink(subject_info.output_path, subject_out)
+            else:
+                shutil.copytree(subject_info.output_path, subject_out)
 
     run_function_on_batch_fit_output(data_folder, copy_function, batch_profile=batch_profile,
                                      subjects_selection=subjects_selection)
