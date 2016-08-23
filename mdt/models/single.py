@@ -223,20 +223,25 @@ class DMRISingleModel(SampleModelBuilder, DMRIOptimizable, PerturbationModelInte
         def warn(warning):
             self._logger.warning('{}, proceeding with seemingly inconsistent values.'.format(warning))
 
-        if any(np.greater(protocol['TE'], protocol['TR'])):
-            warn('Volumes detected where TE > TR')
+        if 'TE' in protocol and 'TR' in protocol:
+            if any(np.greater(protocol['TE'], protocol['TR'])):
+                warn('Volumes detected where TE > TR')
 
-        if any(np.greater_equal(protocol['TE'], 1)):
-            warn('Volumes detected where TE >= 1 second')
+        if 'TE' in protocol:
+            if any(np.greater_equal(protocol['TE'], 1)):
+                warn('Volumes detected where TE >= 1 second')
 
-        if any(np.greater_equal(protocol['TR'], 50)):
-            warn('Volumes detected where TR >= 50 seconds')
+        if 'TR' in protocol:
+            if any(np.greater_equal(protocol['TR'], 50)):
+                warn('Volumes detected where TR >= 50 seconds')
 
-        if any(np.greater_equal(protocol['delta'], protocol['Delta'])):
-            warn('Volumes detected where (small) delta >= (big) Delta')
+        if 'delta' in protocol and 'Delta' in protocol:
+            if any(np.greater_equal(protocol['delta'], protocol['Delta'])):
+                warn('Volumes detected where (small) delta >= (big) Delta')
 
-        if any(np.greater_equal(protocol['Delta'], protocol['TE'])):
-            warn('Volumes detected where (big) Delta >= TE')
+        if 'Delta' in protocol and 'TE' in protocol:
+            if any(np.greater_equal(protocol['Delta'], protocol['TE'])):
+                warn('Volumes detected where (big) Delta >= TE')
 
         if all(map(protocol.is_column_real, ['G', 'delta', 'Delta', 'b'])):
             if not np.allclose(VirtualColumnB().get_values(protocol), protocol['b']):

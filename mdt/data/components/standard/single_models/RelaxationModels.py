@@ -25,16 +25,16 @@ class S0T2(DMRISingleModelConfig):
     model_expression = 'S0 * ExpT2Dec'
 
     # for proper initialization, please take the highest S0 value in your data.
-    inits = {'S0.s0': 50.0}
-    upper_bounds = {'ExpT2Dec.T2': 0.10,
-                    'S0.s0': 150}
+    #inits = {'S0.s0': 50.0}
+    upper_bounds = {'ExpT2Dec.T2': 0.15}
+    #                'S0.s0': 150}
 
 
 class S0T2Linear(DMRISingleModelConfig):
 
     description = 'Models the unweighted signal (aka. b0) with an extra T2.'
     model_expression = 'S0 + LinT2Dec'
-    upper_bounds = {'LinT2Dec.R2': -1000,
+    upper_bounds = {'LinT2Dec.R2': 1000,
                     'S0.s0': 7.0}
 
     @bind_function
