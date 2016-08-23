@@ -5,6 +5,7 @@ from mdt import utils
 from mdt.components_loader import ComponentConfig, ComponentBuilder, method_binding_meta
 from mdt.models.base import DMRIOptimizable
 from mdt.models.parsers.SingleModelExpressionParser import parse
+from mdt.protocols import VirtualColumnB
 from mot.adapters import SimpleDataAdapter
 from mot.base import CLDataType
 from mot.cl_functions import Weight
@@ -42,11 +43,14 @@ class DMRISingleModel(SampleModelBuilder, DMRIOptimizable, PerturbationModelInte
                                               problem_data=problem_data)
         self.required_nmr_shells = False
         self._logger = logging.getLogger(__name__)
+        self._original_problem_data = None
 
     def set_problem_data(self, problem_data):
         """Overwrites the super implementation by adding a call to _prepare_problem_data() before the problem data is
         added to the model.
         """
+        self._check_data_consistency(problem_data)
+        self._original_problem_data = problem_data
         return super(DMRISingleModel, self).set_problem_data(self._prepare_problem_data(problem_data))
 
     def get_problems_var_data(self):
@@ -203,6 +207,45 @@ class DMRISingleModel(SampleModelBuilder, DMRIOptimizable, PerturbationModelInte
         else:
             self._logger.info('No model protocol options to apply, using original protocol.')
         return problem_data
+
+    def _check_data_consistency(self, problem_data):
+        """Check the problem data for any strange anomalies.
+
+        We do this here so that implementing models can add additional consistency checks, or skip the checks.
+        Also, by doing this here instead of in the Protocol class we ensure that the warnings end up in the log file.
+        The final argument for putting this here is that I do not want any log output in the protocol tab.
+
+        Args:
+            problem_data (DMRIProblemData): the problem data to analyze.
+        """
+        protocol = problem_data.protocol
+
+        def warn(warning):
+            self._logger.warning('{}, proceeding with seemingly inconsistent values.'.format(warning))
+
+        if 'TE' in protocol and 'TR' in protocol:
+            if any(np.greater(protocol['TE'], protocol['TR'])):
+                warn('Volumes detected where TE > TR')
+
+        if 'TE' in protocol:
+            if any(np.greater_equal(protocol['TE'], 1)):
+                warn('Volumes detected where TE >= 1 second')
+
+        if 'TR' in protocol:
+            if any(np.greater_equal(protocol['TR'], 50)):
+                warn('Volumes detected where TR >= 50 seconds')
+
+        if 'delta' in protocol and 'Delta' in protocol:
+            if any(np.greater_equal(protocol['delta'], protocol['Delta'])):
+                warn('Volumes detected where (small) delta >= (big) Delta')
+
+        if 'Delta' in protocol and 'TE' in protocol:
+            if any(np.greater_equal(protocol['Delta'], protocol['TE'])):
+                warn('Volumes detected where (big) Delta >= TE')
+
+        if all(map(protocol.is_column_real, ['G', 'delta', 'Delta', 'b'])):
+            if not np.allclose(VirtualColumnB().get_values(protocol), protocol['b']):
+                warn('Estimated b-values (from G, Delta, delta) differ from given b-values')
 
     def _get_suitable_volume_indices(self, problem_data):
         """Usable in combination with _prepare_problem_data, return the suitable volume indices.
