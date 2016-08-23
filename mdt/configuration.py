@@ -470,8 +470,9 @@ class SamplingSettings(object):
     def get_sampler_configs(model_name=None):
         settings = []
         for config in _config['sampling']['general']['samplers']:
-            name = config.pop('name')
-            settings.append(SamplerConfig(name, **config))
+            if 'name' in config:
+                name = config.pop('name')
+                settings.append(SamplerConfig(name, **config))
 
         if model_name is not None:
             model_config = get_model_config(model_name, _config['sampling']['model_specific'])
@@ -480,8 +481,9 @@ class SamplingSettings(object):
                     settings = []
 
                 for m in model_config['samplers']:
-                    name = m.pop('name')
-                    settings.append(SamplerConfig(name, **m))
+                    if 'name' in m:
+                        name = m.pop('name')
+                        settings.append(SamplerConfig(name, **m))
 
         return settings
 
