@@ -235,7 +235,7 @@ class DMRISingleModel(SampleModelBuilder, DMRIOptimizable, PerturbationModelInte
             if any(np.greater_equal(protocol['TR'], 50)):
                 warn('Volumes detected where TR >= 50 seconds')
 
-        if 'delta' in protocol and 'Delta' in protocol:
+        if 'delta' in protocol and 'Delta' in protocol and any(map(protocol.is_column_real, ['delta', 'Delta'])):
             if any(np.greater_equal(protocol['delta'], protocol['Delta'])):
                 warn('Volumes detected where (small) delta >= (big) Delta')
 
