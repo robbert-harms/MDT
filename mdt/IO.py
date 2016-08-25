@@ -28,7 +28,7 @@ class Nifti(object):
         Nifti.write_volume_maps({name: result_volume}, directory, nifti_header, overwrite_volumes)
 
     @staticmethod
-    def write_volume_maps(result_volumes, directory, nifti_header, overwrite_volumes=True, gzip=None):
+    def write_volume_maps(result_volumes, directory, nifti_header, overwrite_volumes=True, gzip=True):
         """Write a number of maps (image result volumes) to the specific directory.
 
         Args:
