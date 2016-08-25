@@ -802,6 +802,8 @@ def auto_load_protocol(directory, protocol_options=None, bvec_fname=None, bval_f
         2) a) the given bvec and bval file
            b) anything containing bval or b-val
            c) anything containing bvec or b-vec
+                i) This will prefer a bvec file that also has 'fsl' in the name. This to be able to auto load
+                    HCP MGH bvec directions.
            d) protocol options
                 i) using dict
                 ii) matching filenames exactly to the available protocol options.
@@ -847,7 +849,13 @@ def auto_load_protocol(directory, protocol_options=None, bvec_fname=None, bval_f
             bvec_files = glob.glob(os.path.join(directory, '*b-vec*'))
             if not bvec_files:
                 raise ValueError('Could not find a suitable bvec file')
-        bvec_fname = bvec_files[0]
+
+        for bvec_file in bvec_files:
+            if 'fsl' in os.path.basename(bvec_file):
+                bvec_fname = bvec_files[0]
+
+        if not bvec_fname:
+            bvec_fname = bvec_files[0]
 
     protocol = load_bvec_bval(bvec_fname, bval_fname, bval_scale=bval_scale)
 
