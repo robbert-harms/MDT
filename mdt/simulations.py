@@ -14,7 +14,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 def create_parameters_cube(primary_parameter_index, randomize_parameter_indices, grid_size,
-                           default_values, lower_bounds, upper_bounds, dtype=np.float32):
+                           default_values, lower_bounds, upper_bounds, dtype=np.float32, seed=None):
     """Create a simple 3d parameters cube.
 
     On the first dimension we put a linearly spaced primary parameter and on the second dimension we randomly change
@@ -30,6 +30,7 @@ def create_parameters_cube(primary_parameter_index, randomize_parameter_indices,
         lower_bounds (list of float): the lower bounds used for the generation of the grid
         upper_bounds (list of float): the upper bounds used for the generation of the grid
         dtype (dtype): the numpy data type for this grid
+        seed (int): if given the seed for the random number generator, this makes the random parameters predictable.
 
     Returns:
         ndarray: a three dimensional cube for the parameters
@@ -39,13 +40,15 @@ def create_parameters_cube(primary_parameter_index, randomize_parameter_indices,
     grid = np.reshape(grid, (grid.shape[0], 1, grid.shape[1]))
     grid = np.repeat(grid, grid_size[1], axis=1)
 
+    random_state = np.random.RandomState(seed)
+
     for param_ind in randomize_parameter_indices:
-        grid[:, :, param_ind] = np.random.uniform(lower_bounds[param_ind], upper_bounds[param_ind], size=grid_size)
+        grid[:, :, param_ind] = random_state.uniform(lower_bounds[param_ind], upper_bounds[param_ind], size=grid_size)
 
     return grid
 
 
-def add_noise_realizations(signal_cube, nmr_noise_realizations, noise_sigma):
+def add_noise_realizations(signal_cube, nmr_noise_realizations, noise_sigma, seed=None):
     """Add noise realizations to a signal cube.
 
     The given signal cube should be a 3d matrix that contains on the last axis the signals per protocol line. All
@@ -59,13 +62,14 @@ def add_noise_realizations(signal_cube, nmr_noise_realizations, noise_sigma):
         nmr_noise_realizations (int): the number of noise realizations to use on the new third axis
         noise_sigma (float): the noise level, given by:
             noise_level = unweighted_signal_height / SNR
+        seed (int): if given, the seed for the random number generation
 
     Returns:
         ndarray: a 4d cube with on the newly added third dimension the variating noise realizations
     """
     signals = np.reshape(signal_cube, signal_cube.shape[0: 2] + (1, signal_cube.shape[2]))
     signals = np.repeat(signals, nmr_noise_realizations, axis=2)
-    return make_rician_distributed(signals, noise_sigma)
+    return make_rician_distributed(signals, noise_sigma, seed=seed)
 
 
 def simulate_signals_param_cube(model_name, protocol, parameters_cube):
@@ -181,7 +185,7 @@ def simulate_signals(model_name, protocol, parameters):
     return signal_evaluate.calculate(model, parameters)
 
 
-def make_rician_distributed(signals, noise_level):
+def make_rician_distributed(signals, noise_level, seed=None):
     """Make the given signal Rician distributed.
 
     To calculate the noise level divide the signal of the unweighted volumes by the SNR you want. For example,
@@ -191,12 +195,14 @@ def make_rician_distributed(signals, noise_level):
         signals: the signals to make Rician distributed
         noise_level: the level of noise to add. The actual Rician stdev depends on the signal. See ricestat in
             the mathworks library. The noise level can be calculated using b0/SNR.
+        seed (int): if given, the seed for the random number generation
 
     Returns:
         ndarray: Rician distributed signals.
     """
-    x = noise_level * np.random.normal(size=signals.shape) + signals
-    y = noise_level * np.random.normal(size=signals.shape)
+    random_state = np.random.RandomState(seed)
+    x = noise_level * random_state.normal(size=signals.shape) + signals
+    y = noise_level * random_state.normal(size=signals.shape)
     return np.sqrt(np.power(x, 2), np.power(y, 2)).astype(signals.dtype)
 
 
