@@ -128,3 +128,4 @@ class MPM(DMRISingleModelConfig):
     description = 'Model for estimating biological microstructure of the tissue/sample.'
     model_expression = 'S0 * MPM_Fit'
     upper_bounds = {'MPM_Fit.T1': 0.8}
+    evaluation_model = GaussianEvaluationModel()
