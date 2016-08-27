@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'view_results_tab.ui'
 #
-# Created: Fri Aug 19 15:38:41 2016
+# Created: Sat Aug 27 12:34:10 2016
 #      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!

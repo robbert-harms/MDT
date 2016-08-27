@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'generate_protocol_update_dialog.ui'
 #
-# Created: Fri Aug 19 15:38:41 2016
+# Created: Sat Aug 27 12:34:10 2016
 #      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!

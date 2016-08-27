@@ -5,8 +5,7 @@ from PyQt5.QtCore import pyqtSlot, QObject, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog
 
 from mdt import view_results_slice, load_nifti
-from mdt.gui.design.ui_generate_roi_mask_tab import Ui_GenerateROIMaskTabContent
-from mdt.gui.utils import image_files_filters, MainTab
+from mdt.gui.model_fit.design.ui_generate_roi_mask_tab import Ui_GenerateROIMaskTabContent
 from mdt.gui.utils import function_message_decorator, image_files_filters, MainTab
 from mdt.utils import split_image_path, write_slice_roi
 

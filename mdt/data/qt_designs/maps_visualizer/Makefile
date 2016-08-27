@@ -4,13 +4,13 @@
 QT_RESOURCE_DIR = ./
  
 # Directory for compiled QT_RESOURCES
-QT_COMPILED_DIR = ../../gui/design
+QT_COMPILED_DIR = ../../../gui/maps_visualizer/design
  
 # UI files to compile
-QT_UI_FILES = main_gui.ui generate_protocol_tab.ui view_results_tab.ui generate_brain_mask_tab.ui generate_roi_mask_tab.ui generate_protocol_update_dialog.ui generate_protocol_load_gb_dialog.ui fit_model_tab.ui runtime_settings_dialog.ui about_dialog.ui optimization_options_dialog.ui
+QT_UI_FILES = $(shell ls $(QT_RESOURCE-DIR)*.ui)
 
 # Qt resource files to compile
-QT_RESOURCES = main_gui.qrc
+QT_RESOURCES = 
  
 # the binaries
 PYUIC = pyuic5 --from-imports

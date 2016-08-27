@@ -1,19 +1,16 @@
 import os
 from collections import OrderedDict
 
-import numpy as np
 from PyQt5 import QtCore
-from PyQt5.QtCore import QVariant
 from PyQt5.QtCore import pyqtSlot, Qt
 from PyQt5.QtGui import QBrush
 from PyQt5.QtWidgets import QFileDialog, QTableWidgetItem, QAbstractItemView, QMenu, QMessageBox, \
     QDialog, QDialogButtonBox
-from mdt.gui.design.ui_generate_protocol_tab import Ui_GenerateProtocolTabContent
-from mdt.gui.design.ui_generate_protocol_update_dialog import Ui_UpdateColumnDialog
+from mdt.gui.model_fit.design.ui_generate_protocol_load_gb_dialog import Ui_LoadGBDialog
+from mdt.gui.model_fit.design.ui_generate_protocol_update_dialog import Ui_UpdateColumnDialog
 
 import mdt
-from mdt.gui.design.ui_generate_protocol_load_gb_dialog import Ui_LoadGBDialog
-from mdt.gui.utils import MainTab
+from mdt.gui.model_fit.design.ui_generate_protocol_tab import Ui_GenerateProtocolTabContent
 from mdt.gui.utils import protocol_files_filters, MainTab
 from mdt.protocols import Protocol, load_bvec_bval
 

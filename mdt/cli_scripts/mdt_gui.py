@@ -3,10 +3,11 @@
 import argparse
 import os
 import textwrap
+
 from argcomplete.completers import FilesCompleter
 
 from mdt import init_user_settings
-from mdt.gui.qt_main import start_gui
+from mdt.gui.model_fit.qt_main import start_gui
 from mdt.shell_utils import BasicShellApplication, get_citation_message
 
 __author__ = 'Robbert Harms'

@@ -2,11 +2,10 @@ import os
 
 from PyQt5.QtCore import pyqtSlot, QObject, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog, QMessageBox, QDialog, QDialogButtonBox
-from mdt.gui.design.ui_optimization_options_dialog import Ui_OptimizationOptionsDialog
+from mdt.gui.model_fit.design.ui_optimization_options_dialog import Ui_OptimizationOptionsDialog
 
 import mdt
-from mdt.gui.design.ui_fit_model_tab import Ui_FitModelTabContent
-from mdt.gui.utils import image_files_filters, protocol_files_filters, MainTab
+from mdt.gui.model_fit.design.ui_fit_model_tab import Ui_FitModelTabContent
 from mdt.gui.utils import function_message_decorator, image_files_filters, protocol_files_filters, MainTab
 from mdt.utils import split_image_path, MetaOptimizerBuilder
 from mot.factory import get_optimizer_by_name
