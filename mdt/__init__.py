@@ -38,7 +38,8 @@ from mdt.user_script_info import easy_save_user_script_info
 from mdt.utils import estimate_noise_std, get_cl_devices, load_problem_data, create_blank_mask, create_index_matrix, \
     volume_index_to_roi_index, roi_index_to_volume_index, load_brain_mask, init_user_settings, restore_volumes, \
     apply_mask, create_roi, volume_merge, concatenate_mri_sets, create_median_otsu_brain_mask, load_samples, \
-    load_nifti, write_slice_roi, split_write_dataset, apply_mask_to_file, extract_volumes, recalculate_error_measures
+    load_nifti, write_slice_roi, split_write_dataset, apply_mask_to_file, extract_volumes, recalculate_error_measures, \
+    create_signal_estimates
 from mdt.batch_utils import collect_batch_fit_output, run_function_on_batch_fit_output
 from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, write_protocol, write_bvec_bval
 from mdt.components_loader import load_component, get_model

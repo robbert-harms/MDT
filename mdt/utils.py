@@ -33,6 +33,7 @@ from mdt.log_handlers import ModelOutputLogHandler
 from mdt.protocols import load_protocol, write_protocol
 from mot.base import AbstractProblemData
 from mot.cl_environments import CLEnvironmentFactory
+from mot.cl_routines.mapping.calculate_model_estimates import CalculateModelEstimates
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
 from mot.cl_routines.optimizing.meta_optimizer import MetaOptimizer
 from mot.cl_routines.sampling.meta_sampler import MetaSampler
@@ -1636,3 +1637,28 @@ def recalculate_error_measures(model, problem_data, data_dir, sigma, output_dir=
 
     output_dir = output_dir or data_dir
     Nifti.write_volume_maps(volumes, output_dir, problem_data.volume_header)
+
+
+def create_signal_estimates(volume_maps, problem_data, model, output_fname):
+    """Estimate and write the signals of a given model on the given data.
+
+    Args:
+        volume_maps (str or dict): either a directory file name or a dictionary containing the results
+        problem_data (DMRIProblemData): the problem data object, we will set this to the model
+        model (str or model): the model or the name of the model to use for estimating the signals
+        output_fname (str): the file name of the file to write the signal estimates to (.nii or .nii.gz)
+    """
+    if isinstance(model, string_types):
+        model = get_model(model)
+
+    if isinstance(volume_maps, string_types):
+        volume_maps = Nifti.read_volume_maps(volume_maps)
+
+    model.set_problem_data(problem_data)
+
+    calculator = CalculateModelEstimates()
+    results = calculator.calculate(model, create_roi(volume_maps, problem_data.mask))
+
+    signal_estimates = restore_volumes(results, problem_data.mask)
+
+    nib.Nifti1Image(signal_estimates, None, problem_data.volume_header).to_filename(output_fname)
