@@ -54,7 +54,7 @@ class MapsVisualizer(object):
     def show(self, dimension=None, slice_ind=None, volume_ind=None, map_titles=None, maps_to_show=None,
              general_plot_options=None, map_plot_options=None, to_file=None, block=True, maximize=False,
              window_title=None, axis_options=None, nmr_colorbar_axis_ticks=None, show_sliders=None, figure_options=None,
-             rotate_images=None, grid_layout=None):
+             rotate_images=None, grid_layout=None, in_qt=False):
         """Show the data contained in this visualizer using the specifics in this function call.
 
         Args:
@@ -122,6 +122,9 @@ class MapsVisualizer(object):
         if map_plot_options:
             self.map_plot_options = map_plot_options
 
+        if 'cmap' not in self.general_plot_options:
+            self.general_plot_options.update({'cmap': 'hot'})
+
         self.axis_options = axis_options
         self.nmr_colorbar_axis_ticks = nmr_colorbar_axis_ticks
         self.rotate_images = rotate_images
@@ -150,10 +153,11 @@ class MapsVisualizer(object):
             plt.savefig(to_file, bbox_inches='tight', pad_inches=0)
             plt.close()
         else:
-            plt.draw()
-            self._figure.canvas.mpl_connect('scroll_event', self._scroll_event)
-            if block:
-                plt.show(True)
+            if not in_qt:
+                plt.draw()
+                self._figure.canvas.mpl_connect('scroll_event', self._scroll_event)
+                if block:
+                    plt.show(True)
 
         return self._map_view_settings
 
@@ -166,9 +170,11 @@ class MapsVisualizer(object):
 
             if self._map_view_settings.slice_index >= self._volumes_shape[self._map_view_settings.dimension_index]:
                 self._map_view_settings.slice_index = self._volumes_shape[self._map_view_settings.dimension_index] / 2
-            self._index_slider.set_max(self._volumes_shape[self._map_view_settings.dimension_index] - 1)
 
-            self._dimension_slider.set_val(val)
+            if self.show_sliders:
+                self._index_slider.set_max(self._volumes_shape[self._map_view_settings.dimension_index] - 1)
+                self._dimension_slider.set_val(val)
+
             self._rerender_maps()
             self._updating_sliders = False
 
@@ -184,7 +190,8 @@ class MapsVisualizer(object):
                 self._map_view_settings.slice_index = self._volumes_shape[self._map_view_settings.dimension_index] / 2
                 self._index_slider.set_max(self._volumes_shape[self._map_view_settings.dimension_index] - 1)
 
-            self._index_slider.set_val(val)
+            if self.show_sliders:
+                self._index_slider.set_val(val)
             self._rerender_maps()
             self._updating_sliders = False
 
@@ -196,7 +203,9 @@ class MapsVisualizer(object):
 
         if not self._updating_sliders:
             self._updating_sliders = True
-            self._map_view_settings.volume_index = val
+
+            if self.show_sliders:
+                self._map_view_settings.volume_index = val
             self._volume_slider.set_val(val)
             self._rerender_maps()
             self._updating_sliders = False
@@ -237,6 +246,7 @@ class MapsVisualizer(object):
                 self._volume_slider.on_changed(self.set_volume_ind)
                 self._volume_slider.valtext.set_picker(True)
                 self._volume_slider.valtext.value_type = int
+
                 self._volume_slider.valtext.update_cb = lambda value: self.set_volume_ind(value)
 
         self._figure.canvas.mpl_connect('pick_event', self._global_click_listener)

@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'main_gui.ui'
 #
-# Created: Sat Aug 27 12:34:10 2016
+# Created: Sun Aug 28 22:57:36 2016
 #      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -132,6 +132,6 @@ class Ui_MainWindow(object):
         self.actionExit.setText(_translate("MainWindow", "&Quit"))
         self.actionExit.setShortcut(_translate("MainWindow", "Ctrl+Q"))
         self.action_RuntimeSettings.setText(_translate("MainWindow", "&Runtime settings"))
-        self.actionAbout.setText(_translate("MainWindow", "About"))
+        self.actionAbout.setText(_translate("MainWindow", "&About"))
 
 from . import main_gui_rc

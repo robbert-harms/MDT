@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'generate_protocol_load_gb_dialog.ui'
 #
-# Created: Sat Aug 27 12:34:09 2016
+# Created: Sun Aug 28 22:57:36 2016
 #      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!

@@ -1,4 +1,4 @@
-matplotlib
+matplotlib>=1.5.1
 six
 numpy>=1.9.0
 pyopencl>=2013.1

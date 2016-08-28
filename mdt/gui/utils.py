@@ -97,36 +97,6 @@ class UpdateDescriptor(object):
         instance.state_updated_signal.emit(self._attribute_name)
 
 
-class SharedState(QObject):
-
-    state_updated_signal = pyqtSignal(str)
-
-    def __init__(self, *args, **kwargs):
-        """The shared state for the single model GUI
-
-        Attributes:
-            base_dir (str): the base dir for all file opening operations
-            dimension_index (int): the dimension index used in various operations
-            slice_index (int): the slice index used in various operations
-        """
-        super(SharedState, self).__init__(*args, **kwargs)
-
-        shared_attributes = {'base_dir': None,
-                             'dimension_index': 0,
-                             'slice_index': 0,
-                             'output_folder': None}
-
-        for key, value in shared_attributes.items():
-            def get_attribute_setter(attribute_key):
-                def setter(value):
-                    setattr(self, attribute_key, value)
-                return setter
-
-            setattr(self, '_' + key, value)
-            setattr(SharedState, key, UpdateDescriptor(key))
-            setattr(self, 'set_' + key, get_attribute_setter(key))
-
-
 class MessageReceiver(QObject):
 
     text_message_signal = pyqtSignal(str)

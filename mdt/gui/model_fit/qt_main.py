@@ -25,7 +25,8 @@ from PyQt5 import QtGui
 from PyQt5.QtCore import QThread, QTimer, pyqtSlot
 from PyQt5.QtWidgets import QMainWindow, QApplication, QDialog, QDialogButtonBox
 from mdt.gui.model_fit.design.ui_main_gui import Ui_MainWindow
-from mdt.gui.utils import print_welcome_message, ForwardingListener, SharedState, MessageReceiver
+from mdt.gui.utils import print_welcome_message, ForwardingListener, MessageReceiver
+from mdt.gui.model_fit.utils import SharedState
 from mdt.log_handlers import LogDispatchHandler
 
 __author__ = 'Robbert Harms'
