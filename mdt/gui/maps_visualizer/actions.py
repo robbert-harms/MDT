@@ -1,4 +1,5 @@
-from .base import ConfigAction, SimpleConfigAction, SimpleMapSpecificConfigAction, MapSpecificConfiguration
+from .base import ConfigAction, SimpleConfigAction, SimpleMapSpecificConfigAction, MapSpecificConfiguration, \
+    GeneralConfiguration
 
 
 class SetDimension(ConfigAction):
@@ -65,3 +66,18 @@ class SetMapClipping(SimpleMapSpecificConfigAction):
 class SetMapColormapp(SimpleMapSpecificConfigAction):
 
     config_attribute = 'colormap'
+
+
+class FromDictAction(ConfigAction):
+
+    def __init__(self, config_dict):
+        super(FromDictAction, self).__init__()
+        self.config_dict = config_dict
+
+    def apply(self, configuration):
+        self._previous_config = configuration
+        return GeneralConfiguration.from_dict(self.config_dict)
+
+    def unapply(self):
+        return self._previous_config
+

@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'MainWindow.ui'
 #
-# Created: Mon Aug 29 18:57:33 2016
+# Created: Mon Aug 29 21:51:31 2016
 #      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -367,9 +367,9 @@ class Ui_MapsVisualizer(object):
         self.textInfoTab.setObjectName("textInfoTab")
         self.gridLayout_9 = QtWidgets.QGridLayout(self.textInfoTab)
         self.gridLayout_9.setObjectName("gridLayout_9")
-        self.plainTextEdit = QtWidgets.QPlainTextEdit(self.textInfoTab)
-        self.plainTextEdit.setObjectName("plainTextEdit")
-        self.gridLayout_9.addWidget(self.plainTextEdit, 0, 0, 1, 1)
+        self.textConfigEdit = TextConfigEditor(self.textInfoTab)
+        self.textConfigEdit.setObjectName("textConfigEdit")
+        self.gridLayout_9.addWidget(self.textConfigEdit, 0, 0, 1, 1)
         self.commandTabs.addTab(self.textInfoTab, "")
         self.verticalLayout.addWidget(self.commandTabs)
         self.gridLayoutWidget = QtWidgets.QWidget(self.splitter)
@@ -412,7 +412,7 @@ class Ui_MapsVisualizer(object):
         self.menubar.addAction(self.menuAbout.menuAction())
 
         self.retranslateUi(MapsVisualizer)
-        self.commandTabs.setCurrentIndex(0)
+        self.commandTabs.setCurrentIndex(2)
         self.actionQuit.triggered.connect(MapsVisualizer.close)
         QtCore.QMetaObject.connectSlotsByName(MapsVisualizer)
 
@@ -449,4 +449,4 @@ class Ui_MapsVisualizer(object):
         self.actionAbout.setText(_translate("MapsVisualizer", "&About"))
         self.actionExtra_plot_options.setText(_translate("MapsVisualizer", "&Extra plot options"))
 
-from ..widgets import CollapsablePanelContent, CollapsablePanelHeader, CollapsablePanel
+from ..widgets import CollapsablePanelHeader, CollapsablePanel, CollapsablePanelContent, TextConfigEditor

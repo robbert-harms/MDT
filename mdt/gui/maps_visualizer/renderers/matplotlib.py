@@ -1,9 +1,10 @@
 from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 import mdt
-from mdt.gui.maps_visualizer.base import PlottingFrame
+from mdt.gui.maps_visualizer.base import PlottingFrame, DataInfo, GeneralConfiguration
 from mdt.visualization import MapsVisualizer
 
 
@@ -11,37 +12,52 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
 
     def __init__(self, controller, parent=None):
         super(MatplotlibPlotting, self).__init__()
-        self.controller = controller
+        self._controller = controller
 
-        names = mdt.results_preselection_names('/media/robbert/01bbb411-36d7-466c-b8f9-ec690d605355/bin/dti_test/output/brain_mask/BallStick/')
-        maps = mdt.load_volume_maps('/media/robbert/01bbb411-36d7-466c-b8f9-ec690d605355/bin/dti_test/output/brain_mask/BallStick/', map_names=names)
-        # maps = {}
+        self._controller.new_data.connect(self.set_new_data)
+        self._controller.new_config.connect(self.set_new_config)
 
-        self.vis = MapsVisualizer(maps)
+        self._data_info = controller.get_data()
+
+        self.vis = MapsVisualizer(self._data_info.maps)
         self.vis.show(in_qt=True, show_sliders=False)
 
-        canvas = FigureCanvas(self.vis._figure)
-        canvas.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        canvas.updateGeometry()
+        self.canvas = FigureCanvas(self.vis._figure)
+        self.canvas.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.canvas.updateGeometry()
 
         # set the layout
         layout = QVBoxLayout()
         layout.setSpacing(0)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(canvas)
+        layout.addWidget(self.canvas)
         self.setLayout(layout)
 
         self.setParent(parent)
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
         self.setFocus()
 
-        self.vis._figure.canvas.mpl_connect('button_press_event', self._on_press)
+    @pyqtSlot(DataInfo)
+    def set_new_data(self, data_info):
+        self._data_info = data_info
+        self._redraw()
 
-    def set_dimension(self, dimension):
-        self.vis.set_dimension(dimension)
+    @pyqtSlot(GeneralConfiguration)
+    def set_new_config(self, configuration):
+        self._redraw()
 
-    def set_slice_index(self, slice_index):
-        self.vis.set_slice_ind(slice_index)
+    def _redraw(self):
+        width = self.width()
+        height = self.height()
 
-    def _on_press(self, event):
-        print(event)
+        config = self._controller.get_config()
+        maps_to_show = [map_name for map_name in config.maps_to_show if map_name in self._data_info.maps]
+
+        self.vis = MapsVisualizer(self._data_info.maps)
+        self.vis.show(in_qt=True, show_sliders=False, maps_to_show=maps_to_show,
+                      rotate_images=config.rotate)
+
+        self.canvas.figure = self.vis._figure
+
+        self.canvas.resize(width, height-1)
+        self.canvas.resize(width, height)

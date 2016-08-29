@@ -64,6 +64,9 @@
            <property name="spacing">
             <number>0</number>
            </property>
+           <property name="bottomMargin">
+            <number>0</number>
+           </property>
            <item>
             <widget class="QTabWidget" name="commandTabs">
              <property name="sizePolicy">
@@ -697,7 +700,7 @@
                     <x>0</x>
                     <y>0</y>
                     <width>977</width>
-                    <height>644</height>
+                    <height>625</height>
                    </rect>
                   </property>
                   <layout class="QGridLayout" name="gridLayout_8" rowstretch="0,0,0,0,0,0,0,0,0">
@@ -809,7 +812,7 @@
               </attribute>
               <layout class="QGridLayout" name="gridLayout_9">
                <item row="0" column="0">
-                <widget class="QPlainTextEdit" name="plainTextEdit"/>
+                <widget class="TextConfigEditor" name="textConfigEdit"/>
                </item>
               </layout>
              </widget>
@@ -906,6 +909,11 @@
    <extends>QFrame</extends>
    <header>..widgets</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>TextConfigEditor</class>
+   <extends>QPlainTextEdit</extends>
+   <header>..widgets</header>
   </customwidget>
  </customwidgets>
  <resources/>

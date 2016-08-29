@@ -1,10 +1,28 @@
 import copy
+import mdt
 
 
-class ImagesInfo():
+class PlottingFrame(object):
 
     def __init__(self):
-        """A container for basic information about the images we are viewing."""
+        super(PlottingFrame, self).__init__()
+
+
+class DataInfo(object):
+
+    def __init__(self, maps, directory=None):
+        """A container for basic information about the volume maps we are viewing.
+
+        Args:
+            maps (dict): the dictionary with the maps to view
+            directory (str): the directory from which the maps where loaded
+        """
+        self.maps = maps
+        self.directory = directory
+
+    @classmethod
+    def from_dir(cls, directory):
+        return DataInfo(mdt.load_volume_maps(directory), directory)
 
     def get_max_volume(self):
         pass
@@ -14,29 +32,6 @@ class ImagesInfo():
 
     def get_max_slice_index(self, dimension):
         pass
-
-
-class PlottingFrame(object):
-
-    def __init__(self):
-        super(PlottingFrame, self).__init__()
-
-    def set_dimension(self, dimension):
-        """Set the dimension of the plots to the given dimension.
-
-        This only accepts the values 0, 1 and 2 being the three dimensions we visualize. To visualize
-        a different volume use the function set_volume_index.
-
-        Args:
-            dimension (int): the dimension to set the plots to
-        """
-
-    def set_slice_index(self, slice_index):
-        """Set the slice index in the current dimension to this value.
-
-        Args:
-            slice_index (int): the new slice index
-        """
 
 
 class Diffable(object):
@@ -85,8 +80,6 @@ class GeneralConfiguration(Diffable):
 
     def __init__(self):
         super(GeneralConfiguration, self).__init__()
-        self.current_directory = None
-        self.maps = {}
         self.dimension = None
         self.slice_index = None
         self.volume_index = None
@@ -96,12 +89,28 @@ class GeneralConfiguration(Diffable):
         self.rotate = 0
         self.map_plot_options = {}
 
+    @classmethod
+    def from_dict(cls, config_dict):
+        """Create and return a new instance using the given configuration dict.
+
+        The layout and items of the config dict should match those from the function 'to_dict'
+
+        Args:
+            config_dict (dict): the new configuration dictionary
+        """
+        config = GeneralConfiguration()
+        config.__dict__.update(config_dict)
+        config.map_plot_options = {key: MapSpecificConfiguration.from_dict(value)
+                                   for key, value in config_dict['map_plot_options']}
+        return config
+
     def get_difference(self, other):
         differences = {}
-        for item in ['maps', 'current_directory', 'dimension', 'slice_index', 'volume_index', 'colormap',
-                     'rotate', 'maps_to_show', 'zoom']:
-            if getattr(self, item) != getattr(other, item):
-                differences.update({item: getattr(other, item)})
+
+        for key, value in self.__dict__.items():
+            if key not in ['map_plot_options']:
+                if value != getattr(other, key):
+                    differences.update({key: getattr(other, key)})
 
         if self.map_plot_options != other.map_plot_options:
             map_diffs = {}
@@ -110,19 +119,24 @@ class GeneralConfiguration(Diffable):
                 if key not in self.map_plot_options:
                     map_diffs.update(key=MapSpecificConfiguration().get_difference(value))
                 else:
-                    map_diffs.update(key=self.map_plot_options[key].get_difference(value))
+                    diff = self.map_plot_options[key].get_difference(value)
+                    if diff:
+                        map_diffs.update(key=diff)
 
-            differences['map_plot_options'] = map_diffs
+            if map_diffs:
+                differences['map_plot_options'] = map_diffs
 
         if differences:
             return GeneralConfigurationDifference(**differences)
 
-    def get_dict(self):
+    def to_dict(self):
         """Get the whole configuration as a multi-level dictionary.
 
         This can be useful for converting the configuration to a string.
         """
-        #todo
+        result = copy.copy(self.__dict__)
+        result['map_plot_options'] = {key: value.to_dict() for key, value in self.map_plot_options}
+        return result
 
     def __copy__(self):
         config_copy = GeneralConfiguration()
@@ -142,14 +156,30 @@ class MapSpecificConfiguration(Diffable):
         self.clipping = {'min': None, 'max': None}
         self.colormap = None
 
+    @classmethod
+    def from_dict(cls, config_dict):
+        """Create and return a new instance using the given configuration dict.
+
+        The layout and items of the config dict should match those from the function 'to_dict'
+
+        Args:
+            config_dict (dict): the new configuration dictionary
+        """
+        config = MapSpecificConfiguration()
+        config.__dict__.update(config_dict)
+        return config
+
     def get_difference(self, other):
         differences = {}
-        for item in self.__dict__.keys():
-            if getattr(self, item) != getattr(other, item):
-                differences.update({item: getattr(other, item)})
+        for key, value in self.__dict__.items():
+            if value != getattr(other, key):
+                differences.update({key: getattr(other, key)})
 
         if differences:
             return MapSpecificConfigurationDifference(**differences)
+
+    def to_dict(self):
+        return copy.copy(self.__dict__)
 
     def __str__(self):
         return str(self.__dict__)
@@ -247,6 +277,23 @@ class Controller(object):
 
     def __init__(self):
         """Controller interface"""
+        super(Controller, self).__init__()
+
+    def set_data(self, data_info, config=None):
+        """Set new data to visualize.
+
+        Args:
+            data_info (DataInfo): the new data to visualize
+            config (GeneralConfiguration): the new configuration for the data
+                If given, we will display the new data immediately with the given config
+        """
+
+    def get_data(self):
+        """Get the current data.
+
+        Returns:
+            DataInfo: the current data information
+        """
 
     def set_config(self, general_config):
         """Set the general configuration to the given config.
