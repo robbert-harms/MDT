@@ -23,9 +23,10 @@ except ImportError:
     from queue import Queue
 from PyQt5 import QtGui
 from PyQt5.QtCore import QThread, QTimer, pyqtSlot
-from PyQt5.QtWidgets import QMainWindow, QApplication, QDialog, QDialogButtonBox
+from PyQt5.QtWidgets import QMainWindow, QDialog, QDialogButtonBox
 from mdt.gui.model_fit.design.ui_main_gui import Ui_MainWindow
-from mdt.gui.utils import print_welcome_message, ForwardingListener, MessageReceiver, center_window
+from mdt.gui.utils import print_welcome_message, ForwardingListener, MessageReceiver, center_window, \
+    QApplicationSingleton
 from mdt.gui.model_fit.utils import SharedState
 from mdt.log_handlers import LogDispatchHandler
 
@@ -203,7 +204,7 @@ def start_gui(base_dir=None):
     state = SharedState()
     state.base_dir = base_dir
 
-    app = QApplication([])
+    app = QApplicationSingleton.get_instance()
 
     # catches the sigint
     timer = QTimer()
@@ -213,7 +214,7 @@ def start_gui(base_dir=None):
     single_model_gui = MDTGUISingleModel(state)
     signal.signal(signal.SIGINT, single_model_gui.send_sigint)
 
-    center_window(app, single_model_gui)
+    center_window(single_model_gui)
     single_model_gui.show()
 
     sys.exit(app.exec_())

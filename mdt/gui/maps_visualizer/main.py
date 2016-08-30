@@ -1,33 +1,28 @@
-import copy
-
 import matplotlib
+matplotlib.use('Qt5Agg')
+
+import copy
 import yaml
 from PyQt5.QtCore import QObject, pyqtSlot
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QDialog
-from PyQt5.QtWidgets import QShortcut
-
 import mdt
 from mdt.gui.maps_visualizer.actions import SetDimension, SetZoom, SetSliceIndex, SetMapsToShow, SetMapTitle, \
     SetMapClipping, FromDictAction, SetVolumeIndex, SetColormap, SetRotate
 from mdt.gui.maps_visualizer.base import GeneralConfiguration, Controller, DataInfo, MapSpecificConfiguration
-from mdt.gui.maps_visualizer.renderers.matplotlib import MatplotlibPlotting
+from mdt.gui.maps_visualizer.renderers.matplotlib_renderer import MatplotlibPlotting
 from mdt.gui.model_fit.design.ui_about_dialog import Ui_AboutDialog
-from mdt.gui.utils import center_window
-
-matplotlib.use('Qt5Agg')
+from mdt.gui.utils import center_window, QApplicationSingleton
 import sys
-from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import QMainWindow
 from mdt.gui.maps_visualizer.design.ui_MainWindow import Ui_MapsVisualizer
 
 
-class MainWindow(QMainWindow, Ui_MapsVisualizer):
+class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
 
     def __init__(self, controller, parent=None):
-        super(MainWindow, self).__init__(parent)
+        super(MapsVisualizerWindow, self).__init__(parent)
         self.setupUi(self)
 
         self._controller = controller
@@ -229,28 +224,34 @@ class QtController(Controller, QObject):
         return False
 
 
-def main():
+def start_gui(data=None, config=None):
     controller = QtController()
-    app = QApplication(sys.argv)
-    main = MainWindow(controller)
-    center_window(app, main)
+    app = QApplicationSingleton.get_instance()
+    main = MapsVisualizerWindow(controller)
+    center_window(main)
     main.show()
 
-    # # data = DataInfo.from_dir('/home/robbert/phd-data/dti_test_ballstick_results/')
-    # data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/brain_mask/BallStick/')
+    if data:
+        controller.set_data(data, config)
+    elif config:
+        controller.set_config(config)
+
+    sys.exit(app.exec_())
+
+
+if __name__ == '__main__':
+    #
+    # # # data = DataInfo.from_dir('/home/robbert/phd-data/dti_test_ballstick_results/')
+    # # data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/brain_mask/BallStick/')
     data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/4Ddwi_b1000_mask_2_25/BallStick/')
     config = GeneralConfiguration()
     config.maps_to_show = ['S0.s0', 'BIC']
     config.map_plot_options.update({'S0.s0': MapSpecificConfiguration(title='S0 test')})
     config.slice_index = None
-    controller.set_data(data, config)
 
-    sys.exit(app.exec_())
-
+    start_gui(data, config)
 
 
-if __name__ == '__main__':
-    main()
 
 
 #

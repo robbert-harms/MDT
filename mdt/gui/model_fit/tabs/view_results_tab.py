@@ -4,9 +4,11 @@ import os
 from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QFileDialog
 
-from mdt import results_preselection_names, load_nifti, view_results_slice
+from mdt import results_preselection_names, load_nifti
+from mdt.gui.maps_visualizer.base import DataInfo, GeneralConfiguration
+from mdt.gui.maps_visualizer.main import MapsVisualizerWindow, QtController
 from mdt.gui.model_fit.design.ui_view_results_tab import Ui_ViewResultsTabContent
-from mdt.gui.utils import MainTab
+from mdt.gui.utils import MainTab, center_window
 from mdt.utils import split_image_path
 
 __author__ = 'Robbert Harms'
@@ -100,10 +102,17 @@ class ViewResultsTab(MainTab, Ui_ViewResultsTabContent):
             if item.isSelected():
                 maps_to_show.append(item.text())
 
-        if maps_to_show:
-            view_results_slice(self._folder, maps_to_show=maps_to_show,
-                               dimension=self.initialDimensionChooser.value(),
-                               slice_ind=self.initialSliceChooser.value())
+        controller = QtController()
+        main = MapsVisualizerWindow(controller)
+        center_window(main)
+        main.show()
+
+        data = DataInfo.from_dir(self._folder)
+        config = GeneralConfiguration()
+        config.maps_to_show = maps_to_show
+        config.dimension = self.initialDimensionChooser.value()
+        config.slice_index = self.initialSliceChooser.value()
+        controller.set_data(data, config)
 
     def tab_opened(self):
         if self._shared_state.output_folder != '':

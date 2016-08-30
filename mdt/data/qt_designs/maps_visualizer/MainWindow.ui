@@ -920,6 +920,30 @@
    <header>..widgets</header>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>commandTabs</tabstop>
+  <tabstop>scrollArea</tabstop>
+  <tabstop>general_dimension</tabstop>
+  <tabstop>general_slice_index</tabstop>
+  <tabstop>general_volume_index</tabstop>
+  <tabstop>spinBox_14</tabstop>
+  <tabstop>spinBox_12</tabstop>
+  <tabstop>spinBox_11</tabstop>
+  <tabstop>spinBox_13</tabstop>
+  <tabstop>general_map_selection</tabstop>
+  <tabstop>selectMaps_3</tabstop>
+  <tabstop>general_colormap</tabstop>
+  <tabstop>general_rotate</tabstop>
+  <tabstop>scrollArea_2</tabstop>
+  <tabstop>comboBox</tabstop>
+  <tabstop>lineEdit</tabstop>
+  <tabstop>doubleSpinBox_2</tabstop>
+  <tabstop>doubleSpinBox</tabstop>
+  <tabstop>doubleSpinBox_3</tabstop>
+  <tabstop>doubleSpinBox_4</tabstop>
+  <tabstop>comboBox_2</tabstop>
+  <tabstop>textConfigEdit</tabstop>
+ </tabstops>
  <resources>
   <include location="main.qrc"/>
  </resources>

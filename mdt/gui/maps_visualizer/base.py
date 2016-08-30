@@ -201,7 +201,7 @@ class GeneralConfiguration(Diffable):
         # todo implement: zoom, maps_to_show (ordering), map_plot_options
 
         self.zoom = {'x': 0, 'y': 0, 'w': 0, 'h': 0}
-        self.maps_to_show = None
+        self.maps_to_show = []
         self.colormap = 'hot'
         self.rotate = 0
         self.map_plot_options = {}
@@ -233,7 +233,11 @@ class GeneralConfiguration(Diffable):
             GeneralConfiguration: new configuration with validated settings.
         """
         validated = copy.deepcopy(self)
-        validated.maps_to_show = [key for key in validated.maps_to_show if key in data_info.maps]
+
+        if validated.maps_to_show:
+            validated.maps_to_show = [key for key in validated.maps_to_show if key in data_info.maps]
+        else:
+            validated.maps_to_show = data_info.sorted_keys
 
         if validated.rotate not in [0, 90, 180, 270]:
             validated.rotate = 0

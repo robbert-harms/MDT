@@ -5,9 +5,13 @@ import numpy as np
 from PyQt5.QtCore import pyqtSlot, QObject, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog
 
-from mdt import view_results_slice, load_brain_mask, create_median_otsu_brain_mask
+from mdt import load_brain_mask, create_median_otsu_brain_mask
+from mdt.gui.maps_visualizer.base import DataInfo, GeneralConfiguration
+from mdt.gui.maps_visualizer.main import MapsVisualizerWindow
+from mdt.gui.maps_visualizer.main import QtController
 from mdt.gui.model_fit.design.ui_generate_brain_mask_tab import Ui_GenerateBrainMaskTabContent
-from mdt.gui.utils import function_message_decorator, image_files_filters, protocol_files_filters, MainTab
+from mdt.gui.utils import function_message_decorator, image_files_filters, protocol_files_filters, MainTab, \
+    center_window
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-06-26"
@@ -82,14 +86,20 @@ class GenerateBrainMaskTab(MainTab, Ui_GenerateBrainMaskTabContent):
 
     @pyqtSlot()
     def view_mask(self):
+        controller = QtController()
+        main = MapsVisualizerWindow(controller)
+        center_window(main)
+        main.show()
+
         mask = np.expand_dims(load_brain_mask(self.selectedOutputText.text()), axis=3)
         image_data = nib.load(self.selectedImageText.text()).get_data()
         masked_image = image_data * mask
 
-        view_results_slice({'Masked': masked_image,
-                            'DWI': image_data},
-                           dimension=2,
-                           slice_ind=image_data.shape[2] // 2.0)
+        data = DataInfo({'Masked': masked_image, 'DWI': image_data})
+        config = GeneralConfiguration()
+        config.dimension = 2
+        config.slice_index = image_data.shape[2] // 2.0
+        controller.set_data(data, config)
 
     @pyqtSlot()
     def generate_mask(self):

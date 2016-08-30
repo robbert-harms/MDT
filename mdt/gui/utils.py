@@ -1,6 +1,8 @@
 import time
 from functools import wraps
 from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtWidgets import QApplication
+
 from mdt.log_handlers import LogListenerInterface
 
 __author__ = 'Robbert Harms'
@@ -9,13 +11,26 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-def center_window(q_app, window):
+class QApplicationSingleton(object):
+
+    q_app = None
+
+    @staticmethod
+    def get_instance():
+        if QApplicationSingleton.q_app is None:
+            QApplicationSingleton.q_app = QApplication([])
+        return QApplicationSingleton.q_app
+
+
+def center_window(window, q_app=None):
     """Center the given window on the screen.
 
     Args:
         q_app (QApplication): for desktop information
         window (QMainWindow): the window to center
     """
+    q_app = q_app or QApplicationSingleton.get_instance()
+
     frame_gm = window.frameGeometry()
     screen = q_app.desktop().screenNumber(q_app.desktop().cursor().pos())
     center_point = q_app.desktop().screenGeometry(screen).center()

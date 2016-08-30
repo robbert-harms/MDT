@@ -1,9 +1,10 @@
+import matplotlib
+matplotlib.use('Qt5Agg')
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
-import mdt
 from mdt.gui.maps_visualizer.base import PlottingFrame, DataInfo, GeneralConfiguration
 from mdt.visualization import MapsVisualizer
 
