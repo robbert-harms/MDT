@@ -6,13 +6,16 @@ from PyQt5.QtCore import QObject, pyqtSlot
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QKeySequence
+from PyQt5.QtWidgets import QDialog
 from PyQt5.QtWidgets import QShortcut
 
 import mdt
 from mdt.gui.maps_visualizer.actions import SetDimension, SetZoom, SetSliceIndex, SetMapsToShow, SetMapTitle, \
-    SetMapClipping, FromDictAction
-from mdt.gui.maps_visualizer.base import GeneralConfiguration, Controller, DataInfo
+    SetMapClipping, FromDictAction, SetVolumeIndex, SetColormap, SetRotate
+from mdt.gui.maps_visualizer.base import GeneralConfiguration, Controller, DataInfo, MapSpecificConfiguration
 from mdt.gui.maps_visualizer.renderers.matplotlib import MatplotlibPlotting
+from mdt.gui.model_fit.design.ui_about_dialog import Ui_AboutDialog
+from mdt.gui.utils import center_window
 
 matplotlib.use('Qt5Agg')
 import sys
@@ -30,21 +33,38 @@ class MainWindow(QMainWindow, Ui_MapsVisualizer):
         self._controller = controller
         self._controller.new_data.connect(self.set_new_data)
         self._controller.new_config.connect(self.set_new_config)
-        self.textConfigEdit.textChanged.connect(self._config_from_string)
 
         self.plotting_frame = MatplotlibPlotting(controller, parent=parent)
         self.plotLayout.addWidget(self.plotting_frame)
 
+        self.general_colormap.addItems(sorted(matplotlib.cm.datad))
+        self.general_rotate.addItems(['0', '90', '180', '270'])
+
         self.general_DisplayOrder.set_collapse(True)
         self.general_Miscellaneous.set_collapse(True)
 
-        QShortcut(QKeySequence(Qt.CTRL + Qt.Key_Z), self, self._controller.undo)
-        QShortcut(QKeySequence(Qt.CTRL + Qt.Key_Y), self, self._controller.redo)
+        self.textConfigEdit.textChanged.connect(self._config_from_string)
+        self.general_dimension.valueChanged.connect(lambda v: self._controller.apply_action(SetDimension(v)))
+        self.general_slice_index.valueChanged.connect(lambda v: self._controller.apply_action(SetSliceIndex(v)))
+        self.general_volume_index.valueChanged.connect(lambda v: self._controller.apply_action(SetVolumeIndex(v)))
+        self.general_colormap.currentIndexChanged.connect(
+            lambda i: self._controller.apply_action(SetColormap(self.general_colormap.itemText(i))))
+        self.general_rotate.currentIndexChanged.connect(
+            lambda i: self._controller.apply_action(SetRotate(int(self.general_rotate.itemText(i)))))
+        self.general_map_selection.itemSelectionChanged.connect(self._update_maps_to_show)
+
+        self.actionAbout.triggered.connect(lambda: AboutDialog(self).exec_())
 
         self._flags = {'updating_config_from_string': False}
 
     @pyqtSlot(DataInfo)
     def set_new_data(self, data_info):
+        self.general_map_selection.clear()
+        self.general_map_selection.addItems(data_info.sorted_keys)
+        for index, map_name in enumerate(data_info.sorted_keys):
+            item = self.general_map_selection.item(index)
+            item.setData(Qt.UserRole, map_name)
+
         if data_info.directory:
             self.statusBar().showMessage('Loaded directory: ' + data_info.directory)
         else:
@@ -52,9 +72,36 @@ class MainWindow(QMainWindow, Ui_MapsVisualizer):
         self.set_new_config(self._controller.get_config())
 
     @pyqtSlot(GeneralConfiguration)
-    def set_new_config(self, configuration):
+    def set_new_config(self, config):
+        data_info = self._controller.get_data()
+        map_names = config.maps_to_show
+
+        self.general_dimension.setValue(config.dimension)
+        self.general_slice_index.setValue(config.slice_index)
+        self.general_volume_index.setValue(config.volume_index)
+
+        self.general_dimension.setMaximum(data_info.get_max_dimension(map_names))
+        self.general_slice_index.setMaximum(data_info.get_max_slice_index(config.dimension, map_names))
+        self.general_volume_index.setMaximum(data_info.get_max_volume_index(map_names))
+
+        self.general_colormap.setCurrentText(config.colormap)
+        self.general_rotate.setCurrentText(str(config.rotate))
+
+        if self.general_map_selection.count():
+            for map_name, map_config in config.map_plot_options.items():
+                if map_config.title:
+                    index = data_info.sorted_keys.index(map_name)
+                    item = self.general_map_selection.item(index)
+                    item.setData(Qt.DisplayRole, map_name + ' (' + map_config.title + ')')
+
+            self.general_map_selection.blockSignals(True)
+            for index, map_name in enumerate(data_info.sorted_keys):
+                item = self.general_map_selection.item(index)
+                item.setSelected(map_name in map_names)
+            self.general_map_selection.blockSignals(False)
+
         if not self._flags['updating_config_from_string']:
-            yaml_string = yaml.dump(configuration.to_dict())
+            yaml_string = yaml.dump(config.to_dict())
             self.textConfigEdit.setPlainText(yaml_string)
 
     @pyqtSlot()
@@ -69,6 +116,39 @@ class MainWindow(QMainWindow, Ui_MapsVisualizer):
             pass
         finally:
             self._flags['updating_config_from_string'] = False
+
+    @pyqtSlot()
+    def _update_maps_to_show(self):
+        map_names = copy.copy(self._controller.get_config().maps_to_show)
+
+        for item in [self.general_map_selection.item(ind) for ind in range(self.general_map_selection.count())]:
+            map_name = item.data(Qt.UserRole)
+
+            if item.isSelected():
+                print(map_name)
+                if map_name not in map_names:
+                    self._insert_alphabetically(map_name, map_names)
+            else:
+                if map_name in map_names:
+                    map_names.remove(map_name)
+
+        self._controller.apply_action(SetMapsToShow(map_names))
+
+    @staticmethod
+    def _insert_alphabetically(new_item, item_list):
+        for ind, item in enumerate(item_list):
+            if item < new_item:
+                item_list.insert(ind, new_item)
+                return
+        item_list.append(new_item)
+
+
+class AboutDialog(Ui_AboutDialog, QDialog):
+
+    def __init__(self, parent):
+        super(AboutDialog, self).__init__(parent)
+        self.setupUi(self)
+        self.contentLabel.setText(self.contentLabel.text().replace('{version}', mdt.__version__))
 
 
 class QtController(Controller, QObject):
@@ -88,12 +168,12 @@ class QtController(Controller, QObject):
         self._actions_history = []
         self._redoable_actions = []
 
-        if config:
-            self._current_config = config
-        else:
-            self._current_config = GeneralConfiguration()
-            self._current_config.maps_to_show = mdt.results_preselection_names(data_info.maps)
+        if not config:
+            config = GeneralConfiguration()
+            config.maps_to_show = mdt.results_preselection_names(data_info.maps)
+            config.slice_index = None
 
+        self._apply_config(config)
         self.new_data.emit(data_info)
 
     def get_data(self):
@@ -153,32 +233,37 @@ def main():
     controller = QtController()
     app = QApplication(sys.argv)
     main = MainWindow(controller)
+    center_window(app, main)
     main.show()
 
     # # data = DataInfo.from_dir('/home/robbert/phd-data/dti_test_ballstick_results/')
-    data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/brain_mask/BallStick/')
+    # data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/brain_mask/BallStick/')
+    data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/4Ddwi_b1000_mask_2_25/BallStick/')
     config = GeneralConfiguration()
     config.maps_to_show = ['S0.s0', 'BIC']
+    config.map_plot_options.update({'S0.s0': MapSpecificConfiguration(title='S0 test')})
+    config.slice_index = None
     controller.set_data(data, config)
 
     sys.exit(app.exec_())
+
 
 
 if __name__ == '__main__':
     main()
 
 
-
-data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/brain_mask/BallStick/')
-
-print(data.get_max_volume_index(['Stick.vec0', 'S0.s0']))
-
-config = GeneralConfiguration()
-config.maps_to_show = ['S0.s0', 'BIC']
-config.dimension = 2
-# new_config = SetMapsToShow(['S0.s0', 'B']).apply(config)
-validated = config.validate(data)
-diff = config.get_difference(validated)
-
-print(diff)
 #
+# data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/brain_mask/BallStick/')
+#
+# print(data.get_max_volume_index(['Stick.vec0', 'S0.s0']))
+#
+# config = GeneralConfiguration()
+# config.maps_to_show = ['S0.s0', 'BIC']
+# config.dimension = 2
+# # new_config = SetMapsToShow(['S0.s0', 'B']).apply(config)
+# validated = config.validate(data)
+# diff = config.get_difference(validated)
+#
+# print(diff)
+# #

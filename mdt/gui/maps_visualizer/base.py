@@ -1,7 +1,6 @@
 import copy
-from collections import OrderedDict
-
 import matplotlib
+import numpy as np
 
 import mdt
 
@@ -24,6 +23,7 @@ class DataInfo(object):
         self.maps = maps
         self.directory = directory
         self._map_info = {key: SingleMapInfo(key, value) for key, value in self.maps.items()}
+        self.sorted_keys = list(sorted(maps.keys()))
 
     @classmethod
     def from_dir(cls, directory):
@@ -67,6 +67,23 @@ class DataInfo(object):
         """
         map_names = map_names or self.maps.keys()
         return max(self._map_info[map_name].max_volume_index() for map_name in map_names)
+
+    def get_index_first_non_zero_slice(self, dimension, map_names=None):
+        """Get the index of the first non zero slice in the maps.
+
+        Args:
+            dimension (int): the dimension to search in
+            map_names (list of str): if given we will only scan the given list of maps
+
+        Returns:
+            int: the slice index with the first non zero values.
+        """
+        map_names = map_names or self.maps.keys()
+        for map_name in map_names:
+            index = self._map_info[map_name].get_index_first_non_zero_slice(dimension)
+            if index is not None:
+                return index
+        return 0
 
 
 class SingleMapInfo(object):
@@ -112,6 +129,22 @@ class SingleMapInfo(object):
         """
         if len(self.value.shape) > 3:
             return self.value.shape[3] - 1
+        return 0
+
+    def get_index_first_non_zero_slice(self, dimension):
+        """Get the index of the first non zero slice in this map.
+
+        Args:
+            dimension (int): the dimension to search in
+
+        Returns:
+            int: the slice index with the first non zero values.
+        """
+        slice_index = [slice(None)] * (self.max_dimension() + 1)
+        for index in range(self.value.shape[dimension]):
+            slice_index[dimension] = index
+            if np.count_nonzero(self.value[slice_index]) > 0:
+                return index
         return 0
 
 
@@ -162,8 +195,11 @@ class GeneralConfiguration(Diffable):
     def __init__(self):
         super(GeneralConfiguration, self).__init__()
         self.dimension = 2
-        self.slice_index = None
+        self.slice_index = 0
         self.volume_index = 0
+
+        # todo implement: zoom, maps_to_show (ordering), map_plot_options
+
         self.zoom = {'x': 0, 'y': 0, 'w': 0, 'h': 0}
         self.maps_to_show = None
         self.colormap = 'hot'
@@ -182,7 +218,7 @@ class GeneralConfiguration(Diffable):
         config = GeneralConfiguration()
         config.__dict__.update(config_dict)
         config.map_plot_options = {key: MapSpecificConfiguration.from_dict(value)
-                                   for key, value in config_dict['map_plot_options']}
+                                   for key, value in config_dict['map_plot_options'].items()}
         return config
 
     def validate(self, data_info):
@@ -207,14 +243,23 @@ class GeneralConfiguration(Diffable):
         except ValueError:
             validated.colormap = 'hot'
 
-        if validated.dimension is not None:
+        if validated.dimension is None:
+            validated.dimension = 2
+        else:
             validated.dimension = min(validated.dimension, data_info.get_max_dimension(validated.maps_to_show))
 
-        if validated.slice_index is not None:
-            validated.slice_index = min(validated.slice_index, data_info.get_max_slice_index(validated.dimension,
-                                                                                             validated.maps_to_show))
+        if validated.slice_index is None:
+            validated.slice_index = data_info.get_index_first_non_zero_slice(validated.dimension,
+                                                                             validated.maps_to_show)
+        else:
+            max_slice_index = data_info.get_max_slice_index(validated.dimension, validated.maps_to_show)
+            if validated.slice_index > max_slice_index:
+                validated.slice_index = data_info.get_index_first_non_zero_slice(validated.dimension,
+                                                                                 validated.maps_to_show)
 
-        if validated.volume_index is not None:
+        if validated.volume_index is None:
+            validated.volume_index = 0
+        else:
             validated.volume_index = min(validated.volume_index, data_info.get_max_volume_index(validated.maps_to_show))
 
         return validated
@@ -249,32 +294,19 @@ class GeneralConfiguration(Diffable):
 
         This can be useful for converting the configuration to a string.
         """
-        key_order = ['dimension', 'slice_index', 'volume_index']
-        for key in self.__dict__.keys():
-            if key not in key_order:
-                key_order.append(key)
-
-        result_list = []
-        for key in key_order:
-            if key == 'map_plot_options':
-                value = {key: value.to_dict() for key, value in self.map_plot_options}
-            else:
-                value = getattr(self, key)
-
-            result_list.append((key, value))
-
-        result = OrderedDict(result_list)
+        result = copy.copy(self.__dict__)
+        result['map_plot_options'] = {key: value.to_dict() for key, value in self.map_plot_options.items()}
         return result
 
 
 class MapSpecificConfiguration(Diffable):
 
-    def __init__(self):
+    def __init__(self, title=None, scale=None, clipping=None, colormap=None):
         super(MapSpecificConfiguration, self).__init__()
-        self.title = None
-        self.scale = {'min': None, 'max': None}
-        self.clipping = {'min': None, 'max': None}
-        self.colormap = None
+        self.title = title
+        self.scale = scale or {'min': None, 'max': None}
+        self.clipping = clipping or {'min': None, 'max': None}
+        self.colormap = colormap
 
     @classmethod
     def from_dict(cls, config_dict):

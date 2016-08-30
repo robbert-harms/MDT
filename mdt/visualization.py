@@ -116,7 +116,7 @@ class MapsVisualizer(object):
         if map_titles:
             self.map_titles = map_titles
         if maps_to_show:
-            self.maps_to_show = maps_to_show
+            self.maps_to_show = list(reversed(maps_to_show))
         if general_plot_options:
             self.general_plot_options = general_plot_options
         if map_plot_options:

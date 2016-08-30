@@ -30,10 +30,6 @@ class GUI(BasicShellApplication):
         parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument('-d', '--dir', metavar='dir', type=str, help='the base directory for the file choosers',
                             default=None).completer = FilesCompleter()
-
-        parser.add_argument('-m', '--view_maps', dest='maps', action='store_true',
-                            help="Directly open the tab for viewing maps")
-
         return parser
 
     def run(self, args):
@@ -42,11 +38,7 @@ class GUI(BasicShellApplication):
         else:
             cwd = os.getcwd()
 
-        action = None
-        if args.maps:
-            action = 'view_maps'
-
-        start_gui(cwd, action)
+        start_gui(cwd)
 
 if __name__ == '__main__':
     GUI().start()

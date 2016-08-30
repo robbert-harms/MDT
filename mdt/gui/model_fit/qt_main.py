@@ -25,7 +25,7 @@ from PyQt5 import QtGui
 from PyQt5.QtCore import QThread, QTimer, pyqtSlot
 from PyQt5.QtWidgets import QMainWindow, QApplication, QDialog, QDialogButtonBox
 from mdt.gui.model_fit.design.ui_main_gui import Ui_MainWindow
-from mdt.gui.utils import print_welcome_message, ForwardingListener, MessageReceiver
+from mdt.gui.utils import print_welcome_message, ForwardingListener, MessageReceiver, center_window
 from mdt.gui.model_fit.utils import SharedState
 from mdt.log_handlers import LogDispatchHandler
 
@@ -37,10 +37,9 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
 
-    def __init__(self, q_app, shared_state):
+    def __init__(self, shared_state):
         super(MDTGUISingleModel, self).__init__()
         self.setupUi(self)
-        self._q_app = q_app
         self._shared_state = shared_state
         self._computations_thread = ComputationsThread(self)
         self._computations_thread.start()
@@ -59,7 +58,6 @@ class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
         self._connect_output_textbox()
 
         self.actionExit.setShortcuts(['Ctrl+q', 'Ctrl+w'])
-        self._center()
 
         self.action_RuntimeSettings.triggered.connect(lambda: RuntimeSettingsDialog(self).exec_())
         self.actionAbout.triggered.connect(lambda: AboutDialog(self).exec_())
@@ -100,13 +98,6 @@ class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
         self._logging_update_thread.quit()
         self._logging_update_thread.wait(10)
         super(MDTGUISingleModel, self).closeEvent(event)
-
-    def _center(self):
-        frameGm = self.frameGeometry()
-        screen = self._q_app.desktop().screenNumber(self._q_app.desktop().cursor().pos())
-        centerPoint = self._q_app.desktop().screenGeometry(screen).center()
-        frameGm.moveCenter(centerPoint)
-        self.move(frameGm.topLeft())
 
     def send_sigint(self, *args):
         self.close()
@@ -198,14 +189,11 @@ class AboutDialog(Ui_AboutDialog, QDialog):
         self.contentLabel.setText(self.contentLabel.text().replace('{version}', mdt.__version__))
 
 
-def start_gui(base_dir=None, action=None):
+def start_gui(base_dir=None):
     """Start the single model GUI.
 
     Args:
         base_dir (str): the starting directory for all file opening actions
-        action (str): an action command for opening tabs and files. Possible actions:
-            - view_maps: opens the view maps tab and opens the base_dir
-
     """
     try:
         mdt.configuration.load_user_gui()
@@ -222,14 +210,11 @@ def start_gui(base_dir=None, action=None):
     timer.start(500)
     timer.timeout.connect(lambda: None)
 
-    single_model_gui = MDTGUISingleModel(app, state)
+    single_model_gui = MDTGUISingleModel(state)
     signal.signal(signal.SIGINT, single_model_gui.send_sigint)
 
+    center_window(app, single_model_gui)
     single_model_gui.show()
-
-    if action == 'view_maps':
-        single_model_gui.MainTabs.setCurrentIndex(4)
-        single_model_gui.view_results_tab.open_dir(base_dir)
 
     sys.exit(app.exec_())
 

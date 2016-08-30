@@ -1,14 +1,26 @@
 import time
 from functools import wraps
-
 from PyQt5.QtCore import QObject, pyqtSignal
-
 from mdt.log_handlers import LogListenerInterface
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-20"
 __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
+
+
+def center_window(q_app, window):
+    """Center the given window on the screen.
+
+    Args:
+        q_app (QApplication): for desktop information
+        window (QMainWindow): the window to center
+    """
+    frame_gm = window.frameGeometry()
+    screen = q_app.desktop().screenNumber(q_app.desktop().cursor().pos())
+    center_point = q_app.desktop().screenGeometry(screen).center()
+    frame_gm.moveCenter(center_point)
+    window.move(frame_gm.topLeft())
 
 
 def function_message_decorator(header, footer):

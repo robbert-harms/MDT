@@ -63,7 +63,7 @@ class SetMapClipping(SimpleMapSpecificConfigAction):
     use_update = True
 
 
-class SetMapColormapp(SimpleMapSpecificConfigAction):
+class SetMapColormap(SimpleMapSpecificConfigAction):
 
     config_attribute = 'colormap'
 

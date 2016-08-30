@@ -10,7 +10,7 @@ QT_COMPILED_DIR = ../../../gui/maps_visualizer/design
 QT_UI_FILES = $(shell ls $(QT_RESOURCE-DIR)*.ui)
 
 # Qt resource files to compile
-QT_RESOURCES = 
+QT_RESOURCES = main.qrc
  
 # the binaries
 PYUIC = pyuic5 --from-imports
