@@ -109,6 +109,8 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
             self._controller.apply_action(FromDictAction(info_dict))
         except yaml.parser.ParserError:
             pass
+        except yaml.scanner.ScannerError:
+            pass
         finally:
             self._flags['updating_config_from_string'] = False
 
@@ -246,7 +248,14 @@ if __name__ == '__main__':
     data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/4Ddwi_b1000_mask_2_25/BallStick/')
     config = GeneralConfiguration()
     config.maps_to_show = ['S0.s0', 'BIC']
+    config.zoom['x_0'] = 20
+    config.zoom['y_0'] = 10
+    config.zoom['x_1'] = 80
+    config.zoom['y_1'] = 80
+
     config.map_plot_options.update({'S0.s0': MapSpecificConfiguration(title='S0 test')})
+    config.map_plot_options.update({'BIC': MapSpecificConfiguration(title='S0 test',
+                                                                    scale={'max': 200, 'min': 0})})
     config.slice_index = None
 
     start_gui(data, config)

@@ -1,5 +1,6 @@
 import matplotlib
 matplotlib.use('Qt5Agg')
+import matplotlib.pyplot as plt
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
@@ -18,16 +19,13 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
         self._controller.new_data.connect(self.set_new_data)
         self._controller.new_config.connect(self.set_new_config)
 
-        self._data_info = controller.get_data()
+        self.figure = plt.figure()
+        self._init_visualizer()
 
-        self.vis = MapsVisualizer(self._data_info.maps)
-        self.vis.show(in_qt=True, show_sliders=False)
-
-        self.canvas = FigureCanvas(self.vis._figure)
+        self.canvas = FigureCanvas(self.figure)
         self.canvas.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.canvas.updateGeometry()
 
-        # set the layout
         layout = QVBoxLayout()
         layout.setSpacing(0)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -38,9 +36,14 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
         self.setFocus()
 
+        # todo mouse event handling
+        # self.vis._figure.canvas.mpl_connect('motion_notify_event', self._mouse_event)
+    #
+    # def _mouse_event(self, event):
+    #     print(event)
+
     @pyqtSlot(DataInfo)
     def set_new_data(self, data_info):
-        self._data_info = data_info
         self._redraw()
 
     @pyqtSlot(GeneralConfiguration)
@@ -51,19 +54,13 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
         width = self.width()
         height = self.height()
 
-        config = self._controller.get_config()
-        maps_to_show = [map_name for map_name in config.maps_to_show if map_name in self._data_info.maps]
-
-        general_plot_options = {'cmap': config.colormap}
-        map_titles = {key: value.title for key, value in config.map_plot_options.items() if value.title}
-
-        self.vis = MapsVisualizer(self._data_info.maps)
-        self.vis.show(in_qt=True, show_sliders=False, maps_to_show=maps_to_show,
-                      rotate_images=config.rotate, general_plot_options=general_plot_options,
-                      dimension=config.dimension, slice_ind=config.slice_index, volume_ind=config.volume_index,
-                      map_titles=map_titles)
-
-        self.canvas.figure = self.vis._figure
+        self._init_visualizer()
 
         self.canvas.resize(width, height-1)
         self.canvas.resize(width, height)
+
+    def _init_visualizer(self):
+        self.figure.clf()
+        config = self._controller.get_config()
+        vis = MapsVisualizer(self._controller.get_data().maps, self.figure)
+        vis.render(**config.to_dict())

@@ -331,7 +331,7 @@
                          <item row="1" column="0">
                           <widget class="QLabel" name="label_20">
                            <property name="text">
-                            <string>x:</string>
+                            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;x&lt;span style=&quot; vertical-align:sub;&quot;&gt;0&lt;/span&gt;:&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                            </property>
                           </widget>
                          </item>
@@ -341,7 +341,7 @@
                          <item row="1" column="2">
                           <widget class="QLabel" name="label_19">
                            <property name="text">
-                            <string>y:</string>
+                            <string>y&lt;sub&gt;0&lt;/sub&gt;:</string>
                            </property>
                           </widget>
                          </item>
@@ -354,14 +354,14 @@
                          <item row="5" column="2">
                           <widget class="QLabel" name="label_18">
                            <property name="text">
-                            <string>h:</string>
+                            <string>y&lt;sub&gt;1&lt;/sub&gt;:</string>
                            </property>
                           </widget>
                          </item>
                          <item row="5" column="0">
                           <widget class="QLabel" name="label_12">
                            <property name="text">
-                            <string>w:</string>
+                            <string>x&lt;sub&gt;1&lt;/sub&gt;:</string>
                            </property>
                           </widget>
                          </item>

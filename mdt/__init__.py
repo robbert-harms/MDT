@@ -1,10 +1,11 @@
 import glob
 import logging.config as logging_config
 import os
+from inspect import stack
+
 import numpy as np
 import six
 from six import string_types
-from inspect import stack
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-03-10"
@@ -252,16 +253,14 @@ def view_results_slice(data,
                        slice_ind=None,
                        maps_to_show='auto',
                        map_titles=None,
-                       general_plot_options=None,
+                       colormap='hot',
                        map_plot_options=None,
                        font_size=None,
                        to_file=None,
                        block=True,
                        maximize=False,
                        window_title=None,
-                       axis_options=None,
                        nmr_colorbar_axis_ticks=None,
-                       show_sliders=None,
                        figure_options=None,
                        grid_layout=None,
                        article_modus=False,
@@ -271,23 +270,15 @@ def view_results_slice(data,
     See MapsVisualizer.show() for most of the the options. The special options are listed in the section Args
 
     Args:
+        map_titles (dict): DEPRECATED, please use map_plot_options.
         article_modus (boolean): If set to true we set most of the options as such that the data is rendered better
-            for in use of a paper. Sets
-                axis_options='off'
-                font_size=36
-                nmr_colorbar_axis_ticks=4
-                show_sliders=False
-            You can overwrite these again by specifying one of these options directly.
+            for in use of a paper.
 
     Returns:
         MapViewSettings: the settings set by the user in the viewer.
     """
     from mdt.visualization import MapsVisualizer
-
-    general_plot_options = general_plot_options or {}
-
-    if 'cmap' not in general_plot_options:
-        general_plot_options.update({'cmap': 'hot'})
+    import matplotlib.pyplot as plt
 
     if isinstance(data, string_types):
         map_names = None
@@ -305,33 +296,56 @@ def view_results_slice(data,
             maps_to_show = results_preselection_names(data)
         else:
             results_total = {k: results_total[k] for k in maps_to_show}
+    else:
+        maps_to_show = list(sorted(results_total.keys()))
+
+    settings = dict(dimension=dimension,
+                    slice_index=slice_ind,
+                    maps_to_show=maps_to_show,
+                    font_size=font_size,
+                    colormap=colormap,
+                    colorbar_nmr_ticks=nmr_colorbar_axis_ticks,
+                    grid_layout=grid_layout,
+                    rotate=rotate_images)
+
+    map_plot_options = map_plot_options or {}
+    if map_titles:
+        for map_name, title in map_titles.items():
+            map_plot_options.update({map_name: {'title': title}})
+
+    # backwards compatibility
+    for map_name, options in map_plot_options.items():
+        if 'scale' not in options:
+            options['scale'] = {}
+        if 'vmax' in options:
+            options['scale']['max'] = options['vmax']
+        if 'vmin' in options:
+            options['scale']['min'] = options['vmin']
+
+    settings.update(map_plot_options=map_plot_options)
 
     if article_modus:
-        axis_options = axis_options or 'off'
-        font_size = font_size or 36
-        nmr_colorbar_axis_ticks = nmr_colorbar_axis_ticks or 4
-        show_sliders = show_sliders or False
+        settings.update(font_size=font_size or 36,
+                        colorbar_nmr_ticks=nmr_colorbar_axis_ticks or 4,
+                        show_axis=False)
 
-    viz = MapsVisualizer(results_total)
-    if font_size:
-        viz.font_size = font_size
-    return viz.show(
-        dimension=dimension,
-        slice_ind=slice_ind,
-        maps_to_show=maps_to_show,
-        map_titles=map_titles,
-        general_plot_options=general_plot_options,
-        map_plot_options=map_plot_options,
-        to_file=to_file,
-        block=block,
-        maximize=maximize,
-        window_title=window_title,
-        axis_options=axis_options,
-        nmr_colorbar_axis_ticks=nmr_colorbar_axis_ticks,
-        show_sliders=show_sliders,
-        figure_options=figure_options,
-        grid_layout=grid_layout,
-        rotate_images=rotate_images)
+    if figure_options:
+        figure = plt.figure(**figure_options)
+    else:
+        figure = plt.figure(figsize=(18, 16))
+
+    viz = MapsVisualizer(results_total, figure=figure)
+
+    if to_file:
+        viz.to_file(to_file, **settings)
+    else:
+        viz.show(
+            block=block,
+            maximize=maximize,
+            window_title=window_title,
+            **settings
+        )
+    return viz
 
 
 def results_preselection_names(data):

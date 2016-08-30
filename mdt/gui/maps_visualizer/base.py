@@ -197,14 +197,12 @@ class GeneralConfiguration(Diffable):
         self.dimension = 2
         self.slice_index = 0
         self.volume_index = 0
-
-        # todo implement: zoom, maps_to_show (ordering), map_plot_options
-
-        self.zoom = {'x': 0, 'y': 0, 'w': 0, 'h': 0}
+        self.zoom = {'x_0': 0, 'y_0': 0, 'x_1': 0, 'y_1': 0}
         self.maps_to_show = []
         self.colormap = 'hot'
         self.rotate = 0
-        self.map_plot_options = {}
+        self.map_plot_options = {} # todo implement in GUI: zoom, maps_to_show (ordering), map_plot_options
+        #todo add option for GridLayout, font_size, colorbar_nmr_ticks, show_axis
 
     @classmethod
     def from_dict(cls, config_dict):
@@ -250,12 +248,24 @@ class GeneralConfiguration(Diffable):
         if validated.dimension is None:
             validated.dimension = 2
         else:
-            validated.dimension = min(validated.dimension, data_info.get_max_dimension(validated.maps_to_show))
+            try:
+                validated.dimension = min(int(validated.dimension), data_info.get_max_dimension(validated.maps_to_show))
+            except TypeError:
+                validated.dimension = 0
+            except ValueError:
+                validated.dimension = 0
 
         if validated.slice_index is None:
             validated.slice_index = data_info.get_index_first_non_zero_slice(validated.dimension,
                                                                              validated.maps_to_show)
         else:
+            try:
+                int(validated.slice_index)
+            except TypeError:
+                validated.slice_index = 0
+            except ValueError:
+                validated.slice_index = 0
+
             max_slice_index = data_info.get_max_slice_index(validated.dimension, validated.maps_to_show)
             if validated.slice_index > max_slice_index:
                 validated.slice_index = data_info.get_index_first_non_zero_slice(validated.dimension,
@@ -264,7 +274,28 @@ class GeneralConfiguration(Diffable):
         if validated.volume_index is None:
             validated.volume_index = 0
         else:
-            validated.volume_index = min(validated.volume_index, data_info.get_max_volume_index(validated.maps_to_show))
+            try:
+                validated.volume_index = min(int(validated.volume_index),
+                                             data_info.get_max_volume_index(validated.maps_to_show))
+            except TypeError:
+                validated.volume_index = 0
+            except ValueError:
+                validated.volume_index = 0
+
+        if validated.zoom is None:
+            validated.zoom = {'x_0': 0, 'y_0': 0, 'x_1': 0, 'y_1': 0}
+        else:
+            for item in 'x_0', 'x_1', 'y_0', 'y_1':
+                if item not in validated.zoom:
+                    validated.zoom.update({item: 0})
+                try:
+                    float(validated.zoom[item])
+                except TypeError:
+                    validated.zoom[item] = 0
+                except ValueError:
+                    validated.zoom[item] = 0
+
+        #todo validate map_plot_options
 
         return validated
 

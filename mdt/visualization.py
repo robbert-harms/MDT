@@ -1,8 +1,6 @@
 import os
 import itertools
 import matplotlib.pyplot as plt
-from matplotlib import animation
-from matplotlib.text import Text
 from matplotlib.ticker import LinearLocator
 from matplotlib.widgets import Slider
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -22,121 +20,31 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class MapsVisualizer(object):
 
-    def __init__(self, volumes_dict):
+    def __init__(self, volumes_dict, figure=None):
         self._volumes_dict = volumes_dict
-        self._sorted_volumes = {}
-        self._map_scroll_positions = {}
-        self.show_sliders = True
-        self.show_slider_volume_ind = self._get_max_4d_length() > 1
-        self.general_plot_options = {}
-        self.map_plot_options = {}
-        self._volumes_shape = self._get_volumes_shape()
-        self._figure = None
-        self.maps_to_show = sorted(self._volumes_dict.keys())
-        self.map_titles = {}
-        self.general_plot_options = {}
-        self.font_size = None
-        self._image_subplot_axis = {}
-        self._image_subplot_figures = {}
-        self._minmax_vals = self._load_min_max_vals()
-        self._dimension_slider = None
-        self._index_slider = None
-        self._volume_slider = None
-        self._updating_sliders = False
-        self._colorbar_subplots = {}
-        self.axis_options = None
-        self.nmr_colorbar_axis_ticks = None
-        self.grid_layout = AutoGridLayout()
-        self.rotate_images = 0
-        self._map_view_settings = MapViewSettings()
-        self._text_change_manager = TextChangeManager()
+        self._figure = figure or plt.figure()
 
-    def show(self, dimension=None, slice_ind=None, volume_ind=None, map_titles=None, maps_to_show=None,
-             general_plot_options=None, map_plot_options=None, to_file=None, block=True, maximize=False,
-             window_title=None, axis_options=None, nmr_colorbar_axis_ticks=None, show_sliders=None, figure_options=None,
-             rotate_images=None, grid_layout=None, in_qt=False):
+    def render(self, **kwargs):
+        """Render all the maps to the figure. This is for use in GUI embedded situations."""
+        self._render(**kwargs)
+
+    def to_file(self, file_name, **kwargs):
+        """Renders the figures to the given filename."""
+        self._render(**kwargs)
+        if not os.path.isdir(os.path.dirname(file_name)):
+            os.makedirs(os.path.dirname(file_name))
+        plt.savefig(file_name, bbox_inches='tight', pad_inches=0)
+
+    def show(self, block=True, maximize=False, window_title=None, **kwargs):
         """Show the data contained in this visualizer using the specifics in this function call.
 
         Args:
-            dimension (int):
-                The dimension to display
-            slice_ind (int):
-                The slice (in that dimension) to display
-            volume_ind (dict):
-                The volume to display initially.
-            map_titles (dict):
-                A list of names for the different maps. Use as {map_name: display_name} that is,
-                 the key is the name of the map in the volumes dictionary and the display name is the string that will
-                 be used as title for that map.
-            maps_to_show (list):
-                A list of maps to show. The items in this list must correspond to the keys in the volumes dictionary.
-            general_plot_options (dict):
-                A number of options for rendering the maps. These hold for all the displayed maps.
-            map_plot_options (dict):
-                A number of options for rendering the maps. These options should be like:
-                    {map_name: {options}}. That is a set of options for that specific map. These override the
-                     general plot options if present.
-            to_file (string, optional, default None):
-                If to_file is not None it is supposed to be a filename where the image will be saved.
-                If not set to None, nothing will be displayed, the results will directly be saved.
-                Already existing items will be overwritten.
             block (boolean): If we want to block after calling the plots or not. Set this to False if you
                 do not want the routine to block after drawing. In doing so you manually need to block.
             maximize (boolean): if we want to display the window maximized or not
             window_title (str): the title of the window. If None, the default title is used
-            axis_options: if not set it is not used. If set it can be a single string or list that is used for all maps,
-                if it is dictionary it is supposed to be a value per map.
-            nmr_colorbar_axis_ticks: the nmr of ticks (labels) to display. Can be None, a single int or a dict with
-                per map name an int.
-            show_sliders (boolean or None): if we want to show the sliders or not. Can be None then it is not used.
-            figure_options (dict) options for the figure
-            rotate_images (int): the degrees (counter-clockwise) by which to rotate the images before showing them.
-                Should be a multiple of 90.
-            grid_layout (GridLayout) the grid layout to use
-
-        Returns:
-            MapViewSettings: the settings set by the user in the viewer.
         """
-        self._map_view_settings = MapViewSettings()
-        figure_options = figure_options or {'figsize': (18, 16)}
-        self._figure = plt.figure(**figure_options)
-
-        if dimension is None:
-            self._map_view_settings.dimension_index = 2
-        else:
-            self._map_view_settings.dimension_index = dimension
-
-        if slice_ind is None:
-            self._map_view_settings.slice_index = int(self._volumes_shape[self._map_view_settings.dimension_index] / 2.0)
-        else:
-            self._map_view_settings.slice_index = slice_ind
-
-        if volume_ind is not None:
-            self._map_view_settings.volume_index = volume_ind
-        if map_titles:
-            self.map_titles = map_titles
-        if maps_to_show:
-            self.maps_to_show = list(reversed(maps_to_show))
-        if general_plot_options:
-            self.general_plot_options = general_plot_options
-        if map_plot_options:
-            self.map_plot_options = map_plot_options
-
-        if 'cmap' not in self.general_plot_options:
-            self.general_plot_options.update({'cmap': 'hot'})
-
-        self.axis_options = axis_options
-        self.nmr_colorbar_axis_ticks = nmr_colorbar_axis_ticks
-        self.rotate_images = rotate_images
-        self.show_slider_volume_ind = self._get_max_4d_length(maps_to_show) > 1
-
-        if show_sliders is not None:
-            self.show_sliders = show_sliders
-
-        if grid_layout is not None:
-            self.grid_layout = grid_layout
-
-        self._setup()
+        self._render(**kwargs)
 
         if maximize:
             mng = plt.get_current_fig_manager()
@@ -146,237 +54,141 @@ class MapsVisualizer(object):
             mng = plt.get_current_fig_manager()
             mng.canvas.set_window_title(window_title)
 
-        if to_file:
-            if not os.path.isdir(os.path.dirname(to_file)):
-                os.makedirs(os.path.dirname(to_file))
+        plt.draw()
+        if block:
+            plt.show(True)
 
-            plt.savefig(to_file, bbox_inches='tight', pad_inches=0)
-            plt.close()
-        else:
-            if not in_qt:
-                plt.draw()
-                self._figure.canvas.mpl_connect('scroll_event', self._scroll_event)
-                if block:
-                    plt.show(True)
+    def _render(self, dimension=0, slice_index=0, volume_index=0, rotate=0, colormap='hot', maps_to_show=(),
+                font_size=None, grid_layout=None, colorbar_nmr_ticks=None, show_axis=True, zoom=None,
+                map_plot_options=None):
+        """Render the images
 
-        return self._map_view_settings
+        Args:
+            dimension (int):
+                The dimension to display
+            slice_index (int):
+                The slice (in that dimension) to display
+            volume_index (dict):
+                The volume to display initially.
+            rotate (int): the degrees (counter-clockwise) by which to rotate the images before showing them.
+                Should be a multiple of 90.
+            colormap (str): the colormap to use for all the images
+            maps_to_show (list):
+                A list of maps to show. The items in this list must correspond to the keys in the volumes dictionary.
+            font_size (int): the size of the fonts. This is the absolute size of the map titles, all the other
+                titles are scaled relatively to this value. The default is 14.
+            grid_layout (GridLayout) the grid layout to use for the rendering.
+            colorbar_nmr_ticks (int): the nmr of ticks (labels) to display for each map
+            show_axis (boolean): If we want to show the axii per map or not
+            zoom (dict): if given a dictionary with items: 'x_0', 'x_1', 'y_0', 'y_1'
+        """
+        grid_layout = grid_layout or AutoGridLayout()
+        font_size = font_size or 14
+        map_plot_options = map_plot_options or {}
 
-    def set_dimension(self, val):
-        val = min(int(round(val)), len(self._volumes_shape)-1)
+        self._render_maps(dimension, slice_index, volume_index, rotate,
+                          colormap, list(reversed(list(maps_to_show))), font_size, colorbar_nmr_ticks, grid_layout,
+                          show_axis, zoom, map_plot_options)
 
-        if not self._updating_sliders:
-            self._updating_sliders = True
-            self._map_view_settings.dimension_index = val
+    def _render_maps(self, dimension, slice_index, volume_index, rotate, colormap, maps_to_show, font_size,
+                     colorbar_nmr_ticks, grid_layout, show_axis, zoom, map_plot_options):
 
-            if self._map_view_settings.slice_index >= self._volumes_shape[self._map_view_settings.dimension_index]:
-                self._map_view_settings.slice_index = self._volumes_shape[self._map_view_settings.dimension_index] / 2
+        for ind, map_name in enumerate(maps_to_show):
+            image_subplot_axis = grid_layout.get_axis(ind, len(maps_to_show))
 
-            if self.show_sliders:
-                self._index_slider.set_max(self._volumes_shape[self._map_view_settings.dimension_index] - 1)
-                self._dimension_slider.set_val(val)
+            data = self._get_image(self._volumes_dict[map_name], dimension, slice_index, volume_index, rotate,
+                                   map_plot_options.get(map_name, {}).get('clipping', {}), zoom)
 
-            self._rerender_maps()
-            self._updating_sliders = False
-
-    def set_slice_ind(self, val):
-        val = round(val)
-
-        if not self._updating_sliders:
-            self._updating_sliders = True
-            self._map_view_settings.slice_index = val
-
-            if self._map_view_settings.slice_index < 0 or \
-                    self._map_view_settings.slice_index >= self._volumes_shape[self._map_view_settings.dimension_index]:
-                self._map_view_settings.slice_index = self._volumes_shape[self._map_view_settings.dimension_index] / 2
-                self._index_slider.set_max(self._volumes_shape[self._map_view_settings.dimension_index] - 1)
-
-            if self.show_sliders:
-                self._index_slider.set_val(val)
-            self._rerender_maps()
-            self._updating_sliders = False
-
-    def set_volume_ind(self, val):
-        val = round(val)
-
-        if val >= self._get_max_4d_length():
-            val = self._get_max_4d_length() - 1
-
-        if not self._updating_sliders:
-            self._updating_sliders = True
-
-            if self.show_sliders:
-                self._map_view_settings.volume_index = val
-            self._volume_slider.set_val(val)
-            self._rerender_maps()
-            self._updating_sliders = False
-
-    def _setup(self):
-        self._rerender_maps()
-
-        y_positions = [0.038, 0.023, 0.008]
-        if not self.show_slider_volume_ind:
-            y_positions = y_positions[1:]
-
-        if self.show_sliders:
-            ax = self._figure.add_axes([0.25, y_positions[0], 0.5, 0.01], axisbg='Wheat')
-            self._dimension_slider = _DiscreteSlider(ax, 'Dimension', 0, 2,
-                                                     valinit=self._map_view_settings.dimension_index, valfmt='%i',
-                                                     color='DarkSeaGreen', closedmin=True, closedmax=True)
-            self._dimension_slider.on_changed(self.set_dimension)
-            self._dimension_slider.valtext.set_picker(True)
-            self._dimension_slider.valtext.value_type = int
-            self._dimension_slider.valtext.update_cb = lambda value: self.set_dimension(value)
-
-            ax = self._figure.add_axes([0.25, y_positions[1], 0.5, 0.01], axisbg='Wheat')
-            self._index_slider = _DiscreteSlider(ax, 'Slice index', 0,
-                                                 self._volumes_shape[self._map_view_settings.dimension_index] - 1,
-                                                 valinit=self._map_view_settings.slice_index,
-                                                 valfmt='%i', color='DarkSeaGreen', closedmin=True, closedmax=False)
-            self._index_slider.on_changed(self.set_slice_ind)
-            self._index_slider.valtext.set_picker(True)
-            self._index_slider.valtext.value_type = int
-            self._index_slider.valtext.update_cb = lambda value: self.set_slice_ind(value)
-
-            if self.show_slider_volume_ind:
-                ax = self._figure.add_axes([0.25, y_positions[2], 0.5, 0.01], axisbg='Wheat')
-                self._volume_slider = _DiscreteSlider(ax, 'Volume', 0,
-                                                      self._get_max_4d_length() - 1,
-                                                      valinit=self._map_view_settings.volume_index,
-                                                      valfmt='%i', color='DarkSeaGreen', closedmin=True, closedmax=False)
-                self._volume_slider.on_changed(self.set_volume_ind)
-                self._volume_slider.valtext.set_picker(True)
-                self._volume_slider.valtext.value_type = int
-
-                self._volume_slider.valtext.update_cb = lambda value: self.set_volume_ind(value)
-
-        self._figure.canvas.mpl_connect('pick_event', self._global_click_listener)
-        self._figure.canvas.mpl_connect('key_press_event', self._global_key_pressed_listener)
-
-    def _rerender_maps(self):
-        for f in self._image_subplot_axis.values():
-            try:
-                self._figure.delaxes(f)
-            except KeyError:
-                pass
-        self._image_subplot_axis = {}
-        self._image_subplot_figures = {}
-        self._colorbar_subplots = {}
-
-        bottom_spacing = 0.07 if self.show_sliders else 0.015
-        self.grid_layout.spacings = dict(left=0.04, right=0.96, top=0.97, bottom=bottom_spacing, wspace=0.5)
-
-        for ind, map_name in enumerate(self.maps_to_show):
-            image_subplot_axis = self.grid_layout.get_axis(ind, len(self.maps_to_show))
-
-            data = self._get_image(self._volumes_dict[map_name])
-
-            if self.rotate_images:
-                nmr_times = self.rotate_images//90
-                data = np.rot90(data, nmr_times)
-
-            minval = self._minmax_vals[map_name][0]
-            maxval = self._minmax_vals[map_name][1]
-
-            title = map_name
-            if map_name in self.map_titles:
-                title = self.map_titles[map_name]
-
-            plot_options = {'vmin': minval, 'vmax': maxval}
-            plot_options.update(self.general_plot_options)
-            if map_name in self.map_plot_options:
-                plot_options.update(self.map_plot_options[map_name])
+            plot_options = {'vmin': self._volumes_dict[map_name].min(),
+                            'vmax': self._volumes_dict[map_name].max()}
+            plot_options.update({'cmap': colormap})
+            plot_options.update(self._get_map_plot_options(map_name, map_plot_options))
 
             vf = image_subplot_axis.imshow(data, **plot_options)
 
-            self._set_axis_options(map_name, plt)
-
-            plt.title(title)
-            self._image_subplot_axis.update({map_name: image_subplot_axis})
-            self._image_subplot_figures.update({map_name: vf})
+            plt.title(self._get_title(map_name, map_plot_options))
+            plt.axis('on' if show_axis else 'off')
 
             divider = make_axes_locatable(image_subplot_axis)
             cax = divider.append_axes("right", size="5%", pad=0.05)
             cbar = plt.colorbar(vf, cax=cax)
-            self._set_colorbar_axis_ticks(map_name, cbar)
+            self._set_colorbar_axis_ticks(cbar, colorbar_nmr_ticks)
             cbar.formatter.set_powerlimits((-3, 4))
             cbar.update_ticks()
             if cbar.ax.get_yticklabels():
                 cbar.ax.get_yticklabels()[-1].set_verticalalignment('top')
-            self._colorbar_subplots.update({map_name: cbar})
 
-            if self.font_size:
-                for item in ([image_subplot_axis.title, image_subplot_axis.xaxis.label,
-                              image_subplot_axis.yaxis.label] + image_subplot_axis.get_xticklabels() +
-                            image_subplot_axis.get_yticklabels()):
-                    item.set_fontsize(self.font_size)
+            for item in ([image_subplot_axis.xaxis.label, image_subplot_axis.yaxis.label] +
+                             image_subplot_axis.get_xticklabels() +
+                             image_subplot_axis.get_yticklabels()):
+                item.set_fontsize(font_size-2)
+            image_subplot_axis.title.set_fontsize(font_size)
+            cbar.ax.tick_params(labelsize=font_size-2)
+            cbar.ax.yaxis.offsetText.set(size=font_size-2)
 
-                cbar.ax.tick_params(labelsize=self.font_size)
-                cbar.ax.yaxis.offsetText.set(size=(self.font_size-10))
+    def _get_title(self, map_name, map_plot_options):
+        title = map_name
+        if map_name in map_plot_options \
+            and 'title' in map_plot_options[map_name] \
+            and map_plot_options[map_name]['title']:
+                title = map_plot_options[map_name]['title']
+        return title
 
-        self._figure.canvas.draw()
+    def _get_map_plot_options(self, map_name, map_plot_options):
+        output_dict = {}
 
-    def _scroll_event(self, event):
-        el_found = list(filter(lambda item: item[1] == event.inaxes, self._image_subplot_axis.items()))
-        if not el_found:
-            return
+        if map_name in map_plot_options:
+            map_options = map_plot_options[map_name]
 
-        map_name, axis = el_found[0]
+            colormap = map_options.get('colormap', None)
+            if colormap:
+                output_dict['cmap'] = colormap
 
-        if map_name not in self._sorted_volumes:
-            self._sorted_volumes.update({map_name: np.unique(np.around(self._volumes_dict[map_name], decimals=3))})
+            scale = map_options.get('scale', {'max': None, 'min': None})
+            if scale.get('max') is not None:
+                output_dict['vmax'] = scale['max']
+            if scale.get('min') is not None:
+                output_dict['vmin'] = scale['min']
 
-        if map_name not in self._map_scroll_positions:
-            self._map_scroll_positions.update({map_name: 0})
+        return output_dict
 
-        self._map_scroll_positions[map_name] += event.step**3
-        self._map_scroll_positions[map_name] = min(self._map_scroll_positions[map_name],
-                                                   len(self._sorted_volumes[map_name])-1)
+    def _get_image(self, data, dimension, slice_index, volume_index, rotate, clipping, zoom):
+        """Get the 2d image to display for the given data."""
+        data = get_slice_in_dimension(data, dimension, slice_index)
+        if len(data.shape) > 2:
+            data = np.squeeze(data[:, :, volume_index])
+        data = np.flipud(np.transpose(data))
 
-        if np.max(self._sorted_volumes[map_name]) == 0:
-            vmax = 0
-        else:
-            vmax = self._sorted_volumes[map_name][self._map_scroll_positions[map_name]]
+        if rotate:
+            data = np.rot90(data, rotate // 90)
 
-        if np.min(self._sorted_volumes[map_name]) == 0:
-            vmin = 0
-        else:
-            vmin = self._sorted_volumes[map_name][-self._map_scroll_positions[map_name]]
+        if clipping:
+            clipping_min = clipping.get('min', None)
+            if clipping_min is None:
+                clipping_min = data.min()
 
-        if vmin > vmax:
-            tmp = vmin
-            vmin = vmax
-            vmax = tmp
+            clipping_max = clipping.get('max', None)
+            if clipping_max is None:
+                clipping_max = data.max()
 
-        self.map_plot_options.update({map_name: {'vmin': vmin, 'vmax': vmax}})
+            if clipping_min or clipping_max:
+                data = np.clip(data, clipping_min, clipping_max)
 
-        def rerender_single_map(frame):
-            self._image_subplot_figures[map_name].set_clim(vmin, vmax)
-            return [self._image_subplot_axis[map_name]]
+        if zoom:
+            if all(map(lambda e: e in zoom and zoom[e] is not None, ('x_0', 'x_1', 'y_0', 'y_1'))):
+                correct = zoom['x_0'] < data.shape[0] and zoom['x_1'] < data.shape[0] \
+                    and zoom['y_0'] < data.shape[1] and zoom['y_1'] < data.shape[1] \
+                    and zoom['x_0'] < zoom['x_1'] and zoom['y_0'] < zoom['y_1']
+                if correct:
+                    data = data[zoom['y_0']:zoom['y_1'],
+                                zoom['x_0']:zoom['x_1']]
 
-        animation.FuncAnimation(self._figure, rerender_single_map, repeat=False, frames=1, blit=True)
+        return data
 
-    def _set_axis_options(self, map_name, plt):
-        if self.axis_options is not None:
+    def _set_colorbar_axis_ticks(self, cbar, colorbar_nmr_ticks):
+        if colorbar_nmr_ticks is not None:
             try:
-                if isinstance(self.axis_options, dict):
-                    if map_name in self.axis_options:
-                        plt.axis(self.axis_options[map_name])
-                else:
-                    plt.axis(self.axis_options)
-            except TypeError:
-                pass
-
-    def _set_colorbar_axis_ticks(self, map_name, cbar):
-        if self.nmr_colorbar_axis_ticks is not None:
-            ticks=None
-
-            if isinstance(self.nmr_colorbar_axis_ticks, dict):
-                if map_name in self.nmr_colorbar_axis_ticks:
-                    ticks = self.nmr_colorbar_axis_ticks[map_name]
-            else:
-                ticks = self.nmr_colorbar_axis_ticks
-
-            try:
+                ticks = colorbar_nmr_ticks
                 tick_locator = MyColourBarTickLocator(numticks=ticks)
                 cbar.locator = tick_locator
                 cbar.update_ticks()
@@ -384,125 +196,6 @@ class MapsVisualizer(object):
                 pass
             except ValueError:
                 pass
-
-    def _get_image(self, data):
-        """Get the 2d image to display for the given data.
-
-        This will use the current knowledge about the dimensions, slice_ind and volume_ind to get the correct image
-        to show.
-
-        After getting the right image it will apply the transformations in _apply_transformations to position the
-        image in a nice way.
-        """
-        data = get_slice_in_dimension(data, self._map_view_settings.dimension_index,
-                                      self._map_view_settings.slice_index)
-        if len(data.shape) > 2:
-            if data.shape[2] > self._map_view_settings.volume_index:
-                data = np.squeeze(data[:, :, self._map_view_settings.volume_index])
-            else:
-                data = np.squeeze(data[:, :, 0])
-        data = self._apply_transformations(data)
-        return data
-
-    def _apply_transformations(self, data):
-        data = np.transpose(data)
-        data = np.flipud(data)
-        return data
-
-    def _get_volumes_shape(self):
-        if list(self._volumes_dict.keys()):
-            return self._volumes_dict[list(self._volumes_dict.keys())[0]].shape
-        else:
-            return [0, 0, 0]
-
-    def _load_min_max_vals(self):
-        d = {}
-        for key, value in self._volumes_dict.items():
-            try:
-                d.update({key: (value.min(), value.max())})
-            except TypeError:
-                d.update({key: (0, 1)})
-        return d
-
-    def _get_max_4d_length(self, maps_to_show=None):
-        """Get the maximum volume index in the volumes."""
-        if maps_to_show:
-            l = []
-            for map_name in maps_to_show:
-                volume = self._volumes_dict[map_name]
-                if len(volume.shape) > 3:
-                    l.append(volume.shape[3])
-        else:
-            l = [v.shape[3] for v in self._volumes_dict.values() if len(v.shape) > 3]
-
-        if not l:
-            return 0
-        return max(l)
-
-    def _global_click_listener(self, event):
-        if isinstance(event.artist, Text):
-            animation.FuncAnimation(self._figure, lambda _: self._text_change_manager.click_event(event),
-                                    frames=1, repeat=False, blit=True)
-
-    def _global_key_pressed_listener(self, event):
-        animation.FuncAnimation(self._figure, lambda _: self._text_change_manager.key_press_event(event),
-                                frames=1, repeat=False, blit=True)
-
-
-class TextChangeManager(object):
-
-    def __init__(self):
-        self._text_element = None
-        self._previous_color = None
-        self._previous_text = None
-        self.highlight_color = 'teal'
-        self._char_buffer = []
-
-    def click_event(self, event):
-        text_element = event.artist
-        if self._text_element == text_element:
-            self._unset_current()
-        else:
-            if self._text_element:
-                self._unset_current()
-
-            self._text_element = text_element
-            self._previous_color = text_element.get_color()
-            self._previous_text = text_element.get_text()
-            self._text_element.set_color(self.highlight_color)
-
-    def key_press_event(self, event):
-        if not self._text_element:
-            return
-
-        if event.key == 'backspace':
-            self._char_buffer.pop()
-            self._text_element.set_text(''.join(self._char_buffer))
-        elif event.key == 'enter':
-            try:
-                self._text_element.update_cb(self._text_element.value_type(''.join(self._char_buffer)))
-                self._unset_current(reset_text=False)
-            except ValueError:
-                self._unset_current()
-        else:
-            self._char_buffer.append(event.key)
-            self._text_element.set_text(''.join(self._char_buffer))
-
-    def _unset_current(self, reset_text=True):
-        self._text_element.set_color(self._previous_color)
-        if reset_text:
-            self._text_element.set_text(self._previous_text)
-        self._text_element = None
-        self._char_buffer = []
-
-
-class MapViewSettings(object):
-
-    def __init__(self):
-        """A container for all the view settings that the user can alter during viewing the maps."""
-        self.dimension_index = 0
-        self.slice_index = 0
-        self.volume_index = 0
 
 
 class SampleVisualizer(object):
@@ -703,7 +396,7 @@ class MyColourBarTickLocator(LinearLocator):
 class GridLayout(object):
 
     def __init__(self):
-        self.spacings = dict(left=0.04, right=0.96, top=0.97, bottom=0.07)
+        self.spacings = dict(left=0.04, right=0.96, top=0.97, bottom=0.015, wspace=0.5)
 
     def get_axis(self, index, nmr_plots):
         """Get the axis for the subplot at the given index in the data list.

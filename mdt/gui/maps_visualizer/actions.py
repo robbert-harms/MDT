@@ -12,7 +12,7 @@ class SetDimension(ConfigAction):
         configuration.dimension = self.dimension
 
         if self.dimension != self._previous_config.dimension:
-            return SetZoom({'x': 0, 'y': 0, 'w': 0, 'h': 0}).apply(configuration)
+            return SetZoom(None).apply(configuration)
 
 
 class SetSliceIndex(SimpleConfigAction):
