@@ -53,9 +53,12 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
         config = self._controller.get_config()
         maps_to_show = [map_name for map_name in config.maps_to_show if map_name in self._data_info.maps]
 
+        general_plot_options = {'cmap': config.colormap}
+
         self.vis = MapsVisualizer(self._data_info.maps)
         self.vis.show(in_qt=True, show_sliders=False, maps_to_show=maps_to_show,
-                      rotate_images=config.rotate)
+                      rotate_images=config.rotate, general_plot_options=general_plot_options,
+                      dimension=config.dimension, slice_ind=config.slice_index, volume_ind=config.volume_index)
 
         self.canvas.figure = self.vis._figure
 

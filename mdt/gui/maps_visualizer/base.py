@@ -1,4 +1,8 @@
 import copy
+from collections import OrderedDict
+
+import matplotlib
+
 import mdt
 
 
@@ -19,19 +23,96 @@ class DataInfo(object):
         """
         self.maps = maps
         self.directory = directory
+        self._map_info = {key: SingleMapInfo(key, value) for key, value in self.maps.items()}
 
     @classmethod
     def from_dir(cls, directory):
         return DataInfo(mdt.load_volume_maps(directory), directory)
 
-    def get_max_volume(self):
-        pass
+    def get_max_dimension(self, map_names=None):
+        """Get the maximum dimension index in the maps.
 
-    def get_max_dimension(self):
-        pass
+        Args:
+            map_names (list of str): if given we will only scan the given list of maps
 
-    def get_max_slice_index(self, dimension):
-        pass
+        Returns:
+            int: either, 0, 1, 2 as the maximum dimension index in the maps.
+        """
+        map_names = map_names or self.maps.keys()
+        return max(self._map_info[map_name].max_dimension() for map_name in map_names)
+
+    def get_max_slice_index(self, dimension, map_names=None):
+        """Get the maximum slice index in the given map on the given dimension.
+
+        Args:
+            dimension (int): the dimension we want the slice index of (maximum 3)
+            map_names (list of str): if given we will only scan the given list of maps
+
+        Returns:
+            int: the maximum slice index over the given maps in the given dimension.
+        """
+        max_dimension = self.get_max_dimension(map_names)
+        if dimension > max_dimension:
+            raise ValueError('Dimension can not exceed {}.'.format(max_dimension))
+        return max(self._map_info[map_name].max_slice_index(dimension) for map_name in map_names)
+
+    def get_max_volume_index(self, map_names=None):
+        """Get the maximum volume index in the given maps.
+
+        Args:
+            map_names (list of str): if given we will only scan the given list of maps
+
+        Returns:
+            int: the maximum volume index in the given list of maps. Starts from 0.
+        """
+        map_names = map_names or self.maps.keys()
+        return max(self._map_info[map_name].max_volume_index() for map_name in map_names)
+
+
+class SingleMapInfo(object):
+
+    def __init__(self, map_name, value):
+        """Holds information about a single map.
+
+        Args:
+            map_name (str): the name of the map
+            value (ndarray): the value of the map
+        """
+        self.map_name = map_name
+        self.value = value
+
+    def max_dimension(self):
+        """Get the maximum dimension index in this map.
+
+        The maximum value returned by this method is 2 and the minimum is 0.
+
+        Returns:
+            int: in the range 0, 1, 2
+        """
+        return min(len(self.value.shape), 3) - 1
+
+    def max_slice_index(self, dimension):
+        """Get the maximum slice index on the given dimension.
+
+        Args:
+            dimension (int): the dimension we want the slice index of (maximum 3)
+
+        Returns:
+            int: the maximum slice index in the given dimension.
+        """
+        return self.value.shape[dimension] - 1
+
+    def max_volume_index(self):
+        """Get the maximum volume index in this map.
+
+        The minimum is 0.
+
+        Returns:
+            int: the maximum volume index.
+        """
+        if len(self.value.shape) > 3:
+            return self.value.shape[3] - 1
+        return 0
 
 
 class Diffable(object):
@@ -80,9 +161,9 @@ class GeneralConfiguration(Diffable):
 
     def __init__(self):
         super(GeneralConfiguration, self).__init__()
-        self.dimension = None
+        self.dimension = 2
         self.slice_index = None
-        self.volume_index = None
+        self.volume_index = 0
         self.zoom = {'x': 0, 'y': 0, 'w': 0, 'h': 0}
         self.maps_to_show = None
         self.colormap = 'hot'
@@ -103,6 +184,40 @@ class GeneralConfiguration(Diffable):
         config.map_plot_options = {key: MapSpecificConfiguration.from_dict(value)
                                    for key, value in config_dict['map_plot_options']}
         return config
+
+    def validate(self, data_info):
+        """Validate this config using the given data information.
+
+        This will always return a copy of this configuration with validated settings.
+
+        Args:
+            data_info (DataInfo): the data information used to create a valid copy of this configuration.
+
+        Returns:
+            GeneralConfiguration: new configuration with validated settings.
+        """
+        validated = copy.deepcopy(self)
+        validated.maps_to_show = [key for key in validated.maps_to_show if key in data_info.maps]
+
+        if validated.rotate not in [0, 90, 180, 270]:
+            validated.rotate = 0
+
+        try:
+            matplotlib.cm.get_cmap(validated.colormap)
+        except ValueError:
+            validated.colormap = 'hot'
+
+        if validated.dimension is not None:
+            validated.dimension = min(validated.dimension, data_info.get_max_dimension(validated.maps_to_show))
+
+        if validated.slice_index is not None:
+            validated.slice_index = min(validated.slice_index, data_info.get_max_slice_index(validated.dimension,
+                                                                                             validated.maps_to_show))
+
+        if validated.volume_index is not None:
+            validated.volume_index = min(validated.volume_index, data_info.get_max_volume_index(validated.maps_to_show))
+
+        return validated
 
     def get_difference(self, other):
         differences = {}
@@ -134,17 +249,22 @@ class GeneralConfiguration(Diffable):
 
         This can be useful for converting the configuration to a string.
         """
-        result = copy.copy(self.__dict__)
-        result['map_plot_options'] = {key: value.to_dict() for key, value in self.map_plot_options}
-        return result
+        key_order = ['dimension', 'slice_index', 'volume_index']
+        for key in self.__dict__.keys():
+            if key not in key_order:
+                key_order.append(key)
 
-    def __copy__(self):
-        config_copy = GeneralConfiguration()
-        config_copy.__dict__ = copy.copy(self.__dict__)
-        config_copy.zoom = copy.copy(self.zoom)
-        config_copy.maps_to_show = copy.copy(self.maps_to_show)
-        config_copy.map_plot_options = copy.deepcopy(self.map_plot_options)
-        return config_copy
+        result_list = []
+        for key in key_order:
+            if key == 'map_plot_options':
+                value = {key: value.to_dict() for key, value in self.map_plot_options}
+            else:
+                value = getattr(self, key)
+
+            result_list.append((key, value))
+
+        result = OrderedDict(result_list)
+        return result
 
 
 class MapSpecificConfiguration(Diffable):
@@ -205,7 +325,7 @@ class ConfigAction(object):
             GeneralConfiguration: the updated configuration
         """
         self._previous_config = configuration
-        new_config = copy.copy(configuration)
+        new_config = copy.deepcopy(configuration)
         updated_new_config = self._apply(new_config)
         if updated_new_config:
             return updated_new_config
@@ -311,8 +431,11 @@ class Controller(object):
             GeneralConfiguration: the current general configuration.
         """
 
-    def add_action(self, action):
-        """Add and apply a new configuration action.
+    def apply_action(self, action):
+        """Apply a new configuration action.
+
+        If there is no difference between the current config and the one generated by this new action, the
+        action will not be stored in history and will not need to be applied.
 
         Args:
             action (ConfigAction): the configuration action to add and apply

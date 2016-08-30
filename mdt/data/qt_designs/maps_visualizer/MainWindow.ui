@@ -82,7 +82,7 @@
               </size>
              </property>
              <property name="currentIndex">
-              <number>0</number>
+              <number>2</number>
              </property>
              <widget class="QWidget" name="generalOptions">
               <property name="accessibleName">
@@ -121,7 +121,7 @@
                     <x>0</x>
                     <y>0</y>
                     <width>977</width>
-                    <height>644</height>
+                    <height>662</height>
                    </rect>
                   </property>
                   <layout class="QGridLayout" name="gridLayout_6" rowstretch="0,0,0,0,0,0">
@@ -149,7 +149,7 @@
                       <enum>QFrame::StyledPanel</enum>
                      </property>
                      <property name="frameShadow">
-                      <enum>QFrame::Raised</enum>
+                      <enum>QFrame::Plain</enum>
                      </property>
                      <layout class="QVBoxLayout" name="verticalLayout_4">
                       <property name="spacing">
@@ -193,7 +193,7 @@
                          <enum>QFrame::StyledPanel</enum>
                         </property>
                         <property name="frameShadow">
-                         <enum>QFrame::Raised</enum>
+                         <enum>QFrame::Plain</enum>
                         </property>
                         <layout class="QFormLayout" name="formLayout_2">
                          <property name="fieldGrowthPolicy">
@@ -259,7 +259,7 @@
                       <enum>QFrame::StyledPanel</enum>
                      </property>
                      <property name="frameShadow">
-                      <enum>QFrame::Raised</enum>
+                      <enum>QFrame::Plain</enum>
                      </property>
                      <layout class="QVBoxLayout" name="verticalLayout_5">
                       <property name="spacing">
@@ -303,7 +303,7 @@
                          <enum>QFrame::StyledPanel</enum>
                         </property>
                         <property name="frameShadow">
-                         <enum>QFrame::Raised</enum>
+                         <enum>QFrame::Plain</enum>
                         </property>
                         <layout class="QGridLayout" name="gridLayout_10">
                          <property name="leftMargin">
@@ -376,7 +376,7 @@
                       <enum>QFrame::StyledPanel</enum>
                      </property>
                      <property name="frameShadow">
-                      <enum>QFrame::Raised</enum>
+                      <enum>QFrame::Plain</enum>
                      </property>
                      <layout class="QVBoxLayout" name="verticalLayout_8">
                       <property name="spacing">
@@ -420,7 +420,7 @@
                          <enum>QFrame::StyledPanel</enum>
                         </property>
                         <property name="frameShadow">
-                         <enum>QFrame::Raised</enum>
+                         <enum>QFrame::Plain</enum>
                         </property>
                         <layout class="QFormLayout" name="formLayout">
                          <property name="horizontalSpacing">
@@ -473,7 +473,7 @@
                       <enum>QFrame::StyledPanel</enum>
                      </property>
                      <property name="frameShadow">
-                      <enum>QFrame::Raised</enum>
+                      <enum>QFrame::Plain</enum>
                      </property>
                      <layout class="QVBoxLayout" name="verticalLayout_7">
                       <property name="spacing">
@@ -517,7 +517,7 @@
                          <enum>QFrame::StyledPanel</enum>
                         </property>
                         <property name="frameShadow">
-                         <enum>QFrame::Raised</enum>
+                         <enum>QFrame::Plain</enum>
                         </property>
                         <layout class="QGridLayout" name="gridLayout_11">
                          <property name="leftMargin">
@@ -563,7 +563,7 @@
                       <enum>QFrame::StyledPanel</enum>
                      </property>
                      <property name="frameShadow">
-                      <enum>QFrame::Raised</enum>
+                      <enum>QFrame::Plain</enum>
                      </property>
                      <layout class="QVBoxLayout" name="verticalLayout_6">
                       <property name="spacing">
@@ -607,7 +607,7 @@
                          <enum>QFrame::StyledPanel</enum>
                         </property>
                         <property name="frameShadow">
-                         <enum>QFrame::Raised</enum>
+                         <enum>QFrame::Plain</enum>
                         </property>
                         <layout class="QGridLayout" name="gridLayout_5">
                          <property name="leftMargin">
@@ -700,7 +700,7 @@
                     <x>0</x>
                     <y>0</y>
                     <width>977</width>
-                    <height>625</height>
+                    <height>662</height>
                    </rect>
                   </property>
                   <layout class="QGridLayout" name="gridLayout_8" rowstretch="0,0,0,0,0,0,0,0,0">
@@ -840,7 +840,7 @@
      <x>0</x>
      <y>0</y>
      <width>1000</width>
-     <height>33</height>
+     <height>27</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

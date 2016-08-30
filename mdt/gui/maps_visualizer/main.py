@@ -1,3 +1,5 @@
+import copy
+
 import matplotlib
 import yaml
 from PyQt5.QtCore import QObject, pyqtSlot
@@ -62,7 +64,7 @@ class MainWindow(QMainWindow, Ui_MapsVisualizer):
         text = text.replace('\t', ' '*4)
         try:
             info_dict = yaml.load(text)
-            self._controller.add_action(FromDictAction(info_dict))
+            self._controller.apply_action(FromDictAction(info_dict))
         except yaml.parser.ParserError:
             pass
         finally:
@@ -103,35 +105,48 @@ class QtController(Controller, QObject):
     def get_config(self):
         return self._current_config
 
-    def add_action(self, action):
-        print('add_actdion')
-        self._actions_history.append(action)
-        self._redoable_actions = []
-        self._apply_config(action.apply(self._current_config))
+    def apply_action(self, action):
+        print('add_action')
+        applied = self._apply_config(action.apply(self._current_config))
+        if applied:
+            self._actions_history.append(action)
+            self._redoable_actions = []
 
     def undo(self):
         print('undo')
         if len(self._actions_history):
             action = self._actions_history.pop()
-            self._redoable_actions.append(action)
             self._apply_config(action.unapply())
+            self._redoable_actions.append(action)
 
     def redo(self):
         print('redo')
         if len(self._redoable_actions):
             action = self._redoable_actions.pop()
-            self._actions_history.append(action)
             self._apply_config(action.apply(self._current_config))
-            print("gotg here'")
+            self._actions_history.append(action)
 
     def _apply_config(self, new_config):
-        """Apply the current configuration"""
-        print('apply_config', self._current_config.get_difference(new_config))
+        """Apply the current configuration.
 
-        #todo check the config using the data
+        Args:
+            new_config (GeneralConfiguration): the new configuration to apply
 
-        self._current_config = new_config
-        self.new_config.emit(new_config)
+        Returns:
+            bool: if the configuration was applied or not. If the difference with the current configuration
+                and the old one is None, False is returned. Else True is returned.
+        """
+        validated_config = new_config.validate(self._data_info)
+        difference = self._current_config.get_difference(validated_config)
+
+        print('apply_config', difference)
+
+        if difference:
+            print('applying')
+            self._current_config = validated_config
+            self.new_config.emit(validated_config)
+            return True
+        return False
 
 
 def main():
@@ -140,9 +155,10 @@ def main():
     main = MainWindow(controller)
     main.show()
 
-    data = DataInfo.from_dir('/home/robbert/phd-data/dti_test_ballstick_results/')
+    # # data = DataInfo.from_dir('/home/robbert/phd-data/dti_test_ballstick_results/')
+    data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/brain_mask/BallStick/')
     config = GeneralConfiguration()
-    config.maps_to_show = ['S0.s0']
+    config.maps_to_show = ['S0.s0', 'BIC']
     controller.set_data(data, config)
 
     sys.exit(app.exec_())
@@ -150,3 +166,19 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+
+data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/brain_mask/BallStick/')
+
+print(data.get_max_volume_index(['Stick.vec0', 'S0.s0']))
+
+config = GeneralConfiguration()
+config.maps_to_show = ['S0.s0', 'BIC']
+config.dimension = 2
+# new_config = SetMapsToShow(['S0.s0', 'B']).apply(config)
+validated = config.validate(data)
+diff = config.get_difference(validated)
+
+print(diff)
+#
