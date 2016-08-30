@@ -11,25 +11,14 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class QApplicationSingleton(object):
-
-    q_app = None
-
-    @staticmethod
-    def get_instance():
-        if QApplicationSingleton.q_app is None:
-            QApplicationSingleton.q_app = QApplication([])
-        return QApplicationSingleton.q_app
-
-
-def center_window(window, q_app=None):
+def center_window(window):
     """Center the given window on the screen.
 
     Args:
         q_app (QApplication): for desktop information
         window (QMainWindow): the window to center
     """
-    q_app = q_app or QApplicationSingleton.get_instance()
+    q_app = QApplication.instance()
 
     frame_gm = window.frameGeometry()
     screen = q_app.desktop().screenNumber(q_app.desktop().cursor().pos())

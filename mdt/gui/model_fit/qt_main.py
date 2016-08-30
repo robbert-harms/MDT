@@ -1,6 +1,8 @@
 import signal
 import sys
 
+from PyQt5.QtWidgets import QApplication
+
 from mdt.gui.model_fit.design.ui_about_dialog import Ui_AboutDialog
 from mdt.gui.model_fit.design.ui_runtime_settings_dialog import Ui_RuntimeSettingsDialog
 from mdt.gui.model_fit.tabs.fit_model_tab import FitModelTab
@@ -25,8 +27,7 @@ from PyQt5 import QtGui
 from PyQt5.QtCore import QThread, QTimer, pyqtSlot
 from PyQt5.QtWidgets import QMainWindow, QDialog, QDialogButtonBox
 from mdt.gui.model_fit.design.ui_main_gui import Ui_MainWindow
-from mdt.gui.utils import print_welcome_message, ForwardingListener, MessageReceiver, center_window, \
-    QApplicationSingleton
+from mdt.gui.utils import print_welcome_message, ForwardingListener, MessageReceiver, center_window
 from mdt.gui.model_fit.utils import SharedState
 from mdt.log_handlers import LogDispatchHandler
 
@@ -204,7 +205,9 @@ def start_gui(base_dir=None):
     state = SharedState()
     state.base_dir = base_dir
 
-    app = QApplicationSingleton.get_instance()
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication([])
 
     # catches the sigint
     timer = QTimer()
@@ -217,7 +220,7 @@ def start_gui(base_dir=None):
     center_window(single_model_gui)
     single_model_gui.show()
 
-    sys.exit(app.exec_())
+    return app.exec_()
 
 
 if __name__ == '__main__':

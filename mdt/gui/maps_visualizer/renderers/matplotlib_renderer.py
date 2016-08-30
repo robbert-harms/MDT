@@ -1,6 +1,6 @@
 import matplotlib
 matplotlib.use('Qt5Agg')
-import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
@@ -19,8 +19,9 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
         self._controller.new_data.connect(self.set_new_data)
         self._controller.new_config.connect(self.set_new_config)
 
-        self.figure = plt.figure()
-        self._init_visualizer()
+        self.figure = Figure()
+        self.visualizer = MapsVisualizer(self._controller.get_data().maps, self.figure)
+        self.visualizer.render(**self._controller.get_config().to_dict())
 
         self.canvas = FigureCanvas(self.figure)
         self.canvas.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
@@ -44,6 +45,7 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
 
     @pyqtSlot(DataInfo)
     def set_new_data(self, data_info):
+        self.visualizer = MapsVisualizer(data_info.maps, self.figure)
         self._redraw()
 
     @pyqtSlot(GeneralConfiguration)
@@ -54,13 +56,8 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
         width = self.width()
         height = self.height()
 
-        self._init_visualizer()
+        self.figure.clf()
+        self.visualizer.render(**self._controller.get_config().to_dict())
 
         self.canvas.resize(width, height-1)
         self.canvas.resize(width, height)
-
-    def _init_visualizer(self):
-        self.figure.clf()
-        config = self._controller.get_config()
-        vis = MapsVisualizer(self._controller.get_data().maps, self.figure)
-        vis.render(**config.to_dict())

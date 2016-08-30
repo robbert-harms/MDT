@@ -1,4 +1,6 @@
 import matplotlib
+from PyQt5.QtWidgets import QApplication
+
 matplotlib.use('Qt5Agg')
 
 import copy
@@ -13,7 +15,7 @@ from mdt.gui.maps_visualizer.actions import SetDimension, SetZoom, SetSliceIndex
 from mdt.gui.maps_visualizer.base import GeneralConfiguration, Controller, DataInfo, MapSpecificConfiguration
 from mdt.gui.maps_visualizer.renderers.matplotlib_renderer import MatplotlibPlotting
 from mdt.gui.model_fit.design.ui_about_dialog import Ui_AboutDialog
-from mdt.gui.utils import center_window, QApplicationSingleton
+from mdt.gui.utils import center_window
 import sys
 from PyQt5.QtWidgets import QMainWindow
 from mdt.gui.maps_visualizer.design.ui_MainWindow import Ui_MapsVisualizer
@@ -38,7 +40,7 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self.general_DisplayOrder.set_collapse(True)
         self.general_Miscellaneous.set_collapse(True)
 
-        self.textConfigEdit.textChanged.connect(self._config_from_string)
+        self.textConfigEdit.new_config.connect(self._config_from_string)
         self.general_dimension.valueChanged.connect(lambda v: self._controller.apply_action(SetDimension(v)))
         self.general_slice_index.valueChanged.connect(lambda v: self._controller.apply_action(SetSliceIndex(v)))
         self.general_volume_index.valueChanged.connect(lambda v: self._controller.apply_action(SetVolumeIndex(v)))
@@ -96,13 +98,12 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
             self.general_map_selection.blockSignals(False)
 
         if not self._flags['updating_config_from_string']:
-            yaml_string = yaml.dump(config.to_dict())
+            yaml_string = yaml.safe_dump(config.to_dict())
             self.textConfigEdit.setPlainText(yaml_string)
 
-    @pyqtSlot()
-    def _config_from_string(self):
+    @pyqtSlot(str)
+    def _config_from_string(self, text):
         self._flags['updating_config_from_string'] = True
-        text = self.textConfigEdit.toPlainText()
         text = text.replace('\t', ' '*4)
         try:
             info_dict = yaml.load(text)
@@ -122,7 +123,6 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
             map_name = item.data(Qt.UserRole)
 
             if item.isSelected():
-                print(map_name)
                 if map_name not in map_names:
                     self._insert_alphabetically(map_name, map_names)
             else:
@@ -177,7 +177,11 @@ class QtController(Controller, QObject):
         return self._data_info
 
     def set_config(self, general_config):
-        self._apply_config(general_config)
+        applied = self._apply_config(general_config)
+        if applied:
+            self._actions_history.clear()
+            self._redoable_actions.clear()
+            self.new_config.emit(self._current_config)
 
     def get_config(self):
         return self._current_config
@@ -188,6 +192,7 @@ class QtController(Controller, QObject):
         if applied:
             self._actions_history.append(action)
             self._redoable_actions = []
+            self.new_config.emit(self._current_config)
 
     def undo(self):
         print('undo')
@@ -195,6 +200,7 @@ class QtController(Controller, QObject):
             action = self._actions_history.pop()
             self._apply_config(action.unapply())
             self._redoable_actions.append(action)
+            self.new_config.emit(self._current_config)
 
     def redo(self):
         print('redo')
@@ -202,6 +208,7 @@ class QtController(Controller, QObject):
             action = self._redoable_actions.pop()
             self._apply_config(action.apply(self._current_config))
             self._actions_history.append(action)
+            self.new_config.emit(self._current_config)
 
     def _apply_config(self, new_config):
         """Apply the current configuration.
@@ -221,14 +228,17 @@ class QtController(Controller, QObject):
         if difference:
             print('applying')
             self._current_config = validated_config
-            self.new_config.emit(validated_config)
             return True
         return False
 
 
 def start_gui(data=None, config=None):
     controller = QtController()
-    app = QApplicationSingleton.get_instance()
+
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication([])
+
     main = MapsVisualizerWindow(controller)
     center_window(main)
     main.show()
@@ -238,7 +248,7 @@ def start_gui(data=None, config=None):
     elif config:
         controller.set_config(config)
 
-    sys.exit(app.exec_())
+    app.exec_()
 
 
 if __name__ == '__main__':

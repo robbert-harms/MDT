@@ -20,9 +20,9 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class MapsVisualizer(object):
 
-    def __init__(self, volumes_dict, figure=None):
+    def __init__(self, volumes_dict, figure):
         self._volumes_dict = volumes_dict
-        self._figure = figure or plt.figure()
+        self._figure = figure
 
     def render(self, **kwargs):
         """Render all the maps to the figure. This is for use in GUI embedded situations."""
@@ -54,7 +54,6 @@ class MapsVisualizer(object):
             mng = plt.get_current_fig_manager()
             mng.canvas.set_window_title(window_title)
 
-        plt.draw()
         if block:
             plt.show(True)
 
@@ -94,7 +93,7 @@ class MapsVisualizer(object):
                      colorbar_nmr_ticks, grid_layout, show_axis, zoom, map_plot_options):
 
         for ind, map_name in enumerate(maps_to_show):
-            image_subplot_axis = grid_layout.get_axis(ind, len(maps_to_show))
+            image_subplot_axis = grid_layout.get_axis(self._figure, ind, len(maps_to_show))
 
             data = self._get_image(self._volumes_dict[map_name], dimension, slice_index, volume_index, rotate,
                                    map_plot_options.get(map_name, {}).get('clipping', {}), zoom)
@@ -106,8 +105,8 @@ class MapsVisualizer(object):
 
             vf = image_subplot_axis.imshow(data, **plot_options)
 
-            plt.title(self._get_title(map_name, map_plot_options))
-            plt.axis('on' if show_axis else 'off')
+            image_subplot_axis.set_title(self._get_title(map_name, map_plot_options))
+            image_subplot_axis.axis('on' if show_axis else 'off')
 
             divider = make_axes_locatable(image_subplot_axis)
             cax = divider.append_axes("right", size="5%", pad=0.05)
@@ -398,10 +397,11 @@ class GridLayout(object):
     def __init__(self):
         self.spacings = dict(left=0.04, right=0.96, top=0.97, bottom=0.015, wspace=0.5)
 
-    def get_axis(self, index, nmr_plots):
+    def get_axis(self, figure, index, nmr_plots):
         """Get the axis for the subplot at the given index in the data list.
 
         Args:
+            figure (Figure): the figure to add the axis to
             index (int): the index of the subplot in the list of plots
             nmr_plots (int): the total number of plots
 
@@ -412,10 +412,10 @@ class GridLayout(object):
 
 class AutoGridLayout(GridLayout):
 
-    def get_axis(self, index, nmr_plots):
+    def get_axis(self, figure, index, nmr_plots):
         rows, cols = self._get_row_cols_square(nmr_plots)
         grid = GridSpec(rows, cols, **self.spacings)
-        return plt.subplot(grid[index])
+        return figure.add_subplot(grid[index])
 
     def _get_row_cols_square(self, nmr_plots):
         defaults = ((1, 1), (1, 2), (1, 3), (2, 2), (2, 3), (2, 3), (2, 3))
@@ -436,9 +436,9 @@ class RectangularGridLayout(GridLayout):
         self.rows = rows
         self.cols = cols
 
-    def get_axis(self, index, nmr_plots):
+    def get_axis(self, figure, index, nmr_plots):
         grid = GridSpec(self.rows, self.cols, **self.spacings)
-        return plt.subplot(grid[index])
+        return figure.add_subplot(grid[index])
 
 
 class LowerTriangleGridLayout(GridLayout):
@@ -453,20 +453,20 @@ class LowerTriangleGridLayout(GridLayout):
             if x >= y:
                 self._positions.append(x * self._size + y)
 
-    def get_axis(self, index, nmr_plots):
+    def get_axis(self, figure, index, nmr_plots):
         grid = GridSpec(self._size, self._size, **self.spacings)
-        return plt.subplot(grid[self._positions[index]])
+        return figure.add_subplot(grid[self._positions[index]])
 
 
 class SingleColumnGridLayout(GridLayout):
 
-    def get_axis(self, index, nmr_plots):
+    def get_axis(self, figure, index, nmr_plots):
         grid = GridSpec(nmr_plots, 1, **self.spacings)
-        return plt.subplot(grid[index])
+        return figure.add_subplot(grid[index])
 
 
 class SingleRowGridLayout(GridLayout):
 
-    def get_axis(self, index, nmr_plots):
+    def get_axis(self, figure, index, nmr_plots):
         grid = GridSpec(1, nmr_plots, **self.spacings)
-        return plt.subplot(grid[index])
+        return figure.add_subplot(grid[index])

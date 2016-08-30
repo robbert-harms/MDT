@@ -5,7 +5,9 @@ from inspect import stack
 
 import numpy as np
 import six
+import yaml
 from six import string_types
+
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-03-10"
@@ -248,6 +250,31 @@ def get_device_ind(device_type='FIRST_GPU'):
     return indices
 
 
+def visualize_maps(data=None, config=None):
+    """Starts a new map visualization GUI.
+
+    Args:
+        data (string, dict or mdt.gui.maps_visualizer.base.DataInfo):
+            the data we will display
+        config (string, dict or mdt.gui.maps_visualizer.base.GeneralConfiguration): the initial visualization configuration.
+            If a string or dict is given we will try to convert it to a GeneralConfiguration object.
+    """
+    from mdt.gui.maps_visualizer.base import GeneralConfiguration, DataInfo
+    from mdt.gui.maps_visualizer.main import start_gui
+
+    if isinstance(data, string_types):
+        data = DataInfo.from_dir(data)
+    elif isinstance(data, dict):
+        data = DataInfo(data)
+
+    if isinstance(config, string_types):
+        config = GeneralConfiguration.from_dict(yaml.load(config))
+    if isinstance(config, dict):
+        config = GeneralConfiguration.from_dict(config)
+
+    start_gui(data, config)
+
+
 def view_results_slice(data,
                        dimension=None,
                        slice_ind=None,
@@ -345,7 +372,6 @@ def view_results_slice(data,
             window_title=window_title,
             **settings
         )
-    return viz
 
 
 def results_preselection_names(data):

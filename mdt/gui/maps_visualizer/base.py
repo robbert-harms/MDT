@@ -213,10 +213,13 @@ class GeneralConfiguration(Diffable):
         Args:
             config_dict (dict): the new configuration dictionary
         """
+        if config_dict is None:
+            config_dict = {}
+
         config = GeneralConfiguration()
         config.__dict__.update(config_dict)
         config.map_plot_options = {key: MapSpecificConfiguration.from_dict(value)
-                                   for key, value in config_dict['map_plot_options'].items()}
+                                   for key, value in config_dict.get('map_plot_options', {}).items()}
         return config
 
     def validate(self, data_info):
