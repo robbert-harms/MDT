@@ -6,7 +6,7 @@ from PyQt5.QtCore import pyqtSlot, QObject, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog
 
 from mdt import load_brain_mask, create_median_otsu_brain_mask
-from mdt.gui.maps_visualizer.base import DataInfo, GeneralConfiguration
+from mdt.gui.maps_visualizer.base import DataInfo, DisplayConfiguration
 from mdt.gui.maps_visualizer.main import MapsVisualizerWindow
 from mdt.gui.maps_visualizer.main import QtController
 from mdt.gui.model_fit.design.ui_generate_brain_mask_tab import Ui_GenerateBrainMaskTabContent
@@ -96,7 +96,7 @@ class GenerateBrainMaskTab(MainTab, Ui_GenerateBrainMaskTabContent):
         masked_image = image_data * mask
 
         data = DataInfo({'Masked': masked_image, 'DWI': image_data})
-        config = GeneralConfiguration()
+        config = DisplayConfiguration()
         config.dimension = 2
         config.slice_index = image_data.shape[2] // 2.0
         controller.set_data(data, config)

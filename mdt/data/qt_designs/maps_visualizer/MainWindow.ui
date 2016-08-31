@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MDT - Maps Visualizer</string>
+   <string>Maps Visualizer - MDT</string>
   </property>
   <property name="windowIcon">
    <iconset resource="main.qrc">
@@ -81,7 +81,7 @@
              </property>
              <property name="minimumSize">
               <size>
-               <width>275</width>
+               <width>250</width>
                <height>0</height>
               </size>
              </property>
@@ -328,6 +328,13 @@
                          <property name="verticalSpacing">
                           <number>3</number>
                          </property>
+                         <item row="7" column="0">
+                          <widget class="QLabel" name="label_19">
+                           <property name="text">
+                            <string>y&lt;sub&gt;0&lt;/sub&gt;:</string>
+                           </property>
+                          </widget>
+                         </item>
                          <item row="1" column="0">
                           <widget class="QLabel" name="label_20">
                            <property name="text">
@@ -336,37 +343,30 @@
                           </widget>
                          </item>
                          <item row="1" column="1">
-                          <widget class="QSpinBox" name="spinBox_14"/>
+                          <widget class="QSpinBox" name="general_zoom_x_0"/>
                          </item>
-                         <item row="1" column="2">
-                          <widget class="QLabel" name="label_19">
-                           <property name="text">
-                            <string>y&lt;sub&gt;0&lt;/sub&gt;:</string>
-                           </property>
-                          </widget>
+                         <item row="7" column="3">
+                          <widget class="QSpinBox" name="general_zoom_y_1"/>
                          </item>
-                         <item row="1" column="3">
-                          <widget class="QSpinBox" name="spinBox_12"/>
-                         </item>
-                         <item row="5" column="1">
-                          <widget class="QSpinBox" name="spinBox_11"/>
-                         </item>
-                         <item row="5" column="2">
+                         <item row="7" column="2">
                           <widget class="QLabel" name="label_18">
                            <property name="text">
                             <string>y&lt;sub&gt;1&lt;/sub&gt;:</string>
                            </property>
                           </widget>
                          </item>
-                         <item row="5" column="0">
+                         <item row="1" column="2">
                           <widget class="QLabel" name="label_12">
                            <property name="text">
                             <string>x&lt;sub&gt;1&lt;/sub&gt;:</string>
                            </property>
                           </widget>
                          </item>
-                         <item row="5" column="3">
-                          <widget class="QSpinBox" name="spinBox_13"/>
+                         <item row="7" column="1">
+                          <widget class="QSpinBox" name="general_zoom_y_0"/>
+                         </item>
+                         <item row="1" column="3">
+                          <widget class="QSpinBox" name="general_zoom_x_1"/>
                          </item>
                         </layout>
                        </widget>
@@ -465,6 +465,40 @@
                          <item row="1" column="1">
                           <widget class="QComboBox" name="general_rotate"/>
                          </item>
+                         <item row="2" column="0">
+                          <widget class="QLabel" name="label_3">
+                           <property name="text">
+                            <string>Font size:</string>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="2" column="1">
+                          <widget class="QSpinBox" name="general_font_size"/>
+                         </item>
+                         <item row="3" column="0">
+                          <widget class="QLabel" name="label_4">
+                           <property name="text">
+                            <string>Show axis:</string>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="3" column="1">
+                          <widget class="QCheckBox" name="general_show_axis">
+                           <property name="text">
+                            <string/>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="4" column="0">
+                          <widget class="QLabel" name="label_5">
+                           <property name="text">
+                            <string>Colorbar nmr ticks:</string>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="4" column="1">
+                          <widget class="QSpinBox" name="general_colorbar_nmr_ticks"/>
+                         </item>
                         </layout>
                        </widget>
                       </item>
@@ -543,7 +577,7 @@
                           <number>3</number>
                          </property>
                          <item row="0" column="0">
-                          <widget class="QListWidget" name="selectMaps_3">
+                          <widget class="MapsReorderer" name="general_display_order">
                            <property name="sizePolicy">
                             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                              <horstretch>0</horstretch>
@@ -919,6 +953,11 @@
    <extends>QPlainTextEdit</extends>
    <header>..widgets</header>
   </customwidget>
+  <customwidget>
+   <class>MapsReorderer</class>
+   <extends>QListWidget</extends>
+   <header>..widgets</header>
+  </customwidget>
  </customwidgets>
  <tabstops>
   <tabstop>commandTabs</tabstop>
@@ -926,16 +965,14 @@
   <tabstop>general_dimension</tabstop>
   <tabstop>general_slice_index</tabstop>
   <tabstop>general_volume_index</tabstop>
-  <tabstop>spinBox_14</tabstop>
-  <tabstop>spinBox_12</tabstop>
-  <tabstop>spinBox_11</tabstop>
-  <tabstop>spinBox_13</tabstop>
+  <tabstop>general_zoom_x_0</tabstop>
+  <tabstop>general_zoom_y_0</tabstop>
+  <tabstop>general_zoom_x_1</tabstop>
+  <tabstop>general_zoom_y_1</tabstop>
   <tabstop>general_map_selection</tabstop>
-  <tabstop>selectMaps_3</tabstop>
+  <tabstop>general_display_order</tabstop>
   <tabstop>general_colormap</tabstop>
   <tabstop>general_rotate</tabstop>
-  <tabstop>scrollArea_2</tabstop>
-  <tabstop>comboBox</tabstop>
   <tabstop>lineEdit</tabstop>
   <tabstop>doubleSpinBox_2</tabstop>
   <tabstop>doubleSpinBox</tabstop>
@@ -943,6 +980,8 @@
   <tabstop>doubleSpinBox_4</tabstop>
   <tabstop>comboBox_2</tabstop>
   <tabstop>textConfigEdit</tabstop>
+  <tabstop>comboBox</tabstop>
+  <tabstop>scrollArea_2</tabstop>
  </tabstops>
  <resources>
   <include location="main.qrc"/>

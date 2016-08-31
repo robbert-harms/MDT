@@ -57,7 +57,7 @@ class MapsVisualizer(object):
         if block:
             plt.show(True)
 
-    def _render(self, dimension=0, slice_index=0, volume_index=0, rotate=0, colormap='hot', maps_to_show=(),
+    def _render(self, dimension=0, slice_index=0, volume_index=0, rotate=90, colormap='hot', maps_to_show=(),
                 font_size=None, grid_layout=None, colorbar_nmr_ticks=None, show_axis=True, zoom=None,
                 map_plot_options=None):
         """Render the images
@@ -86,7 +86,7 @@ class MapsVisualizer(object):
         map_plot_options = map_plot_options or {}
 
         self._render_maps(dimension, slice_index, volume_index, rotate,
-                          colormap, list(reversed(list(maps_to_show))), font_size, colorbar_nmr_ticks, grid_layout,
+                          colormap, maps_to_show, font_size, colorbar_nmr_ticks, grid_layout,
                           show_axis, zoom, map_plot_options)
 
     def _render_maps(self, dimension, slice_index, volume_index, rotate, colormap, maps_to_show, font_size,
@@ -95,8 +95,9 @@ class MapsVisualizer(object):
         for ind, map_name in enumerate(maps_to_show):
             image_subplot_axis = grid_layout.get_axis(self._figure, ind, len(maps_to_show))
 
-            data = self._get_image(self._volumes_dict[map_name], dimension, slice_index, volume_index, rotate,
-                                   map_plot_options.get(map_name, {}).get('clipping', {}), zoom)
+            data = self._get_image(self._volumes_dict[map_name], dimension, slice_index, volume_index, rotate)
+            data = self._apply_clipping(data, map_plot_options.get(map_name, {}).get('clipping', {}))
+            data = self._apply_zoom(data, zoom)
 
             plot_options = {'vmin': self._volumes_dict[map_name].min(),
                             'vmax': self._volumes_dict[map_name].max()}
@@ -111,8 +112,9 @@ class MapsVisualizer(object):
             divider = make_axes_locatable(image_subplot_axis)
             cax = divider.append_axes("right", size="5%", pad=0.05)
             cbar = plt.colorbar(vf, cax=cax)
-            self._set_colorbar_axis_ticks(cbar, colorbar_nmr_ticks)
+            self._set_colorbar_axis_ticks(cbar, colorbar_nmr_ticks, map_name)
             cbar.formatter.set_powerlimits((-3, 4))
+            cbar.ax.yaxis.set_offset_position('left')
             cbar.update_ticks()
             if cbar.ax.get_yticklabels():
                 cbar.ax.get_yticklabels()[-1].set_verticalalignment('top')
@@ -123,7 +125,7 @@ class MapsVisualizer(object):
                 item.set_fontsize(font_size-2)
             image_subplot_axis.title.set_fontsize(font_size)
             cbar.ax.tick_params(labelsize=font_size-2)
-            cbar.ax.yaxis.offsetText.set(size=font_size-2)
+            cbar.ax.yaxis.offsetText.set(size=font_size-3)
 
     def _get_title(self, map_name, map_plot_options):
         title = map_name
@@ -151,16 +153,26 @@ class MapsVisualizer(object):
 
         return output_dict
 
-    def _get_image(self, data, dimension, slice_index, volume_index, rotate, clipping, zoom):
+    def _get_image(self, data, dimension, slice_index, volume_index, rotate):
         """Get the 2d image to display for the given data."""
         data = get_slice_in_dimension(data, dimension, slice_index)
         if len(data.shape) > 2:
             data = np.squeeze(data[:, :, volume_index])
-        data = np.flipud(np.transpose(data))
 
         if rotate:
             data = np.rot90(data, rotate // 90)
 
+        return data
+
+    def _apply_clipping(self, data, clipping):
+        """Apply the clipping on a single map.
+
+        This function applies basic checks on the clipping dict before clipping.
+
+        Args:
+            data (ndarray): a two dimensional matrix
+            clipping (dict): the clipping information. Keys: 'min' and 'max'.
+        """
         if clipping:
             clipping_min = clipping.get('min', None)
             if clipping_min is None:
@@ -172,23 +184,34 @@ class MapsVisualizer(object):
 
             if clipping_min or clipping_max:
                 data = np.clip(data, clipping_min, clipping_max)
+        return data
 
+    def _apply_zoom(self, data, zoom):
+        """Apply the zoom on a single map.
+
+        This function applies basic checks on the zoom dict before zooming.
+
+        Args:
+           data (ndarray): a two dimensional matrix
+           zoom (dict): the zoom information. Keys: 'x_0', 'x_1', 'y_0', 'y_1'
+        """
         if zoom:
             if all(map(lambda e: e in zoom and zoom[e] is not None, ('x_0', 'x_1', 'y_0', 'y_1'))):
-                correct = zoom['x_0'] < data.shape[0] and zoom['x_1'] < data.shape[0] \
-                    and zoom['y_0'] < data.shape[1] and zoom['y_1'] < data.shape[1] \
-                    and zoom['x_0'] < zoom['x_1'] and zoom['y_0'] < zoom['y_1']
+                correct = zoom['x_0'] < data.shape[1] and zoom['x_1'] < data.shape[1] \
+                          and zoom['y_0'] < data.shape[0] and zoom['y_1'] < data.shape[0] \
+                          and zoom['x_0'] < zoom['x_1'] and zoom['y_0'] < zoom['y_1']
                 if correct:
                     data = data[zoom['y_0']:zoom['y_1'],
                                 zoom['x_0']:zoom['x_1']]
-
         return data
 
-    def _set_colorbar_axis_ticks(self, cbar, colorbar_nmr_ticks):
+    def _set_colorbar_axis_ticks(self, cbar, colorbar_nmr_ticks, map_name):
+        min_val, max_val = self._volumes_dict[map_name].min(), self._volumes_dict[map_name].max()
+
         if colorbar_nmr_ticks is not None:
             try:
                 ticks = colorbar_nmr_ticks
-                tick_locator = MyColourBarTickLocator(numticks=ticks)
+                tick_locator = MyColourBarTickLocator(min_val, max_val, numticks=ticks)
                 cbar.locator = tick_locator
                 cbar.update_ticks()
             except TypeError:
@@ -380,6 +403,11 @@ class _DiscreteSlider(Slider):
 
 class MyColourBarTickLocator(LinearLocator):
 
+    def __init__(self, min_val,max_val, **kwargs):
+        super(MyColourBarTickLocator, self).__init__(**kwargs)
+        self.min_val = min_val
+        self.max_val = max_val
+
     def __call__(self):
         locations = LinearLocator.__call__(self)
 
@@ -389,6 +417,10 @@ class MyColourBarTickLocator(LinearLocator):
                 new_locations.append(float("{:.1e}".format(location)))
             else:
                 new_locations.append(np.round(location, 2))
+
+        if np.isclose(new_locations[-1], self.max_val):
+            new_locations[-1] = self.max_val
+
         return new_locations
 
 

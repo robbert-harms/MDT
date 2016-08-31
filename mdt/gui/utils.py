@@ -1,4 +1,5 @@
 import time
+from contextlib import contextmanager
 from functools import wraps
 from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtWidgets import QApplication
@@ -54,6 +55,22 @@ def function_message_decorator(header, footer):
         return _decorator
 
     return _called_decorator
+
+
+@contextmanager
+def blocked_signals(*widgets):
+    """Small context in which the signals of the given widget are blocked.
+
+    Args:
+        widgets (QWidget): one or more widgets
+    """
+    def apply_block(bool_val):
+        for w in widgets:
+            w.blockSignals(bool_val)
+
+    apply_block(True)
+    yield
+    apply_block(False)
 
 
 def print_welcome_message():

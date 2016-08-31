@@ -42,7 +42,7 @@ from mdt.utils import estimate_noise_std, get_cl_devices, load_problem_data, cre
     volume_index_to_roi_index, roi_index_to_volume_index, load_brain_mask, init_user_settings, restore_volumes, \
     apply_mask, create_roi, volume_merge, concatenate_mri_sets, create_median_otsu_brain_mask, load_samples, \
     load_nifti, write_slice_roi, split_write_dataset, apply_mask_to_file, extract_volumes, recalculate_error_measures, \
-    create_signal_estimates
+    create_signal_estimates, get_slice_in_dimension
 from mdt.batch_utils import collect_batch_fit_output, run_function_on_batch_fit_output
 from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, write_protocol, write_bvec_bval
 from mdt.components_loader import load_component, get_model
@@ -256,10 +256,10 @@ def visualize_maps(data=None, config=None):
     Args:
         data (string, dict or mdt.gui.maps_visualizer.base.DataInfo):
             the data we will display
-        config (string, dict or mdt.gui.maps_visualizer.base.GeneralConfiguration): the initial visualization configuration.
-            If a string or dict is given we will try to convert it to a GeneralConfiguration object.
+        config (string, dict or mdt.gui.maps_visualizer.base.DisplayConfiguration): the initial visualization configuration.
+            If a string or dict is given we will try to convert it to a DisplayConfiguration object.
     """
-    from mdt.gui.maps_visualizer.base import GeneralConfiguration, DataInfo
+    from mdt.gui.maps_visualizer.base import DisplayConfiguration, DataInfo
     from mdt.gui.maps_visualizer.main import start_gui
 
     if isinstance(data, string_types):
@@ -268,9 +268,9 @@ def visualize_maps(data=None, config=None):
         data = DataInfo(data)
 
     if isinstance(config, string_types):
-        config = GeneralConfiguration.from_dict(yaml.load(config))
+        config = DisplayConfiguration.from_dict(yaml.load(config))
     if isinstance(config, dict):
-        config = GeneralConfiguration.from_dict(config)
+        config = DisplayConfiguration.from_dict(config)
 
     start_gui(data, config)
 
@@ -291,7 +291,7 @@ def view_results_slice(data,
                        figure_options=None,
                        grid_layout=None,
                        article_modus=False,
-                       rotate_images=None):
+                       rotate_images=90):
     """View from the given results the given slice.
 
     See MapsVisualizer.show() for most of the the options. The special options are listed in the section Args

@@ -5,7 +5,7 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QFileDialog
 
 from mdt import results_preselection_names, load_nifti
-from mdt.gui.maps_visualizer.base import DataInfo, GeneralConfiguration
+from mdt.gui.maps_visualizer.base import DataInfo, DisplayConfiguration
 from mdt.gui.maps_visualizer.main import MapsVisualizerWindow, QtController
 from mdt.gui.model_fit.design.ui_view_results_tab import Ui_ViewResultsTabContent
 from mdt.gui.utils import MainTab, center_window
@@ -108,7 +108,7 @@ class ViewResultsTab(MainTab, Ui_ViewResultsTabContent):
         main.show()
 
         data = DataInfo.from_dir(self._folder)
-        config = GeneralConfiguration()
+        config = DisplayConfiguration()
         config.maps_to_show = maps_to_show
         config.dimension = self.initialDimensionChooser.value()
         config.slice_index = self.initialSliceChooser.value()

@@ -1,9 +1,10 @@
+from PyQt5.QtCore import QEvent
 from PyQt5.QtCore import QTimer
-from PyQt5.QtCore import Qt, pyqtSlot
+from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtGui import QFontMetrics
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QLabel
+from PyQt5.QtWidgets import QListWidget
 from PyQt5.QtWidgets import QPlainTextEdit
 
 
@@ -57,5 +58,18 @@ class TextConfigEditor(QPlainTextEdit):
 
     @pyqtSlot()
     def _timer_event(self):
-        print('got here')
         self.new_config.emit(self.toPlainText())
+
+
+class MapsReorderer(QListWidget):
+
+    items_reordered = pyqtSignal()
+
+    def __init__(self, *args):
+        super(MapsReorderer, self).__init__(*args)
+        self.installEventFilter(self)
+
+    def eventFilter(self, sender, event):
+        if event.type() == QEvent.ChildRemoved:
+            self.items_reordered.emit()
+        return False

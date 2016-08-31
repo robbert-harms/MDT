@@ -1,17 +1,13 @@
-from .base import ConfigAction, SimpleConfigAction, SimpleMapSpecificConfigAction, MapSpecificConfiguration, \
-    GeneralConfiguration
+from .base import ConfigAction, SimpleConfigAction, SimpleMapSpecificConfigAction, \
+    DisplayConfiguration
 
 
-class SetDimension(ConfigAction):
+class SetDimension(SimpleConfigAction):
 
-    def __init__(self, dimension):
-        super(SetDimension, self).__init__()
-        self.dimension = dimension
+    config_attribute = 'dimension'
 
-    def _apply(self, configuration):
-        configuration.dimension = self.dimension
-
-        if self.dimension != self._previous_config.dimension:
+    def _extra_actions(self, configuration):
+        if self.new_value != self._previous_config.dimension:
             return SetZoom(None).apply(configuration)
 
 
@@ -38,6 +34,10 @@ class SetColormap(SimpleConfigAction):
 class SetRotate(SimpleConfigAction):
 
     config_attribute = 'rotate'
+
+    def _extra_actions(self, configuration):
+        if self.new_value != self._previous_config.dimension:
+            return SetZoom(None).apply(configuration)
 
 
 class SetZoom(SimpleConfigAction):
@@ -76,8 +76,22 @@ class FromDictAction(ConfigAction):
 
     def apply(self, configuration):
         self._previous_config = configuration
-        return GeneralConfiguration.from_dict(self.config_dict)
+        return DisplayConfiguration.from_dict(self.config_dict)
 
     def unapply(self):
         return self._previous_config
 
+
+class SetFontSize(SimpleConfigAction):
+
+    config_attribute = 'font_size'
+
+
+class SetShowAxis(SimpleConfigAction):
+
+    config_attribute = 'show_axis'
+
+
+class SetColorBarNmrTicks(SimpleConfigAction):
+
+    config_attribute = 'colorbar_nmr_ticks'

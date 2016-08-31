@@ -7,8 +7,9 @@ import mdt
 
 class PlottingFrame(object):
 
-    def __init__(self):
+    def __init__(self, controller):
         super(PlottingFrame, self).__init__()
+        self._controller = controller
 
 
 class DataInfo(object):
@@ -85,6 +86,38 @@ class DataInfo(object):
                 return index
         return 0
 
+    def get_max_x(self, dimension, rotate, map_names=None):
+        """Get the maximum x index supported over the images.
+
+        In essence this gets the lowest x index found.
+
+        Args:
+            dimension (int): the dimension to search in
+            rotate (int): the rotation factor by which we rotate the slices within the given dimension
+            map_names (list of str): if given we will only scan the given list of maps
+
+        Returns:
+            int: the maximum x-index found.
+        """
+        map_names = map_names or self.maps.keys()
+        return min(self._map_info[map_name].get_max_x(dimension, rotate) for map_name in map_names)
+
+    def get_max_y(self, dimension, rotate, map_names=None):
+        """Get the maximum y index supported over the images.
+
+        In essence this gets the lowest y index found.
+
+        Args:
+            dimension (int): the dimension to search in
+            rotate (int): the rotation factor by which we rotate the slices within the given dimension
+            map_names (list of str): if given we will only scan the given list of maps
+
+        Returns:
+            int: the maximum y-index found.
+        """
+        map_names = map_names or self.maps.keys()
+        return min(self._map_info[map_name].get_max_y(dimension, rotate) for map_name in map_names)
+
 
 class SingleMapInfo(object):
 
@@ -147,62 +180,40 @@ class SingleMapInfo(object):
                 return index
         return 0
 
-
-class Diffable(object):
-
-    def __init__(self):
-        """An interface for diffable objects. """
-
-    def get_difference(self, other):
-        """Get a difference object representing the difference between self and the other diffable.
-
-        This difference object should hold the values of the given other diffable in the case of found differences.
+    def get_max_x(self, dimension, rotate):
+        """Get the maximum x index.
 
         Args:
-            other (Diffable): a diffable compatible with self
+            dimension (int): the dimension to search in
+            rotate (int): the value by which to rotate the slices in the given dimension
 
         Returns:
-            Difference: a difference object representing the differences
+            int: the maximum x index
         """
+        shape = list(self.value.shape)[0:3]
+        del shape[dimension]
+        if rotate // 90 % 2 == 0:
+            return max(0, shape[1] - 1)
+        return max(0, shape[0] - 1)
+
+    def get_max_y(self, dimension, rotate):
+        """Get the maximum y index.
+
+        Args:
+            dimension (int): the dimension to search in
+            rotate (int): the value by which to rotate the slices in the given dimension
+
+        Returns:
+            int: the maximum y index
+        """
+        shape = list(self.value.shape)[0:3]
+        del shape[dimension]
+        if rotate // 90 % 2 == 0:
+            return max(0, shape[0] - 1)
+        return max(0, shape[1] - 1)
 
 
-class Difference(object):
-
-    def __init__(self):
-        """Storage container for the differences between two diffables."""
-
-
-class GeneralConfigurationDifference(object):
-
-    def __init__(self, **kwargs):
-        self.__dict__.update(**kwargs)
-
-    def __str__(self):
-        return str(self.__dict__)
-
-
-class MapSpecificConfigurationDifference(object):
-
-    def __init__(self, **kwargs):
-        self.__dict__.update(**kwargs)
-
-    def __str__(self):
-        return str(self.__dict__)
-
-
-class GeneralConfiguration(Diffable):
-
-    def __init__(self):
-        super(GeneralConfiguration, self).__init__()
-        self.dimension = 2
-        self.slice_index = 0
-        self.volume_index = 0
-        self.zoom = {'x_0': 0, 'y_0': 0, 'x_1': 0, 'y_1': 0}
-        self.maps_to_show = []
-        self.colormap = 'hot'
-        self.rotate = 0
-        self.map_plot_options = {} # todo implement in GUI: zoom, maps_to_show (ordering), map_plot_options
-        #todo add option for GridLayout, font_size, colorbar_nmr_ticks, show_axis
+class DisplayConfigurationInterface(object):
 
     @classmethod
     def from_dict(cls, config_dict):
@@ -213,131 +224,167 @@ class GeneralConfiguration(Diffable):
         Args:
             config_dict (dict): the new configuration dictionary
         """
-        if config_dict is None:
-            config_dict = {}
-
-        config = GeneralConfiguration()
-        config.__dict__.update(config_dict)
-        config.map_plot_options = {key: MapSpecificConfiguration.from_dict(value)
-                                   for key, value in config_dict.get('map_plot_options', {}).items()}
-        return config
-
-    def validate(self, data_info):
-        """Validate this config using the given data information.
-
-        This will always return a copy of this configuration with validated settings.
-
-        Args:
-            data_info (DataInfo): the data information used to create a valid copy of this configuration.
-
-        Returns:
-            GeneralConfiguration: new configuration with validated settings.
-        """
-        validated = copy.deepcopy(self)
-
-        if validated.maps_to_show:
-            validated.maps_to_show = [key for key in validated.maps_to_show if key in data_info.maps]
-        else:
-            validated.maps_to_show = data_info.sorted_keys
-
-        if validated.rotate not in [0, 90, 180, 270]:
-            validated.rotate = 0
-
-        try:
-            matplotlib.cm.get_cmap(validated.colormap)
-        except ValueError:
-            validated.colormap = 'hot'
-
-        if validated.dimension is None:
-            validated.dimension = 2
-        else:
-            try:
-                validated.dimension = min(int(validated.dimension), data_info.get_max_dimension(validated.maps_to_show))
-            except TypeError:
-                validated.dimension = 0
-            except ValueError:
-                validated.dimension = 0
-
-        if validated.slice_index is None:
-            validated.slice_index = data_info.get_index_first_non_zero_slice(validated.dimension,
-                                                                             validated.maps_to_show)
-        else:
-            try:
-                int(validated.slice_index)
-            except TypeError:
-                validated.slice_index = 0
-            except ValueError:
-                validated.slice_index = 0
-
-            max_slice_index = data_info.get_max_slice_index(validated.dimension, validated.maps_to_show)
-            if validated.slice_index > max_slice_index:
-                validated.slice_index = data_info.get_index_first_non_zero_slice(validated.dimension,
-                                                                                 validated.maps_to_show)
-
-        if validated.volume_index is None:
-            validated.volume_index = 0
-        else:
-            try:
-                validated.volume_index = min(int(validated.volume_index),
-                                             data_info.get_max_volume_index(validated.maps_to_show))
-            except TypeError:
-                validated.volume_index = 0
-            except ValueError:
-                validated.volume_index = 0
-
-        if validated.zoom is None:
-            validated.zoom = {'x_0': 0, 'y_0': 0, 'x_1': 0, 'y_1': 0}
-        else:
-            for item in 'x_0', 'x_1', 'y_0', 'y_1':
-                if item not in validated.zoom:
-                    validated.zoom.update({item: 0})
-                try:
-                    float(validated.zoom[item])
-                except TypeError:
-                    validated.zoom[item] = 0
-                except ValueError:
-                    validated.zoom[item] = 0
-
-        #todo validate map_plot_options
-
-        return validated
-
-    def get_difference(self, other):
-        differences = {}
-
-        for key, value in self.__dict__.items():
-            if key not in ['map_plot_options']:
-                if value != getattr(other, key):
-                    differences.update({key: getattr(other, key)})
-
-        if self.map_plot_options != other.map_plot_options:
-            map_diffs = {}
-
-            for key, value in other.map_plot_options.items():
-                if key not in self.map_plot_options:
-                    map_diffs.update(key=MapSpecificConfiguration().get_difference(value))
-                else:
-                    diff = self.map_plot_options[key].get_difference(value)
-                    if diff:
-                        map_diffs.update(key=diff)
-
-            if map_diffs:
-                differences['map_plot_options'] = map_diffs
-
-        if differences:
-            return GeneralConfigurationDifference(**differences)
 
     def to_dict(self):
         """Get the whole configuration as a multi-level dictionary.
 
         This can be useful for converting the configuration to a string.
+
+        Returns:
+            dict: a 'serialized' version of this class
         """
+
+    def validate(self, data_info):
+        """Validate this config using the given data information.
+
+        This will change the values in place. If a copy is needed the calling class must do that.
+
+        Args:
+            data_info (DataInfo): the data information used to create a valid copy of this configuration.
+
+        Returns:
+            DisplayConfigurationInterface: new configuration with validated settings.
+        """
+
+
+def cast_value(value, desired_type, alt_value):
+    """Cast the given value to the desired type, on failure returns the alternative value.
+
+    Args:
+        value (object): the value to cast to the given type
+        desired_type (type): the type to cast to
+        alt_value (object): the alternative value if casting threw exceptions
+
+    Returns:
+        the desired casted value or the alternative value if casting failed.
+    """
+    try:
+        return desired_type(value)
+    except TypeError:
+        return alt_value
+    except ValueError:
+        return alt_value
+
+
+class DisplayConfiguration(DisplayConfigurationInterface):
+
+    def __init__(self):
+        super(DisplayConfiguration, self).__init__()
+        self.dimension = 2
+        self.slice_index = 0
+        self.volume_index = 0
+        self.zoom = {'x_0': 0, 'y_0': 0, 'x_1': 0, 'y_1': 0}
+        self.maps_to_show = []
+        self.colormap = 'hot'
+        self.rotate = 90
+        self.font_size = 14
+        self.show_axis = True
+        self.colorbar_nmr_ticks = 10
+        self.map_plot_options = {} # todo implement in GUI: map_plot_options, add option for GridLayout
+
+    @classmethod
+    def from_dict(cls, config_dict):
+        if config_dict is None:
+            config_dict = {}
+
+        config = DisplayConfiguration()
+        config.__dict__.update(config_dict)
+        config.map_plot_options = {key: MapSpecificConfiguration.from_dict(value)
+                                   for key, value in config_dict.get('map_plot_options', {}).items()}
+        return config
+
+    def to_dict(self):
         result = copy.copy(self.__dict__)
-        result['map_plot_options'] = {key: value.to_dict() for key, value in self.map_plot_options.items()}
+        result['map_plot_options'] = {key: value.to_dict() for key, value in self.map_plot_options.items()
+                                      if value is not None}
         return result
 
+    def validate(self, data_info):
+        for key in self.__dict__:
+            getattr(self, '_validate_' + key)(data_info)
+        return self
 
-class MapSpecificConfiguration(Diffable):
+    def _validate_maps_to_show(self, data_info):
+        if self.maps_to_show:
+            self.maps_to_show = [key for key in self.maps_to_show if key in data_info.maps]
+        else:
+            self.maps_to_show = data_info.sorted_keys
+
+    def _validate_rotate(self, data_info):
+        if self.rotate not in [0, 90, 180, 270]:
+            self.rotate = 0
+
+    def _validate_colormap(self, data_info):
+        try:
+            matplotlib.cm.get_cmap(self.colormap)
+        except ValueError:
+            self.colormap = 'hot'
+
+    def _validate_dimension(self, data_info):
+        if self.dimension is None:
+            self.dimension = 2
+        else:
+            self.dimension = cast_value(self.dimension, int, 0)
+            self.dimension = min(self.dimension, data_info.get_max_dimension(self.maps_to_show))
+
+    def _validate_slice_index(self, data_info):
+        if self.slice_index is None:
+            self.slice_index = data_info.get_index_first_non_zero_slice(self.dimension, self.maps_to_show)
+        else:
+            self.slice_index = cast_value(self.slice_index, int, 0)
+            max_slice_index = data_info.get_max_slice_index(self.dimension, self.maps_to_show)
+            if self.slice_index > max_slice_index:
+                self.slice_index = data_info.get_index_first_non_zero_slice(self.dimension, self.maps_to_show)
+
+    def _validate_volume_index(self, data_info):
+        if self.volume_index is None:
+            self.volume_index = 0
+        else:
+            self.volume_index = cast_value(self.volume_index, int, 0)
+            self.volume_index = min(self.volume_index, data_info.get_max_volume_index(self.maps_to_show))
+
+    def _validate_zoom(self, data_info):
+        if self.zoom is None:
+            self.zoom = {'x_0': 0, 'y_0': 0, 'x_1': 0, 'y_1': 0}
+        else:
+            for item in 'x_0', 'x_1', 'y_0', 'y_1':
+                if item not in self.zoom:
+                    self.zoom.update({item: 0})
+                self.zoom[item] = cast_value(self.zoom[item], int, 0)
+
+        if self.zoom['x_1'] == 0:
+            self.zoom['x_1'] = data_info.get_max_x(self.dimension, self.rotate, self.maps_to_show)
+
+        if self.zoom['y_1'] == 0:
+            self.zoom['y_1'] = data_info.get_max_y(self.dimension, self.rotate, self.maps_to_show)
+
+    def _validate_map_plot_options(self, data_info):
+        for key, value in self.map_plot_options.items():
+            if value is not None:
+                self.map_plot_options[key] = value.validate(data_info)
+
+    def _validate_font_size(self, data_info):
+        self.font_size = cast_value(self.font_size, int, 14)
+
+    def _validate_show_axis(self, data_info):
+        self.show_axis = cast_value(self.show_axis, bool, True)
+
+    def _validate_colorbar_nmr_ticks(self, data_info):
+        self.colorbar_nmr_ticks = cast_value(self.colorbar_nmr_ticks, int, None)
+
+    def __eq__(self, other):
+        if not isinstance(other, DisplayConfiguration):
+            return NotImplemented
+        for key, value in self.__dict__.items():
+            if value != getattr(other, key):
+                return False
+        return True
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+
+class MapSpecificConfiguration(DisplayConfigurationInterface):
 
     def __init__(self, title=None, scale=None, clipping=None, colormap=None):
         super(MapSpecificConfiguration, self).__init__()
@@ -348,31 +395,60 @@ class MapSpecificConfiguration(Diffable):
 
     @classmethod
     def from_dict(cls, config_dict):
-        """Create and return a new instance using the given configuration dict.
-
-        The layout and items of the config dict should match those from the function 'to_dict'
-
-        Args:
-            config_dict (dict): the new configuration dictionary
-        """
         config = MapSpecificConfiguration()
         config.__dict__.update(config_dict)
         return config
 
-    def get_difference(self, other):
-        differences = {}
-        for key, value in self.__dict__.items():
-            if value != getattr(other, key):
-                differences.update({key: getattr(other, key)})
-
-        if differences:
-            return MapSpecificConfigurationDifference(**differences)
-
     def to_dict(self):
         return copy.copy(self.__dict__)
 
+    def validate(self, data_info):
+        for key in self.__dict__:
+            getattr(self, '_validate_' + key)(data_info)
+        return self
+
+    def _validate_scale(self, data_info):
+        if self.scale is None:
+            self.scale = {'min': None, 'max': None}
+        else:
+            for item in 'min', 'max':
+                if item not in self.scale:
+                    self.scale.update({item: None})
+                self.scale[item] = cast_value(self.scale[item], int, None)
+
+    def _validate_clipping(self, data_info):
+        if self.clipping is None:
+            self.clipping = {'min': None, 'max': None}
+        else:
+            for item in 'min', 'max':
+                if item not in self.clipping:
+                    self.clipping.update({item: None})
+                self.clipping[item] = cast_value(self.clipping[item], int, None)
+
+    def _validate_title(self, data_info):
+        self.title = cast_value(self.title, str, None)
+
+    def _validate_colormap(self, data_info):
+        if self.colormap:
+            try:
+                matplotlib.cm.get_cmap(self.colormap)
+            except ValueError:
+                self.colormap = None
+
     def __str__(self):
         return str(self.__dict__)
+
+    def __eq__(self, other):
+        if not isinstance(other, MapSpecificConfiguration):
+            return NotImplemented
+
+        for key, value in self.__dict__.items():
+            if value != getattr(other, key):
+                return False
+        return True
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
 
 class ConfigAction(object):
@@ -389,10 +465,10 @@ class ConfigAction(object):
         By default this method calls _apply(configuration) to facilitate quick implementation.
 
         Args:
-            configuration (GeneralConfiguration): the configuration object
+            configuration (DisplayConfiguration): the configuration object
 
         Returns:
-            GeneralConfiguration: the updated configuration
+            DisplayConfiguration: the updated configuration
         """
         self._previous_config = configuration
         new_config = copy.deepcopy(configuration)
@@ -405,7 +481,7 @@ class ConfigAction(object):
         """Return the configuration as it was before the application of this function.
 
         Returns:
-            GeneralConfiguration: the previous configuration
+            DisplayConfiguration: the previous configuration
         """
         return self._previous_config
 
@@ -416,7 +492,7 @@ class ConfigAction(object):
         will use the given configuration as the new configuration.
 
         Args:
-            configuration (GeneralConfiguration): the configuration object
+            configuration (DisplayConfiguration): the configuration object
 
         Returns:
             GeneralConfiguration or None: the updated configuration. If nothing is returned we use the one given as
@@ -437,30 +513,33 @@ class SimpleConfigAction(ConfigAction):
     def _apply(self, configuration):
         if self.use_update:
             item = getattr(configuration, self.config_attribute)
-            item.update(self.new_value)
+            if self.new_value is None:
+                setattr(configuration, self.config_attribute, None)
+            else:
+                item.update(self.new_value)
         else:
             setattr(configuration, self.config_attribute, self.new_value)
 
+        return self._extra_actions(configuration)
 
-class SimpleMapSpecificConfigAction(ConfigAction):
+    def _extra_actions(self, configuration):
+        """Called by the default configuration action to apply additional changes"""
+        return configuration
+
+
+class SimpleMapSpecificConfigAction(SimpleConfigAction):
 
     config_attribute = None
     use_update = False
 
     def __init__(self, map_name, new_value):
-        super(SimpleMapSpecificConfigAction, self).__init__()
+        super(SimpleMapSpecificConfigAction, self).__init__(new_value)
         self.map_name = map_name
-        self.new_value = new_value
 
     def _apply(self, configuration):
         if self.map_name not in configuration.map_plot_options:
             configuration.map_plot_options[self.map_name] = MapSpecificConfiguration()
-
-        if self.use_update:
-            item = getattr(configuration.map_plot_options[self.map_name], self.config_attribute)
-            item.update(self.new_value)
-        else:
-            setattr(configuration.map_plot_options[self.map_name], self.config_attribute, self.new_value)
+        return self._apply(configuration.map_plot_options[self.map_name])
 
 
 class Controller(object):
@@ -474,7 +553,7 @@ class Controller(object):
 
         Args:
             data_info (DataInfo): the new data to visualize
-            config (GeneralConfiguration): the new configuration for the data
+            config (DisplayConfiguration): the new configuration for the data
                 If given, we will display the new data immediately with the given config
         """
 
@@ -491,14 +570,14 @@ class Controller(object):
         Setting this should automatically update all the listeners.
 
         Args:
-            general_config (GeneralConfiguration): the general configuration
+            general_config (DisplayConfiguration): the general configuration
         """
 
     def get_config(self):
         """Get the current configuration.
 
         Returns:
-            GeneralConfiguration: the current general configuration.
+            DisplayConfiguration: the current general configuration.
         """
 
     def apply_action(self, action):
