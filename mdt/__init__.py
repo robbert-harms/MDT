@@ -291,7 +291,8 @@ def view_results_slice(data,
                        figure_options=None,
                        grid_layout=None,
                        article_modus=False,
-                       rotate_images=90):
+                       rotate_images=90,
+                       file_dpi='figure'):
     """View from the given results the given slice.
 
     See MapsVisualizer.show() for most of the the options. The special options are listed in the section Args
@@ -356,11 +357,11 @@ def view_results_slice(data,
                         colorbar_nmr_ticks=nmr_colorbar_axis_ticks or 4,
                         show_axis=False)
 
-    if figure_options:
-        figure = plt.figure(**figure_options)
-    else:
-        figure = plt.figure(figsize=(18, 16))
+    figure_options = figure_options or {}
+    figure_options['figsize'] = figure_options.get('figsize', (18, 16))
+    figure_options['dpi'] = figure_options.get('dpi', 100)
 
+    figure = plt.figure(**figure_options)
     viz = MapsVisualizer(results_total, figure=figure)
 
     settings['font_size'] = settings['font_size'] or 14
@@ -369,7 +370,13 @@ def view_results_slice(data,
     plot_config = PlotConfig(**settings)
 
     if to_file:
-        viz.to_file(to_file, plot_config)
+        if file_dpi:
+            if file_dpi == 'figure':
+                file_dpi = figure_options['dpi']
+        else:
+            file_dpi = figure_options['dpi']
+
+        viz.to_file(to_file, plot_config, dpi=file_dpi)
     else:
         viz.show(plot_config,
             block=block,

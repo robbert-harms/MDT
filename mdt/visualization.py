@@ -28,13 +28,15 @@ class MapsVisualizer(object):
         """Render all the maps to the figure. This is for use in GUI embedded situations."""
         Renderer(self._volumes_dict, self._figure, plot_config).render()
 
-    def to_file(self, file_name, plot_config):
+    def to_file(self, file_name, plot_config, dpi=300, savefig_args=None):
         """Renders the figures to the given filename."""
         Renderer(self._volumes_dict, self._figure, plot_config).render()
 
         if not os.path.isdir(os.path.dirname(file_name)):
             os.makedirs(os.path.dirname(file_name))
-        plt.savefig(file_name, bbox_inches='tight', pad_inches=0)
+
+        savefig_args = savefig_args or {}
+        self._figure.savefig(file_name, pad_inches=0, dpi=dpi, **savefig_args)
 
     def show(self, plot_config, block=True, maximize=False, window_title=None):
         """Show the data contained in this visualizer using the specifics in this function call.

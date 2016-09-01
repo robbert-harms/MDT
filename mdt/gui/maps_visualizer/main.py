@@ -8,16 +8,20 @@ from PyQt5.QtCore import QObject, pyqtSlot
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QDialog
+from PyQt5.QtWidgets import QDialogButtonBox
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QMainWindow
 
 import matplotlib
+
+from mdt.gui.maps_visualizer.design.ui_export_dialog import Ui_ExportImageDialog
+
 matplotlib.use('Qt5Agg')
 
 import mdt
 from mdt.gui.maps_visualizer.actions import SetDimension, SetZoom, SetSliceIndex, SetMapsToShow, \
     FromDictAction, SetVolumeIndex, SetColormap, SetRotate, SetFontSize, SetShowAxis, SetColorBarNmrTicks
-from mdt.gui.maps_visualizer.base import DisplayConfiguration, Controller, DataInfo
+from mdt.gui.maps_visualizer.base import DisplayConfiguration, Controller, DataInfo, MapSpecificConfiguration
 from mdt.gui.maps_visualizer.renderers.matplotlib_renderer import MatplotlibPlotting
 from mdt.gui.model_fit.design.ui_about_dialog import Ui_AboutDialog
 from mdt.gui.utils import center_window, blocked_signals, DirectoryImageWatcher
@@ -72,6 +76,7 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
 
         self.actionAbout.triggered.connect(lambda: AboutDialog(self).exec_())
         self.actionOpen_directory.triggered.connect(self._open_new_directory)
+        self.actionExport.triggered.connect(lambda: ExportImageDialog(self, self.plotting_frame).exec_())
 
         self._flags = {'updating_config_from_string': False}
 
@@ -237,6 +242,36 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         item_list.append(new_item)
 
 
+class ExportImageDialog(Ui_ExportImageDialog, QDialog):
+
+    def __init__(self, parent, plotting_frame):
+        super(ExportImageDialog, self).__init__(parent)
+        self.setupUi(self)
+        self._plotting_frame = plotting_frame
+        self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(False)
+        self.buttonBox.button(QDialogButtonBox.Ok).clicked.connect(self._export_image)
+        self.outputFile_box.textChanged.connect(self._update_ok_button)
+        self.outputFile_chooser.clicked.connect(lambda: self._select_file())
+
+    @pyqtSlot()
+    def _update_ok_button(self):
+        self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(self.outputFile_box.text() != '')
+
+    def _select_file(self):
+        graphical_image_filters = ['png (*.png)', 'All files (*)']
+
+        open_file, used_filter = QFileDialog().getSaveFileName(caption='Select the output file',
+                                                               filter=';;'.join(graphical_image_filters))
+
+        if open_file:
+            self.outputFile_box.setText(open_file)
+            self._update_ok_button()
+
+    def _export_image(self):
+        self._plotting_frame.export_image(self.outputFile_box.text(), self.width_box.value(), self.height_box.value(),
+                                          dpi=self.dpi_box.value())
+
+
 class AboutDialog(Ui_AboutDialog, QDialog):
 
     def __init__(self, parent):
@@ -343,22 +378,22 @@ def start_gui(data=None, config=None):
 
 if __name__ == '__main__':
     #
-    # # # data = DataInfo.from_dir('/home/robbert/phd-data/dti_test_ballstick_results/')
-    # # data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/brain_mask/BallStick/')
-    # data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/4Ddwi_b1000_mask_2_25/BallStick/')
-    # config = DisplayConfiguration()
-    # config.maps_to_show = ['S0.s0', 'BIC']
-    # config.zoom['x_0'] = 20
-    # config.zoom['y_0'] = 10
-    # config.zoom['x_1'] = 80
-    # config.zoom['y_1'] = 80
-    # config.map_plot_options.update({'S0.s0': MapSpecificConfiguration(title='S0 test')})
-    # config.map_plot_options.update({'BIC': MapSpecificConfiguration(title='BIC test',
-    #                                                                 scale={'max': 200, 'min': 0})})
-    # config.slice_index = None
+    # # data = DataInfo.from_dir('/home/robbert/phd-data/dti_test_ballstick_results/')
+    # data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/brain_mask/BallStick/')
+    data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/4Ddwi_b1000_mask_2_25/BallStick/')
+    config = DisplayConfiguration()
+    config.maps_to_show = ['S0.s0', 'BIC']
+    config.zoom['x_0'] = 20
+    config.zoom['y_0'] = 10
+    config.zoom['x_1'] = 80
+    config.zoom['y_1'] = 80
+    config.map_plot_options.update({'S0.s0': MapSpecificConfiguration(title='S0 test')})
+    config.map_plot_options.update({'BIC': MapSpecificConfiguration(title='BIC test',
+                                                                    scale={'max': 200, 'min': 0})})
+    config.slice_index = None
 
-    data = DataInfo.from_dir('/tmp/test')
-    config = None
+    # data = DataInfo.from_dir('/tmp/test')
+    # config = None
 
     start_gui(data, config)
 

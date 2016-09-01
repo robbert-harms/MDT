@@ -491,6 +491,7 @@ class Ui_MapsVisualizer(object):
         self.actionQuit.setText(_translate("MapsVisualizer", "&Quit"))
         self.actionQuit.setShortcut(_translate("MapsVisualizer", "Ctrl+Q"))
         self.actionExport.setText(_translate("MapsVisualizer", "&Export"))
+        self.actionExport.setShortcut(_translate("MapsVisualizer", "Ctrl+E"))
         self.actionAbout.setText(_translate("MapsVisualizer", "&About"))
         self.actionExtra_plot_options.setText(_translate("MapsVisualizer", "&Extra plot options"))
 

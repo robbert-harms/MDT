@@ -50,6 +50,16 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
     # def _mouse_event(self, event):
     #     print(event)
 
+    def export_image(self, filename, width, height, dpi=100):
+        width_inch = width / dpi
+        height_inch = height / dpi
+
+        figure = Figure(figsize=(width_inch, height_inch), dpi=dpi)
+        visualizer = MapsVisualizer(self._controller.get_data().maps, figure)
+        FigureCanvas(figure)
+
+        visualizer.to_file(filename, PlotConfig(**self._controller.get_config().to_dict()), dpi=dpi)
+
     @pyqtSlot()
     def _timer_event(self):
         self._redraw()

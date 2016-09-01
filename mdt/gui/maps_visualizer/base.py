@@ -10,6 +10,16 @@ class PlottingFrame(object):
         super(PlottingFrame, self).__init__()
         self._controller = controller
 
+    def export_image(self, filename, width, height, dpi=100):
+        """Export the current view as an image.
+
+        Args:
+            filename (str): where to write the file
+            width (int): the width in pixels
+            height (int): the height in pixels
+            dpi (int): the dpi of the result
+        """
+
 
 class DataInfo(object):
 

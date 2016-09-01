@@ -291,7 +291,8 @@ class LoadColumnDialog(Ui_UpdateColumnDialog, QDialog):
         if self.selectedFile.text() != '':
             initial_dir = self.selectedFile.text()
 
-        open_file, used_filter = QFileDialog().getOpenFileName(caption='Select the column info file', directory=initial_dir)
+        open_file, used_filter = QFileDialog().getOpenFileName(caption='Select the column info file',
+                                                               directory=initial_dir)
 
         if open_file:
             self.selectedFile.setText(open_file)
