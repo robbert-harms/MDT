@@ -194,7 +194,7 @@
                       <item>
                        <widget class="CollapsablePanelContent" name="frame_3">
                         <property name="frameShape">
-                         <enum>QFrame::StyledPanel</enum>
+                         <enum>QFrame::NoFrame</enum>
                         </property>
                         <property name="frameShadow">
                          <enum>QFrame::Plain</enum>
@@ -304,7 +304,7 @@
                       <item>
                        <widget class="CollapsablePanelContent" name="frame_5">
                         <property name="frameShape">
-                         <enum>QFrame::StyledPanel</enum>
+                         <enum>QFrame::NoFrame</enum>
                         </property>
                         <property name="frameShadow">
                          <enum>QFrame::Plain</enum>
@@ -421,7 +421,7 @@
                       <item>
                        <widget class="CollapsablePanelContent" name="frame_10">
                         <property name="frameShape">
-                         <enum>QFrame::StyledPanel</enum>
+                         <enum>QFrame::NoFrame</enum>
                         </property>
                         <property name="frameShadow">
                          <enum>QFrame::Plain</enum>
@@ -552,7 +552,7 @@
                       <item>
                        <widget class="CollapsablePanelContent" name="frame_9">
                         <property name="frameShape">
-                         <enum>QFrame::StyledPanel</enum>
+                         <enum>QFrame::NoFrame</enum>
                         </property>
                         <property name="frameShadow">
                          <enum>QFrame::Plain</enum>
@@ -642,7 +642,7 @@
                       <item>
                        <widget class="CollapsablePanelContent" name="frame_7">
                         <property name="frameShape">
-                         <enum>QFrame::StyledPanel</enum>
+                         <enum>QFrame::NoFrame</enum>
                         </property>
                         <property name="frameShadow">
                          <enum>QFrame::Plain</enum>
@@ -737,8 +737,8 @@
                    <rect>
                     <x>0</x>
                     <y>0</y>
-                    <width>219</width>
-                    <height>190</height>
+                    <width>977</width>
+                    <height>662</height>
                    </rect>
                   </property>
                   <layout class="QGridLayout" name="gridLayout_8" rowstretch="0,0,0,0,0,0,0,0,0">
