@@ -49,6 +49,8 @@ class DataInfo(object):
             int: either, 0, 1, 2 as the maximum dimension index in the maps.
         """
         map_names = map_names or self.maps.keys()
+        if not map_names:
+            raise ValueError('No maps to search in.')
         return max(self._map_info[map_name].max_dimension() for map_name in map_names)
 
     def get_max_slice_index(self, dimension, map_names=None):
@@ -62,6 +64,8 @@ class DataInfo(object):
             int: the maximum slice index over the given maps in the given dimension.
         """
         max_dimension = self.get_max_dimension(map_names)
+        if not map_names:
+            raise ValueError('No maps to search in.')
         if dimension > max_dimension:
             raise ValueError('Dimension can not exceed {}.'.format(max_dimension))
         return max(self._map_info[map_name].max_slice_index(dimension) for map_name in map_names)
@@ -76,6 +80,8 @@ class DataInfo(object):
             int: the maximum volume index in the given list of maps. Starts from 0.
         """
         map_names = map_names or self.maps.keys()
+        if not map_names:
+            raise ValueError('No maps to search in.')
         return max(self._map_info[map_name].max_volume_index() for map_name in map_names)
 
     def get_index_first_non_zero_slice(self, dimension, map_names=None):
@@ -89,6 +95,8 @@ class DataInfo(object):
             int: the slice index with the first non zero values.
         """
         map_names = map_names or self.maps.keys()
+        if not map_names:
+            raise ValueError('No maps to search in.')
         for map_name in map_names:
             index = self._map_info[map_name].get_index_first_non_zero_slice(dimension)
             if index is not None:
@@ -109,6 +117,8 @@ class DataInfo(object):
             int: the maximum x-index found.
         """
         map_names = map_names or self.maps.keys()
+        if not map_names:
+            raise ValueError('No maps to search in.')
         return min(self._map_info[map_name].get_max_x(dimension, rotate) for map_name in map_names)
 
     def get_max_y(self, dimension, rotate, map_names=None):
@@ -125,6 +135,8 @@ class DataInfo(object):
             int: the maximum y-index found.
         """
         map_names = map_names or self.maps.keys()
+        if not map_names:
+            raise ValueError('No maps to search in.')
         return min(self._map_info[map_name].get_max_y(dimension, rotate) for map_name in map_names)
 
 
@@ -335,23 +347,32 @@ class DisplayConfiguration(DisplayConfigurationInterface):
             self.dimension = 2
         else:
             self.dimension = cast_value(self.dimension, int, 0)
-            self.dimension = min(self.dimension, data_info.get_max_dimension(self.maps_to_show))
+            try:
+                self.dimension = min(self.dimension, data_info.get_max_dimension(self.maps_to_show))
+            except ValueError:
+                self.dimension = 2
 
     def _validate_slice_index(self, data_info):
-        if self.slice_index is None:
-            self.slice_index = data_info.get_index_first_non_zero_slice(self.dimension, self.maps_to_show)
-        else:
-            self.slice_index = cast_value(self.slice_index, int, 0)
-            max_slice_index = data_info.get_max_slice_index(self.dimension, self.maps_to_show)
-            if self.slice_index > max_slice_index:
+        try:
+            if self.slice_index is None:
                 self.slice_index = data_info.get_index_first_non_zero_slice(self.dimension, self.maps_to_show)
+            else:
+                self.slice_index = cast_value(self.slice_index, int, 0)
+                max_slice_index = data_info.get_max_slice_index(self.dimension, self.maps_to_show)
+                if self.slice_index > max_slice_index:
+                    self.slice_index = data_info.get_index_first_non_zero_slice(self.dimension, self.maps_to_show)
+        except ValueError:
+            self.slice_index = 0
 
     def _validate_volume_index(self, data_info):
         if self.volume_index is None:
             self.volume_index = 0
         else:
             self.volume_index = cast_value(self.volume_index, int, 0)
-            self.volume_index = min(self.volume_index, data_info.get_max_volume_index(self.maps_to_show))
+            try:
+                self.volume_index = min(self.volume_index, data_info.get_max_volume_index(self.maps_to_show))
+            except ValueError:
+                self.volume_index = 0
 
     def _validate_zoom(self, data_info):
         if self.zoom is None:
@@ -363,10 +384,16 @@ class DisplayConfiguration(DisplayConfigurationInterface):
                 self.zoom[item] = cast_value(self.zoom[item], int, 0)
 
         if self.zoom['x_1'] == 0:
-            self.zoom['x_1'] = data_info.get_max_x(self.dimension, self.rotate, self.maps_to_show)
+            try:
+                self.zoom['x_1'] = data_info.get_max_x(self.dimension, self.rotate, self.maps_to_show)
+            except ValueError:
+                self.zoom['x_1'] = 0
 
         if self.zoom['y_1'] == 0:
-            self.zoom['y_1'] = data_info.get_max_y(self.dimension, self.rotate, self.maps_to_show)
+            try:
+                self.zoom['y_1'] = data_info.get_max_y(self.dimension, self.rotate, self.maps_to_show)
+            except ValueError:
+                self.zoom['y_1'] = 0
 
     def _validate_map_plot_options(self, data_info):
         for key in self.map_plot_options:

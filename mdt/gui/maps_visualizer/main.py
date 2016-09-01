@@ -10,6 +10,7 @@ from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QDialog
 from PyQt5.QtWidgets import QDialogButtonBox
 from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtWidgets import QLabel
 from PyQt5.QtWidgets import QMainWindow
 
 import matplotlib
@@ -90,27 +91,41 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
                 item.setData(Qt.UserRole, map_name)
 
         if data_info.directory:
-            self.statusBar().showMessage('Loaded directory: ' + data_info.directory)
+            status_label = QLabel('Loaded directory: ' + data_info.directory)
             self._directory_watcher.set_directory(data_info.directory)
         else:
-            self.statusBar().showMessage('No directory information available.')
+            status_label = QLabel('No directory information available.')
+
+        self.statusBar().addWidget(status_label)
+        self.statusBar().setStyleSheet("QStatusBar::item { border: 0px solid black }; ")
 
     @pyqtSlot(DisplayConfiguration)
     def set_new_config(self, config):
         data_info = self._controller.get_data()
         map_names = config.maps_to_show
 
+        print('got here')
+
         with blocked_signals(self.general_dimension):
+            try:
+                self.general_dimension.setMaximum(data_info.get_max_dimension(map_names))
+            except ValueError:
+                self.general_dimension.setMaximum(0)
             self.general_dimension.setValue(config.dimension)
-            self.general_dimension.setMaximum(data_info.get_max_dimension(map_names))
 
         with blocked_signals(self.general_slice_index):
+            try:
+                self.general_slice_index.setMaximum(data_info.get_max_slice_index(config.dimension, map_names))
+            except ValueError:
+                self.general_slice_index.setMaximum(0)
             self.general_slice_index.setValue(config.slice_index)
-            self.general_slice_index.setMaximum(data_info.get_max_slice_index(config.dimension, map_names))
 
         with blocked_signals(self.general_volume_index):
+            try:
+                self.general_volume_index.setMaximum(data_info.get_max_volume_index(map_names))
+            except ValueError:
+                self.general_volume_index.setMaximum(0)
             self.general_volume_index.setValue(config.volume_index)
-            self.general_volume_index.setMaximum(data_info.get_max_volume_index(map_names))
 
         with blocked_signals(self.general_colormap):
             self.general_colormap.setCurrentText(config.colormap)
@@ -132,25 +147,28 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
                     item.setSelected(map_name in map_names)
             self.general_map_selection.blockSignals(False)
 
-        max_x = data_info.get_max_x(config.dimension, config.rotate, map_names)
-        with blocked_signals(self.general_zoom_x_0):
-            self.general_zoom_x_0.setMaximum(max_x)
-            self.general_zoom_x_0.setValue(config.zoom['x_0'])
+        try:
+            max_x = data_info.get_max_x(config.dimension, config.rotate, map_names)
+            with blocked_signals(self.general_zoom_x_0):
+                self.general_zoom_x_0.setMaximum(max_x)
+                self.general_zoom_x_0.setValue(config.zoom['x_0'])
 
-        with blocked_signals(self.general_zoom_x_1):
-            self.general_zoom_x_1.setMaximum(max_x)
-            self.general_zoom_x_1.setMinimum(config.zoom['x_0'])
-            self.general_zoom_x_1.setValue(config.zoom['x_1'])
+            with blocked_signals(self.general_zoom_x_1):
+                self.general_zoom_x_1.setMaximum(max_x)
+                self.general_zoom_x_1.setMinimum(config.zoom['x_0'])
+                self.general_zoom_x_1.setValue(config.zoom['x_1'])
 
-        max_y = data_info.get_max_y(config.dimension, config.rotate, map_names)
-        with blocked_signals(self.general_zoom_y_0):
-            self.general_zoom_y_0.setMaximum(max_y)
-            self.general_zoom_y_0.setValue(config.zoom['y_0'])
+            max_y = data_info.get_max_y(config.dimension, config.rotate, map_names)
+            with blocked_signals(self.general_zoom_y_0):
+                self.general_zoom_y_0.setMaximum(max_y)
+                self.general_zoom_y_0.setValue(config.zoom['y_0'])
 
-        with blocked_signals(self.general_zoom_y_1):
-            self.general_zoom_y_1.setMaximum(max_y)
-            self.general_zoom_y_1.setMinimum(config.zoom['y_0'])
-            self.general_zoom_y_1.setValue(config.zoom['y_1'])
+            with blocked_signals(self.general_zoom_y_1):
+                self.general_zoom_y_1.setMaximum(max_y)
+                self.general_zoom_y_1.setMinimum(config.zoom['y_0'])
+                self.general_zoom_y_1.setValue(config.zoom['y_1'])
+        except ValueError:
+            pass
 
         with blocked_signals(self.general_display_order):
             items = [self.general_display_order.item(ind) for ind in range(self.general_display_order.count())]
@@ -230,7 +248,10 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
     @pyqtSlot(tuple, tuple, dict)
     def _update_viewed_images(self, additions, removals, updates):
         data = DataInfo.from_dir(self._controller.get_data().directory)
-        config = self._controller.get_config()
+        if self._controller.get_data().maps:
+            config = self._controller.get_config()
+        else:
+            config = None
         self._controller.set_data(data, config)
 
     @staticmethod
@@ -380,20 +401,20 @@ if __name__ == '__main__':
     #
     # # data = DataInfo.from_dir('/home/robbert/phd-data/dti_test_ballstick_results/')
     # data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/brain_mask/BallStick/')
-    data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/4Ddwi_b1000_mask_2_25/BallStick/')
-    config = DisplayConfiguration()
-    config.maps_to_show = ['S0.s0', 'BIC']
-    config.zoom['x_0'] = 20
-    config.zoom['y_0'] = 10
-    config.zoom['x_1'] = 80
-    config.zoom['y_1'] = 80
-    config.map_plot_options.update({'S0.s0': MapSpecificConfiguration(title='S0 test')})
-    config.map_plot_options.update({'BIC': MapSpecificConfiguration(title='BIC test',
-                                                                    scale={'max': 200, 'min': 0})})
-    config.slice_index = None
+    # data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/4Ddwi_b1000_mask_2_25/BallStick/')
+    # config = DisplayConfiguration()
+    # config.maps_to_show = ['S0.s0', 'BIC']
+    # config.zoom['x_0'] = 20
+    # config.zoom['y_0'] = 10
+    # config.zoom['x_1'] = 80
+    # config.zoom['y_1'] = 80
+    # config.map_plot_options.update({'S0.s0': MapSpecificConfiguration(title='S0 test')})
+    # config.map_plot_options.update({'BIC': MapSpecificConfiguration(title='BIC test',
+    #                                                                 scale={'max': 200, 'min': 0})})
+    # config.slice_index = None
 
-    # data = DataInfo.from_dir('/tmp/test')
-    # config = None
+    data = DataInfo.from_dir('/tmp/test')
+    config = None
 
     start_gui(data, config)
 
