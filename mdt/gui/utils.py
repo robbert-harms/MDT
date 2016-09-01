@@ -1,9 +1,11 @@
 import time
 from contextlib import contextmanager
 from functools import wraps
-from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtCore import QObject, pyqtSignal, QFileSystemWatcher, pyqtSlot
+from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QApplication
 
+from mdt.IO import Nifti
 from mdt.log_handlers import LogListenerInterface
 
 __author__ = 'Robbert Harms'
@@ -160,3 +162,57 @@ class MainTab(object):
 
     def tab_opened(self):
         """Called when this tab is selected by the user."""
+
+
+class DirectoryImageWatcher(QObject):
+
+    image_updates = pyqtSignal(tuple, tuple, dict)
+
+    def __init__(self, directory=None):
+        """Watches a given directory for added, removed and/or updated nifti files.
+
+        Args:
+            directory (str): the initial directory to watch. You can set a new one with set_directory().
+
+        Signals
+            images_updates (list, list, dict): sent when images are updated in the watch directory. It contains
+                the list of additions, removals and changes where changes is a dict mapping the old name to a new one.
+        """
+        super(DirectoryImageWatcher, self).__init__()
+        self._watched_dir = None
+        self._current_files = []
+        self._watcher = QFileSystemWatcher()
+        self._watcher.directoryChanged.connect(self._directory_changed)
+        self._timer = QTimer()
+        self._timer.timeout.connect(self._timer_event)
+        self._timer.timeout.connect(self._timer.stop)
+
+        if directory:
+            self.set_directory(directory)
+
+    def set_directory(self, directory):
+        """Set the watched directory to the given directory.
+
+        Args:
+            directory (str): the new directory to watch for added, removed and/or changed nifti files.
+        """
+        if self._watched_dir:
+            self._watcher.removePath(self._watched_dir)
+        self._watched_dir = directory
+        self._watcher.addPath(directory)
+        self._current_files = list(Nifti.volume_names_generator(directory))
+
+    @pyqtSlot(str)
+    def _directory_changed(self, directory):
+        if directory == self._watched_dir:
+            self._timer.start(100)
+
+    @pyqtSlot()
+    def _timer_event(self):
+        new_file_list = list(Nifti.volume_names_generator(self._watched_dir))
+
+        removals = set(self._current_files).difference(new_file_list)
+        additions = set(new_file_list).difference(self._current_files)
+
+        self._current_files = new_file_list
+        self.image_updates.emit(tuple(additions), tuple(removals), {})

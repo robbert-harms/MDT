@@ -1,7 +1,6 @@
 import copy
 import matplotlib
 import numpy as np
-
 import mdt
 
 
@@ -300,6 +299,7 @@ class DisplayConfiguration(DisplayConfigurationInterface):
         return result
 
     def validate(self, data_info):
+        self._validate_maps_to_show(data_info)
         for key in self.__dict__:
             getattr(self, '_validate_' + key)(data_info)
         return self
@@ -359,6 +359,10 @@ class DisplayConfiguration(DisplayConfigurationInterface):
             self.zoom['y_1'] = data_info.get_max_y(self.dimension, self.rotate, self.maps_to_show)
 
     def _validate_map_plot_options(self, data_info):
+        for key in self.map_plot_options:
+            if key not in data_info.maps:
+                del self.map_plot_options[key]
+
         for key, value in self.map_plot_options.items():
             if value is not None:
                 self.map_plot_options[key] = value.validate(data_info)

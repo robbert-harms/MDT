@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 from mdt.gui.maps_visualizer.base import PlottingFrame, DataInfo, DisplayConfiguration
-from mdt.visualization import MapsVisualizer
+from mdt.visualization import MapsVisualizer, PlotConfig
 
 
 class MatplotlibPlotting(PlottingFrame, QWidget):
@@ -24,7 +24,7 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
 
         self.figure = Figure()
         self.visualizer = MapsVisualizer(self._controller.get_data().maps, self.figure)
-        self.visualizer.render(**self._controller.get_config().to_dict())
+        self.visualizer.render(PlotConfig(**self._controller.get_config().to_dict()))
 
         self.canvas = FigureCanvas(self.figure)
         self.canvas.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
@@ -68,7 +68,7 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
         height = self.height()
 
         self.figure.clf()
-        self.visualizer.render(**self._controller.get_config().to_dict())
+        self.visualizer.render(PlotConfig(**self._controller.get_config().to_dict()))
 
         self.canvas.resize(width, height - 1)
         self.canvas.resize(width, height)

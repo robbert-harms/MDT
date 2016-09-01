@@ -287,7 +287,7 @@ def view_results_slice(data,
                        block=True,
                        maximize=False,
                        window_title=None,
-                       nmr_colorbar_axis_ticks=None,
+                       nmr_colorbar_axis_ticks=10,
                        figure_options=None,
                        grid_layout=None,
                        article_modus=False,
@@ -304,7 +304,7 @@ def view_results_slice(data,
     Returns:
         MapViewSettings: the settings set by the user in the viewer.
     """
-    from mdt.visualization import MapsVisualizer
+    from mdt.visualization import MapsVisualizer, PlotConfig
     import matplotlib.pyplot as plt
 
     if isinstance(data, string_types):
@@ -363,15 +363,18 @@ def view_results_slice(data,
 
     viz = MapsVisualizer(results_total, figure=figure)
 
+    settings['font_size'] = settings['font_size'] or 14
+    settings['map_plot_options'] = settings['map_plot_options'] or {}
+
+    plot_config = PlotConfig(**settings)
+
     if to_file:
-        viz.to_file(to_file, **settings)
+        viz.to_file(to_file, plot_config)
     else:
-        viz.show(
+        viz.show(plot_config,
             block=block,
             maximize=maximize,
-            window_title=window_title,
-            **settings
-        )
+            window_title=window_title)
 
 
 def results_preselection_names(data):

@@ -83,11 +83,6 @@ class SimpleBatchProfile(BatchProfile):
         """A base class for quickly implementing a batch profile.
 
         Implementing classes need only implement the method _get_subjects(). This class will handle the rest.
-
-        Attributes:
-            output_base_dir (str): the standard subject output dir, defaults to 'output'
-            output_sub_dir (str): if given, a sub directory (in the default output dir) to place the output in
-            models_to_fit (list): list of model names or model objects to use during fitting
         """
         super(SimpleBatchProfile, self).__init__()
         self._subjects_found = None

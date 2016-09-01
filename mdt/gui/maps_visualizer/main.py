@@ -17,10 +17,10 @@ matplotlib.use('Qt5Agg')
 import mdt
 from mdt.gui.maps_visualizer.actions import SetDimension, SetZoom, SetSliceIndex, SetMapsToShow, \
     FromDictAction, SetVolumeIndex, SetColormap, SetRotate, SetFontSize, SetShowAxis, SetColorBarNmrTicks
-from mdt.gui.maps_visualizer.base import DisplayConfiguration, Controller, DataInfo, MapSpecificConfiguration
+from mdt.gui.maps_visualizer.base import DisplayConfiguration, Controller, DataInfo
 from mdt.gui.maps_visualizer.renderers.matplotlib_renderer import MatplotlibPlotting
 from mdt.gui.model_fit.design.ui_about_dialog import Ui_AboutDialog
-from mdt.gui.utils import center_window, blocked_signals
+from mdt.gui.utils import center_window, blocked_signals, DirectoryImageWatcher
 from mdt.gui.maps_visualizer.design.ui_MainWindow import Ui_MapsVisualizer
 
 
@@ -33,6 +33,9 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self._controller = controller
         self._controller.new_data.connect(self.set_new_data)
         self._controller.new_config.connect(self.set_new_config)
+
+        self._directory_watcher = DirectoryImageWatcher()
+        self._directory_watcher.image_updates.connect(self._update_viewed_images)
 
         self.general_display_order.setDragDropMode(QAbstractItemView.InternalMove)
         self.general_display_order.setSelectionMode(QAbstractItemView.SingleSelection)
@@ -74,17 +77,18 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
 
     @pyqtSlot(DataInfo)
     def set_new_data(self, data_info):
-        self.general_map_selection.clear()
-        self.general_map_selection.addItems(data_info.sorted_keys)
-        for index, map_name in enumerate(data_info.sorted_keys):
-            item = self.general_map_selection.item(index)
-            item.setData(Qt.UserRole, map_name)
+        with blocked_signals(self.general_map_selection):
+            self.general_map_selection.clear()
+            self.general_map_selection.addItems(data_info.sorted_keys)
+            for index, map_name in enumerate(data_info.sorted_keys):
+                item = self.general_map_selection.item(index)
+                item.setData(Qt.UserRole, map_name)
 
         if data_info.directory:
             self.statusBar().showMessage('Loaded directory: ' + data_info.directory)
+            self._directory_watcher.set_directory(data_info.directory)
         else:
             self.statusBar().showMessage('No directory information available.')
-        self.set_new_config(self._controller.get_config())
 
     @pyqtSlot(DisplayConfiguration)
     def set_new_config(self, config):
@@ -119,7 +123,8 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
             self.general_map_selection.blockSignals(True)
             for index, map_name in enumerate(data_info.sorted_keys):
                 item = self.general_map_selection.item(index)
-                item.setSelected(map_name in map_names)
+                if item:
+                    item.setSelected(map_name in map_names)
             self.general_map_selection.blockSignals(False)
 
         max_x = data_info.get_max_x(config.dimension, config.rotate, map_names)
@@ -217,6 +222,12 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
             main.show()
             controller.set_data(DataInfo.from_dir(new_dir))
 
+    @pyqtSlot(tuple, tuple, dict)
+    def _update_viewed_images(self, additions, removals, updates):
+        data = DataInfo.from_dir(self._controller.get_data().directory)
+        config = self._controller.get_config()
+        self._controller.set_data(data, config)
+
     @staticmethod
     def _insert_alphabetically(new_item, item_list):
         for ind, item in enumerate(item_list):
@@ -258,6 +269,7 @@ class QtController(Controller, QObject):
 
         self._apply_config(config)
         self.new_data.emit(data_info)
+        self.new_config.emit(self._current_config)
 
     def get_data(self):
         return self._data_info
@@ -333,17 +345,20 @@ if __name__ == '__main__':
     #
     # # # data = DataInfo.from_dir('/home/robbert/phd-data/dti_test_ballstick_results/')
     # # data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/brain_mask/BallStick/')
-    data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/4Ddwi_b1000_mask_2_25/BallStick/')
-    config = DisplayConfiguration()
-    config.maps_to_show = ['S0.s0', 'BIC']
-    config.zoom['x_0'] = 20
-    config.zoom['y_0'] = 10
-    config.zoom['x_1'] = 80
-    config.zoom['y_1'] = 80
-    config.map_plot_options.update({'S0.s0': MapSpecificConfiguration(title='S0 test')})
-    config.map_plot_options.update({'BIC': MapSpecificConfiguration(title='BIC test',
-                                                                    scale={'max': 200, 'min': 0})})
-    config.slice_index = None
+    # data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/4Ddwi_b1000_mask_2_25/BallStick/')
+    # config = DisplayConfiguration()
+    # config.maps_to_show = ['S0.s0', 'BIC']
+    # config.zoom['x_0'] = 20
+    # config.zoom['y_0'] = 10
+    # config.zoom['x_1'] = 80
+    # config.zoom['y_1'] = 80
+    # config.map_plot_options.update({'S0.s0': MapSpecificConfiguration(title='S0 test')})
+    # config.map_plot_options.update({'BIC': MapSpecificConfiguration(title='BIC test',
+    #                                                                 scale={'max': 200, 'min': 0})})
+    # config.slice_index = None
+
+    data = DataInfo.from_dir('/tmp/test')
+    config = None
 
     start_gui(data, config)
 
