@@ -8,7 +8,7 @@ from argcomplete.completers import FilesCompleter
 
 from mdt import init_user_settings
 from mdt.gui.maps_visualizer.main import start_gui
-from mdt.gui.maps_visualizer.base import DataInfo
+from mdt.visualization.maps.base import DataInfo
 from mdt.shell_utils import BasicShellApplication, get_citation_message
 
 __author__ = 'Robbert Harms'

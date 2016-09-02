@@ -1,7 +1,8 @@
 import matplotlib
-import time
 
 from PyQt5.QtCore import QTimer
+
+from mdt.visualization.maps.matplotlib_renderer import MapsVisualizer
 
 matplotlib.use('Qt5Agg')
 from matplotlib.figure import Figure
@@ -10,8 +11,8 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
-from mdt.gui.maps_visualizer.base import PlottingFrame, DataInfo, DisplayConfiguration
-from mdt.visualization import MapsVisualizer, PlotConfig
+from mdt.gui.maps_visualizer.base import PlottingFrame, ValidatedMapPlotConfig
+from mdt.visualization.maps.base import MapPlotConfig, DataInfo
 
 
 class MatplotlibPlotting(PlottingFrame, QWidget):
@@ -23,8 +24,8 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
         self._controller.new_config.connect(self.set_new_config)
 
         self.figure = Figure()
-        self.visualizer = MapsVisualizer(self._controller.get_data().maps, self.figure)
-        self.visualizer.render(PlotConfig(**self._controller.get_config().to_dict()))
+        self.visualizer = MapsVisualizer(self._controller.get_data(), self.figure)
+        self.visualizer.render(self._controller.get_config())
 
         self.canvas = FigureCanvas(self.figure)
         self.canvas.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
@@ -44,7 +45,7 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
         self._timer.timeout.connect(self._timer_event)
         self._timer.timeout.connect(self._timer.stop)
 
-        # todo mouse event handling
+        # todo mouse event handling, think of the rotations and other image transformations...
         # self.vis._figure.canvas.mpl_connect('motion_notify_event', self._mouse_event)
     #
     # def _mouse_event(self, event):
@@ -55,10 +56,10 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
         height_inch = height / dpi
 
         figure = Figure(figsize=(width_inch, height_inch), dpi=dpi)
-        visualizer = MapsVisualizer(self._controller.get_data().maps, figure)
+        visualizer = MapsVisualizer(self._controller.get_data(), figure)
         FigureCanvas(figure)
 
-        visualizer.to_file(filename, PlotConfig(**self._controller.get_config().to_dict()), dpi=dpi)
+        visualizer.to_file(filename, MapPlotConfig.from_dict(self._controller.get_config()), dpi=dpi)
 
     @pyqtSlot()
     def _timer_event(self):
@@ -66,10 +67,10 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
 
     @pyqtSlot(DataInfo)
     def set_new_data(self, data_info):
-        self.visualizer = MapsVisualizer(data_info.maps, self.figure)
+        self.visualizer = MapsVisualizer(data_info, self.figure)
         self._timer.start(300)
 
-    @pyqtSlot(DisplayConfiguration)
+    @pyqtSlot(ValidatedMapPlotConfig)
     def set_new_config(self, configuration):
         self._timer.start(300)
 
@@ -78,7 +79,8 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
         height = self.height()
 
         self.figure.clf()
-        self.visualizer.render(PlotConfig(**self._controller.get_config().to_dict()))
+
+        self.visualizer.render(self._controller.get_config())
 
         self.canvas.resize(width, height - 1)
         self.canvas.resize(width, height)

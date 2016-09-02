@@ -256,10 +256,11 @@ def visualize_maps(data=None, config=None):
     Args:
         data (string, dict or mdt.gui.maps_visualizer.base.DataInfo):
             the data we will display
-        config (string, dict or mdt.gui.maps_visualizer.base.DisplayConfiguration): the initial visualization configuration.
-            If a string or dict is given we will try to convert it to a DisplayConfiguration object.
+        config (string, dict or mdt.gui.maps_visualizer.base.ValidatedMapPlotConfig): the initial visualization configuration.
+            If a string or dict is given we will try to convert it to a ValidatedMapPlotConfig object.
     """
-    from mdt.gui.maps_visualizer.base import DisplayConfiguration, DataInfo
+    from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig
+    from mdt.visualization.maps.base import DataInfo
     from mdt.gui.maps_visualizer.main import start_gui
 
     if isinstance(data, string_types):
@@ -268,31 +269,22 @@ def visualize_maps(data=None, config=None):
         data = DataInfo(data)
 
     if isinstance(config, string_types):
-        config = DisplayConfiguration.from_dict(yaml.load(config))
+        config = ValidatedMapPlotConfig.from_dict(yaml.load(config))
     if isinstance(config, dict):
-        config = DisplayConfiguration.from_dict(config)
+        config = ValidatedMapPlotConfig.from_dict(config)
 
     start_gui(data, config)
 
 
-def view_results_slice(data,
-                       dimension=None,
-                       slice_ind=None,
-                       maps_to_show='auto',
-                       map_titles=None,
-                       colormap='hot',
-                       map_plot_options=None,
-                       font_size=None,
+def view_results_slice(data, dimension=None, slice_index=None, maps_to_show='auto',
+                       figure_options=None,
+                       article_modus=False,
+                       to_file_options=None,
                        to_file=None,
                        block=True,
                        maximize=False,
                        window_title=None,
-                       nmr_colorbar_axis_ticks=10,
-                       figure_options=None,
-                       grid_layout=None,
-                       article_modus=False,
-                       rotate_images=90,
-                       file_dpi='figure'):
+                       **kwargs):
     """View from the given results the given slice.
 
     See MapsVisualizer.show() for most of the the options. The special options are listed in the section Args
@@ -305,83 +297,43 @@ def view_results_slice(data,
     Returns:
         MapViewSettings: the settings set by the user in the viewer.
     """
-    from mdt.visualization import MapsVisualizer, PlotConfig
+    from mdt.visualization.maps.matplotlib_renderer import MapsVisualizer
+    from mdt.visualization.maps.base import MapPlotConfig, DataInfo
     import matplotlib.pyplot as plt
 
     if isinstance(data, string_types):
-        map_names = None
-        if maps_to_show:
-            if maps_to_show == 'auto':
-                map_names = results_preselection_names(data)
-            else:
-                map_names = maps_to_show
-        results_total = load_volume_maps(data, map_names=map_names)
+        data_info = DataInfo.from_dir(data)
     else:
-        results_total = data
-
-    if maps_to_show:
-        if maps_to_show == 'auto':
-            maps_to_show = results_preselection_names(data)
-        else:
-            results_total = {k: results_total[k] for k in maps_to_show}
-    else:
-        maps_to_show = list(sorted(results_total.keys()))
-
-    settings = dict(dimension=dimension,
-                    slice_index=slice_ind,
-                    maps_to_show=maps_to_show,
-                    font_size=font_size,
-                    colormap=colormap,
-                    colorbar_nmr_ticks=nmr_colorbar_axis_ticks,
-                    grid_layout=grid_layout,
-                    rotate=rotate_images)
-
-    map_plot_options = map_plot_options or {}
-    if map_titles:
-        for map_name, title in map_titles.items():
-            map_plot_options.update({map_name: {'title': title}})
-
-    # backwards compatibility
-    for map_name, options in map_plot_options.items():
-        if 'scale' not in options:
-            options['scale'] = {}
-        if 'vmax' in options:
-            options['scale']['max'] = options['vmax']
-        if 'vmin' in options:
-            options['scale']['min'] = options['vmin']
-
-    settings.update(map_plot_options=map_plot_options)
-
-    if article_modus:
-        settings.update(font_size=font_size or 36,
-                        colorbar_nmr_ticks=nmr_colorbar_axis_ticks or 4,
-                        show_axis=False)
+        data_info = DataInfo(data)
 
     figure_options = figure_options or {}
     figure_options['figsize'] = figure_options.get('figsize', (18, 16))
     figure_options['dpi'] = figure_options.get('dpi', 100)
 
     figure = plt.figure(**figure_options)
-    viz = MapsVisualizer(results_total, figure=figure)
+    viz = MapsVisualizer(data_info, figure=figure)
 
-    settings['font_size'] = settings['font_size'] or 14
-    settings['map_plot_options'] = settings['map_plot_options'] or {}
+    if maps_to_show and maps_to_show == 'auto':
+        maps_to_show = results_preselection_names(data)
+    elif not maps_to_show:
+        maps_to_show = data_info.sorted_keys
 
-    plot_config = PlotConfig(**settings)
+    settings = dict(dimension=dimension,
+                    slice_index=slice_index,
+                    maps_to_show=maps_to_show)
+    settings.update(**kwargs)
+
+    if article_modus:
+        settings.update(font_size=settings.get('font_size', None) or 36,
+                        colorbar_nmr_ticks=settings.get('colorbar_nmr_ticks') or 4,
+                        show_axis=False)
+
+    plot_config = MapPlotConfig.from_dict(settings)
 
     if to_file:
-        if file_dpi:
-            if file_dpi == 'figure':
-                file_dpi = figure_options['dpi']
-        else:
-            file_dpi = figure_options['dpi']
-
-        viz.to_file(to_file, plot_config, dpi=file_dpi)
+        viz.to_file(to_file, plot_config, **to_file_options)
     else:
-        viz.show(plot_config,
-            block=block,
-            maximize=maximize,
-            window_title=window_title)
+        viz.show(plot_config, block=block, maximize=maximize, window_title=window_title)
 
 
 def results_preselection_names(data):
@@ -426,7 +378,7 @@ def view_result_samples(data, **kwargs):
         data (string or dict): The location of the maps to load the samples from, or the samples themselves.
         kwargs (dict): see SampleVisualizer for all the supported keywords
     """
-    from mdt.visualization import SampleVisualizer
+    from mdt.visualization.samples import SampleVisualizer
 
     if isinstance(data, string_types):
         data = load_samples(data)

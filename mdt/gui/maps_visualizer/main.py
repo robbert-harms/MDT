@@ -1,3 +1,5 @@
+from PyQt5.QtCore import QUrl
+from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QAbstractItemView
 from PyQt5.QtWidgets import QApplication
 import copy
@@ -14,15 +16,18 @@ from PyQt5.QtWidgets import QLabel
 from PyQt5.QtWidgets import QMainWindow
 
 import matplotlib
+from PyQt5.QtWidgets import QWidget
 
+from mdt.gui.maps_visualizer.design.ui_TabGeneral import Ui_TabGeneral
 from mdt.gui.maps_visualizer.design.ui_export_dialog import Ui_ExportImageDialog
 
 matplotlib.use('Qt5Agg')
 
 import mdt
 from mdt.gui.maps_visualizer.actions import SetDimension, SetZoom, SetSliceIndex, SetMapsToShow, \
-    FromDictAction, SetVolumeIndex, SetColormap, SetRotate, SetFontSize, SetShowAxis, SetColorBarNmrTicks
-from mdt.gui.maps_visualizer.base import DisplayConfiguration, Controller, DataInfo, MapSpecificConfiguration
+    NewConfigAction, SetVolumeIndex, SetColormap, SetRotate, SetFontSize, SetShowAxis, SetColorBarNmrTicks
+from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig, Controller, ValidatedSingleMapConfig
+from mdt.visualization.maps.base import DataInfo
 from mdt.gui.maps_visualizer.renderers.matplotlib_renderer import MatplotlibPlotting
 from mdt.gui.model_fit.design.ui_about_dialog import Ui_AboutDialog
 from mdt.gui.utils import center_window, blocked_signals, DirectoryImageWatcher
@@ -42,11 +47,85 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self._directory_watcher = DirectoryImageWatcher()
         self._directory_watcher.image_updates.connect(self._update_viewed_images)
 
-        self.general_display_order.setDragDropMode(QAbstractItemView.InternalMove)
-        self.general_display_order.setSelectionMode(QAbstractItemView.SingleSelection)
-
         self.plotting_frame = MatplotlibPlotting(controller, parent=parent)
         self.plotLayout.addWidget(self.plotting_frame)
+
+        self.tab_general = TabGeneral(controller, self)
+        self.generalTabPosition.addWidget(self.tab_general)
+
+        self.textConfigEdit.new_config.connect(self._config_from_string)
+
+        self.actionAbout.triggered.connect(lambda: AboutDialog(self).exec_())
+        self.actionOpen_directory.triggered.connect(self._open_new_directory)
+        self.actionExport.triggered.connect(lambda: ExportImageDialog(self, self.plotting_frame).exec_())
+        self.actionBrowse_to_current_folder.triggered.connect(
+            lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self._controller.get_data().directory)))
+
+        self._flags = {'updating_config_from_string': False}
+
+    @pyqtSlot(DataInfo)
+    def set_new_data(self, data_info):
+        if data_info.directory:
+            status_label = QLabel('Loaded directory: ' + data_info.directory)
+            self._directory_watcher.set_directory(data_info.directory)
+        else:
+            status_label = QLabel('No directory information available.')
+
+        self.actionBrowse_to_current_folder.setDisabled(self._controller.get_data().directory is None)
+
+        self.statusBar().addWidget(status_label)
+        self.statusBar().setStyleSheet("QStatusBar::item { border: 0px solid black }; ")
+
+    @pyqtSlot(ValidatedMapPlotConfig)
+    def set_new_config(self, config):
+        if not self._flags['updating_config_from_string']:
+            self.textConfigEdit.setPlainText(config.to_yaml())
+
+    @pyqtSlot(str)
+    def _config_from_string(self, text):
+        self._flags['updating_config_from_string'] = True
+        text = text.replace('\t', ' '*4)
+        try:
+            self._controller.apply_action(NewConfigAction(ValidatedMapPlotConfig.from_yaml(text)))
+        except yaml.parser.ParserError:
+            pass
+        except yaml.scanner.ScannerError:
+            pass
+        finally:
+            self._flags['updating_config_from_string'] = False
+
+    def _open_new_directory(self):
+        initial_dir = self._controller.get_data().directory
+        new_dir = QFileDialog(self).getExistingDirectory(caption='Select a folder', directory=initial_dir)
+        if new_dir:
+            controller = QtController()
+            main = MapsVisualizerWindow(controller)
+            center_window(main)
+            main.show()
+            controller.set_data(DataInfo.from_dir(new_dir))
+
+    @pyqtSlot(tuple, tuple, dict)
+    def _update_viewed_images(self, additions, removals, updates):
+        data = DataInfo.from_dir(self._controller.get_data().directory)
+        if self._controller.get_data().maps:
+            config = self._controller.get_config()
+        else:
+            config = None
+        self._controller.set_data(data, config)
+
+
+class TabGeneral(QWidget, Ui_TabGeneral):
+
+    def __init__(self, controller, parent=None):
+        super(TabGeneral, self).__init__(parent)
+        self.setupUi(self)
+
+        self._controller = controller
+        self._controller.new_data.connect(self.set_new_data)
+        self._controller.new_config.connect(self.set_new_config)
+
+        self.general_display_order.setDragDropMode(QAbstractItemView.InternalMove)
+        self.general_display_order.setSelectionMode(QAbstractItemView.SingleSelection)
 
         self.general_colormap.addItems(sorted(matplotlib.cm.datad))
         self.general_rotate.addItems(['0', '90', '180', '270'])
@@ -55,7 +134,6 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self.general_DisplayOrder.set_collapse(True)
         self.general_Miscellaneous.set_collapse(True)
 
-        self.textConfigEdit.new_config.connect(self._config_from_string)
         self.general_dimension.valueChanged.connect(lambda v: self._controller.apply_action(SetDimension(v)))
         self.general_slice_index.valueChanged.connect(lambda v: self._controller.apply_action(SetSliceIndex(v)))
         self.general_volume_index.valueChanged.connect(lambda v: self._controller.apply_action(SetVolumeIndex(v)))
@@ -75,12 +153,6 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self.general_colorbar_nmr_ticks.valueChanged.connect(
             lambda v: self._controller.apply_action(SetColorBarNmrTicks(v)))
 
-        self.actionAbout.triggered.connect(lambda: AboutDialog(self).exec_())
-        self.actionOpen_directory.triggered.connect(self._open_new_directory)
-        self.actionExport.triggered.connect(lambda: ExportImageDialog(self, self.plotting_frame).exec_())
-
-        self._flags = {'updating_config_from_string': False}
-
     @pyqtSlot(DataInfo)
     def set_new_data(self, data_info):
         with blocked_signals(self.general_map_selection):
@@ -90,41 +162,39 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
                 item = self.general_map_selection.item(index)
                 item.setData(Qt.UserRole, map_name)
 
-        if data_info.directory:
-            status_label = QLabel('Loaded directory: ' + data_info.directory)
-            self._directory_watcher.set_directory(data_info.directory)
-        else:
-            status_label = QLabel('No directory information available.')
-
-        self.statusBar().addWidget(status_label)
-        self.statusBar().setStyleSheet("QStatusBar::item { border: 0px solid black }; ")
-
-    @pyqtSlot(DisplayConfiguration)
+    @pyqtSlot(ValidatedMapPlotConfig)
     def set_new_config(self, config):
         data_info = self._controller.get_data()
         map_names = config.maps_to_show
 
-        print('got here')
-
         with blocked_signals(self.general_dimension):
             try:
-                self.general_dimension.setMaximum(data_info.get_max_dimension(map_names))
+                max_dimension = data_info.get_max_dimension(map_names)
+                self.general_dimension.setMaximum(max_dimension)
+                self.maximumDimension.setText(str(max_dimension))
             except ValueError:
                 self.general_dimension.setMaximum(0)
+                self.maximumDimension.setText(str(0))
             self.general_dimension.setValue(config.dimension)
 
         with blocked_signals(self.general_slice_index):
             try:
-                self.general_slice_index.setMaximum(data_info.get_max_slice_index(config.dimension, map_names))
+                max_slice = data_info.get_max_slice_index(config.dimension, map_names)
+                self.general_slice_index.setMaximum(max_slice)
+                self.maximumIndex.setText(str(max_slice))
             except ValueError:
                 self.general_slice_index.setMaximum(0)
+                self.maximumIndex.setText(str(0))
             self.general_slice_index.setValue(config.slice_index)
 
         with blocked_signals(self.general_volume_index):
             try:
-                self.general_volume_index.setMaximum(data_info.get_max_volume_index(map_names))
+                max_volume = data_info.get_max_volume_index(map_names)
+                self.general_volume_index.setMaximum(max_volume)
+                self.maximumVolume.setText(str(max_volume))
             except ValueError:
                 self.general_volume_index.setMaximum(0)
+                self.maximumVolume.setText(str(0))
             self.general_volume_index.setValue(config.volume_index)
 
         with blocked_signals(self.general_colormap):
@@ -195,23 +265,11 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         with blocked_signals(self.general_colorbar_nmr_ticks):
             self.general_colorbar_nmr_ticks.setValue(config.colorbar_nmr_ticks)
 
-        if not self._flags['updating_config_from_string']:
-            yaml_string = yaml.safe_dump(config.to_dict())
-            self.textConfigEdit.setPlainText(yaml_string)
-
-    @pyqtSlot(str)
-    def _config_from_string(self, text):
-        self._flags['updating_config_from_string'] = True
-        text = text.replace('\t', ' '*4)
-        try:
-            info_dict = yaml.load(text)
-            self._controller.apply_action(FromDictAction(info_dict))
-        except yaml.parser.ParserError:
-            pass
-        except yaml.scanner.ScannerError:
-            pass
-        finally:
-            self._flags['updating_config_from_string'] = False
+    @pyqtSlot()
+    def _reorder_maps(self):
+        items = [self.general_display_order.item(ind) for ind in range(self.general_display_order.count())]
+        map_names = [item.data(Qt.UserRole) for item in items]
+        self._controller.apply_action(SetMapsToShow(map_names))
 
     @pyqtSlot()
     def _update_maps_to_show(self):
@@ -228,31 +286,6 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
                     map_names.remove(map_name)
 
         self._controller.apply_action(SetMapsToShow(map_names))
-
-    @pyqtSlot()
-    def _reorder_maps(self):
-        items = [self.general_display_order.item(ind) for ind in range(self.general_display_order.count())]
-        map_names = [item.data(Qt.UserRole) for item in items]
-        self._controller.apply_action(SetMapsToShow(map_names))
-
-    def _open_new_directory(self):
-        initial_dir = self._controller.get_data().directory
-        new_dir = QFileDialog(self).getExistingDirectory(caption='Select a folder', directory=initial_dir)
-        if new_dir:
-            controller = QtController()
-            main = MapsVisualizerWindow(controller)
-            center_window(main)
-            main.show()
-            controller.set_data(DataInfo.from_dir(new_dir))
-
-    @pyqtSlot(tuple, tuple, dict)
-    def _update_viewed_images(self, additions, removals, updates):
-        data = DataInfo.from_dir(self._controller.get_data().directory)
-        if self._controller.get_data().maps:
-            config = self._controller.get_config()
-        else:
-            config = None
-        self._controller.set_data(data, config)
 
     @staticmethod
     def _insert_alphabetically(new_item, item_list):
@@ -304,14 +337,14 @@ class AboutDialog(Ui_AboutDialog, QDialog):
 class QtController(Controller, QObject):
 
     new_data = pyqtSignal(DataInfo)
-    new_config = pyqtSignal(DisplayConfiguration)
+    new_config = pyqtSignal(ValidatedMapPlotConfig)
 
     def __init__(self):
         super(QtController, self).__init__()
         self._data_info = DataInfo({})
         self._actions_history = []
         self._redoable_actions = []
-        self._current_config = DisplayConfiguration()
+        self._current_config = ValidatedMapPlotConfig()
 
     def set_data(self, data_info, config=None):
         self._data_info = data_info
@@ -319,7 +352,7 @@ class QtController(Controller, QObject):
         self._redoable_actions = []
 
         if not config:
-            config = DisplayConfiguration()
+            config = ValidatedMapPlotConfig()
             config.maps_to_show = mdt.results_preselection_names(data_info.maps)
             config.slice_index = None
 
@@ -365,7 +398,7 @@ class QtController(Controller, QObject):
         """Apply the current configuration.
 
         Args:
-            new_config (DisplayConfiguration): the new configuration to apply
+            new_config (ValidatedMapPlotConfig): the new configuration to apply
 
         Returns:
             bool: if the configuration was applied or not. If the difference with the current configuration
@@ -398,23 +431,23 @@ def start_gui(data=None, config=None):
 
 
 if __name__ == '__main__':
-    #
-    # # data = DataInfo.from_dir('/home/robbert/phd-data/dti_test_ballstick_results/')
-    # data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/brain_mask/BallStick/')
-    # data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/4Ddwi_b1000_mask_2_25/BallStick/')
-    # config = DisplayConfiguration()
-    # config.maps_to_show = ['S0.s0', 'BIC']
-    # config.zoom['x_0'] = 20
-    # config.zoom['y_0'] = 10
-    # config.zoom['x_1'] = 80
-    # config.zoom['y_1'] = 80
-    # config.map_plot_options.update({'S0.s0': MapSpecificConfiguration(title='S0 test')})
-    # config.map_plot_options.update({'BIC': MapSpecificConfiguration(title='BIC test',
-    #                                                                 scale={'max': 200, 'min': 0})})
-    # config.slice_index = None
 
-    data = DataInfo.from_dir('/tmp/test')
-    config = None
+    # data = DataInfo.from_dir('/home/robbert/phd-data/dti_test_ballstick_results/')
+    data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/brain_mask/BallStick/')
+    data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/4Ddwi_b1000_mask_2_25/BallStick/')
+    config = ValidatedMapPlotConfig()
+    config.maps_to_show = ['S0.s0', 'BIC']
+    config.zoom['x_0'] = 20
+    config.zoom['y_0'] = 10
+    config.zoom['x_1'] = 80
+    config.zoom['y_1'] = 80
+    config.map_plot_options.update({'S0.s0': ValidatedSingleMapConfig(title='S0 test')})
+    config.map_plot_options.update({'BIC': ValidatedSingleMapConfig(title='BIC test',
+                                                                    scale={'max': 200, 'min': 0})})
+    config.slice_index = None
+
+    # data = DataInfo.from_dir('/tmp/test')
+    # config = None
 
     start_gui(data, config)
 
@@ -426,7 +459,7 @@ if __name__ == '__main__':
 # #
 # # print(data.get_max_volume_index(['Stick.vec0', 'S0.s0']))
 # #
-# config = DisplayConfiguration()
+# config = ValidatedMapPlotConfig()
 # config.maps_to_show = ['S0.s0', 'BIC']
 # config.dimension = 2
 # new_config = SetMapsToShow(['S0.s0', 'B']).apply(config)

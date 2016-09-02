@@ -5,7 +5,8 @@ from PyQt5.QtCore import pyqtSlot, QObject, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog
 
 from mdt import load_nifti
-from mdt.gui.maps_visualizer.base import DataInfo, DisplayConfiguration
+from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig
+from mdt.visualization.maps.base import DataInfo
 from mdt.gui.maps_visualizer.main import QtController, MapsVisualizerWindow
 from mdt.gui.model_fit.design.ui_generate_roi_mask_tab import Ui_GenerateROIMaskTabContent
 from mdt.gui.utils import function_message_decorator, image_files_filters, MainTab, center_window
@@ -77,7 +78,7 @@ class GenerateROIMaskTab(MainTab, Ui_GenerateROIMaskTabContent):
 
         data = DataInfo({'Original mask': nib.load(self.selectedMaskText.text()).get_data(),
                          'Slice mask': nib.load(self.selectedOutputFileText.text()).get_data()})
-        config = DisplayConfiguration()
+        config = ValidatedMapPlotConfig()
         config.dimension = self.dimensionInput.value()
         config.slice_index = self.sliceInput.value()
         controller.set_data(data, config)

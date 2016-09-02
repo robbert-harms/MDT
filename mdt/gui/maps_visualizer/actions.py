@@ -1,5 +1,5 @@
 from .base import ConfigAction, SimpleConfigAction, SimpleMapSpecificConfigAction, \
-    DisplayConfiguration
+    ValidatedMapPlotConfig
 
 
 class SetDimension(SimpleConfigAction):
@@ -68,15 +68,15 @@ class SetMapColormap(SimpleMapSpecificConfigAction):
     config_attribute = 'colormap'
 
 
-class FromDictAction(ConfigAction):
+class NewConfigAction(ConfigAction):
 
-    def __init__(self, config_dict):
-        super(FromDictAction, self).__init__()
-        self.config_dict = config_dict
+    def __init__(self, new_config):
+        super(NewConfigAction, self).__init__()
+        self.new_config = new_config
 
     def apply(self, configuration):
         self._previous_config = configuration
-        return DisplayConfiguration.from_dict(self.config_dict)
+        return self.new_config
 
     def unapply(self):
         return self._previous_config
