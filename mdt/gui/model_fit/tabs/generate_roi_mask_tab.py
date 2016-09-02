@@ -24,6 +24,7 @@ class GenerateROIMaskTab(MainTab, Ui_GenerateROIMaskTabContent):
         self._shared_state = shared_state
         self._computations_thread = computations_thread
         self._generate_mask_worker = GenerateROIMaskWorker()
+        self._viewers_open = []
 
     def setupUi(self, tab_content):
         super(GenerateROIMaskTab, self).setupUi(tab_content)
@@ -82,6 +83,8 @@ class GenerateROIMaskTab(MainTab, Ui_GenerateROIMaskTabContent):
         config.dimension = self.dimensionInput.value()
         config.slice_index = self.sliceInput.value()
         controller.set_data(data, config)
+
+        self._viewers_open.append(main)
 
     @pyqtSlot()
     def generate_roi_mask(self):

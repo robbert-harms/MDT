@@ -26,6 +26,7 @@ class GenerateBrainMaskTab(MainTab, Ui_GenerateBrainMaskTabContent):
         self._shared_state = shared_state
         self._computations_thread = computations_thread
         self._generate_mask_worker = GenerateMaskWorker()
+        self._viewers_open = []
 
     def setupUi(self, tab_content):
         super(GenerateBrainMaskTab, self).setupUi(tab_content)
@@ -101,6 +102,8 @@ class GenerateBrainMaskTab(MainTab, Ui_GenerateBrainMaskTabContent):
         config.dimension = 2
         config.slice_index = image_data.shape[2] // 2.0
         controller.set_data(data, config)
+
+        self._viewers_open.append(main)
 
     @pyqtSlot()
     def generate_mask(self):

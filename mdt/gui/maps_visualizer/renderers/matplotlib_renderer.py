@@ -1,10 +1,9 @@
 import matplotlib
+matplotlib.use('Qt5Agg')
 
 from PyQt5.QtCore import QTimer
 
 from mdt.visualization.maps.matplotlib_renderer import MapsVisualizer
-
-matplotlib.use('Qt5Agg')
 from matplotlib.figure import Figure
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtCore import pyqtSlot
@@ -45,7 +44,7 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
         self._timer.timeout.connect(self._timer_event)
         self._timer.timeout.connect(self._timer.stop)
 
-        # todo mouse event handling, think of the rotations and other image transformations...
+        # todo mouse event handling, think of the rotations and other image transf
         # self.vis._figure.canvas.mpl_connect('motion_notify_event', self._mouse_event)
     #
     # def _mouse_event(self, event):

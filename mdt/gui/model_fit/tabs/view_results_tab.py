@@ -24,6 +24,7 @@ class ViewResultsTab(MainTab, Ui_ViewResultsTabContent):
         self._shared_state = shared_state
         self._parameter_files = {}
         self._folder = None
+        self._viewers_open = []
 
     def setupUi(self, ViewResultsTabContent):
         super(ViewResultsTab, self).setupUi(ViewResultsTabContent)
@@ -114,6 +115,8 @@ class ViewResultsTab(MainTab, Ui_ViewResultsTabContent):
         config.dimension = self.initialDimensionChooser.value()
         config.slice_index = self.initialSliceChooser.value()
         controller.set_data(data, config)
+
+        self._viewers_open.append(main)
 
     def tab_opened(self):
         if self._shared_state.output_folder != '':

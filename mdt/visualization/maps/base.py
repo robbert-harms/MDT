@@ -182,7 +182,10 @@ class DataInfo(object):
 
     @classmethod
     def from_dir(cls, directory):
+        if directory is None:
+            return cls({}, None)
         return cls(mdt.load_volume_maps(directory), directory)
+
 
     def get_max_dimension(self, map_names=None):
         """Get the maximum dimension index in the maps.
