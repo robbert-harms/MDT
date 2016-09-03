@@ -1,8 +1,8 @@
 import copy
 import matplotlib
 
-from mdt.visualization.layouts import GridLayout
-from mdt.visualization.maps.base import SingleMapConfig, MapPlotConfig
+from mdt.visualization.dict_conversion import ConvertDictElements
+from mdt.visualization.maps.base import SingleMapConfig, MapPlotConfig, Zoom, Point
 
 
 class PlottingFrame(object):
@@ -44,24 +44,17 @@ def cast_value(value, desired_type, alt_value):
 class ValidatedMapPlotConfig(MapPlotConfig):
 
     @classmethod
-    def from_dict(cls, config_dict):
-        if 'map_plot_options' not in config_dict:
-            config_dict['map_plot_options'] = {}
-
-        for key, value in config_dict['map_plot_options'].items():
-            if not isinstance(value, SingleMapConfig):
-                config_dict['map_plot_options'][key] = ValidatedSingleMapConfig.from_dict(value)
-
-        return super(ValidatedMapPlotConfig, cls).from_dict(config_dict)
+    def _get_attribute_conversions(cls):
+        conversions = super(ValidatedMapPlotConfig, cls)._get_attribute_conversions()
+        conversions['map_plot_options'] = ConvertDictElements(ValidatedSingleMapConfig.get_conversion_info())
+        return conversions
 
     def validate(self, data_info):
         self._validate_maps_to_show(data_info)
         for key in self.__dict__:
-            getattr(self, '_validate_' + key)(data_info)
+            if hasattr(self, '_validate_' + key):
+                getattr(self, '_validate_' + key)(data_info)
         return self
-
-    def _validate_grid_layout(self, data_info):
-        return isinstance(self.grid_layout, GridLayout)
 
     def _validate_maps_to_show(self, data_info):
         if self.maps_to_show:
@@ -112,25 +105,21 @@ class ValidatedMapPlotConfig(MapPlotConfig):
                 self.volume_index = 0
 
     def _validate_zoom(self, data_info):
-        if self.zoom is None:
-            self.zoom = {'x_0': 0, 'y_0': 0, 'x_1': 0, 'y_1': 0}
-        else:
-            for item in 'x_0', 'x_1', 'y_0', 'y_1':
-                if item not in self.zoom:
-                    self.zoom.update({item: 0})
-                self.zoom[item] = cast_value(self.zoom[item], int, 0)
-
-        if self.zoom['x_1'] == 0:
+        p1x_val = self.zoom.p1.x
+        if self.zoom.p1.x == 0:
             try:
-                self.zoom['x_1'] = data_info.get_max_x(self.dimension, self.rotate, self.maps_to_show)
+                p1x_val = data_info.get_max_x(self.dimension, self.rotate, self.maps_to_show)
             except ValueError:
-                self.zoom['x_1'] = 0
+                pass
 
-        if self.zoom['y_1'] == 0:
+        p1y_val = self.zoom.p1.y
+        if self.zoom.p1.y == 0:
             try:
-                self.zoom['y_1'] = data_info.get_max_y(self.dimension, self.rotate, self.maps_to_show)
+                p1y_val = data_info.get_max_y(self.dimension, self.rotate, self.maps_to_show)
             except ValueError:
-                self.zoom['y_1'] = 0
+                pass
+
+        self.zoom = Zoom(self.zoom.p0, Point(p1x_val, p1y_val))
 
     def _validate_map_plot_options(self, data_info):
         for key in self.map_plot_options:
@@ -141,43 +130,14 @@ class ValidatedMapPlotConfig(MapPlotConfig):
             if value is not None:
                 self.map_plot_options[key] = value.validate(data_info)
 
-    def _validate_font_size(self, data_info):
-        self.font_size = cast_value(self.font_size, int, 14)
-
-    def _validate_show_axis(self, data_info):
-        self.show_axis = cast_value(self.show_axis, bool, True)
-
-    def _validate_colorbar_nmr_ticks(self, data_info):
-        self.colorbar_nmr_ticks = cast_value(self.colorbar_nmr_ticks, int, None)
-
 
 class ValidatedSingleMapConfig(SingleMapConfig):
 
     def validate(self, data_info):
         for key in self.__dict__:
-            getattr(self, '_validate_' + key)(data_info)
+            if hasattr(self, '_validate_' + key):
+                getattr(self, '_validate_' + key)(data_info)
         return self
-
-    def _validate_scale(self, data_info):
-        if self.scale is None:
-            self.scale = {'min': None, 'max': None}
-        else:
-            for item in 'min', 'max':
-                if item not in self.scale:
-                    self.scale.update({item: None})
-                self.scale[item] = cast_value(self.scale[item], int, None)
-
-    def _validate_clipping(self, data_info):
-        if self.clipping is None:
-            self.clipping = {'min': None, 'max': None}
-        else:
-            for item in 'min', 'max':
-                if item not in self.clipping:
-                    self.clipping.update({item: None})
-                self.clipping[item] = cast_value(self.clipping[item], int, None)
-
-    def _validate_title(self, data_info):
-        self.title = cast_value(self.title, str, None)
 
     def _validate_colormap(self, data_info):
         if self.colormap:

@@ -328,7 +328,7 @@ def view_results_slice(data, dimension=None, slice_index=None, maps_to_show='aut
                         colorbar_nmr_ticks=settings.get('colorbar_nmr_ticks') or 4,
                         show_axis=False)
 
-    plot_config = MapPlotConfig.from_dict(settings)
+    plot_config = MapPlotConfig(**settings)
 
     if to_file:
         viz.to_file(to_file, plot_config, **to_file_options)

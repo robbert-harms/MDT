@@ -1,8 +1,12 @@
 import numpy as np
 import yaml
+
 import mdt
-from mdt.visualization.layouts import GridLayout, Rectangular
 import mdt.visualization.layouts
+from mdt.visualization.dict_conversion import StringConversion, \
+    SimpleClassConversion, IntConversion, SimpleListConversion, BooleanConversion, \
+    ConvertDictElements, ConvertDynamicFromModule
+from mdt.visualization.layouts import Rectangular
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-09-02"
@@ -13,57 +17,67 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class MapPlotConfig(object):
 
     def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=90, colormap='hot', maps_to_show=(),
-                 font_size=14, grid_layout=None, colorbar_nmr_ticks=10, show_axis=True, zoom=None,
+                 font=None, grid_layout=None, colorbar_nmr_ticks=10, show_axis=True, zoom=None,
                  map_plot_options=None):
-        """Container for all plot related settings."""
+        """Container for all plot related settings.
+
+        Args:
+            dimension (int): the dimension we are viewing
+            slice_index (int): the slice in the dimension we are viewing
+            volume_index (int): in the case of multiple volumes (4th dimension) which index we are in.
+            rotate (int): the rotation factor, multiple of 90
+            colormap (str): the name of the colormap to use
+            maps_to_show (list of str): the names of the maps to show
+            font (int): the font settings
+            grid_layout (GridLayout): the layout of the grid
+            colorbar_nmr_ticks (int): the number of ticks on the colorbar
+            show_axis (bool): if we show the axis or not
+            zoom (Zoom): the zoom setting for all the plots
+            map_plot_options (dict): per map the map specific plot options
+        """
+        super(MapPlotConfig, self).__init__()
         self.dimension = dimension
         self.slice_index = slice_index
         self.volume_index = volume_index
         self.rotate = rotate
         self.colormap = colormap
         self.maps_to_show = maps_to_show
-        self.font_size = font_size
+        self.zoom = zoom or Zoom(Point(0, 0), Point(0, 0))
+        self.font = font or Font()
         self.colorbar_nmr_ticks = colorbar_nmr_ticks
         self.show_axis = show_axis
-        self.zoom = zoom or {'x_0': 0, 'y_0': 0, 'x_1': 0, 'y_1': 0}
         self.map_plot_options = map_plot_options or {}
         self.grid_layout = grid_layout or Rectangular()
 
     @classmethod
-    def from_dict(cls, config_dict):
-        if 'map_plot_options' not in config_dict:
-            config_dict['map_plot_options'] = {}
+    def get_conversion_info(cls):
+        return SimpleClassConversion(cls, cls._get_attribute_conversions())
 
-        for key, value in config_dict['map_plot_options'].items():
-            if not isinstance(value, SingleMapConfig):
-                config_dict['map_plot_options'][key] = SingleMapConfig.from_dict(value)
-
-        if 'grid_layout' not in config_dict:
-            config_dict['grid_layout'] = Rectangular()
-        elif not isinstance(config_dict['grid_layout'], GridLayout):
-            class_type = getattr(mdt.visualization.layouts, config_dict['grid_layout'][0])
-            config_dict['grid_layout'] = class_type(**config_dict['grid_layout'][1])
-
-        return cls(**config_dict)
+    @classmethod
+    def _get_attribute_conversions(cls):
+        return {'dimension': IntConversion(),
+                'slice_index': IntConversion(),
+                'volume_index': IntConversion(),
+                'rotate': IntConversion(),
+                'colormap': StringConversion(),
+                'maps_to_show': SimpleListConversion(),
+                'zoom': Zoom.get_conversion_info(),
+                'font': Font.get_conversion_info(),
+                'colorbar_nmr_ticks': IntConversion(),
+                'show_axis': BooleanConversion(),
+                'map_plot_options': ConvertDictElements(SingleMapConfig.get_conversion_info()),
+                'grid_layout': ConvertDynamicFromModule(mdt.visualization.layouts)
+                }
 
     @classmethod
     def from_yaml(cls, text):
-        return cls.from_dict(yaml.load(text))
-
-    def __iter__(self):
-        for key, value in self.__dict__.items():
-            if key == 'map_plot_options':
-                yield key, {k: dict(v) for k, v in value.items()}
-            elif key == 'grid_layout':
-                yield key, (type(value).__name__, dict(value))
-            else:
-                yield key, value
+        return cls.get_conversion_info().from_dict(yaml.load(text))
 
     def to_yaml(self):
-        return yaml.safe_dump(dict(self))
+        return yaml.safe_dump(self.get_conversion_info().to_dict(self))
 
-    def __str__(self):
-        return str(dict(self))
+    def __repr__(self):
+        return str(self.get_conversion_info().to_dict(self))
 
     def __eq__(self, other):
         if not isinstance(other, MapPlotConfig):
@@ -82,20 +96,23 @@ class SingleMapConfig(object):
     def __init__(self, title=None, scale=None, clipping=None, colormap=None):
         super(SingleMapConfig, self).__init__()
         self.title = title
-        self.scale = scale or {'min': None, 'max': None}
-        self.clipping = clipping or {'min': None, 'max': None}
+        self.scale = scale or Scale()
+        self.clipping = clipping or Clipping()
         self.colormap = colormap
 
     @classmethod
-    def from_dict(cls, config_dict):
-        return cls(**config_dict)
+    def get_conversion_info(cls):
+        return SimpleClassConversion(cls, cls._get_attribute_conversions())
 
-    def __iter__(self):
-        for key, value in self.__dict__.items():
-            yield key, value
+    @classmethod
+    def _get_attribute_conversions(cls):
+        return {'title': StringConversion(),
+                'scale': Scale.get_conversion_info(),
+                'clipping': Clipping.get_conversion_info(),
+                'colormap': StringConversion()}
 
-    def __str__(self):
-        return str(dict(self))
+    def __repr__(self):
+        return str(self.get_conversion_info().to_dict(self))
 
     def __eq__(self, other):
         if not isinstance(other, SingleMapConfig):
@@ -110,60 +127,154 @@ class SingleMapConfig(object):
         return not self.__eq__(other)
 
 
-class ImageTransformer(object):
+class Zoom(object):
 
-    def __init__(self, data):
-        """Container for the displayed image data. Has functionality to change the image data."""
-        self.data = data
-
-    def rotate(self, factor):
-        """Apply rotation and return new a new ImageTransformer object.
+    def __init__(self, p0, p1):
+        """Container for zooming a map between the two given points.
 
         Args:
-            factor (int): the angle to rotate by, must be a multiple of 90.
+            p0 (Point): the upper left corner of the zoomed area
+            p1 (Point): the lower right corner of the zoomed area
         """
-        if factor:
-            return ImageTransformer(np.rot90(self.data, factor // 90))
-        return self
+        self.p0 = p0
+        self.p1 = p1
 
-    def clip(self, clipping):
-        """Apply clipping and return new a new ImageTransformer object.
+    @classmethod
+    def get_conversion_info(cls):
+        return SimpleClassConversion(cls, cls._get_attribute_conversions())
 
-        This function applies basic checks on the clipping dict before clipping.
+    @classmethod
+    def _get_attribute_conversions(cls):
+        point_converter = Point.get_conversion_info()
+        return {'p0': point_converter,
+                'p1': point_converter}
+
+    def apply(self, data):
+        """Apply the zoom to the given 2d array and return the new array.
 
         Args:
-            clipping (dict): the clipping information. Keys: 'min' and 'max'.
+           data (ndarray): the data to zoom in on
         """
-        if clipping:
-            clipping_min = clipping.get('min', None)
-            if clipping_min is None:
-                clipping_min = self.data.min()
+        correct = self.p0.x < data.shape[1] and self.p1.x < data.shape[1] \
+                  and self.p0.y < data.shape[0] and self.p1.y < data.shape[0] \
+                  and self.p0.x < self.p1.x and self.p0.y < self.p1.y
+        if correct:
+            return data[self.p0.y:self.p1.y, self.p0.x:self.p1.x]
+        return data
 
-            clipping_max = clipping.get('max', None)
-            if clipping_max is None:
-                clipping_max = self.data.max()
+    def __repr__(self):
+        return str(self.get_conversion_info().to_dict(self))
+
+
+class Point(object):
+
+    def __init__(self, x, y):
+        """Container for a single point"""
+        self.x = x
+        self.y = y
+
+    @classmethod
+    def get_conversion_info(cls):
+        return SimpleClassConversion(cls, cls._get_attribute_conversions())
+
+    @classmethod
+    def _get_attribute_conversions(cls):
+        return {'x': IntConversion(),
+                'y': IntConversion()}
+
+
+class Clipping(object):
+
+    def __init__(self, vmin=None, vmax=None):
+        """Container for the map clipping information"""
+        self.vmin = vmin
+        self.vmax = vmax
+
+    def apply(self, data):
+        """Apply the clipping to the given 2d array and return the new array.
+
+        Args:
+           data (ndarray): the data to clip
+        """
+        if self.vmax is not None or self.vmin is not None:
+            clipping_min = self.vmin
+            if self.vmin is None:
+                clipping_min = data.min()
+
+            clipping_max = self.vmax
+            if self.vmax is None:
+                clipping_max = data.max()
 
             if clipping_min or clipping_max:
-                return ImageTransformer(np.clip(self.data, clipping_min, clipping_max))
-        return self
+                return np.clip(data, clipping_min, clipping_max)
 
-    def zoom(self, zoom):
-        """Apply zoom and return new a new ImageTransformer object.
+        return data
 
-        This function applies basic checks on the zoom dict before zooming.
+    @classmethod
+    def get_conversion_info(cls):
+        return SimpleClassConversion(cls, cls._get_attribute_conversions())
+
+    @classmethod
+    def _get_attribute_conversions(cls):
+        return {'vmax': IntConversion(),
+                'vmin': IntConversion()}
+
+
+class Scale(object):
+
+    def __init__(self, vmin=None, vmax=None):
+        """Container the map scaling information"""
+        self.vmin = vmin
+        self.vmax = vmax
+
+    @classmethod
+    def get_conversion_info(cls):
+        return SimpleClassConversion(cls, cls._get_attribute_conversions())
+
+    @classmethod
+    def _get_attribute_conversions(cls):
+        return {'vmax': IntConversion(),
+                'vmin': IntConversion()}
+
+
+class Font(object):
+
+    def __init__(self, family='sans-serif', size=14):
+        """Information about the font to use
 
         Args:
-           zoom (dict): the zoom information. Keys: 'x_0', 'x_1', 'y_0', 'y_1'
+            name: the name of the font to use
+            size: the size of the font (> 0).
         """
-        if zoom:
-            correct = all(map(lambda e: e in zoom and zoom[e] is not None and zoom[e] >= 0,
-                              ('x_0', 'x_1', 'y_0', 'y_1'))) \
-                      and zoom['x_0'] < self.data.shape[1] and zoom['x_1'] < self.data.shape[1] \
-                      and zoom['y_0'] < self.data.shape[0] and zoom['y_1'] < self.data.shape[0] \
-                      and zoom['x_0'] < zoom['x_1'] and zoom['y_0'] < zoom['y_1']
-            if correct:
-                return ImageTransformer(self.data[zoom['y_0']:zoom['y_1'], zoom['x_0']:zoom['x_1']])
-        return self
+        self.family = family
+        self.size = size
+
+        if family not in self.font_names():
+            raise ValueError("The given font \"{}\" is not recognized.".format(family))
+        if size < 1:
+            raise ValueError("The size ({}) can not be smaller than 1".format(str(size)))
+
+    @property
+    def name(self):
+        return self.family
+
+    @classmethod
+    def font_names(cls):
+        """Get the name of supported fonts
+
+        Returns:
+            list of str: the name of the supported fonts.
+        """
+        return list(sorted(['Arial', 'Times New Roman', 'sans-serif', 'Bitstream Vera Sans', 'serif']))
+
+    @classmethod
+    def get_conversion_info(cls):
+        return SimpleClassConversion(cls, cls._get_attribute_conversions())
+
+    @classmethod
+    def _get_attribute_conversions(cls):
+        return {'family': StringConversion(),
+                'size': IntConversion()}
 
 
 class DataInfo(object):

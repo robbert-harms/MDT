@@ -1,5 +1,5 @@
-from .base import ConfigAction, SimpleConfigAction, SimpleMapSpecificConfigAction, \
-    ValidatedMapPlotConfig
+from mdt.visualization.maps.base import Zoom, Point
+from .base import ConfigAction, SimpleConfigAction, SimpleMapSpecificConfigAction
 
 
 class SetDimension(SimpleConfigAction):
@@ -8,7 +8,7 @@ class SetDimension(SimpleConfigAction):
 
     def _extra_actions(self, configuration):
         if self.new_value != self._previous_config.dimension:
-            return SetZoom(None).apply(configuration)
+            return SetZoom(Zoom(Point(0, 0), Point(0, 0))).apply(configuration)
 
 
 class SetSliceIndex(SimpleConfigAction):
@@ -37,13 +37,12 @@ class SetRotate(SimpleConfigAction):
 
     def _extra_actions(self, configuration):
         if self.new_value != self._previous_config.dimension:
-            return SetZoom(None).apply(configuration)
+            return SetZoom(Zoom(Point(0, 0), Point(0, 0))).apply(configuration)
 
 
 class SetZoom(SimpleConfigAction):
 
     config_attribute = 'zoom'
-    use_update = True
 
 
 class SetMapTitle(SimpleMapSpecificConfigAction):
@@ -82,9 +81,9 @@ class NewConfigAction(ConfigAction):
         return self._previous_config
 
 
-class SetFontSize(SimpleConfigAction):
+class SetFont(SimpleConfigAction):
 
-    config_attribute = 'font_size'
+    config_attribute = 'font'
 
 
 class SetShowAxis(SimpleConfigAction):

@@ -25,9 +25,9 @@ matplotlib.use('Qt5Agg')
 
 import mdt
 from mdt.gui.maps_visualizer.actions import SetDimension, SetZoom, SetSliceIndex, SetMapsToShow, \
-    NewConfigAction, SetVolumeIndex, SetColormap, SetRotate, SetFontSize, SetShowAxis, SetColorBarNmrTicks
+    NewConfigAction, SetVolumeIndex, SetColormap, SetRotate, SetFont, SetShowAxis, SetColorBarNmrTicks
 from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig, Controller, ValidatedSingleMapConfig
-from mdt.visualization.maps.base import DataInfo
+from mdt.visualization.maps.base import DataInfo, Zoom, Point, Clipping, Scale
 from mdt.gui.maps_visualizer.renderers.matplotlib_renderer import MatplotlibPlotting
 from mdt.gui.model_fit.design.ui_about_dialog import Ui_AboutDialog
 from mdt.gui.utils import center_window, blocked_signals, DirectoryImageWatcher
@@ -78,8 +78,9 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
 
     @pyqtSlot(ValidatedMapPlotConfig)
     def set_new_config(self, config):
-        if not self._flags['updating_config_from_string']:
-            self.textConfigEdit.setPlainText(config.to_yaml())
+        with blocked_signals(self.textConfigEdit):
+            if not self._flags['updating_config_from_string']:
+                self.textConfigEdit.setPlainText(config.to_yaml())
 
     @pyqtSlot(str)
     def _config_from_string(self, text):
@@ -90,6 +91,8 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         except yaml.parser.ParserError:
             pass
         except yaml.scanner.ScannerError:
+            pass
+        except ValueError:
             pass
         finally:
             self._flags['updating_config_from_string'] = False
@@ -142,12 +145,21 @@ class TabGeneral(QWidget, Ui_TabGeneral):
         self.general_rotate.currentIndexChanged.connect(
             lambda i: self._controller.apply_action(SetRotate(int(self.general_rotate.itemText(i)))))
         self.general_map_selection.itemSelectionChanged.connect(self._update_maps_to_show)
-        self.general_zoom_x_0.valueChanged.connect(lambda v: self._controller.apply_action(SetZoom({'x_0': v})))
-        self.general_zoom_x_1.valueChanged.connect(lambda v: self._controller.apply_action(SetZoom({'x_1': v})))
-        self.general_zoom_y_0.valueChanged.connect(lambda v: self._controller.apply_action(SetZoom({'y_0': v})))
-        self.general_zoom_y_1.valueChanged.connect(lambda v: self._controller.apply_action(SetZoom({'y_1': v})))
+
+        self.general_zoom_x_0.valueChanged.connect(lambda v: self._controller.apply_action(SetZoom(
+            Zoom(Point(v, self._controller.get_config().zoom.p0.y),
+                 self._controller.get_config().zoom.p1))))
+        self.general_zoom_x_1.valueChanged.connect(lambda v: self._controller.apply_action(SetZoom(
+            Zoom(self._controller.get_config().zoom.p0,
+                 Point(v, self._controller.get_config().zoom.p1.y)))))
+        self.general_zoom_y_0.valueChanged.connect(lambda v: self._controller.apply_action(SetZoom(
+            Zoom(Point(self._controller.get_config().zoom.p0.x, v),
+                 self._controller.get_config().zoom.p1))))
+        self.general_zoom_y_1.valueChanged.connect(lambda v: self._controller.apply_action(SetZoom(
+            Zoom(self._controller.get_config().zoom.p0,
+                 Point(self._controller.get_config().zoom.p1.x, v)))))
+
         self.general_display_order.items_reordered.connect(self._reorder_maps)
-        self.general_font_size.valueChanged.connect(lambda v: self._controller.apply_action(SetFontSize(v)))
         self.general_show_axis.clicked.connect(lambda: self._controller.apply_action(
             SetShowAxis(self.general_show_axis.isChecked())))
         self.general_colorbar_nmr_ticks.valueChanged.connect(
@@ -221,22 +233,22 @@ class TabGeneral(QWidget, Ui_TabGeneral):
             max_x = data_info.get_max_x(config.dimension, config.rotate, map_names)
             with blocked_signals(self.general_zoom_x_0):
                 self.general_zoom_x_0.setMaximum(max_x)
-                self.general_zoom_x_0.setValue(config.zoom['x_0'])
+                self.general_zoom_x_0.setValue(config.zoom.p0.x)
 
             with blocked_signals(self.general_zoom_x_1):
                 self.general_zoom_x_1.setMaximum(max_x)
-                self.general_zoom_x_1.setMinimum(config.zoom['x_0'])
-                self.general_zoom_x_1.setValue(config.zoom['x_1'])
+                self.general_zoom_x_1.setMinimum(config.zoom.p0.x)
+                self.general_zoom_x_1.setValue(config.zoom.p1.x)
 
             max_y = data_info.get_max_y(config.dimension, config.rotate, map_names)
             with blocked_signals(self.general_zoom_y_0):
                 self.general_zoom_y_0.setMaximum(max_y)
-                self.general_zoom_y_0.setValue(config.zoom['y_0'])
+                self.general_zoom_y_0.setValue(config.zoom.p0.y)
 
             with blocked_signals(self.general_zoom_y_1):
                 self.general_zoom_y_1.setMaximum(max_y)
-                self.general_zoom_y_1.setMinimum(config.zoom['y_0'])
-                self.general_zoom_y_1.setValue(config.zoom['y_1'])
+                self.general_zoom_y_1.setMinimum(config.zoom.p0.y)
+                self.general_zoom_y_1.setValue(config.zoom.p1.y)
         except ValueError:
             pass
 
@@ -255,9 +267,6 @@ class TabGeneral(QWidget, Ui_TabGeneral):
                     if map_name in config.map_plot_options and config.map_plot_options[map_name].title:
                         title = config.map_plot_options[map_name].title
                         item.setData(Qt.DisplayRole, map_name + ' (' + title + ')')
-
-        with blocked_signals(self.general_font_size):
-            self.general_font_size.setValue(config.font_size)
 
         with blocked_signals(self.general_show_axis):
             self.general_show_axis.setChecked(config.show_axis)
@@ -437,13 +446,11 @@ if __name__ == '__main__':
     data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/4Ddwi_b1000_mask_2_25/BallStick/')
     config = ValidatedMapPlotConfig()
     config.maps_to_show = ['S0.s0', 'BIC']
-    config.zoom['x_0'] = 20
-    config.zoom['y_0'] = 10
-    config.zoom['x_1'] = 80
-    config.zoom['y_1'] = 80
+    config.zoom = Zoom(Point(20, 10), Point(80, 80))
     config.map_plot_options.update({'S0.s0': ValidatedSingleMapConfig(title='S0 test')})
     config.map_plot_options.update({'BIC': ValidatedSingleMapConfig(title='BIC test',
-                                                                    scale={'max': 200, 'min': 0})})
+                                                                    clipping=Clipping(vmax=150),
+                                                                    scale=Scale(vmin=0, vmax=200))})
     config.slice_index = None
 
     # data = DataInfo.from_dir('/tmp/test')

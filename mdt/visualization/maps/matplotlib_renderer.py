@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from mdt import get_slice_in_dimension
-from mdt.visualization.maps.base import ImageTransformer
+from mdt.visualization.maps.base import Clipping, Scale
 from mdt.visualization.utils import MyColourBarTickLocator
 
 __author__ = 'Robbert Harms'
@@ -85,31 +85,36 @@ class Renderer(object):
         axis.set_title(self._get_title(map_name))
         axis.axis('on' if self._plot_config.show_axis else 'off')
 
-        image_data = ImageTransformer(self._get_image(map_name)) \
-            .rotate(self._plot_config.rotate) \
-            .clip(self._get_map_specific_option(map_name, 'clipping', {})) \
-            .zoom(self._plot_config.zoom)
+        data = self._get_image(map_name)
+        if self._plot_config.rotate:
+            data = np.rot90(data, self._plot_config.rotate // 90)
+        data = self._get_map_specific_option(map_name, 'clipping', Clipping()).apply(data)
+        data = self._plot_config.zoom.apply(data)
 
         plot_options = self._get_map_plot_options(map_name)
-        vf = axis.imshow(image_data.data, **plot_options)
+        vf = axis.imshow(data, **plot_options)
 
         divider = make_axes_locatable(axis)
         colorbar_axis = divider.append_axes("right", size="5%", pad=0.05)
 
         self._add_colorbar(map_name, colorbar_axis, vf)
-        self._apply_font_size(axis, colorbar_axis)
+        self._apply_font(axis, colorbar_axis)
 
-    def _apply_font_size(self, image_axis, colorbar_axis):
+    def _apply_font(self, image_axis, colorbar_axis):
         items = [image_axis.xaxis.label, image_axis.yaxis.label]
         items.extend(image_axis.get_xticklabels())
         items.extend(image_axis.get_yticklabels())
+        items.extend(colorbar_axis.yaxis.get_ticklabels())
 
         for item in items:
-            item.set_fontsize(self._plot_config.font_size - 2)
+            item.set_fontsize(self._plot_config.font.size - 2)
+            item.set_family(self._plot_config.font.name)
 
-        image_axis.title.set_fontsize(self._plot_config.font_size)
-        colorbar_axis.tick_params(labelsize=self._plot_config.font_size - 2)
-        colorbar_axis.yaxis.offsetText.set(size=self._plot_config.font_size - 3)
+        image_axis.title.set_fontsize(self._plot_config.font.size)
+        image_axis.title.set_family(self._plot_config.font.name)
+
+        colorbar_axis.yaxis.offsetText.set_fontsize(self._plot_config.font.size - 3)
+        colorbar_axis.yaxis.offsetText.set_family(self._plot_config.font.name)
 
     def _add_colorbar(self, map_name, axis, image_figure):
         cbar = plt.colorbar(image_figure, cax=axis, ticks=self._get_tick_locator(map_name))
@@ -136,11 +141,11 @@ class Renderer(object):
                        'vmax': self._data_info.maps[map_name].max(),
                        'cmap': self._get_map_specific_option(map_name, 'colormap', self._plot_config.colormap)}
 
-        scale = self._get_map_specific_option(map_name, 'scale', {'max': None, 'min': None})
-        if scale.get('max') is not None:
-            output_dict['vmax'] = scale['max']
-        if scale.get('min') is not None:
-            output_dict['vmin'] = scale['min']
+        scale = self._get_map_specific_option(map_name, 'scale', Scale())
+        if scale.vmax is not None:
+            output_dict['vmax'] = scale.vmax
+        if scale.vmin is not None:
+            output_dict['vmin'] = scale.vmin
 
         return output_dict
 
