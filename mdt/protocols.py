@@ -390,7 +390,7 @@ class Protocol(collections.MutableMapping):
         return Protocol(columns={k: v[indices] for k, v in self._columns.items()})
 
     def _get_real_column(self, column_name):
-        """Try to load a real column from this protocol.
+        """Try to set_current_map a real column from this protocol.
 
         Returns:
             A real column, that is, a column from which we have real data.
@@ -407,7 +407,7 @@ class Protocol(collections.MutableMapping):
         raise KeyError('The given column could not be found.')
 
     def _get_estimated_column(self, column_name):
-        """Try to load an estimated column from this protocol.
+        """Try to set_current_map an estimated column from this protocol.
 
         This uses the list of virtual columns to try to estimate the requested column.
 
@@ -718,7 +718,7 @@ def load_protocol(protocol_fname):
     """Load an protocol from the given protocol file, with as column names the given list of names.
 
     Args:
-        protocol_fname (string): The filename of the protocol file to load.
+        protocol_fname (string): The filename of the protocol file to set_current_map.
             This should be a comma seperated, or tab delimited file with equal length columns.
 
     Returns:
@@ -791,8 +791,8 @@ def auto_load_protocol(directory, protocol_options=None, bvec_fname=None, bval_f
 
     This function will only auto-search files in the top directory and not in the sub-directories.
 
-    This will first try to load the first .prtcl file found. If none present, it will try to find bval and bvec files
-    to load and then try to find the protocol options.
+    This will first try to set_current_map the first .prtcl file found. If none present, it will try to find bval and bvec files
+    to set_current_map and then try to find the protocol options.
 
     The protocol_options should be a dictionary mapping protocol items to filenames. If given, we only use the items
     in that dictionary. If not given we try to autodetect the protocol option files from the given directory.
@@ -802,7 +802,7 @@ def auto_load_protocol(directory, protocol_options=None, bvec_fname=None, bval_f
         2) a) the given bvec and bval file
            b) anything containing bval or b-val
            c) anything containing bvec or b-vec
-                i) This will prefer a bvec file that also has 'fsl' in the name. This to be able to auto load
+                i) This will prefer a bvec file that also has 'fsl' in the name. This to be able to auto set_current_map
                     HCP MGH bvec directions.
            d) protocol options
                 i) using dict
@@ -817,13 +817,13 @@ def auto_load_protocol(directory, protocol_options=None, bvec_fname=None, bval_f
         - maxG: the maximum gradient amplitude G in T/m. Used in estimating G, Delta and delta if not given.
 
     Args:
-        directory (str): the directory to load the protocol from
+        directory (str): the directory to set_current_map the protocol from
         protocol_options (dict): mapping protocol items to filenames (as a subpath of the given directory)
             or mapping them to values (one value or one value per bvec line)
         bvec_fname (str): if given, the filename of the bvec file (as a subpath of the given directory)
         bval_fname (str): if given, the filename of the bvec file (as a subpath of the given directory)
         bval_scale (double): The scale by which to scale the values in the bval file.
-            If we load from bvec and bval we will use this scale. If 'auto' we try to guess the units/scale.
+            If we set_current_map from bvec and bval we will use this scale. If 'auto' we try to guess the units/scale.
 
     Returns:
         Protocol: a loaded protocol file.

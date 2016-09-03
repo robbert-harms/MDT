@@ -29,7 +29,7 @@ class GUI(BasicShellApplication):
         description += get_citation_message()
 
         parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
-        parser.add_argument('dir', metavar='dir', type=str, nargs='?', help='the directory to load',
+        parser.add_argument('dir', metavar='dir', type=str, nargs='?', help='the directory to set_current_map',
                             default=None).completer = FilesCompleter()
         return parser
 

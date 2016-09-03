@@ -27,7 +27,7 @@ class ModelFit(BasicShellApplication):
             This function can use two kinds of noise standard deviation, a global or a local (voxel wise).
             If the argument -n / --noise-std is not set, MDT uses a default automatic noise estimation which
             may be either global or local. To use a predefined global noise std please set the argument to a
-            floating point value. To use a voxel wise noise std, please give it a filename with a map to load.
+            floating point value. To use a voxel wise noise std, please give it a filename with a map to set_current_map.
         """)
         description += mdt.shell_utils.get_citation_message()
 

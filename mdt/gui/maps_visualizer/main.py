@@ -1,36 +1,28 @@
-from PyQt5.QtCore import QUrl
-from PyQt5.QtGui import QDesktopServices
-from PyQt5.QtWidgets import QAbstractItemView
-from PyQt5.QtWidgets import QApplication
-import copy
-import yaml
-import yaml.parser
-import yaml.scanner
+import matplotlib
 from PyQt5.QtCore import QObject, pyqtSlot
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import QUrl
 from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtGui import QDesktopServices
+from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import QDialog
 from PyQt5.QtWidgets import QDialogButtonBox
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QLabel
 from PyQt5.QtWidgets import QMainWindow
 
-import matplotlib
-from PyQt5.QtWidgets import QWidget
-
-from mdt.gui.maps_visualizer.design.ui_TabGeneral import Ui_TabGeneral
+from mdt.gui.maps_visualizer.config_tabs.tab_general import TabGeneral
+from mdt.gui.maps_visualizer.config_tabs.tab_map_specific import TabMapSpecific
+from mdt.gui.maps_visualizer.config_tabs.tab_textual import TabTextual
 from mdt.gui.maps_visualizer.design.ui_export_dialog import Ui_ExportImageDialog
 
 matplotlib.use('Qt5Agg')
 
 import mdt
-from mdt.gui.maps_visualizer.actions import SetDimension, SetZoom, SetSliceIndex, SetMapsToShow, \
-    NewConfigAction, SetVolumeIndex, SetColormap, SetRotate, SetFont, SetShowAxis, SetColorBarNmrTicks
 from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig, Controller, ValidatedSingleMapConfig
 from mdt.visualization.maps.base import DataInfo, Zoom, Point, Clipping, Scale
 from mdt.gui.maps_visualizer.renderers.matplotlib_renderer import MatplotlibPlotting
 from mdt.gui.model_fit.design.ui_about_dialog import Ui_AboutDialog
-from mdt.gui.utils import center_window, blocked_signals, DirectoryImageWatcher
+from mdt.gui.utils import center_window, DirectoryImageWatcher
 from mdt.gui.maps_visualizer.design.ui_MainWindow import Ui_MapsVisualizer
 
 
@@ -53,7 +45,11 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self.tab_general = TabGeneral(controller, self)
         self.generalTabPosition.addWidget(self.tab_general)
 
-        self.textConfigEdit.new_config.connect(self._config_from_string)
+        self.tab_specific = TabMapSpecific(controller, self)
+        self.mapSpecificTabPosition.addWidget(self.tab_specific)
+
+        self.tab_textual = TabTextual(controller, self)
+        self.textInfoTabPosition.addWidget(self.tab_textual)
 
         self.actionAbout.triggered.connect(lambda: AboutDialog(self).exec_())
         self.actionOpen_directory.triggered.connect(self._open_new_directory)
@@ -61,7 +57,7 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self.actionBrowse_to_current_folder.triggered.connect(
             lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self._controller.get_data().directory)))
 
-        self._flags = {'updating_config_from_string': False}
+        self._opened_windows = []
 
     @pyqtSlot(DataInfo)
     def set_new_data(self, data_info):
@@ -78,24 +74,7 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
 
     @pyqtSlot(ValidatedMapPlotConfig)
     def set_new_config(self, config):
-        with blocked_signals(self.textConfigEdit):
-            if not self._flags['updating_config_from_string']:
-                self.textConfigEdit.setPlainText(config.to_yaml())
-
-    @pyqtSlot(str)
-    def _config_from_string(self, text):
-        self._flags['updating_config_from_string'] = True
-        text = text.replace('\t', ' '*4)
-        try:
-            self._controller.apply_action(NewConfigAction(ValidatedMapPlotConfig.from_yaml(text)))
-        except yaml.parser.ParserError:
-            pass
-        except yaml.scanner.ScannerError:
-            pass
-        except ValueError:
-            pass
-        finally:
-            self._flags['updating_config_from_string'] = False
+        pass
 
     def _open_new_directory(self):
         initial_dir = self._controller.get_data().directory
@@ -106,6 +85,7 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
             center_window(main)
             main.show()
             controller.set_data(DataInfo.from_dir(new_dir))
+            self._opened_windows.append(main)
 
     @pyqtSlot(tuple, tuple, dict)
     def _update_viewed_images(self, additions, removals, updates):
@@ -115,194 +95,6 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         else:
             config = None
         self._controller.set_data(data, config)
-
-
-class TabGeneral(QWidget, Ui_TabGeneral):
-
-    def __init__(self, controller, parent=None):
-        super(TabGeneral, self).__init__(parent)
-        self.setupUi(self)
-
-        self._controller = controller
-        self._controller.new_data.connect(self.set_new_data)
-        self._controller.new_config.connect(self.set_new_config)
-
-        self.general_display_order.setDragDropMode(QAbstractItemView.InternalMove)
-        self.general_display_order.setSelectionMode(QAbstractItemView.SingleSelection)
-
-        self.general_colormap.addItems(sorted(matplotlib.cm.datad))
-        self.general_rotate.addItems(['0', '90', '180', '270'])
-        self.general_rotate.setCurrentText(str(self._controller.get_config().rotate))
-
-        self.general_DisplayOrder.set_collapse(True)
-        self.general_Miscellaneous.set_collapse(True)
-
-        self.general_dimension.valueChanged.connect(lambda v: self._controller.apply_action(SetDimension(v)))
-        self.general_slice_index.valueChanged.connect(lambda v: self._controller.apply_action(SetSliceIndex(v)))
-        self.general_volume_index.valueChanged.connect(lambda v: self._controller.apply_action(SetVolumeIndex(v)))
-        self.general_colormap.currentIndexChanged.connect(
-            lambda i: self._controller.apply_action(SetColormap(self.general_colormap.itemText(i))))
-        self.general_rotate.currentIndexChanged.connect(
-            lambda i: self._controller.apply_action(SetRotate(int(self.general_rotate.itemText(i)))))
-        self.general_map_selection.itemSelectionChanged.connect(self._update_maps_to_show)
-
-        self.general_zoom_x_0.valueChanged.connect(lambda v: self._controller.apply_action(SetZoom(
-            Zoom(Point(v, self._controller.get_config().zoom.p0.y),
-                 self._controller.get_config().zoom.p1))))
-        self.general_zoom_x_1.valueChanged.connect(lambda v: self._controller.apply_action(SetZoom(
-            Zoom(self._controller.get_config().zoom.p0,
-                 Point(v, self._controller.get_config().zoom.p1.y)))))
-        self.general_zoom_y_0.valueChanged.connect(lambda v: self._controller.apply_action(SetZoom(
-            Zoom(Point(self._controller.get_config().zoom.p0.x, v),
-                 self._controller.get_config().zoom.p1))))
-        self.general_zoom_y_1.valueChanged.connect(lambda v: self._controller.apply_action(SetZoom(
-            Zoom(self._controller.get_config().zoom.p0,
-                 Point(self._controller.get_config().zoom.p1.x, v)))))
-
-        self.general_display_order.items_reordered.connect(self._reorder_maps)
-        self.general_show_axis.clicked.connect(lambda: self._controller.apply_action(
-            SetShowAxis(self.general_show_axis.isChecked())))
-        self.general_colorbar_nmr_ticks.valueChanged.connect(
-            lambda v: self._controller.apply_action(SetColorBarNmrTicks(v)))
-
-    @pyqtSlot(DataInfo)
-    def set_new_data(self, data_info):
-        with blocked_signals(self.general_map_selection):
-            self.general_map_selection.clear()
-            self.general_map_selection.addItems(data_info.sorted_keys)
-            for index, map_name in enumerate(data_info.sorted_keys):
-                item = self.general_map_selection.item(index)
-                item.setData(Qt.UserRole, map_name)
-
-    @pyqtSlot(ValidatedMapPlotConfig)
-    def set_new_config(self, config):
-        data_info = self._controller.get_data()
-        map_names = config.maps_to_show
-
-        with blocked_signals(self.general_dimension):
-            try:
-                max_dimension = data_info.get_max_dimension(map_names)
-                self.general_dimension.setMaximum(max_dimension)
-                self.maximumDimension.setText(str(max_dimension))
-            except ValueError:
-                self.general_dimension.setMaximum(0)
-                self.maximumDimension.setText(str(0))
-            self.general_dimension.setValue(config.dimension)
-
-        with blocked_signals(self.general_slice_index):
-            try:
-                max_slice = data_info.get_max_slice_index(config.dimension, map_names)
-                self.general_slice_index.setMaximum(max_slice)
-                self.maximumIndex.setText(str(max_slice))
-            except ValueError:
-                self.general_slice_index.setMaximum(0)
-                self.maximumIndex.setText(str(0))
-            self.general_slice_index.setValue(config.slice_index)
-
-        with blocked_signals(self.general_volume_index):
-            try:
-                max_volume = data_info.get_max_volume_index(map_names)
-                self.general_volume_index.setMaximum(max_volume)
-                self.maximumVolume.setText(str(max_volume))
-            except ValueError:
-                self.general_volume_index.setMaximum(0)
-                self.maximumVolume.setText(str(0))
-            self.general_volume_index.setValue(config.volume_index)
-
-        with blocked_signals(self.general_colormap):
-            self.general_colormap.setCurrentText(config.colormap)
-
-        with blocked_signals(self.general_rotate):
-            self.general_rotate.setCurrentText(str(config.rotate))
-
-        if self.general_map_selection.count():
-            for map_name, map_config in config.map_plot_options.items():
-                if map_config.title:
-                    index = data_info.sorted_keys.index(map_name)
-                    item = self.general_map_selection.item(index)
-                    item.setData(Qt.DisplayRole, map_name + ' (' + map_config.title + ')')
-
-            self.general_map_selection.blockSignals(True)
-            for index, map_name in enumerate(data_info.sorted_keys):
-                item = self.general_map_selection.item(index)
-                if item:
-                    item.setSelected(map_name in map_names)
-            self.general_map_selection.blockSignals(False)
-
-        try:
-            max_x = data_info.get_max_x(config.dimension, config.rotate, map_names)
-            with blocked_signals(self.general_zoom_x_0):
-                self.general_zoom_x_0.setMaximum(max_x)
-                self.general_zoom_x_0.setValue(config.zoom.p0.x)
-
-            with blocked_signals(self.general_zoom_x_1):
-                self.general_zoom_x_1.setMaximum(max_x)
-                self.general_zoom_x_1.setMinimum(config.zoom.p0.x)
-                self.general_zoom_x_1.setValue(config.zoom.p1.x)
-
-            max_y = data_info.get_max_y(config.dimension, config.rotate, map_names)
-            with blocked_signals(self.general_zoom_y_0):
-                self.general_zoom_y_0.setMaximum(max_y)
-                self.general_zoom_y_0.setValue(config.zoom.p0.y)
-
-            with blocked_signals(self.general_zoom_y_1):
-                self.general_zoom_y_1.setMaximum(max_y)
-                self.general_zoom_y_1.setMinimum(config.zoom.p0.y)
-                self.general_zoom_y_1.setValue(config.zoom.p1.y)
-        except ValueError:
-            pass
-
-        with blocked_signals(self.general_display_order):
-            items = [self.general_display_order.item(ind) for ind in range(self.general_display_order.count())]
-            current_order = [item.data(Qt.UserRole) for item in items]
-
-            if current_order != map_names:
-                self.general_display_order.clear()
-                self.general_display_order.addItems(map_names)
-
-                for index, map_name in enumerate(map_names):
-                    item = self.general_display_order.item(index)
-                    item.setData(Qt.UserRole, map_name)
-
-                    if map_name in config.map_plot_options and config.map_plot_options[map_name].title:
-                        title = config.map_plot_options[map_name].title
-                        item.setData(Qt.DisplayRole, map_name + ' (' + title + ')')
-
-        with blocked_signals(self.general_show_axis):
-            self.general_show_axis.setChecked(config.show_axis)
-
-        with blocked_signals(self.general_colorbar_nmr_ticks):
-            self.general_colorbar_nmr_ticks.setValue(config.colorbar_nmr_ticks)
-
-    @pyqtSlot()
-    def _reorder_maps(self):
-        items = [self.general_display_order.item(ind) for ind in range(self.general_display_order.count())]
-        map_names = [item.data(Qt.UserRole) for item in items]
-        self._controller.apply_action(SetMapsToShow(map_names))
-
-    @pyqtSlot()
-    def _update_maps_to_show(self):
-        map_names = copy.copy(self._controller.get_config().maps_to_show)
-
-        for item in [self.general_map_selection.item(ind) for ind in range(self.general_map_selection.count())]:
-            map_name = item.data(Qt.UserRole)
-
-            if item.isSelected():
-                if map_name not in map_names:
-                    self._insert_alphabetically(map_name, map_names)
-            else:
-                if map_name in map_names:
-                    map_names.remove(map_name)
-
-        self._controller.apply_action(SetMapsToShow(map_names))
-
-    @staticmethod
-    def _insert_alphabetically(new_item, item_list):
-        for ind, item in enumerate(item_list):
-            if item > new_item:
-                item_list.insert(ind, new_item)
-                return
-        item_list.append(new_item)
 
 
 class ExportImageDialog(Ui_ExportImageDialog, QDialog):

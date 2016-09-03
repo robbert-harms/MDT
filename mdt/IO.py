@@ -63,7 +63,7 @@ class Nifti(object):
 
         Args:
             directory: the directory from which we want to read a number of maps
-            map_names: the names of the maps we want to load. If given we only load and return these maps.
+            map_names: the names of the maps we want to set_current_map. If given we only set_current_map and return these maps.
 
         Returns:
             A dictionary with the volumes. The keys of the dictionary are the filenames

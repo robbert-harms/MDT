@@ -90,7 +90,7 @@ def load_user_gui():
 
 
 def load_specific(file_name):
-    """Can be called by the application to load the config from a specific file.
+    """Can be called by the application to set_current_map the config from a specific file.
 
     This assumes that the given file contains YAML content, that is, we want to process it
     with the function load_from_yaml().
@@ -98,14 +98,14 @@ def load_specific(file_name):
     Please note that the last configuration loaded overwrites the values of the previously loaded config files.
 
     Args:
-        file_name (str): The name of the file to load.
+        file_name (str): The name of the file to set_current_map.
     """
     with open(file_name) as f:
         load_from_yaml(f.read())
 
 
 def load_from_yaml(yaml_str):
-    """Can be called to load configuration options from a YAML string.
+    """Can be called to set_current_map configuration options from a YAML string.
 
     This will update the current configuration with the new options.
 
@@ -120,7 +120,7 @@ def load_from_dict(config_dict):
     """Load configuration options from a given dictionary.
 
     Args:
-        config_dict (dict): the dictionary from which to load the configurations
+        config_dict (dict): the dictionary from which to set_current_map the configurations
     """
     for key, value in config_dict.items():
         loader = get_section_loader(key)
@@ -166,7 +166,7 @@ class ConfigSectionLoader(object):
         """Load the given configuration value into the current configuration.
 
         Args:
-            value: the value to load in the configuration
+            value: the value to set_current_map in the configuration
         """
 
     def update(self, config_dict, updates):
@@ -593,7 +593,7 @@ def config_context(config_action):
 
     Args:
         config_action (ConfigAction or str): the configuration action to apply. If a string is given we will
-            load it using the YamlStringAction config action.
+            set_current_map it using the YamlStringAction config action.
     """
     if isinstance(config_action, string_types):
         config_action = YamlStringAction(config_action)

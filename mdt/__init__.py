@@ -56,7 +56,7 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
 
     Args:
         model (str or AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize
-            or the name of an model we load with get_model()
+            or the name of an model we set_current_map with get_model()
         problem_data (DMRIProblemData): the problem data object containing all the info needed for diffusion
             MRI model fitting
         output_folder (string): The path to the folder where to place the output, we will make a subdir with the
@@ -112,7 +112,7 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
 
     Args:
         model: the model to sample
-        problem_data (DMRIProblemData): the problem data object, load with, for example, mdt.load_problem_data().
+        problem_data (DMRIProblemData): the problem data object, set_current_map with, for example, mdt.load_problem_data().
         output_folder (string): The path to the folder where to place the output, we will make a subdir with the
             model name in it (for the optimization results) and then a subdir with the samples output.
         sampler (AbstractSampler): the sampler to use
@@ -125,7 +125,7 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
                 <output_folder>/<model_name>/
         initialize_using (None, str, or dict): If None, and initialize is True we will initialize from the
             optimization maps from a model with the same name. If a string is given and initialize is True we will
-            interpret the string as a folder with the maps to load. If a dict is given and initialize is True we will
+            interpret the string as a folder with the maps to set_current_map. If a dict is given and initialize is True we will
             initialize from the dict directly.
         store_samples (boolean): if set to False we will store none of the samples. Use this
                 if you are only interested in the volume maps and not in the entire sample chain.
@@ -171,7 +171,7 @@ def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalcul
 
     Args:
         data_folder (str): The data folder to process
-        batch_profile (BatchProfile or str): the batch profile to use, or the name of a batch profile to load.
+        batch_profile (BatchProfile or str): the batch profile to use, or the name of a batch profile to set_current_map.
             If not given it is auto detected.
         subjects_selection (BatchSubjectSelection): the subjects to use for processing.
             If None all subjects are processed.
@@ -375,7 +375,7 @@ def view_result_samples(data, **kwargs):
     """View the samples from the given results set.
 
     Args:
-        data (string or dict): The location of the maps to load the samples from, or the samples themselves.
+        data (string or dict): The location of the maps to set_current_map the samples from, or the samples themselves.
         kwargs (dict): see SampleVisualizer for all the supported keywords
     """
     from mdt.visualization.samples import SampleVisualizer
@@ -455,7 +455,7 @@ def sort_maps(maps_to_sort_on, extra_maps_to_sort=None, reversed_sort=False, sor
     maps for the maps we sort on. If extra_maps_to_sort is given it should be of the same length as the maps_to_sort_on.
 
     Args:
-        maps_to_sort_on (list): a list of string (filenames) or ndarrays we will load and compare
+        maps_to_sort_on (list): a list of string (filenames) or ndarrays we will set_current_map and compare
         extra_maps_to_sort (list) an additional list we will sort based on the indices in maps_to_sort. This should
             be of the same length as maps_to_sort_on.
         reversed_sort (boolean): if we want to sort from large to small instead of small to large.
@@ -503,7 +503,7 @@ def load_volume_maps(directory, map_names=None):
 
     Args:
         directory: the directory from which we want to read a number of maps
-        map_names: the names of the maps we want to load. If given we only load and return these maps.
+        map_names: the names of the maps we want to set_current_map. If given we only set_current_map and return these maps.
 
     Returns:
         dict: A dictionary with the volumes. The keys of the dictionary are the filenames (without the extension) of the
@@ -595,7 +595,7 @@ def get_batch_profile(batch_profile_name, *args, **kwargs):
     This is short for load_component('batch_profiles', batch_profile_name).
 
     Args:
-        batch_profile_name (str): the name of the batch profile to load
+        batch_profile_name (str): the name of the batch profile to set_current_map
 
     Returns:
         BatchProfile: the batch profile for use in batch fitting routines.

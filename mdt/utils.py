@@ -371,7 +371,7 @@ def read_split_write_volume(volume_fname, first_output_fname, second_output_fnam
     with respectively the first and second halves of the split dataset.
 
     Args:
-        volume_fname (str): The filename of the volume to load and split
+        volume_fname (str): The filename of the volume to set_current_map and split
         first_output_fname (str): The filename of the first half of the split
         second_output_fname (str): The filename of the second half of the split
         split_dimension (int): The dimension along which to split the dataset
@@ -515,9 +515,9 @@ def create_roi(data, brain_mask):
     Args:
         data (string, ndarray or dict): a brain volume with four dimensions (x, y, z, w)
             where w is the length of the protocol, or a list, tuple or dictionary with volumes or a string
-            with a filename of a dataset to load.
+            with a filename of a dataset to set_current_map.
         brain_mask (ndarray or str): the mask indicating the region of interest with dimensions: (x, y, z) or the string
-            to the brain mask to load
+            to the brain mask to set_current_map
 
     Returns:
         ndarray, tuple, dict: If a single ndarray is given we will return the ROI for that array. If
@@ -949,7 +949,7 @@ def load_brain_mask(brain_mask_fname):
     """Load the brain mask from the given file.
 
     Args:
-        brain_mask_fname (string): The path of the brain mask to load.
+        brain_mask_fname (string): The path of the brain mask to set_current_map.
 
     Returns:
         ndarray: The loaded brain mask data
@@ -965,10 +965,10 @@ def load_nifti(nifti_volume):
     mdt.utils.nifti_filepath_resolution() for details.
 
     Args:
-        nifti_volume (string): The filename of the volume to load.
+        nifti_volume (string): The filename of the volume to set_current_map.
 
     Returns:
-        nib image proxy (from nib.load)
+        nib image proxy (from nib.set_current_map)
     """
     path = nifti_filepath_resolution(nifti_volume)
     return nib.load(path)
@@ -1009,8 +1009,8 @@ class MetaOptimizerBuilder(object):
     def construct(self, model_names=None):
         """Construct a new meta optimizer with the options from the current configuration.
 
-        If model_name is given, we try to load the specific options for that model from the configuration. If it it not
-        given we load the general options.
+        If model_name is given, we try to set_current_map the specific options for that model from the configuration. If it it not
+        given we set_current_map the general options.
 
         Args:
             model_names (list of str): the list of model names
@@ -1043,8 +1043,8 @@ class MetaSamplerBuilder(object):
     def construct(self, model_name=None):
         """Construct a new meta sampler with the options from the current configuration.
 
-        If model_name is given, we try to load the specific options for that model from the configuration. If it it not
-        given we load the general options.
+        If model_name is given, we try to set_current_map the specific options for that model from the configuration. If it it not
+        given we set_current_map the general options.
 
         Args:
             model_name (str): the model name for which we want to build the sampler
@@ -1238,7 +1238,7 @@ def load_samples(data_folder, mode='r'):
     """Load sampled results as a dictionary of numpy memmap.
 
     Args:
-        data_folder (str): the folder from which to load the samples
+        data_folder (str): the folder from which to set_current_map the samples
         mode (str): the mode in which to open the memory mapped sample files (see numpy mode parameter)
 
     Returns:
@@ -1587,7 +1587,7 @@ def recalculate_error_measures(model, problem_data, data_dir, sigma, output_dir=
 
     Args:
         model (str or AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize
-            or the name of an model we load with get_model()
+            or the name of an model we set_current_map with get_model()
         problem_data (DMRIProblemData): the problem data object
         data_dir (str): the directory containing the results for the given model
         sigma (float): the new noise sigma we use for calculating the log likelihood and then the

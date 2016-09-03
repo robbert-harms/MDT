@@ -1,3 +1,5 @@
+import glob
+
 import numpy as np
 import yaml
 
@@ -93,7 +95,7 @@ class MapPlotConfig(object):
 
 class SingleMapConfig(object):
 
-    def __init__(self, title=None, scale=None, clipping=None, colormap=None):
+    def __init__(self, title=None, scale=None, clipping=None, colormap='hot'):
         super(SingleMapConfig, self).__init__()
         self.title = title
         self.scale = scale or Scale()
@@ -297,6 +299,20 @@ class DataInfo(object):
             return cls({}, None)
         return cls(mdt.load_volume_maps(directory), directory)
 
+    def get_file_name(self, map_name):
+        """Get the file name of the given map
+
+        Returns:
+            None if the map could not be found on dir, else a string with the file path.
+        """
+        if not self.directory:
+            return None
+
+        items = list(glob.glob(self.directory + '/{}.nii*'.format(map_name)))
+        if items:
+            return items[0]
+
+        return None
 
     def get_max_dimension(self, map_names=None):
         """Get the maximum dimension index in the maps.

@@ -50,7 +50,7 @@ class ModelSampling(object):
                     <output_folder>/<model_name>/
             initialize_using (None, str, or dict): If None, and initialize is True we will initialize from the
                 optimization maps from a model with the same name. If a string is given and initialize is True we will
-                interpret the string as a folder with the maps to load. If a dict is given and initialize is
+                interpret the string as a folder with the maps to set_current_map. If a dict is given and initialize is
                 True we will initialize from the dict directly.
             store_samples (boolean): if set to False we will store none of the samples. Use this
                 if you are only interested in the volume maps and not in the entire sample chain.
@@ -149,7 +149,7 @@ class SampleSingleModel(object):
                     <output_folder>/<model_name>/
             initialize_using (None, str, or dict): If None, and initialize is True we will initialize from the
                 optimization maps from a model with the same name. If a string is given and initialize is True we will
-                interpret the string as a folder with the maps to load. If a dict is given and initialize is True we
+                interpret the string as a folder with the maps to set_current_map. If a dict is given and initialize is True we
                 will initialize from the dict directly.
             store_samples (boolean): if set to False we will store none of the samples. Use this
                 if you are only interested in the volume maps and not in the entire sample chain.

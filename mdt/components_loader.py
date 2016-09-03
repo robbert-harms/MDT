@@ -192,7 +192,7 @@ class ComponentsLoader(object):
         """Get the meta information of a component of the given name.
 
         Args:
-            name (str): The name of the component we want to load
+            name (str): The name of the component we want to set_current_map
 
         Returns:
             dict: a dictionary with meta information for this component. Standard meta information is:
@@ -206,7 +206,7 @@ class ComponentsLoader(object):
         """Get the class to the component of the given name.
 
         Args:
-            name (str): The name of the component we want to load
+            name (str): The name of the component we want to set_current_map
 
         Returns:
             class or cb function to construct the given component
@@ -218,7 +218,7 @@ class ComponentsLoader(object):
         """Load the component with the given name
 
         Args:
-            name (str): The name of the component we want to load
+            name (str): The name of the component we want to set_current_map
             *args: passed to the component
             **kwargs: passed to the component
 
@@ -262,7 +262,7 @@ class ComponentsSource(object):
         """Get the class for the component by the given name
 
         Args:
-            name (str): The name of the component we want to load
+            name (str): The name of the component we want to set_current_map
 
         Returns:
             the construction function
@@ -273,7 +273,7 @@ class ComponentsSource(object):
         """Get the meta information of a component of the given name.
 
         Args:
-            name (str): The name of the component we want to load
+            name (str): The name of the component we want to set_current_map
 
         Returns:
             dict: a dictionary with meta information for this component. Standard meta information is:
@@ -295,7 +295,7 @@ class UserComponentsSourceSingle(ComponentsSource):
 
         Args:
             user_type (str): either 'standard' or 'user'
-            component_type (str): the type of component we wish to load. This should be named exactly to one of the
+            component_type (str): the type of component we wish to set_current_map. This should be named exactly to one of the
                 directories available in mdt/data/components/
         """
         super(UserComponentsSourceSingle, self).__init__()
@@ -337,13 +337,13 @@ class AutoUserComponentsSourceSingle(UserComponentsSourceSingle):
     def __init__(self, user_type, component_type, component_builder):
         """
 
-        This class extends the default single components source loader by also being able to load components defined
+        This class extends the default single components source loader by also being able to set_current_map components defined
         using the ComponentConfig method. This means that the components are defined as subclasses of ComponentConfig
         and we need a ComponentBuilder to actually create the components.
 
         Args:
             user_type (str): either 'standard' or 'user'
-            component_type (str): the type of component we wish to load. This should be named exactly to one of the
+            component_type (str): the type of component we wish to set_current_map. This should be named exactly to one of the
                 directories available in mdt/data/components/
             component_builder (ComponentBuilder): the component creator that can create components using
                 ComponentConfig classes
@@ -377,8 +377,8 @@ class UserComponentsSourceMulti(ComponentsSource):
     def __init__(self, user_type, component_type):
         """
         Args:
-            user_type (str): either 'user' or 'standard'. This defines from which dir to load the components
-            component_type (str): from which dir in 'user' or 'standard' to load the components
+            user_type (str): either 'user' or 'standard'. This defines from which dir to set_current_map the components
+            component_type (str): from which dir in 'user' or 'standard' to set_current_map the components
         """
         super(UserComponentsSourceMulti, self).__init__()
         self._user_type = user_type
@@ -414,7 +414,7 @@ class UserComponentsSourceMulti(ComponentsSource):
     def _update_modules_cache(self):
         """Fill the modules cache with the components.
 
-        This loops through all the python files present in the dir name and tries to load them as modules if they
+        This loops through all the python files present in the dir name and tries to set_current_map them as modules if they
         are not yet loaded.
         """
         for path in self._get_python_component_files():
@@ -430,7 +430,7 @@ class UserComponentsSourceMulti(ComponentsSource):
         """Return a list of all the available components in the given module.
 
         Args:
-            module (module): the module from which to load the components.
+            module (module): the module from which to set_current_map the components.
 
         Returns:
             list: list of components loaded from this module
@@ -456,14 +456,14 @@ class AutoUserComponentsSourceMulti(UserComponentsSourceMulti):
     def __init__(self, user_type, component_type, component_class, component_builder):
         """Create a component source that can create components using multiple types of definitions.
 
-        This will load either objects of the class defined by component_class or it will load objects
-        of type ComponentConfig using the builder defined by component_creator or it will load the objects
+        This will set_current_map either objects of the class defined by component_class or it will set_current_map objects
+        of type ComponentConfig using the builder defined by component_creator or it will set_current_map the objects
         from the get_components_list function.
 
         Args:
-            user_type (str): either 'user' or 'standard'. This defines from which dir to load the components
-            component_type (str): from which dir in 'user' or 'standard' to load the components
-            component_class (class): the class to auto load
+            user_type (str): either 'user' or 'standard'. This defines from which dir to set_current_map the components
+            component_type (str): from which dir in 'user' or 'standard' to set_current_map the components
+            component_class (class): the class to auto set_current_map
             component_builder (ComponentBuilder): the component creator to use for components defined as a
                 ComponentConfig.
         """
@@ -485,7 +485,7 @@ class AutoUserComponentsSourceMulti(UserComponentsSourceMulti):
         """Return a list of all the available components in the given module.
 
         Args:
-            module (module): the module from which to load the components.
+            module (module): the module from which to set_current_map the components.
 
         Returns:
             list: list of components loaded from this module
@@ -618,7 +618,7 @@ def get_component_class(component_type, component_name):
 
     Args:
         component_type (str): the type of component, for example 'batch_profiles' or 'parameters'
-        component_name (str): the name of the component to load
+        component_name (str): the name of the component to set_current_map
 
     Returns:
         the class of the given component
@@ -647,7 +647,7 @@ def load_component(component_type, component_name, *args, **kwargs):
 
     Args:
         component_type (str): the type of component, for example 'batch_profiles' or 'parameters'
-        component_name (str): the name of the component to load
+        component_name (str): the name of the component to set_current_map
         *args: passed to the component
         **kwargs: passed to the component
 

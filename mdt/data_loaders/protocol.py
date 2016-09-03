@@ -21,7 +21,7 @@ def autodetect_protocol_loader(data_source):
         - functions
         - protocol objects
 
-    If a directory is given we try to auto load the protocol from sources in that directory.
+    If a directory is given we try to auto set_current_map the protocol from sources in that directory.
 
     Args:
         data_source: the data source from which to get a protocol loader
@@ -60,7 +60,7 @@ class ProtocolFromFileLoader(ProtocolLoader):
         """Loads a protocol from the given filename.
 
         Args:
-            filename (str): the filename to load the protocol from.
+            filename (str): the filename to set_current_map the protocol from.
         """
         super(ProtocolFromFileLoader, self).__init__()
         self._filename = filename
@@ -78,7 +78,7 @@ class ProtocolFromDirLoader(ProtocolLoader):
         """Loads a protocol from the given filename.
 
         Args:
-            directory (str): the directory to load the protocol from.
+            directory (str): the directory to set_current_map the protocol from.
         """
         super(ProtocolFromDirLoader, self).__init__()
         self._directory = directory

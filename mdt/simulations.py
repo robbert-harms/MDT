@@ -274,7 +274,7 @@ def estimate_noise_std(simulated_noisy_signals, protocol, noise_estimator_name='
     Args:
         simulated_noisy_signals (ndarray): the list with per problem the noisy simulated signal
         protocol (Protocol): the protocol object
-        noise_estimator_name (str): the name of the noise estimator to load
+        noise_estimator_name (str): the name of the noise estimator to set_current_map
 
     Returns:
         float: the noise standard deviation

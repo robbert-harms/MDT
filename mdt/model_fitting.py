@@ -53,7 +53,7 @@ class BatchFitting(object):
         Args:
             data_folder (str): the main directory to look for items to process.
             batch_profile (BatchProfile class or str): the batch profile to use or the name of a batch
-                profile to load from the users folder.
+                profile to set_current_map from the users folder.
             subjects_selection (BatchSubjectSelection): the subjects to use for processing.
                 If None all subjects are processed.
             recalculate (boolean): If we want to recalculate the results if they are already present.
@@ -262,7 +262,7 @@ class ModelFit(object):
     def run(self):
         """Run the model and return the resulting maps
 
-        If we will not recalculate and the maps already exists, we will load the maps from file and return those.
+        If we will not recalculate and the maps already exists, we will set_current_map the maps from file and return those.
 
         Returns:
             The result maps for the model we are running.

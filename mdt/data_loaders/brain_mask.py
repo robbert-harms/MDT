@@ -49,7 +49,7 @@ class BrainMaskFromFileLoader(BrainMaskLoader):
         """Loads a brain mask from the given filename.
 
         Args:
-            filename (str): the filename to load the brain mask from.
+            filename (str): the filename to set_current_map the brain mask from.
         """
         self._filename = filename
         self._brain_mask = None
