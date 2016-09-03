@@ -151,6 +151,11 @@ class Ui_MapSpecificOptions(object):
 
         self.retranslateUi(MapSpecificOptions)
         QtCore.QMetaObject.connectSlotsByName(MapSpecificOptions)
+        MapSpecificOptions.setTabOrder(self.map_title, self.data_scale_max)
+        MapSpecificOptions.setTabOrder(self.data_scale_max, self.data_scale_min)
+        MapSpecificOptions.setTabOrder(self.data_scale_min, self.data_clipping_max)
+        MapSpecificOptions.setTabOrder(self.data_clipping_max, self.data_clipping_min)
+        MapSpecificOptions.setTabOrder(self.data_clipping_min, self.colormap)
 
     def retranslateUi(self, MapSpecificOptions):
         _translate = QtCore.QCoreApplication.translate

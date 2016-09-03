@@ -6,8 +6,7 @@ import textwrap
 
 from argcomplete.completers import FilesCompleter
 
-from mdt import init_user_settings
-from mdt.gui.maps_visualizer.main import start_gui
+from mdt import init_user_settings, view_maps
 from mdt.visualization.maps.base import DataInfo
 from mdt.shell_utils import BasicShellApplication, get_citation_message
 
@@ -31,6 +30,21 @@ class GUI(BasicShellApplication):
         parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument('dir', metavar='dir', type=str, nargs='?', help='the directory to set_current_map',
                             default=None).completer = FilesCompleter()
+
+        parser.add_argument('-c', '--config', type=str,
+                            help='Use the given initial configuration').completer = \
+            FilesCompleter(['conf'], directories=False)
+
+        parser.add_argument('--preselect-maps', dest='preselect_maps', action='store_true',
+                            help="Preselect the maps to show (if maps_to_show is empty), default")
+        parser.add_argument('--show-all-maps', dest='preselect_maps', action='store_false',
+                            help="If maps to show is not set, show all maps instead of a preselection")
+        parser.set_defaults(preselect_maps=True)
+
+        parser.add_argument('-m', '--maximize', action='store_true', help="Maximize the shown window")
+
+        parser.add_argument('--to-file', type=str, help="If set export the figure to the given filename")
+
         return parser
 
     def run(self, args):
@@ -38,7 +52,19 @@ class GUI(BasicShellApplication):
         if args.dir:
             data = DataInfo.from_dir(os.path.realpath(args.dir))
 
-        start_gui(data)
+        to_file = None
+        if args.to_file:
+            to_file = os.path.realpath(args.to_file)
+
+        config = None
+        if args.config:
+            filename = os.path.realpath(args.config)
+            if os.path.exists(filename):
+                with open(filename, 'r') as f:
+                    config = f.read()
+
+        view_maps(data, config, preselect_maps=args.preselect_maps, show_maximized=args.maximize,
+                  to_file=to_file)
 
 if __name__ == '__main__':
     GUI().start()

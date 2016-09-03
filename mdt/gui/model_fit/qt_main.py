@@ -1,8 +1,6 @@
 import signal
 import sys
 
-from PyQt5.QtWidgets import QApplication
-
 from mdt.gui.model_fit.design.ui_about_dialog import Ui_AboutDialog
 from mdt.gui.model_fit.design.ui_runtime_settings_dialog import Ui_RuntimeSettingsDialog
 from mdt.gui.model_fit.tabs.fit_model_tab import FitModelTab
@@ -27,7 +25,7 @@ from PyQt5 import QtGui
 from PyQt5.QtCore import QThread, QTimer, pyqtSlot
 from PyQt5.QtWidgets import QMainWindow, QDialog, QDialogButtonBox
 from mdt.gui.model_fit.design.ui_main_gui import Ui_MainWindow
-from mdt.gui.utils import print_welcome_message, ForwardingListener, MessageReceiver, center_window
+from mdt.gui.utils import print_welcome_message, ForwardingListener, MessageReceiver, center_window, QtManager
 from mdt.gui.model_fit.utils import SharedState
 from mdt.log_handlers import LogDispatchHandler
 
@@ -191,11 +189,12 @@ class AboutDialog(Ui_AboutDialog, QDialog):
         self.contentLabel.setText(self.contentLabel.text().replace('{version}', mdt.__version__))
 
 
-def start_gui(base_dir=None):
+def start_gui(base_dir=None, app_exec=True):
     """Start the single model GUI.
 
     Args:
         base_dir (str): the starting directory for all file opening actions
+        app_exec (boolean): if true we execute the Qt application, set to false to disable.
     """
     try:
         mdt.configuration.load_user_gui()
@@ -205,9 +204,7 @@ def start_gui(base_dir=None):
     state = SharedState()
     state.base_dir = base_dir
 
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication([])
+    app = QtManager.get_qt_application_instance()
 
     # catches the sigint
     timer = QTimer()
@@ -220,7 +217,9 @@ def start_gui(base_dir=None):
     center_window(single_model_gui)
     single_model_gui.show()
 
-    return app.exec_()
+    QtManager.add_window(single_model_gui)
+    if app_exec:
+        QtManager.exec_()
 
 
 if __name__ == '__main__':

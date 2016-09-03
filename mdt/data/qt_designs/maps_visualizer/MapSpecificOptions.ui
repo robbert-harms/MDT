@@ -356,6 +356,14 @@
    <container>1</container>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>map_title</tabstop>
+  <tabstop>data_scale_max</tabstop>
+  <tabstop>data_scale_min</tabstop>
+  <tabstop>data_clipping_max</tabstop>
+  <tabstop>data_clipping_min</tabstop>
+  <tabstop>colormap</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

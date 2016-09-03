@@ -118,6 +118,10 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>scrollArea_2</tabstop>
+  <tabstop>selectedMap</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

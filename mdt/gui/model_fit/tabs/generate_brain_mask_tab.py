@@ -8,11 +8,9 @@ from PyQt5.QtWidgets import QFileDialog
 from mdt import load_brain_mask, create_median_otsu_brain_mask
 from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig
 from mdt.visualization.maps.base import DataInfo
-from mdt.gui.maps_visualizer.main import MapsVisualizerWindow
-from mdt.gui.maps_visualizer.main import QtController
+from mdt.gui.maps_visualizer.main import start_gui
 from mdt.gui.model_fit.design.ui_generate_brain_mask_tab import Ui_GenerateBrainMaskTabContent
-from mdt.gui.utils import function_message_decorator, image_files_filters, protocol_files_filters, MainTab, \
-    center_window
+from mdt.gui.utils import function_message_decorator, image_files_filters, protocol_files_filters, MainTab
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-06-26"
@@ -26,7 +24,6 @@ class GenerateBrainMaskTab(MainTab, Ui_GenerateBrainMaskTabContent):
         self._shared_state = shared_state
         self._computations_thread = computations_thread
         self._generate_mask_worker = GenerateMaskWorker()
-        self._viewers_open = []
 
     def setupUi(self, tab_content):
         super(GenerateBrainMaskTab, self).setupUi(tab_content)
@@ -88,22 +85,18 @@ class GenerateBrainMaskTab(MainTab, Ui_GenerateBrainMaskTabContent):
 
     @pyqtSlot()
     def view_mask(self):
-        controller = QtController()
-        main = MapsVisualizerWindow(controller)
-        center_window(main)
-        main.show()
-
         mask = np.expand_dims(load_brain_mask(self.selectedOutputText.text()), axis=3)
         image_data = nib.load(self.selectedImageText.text()).get_data()
         masked_image = image_data * mask
 
         data = DataInfo({'Masked': masked_image, 'DWI': image_data})
+        data.directory = os.path.dirname(self.selectedImageText.text())
+
         config = ValidatedMapPlotConfig()
         config.dimension = 2
         config.slice_index = image_data.shape[2] // 2.0
-        controller.set_data(data, config)
 
-        self._viewers_open.append(main)
+        start_gui(data=data, config=config, app_exec=False)
 
     @pyqtSlot()
     def generate_mask(self):

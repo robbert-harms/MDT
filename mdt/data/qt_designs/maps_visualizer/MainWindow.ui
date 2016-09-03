@@ -201,6 +201,9 @@
     <addaction name="separator"/>
     <addaction name="actionBrowse_to_current_folder"/>
     <addaction name="separator"/>
+    <addaction name="actionSave_settings"/>
+    <addaction name="actionLoad_settings"/>
+    <addaction name="separator"/>
     <addaction name="actionExport"/>
     <addaction name="separator"/>
     <addaction name="actionQuit"/>
@@ -249,6 +252,16 @@
   <action name="actionBrowse_to_current_folder">
    <property name="text">
     <string>&amp;Browse to current folder</string>
+   </property>
+  </action>
+  <action name="actionSave_settings">
+   <property name="text">
+    <string>&amp;Save settings</string>
+   </property>
+  </action>
+  <action name="actionLoad_settings">
+   <property name="text">
+    <string>&amp;Load settings</string>
    </property>
   </action>
  </widget>

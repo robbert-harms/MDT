@@ -153,20 +153,16 @@ class TabGeneral(QWidget, Ui_TabGeneral):
             pass
 
         with blocked_signals(self.general_display_order):
-            items = [self.general_display_order.item(ind) for ind in range(self.general_display_order.count())]
-            current_order = [item.data(Qt.UserRole) for item in items]
+            self.general_display_order.clear()
+            self.general_display_order.addItems(map_names)
 
-            if current_order != map_names:
-                self.general_display_order.clear()
-                self.general_display_order.addItems(map_names)
+            for index, map_name in enumerate(map_names):
+                item = self.general_display_order.item(index)
+                item.setData(Qt.UserRole, map_name)
 
-                for index, map_name in enumerate(map_names):
-                    item = self.general_display_order.item(index)
-                    item.setData(Qt.UserRole, map_name)
-
-                    if map_name in config.map_plot_options and config.map_plot_options[map_name].title:
-                        title = config.map_plot_options[map_name].title
-                        item.setData(Qt.DisplayRole, map_name + ' (' + title + ')')
+                if map_name in config.map_plot_options and config.map_plot_options[map_name].title:
+                    title = config.map_plot_options[map_name].title
+                    item.setData(Qt.DisplayRole, map_name + ' (' + title + ')')
 
         with blocked_signals(self.general_show_axis):
             self.general_show_axis.setChecked(config.show_axis)

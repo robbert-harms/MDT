@@ -235,7 +235,8 @@ class SimpleMapSpecificConfigAction(SimpleConfigAction):
     def _apply(self, configuration):
         if self.map_name not in configuration.map_plot_options:
             configuration.map_plot_options[self.map_name] = ValidatedSingleMapConfig()
-        return self._apply(configuration.map_plot_options[self.map_name])
+        super(SimpleMapSpecificConfigAction, self)._apply(configuration.map_plot_options[self.map_name])
+        return configuration
 
 
 class Controller(object):

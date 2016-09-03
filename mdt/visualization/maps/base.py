@@ -75,6 +75,13 @@ class MapPlotConfig(object):
     def from_yaml(cls, text):
         return cls.get_conversion_info().from_dict(yaml.load(text))
 
+    @classmethod
+    def from_dict(cls, config_dict):
+        return cls.get_conversion_info().from_dict(config_dict)
+
+    def to_dict(self):
+        return self.get_conversion_info().to_dict(self)
+
     def to_yaml(self):
         return yaml.safe_dump(self.get_conversion_info().to_dict(self))
 

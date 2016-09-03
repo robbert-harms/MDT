@@ -14,6 +14,32 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
+class QtManager(object):
+
+    windows = []
+
+    @staticmethod
+    def get_qt_application_instance():
+        q_app = QApplication.instance()
+        if q_app is None:
+            q_app = QApplication([])
+            q_app.lastWindowClosed.connect(QtManager.empty_windows_list)
+        return q_app
+
+    @staticmethod
+    def exec_():
+        if QtManager.windows:
+            QtManager.get_qt_application_instance().exec_()
+
+    @staticmethod
+    def add_window(window):
+        QtManager.windows.append(window)
+
+    @staticmethod
+    def empty_windows_list():
+        QtManager.windows = []
+
+
 def center_window(window):
     """Center the given window on the screen.
 

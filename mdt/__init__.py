@@ -2,12 +2,11 @@ import glob
 import logging.config as logging_config
 import os
 from inspect import stack
-
 import numpy as np
 import six
-import yaml
 from six import string_types
 
+from mdt.visualization.maps.base import DataInfo
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-03-10"
@@ -250,96 +249,70 @@ def get_device_ind(device_type='FIRST_GPU'):
     return indices
 
 
-def visualize_maps(data=None, config=None):
-    """Starts a new map visualization GUI.
+def view_maps(data, config=None, preselect_maps=True, to_file=None, to_file_options=None,
+              block=True, show_maximized=False, use_qt=True):
+    """View a number of maps using the MDT Maps Visualizer.
 
     Args:
-        data (string, dict or mdt.gui.maps_visualizer.base.DataInfo):
-            the data we will display
-        config (string, dict or mdt.gui.maps_visualizer.base.ValidatedMapPlotConfig): the initial visualization configuration.
-            If a string or dict is given we will try to convert it to a ValidatedMapPlotConfig object.
+        data (str, dict, DataInfo): the data we are showing, either a dictionary with result maps, a string with
+            a path name or a DataInfo object
+        config (str, dict, MapPlotConfig): either a Yaml string or a dictionary with configuration settings or a
+            MapPlotConfig object to use directly
+        preselect_maps (boolean): if set we preselect the maps to show, only used if the property maps_to_show of the
+            config is not set or is empty.
+        to_file (str): if set we output the figure to a file and do not launch a GUI
+        to_file_options (dict): extra output options for the savefig command from matplotlib
+        block (boolean): if we block the plots or not
+        show_maximized (boolean): if we show the window maximized or not
+        use_qt (boolean): if we want to use the Qt GUI, or show the results directly in matplotlib
     """
-    from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig
-    from mdt.visualization.maps.base import DataInfo
     from mdt.gui.maps_visualizer.main import start_gui
+    from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig
+    from mdt.visualization.maps.matplotlib_renderer import MapsVisualizer
+    import matplotlib.pyplot as plt
 
     if isinstance(data, string_types):
         data = DataInfo.from_dir(data)
     elif isinstance(data, dict):
         data = DataInfo(data)
 
-    if isinstance(config, string_types):
-        config = ValidatedMapPlotConfig.from_dict(yaml.load(config))
-    if isinstance(config, dict):
+    if config is None:
+        config = ValidatedMapPlotConfig()
+    elif isinstance(config, string_types):
+        config = ValidatedMapPlotConfig.from_yaml(config)
+    elif isinstance(config, dict):
         config = ValidatedMapPlotConfig.from_dict(config)
 
-    start_gui(data, config)
-
-
-def view_results_slice(data, dimension=None, slice_index=None, maps_to_show='auto',
-                       figure_options=None,
-                       article_modus=False,
-                       to_file_options=None,
-                       to_file=None,
-                       block=True,
-                       maximize=False,
-                       window_title=None,
-                       **kwargs):
-    """View from the given results the given slice.
-
-    See MapsVisualizer.show() for most of the the options. The special options are listed in the section Args
-
-    Args:
-        map_titles (dict): DEPRECATED, please use map_plot_options.
-        article_modus (boolean): If set to true we set most of the options as such that the data is rendered better
-            for in use of a paper.
-
-    Returns:
-        MapViewSettings: the settings set by the user in the viewer.
-    """
-    from mdt.visualization.maps.matplotlib_renderer import MapsVisualizer
-    from mdt.visualization.maps.base import MapPlotConfig, DataInfo
-    import matplotlib.pyplot as plt
-
-    if isinstance(data, string_types):
-        data_info = DataInfo.from_dir(data)
-    else:
-        data_info = DataInfo(data)
-
-    figure_options = figure_options or {}
-    figure_options['figsize'] = figure_options.get('figsize', (18, 16))
-    figure_options['dpi'] = figure_options.get('dpi', 100)
-
-    figure = plt.figure(**figure_options)
-    viz = MapsVisualizer(data_info, figure=figure)
-
-    if maps_to_show and maps_to_show == 'auto':
-        maps_to_show = results_preselection_names(data)
-    elif not maps_to_show:
-        maps_to_show = data_info.sorted_keys
-
-    settings = dict(dimension=dimension,
-                    slice_index=slice_index,
-                    maps_to_show=maps_to_show)
-    settings.update(**kwargs)
-
-    if article_modus:
-        settings.update(font_size=settings.get('font_size', None) or 36,
-                        colorbar_nmr_ticks=settings.get('colorbar_nmr_ticks') or 4,
-                        show_axis=False)
-
-    plot_config = MapPlotConfig(**settings)
+    if not config.maps_to_show and preselect_maps:
+        config.maps_to_show = results_preselection_names(data.maps)
 
     if to_file:
-        viz.to_file(to_file, plot_config, **to_file_options)
+        figure_options = {}
+        figure_options['figsize'] = figure_options.get('figsize', (18, 16))
+        figure_options['dpi'] = figure_options.get('dpi', 100)
+
+        figure = plt.figure(**figure_options)
+        viz = MapsVisualizer(data, figure)
+
+        to_file_options = to_file_options or {}
+
+        viz.to_file(to_file, config, **to_file_options)
+    elif use_qt:
+        start_gui(data, config, app_exec=block, show_maximized=show_maximized)
     else:
-        viz.show(plot_config, block=block, maximize=maximize, window_title=window_title)
+        figure_options = {}
+        figure_options['figsize'] = figure_options.get('figsize', (18, 16))
+        figure_options['dpi'] = figure_options.get('dpi', 100)
+
+        figure = plt.figure(**figure_options)
+        viz = MapsVisualizer(data, figure)
+        viz.show(config, block=block, maximize=show_maximized)
 
 
 def results_preselection_names(data):
     """Generate a list of useful map names to display.
 
-    This is primarily to be used as argument to the parameter 'maps_to_show' of the function view_results_slice.
+    This is primarily to be used as argument to the parameter 'maps_to_show' of the function view_maps.
 
     Args:
         data (str or dict or list of str): either a directory or a dictionary of results or a list of map names.
@@ -362,13 +335,20 @@ def results_preselection_names(data):
     return list(sorted(filter(lambda v: all(m not in v for m in filter_match), keys)))
 
 
-def block_plots():
-    """A small function to block the plots made by matplotlib.
+def block_plots(use_qt=True):
+    """A small function to block matplotlib plots and Qt GUI instances.
 
-    This basically only calls plt.show()
+    This basically calls either plt.show() and QtApplication.exec_() depending on use_qt.
+
+    Args:
+        use_qt (boolean): if True we block Qt windows, if False we block matplotlib windows
     """
-    import matplotlib.pyplot as plt
-    plt.show()
+    if use_qt:
+        from mdt.gui.utils import QtManager
+        QtManager.exec_()
+    else:
+        import matplotlib.pyplot as plt
+        plt.show()
 
 
 def view_result_samples(data, **kwargs):

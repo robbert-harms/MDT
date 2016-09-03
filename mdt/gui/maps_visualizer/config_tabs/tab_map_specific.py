@@ -1,8 +1,8 @@
-import os
-
 import matplotlib
 from PyQt5.QtCore import pyqtSlot, Qt
 from PyQt5.QtWidgets import QWidget
+
+from mdt.gui.maps_visualizer.actions import SetMapTitle, SetMapColormap
 from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig, ValidatedSingleMapConfig
 from mdt.gui.maps_visualizer.design.ui_MapSpecificOptions import Ui_MapSpecificOptions
 from mdt.gui.maps_visualizer.design.ui_TabMapSpecific import Ui_TabMapSpecific
@@ -40,23 +40,25 @@ class TabMapSpecific(QWidget, Ui_TabMapSpecific):
         map_names = config.maps_to_show
 
         with blocked_signals(self.selectedMap):
-            current_items = [self.selectedMap.itemData(ind, Qt.UserRole) for ind in range(self.selectedMap.count())]
+            current_selected = self.selectedMap.currentData(Qt.UserRole)
 
-            if current_items != map_names:
-                self.selectedMap.clear()
-                self.selectedMap.addItems(map_names)
+            self.selectedMap.clear()
+            self.selectedMap.addItems(map_names)
 
-                for index, map_name in enumerate(map_names):
-                    self.selectedMap.setItemData(index, map_name, Qt.UserRole)
+            for index, map_name in enumerate(map_names):
+                self.selectedMap.setItemData(index, map_name, Qt.UserRole)
 
-                    if map_name in config.map_plot_options and config.map_plot_options[map_name].title:
-                        title = config.map_plot_options[map_name].title
-                        self.selectedMap.setItemData(index, map_name + ' (' + title + ')', Qt.DisplayRole)
+                if map_name in config.map_plot_options and config.map_plot_options[map_name].title:
+                    title = config.map_plot_options[map_name].title
+                    self.selectedMap.setItemData(index, map_name + ' (' + title + ')', Qt.DisplayRole)
 
-            self.selectedMap.setCurrentIndex(0)
+            for ind in range(self.selectedMap.count()):
+                if self.selectedMap.itemData(ind, Qt.UserRole) == current_selected:
+                    self.selectedMap.setCurrentIndex(ind)
+                    break
 
         if self.selectedMap.count():
-            self._update_map_specifics(self.selectedMap.itemData(0, Qt.UserRole))
+            self._update_map_specifics(self.selectedMap.currentData(Qt.UserRole))
         else:
             self._update_map_specifics(None)
 
@@ -76,11 +78,17 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         self._controller = controller
         self._current_map = None
         self.colormap.addItems(sorted(matplotlib.cm.datad))
+        self.map_title.textChanged.connect(self._update_map_title)
+        self.colormap.currentIndexChanged.connect(self._update_colormap)
 
     def reset(self):
         """Set all the values to their defaults"""
+        self._current_map = None
         self.colormap.setCurrentText('hot')
-        self.map_title.setText('')
+
+        with blocked_signals(self.map_title):
+            self.map_title.setText('')
+
         self.data_clipping_min.setValue(0)
         self.data_clipping_max.setValue(0)
         self.data_scale_min.setValue(0)
@@ -101,7 +109,9 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
 
         data_info = self._controller.get_data()
 
-        self.map_title.setText(map_info.title if map_info.title else '')
+        with blocked_signals(self.map_title):
+            self.map_title.setText(map_info.title if map_info.title else '')
+
         self.colormap.setCurrentText(map_info.colormap)
 
         self.data_clipping_min.setValue(map_info.clipping.vmin if map_info.clipping.vmin is not None else 0)
@@ -116,3 +126,13 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
 
         self.info_maximum.setText(str(data_info.maps[map_name].max()))
         self.info_minimum.setText(str(data_info.maps[map_name].min()))
+
+    @pyqtSlot(str)
+    def _update_map_title(self, string):
+        if self._current_map:
+            self._controller.apply_action(SetMapTitle(self._current_map, string))
+
+    @pyqtSlot(int)
+    def _update_colormap(self, index):
+        if self._current_map:
+            self._controller.apply_action(SetMapColormap(self._current_map, self.colormap.itemText(index)))

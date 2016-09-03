@@ -1,15 +1,16 @@
 import matplotlib
+import yaml
 from PyQt5.QtCore import QObject, pyqtSlot
 from PyQt5.QtCore import QUrl
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QDesktopServices
-from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import QDialog
 from PyQt5.QtWidgets import QDialogButtonBox
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QLabel
 from PyQt5.QtWidgets import QMainWindow
 
+from mdt.gui.maps_visualizer.actions import NewConfigAction
 from mdt.gui.maps_visualizer.config_tabs.tab_general import TabGeneral
 from mdt.gui.maps_visualizer.config_tabs.tab_map_specific import TabMapSpecific
 from mdt.gui.maps_visualizer.config_tabs.tab_textual import TabTextual
@@ -18,11 +19,11 @@ from mdt.gui.maps_visualizer.design.ui_export_dialog import Ui_ExportImageDialog
 matplotlib.use('Qt5Agg')
 
 import mdt
-from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig, Controller, ValidatedSingleMapConfig
-from mdt.visualization.maps.base import DataInfo, Zoom, Point, Clipping, Scale
+from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig, Controller
+from mdt.visualization.maps.base import DataInfo
 from mdt.gui.maps_visualizer.renderers.matplotlib_renderer import MatplotlibPlotting
 from mdt.gui.model_fit.design.ui_about_dialog import Ui_AboutDialog
-from mdt.gui.utils import center_window, DirectoryImageWatcher
+from mdt.gui.utils import center_window, DirectoryImageWatcher, QtManager
 from mdt.gui.maps_visualizer.design.ui_MainWindow import Ui_MapsVisualizer
 
 
@@ -56,8 +57,8 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self.actionExport.triggered.connect(lambda: ExportImageDialog(self, self.plotting_frame).exec_())
         self.actionBrowse_to_current_folder.triggered.connect(
             lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self._controller.get_data().directory)))
-
-        self._opened_windows = []
+        self.actionSave_settings.triggered.connect(lambda: self._save_settings())
+        self.actionLoad_settings.triggered.connect(lambda: self._load_settings())
 
     @pyqtSlot(DataInfo)
     def set_new_data(self, data_info):
@@ -80,12 +81,8 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         initial_dir = self._controller.get_data().directory
         new_dir = QFileDialog(self).getExistingDirectory(caption='Select a folder', directory=initial_dir)
         if new_dir:
-            controller = QtController()
-            main = MapsVisualizerWindow(controller)
-            center_window(main)
-            main.show()
-            controller.set_data(DataInfo.from_dir(new_dir))
-            self._opened_windows.append(main)
+            data = DataInfo.from_dir(new_dir)
+            start_gui(data)
 
     @pyqtSlot(tuple, tuple, dict)
     def _update_viewed_images(self, additions, removals, updates):
@@ -95,6 +92,34 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         else:
             config = None
         self._controller.set_data(data, config)
+
+    def _save_settings(self):
+        """Save the current settings as a text file.
+
+        Args:
+            file_name: the filename to write to
+        """
+        config_file = ['conf (*.conf)', 'All files (*)']
+        file_name, used_filter = QFileDialog().getSaveFileName(caption='Select the GUI config file',
+                                                               filter=';;'.join(config_file))
+        if file_name:
+            with open(file_name, 'w') as f:
+                f.write(self._controller.get_config().to_yaml())
+
+    def _load_settings(self):
+        config_file = ['conf (*.conf)', 'All files (*)']
+        file_name, used_filter = QFileDialog().getOpenFileName(caption='Select the GUI config file',
+                                                               filter=';;'.join(config_file))
+        if file_name:
+            with open(file_name, 'r') as f:
+                try:
+                    self._controller.apply_action(NewConfigAction(ValidatedMapPlotConfig.from_yaml(f.read())))
+                except yaml.parser.ParserError:
+                    pass
+                except yaml.scanner.ScannerError:
+                    pass
+                except ValueError:
+                    pass
 
 
 class ExportImageDialog(Ui_ExportImageDialog, QDialog):
@@ -156,6 +181,8 @@ class QtController(Controller, QObject):
             config = ValidatedMapPlotConfig()
             config.maps_to_show = mdt.results_preselection_names(data_info.maps)
             config.slice_index = None
+        elif not isinstance(config, ValidatedMapPlotConfig):
+            config = ValidatedMapPlotConfig.from_dict(config.to_dict())
 
         self._apply_config(config)
         self.new_data.emit(data_info)
@@ -212,15 +239,29 @@ class QtController(Controller, QObject):
         return False
 
 
-def start_gui(data=None, config=None):
-    controller = QtController()
+def start_gui(data=None, config=None, controller=None, app_exec=True, show_maximized=False):
+    """Start the GUI with the given data and configuration.
 
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication([])
+    Args:
+        data (DataInfo): the initial set of data
+        config (ValidatedMapPlotConfig): the initial configuration
+        controller (QtController): the controller to use in the application
+        app_exec (boolean): if true we execute the Qt application, set to false to disable.
+        show_maximized (true): if we want to show the window in a maximized state
+
+    Returns:
+        MapsVisualizerWindow: the generated window
+    """
+    controller = controller or QtController()
+
+    app = QtManager.get_qt_application_instance()
 
     main = MapsVisualizerWindow(controller)
     center_window(main)
+
+    if show_maximized:
+        main.showMaximized()
+
     main.show()
 
     if data:
@@ -228,41 +269,8 @@ def start_gui(data=None, config=None):
     elif config:
         controller.set_config(config)
 
-    app.exec_()
+    QtManager.add_window(main)
+    if app_exec:
+        QtManager.exec_()
 
-
-if __name__ == '__main__':
-
-    # data = DataInfo.from_dir('/home/robbert/phd-data/dti_test_ballstick_results/')
-    data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/brain_mask/BallStick/')
-    data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/4Ddwi_b1000_mask_2_25/BallStick/')
-    config = ValidatedMapPlotConfig()
-    config.maps_to_show = ['S0.s0', 'BIC']
-    config.zoom = Zoom(Point(20, 10), Point(80, 80))
-    config.map_plot_options.update({'S0.s0': ValidatedSingleMapConfig(title='S0 test')})
-    config.map_plot_options.update({'BIC': ValidatedSingleMapConfig(title='BIC test',
-                                                                    clipping=Clipping(vmax=150),
-                                                                    scale=Scale(vmin=0, vmax=200))})
-    config.slice_index = None
-
-    # data = DataInfo.from_dir('/tmp/test')
-    # config = None
-
-    start_gui(data, config)
-
-
-
-
-# #
-# data = DataInfo.from_dir('/home/robbert/phd-data/dti_test/output/brain_mask/BallStick/')
-# #
-# # print(data.get_max_volume_index(['Stick.vec0', 'S0.s0']))
-# #
-# config = ValidatedMapPlotConfig()
-# config.maps_to_show = ['S0.s0', 'BIC']
-# config.dimension = 2
-# new_config = SetMapsToShow(['S0.s0', 'B']).apply(config)
-# validated = config.validate(data)
-# # diff = config.get_difference(validated)
-#
-# # print(config != new_config)
+    return main

@@ -41,6 +41,9 @@
    <header>..widgets</header>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>textConfigEdit</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

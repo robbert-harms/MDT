@@ -50,6 +50,7 @@ class Ui_TabMapSpecific(object):
 
         self.retranslateUi(TabMapSpecific)
         QtCore.QMetaObject.connectSlotsByName(TabMapSpecific)
+        TabMapSpecific.setTabOrder(self.scrollArea_2, self.selectedMap)
 
     def retranslateUi(self, TabMapSpecific):
         _translate = QtCore.QCoreApplication.translate

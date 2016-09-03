@@ -7,9 +7,9 @@ from PyQt5.QtWidgets import QFileDialog
 from mdt import load_nifti
 from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig
 from mdt.visualization.maps.base import DataInfo
-from mdt.gui.maps_visualizer.main import QtController, MapsVisualizerWindow
+from mdt.gui.maps_visualizer.main import start_gui
 from mdt.gui.model_fit.design.ui_generate_roi_mask_tab import Ui_GenerateROIMaskTabContent
-from mdt.gui.utils import function_message_decorator, image_files_filters, MainTab, center_window
+from mdt.gui.utils import function_message_decorator, image_files_filters, MainTab
 from mdt.utils import split_image_path, write_slice_roi
 
 __author__ = 'Robbert Harms'
@@ -24,7 +24,6 @@ class GenerateROIMaskTab(MainTab, Ui_GenerateROIMaskTabContent):
         self._shared_state = shared_state
         self._computations_thread = computations_thread
         self._generate_mask_worker = GenerateROIMaskWorker()
-        self._viewers_open = []
 
     def setupUi(self, tab_content):
         super(GenerateROIMaskTab, self).setupUi(tab_content)
@@ -72,19 +71,15 @@ class GenerateROIMaskTab(MainTab, Ui_GenerateROIMaskTabContent):
 
     @pyqtSlot()
     def view_mask(self):
-        controller = QtController()
-        main = MapsVisualizerWindow(controller)
-        center_window(main)
-        main.show()
-
         data = DataInfo({'Original mask': nib.load(self.selectedMaskText.text()).get_data(),
                          'Slice mask': nib.load(self.selectedOutputFileText.text()).get_data()})
+        data.directory = os.path.dirname(self.selectedMaskText.text())
+
         config = ValidatedMapPlotConfig()
         config.dimension = self.dimensionInput.value()
         config.slice_index = self.sliceInput.value()
-        controller.set_data(data, config)
 
-        self._viewers_open.append(main)
+        start_gui(data=data, config=config, app_exec=False)
 
     @pyqtSlot()
     def generate_roi_mask(self):
