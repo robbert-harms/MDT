@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>995</width>
+    <width>963</width>
     <height>704</height>
    </rect>
   </property>
@@ -42,7 +42,7 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>993</width>
+        <width>961</width>
         <height>702</height>
        </rect>
       </property>
@@ -646,6 +646,27 @@
                 <enum>QAbstractItemView::MultiSelection</enum>
                </property>
               </widget>
+             </item>
+             <item row="1" column="0">
+              <layout class="QHBoxLayout" name="horizontalLayout">
+               <property name="bottomMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QPushButton" name="general_deselect_all_maps">
+                 <property name="text">
+                  <string>Deselect all</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="general_invert_map_selection">
+                 <property name="text">
+                  <string>Invert selection</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </item>
             </layout>
            </widget>

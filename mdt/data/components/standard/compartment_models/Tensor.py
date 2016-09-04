@@ -24,7 +24,14 @@ class Tensor(CompartmentConfig):
                                                                          results_dict[self.name + '.dperp0'],
                                                                          results_dict[self.name + '.dperp1']]], axis=1))
 
+        if len(eigen_values.shape) < 2:
+            # in the case of a single voxel, the eigen values collapses to a 1d array, but we need it to be 2d
+            eigen_values = eigen_values[None, :]
+
         ranking = np.squeeze(np.argsort(eigen_values, axis=1)[:, ::-1])
+
+        if len(ranking.shape) < 2:
+            ranking = ranking[None, :]
 
         voxels_listing = np.arange(ranking.shape[0])
         sorted_eigen_values = [eigen_values[voxels_listing, ranking[:, ind]] for ind in range(ranking.shape[1])]

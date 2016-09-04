@@ -82,7 +82,7 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         new_dir = QFileDialog(self).getExistingDirectory(caption='Select a folder', directory=initial_dir)
         if new_dir:
             data = DataInfo.from_dir(new_dir)
-            start_gui(data)
+            start_gui(data, app_exec=False)
 
     @pyqtSlot(tuple, tuple, dict)
     def _update_viewed_images(self, additions, removals, updates):

@@ -46,6 +46,9 @@ class TabGeneral(QWidget, Ui_TabGeneral):
             lambda i: self._controller.apply_action(SetRotate(int(self.general_rotate.itemText(i)))))
         self.general_map_selection.itemSelectionChanged.connect(self._update_maps_to_show)
 
+        self.general_deselect_all_maps.clicked.connect(self._deleselect_all_maps)
+        self.general_invert_map_selection.clicked.connect(self._invert_map_selection)
+
         self.general_zoom_x_0.valueChanged.connect(lambda v: self._controller.apply_action(SetZoom(
             Zoom(Point(v, self._controller.get_config().zoom.p0.y),
                  self._controller.get_config().zoom.p1))))
@@ -191,6 +194,15 @@ class TabGeneral(QWidget, Ui_TabGeneral):
                     map_names.remove(map_name)
 
         self._controller.apply_action(SetMapsToShow(map_names))
+
+    @pyqtSlot()
+    def _deleselect_all_maps(self):
+        self._controller.apply_action(SetMapsToShow([]))
+
+    @pyqtSlot()
+    def _invert_map_selection(self):
+        self._controller.apply_action(SetMapsToShow(
+            set(self._controller.get_data().maps.keys()).difference(set(self._controller.get_config().maps_to_show))))
 
     @staticmethod
     def _insert_alphabetically(new_item, item_list):

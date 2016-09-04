@@ -1,5 +1,5 @@
 import glob
-
+import warnings
 import numpy as np
 import yaml
 
@@ -9,6 +9,7 @@ from mdt.visualization.dict_conversion import StringConversion, \
     SimpleClassConversion, IntConversion, SimpleListConversion, BooleanConversion, \
     ConvertDictElements, ConvertDynamicFromModule, FloatConversion
 from mdt.visualization.layouts import Rectangular
+import matplotlib.font_manager
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-09-02"
@@ -334,9 +335,13 @@ class Font(object):
         """Get the name of supported fonts
 
         Returns:
-            list of str: the name of the supported fonts.
+            list of str: the name of the supported fonts and font families.
         """
-        return list(sorted(['Arial', 'Times New Roman', 'sans-serif', 'Bitstream Vera Sans', 'serif']))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            fonts = matplotlib.font_manager.get_fontconfig_fonts()
+            names = [matplotlib.font_manager.FontProperties(fname=font_name).get_name() for font_name in fonts]
+        return list(sorted(['sans-serif', 'serif', 'cursive', 'fantasy', 'monospace'])) + list(sorted(names))
 
     @classmethod
     def get_conversion_info(cls):
@@ -459,6 +464,25 @@ class DataInfo(object):
                 return index
         return 0
 
+    def slice_has_data(self, dimension, slice_index, map_names=None):
+        """Check if at least one of the maps has non zero numbers on the given slice.
+
+        Args:
+            dimension (int): the dimension to search in
+            slice_index (int): the index of the slice in the given dimension
+            map_names (list of str): if given we will only scan the given list of maps
+
+        Returns:
+            bool: true if at least on of the maps has data in the given slice
+        """
+        map_names = map_names or self.maps.keys()
+        if not map_names:
+            raise ValueError('No maps to search in.')
+        for map_name in map_names:
+            if self.map_info[map_name].slice_has_data(dimension, slice_index):
+                return True
+        return False
+
     def get_max_x(self, dimension, rotate, map_names=None):
         """Get the maximum x index supported over the images.
 
@@ -528,6 +552,20 @@ class SingleMapInfo(object):
             int: the maximum slice index in the given dimension.
         """
         return self.value.shape[dimension] - 1
+
+    def slice_has_data(self, dimension, slice_index):
+        """Check if this map has non zero values in the given slice index.
+
+        Args:
+            dimension (int): the dimension we want the slice index of (maximum 3)
+            slice_index (int): the slice index to look in
+
+        Returns:
+            int: the maximum slice index in the given dimension.
+        """
+        slice_indexing = [slice(None)] * (self.max_dimension() + 1)
+        slice_indexing[dimension] = slice_index
+        return np.count_nonzero(self.value[slice_indexing])
 
     def max_volume_index(self):
         """Get the maximum volume index in this map.

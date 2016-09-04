@@ -20,5 +20,6 @@ A diffusion toolkit for parallelized sampling and optimization of diffusion data
 Features
 ========
 
-* TODO
+Ubuntu / Debian installation:
+sudo apt-get install libpng-dev libfreetype6-dev
 

@@ -60,7 +60,7 @@ class ValidatedMapPlotConfig(MapPlotConfig):
         if self.maps_to_show:
             self.maps_to_show = [key for key in self.maps_to_show if key in data_info.maps]
         else:
-            self.maps_to_show = data_info.sorted_keys
+            self.maps_to_show = []
 
     def _validate_rotate(self, data_info):
         if self.rotate not in [0, 90, 180, 270]:
@@ -84,13 +84,20 @@ class ValidatedMapPlotConfig(MapPlotConfig):
 
     def _validate_slice_index(self, data_info):
         try:
+            first_non_zero = data_info.get_index_first_non_zero_slice(self.dimension, self.maps_to_show)
+            max_slice_index = data_info.get_max_slice_index(self.dimension, self.maps_to_show)
+
+            default_slice = first_non_zero
+            if first_non_zero < 0.1 * max_slice_index and data_info.slice_has_data(self.dimension,
+                                                                                   max_slice_index // 2):
+                default_slice = max_slice_index // 2
+
             if self.slice_index is None:
-                self.slice_index = data_info.get_index_first_non_zero_slice(self.dimension, self.maps_to_show)
+                self.slice_index = default_slice
             else:
                 self.slice_index = cast_value(self.slice_index, int, 0)
-                max_slice_index = data_info.get_max_slice_index(self.dimension, self.maps_to_show)
                 if self.slice_index > max_slice_index:
-                    self.slice_index = data_info.get_index_first_non_zero_slice(self.dimension, self.maps_to_show)
+                    self.slice_index = default_slice
         except ValueError:
             self.slice_index = 0
 

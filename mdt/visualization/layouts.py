@@ -112,6 +112,9 @@ class Rectangular(GridLayout):
         if cols is None:
             cols = int(np.ceil(nmr_plots / rows))
 
+        if rows * cols < nmr_plots:
+            cols = int(np.ceil(nmr_plots / rows))
+
         return GridLayoutSpecifier(GridSpec(rows, cols, **self._spacings), figure)
 
     def __eq__(self, other):

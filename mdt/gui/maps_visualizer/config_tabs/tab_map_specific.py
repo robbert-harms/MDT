@@ -77,7 +77,7 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         self.setupUi(self)
         self._controller = controller
         self._current_map = None
-        self.colormap.addItems(['<disable>'] + sorted(matplotlib.cm.datad))
+        self.colormap.addItems(['-- Use global --'] + sorted(matplotlib.cm.datad))
         self.map_title.textChanged.connect(self._update_map_title)
         self.colormap.currentIndexChanged.connect(self._update_colormap)
         self.data_clipping_min.valueChanged.connect(self._update_clipping_min)

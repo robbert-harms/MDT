@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_TabGeneral(object):
     def setupUi(self, TabGeneral):
         TabGeneral.setObjectName("TabGeneral")
-        TabGeneral.resize(995, 704)
+        TabGeneral.resize(963, 704)
         self.gridLayout = QtWidgets.QGridLayout(TabGeneral)
         self.gridLayout.setContentsMargins(0, 0, 0, 0)
         self.gridLayout.setSpacing(0)
@@ -21,7 +21,7 @@ class Ui_TabGeneral(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setObjectName("scrollArea")
         self.scrollAreaWidgetContents = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 993, 702))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 961, 702))
         self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
         self.gridLayout_6 = QtWidgets.QGridLayout(self.scrollAreaWidgetContents)
         self.gridLayout_6.setContentsMargins(6, 6, 6, 6)
@@ -299,6 +299,16 @@ class Ui_TabGeneral(object):
         self.general_map_selection.setSelectionMode(QtWidgets.QAbstractItemView.MultiSelection)
         self.general_map_selection.setObjectName("general_map_selection")
         self.gridLayout_5.addWidget(self.general_map_selection, 0, 0, 1, 1)
+        self.horizontalLayout = QtWidgets.QHBoxLayout()
+        self.horizontalLayout.setContentsMargins(-1, -1, -1, 0)
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.general_deselect_all_maps = QtWidgets.QPushButton(self.frame_7)
+        self.general_deselect_all_maps.setObjectName("general_deselect_all_maps")
+        self.horizontalLayout.addWidget(self.general_deselect_all_maps)
+        self.general_invert_map_selection = QtWidgets.QPushButton(self.frame_7)
+        self.general_invert_map_selection.setObjectName("general_invert_map_selection")
+        self.horizontalLayout.addWidget(self.general_invert_map_selection)
+        self.gridLayout_5.addLayout(self.horizontalLayout, 1, 0, 1, 1)
         self.verticalLayout_6.addWidget(self.frame_7)
         self.gridLayout_6.addWidget(self.frame_6, 2, 0, 1, 1)
         spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
@@ -347,5 +357,7 @@ class Ui_TabGeneral(object):
         self.label_5.setText(_translate("TabGeneral", "Colorbar nmr ticks:"))
         self.label_22.setText(_translate("TabGeneral", "Display order"))
         self.label_21.setText(_translate("TabGeneral", "Map selection"))
+        self.general_deselect_all_maps.setText(_translate("TabGeneral", "Deselect all"))
+        self.general_invert_map_selection.setText(_translate("TabGeneral", "Invert selection"))
 
 from ..widgets import CollapsablePanel, CollapsablePanelContent, CollapsablePanelHeader, MapsReorderer
