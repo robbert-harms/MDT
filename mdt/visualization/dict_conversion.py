@@ -132,6 +132,12 @@ class IntConversion(IdentityConversion):
         super(IntConversion, self).__init__(int)
 
 
+class FloatConversion(IdentityConversion):
+
+    def __init__(self):
+        super(FloatConversion, self).__init__(float)
+
+
 class SimpleListConversion(IdentityConversion):
     pass
 

@@ -53,13 +53,11 @@ class SetMapTitle(SimpleMapSpecificConfigAction):
 class SetMapScale(SimpleMapSpecificConfigAction):
 
     config_attribute = 'scale'
-    use_update = True
 
 
 class SetMapClipping(SimpleMapSpecificConfigAction):
 
     config_attribute = 'clipping'
-    use_update = True
 
 
 class SetMapColormap(SimpleMapSpecificConfigAction):

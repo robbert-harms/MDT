@@ -7,7 +7,7 @@ import mdt
 import mdt.visualization.layouts
 from mdt.visualization.dict_conversion import StringConversion, \
     SimpleClassConversion, IntConversion, SimpleListConversion, BooleanConversion, \
-    ConvertDictElements, ConvertDynamicFromModule
+    ConvertDictElements, ConvertDynamicFromModule, FloatConversion
 from mdt.visualization.layouts import Rectangular
 
 __author__ = 'Robbert Harms'
@@ -102,9 +102,9 @@ class MapPlotConfig(object):
 
 class SingleMapConfig(object):
 
-    def __init__(self, title=None, scale=None, clipping=None, colormap='hot'):
+    def __init__(self, title=None, scale=None, clipping=None, colormap=None):
         super(SingleMapConfig, self).__init__()
-        self.title = title
+        self.title = title or None
         self.scale = scale or Scale()
         self.clipping = clipping or Clipping()
         self.colormap = colormap
@@ -119,6 +119,20 @@ class SingleMapConfig(object):
                 'scale': Scale.get_conversion_info(),
                 'clipping': Clipping.get_conversion_info(),
                 'colormap': StringConversion()}
+
+    @classmethod
+    def from_yaml(cls, text):
+        return cls.get_conversion_info().from_dict(yaml.load(text))
+
+    @classmethod
+    def from_dict(cls, config_dict):
+        return cls.get_conversion_info().from_dict(config_dict)
+
+    def to_dict(self):
+        return self.get_conversion_info().to_dict(self)
+
+    def to_yaml(self):
+        return yaml.safe_dump(self.get_conversion_info().to_dict(self))
 
     def __repr__(self):
         return str(self.get_conversion_info().to_dict(self))
@@ -174,6 +188,18 @@ class Zoom(object):
     def __repr__(self):
         return str(self.get_conversion_info().to_dict(self))
 
+    def __eq__(self, other):
+        if not isinstance(other, Zoom):
+            return NotImplemented
+
+        for key, value in self.__dict__.items():
+            if value != getattr(other, key):
+                return False
+        return True
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
 
 class Point(object):
 
@@ -190,6 +216,18 @@ class Point(object):
     def _get_attribute_conversions(cls):
         return {'x': IntConversion(),
                 'y': IntConversion()}
+
+    def __eq__(self, other):
+        if not isinstance(other, Point):
+            return NotImplemented
+
+        for key, value in self.__dict__.items():
+            if value != getattr(other, key):
+                return False
+        return True
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
 
 class Clipping(object):
@@ -225,8 +263,20 @@ class Clipping(object):
 
     @classmethod
     def _get_attribute_conversions(cls):
-        return {'vmax': IntConversion(),
-                'vmin': IntConversion()}
+        return {'vmax': FloatConversion(),
+                'vmin': FloatConversion()}
+
+    def __eq__(self, other):
+        if not isinstance(other, Clipping):
+            return NotImplemented
+
+        for key, value in self.__dict__.items():
+            if value != getattr(other, key):
+                return False
+        return True
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
 
 class Scale(object):
@@ -242,8 +292,20 @@ class Scale(object):
 
     @classmethod
     def _get_attribute_conversions(cls):
-        return {'vmax': IntConversion(),
-                'vmin': IntConversion()}
+        return {'vmax': FloatConversion(),
+                'vmin': FloatConversion()}
+
+    def __eq__(self, other):
+        if not isinstance(other, Scale):
+            return NotImplemented
+
+        for key, value in self.__dict__.items():
+            if value != getattr(other, key):
+                return False
+        return True
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
 
 class Font(object):
@@ -284,6 +346,18 @@ class Font(object):
     def _get_attribute_conversions(cls):
         return {'family': StringConversion(),
                 'size': IntConversion()}
+
+    def __eq__(self, other):
+        if not isinstance(other, Font):
+            return NotImplemented
+
+        for key, value in self.__dict__.items():
+            if value != getattr(other, key):
+                return False
+        return True
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
 
 class DataInfo(object):

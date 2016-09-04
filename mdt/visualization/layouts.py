@@ -40,6 +40,9 @@ class GridLayout(object):
             return NotImplemented
         return isinstance(other, type(self))
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
 
 class GridLayoutSpecifier(object):
 

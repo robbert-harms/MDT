@@ -116,17 +116,10 @@
          <property name="verticalSpacing">
           <number>3</number>
          </property>
-         <item row="1" column="0">
-          <widget class="QLabel" name="label_10">
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_23">
            <property name="text">
-            <string>Scale:</string>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="0">
-          <widget class="QLabel" name="label_9">
-           <property name="text">
-            <string>Colormap:</string>
+            <string>Clipping:</string>
            </property>
           </widget>
          </item>
@@ -135,30 +128,53 @@
            <property name="spacing">
             <number>2</number>
            </property>
+           <property name="bottomMargin">
+            <number>4</number>
+           </property>
            <item>
-            <widget class="QDoubleSpinBox" name="data_scale_max">
+            <widget class="ScientificDoubleSpinBox" name="data_scale_max">
              <property name="minimum">
-              <double>-999999.989999999990687</double>
+              <double>-9999999999.989999771118164</double>
              </property>
              <property name="maximum">
-              <double>999999.989999999990687</double>
+              <double>9999999999.989999771118164</double>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QDoubleSpinBox" name="data_scale_min">
+            <widget class="ScientificDoubleSpinBox" name="data_scale_min">
              <property name="specialValueText">
               <string/>
              </property>
              <property name="minimum">
-              <double>-999999.989999999990687</double>
+              <double>-9999999999.989999771118164</double>
              </property>
              <property name="maximum">
-              <double>999999.989999999990687</double>
+              <double>9999999999.989999771118164</double>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="data_set_use_scale">
+             <property name="text">
+              <string>Use scaling</string>
              </property>
             </widget>
            </item>
           </layout>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_9">
+           <property name="text">
+            <string>Colormap:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QComboBox" name="colormap"/>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLineEdit" name="map_title"/>
          </item>
          <item row="0" column="0">
           <widget class="QLabel" name="label_21">
@@ -167,45 +183,49 @@
            </property>
           </widget>
          </item>
-         <item row="3" column="1">
-          <widget class="QComboBox" name="colormap"/>
-         </item>
-         <item row="2" column="0">
-          <widget class="QLabel" name="label_23">
-           <property name="text">
-            <string>Clipping:</string>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="1">
-          <widget class="QLineEdit" name="map_title"/>
-         </item>
          <item row="2" column="1">
           <layout class="QVBoxLayout" name="verticalLayout_2">
            <property name="spacing">
             <number>2</number>
            </property>
+           <property name="bottomMargin">
+            <number>4</number>
+           </property>
            <item>
-            <widget class="QDoubleSpinBox" name="data_clipping_max">
+            <widget class="ScientificDoubleSpinBox" name="data_clipping_max">
              <property name="minimum">
-              <double>-999999.989999999990687</double>
+              <double>-9999999999.989999771118164</double>
              </property>
              <property name="maximum">
-              <double>999999.989999999990687</double>
+              <double>9999999999.989999771118164</double>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QDoubleSpinBox" name="data_clipping_min">
+            <widget class="ScientificDoubleSpinBox" name="data_clipping_min">
              <property name="minimum">
-              <double>-999999.989999999990687</double>
+              <double>-9999999999.989999771118164</double>
              </property>
              <property name="maximum">
-              <double>999999.989999999990687</double>
+              <double>9999999999.989999771118164</double>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="data_set_use_clipping">
+             <property name="text">
+              <string>Use clipping</string>
              </property>
             </widget>
            </item>
           </layout>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_10">
+           <property name="text">
+            <string>Scale:</string>
+           </property>
+          </widget>
          </item>
         </layout>
        </widget>
@@ -355,13 +375,20 @@
    <header>..widgets</header>
    <container>1</container>
   </customwidget>
+  <customwidget>
+   <class>ScientificDoubleSpinBox</class>
+   <extends>QDoubleSpinBox</extends>
+   <header>..widgets</header>
+  </customwidget>
  </customwidgets>
  <tabstops>
   <tabstop>map_title</tabstop>
   <tabstop>data_scale_max</tabstop>
   <tabstop>data_scale_min</tabstop>
+  <tabstop>data_set_use_scale</tabstop>
   <tabstop>data_clipping_max</tabstop>
   <tabstop>data_clipping_min</tabstop>
+  <tabstop>data_set_use_clipping</tabstop>
   <tabstop>colormap</tabstop>
  </tabstops>
  <resources/>
