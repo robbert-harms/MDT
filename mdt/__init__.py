@@ -276,6 +276,8 @@ def view_maps(data, config=None, preselect_maps=True, auto_slice_selection=True,
         data = DataInfo.from_dir(data)
     elif isinstance(data, dict):
         data = DataInfo(data)
+    elif data is None:
+        data = DataInfo({})
 
     if config is None:
         config = ValidatedMapPlotConfig()
@@ -288,13 +290,14 @@ def view_maps(data, config=None, preselect_maps=True, auto_slice_selection=True,
         config.maps_to_show = results_preselection_names(data.maps)
 
     if not config.slice_index and auto_slice_selection:
-        first_non_zero = data.get_index_first_non_zero_slice(config.dimension, config.maps_to_show)
-        max_slice_index = data.get_max_slice_index(config.dimension, config.maps_to_show)
+        if config.maps_to_show:
+            first_non_zero = data.get_index_first_non_zero_slice(config.dimension, config.maps_to_show)
+            max_slice_index = data.get_max_slice_index(config.dimension, config.maps_to_show)
 
-        default_slice = first_non_zero
-        if first_non_zero < 0.1 * max_slice_index and data.slice_has_data(config.dimension, max_slice_index // 2):
-            default_slice = max_slice_index // 2
-        config.slice_index = default_slice
+            default_slice = first_non_zero
+            if first_non_zero < 0.1 * max_slice_index and data.slice_has_data(config.dimension, max_slice_index // 2):
+                default_slice = max_slice_index // 2
+            config.slice_index = default_slice
 
     if to_file:
         figure_options = {}
