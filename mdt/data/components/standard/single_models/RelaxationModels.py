@@ -13,9 +13,15 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class S0TM(DMRISingleModelConfig):
 
     name = 'S0-TM'
-    description = 'Model for the Mixing time.'
+    description = 'Full STEAM model for T1 decay by variation in mixing time. T2 contained in S0'
     model_expression = 'S0 * ExpT1DecTM'
-    #upper_bounds = {'T1.T1': 0.5}
+
+
+class S0T2Steam(DMRISingleModelConfig):
+
+    name = 'S0-T2steam'
+    description = 'Full STEAM model for T2 decay by variation in echo time. T1 contained in S0'
+    model_expression = 'S0 * ExpT2DecSTEAM'
 
 
 class S0T2(DMRISingleModelConfig):
@@ -100,9 +106,9 @@ class GRE_Relax(DMRISingleModelConfig):
                     'S0.s0': 1e4}
 
 
-class STEAM_Relax(DMRISingleModelConfig):
+class rSTEAM(DMRISingleModelConfig):
 
-    name = 'STEAM_Relax'
+    name = 'rSTEAM'
     description = 'Model for estimating T1 and T2 from data with a variable TM and TE.'
     model_expression = 'S0 * ExpT1ExpT2STEAM'
     inits = {'ExpT1ExpT2STEAM.T2': 0.03,

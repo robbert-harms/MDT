@@ -16,7 +16,7 @@ class ExpT1ExpT2STEAM(CompartmentConfig):
 
     (1) For SE data, the original equation contains only the first refocusing pulse variable, but half of this value
         and in the power of two (sin(Refoc_fa1/2)**2). For that it is needed to define Refoc_fa2 = Refoc_fa1 and
-        Refoc_fa1 has to be HALF of the used FA in the protocol. Also, the 0.5 factor is not included,
+        Refoc_fa1 has to be HALF of the used FA in the protocol (then, also Refoc_fa2). Also, the 0.5 factor is not included,
         then SEf (Spin echo flag) should be 0. Finally, TM (mixing time) has to be 0.
     (2) For STE data, this equation is used totally. Just SEf = 1.
     """
