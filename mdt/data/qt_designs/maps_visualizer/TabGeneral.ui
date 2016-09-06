@@ -306,6 +306,9 @@
              <property name="verticalSpacing">
               <number>3</number>
              </property>
+             <item row="1" column="3">
+              <widget class="QSpinBox" name="general_zoom_x_1"/>
+             </item>
              <item row="7" column="0">
               <widget class="QLabel" name="label_19">
                <property name="text">
@@ -333,6 +336,9 @@
                </property>
               </widget>
              </item>
+             <item row="7" column="1">
+              <widget class="QSpinBox" name="general_zoom_y_0"/>
+             </item>
              <item row="1" column="2">
               <widget class="QLabel" name="label_12">
                <property name="text">
@@ -340,11 +346,19 @@
                </property>
               </widget>
              </item>
-             <item row="7" column="1">
-              <widget class="QSpinBox" name="general_zoom_y_0"/>
+             <item row="8" column="1">
+              <widget class="QPushButton" name="general_zoom_fit">
+               <property name="text">
+                <string>Zoom fit</string>
+               </property>
+              </widget>
              </item>
-             <item row="1" column="3">
-              <widget class="QSpinBox" name="general_zoom_x_1"/>
+             <item row="8" column="3">
+              <widget class="QPushButton" name="general_zoom_reset">
+               <property name="text">
+                <string>Reset</string>
+               </property>
+              </widget>
              </item>
             </layout>
            </widget>

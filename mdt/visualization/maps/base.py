@@ -2,14 +2,13 @@ import glob
 import warnings
 import numpy as np
 import yaml
-
+import matplotlib.font_manager
 import mdt
 import mdt.visualization.layouts
 from mdt.visualization.dict_conversion import StringConversion, \
     SimpleClassConversion, IntConversion, SimpleListConversion, BooleanConversion, \
     ConvertDictElements, ConvertDynamicFromModule, FloatConversion
 from mdt.visualization.layouts import Rectangular
-import matplotlib.font_manager
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-09-02"
@@ -19,7 +18,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class MapPlotConfig(object):
 
-    def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=90, colormap='hot', maps_to_show=(),
+    def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=270, colormap='hot', maps_to_show=(),
                  font=None, grid_layout=None, colorbar_nmr_ticks=10, show_axis=True, zoom=None,
                  map_plot_options=None):
         """Container for all plot related settings.
@@ -157,11 +156,15 @@ class Zoom(object):
         """Container for zooming a map between the two given points.
 
         Args:
-            p0 (Point): the upper left corner of the zoomed area
-            p1 (Point): the lower right corner of the zoomed area
+            p0 (Point): the lower left corner of the zoomed area
+            p1 (Point): the upper right corner of the zoomed area
         """
         self.p0 = p0
         self.p1 = p1
+
+    @classmethod
+    def no_zoom(cls):
+        return cls(Point(0, 0), Point(0, 0))
 
     @classmethod
     def get_conversion_info(cls):
@@ -185,6 +188,24 @@ class Zoom(object):
         if correct:
             return data[self.p0.y:self.p1.y, self.p0.x:self.p1.x]
         return data
+    #
+    # def rotate(self, rotate, max_x, max_y):
+    #todo
+    #     """Rotate this zoom box around a 90 degree angle.
+    #
+    #     Args:
+    #         rotate (int): the angle around which to rotate, one of 0, 90, 180, 270.
+    #         max_x (int): the (not rotated) maximum x index
+    #         max_y (int): the (not rotated) maximum y index
+    #
+    #     Returns:
+    #         Zoom: the rotated zoom box
+    #     """
+    #     # if rotate == 90:
+    #     #     return Zoom(Point(self.p0.y, self.p1.x).rotate(rotate, max_x, max_y),
+    #     #                 Point(self.p1.y, self.p0.x).rotate(rotate, max_x, max_y))
+    #
+    #     return self
 
     def __repr__(self):
         return str(self.get_conversion_info().to_dict(self))
@@ -217,6 +238,40 @@ class Point(object):
     def _get_attribute_conversions(cls):
         return {'x': IntConversion(),
                 'y': IntConversion()}
+
+    def rotate(self, rotate, max_x, max_y):
+        """Rotate this point around a 90 degree angle.
+
+        Args:
+            rotate (int): the angle around which to rotate, one of 0, 90, 180, 270.
+            max_x (int): the (not rotated) maximum x index
+            max_y (int): the (not rotated) maximum y index
+
+        Returns:
+            Point: the rotated point
+        """
+        return Point(*self._rotate_coordinate(self.x, self.y, rotate, max_x, max_y))
+
+    def _rotate_coordinate(self, x, y, rotate, max_x, max_y):
+        rx = x
+        ry = y
+
+        current_max_x, current_max_y = np.roll([max_x, max_y], rotate // 90)
+
+        if rotate == 90:
+            rx = current_max_y - y
+            ry = x
+        elif rotate == 180:
+            rx = current_max_x - x
+            ry = current_max_y - y
+        elif rotate == 270:
+            rx = y
+            ry = current_max_x - x
+
+        return rx, ry
+
+    def __repr__(self):
+        return 'Point(x={}, y={})'.format(self.x, self.y)
 
     def __eq__(self, other):
         if not isinstance(other, Point):
@@ -483,7 +538,7 @@ class DataInfo(object):
                 return True
         return False
 
-    def get_max_x(self, dimension, rotate, map_names=None):
+    def get_max_x(self, dimension, rotate=0, map_names=None):
         """Get the maximum x index supported over the images.
 
         In essence this gets the lowest x index found.
@@ -501,7 +556,7 @@ class DataInfo(object):
             raise ValueError('No maps to search in.')
         return min(self.map_info[map_name].get_max_x(dimension, rotate) for map_name in map_names)
 
-    def get_max_y(self, dimension, rotate, map_names=None):
+    def get_max_y(self, dimension, rotate=0, map_names=None):
         """Get the maximum y index supported over the images.
 
         In essence this gets the lowest y index found.
@@ -519,18 +574,45 @@ class DataInfo(object):
             raise ValueError('No maps to search in.')
         return min(self.map_info[map_name].get_max_y(dimension, rotate) for map_name in map_names)
 
+    def get_bounding_box(self, dimension, slice_index, volume_index, rotate, map_names=None):
+        """Get the bounding box of the images.
+
+        Args:
+            dimension (int): the dimension to search in
+            slice_index (int): the slice index in that dimension
+            volume_index (int): the current volume index
+            rotate (int): the angle by which to rotate the image before getting the bounding box
+            map_names (list of str): if given we will only scan the given list of maps
+
+        Returns:
+            tuple of Point: two point designating first the upper left corner and second the lower right corner of the
+                bounding box.
+        """
+        map_names = map_names or self.maps.keys()
+        if not map_names:
+            raise ValueError('No maps to search in.')
+        bounding_boxes = [self.map_info[map_name].get_bounding_box(dimension, slice_index, volume_index, rotate)
+                          for map_name in map_names]
+
+        p0x = min([bbox[0].x for bbox in bounding_boxes])
+        p0y = min([bbox[0].y for bbox in bounding_boxes])
+        p1x = max([bbox[1].x for bbox in bounding_boxes])
+        p1y = max([bbox[1].y for bbox in bounding_boxes])
+
+        return Point(p0x, p0y), Point(p1x, p1y)
+
 
 class SingleMapInfo(object):
 
-    def __init__(self, map_name, value):
+    def __init__(self, map_name, data):
         """Holds information about a single map.
 
         Args:
             map_name (str): the name of the map
-            value (ndarray): the value of the map
+            data (ndarray): the value of the map
         """
         self.map_name = map_name
-        self.value = value
+        self.data = data
 
     def max_dimension(self):
         """Get the maximum dimension index in this map.
@@ -540,7 +622,7 @@ class SingleMapInfo(object):
         Returns:
             int: in the range 0, 1, 2
         """
-        return min(len(self.value.shape), 3) - 1
+        return min(len(self.data.shape), 3) - 1
 
     def max_slice_index(self, dimension):
         """Get the maximum slice index on the given dimension.
@@ -551,7 +633,7 @@ class SingleMapInfo(object):
         Returns:
             int: the maximum slice index in the given dimension.
         """
-        return self.value.shape[dimension] - 1
+        return self.data.shape[dimension] - 1
 
     def slice_has_data(self, dimension, slice_index):
         """Check if this map has non zero values in the given slice index.
@@ -565,7 +647,7 @@ class SingleMapInfo(object):
         """
         slice_indexing = [slice(None)] * (self.max_dimension() + 1)
         slice_indexing[dimension] = slice_index
-        return np.count_nonzero(self.value[slice_indexing])
+        return np.count_nonzero(self.data[slice_indexing])
 
     def max_volume_index(self):
         """Get the maximum volume index in this map.
@@ -575,8 +657,8 @@ class SingleMapInfo(object):
         Returns:
             int: the maximum volume index.
         """
-        if len(self.value.shape) > 3:
-            return self.value.shape[3] - 1
+        if len(self.data.shape) > 3:
+            return self.data.shape[3] - 1
         return 0
 
     def get_index_first_non_zero_slice(self, dimension):
@@ -589,13 +671,13 @@ class SingleMapInfo(object):
             int: the slice index with the first non zero values.
         """
         slice_index = [slice(None)] * (self.max_dimension() + 1)
-        for index in range(self.value.shape[dimension]):
+        for index in range(self.data.shape[dimension]):
             slice_index[dimension] = index
-            if np.count_nonzero(self.value[slice_index]) > 0:
+            if np.count_nonzero(self.data[slice_index]) > 0:
                 return index
         return 0
 
-    def get_max_x(self, dimension, rotate):
+    def get_max_x(self, dimension, rotate=0):
         """Get the maximum x index.
 
         Args:
@@ -605,13 +687,13 @@ class SingleMapInfo(object):
         Returns:
             int: the maximum x index
         """
-        shape = list(self.value.shape)[0:3]
+        shape = list(self.data.shape)[0:3]
         del shape[dimension]
         if rotate // 90 % 2 == 0:
             return max(0, shape[1] - 1)
         return max(0, shape[0] - 1)
 
-    def get_max_y(self, dimension, rotate):
+    def get_max_y(self, dimension, rotate=0):
         """Get the maximum y index.
 
         Args:
@@ -621,8 +703,56 @@ class SingleMapInfo(object):
         Returns:
             int: the maximum y index
         """
-        shape = list(self.value.shape)[0:3]
+        shape = list(self.data.shape)[0:3]
         del shape[dimension]
         if rotate // 90 % 2 == 0:
             return max(0, shape[0] - 1)
         return max(0, shape[1] - 1)
+
+    def get_bounding_box(self, dimension, slice_index, volume_index, rotate):
+        """Get the bounding box of this map when displayed using the given indicing.
+
+        Args:
+            dimension (int): the dimension to search in
+            slice_index (int): the slice index in that dimension
+            volume_index (int): the current volume index
+            rotate (int): the angle by which to rotate the image before getting the bounding box
+
+        Returns:
+            tuple of Point: two point designating first the upper left corner and second the lower right corner of the
+                bounding box.
+        """
+        def bbox(image):
+            rows = np.any(image, axis=1)
+            cols = np.any(image, axis=0)
+            row_min, row_max = np.where(rows)[0][[0, -1]]
+            column_min, column_max = np.where(cols)[0][[0, -1]]
+
+            return row_min, row_max, column_min, column_max
+
+        slice_indexing = [slice(None)] * (self.max_dimension() + 1)
+        slice_indexing[dimension] = slice_index
+
+        image = self.data[slice_indexing]
+
+        if len(image.shape) > 2:
+            if image.shape[2] > 1:
+                image = image[..., volume_index]
+            else:
+                image = image[..., 0]
+
+        if rotate:
+            image = np.rot90(image, rotate // 90)
+
+        row_min, row_max, column_min, column_max = bbox(image)
+
+        if column_min > 0:
+            column_min -= 1
+        if row_min > 0:
+            row_min -= 1
+        if column_max < self.get_max_x(dimension, rotate):
+            column_max += 1
+        if row_max < self.get_max_y(dimension, rotate):
+            row_max += 1
+
+        return Point(column_min, row_min), Point(column_max, row_max)

@@ -3,9 +3,11 @@ import hashlib
 import logging
 import os
 import shutil
+import timeit
 from contextlib import contextmanager
 
 import numpy as np
+import time
 from numpy.lib.format import open_memmap
 
 from mdt.IO import Nifti
@@ -144,6 +146,8 @@ class ChunksProcessingStrategy(SimpleProcessingStrategy):
 
     def run(self, model, problem_data, output_path, recalculate, worker_generator):
         """Compute all the slices using the implemented chunks generator"""
+        start_time = timeit.default_timer()
+
         with self._tmp_storage_dir(output_path, recalculate) as tmp_storage_dir:
             voxels_processed = 0
 
@@ -151,12 +155,12 @@ class ChunksProcessingStrategy(SimpleProcessingStrategy):
                                                     tmp_storage_dir, self._honor_voxels_to_analyze)
 
             total_roi_indices = worker.get_voxels_to_compute()
-
             if len(total_roi_indices):
                 for chunk_indices in self._chunks_generator(model, problem_data, output_path, worker,
                                                             total_roi_indices):
                     with self._selected_indices(model, chunk_indices):
-                        self._run_on_chunk(problem_data, worker, chunk_indices, total_roi_indices, voxels_processed)
+                        self._run_on_chunk(problem_data, worker, chunk_indices, total_roi_indices,
+                                           voxels_processed, start_time)
 
                     voxels_processed += len(chunk_indices)
 
@@ -173,15 +177,25 @@ class ChunksProcessingStrategy(SimpleProcessingStrategy):
         """
         raise NotImplementedError
 
-    def _run_on_chunk(self, problem_data, worker, voxel_indices, voxels_to_process, voxels_processed):
+    def _run_on_chunk(self, problem_data, worker, voxel_indices, voxels_to_process, voxels_processed, start_time):
         """Run the worker on the given chunk."""
         total_nmr_voxels = np.count_nonzero(problem_data.mask)
         total_processed = (total_nmr_voxels - len(voxels_to_process)) + voxels_processed
 
-        self._logger.info('Computations are at {0:.2%}, processing next {1} voxels '
-                          '({2} voxels in total, {3} processed).'.
-                          format(total_processed / total_nmr_voxels, len(voxel_indices), total_nmr_voxels,
-                                 total_processed))
+        run_time = timeit.default_timer() - start_time
+        current_percentage = total_processed / total_nmr_voxels
+        if current_percentage > 0:
+            remaining_time = (run_time / current_percentage) - run_time
+        else:
+            remaining_time = None
+
+        self._logger.info('Computations are at {0:.2%}, processing next {1} voxels ('
+                          '{2} voxels in total, {3} processed). Time spent: {4}, time left: {5} (h:m:s).'.
+                          format(total_processed / total_nmr_voxels, len(voxel_indices),
+                                 total_nmr_voxels,
+                                 total_processed,
+                                 time.strftime('%H:%M:%S', time.gmtime(run_time)),
+                                 time.strftime('%H:%M:%S', time.gmtime(remaining_time)) if remaining_time else '?'))
 
         worker.process(voxel_indices)
 

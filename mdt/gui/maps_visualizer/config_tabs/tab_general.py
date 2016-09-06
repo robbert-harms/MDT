@@ -61,6 +61,8 @@ class TabGeneral(QWidget, Ui_TabGeneral):
         self.general_zoom_y_1.valueChanged.connect(lambda v: self._controller.apply_action(SetZoom(
             Zoom(self._controller.get_config().zoom.p0,
                  Point(self._controller.get_config().zoom.p1.x, v)))))
+        self.general_zoom_reset.clicked.connect(lambda: self._controller.apply_action(SetZoom(Zoom.no_zoom())))
+        self.general_zoom_fit.clicked.connect(self._zoom_fit)
 
         self.general_display_order.items_reordered.connect(self._reorder_maps)
         self.general_show_axis.clicked.connect(lambda: self._controller.apply_action(
@@ -83,34 +85,37 @@ class TabGeneral(QWidget, Ui_TabGeneral):
         map_names = config.maps_to_show
 
         with blocked_signals(self.general_dimension):
-            try:
-                max_dimension = data_info.get_max_dimension(map_names)
-                self.general_dimension.setMaximum(max_dimension)
-                self.maximumDimension.setText(str(max_dimension))
-            except ValueError:
-                self.general_dimension.setMaximum(0)
-                self.maximumDimension.setText(str(0))
-            self.general_dimension.setValue(config.dimension)
+            if map_names:
+                try:
+                    max_dimension = data_info.get_max_dimension(map_names)
+                    self.general_dimension.setMaximum(max_dimension)
+                    self.maximumDimension.setText(str(max_dimension))
+                except ValueError:
+                    self.general_dimension.setMaximum(0)
+                    self.maximumDimension.setText(str(0))
+                self.general_dimension.setValue(config.dimension)
 
         with blocked_signals(self.general_slice_index):
-            try:
-                max_slice = data_info.get_max_slice_index(config.dimension, map_names)
-                self.general_slice_index.setMaximum(max_slice)
-                self.maximumIndex.setText(str(max_slice))
-            except ValueError:
-                self.general_slice_index.setMaximum(0)
-                self.maximumIndex.setText(str(0))
-            self.general_slice_index.setValue(config.slice_index)
+            if map_names:
+                try:
+                    max_slice = data_info.get_max_slice_index(config.dimension, map_names)
+                    self.general_slice_index.setMaximum(max_slice)
+                    self.maximumIndex.setText(str(max_slice))
+                except ValueError:
+                    self.general_slice_index.setMaximum(0)
+                    self.maximumIndex.setText(str(0))
+                self.general_slice_index.setValue(config.slice_index)
 
         with blocked_signals(self.general_volume_index):
-            try:
-                max_volume = data_info.get_max_volume_index(map_names)
-                self.general_volume_index.setMaximum(max_volume)
-                self.maximumVolume.setText(str(max_volume))
-            except ValueError:
-                self.general_volume_index.setMaximum(0)
-                self.maximumVolume.setText(str(0))
-            self.general_volume_index.setValue(config.volume_index)
+            if map_names:
+                try:
+                    max_volume = data_info.get_max_volume_index(map_names)
+                    self.general_volume_index.setMaximum(max_volume)
+                    self.maximumVolume.setText(str(max_volume))
+                except ValueError:
+                    self.general_volume_index.setMaximum(0)
+                    self.maximumVolume.setText(str(0))
+                self.general_volume_index.setValue(config.volume_index)
 
         with blocked_signals(self.general_colormap):
             self.general_colormap.setCurrentText(config.colormap)
@@ -203,6 +208,14 @@ class TabGeneral(QWidget, Ui_TabGeneral):
     def _invert_map_selection(self):
         self._controller.apply_action(SetMapsToShow(
             set(self._controller.get_data().maps.keys()).difference(set(self._controller.get_config().maps_to_show))))
+
+    @pyqtSlot()
+    def _zoom_fit(self):
+        data_info = self._controller.get_data()
+        config = self._controller.get_config()
+        bounding_box = data_info.get_bounding_box(config.dimension, config.slice_index,
+                                                  config.volume_index, config.rotate, config.maps_to_show)
+        self._controller.apply_action(SetZoom(Zoom(*bounding_box)))
 
     @staticmethod
     def _insert_alphabetically(new_item, item_list):

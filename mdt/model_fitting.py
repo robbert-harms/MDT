@@ -130,7 +130,10 @@ class BatchFitting(object):
 
         run_func = _BatchFitRunner(self._models_to_fit, self._recalculate, self._cascade_subdir,
                                    self._cl_device_ind, self._double_precision, self._tmp_results_dir)
-        list(map(run_func, self._subjects))
+        for ind, subject in enumerate(self._subjects):
+            self._logger.info('Going to process subject {}, ({} of {}, we are at {:.2%})'.format(
+                subject.subject_id, ind + 1, len(self._subjects), ind / len(self._subjects)))
+            run_func(subject)
 
         return self._subjects
 
@@ -152,7 +155,7 @@ class _BatchFitRunner(object):
         This is a module level function to allow for python multiprocessing to work.
 
         Args:
-            batch_instance (dict): contains the items: 'subject', 'config', 'output_dir'
+            subject_info (SubjectInfo): the subject information
         """
         output_dir = subject_info.output_dir
 

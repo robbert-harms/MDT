@@ -52,7 +52,7 @@ class Ui_MapSpecificOptions(object):
         self.label_23.setObjectName("label_23")
         self.gridLayout_3.addWidget(self.label_23, 2, 0, 1, 1)
         self.verticalLayout = QtWidgets.QVBoxLayout()
-        self.verticalLayout.setContentsMargins(-1, -1, -1, 4)
+        self.verticalLayout.setContentsMargins(-1, 4, -1, 4)
         self.verticalLayout.setSpacing(2)
         self.verticalLayout.setObjectName("verticalLayout")
         self.data_scale_max = ScientificDoubleSpinBox(self.frame_4)

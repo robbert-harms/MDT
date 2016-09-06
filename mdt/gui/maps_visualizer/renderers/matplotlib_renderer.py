@@ -1,4 +1,7 @@
 import matplotlib
+import numpy as np
+from matplotlib import patches
+
 matplotlib.use('Qt5Agg')
 
 from PyQt5.QtCore import QTimer
@@ -24,7 +27,7 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
 
         self.figure = Figure()
         self.visualizer = MapsVisualizer(self._controller.get_data(), self.figure)
-        self.visualizer.render(self._controller.get_config())
+        self._axes_data = self.visualizer.render(self._controller.get_config())
 
         self.canvas = FigureCanvas(self.figure)
         self.canvas.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
@@ -44,11 +47,8 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
         self._timer.timeout.connect(self._timer_event)
         self._timer.timeout.connect(self._timer.stop)
 
-        # todo mouse event handling, think of the rotations and other image transf
-        # self.vis._figure.canvas.mpl_connect('motion_notify_event', self._mouse_event)
-    #
-    # def _mouse_event(self, event):
-    #     print(event)
+        self._mouse_interaction = MouseInteraction(self.figure)
+        self._mouse_interaction.update_axes_data(self._axes_data)
 
     def export_image(self, filename, width, height, dpi=100):
         width_inch = width / dpi
@@ -74,13 +74,49 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
         self._timer.start(300)
 
     def _redraw(self):
-        width = self.width()
-        height = self.height()
-
         self.figure.clf()
 
-        self.visualizer.render(self._controller.get_config())
+        self._axes_data = self.visualizer.render(self._controller.get_config())
+        self._mouse_interaction.update_axes_data(self._axes_data)
 
-        self.canvas.resize(width, height - 1)
-        self.canvas.resize(width, height)
+        self.figure.canvas.draw()
 
+
+class MouseInteraction(object):
+
+    def __init__(self, figure):
+        self.figure = figure
+        self._axes_data = []
+        self.figure.canvas.mpl_connect('button_release_event', self._button_released)
+
+    def update_axes_data(self, axes_data):
+        """Set the updated axes data. Needs to be called if the axes are updated.
+
+        Args:
+            axes_data (list of AxisData): the information about the axes
+        """
+        self._axes_data = axes_data
+
+    def _button_released(self, event):
+        axis_data = self._get_matching_axis_data(event.inaxes)
+        if axis_data:
+            x, y = int(np.round(event.xdata)), int(np.round(event.ydata))
+            index = axis_data.coordinates_to_index(x, y)
+            value = axis_data.get_value(index)
+            # todo show in box
+            print(x, y, index, value)
+
+    def _get_matching_axis_data(self, axis):
+        """Get the axis data matching the given axis.
+
+        Args:
+            Axis: the matplotlib axis to match
+
+        Returns:
+            AxisData: our data container for that axis
+        """
+        if axis:
+            for axes_data in self._axes_data:
+                if axes_data.axis == axis:
+                    return axes_data
+        return None

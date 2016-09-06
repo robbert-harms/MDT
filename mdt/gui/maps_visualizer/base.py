@@ -73,43 +73,46 @@ class ValidatedMapPlotConfig(MapPlotConfig):
             self.colormap = 'hot'
 
     def _validate_dimension(self, data_info):
-        if self.dimension is None:
-            self.dimension = 2
-        else:
-            self.dimension = cast_value(self.dimension, int, 0)
-            try:
-                self.dimension = min(self.dimension, data_info.get_max_dimension(self.maps_to_show))
-            except ValueError:
+        if self.maps_to_show:
+            if self.dimension is None:
                 self.dimension = 2
+            else:
+                self.dimension = cast_value(self.dimension, int, 0)
+                try:
+                    self.dimension = min(self.dimension, data_info.get_max_dimension(self.maps_to_show))
+                except ValueError:
+                    self.dimension = 2
 
     def _validate_slice_index(self, data_info):
-        try:
-            first_non_zero = data_info.get_index_first_non_zero_slice(self.dimension, self.maps_to_show)
-            max_slice_index = data_info.get_max_slice_index(self.dimension, self.maps_to_show)
+        if self.maps_to_show:
+            try:
+                first_non_zero = data_info.get_index_first_non_zero_slice(self.dimension, self.maps_to_show)
+                max_slice_index = data_info.get_max_slice_index(self.dimension, self.maps_to_show)
 
-            default_slice = first_non_zero
-            if first_non_zero < 0.1 * max_slice_index and data_info.slice_has_data(self.dimension,
-                                                                                   max_slice_index // 2):
-                default_slice = max_slice_index // 2
+                default_slice = first_non_zero
+                if first_non_zero < 0.1 * max_slice_index and data_info.slice_has_data(self.dimension,
+                                                                                       max_slice_index // 2):
+                    default_slice = max_slice_index // 2
 
-            if self.slice_index is None:
-                self.slice_index = default_slice
-            else:
-                self.slice_index = cast_value(self.slice_index, int, 0)
-                if self.slice_index > max_slice_index:
+                if self.slice_index is None:
                     self.slice_index = default_slice
-        except ValueError:
-            self.slice_index = 0
+                else:
+                    self.slice_index = cast_value(self.slice_index, int, 0)
+                    if self.slice_index > max_slice_index:
+                        self.slice_index = default_slice
+            except ValueError:
+                self.slice_index = 0
 
     def _validate_volume_index(self, data_info):
-        if self.volume_index is None:
-            self.volume_index = 0
-        else:
-            self.volume_index = cast_value(self.volume_index, int, 0)
-            try:
-                self.volume_index = min(self.volume_index, data_info.get_max_volume_index(self.maps_to_show))
-            except ValueError:
+        if self.maps_to_show:
+            if self.volume_index is None:
                 self.volume_index = 0
+            else:
+                self.volume_index = cast_value(self.volume_index, int, 0)
+                try:
+                    self.volume_index = min(self.volume_index, data_info.get_max_volume_index(self.maps_to_show))
+                except ValueError:
+                    self.volume_index = 0
 
     def _validate_zoom(self, data_info):
         p1x_val = self.zoom.p1.x
@@ -160,7 +163,7 @@ class ConfigAction(object):
         """Allows apply and unapply of configuration changes."""
         self._previous_config = None
 
-    def apply(self, configuration):
+    def apply(self, data_info, configuration):
         """Apply the changes to the given configuration and return a new one.
 
         This should return a new configuration with the applied changes and should not update the given configuration.
@@ -168,6 +171,7 @@ class ConfigAction(object):
         By default this method calls _apply(configuration) to facilitate quick implementation.
 
         Args:
+            data_info (DataInfo): the current data information
             configuration (DisplayConfiguration): the configuration object
 
         Returns:
@@ -175,7 +179,7 @@ class ConfigAction(object):
         """
         self._previous_config = configuration
         new_config = copy.deepcopy(configuration)
-        updated_new_config = self._apply(new_config)
+        updated_new_config = self._apply(data_info, new_config)
         if updated_new_config:
             return updated_new_config
         return new_config
@@ -188,13 +192,14 @@ class ConfigAction(object):
         """
         return self._previous_config
 
-    def _apply(self, configuration):
+    def _apply(self, data_info, configuration):
         """Facilitates quick implementation, called by apply()
 
         One can set configuration changes immediately to the given configuration. If nothing is returned we
         will use the given configuration as the new configuration.
 
         Args:
+            data_info (DataInfo): the current data information
             configuration (ValidatedMapPlotConfig): the configuration object
 
         Returns:
@@ -212,11 +217,11 @@ class SimpleConfigAction(ConfigAction):
         super(SimpleConfigAction, self).__init__()
         self.new_value = new_value
 
-    def _apply(self, configuration):
+    def _apply(self, data_info, configuration):
         setattr(configuration, self.config_attribute, self.new_value)
-        return self._extra_actions(configuration)
+        return self._extra_actions(data_info, configuration)
 
-    def _extra_actions(self, configuration):
+    def _extra_actions(self, data_info, configuration):
         """Called by the default configuration action to apply additional changes"""
         return configuration
 
@@ -229,10 +234,11 @@ class SimpleMapSpecificConfigAction(SimpleConfigAction):
         super(SimpleMapSpecificConfigAction, self).__init__(new_value)
         self.map_name = map_name
 
-    def _apply(self, configuration):
+    def _apply(self, data_info, configuration):
         if self.map_name not in configuration.map_plot_options:
             configuration.map_plot_options[self.map_name] = ValidatedSingleMapConfig()
         single_map_config = super(SimpleMapSpecificConfigAction, self)._apply(
+            data_info,
             configuration.map_plot_options[self.map_name])
 
         if single_map_config is None:
@@ -240,8 +246,8 @@ class SimpleMapSpecificConfigAction(SimpleConfigAction):
 
         return configuration
 
-    def _extra_actions(self, configuration):
-        single_map_config = super(SimpleMapSpecificConfigAction, self)._extra_actions(configuration)
+    def _extra_actions(self, data_info, configuration):
+        single_map_config = super(SimpleMapSpecificConfigAction, self)._extra_actions(data_info, configuration)
         if single_map_config == ValidatedSingleMapConfig():
             return None
         return single_map_config

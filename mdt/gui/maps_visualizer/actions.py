@@ -1,4 +1,4 @@
-from mdt.visualization.maps.base import Zoom, Point
+from mdt.visualization.maps.base import Zoom
 from .base import ConfigAction, SimpleConfigAction, SimpleMapSpecificConfigAction
 
 
@@ -6,9 +6,9 @@ class SetDimension(SimpleConfigAction):
 
     config_attribute = 'dimension'
 
-    def _extra_actions(self, configuration):
+    def _extra_actions(self, data_info, configuration):
         if self.new_value != self._previous_config.dimension:
-            return SetZoom(Zoom(Point(0, 0), Point(0, 0))).apply(configuration)
+            return SetZoom(Zoom.no_zoom()).apply(data_info, configuration)
 
 
 class SetSliceIndex(SimpleConfigAction):
@@ -35,9 +35,16 @@ class SetRotate(SimpleConfigAction):
 
     config_attribute = 'rotate'
 
-    def _extra_actions(self, configuration):
+    def _extra_actions(self, data_info, configuration):
         if self.new_value != self._previous_config.dimension:
-            return SetZoom(Zoom(Point(0, 0), Point(0, 0))).apply(configuration)
+            # new_zoom = self._previous_config.zoom.rotate(
+            #     self.new_value,
+            #     data_info.get_max_x(configuration.dimension, 0, configuration.maps_to_show),
+            #     data_info.get_max_y(configuration.dimension, 0, configuration.maps_to_show))
+
+            # return SetZoom(new_zoom).apply(data_info, configuration)
+            #todo
+            return SetZoom(Zoom.no_zoom()).apply(data_info, configuration)
 
 
 class SetZoom(SimpleConfigAction):

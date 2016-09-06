@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from mdt import get_slice_in_dimension
-from mdt.visualization.maps.base import Clipping, Scale
+from mdt.visualization.maps.base import Clipping, Scale, Point
 from mdt.visualization.utils import MyColourBarTickLocator
 
 __author__ = 'Robbert Harms'
@@ -21,8 +21,14 @@ class MapsVisualizer(object):
         self._figure = figure
 
     def render(self, plot_config):
-        """Render all the maps to the figure. This is for use in GUI embedded situations."""
-        Renderer(self._data_info, self._figure, plot_config).render()
+        """Render all the maps to the figure. This is for use in GUI embedded situations.
+
+        Returns:
+            list of AxisData: the list with the drawn axes and the accompanying data
+        """
+        renderer = Renderer(self._data_info, self._figure, plot_config)
+        renderer.render()
+        return renderer.image_axes
 
     def to_file(self, file_name, plot_config, **kwargs):
         """Renders the figures to the given filename."""
@@ -58,6 +64,68 @@ class MapsVisualizer(object):
             plt.show(True)
 
 
+class AxisData(object):
+
+    def __init__(self, axis, map_name, map_info, plot_config):
+        """Contains a reference to a drawn matpotlib axis and to the accompanying data.
+
+        Args:
+            axis (Axis): the matpotlib axis
+            map_name (str): the name/key of this map
+            map_info (SingleMapInfo): the map information
+            plot_config (MapPlotConfig): the map plot configuration
+        """
+        self.axis = axis
+        self.map_name = map_name
+        self._map_info = map_info
+        self._plot_config = plot_config
+
+    def coordinates_to_index(self, x, y):
+        """Converts data coordinates to index coordinates of the array.
+
+        Args:
+            x (int): The x-coordinate in data coordinates.
+            y (int): The y-coordinate in data coordinates.
+
+        Returns
+            x, y, z, v : Index coordinates of the map associated with the image.
+        """
+        rotate = self._plot_config.rotate
+        if not rotate:
+            rotate = 0
+
+        x += self._plot_config.zoom.p0.x
+        y += self._plot_config.zoom.p0.y
+
+        rotated = Point(x, y).rotate(rotate,
+                                     self._map_info.get_max_x(self._plot_config.dimension),
+                                     self._map_info.get_max_y(self._plot_config.dimension))
+
+        index = [rotated.x, rotated.y, 0]
+        index.insert(self._plot_config.dimension, self._plot_config.slice_index)
+
+        if len(self._map_info.data.shape) > 3:
+            if self._plot_config.volume_index < self._map_info.data.shape[3]:
+                index[3] = self._plot_config.volume_index
+
+        return index
+
+    def get_value(self, index):
+        """Get the value of this axis data at the given index.
+
+        Args:
+            index (tuple)): the 3d or 4d index to the map corresponding to this axis data (x, y, z, [v])
+
+        Returns:
+            float: the value at the given index.
+        """
+        return self._map_info.data[tuple(index)]
+
+    def _rotate_coordinate(self, x, y, rotate, max_x, max_y):
+        rotated = Point(x, y).rotate(rotate, max_x, max_y)
+        return rotated.x, rotated.y
+
+
 class Renderer(object):
 
     def __init__(self, data_info, figure, plot_config):
@@ -71,6 +139,7 @@ class Renderer(object):
         self._data_info = data_info
         self._figure = figure
         self._plot_config = plot_config
+        self.image_axes = []
 
     def render(self):
         """Render the maps"""
@@ -79,7 +148,8 @@ class Renderer(object):
 
         for ind, map_name in enumerate(self._plot_config.maps_to_show):
             axis = grid_layout_specifier.get_axis(ind)
-            self._render_map(map_name, axis)
+            axis_data = self._render_map(map_name, axis)
+            self.image_axes.append(axis_data)
 
     def _render_map(self, map_name, axis):
         axis.set_title(self._get_title(map_name))
@@ -92,6 +162,7 @@ class Renderer(object):
         data = self._plot_config.zoom.apply(data)
 
         plot_options = self._get_map_plot_options(map_name)
+        plot_options['origin'] = 'lower'
         vf = axis.imshow(data, **plot_options)
 
         divider = make_axes_locatable(axis)
@@ -99,6 +170,8 @@ class Renderer(object):
 
         self._add_colorbar(map_name, colorbar_axis, vf)
         self._apply_font(axis, colorbar_axis)
+
+        return AxisData(axis, map_name, self._data_info.map_info[map_name], self._plot_config)
 
     def _apply_font(self, image_axis, colorbar_axis):
         items = [image_axis.xaxis.label, image_axis.yaxis.label]

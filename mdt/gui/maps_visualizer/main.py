@@ -202,7 +202,7 @@ class QtController(Controller, QObject):
         return self._current_config
 
     def apply_action(self, action):
-        applied = self._apply_config(action.apply(self._current_config))
+        applied = self._apply_config(action.apply(self._data_info, self._current_config))
         if applied:
             self._actions_history.append(action)
             self._redoable_actions = []
@@ -218,7 +218,7 @@ class QtController(Controller, QObject):
     def redo(self):
         if len(self._redoable_actions):
             action = self._redoable_actions.pop()
-            self._apply_config(action.apply(self._current_config))
+            self._apply_config(action.apply(self._data_info, self._current_config))
             self._actions_history.append(action)
             self.new_config.emit(self._current_config)
 

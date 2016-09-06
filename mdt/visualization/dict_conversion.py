@@ -106,6 +106,10 @@ class IdentityConversion(ConversionSpecification):
         self._ignore_none = ignore_none
 
     def to_dict(self, obj):
+        if obj is None and self._ignore_none:
+            return obj
+        if self._desired_type:
+            return self._desired_type(obj)
         return obj
 
     def from_dict(self, value):
