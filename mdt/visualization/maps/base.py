@@ -239,8 +239,10 @@ class Point(object):
         return {'x': IntConversion(),
                 'y': IntConversion()}
 
-    def rotate(self, rotate, max_x, max_y):
-        """Rotate this point around a 90 degree angle.
+    def rotated(self, rotate, max_x, max_y):
+        """Rotate this point around a 90 degree angle and translate the results to a new origin.
+
+        This uses the given maximum (x, y) of the non-rotated 2d image to translate the results.
 
         Args:
             rotate (int): the angle around which to rotate, one of 0, 90, 180, 270.
@@ -253,21 +255,10 @@ class Point(object):
         return Point(*self._rotate_coordinate(self.x, self.y, rotate, max_x, max_y))
 
     def _rotate_coordinate(self, x, y, rotate, max_x, max_y):
-        rx = x
-        ry = y
-
-        current_max_x, current_max_y = np.roll([max_x, max_y], rotate // 90)
-
-        if rotate == 90:
-            rx = current_max_y - y
-            ry = x
-        elif rotate == 180:
-            rx = current_max_x - x
-            ry = current_max_y - y
-        elif rotate == 270:
-            rx = y
-            ry = current_max_x - x
-
+        rx, ry = x, y
+        for rotation in range(1, rotate // 90 + 1):
+            current_max_x, current_max_y = np.roll([max_x, max_y], rotation)
+            rx, ry = current_max_y - ry, rx
         return rx, ry
 
     def __repr__(self):

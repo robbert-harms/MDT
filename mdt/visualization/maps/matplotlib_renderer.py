@@ -97,9 +97,9 @@ class AxisData(object):
         x += self._plot_config.zoom.p0.x
         y += self._plot_config.zoom.p0.y
 
-        rotated = Point(x, y).rotate(rotate,
-                                     self._map_info.get_max_x(self._plot_config.dimension),
-                                     self._map_info.get_max_y(self._plot_config.dimension))
+        rotated = Point(x, y).rotated(rotate,
+                                      self._map_info.get_max_x(self._plot_config.dimension),
+                                      self._map_info.get_max_y(self._plot_config.dimension))
 
         index = [rotated.x, rotated.y, 0]
         index.insert(self._plot_config.dimension, self._plot_config.slice_index)
@@ -120,10 +120,6 @@ class AxisData(object):
             float: the value at the given index.
         """
         return self._map_info.data[tuple(index)]
-
-    def _rotate_coordinate(self, x, y, rotate, max_x, max_y):
-        rotated = Point(x, y).rotate(rotate, max_x, max_y)
-        return rotated.x, rotated.y
 
 
 class Renderer(object):
