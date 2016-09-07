@@ -63,7 +63,7 @@
         <number>0</number>
        </property>
        <property name="verticalSpacing">
-        <number>8</number>
+        <number>10</number>
        </property>
        <item row="0" column="0">
         <widget class="CollapsablePanel" name="frame">
@@ -479,7 +479,14 @@
               </widget>
              </item>
              <item row="3" column="1">
-              <widget class="QSpinBox" name="general_colorbar_nmr_ticks"/>
+              <widget class="QSpinBox" name="general_colorbar_nmr_ticks">
+               <property name="minimum">
+                <number>2</number>
+               </property>
+               <property name="value">
+                <number>10</number>
+               </property>
+              </widget>
              </item>
             </layout>
            </widget>

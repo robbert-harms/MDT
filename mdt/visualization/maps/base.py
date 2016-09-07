@@ -18,7 +18,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class MapPlotConfig(object):
 
-    def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=270, colormap='hot', maps_to_show=(),
+    def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=90, colormap='hot', maps_to_show=(),
                  font=None, grid_layout=None, colorbar_nmr_ticks=10, show_axis=True, zoom=None,
                  map_plot_options=None):
         """Container for all plot related settings.
@@ -102,12 +102,13 @@ class MapPlotConfig(object):
 
 class SingleMapConfig(object):
 
-    def __init__(self, title=None, scale=None, clipping=None, colormap=None):
+    def __init__(self, title=None, scale=None, clipping=None, colormap=None, colorbar_label=None):
         super(SingleMapConfig, self).__init__()
-        self.title = title or None
+        self.title = title
         self.scale = scale or Scale()
         self.clipping = clipping or Clipping()
         self.colormap = colormap
+        self.colorbar_label = colorbar_label
 
     @classmethod
     def get_conversion_info(cls):
@@ -118,7 +119,8 @@ class SingleMapConfig(object):
         return {'title': StringConversion(),
                 'scale': Scale.get_conversion_info(),
                 'clipping': Clipping.get_conversion_info(),
-                'colormap': StringConversion()}
+                'colormap': StringConversion(),
+                'colorbar_label': StringConversion()}
 
     @classmethod
     def from_yaml(cls, text):
@@ -239,25 +241,24 @@ class Point(object):
         return {'x': IntConversion(),
                 'y': IntConversion()}
 
-    def rotated(self, rotate, max_x, max_y):
+    def rotated(self, rotate, shape):
         """Rotate this point around a 90 degree angle and translate the results to a new origin.
 
         This uses the given maximum (x, y) of the non-rotated 2d image to translate the results.
 
         Args:
             rotate (int): the angle around which to rotate, one of 0, 90, 180, 270.
-            max_x (int): the (not rotated) maximum x index
-            max_y (int): the (not rotated) maximum y index
+            shape (tuple): the shape of the complete area, (max_x, max_y)
 
         Returns:
             Point: the rotated point
         """
-        return Point(*self._rotate_coordinate(self.x, self.y, rotate, max_x, max_y))
+        return Point(*self._rotate_coordinate(self.x, self.y, rotate, shape))
 
-    def _rotate_coordinate(self, x, y, rotate, max_x, max_y):
+    def _rotate_coordinate(self, x, y, rotate, shape):
         rx, ry = x, y
         for rotation in range(1, rotate // 90 + 1):
-            current_max_x, current_max_y = np.roll([max_x, max_y], rotation)
+            current_max_x, current_max_y = np.roll(shape, rotation)
             rx, ry = current_max_y - ry, rx
         return rx, ry
 
@@ -279,10 +280,12 @@ class Point(object):
 
 class Clipping(object):
 
-    def __init__(self, vmin=None, vmax=None):
+    def __init__(self, vmin=0, vmax=0, use_min=False, use_max=False):
         """Container for the map clipping information"""
         self.vmin = vmin
         self.vmax = vmax
+        self.use_min = use_min
+        self.use_max = use_max
 
     def apply(self, data):
         """Apply the clipping to the given 2d array and return the new array.
@@ -290,19 +293,31 @@ class Clipping(object):
         Args:
            data (ndarray): the data to clip
         """
-        if self.vmax is not None or self.vmin is not None:
-            clipping_min = self.vmin
-            if self.vmin is None:
-                clipping_min = data.min()
+        if self.use_max or self.use_min:
+            clipping_min = data.min()
+            if self.use_min:
+                clipping_min = self.vmin
 
-            clipping_max = self.vmax
-            if self.vmax is None:
-                clipping_max = data.max()
+            clipping_max = data.max()
+            if self.use_max:
+                clipping_max = self.vmax
 
-            if clipping_min or clipping_max:
-                return np.clip(data, clipping_min, clipping_max)
+            return np.clip(data, clipping_min, clipping_max)
 
         return data
+
+    def get_updated(self, **kwargs):
+        """Get a new Clipping object with updated arguments.
+
+        Args:
+            **kwargs (dict): the new keyword values, when given these take precedence over the current ones.
+
+        Returns:
+            Clipping: a new scale with updated values.
+        """
+        new_values = dict(vmin=self.vmin, vmax=self.vmax, use_min=self.use_min, use_max=self.use_max)
+        new_values.update(**kwargs)
+        return Clipping(**new_values)
 
     @classmethod
     def get_conversion_info(cls):
@@ -310,8 +325,10 @@ class Clipping(object):
 
     @classmethod
     def _get_attribute_conversions(cls):
-        return {'vmax': FloatConversion(),
-                'vmin': FloatConversion()}
+        return {'vmax': FloatConversion(allow_null=False),
+                'vmin': FloatConversion(allow_null=False),
+                'use_min': BooleanConversion(allow_null=False),
+                'use_max': BooleanConversion(allow_null=False)}
 
     def __eq__(self, other):
         if not isinstance(other, Clipping):
@@ -328,10 +345,12 @@ class Clipping(object):
 
 class Scale(object):
 
-    def __init__(self, vmin=None, vmax=None):
+    def __init__(self, vmin=0, vmax=0, use_min=False, use_max=False):
         """Container the map scaling information"""
         self.vmin = vmin
         self.vmax = vmax
+        self.use_min = use_min
+        self.use_max = use_max
 
     @classmethod
     def get_conversion_info(cls):
@@ -339,8 +358,23 @@ class Scale(object):
 
     @classmethod
     def _get_attribute_conversions(cls):
-        return {'vmax': FloatConversion(),
-                'vmin': FloatConversion()}
+        return {'vmax': FloatConversion(allow_null=False),
+                'vmin': FloatConversion(allow_null=False),
+                'use_min': BooleanConversion(allow_null=False),
+                'use_max': BooleanConversion(allow_null=False)}
+
+    def get_updated(self, **kwargs):
+        """Get a new Scale object with updated arguments.
+
+        Args:
+            **kwargs (dict): the new keyword values, when given these take precedence over the current ones.
+
+        Returns:
+            Scale: a new scale with updated values.
+        """
+        new_values = dict(vmin=self.vmin, vmax=self.vmax, use_min=self.use_min, use_max=self.use_max)
+        new_values.update(**kwargs)
+        return Scale(**new_values)
 
     def __eq__(self, other):
         if not isinstance(other, Scale):
@@ -699,6 +733,20 @@ class SingleMapInfo(object):
         if rotate // 90 % 2 == 0:
             return max(0, shape[0] - 1)
         return max(0, shape[1] - 1)
+
+    def get_size_in_dimension(self, dimension, rotate=0):
+        """Get the shape of the 2d view on the data in the given dimension.
+
+        This basically returns a pair of (max_x, max_y).
+
+        Args:
+            dimension (int): the dimension to search in
+            rotate (int): the value by which to rotate the slices in the given dimension
+
+        Returns:
+            tuple: (max_x, max_y)
+        """
+        return self.get_max_x(dimension, rotate), self.get_max_y(dimension, rotate)
 
     def get_bounding_box(self, dimension, slice_index, volume_index, rotate):
         """Get the bounding box of this map when displayed using the given indicing.

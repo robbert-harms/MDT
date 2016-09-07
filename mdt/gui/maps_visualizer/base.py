@@ -11,6 +11,17 @@ class PlottingFrame(object):
         super(PlottingFrame, self).__init__()
         self._controller = controller
 
+    def set_auto_rendering(self, auto_render):
+        """Set if this plotting frame should auto render itself on every configuration update, or not.
+
+        Args:
+            auto_render (boolean): if True the plotting frame should auto render, if False it should only
+                render on manual updates.
+        """
+
+    def redraw(self):
+        """Tell the plotting frame to do a redraw."""
+
     def export_image(self, filename, width, height, dpi=100):
         """Export the current view as an image.
 

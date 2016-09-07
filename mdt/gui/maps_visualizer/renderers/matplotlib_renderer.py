@@ -1,6 +1,5 @@
 import matplotlib
 import numpy as np
-from matplotlib import patches
 
 matplotlib.use('Qt5Agg')
 
@@ -14,7 +13,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 from mdt.gui.maps_visualizer.base import PlottingFrame, ValidatedMapPlotConfig
-from mdt.visualization.maps.base import MapPlotConfig, DataInfo
+from mdt.visualization.maps.base import DataInfo
 
 
 class MatplotlibPlotting(PlottingFrame, QWidget):
@@ -24,6 +23,8 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
 
         self._controller.new_data.connect(self.set_new_data)
         self._controller.new_config.connect(self.set_new_config)
+
+        self._auto_render = True
 
         self.figure = Figure()
         self.visualizer = MapsVisualizer(self._controller.get_data(), self.figure)
@@ -58,7 +59,13 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
         visualizer = MapsVisualizer(self._controller.get_data(), figure)
         FigureCanvas(figure)
 
-        visualizer.to_file(filename, MapPlotConfig.from_dict(self._controller.get_config()), dpi=dpi)
+        visualizer.to_file(filename, self._controller.get_config(), dpi=dpi)
+
+    def set_auto_rendering(self, auto_render):
+        self._auto_render = auto_render
+
+    def redraw(self):
+        self._redraw()
 
     @pyqtSlot()
     def _timer_event(self):
@@ -71,7 +78,8 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
 
     @pyqtSlot(ValidatedMapPlotConfig)
     def set_new_config(self, configuration):
-        self._timer.start(300)
+        if self._auto_render:
+            self._timer.start(300)
 
     def _redraw(self):
         self.figure.clf()

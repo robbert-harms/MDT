@@ -14,7 +14,7 @@ class GridLayout(object):
 
     def __init__(self):
         super(GridLayout, self).__init__()
-        self._spacings = dict(left=0.06, right=0.92, top=0.97, bottom=0.04, wspace=0.5)
+        self._spacings = dict(left=0.06, right=0.90, top=0.97, bottom=0.04, wspace=0.5)
 
     @classmethod
     def get_conversion_info(cls):

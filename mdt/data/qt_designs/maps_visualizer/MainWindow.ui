@@ -64,7 +64,7 @@
           <enum>Qt::Horizontal</enum>
          </property>
          <widget class="QWidget" name="verticalLayoutWidget">
-          <layout class="QVBoxLayout" name="verticalLayout" stretch="0">
+          <layout class="QVBoxLayout" name="verticalLayout" stretch="1,0">
            <property name="spacing">
             <number>0</number>
            </property>
@@ -164,6 +164,92 @@
               </layout>
              </widget>
             </widget>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout">
+             <property name="spacing">
+              <number>16</number>
+             </property>
+             <property name="topMargin">
+              <number>6</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <spacer name="horizontalSpacer">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_2">
+               <property name="spacing">
+                <number>4</number>
+               </property>
+               <property name="rightMargin">
+                <number>0</number>
+               </property>
+               <property name="bottomMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QLabel" name="label">
+                 <property name="text">
+                  <string>Auto render:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QRadioButton" name="auto_render_off">
+                 <property name="text">
+                  <string>Off</string>
+                 </property>
+                 <attribute name="buttonGroup">
+                  <string notr="true">auto_render_buttons</string>
+                 </attribute>
+                </widget>
+               </item>
+               <item>
+                <widget class="QRadioButton" name="auto_render_on">
+                 <property name="text">
+                  <string>On</string>
+                 </property>
+                 <attribute name="buttonGroup">
+                  <string notr="true">auto_render_buttons</string>
+                 </attribute>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <widget class="QPushButton" name="manual_render">
+               <property name="text">
+                <string>Manual render</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_2">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
            </item>
           </layout>
          </widget>
@@ -289,4 +375,7 @@
    </hints>
   </connection>
  </connections>
+ <buttongroups>
+  <buttongroup name="auto_render_buttons"/>
+ </buttongroups>
 </ui>

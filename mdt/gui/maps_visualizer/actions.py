@@ -57,6 +57,11 @@ class SetMapTitle(SimpleMapSpecificConfigAction):
     config_attribute = 'title'
 
 
+class SetMapColorbarLabel(SimpleMapSpecificConfigAction):
+
+    config_attribute = 'colorbar_label'
+
+
 class SetMapScale(SimpleMapSpecificConfigAction):
 
     config_attribute = 'scale'
@@ -78,7 +83,7 @@ class NewConfigAction(ConfigAction):
         super(NewConfigAction, self).__init__()
         self.new_config = new_config
 
-    def apply(self, configuration):
+    def apply(self, data_info, configuration):
         self._previous_config = configuration
         return self.new_config
 

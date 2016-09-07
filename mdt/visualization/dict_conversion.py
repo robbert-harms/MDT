@@ -94,16 +94,16 @@ class ConvertDynamicFromModule(ConversionSpecification):
 
 class IdentityConversion(ConversionSpecification):
 
-    def __init__(self, desired_type=None, ignore_none=True):
+    def __init__(self, desired_type=None, allow_null=True):
         """Performs identity conversion between simple types.
 
         Args:
             desired_type (type): if not None we cast the from_dict value to the given type
-            ignore_none (bool): if True we ignore None during type casting
+            allow_null (bool): if True we allow None during type casting
         """
         super(IdentityConversion, self).__init__()
         self._desired_type = desired_type
-        self._ignore_none = ignore_none
+        self._ignore_none = allow_null
 
     def to_dict(self, obj):
         if obj is None and self._ignore_none:
@@ -122,8 +122,8 @@ class IdentityConversion(ConversionSpecification):
 
 class StringConversion(IdentityConversion):
 
-    def __init__(self):
-        super(StringConversion, self).__init__(str)
+    def __init__(self, allow_null=True):
+        super(StringConversion, self).__init__(str, allow_null=allow_null)
 
 
 class SimpleDictConversion(IdentityConversion):
@@ -132,21 +132,23 @@ class SimpleDictConversion(IdentityConversion):
 
 class IntConversion(IdentityConversion):
 
-    def __init__(self):
-        super(IntConversion, self).__init__(int)
+    def __init__(self, allow_null=True):
+        super(IntConversion, self).__init__(int, allow_null=allow_null)
 
 
 class FloatConversion(IdentityConversion):
 
-    def __init__(self):
-        super(FloatConversion, self).__init__(float)
+    def __init__(self, allow_null=True):
+        super(FloatConversion, self).__init__(float, allow_null=allow_null)
 
 
 class SimpleListConversion(IdentityConversion):
-    pass
+
+    def __init__(self, allow_null=True):
+        super(SimpleListConversion, self).__init__(list, allow_null=allow_null)
 
 
 class BooleanConversion(IdentityConversion):
 
-    def __init__(self):
-        super(BooleanConversion, self).__init__(bool)
+    def __init__(self, allow_null=True):
+        super(BooleanConversion, self).__init__(bool, allow_null=allow_null)

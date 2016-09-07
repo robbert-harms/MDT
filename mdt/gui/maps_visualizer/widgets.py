@@ -1,6 +1,7 @@
 import re
 
 from PyQt5.QtCore import QEvent
+from PyQt5.QtCore import QObject
 from PyQt5.QtCore import QTimer
 from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtCore import pyqtSignal
@@ -51,18 +52,46 @@ class TextConfigEditor(QPlainTextEdit):
 
     def __init__(self, *args):
         super(TextConfigEditor, self).__init__(*args)
-        self.textChanged.connect(self._timed_update)
-        self._timer = QTimer()
-        self._timer.timeout.connect(self._timer_event)
-        self._timer.timeout.connect(self._timer.stop)
-
-    @pyqtSlot()
-    def _timed_update(self):
-        self._timer.start(400)
+        self._timer = TimedUpdate(self._timer_event)
+        self.textChanged.connect(lambda: self._timer.add_delayed_callback(400))
 
     @pyqtSlot()
     def _timer_event(self):
         self.new_config.emit(self.toPlainText())
+
+
+class TimedUpdate(QTimer):
+
+    def __init__(self, update_cb):
+        """Creates a timer that can delay running a given callback function.
+
+        Every time the user adds a delayed callback the timer gets reset to the new value and we will
+        wait that new value until calling the callback with the last data given.
+
+        Args:
+            update_cb (function): the function we would like to run after a timer has run out
+        """
+        super(TimedUpdate, self).__init__()
+        self._cb_values = []
+        self._update_cb = update_cb
+        self.timeout.connect(self._call_update_cb)
+        self.timeout.connect(self.stop)
+
+    def add_delayed_callback(self, delay, *cb_values):
+        """Pushes a new delay to calling the callback function.
+
+        Args:
+            delay (int): the time in ms to wait
+            cb_values (*list): the list of values to use as arguments to the callback function. Leave empty to disable.
+        """
+        self._cb_values = cb_values
+        self.start(delay)
+
+    def _call_update_cb(self):
+        if self._cb_values:
+            self._update_cb(*self._cb_values)
+        else:
+            self._update_cb()
 
 
 class MapsReorderer(QListWidget):

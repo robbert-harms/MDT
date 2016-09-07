@@ -2,10 +2,12 @@ import matplotlib
 from PyQt5.QtCore import pyqtSlot, Qt
 from PyQt5.QtWidgets import QWidget
 
-from mdt.gui.maps_visualizer.actions import SetMapTitle, SetMapColormap, SetMapScale, SetMapClipping
+from mdt.gui.maps_visualizer.actions import SetMapTitle, SetMapColormap, SetMapScale, SetMapClipping, \
+    SetMapColorbarLabel
 from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig, ValidatedSingleMapConfig
 from mdt.gui.maps_visualizer.design.ui_MapSpecificOptions import Ui_MapSpecificOptions
 from mdt.gui.maps_visualizer.design.ui_TabMapSpecific import Ui_TabMapSpecific
+from mdt.gui.maps_visualizer.widgets import TimedUpdate
 from mdt.gui.utils import blocked_signals
 from mdt.visualization.maps.base import DataInfo, Scale, Clipping
 
@@ -78,14 +80,25 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         self._controller = controller
         self._current_map = None
         self.colormap.addItems(['-- Use global --'] + sorted(matplotlib.cm.datad))
-        self.map_title.textChanged.connect(self._update_map_title)
         self.colormap.currentIndexChanged.connect(self._update_colormap)
         self.data_clipping_min.valueChanged.connect(self._update_clipping_min)
         self.data_clipping_max.valueChanged.connect(self._update_clipping_max)
         self.data_scale_min.valueChanged.connect(self._update_scale_min)
         self.data_scale_max.valueChanged.connect(self._update_scale_max)
+
         self.data_set_use_scale.stateChanged.connect(self._set_use_scale)
+        self.use_data_scale_min.stateChanged.connect(self._set_use_data_scale_min)
+        self.use_data_scale_max.stateChanged.connect(self._set_use_data_scale_max)
+
         self.data_set_use_clipping.stateChanged.connect(self._set_use_clipping)
+        self.use_data_clipping_min.stateChanged.connect(self._set_use_data_clipping_min)
+        self.use_data_clipping_max.stateChanged.connect(self._set_use_data_clipping_max)
+
+        self._title_timer = TimedUpdate(self._update_map_title)
+        self.map_title.textChanged.connect(lambda v: self._title_timer.add_delayed_callback(500, v))
+
+        self._colorbar_label_timer = TimedUpdate(self._update_colorbar_label)
+        self.data_colorbar_label.textChanged.connect(lambda v: self._colorbar_label_timer.add_delayed_callback(500, v))
 
     def reset(self):
         """Set all the values to their defaults"""
@@ -95,10 +108,32 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         with blocked_signals(self.map_title):
             self.map_title.setText('')
 
-        self.data_clipping_min.setValue(0)
-        self.data_clipping_max.setValue(0)
-        self.data_scale_min.setValue(0)
-        self.data_scale_max.setValue(0)
+        with blocked_signals(self.data_colorbar_label):
+            self.data_colorbar_label.setText('')
+
+        with blocked_signals(self.data_clipping_min):
+            self.data_clipping_min.setValue(0)
+
+        with blocked_signals(self.data_clipping_max):
+            self.data_clipping_max.setValue(0)
+
+        with blocked_signals(self.data_scale_min):
+            self.data_scale_min.setValue(0)
+
+        with blocked_signals(self.data_scale_max):
+            self.data_scale_max.setValue(0)
+
+        with blocked_signals(self.use_data_clipping_min):
+            self.use_data_clipping_min.setChecked(False)
+
+        with blocked_signals(self.use_data_clipping_max):
+            self.use_data_clipping_max.setChecked(False)
+
+        with blocked_signals(self.use_data_scale_min):
+            self.use_data_scale_min.setChecked(False)
+
+        with blocked_signals(self.use_data_scale_max):
+            self.use_data_scale_max.setChecked(False)
 
         self.info_file_location.setText('-')
         self.info_maximum.setText('-')
@@ -120,6 +155,9 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         with blocked_signals(self.map_title):
             self.map_title.setText(map_info.title if map_info.title else '')
 
+        with blocked_signals(self.data_colorbar_label):
+            self.data_colorbar_label.setText(map_info.colorbar_label if map_info.colorbar_label else '')
+
         with blocked_signals(self.colormap):
             if map_info.colormap is None:
                 self.colormap.setCurrentIndex(0)
@@ -127,22 +165,34 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
                 self.colormap.setCurrentText(map_info.colormap)
 
         with blocked_signals(self.data_clipping_min):
-            self.data_clipping_min.setValue(map_info.clipping.vmin if map_info.clipping.vmin is not None else vmin)
+            self.data_clipping_min.setValue(map_info.clipping.vmin)
 
         with blocked_signals(self.data_clipping_max):
-            self.data_clipping_max.setValue(map_info.clipping.vmax if map_info.clipping.vmax is not None else vmax)
+            self.data_clipping_max.setValue(map_info.clipping.vmax)
 
         with blocked_signals(self.data_scale_min):
-            self.data_scale_min.setValue(map_info.scale.vmin if map_info.scale.vmin is not None else vmin)
+            self.data_scale_min.setValue(map_info.scale.vmin)
 
         with blocked_signals(self.data_scale_max):
-            self.data_scale_max.setValue(map_info.scale.vmax if map_info.scale.vmax is not None else vmax)
+            self.data_scale_max.setValue(map_info.scale.vmax)
 
         with blocked_signals(self.data_set_use_scale):
-            self.data_set_use_scale.setChecked(map_info.scale != Scale())
+            self.data_set_use_scale.setChecked(map_info.scale.use_min or map_info.scale.use_max)
 
         with blocked_signals(self.data_set_use_clipping):
-            self.data_set_use_clipping.setChecked(map_info.clipping != Clipping())
+            self.data_set_use_clipping.setChecked(map_info.clipping.use_min or map_info.clipping.use_max)
+
+        with blocked_signals(self.use_data_clipping_min):
+            self.use_data_clipping_min.setChecked(map_info.clipping.use_min)
+
+        with blocked_signals(self.use_data_clipping_max):
+            self.use_data_clipping_max.setChecked(map_info.clipping.use_max)
+
+        with blocked_signals(self.use_data_scale_min):
+            self.use_data_scale_min.setChecked(map_info.scale.use_min)
+
+        with blocked_signals(self.use_data_scale_max):
+            self.use_data_scale_max.setChecked(map_info.scale.use_max)
 
         map_filename = data_info.get_file_name(map_name)
         if map_filename:
@@ -163,6 +213,13 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
                 string = None
             self._controller.apply_action(SetMapTitle(self._current_map, string))
 
+    @pyqtSlot(str)
+    def _update_colorbar_label(self, string):
+        if self._current_map:
+            if string == '':
+                string = None
+            self._controller.apply_action(SetMapColorbarLabel(self._current_map, string))
+
     @pyqtSlot(int)
     def _update_colormap(self, index):
         if self._current_map:
@@ -174,39 +231,60 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
     @pyqtSlot(float)
     def _update_scale_min(self, value):
         if self._current_map:
-            current_scale = self._get_current_map_config().scale
-            new_scale = Scale(vmin=value, vmax=current_scale.vmax)
+            new_scale = self._get_current_map_config().scale.get_updated(vmin=value, use_min=True)
             self._controller.apply_action(SetMapScale(self._current_map, new_scale))
 
     @pyqtSlot(float)
     def _update_scale_max(self, value):
         if self._current_map:
-            current_scale = self._get_current_map_config().scale
-            new_scale = Scale(vmin=current_scale.vmin, vmax=value)
+            new_scale = self._get_current_map_config().scale.get_updated(vmax=value, use_max=True)
             self._controller.apply_action(SetMapScale(self._current_map, new_scale))
 
     @pyqtSlot(bool)
     def _set_use_scale(self, use_scale):
         if self._current_map:
-            if not use_scale:
-                self._controller.apply_action(SetMapScale(self._current_map, Scale()))
+            new_scale = self._get_current_map_config().scale.get_updated(use_min=use_scale, use_max=use_scale)
+            self._controller.apply_action(SetMapScale(self._current_map, new_scale))
+
+    @pyqtSlot(bool)
+    def _set_use_data_scale_min(self, use_scale):
+        if self._current_map:
+            new_scale = self._get_current_map_config().scale.get_updated(use_min=use_scale)
+            self._controller.apply_action(SetMapScale(self._current_map, new_scale))
+
+    @pyqtSlot(bool)
+    def _set_use_data_scale_max(self, use_scale):
+        if self._current_map:
+            new_scale = self._get_current_map_config().scale.get_updated(use_max=use_scale)
+            self._controller.apply_action(SetMapScale(self._current_map, new_scale))
 
     @pyqtSlot(float)
     def _update_clipping_min(self, value):
         if self._current_map:
-            current_clipping = self._get_current_map_config().clipping
-            new_clipping = Clipping(vmin=value, vmax=current_clipping.vmax)
+            new_clipping = self._get_current_map_config().clipping.get_updated(vmin=value, use_min=True)
             self._controller.apply_action(SetMapClipping(self._current_map, new_clipping))
 
     @pyqtSlot(float)
     def _update_clipping_max(self, value):
         if self._current_map:
-            current_clipping = self._get_current_map_config().clipping
-            new_clipping = Clipping(vmin=current_clipping.vmin, vmax=value)
+            new_clipping = self._get_current_map_config().clipping.get_updated(vmax=value, use_max=True)
             self._controller.apply_action(SetMapClipping(self._current_map, new_clipping))
 
     @pyqtSlot(bool)
     def _set_use_clipping(self, use_clipping):
         if self._current_map:
-            if not use_clipping:
-                self._controller.apply_action(SetMapClipping(self._current_map, Clipping()))
+            new_clipping = self._get_current_map_config().clipping.get_updated(use_min=use_clipping,
+                                                                               use_max=use_clipping)
+            self._controller.apply_action(SetMapClipping(self._current_map, new_clipping))
+
+    @pyqtSlot(bool)
+    def _set_use_data_clipping_min(self, use_clipping):
+        if self._current_map:
+            new_clipping = self._get_current_map_config().clipping.get_updated(use_min=use_clipping)
+            self._controller.apply_action(SetMapClipping(self._current_map, new_clipping))
+
+    @pyqtSlot(bool)
+    def _set_use_data_clipping_max(self, use_clipping):
+        if self._current_map:
+            new_clipping = self._get_current_map_config().clipping.get_updated(use_max=use_clipping)
+            self._controller.apply_action(SetMapClipping(self._current_map, new_clipping))

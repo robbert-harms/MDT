@@ -25,7 +25,10 @@ class MyColourBarTickLocator(LinearLocator):
             else:
                 new_locations.append(np.round(location, 2))
 
-        if np.isclose(new_locations[-1], self.max_val):
+        if np.isclose(new_locations[-1], self.max_val) or new_locations[-1] >= self.max_val:
             new_locations[-1] = self.max_val
+
+        if new_locations[0] <= self.min_val:
+            new_locations[0] = self.min_val
 
         return new_locations

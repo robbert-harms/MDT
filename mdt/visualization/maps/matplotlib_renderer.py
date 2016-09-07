@@ -94,12 +94,15 @@ class AxisData(object):
         if not rotate:
             rotate = 0
 
+        shape = self._map_info.get_size_in_dimension(self._plot_config.dimension)
+
         x += self._plot_config.zoom.p0.x
         y += self._plot_config.zoom.p0.y
 
-        rotated = Point(x, y).rotated(rotate,
-                                      self._map_info.get_max_x(self._plot_config.dimension),
-                                      self._map_info.get_max_y(self._plot_config.dimension))
+        # accommodate the upside down flip in the renderer
+        y = shape[1] - y
+
+        rotated = Point(x, y).rotated(rotate, shape)
 
         index = [rotated.x, rotated.y, 0]
         index.insert(self._plot_config.dimension, self._plot_config.slice_index)
@@ -126,6 +129,9 @@ class Renderer(object):
 
     def __init__(self, data_info, figure, plot_config):
         """Create a new renderer for the given volumes on the given figure using the given configuration.
+
+        This renders the images with flipped upside down with the origin at the bottom left. The upside down flip
+        is necessary to allow counter-clockwise rotation.
 
         Args:
             data_info (DataInfo): the information about the maps to show
@@ -154,8 +160,9 @@ class Renderer(object):
         data = self._get_image(map_name)
         if self._plot_config.rotate:
             data = np.rot90(data, self._plot_config.rotate // 90)
-        data = self._get_map_specific_option(map_name, 'clipping', Clipping()).apply(data)
         data = self._plot_config.zoom.apply(data)
+        data = self._get_map_attr(map_name, 'clipping', Clipping()).apply(data)
+        data = np.flipud(data)
 
         plot_options = self._get_map_plot_options(map_name)
         plot_options['origin'] = 'lower'
@@ -164,7 +171,7 @@ class Renderer(object):
         divider = make_axes_locatable(axis)
         colorbar_axis = divider.append_axes("right", size="5%", pad=0.05)
 
-        self._add_colorbar(map_name, colorbar_axis, vf)
+        self._add_colorbar(map_name, colorbar_axis, vf, self._get_map_attr(map_name, 'colorbar_label'))
         self._apply_font(axis, colorbar_axis)
 
         return AxisData(axis, map_name, self._data_info.map_info[map_name], self._plot_config)
@@ -185,8 +192,12 @@ class Renderer(object):
         colorbar_axis.yaxis.offsetText.set_fontsize(self._plot_config.font.size - 3)
         colorbar_axis.yaxis.offsetText.set_family(self._plot_config.font.name)
 
-    def _add_colorbar(self, map_name, axis, image_figure):
-        cbar = plt.colorbar(image_figure, cax=axis, ticks=self._get_tick_locator(map_name))
+    def _add_colorbar(self, map_name, axis, image_figure, colorbar_label):
+        kwargs = dict(cax=axis, ticks=self._get_tick_locator(map_name))
+        if colorbar_label:
+            kwargs.update(dict(label=colorbar_label))
+
+        cbar = plt.colorbar(image_figure, **kwargs)
         cbar.formatter.set_powerlimits((-3, 4))
         cbar.ax.yaxis.set_offset_position('left')
         cbar.update_ticks()
@@ -195,7 +206,7 @@ class Renderer(object):
             cbar.ax.get_yticklabels()[-1].set_verticalalignment('top')
         return cbar
 
-    def _get_map_specific_option(self, map_name, option, default):
+    def _get_map_attr(self, map_name, option, default=None):
         if map_name in self._plot_config.map_plot_options:
             value = getattr(self._plot_config.map_plot_options[map_name], option)
             if value:
@@ -203,17 +214,17 @@ class Renderer(object):
         return default
 
     def _get_title(self, map_name):
-        return self._get_map_specific_option(map_name, 'title', map_name)
+        return self._get_map_attr(map_name, 'title', map_name)
 
     def _get_map_plot_options(self, map_name):
         output_dict = {'vmin': self._data_info.maps[map_name].min(),
                        'vmax': self._data_info.maps[map_name].max(),
-                       'cmap': self._get_map_specific_option(map_name, 'colormap', self._plot_config.colormap)}
+                       'cmap': self._get_map_attr(map_name, 'colormap', self._plot_config.colormap)}
 
-        scale = self._get_map_specific_option(map_name, 'scale', Scale())
-        if scale.vmax is not None:
+        scale = self._get_map_attr(map_name, 'scale', Scale())
+        if scale.use_max:
             output_dict['vmax'] = scale.vmax
-        if scale.vmin is not None:
+        if scale.use_min:
             output_dict['vmin'] = scale.vmin
 
         return output_dict
@@ -228,8 +239,16 @@ class Renderer(object):
         data = get_slice_in_dimension(data, dimension, slice_index)
         if len(data.shape) > 2:
             data = np.squeeze(data[:, :, volume_index])
+
         return data
 
     def _get_tick_locator(self, map_name):
         min_val, max_val = self._data_info.maps[map_name].min(), self._data_info.maps[map_name].max()
+
+        scale = self._get_map_attr(map_name, 'scale', Scale())
+        if scale.use_max:
+            max_val = scale.vmax
+        if scale.use_min:
+            min_val = scale.vmin
+
         return MyColourBarTickLocator(min_val, max_val, numticks=self._plot_config.colorbar_nmr_ticks)

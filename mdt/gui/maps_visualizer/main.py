@@ -52,6 +52,10 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self.tab_textual = TabTextual(controller, self)
         self.textInfoTabPosition.addWidget(self.tab_textual)
 
+        self.auto_render_on.setChecked(True)
+        self.auto_render_buttons.buttonClicked.connect(self._set_auto_rendering)
+        self.manual_render.clicked.connect(lambda: self.plotting_frame.redraw())
+
         self.actionAbout.triggered.connect(lambda: AboutDialog(self).exec_())
         self.actionOpen_directory.triggered.connect(self._open_new_directory)
         self.actionExport.triggered.connect(lambda: ExportImageDialog(self, self.plotting_frame).exec_())
@@ -60,18 +64,19 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self.actionSave_settings.triggered.connect(lambda: self._save_settings())
         self.actionLoad_settings.triggered.connect(lambda: self._load_settings())
 
+        self._status_dir_label = QLabel()
+        self.statusBar().addWidget(self._status_dir_label)
+        self.statusBar().setStyleSheet("QStatusBar::item { border: 0px solid black }; ")
+
     @pyqtSlot(DataInfo)
     def set_new_data(self, data_info):
         if data_info.directory:
-            status_label = QLabel('Loaded directory: ' + data_info.directory)
+            self._status_dir_label.setText('Loaded directory: ' + data_info.directory)
             self._directory_watcher.set_directory(data_info.directory)
         else:
-            status_label = QLabel('No directory information available.')
+            self._status_dir_label.setText('No directory information available.')
 
         self.actionBrowse_to_current_folder.setDisabled(self._controller.get_data().directory is None)
-
-        self.statusBar().addWidget(status_label)
-        self.statusBar().setStyleSheet("QStatusBar::item { border: 0px solid black }; ")
 
     @pyqtSlot(ValidatedMapPlotConfig)
     def set_new_config(self, config):
@@ -82,7 +87,10 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         new_dir = QFileDialog(self).getExistingDirectory(caption='Select a folder', directory=initial_dir)
         if new_dir:
             data = DataInfo.from_dir(new_dir)
-            start_gui(data, app_exec=False)
+            if self._controller.get_data().maps:
+                start_gui(data, app_exec=False)
+            else:
+                self._controller.set_data(data)
 
     @pyqtSlot(tuple, tuple, dict)
     def _update_viewed_images(self, additions, removals, updates):
@@ -92,6 +100,13 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         else:
             config = None
         self._controller.set_data(data, config)
+
+    @pyqtSlot()
+    def _set_auto_rendering(self):
+        auto_render = self.auto_render_on.isChecked()
+        self.plotting_frame.set_auto_rendering(auto_render)
+        if auto_render:
+            self.plotting_frame.redraw()
 
     def _save_settings(self):
         """Save the current settings as a text file.
