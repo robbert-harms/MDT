@@ -18,7 +18,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class MapPlotConfig(object):
 
-    def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=270, colormap='hot', maps_to_show=(),
+    def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=0, colormap='hot', maps_to_show=(),
                  font=None, grid_layout=None, colorbar_nmr_ticks=10, show_axis=True, zoom=None,
                  map_plot_options=None):
         """Container for all plot related settings.
@@ -78,6 +78,17 @@ class MapPlotConfig(object):
     @classmethod
     def from_dict(cls, config_dict):
         return cls.get_conversion_info().from_dict(config_dict)
+
+    def get_rotation(self):
+        """Get the rotation we would like to apply on the configuration.
+
+        This can differ from the instance variable rotate. The instance variable is what the user set,
+        this function returns what we make of it.
+
+        Returns:
+            int: a angle as multiple of 90, can be negative.
+        """
+        return -self.rotate - 90
 
     def to_dict(self):
         return self.get_conversion_info().to_dict(self)
@@ -256,8 +267,11 @@ class Point(object):
         return Point(*self._rotate_coordinate(self.x, self.y, rotate, shape))
 
     def _rotate_coordinate(self, x, y, rotate, shape):
+        positive_number_of_90deg_rotations = (rotate % 360) // 90
+
         rx, ry = x, y
-        for rotation in range(1, rotate // 90 + 1):
+        for rotation in range(1, positive_number_of_90deg_rotations + 1):
+            # apply rotation and translate on the x component
             current_max_x, current_max_y = np.roll(shape, rotation)
             rx, ry = current_max_y - ry, rx
         return rx, ry

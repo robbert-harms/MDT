@@ -129,14 +129,14 @@ class ValidatedMapPlotConfig(MapPlotConfig):
         p1x_val = self.zoom.p1.x
         if self.zoom.p1.x == 0:
             try:
-                p1x_val = data_info.get_max_x(self.dimension, self.rotate, self.maps_to_show)
+                p1x_val = data_info.get_max_x(self.dimension, self.get_rotation(), self.maps_to_show)
             except ValueError:
                 pass
 
         p1y_val = self.zoom.p1.y
         if self.zoom.p1.y == 0:
             try:
-                p1y_val = data_info.get_max_y(self.dimension, self.rotate, self.maps_to_show)
+                p1y_val = data_info.get_max_y(self.dimension, self.get_rotation(), self.maps_to_show)
             except ValueError:
                 pass
 

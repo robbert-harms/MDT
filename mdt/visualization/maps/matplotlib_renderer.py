@@ -90,7 +90,7 @@ class AxisData(object):
         Returns
             x, y, z, v : Index coordinates of the map associated with the image.
         """
-        rotate = self._plot_config.rotate
+        rotate = self._plot_config.get_rotation()
         if not rotate:
             rotate = 0
 
@@ -155,8 +155,8 @@ class Renderer(object):
         axis.axis('on' if self._plot_config.show_axis else 'off')
 
         data = self._get_image(map_name)
-        if self._plot_config.rotate:
-            data = np.rot90(data, self._plot_config.rotate // 90)
+        if self._plot_config.get_rotation():
+            data = np.rot90(data, self._plot_config.get_rotation() // 90)
         data = self._plot_config.zoom.apply(data)
         data = self._get_map_attr(map_name, 'clipping', Clipping()).apply(data)
 

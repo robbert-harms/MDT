@@ -8,7 +8,7 @@ from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig, ValidatedSingle
 from mdt.gui.maps_visualizer.design.ui_MapSpecificOptions import Ui_MapSpecificOptions
 from mdt.gui.maps_visualizer.design.ui_TabMapSpecific import Ui_TabMapSpecific
 from mdt.gui.maps_visualizer.widgets import TimedUpdate
-from mdt.gui.utils import blocked_signals
+from mdt.gui.utils import blocked_signals, TimedUpdate
 from mdt.visualization.maps.base import DataInfo, Scale, Clipping
 
 __author__ = 'Robbert Harms'
