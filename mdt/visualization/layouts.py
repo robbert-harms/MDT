@@ -90,10 +90,15 @@ class Rectangular(GridLayout):
         self.rows = rows
         self.cols = cols
 
-        if self.rows:
+        if self.rows is not None:
             self.rows = int(self.rows)
-        if self.cols:
+            if self.rows < 1:
+                raise ValueError('The number of rows ({}) can not be smaller than 1.'.format(self.rows))
+
+        if self.cols is not None:
             self.cols = int(self.cols)
+            if self.cols < 1:
+                raise ValueError('The number of columns ({}) can not be smaller than 1.'.format(self.rows))
 
     @classmethod
     def _get_attribute_conversions(cls):

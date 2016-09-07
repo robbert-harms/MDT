@@ -26,11 +26,24 @@
    <property name="bottomMargin">
     <number>0</number>
    </property>
-   <property name="spacing">
+   <property name="horizontalSpacing">
     <number>0</number>
+   </property>
+   <property name="verticalSpacing">
+    <number>4</number>
    </property>
    <item row="0" column="0">
     <widget class="TextConfigEditor" name="textConfigEdit"/>
+   </item>
+   <item row="1" column="0">
+    <widget class="QLabel" name="correctness_label">
+     <property name="text">
+      <string>TextLabel</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
    </item>
   </layout>
  </widget>

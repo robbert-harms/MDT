@@ -25,6 +25,7 @@ class TabTextual(QWidget, Ui_TabTextual):
         self._controller.new_config.connect(self.set_new_config)
 
         self.textConfigEdit.new_config.connect(self._config_from_string)
+        self._update_status_indication(True)
 
         self._flags = {'updating_config_from_string': False}
 
@@ -37,18 +38,29 @@ class TabTextual(QWidget, Ui_TabTextual):
         with blocked_signals(self.textConfigEdit):
             if not self._flags['updating_config_from_string']:
                 self.textConfigEdit.setPlainText(config.to_yaml())
+                self._update_status_indication(True)
 
     @pyqtSlot(str)
     def _config_from_string(self, text):
         self._flags['updating_config_from_string'] = True
         text = text.replace('\t', ' '*4)
         try:
-            self._controller.apply_action(NewConfigAction(ValidatedMapPlotConfig.from_yaml(text)))
-        except yaml.parser.ParserError:
-            pass
-        except yaml.scanner.ScannerError:
-            pass
-        except ValueError:
+            if text.strip() != '':
+                new_config = ValidatedMapPlotConfig.from_yaml(text)
+                new_config.validate(self._controller.get_data())
+
+                self._controller.apply_action(NewConfigAction(new_config))
+                self._update_status_indication(True)
+
+        except (yaml.parser.ParserError, yaml.scanner.ScannerError, ValueError) as exc:
+            self._update_status_indication(False, str(exc))
             pass
         finally:
             self._flags['updating_config_from_string'] = False
+
+    def _update_status_indication(self, status, status_message=''):
+        if status:
+            self.textConfigEdit.setStyleSheet("border: 1px solid green")
+        else:
+            self.textConfigEdit.setStyleSheet("border: 1px solid red")
+        self.correctness_label.setText(status_message)

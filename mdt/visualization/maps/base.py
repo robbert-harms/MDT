@@ -48,10 +48,25 @@ class MapPlotConfig(object):
         self.zoom = zoom or Zoom(Point(0, 0), Point(0, 0))
         self.font = font or Font()
         self.colorbar_nmr_ticks = colorbar_nmr_ticks
-        self.show_axis = show_axis
+        self.show_axis = show_axis or False
         self.map_plot_options = map_plot_options or {}
         self.grid_layout = grid_layout or Rectangular()
         self.interpolation = interpolation or 'bilinear'
+
+        if interpolation not in self.get_available_interpolations():
+            raise ValueError('The given interpolation ({}) is not supported.'.format(interpolation))
+
+        try:
+            matplotlib.cm.get_cmap(self.colormap)
+        except:
+            raise ValueError('The given colormap ({}) is not supported.'.format(colormap))
+
+        if self.rotate not in [0, 90, 180, 270]:
+            raise ValueError('The given rotation ({}) is not supported, use 90 '
+                             'degree angles within 360.'.format(self.rotate))
+
+        if dimension < 0:
+            raise ValueError('The dimension can not be smaller than 0, {} given.'.format(dimension))
 
     @classmethod
     def get_available_interpolations(cls):
@@ -130,6 +145,11 @@ class SingleMapConfig(object):
         self.colormap = colormap
         self.colorbar_label = colorbar_label
 
+        try:
+            matplotlib.cm.get_cmap(self.colormap)
+        except:
+            raise ValueError('The given colormap ({}) is not supported.'.format(self.colormap))
+
     @classmethod
     def get_conversion_info(cls):
         return SimpleClassConversion(cls, cls._get_attribute_conversions())
@@ -183,6 +203,10 @@ class Zoom(object):
         """
         self.p0 = p0
         self.p1 = p1
+
+        if p0.x > p1.x or p0.y > p1.y:
+            raise ValueError('The lower left point ({}, {}) should be smaller than the lower right point ({}, {})'.
+                             format(p0.x, p0.y, p1.x, p1.y))
 
     @classmethod
     def no_zoom(cls):
@@ -310,6 +334,10 @@ class Clipping(object):
         self.use_min = use_min
         self.use_max = use_max
 
+        if use_min and use_max and vmin > vmax:
+            raise ValueError('The minimum clipping ({}) can not be larger than the maximum clipping({})'.format(
+                vmin, vmax))
+
     def apply(self, data):
         """Apply the clipping to the given 2d array and return the new array.
 
@@ -374,6 +402,9 @@ class Scale(object):
         self.vmax = vmax
         self.use_min = use_min
         self.use_max = use_max
+
+        if use_min and use_max and vmin > vmax:
+            raise ValueError('The minimum scale ({}) can not be larger than the maximum scale ({})'.format(vmin, vmax))
 
     @classmethod
     def get_conversion_info(cls):
@@ -527,6 +558,7 @@ class DataInfo(object):
         Returns:
             int: the maximum slice index over the given maps in the given dimension.
         """
+        map_names = map_names or self.maps.keys()
         max_dimension = self.get_max_dimension(map_names)
         if not map_names:
             raise ValueError('No maps to search in.')
@@ -719,6 +751,10 @@ class SingleMapInfo(object):
             int: the slice index with the first non zero values.
         """
         slice_index = [slice(None)] * (self.max_dimension() + 1)
+
+        if dimension > len(slice_index) - 1:
+            raise ValueError('The given dimension {} is not supported.'.format(dimension))
+
         for index in range(self.data.shape[dimension]):
             slice_index[dimension] = index
             if np.count_nonzero(self.data[slice_index]) > 0:

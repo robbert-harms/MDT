@@ -1,12 +1,11 @@
 import matplotlib
+import signal
 import yaml
 from PyQt5.QtCore import QObject, pyqtSlot
-from PyQt5.QtCore import QSize
+from PyQt5.QtCore import QTimer
 from PyQt5.QtCore import QUrl
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QDesktopServices
-from PyQt5.QtGui import QIcon
-from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QDialog
 from PyQt5.QtWidgets import QDialogButtonBox
 from PyQt5.QtWidgets import QFileDialog
@@ -80,7 +79,8 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
     @pyqtSlot(DataInfo)
     def set_new_data(self, data_info):
         if data_info.directory:
-            self._status_dir_label.setText('Loaded directory: ' + data_info.directory)
+            self._status_dir_label.setText('Loaded directory "{}", {} maps found.'.format(data_info.directory,
+                                                                                          len(data_info.maps)))
             self._directory_watcher.set_directory(data_info.directory)
         else:
             self._status_dir_label.setText('No directory information available.')
@@ -97,10 +97,13 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         new_dir = QFileDialog(self).getExistingDirectory(caption='Select a folder', directory=initial_dir)
         if new_dir:
             data = DataInfo.from_dir(new_dir)
+            config = ValidatedMapPlotConfig()
+            config.slice_index = data.get_max_slice_index(config.dimension) // 2
+
             if self._controller.get_data().maps:
-                start_gui(data, app_exec=False)
+                start_gui(data, config, app_exec=False)
             else:
-                self._controller.set_data(data)
+                self._controller.set_data(data, config)
 
     @pyqtSlot(tuple, tuple, dict)
     def _update_viewed_images(self, additions, removals, updates):
@@ -117,6 +120,9 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self.plotting_frame.set_auto_rendering(auto_render)
         if auto_render:
             self.plotting_frame.redraw()
+
+    def send_sigint(self, *args):
+        self.close()
 
     def _save_settings(self):
         """Save the current settings as a text file.
@@ -204,8 +210,6 @@ class QtController(Controller, QObject):
 
         if not config:
             config = ValidatedMapPlotConfig()
-            config.maps_to_show = mdt.results_preselection_names(data_info.maps)
-            config.slice_index = None
         elif not isinstance(config, ValidatedMapPlotConfig):
             config = ValidatedMapPlotConfig.from_dict(config.to_dict())
 
@@ -287,7 +291,14 @@ def start_gui(data=None, config=None, controller=None, app_exec=True, show_maxim
 
     app = QtManager.get_qt_application_instance()
 
+    # catches the sigint
+    timer = QTimer()
+    timer.start(500)
+    timer.timeout.connect(lambda: None)
+
     main = MapsVisualizerWindow(controller)
+    signal.signal(signal.SIGINT, main.send_sigint)
+
     center_window(main)
 
     if show_maximized:

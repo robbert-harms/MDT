@@ -62,85 +62,51 @@ class ValidatedMapPlotConfig(MapPlotConfig):
 
     def validate(self, data_info):
         self._validate_maps_to_show(data_info)
+        self._validate_dimension(data_info)
+
         for key in self.__dict__:
             if hasattr(self, '_validate_' + key):
                 getattr(self, '_validate_' + key)(data_info)
         return self
 
     def _validate_maps_to_show(self, data_info):
-        if self.maps_to_show:
-            self.maps_to_show = [key for key in self.maps_to_show if key in data_info.maps]
-        else:
-            self.maps_to_show = []
-
-    def _validate_rotate(self, data_info):
-        if self.rotate not in [0, 90, 180, 270]:
-            self.rotate = 0
-
-    def _validate_colormap(self, data_info):
-        try:
-            matplotlib.cm.get_cmap(self.colormap)
-        except ValueError:
-            self.colormap = 'hot'
+        if any(map(lambda k: k not in data_info.maps, self.maps_to_show)):
+            raise ValueError('One of the given maps to show is not in the data.')
 
     def _validate_dimension(self, data_info):
-        if self.maps_to_show:
-            if self.dimension is None:
-                self.dimension = 2
-            else:
-                self.dimension = cast_value(self.dimension, int, 0)
-                try:
-                    self.dimension = min(self.dimension, data_info.get_max_dimension(self.maps_to_show))
-                except ValueError:
-                    self.dimension = 2
+        max_dim = data_info.get_max_dimension()
+        if self.dimension is None or self.dimension > max_dim:
+            raise ValueError('The dimension ({}) can not be higher than {}.'.format(self.dimension, max_dim))
 
     def _validate_slice_index(self, data_info):
-        if self.maps_to_show:
-            try:
-                first_non_zero = data_info.get_index_first_non_zero_slice(self.dimension, self.maps_to_show)
-                max_slice_index = data_info.get_max_slice_index(self.dimension, self.maps_to_show)
-
-                default_slice = first_non_zero
-                if first_non_zero < 0.1 * max_slice_index and data_info.slice_has_data(self.dimension,
-                                                                                       max_slice_index // 2):
-                    default_slice = max_slice_index // 2
-
-                if self.slice_index is None:
-                    self.slice_index = default_slice
-                else:
-                    self.slice_index = cast_value(self.slice_index, int, 0)
-                    if self.slice_index > max_slice_index:
-                        self.slice_index = default_slice
-            except ValueError:
-                self.slice_index = 0
+        max_slice_index = data_info.get_max_slice_index(self.dimension)
+        if self.slice_index is None or self.slice_index > max_slice_index or self.slice_index < 0:
+            raise ValueError('The slice index ({}) can not be higher than '
+                             '{} or lower than 0.'.format(self.slice_index, max_slice_index))
 
     def _validate_volume_index(self, data_info):
-        if self.maps_to_show:
-            if self.volume_index is None:
-                self.volume_index = 0
-            else:
-                self.volume_index = cast_value(self.volume_index, int, 0)
-                try:
-                    self.volume_index = min(self.volume_index, data_info.get_max_volume_index(self.maps_to_show))
-                except ValueError:
-                    self.volume_index = 0
+        max_volume_index = data_info.get_max_volume_index()
+        if self.volume_index > max_volume_index or self.volume_index < 0:
+            raise ValueError('The volume index ({}) can not be higher than '
+                             '{} or lower than 0.'.format(self.volume_index, max_volume_index))
 
     def _validate_zoom(self, data_info):
-        p1x_val = self.zoom.p1.x
-        if self.zoom.p1.x == 0:
-            try:
-                p1x_val = data_info.get_max_x(self.dimension, self.get_rotation(), self.maps_to_show)
-            except ValueError:
-                pass
-
-        p1y_val = self.zoom.p1.y
-        if self.zoom.p1.y == 0:
-            try:
-                p1y_val = data_info.get_max_y(self.dimension, self.get_rotation(), self.maps_to_show)
-            except ValueError:
-                pass
-
-        self.zoom = Zoom(self.zoom.p0, Point(p1x_val, p1y_val))
+        # p1x_val = self.zoom.p1.x
+        # if self.zoom.p1.x == 0:
+        #     try:
+        #         p1x_val = data_info.get_max_x(self.dimension, self.get_rotation(), self.maps_to_show)
+        #     except ValueError:
+        #         pass
+        #
+        # p1y_val = self.zoom.p1.y
+        # if self.zoom.p1.y == 0:
+        #     try:
+        #         p1y_val = data_info.get_max_y(self.dimension, self.get_rotation(), self.maps_to_show)
+        #     except ValueError:
+        #         pass
+        #
+        # self.zoom = Zoom(self.zoom.p0, Point(p1x_val, p1y_val))
+        pass
 
     def _validate_map_plot_options(self, data_info):
         for key in self.map_plot_options:
@@ -159,13 +125,6 @@ class ValidatedSingleMapConfig(SingleMapConfig):
             if hasattr(self, '_validate_' + key):
                 getattr(self, '_validate_' + key)(data_info)
         return self
-
-    def _validate_colormap(self, data_info):
-        if self.colormap:
-            try:
-                matplotlib.cm.get_cmap(self.colormap)
-            except ValueError:
-                self.colormap = None
 
 
 class ConfigAction(object):

@@ -49,18 +49,11 @@ class TabGeneral(QWidget, Ui_TabGeneral):
         self.general_deselect_all_maps.clicked.connect(self._deleselect_all_maps)
         self.general_invert_map_selection.clicked.connect(self._invert_map_selection)
 
-        self.general_zoom_x_0.valueChanged.connect(lambda v: self._controller.apply_action(SetZoom(
-            Zoom(Point(v, self._controller.get_config().zoom.p0.y),
-                 self._controller.get_config().zoom.p1))))
-        self.general_zoom_x_1.valueChanged.connect(lambda v: self._controller.apply_action(SetZoom(
-            Zoom(self._controller.get_config().zoom.p0,
-                 Point(v, self._controller.get_config().zoom.p1.y)))))
-        self.general_zoom_y_0.valueChanged.connect(lambda v: self._controller.apply_action(SetZoom(
-            Zoom(Point(self._controller.get_config().zoom.p0.x, v),
-                 self._controller.get_config().zoom.p1))))
-        self.general_zoom_y_1.valueChanged.connect(lambda v: self._controller.apply_action(SetZoom(
-            Zoom(self._controller.get_config().zoom.p0,
-                 Point(self._controller.get_config().zoom.p1.x, v)))))
+        self.general_zoom_x_0.valueChanged.connect(self._update_zoom)
+        self.general_zoom_x_1.valueChanged.connect(self._update_zoom)
+        self.general_zoom_y_0.valueChanged.connect(self._update_zoom)
+        self.general_zoom_y_1.valueChanged.connect(self._update_zoom)
+
         self.general_zoom_reset.clicked.connect(lambda: self._controller.apply_action(SetZoom(Zoom.no_zoom())))
         self.general_zoom_fit.clicked.connect(self._zoom_fit)
 
@@ -85,37 +78,34 @@ class TabGeneral(QWidget, Ui_TabGeneral):
         map_names = config.maps_to_show
 
         with blocked_signals(self.general_dimension):
-            if map_names:
-                try:
-                    max_dimension = data_info.get_max_dimension(map_names)
-                    self.general_dimension.setMaximum(max_dimension)
-                    self.maximumDimension.setText(str(max_dimension))
-                except ValueError:
-                    self.general_dimension.setMaximum(0)
-                    self.maximumDimension.setText(str(0))
-                self.general_dimension.setValue(config.dimension)
+            try:
+                max_dimension = data_info.get_max_dimension(map_names)
+                self.general_dimension.setMaximum(max_dimension)
+                self.maximumDimension.setText(str(max_dimension))
+            except ValueError:
+                self.general_dimension.setMaximum(0)
+                self.maximumDimension.setText(str(0))
+            self.general_dimension.setValue(config.dimension)
 
         with blocked_signals(self.general_slice_index):
-            if map_names:
-                try:
-                    max_slice = data_info.get_max_slice_index(config.dimension, map_names)
-                    self.general_slice_index.setMaximum(max_slice)
-                    self.maximumIndex.setText(str(max_slice))
-                except ValueError:
-                    self.general_slice_index.setMaximum(0)
-                    self.maximumIndex.setText(str(0))
-                self.general_slice_index.setValue(config.slice_index)
+            try:
+                max_slice = data_info.get_max_slice_index(config.dimension, map_names)
+                self.general_slice_index.setMaximum(max_slice)
+                self.maximumIndex.setText(str(max_slice))
+            except ValueError:
+                self.general_slice_index.setMaximum(0)
+                self.maximumIndex.setText(str(0))
+            self.general_slice_index.setValue(config.slice_index)
 
         with blocked_signals(self.general_volume_index):
-            if map_names:
-                try:
-                    max_volume = data_info.get_max_volume_index(map_names)
-                    self.general_volume_index.setMaximum(max_volume)
-                    self.maximumVolume.setText(str(max_volume))
-                except ValueError:
-                    self.general_volume_index.setMaximum(0)
-                    self.maximumVolume.setText(str(0))
-                self.general_volume_index.setValue(config.volume_index)
+            try:
+                max_volume = data_info.get_max_volume_index(map_names)
+                self.general_volume_index.setMaximum(max_volume)
+                self.maximumVolume.setText(str(max_volume))
+            except ValueError:
+                self.general_volume_index.setMaximum(0)
+                self.maximumVolume.setText(str(0))
+            self.general_volume_index.setValue(config.volume_index)
 
         with blocked_signals(self.general_colormap):
             self.general_colormap.setCurrentText(config.colormap)
@@ -139,24 +129,29 @@ class TabGeneral(QWidget, Ui_TabGeneral):
 
         try:
             max_x = data_info.get_max_x(config.dimension, config.get_rotation(), map_names)
-            with blocked_signals(self.general_zoom_x_0):
+            max_y = data_info.get_max_y(config.dimension, config.get_rotation(), map_names)
+
+            with blocked_signals(self.general_zoom_x_0, self.general_zoom_x_1,
+                                 self.general_zoom_y_0, self.general_zoom_y_1):
                 self.general_zoom_x_0.setMaximum(max_x)
                 self.general_zoom_x_0.setValue(config.zoom.p0.x)
 
-            with blocked_signals(self.general_zoom_x_1):
                 self.general_zoom_x_1.setMaximum(max_x)
                 self.general_zoom_x_1.setMinimum(config.zoom.p0.x)
                 self.general_zoom_x_1.setValue(config.zoom.p1.x)
 
-            max_y = data_info.get_max_y(config.dimension, config.get_rotation(), map_names)
-            with blocked_signals(self.general_zoom_y_0):
                 self.general_zoom_y_0.setMaximum(max_y)
                 self.general_zoom_y_0.setValue(config.zoom.p0.y)
 
-            with blocked_signals(self.general_zoom_y_1):
                 self.general_zoom_y_1.setMaximum(max_y)
                 self.general_zoom_y_1.setMinimum(config.zoom.p0.y)
                 self.general_zoom_y_1.setValue(config.zoom.p1.y)
+
+                if config.zoom.p0.x == 0 and config.zoom.p1.x == 0:
+                    self.general_zoom_x_1.setValue(max_x)
+
+                if config.zoom.p0.y == 0 and config.zoom.p1.y == 0:
+                    self.general_zoom_y_1.setValue(max_y)
         except ValueError:
             pass
 
@@ -213,22 +208,36 @@ class TabGeneral(QWidget, Ui_TabGeneral):
     def _zoom_fit(self):
         data_info = self._controller.get_data()
         config = self._controller.get_config()
-        bounding_box = data_info.get_bounding_box(config.dimension, config.slice_index,
-                                                  config.volume_index, config.get_rotation(), config.maps_to_show)
 
-        if bounding_box[0].x > 0:
-            bounding_box[0].x -= 1
-        if bounding_box[0].y > 0:
-            bounding_box[0].y -= 1
+        if config.maps_to_show or len(data_info.maps):
+            bounding_box = data_info.get_bounding_box(config.dimension, config.slice_index,
+                                                      config.volume_index, config.get_rotation(), config.maps_to_show)
 
-        bounding_box[1].y = min(bounding_box[1].y + 2, data_info.get_max_y(config.dimension,
-                                                                           rotate=config.get_rotation(),
-                                                                           map_names=config.maps_to_show))
-        bounding_box[1].x = min(bounding_box[1].x + 2, data_info.get_max_x(config.dimension,
-                                                                           rotate=config.get_rotation(),
-                                                                           map_names=config.maps_to_show))
+            if bounding_box[0].x > 0:
+                bounding_box[0].x -= 1
+            if bounding_box[0].y > 0:
+                bounding_box[0].y -= 1
 
-        self._controller.apply_action(SetZoom(Zoom(*bounding_box)))
+            bounding_box[1].y = min(bounding_box[1].y + 2, data_info.get_max_y(config.dimension,
+                                                                               rotate=config.get_rotation(),
+                                                                               map_names=config.maps_to_show))
+            bounding_box[1].x = min(bounding_box[1].x + 2, data_info.get_max_x(config.dimension,
+                                                                               rotate=config.get_rotation(),
+                                                                               map_names=config.maps_to_show))
+
+            self._controller.apply_action(SetZoom(Zoom(*bounding_box)))
+
+    @pyqtSlot()
+    def _update_zoom(self):
+        np0x, np0y = self.general_zoom_x_0.value(), self.general_zoom_y_0.value()
+        np1x, np1y = self.general_zoom_x_1.value(), self.general_zoom_y_1.value()
+
+        if np0x > np1x:
+            np1x = np0x
+        if np0y > np1y:
+            np1y = np0y
+
+        self._controller.apply_action(SetZoom(Zoom(Point(np0x, np0y), Point(np1x, np1y))))
 
     @staticmethod
     def _insert_alphabetically(new_item, item_list):
