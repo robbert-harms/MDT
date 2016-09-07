@@ -152,3 +152,27 @@ class BooleanConversion(IdentityConversion):
 
     def __init__(self, allow_null=True):
         super(BooleanConversion, self).__init__(bool, allow_null=allow_null)
+
+
+class WhiteListConversion(ConversionSpecification):
+
+    def __init__(self, white_list, default):
+        """Allow only elements from the given white list. If the element is not one of them, revert to the default.
+
+        Args:
+            white_list (list of Obj): list of allowable objects
+            default (obj): the default fallback object
+        """
+        super(WhiteListConversion, self).__init__()
+        self.white_list = white_list
+        self.default = default
+
+    def to_dict(self, obj):
+        if obj not in self.white_list:
+            return self.default
+        return obj
+
+    def from_dict(self, value):
+        if value not in self.white_list:
+            return self.default
+        return value

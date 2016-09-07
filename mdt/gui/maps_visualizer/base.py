@@ -317,3 +317,17 @@ class Controller(object):
 
     def redo(self):
         """Reapply a previously undone configuration action"""
+
+    def has_undo(self):
+        """Check if this controller has an undo action available.
+
+        Returns:
+            boolean: True if an undo action is available.
+        """
+
+    def has_redo(self):
+        """Check if this controller has an redo action available.
+
+        Returns:
+            boolean: True if an redo action is available.
+        """

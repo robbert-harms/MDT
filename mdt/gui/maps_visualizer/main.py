@@ -1,9 +1,12 @@
 import matplotlib
 import yaml
 from PyQt5.QtCore import QObject, pyqtSlot
+from PyQt5.QtCore import QSize
 from PyQt5.QtCore import QUrl
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QDesktopServices
+from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QDialog
 from PyQt5.QtWidgets import QDialogButtonBox
 from PyQt5.QtWidgets import QFileDialog
@@ -52,8 +55,8 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self.tab_textual = TabTextual(controller, self)
         self.textInfoTabPosition.addWidget(self.tab_textual)
 
-        self.auto_render_on.setChecked(True)
-        self.auto_render_buttons.buttonClicked.connect(self._set_auto_rendering)
+        self.auto_rendering.setChecked(True)
+        self.auto_rendering.stateChanged.connect(self._set_auto_rendering)
         self.manual_render.clicked.connect(lambda: self.plotting_frame.redraw())
 
         self.actionAbout.triggered.connect(lambda: AboutDialog(self).exec_())
@@ -68,6 +71,12 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self.statusBar().addWidget(self._status_dir_label)
         self.statusBar().setStyleSheet("QStatusBar::item { border: 0px solid black }; ")
 
+        self.undo_config.setDisabled(not self._controller.has_undo())
+        self.redo_config.setDisabled(not self._controller.has_redo())
+
+        self.undo_config.clicked.connect(lambda: self._controller.undo())
+        self.redo_config.clicked.connect(lambda: self._controller.redo())
+
     @pyqtSlot(DataInfo)
     def set_new_data(self, data_info):
         if data_info.directory:
@@ -80,7 +89,8 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
 
     @pyqtSlot(ValidatedMapPlotConfig)
     def set_new_config(self, config):
-        pass
+        self.undo_config.setDisabled(not self._controller.has_undo())
+        self.redo_config.setDisabled(not self._controller.has_redo())
 
     def _open_new_directory(self):
         initial_dir = self._controller.get_data().directory
@@ -103,7 +113,7 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
 
     @pyqtSlot()
     def _set_auto_rendering(self):
-        auto_render = self.auto_render_on.isChecked()
+        auto_render = self.auto_rendering.isChecked()
         self.plotting_frame.set_auto_rendering(auto_render)
         if auto_render:
             self.plotting_frame.redraw()
@@ -236,6 +246,12 @@ class QtController(Controller, QObject):
             self._apply_config(action.apply(self._data_info, self._current_config))
             self._actions_history.append(action)
             self.new_config.emit(self._current_config)
+
+    def has_undo(self):
+        return len(self._actions_history) > 0
+
+    def has_redo(self):
+        return len(self._redoable_actions) > 0
 
     def _apply_config(self, new_config):
         """Apply the current configuration.

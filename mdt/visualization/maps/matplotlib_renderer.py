@@ -162,6 +162,7 @@ class Renderer(object):
 
         plot_options = self._get_map_plot_options(map_name)
         plot_options['origin'] = 'lower'
+        plot_options['interpolation'] = self._plot_config.interpolation
         vf = axis.imshow(data, **plot_options)
 
         divider = make_axes_locatable(axis)

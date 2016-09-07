@@ -7,7 +7,7 @@ import mdt
 import mdt.visualization.layouts
 from mdt.visualization.dict_conversion import StringConversion, \
     SimpleClassConversion, IntConversion, SimpleListConversion, BooleanConversion, \
-    ConvertDictElements, ConvertDynamicFromModule, FloatConversion
+    ConvertDictElements, ConvertDynamicFromModule, FloatConversion, WhiteListConversion
 from mdt.visualization.layouts import Rectangular
 
 __author__ = 'Robbert Harms'
@@ -20,7 +20,7 @@ class MapPlotConfig(object):
 
     def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=0, colormap='hot', maps_to_show=(),
                  font=None, grid_layout=None, colorbar_nmr_ticks=10, show_axis=True, zoom=None,
-                 map_plot_options=None):
+                 map_plot_options=None, interpolation='bilinear'):
         """Container for all plot related settings.
 
         Args:
@@ -36,6 +36,7 @@ class MapPlotConfig(object):
             show_axis (bool): if we show the axis or not
             zoom (Zoom): the zoom setting for all the plots
             map_plot_options (dict): per map the map specific plot options
+            interpolation (str): one of the available interpolations
         """
         super(MapPlotConfig, self).__init__()
         self.dimension = dimension
@@ -50,6 +51,13 @@ class MapPlotConfig(object):
         self.show_axis = show_axis
         self.map_plot_options = map_plot_options or {}
         self.grid_layout = grid_layout or Rectangular()
+        self.interpolation = interpolation or 'bilinear'
+
+    @classmethod
+    def get_available_interpolations(cls):
+        return ['none', 'nearest', 'bilinear', 'bicubic', 'spline16',
+                'spline36', 'hanning', 'hamming', 'hermite', 'kaiser', 'quadric',
+                'catrom', 'gaussian', 'bessel', 'mitchell', 'sinc', 'lanczos']
 
     @classmethod
     def get_conversion_info(cls):
@@ -68,7 +76,8 @@ class MapPlotConfig(object):
                 'colorbar_nmr_ticks': IntConversion(),
                 'show_axis': BooleanConversion(),
                 'map_plot_options': ConvertDictElements(SingleMapConfig.get_conversion_info()),
-                'grid_layout': ConvertDynamicFromModule(mdt.visualization.layouts)
+                'grid_layout': ConvertDynamicFromModule(mdt.visualization.layouts),
+                'interpolation': WhiteListConversion(cls.get_available_interpolations(), 'bilinear')
                 }
 
     @classmethod

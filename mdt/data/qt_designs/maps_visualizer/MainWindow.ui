@@ -168,7 +168,7 @@
            <item>
             <layout class="QHBoxLayout" name="horizontalLayout">
              <property name="spacing">
-              <number>16</number>
+              <number>2</number>
              </property>
              <property name="topMargin">
               <number>6</number>
@@ -190,49 +190,53 @@
               </spacer>
              </item>
              <item>
-              <layout class="QHBoxLayout" name="horizontalLayout_2">
-               <property name="spacing">
-                <number>4</number>
+              <widget class="QCheckBox" name="auto_rendering">
+               <property name="text">
+                <string>Auto render</string>
                </property>
-               <property name="rightMargin">
-                <number>0</number>
-               </property>
-               <property name="bottomMargin">
-                <number>0</number>
-               </property>
-               <item>
-                <widget class="QLabel" name="label">
-                 <property name="text">
-                  <string>Auto render:</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QRadioButton" name="auto_render_off">
-                 <property name="text">
-                  <string>Off</string>
-                 </property>
-                 <attribute name="buttonGroup">
-                  <string notr="true">auto_render_buttons</string>
-                 </attribute>
-                </widget>
-               </item>
-               <item>
-                <widget class="QRadioButton" name="auto_render_on">
-                 <property name="text">
-                  <string>On</string>
-                 </property>
-                 <attribute name="buttonGroup">
-                  <string notr="true">auto_render_buttons</string>
-                 </attribute>
-                </widget>
-               </item>
-              </layout>
+              </widget>
              </item>
              <item>
               <widget class="QPushButton" name="manual_render">
+               <property name="toolTip">
+                <string>Manually redraw the figure</string>
+               </property>
                <property name="text">
-                <string>Manual render</string>
+                <string>Redraw</string>
+               </property>
+               <property name="iconSize">
+                <size>
+                 <width>16</width>
+                 <height>16</height>
+                </size>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="undo_config">
+               <property name="toolTip">
+                <string>Undo</string>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+               <property name="icon">
+                <iconset resource="main.qrc">
+                 <normaloff>:/main/arrow_undo.png</normaloff>:/main/arrow_undo.png</iconset>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="redo_config">
+               <property name="toolTip">
+                <string>Redo</string>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+               <property name="icon">
+                <iconset resource="main.qrc">
+                 <normaloff>:/main/arrow_redo.png</normaloff>:/main/arrow_redo.png</iconset>
                </property>
               </widget>
              </item>
@@ -375,7 +379,4 @@
    </hints>
   </connection>
  </connections>
- <buttongroups>
-  <buttongroup name="auto_render_buttons"/>
- </buttongroups>
 </ui>
