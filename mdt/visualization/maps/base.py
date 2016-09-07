@@ -18,7 +18,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class MapPlotConfig(object):
 
-    def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=90, colormap='hot', maps_to_show=(),
+    def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=270, colormap='hot', maps_to_show=(),
                  font=None, grid_layout=None, colorbar_nmr_ticks=10, show_axis=True, zoom=None,
                  map_plot_options=None):
         """Container for all plot related settings.
@@ -784,14 +784,5 @@ class SingleMapInfo(object):
             image = np.rot90(image, rotate // 90)
 
         row_min, row_max, column_min, column_max = bbox(image)
-
-        if column_min > 0:
-            column_min -= 1
-        if row_min > 0:
-            row_min -= 1
-        if column_max < self.get_max_x(dimension, rotate):
-            column_max += 1
-        if row_max < self.get_max_y(dimension, rotate):
-            row_max += 1
 
         return Point(column_min, row_min), Point(column_max, row_max)

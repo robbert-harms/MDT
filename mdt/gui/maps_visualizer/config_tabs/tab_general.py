@@ -215,6 +215,19 @@ class TabGeneral(QWidget, Ui_TabGeneral):
         config = self._controller.get_config()
         bounding_box = data_info.get_bounding_box(config.dimension, config.slice_index,
                                                   config.volume_index, config.rotate, config.maps_to_show)
+
+        if bounding_box[0].x > 0:
+            bounding_box[0].x -= 1
+        if bounding_box[0].y > 0:
+            bounding_box[0].y -= 1
+
+        bounding_box[1].y = min(bounding_box[1].y + 2, data_info.get_max_y(config.dimension,
+                                                                           rotate=config.rotate,
+                                                                           map_names=config.maps_to_show))
+        bounding_box[1].x = min(bounding_box[1].x + 2, data_info.get_max_x(config.dimension,
+                                                                           rotate=config.rotate,
+                                                                           map_names=config.maps_to_show))
+
         self._controller.apply_action(SetZoom(Zoom(*bounding_box)))
 
     @staticmethod

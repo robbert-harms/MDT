@@ -99,9 +99,6 @@ class AxisData(object):
         x += self._plot_config.zoom.p0.x
         y += self._plot_config.zoom.p0.y
 
-        # accommodate the upside down flip in the renderer
-        y = shape[1] - y
-
         rotated = Point(x, y).rotated(rotate, shape)
 
         index = [rotated.x, rotated.y, 0]
@@ -162,7 +159,6 @@ class Renderer(object):
             data = np.rot90(data, self._plot_config.rotate // 90)
         data = self._plot_config.zoom.apply(data)
         data = self._get_map_attr(map_name, 'clipping', Clipping()).apply(data)
-        data = np.flipud(data)
 
         plot_options = self._get_map_plot_options(map_name)
         plot_options['origin'] = 'lower'
