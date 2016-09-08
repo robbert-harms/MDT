@@ -259,7 +259,10 @@ class Renderer(object):
 
         data = get_slice_in_dimension(data, dimension, slice_index)
         if len(data.shape) > 2:
-            data = np.squeeze(data[:, :, volume_index])
+            if volume_index < data.shape[2]:
+                data = np.squeeze(data[:, :, volume_index])
+            else:
+                data = np.squeeze(data[:, :, data.shape[2] - 1])
 
         return data
 
