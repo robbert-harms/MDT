@@ -296,7 +296,7 @@ class RuntimeSettingsLoader(ConfigSectionLoader):
                 if not isinstance(indices, collections.Iterable):
                     indices = [indices]
 
-                devices = [all_devices[ind] for ind in indices if ind < len(indices)]
+                devices = [all_devices[ind] for ind in indices if ind < len(all_devices)]
 
                 if devices:
                     mot.configuration.set_cl_environments(devices)

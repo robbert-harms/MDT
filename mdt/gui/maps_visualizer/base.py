@@ -107,18 +107,18 @@ class ValidatedMapPlotConfig(MapPlotConfig):
             raise ValueError('One of the given maps to show is not in the data.')
 
     def _validate_dimension(self, data_info):
-        max_dim = data_info.get_max_dimension()
+        max_dim = data_info.get_max_dimension(map_names=self.maps_to_show)
         if self.dimension is None or self.dimension > max_dim:
             raise ValueError('The dimension ({}) can not be higher than {}.'.format(self.dimension, max_dim))
 
     def _validate_slice_index(self, data_info):
-        max_slice_index = data_info.get_max_slice_index(self.dimension)
+        max_slice_index = data_info.get_max_slice_index(self.dimension, map_names=self.maps_to_show)
         if self.slice_index is None or self.slice_index > max_slice_index or self.slice_index < 0:
             raise ValueError('The slice index ({}) can not be higher than '
                              '{} or lower than 0.'.format(self.slice_index, max_slice_index))
 
     def _validate_volume_index(self, data_info):
-        max_volume_index = data_info.get_max_volume_index()
+        max_volume_index = data_info.get_max_volume_index(map_names=self.maps_to_show)
         if self.volume_index > max_volume_index or self.volume_index < 0:
             raise ValueError('The volume index ({}) can not be higher than '
                              '{} or lower than 0.'.format(self.volume_index, max_volume_index))

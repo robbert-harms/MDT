@@ -8,7 +8,7 @@ from mdt.gui.maps_visualizer.actions import SetDimension, SetSliceIndex, SetVolu
     SetZoom, SetShowAxis, SetColorBarNmrTicks, SetMapsToShow
 from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig
 from mdt.gui.maps_visualizer.design.ui_TabGeneral import Ui_TabGeneral
-from mdt.gui.utils import blocked_signals
+from mdt.gui.utils import blocked_signals, TimedUpdate
 from mdt.visualization.maps.base import Zoom, Point, DataInfo
 
 __author__ = 'Robbert Harms'
@@ -44,7 +44,10 @@ class TabGeneral(QWidget, Ui_TabGeneral):
             lambda i: self._controller.apply_action(SetColormap(self.general_colormap.itemText(i))))
         self.general_rotate.currentIndexChanged.connect(
             lambda i: self._controller.apply_action(SetRotate(int(self.general_rotate.itemText(i)))))
-        self.general_map_selection.itemSelectionChanged.connect(self._update_maps_to_show)
+
+        self._map_selection_timer = TimedUpdate(self._update_maps_to_show)
+        self.general_map_selection.itemSelectionChanged.connect(
+            lambda: self._map_selection_timer.add_delayed_callback(500))
 
         self.general_deselect_all_maps.clicked.connect(self._deleselect_all_maps)
         self.general_invert_map_selection.clicked.connect(self._invert_map_selection)

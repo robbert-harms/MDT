@@ -116,14 +116,14 @@ class AxisData(object):
             rotated.x = shape[0] + rotated.x
 
         # create the index
-        index = [rotated.x, rotated.y, 0]
+        index = [rotated.x, rotated.y]
         index.insert(self._plot_config.dimension, self._plot_config.slice_index)
 
         if len(self._map_info.data.shape) > 3:
             if self._plot_config.volume_index < self._map_info.data.shape[3]:
-                index[3] = self._plot_config.volume_index
+                index.append(self._plot_config.volume_index)
             else:
-                index[3] = self._map_info.data.shape[3] - 1
+                index.append(self._map_info.data.shape[3] - 1)
 
         return index
 
