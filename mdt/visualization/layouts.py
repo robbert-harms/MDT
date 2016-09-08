@@ -14,7 +14,6 @@ class GridLayout(object):
 
     def __init__(self, spacings=None):
         super(GridLayout, self).__init__()
-        print(spacings)
         self.spacings = spacings or {'left': 0.06, 'right': 0.86,
                                      'top': 0.97, 'bottom': 0.04,
                                      'wspace': 0.5}
