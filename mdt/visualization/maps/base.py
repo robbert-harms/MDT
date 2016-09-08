@@ -576,7 +576,10 @@ class DataInfo(object):
         return min(self.map_info[map_name].max_slice_index(dimension) for map_name in map_names)
 
     def get_max_volume_index(self, map_names=None):
-        """Get the minimum maximum volume index in the given maps.
+        """Get the maximum volume index in the given maps.
+
+        In contrast to the max dimension and max slice index functions, this gives the maximum over all the
+        images. This since handling different volumes is implemented in the viewer.
 
         Args:
             map_names (list of str): if given we will only scan the given list of maps
@@ -587,7 +590,7 @@ class DataInfo(object):
         map_names = map_names or self.maps.keys()
         if not map_names:
             raise ValueError('No maps to search in.')
-        return min(self.map_info[map_name].max_volume_index() for map_name in map_names)
+        return max(self.map_info[map_name].max_volume_index() for map_name in map_names)
 
     def get_index_first_non_zero_slice(self, dimension, map_names=None):
         """Get the index of the first non zero slice in the maps.
