@@ -2,7 +2,7 @@ import itertools
 import numpy as np
 from matplotlib.gridspec import GridSpec
 
-from mdt.visualization.dict_conversion import SimpleClassConversion, IntConversion
+from mdt.visualization.dict_conversion import SimpleClassConversion, IntConversion, SimpleDictConversion
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-09-02"
@@ -12,9 +12,12 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class GridLayout(object):
 
-    def __init__(self):
+    def __init__(self, spacings=None):
         super(GridLayout, self).__init__()
-        self._spacings = dict(left=0.06, right=0.90, top=0.97, bottom=0.04, wspace=0.5)
+        print(spacings)
+        self.spacings = spacings or {'left': 0.06, 'right': 0.86,
+                                     'top': 0.97, 'bottom': 0.04,
+                                     'wspace': 0.5}
 
     @classmethod
     def get_conversion_info(cls):
@@ -22,7 +25,7 @@ class GridLayout(object):
 
     @classmethod
     def _get_attribute_conversions(cls):
-        return {}
+        return {'spacings': SimpleDictConversion()}
 
     def get_gridspec(self, figure, nmr_plots):
         """Get the grid layout specifier for the given figure using the given number of plots.
@@ -38,7 +41,7 @@ class GridLayout(object):
     def __eq__(self, other):
         if not isinstance(other, GridLayout):
             return NotImplemented
-        return isinstance(other, type(self))
+        return isinstance(other, type(self)) and other.spacings == self.spacings
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -69,7 +72,7 @@ class AutoGridLayout(GridLayout):
 
     def get_gridspec(self, figure, nmr_plots):
         rows, cols = self._get_row_cols_square(nmr_plots)
-        return GridLayoutSpecifier(GridSpec(rows, cols, **self._spacings), figure)
+        return GridLayoutSpecifier(GridSpec(rows, cols, **self.spacings), figure)
 
     def _get_row_cols_square(self, nmr_plots):
         defaults = ((1, 1), (1, 2), (1, 3), (2, 2), (2, 3), (2, 3), (2, 3))
@@ -85,8 +88,8 @@ class AutoGridLayout(GridLayout):
 
 class Rectangular(GridLayout):
 
-    def __init__(self, rows=None, cols=None):
-        super(Rectangular, self).__init__()
+    def __init__(self, rows=None, cols=None, spacings=None):
+        super(Rectangular, self).__init__(spacings=spacings)
         self.rows = rows
         self.cols = cols
 
@@ -102,15 +105,16 @@ class Rectangular(GridLayout):
 
     @classmethod
     def _get_attribute_conversions(cls):
-        return {'rows': IntConversion(),
-                'cols': IntConversion()}
+        conversions = super(Rectangular, cls)._get_attribute_conversions()
+        conversions.update({'rows': IntConversion(), 'cols': IntConversion()})
+        return conversions
 
     def get_gridspec(self, figure, nmr_plots):
         rows = self.rows
         cols = self.cols
 
         if rows is None and cols is None:
-            return AutoGridLayout().get_gridspec(figure, nmr_plots)
+            return AutoGridLayout(spacings=self.spacings).get_gridspec(figure, nmr_plots)
 
         if rows is None:
             rows = int(np.ceil(nmr_plots / cols))
@@ -120,22 +124,23 @@ class Rectangular(GridLayout):
         if rows * cols < nmr_plots:
             cols = int(np.ceil(nmr_plots / rows))
 
-        return GridLayoutSpecifier(GridSpec(rows, cols, **self._spacings), figure)
+        return GridLayoutSpecifier(GridSpec(rows, cols, **self.spacings), figure)
 
     def __eq__(self, other):
         if not isinstance(other, GridLayout):
             return NotImplemented
-        return isinstance(other, type(self)) and other.rows == self.rows and other.cols == self.cols
+        return isinstance(other, type(self)) and other.rows == self.rows and other.cols == self.cols \
+               and other.spacings == self.spacings
 
 
 class LowerTriangular(GridLayout):
 
-    def __init__(self):
-        super(LowerTriangular, self).__init__()
+    def __init__(self, spacings=None):
+        super(LowerTriangular, self).__init__(spacings=spacings)
 
     def get_gridspec(self, figure, nmr_plots):
         size, positions = self._get_size_and_position(nmr_plots)
-        return GridLayoutSpecifier(GridSpec(size, size, **self._spacings), figure, positions=positions)
+        return GridLayoutSpecifier(GridSpec(size, size, **self.spacings), figure, positions=positions)
 
     def _get_size_and_position(self, nmr_plots):
         size = self._get_lowest_triangle_length(nmr_plots)
@@ -158,10 +163,10 @@ class LowerTriangular(GridLayout):
 class SingleColumn(GridLayout):
 
     def get_gridspec(self, figure, nmr_plots):
-        return GridLayoutSpecifier(GridSpec(nmr_plots, 1, **self._spacings), figure)
+        return GridLayoutSpecifier(GridSpec(nmr_plots, 1, **self.spacings), figure)
 
 
 class SingleRow(GridLayout):
 
     def get_gridspec(self, figure, nmr_plots):
-        return GridLayoutSpecifier(GridSpec(1, nmr_plots, **self._spacings), figure)
+        return GridLayoutSpecifier(GridSpec(1, nmr_plots, **self.spacings), figure)

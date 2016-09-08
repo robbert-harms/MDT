@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from mdt import get_slice_in_dimension
-from mdt.visualization.maps.base import Clipping, Scale, Point
+from mdt.visualization.maps.base import Clipping, Scale, Point, Zoom
 from mdt.visualization.utils import MyColourBarTickLocator
 
 __author__ = 'Robbert Harms'
@@ -90,17 +90,32 @@ class AxisData(object):
         Returns
             x, y, z, v : Index coordinates of the map associated with the image.
         """
-        rotate = self._plot_config.get_rotation()
-        if not rotate:
-            rotate = 0
+        shape = self._map_info.get_size_in_dimension(self._plot_config.dimension, self._plot_config.get_rotation())
 
-        shape = self._map_info.get_size_in_dimension(self._plot_config.dimension)
-
+        # correct for zoom
         x += self._plot_config.zoom.p0.x
         y += self._plot_config.zoom.p0.y
 
-        rotated = Point(x, y).rotated(rotate, shape)
+        # correct for flip upside down
+        if not self._plot_config.flipud:
+            y = self._map_info.get_max_y(self._plot_config.dimension, self._plot_config.get_rotation()) - y
 
+        # correct for displayed axis, the view is x-data on y-image and y-data on x-image
+        x, y = y, x
+
+        # rotate the point
+        rotated = Point(x, y).rotate90((-1 * self._plot_config.get_rotation() % 360) // 90)
+
+        # translate the point back to a new origin
+        if self._plot_config.get_rotation() == 90:
+            rotated.y = shape[1] + rotated.y
+        elif self._plot_config.get_rotation() == 180:
+            rotated.x = shape[1] + rotated.x
+            rotated.y = shape[0] + rotated.y
+        elif self._plot_config.get_rotation() == 270:
+            rotated.x = shape[0] + rotated.x
+
+        # create the index
         index = [rotated.x, rotated.y, 0]
         index.insert(self._plot_config.dimension, self._plot_config.slice_index)
 
@@ -157,6 +172,12 @@ class Renderer(object):
         data = self._get_image(map_name)
         if self._plot_config.get_rotation():
             data = np.rot90(data, self._plot_config.get_rotation() // 90)
+
+        if not self._plot_config.flipud:
+            # by default we flipud to correct for matplotlib lower origin. If the user
+            # sets flipud, we do not need to to it
+            data = np.flipud(data)
+
         data = self._plot_config.zoom.apply(data)
         data = self._get_map_attr(map_name, 'clipping', Clipping()).apply(data)
 
@@ -185,6 +206,9 @@ class Renderer(object):
 
         image_axis.title.set_fontsize(self._plot_config.font.size)
         image_axis.title.set_family(self._plot_config.font.name)
+
+        colorbar_axis.yaxis.label.set_fontsize(self._plot_config.font.size)
+        colorbar_axis.yaxis.label.set_family(self._plot_config.font.name)
 
         colorbar_axis.yaxis.offsetText.set_fontsize(self._plot_config.font.size - 3)
         colorbar_axis.yaxis.offsetText.set_family(self._plot_config.font.name)

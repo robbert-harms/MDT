@@ -213,17 +213,23 @@ class TabGeneral(QWidget, Ui_TabGeneral):
             bounding_box = data_info.get_bounding_box(config.dimension, config.slice_index,
                                                       config.volume_index, config.get_rotation(), config.maps_to_show)
 
+            max_y = data_info.get_max_y(config.dimension, rotate=config.get_rotation(), map_names=config.maps_to_show)
+            max_x = data_info.get_max_x(config.dimension, rotate=config.get_rotation(), map_names=config.maps_to_show)
+
+            if not config.flipud:
+                # Since the renderer plots with a left top coordinate system,
+                # we need to flip the y coordinates upside down by default.
+                tmp = max_y - bounding_box[0].y
+                bounding_box[0].y = max_y - bounding_box[1].y
+                bounding_box[1].y = tmp
+
             if bounding_box[0].x > 0:
                 bounding_box[0].x -= 1
             if bounding_box[0].y > 0:
                 bounding_box[0].y -= 1
 
-            bounding_box[1].y = min(bounding_box[1].y + 2, data_info.get_max_y(config.dimension,
-                                                                               rotate=config.get_rotation(),
-                                                                               map_names=config.maps_to_show))
-            bounding_box[1].x = min(bounding_box[1].x + 2, data_info.get_max_x(config.dimension,
-                                                                               rotate=config.get_rotation(),
-                                                                               map_names=config.maps_to_show))
+            bounding_box[1].y = min(bounding_box[1].y + 2, max_y)
+            bounding_box[1].x = min(bounding_box[1].x + 2, max_x)
 
             self._controller.apply_action(SetZoom(Zoom(*bounding_box)))
 

@@ -21,7 +21,7 @@ from mdt.gui.maps_visualizer.design.ui_export_dialog import Ui_ExportImageDialog
 matplotlib.use('Qt5Agg')
 
 import mdt
-from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig, Controller
+from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig, Controller, PlottingFrameInfoViewer
 from mdt.visualization.maps.base import DataInfo
 from mdt.gui.maps_visualizer.renderers.matplotlib_renderer import MatplotlibPlotting
 from mdt.gui.model_fit.design.ui_about_dialog import Ui_AboutDialog
@@ -42,7 +42,16 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self._directory_watcher = DirectoryImageWatcher()
         self._directory_watcher.image_updates.connect(self._update_viewed_images)
 
-        self.plotting_frame = MatplotlibPlotting(controller, parent=parent)
+        self._status_dir_label = QLabel()
+        self._coordinates_label = QLabel()
+
+        self.statusBar().addWidget(self._status_dir_label, 1)
+        self.statusBar().addWidget(self._coordinates_label)
+        self.statusBar().setStyleSheet("QStatusBar::item { border: 0px solid black }; ")
+
+        self.plotting_info_to_statusbar = PlottingFrameInfoToStatusBar(self._coordinates_label)
+        self.plotting_frame = MatplotlibPlotting(controller, parent=parent,
+                                                 plotting_info_viewer=self.plotting_info_to_statusbar)
         self.plotLayout.addWidget(self.plotting_frame)
 
         self.tab_general = TabGeneral(controller, self)
@@ -65,10 +74,6 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
             lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self._controller.get_data().directory)))
         self.actionSave_settings.triggered.connect(lambda: self._save_settings())
         self.actionLoad_settings.triggered.connect(lambda: self._load_settings())
-
-        self._status_dir_label = QLabel()
-        self.statusBar().addWidget(self._status_dir_label)
-        self.statusBar().setStyleSheet("QStatusBar::item { border: 0px solid black }; ")
 
         self.undo_config.setDisabled(not self._controller.has_undo())
         self.redo_config.setDisabled(not self._controller.has_redo())
@@ -151,6 +156,21 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
                     pass
                 except ValueError:
                     pass
+
+
+class PlottingFrameInfoToStatusBar(PlottingFrameInfoViewer):
+
+    def __init__(self, status_bar_label):
+        super(PlottingFrameInfoToStatusBar, self).__init__()
+        self._status_bar_label = status_bar_label
+
+    def set_voxel_info(self, onscreen_coords, data_index, value):
+        super(PlottingFrameInfoToStatusBar, self).set_voxel_info(onscreen_coords, data_index, value)
+        self._status_bar_label.setText("{}, {}, {:.3f}".format(onscreen_coords, data_index, value))
+
+    def clear_voxel_info(self):
+        super(PlottingFrameInfoToStatusBar, self).clear_voxel_info()
+        self._status_bar_label.setText("")
 
 
 class ExportImageDialog(Ui_ExportImageDialog, QDialog):

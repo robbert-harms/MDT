@@ -103,20 +103,28 @@ class IdentityConversion(ConversionSpecification):
         """
         super(IdentityConversion, self).__init__()
         self._desired_type = desired_type
-        self._ignore_none = allow_null
+        self._allow_none = allow_null
 
     def to_dict(self, obj):
-        if obj is None and self._ignore_none:
-            return obj
-        if self._desired_type:
-            return self._desired_type(obj)
+        if obj is None:
+            if self._allow_none:
+                return None
+            else:
+                raise ValueError('The object is supposed to be not None.')
+        else:
+            if self._desired_type:
+                return self._desired_type(obj)
         return obj
 
     def from_dict(self, value):
-        if value is None and self._ignore_none:
-            return value
-        if self._desired_type:
-            return self._desired_type(value)
+        if value is None:
+            if self._allow_none:
+                return None
+            else:
+                raise ValueError('The object is supposed to be not None.')
+        else:
+            if self._desired_type:
+                return self._desired_type(value)
         return value
 
 

@@ -18,9 +18,9 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class MapPlotConfig(object):
 
-    def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=0, colormap='hot', maps_to_show=(),
+    def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=0, colormap='hot', maps_to_show=None,
                  font=None, grid_layout=None, colorbar_nmr_ticks=10, show_axis=True, zoom=None,
-                 map_plot_options=None, interpolation='bilinear'):
+                 map_plot_options=None, interpolation='bilinear', flipud=None):
         """Container for all plot related settings.
 
         Args:
@@ -37,6 +37,7 @@ class MapPlotConfig(object):
             zoom (Zoom): the zoom setting for all the plots
             map_plot_options (dict): per map the map specific plot options
             interpolation (str): one of the available interpolations
+            flipud (boolean): if True we flip the image upside down
         """
         super(MapPlotConfig, self).__init__()
         self.dimension = dimension
@@ -44,14 +45,19 @@ class MapPlotConfig(object):
         self.volume_index = volume_index
         self.rotate = rotate
         self.colormap = colormap
-        self.maps_to_show = maps_to_show
+        self.maps_to_show = maps_to_show or []
         self.zoom = zoom or Zoom(Point(0, 0), Point(0, 0))
         self.font = font or Font()
         self.colorbar_nmr_ticks = colorbar_nmr_ticks
-        self.show_axis = show_axis or False
+        self.show_axis = show_axis
+        if self.show_axis is None:
+            self.show_axis = True
         self.map_plot_options = map_plot_options or {}
         self.grid_layout = grid_layout or Rectangular()
         self.interpolation = interpolation or 'bilinear'
+        self.flipud = flipud
+        if self.flipud is None:
+            self.flipud = False
 
         if interpolation not in self.get_available_interpolations():
             raise ValueError('The given interpolation ({}) is not supported.'.format(interpolation))
@@ -92,7 +98,8 @@ class MapPlotConfig(object):
                 'show_axis': BooleanConversion(),
                 'map_plot_options': ConvertDictElements(SingleMapConfig.get_conversion_info()),
                 'grid_layout': ConvertDynamicFromModule(mdt.visualization.layouts),
-                'interpolation': WhiteListConversion(cls.get_available_interpolations(), 'bilinear')
+                'interpolation': WhiteListConversion(cls.get_available_interpolations(), 'bilinear'),
+                'flipud': BooleanConversion(allow_null=False),
                 }
 
     @classmethod
@@ -106,13 +113,12 @@ class MapPlotConfig(object):
     def get_rotation(self):
         """Get the rotation we would like to apply on the configuration.
 
-        This can differ from the instance variable rotate. The instance variable is what the user set,
-        this function returns what we make of it.
+        Since we draw in Matplotlib the
 
         Returns:
             int: a angle as multiple of 90, can be negative.
         """
-        return -self.rotate - 90
+        return self.rotate + 90
 
     def to_dict(self):
         return self.get_conversion_info().to_dict(self)
@@ -145,10 +151,11 @@ class SingleMapConfig(object):
         self.colormap = colormap
         self.colorbar_label = colorbar_label
 
-        try:
-            matplotlib.cm.get_cmap(self.colormap)
-        except:
-            raise ValueError('The given colormap ({}) is not supported.'.format(self.colormap))
+        if self.colormap is not None:
+            try:
+                matplotlib.cm.get_cmap(self.colormap)
+            except:
+                raise ValueError('The given colormap ({}) is not supported.'.format(self.colormap))
 
     @classmethod
     def get_conversion_info(cls):
@@ -205,8 +212,15 @@ class Zoom(object):
         self.p1 = p1
 
         if p0.x > p1.x or p0.y > p1.y:
-            raise ValueError('The lower left point ({}, {}) should be smaller than the lower right point ({}, {})'.
+            raise ValueError('The lower left point ({}, {}) should be smaller than the upper right point ({}, {})'.
                              format(p0.x, p0.y, p1.x, p1.y))
+
+        if p0.x < 0 or p0.y < 0 or p1.x < 0 or p1.y < 0:
+            raise ValueError('The zoom box ({}, {}), ({}, {}) can not '
+                             'be negative in any way.'.format(p0.x, p0.y, p1.x, p1.y))
+
+        if self.p0 is None or self.p1 is None:
+            raise ValueError('One of the zoom points is None.')
 
     @classmethod
     def no_zoom(cls):
@@ -226,7 +240,7 @@ class Zoom(object):
         """Apply the zoom to the given 2d array and return the new array.
 
         Args:
-           data (ndarray): the data to zoom in on
+            data (ndarray): the data to zoom in on
         """
         correct = self.p0.x < data.shape[1] and self.p1.x < data.shape[1] \
                   and self.p0.y < data.shape[0] and self.p1.y < data.shape[0] \
@@ -282,31 +296,26 @@ class Point(object):
 
     @classmethod
     def _get_attribute_conversions(cls):
-        return {'x': IntConversion(),
-                'y': IntConversion()}
+        return {'x': IntConversion(allow_null=False),
+                'y': IntConversion(allow_null=False)}
 
-    def rotated(self, rotate, shape):
-        """Rotate this point around a 90 degree angle and translate the results to a new origin.
-
-        This uses the given maximum (x, y) of the non-rotated 2d image to translate the results.
+    def rotate90(self, nmr_rotations):
+        """Rotate this point around a 90 degree angle
 
         Args:
-            rotate (int): the angle around which to rotate, one of 0, 90, 180, 270.
-            shape (tuple): the shape of the complete area, (max_x, max_y)
+            nmr_rotations (int): the number of 90 degreee rotations, can be negative
 
         Returns:
             Point: the rotated point
         """
-        return Point(*self._rotate_coordinate(self.x, self.y, rotate, shape))
+        return Point(*self._rotate_coordinate(self.x, self.y, nmr_rotations))
 
-    def _rotate_coordinate(self, x, y, rotate, shape):
-        positive_number_of_90deg_rotations = (rotate % 360) // 90
-
+    def _rotate_coordinate(self, x, y, nmr_rotations):
+        rotation_matrix = np.array([[0, -1],
+                                    [1, 0]])
         rx, ry = x, y
-        for rotation in range(1, positive_number_of_90deg_rotations + 1):
-            # apply rotation and translate on the x component
-            current_max_x, current_max_y = np.roll(shape, rotation)
-            rx, ry = current_max_y - ry, rx
+        for rotation in range(1, nmr_rotations + 1):
+            rx, ry = rotation_matrix.dot([rx, ry])
         return rx, ry
 
     def __repr__(self):

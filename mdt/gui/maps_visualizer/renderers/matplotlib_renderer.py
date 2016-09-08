@@ -18,8 +18,8 @@ from mdt.visualization.maps.base import DataInfo
 
 class MatplotlibPlotting(PlottingFrame, QWidget):
 
-    def __init__(self, controller, parent=None):
-        super(MatplotlibPlotting, self).__init__(controller)
+    def __init__(self, controller, parent=None, plotting_info_viewer=None):
+        super(MatplotlibPlotting, self).__init__(controller, plotting_info_viewer=plotting_info_viewer)
 
         self._controller.new_data.connect(self.set_new_data)
         self._controller.new_config.connect(self.set_new_config)
@@ -48,7 +48,7 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
         self._timer.timeout.connect(self._timer_event)
         self._timer.timeout.connect(self._timer.stop)
 
-        self._mouse_interaction = MouseInteraction(self.figure)
+        self._mouse_interaction = _MouseInteraction(self.figure, self._plotting_info_viewer)
         self._mouse_interaction.update_axes_data(self._axes_data)
 
     def export_image(self, filename, width, height, dpi=100):
@@ -90,12 +90,14 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
         self.figure.canvas.draw()
 
 
-class MouseInteraction(object):
+class _MouseInteraction(object):
 
-    def __init__(self, figure):
+    def __init__(self, figure, plotting_info_viewer):
         self.figure = figure
+        self.plotting_info_viewer = plotting_info_viewer
         self._axes_data = []
         self.figure.canvas.mpl_connect('button_release_event', self._button_released)
+        self.figure.canvas.mpl_connect('motion_notify_event', self._mouse_motion)
 
     def update_axes_data(self, axes_data):
         """Set the updated axes data. Needs to be called if the axes are updated.
@@ -111,8 +113,17 @@ class MouseInteraction(object):
             x, y = int(np.round(event.xdata)), int(np.round(event.ydata))
             index = axis_data.coordinates_to_index(x, y)
             value = axis_data.get_value(index)
-            # todo show in box
             print(x, y, index, value)
+
+    def _mouse_motion(self, event):
+        axis_data = self._get_matching_axis_data(event.inaxes)
+        if axis_data:
+            x, y = int(np.round(event.xdata)), int(np.round(event.ydata))
+            index = axis_data.coordinates_to_index(x, y)
+            value = axis_data.get_value(index)
+            self.plotting_info_viewer.set_voxel_info((x, y), tuple(index), float(value))
+        else:
+            self.plotting_info_viewer.clear_voxel_info()
 
     def _get_matching_axis_data(self, axis):
         """Get the axis data matching the given axis.

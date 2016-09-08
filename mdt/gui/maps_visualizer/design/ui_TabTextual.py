@@ -22,6 +22,7 @@ class Ui_TabTextual(object):
         self.gridLayout.addWidget(self.textConfigEdit, 0, 0, 1, 1)
         self.correctness_label = QtWidgets.QLabel(TabTextual)
         self.correctness_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.correctness_label.setWordWrap(True)
         self.correctness_label.setObjectName("correctness_label")
         self.gridLayout.addWidget(self.correctness_label, 1, 0, 1, 1)
 
