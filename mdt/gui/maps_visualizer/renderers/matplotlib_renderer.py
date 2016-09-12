@@ -51,6 +51,8 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
         self._mouse_interaction = _MouseInteraction(self.figure, self._plotting_info_viewer)
         self._mouse_interaction.update_axes_data(self._axes_data)
 
+        self.setMinimumWidth(100)
+
     def export_image(self, filename, width, height, dpi=100):
         width_inch = width / dpi
         height_inch = height / dpi
@@ -113,7 +115,8 @@ class _MouseInteraction(object):
             x, y = int(np.round(event.xdata)), int(np.round(event.ydata))
             index = axis_data.coordinates_to_index(x, y)
             value = axis_data.get_value(index)
-            print(x, y, index, value)
+            # todo draw info box on the figure
+            # print(x, y, index, value)
 
     def _mouse_motion(self, event):
         axis_data = self._get_matching_axis_data(event.inaxes)

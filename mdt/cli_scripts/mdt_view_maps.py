@@ -35,14 +35,7 @@ class GUI(BasicShellApplication):
                             help='Use the given initial configuration').completer = \
             FilesCompleter(['conf'], directories=False)
 
-        parser.add_argument('--preselect-maps', dest='preselect_maps', action='store_true',
-                            help="Preselect the maps to show (if maps_to_show is empty), default")
-        parser.add_argument('--show-all-maps', dest='preselect_maps', action='store_false',
-                            help="If maps to show is not set, show all maps instead of a preselection")
-        parser.set_defaults(preselect_maps=True)
-
         parser.add_argument('-m', '--maximize', action='store_true', help="Maximize the shown window")
-
         parser.add_argument('--to-file', type=str, help="If set export the figure to the given filename")
 
         return parser
@@ -63,8 +56,7 @@ class GUI(BasicShellApplication):
                 with open(filename, 'r') as f:
                     config = f.read()
 
-        view_maps(data, config, preselect_maps=args.preselect_maps, show_maximized=args.maximize,
-                  to_file=to_file)
+        view_maps(data, config, show_maximized=args.maximize, to_file=to_file)
 
 if __name__ == '__main__':
     GUI().start()

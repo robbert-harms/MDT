@@ -52,12 +52,12 @@ class MapPlotConfig(object):
         self.show_axis = show_axis
         if self.show_axis is None:
             self.show_axis = True
-        self.map_plot_options = map_plot_options or {}
         self.grid_layout = grid_layout or Rectangular()
         self.interpolation = interpolation or 'bilinear'
         self.flipud = flipud
         if self.flipud is None:
             self.flipud = False
+        self.map_plot_options = map_plot_options or {}
 
         if interpolation not in self.get_available_interpolations():
             raise ValueError('The given interpolation ({}) is not supported.'.format(interpolation))
@@ -65,14 +65,26 @@ class MapPlotConfig(object):
         try:
             matplotlib.cm.get_cmap(self.colormap)
         except:
-            raise ValueError('The given colormap ({}) is not supported.'.format(colormap))
+            raise ValueError('The given colormap ({}) is not supported.'.format(self.colormap))
 
         if self.rotate not in [0, 90, 180, 270]:
             raise ValueError('The given rotation ({}) is not supported, use 90 '
                              'degree angles within 360.'.format(self.rotate))
 
-        if dimension < 0:
-            raise ValueError('The dimension can not be smaller than 0, {} given.'.format(dimension))
+        if self.dimension is None:
+            raise ValueError('The dimension can not be None.')
+
+        if self.slice_index is None:
+            raise ValueError('The slice index can not be None.')
+
+        if self.volume_index is None:
+            raise ValueError('The volume index can not be None.')
+
+        if self.rotate is None:
+            raise ValueError('The rotation can not be None.')
+
+        if self.dimension < 0:
+            raise ValueError('The dimension can not be smaller than 0, {} given.'.format(self.dimension))
 
     @classmethod
     def get_available_interpolations(cls):
@@ -248,24 +260,6 @@ class Zoom(object):
         if correct:
             return data[self.p0.y:self.p1.y, self.p0.x:self.p1.x]
         return data
-    #
-    # def rotate(self, rotate, max_x, max_y):
-    #todo
-    #     """Rotate this zoom box around a 90 degree angle.
-    #
-    #     Args:
-    #         rotate (int): the angle around which to rotate, one of 0, 90, 180, 270.
-    #         max_x (int): the (not rotated) maximum x index
-    #         max_y (int): the (not rotated) maximum y index
-    #
-    #     Returns:
-    #         Zoom: the rotated zoom box
-    #     """
-    #     # if rotate == 90:
-    #     #     return Zoom(Point(self.p0.y, self.p1.x).rotate(rotate, max_x, max_y),
-    #     #                 Point(self.p1.y, self.p0.x).rotate(rotate, max_x, max_y))
-    #
-    #     return self
 
     def __repr__(self):
         return str(self.get_conversion_info().to_dict(self))
@@ -468,6 +462,19 @@ class Font(object):
             raise ValueError("The given font \"{}\" is not recognized.".format(family))
         if size < 1:
             raise ValueError("The size ({}) can not be smaller than 1".format(str(size)))
+
+    def get_updated(self, **kwargs):
+        """Get a new Font object with updated arguments.
+
+        Args:
+            **kwargs (dict): the new keyword values, when given these take precedence over the current ones.
+
+        Returns:
+            Font: a new Font with updated values.
+        """
+        new_values = dict(family=self.family, size=self.size)
+        new_values.update(**kwargs)
+        return Font(**new_values)
 
     @property
     def name(self):

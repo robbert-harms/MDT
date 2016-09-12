@@ -1,4 +1,4 @@
-from mdt.visualization.maps.base import Zoom
+from mdt.visualization.maps.base import Zoom, Point
 from .base import ConfigAction, SimpleConfigAction, SimpleMapSpecificConfigAction
 
 
@@ -104,3 +104,23 @@ class SetShowAxis(SimpleConfigAction):
 class SetColorBarNmrTicks(SimpleConfigAction):
 
     config_attribute = 'colorbar_nmr_ticks'
+
+
+class SetInterpolation(SimpleConfigAction):
+
+    config_attribute = 'interpolation'
+
+
+class SetFlipud(SimpleConfigAction):
+
+    config_attribute = 'flipud'
+
+    def _extra_actions(self, data_info, configuration):
+        if self.new_value != self._previous_config.flipud:
+            max_y = data_info.get_max_y(configuration.dimension, configuration.get_rotation(),
+                                        configuration.maps_to_show)
+
+            new_zoom = Zoom(Point(configuration.zoom.p0.x, max_y - configuration.zoom.p1.y),
+                            Point(configuration.zoom.p1.x, max_y - configuration.zoom.p0.y))
+
+            return SetZoom(new_zoom).apply(data_info, configuration)

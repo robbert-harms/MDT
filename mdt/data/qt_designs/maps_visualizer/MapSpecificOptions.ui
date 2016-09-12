@@ -249,7 +249,7 @@
             </widget>
            </item>
            <item row="0" column="1">
-            <widget class="ScientificDoubleSpinBox" name="data_scale_min">
+            <widget class="QDoubleSpinBoxDotSeperator" name="data_scale_min">
              <property name="specialValueText">
               <string/>
              </property>
@@ -259,15 +259,21 @@
              <property name="maximum">
               <double>9999999999.989999771118164</double>
              </property>
+             <property name="singleStep">
+              <double>0.010000000000000</double>
+             </property>
             </widget>
            </item>
            <item row="2" column="1">
-            <widget class="ScientificDoubleSpinBox" name="data_scale_max">
+            <widget class="QDoubleSpinBoxDotSeperator" name="data_scale_max">
              <property name="minimum">
               <double>-9999999999.989999771118164</double>
              </property>
              <property name="maximum">
               <double>9999999999.989999771118164</double>
+             </property>
+             <property name="singleStep">
+              <double>0.010000000000000</double>
              </property>
             </widget>
            </item>
@@ -423,6 +429,20 @@
            </property>
           </widget>
          </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_6">
+           <property name="text">
+            <string>Shape:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLabel" name="info_shape">
+           <property name="text">
+            <string>TextLabel</string>
+           </property>
+          </widget>
+         </item>
         </layout>
        </widget>
       </item>
@@ -430,7 +450,7 @@
     </widget>
    </item>
    <item row="2" column="0">
-    <widget class="CollapsablePanel" name="frame_7">
+    <widget class="CollapsablePanel" name="info_Clipping">
      <property name="frameShape">
       <enum>QFrame::NoFrame</enum>
      </property>
@@ -540,22 +560,28 @@
             </widget>
            </item>
            <item row="0" column="1">
-            <widget class="ScientificDoubleSpinBox" name="data_clipping_min">
+            <widget class="QDoubleSpinBoxDotSeperator" name="data_clipping_min">
              <property name="minimum">
               <double>-9999999999.989999771118164</double>
              </property>
              <property name="maximum">
               <double>9999999999.989999771118164</double>
+             </property>
+             <property name="singleStep">
+              <double>0.010000000000000</double>
              </property>
             </widget>
            </item>
            <item row="1" column="1">
-            <widget class="ScientificDoubleSpinBox" name="data_clipping_max">
+            <widget class="QDoubleSpinBoxDotSeperator" name="data_clipping_max">
              <property name="minimum">
               <double>-9999999999.989999771118164</double>
              </property>
              <property name="maximum">
               <double>9999999999.989999771118164</double>
+             </property>
+             <property name="singleStep">
+              <double>0.010000000000000</double>
              </property>
             </widget>
            </item>
@@ -602,7 +628,7 @@
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>ScientificDoubleSpinBox</class>
+   <class>QDoubleSpinBoxDotSeperator</class>
    <extends>QDoubleSpinBox</extends>
    <header>..widgets</header>
   </customwidget>

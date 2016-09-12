@@ -5,11 +5,11 @@ from PyQt5.QtCore import pyqtSlot, Qt
 from PyQt5.QtWidgets import QWidget, QAbstractItemView
 
 from mdt.gui.maps_visualizer.actions import SetDimension, SetSliceIndex, SetVolumeIndex, SetColormap, SetRotate, \
-    SetZoom, SetShowAxis, SetColorBarNmrTicks, SetMapsToShow
+    SetZoom, SetShowAxis, SetColorBarNmrTicks, SetMapsToShow, SetFont, SetInterpolation, SetFlipud
 from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig
 from mdt.gui.maps_visualizer.design.ui_TabGeneral import Ui_TabGeneral
 from mdt.gui.utils import blocked_signals, TimedUpdate
-from mdt.visualization.maps.base import Zoom, Point, DataInfo
+from mdt.visualization.maps.base import Zoom, Point, DataInfo, Font
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-09-03"
@@ -36,6 +36,8 @@ class TabGeneral(QWidget, Ui_TabGeneral):
 
         self.general_DisplayOrder.set_collapse(True)
         self.general_Miscellaneous.set_collapse(True)
+        self.general_Zoom.set_collapse(True)
+        self.general_Font.set_collapse(True)
 
         self.general_dimension.valueChanged.connect(lambda v: self._controller.apply_action(SetDimension(v)))
         self.general_slice_index.valueChanged.connect(lambda v: self._controller.apply_action(SetSliceIndex(v)))
@@ -66,8 +68,33 @@ class TabGeneral(QWidget, Ui_TabGeneral):
         self.general_colorbar_nmr_ticks.valueChanged.connect(
             lambda v: self._controller.apply_action(SetColorBarNmrTicks(v)))
 
+        self.general_font_family.addItems(Font.font_names())
+        self.general_font_family.currentTextChanged.connect(
+            lambda v: self._controller.apply_action(SetFont(self._controller.get_config().font.get_updated(family=v))))
+
+        self.general_font_size.valueChanged.connect(
+            lambda: self._controller.apply_action(
+                SetFont(self._controller.get_config().font.get_updated(size=self.general_font_size.value()))))
+
+        self.general_interpolation.addItems(self._controller.get_config().get_available_interpolations())
+        self.general_interpolation.currentTextChanged.connect(
+            lambda v: self._controller.apply_action(SetInterpolation(v)))
+
+        self.general_flipud.clicked.connect(lambda: self._controller.apply_action(
+            SetFlipud(self.general_flipud.isChecked())))
+
     @pyqtSlot(DataInfo)
     def set_new_data(self, data_info):
+        if data_info.directory:
+            self.general_info_directory.setText(data_info.directory)
+        else:
+            self.general_info_directory.setText('-')
+
+        if len(data_info.maps):
+            self.general_info_nmr_maps.setText(str(len(data_info.maps)))
+        else:
+            self.general_info_nmr_maps.setText('0')
+
         with blocked_signals(self.general_map_selection):
             self.general_map_selection.clear()
             self.general_map_selection.addItems(data_info.sorted_keys)
@@ -175,6 +202,18 @@ class TabGeneral(QWidget, Ui_TabGeneral):
 
         with blocked_signals(self.general_colorbar_nmr_ticks):
             self.general_colorbar_nmr_ticks.setValue(config.colorbar_nmr_ticks)
+
+        with blocked_signals(self.general_font_family):
+            self.general_font_family.setCurrentText(config.font.family)
+
+        with blocked_signals(self.general_font_size):
+            self.general_font_size.setValue(config.font.size)
+
+        with blocked_signals(self.general_interpolation):
+            self.general_interpolation.setCurrentText(config.interpolation)
+
+        with blocked_signals(self.general_flipud):
+            self.general_flipud.setChecked(config.flipud)
 
     @pyqtSlot()
     def _reorder_maps(self):

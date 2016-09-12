@@ -247,7 +247,7 @@ def get_device_ind(device_type='FIRST_GPU'):
     return indices
 
 
-def view_maps(data, config=None, preselect_maps=True, auto_slice_selection=True, to_file=None, to_file_options=None,
+def view_maps(data, config=None, to_file=None, to_file_options=None,
               block=True, show_maximized=False, use_qt=True, figure_options=None):
     """View a number of maps using the MDT Maps Visualizer.
 
@@ -256,10 +256,6 @@ def view_maps(data, config=None, preselect_maps=True, auto_slice_selection=True,
             a path name or a DataInfo object
         config (str, dict, MapPlotConfig): either a Yaml string or a dictionary with configuration settings or a
             MapPlotConfig object to use directly
-        preselect_maps (boolean): if set we preselect the maps to show, only used if the property maps_to_show of the
-            config is not set or is empty.
-        auto_slice_selection (boolean): if set to True and if the slice_index in the config is set to 0 we will
-            try to find a good starting index in the given dimension.
         to_file (str): if set we output the figure to a file and do not launch a GUI
         to_file_options (dict): extra output options for the savefig command from matplotlib
         block (boolean): if we block the plots or not
@@ -286,19 +282,6 @@ def view_maps(data, config=None, preselect_maps=True, auto_slice_selection=True,
         config = ValidatedMapPlotConfig.from_yaml(config)
     elif isinstance(config, dict):
         config = ValidatedMapPlotConfig.from_dict(config)
-
-    if not config.maps_to_show and preselect_maps:
-        config.maps_to_show = results_preselection_names(data.maps)
-
-    if not config.slice_index and auto_slice_selection:
-        if config.maps_to_show:
-            first_non_zero = data.get_index_first_non_zero_slice(config.dimension, config.maps_to_show)
-            max_slice_index = data.get_max_slice_index(config.dimension, config.maps_to_show)
-
-            default_slice = first_non_zero
-            if first_non_zero < 0.1 * max_slice_index and data.slice_has_data(config.dimension, max_slice_index // 2):
-                default_slice = max_slice_index // 2
-            config.slice_index = default_slice
 
     if to_file:
         figure_options = figure_options or {}

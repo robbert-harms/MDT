@@ -14,9 +14,9 @@ class GridLayout(object):
 
     def __init__(self, spacings=None):
         super(GridLayout, self).__init__()
-        self.spacings = spacings or {'left': 0.06, 'right': 0.86,
+        self.spacings = spacings or {'left': 0.10, 'right': 0.86,
                                      'top': 0.97, 'bottom': 0.04,
-                                     'wspace': 0.5}
+                                     'wspace': 0.5, 'hspace': 0.2}
 
     @classmethod
     def get_conversion_info(cls):

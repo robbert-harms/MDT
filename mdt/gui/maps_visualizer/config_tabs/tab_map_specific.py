@@ -99,6 +99,8 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         self._colorbar_label_timer = TimedUpdate(self._update_colorbar_label)
         self.data_colorbar_label.textChanged.connect(lambda v: self._colorbar_label_timer.add_delayed_callback(500, v))
 
+        self.info_Clipping.set_collapse(True)
+
     def reset(self):
         """Set all the values to their defaults"""
         self._current_map = None
@@ -137,6 +139,7 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         self.info_file_location.setText('-')
         self.info_maximum.setText('-')
         self.info_minimum.setText('-')
+        self.info_shape.setText('-')
 
     def set_current_map(self, map_name):
         """Load the settings of the given map"""
@@ -199,6 +202,8 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
 
         self.info_maximum.setText(str(vmax))
         self.info_minimum.setText(str(vmin))
+        self.info_shape.setText(str(data_info.maps[map_name].shape))
+
 
     def _get_current_map_config(self):
         current_config = self._controller.get_config()

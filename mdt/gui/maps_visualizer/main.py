@@ -42,11 +42,9 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self._directory_watcher = DirectoryImageWatcher()
         self._directory_watcher.image_updates.connect(self._update_viewed_images)
 
-        self._status_dir_label = QLabel()
         self._coordinates_label = QLabel()
 
-        self.statusBar().addWidget(self._status_dir_label, 1)
-        self.statusBar().addWidget(self._coordinates_label)
+        self.statusBar().addPermanentWidget(self._coordinates_label)
         self.statusBar().setStyleSheet("QStatusBar::item { border: 0px solid black }; ")
 
         self.plotting_info_to_statusbar = PlottingFrameInfoToStatusBar(self._coordinates_label)
@@ -83,14 +81,8 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
 
     @pyqtSlot(DataInfo)
     def set_new_data(self, data_info):
-        if data_info.directory:
-            self._status_dir_label.setText('Loaded directory "{}", {} maps found.'.format(data_info.directory,
-                                                                                          len(data_info.maps)))
-            self._directory_watcher.set_directory(data_info.directory)
-        else:
-            self._status_dir_label.setText('No directory information available.')
-
         self.actionBrowse_to_current_folder.setDisabled(self._controller.get_data().directory is None)
+        self.actionExport.setDisabled(self._controller.get_data().directory is None)
 
     @pyqtSlot(ValidatedMapPlotConfig)
     def set_new_config(self, config):
@@ -103,7 +95,9 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         if new_dir:
             data = DataInfo.from_dir(new_dir)
             config = ValidatedMapPlotConfig()
-            config.slice_index = data.get_max_slice_index(config.dimension) // 2
+
+            if len(data.maps):
+                config.slice_index = data.get_max_slice_index(config.dimension) // 2
 
             if self._controller.get_data().maps:
                 start_gui(data, config, app_exec=False)
@@ -189,7 +183,7 @@ class ExportImageDialog(Ui_ExportImageDialog, QDialog):
         self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(self.outputFile_box.text() != '')
 
     def _select_file(self):
-        graphical_image_filters = ['png (*.png)', 'All files (*)']
+        graphical_image_filters = ['png (*.png)', 'svg (*.svg)', 'All files (*)']
 
         open_file, used_filter = QFileDialog().getSaveFileName(caption='Select the output file',
                                                                filter=';;'.join(graphical_image_filters))

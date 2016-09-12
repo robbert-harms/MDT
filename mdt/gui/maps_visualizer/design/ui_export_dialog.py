@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_ExportImageDialog(object):
     def setupUi(self, ExportImageDialog):
         ExportImageDialog.setObjectName("ExportImageDialog")
-        ExportImageDialog.resize(525, 253)
+        ExportImageDialog.resize(722, 253)
         self.verticalLayout = QtWidgets.QVBoxLayout(ExportImageDialog)
         self.verticalLayout.setObjectName("verticalLayout")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout()
@@ -47,6 +47,7 @@ class Ui_ExportImageDialog(object):
         self.outputFile_box.setEnabled(True)
         self.outputFile_box.setObjectName("outputFile_box")
         self.horizontalLayout.addWidget(self.outputFile_box)
+        self.horizontalLayout.setStretch(1, 1)
         self.gridLayout.addLayout(self.horizontalLayout, 3, 1, 1, 1)
         self.label_12 = QtWidgets.QLabel(ExportImageDialog)
         font = QtGui.QFont()

@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>525</width>
+    <width>722</width>
     <height>253</height>
    </rect>
   </property>
@@ -55,7 +55,7 @@
    <item>
     <layout class="QGridLayout" name="gridLayout">
      <item row="3" column="1">
-      <layout class="QHBoxLayout" name="horizontalLayout">
+      <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1">
        <item>
         <widget class="QPushButton" name="outputFile_chooser">
          <property name="enabled">
