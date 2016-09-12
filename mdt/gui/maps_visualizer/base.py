@@ -124,8 +124,8 @@ class ValidatedMapPlotConfig(MapPlotConfig):
                              '{} or lower than 0.'.format(self.volume_index, max_volume_index))
 
     def _validate_zoom(self, data_info):
-        max_x = data_info.get_max_x(self.dimension, self.get_rotation())
-        max_y = data_info.get_max_y(self.dimension, self.get_rotation())
+        max_x = data_info.get_max_x(self.dimension, self.rotate)
+        max_y = data_info.get_max_y(self.dimension, self.rotate)
 
         if self.zoom.p1.x > max_x:
             raise ValueError('The zoom maximum x ({}) can not be larger than {}'.format(self.zoom.p1.x, max_x))

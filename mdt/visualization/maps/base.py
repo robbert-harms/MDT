@@ -18,7 +18,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class MapPlotConfig(object):
 
-    def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=0, colormap='hot', maps_to_show=None,
+    def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=90, colormap='hot', maps_to_show=None,
                  font=None, grid_layout=None, colorbar_nmr_ticks=10, show_axis=True, zoom=None,
                  map_plot_options=None, interpolation='bilinear', flipud=None):
         """Container for all plot related settings.
@@ -27,7 +27,8 @@ class MapPlotConfig(object):
             dimension (int): the dimension we are viewing
             slice_index (int): the slice in the dimension we are viewing
             volume_index (int): in the case of multiple volumes (4th dimension) which index we are in.
-            rotate (int): the rotation factor, multiple of 90
+            rotate (int): the rotation factor, multiple of 90. By default we rotate 90 degrees to
+                show most in-vivo datasets in a natural way.
             colormap (str): the name of the colormap to use
             maps_to_show (list of str): the names of the maps to show
             font (int): the font settings
@@ -46,7 +47,7 @@ class MapPlotConfig(object):
         self.rotate = rotate
         self.colormap = colormap
         self.maps_to_show = maps_to_show or []
-        self.zoom = zoom or Zoom(Point(0, 0), Point(0, 0))
+        self.zoom = zoom or Zoom.no_zoom()
         self.font = font or Font()
         self.colorbar_nmr_ticks = colorbar_nmr_ticks
         self.show_axis = show_axis
@@ -62,9 +63,7 @@ class MapPlotConfig(object):
         if interpolation not in self.get_available_interpolations():
             raise ValueError('The given interpolation ({}) is not supported.'.format(interpolation))
 
-        try:
-            matplotlib.cm.get_cmap(self.colormap)
-        except:
+        if self.colormap not in self.get_available_colormaps():
             raise ValueError('The given colormap ({}) is not supported.'.format(self.colormap))
 
         if self.rotate not in [0, 90, 180, 270]:
@@ -88,9 +87,11 @@ class MapPlotConfig(object):
 
     @classmethod
     def get_available_interpolations(cls):
-        return ['none', 'nearest', 'bilinear', 'bicubic', 'spline16',
-                'spline36', 'hanning', 'hamming', 'hermite', 'kaiser', 'quadric',
-                'catrom', 'gaussian', 'bessel', 'mitchell', 'sinc', 'lanczos']
+        return get_available_interpolations()
+
+    @classmethod
+    def get_available_colormaps(cls):
+        return get_available_colormaps()
 
     @classmethod
     def get_conversion_info(cls):
@@ -121,16 +122,6 @@ class MapPlotConfig(object):
     @classmethod
     def from_dict(cls, config_dict):
         return cls.get_conversion_info().from_dict(config_dict)
-
-    def get_rotation(self):
-        """Get the rotation we would like to apply on the configuration.
-
-        Since we draw in Matplotlib the
-
-        Returns:
-            int: a angle as multiple of 90, can be negative.
-        """
-        return self.rotate + 90
 
     def to_dict(self):
         return self.get_conversion_info().to_dict(self)
@@ -163,11 +154,8 @@ class SingleMapConfig(object):
         self.colormap = colormap
         self.colorbar_label = colorbar_label
 
-        if self.colormap is not None:
-            try:
-                matplotlib.cm.get_cmap(self.colormap)
-            except:
-                raise ValueError('The given colormap ({}) is not supported.'.format(self.colormap))
+        if self.colormap not in self.get_available_colormaps():
+            raise ValueError('The given colormap ({}) is not supported.'.format(self.colormap))
 
     @classmethod
     def get_conversion_info(cls):
@@ -180,6 +168,10 @@ class SingleMapConfig(object):
                 'clipping': Clipping.get_conversion_info(),
                 'colormap': StringConversion(),
                 'colorbar_label': StringConversion()}
+
+    @classmethod
+    def get_available_colormaps(cls):
+        return get_available_colormaps()
 
     @classmethod
     def from_yaml(cls, text):
@@ -235,6 +227,10 @@ class Zoom(object):
             raise ValueError('One of the zoom points is None.')
 
     @classmethod
+    def from_coords(cls, x0, y0, x1, y1):
+        return cls(Point(x0, y0), Point(x1, y1))
+
+    @classmethod
     def no_zoom(cls):
         return cls(Point(0, 0), Point(0, 0))
 
@@ -284,6 +280,19 @@ class Point(object):
         self.x = x
         self.y = y
 
+    def get_updated(self, **kwargs):
+        """Get a new Point object with updated arguments.
+
+        Args:
+            **kwargs (dict): the new keyword values, when given these take precedence over the current ones.
+
+        Returns:
+            Point: a new scale with updated values.
+        """
+        new_values = dict(x=self.x, y=self.y)
+        new_values.update(**kwargs)
+        return Point(**new_values)
+
     @classmethod
     def get_conversion_info(cls):
         return SimpleClassConversion(cls, cls._get_attribute_conversions())
@@ -302,15 +311,16 @@ class Point(object):
         Returns:
             Point: the rotated point
         """
-        return Point(*self._rotate_coordinate(self.x, self.y, nmr_rotations))
 
-    def _rotate_coordinate(self, x, y, nmr_rotations):
-        rotation_matrix = np.array([[0, -1],
-                                    [1, 0]])
-        rx, ry = x, y
-        for rotation in range(1, nmr_rotations + 1):
-            rx, ry = rotation_matrix.dot([rx, ry])
-        return rx, ry
+        def rotate_coordinate(x, y, nmr_rotations):
+            rotation_matrix = np.array([[0, -1],
+                                        [1, 0]])
+            rx, ry = x, y
+            for rotation in range(1, nmr_rotations + 1):
+                rx, ry = rotation_matrix.dot([rx, ry])
+            return rx, ry
+
+        return Point(*rotate_coordinate(self.x, self.y, nmr_rotations))
 
     def __repr__(self):
         return 'Point(x={}, y={})'.format(self.x, self.y)
@@ -864,3 +874,27 @@ class SingleMapInfo(object):
         row_min, row_max, column_min, column_max = bbox(image)
 
         return Point(column_min, row_min), Point(column_max, row_max)
+
+
+def get_available_interpolations():
+    """The available interpolations for either the general map plot config or the map specifics.
+
+    Do not call these for outside use, rather, consult the class method of the specific config you want to change.
+
+    Returns:
+        list of str: the list of available interpolations.
+    """
+    return ['none', 'nearest', 'bilinear', 'bicubic', 'spline16',
+            'spline36', 'hanning', 'hamming', 'hermite', 'kaiser', 'quadric',
+            'catrom', 'gaussian', 'bessel', 'mitchell', 'sinc', 'lanczos']
+
+
+def get_available_colormaps():
+    """The available colormaps for either the general map plot config or the map specifics.
+
+    Do not call these for outside use, rather, consult the class method of the specific config you want to change.
+
+    Returns:
+        list of str: the list of available colormaps.
+    """
+    return sorted(matplotlib.cm.datad)

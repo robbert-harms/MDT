@@ -1,6 +1,4 @@
 import copy
-
-import matplotlib
 from PyQt5.QtCore import pyqtSlot, Qt
 from PyQt5.QtWidgets import QWidget, QAbstractItemView
 
@@ -30,7 +28,7 @@ class TabGeneral(QWidget, Ui_TabGeneral):
         self.general_display_order.setDragDropMode(QAbstractItemView.InternalMove)
         self.general_display_order.setSelectionMode(QAbstractItemView.SingleSelection)
 
-        self.general_colormap.addItems(sorted(matplotlib.cm.datad))
+        self.general_colormap.addItems(self._controller.get_config().get_available_colormaps())
         self.general_rotate.addItems(['0', '90', '180', '270'])
         self.general_rotate.setCurrentText(str(self._controller.get_config().rotate))
 
@@ -158,8 +156,8 @@ class TabGeneral(QWidget, Ui_TabGeneral):
             self.general_map_selection.blockSignals(False)
 
         try:
-            max_x = data_info.get_max_x(config.dimension, config.get_rotation(), map_names)
-            max_y = data_info.get_max_y(config.dimension, config.get_rotation(), map_names)
+            max_x = data_info.get_max_x(config.dimension, config.rotate, map_names)
+            max_y = data_info.get_max_y(config.dimension, config.rotate, map_names)
 
             with blocked_signals(self.general_zoom_x_0, self.general_zoom_x_1,
                                  self.general_zoom_y_0, self.general_zoom_y_1):
@@ -253,10 +251,10 @@ class TabGeneral(QWidget, Ui_TabGeneral):
 
         if config.maps_to_show or len(data_info.maps):
             bounding_box = data_info.get_bounding_box(config.dimension, config.slice_index,
-                                                      config.volume_index, config.get_rotation(), config.maps_to_show)
+                                                      config.volume_index, config.rotate, config.maps_to_show)
 
-            max_y = data_info.get_max_y(config.dimension, rotate=config.get_rotation(), map_names=config.maps_to_show)
-            max_x = data_info.get_max_x(config.dimension, rotate=config.get_rotation(), map_names=config.maps_to_show)
+            max_y = data_info.get_max_y(config.dimension, rotate=config.rotate, map_names=config.maps_to_show)
+            max_x = data_info.get_max_x(config.dimension, rotate=config.rotate, map_names=config.maps_to_show)
 
             if not config.flipud:
                 # Since the renderer plots with a left top coordinate system,
@@ -285,7 +283,7 @@ class TabGeneral(QWidget, Ui_TabGeneral):
         if np0y > np1y:
             np1y = np0y
 
-        self._controller.apply_action(SetZoom(Zoom(Point(np0x, np0y), Point(np1x, np1y))))
+        self._controller.apply_action(SetZoom(Zoom.from_coords(np0x, np0y, np1x, np1y)))
 
     @staticmethod
     def _insert_alphabetically(new_item, item_list):

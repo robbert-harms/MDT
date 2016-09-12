@@ -1,4 +1,3 @@
-import matplotlib
 from PyQt5.QtCore import pyqtSlot, Qt
 from PyQt5.QtWidgets import QWidget
 
@@ -78,7 +77,7 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         self.setupUi(self)
         self._controller = controller
         self._current_map = None
-        self.colormap.addItems(['-- Use global --'] + sorted(matplotlib.cm.datad))
+        self.colormap.addItems(['-- Use global --'] + self._controller.get_config().get_available_colormaps())
         self.colormap.currentIndexChanged.connect(self._update_colormap)
         self.data_clipping_min.valueChanged.connect(self._update_clipping_min)
         self.data_clipping_max.valueChanged.connect(self._update_clipping_max)

@@ -117,7 +117,7 @@ class SetFlipud(SimpleConfigAction):
 
     def _extra_actions(self, data_info, configuration):
         if self.new_value != self._previous_config.flipud:
-            max_y = data_info.get_max_y(configuration.dimension, configuration.get_rotation(),
+            max_y = data_info.get_max_y(configuration.dimension, configuration.rotate,
                                         configuration.maps_to_show)
 
             new_zoom = Zoom(Point(configuration.zoom.p0.x, max_y - configuration.zoom.p1.y),

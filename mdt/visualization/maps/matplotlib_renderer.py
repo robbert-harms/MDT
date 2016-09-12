@@ -90,7 +90,7 @@ class AxisData(object):
         Returns
             x, y, z, v : Index coordinates of the map associated with the image.
         """
-        shape = self._map_info.get_size_in_dimension(self._plot_config.dimension, self._plot_config.get_rotation())
+        shape = self._map_info.get_size_in_dimension(self._plot_config.dimension, self._plot_config.rotate)
 
         # correct for zoom
         x += self._plot_config.zoom.p0.x
@@ -98,21 +98,21 @@ class AxisData(object):
 
         # correct for flip upside down
         if not self._plot_config.flipud:
-            y = self._map_info.get_max_y(self._plot_config.dimension, self._plot_config.get_rotation()) - y
+            y = self._map_info.get_max_y(self._plot_config.dimension, self._plot_config.rotate) - y
 
         # correct for displayed axis, the view is x-data on y-image and y-data on x-image
         x, y = y, x
 
         # rotate the point
-        rotated = Point(x, y).rotate90((-1 * self._plot_config.get_rotation() % 360) // 90)
+        rotated = Point(x, y).rotate90((-1 * self._plot_config.rotate % 360) // 90)
 
         # translate the point back to a new origin
-        if self._plot_config.get_rotation() == 90:
+        if self._plot_config.rotate == 90:
             rotated.y = shape[1] + rotated.y
-        elif self._plot_config.get_rotation() == 180:
+        elif self._plot_config.rotate == 180:
             rotated.x = shape[1] + rotated.x
             rotated.y = shape[0] + rotated.y
-        elif self._plot_config.get_rotation() == 270:
+        elif self._plot_config.rotate == 270:
             rotated.x = shape[0] + rotated.x
 
         # create the index
@@ -172,8 +172,8 @@ class Renderer(object):
         axis.axis('on' if self._plot_config.show_axis else 'off')
 
         data = self._get_image(map_name)
-        if self._plot_config.get_rotation():
-            data = np.rot90(data, self._plot_config.get_rotation() // 90)
+        if self._plot_config.rotate:
+            data = np.rot90(data, self._plot_config.rotate // 90)
 
         if not self._plot_config.flipud:
             # by default we flipud to correct for matplotlib lower origin. If the user
