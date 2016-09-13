@@ -13,6 +13,8 @@ from mdt.components_loader import ProcessingStrategiesLoader, NoiseSTDCalculator
 import mot.configuration
 from mot.load_balance_strategies import EvenDistribution
 
+from mdt.__version__ import __version__
+
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-23"
 __maintainer__ = "Robbert Harms"
@@ -28,7 +30,6 @@ def get_config_dir():
     Return:
         str: the path to the components
     """
-    from mdt import __version__
     return os.path.join(os.path.expanduser("~"), '.mdt', __version__)
 
 
@@ -209,44 +210,20 @@ class OptimizationSettingsLoader(ConfigSectionLoader):
     """Loads the optimization section"""
 
     def load(self, value):
-        ensure_exists(['optimization', 'general'])
-        ensure_exists(['optimization', 'model_specific'])
+        ensure_exists(['optimization', 'optimizer'])
 
-        if 'general' in value:
-            self._load_general(value['general'])
-        if 'model_specific' in value:
-            self._load_model_specific(value['model_specific'])
-
-    def _load_general(self, options):
-        for item in ['optimizers', 'extra_optim_runs']:
-            if item in options:
-                config_insert(['optimization', 'general', item], options[item])
-
-    def _load_model_specific(self, model_specific):
-        for key, value in model_specific.items():
-            config_insert(['optimization', 'model_specific', key], value)
+        if 'optimizer' in value:
+            config_insert(['optimization', 'optimizer'], value['optimizer'])
 
 
 class SampleSettingsLoader(ConfigSectionLoader):
     """Loads the sampling section"""
 
     def load(self, value):
-        ensure_exists(['sampling', 'general'])
-        ensure_exists(['sampling', 'model_specific'])
+        ensure_exists(['sampling', 'sampler'])
 
-        if 'general' in value:
-            self._load_general(value['general'])
-        if 'model_specific' in value:
-            self._load_model_specific(value['model_specific'])
-
-    def _load_general(self, options):
-        for item in ['samplers']:
-            if item in options:
-                config_insert(['sampling', 'general', item], options[item])
-
-    def _load_model_specific(self, model_specific):
-        for key, value in model_specific.items():
-            config_insert(['sampling', 'model_specific', key], value)
+        if 'sampler' in value:
+            config_insert(['sampling', 'sampler'], value['sampler'])
 
 
 class ProcessingStrategySectionLoader(ConfigSectionLoader):
@@ -279,9 +256,8 @@ class NoiseStdEstimationSectionLoader(ConfigSectionLoader):
     """Load the section noise_std_estimating"""
 
     def load(self, value):
-        if 'general' in value:
-            if 'estimators' in value['general']:
-                config_insert(['noise_std_estimating', 'general', 'estimators'], value['general']['estimators'])
+        if 'estimators' in value:
+            config_insert(['noise_std_estimating', 'estimators'], value['estimators'])
 
 
 class RuntimeSettingsLoader(ConfigSectionLoader):
@@ -405,7 +381,7 @@ def get_noise_std_estimators():
         list of ComplexNoiseStdEstimator: the noise estimators to use for finding the complex noise
     """
     loader = NoiseSTDCalculatorsLoader()
-    return [loader.load(c) for c in _config['noise_std_estimating']['general']['estimators']]
+    return [loader.load(c) for c in _config['noise_std_estimating']['estimators']]
 
 
 def get_logging_configuration_dict():
@@ -420,80 +396,42 @@ def get_logging_configuration_dict():
     return _config['logging']['info_dict']
 
 
-class OptimizationSettings(object):
+def get_optimizer():
+    """Load the optimizer from the configuration.
 
-    @staticmethod
-    def get_optimizer_configs(model_names=None):
-        """Get the settings per optimizers.
-
-        Args:
-            model_names (list of str): if set we try to match the model specific optimization
-                settings to this model name or cascaded list of model names
-
-        Returns:
-            list of OptimizerConfig: the optimization configuration objects per defined optimizer for this model.
-        """
-        settings = []
-        for config in _config['optimization']['general']['optimizers']:
-            settings.append(OptimizerConfig(config['name'],
-                                            config.get('patience', None),
-                                            config.get('optimizer_options', None)))
-
-        if model_names is not None:
-            model_config = get_model_config(model_names, _config['optimization']['model_specific'])
-            if model_config:
-                return [OptimizerConfig(m['name'], m['patience']) for m in model_config['optimizers']]
-
-        return settings
+    Returns:
+        Optimizer: the configured optimizer for use in MDT
+    """
+    optimizer = get_optimizer_by_name(_config['optimization']['optimizer']['name'])
+    return optimizer(**_config['optimization']['optimizer']['settings'])
 
 
-class OptimizerConfig(object):
+def get_optimizer_name():
+    """Get the name of the currently configured optimizer
 
-    def __init__(self, name, patience=None, optimizer_options=None):
-        """Container object for an optimization routine settings"""
-        self.name = name
-        self.patience = patience
-        self.optimizer_options = optimizer_options
-
-    def build_optimizer(self):
-        optimizer = get_optimizer_by_name(self.name)
-        return optimizer(patience=self.patience, optimizer_options=self.optimizer_options)
+    Returns:
+        str: the name of the currently configured optimizer
+    """
+    return _config['optimization']['optimizer']['name']
 
 
-class SamplingSettings(object):
+def get_optimizer_settings():
+    """Get the settings of the currently configured optimizer
 
-    @staticmethod
-    def get_sampler_configs(model_name=None):
-        settings = []
-        for config in _config['sampling']['general']['samplers']:
-            if 'name' in config:
-                name = config.pop('name')
-                settings.append(SamplerConfig(name, **config))
-
-        if model_name is not None:
-            model_config = get_model_config(model_name, _config['sampling']['model_specific'])
-            if model_config:
-                if 'samplers' in model_config:
-                    settings = []
-
-                for m in model_config['samplers']:
-                    if 'name' in m:
-                        name = m.pop('name')
-                        settings.append(SamplerConfig(name, **m))
-
-        return settings
+    Returns:
+        dict: the settings of the currently configured optimizer
+    """
+    return _config['optimization']['optimizer']['settings']
 
 
-class SamplerConfig(object):
+def get_sampler():
+    """Load the sampler from the configuration.
 
-    def __init__(self, name, **kwargs):
-        """Container object for an optimization routine settings"""
-        self.name = name
-        self.kwargs = kwargs
-
-    def build_sampler(self):
-        sampler = get_sampler_by_name(self.name)
-        return sampler(**self.kwargs)
+    Returns:
+        Sampler: the configured sampler for use in MDT
+    """
+    sampler = get_sampler_by_name(_config['sampling']['sampler']['name'])
+    return sampler(**_config['sampling']['sampler']['settings'])
 
 
 def get_model_config(model_names, config):

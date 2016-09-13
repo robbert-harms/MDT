@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from matplotlib.widgets import Slider
+from scipy.stats import norm
+import matplotlib.mlab as mlab
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-09-02"

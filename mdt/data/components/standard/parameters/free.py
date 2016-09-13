@@ -29,7 +29,6 @@ class s0(FreeParameterConfig):
     upper_bound = 1e10
     parameter_transform = ClampTransform()
     sampling_proposal = GaussianProposal(std=25.0)
-    perturbation_function = lambda v: np.clip(v + np.random.normal(scale=1e3, size=v.shape), 1, 1e10)
 
 
 class T1(FreeParameterConfig):
@@ -114,7 +113,6 @@ class theta(FreeParameterConfig):
     sampling_proposal = CircularGaussianProposal(np.pi, 0.02)
     sampling_prior = AbsSinHalfPrior()
     sampling_statistics = CircularGaussianPSS()
-    perturbation_function = lambda v: v + np.random.normal(scale=0.1, size=v.shape)
 
 
 class phi(FreeParameterConfig):
@@ -126,7 +124,6 @@ class phi(FreeParameterConfig):
     sampling_proposal = CircularGaussianProposal(np.pi, 0.02)
     sampling_prior = AbsSinPrior()
     sampling_statistics = CircularGaussianPSS()
-    perturbation_function = lambda v: v + np.random.normal(scale=0.1, size=v.shape)
 
 
 class psi(FreeParameterConfig):
@@ -138,7 +135,6 @@ class psi(FreeParameterConfig):
     sampling_proposal = CircularGaussianProposal(np.pi, 0.02)
     sampling_prior = AbsSinPrior()
     sampling_statistics = CircularGaussianPSS()
-    perturbation_function = lambda v: v + np.random.normal(scale=0.1, size=v.shape)
 
 
 class d(FreeParameterConfig):

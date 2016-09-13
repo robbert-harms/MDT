@@ -19,19 +19,14 @@ with open('README.rst', 'rt') as f:
 with open('docs/history.rst', 'rt') as f:
     history = f.read().replace('.. :changelog:', '')
 
-with open('mdt/__init__.py') as f:
-    lines = []
-    for line_ind, line in enumerate(f.readlines()):
-        lines.append(line)
-        if line[0: len('__version__')] == '__version__':
-            break
-    version_file_contents = "\n".join(lines)
+with open('mdt/__version__.py') as f:
+    version_file_contents = "\n".join(f.readlines())
+    ver_dic = {}
+    exec(compile(version_file_contents, "mdt/__version__.py", 'exec'), ver_dic)
 
 requirements = load_requirements('requirements.txt')
 requirements_tests = load_requirements('requirements_tests.txt')
 
-ver_dic = {}
-exec(compile(version_file_contents, "mdt/__init__.py", 'exec'), ver_dic)
 
 def load_entry_points():
     entry_points = {'console_scripts': []}

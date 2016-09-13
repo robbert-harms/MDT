@@ -1,4 +1,5 @@
 import glob
+import logging
 import logging.config as logging_config
 import os
 from inspect import stack
@@ -6,25 +7,12 @@ import numpy as np
 import six
 from six import string_types
 
-__author__ = 'Robbert Harms'
-__date__ = "2015-03-10"
-__license__ = "LGPL v3"
-__maintainer__ = "Robbert Harms"
-__email__ = "robbert.harms@maastrichtuniversity.nl"
-
-
-VERSION = '0.8.12'
-VERSION_STATUS = ''
-
-_items = VERSION.split('-')
-VERSION_NUMBER_PARTS = tuple(int(i) for i in _items[0].split('.'))
-if len(_items) > 1:
-    VERSION_STATUS = _items[1]
-__version__ = VERSION
-
+from .__version__ import VERSION, VERSION_STATUS, __version__
+import collections
 
 try:
     from mdt.configuration import get_logging_configuration_dict
+
     try:
         logging_config.dictConfig(get_logging_configuration_dict())
     except ValueError:
@@ -39,11 +27,19 @@ from mdt.utils import estimate_noise_std, get_cl_devices, load_problem_data, cre
     volume_index_to_roi_index, roi_index_to_volume_index, load_brain_mask, init_user_settings, restore_volumes, \
     apply_mask, create_roi, volume_merge, concatenate_mri_sets, create_median_otsu_brain_mask, load_samples, \
     load_nifti, write_slice_roi, split_write_dataset, apply_mask_to_file, extract_volumes, recalculate_error_measures, \
-    create_signal_estimates, get_slice_in_dimension
+    create_signal_estimates, get_slice_in_dimension, per_model_logging_context
 from mdt.batch_utils import collect_batch_fit_output, run_function_on_batch_fit_output
 from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, write_protocol, write_bvec_bval
 from mdt.components_loader import load_component, get_model
-from mdt.configuration import config_context
+from mdt.configuration import config_context, get_processing_strategy
+from mdt.exceptions import InsufficientProtocolError
+
+
+__author__ = 'Robbert Harms'
+__date__ = "2015-03-10"
+__license__ = "LGPL v3"
+__maintainer__ = "Robbert Harms"
+__email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 def fit_model(model, problem_data, output_folder, optimizer=None,
@@ -103,9 +99,9 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
 
 
 def sample_model(model, problem_data, output_folder, sampler=None, recalculate=False,
-                 cl_device_ind=None, double_precision=False, initialize=True, initialize_using=None,
-                 store_samples=True, tmp_results_dir=True, save_user_script_info=True):
-    """Sample a single model. This does not accept cascade models, only single models.
+                 cl_device_ind=None, double_precision=False, store_samples=True, tmp_results_dir=True,
+                 save_user_script_info=True, initialization_maps=None):
+    """Sample a single model using the given cascading strategy.
 
     Args:
         model: the model to sample
@@ -117,13 +113,6 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
         cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices().
         double_precision (boolean): if we would like to do the calculations in double precision
-        initialize (boolean): If we want to initialize the sampler with optimization output.
-            This assumes that the optimization results are in the folder:
-                <output_folder>/<model_name>/
-        initialize_using (None, str, or dict): If None, and initialize is True we will initialize from the
-            optimization maps from a model with the same name. If a string is given and initialize is True we will
-            interpret the string as a folder with the maps to set_current_map. If a dict is given and initialize is True we will
-            initialize from the dict directly.
         store_samples (boolean): if set to False we will store none of the samples. Use this
                 if you are only interested in the volume maps and not in the entire sample chain.
         tmp_results_dir (str, True or None): The temporary dir for the calculations. Set to a string to use
@@ -133,27 +122,64 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
             and save that using a SaveFromScript saver. If a string is given we use that filename again for the
             SaveFromScript saver. If False or None, we do not write any information. If a SaveUserScriptInfo is
             given we use that directly.
+        initialization_maps (dict): maps to initialize the sampling with. Per default this is None,
+            common practice is to use the maps from an optimization as starting point
 
     Returns:
-        dict: the samples per parameter as a numpy memmap, if store_samples is True
+        dict: the samples per parameter as a numpy memmap if store_samples is True
     """
     import mdt.utils
-    from mdt.model_sampling import ModelSampling
+    from mot.load_balance_strategies import EvenDistribution
+    from mdt.model_sampling import sample_single_model
+    from mdt.models.cascade import DMRICascadeModelInterface
+    import mot.configuration
 
     if not mdt.utils.check_user_components():
         raise RuntimeError('Your components folder is not up to date. Please run the script mdt-init-user-settings.')
 
-    sampling = ModelSampling(model, problem_data, output_folder,
-                             sampler=sampler, recalculate=recalculate, cl_device_ind=cl_device_ind,
-                             double_precision=double_precision,
-                             initialize=initialize,
-                             initialize_using=initialize_using, store_samples=store_samples,
-                             tmp_results_dir=tmp_results_dir)
+    if isinstance(model, string_types):
+        model = get_model(model)
 
-    results = sampling.run()
-    easy_save_user_script_info(save_user_script_info, output_folder + '/used_scripts.py',
-                               stack()[1][0].f_globals.get('__file__'))
-    return results
+    if isinstance(model, DMRICascadeModelInterface):
+        raise ValueError('The function \'sample_model()\' does not accept cascade models.')
+
+    if not model.is_protocol_sufficient(problem_data.protocol):
+        raise InsufficientProtocolError(
+            'The given protocol is insufficient for this model. '
+            'The reported errors where: {}'.format(model.get_protocol_problems(problem_data.protocol)))
+
+    if cl_device_ind is not None and not isinstance(cl_device_ind, collections.Iterable):
+        cl_device_ind = [cl_device_ind]
+
+    cl_context_action = mot.configuration.RuntimeConfigurationAction(
+        cl_environments=[get_cl_devices()[ind] for ind in cl_device_ind],
+        load_balancer=EvenDistribution())
+
+    with mot.configuration.config_context(cl_context_action):
+        if sampler is None:
+            sampler = configuration.get_sampler()
+
+        processing_strategy = get_processing_strategy('sampling', model_names=model.name)
+        processing_strategy.set_tmp_dir(tmp_results_dir)
+
+        output_folder = os.path.join(output_folder, model.name, 'samples')
+        if not os.path.isdir(output_folder):
+            os.makedirs(output_folder)
+
+        with per_model_logging_context(output_folder, overwrite=recalculate):
+            logger = logging.getLogger(__name__)
+            logger.info('Using MDT version {}'.format(__version__))
+            logger.info('Preparing for model {0}'.format(model.name))
+
+            model.set_initial_parameters(create_roi(initialization_maps, problem_data.mask))
+            model.double_precision = double_precision
+
+            results = sample_single_model(model, problem_data, output_folder, sampler,
+                                          processing_strategy, recalculate=recalculate, store_samples=store_samples)
+
+        easy_save_user_script_info(save_user_script_info, output_folder + '/used_scripts.py',
+                                   stack()[1][0].f_globals.get('__file__'))
+        return results
 
 
 def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalculate=False,

@@ -54,7 +54,6 @@ class FreeParameterConfig(ParameterConfig):
     sampling_proposal = GaussianProposal(1.0)
     sampling_prior = UniformWithinBoundsPrior()
     sampling_statistics = GaussianPSS()
-    perturbation_function = (lambda v: v)
 
 
 class ModelDataParameterConfig(ParameterConfig):
@@ -106,8 +105,7 @@ class ParameterBuilder(ComponentBuilder):
                         parameter_transform=template.parameter_transform,
                         sampling_proposal=template.sampling_proposal,
                         sampling_prior=template.sampling_prior,
-                        sampling_statistics=template.sampling_statistics,
-                        perturbation_function=template.perturbation_function
+                        sampling_statistics=template.sampling_statistics
                     )
             return AutoFreeParameter
 

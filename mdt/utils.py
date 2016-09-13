@@ -24,7 +24,7 @@ from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
 from mdt.components_loader import get_model
 from mdt.configuration import get_config_dir
 from mdt.configuration import get_logging_configuration_dict, get_noise_std_estimators, config_context, \
-    VoidConfigAction, OptimizationSettings, get_tmp_results_dir, SamplingSettings
+    VoidConfigAction, get_tmp_results_dir
 from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
 from mdt.data_loaders.noise_std import autodetect_noise_std_loader
 from mdt.data_loaders.protocol import autodetect_protocol_loader
@@ -36,7 +36,6 @@ from mot.cl_environments import CLEnvironmentFactory
 from mot.cl_routines.mapping.calculate_model_estimates import CalculateModelEstimates
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
 from mot.cl_routines.optimizing.meta_optimizer import MetaOptimizer
-from mot.cl_routines.sampling.meta_sampler import MetaSampler
 from mot.model_building.evaluation_models import OffsetGaussianEvaluationModel
 
 try:
@@ -827,16 +826,25 @@ def setup_logging(disable_existing_loggers=None):
     logging_config.dictConfig(conf)
 
 
-def configure_per_model_logging(output_path):
+def configure_per_model_logging(output_path, overwrite=False):
     """Set up logging for one specific model.
 
     Args:
         output_path: the output path where the model results are stored.
+        overwrite (boolean): if we want to overwrite or append. If overwrite is True we overwrite the file, if False we
+            append.
     """
     if output_path:
         output_path = os.path.abspath(os.path.join(output_path, 'info.log'))
 
     had_this_output_file = all(h.output_file == output_path for h in ModelOutputLogHandler.__instances__)
+
+    if overwrite:
+        # close any open files
+        for handler in ModelOutputLogHandler.__instances__:
+            handler.output_file = None
+        if os.path.isfile(output_path):
+            os.remove(output_path)
 
     for handler in ModelOutputLogHandler.__instances__:
         handler.output_file = output_path
@@ -850,13 +858,14 @@ def configure_per_model_logging(output_path):
 
 
 @contextmanager
-def per_model_logging_context(output_path):
+def per_model_logging_context(output_path, overwrite=False):
     """A logging context wrapper for the function configure_per_model_logging.
 
     Args:
         output_path: the output path where the model results are stored.
+        overwrite (boolean): if we want to overwrite an existing file (if True), or append to it (if False)
     """
-    configure_per_model_logging(output_path)
+    configure_per_model_logging(output_path, overwrite=overwrite)
     yield
     configure_per_model_logging(None)
 
@@ -991,66 +1000,6 @@ def flatten(input_it):
         for i in it:
             for j in flatten(i):
                 yield j
-
-
-class MetaOptimizerBuilder(object):
-
-    def __init__(self, config_action=VoidConfigAction()):
-        """Create a new meta optimizer builder.
-
-        This will create a new MetaOptimizer using settings from the config file. You can update the config
-        during optimizer creation using a config action.
-
-        Args;
-            config_action (ConfigAction): the configuration action to apply during optimizer creation.
-        """
-        self._config_action = config_action
-
-    def construct(self, model_names=None):
-        """Construct a new meta optimizer with the options from the current configuration.
-
-        If model_name is given, we try to set_current_map the specific options for that model from the configuration. If it it not
-        given we set_current_map the general options.
-
-        Args:
-            model_names (list of str): the list of model names
-        """
-        with config_context(self._config_action):
-            meta_optimizer = MetaOptimizer()
-
-            optimizer_settings = OptimizationSettings.get_optimizer_configs(model_names)
-
-            meta_optimizer.optimizer = optimizer_settings[0].build_optimizer()
-            return meta_optimizer
-
-
-class MetaSamplerBuilder(object):
-
-    def __init__(self, config_action=VoidConfigAction()):
-        """Create a new meta sampler builder.
-
-        This will create a new MetaSampler using settings from the config file. You can update the config
-        during sampler creation using a config action.
-
-        Args;
-            config_action (ConfigAction): the configuration action to apply during optimizer creation.
-        """
-        self._config_action = config_action
-
-    def construct(self, model_name=None):
-        """Construct a new meta sampler with the options from the current configuration.
-
-        If model_name is given, we try to set_current_map the specific options for that model from the configuration. If it it not
-        given we set_current_map the general options.
-
-        Args:
-            model_name (str): the model name for which we want to build the sampler
-        """
-        with config_context(self._config_action):
-            meta_sampler = MetaSampler()
-            sampler_settings = SamplingSettings.get_sampler_configs(model_name)
-            meta_sampler.sampler = sampler_settings[0].build_sampler()
-            return meta_sampler
 
 
 def get_cl_devices():

@@ -7,7 +7,7 @@ from mdt.gui.model_fit.design.ui_optimization_options_dialog import Ui_Optimizat
 import mdt
 from mdt.gui.model_fit.design.ui_fit_model_tab import Ui_FitModelTabContent
 from mdt.gui.utils import function_message_decorator, image_files_filters, protocol_files_filters, MainTab
-from mdt.utils import split_image_path, MetaOptimizerBuilder
+from mdt.utils import split_image_path
 from mot.factory import get_optimizer_by_name
 
 __author__ = 'Robbert Harms'
@@ -295,24 +295,17 @@ class OptimOptions(object):
         self.use_model_default_optimizer = True
         self.double_precision = False
 
-        settings = mdt.configuration.OptimizationSettings.get_optimizer_configs()[0]
-        self.optimizer = settings.name
-        self.patience = settings.patience
+        self.optimizer = mdt.configuration.get_optimizer_name()
+        self.patience = mdt.configuration.get_optimizer_settings()['patience']
+
+        if self.patience is None:
+            self.patience = get_optimizer_by_name(self.optimizer).default_patience
 
         self.recalculate_all = False
-
         self.noise_std = None
 
     def get_optimizer(self):
         if self.use_model_default_optimizer:
             return None
-
-        config_action = mdt.configuration.YamlStringAction('''
-            optimization_settings:
-                general:
-                    optimizers:
-                        -   name: {name}
-                            patience: {patience}
-        '''.format(name=self.optimizer, patience=self.patience))
-
-        return MetaOptimizerBuilder(config_action).construct()
+        optimizer = get_optimizer_by_name(self.optimizer)
+        return optimizer(patience=self.patience)

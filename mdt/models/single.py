@@ -6,7 +6,7 @@ from mdt.components_loader import ComponentConfig, ComponentBuilder, method_bind
 from mdt.models.base import DMRIOptimizable
 from mdt.models.parsers.SingleModelExpressionParser import parse
 from mdt.protocols import VirtualColumnB
-from mot.adapters import SimpleDataAdapter
+from mot.data_adapters  import SimpleDataAdapter
 from mot.base import CLDataType
 from mot.cl_functions import Weight
 from mdt.utils import create_roi
@@ -14,7 +14,6 @@ from mdt.model_protocol_problem import MissingColumns, InsufficientShells
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
 from mot.model_building.evaluation_models import OffsetGaussianEvaluationModel
 from mot.model_building.parameter_functions.dependencies import WeightSumToOneRule
-from mot.models import PerturbationModelInterface
 from mot.model_building.model_builders import SampleModelBuilder
 from mot.trees import CompartmentModelTree
 
@@ -25,7 +24,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class DMRISingleModel(SampleModelBuilder, DMRIOptimizable, PerturbationModelInterface):
+class DMRISingleModel(SampleModelBuilder, DMRIOptimizable):
 
     def __init__(self, model_name, model_tree, evaluation_model, signal_noise_model=None, problem_data=None):
         """Create a composite dMRI sample model.
@@ -76,13 +75,6 @@ class DMRISingleModel(SampleModelBuilder, DMRIOptimizable, PerturbationModelInte
             var_data_dict.update({'gradient_deviations': adapter})
 
         return var_data_dict
-
-    def perturbate(self, results):
-        for map_name in self.get_optimized_param_names():
-            if map_name in results:
-                param = self._get_parameter_by_name(map_name)
-                results[map_name] = param.perturbation_function(results[map_name])
-        return results
 
     def is_protocol_sufficient(self, protocol=None):
         """See ProtocolCheckInterface"""
