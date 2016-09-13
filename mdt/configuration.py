@@ -446,10 +446,6 @@ class OptimizationSettings(object):
 
         return settings
 
-    @staticmethod
-    def get_extra_optim_runs():
-        return int(_config['optimization']['general']['extra_optim_runs'])
-
 
 class OptimizerConfig(object):
 

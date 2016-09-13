@@ -1021,9 +1021,6 @@ class MetaOptimizerBuilder(object):
             optimizer_settings = OptimizationSettings.get_optimizer_configs(model_names)
 
             meta_optimizer.optimizer = optimizer_settings[0].build_optimizer()
-            meta_optimizer.extra_optim_runs_optimizers = [optimizer_settings[i].build_optimizer()
-                                                          for i in range(1, len(optimizer_settings))]
-            meta_optimizer.extra_optim_runs = OptimizationSettings.get_extra_optim_runs()
             return meta_optimizer
 
 

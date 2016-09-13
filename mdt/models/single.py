@@ -170,6 +170,8 @@ class DMRISingleModel(SampleModelBuilder, DMRIOptimizable, PerturbationModelInte
                and 'g' in list(self.get_problems_protocol_data().keys())
 
     def _add_finalizing_result_maps(self, results_dict):
+        super(DMRISingleModel, self)._add_finalizing_result_maps(results_dict)
+
         log_likelihood_calc = LogLikelihoodCalculator()
         log_likelihoods = log_likelihood_calc.calculate(self, results_dict)
 

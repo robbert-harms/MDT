@@ -23,7 +23,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class ModelProcessingStrategy(object):
 
     def __init__(self, tmp_dir=None):
-        """Model processing strategies define in what parts the model is analyzed.
+        """Model processing strategies define in how many parts a single model is processed.
 
         This uses the problems_to_analyze attribute of the MOT model builder to select the voxels to process. That
         attribute arranges that only a selection of the problems are analyzed instead of all of them.

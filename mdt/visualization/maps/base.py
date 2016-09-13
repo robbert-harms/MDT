@@ -154,7 +154,7 @@ class SingleMapConfig(object):
         self.colormap = colormap
         self.colorbar_label = colorbar_label
 
-        if self.colormap not in self.get_available_colormaps():
+        if self.colormap is not None and self.colormap not in self.get_available_colormaps():
             raise ValueError('The given colormap ({}) is not supported.'.format(self.colormap))
 
     @classmethod
