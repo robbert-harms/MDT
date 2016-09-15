@@ -274,7 +274,8 @@ def get_device_ind(device_type='FIRST_GPU'):
 
 
 def view_maps(data, config=None, to_file=None, to_file_options=None,
-              block=True, show_maximized=False, use_qt=True, figure_options=None):
+              block=True, show_maximized=False, use_qt=True, figure_options=None,
+              window_title=None):
     """View a number of maps using the MDT Maps Visualizer.
 
     Args:
@@ -287,7 +288,8 @@ def view_maps(data, config=None, to_file=None, to_file_options=None,
         block (boolean): if we block the plots or not
         show_maximized (boolean): if we show the window maximized or not
         use_qt (boolean): if we want to use the Qt GUI, or show the results directly in matplotlib
-        figure_options (dict): figure options for matplotlib.Figure
+        figure_options (dict): figure options for the matplotlib Figure
+        window_title (str): the title for the window
     """
     from mdt.gui.maps_visualizer.main import start_gui
     from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig
@@ -311,8 +313,8 @@ def view_maps(data, config=None, to_file=None, to_file_options=None,
 
     if to_file:
         figure_options = figure_options or {}
-        figure_options['figsize'] = figure_options.get('figsize', (18, 16))
-        figure_options['dpi'] = figure_options.get('dpi', 100)
+        figure_options['figsize'] = figure_options.get('figsize', (10, 8))
+        figure_options['dpi'] = figure_options.get('dpi', 80)
 
         figure = plt.figure(**figure_options)
         viz = MapsVisualizer(data, figure)
@@ -321,7 +323,7 @@ def view_maps(data, config=None, to_file=None, to_file_options=None,
 
         viz.to_file(to_file, config, **to_file_options)
     elif use_qt:
-        start_gui(data, config, app_exec=block, show_maximized=show_maximized)
+        start_gui(data, config, app_exec=block, show_maximized=show_maximized, window_title=window_title)
     else:
         figure_options = figure_options or {}
         figure_options['figsize'] = figure_options.get('figsize', (18, 16))

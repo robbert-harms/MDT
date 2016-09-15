@@ -78,6 +78,7 @@ class GenerateROIMaskTab(MainTab, Ui_GenerateROIMaskTabContent):
         config = ValidatedMapPlotConfig()
         config.dimension = self.dimensionInput.value()
         config.slice_index = self.sliceInput.value()
+        config.maps_to_show = ['Original mask', 'Slice mask']
 
         start_gui(data=data, config=config, app_exec=False)
 

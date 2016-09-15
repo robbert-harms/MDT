@@ -63,5 +63,10 @@ class flip_angle(ProtocolParameterConfig):
 class Refoc_fa1(ProtocolParameterConfig):
     pass
 
+
 class Refoc_fa2(ProtocolParameterConfig):
+    pass
+
+
+class SEf(ProtocolParameterConfig):
     pass

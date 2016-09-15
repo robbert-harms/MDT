@@ -95,6 +95,7 @@ class GenerateBrainMaskTab(MainTab, Ui_GenerateBrainMaskTabContent):
         config = ValidatedMapPlotConfig()
         config.dimension = 2
         config.slice_index = image_data.shape[2] // 2.0
+        config.maps_to_show = ['DWI', 'Masked']
 
         start_gui(data=data, config=config, app_exec=False)
 
@@ -114,6 +115,7 @@ class GenerateBrainMaskTab(MainTab, Ui_GenerateBrainMaskTabContent):
 
         self._generate_mask_worker.starting.connect(lambda: self.generateButton.setEnabled(False))
         self._generate_mask_worker.finished.connect(lambda: self.generateButton.setEnabled(True))
+        self._generate_mask_worker.finished.connect(lambda: self.viewButton.setEnabled(True))
 
         self._generate_mask_worker.starting.emit()
 

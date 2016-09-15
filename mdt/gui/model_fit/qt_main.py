@@ -1,6 +1,8 @@
 import signal
 import sys
 
+from PyQt5.QtCore import pyqtSignal
+
 from mdt.gui.model_fit.design.ui_about_dialog import Ui_AboutDialog
 from mdt.gui.model_fit.design.ui_runtime_settings_dialog import Ui_RuntimeSettingsDialog
 from mdt.gui.model_fit.tabs.fit_model_tab import FitModelTab
@@ -37,12 +39,14 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
 
-    def __init__(self, shared_state):
+    def __init__(self, shared_state, computations_thread):
         super(MDTGUISingleModel, self).__init__()
         self.setupUi(self)
         self._shared_state = shared_state
-        self._computations_thread = ComputationsThread(self)
-        self._computations_thread.start()
+
+        self._computations_thread = computations_thread
+        self._computations_thread.signal_starting.connect(self.computations_started)
+        self._computations_thread.signal_finished.connect(self.computations_finished)
 
         self._stdout_old = sys.stdout
         self._stderr_old = sys.stderr
@@ -126,26 +130,6 @@ class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
             sb.setValue(scrollbar_position)
 
 
-class ComputationsThread(QThread):
-
-    def __init__(self, main_window, *args, **kwargs):
-        """This is the thread handler for the computations.
-
-        When running computations using this thread please connect signals to the starting and finished slot of this
-        class. These handlers notify the main window of the computations.
-        """
-        super(ComputationsThread, self).__init__(*args, **kwargs)
-        self.main_window = main_window
-
-    @pyqtSlot()
-    def starting(self):
-        self.main_window.computations_started()
-
-    @pyqtSlot()
-    def finished(self):
-        self.main_window.computations_finished()
-
-
 class RuntimeSettingsDialog(Ui_RuntimeSettingsDialog, QDialog):
 
     def __init__(self, parent):
@@ -189,6 +173,28 @@ class AboutDialog(Ui_AboutDialog, QDialog):
         self.contentLabel.setText(self.contentLabel.text().replace('{version}', mdt.__version__))
 
 
+class ComputationsThread(QThread):
+
+    signal_starting = pyqtSignal()
+    signal_finished = pyqtSignal()
+
+    def __init__(self, *args, **kwargs):
+        """This is the thread handler for the computations.
+
+        When running computations using this thread please connect signals to the starting and finished slot of this
+        class. These handlers notify the main window of the computations.
+        """
+        super(ComputationsThread, self).__init__(*args, **kwargs)
+
+    @pyqtSlot()
+    def starting(self):
+        self.signal_starting.emit()
+
+    @pyqtSlot()
+    def finished(self):
+        self.signal_finished.emit()
+
+
 def start_gui(base_dir=None, app_exec=True):
     """Start the single model GUI.
 
@@ -201,17 +207,20 @@ def start_gui(base_dir=None, app_exec=True):
     except IOError:
         pass
 
+    app = QtManager.get_qt_application_instance()
+
     state = SharedState()
     state.base_dir = base_dir
 
-    app = QtManager.get_qt_application_instance()
+    computations_thread = ComputationsThread()
+    computations_thread.start()
 
     # catches the sigint
     timer = QTimer()
     timer.start(500)
     timer.timeout.connect(lambda: None)
 
-    single_model_gui = MDTGUISingleModel(state)
+    single_model_gui = MDTGUISingleModel(state, computations_thread)
     signal.signal(signal.SIGINT, single_model_gui.send_sigint)
 
     center_window(single_model_gui)
