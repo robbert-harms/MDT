@@ -21,5 +21,19 @@ Features
 ========
 
 Ubuntu / Debian installation:
-sudo apt-get install libpng-dev libfreetype6-dev
+
+python3
+python3-numpy
+python3-nibabel
+python3-pyqt5
+python3-pip
+python3-matplotlib
+python3-six
+python3-numpy
+python3-pyopencl
+python3-yaml
+python3-argcomplete
+libpng-dev 
+libfreetype6-dev 
+libxft-dev
 
