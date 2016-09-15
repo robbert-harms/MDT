@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Maps Visualizer - MDT</string>
+   <string>MDT Maps Visualizer</string>
   </property>
   <property name="windowIcon">
    <iconset resource="main.qrc">

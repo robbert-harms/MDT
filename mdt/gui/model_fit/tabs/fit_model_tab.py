@@ -136,7 +136,8 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
             recalculate=True,
             double_precision=self._optim_options.double_precision,
             only_recalculate_last=not self._optim_options.recalculate_all,
-            optimizer=self._optim_options.get_optimizer())
+            optimizer=self._optim_options.get_optimizer(),
+            save_user_script_info=False)
 
         self._computations_thread.start()
         self._run_model_worker.moveToThread(self._computations_thread)
@@ -173,29 +174,6 @@ class ProtocolWarningBox(QMessageBox):
             self._in_resize = True
             self.setFixedWidth(self.children()[-1].size().width() + 200)
             self._in_resize = False
-
-
-class RunModelWorker(QObject):
-
-    starting = pyqtSignal()
-    finished = pyqtSignal()
-
-    def __init__(self):
-        super(RunModelWorker, self).__init__()
-        self.starting.connect(self.run)
-        self._args = []
-        self._kwargs = {}
-
-    def set_args(self, *args, **kwargs):
-        self._args = args
-        self._kwargs = kwargs
-
-    @function_message_decorator('Starting model fitting, please wait.',
-                                'Finished model fitting. You can view the results using the "View results" tab.')
-    @pyqtSlot()
-    def run(self):
-        mdt.fit_model(*self._args, **self._kwargs)
-        self.finished.emit()
 
 
 class OptimizationOptionsDialog(Ui_OptimizationOptionsDialog, QDialog):
@@ -288,7 +266,7 @@ class OptimOptions(object):
 
     optim_routines = {'Powell\'s method': 'Powell',
                       'Nelder-Mead Simplex': 'NMSimplex',
-                      'Levenberg Marquardt': 'LevenbergMarquardt',}
+                      'Levenberg Marquardt': 'LevenbergMarquardt'}
 
     def __init__(self):
         """Storage class for communication between the options dialog and the main frame"""
@@ -309,3 +287,27 @@ class OptimOptions(object):
             return None
         optimizer = get_optimizer_by_name(self.optimizer)
         return optimizer(patience=self.patience)
+
+
+class RunModelWorker(QObject):
+
+    starting = pyqtSignal()
+    finished = pyqtSignal()
+
+    def __init__(self):
+        super(RunModelWorker, self).__init__()
+        self.starting.connect(self.run)
+        self._args = []
+        self._kwargs = {}
+
+    def set_args(self, *args, **kwargs):
+        self._args = args
+        self._kwargs = kwargs
+
+    @function_message_decorator('Starting model fitting, please wait.',
+                                'Finished model fitting. You can view the results using the "View results" tab.')
+    @pyqtSlot()
+    def run(self):
+        mdt.fit_model(*self._args, **self._kwargs)
+        self.finished.emit()
+

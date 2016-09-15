@@ -151,6 +151,9 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
                 except ValueError:
                     pass
 
+    def set_window_title(self, title):
+        self.setWindowTitle('MDT Maps Visualizer - {}'.format(title))
+
 
 class PlottingFrameInfoToStatusBar(PlottingFrameInfoViewer):
 
@@ -288,7 +291,7 @@ class QtController(Controller, QObject):
         return False
 
 
-def start_gui(data=None, config=None, controller=None, app_exec=True, show_maximized=False):
+def start_gui(data=None, config=None, controller=None, app_exec=True, show_maximized=False, window_title=None):
     """Start the GUI with the given data and configuration.
 
     Args:
@@ -297,6 +300,7 @@ def start_gui(data=None, config=None, controller=None, app_exec=True, show_maxim
         controller (QtController): the controller to use in the application
         app_exec (boolean): if true we execute the Qt application, set to false to disable.
         show_maximized (true): if we want to show the window in a maximized state
+        window_title (str): the title of the window
 
     Returns:
         MapsVisualizerWindow: the generated window
@@ -311,6 +315,7 @@ def start_gui(data=None, config=None, controller=None, app_exec=True, show_maxim
     timer.timeout.connect(lambda: None)
 
     main = MapsVisualizerWindow(controller)
+    main.set_window_title(window_title)
     signal.signal(signal.SIGINT, main.send_sigint)
 
     center_window(main)

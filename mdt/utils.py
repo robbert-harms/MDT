@@ -23,8 +23,7 @@ from mdt.IO import Nifti
 from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
 from mdt.components_loader import get_model
 from mdt.configuration import get_config_dir
-from mdt.configuration import get_logging_configuration_dict, get_noise_std_estimators, config_context, \
-    VoidConfigAction, get_tmp_results_dir
+from mdt.configuration import get_logging_configuration_dict, get_noise_std_estimators, get_tmp_results_dir
 from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
 from mdt.data_loaders.noise_std import autodetect_noise_std_loader
 from mdt.data_loaders.protocol import autodetect_protocol_loader
@@ -35,7 +34,6 @@ from mot.base import AbstractProblemData
 from mot.cl_environments import CLEnvironmentFactory
 from mot.cl_routines.mapping.calculate_model_estimates import CalculateModelEstimates
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
-from mot.cl_routines.optimizing.meta_optimizer import MetaOptimizer
 from mot.model_building.evaluation_models import OffsetGaussianEvaluationModel
 
 try:
@@ -658,12 +656,14 @@ def restore_volumes(data, brain_mask, with_volume_dim=True):
                 return np.expand_dims(volume, axis=3)
             return volume
 
-    if isinstance(data, dict):
+    if isinstance(data, collections.MutableMapping):
         return {key: restorer(value) for key, value in data.items()}
     elif isinstance(data, list):
         return [restorer(value) for value in data]
     elif isinstance(data, tuple):
         return (restorer(value) for value in data)
+    elif isinstance(data, collections.Sequence):
+        return [restorer(value) for value in data]
     else:
         return restorer(data)
 

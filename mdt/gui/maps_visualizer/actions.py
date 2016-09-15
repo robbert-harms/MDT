@@ -8,6 +8,9 @@ class SetDimension(SimpleConfigAction):
 
     def _extra_actions(self, data_info, configuration):
         if self.new_value != self._previous_config.dimension:
+            max_slice = data_info.get_max_slice_index(self.new_value, configuration.maps_to_show)
+            if configuration.slice_index > max_slice:
+                configuration = SetSliceIndex(max_slice // 2).apply(data_info, configuration)
             return SetZoom(Zoom.no_zoom()).apply(data_info, configuration)
 
 

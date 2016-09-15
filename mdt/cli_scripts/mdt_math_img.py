@@ -37,17 +37,19 @@ class MathImg(BasicShellApplication):
                 input[0] or i[0] or a
                 input[1] or i[1] or b
 
-            You can use every single alphabetic character except for the i since that one is reserved for the array.
+            This linear alphabetic indexing works with every alphabetic character except for the i since that
+            one is reserved for the array.
 
             The module numpy is available under 'np' and some functions of MDT under 'mdt'.
             This allows expressions like:
                 np.mean(np.concatenate(i, axis=3), axis=3)
             to get the mean value per voxel of all the input images.
 
-            You could also do something like:
-                list(map(lambda f: np.mean(mdt.create_roi(f, i[-1])), i[0:-1]))
-            to get for every map loaded the mean value over the given mask (assuming that the last map loaded is
-            the mask).
+            It is possible to change the mode of evaluation from single expression to a more complex python
+            statement using the switch --as-statement (the default is --as-expression). In a statement
+            more complex python commands are allowed. In statement mode you must explicitly output the
+            results using 'return'. (Basically it wraps your command in a function, of which the output is
+            used as expression value).
 
             If no output file is specified and the output is of dimension 2 or lower we print the output directly
             to the console.
@@ -71,7 +73,13 @@ class MathImg(BasicShellApplication):
                             help="The input images to use")
 
         parser.add_argument('expr', metavar='expr', type=str,
-                            help="The expression to evaluate.")
+                            help="The expression/statement to evaluate.")
+
+        parser.add_argument('--as-expression', dest='as_expression', action='store_true',
+                            help="Evaluates the given string as an expression (default).")
+        parser.add_argument('--as-statement', dest='as_expression', action='store_false',
+                            help="Evaluates the given string as an statement.")
+        parser.set_defaults(as_expression=True)
 
         parser.add_argument('-o', '--output_file',
                             action=mdt.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
@@ -114,7 +122,16 @@ class MathImg(BasicShellApplication):
             print('')
             print("Evaluating: '{expr}'".format(expr=args.expr))
 
-        output = eval(args.expr, context_dict)
+        if args.as_expression:
+            output = eval(args.expr, context_dict)
+        else:
+            expr = textwrap.dedent('''
+            def mdt_image_math():
+                {}
+            output = mdt_image_math()
+            ''').format(args.expr)
+            exec(expr, context_dict)
+            output = context_dict['output']
 
         if args.verbose:
             print('')

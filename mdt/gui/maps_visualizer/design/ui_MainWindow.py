@@ -168,7 +168,7 @@ class Ui_MapsVisualizer(object):
 
     def retranslateUi(self, MapsVisualizer):
         _translate = QtCore.QCoreApplication.translate
-        MapsVisualizer.setWindowTitle(_translate("MapsVisualizer", "Maps Visualizer - MDT"))
+        MapsVisualizer.setWindowTitle(_translate("MapsVisualizer", "MDT Maps Visualizer"))
         self.commandTabs.setTabText(self.commandTabs.indexOf(self.generalOptions), _translate("MapsVisualizer", "General"))
         self.commandTabs.setTabText(self.commandTabs.indexOf(self.mapOptions), _translate("MapsVisualizer", "Maps"))
         self.commandTabs.setTabText(self.commandTabs.indexOf(self.textInfoTab), _translate("MapsVisualizer", "Textual"))
