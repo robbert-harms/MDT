@@ -27,7 +27,7 @@ from mdt.utils import estimate_noise_std, get_cl_devices, load_problem_data, cre
     volume_index_to_roi_index, roi_index_to_volume_index, load_brain_mask, init_user_settings, restore_volumes, \
     apply_mask, create_roi, volume_merge, concatenate_mri_sets, create_median_otsu_brain_mask, load_samples, \
     load_nifti, write_slice_roi, split_write_dataset, apply_mask_to_file, extract_volumes, recalculate_error_measures, \
-    create_signal_estimates, get_slice_in_dimension, per_model_logging_context
+    create_signal_estimates, get_slice_in_dimension, per_model_logging_context, get_temporary_results_dir
 from mdt.batch_utils import collect_batch_fit_output, run_function_on_batch_fit_output
 from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, write_protocol, write_bvec_bval
 from mdt.components_loader import load_component, get_model
@@ -160,7 +160,7 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
             sampler = configuration.get_sampler()
 
         processing_strategy = get_processing_strategy('sampling', model_names=model.name)
-        processing_strategy.set_tmp_dir(tmp_results_dir)
+        processing_strategy.set_tmp_dir(get_temporary_results_dir(tmp_results_dir))
 
         output_folder = os.path.join(output_folder, model.name, 'samples')
         if not os.path.isdir(output_folder):
@@ -171,7 +171,9 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
             logger.info('Using MDT version {}'.format(__version__))
             logger.info('Preparing for model {0}'.format(model.name))
 
-            model.set_initial_parameters(create_roi(initialization_maps, problem_data.mask))
+            if initialization_maps:
+                model.set_initial_parameters(create_roi(initialization_maps, problem_data.mask))
+
             model.double_precision = double_precision
 
             results = sample_single_model(model, problem_data, output_folder, sampler,
