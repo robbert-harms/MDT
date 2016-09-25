@@ -14,8 +14,8 @@ class AllUnweightedVolumes(ComplexNoiseStdEstimator):
     def estimate(self, problem_data, **kwargs):
         """Calculate the standard deviation of the error using all unweighted volumes.
 
-        This calculates per voxel the std over all unweighted volumes and takes the mean of those estimates as
-        the standard deviation of the noise.
+        This calculates per voxel (in the brain mas) the std over all unweighted volumes
+        and takes the mean of those estimates as the standard deviation of the noise.
 
         The method is taken from Camino (http://camino.cs.ucl.ac.uk/index.php?n=Man.Estimatesnr).
         """

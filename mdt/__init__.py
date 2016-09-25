@@ -606,3 +606,16 @@ def get_batch_profile(batch_profile_name, *args, **kwargs):
         BatchProfile: the batch profile for use in batch fitting routines.
     """
     return load_component('batch_profiles', batch_profile_name, *args, **kwargs)
+
+
+def gui(base_dir=None, app_exec=True):
+    """Start the single model GUI.
+
+    Args:
+        base_dir (str): the starting directory for the file opening actions
+        app_exec (boolean): if true we execute the Qt application, set to false to disable.
+            This is only important if you want to start this GUI from within an existing Qt application. If you
+            leave this at true in that case, this will try to start a new Qt application which may create problems.
+    """
+    from mdt.gui.model_fit.qt_main import start_gui
+    return start_gui(base_dir=base_dir, app_exec=app_exec)

@@ -199,7 +199,7 @@ def start_gui(base_dir=None, app_exec=True):
     """Start the single model GUI.
 
     Args:
-        base_dir (str): the starting directory for all file opening actions
+        base_dir (str): the starting directory for the file opening actions
         app_exec (boolean): if true we execute the Qt application, set to false to disable.
     """
     try:

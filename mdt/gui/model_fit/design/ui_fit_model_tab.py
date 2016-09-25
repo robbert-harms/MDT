@@ -167,7 +167,7 @@ class Ui_FitModelTabContent(object):
         self.horizontalLayout.setContentsMargins(-1, 6, -1, 0)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.runButton = QtWidgets.QPushButton(FitModelTabContent)
-        self.runButton.setEnabled(False)
+        self.runButton.setEnabled(True)
         self.runButton.setObjectName("runButton")
         self.horizontalLayout.addWidget(self.runButton)
         spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)

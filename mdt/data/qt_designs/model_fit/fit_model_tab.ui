@@ -333,7 +333,7 @@
      <item>
       <widget class="QPushButton" name="runButton">
        <property name="enabled">
-        <bool>false</bool>
+        <bool>true</bool>
        </property>
        <property name="text">
         <string>Run</string>
