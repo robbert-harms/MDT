@@ -136,6 +136,7 @@ class MPM(DMRISingleModelConfig):
     upper_bounds = {'MPM_Fit.T1': 0.8}
     evaluation_model = GaussianEvaluationModel()
 
+
 class LinMPM(DMRISingleModelConfig):
 
     name = 'LinMPM'
@@ -143,3 +144,7 @@ class LinMPM(DMRISingleModelConfig):
     model_expression = 'S0 + LinMPM_Fit'
     upper_bounds = {'LinMPM_Fit.T1': 0.8}
     evaluation_model = GaussianEvaluationModel()
+
+    @bind_function
+    def _transform_observations(self, observations):
+        return np.log(observations)
