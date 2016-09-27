@@ -6,20 +6,14 @@ from inspect import stack
 import numpy as np
 import six
 from six import string_types
-
 from .__version__ import VERSION, VERSION_STATUS, __version__
 import collections
 
+from mdt.configuration import get_logging_configuration_dict
 try:
-    from mdt.configuration import get_logging_configuration_dict
-
-    try:
-        logging_config.dictConfig(get_logging_configuration_dict())
-    except ValueError:
-        print('Logging disabled')
-except ImportError:
-    # We are probably importing this file in the setup.py for installation.
-    pass
+    logging_config.dictConfig(get_logging_configuration_dict())
+except ValueError:
+    print('Logging disabled')
 
 
 from mdt.user_script_info import easy_save_user_script_info
@@ -77,8 +71,9 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
             given we use that directly.
 
     Returns:
-        the output of the optimization. If a cascade is given, only the results of the last model in the cascade is
-        returned
+        dict: The result maps for the (final) optimized model.
+                This returns the results as 2d arrays with on the first dimension the optimized voxels
+                and on the second the value(s) for the micro-structure maps.
     """
     import mdt.utils
     from mdt.model_fitting import ModelFit
@@ -122,7 +117,7 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
             and save that using a SaveFromScript saver. If a string is given we use that filename again for the
             SaveFromScript saver. If False or None, we do not write any information. If a SaveUserScriptInfo is
             given we use that directly.
-        initialization_maps (dict): maps to initialize the sampling with. Per default this is None,
+        initialization_maps (dict): 4d maps to initialize the sampling with. Per default this is None,
             common practice is to use the maps from an optimization as starting point
 
     Returns:

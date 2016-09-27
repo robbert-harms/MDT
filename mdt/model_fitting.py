@@ -7,7 +7,6 @@ import timeit
 from contextlib import contextmanager
 import numpy as np
 from six import string_types
-
 from mdt import configuration
 from mdt.__version__ import __version__
 from mdt.IO import Nifti
@@ -266,10 +265,12 @@ class ModelFit(object):
     def run(self):
         """Run the model and return the resulting maps
 
-        If we will not recalculate and the maps already exists, we will set_current_map the maps from file and return those.
+        If we will not recalculate and the maps already exists, we will return the maps from file.
 
         Returns:
-            The result maps for the model we are running.
+            dict: The result maps for the model we are running.
+                This returns the results as 2d arrays with on the first dimension the optimized voxels
+                and on the second the value(s) for the micro-structure maps.
         """
         return self._run(self._model, self._recalculate, self._only_recalculate_last)
 
