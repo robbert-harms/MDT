@@ -29,7 +29,7 @@ With MOT installed, you can now install MDT.
 Linux (Ubuntu)
 """"""""""""""
 It is possible to install every Python dependency with pip, but in general
-native Ubuntu packages are prefered. To install most of the dependencies, please use:
+native Ubuntu packages are prefered. To install most of the dependencies, use:
 
 ``apt-get install python3-numpy python3-nibabel python3-pyqt5 python3-matplotlib python3-six python3-yaml python3-argcomplete``
 
