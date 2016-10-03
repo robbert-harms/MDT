@@ -9,7 +9,7 @@ A diffusion toolkit for parallelized sampling and optimization of diffusion data
 
 * Free software: LGPL v3 license
 * Full documentation: https://mdt.readthedocs.org
-* Project home: https://github.com/robbert-harms/MDT
+* Project home: http://maastrichtdiffusiontoolbox.readthedocs.io/en/latest/
 * Uses the `GitLab workflow <https://docs.gitlab.com/ee/workflow/gitlab_flow.html>`_
 * Tags: diffusion, dMRI, MRI, optimization, parallel, opencl, python
 
@@ -18,7 +18,7 @@ Installation
 ------------
 .. highlight:: console
 
-MDT uses the Maastricht Optimization Toolbox (MOT) for the computations. Please install MOT first (https://github.com/robbert-harms/MDT), afterwards this installation should be fairly straightforward.
+MDT uses the Maastricht Optimization Toolbox (MOT) for the computations. Please install MOT first (https://github.com/robbert-harms/MOT), afterwards this installation should be fairly straightforward.
 
 
 |
