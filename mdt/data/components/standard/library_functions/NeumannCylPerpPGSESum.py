@@ -1,5 +1,5 @@
 from pkg_resources import resource_filename
-from mot.base import CLDataType
+from mot.cl_data_type import CLDataType
 from mot.model_building.cl_functions.base import LibraryFunction
 from mot.model_building.cl_functions.parameters import LibraryParameter
 
