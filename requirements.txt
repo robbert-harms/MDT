@@ -8,3 +8,4 @@ pyyaml
 nibabel
 argcomplete
 grako
+PyQt5
