@@ -30,7 +30,7 @@ from mdt.data_loaders.protocol import autodetect_protocol_loader
 from mdt.exceptions import NoiseStdEstimationNotPossible
 from mdt.log_handlers import ModelOutputLogHandler
 from mdt.protocols import load_protocol, write_protocol
-from mot.base import AbstractProblemData
+from mot.model_building.problem_data import AbstractProblemData
 from mot.cl_environments import CLEnvironmentFactory
 from mot.cl_routines.mapping.calculate_model_estimates import CalculateModelEstimates
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator

@@ -1,7 +1,7 @@
 import pyopencl as cl
 import numpy as np
 from mot.utils import get_float_type_def
-from mot.cl_routines.base import AbstractCLRoutine
+from mot.cl_routines.base import CLRoutine
 from mot.load_balance_strategies import Worker
 
 
@@ -12,7 +12,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class CalculateEigenvectors(AbstractCLRoutine):
+class CalculateEigenvectors(CLRoutine):
 
     def convert_theta_phi_psi(self, theta_roi, phi_roi, psi_roi, double_precision=False):
         """Calculate the eigenvectors from the given theta, phi and psi angles.

@@ -1,5 +1,5 @@
 from pkg_resources import resource_filename
-from mot.base import LibraryFunction
+from mot.model_building.cl_functions.base import LibraryFunction
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"

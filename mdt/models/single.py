@@ -1,21 +1,23 @@
 import logging
 from copy import deepcopy
+
 import numpy as np
+
 from mdt import utils
 from mdt.components_loader import ComponentConfig, ComponentBuilder, method_binding_meta
+from mdt.model_protocol_problem import MissingColumns, InsufficientShells
 from mdt.models.base import DMRIOptimizable
 from mdt.models.parsers.SingleModelExpressionParser import parse
 from mdt.protocols import VirtualColumnB
-from mot.data_adapters  import SimpleDataAdapter
-from mot.base import CLDataType
-from mot.cl_functions import Weight
 from mdt.utils import create_roi
-from mdt.model_protocol_problem import MissingColumns, InsufficientShells
+from mot.cl_data_type import CLDataType
+from mot.model_building.cl_functions.model_functions import Weight
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
+from mot.data_adapters  import SimpleDataAdapter
 from mot.model_building.evaluation_models import OffsetGaussianEvaluationModel
-from mot.model_building.parameter_functions.dependencies import WeightSumToOneRule
 from mot.model_building.model_builders import SampleModelBuilder
-from mot.trees import CompartmentModelTree
+from mot.model_building.parameter_functions.dependencies import WeightSumToOneRule
+from mot.model_building.trees import CompartmentModelTree
 
 __author__ = 'Robbert Harms'
 __date__ = "2014-10-26"

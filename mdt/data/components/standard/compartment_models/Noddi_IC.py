@@ -1,6 +1,6 @@
 from mdt.models.compartments import CompartmentConfig
 from mdt.components_loader import LibraryFunctionsLoader, bind_function
-from mot.cl_functions import FirstLegendreTerm, CerfErfi
+from mot.model_building.cl_functions.library_functions import CerfErfi
 import numpy as np
 
 __author__ = 'Robbert Harms'

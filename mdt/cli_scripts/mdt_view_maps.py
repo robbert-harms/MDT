@@ -41,9 +41,10 @@ class GUI(BasicShellApplication):
         return parser
 
     def run(self, args):
-        data = None
         if args.dir:
             data = DataInfo.from_dir(os.path.realpath(args.dir))
+        else:
+            data = DataInfo.from_dir(os.getcwd())
 
         to_file = None
         if args.to_file:

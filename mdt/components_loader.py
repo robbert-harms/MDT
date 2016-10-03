@@ -6,13 +6,11 @@ of sources from which they load the available components.
 import glob
 import inspect
 import os
-import imp
-#todo in P3.4 replace imp calls with importlib.SourceFileLoader(name, path).load_module(name)
-
+import imp #todo in P3.4 replace imp calls with importlib.SourceFileLoader(name, path).load_module(name)
 from six import with_metaclass
-
-from mot.base import LibraryFunction, ModelFunction
-import mot.cl_functions
+from mot.model_building.cl_functions.base import ModelFunction, LibraryFunction
+import mot.model_building.cl_functions.library_functions
+import mot.model_building.cl_functions.model_functions
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -505,7 +503,7 @@ class ParametersSource(AutoUserComponentsSourceMulti):
 
     def __init__(self, user_type):
         """Source for the items in the 'parameters' dir in the components folder."""
-        from mot.base import CLFunctionParameter
+        from mot.model_building.cl_functions.parameters import CLFunctionParameter
         from mdt.models.parameters import ParameterBuilder
         super(ParametersSource, self).__init__(user_type, 'parameters', CLFunctionParameter, ParameterBuilder())
 
@@ -528,26 +526,28 @@ class CascadeSource(AutoUserComponentsSourceMulti):
 
 class MOTSourceSingle(ComponentsSource):
 
-    def get_class(self, name):
-        module = mot.cl_functions
-        return getattr(module, name)
-
     def get_meta_info(self, name):
         return {}
 
 
 class MOTLibraryFunctionSource(MOTSourceSingle):
 
+    def get_class(self, name):
+        return getattr(mot.model_building.cl_functions.library_functions, name)
+
     def list(self):
-        module = mot.cl_functions
-        items = inspect.getmembers(module, _get_class_predicate(module, LibraryFunction))
+        module = mot.model_building.cl_functions.library_functions
+        items = inspect.getmembers(module,  _get_class_predicate(module, LibraryFunction))
         return [x[0] for x in items if x[0] != 'LibraryFunction']
 
 
-class MOTModelsSource(MOTSourceSingle):
+class MOTCompartmentModelsSource(MOTSourceSingle):
+
+    def get_class(self, name):
+        return getattr(mot.model_building.cl_functions.model_functions, name)
 
     def list(self):
-        module = mot.cl_functions
+        module = mot.model_building.cl_functions.model_functions
         items = inspect.getmembers(module, _get_class_predicate(module, ModelFunction))
         return [x[0] for x in items if x[0] != 'ModelFunction']
 
@@ -581,7 +581,7 @@ class CompartmentModelsLoader(ComponentsLoader):
         super(CompartmentModelsLoader, self).__init__(
             [AutoUserComponentsSourceSingle('user', 'compartment_models', CompartmentBuilder()),
              AutoUserComponentsSourceSingle('standard', 'compartment_models', CompartmentBuilder()),
-             MOTModelsSource()])
+             MOTCompartmentModelsSource()])
 
 
 class LibraryFunctionsLoader(ComponentsLoader):

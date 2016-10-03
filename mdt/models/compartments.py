@@ -6,7 +6,8 @@ import six
 from mdt.components_loader import ComponentConfig, ComponentBuilder, ParametersLoader, method_binding_meta, \
     ComponentConfigMeta
 from mdt.utils import spherical_to_cartesian
-from mot.base import ModelFunction, CurrentObservationParam
+from mot.model_building.cl_functions.base import ModelFunction
+from mot.model_building.cl_functions.parameters import CurrentObservationParam
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-12-13"
@@ -160,7 +161,7 @@ class CompartmentConfigMeta(ComponentConfigMeta):
         return result
 
     @classmethod
-    def _get_cl_code(cls, result, bases, attributes):
+    def _get_cl_code(mcs, result, bases, attributes):
         if 'cl_code' in attributes and attributes['cl_code'] is not None:
             s = _construct_cl_function_definition(
                 'mot_float_type', result.cl_function_name, _get_parameters_list(result.parameter_list))
@@ -178,7 +179,7 @@ class CompartmentConfigMeta(ComponentConfigMeta):
                 return base.cl_code
 
     @classmethod
-    def _get_cl_header(cls, result, bases, attributes):
+    def _get_cl_header(mcs, result, bases, attributes):
         if 'cl_header' in attributes and attributes['cl_header'] is not None:
             return attributes['cl_header']
 

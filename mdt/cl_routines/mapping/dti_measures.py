@@ -1,7 +1,7 @@
 import numpy as np
 import pyopencl as cl
 from mot.utils import get_float_type_def
-from mot.cl_routines.base import AbstractCLRoutine
+from mot.cl_routines.base import CLRoutine
 from mot.load_balance_strategies import Worker
 
 
@@ -12,7 +12,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class DTIMeasures(AbstractCLRoutine):
+class DTIMeasures(CLRoutine):
 
     def concat_and_calculate(self, eigenval1, eigenval2, eigenval3, double_precision=True):
         """Calculate DTI statistics from the given eigenvalues.
