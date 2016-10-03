@@ -4,6 +4,14 @@ mdt.cli_scripts package
 Submodules
 ----------
 
+mdt.cli_scripts.MDT module
+--------------------------
+
+.. automodule:: mdt.cli_scripts.MDT
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 mdt.cli_scripts.mdt_apply_mask module
 -------------------------------------
 
@@ -52,10 +60,10 @@ mdt.cli_scripts.mdt_generate_roi_slice module
     :undoc-members:
     :show-inheritance:
 
-mdt.cli_scripts.mdt_gui_single module
--------------------------------------
+mdt.cli_scripts.mdt_gui module
+------------------------------
 
-.. automodule:: mdt.cli_scripts.mdt_gui_single
+.. automodule:: mdt.cli_scripts.mdt_gui
     :members:
     :undoc-members:
     :show-inheritance:
@@ -124,10 +132,10 @@ mdt.cli_scripts.mdt_model_fit module
     :undoc-members:
     :show-inheritance:
 
-mdt.cli_scripts.mdt_print_abstract_model_function module
---------------------------------------------------------
+mdt.cli_scripts.mdt_view_maps module
+------------------------------------
 
-.. automodule:: mdt.cli_scripts.mdt_print_abstract_model_function
+.. automodule:: mdt.cli_scripts.mdt_view_maps
     :members:
     :undoc-members:
     :show-inheritance:

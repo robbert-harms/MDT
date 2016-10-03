@@ -6,27 +6,11 @@ Subpackages
 
 .. toctree::
 
-    mdt.gui.qt
-    mdt.gui.tk
+    mdt.gui.maps_visualizer
+    mdt.gui.model_fit
 
 Submodules
 ----------
-
-mdt.gui.qt_main module
-----------------------
-
-.. automodule:: mdt.gui.qt_main
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-mdt.gui.tkgui_main module
--------------------------
-
-.. automodule:: mdt.gui.tkgui_main
-    :members:
-    :undoc-members:
-    :show-inheritance:
 
 mdt.gui.utils module
 --------------------

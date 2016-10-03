@@ -15,6 +15,26 @@
 
 import sys
 import os
+from unittest.mock import MagicMock
+import builtins
+
+
+class MyMock(MagicMock):
+
+    @classmethod
+    def __getattr__(cls, name):
+        return MagicMock()
+
+orig_import = __import__
+
+
+def import_mock(name, *args, **kwargs):
+    if name.startswith('mot') or name.startswith('pyopencl'):
+        return MyMock()
+    return orig_import(name, *args, **kwargs)
+
+builtins.__import__ = import_mock
+
 
 # If extensions (or modules to document with autodoc) are in another
 # directory, add these directories to sys.path here. If the directory is
@@ -50,7 +70,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Maastricht Diffusion Toolkit'
+project = u'Maastricht Diffusion Toolbox'
 copyright = u'2015, Robbert Harms'
 
 # The version info for the project you're documenting, acts as replacement
@@ -250,7 +270,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     ('index', 'mdt',
-     u'Maastricht Diffusion Toolkit Documentation',
+     u'Maastricht Diffusion Toolbox Documentation',
      u'Robbert Harms',
      'mdt',
      'One line description of project.',

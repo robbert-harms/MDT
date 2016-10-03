@@ -11,6 +11,7 @@ Subpackages
     mdt.data_loaders
     mdt.gui
     mdt.models
+    mdt.visualization
 
 Submodules
 ----------
@@ -95,6 +96,14 @@ mdt.model_sampling module
     :undoc-members:
     :show-inheritance:
 
+mdt.processing_strategies module
+--------------------------------
+
+.. automodule:: mdt.processing_strategies
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 mdt.protocols module
 --------------------
 
@@ -119,18 +128,18 @@ mdt.simulations module
     :undoc-members:
     :show-inheritance:
 
-mdt.utils module
-----------------
+mdt.user_script_info module
+---------------------------
 
-.. automodule:: mdt.utils
+.. automodule:: mdt.user_script_info
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.visualization module
-------------------------
+mdt.utils module
+----------------
 
-.. automodule:: mdt.visualization
+.. automodule:: mdt.utils
     :members:
     :undoc-members:
     :show-inheritance:

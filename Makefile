@@ -59,7 +59,7 @@ docs:
 	rm -f docs/modules.rst
 	sphinx-apidoc -f -o docs/ mdt
 	$(MAKE) -C docs clean
-	$(MAKE) -C docs html
+	$(MAKE) -C docs html SPHINXBUILD='python3 $(shell which sphinx-build)'
 	@echo "To view results type: firefox docs/_build/html/index.html &"
 
 release: clean

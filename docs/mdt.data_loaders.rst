@@ -28,14 +28,6 @@ mdt.data_loaders.protocol module
     :undoc-members:
     :show-inheritance:
 
-mdt.data_loaders.static_maps module
------------------------------------
-
-.. automodule:: mdt.data_loaders.static_maps
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 
 Module contents
 ---------------
