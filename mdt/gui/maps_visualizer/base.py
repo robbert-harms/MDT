@@ -70,7 +70,7 @@ def cast_value(value, desired_type, alt_value):
 
     Args:
         value (object): the value to cast to the given type
-        desired_type (type): the type to cast to
+        desired_type (:class:`type`): the type to cast to
         alt_value (object): the alternative value if casting threw exceptions
 
     Returns:

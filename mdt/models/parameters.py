@@ -44,6 +44,17 @@ class FreeParameterConfig(ParameterConfig):
     """The default config options for free parameters.
 
     This sets the attribute type to free.
+
+    Attributes:
+        init_value (float): the initial value
+        fixed (boolean or ndarray of float): if this parameter is fixed or not. If not fixed this should
+            hold a reference to a value or a matrix
+        lower_bound (float): the lower bounds
+        upper_bound (float): the upper bounds
+        parameter_transform: the parameter transformation
+        sampling_proposal: the proposal function
+        sampling_prior: the prior function
+        sampling_statistics: the sampling statistic, used after the sampling
     """
     type = 'free'
     data_type = 'mot_float_type'

@@ -103,7 +103,7 @@ def _construct_cl_function_definition(return_type, cl_function_name, parameters)
 
     This will construct something like (for the Stick model):
 
-    .. code-block: c
+    .. code-block:: c
 
         mot_float_type cmStick(const mot_float_type4 g,
                                const mot_float_type b,

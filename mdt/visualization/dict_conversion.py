@@ -23,7 +23,7 @@ class ConversionSpecification(object):
         """Generate a result value from the given dictionary
 
         Args:
-            dict (object): the dictionary to convert back to a value
+            value (object): the dictionary to convert back to a value
 
         Returns:
             object: the value represented by the dict.
@@ -98,7 +98,7 @@ class IdentityConversion(ConversionSpecification):
         """Performs identity conversion between simple types.
 
         Args:
-            desired_type (type): if not None we cast the from_dict value to the given type
+            desired_type (:class:`type`): if not None we cast the from_dict value to the given type
             allow_null (bool): if True we allow None during type casting
         """
         super(IdentityConversion, self).__init__()
@@ -168,8 +168,8 @@ class WhiteListConversion(ConversionSpecification):
         """Allow only elements from the given white list. If the element is not one of them, revert to the default.
 
         Args:
-            white_list (list of Obj): list of allowable objects
-            default (obj): the default fallback object
+            white_list (list of object): list of allowable objects
+            default (object): the default fallback object
         """
         super(WhiteListConversion, self).__init__()
         self.white_list = white_list

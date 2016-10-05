@@ -1404,7 +1404,7 @@ def volume_merge(volume_paths, output_fname, sort=False):
 
     Example usage with globbing:
 
-    .. code-block: python
+    .. code-block:: python
 
         mdt.volume_merge(glob.glob('*.nii'), 'merged.nii.gz', True)
 
@@ -1449,7 +1449,7 @@ def concatenate_mri_sets(items, output_volume_fname, output_protocol_fname, over
     Args:
         items (tuple of dict): A tuple of dicts with volume filenames and protocol filenames:
 
-            .. code-block: python
+            .. code-block:: python
 
                 (
                  {'volume': volume_fname,

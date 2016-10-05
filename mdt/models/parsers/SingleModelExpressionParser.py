@@ -41,7 +41,7 @@ def parse(model_expression):
     Args:
         model_expression (str): the model expression string. Example:
 
-        .. code-block: none
+        .. code-block:: none
 
             S0 * ( (Weight(Wball) * Ball) +
                    (Weight(Wstick) * Stick ) )

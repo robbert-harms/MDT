@@ -1,6 +1,6 @@
-=======
-Credits
-=======
+==========================
+Frequently Asked Questions
+==========================
 
 Installation problems
 ---------------------

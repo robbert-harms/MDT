@@ -6,22 +6,31 @@ MDT uses the Maastricht Optimization Toolbox (MOT) for the computations. Please 
 
 Linux (Ubuntu)
 """"""""""""""
-It is possible to install every Python dependency with pip, but in general
+After having installed MOT, we can install MDT. It is possible to install every Python dependency with pip, but in general
 native Ubuntu packages are preferred. To install most of the dependencies, please use:
 
-``apt-get install python3-numpy python3-nibabel python3-pyqt5 python3-matplotlib python3-six python3-yaml python3-argcomplete``
+.. code-block:: bash
+
+    $ apt-get install python3-numpy python3-nibabel python3-pyqt5 python3-matplotlib python3-six python3-yaml python3-argcomplete
+
 
 Then, install MDT with pip (no Ubuntu package is available yet):
 
-``pip3 install MDT``
+.. code-block:: bash
 
-On older Ubuntu systems (<15.10) some dependencies will be recompiled with pip. This might fail because of missing some packages, install with:
+    $ pip3 install MDT
 
-``apt-get install libpng-dev libfreetype6-dev libxft-dev``
+On older Ubuntu systems (<15.10) some dependencies will be recompiled with pip. This might fail because of missing some packages, install these with:
+
+.. code-block:: bash
+
+    $ apt-get install libpng-dev libfreetype6-dev libxft-dev
 
 
 Windows
 """""""
-Open an Anaconda shell and use:
+After having installed MOT, we can install MDT. Open an Anaconda shell and use:
 
-``pip install MDT``
+.. code-block:: bash
+
+    $ pip install MDT

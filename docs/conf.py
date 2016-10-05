@@ -27,6 +27,7 @@ mock_modules = ['mot', 'pyopencl', 'PyQt5', 'matplotlib', 'mpl_toolkits']
 
 
 def mock_decorator(*args, **kwargs):
+    """Mocked decorator, needed in the case we need to mock a decorator"""
     def _called_decorator(dec_func):
         @wraps(dec_func)
         def _decorator(*args, **kwargs):
@@ -35,30 +36,38 @@ def mock_decorator(*args, **kwargs):
     return _called_decorator
 
 
-class MockBaseClass(object):
-
+class MockClass(object):
+    """Mocked class needed in the case we need to mock a class type"""
     @classmethod
     def __getattr__(cls, name):
         return MyMock()
 
 
-class MyMock(MagicMock):
+class MockNamedComponent(MagicMock):
+    """Some of the loaded components require the __name__ property to be set, this mock class makes that so."""
+    @classmethod
+    def __name__(cls):
+        return MagicMock()
 
+
+class MockModule(MagicMock):
+    """The base mocking class. This mimics a module."""
     @classmethod
     def __getattr__(cls, name):
         if name in mock_as_class:
-            return MockBaseClass
+            return MockClass
         if name in mock_as_decorator:
             return mock_decorator
-        return MagicMock()
+        return MockNamedComponent()
 
 
 orig_import = __import__
 
 
 def import_mock(name, *args, **kwargs):
+    """Mock all modules starting with one of the mock_modules names."""
     if any(name.startswith(s) for s in mock_modules):
-        return MyMock()
+        return MockModule()
     return orig_import(name, *args, **kwargs)
 
 builtins.__import__ = import_mock
@@ -165,7 +174,8 @@ html_theme_options = {
     'description': "dMRI microstructure model recovery",
     'logo_name': True,
     'sidebar_collapse': False,
-    'fixed_sidebar': True
+    'fixed_sidebar': True,
+    'extra_nav_links': {'Module index': 'py-modindex.html'}
 }
 
 

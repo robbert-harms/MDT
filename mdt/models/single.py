@@ -263,32 +263,58 @@ class DMRISingleModelConfig(ComponentConfig):
 
     These configs are loaded on the fly by the DMRISingleModelBuilder
 
-    Config options:
+    Attributes:
         name (str): the name of the model, defaults to the class name
         in_vivo_suitable (boolean): flag indicating if the model is suitable for in vivo data
         ex_vivo_suitable (boolean): flag indicating if the model is suitable for ex vivo data
         description (str): model description
         post_optimization_modifiers (list): a list of modification callbacks for use after optimization. Example:
-            post_optimization_modifiers = [('SNIF', lambda d: 1 - d['Wcsf.w']),
+
+            .. code-block:: python
+
+                post_optimization_modifiers = [('SNIF', lambda d: 1 - d['Wcsf.w']),
                                            ...]
         dependencies (list): the dependencies between model parameters. Example:
-            dependencies = [('Noddi_EC.kappa', SimpleAssignment('Noddi_IC.kappa')),
-                            ...]
-        model_expression (str): the model expression. For the syntax see
+
+            .. code-block:: python
+
+                dependencies = [('Noddi_EC.kappa', SimpleAssignment('Noddi_IC.kappa')),
+                                ...]
+
+        model_expression (str): the model expression. For the syntax see:
             mdt.models.parsers.SingleModelExpression.ebnf
         evaluation_model (EvaluationModel): the evaluation model to use during optimization
         signal_noise_model (SignalNoiseModel): optional signal noise decorator
         inits (dict): indicating the initialization values for the parameters. Example:
-            inits = {'Stick.theta: pi}
+
+            .. code-block:: python
+
+                inits = {'Stick.theta: pi}
+
         fixes (dict): indicating the constant value for the given parameters. Example:
-            fixes = {'Ball.d': 3.0e-9}
+
+            .. code-block:: python
+
+                fixes = {'Ball.d': 3.0e-9}
+
         upper_bounds (dict): indicating the upper bounds for the given parameters. Example:
-            upper_bounds = {'Stick.theta': pi}
+
+            .. code-block:: python
+
+                upper_bounds = {'Stick.theta': pi}
+
         lower_bounds (dict): indicating the lower bounds for the given parameters. Example:
-            lower_bounds = {'Stick.theta': 0}
+
+            .. code-block:: python
+
+                lower_bounds = {'Stick.theta': 0}
+
         parameter_transforms (dict): the parameter transform to use for a specific parameter. Can also be
             a python callback function accepting as single parameter 'self', a reference to the build model.
             Example:
+
+            .. code-block:: python
+
                 parameter_transforms = {
                     'Tensor.dperp0': SinSqrClampTransform(),
                     'Tensor.dperp1': lambda self: SinSqrClampDependentTransform(

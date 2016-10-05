@@ -2,12 +2,14 @@
 Credits
 =======
 
-Development Lead
-----------------
+The Maastricht Diffusion Toolbox is a model recovery toolbox primarily meant for diffusion MRI analysis.
 
-* Robbert Harms <robbert.harms@maastrichtuniversity.nl>
+Software development by Robbert Harms, under the (Phd) supervision of Alard Roebroeck, at Maastricht University.
+
 
 Contributors
 ------------
 
-None yet.
+* Robbert Harms
+* Alard Roebroeck
+* Francisco Fritz

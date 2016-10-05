@@ -2,7 +2,6 @@ import collections
 import glob
 import numbers
 import os
-import itertools
 import numpy as np
 import copy
 import six

@@ -1,0 +1,40 @@
+.toctree-l1{
+    padding-top:10px;
+}
+
+.toctree-l1:first-child {
+    padding-top:0px;
+}
+
+p + ul {
+    margin-top: 0px;
+}
+
+div.body p{
+    margin-bottom:5px;
+    margin-top:5px;
+}
+
+div.body h3{
+    font-size: 140%;
+}
+
+.highlight pre{
+    margin-top:10px;
+}
+
+#table-of-contents ul ul{
+    margin-top:5px;
+}
+
+#table-of-contents ul ul{
+    margin-top:5px;
+}
+
+#table-of-contents > ul > li{
+    margin-top:15px;
+}
+
+#table-of-contents > ul > li:first-child{
+    margin-top:0px;
+}

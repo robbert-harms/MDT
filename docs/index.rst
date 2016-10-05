@@ -9,6 +9,6 @@ Maastricht Optimization Toolbox
    :hidden:
 
    install
+   getting_started
+   FAQ <faq>
    credits
-   function_docs
-   faq
