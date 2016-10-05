@@ -7,8 +7,8 @@ Maastricht Diffusion Toolkit
 A diffusion toolkit for parallelized sampling and optimization of diffusion dMRI images.
 
 * Free software: LGPL v3 license
-* Full documentation: https://mdt.readthedocs.org
-* Project home: http://maastrichtdiffusiontoolbox.readthedocs.io
+* Full documentation: http://maastrichtdiffusiontoolbox.readthedocs.io
+* Project home: https://github.com/cbclab/MDT
 * Uses the `GitLab workflow <https://docs.gitlab.com/ee/workflow/gitlab_flow.html>`_
 * Tags: diffusion, dMRI, MRI, optimization, parallel, opencl, python
 
