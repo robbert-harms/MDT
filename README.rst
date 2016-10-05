@@ -12,7 +12,6 @@ A diffusion toolkit for parallelized sampling and optimization of diffusion dMRI
 * Uses the `GitLab workflow <https://docs.gitlab.com/ee/workflow/gitlab_flow.html>`_
 * Tags: diffusion, dMRI, MRI, optimization, parallel, opencl, python
 
-
 Quick installation guide:
 
 **Linux (Ubuntu)**
