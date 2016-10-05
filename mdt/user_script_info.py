@@ -59,6 +59,9 @@ class SaveFromScript(SaveUserScriptInfo):
 
         This function relies on the caller of the script to provide the filename of the script he user is currently
         executing. You can do this using for example a stack lookup:
+
+        .. code-block:: python
+
             stack()[1][0].f_globals.get('__file__')
 
         Args:

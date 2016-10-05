@@ -39,7 +39,7 @@ def config_insert(keys, value):
     This will create all layers of the dictionary if needed.
 
     Args:
-        key (list of str): the position of the input value
+        keys (list of str): the position of the input value
         value (object): the value to put at the position of the key.
     """
     config = _config
@@ -55,7 +55,7 @@ def ensure_exists(keys):
     """Ensure the given layer of keys exists.
 
     Args:
-        key (list of str): the positions to ensure exist
+        keys (list of str): the positions to ensure exist
     """
     config = _config
     for key in keys:
@@ -385,7 +385,7 @@ def get_noise_std_estimators():
 
 
 def get_logging_configuration_dict():
-    """Get the configutation dictionary for the logging.dictConfig().
+    """Get the configuration dictionary for the logging.dictConfig().
 
     MDT uses a few special logging configuration options to log to the files and GUI's. These options are defined
     using a configuration dictionary that this function returns.
@@ -439,6 +439,9 @@ def get_model_config(model_names, config):
 
     This tries to find the best match between the given config items (by key) and the given model list. For example
     if model_names is ['BallStick', 'S0'] and we have the following config dict:
+
+    .. code-block:: python
+
         {'^S0$': 0,
          '^BallStick$': 1
          ('^BallStick$', '^S0$'): 2,
@@ -513,6 +516,9 @@ def config_context(config_action):
     the configuration will revert to the original settings.
 
     Example usage:
+
+    .. code-block:: python
+
         config = '''
         optimization:
             general:

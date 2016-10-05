@@ -103,11 +103,11 @@ class TrackMark(object):
         """Write the given directions to TVL.
 
         The direction pairs should be a list with lists containing the vector and value to write. For example:
-            ((vec, val), (vec1, val1), ...) up to three pairs are allowed.
+        ((vec, val), (vec1, val1), ...) up to three pairs are allowed.
 
         Args:
             tvl_filename (str): the filename to write to
-            tvl_header (list): the header for the TVL file. This is a list of either 4 or 10 entries.
+            tvl_header (:class:`list`): the header for the TVL file. This is a list of either 4 or 10 entries.
                 4 entries: [version, res, gap, offset]
                 10 entries: [version, x_res, x_gap, x_offset, y_res, y_gap, y_offset, z_res, z_gap, z_offset]
             direction_pairs (list of ndarrays): The list with direction pairs, only three are used.

@@ -17,7 +17,6 @@ __version__ = (2015, 12, 12, 11, 11, 12, 5)
 __all__ = [
     'SingleModelExpressionParser',
     'SingleModelExpressionSemantics',
-    'main'
 ]
 
 

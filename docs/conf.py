@@ -16,21 +16,48 @@
 import sys
 import os
 from datetime import datetime
+from functools import wraps
 from unittest.mock import MagicMock
 import builtins
+
+
+mock_as_class = ['SampleModelBuilder', 'QWidget', 'QMainWindow', 'QDialog', 'QObject']
+mock_as_decorator = ['pyqtSlot']
+mock_modules = ['mot', 'pyopencl', 'PyQt5', 'matplotlib', 'mpl_toolkits']
+
+
+def mock_decorator(*args, **kwargs):
+    def _called_decorator(dec_func):
+        @wraps(dec_func)
+        def _decorator(*args, **kwargs):
+            return dec_func()
+        return _decorator
+    return _called_decorator
+
+
+class MockBaseClass(object):
+
+    @classmethod
+    def __getattr__(cls, name):
+        return MyMock()
 
 
 class MyMock(MagicMock):
 
     @classmethod
     def __getattr__(cls, name):
+        if name in mock_as_class:
+            return MockBaseClass
+        if name in mock_as_decorator:
+            return mock_decorator
         return MagicMock()
+
 
 orig_import = __import__
 
 
 def import_mock(name, *args, **kwargs):
-    if name.startswith('mot') or name.startswith('pyopencl'):
+    if any(name.startswith(s) for s in mock_modules):
         return MyMock()
     return orig_import(name, *args, **kwargs)
 

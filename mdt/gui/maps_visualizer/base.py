@@ -293,7 +293,7 @@ class Controller(object):
         action will not be stored in history and will not need to be applied.
 
         Args:
-            action (ConfigAction): the configuration action to add and apply
+            action (mdt.gui.maps_visualizer.base.ConfigAction): the configuration action to add and apply
         """
 
     def undo(self):

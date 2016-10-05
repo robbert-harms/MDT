@@ -49,7 +49,7 @@ class BatchProfile(object):
         The models can either be real model objects, or strings with the model names.
 
         Returns:
-            list: the list of models we want to fit to the subjects
+            :class:`list`: the list of models we want to fit to the subjects
         """
 
     def get_subjects(self):

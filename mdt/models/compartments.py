@@ -102,13 +102,14 @@ def _construct_cl_function_definition(return_type, cl_function_name, parameters)
     """Create the CL function definition for a compartment function.
 
     This will construct something like (for the Stick model):
-        '''
-            mot_float_type cmStick(const mot_float_type4 g,
-                                   const mot_float_type b,
-                                   const mot_float_type d,
-                                   const mot_float_type theta,
-                                   const mot_float_type phi)
-        '''
+
+    .. code-block: c
+
+        mot_float_type cmStick(const mot_float_type4 g,
+                               const mot_float_type b,
+                               const mot_float_type d,
+                               const mot_float_type theta,
+                               const mot_float_type phi)
 
     Args:
         return_type (str): the return type
@@ -206,12 +207,13 @@ class CompartmentConfig(six.with_metaclass(CompartmentConfigMeta, ComponentConfi
     initialization you can define a method init. This method is called after object construction to allow
     for additional initialization. Also, this method is not added to the final object.
 
-    Class attributes:
+    Attributes:
         name (str): the name of the model, defaults to the class name
         description (str): model description
         cl_function_name (str): the name of the function in the CL kernel
-        parameter_list (list): the list of parameters to use. If a parameter is a string we will set_current_map it automatically,
-            if not it is supposed to be a CLFunctionParameter instance that we append directly.
+        parameter_list (list): the list of parameters to use. If a parameter is a string we will
+            set_current_map it automatically, if not it is supposed to be a CLFunctionParameter
+            instance that we append directly.
         cl_header (CLHeaderDefinition): the CL header definition to use. Defaults to CLHeaderFromTemplate.
         cl_code (CLCodeDefinition): the CL code definition to use. Defaults to CLCodeFromAdjacentFile.
         dependency_list (list): the list of functions this function depends on

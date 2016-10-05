@@ -15,7 +15,7 @@ class DMRIOptimizable(object):
         The methods in this interface have little to do with modelling, but unify some extra required methods
         in the cascades and single models.
 
-        Attributes;
+        Attributes:
             problems_to_analyze (list): the list with problems we want to analyze. Suppose we have a few thousands
                 problems defined in this model, but we want to run the optimization only on a few problems. By setting
                 this attribute to a list of problems indices only those problems will be analyzed.

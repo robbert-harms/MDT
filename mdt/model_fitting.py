@@ -214,9 +214,9 @@ class ModelFit(object):
             recalculate (boolean): If we want to recalculate the results if they are already present.
             only_recalculate_last (boolean):
                 This is only of importance when dealing with CascadeModels.
-                If set to true we only recalculate the last element in the chain
-                    (if recalculate is set to True, that is).
-                If set to false, we recalculate everything. This only holds for the first level of the cascade.
+                If set to true we only recalculate the last element in the chain (if recalculate is set to True,
+                that is). If set to false, we recalculate everything. This only holds for the
+                first level of the cascade.
             cascade_subdir (boolean): if we want to create a subdirectory for the given model if it is a cascade model.
                 Per default we output the maps of cascaded results in the same directory, this allows reusing cascaded
                 results for other cascades (for example, if you cascade BallStick -> Noddi you can use the BallStick

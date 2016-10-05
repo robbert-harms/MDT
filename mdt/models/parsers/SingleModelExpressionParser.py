@@ -40,13 +40,16 @@ def parse(model_expression):
 
     Args:
         model_expression (str): the model expression string. Example:
+
+        .. code-block: none
+
             S0 * ( (Weight(Wball) * Ball) +
                    (Weight(Wstick) * Stick ) )
 
-            If the model name is followed by parenthesis the string in parenthesis will represent the model's nickname.
+        If the model name is followed by parenthesis the string in parenthesis will represent the model's nickname.
 
     Returns:
-        list: the compartment model tree for use in single models.
+        :class:`list`: the compartment model tree for use in single models.
     """
     parser = SingleModelExpressionParser(parseinfo=False)
     return parser.parse(model_expression, rule_name='result', semantics=Semantics())

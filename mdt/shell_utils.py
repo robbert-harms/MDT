@@ -39,7 +39,7 @@ class BasicShellApplication(object):
         """ Starts a command and registers single handlers.
 
         Args:
-            run_args (list): the list of run arguments. If None we use sys.argv[1:].
+            run_args (:class:`list`): the list of run arguments. If None we use sys.argv[1:].
         """
         if run_args is None:
             run_args = sys.argv[1:]

@@ -31,16 +31,16 @@ class SampleVisualizer(object):
              show_trace=True, nmr_bins=20, window_title=None, show_sliders=True, fit_gaussian=True,
              figure_options=None):
         """Show the samples per voxel.
+
         Args:
             voxel_ind (int): the voxel to show the samples from.
-            names (dict):
-                A list of names for the different maps. Use as {map_name: display_name} that is,
+            names (dict): A list of names for the different maps. Use as ``{map_name: display_name}`` that is,
                  the key is the name of the map in the volumes dictionary and the display name is the string that will
                  be used as title for that map.
-            maps_to_show (list):
-                A list of maps to show. The items in this list must correspond to the keys in the volumes dictionary.
-            to_file (string, optional, default None):
-                If to_file is not None it is supposed to be a filename where the image will be saved.
+            maps_to_show (:class:`list`): A list of maps to show.
+                The items in this list must correspond to the keys in the volumes dictionary.
+            to_file (string, optional, default None): If to_file is not None it is supposed
+                to be a filename where the image will be saved.
                 If not set to None, nothing will be displayed, the results will directly be saved.
                 Already existing items will be overwritten.
             block (boolean): If we want to block after calling the plots or not. Set this to False if you

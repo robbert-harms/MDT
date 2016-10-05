@@ -13,7 +13,7 @@ from mdt.utils import create_roi
 from mot.cl_data_type import CLDataType
 from mot.model_building.cl_functions.model_functions import Weight
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
-from mot.data_adapters  import SimpleDataAdapter
+from mot.data_adapters import SimpleDataAdapter
 from mot.model_building.evaluation_models import OffsetGaussianEvaluationModel
 from mot.model_building.model_builders import SampleModelBuilder
 from mot.model_building.parameter_functions.dependencies import WeightSumToOneRule

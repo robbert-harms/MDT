@@ -243,7 +243,7 @@ class Protocol(collections.MutableMapping):
         """Get the b-values of the unique shells in this protocol.
 
         Returns:
-            list: a list with the unique weighted bvals in this protocol.
+            :class:`list`: a list with the unique weighted bvals in this protocol.
 
         Raises:
             KeyError: This function may throw a key error if the 'b' column in the protocol could not be loaded.
@@ -339,14 +339,14 @@ class Protocol(collections.MutableMapping):
         If you want to include the unweighted volumes, make a call to get_unweighted_indices() yourself.
 
         Args:
-            start: b-value of the start of the range (inclusive) we want to get the indices of the volumes from.
+            start (float): b-value of the start of the range (inclusive) we want to get the indices of the volumes from.
                 Should be positive. We subtract epsilon for float comparison
-            end: b-value of the end of the range (inclusive) we want to get the indices of the volumes from.
+            end (float): b-value of the end of the range (inclusive) we want to get the indices of the volumes from.
                 Should be positive. We add epsilon for float comparison
-            epsilon: the epsilon we use in the range.
+            epsilon (float): the epsilon we use in the range.
 
         Returns:
-            list: a list of indices of all volumes whose b-value is in the given range.
+            :class:`list`: a list of indices of all volumes whose b-value is in the given range.
                 If you want to include the unweighted volumes, make a call to get_unweighted_indices() yourself.
         """
         b_values = self.get_column('b')

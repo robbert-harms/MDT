@@ -67,6 +67,8 @@ def bind_function(func):
     Example suppose you want to inherit or overwrite a function in the constructed model, then in your template/config
     you should define the function and add @bind_function to it as a decorator, like this:
 
+    .. code-block:: python
+
         # the class we want to create
         class MyGoal(object):
             def test(self):
@@ -151,7 +153,7 @@ class ComponentsLoader(object):
         """The base class for loading and displaying components.
 
         Args:
-            sources (list): the list of sources to use for loading the components
+            sources (:class:`list`): the list of sources to use for loading the components
         """
         self._sources = sources
 

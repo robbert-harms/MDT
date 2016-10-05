@@ -54,7 +54,7 @@ class GridLayoutSpecifier(object):
         Args:
             gridspec (GridSpec): the gridspec to use
             figure (Figure): the figure to generate subplots for
-            positions (list): if given, a list with grid spec indices for every requested axis
+            positions (:class:`list`): if given, a list with grid spec indices for every requested axis
         """
         self.gridspec = gridspec
         self.figure = figure

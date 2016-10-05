@@ -240,7 +240,7 @@ def get_device_ind(device_type='FIRST_GPU'):
         device_type (str): choose one of 'FIRST_GPU', 'ALL_GPU', 'FIRST_CPU', 'ALL_CPU', 'ALL'
 
     Returns
-        list: the list of device indices for the requested type of devices.
+        :class:`list`: the list of device indices for the requested type of devices.
     """
     supported_types = ['FIRST_GPU', 'ALL_GPU', 'FIRST_CPU', 'ALL_CPU', 'ALL']
     if device_type is None or device_type not in supported_types:
@@ -418,7 +418,7 @@ def write_trackmark_rawmaps(data, output_folder, maps_to_convert=None):
     Args:
         data (str or dict): the name of the input folder, of a dictionary with maps to save.
         output_folder (str): the name of the output folder. Defaults to <input_folder>/trackmark.
-        maps_to_convert (list): the list with the names of the maps we want to convert (without the extension).
+        maps_to_convert (:class:`list`): the list with the names of the maps we want to convert (without the extension).
     """
     from mdt.IO import TrackMark
 
@@ -457,8 +457,8 @@ def sort_maps(maps_to_sort_on, extra_maps_to_sort=None, reversed_sort=False, sor
     maps for the maps we sort on. If extra_maps_to_sort is given it should be of the same length as the maps_to_sort_on.
 
     Args:
-        maps_to_sort_on (list): a list of string (filenames) or ndarrays we will set_current_map and compare
-        extra_maps_to_sort (list) an additional list we will sort based on the indices in maps_to_sort. This should
+        maps_to_sort_on (:class:`list`): a list of string (filenames) or ndarrays we will set_current_map and compare
+        extra_maps_to_sort (:class:`list`) an additional list we will sort based on the indices in maps_to_sort. This should
             be of the same length as maps_to_sort_on.
         reversed_sort (boolean): if we want to sort from large to small instead of small to large.
         sort_index_map (ndarray): if given we use this sort index map instead of generating one by sorting the
@@ -522,7 +522,7 @@ def get_volume_names(directory):
         directory: the directory to get the names of the available maps from.
 
     Returns:
-        list: A list with the names of the volumes.
+        :class:`list`: A list with the names of the volumes.
     """
     from mdt.IO import Nifti
     return list(sorted(Nifti.volume_names_generator(directory)))

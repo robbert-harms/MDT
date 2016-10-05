@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from mdt import get_slice_in_dimension
-from mdt.visualization.maps.base import Clipping, Scale, Point, Zoom
+from mdt.visualization.maps.base import Clipping, Scale, Point
 from mdt.visualization.utils import MyColourBarTickLocator
 
 __author__ = 'Robbert Harms'

@@ -900,11 +900,11 @@ def sort_volumes_per_voxel(input_volumes, sort_matrix):
     the array as if the 4th dimension values where a single value. This is useful for sorting (eigen)vector matrices.
 
     Args:
-        input_volumes (list): list of 4d ndarray
+        input_volumes (:class:`list`): list of 4d ndarray
         sort_matrix (ndarray): 4d ndarray with for every voxel the sort index
 
     Returns:
-        list: the same input volumes but then with every voxel sorted according to the given sort index.
+        :class:`list`: the same input volumes but then with every voxel sorted according to the given sort index.
     """
     if input_volumes[0].shape[3] > 1:
         volume = np.concatenate([np.reshape(m, m.shape[0:3] + (1,) + (m.shape[3],)) for m in input_volumes], axis=3)
@@ -1029,7 +1029,7 @@ def model_output_exists(model, output_folder, append_model_name_to_path=True):
         output_folder (str): the folder where the output folder of the results should reside in
         append_model_name_to_path (boolean): by default we will append the name of the model to the output folder.
             This is to be consistent with the way the model fitting routine places the results in the
-                <output folder>/<model_name> directories. Sometimes, however you might want to skip this appending.
+            <output folder>/<model_name> directories. Sometimes, however you might want to skip this appending.
 
     Returns:
         boolean: true if the output folder exists and contains files for all the parameters of the model.
@@ -1403,6 +1403,9 @@ def volume_merge(volume_paths, output_fname, sort=False):
     the most convenient option in the case of globbing files. By default this behaviour is disabled.
 
     Example usage with globbing:
+
+    .. code-block: python
+
         mdt.volume_merge(glob.glob('*.nii'), 'merged.nii.gz', True)
 
     Args:
@@ -1444,12 +1447,15 @@ def concatenate_mri_sets(items, output_volume_fname, output_protocol_fname, over
     This writes a single volume and a single protocol file.
 
     Args:
-        items (tuple of dict): A tuple of dicts with volume filenames and protocol filenames
-            (
-             {'volume': volume_fname,
-              'protocol': protocol_filename
-             }, ...
-            )
+        items (tuple of dict): A tuple of dicts with volume filenames and protocol filenames:
+
+            .. code-block: python
+
+                (
+                 {'volume': volume_fname,
+                  'protocol': protocol_filename
+                 }, ...
+                )
         output_volume_fname (string): The name of the output volume
         output_protocol_fname (string): The name of the output protocol file
         overwrite_if_exists (boolean, optional, default false): Overwrite the output files if they already exists.
@@ -1513,7 +1519,7 @@ def extract_volumes(input_volume_fname, input_protocol, output_volume_fname, out
         input_protocol (str or Protocol): the input protocol, either a file or preloaded protocol object
         output_volume_fname (str): the output filename for the selected volumes
         output_protocol (str): the output protocol for the selected volumes
-        volume_indices (list): the desired indices, indexing the input_volume
+        volume_indices (:class:`list`): the desired indices, indexing the input_volume
     """
     input_protocol = autodetect_protocol_loader(input_protocol).get_protocol()
 
