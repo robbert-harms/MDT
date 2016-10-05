@@ -11,3 +11,4 @@ Maastricht Optimization Toolbox
    install
    credits
    function_docs
+   faq

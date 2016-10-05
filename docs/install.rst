@@ -2,7 +2,7 @@ Installation
 ------------
 .. highlight:: console
 
-MDT uses the Maastricht Optimization Toolbox (MOT) for the computations. Please install MOT first (https://github.com/cbclab/MOT), afterwards this installation should be fairly straightforward. With MOT installed, you can now install MDT.
+MDT uses the Maastricht Optimization Toolbox (MOT) for the computations. Please install MOT first (https://github.com/cbclab/MOT), afterwards this installation should be fairly straightforward.
 
 Linux (Ubuntu)
 """"""""""""""
