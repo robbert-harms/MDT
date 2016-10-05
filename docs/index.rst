@@ -1,6 +1,6 @@
-===============================
-Maastricht Optimization Toolbox
-===============================
+============================
+Maastricht Diffusion Toolbox
+============================
 
 .. include:: ../README.rst
 

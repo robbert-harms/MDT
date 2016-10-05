@@ -1,4 +1,4 @@
-Maastricht Diffusion Toolkit
+Maastricht Diffusion Toolbox
 ============================
 
 .. image:: https://badge.fury.io/py/mdt.png
