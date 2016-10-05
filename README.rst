@@ -1,49 +1,31 @@
-============================
 Maastricht Diffusion Toolkit
 ============================
 
 .. image:: https://badge.fury.io/py/mdt.png
     :target: http://badge.fury.io/py/mdt
 
-A diffusion toolkit for parallelized sampling and optimization of diffusion data.
+A diffusion toolkit for parallelized sampling and optimization of diffusion dMRI images.
 
 * Free software: LGPL v3 license
 * Full documentation: https://mdt.readthedocs.org
-* Project home: http://maastrichtdiffusiontoolbox.readthedocs.io/en/latest/
+* Project home: http://maastrichtdiffusiontoolbox.readthedocs.io
 * Uses the `GitLab workflow <https://docs.gitlab.com/ee/workflow/gitlab_flow.html>`_
 * Tags: diffusion, dMRI, MRI, optimization, parallel, opencl, python
 
 
-Installation
-------------
-.. highlight:: console
+Quick installation guide:
 
-MDT uses the Maastricht Optimization Toolbox (MOT) for the computations. Please install MOT first (https://github.com/robbert-harms/MOT), afterwards this installation should be fairly straightforward.
+**Linux (Ubuntu)**
 
-
-|
-Installing MDT
-^^^^^^^^^^^^^^
-With MOT installed, you can now install MDT.
-
-Linux (Ubuntu)
-""""""""""""""
-It is possible to install every Python dependency with pip, but in general
-native Ubuntu packages are prefered. To install most of the dependencies, please use:
-
-``apt-get install python3-numpy python3-nibabel python3-pyqt5 python3-matplotlib python3-six python3-yaml python3-argcomplete``
-
-Then, install MDT with pip (no Ubuntu package is available yet):
-
-``pip3 install MDT``
-
-On older Ubuntu systems (<15.10) some dependencies will be recompiled with pip. This might fail because of missing some packages, install with:
-
-``apt-get install libpng-dev libfreetype6-dev libxft-dev``
+* ``apt-get install python3 python3-pip python3-pyopencl python3-numpy python3-nibabel python3-pyqt5 python3-matplotlib python3-six python3-yaml python3-argcomplete libpng-dev libfreetype6-dev libxft-dev``
+* ``pip3 install MDT``
 
 
-Windows
-"""""""
-Open an Anaconda shell and use:
+**Windows**
 
-``pip install MDT``
+* Install Python Anaconda 3.* from https://www.continuum.io/downloads
+* Install the PyQt5 bindings
+* Open a Anaconda shell and type: ``pip install MDT``
+
+
+For more information and installation instructions, please see: https://maastrichtdiffusiontoolbox.readthedocs.org

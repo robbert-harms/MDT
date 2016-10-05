@@ -15,6 +15,7 @@
 
 import sys
 import os
+from datetime import datetime
 from unittest.mock import MagicMock
 import builtins
 
@@ -44,7 +45,7 @@ builtins.__import__ = import_mock
 
 # Building from inside the docs/ directory?
 if os.path.basename(os.getcwd()) == 'docs':
-	sys.path.insert(1, os.path.abspath(os.path.join('..')))
+    sys.path.insert(1, os.path.abspath(os.path.join('..')))
 
 import mdt
 
@@ -58,7 +59,7 @@ import mdt
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.viewcode', 'sphinx.ext.napoleon']
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['templates']
+templates_path = ['_templates']
 
 # The suffix of source filenames.
 source_suffix = '.rst'
@@ -70,8 +71,9 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Maastricht Diffusion Toolbox'
-copyright = u'2015, Robbert Harms'
+project = u'MDT'
+year = datetime.now().year
+copyright = u'%d Robbert Harms' % year
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout
@@ -94,7 +96,7 @@ release = mdt.__version__
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['build']
+exclude_patterns = ['_build']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -115,7 +117,7 @@ exclude_patterns = ['build']
 pygments_style = 'sphinx'
 
 # A list of ignored prefixes for module index sorting.
-#modindex_common_prefix = []
+modindex_common_prefix = ['mdt.']
 
 # If true, keep warnings as "system message" paragraphs in the built
 # documents.
@@ -126,12 +128,19 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'default'
+html_theme = 'alabaster'
 
 # Theme options are theme-specific and customize the look and feel of a
 # theme further.  For a list of options available for each theme, see the
 # documentation.
-#html_theme_options = {}
+html_theme_options = {
+    'show_powered_by': False,
+    'description': "dMRI microstructure model recovery",
+    'logo_name': True,
+    'sidebar_collapse': False,
+    'fixed_sidebar': True
+}
+
 
 # Add any paths that contain custom themes here, relative to this directory.
 #html_theme_path = []
@@ -168,7 +177,11 @@ html_static_path = ['_static']
 #html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-#html_sidebars = {}
+html_sidebars = {
+   '**': ['about.html',
+          'navigation.html',
+          'searchbox.html']
+}
 
 # Additional templates that should be rendered to pages, maps page names
 # to template names.
@@ -184,11 +197,11 @@ html_static_path = ['_static']
 #html_split_index = False
 
 # If true, links to the reST sources are added to the pages.
-#html_show_sourcelink = True
+html_show_sourcelink = False
 
 # If true, "Created using Sphinx" is shown in the HTML footer.
 # Default is True.
-#html_show_sphinx = True
+html_show_sphinx = False
 
 # If true, "(C) Copyright ..." is shown in the HTML footer.
 # Default is True.

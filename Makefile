@@ -55,7 +55,7 @@ coverage:
 	@echo "To view results type: htmlcov/index.html &"
 
 docs:
-	rm -f docs/mdt.rst
+	rm -f docs/mdt*.rst
 	rm -f docs/modules.rst
 	sphinx-apidoc -f -o docs/ mdt
 	$(MAKE) -C docs clean
