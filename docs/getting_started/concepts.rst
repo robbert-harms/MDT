@@ -1,8 +1,9 @@
+========
 Concepts
 ========
 
 Protocol
---------
+========
 
 For the complete Python documentation, please see: :py:class:`mdt.protocols.Protocol`.
 
