@@ -1,4 +1,4 @@
-.PHONY: clean clean-build clean-pyc clean-test lint test tests test-all coverage docs release dist install uninstall dist-deb clean-docs
+.PHONY: clean clean-build clean-pyc clean-test lint test tests test-all coverage docs release dist install uninstall dist-deb
 
 PYTHON=`which python`
 PROJECT=mdt
@@ -8,7 +8,6 @@ help:
 	@echo "clean-build - remove build artifacts"
 	@echo "clean-pyc - remove Python file artifacts"
 	@echo "clean-test - remove test and coverage artifacts"
-	@echo "clean-docs - remove the binary doc files"
 	@echo "lint - check style with flake8"
 	@echo "test - run tests quickly with the default Python"
 	@echo "tests - synonym for test"
@@ -21,7 +20,7 @@ help:
 	@echo "install - installs the package using pip"
 	@echo "uninstall - uninstalls the package using pip"
 
-clean: clean-build clean-pyc clean-test clean-docs
+clean: clean-build clean-pyc clean-test
 	$(PYTHON) setup.py clean
 
 clean-build:
@@ -42,11 +41,6 @@ clean-test:
 	rm -f .coverage
 	rm -fr htmlcov/
 
-clean-docs:
-	rm -f docs/$(PROJECT)*.rst
-	rm -f docs/modules.rst
-	$(MAKE) -C docs clean
-
 lint:
 	flake8 $(PROJECT) tests
 
@@ -64,7 +58,10 @@ coverage:
 	coverage html
 	@echo "To view results type: htmlcov/index.html &"
 
-docs: clean-docs
+docs:
+	rm -f docs/$(PROJECT)*.rst
+	rm -f docs/modules.rst
+	$(MAKE) -C docs clean
 	sphinx-apidoc -o docs/ $(PROJECT)
 	$(MAKE) -C docs html SPHINXBUILD='python3 $(shell which sphinx-build)'
 	@echo "To view results type: firefox docs/_build/html/index.html &"

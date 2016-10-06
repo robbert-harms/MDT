@@ -41,8 +41,6 @@ output/*/index.html
 
 # Sphinx
 docs/_build
-docs/mdt.*rst
-docs/modules.rst
 
 #Idea
 .idea
@@ -53,8 +51,8 @@ docs/modules.rst
 # debian tmps
 /debian/source
 /debian/tmp
-/debian/changelog 
-/debian/compat 
+/debian/changelog
+/debian/compat
 /debian/control
-/debian/rules 
+/debian/rules
 /debian/watch
