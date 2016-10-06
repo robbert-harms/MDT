@@ -1,3 +1,9 @@
+"""This module contains some functions that allow for generating simulated data.
+
+The simulated data is on the level of diffusion MRI models, not on the level of simulated physical molecule interaction
+as found in for example Camino.
+"""
+
 import numbers
 import os
 import nibabel as nib
@@ -274,7 +280,7 @@ def estimate_noise_std(simulated_noisy_signals, protocol, noise_estimator_name='
     Args:
         simulated_noisy_signals (ndarray): the list with per problem the noisy simulated signal
         protocol (Protocol): the protocol object
-        noise_estimator_name (str): the name of the noise estimator to set_current_map
+        noise_estimator_name (str): the name of the noise estimator to use
 
     Returns:
         float: the noise standard deviation

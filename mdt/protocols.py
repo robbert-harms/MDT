@@ -19,11 +19,12 @@ class Protocol(collections.MutableMapping):
     def __init__(self, columns=None):
         """Create a new protocol. Optionally initializes the protocol with the given set of columns.
 
+        Please note that we use SI units throughout MDT. Take care when loading the data that you load it in SI units.
+
         Args:
-            columns (dict, optional, default None):
-                The initial list of columns used by this protocol, the keys should be the name of the
-                parameter (exactly as used in the model functions). The values should be numpy arrays of width 1, and
-                all of equal length.
+            columns (dict): The initial list of columns used by this protocol, the keys should be the name of the
+                parameter (the same as those used in the model functions).
+                The values should be numpy arrays of equal length.
         """
         super(Protocol, self).__init__()
         self._gamma_h = 2.675987E8
@@ -49,10 +50,10 @@ class Protocol(collections.MutableMapping):
 
     @property
     def gamma_h(self):
-        """Get the used gamma of the H atom used by this protocol.
+        """Get the used gamma of the ``H`` atom used by this protocol.
 
         Returns:
-            float: The used gamma of the H atom used by this protocol.
+            float: The used gamma of the ``H`` atom used by this protocol.
         """
         return self._gamma_h
 
@@ -328,14 +329,14 @@ class Protocol(collections.MutableMapping):
         This can be used to get the indices of gradients whose b-value is in the range suitable for
         a specific analysis.
 
-        Note that we use SI units and you need to specify the range in s/m^2 and not in s/mm^2.
+        Note that we use SI units and you need to specify the values in units of s/m^2 and not in s/mm^2.
 
         Also note that specifying 0 as start of the range does not automatically mean that the unweighted volumes are
         returned. It can happen that the b-value of the unweighted volumes is higher then 0 even if the the gradient
-        'g' is [0 0 0]. This function does not make any assumptions about that and just returns indices in the given
-        range.
+        ``g`` is ``[0 0 0]``. This function does not make any assumptions about that and just returns indices in the
+        given range.
 
-        If you want to include the unweighted volumes, make a call to get_unweighted_indices() yourself.
+        If you want to include the unweighted volumes, make a call to :meth:`get_unweighted_indices` yourself.
 
         Args:
             start (float): b-value of the start of the range (inclusive) we want to get the indices of the volumes from.
@@ -389,10 +390,10 @@ class Protocol(collections.MutableMapping):
         return Protocol(columns={k: v[indices] for k, v in self._columns.items()})
 
     def _get_real_column(self, column_name):
-        """Try to set_current_map a real column from this protocol.
+        """Try to use a real column from this protocol.
 
         Returns:
-            A real column, that is, a column from which we have real data.
+            ndarray: A real column, that is, a column from which we have real data.
 
         Raises:
             KeyError: If the column name could not be found we raise a key error.
@@ -406,12 +407,12 @@ class Protocol(collections.MutableMapping):
         raise KeyError('The given column could not be found.')
 
     def _get_estimated_column(self, column_name):
-        """Try to set_current_map an estimated column from this protocol.
+        """Try to use an estimated column from this protocol.
 
         This uses the list of virtual columns to try to estimate the requested column.
 
         Returns:
-            An estimated column, that is, a column we estimate from the other columns.
+            ndarray: An estimated column, that is, a column we estimate from the other columns.
 
         Raises:
             KeyError: If the column name could not be estimated we raise a key error.
@@ -479,7 +480,6 @@ class VirtualColumn(object):
 
         In the Protocol they are used separately from the RealColumns. The VirtualColumns can always be added to
         the Protocol, but are only used when needed. The RealColumns can overrule VirtualColumns by their presence.
-        All that logic is in the Protocol itself.
 
         Args:
             name (str): the name of the column this object generates.
@@ -610,7 +610,6 @@ def get_sequence_timings(protocol):
 def load_bvec_bval(bvec, bval, column_based='auto', bval_scale='auto'):
     """Load an protocol from a bvec and bval file.
 
-    If column_based
     This supposes that the bvec (the vector file) has 3 rows (gx, gy, gz) and is space or tab seperated.
     The bval file (the b values) are one one single line with space or tab separated b values.
 
@@ -618,9 +617,8 @@ def load_bvec_bval(bvec, bval, column_based='auto', bval_scale='auto'):
         bvec (str): The filename of the bvec file
         bval (str): The filename of the bval file
         column_based (boolean): If true, this supposes that the bvec (the vector file) has 3 rows (gx, gy, gz)
-            and is space or tab seperated and that the bval file (the b values) are one one single line
-            with space or tab separated b values.
-            If false, the vectors and b values are each one a different line.
+            and is space or tab seperated and that the bval file (the b values) are one one single line with space or
+            tab separated b values. If false, the vectors and b values are each one a different line.
             If 'auto' it is autodetected, this is the default.
         bval_scale (float): The amount by which we want to scale (multiply) the b-values. The default is auto,
             this checks if the b-val is lower then 1e4 and if so multiplies it by 1e6.
@@ -717,8 +715,8 @@ def load_protocol(protocol_fname):
     """Load an protocol from the given protocol file, with as column names the given list of names.
 
     Args:
-        protocol_fname (string): The filename of the protocol file to set_current_map.
-            This should be a comma seperated, or tab delimited file with equal length columns.
+        protocol_fname (string): The filename of the protocol file to use.
+            This should be a comma separated or tab delimited file with equal length columns.
 
     Returns:
         An protocol with all the columns loaded.
@@ -747,16 +745,14 @@ def load_protocol(protocol_fname):
 def write_protocol(protocol, fname, columns_list=None):
     """Write the given protocol to a file.
 
-    This writes all or the selected columns from the given protocol to the given file name.
-
     Args:
         protocol (Protocol): The protocol to write to file
         fname (string): The filename to write to
-        columns_list (tuple, optional, default None): The tuple with the columns names to write (and in that order).
+        columns_list (tuple): The tuple with the columns names to write (and in that order).
             If None, all the columns are written to file.
 
     Returns:
-        A tuple listing the parameters that where written (and in that order)
+        tuple: the parameters that where written (and in that order)
     """
     if not columns_list:
         columns_list = protocol.column_names
@@ -790,18 +786,19 @@ def auto_load_protocol(directory, protocol_options=None, bvec_fname=None, bval_f
 
     This function will only auto-search files in the top directory and not in the sub-directories.
 
-    This will first try to set_current_map the first .prtcl file found. If none present, it will try to find bval and bvec files
-    to set_current_map and then try to find the protocol options.
+    This will first try to use the first .prtcl file found. If none present, it will try to find bval and bvec files
+    to use and then try to find the protocol options.
 
     The protocol_options should be a dictionary mapping protocol items to filenames. If given, we only use the items
     in that dictionary. If not given we try to autodetect the protocol option files from the given directory.
 
     The search order is (continue until matched):
+
         1) anything ending in .prtcl
         2) a) the given bvec and bval file
            b) anything containing bval or b-val
            c) anything containing bvec or b-vec
-                i) This will prefer a bvec file that also has 'fsl' in the name. This to be able to auto set_current_map
+                i) This will prefer a bvec file that also has 'fsl' in the name. This to be able to auto use
                     HCP MGH bvec directions.
            d) protocol options
                 i) using dict
@@ -809,6 +806,7 @@ def auto_load_protocol(directory, protocol_options=None, bvec_fname=None, bval_f
                     (e.g, finding a file named TE for the TE's)
 
     The available protocol options are:
+
         - TE: the TE in seconds, either a file or, one value or one value per bvec
         - TR: the TR in seconds, either a file or, either one value or one value per bvec
         - Delta: the big Delta in seconds, either a file or, either one value or one value per bvec
@@ -816,13 +814,13 @@ def auto_load_protocol(directory, protocol_options=None, bvec_fname=None, bval_f
         - maxG: the maximum gradient amplitude G in T/m. Used in estimating G, Delta and delta if not given.
 
     Args:
-        directory (str): the directory to set_current_map the protocol from
+        directory (str): the directory to use the protocol from
         protocol_options (dict): mapping protocol items to filenames (as a subpath of the given directory)
             or mapping them to values (one value or one value per bvec line)
         bvec_fname (str): if given, the filename of the bvec file (as a subpath of the given directory)
         bval_fname (str): if given, the filename of the bvec file (as a subpath of the given directory)
         bval_scale (double): The scale by which to scale the values in the bval file.
-            If we set_current_map from bvec and bval we will use this scale. If 'auto' we try to guess the units/scale.
+            If we use from bvec and bval we will use this scale. If 'auto' we try to guess the units/scale.
 
     Returns:
         Protocol: a loaded protocol file.

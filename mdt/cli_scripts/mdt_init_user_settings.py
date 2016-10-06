@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
+"""This script is meant to update your home folder with the latest MDT models."""
 import argparse
 import os
 import textwrap
@@ -16,8 +17,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class InitUserSettings(BasicShellApplication):
 
     def _get_arg_parser(self):
-        description = textwrap.dedent("""
-            This script is meant to update your home folder with the latest MDT models.
+        description = textwrap.dedent(__doc__ + """
 
             The location we will write to is: {}
         """.format(os.path.dirname(get_config_dir())))

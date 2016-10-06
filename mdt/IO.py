@@ -16,14 +16,14 @@ class Nifti(object):
 
     @staticmethod
     def write_volume_map(name, result_volume, directory, nifti_header, overwrite_volumes=True):
-        """Write a single volume to the given directory.
+        """Write a single volume as a nifti (.nii) to the given directory.
 
         Args:
-            name: the name of the volume
-            result_volume: the volume we want to write out
-            directory: the directory to write to
+            name (str): the name of the volume
+            result_volume (ndarray): the volume we want to write out
+            directory (str): the directory to write to
             nifti_header: the nifti header to use for each of the volumes
-            overwrite_volumes: defaults to True, if we want to overwrite the volumes if they exists
+            overwrite_volumes (boolean): defaults to True, if we want to overwrite the volumes if they exists
         """
         Nifti.write_volume_maps({name: result_volume}, directory, nifti_header, overwrite_volumes)
 
@@ -62,12 +62,12 @@ class Nifti(object):
         """Read a number of Nifti volume maps that were written using write_volume_maps.
 
         Args:
-            directory: the directory from which we want to read a number of maps
-            map_names: the names of the maps we want to set_current_map. If given we only set_current_map and return these maps.
+            directory (str): the directory from which we want to read a number of maps
+            map_names (list of str): the names of the maps we want to use. If given we only use and return these maps.
 
         Returns:
-            A dictionary with the volumes. The keys of the dictionary are the filenames
-            (without the extension) of the files in the given directory.
+            dict: A dictionary with the volumes. The keys of the dictionary are the filenames
+                without the extension of the .nii(.gz) files in the given directory.
         """
         maps = {}
         for extension in ('.nii', '.nii.gz'):
@@ -83,7 +83,7 @@ class Nifti(object):
         """Get the names of the Nifti volume maps in the given directory.
 
         Args:
-            directory: the directory to get the names of the available maps from
+            directory (str): the directory to get the names of the available maps from
 
         Returns:
             generator: this yields the volume names in the given directory

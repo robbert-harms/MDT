@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
+"""Print some basic information about an image file."""
 import argparse
 import os
 import mdt
-from argcomplete.completers import FilesCompleter
 import textwrap
 
 from mdt.shell_utils import BasicShellApplication
@@ -17,9 +17,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class InfoImg(BasicShellApplication):
 
     def _get_arg_parser(self):
-        description = textwrap.dedent("""
-            Print some basic information about an image file.
-        """)
+        description = textwrap.dedent(__doc__)
         description += self._get_citation_message()
 
         epilog = textwrap.dedent("""

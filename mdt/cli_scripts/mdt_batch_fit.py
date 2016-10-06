@@ -1,5 +1,16 @@
 #!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
+"""Fits a batch profile to a set of data.
+
+This script can be used to fit multiple models to multiple datasets. It needs a batch profile with information
+about the subjects. If no batch profile is given, this routine will try to auto-detect a good batch profile.
+
+The most general batch profile is the 'DirPerSubject' profile which assumes that every subject has
+its own subdirectory under the given data folder. For details, please look up the batch profiles in your home folder.
+
+A few of the batch profile settings can be altered with arguments to this script. For example,
+use_gradient_deviations and models_to_fit override the values in the batch profile.
+"""
 import argparse
 import os
 import mdt
@@ -24,20 +35,7 @@ class BatchFit(BasicShellApplication):
                                        enumerate(cl_environments.CLEnvironmentFactory.smart_device_selection())))
 
     def _get_arg_parser(self):
-        description = textwrap.dedent("""
-            Fits a batch profile to a set of data.
-
-            This script can be used to fit multiple models to multiple datasets. To function correctly, this routine
-            needs to know how to interpret the data, which is done using the batch profiles. These profiles
-            tell the batch fit routine which subjects there are and how the data should be loaded. If no
-            batch profile is given, this routine will try to auto-detect a good batch profile.
-
-            The most common batch profile is the 'DirPerSubject' profile. This profile assumes that every subject has
-            its own subdirectory under the given data folder. For details look up the batch profile in your home folder.
-
-            A few of the batch profile settings can be altered with arguments to this script. For example,
-            use_gradient_deviations and models_to_fit override the values in the batch profile.
-        """)
+        description = textwrap.dedent(__doc__)
         description += mdt.shell_utils.get_citation_message()
 
         epilog = textwrap.dedent("""

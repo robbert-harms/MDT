@@ -25,8 +25,11 @@ class ModelProcessingStrategy(object):
     def __init__(self, tmp_dir=None):
         """Model processing strategies define in how many parts a single model is processed.
 
-        This uses the problems_to_analyze attribute of the MOT model builder to select the voxels to process. That
-        attribute arranges that only a selection of the problems are analyzed instead of all of them.
+        This uses the :attr:`~mot.model_building.model_builders.OptimizeModelBuilder.problems_to_analyze` attribute
+        of the MOT model builder (:class:`mot.model_building.model_builders.OptimizeModelBuilder`) to select the
+        voxels to process. That attribute arranges that only a selection of the problems are analyzed
+        instead of all of them. We set the range, optimize, collect the data and then repeat until all the voxels
+        are optimized.
 
         Args:
             tmp_dir (str): The temporary dir for the calculations. If set to None we write the temporary results in the
@@ -54,11 +57,12 @@ class ModelProcessingStrategy(object):
         (for example slice by slice) and run the processing on each slice separately and join the results afterwards.
 
         Args:
-             model (AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize.
-             problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
+             model (:class:`~mdt.models.single.DMRISingleModel`): the model we want to process
+             problem_data (:class:`~mdt.utils.DMRIProblemData`): The problem data object with which
+                the model is initialized before running
              output_path (string): The full path to the folder where to place the output
              recalculate (boolean): If we want to recalculate the results if they are already present.
-             worker_generator (ModelProcessingWorkerGenerator): the generator for creating the worker we will use
+             worker_generator (ModelProcessingWorkerCreator): the generator for creating the worker we will use
 
         Returns:
             dict: the results as a dictionary of roi lists
@@ -68,7 +72,7 @@ class ModelProcessingStrategy(object):
 class SimpleProcessingStrategy(ModelProcessingStrategy):
 
     def __init__(self, tmp_dir=None, honor_voxels_to_analyze=True):
-        """This class is a baseclass for all model slice fitting strategies that fit the data in chunks/parts.
+        """This class is a base class for all model slice fitting strategies that fit the data in chunks/parts.
 
         Args:
             honor_voxels_to_analyze (bool): if set to True, we use the model's voxels_to_analyze setting if set
@@ -206,8 +210,9 @@ class ModelProcessingWorkerCreator(object):
         """Create and return the worker that the processing strategy will use.
 
         Args:
-            model (DMRISingleModel): the model to process
-            problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
+            model (:class:`~mdt.models.single.DMRISingleModel`): the model we want to process
+            problem_data (:class:`~mdt.utils.DMRIProblemData`): The problem data object with which
+                the model is initialized before running
             output_dir (str): the location for the final output files
             tmp_storage_dir (str): the location for the temporary output files
             honor_voxels_to_analyze (boolean): if we should honor the voxels_to_analyze list in the model if applicable.
@@ -248,7 +253,7 @@ class ModelProcessingWorker(object):
         """Process the indicated voxels in the way prescribed by this worker.
 
         Since the processing strategy can use all voxels to do the analysis in one go, this function
-        should return all the output it can, i.e. the same kind of output as from the function 'combine()'.
+        should return all the output it can, i.e. the same kind of output as from the function :meth:`combine`.
 
         Args:
             roi_indices (ndarray): The list of roi indices we want to compute
@@ -262,12 +267,6 @@ class ModelProcessingWorker(object):
 
         This should either return an entire list with all the ROI indices for the given brain mask, or a list
         with the specific roi indices we want the strategy to compute.
-
-        Args:
-            model (DMRISingleModel): the model to process
-            problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
-            tmp_storage_dir (str): the location for the temporary output files
-            honor_voxels_to_analyze (boolean): if we should honor the voxels_to_analyze list in the model if applicable.
 
         Returns:
             ndarray: the list of ROI indices (indexing the current mask) with the voxels we want to compute.
@@ -296,8 +295,8 @@ class ModelProcessingWorker(object):
         """Write the result arrays to the temporary storage
 
         Args:
-            results (dict): the dictionary with the results to save
             roi_indices (ndarray): the indices of the voxels we computed
+            results (dict): the dictionary with the results to save
             tmp_dir (str): the directory to save the intermediate results to
         """
         if not os.path.exists(tmp_dir):
@@ -362,13 +361,13 @@ class ModelProcessingWorker(object):
         table using the ROI index as index.
 
         For example, suppose we have the lookup table:
+
             0: (0, 0, 0)
             1: (0, 0, 1)
             2: (0, 1, 0)
             ...
 
-        We can get the position of a voxel in the 3d space by indexing this array as:
-            lookup_table[roi_index]
+        We can get the position of a voxel in the 3d space by indexing this array as: ``lookup_table[roi_index]``
         to get the correct 3d location.
 
         Returns:

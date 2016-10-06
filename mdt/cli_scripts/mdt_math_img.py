@@ -1,5 +1,37 @@
 #!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
+"""Evaluate an expression on a set of images.
+
+This is meant to quickly convert/combine one or two maps with a mathematical expression.
+The expression can be any valid python expression.
+
+The input list of images are loaded as numpy arrays and stored in the array 'input' and 'i'.
+Next, the expression is evaluated using the input images and the result is stored in the indicated file.
+
+In the expression you can either use the arrays 'input' or 'i' with linear indices, or/and you can use alphabetic
+characters for each image. For example, if you have specified 2 input images
+you can address them as:
+
+    - input[0] or i[0] or a
+    - input[1] or i[1] or b
+
+This linear alphabetic indexing works with every alphabetic character except for the 'i' since that
+one is reserved for the array.
+
+The module numpy is available under 'np' and some functions of MDT under 'mdt'.
+This allows expressions like:
+    np.mean(np.concatenate(i, axis=3), axis=3)
+to get the mean value per voxel of all the input images.
+
+It is possible to change the mode of evaluation from single expression to a more complex python
+statement using the switch --as-statement (the default is --as-expression). In a statement
+more complex python commands are allowed. In statement mode you must explicitly output the
+results using 'return'. (Basically it wraps your command in a function, of which the output is
+used as expression value).
+
+If no output file is specified and the output is of dimension 2 or lower we print the output directly
+to the console.
+"""
 import argparse
 import glob
 import os
@@ -22,38 +54,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class MathImg(BasicShellApplication):
 
     def _get_arg_parser(self):
-        description = textwrap.dedent("""
-            Evaluate an expression on a set of images.
-
-            This is meant to quickly convert/combine one or two maps with a mathematical expression.
-            The expression can be any valid python expression.
-
-            The input list of images are loaded as numpy arrays and stored in the array 'input', or equivalent, 'i'.
-            Next, the expression is evaluated using the input images and the result is stored in the indicated file.
-
-            In the expression you can either use the arrays 'input', 'i' with linear indices to your input images,
-            or/and you can use alphabetic characters for each image. For example, if you have specified 2 input images
-            you can address them as:
-                input[0] or i[0] or a
-                input[1] or i[1] or b
-
-            This linear alphabetic indexing works with every alphabetic character except for the i since that
-            one is reserved for the array.
-
-            The module numpy is available under 'np' and some functions of MDT under 'mdt'.
-            This allows expressions like:
-                np.mean(np.concatenate(i, axis=3), axis=3)
-            to get the mean value per voxel of all the input images.
-
-            It is possible to change the mode of evaluation from single expression to a more complex python
-            statement using the switch --as-statement (the default is --as-expression). In a statement
-            more complex python commands are allowed. In statement mode you must explicitly output the
-            results using 'return'. (Basically it wraps your command in a function, of which the output is
-            used as expression value).
-
-            If no output file is specified and the output is of dimension 2 or lower we print the output directly
-            to the console.
-        """)
+        description = textwrap.dedent(__doc__)
         description += self._get_citation_message()
 
         epilog = textwrap.dedent("""

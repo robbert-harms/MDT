@@ -1,11 +1,11 @@
 Installation
-------------
+************
 .. highlight:: console
 
 MDT uses the Maastricht Optimization Toolbox (MOT) for the computations. Please install MOT first (https://github.com/cbclab/MOT), afterwards this installation should be fairly straightforward.
 
 Linux (Ubuntu)
-""""""""""""""
+==============
 After having installed MOT, we can install MDT. It is possible to install every Python dependency with pip, but in general
 native Ubuntu packages are preferred. To install most of the dependencies, please use:
 
@@ -28,7 +28,7 @@ On older Ubuntu systems (<15.10) some dependencies will be recompiled with pip. 
 
 
 Windows
-"""""""
+=======
 After having installed MOT, we can install MDT. Open an Anaconda shell and use:
 
 .. code-block:: bash

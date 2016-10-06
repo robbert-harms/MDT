@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
+"""Merge a list of volume images on the 4th dimension. Writes the result to a single image.
+
+Please note that by default this will sort the list of volume names based on a natural key sort. This is
+the most convenient option in the case of globbing files. You can disable this behaviour
+using the flag --no-sort.
+"""
 import argparse
 import glob
 import os
@@ -18,13 +24,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class VolumeMerge(BasicShellApplication):
 
     def _get_arg_parser(self):
-        description = textwrap.dedent("""
-            Merge a list of volume images on the 4th dimension. Writes the result to a single image.
-
-            Please note that by default this will sort the list of volume names based on a natural key sort. This is
-            the most convenient option in the case of globbing files. You can disable this behaviour
-            using the flag --no-sort.
-        """)
+        description = textwrap.dedent(__doc__)
         description += self._get_citation_message()
 
         epilog = textwrap.dedent("""

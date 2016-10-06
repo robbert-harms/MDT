@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
+"""This script prints a list of all the models MDT can find in your home directory."""
 import argparse
 import mdt
 import mdt.utils
@@ -14,7 +15,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class ListModels(BasicShellApplication):
 
     def _get_arg_parser(self):
-        description = "This script prints a list of all the models MDT can find in your home directory."
+        description = __doc__
         description += mdt.shell_utils.get_citation_message()
 
         parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)

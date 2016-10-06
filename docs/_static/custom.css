@@ -8,11 +8,12 @@
 
 p + ul {
     margin-top: 0px;
+    margin-bottom:15px;
 }
 
 div.body p{
-    margin-bottom:5px;
-    margin-top:5px;
+    margin-bottom:6px;
+    margin-top:6px;
 }
 
 div.body h3{

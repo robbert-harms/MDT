@@ -67,7 +67,7 @@ class TabMapSpecific(QWidget, Ui_TabMapSpecific):
         if map_name is None:
             self.map_specific_tab.reset()
         else:
-            self.map_specific_tab.set_current_map(map_name)
+            self.map_specific_tab.use(map_name)
 
 
 class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
@@ -140,7 +140,7 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         self.info_minimum.setText('-')
         self.info_shape.setText('-')
 
-    def set_current_map(self, map_name):
+    def use(self, map_name):
         """Load the settings of the given map"""
         self._current_map = map_name
 

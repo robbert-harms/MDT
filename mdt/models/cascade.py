@@ -20,8 +20,8 @@ class DMRICascadeModelInterface(DMRIOptimizable):
         """The interface to cascade models.
 
         A cascade model is a model consisting of multi-compartment models or other cascade models. The idea is that
-        it contains a number of models that are to be ran one after each other and with which the output results of
-        the previous fit_model(s) are used for the next fit_model.
+        it contains a number of models that are to be optimized one after another with the output results of
+        the previous fit used to initialize the next model.
         """
         super(DMRICascadeModelInterface, self).__init__(*args, **kwargs)
         self.double_precision = False
@@ -45,7 +45,7 @@ class DMRICascadeModelInterface(DMRIOptimizable):
     def get_next(self, output_previous_models):
         """Get the next model in the cascade. This is the only function called by the cascade model optimizer
 
-        This class is supposed to remember which model it gave the optimizer in what order.
+        This class is supposed to remember which model is next.
 
         Args:
             output_previous_models (dict): The output of all the previous models. The first level of the
@@ -156,7 +156,7 @@ class SimpleCascadeModel(DMRICascadeModelInterface):
         in this class
 
         Args:
-         model: the model to which we want to set the final functions
+            model: the model to which we want to set the final functions
 
         Returns:
             model: the same model with all extra's set.
@@ -188,6 +188,31 @@ class CascadeConfig(ComponentConfig):
     """The cascade config to inherit from.
 
     These configs are loaded on the fly by the CascadeBuilder.
+
+    Attributes:
+        name (str): the name of this cascade
+        description (str): the description
+        models (tuple): the list of models we wish to optimize (in that order) Example:
+
+            .. code-block:: python
+
+                models = ('BallStick (Cascade)', 'Charmed_r1')
+        inits (dict): per model the initializations from the previous model. Example:
+
+            .. code-block:: python
+
+                inits = {'Charmed_r1': [('Tensor.theta', 'Stick.theta'),
+                                        ('Tensor.phi', 'Stick.phi'),
+                                        ('w_res0.w', 'w_stick.w')]}
+
+            In this example the Charmed_r1 model in the cascade initializes its Tensor compartment with a previous
+            Ball&Stick model and initializes with restricted compartment volume fraction with the Stick fraction.
+        fixes (dict): per model the fixations from the previous model. Example:
+
+            .. code-block:: python
+
+                fixes = {'Charmed_r1': [('CharmedRestricted0.theta', 'Stick.theta'),
+                                        ('CharmedRestricted0.phi', 'Stick.phi')]}
     """
     name = ''
     description = ''

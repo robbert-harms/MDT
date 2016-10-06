@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
+"""Fit one of the models to the given data.
+
+This function can use two kinds of noise standard deviation, a global or a local (voxel wise).
+If the argument -n / --noise-std is not set, MDT uses a default automatic noise estimation which
+may be either global or local. To use a predefined global noise std please set the argument to a
+floating point value. To use a voxel wise noise std, please give it a filename with a map to use.
+"""
 import argparse
 import os
 import mdt
@@ -21,14 +28,7 @@ class ModelFit(BasicShellApplication):
                                        enumerate(cl_environments.CLEnvironmentFactory.smart_device_selection())))
 
     def _get_arg_parser(self):
-        description = textwrap.dedent("""
-            Fit one of the models to the given data.
-
-            This function can use two kinds of noise standard deviation, a global or a local (voxel wise).
-            If the argument -n / --noise-std is not set, MDT uses a default automatic noise estimation which
-            may be either global or local. To use a predefined global noise std please set the argument to a
-            floating point value. To use a voxel wise noise std, please give it a filename with a map to set_current_map.
-        """)
+        description = textwrap.dedent(__doc__)
         description += mdt.shell_utils.get_citation_message()
 
         epilog = textwrap.dedent("""

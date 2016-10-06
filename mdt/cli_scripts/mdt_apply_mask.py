@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
+"""Mask the background using the given mask.
+
+This function multiplies a given volume (or list of volumes) with a binary mask.
+
+Please note that this changes the input files (changes are in-place).
+"""
 import argparse
 import glob
 import os
@@ -17,13 +23,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class ApplyMask(BasicShellApplication):
 
     def _get_arg_parser(self):
-        description = textwrap.dedent("""
-            Mask the background using the given mask.
-
-            This function multiplies a given volume (or list of volumes) with a binary mask.
-
-            Please note that this changes the input files (changes are in-place).
-        """)
+        description = textwrap.dedent(__doc__)
         description += mdt.shell_utils.get_citation_message()
 
         epilog = textwrap.dedent("""

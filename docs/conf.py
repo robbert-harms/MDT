@@ -21,7 +21,8 @@ from unittest.mock import MagicMock
 import builtins
 
 
-mock_as_class = ['SampleModelBuilder', 'QWidget', 'QMainWindow', 'QDialog', 'QObject']
+mock_as_class = ['SampleModelBuilder', 'QWidget', 'QMainWindow', 'QDialog', 'QObject',
+                 'CLRoutine', 'AbstractProblemData']
 mock_as_decorator = ['pyqtSlot']
 mock_modules = ['mot', 'pyopencl', 'PyQt5', 'matplotlib', 'mpl_toolkits']
 
@@ -40,7 +41,7 @@ class MockClass(object):
     """Mocked class needed in the case we need to mock a class type"""
     @classmethod
     def __getattr__(cls, name):
-        return MyMock()
+        return MockModule()
 
 
 class MockNamedComponent(MagicMock):
@@ -92,7 +93,7 @@ import mdt
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.viewcode', 'sphinx.ext.napoleon']
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.viewcode', 'sphinx.ext.napoleon', 'sphinx.ext.intersphinx']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -159,6 +160,11 @@ modindex_common_prefix = ['mdt.']
 # documents.
 #keep_warnings = False
 
+# map to other projects
+intersphinx_mapping = {
+    'mot': ('http://mot.readthedocs.io/en/latest/', None),
+}
+
 
 # -- Options for HTML output -------------------------------------------
 
@@ -171,7 +177,7 @@ html_theme = 'alabaster'
 # documentation.
 html_theme_options = {
     'show_powered_by': False,
-    'description': "dMRI microstructure model recovery",
+    'description': "Maastricht Diffusion Toolbox",
     'logo_name': True,
     'sidebar_collapse': False,
     'fixed_sidebar': True,

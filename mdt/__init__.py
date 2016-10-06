@@ -42,13 +42,14 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
     """Run the optimizer on the given model.
 
     Args:
-        model (str or AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize
-            or the name of an model we set_current_map with get_model()
-        problem_data (DMRIProblemData): the problem data object containing all the info needed for diffusion
-            MRI model fitting
+        model (str or :class:`~mdt.models.single.DMRISingleModel` or :class:`~mdt.models.cascade.DMRICascadeModelInterface`):
+            An implementation of an AbstractModel that contains the model we want to optimize or the name of
+            an model.
+        problem_data (:class:`~mdt.utils.DMRIProblemData`): the problem data object containing all the info needed for
+            diffusion MRI model fitting
         output_folder (string): The path to the folder where to place the output, we will make a subdir with the
             model name in it.
-        optimizer (AbstractOptimizer): The optimization routine to use.
+        optimizer (:class:`mot.cl_routines.optimizing.base.AbstractOptimizer`): The optimization routine to use.
         recalculate (boolean): If we want to recalculate the results if they are already present.
         only_recalculate_last (boolean):
             This is only of importance when dealing with CascadeModels.
@@ -99,11 +100,11 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
     """Sample a single model using the given cascading strategy.
 
     Args:
-        model: the model to sample
-        problem_data (DMRIProblemData): the problem data object, set_current_map with, for example, mdt.load_problem_data().
+        model (:class:`~mdt.models.single.DMRISingleModel`): the model to sample
+        problem_data (:class:`~mdt.utils.DMRIProblemData`): the problem data object
         output_folder (string): The path to the folder where to place the output, we will make a subdir with the
             model name in it (for the optimization results) and then a subdir with the samples output.
-        sampler (AbstractSampler): the sampler to use
+        sampler (:class:`mot.cl_routines.sampling.base.AbstractSampler`): the sampler to use
         recalculate (boolean): If we want to recalculate the results if they are already present.
         cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices().
@@ -184,16 +185,11 @@ def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalcul
               double_precision=False, tmp_results_dir=True):
     """Run all the available and applicable models on the data in the given folder.
 
-    See the class AutoRun for more details and options.
-
-    Setting the cl_device_ind has the side effect that it changes the current run time cl_device settings in the MOT
-    toolkit.
-
     Args:
         data_folder (str): The data folder to process
-        batch_profile (BatchProfile or str): the batch profile to use, or the name of a batch profile to set_current_map.
-            If not given it is auto detected.
-        subjects_selection (BatchSubjectSelection): the subjects to use for processing.
+        batch_profile (:class:`~mdt.batch_utils.BatchProfile` or str): the batch profile to use,
+            or the name of a batch profile to use. If not given it is auto detected.
+        subjects_selection (:class:`~mdt.batch_utils.BatchSubjectSelection`): the subjects to use for processing.
             If None all subjects are processed.
         recalculate (boolean): If we want to recalculate the results if they are already present.
         models_to_fit (list of str): A list of models to fit to the data. This overrides the models in
@@ -231,55 +227,16 @@ def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalcul
     return batch_fitting.run()
 
 
-def get_device_ind(device_type='FIRST_GPU'):
-    """Convenience function to get the device type for a particular type of device.
-
-    If device type is not one of the defined types, we default to 'FIRST_GPU'.
-
-    Args:
-        device_type (str): choose one of 'FIRST_GPU', 'ALL_GPU', 'FIRST_CPU', 'ALL_CPU', 'ALL'
-
-    Returns
-        :class:`list`: the list of device indices for the requested type of devices.
-    """
-    supported_types = ['FIRST_GPU', 'ALL_GPU', 'FIRST_CPU', 'ALL_CPU', 'ALL']
-    if device_type is None or device_type not in supported_types:
-        device_type = 'FIRST_GPU'
-
-    from mot.cl_environments import CLEnvironmentFactory
-    devices = CLEnvironmentFactory.all_devices()
-
-    if device_type == 'ALL':
-        return range(0, len(devices))
-
-    indices = []
-    if 'CPU' in device_type:
-        for ind, dev in enumerate(devices):
-            if dev.is_cpu:
-                indices.append(ind)
-    elif 'GPU' in device_type:
-        for ind, dev in enumerate(devices):
-            if dev.is_gpu:
-                indices.append(ind)
-
-    if not indices:
-        raise ValueError('No suitable CPU or GPU index found.')
-
-    if 'first' in device_type:
-        return indices[0]
-    return indices
-
-
 def view_maps(data, config=None, to_file=None, to_file_options=None,
               block=True, show_maximized=False, use_qt=True, figure_options=None,
               window_title=None):
     """View a number of maps using the MDT Maps Visualizer.
 
     Args:
-        data (str, dict, DataInfo): the data we are showing, either a dictionary with result maps, a string with
-            a path name or a DataInfo object
-        config (str, dict, MapPlotConfig): either a Yaml string or a dictionary with configuration settings or a
-            MapPlotConfig object to use directly
+        data (str, dict, :class:`~mdt.visualization.maps.base.DataInfo`): the data we are showing,
+            either a dictionary with result maps, a string with a path name or a DataInfo object
+        config (str, dict, :class:`~mdt.gui.maps_visualizer.base.ValidatedMapPlotConfig`): either a Yaml string or a
+            dictionary with configuration settings or a ValidatedMapPlotConfig object to use directly
         to_file (str): if set we output the figure to a file and do not launch a GUI
         to_file_options (dict): extra output options for the savefig command from matplotlib
         block (boolean): if we block the plots or not
@@ -334,7 +291,7 @@ def view_maps(data, config=None, to_file=None, to_file_options=None,
 def results_preselection_names(data):
     """Generate a list of useful map names to display.
 
-    This is primarily to be used as argument to the parameter 'maps_to_show' of the function view_maps.
+    This is primarily to be used as argument to the config option ``maps_to_show`` in the function :func:`view_maps`.
 
     Args:
         data (str or dict or list of str): either a directory or a dictionary of results or a list of map names.
@@ -360,7 +317,7 @@ def results_preselection_names(data):
 def block_plots(use_qt=True):
     """A small function to block matplotlib plots and Qt GUI instances.
 
-    This basically calls either plt.show() and QtApplication.exec_() depending on use_qt.
+    This basically calls either ``plt.show()`` and ``QtApplication.exec_()`` depending on ``use_qt``.
 
     Args:
         use_qt (boolean): if True we block Qt windows, if False we block matplotlib windows
@@ -377,7 +334,7 @@ def view_result_samples(data, **kwargs):
     """View the samples from the given results set.
 
     Args:
-        data (string or dict): The location of the maps to set_current_map the samples from, or the samples themselves.
+        data (string or dict): The location of the maps to use the samples from, or the samples themselves.
         kwargs (dict): see SampleVisualizer for all the supported keywords
     """
     from mdt.visualization.samples import SampleVisualizer
@@ -394,7 +351,7 @@ def make_path_joiner(*folder):
     """Generates and returns an instance of utils.PathJoiner to quickly join pathnames.
 
     Returns:
-        An instance of utils.PathJoiner for easy path manipulation.
+        PathJoiner: easy path manipulation path joiner
     """
     from mdt.utils import PathJoiner
     return PathJoiner(*folder)
@@ -457,7 +414,7 @@ def sort_maps(maps_to_sort_on, extra_maps_to_sort=None, reversed_sort=False, sor
     maps for the maps we sort on. If extra_maps_to_sort is given it should be of the same length as the maps_to_sort_on.
 
     Args:
-        maps_to_sort_on (:class:`list`): a list of string (filenames) or ndarrays we will set_current_map and compare
+        maps_to_sort_on (:class:`list`): a list of string (filenames) or ndarrays we will use and compare
         extra_maps_to_sort (:class:`list`) an additional list we will sort based on the indices in maps_to_sort. This should
             be of the same length as maps_to_sort_on.
         reversed_sort (boolean): if we want to sort from large to small instead of small to large.
@@ -505,7 +462,7 @@ def load_volume_maps(directory, map_names=None):
 
     Args:
         directory: the directory from which we want to read a number of maps
-        map_names: the names of the maps we want to set_current_map. If given we only set_current_map and return these maps.
+        map_names: the names of the maps we want to use. If given we only use and return these maps.
 
     Returns:
         dict: A dictionary with the volumes. The keys of the dictionary are the filenames (without the extension) of the
@@ -597,7 +554,7 @@ def get_batch_profile(batch_profile_name, *args, **kwargs):
     This is short for load_component('batch_profiles', batch_profile_name).
 
     Args:
-        batch_profile_name (str): the name of the batch profile to set_current_map
+        batch_profile_name (str): the name of the batch profile to use
 
     Returns:
         BatchProfile: the batch profile for use in batch fitting routines.

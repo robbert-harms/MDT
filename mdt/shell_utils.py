@@ -11,6 +11,11 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 def get_argparse_extension_checker(choices, dir_allowed=False):
+    """Get an :class:`argparge.Action` class that can check for correct extensions.
+
+    Returns:
+        argparse.Action: a class (not an instance) of an argparse action.
+    """
 
     class Act(argparse.Action):
         def __call__(self, parser, namespace, fname, option_string=None):

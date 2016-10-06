@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
+"""This script prints information about the available devices on your computer."""
 import argparse
 import textwrap
 import mdt
@@ -15,9 +16,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class ListDevices(BasicShellApplication):
 
     def _get_arg_parser(self):
-        description = textwrap.dedent("""
-            This script prints information about the available devices on your computer.
-        """)
+        description = textwrap.dedent(__doc__)
         description += mdt.shell_utils.get_citation_message()
 
         parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)

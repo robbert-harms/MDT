@@ -44,16 +44,16 @@ class DMRIOptimizable(object):
                 current protocol in the problem data is used.
 
         Returns:
-            list of ModelProtocolProblem: A list of ModelProtocolProblem instances or subclasses of that baseclass.
-                These objects indicate the problems with the protocol and this model.
+            list of ModelProtocolProblem: A list of :class:`~mdt.model_protocol_problem.ModelProtocolProblem` instances
+                or subclasses of that baseclass. These objects indicate the problems with the protocol and this model.
         """
 
     def get_required_protocol_names(self):
         """Get a list with the constant data names that are needed for this model to work.
 
         For example, an implementing diffusion MRI model might require the presence of the protocol parameter
-        'g' and 'b'. This function should then return ('g', 'b').
+        ``g`` and ``b``. This function should then return ``('g', 'b')``.
 
         Returns:
-            A list of columns names that are to be taken from the protocol data.
+            list: A list of columns names that are to be taken from the protocol data.
         """

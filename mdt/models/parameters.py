@@ -22,7 +22,7 @@ class ParameterConfig(ComponentConfig):
     Config options:
         name (str): the name of the parameter, defaults to the class name
         description (str): the description of this parameter
-        data_type (str or DataType): either a string we set_current_map as datatype or the actual datatype itself
+        data_type (str or DataType): either a string we use as datatype or the actual datatype itself
         type (str): the type of parameter (free, protocol or model_data)
     """
     name = ''

@@ -40,21 +40,14 @@ class BatchFitting(object):
         batch_profile to use for the fitting. If not given, this class will attempt to use the
         batch_profile that fits the data folder best.
 
-        For configuration of the optimizers uses the users configuration file. For batch fitting specific options use
-        the options parameter.
-
-        The general optimization options are loaded in this order:
-            0) default options
-            1) options from the batch profile
-
-        Setting the cl_device_ind has the side effect that it changes the current run time cl_device settings in the
-        MOT toolkit.
+        Setting the ``cl_device_ind`` has the side effect that it changes the current run time cl_device settings in the
+        MOT toolkit for the duration of this function.
 
         Args:
             data_folder (str): the main directory to look for items to process.
-            batch_profile (BatchProfile class or str): the batch profile to use or the name of a batch
-                profile to set_current_map from the users folder.
-            subjects_selection (BatchSubjectSelection): the subjects to use for processing.
+            batch_profile (:class:`~mdt.batch_utils.BatchProfile` or str): the batch profile to use
+                or the name of a batch profile to use from the users folder.
+            subjects_selection (:class:`~mdt.batch_utils.BatchSubjectSelection`): the subjects to use for processing.
                 If None all subjects are processed.
             recalculate (boolean): If we want to recalculate the results if they are already present.
             cascade_subdir (boolean): if we want to create a subdirectory for every cascade model.
@@ -104,23 +97,23 @@ class BatchFitting(object):
             mot.configuration.set_cl_environments([devices[ind] for ind in self._cl_device_ind])
 
     def get_all_subjects_info(self):
-        """Get a dictionary with the info of all the found subjects.
+        """Get a dictionary with the info about all the found subjects.
 
-        This will return information about all the subjects found and will disregard parameter 'subjects'
+        This will return information about all the subjects found and will disregard the current ``subjects`` setting
         that limits the amount of subjects we will run.
 
         Returns:
-            list of batch_utils.SubjectInfo: information about all available subjects
+            list of :class:`~mdt.batch_utils.SubjectInfo`: information about all available subjects
         """
         return self._batch_profile.get_subjects()
 
     def get_subjects_info(self):
         """Get a dictionary with the info of the subject we will run computations on.
 
-        This will return information about only the subjects that we will use in the batch fitting.
+        This will return information about the subjects that we will use in the batch fitting.
 
         Returns:
-            list of batch_utils.SubjectInfo: information about all subjects we will use
+            list of :class:`~mdt.batch_utils.SubjectInfo`: information about all subjects we will actually use
         """
         return self._subjects
 
@@ -205,18 +198,19 @@ class ModelFit(object):
         To actually fit the model call run().
 
         Args:
-            model (AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize.
-            problem_data (ProblemData): the problem data object which contains the dwi image, the dwi header, the
-                brain_mask and the protocol to use.
+            model
+                (:class:`~mdt.models.single.DMRISingleModel` or :class:`~mdt.models.cascade.DMRICascadeModelInterface`):
+                    the model we want to optimize.
+            problem_data (:class:`~mdt.utils.DMRIProblemData`): the problem data object which contains the dwi image,
+                the dwi header, the brain_mask and the protocol to use.
             output_folder (string): The full path to the folder where to place the output
-            optimizer (AbstractOptimizer): The optimization routine to use. If None, we create one using the
-                configuration files.
+            optimizer (:class:`mot.cl_routines.optimizing.base.AbstractOptimizer`): The optimization routine to use.
+                If None, we create one using the configuration files.
             recalculate (boolean): If we want to recalculate the results if they are already present.
-            only_recalculate_last (boolean):
-                This is only of importance when dealing with CascadeModels.
-                If set to true we only recalculate the last element in the chain (if recalculate is set to True,
-                that is). If set to false, we recalculate everything. This only holds for the
-                first level of the cascade.
+            only_recalculate_last (boolean): If we want to recalculate all the models.
+                This is only of importance when dealing with CascadeModels. If set to true we only recalculate
+                the last element in the chain (if recalculate is set to True, that is). If set to false,
+                we recalculate everything. This only holds for the first level of the cascade.
             cascade_subdir (boolean): if we want to create a subdirectory for the given model if it is a cascade model.
                 Per default we output the maps of cascaded results in the same directory, this allows reusing cascaded
                 results for other cascades (for example, if you cascade BallStick -> Noddi you can use the BallStick
@@ -341,14 +335,13 @@ class SingleModelFit(object):
          This does not accept cascade models. Please use the more general ModelFit class for single and cascade models.
 
          Args:
-             model (AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize.
-             problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
+             model (:class:`~mdt.models.single.DMRISingleModel`): An implementation of an single model that contains
+                the model we want to optimize.
+             problem_data (:class:`~mdt.utils.DMRIProblemData`): The problem data object for the model
              output_folder (string): The full path to the folder where to place the output
-             optimizer (AbstractOptimizer): The optimization routine to use.
-             processing_strategy (ModelProcessingStrategy): the processing strategy to use
-             recalculate (boolean): If we want to recalculate the results if they are already present.
-
-         Attributes:
+             optimizer (:class:`mot.cl_routines.optimizing.base.AbstractOptimizer`): The optimization routine to use.
+             processing_strategy (:class:`~mdt.processing_strategies.ModelProcessingStrategy`): the processing strategy
+                to use
              recalculate (boolean): If we want to recalculate the results if they are already present.
          """
         self.recalculate = recalculate
@@ -367,10 +360,7 @@ class SingleModelFit(object):
                 'The reported errors where: {}'.format(self._model.get_protocol_problems(problem_data.protocol)))
 
     def run(self):
-        """Fits a single model.
-
-        This will use the current ModelProcessingStrategy to do the actual optimization.
-        """
+        """Fits the single model."""
         with per_model_logging_context(self._output_path):
             self._model.set_problem_data(self._problem_data)
 

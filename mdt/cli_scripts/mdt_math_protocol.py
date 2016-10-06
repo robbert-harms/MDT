@@ -1,5 +1,19 @@
 #!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
+"""Evaluate an expression on a protocol.
+
+This is meant to quickly change a protocol using mathematical expressions. The expressions
+can be any valid python string separated if needed with the semicolon (;).
+
+The columns of the input protocol are loaded and stored as arrays with as variable names the names of the
+columns. Next, the expression is evaluated on those columns and the result is stored in the indicated file.
+
+An additional function "rm(<column_name>)" is also available with wich you can remove columns from
+the protocol, and a function "add(<column_name>, <value>)" is available to add columns. When adding
+a column, the value can either be a scalar or a vector.
+
+Additionally the numpy library is available with prefix 'np.'.
+"""
 import argparse
 import os
 import numpy as np
@@ -17,21 +31,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class MathProtocol(BasicShellApplication):
 
     def _get_arg_parser(self):
-        description = textwrap.dedent("""
-            Evaluate an expression on a protocol.
-
-            This is meant to quickly change a protocol using mathematical expressions. The expressions
-            can be any valid python string separated if needed with the semicolon (;).
-
-            The columns of the input protocol are loaded and stored as arrays with as variable names the names of the
-            columns. Next, the expression is evaluated on those columns and the result is stored in the indicated file.
-
-            An additional function "rm(<column_name>)" is also available with wich you can remove columns from
-            the protocol, and a function "add(<column_name>, <value>)" is available to add columns. When adding
-            a column, the value can either be a scalar or a vector.
-
-            Additionally the numpy library is available with prefix 'np.'.
-        """)
+        description = textwrap.dedent(__doc__)
         description += self._get_citation_message()
 
         epilog = textwrap.dedent("""

@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
+"""Generate a protocol from a bvec and bval file.
+
+MDT uses a protocol file (with extension .prtcl) to store all the acquisition related values.
+This is a column based file which can hold, next to the b-values and gradient directions,
+the big Delta, small delta, gradient amplitude G and more of these extra acquisition details.
+"""
 import argparse
 import os
 from argcomplete.completers import FilesCompleter
@@ -20,13 +26,7 @@ class GenerateProtocol(BasicShellApplication):
         mdt.init_user_settings(pass_if_exists=True)
 
     def _get_arg_parser(self):
-        description = textwrap.dedent("""
-            Generate a protocol from a bvec and bval file.
-
-            MDT uses a protocol file (with extension .prtcl) to store all the acquisition related values.
-            This is a column based file which can hold, next to the b-values and gradient directions,
-            the big Delta, small delta, gradient amplitude G and more of these extra acquisition details.
-        """)
+        description = textwrap.dedent(__doc__)
         description += get_citation_message()
 
         epilog = textwrap.dedent("""

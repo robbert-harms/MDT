@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
+"""Generate the bval and bvec file from a protocol file."""
 import argparse
 import os
 import mdt
@@ -21,9 +22,7 @@ class GenerateBvecBval(BasicShellApplication):
         mdt.init_user_settings(pass_if_exists=True)
 
     def _get_arg_parser(self):
-        description = textwrap.dedent("""
-            Generate the bval and bvec file from a protocol file.
-        """)
+        description = textwrap.dedent(__doc__)
         description += self._get_citation_message()
 
         epilog = textwrap.dedent("""

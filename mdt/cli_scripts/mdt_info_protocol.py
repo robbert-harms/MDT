@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
+"""Print some basic information about a protocol."""
 import argparse
 import os
 import mdt
@@ -17,9 +18,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class InfoProtocol(BasicShellApplication):
 
     def _get_arg_parser(self):
-        description = textwrap.dedent("""
-            Print some basic information about a protocol.
-        """)
+        description = textwrap.dedent(__doc__)
         description += self._get_citation_message()
 
         epilog = textwrap.dedent("""

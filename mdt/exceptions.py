@@ -15,7 +15,7 @@ class ProtocolIOError(Exception):
 class InsufficientProtocolError(Exception):
     """Indicates that the protocol constains insufficient information for fitting a specific model.
 
-    This can be raised if a model misses a column it needs in the protocol, or if there are not enough shells, or...
+    This can be raised if a model misses a column it needs in the protocol, or if there are not enough shells, etc.
     """
 
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
+"""Launches the MDT Graphical User Interface."""
 import argparse
 import os
 import textwrap
@@ -22,9 +23,7 @@ class GUI(BasicShellApplication):
         init_user_settings(pass_if_exists=True)
 
     def _get_arg_parser(self):
-        description = textwrap.dedent("""
-            Launches the MDT Graphical User Interface.
-        """)
+        description = textwrap.dedent(__doc__)
         description += get_citation_message()
 
         parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)

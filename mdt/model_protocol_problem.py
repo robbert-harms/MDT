@@ -43,7 +43,7 @@ class InsufficientShells(ModelProtocolProblem):
 class NamedProtocolProblem(ModelProtocolProblem):
 
     def __init__(self, model_protocol_problem, model_name):
-        """This extends the model protocol problem to also include the name of the model.
+        """This extends the given model protocol problem to also include the name of the model.
 
         Args:
             model_protocol_problem (ModelProtocolProblem): The name for the problem with the given model.

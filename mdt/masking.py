@@ -20,14 +20,13 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 def create_median_otsu_brain_mask(dwi_info, protocol, mask_threshold=0, **kwargs):
     """Create a brain mask using the given volume.
 
-    If output_fname is given this will also write the mask to the given filename.
-
     Args:
-        dwi_info (string or (image, header) pair or image):
-            - the filename of the input file;
-            - or a tuple with as first index a ndarray with the DWI and as second index the header;
+        dwi_info (string or tuple or image): The information about the volume, either:
+
+            - the filename of the input file
+            - or a tuple with as first index a ndarray with the DWI and as second index the header
             - or only the image as an ndarray
-        protocol (string or Protocol): The filename of the protocol file or a Protocol object
+        protocol (string or :class:`~mdt.protocols.Protocol`): The filename of the protocol file or a Protocol object
         mask_threshold (double): everything below this threshold is masked away
         **kwargs: the additional arguments for median_otsu.
 
@@ -71,7 +70,7 @@ def create_median_otsu_brain_mask(dwi_info, protocol, mask_threshold=0, **kwargs
 def generate_simple_wm_mask(fa_fname, brain_mask_fname, out_fname, fa_threshold=0.3, median_radius=1, numpass=2):
     """Generate a simple white matter mask by thresholding the given FA map.
 
-    Everything below the given FA threshold will be masked (not used). Next, it applies the regular brain mask to
+    Everything below the given FA threshold will be masked (not used). It also applies the regular brain mask to
     only retain values inside the brain.
 
     Args:
@@ -105,11 +104,12 @@ def create_write_median_otsu_brain_mask(dwi_info, protocol, output_fname, **kwar
     """Write a brain mask using the given volume and output as the given volume.
 
     Args:
-        dwi_info (string or (image, header) pair): the filename of the input file or a tuple with as
+        dwi_info (string or tuple or ndarray): the filename of the input file or a tuple with as
             first index a ndarray with the DWI and as second index the header or only the image.
-        protocol (string or Protocol): The filename of the protocol file or a Protocol object
+        protocol (string or :class:`~mdt.protocols.Protocol`): The filename of the protocol file or a Protocol object
         output_fname (string): the filename of the output file (the extracted brain mask)
-            If None, no output is written. If dwi_info is only an image also no file is written.
+            If None, no output is written. If ``dwi_info`` is an ndarray also no file is written
+            (we don't have the header).
 
     Returns:
         ndarray: The created brain mask
@@ -132,12 +132,12 @@ def create_write_median_otsu_brain_mask(dwi_info, protocol, output_fname, **kwar
 
 
 def median_otsu(unweighted_volume, median_radius=4, numpass=4, dilate=1):
-    """ Simple brain extraction tool method for images from DWI data
+    """ Simple brain extraction tool for dMRI data.
 
-    This function is inspired from the median_otsu function from dipy
+    This function is inspired from the ``median_otsu`` function from ``dipy``
     and is copied here to remove a dependency.
 
-    It uses a median filter smoothing of the unweighted_volume
+    It uses a median filter smoothing of the ``unweighted_volume``
     automatic histogram Otsu thresholding technique, hence the name
     *median_otsu*.
 
@@ -149,7 +149,7 @@ def median_otsu(unweighted_volume, median_radius=4, numpass=4, dilate=1):
     Args:
         unweighted_volume (ndarray): ndarray of the unweighted volumes brain volumes
         median_radius (int): Radius (in voxels) of the applied median filter (default 4)
-        numpass (int) Number of pass of the median filter (default 4)
+        numpass (int): Number of pass of the median filter (default 4)
         dilate (None or int): optional number of iterations for binary dilation
 
     Returns:

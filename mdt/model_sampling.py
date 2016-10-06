@@ -18,11 +18,12 @@ def sample_single_model(model, problem_data, output_folder, sampler, processing_
     """Sample a single model.
 
     Args:
-        model (AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize.
-        problem_data (DMRIProblemData): The problem data object with which the model is initialized before running
+        model (:class:`~mdt.models.single.DMRISingleModel`): a single model to sample
+        problem_data (:class:`~mdt.utils.DMRIProblemData`): The problem data object with which the model
+            is initialized before running
         output_folder (string): The full path to the folder where to place the output
-        sampler (AbstractSampler): The sampling routine to use.
-        processing_strategy (ModelProcessingStrategy): the processing strategy to use
+        sampler (:class:`mot.cl_routines.sampling.base.AbstractSampler`): The sampling routine to use.
+        processing_strategy (:class:`~mdt.processing_strategies.ModelProcessingStrategy`): the processing strategy
         recalculate (boolean): If we want to recalculate the results if they are already present.
         store_samples (boolean): if set to False we will store none of the samples. Use this
             if you are only interested in the volume maps and not in the entire sample chain.

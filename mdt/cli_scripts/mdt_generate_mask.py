@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
+"""Create a (brain) mask for the given DWI. This uses the median-otsu algorithm."""
 import argparse
 import logging
 import os
@@ -25,9 +26,7 @@ class GenerateMask(BasicShellApplication):
                                   enumerate(cl_environments.CLEnvironmentFactory.smart_device_selection())}
 
     def _get_arg_parser(self):
-        description = textwrap.dedent("""
-            Create a (brain) mask for the given DWI. This uses the median-otsu algorithm.
-        """)
+        description = textwrap.dedent(__doc__)
         description += mdt.shell_utils.get_citation_message()
 
         epilog = textwrap.dedent("""

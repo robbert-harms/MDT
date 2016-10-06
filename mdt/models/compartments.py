@@ -212,7 +212,7 @@ class CompartmentConfig(six.with_metaclass(CompartmentConfigMeta, ComponentConfi
         description (str): model description
         cl_function_name (str): the name of the function in the CL kernel
         parameter_list (list): the list of parameters to use. If a parameter is a string we will
-            set_current_map it automatically, if not it is supposed to be a CLFunctionParameter
+            use it automatically, if not it is supposed to be a CLFunctionParameter
             instance that we append directly.
         cl_header (CLHeaderDefinition): the CL header definition to use. Defaults to CLHeaderFromTemplate.
         cl_code (CLCodeDefinition): the CL code definition to use. Defaults to CLCodeFromAdjacentFile.

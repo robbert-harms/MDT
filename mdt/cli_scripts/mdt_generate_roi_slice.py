@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
+"""Create a (brain) mask with a region of interest that only includes the voxels in the selected slice."""
 import argparse
 import os
 import mdt
@@ -19,9 +20,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class GenerateRoiSlice(BasicShellApplication):
 
     def _get_arg_parser(self):
-        description = textwrap.dedent("""
-            Create a (brain) mask with a region of interest that only includes the voxels in the selected slice.
-        """)
+        description = textwrap.dedent(__doc__)
         description += mdt.shell_utils.get_citation_message()
 
         epilog = textwrap.dedent("""

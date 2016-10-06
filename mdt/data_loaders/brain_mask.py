@@ -1,4 +1,3 @@
-import os
 import six
 import nibabel as nib
 import numpy as np
@@ -13,7 +12,8 @@ def autodetect_brain_mask_loader(data_source):
     """A function to get a brain mask loader using the given data source.
 
     This tries to do auto detecting for the following data sources:
-        - BrainMaskLoader
+
+        - :class:`BrainMaskLoader`
         - strings (filenames)
         - ndarray (3d containing the mask)
 
@@ -49,7 +49,7 @@ class BrainMaskFromFileLoader(BrainMaskLoader):
         """Loads a brain mask from the given filename.
 
         Args:
-            filename (str): the filename to set_current_map the brain mask from.
+            filename (str): the filename to use the brain mask from.
         """
         self._filename = filename
         self._brain_mask = None

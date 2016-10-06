@@ -23,12 +23,24 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class BatchProfile(object):
 
     def __init__(self):
-        """Instantiate this BatchProfile
+        """Batch profiles encapsulate information about the subjects and modelling settings.
+
+        Suppose you have a directory full of subjects that you want to analyze with a few models. One way to do that
+        is to write some scripts yourself that walk through the directory and fit the models to the subjects. The other
+        way would be to implement a :class:`BatchProfile` that contains details about your directory structure and let
+        :func:`mdt.batch_fit` fetch all the subjects for you.
+
+        Batch profiles contain a list with subject information (see :class:`SubjectInfo`) and a list of models
+        we wish to apply to these subjects. Furthermore each profile should support some functionality that checks
+        if this profile is suitable for a given directory. Using those functions the :func:`mdt.batch_fit` can try
+        to auto-recognize the batch profile to use based on the profile that is suitable and returns the most subjects.
         """
         self._root_dir = ''
 
     def set_root_dir(self, root_dir):
-        """Set the root dir. That is, the directory we search in for batch fit subjects.
+        """Set the root dir. That is, the directory we search for subjects.
+
+        This is function level dependency injection.
 
         Args:
             root_dir (str): the root dir to use
@@ -56,24 +68,25 @@ class BatchProfile(object):
         """Get the information about all the subjects in the current folder.
 
         Returns:
-            list of SubjectInfo: the information about the found subjects
+            list of :class`SubjectInfo`: the information about the found subjects
         """
 
     def profile_suitable(self):
-        """Check if this directory can be used to set_current_map subjects from using this batch fitting profile.
+        """Check if this directory can be used to use subjects from using this batch fitting profile.
 
         This is used for auto detecting the best batch fitting profile to use for loading
         subjects from the given root dir.
 
         Returns:
-            boolean: true if this batch fitting profile can set_current_map datasets from this root directory, false otherwise.
+            boolean: true if this batch fitting profile can use the subjects in the current root directory,
+                false otherwise.
         """
 
     def get_subjects_count(self):
-        """Get the number of subjects this batch fitting profile can set_current_map from the current root directory.
+        """Get the number of subjects this batch fitting profile can use from the current root directory.
 
         Returns:
-            int: the number of subjects this batch fitting profile can set_current_map from the given directory.
+            int: the number of subjects this batch fitting profile can use from the current root directory.
         """
 
 
@@ -82,7 +95,7 @@ class SimpleBatchProfile(BatchProfile):
     def __init__(self):
         """A base class for quickly implementing a batch profile.
 
-        Implementing classes need only implement the method _get_subjects(). This class will handle the rest.
+        Implementing classes need only implement the method :meth:`_get_subjects`, then this class will handle the rest.
         """
         super(SimpleBatchProfile, self).__init__()
         self._subjects_found = None
@@ -148,8 +161,8 @@ class SimpleBatchProfile(BatchProfile):
         """Try to autoload the noise standard deviation from a noise_std file.
 
         Args:
-            subject_id (str): the subject for which to set_current_map the noise std.
-            file_path (str): optionally provide the exact file to set_current_map.
+            subject_id (str): the subject for which to use the noise std.
+            file_path (str): optionally provide the exact file to use.
 
         Returns:
             float or None: a float if a float could be loaded from a file noise_std, else nothing.
@@ -222,14 +235,14 @@ class SubjectInfo(object):
             dtype (numpy dtype): the datatype we will use for the problem data
 
         Returns:
-            DMRIProblemData: the problem data to use during model fitting
+            :class:`~mdt.utils.DMRIProblemData`: the problem data to use during model fitting
         """
 
     def get_mask_filename(self):
-        """Get the filename of the mask to set_current_map.
+        """Get the filename of the mask to use.
 
         Returns:
-            str: the filename of the mask to set_current_map
+            str: the filename of the mask to use
         """
 
 
@@ -244,8 +257,8 @@ class SimpleSubjectInfo(SubjectInfo):
         Args:
             subject_id (str): the subject id
             dwi_fname (str): the filename with path to the dwi image
-            protocol_loader (ProtocolLoader): the protocol loader that can set_current_map us the protocol
-            mask_fname (str): the filename of the mask to set_current_map. If None a mask is auto generated.
+            protocol_loader (ProtocolLoader): the protocol loader that can use us the protocol
+            mask_fname (str): the filename of the mask to use. If None a mask is auto generated.
             output_dir (str): the output directory
             gradient_deviations (str) if given, the path to the gradient deviations
             noise_std (float, ndarray, str): either None for automatic noise detection or a float with the noise STD
@@ -301,16 +314,19 @@ class BatchSubjectSelection(object):
         """Get the selection of subjects from the given list of subjects.
 
         Args:
-            subjects (list of SubjectInfo): the list of subjects from which we can choose which one to process
+            subjects (list of :class:`SubjectInfo`): the list of subjects from which we can choose which one to process
 
         Returns:
-            list of SubjectInfo: the given list or a subset of the given list with the subjects to process.
+            list of :class:`SubjectInfo`: the given list or a subset of the given list with the subjects to process.
         """
         pass
 
 
 class AllSubjects(BatchSubjectSelection):
-    """Selects all subjects for use in the processing"""
+
+    def __init__(self):
+        """Selects all subjects for use in the processing"""
+        super(AllSubjects, self).__init__()
 
     def get_selection(self, subjects):
         return subjects
@@ -322,13 +338,13 @@ class SelectedSubjects(BatchSubjectSelection):
         """Only process the selected subjects.
 
         This method allows either a selection by index (unsafe for the order may change) or by subject name/ID (more
-        safe in general). If start_from is given it additionally limits the list of selected subjects to include
+        safe in general). If ``start_from`` is given it additionally limits the list of selected subjects to include
         only those after that index.
 
-        This essentially creates three different subsets of the given list of subjects and will only process
-        those subjects in the intersection of all those sets.
+        This essentially creates three different subsets of the given list of subjects and it will only process
+        the subjects in the intersection of all those sets.
 
-        Set any one of the options to None to ignore them.
+        Set any one of the options to None to ignore that option.
 
         Args:
             subject_ids (list of str): the list of names of subjects to process
@@ -395,7 +411,7 @@ class BatchFitProtocolLoader(ProtocolLoader):
 class BatchFitSubjectOutputInfo(object):
 
     def __init__(self, subject_info, output_path, model_name):
-        """This class is used in conjunction with the function run_function_on_batch_fit_output().
+        """This class is used in conjunction with the function :func:`run_function_on_batch_fit_output`.
 
         Args:
             subject_info (SubjectInfo): the information about the subject before batch fitting
@@ -418,12 +434,12 @@ class BatchFitSubjectOutputInfo(object):
 class BatchFitOutputInfo(object):
 
     def __init__(self, data_folder, batch_profile=None, subjects_selection=None):
-        """Single point of information about batch fitting output.
+        """Single point of information about batch fitting results.
 
         Args:
             data_folder (str): The data folder with the output files
-            batch_profile (BatchProfile class or str): the batch profile to use, can also be the name
-                of a batch profile to set_current_map. If not given it is auto detected.
+            batch_profile (:class:`BatchProfile` or str): the batch profile to use, can also be the name
+                of a batch profile to use. If not given it is auto detected.
             subjects_selection (BatchSubjectSelection): the subjects to use for processing.
                 If None all subjects are processed.
         """
@@ -482,7 +498,7 @@ def run_function_on_batch_fit_output(data_folder, func, batch_profile=None, subj
         func (python function): the python function we should call for every map and model.
             This should accept as single parameter a BatchFitSubjectOutputInfo.
         batch_profile (BatchProfile class or str): the batch profile to use, can also be the name
-            of a batch profile to set_current_map. If not given it is auto detected.
+            of a batch profile to use. If not given it is auto detected.
         subjects_selection (BatchSubjectSelection): the subjects to use for processing.
             If None all subjects are processed.
 
@@ -502,13 +518,13 @@ def batch_profile_factory(batch_profile, data_folder):
     """Wrapper function for getting a batch profile.
 
     Args:
-        batch_profile (None, string or BatchProfile): indication of the batch profile to set_current_map.
+        batch_profile (None, string or BatchProfile): indication of the batch profile to use.
             If a string is given it is loaded from the users home folder. Else the best matching profile is returned.
         data_folder (str): the data folder we want to use the batch profile on.
 
     Returns:
         If the given batch profile is None we return the output from get_best_batch_profile(). If batch profile is
-        a string we set_current_map it from the batch profiles loader. Else we return the input.
+        a string we use it from the batch profiles loader. Else we return the input.
     """
     if batch_profile is None:
         batch_profile = get_best_batch_profile(data_folder)
@@ -548,17 +564,13 @@ def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, subjec
                              move=False):
     """Load from the given data folder all the output files and put them into the output directory.
 
-    If there is more than one mask file available the user has to choose which mask to use using the mask_name
-    keyword argument. If it is not given an error is raised.
-
-    The results for the chosen mask it placed in the output folder per subject. Example:
-        <output_dir>/<subject_id>/<model_name>
+    The results are placed in the output folder per subject. Example: ``<output_dir>/<subject_id>/<model_name>``
 
     Args:
         data_folder (str): The data folder with the output files
         output_dir (str): The path to the output folder where all the files will be put.
-        batch_profile (BatchProfile class or str): the batch profile to use, can also be the name
-            of a batch profile to set_current_map. If not given it is auto detected.
+        batch_profile (:class:`BatchProfile` or str): the batch profile to use, can also be the name
+            of a batch profile to use. If not given it is auto detected.
         subjects_selection (BatchSubjectSelection): the subjects to use for processing.
             If None all subjects are processed.
         symlink (boolean): only available under Unix OS's. Creates a symlink instead of copying.

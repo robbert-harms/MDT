@@ -14,6 +14,7 @@ def autodetect_noise_std_loader(data_source):
     """A function to get a noise std using the given data source.
 
     This tries to do auto detecting for the following data sources:
+
         - None: return 1
         - double: uses the given single value for all voxels
         - ndarray: use a value per voxel (this should not be a roi list, it should be an actual volume
@@ -52,7 +53,8 @@ class NoiseStdLoader(object):
         """The public method for getting the noise std from this loader.
 
         Args:
-            problem_data: the dmri problem data in use. Some loaders might need this for loading the noise std.
+            problem_data (:class:`~mdt.utils.DMRIProblemData`): the dmri problem data in use.
+                Some loaders might need this for loading the noise std.
 
         Returns:
             noise std, either a single value or an ndarray with a value per voxel

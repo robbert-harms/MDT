@@ -206,38 +206,65 @@ class PathJoiner(object):
         """The path joining class.
 
         To construct use something like:
-        pjoin = PathJoiner(r'/my/images/dir/')
+
+        .. code-block:: python
+
+            >>> pjoin = PathJoiner(r'/my/images/dir/')
 
         or:
-        pjoin = PathJoiner('my', 'images', 'dir')
+
+        .. code-block:: python
+
+            >>> pjoin = PathJoiner('my', 'images', 'dir')
 
 
         Then, you can call it like:
-        pjoin()
-        /my/images/dir
 
-        At least, it returns the above on Linux. On windows it will return 'my\\images\\dir'.
+        .. code-block:: python
 
-        You can also call it with additional path elements which should be appended to the path:
-        pjoin('/brain_mask.nii.gz')
-        /my/images/dir/brain_mask.nii.gz
+            >>> pjoin()
+            /my/images/dir
 
-        Note that that is not permanent. To make it permanent you can call
-        pjoin.append('results')
 
-        This will extend the stored path to /my/images/dir/results/:
-        pjoin('/brain_mask.nii.gz')
-        /my/images/dir/results/brain_mask.nii.gz
+        At least, it returns the above on Linux. On windows it will return ``my\\images\\dir``. You can also call it
+        with an additional path element that is (temporarily) appended to the path:
 
-        You can revert this by calling:
-        pjoin.reset()
+        .. code-block:: python
+
+            >>> pjoin('/brain_mask.nii.gz')
+            /my/images/dir/brain_mask.nii.gz
+
+        To add a path permanently to the path joiner use:
+
+        .. code-block:: python
+
+            >>> pjoin.append('results')
+
+        This will extend the stored path to ``/my/images/dir/results/``:
+
+        .. code-block:: python
+
+            >>> pjoin('/brain_mask.nii.gz')
+            /my/images/dir/results/brain_mask.nii.gz
+
+        You can reset the path joiner to the state of at object construction using:
+
+        .. code-block:: python
+
+            >>> pjoin.reset()
 
         You can also create a copy of this class with extended path elements by calling
-        pjoin2 = pjoin.create_extended('results')
+
+        .. code-block:: python
+
+            >>> pjoin2 = pjoin.create_extended('results')
 
         This returns a new PathJoiner instance with as path the current path plus the items in the arguments.
-        pjoin2('brain_mask.nii.gz')
-        /my/images/dir/results/brain_mask.nii.gz
+
+        .. code-block:: python
+
+            >>> pjoin2('brain_mask.nii.gz')
+            /my/images/dir/results/brain_mask.nii.gz
 
         Args:
             *args: the initial path element(s).
@@ -347,12 +374,13 @@ def split_write_dataset(input_fname, split_dimension, split_index, output_folder
 
 
 def get_bessel_roots(number_of_roots=30, np_data_type=np.float64):
-    """These roots are used in some of the compartment models. It are the roots of the equation J'_1(x) = 0.
+    """These roots are used in some of the compartment models. It are the roots of the equation ``J'_1(x) = 0``.
 
-    That is, where J_1 is the first order Bessel function of the first kind.
+    That is, where ``J_1`` is the first order Bessel function of the first kind.
 
     Args:
         number_of_root (int): The number of roots we want to calculate.
+        np_data_type (np.data_type): the numpy data type
 
     Returns:
         ndarray: A vector with the indicated number of bessel roots (of the first order Bessel function
@@ -368,7 +396,7 @@ def read_split_write_volume(volume_fname, first_output_fname, second_output_fnam
     with respectively the first and second halves of the split dataset.
 
     Args:
-        volume_fname (str): The filename of the volume to set_current_map and split
+        volume_fname (str): The filename of the volume to use and split
         first_output_fname (str): The filename of the first half of the split
         second_output_fname (str): The filename of the second half of the split
         split_dimension (int): The dimension along which to split the dataset
@@ -437,18 +465,21 @@ def write_slice_roi(brain_mask_fname, roi_dimension, roi_slice, output_fname, ov
 
 
 def concatenate_two_mri_measurements(datasets):
-    """ Concatenate the given datasets (combination of signal list and protocols)
+    """ Concatenate the given datasets (combination of volumes and protocols)
 
     For example, as input one can give:
-        ((protocol_1, signal4d_1), (protocol_2, signal4d_2))
-    And the expected output is:
-        (protocol, signal_list)
 
-    Where the signal_list is for every voxel a concatenation of the given signal lists, and the protocol is a
-    concatenation of the given protocols.
+    .. code-block:: python
+
+        ((protocol_1, volume_1),
+         (protocol_2, volume_2),
+         ...)
+
+    And the output is: ``(protocol, volumes)`` where the volumes is for every voxel a concatenation
+    of the given volumes, and the protocol is a concatenation of the given protocols.
 
     Args:
-        datasets: a list of datasets, where a dataset is a tuple structured as: (protocol, signal_list).
+        datasets: a list of datasets, where a dataset is a tuple structured as: (protocol, volume).
 
     Returns
         A single tuple holding the concatenation of the given datasets
@@ -482,6 +513,8 @@ def get_slice_in_dimension(volume, dimension, index):
 def simple_parameter_init(model, init_data, exclude_cb=None):
     """Initialize the parameters that are named the same in the model and the init_data from the init_data.
 
+    This initializes the parameters in place.
+
     Args:
         model (AbstractModel); The model with the parameters to initialize
         init_data (dict): The initialize data with as keys parameter names (model.param)
@@ -489,9 +522,6 @@ def simple_parameter_init(model, init_data, exclude_cb=None):
         exclude_cb (python function); a python function that can be called to check if an parameter needs to be excluded
             from the simple parameter initialization. This function should accept a key with a model.param name and
             should return true if the parameter should be excluded, false otherwise
-
-    Returns
-        None, the initialization happens in place.
     """
     if init_data is not None:
         for key, value in init_data.items():
@@ -512,9 +542,9 @@ def create_roi(data, brain_mask):
     Args:
         data (string, ndarray or dict): a brain volume with four dimensions (x, y, z, w)
             where w is the length of the protocol, or a list, tuple or dictionary with volumes or a string
-            with a filename of a dataset to set_current_map.
+            with a filename of a dataset to use.
         brain_mask (ndarray or str): the mask indicating the region of interest with dimensions: (x, y, z) or the string
-            to the brain mask to set_current_map
+            to the brain mask to use
 
     Returns:
         ndarray, tuple, dict: If a single ndarray is given we will return the ROI for that array. If
@@ -671,9 +701,11 @@ def restore_volumes(data, brain_mask, with_volume_dim=True):
 def spherical_to_cartesian(theta, phi):
     """Convert polar coordinates in 3d space to cartesian unit coordinates.
 
-    x = cos(phi) * sin(theta)
-    y = sin(phi) * sin(theta)
-    z = cos(theta)
+    .. code-block:: python
+
+        x = cos(phi) * sin(theta)
+        y = sin(phi) * sin(theta)
+        z = cos(theta)
 
     Args:
         theta (ndarray): The 1d vector with theta's
@@ -706,12 +738,13 @@ def eigen_vectors_from_tensor(theta, phi, psi):
 
     Returns:
         The three eigenvectors per voxel in the ROI. The return matrix is of shape (n, 3, 3) where n is the number
-        of voxels and the second dimension holds the number of evecs and the last dimension the direction per evec.
+        of voxels and the three by three matrix is:
 
-        This gives per voxel a matrix:
-            [evec_1_x, evec_1_y, evec_1_z,
-             evec_2_x, evec_2_y, evec_2_z
-             evec_3_x, evec_3_y, evec_3_z]
+        .. code-block:: python
+
+            [[evec_1_x, evec_1_y, evec_1_z],
+             [evec_2_x, evec_2_y, evec_2_z],
+             [evec_3_x, evec_3_y, evec_3_z]]
 
         The resulting eigenvectors are the same as those from the Tensor.
     """
@@ -731,7 +764,7 @@ def init_user_settings(pass_if_exists=True):
         pass_if_exists (boolean): if the folder for this version already exists, we might do nothing (if True)
 
     Returns:
-        the path the user settings skeleton was written to
+        str: the path the user settings skeleton was written to
     """
     from mdt.configuration import get_config_dir
     path = get_config_dir()
@@ -922,10 +955,11 @@ def load_problem_data(volume_info, protocol, mask, static_maps=None, gradient_de
     """Load and create the problem data object that can be given to a model
 
     Args:
-        volume_info (string): Either an (ndarray, img_header) tuple or the full path to the volume (4d signal data).
-        protocol (Protocol or string): A protocol object with the right protocol for the given data,
-            or a string object with a filename to the given file.
-        mask (ndarray, string): A full path to a mask file or a 3d ndarray containing the mask
+        volume_info (string or tuple): Either an (ndarray, img_header) tuple or the full path
+            to the volume (4d signal data).
+        protocol (:class:`~mdt.protocols.Protocol` or str): A protocol object with the right protocol for the
+            given data, or a string object with a filename to the given file.
+        mask (ndarray, str): A full path to a mask file or a 3d ndarray containing the mask
         static_maps (Dict[str, val]): the dictionary with per static map the value to use.
             The value can either be an 3d or 4d ndarray, a single number or a string. We will convert all to the
             right format.
@@ -958,7 +992,7 @@ def load_brain_mask(brain_mask_fname):
     """Load the brain mask from the given file.
 
     Args:
-        brain_mask_fname (string): The path of the brain mask to set_current_map.
+        brain_mask_fname (string): The path of the brain mask to use.
 
     Returns:
         ndarray: The loaded brain mask data
@@ -971,13 +1005,13 @@ def load_nifti(nifti_volume):
     """Load and return a nifti file.
 
     This will apply path resolution if a filename without extension is given. See the function
-    mdt.utils.nifti_filepath_resolution() for details.
+    :func:`~mdt.utils.nifti_filepath_resolution` for details.
 
     Args:
-        nifti_volume (string): The filename of the volume to set_current_map.
+        nifti_volume (string): The filename of the volume to use.
 
     Returns:
-        nib image proxy (from nib.set_current_map)
+        nib image proxy (from nib.use)
     """
     path = nifti_filepath_resolution(nifti_volume)
     return nib.load(path)
@@ -1112,7 +1146,8 @@ class ComplexNoiseStdEstimator(object):
             float or ndarray: the noise sigma of the Gaussian noise in the original complex image domain
 
         Raises:
-            NoiseStdEstimationNotPossible: if we can not estimate the sigma using this estimator
+            :class:`~mdt.exceptions.NoiseStdEstimationNotPossible`: if we can not estimate the
+                sigma using this estimator
         """
         raise NotImplementedError()
 
@@ -1184,7 +1219,7 @@ def load_samples(data_folder, mode='r'):
     """Load sampled results as a dictionary of numpy memmap.
 
     Args:
-        data_folder (str): the folder from which to set_current_map the samples
+        data_folder (str): the folder from which to use the samples
         mode (str): the mode in which to open the memory mapped sample files (see numpy mode parameter)
 
     Returns:
@@ -1210,7 +1245,7 @@ def estimate_noise_std(problem_data, estimator=None):
         the noise std estimated from the data. This can either be a single float, or an ndarray.
 
     Raises:
-        NoiseStdEstimationNotPossible: if the noise could not be estimated
+        :class:`~mdt.exceptions.NoiseStdEstimationNotPossible`: if the noise could not be estimated
     """
     logger = logging.getLogger(__name__)
     logger.info('Trying to estimate a noise std.')
@@ -1270,6 +1305,9 @@ def is_scalar(value):
 
     Args:
         value: the value to test for being a scalar value
+
+    Returns:
+        boolean: true if the value is a scalar, false otherwise.
     """
     return mot.utils.is_scalar(value)
 
@@ -1277,7 +1315,7 @@ def is_scalar(value):
 def roi_index_to_volume_index(roi_indices, brain_mask):
     """Get the 3d index of a voxel given the linear index in a ROI created with the given brain mask.
 
-    This is the inverse function of volume_index_to_roi_index.
+    This is the inverse function of :func:`volume_index_to_roi_index`.
 
     This function is useful if you, for example, have sampling results of a specific voxel
     and you want to locate that voxel in the brain maps.
@@ -1298,7 +1336,7 @@ def roi_index_to_volume_index(roi_indices, brain_mask):
 def volume_index_to_roi_index(volume_index, brain_mask):
     """Get the ROI index given the volume index (in 3d).
 
-    This is the inverse function of roi_index_to_volume_index.
+    This is the inverse function of :func:`roi_index_to_volume_index`.
 
     This function is useful if you want to locate a voxel in the ROI given the position in the volume.
 
@@ -1350,12 +1388,13 @@ def get_temporary_results_dir(user_value):
 def nifti_filepath_resolution(file_path):
     """Tries to resolve the filename to a nifti based on only the filename.
 
-    For example, this resolves the path: /tmp/mask to:
-        /tmp/mask if exists
-        /tmp/mask.nii if exist
-        /tmp/mask.nii.gz if exists
+    For example, this resolves the path: ``/tmp/mask`` to:
 
-    Hence, the lookup order is: path, path.nii, path.nii.gz
+        - ``/tmp/mask`` if exists
+        - ``/tmp/mask.nii`` if exist
+        - ``/tmp/mask.nii.gz`` if exists
+
+    Hence, the lookup order is: ``path``, ``path.nii``, ``path.nii.gz``
 
     If a file with an extension is given we will do no further resolving and return the path as is.
 
@@ -1488,11 +1527,13 @@ def create_median_otsu_brain_mask(dwi_info, protocol, output_fname=None, **kwarg
     It will always return the mask. If output_fname is set it will also write the mask.
 
     Args:
-        dwi_info (string or (image, header) pair or image):
+        dwi_info (string or tuple or image): the dwi info, either:
+
             - the filename of the input file;
             - or a tuple with as first index a ndarray with the DWI and as second index the header;
             - or only the image as an ndarray
-        protocol (string or Protocol): The filename of the protocol file or a Protocol object
+
+        protocol (string or :class:`~mdt.protocols.Protocol`): The filename of the protocol file or a Protocol object
         output_fname (string): the filename of the output file. If None, no output is written.
             If dwi_info is only an image also no file is written.
         **kwargs: the additional arguments for the function median_otsu.
@@ -1516,7 +1557,8 @@ def extract_volumes(input_volume_fname, input_protocol, output_volume_fname, out
 
     Args:
         input_volume_fname (str): the input volume from which to get the specific volumes
-        input_protocol (str or Protocol): the input protocol, either a file or preloaded protocol object
+        input_protocol (str or :class:`~mdt.protocols.Protocol`): the input protocol,
+            either a file or preloaded protocol object
         output_volume_fname (str): the output filename for the selected volumes
         output_protocol (str): the output protocol for the selected volumes
         volume_indices (:class:`list`): the desired indices, indexing the input_volume
@@ -1539,7 +1581,7 @@ def recalculate_error_measures(model, problem_data, data_dir, sigma, output_dir=
 
     Args:
         model (str or AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize
-            or the name of an model we set_current_map with get_model()
+            or the name of an model we use with get_model()
         problem_data (DMRIProblemData): the problem data object
         data_dir (str): the directory containing the results for the given model
         sigma (float): the new noise sigma we use for calculating the log likelihood and then the

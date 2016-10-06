@@ -1,6 +1,6 @@
-===============
+***************
 Getting started
-===============
+***************
 
 .. contents:: Table of Contents
    :local:
