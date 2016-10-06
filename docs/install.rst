@@ -26,6 +26,8 @@ On older Ubuntu systems (<15.10) some dependencies will be recompiled with pip. 
 
     $ apt-get install libpng-dev libfreetype6-dev libxft-dev
 
+and then repeat the pip3 installation.
+
 
 Windows
 =======
@@ -34,3 +36,29 @@ After having installed MOT, we can install MDT. Open an Anaconda shell and use:
 .. code-block:: bash
 
     $ pip install MDT
+
+
+Initialization
+==============
+After installation we need to initialize the MDT components folder in your home folder. Use:
+
+.. code-block:: bash
+
+    $ mdt-init-user-settings
+
+in your bash or Anaconda shell to install the dynamically loadable modules.
+Please see the section :ref:`concepts_dynamical_modules` for more information on these modules.
+
+
+Test the installation
+=====================
+If all went well and MDT is installed and initialized, please
+
+
+.. code-block:: bash
+
+    $ mdt-init-user-settings
+
+in your bash or Anaconda shell to install the dynamically loadable modules.
+Please see the section :ref:`concepts_dynamical_modules` for more information on these modules.
+
