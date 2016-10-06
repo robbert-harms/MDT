@@ -1,9 +1,9 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: mdt
-Source: {{source}}
+Source: https://github.com/robbert-harms/mdt
 
 Files: *
-Copyright: {{years}} {{author}} <{{email}}>
+Copyright: 2016-2017 Robbert Harms <robbert.harms@maastrichtuniversity.nl>
 License: LGPL-3.0+
 
 License: LGPL-3.0+

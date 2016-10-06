@@ -86,7 +86,7 @@ uninstall:
 
 dist-deb:
 	$(PYTHON) setup.py sdist
-	rm -r debian/source
+	rm -rf debian/source
 	$(PYTHON) setup.py --command-packages=stdeb.command debianize --with-python3 True
 	$(PYTHON) setup.py prepare_debian_dist
 	rename -f 's/$(PROJECT)-(.*)\.tar\.gz/$(PROJECT)_$$1\.orig\.tar\.gz/' dist/*.gz

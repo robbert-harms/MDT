@@ -53,3 +53,8 @@ docs/modules.rst
 # debian tmps
 /debian/source
 /debian/tmp
+/debian/changelog 
+/debian/compat 
+/debian/control
+/debian/rules 
+/debian/watch
