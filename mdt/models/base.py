@@ -55,5 +55,5 @@ class DMRIOptimizable(object):
         ``g`` and ``b``. This function should then return ``('g', 'b')``.
 
         Returns:
-            list: A list of columns names that are to be taken from the protocol data.
+            :class:`list`: A list of columns names that are to be taken from the protocol data.
         """

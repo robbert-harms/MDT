@@ -12,3 +12,4 @@ Maastricht Diffusion Toolbox
    getting_started
    FAQ <faq>
    credits
+   changelog

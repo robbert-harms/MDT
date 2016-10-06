@@ -1,10 +1,14 @@
-.PHONY: clean clean-build clean-pyc clean-test lint test tests test-all coverage docs release dist install uninstall dist-deb
+.PHONY: clean clean-build clean-pyc clean-test lint test tests test-all coverage docs release dist install uninstall dist-deb clean-docs
+
+PYTHON=`which python`
+PROJECT=mdt
 
 help:
 	@echo "clean - remove all build, test, coverage and Python artifacts (no uninstall)"
 	@echo "clean-build - remove build artifacts"
 	@echo "clean-pyc - remove Python file artifacts"
 	@echo "clean-test - remove test and coverage artifacts"
+	@echo "clean-docs - remove the binary doc files"
 	@echo "lint - check style with flake8"
 	@echo "test - run tests quickly with the default Python"
 	@echo "tests - synonym for test"
@@ -17,7 +21,8 @@ help:
 	@echo "install - installs the package using pip"
 	@echo "uninstall - uninstalls the package using pip"
 
-clean: clean-build clean-pyc clean-test
+clean: clean-build clean-pyc clean-test clean-docs
+	$(PYTHON) setup.py clean
 
 clean-build:
 	rm -fr build/
@@ -37,11 +42,16 @@ clean-test:
 	rm -f .coverage
 	rm -fr htmlcov/
 
+clean-docs:
+	rm -f docs/$(PROJECT)*.rst
+	rm -f docs/modules.rst
+	$(MAKE) -C docs clean
+
 lint:
-	flake8 mdt tests
+	flake8 $(PROJECT) tests
 
 test:
-	python setup.py test
+	$(PYTHON) setup.py test
 
 tests: test
 
@@ -49,35 +59,37 @@ test-all:
 	tox
 
 coverage:
-	coverage run --source mdt setup.py test
+	coverage run --source $(PROJECT) setup.py test
 	coverage report -m
 	coverage html
 	@echo "To view results type: htmlcov/index.html &"
 
-docs:
-	rm -f docs/mdt*.rst
-	rm -f docs/modules.rst
-	sphinx-apidoc -f -o docs/ mdt
-	$(MAKE) -C docs clean
+docs: clean-docs
+	sphinx-apidoc -o docs/ $(PROJECT)
 	$(MAKE) -C docs html SPHINXBUILD='python3 $(shell which sphinx-build)'
 	@echo "To view results type: firefox docs/_build/html/index.html &"
 
 release: clean
-	python setup.py sdist upload
-	python setup.py bdist_wheel upload
+	$(PYTHON) setup.py sdist upload
+	$(PYTHON) setup.py bdist_wheel upload
 
 dist: clean
-	python setup.py sdist
-	python setup.py bdist_wheel
+	$(PYTHON) setup.py sdist
+	$(PYTHON) setup.py bdist_wheel
 	ls -l dist
 
 install: dist
-	pip install --upgrade --no-deps --force-reinstall dist/mdt-*.tar.gz
+	pip install --upgrade --no-deps --force-reinstall dist/$(PROJECT)-*.tar.gz
 
 uninstall:
-	pip uninstall -y mdt
+	pip uninstall -y $(PROJECT)
 
-dist-deb: dist
-	py2dsc -d dist/deb --with-python3=True --with-python2=False dist/mdt*.tar.gz
-	python setup.py prepare_debian_dist
-	cd dist/deb/*/; fakeroot debian/rules binary
+dist-deb:
+	$(PYTHON) setup.py sdist
+	rm -r debian/source
+	$(PYTHON) setup.py --command-packages=stdeb.command debianize --with-python3 True
+	$(PYTHON) setup.py prepare_debian_dist
+	rename -f 's/$(PROJECT)-(.*)\.tar\.gz/$(PROJECT)_$$1\.orig\.tar\.gz/' dist/*.gz
+	tar -xzf dist/$(PROJECT)_*.orig.tar.gz -C dist/
+	cp -r debian dist/$(PROJECT)*/
+	cd dist/$(PROJECT)*/; dpkg-source -b .

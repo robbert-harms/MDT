@@ -7,6 +7,6 @@ Getting started
    :backlinks: none
 
 
-.. include:: getting_started/concepts.rst
-.. include:: getting_started/analysis.rst
-.. include:: getting_started/model_building.rst
+.. include:: _getting_started/concepts.rst
+.. include:: _getting_started/analysis.rst
+.. include:: _getting_started/model_building.rst

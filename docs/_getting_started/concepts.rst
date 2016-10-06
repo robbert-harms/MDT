@@ -1,5 +1,3 @@
-.. _getting_started_concepts:
-
 Concepts
 ========
 
@@ -12,6 +10,7 @@ Protocol
 --------
 
 For the complete Python documentation, please see: :py:class:`mdt.protocols.Protocol`.
+
 
 
 .. _concepts_dynamical_modules:
