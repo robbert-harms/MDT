@@ -1,12 +1,4 @@
-from mdt.models.parameters import StaticMapParameterConfig
-
-__author__ = 'Robbert Harms'
-__date__ = "2016-02-14"
-__maintainer__ = "Robbert Harms"
-__email__ = "robbert.harms@maastrichtuniversity.nl"
-
-
-"""Static data parameters.
+"""Definitions of the static data parameters.
 
 These parameters are in usage similar to fixed free parameters. They are defined as static data parameters to
 make clear that they are meant to carry additional observational data about a problem.
@@ -15,6 +7,12 @@ Please choose the parameter type for a model and parameter carefully since the t
 its data are handled during model construction.
 
 """
+from mdt.models.parameters import StaticMapParameterConfig
+
+__author__ = 'Robbert Harms'
+__date__ = "2016-02-14"
+__maintainer__ = "Robbert Harms"
+__email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 class b1_static(StaticMapParameterConfig):
@@ -30,10 +28,10 @@ class fa_static(StaticMapParameterConfig):
 
 
 class Sw_static(StaticMapParameterConfig):
-    """This parameter is created *only for linear T1 decay fitting* of GRE data with variable flip angle.
+    """This parameter is created only for linear T1 decay fitting of GRE data with variable flip angle.
 
     S_weighted is defined as the input data divided by the
-        tan(flip_angle) ->  S_weighted = data / tan (flip_angle * B1_map)
+        :math:`tan(flip_angle) ->  S_weighted = data / tan (flip_angle * B1_map)`
     """
 
     data_type = 'mot_float_type'

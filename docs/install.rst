@@ -1,3 +1,4 @@
+************
 Installation
 ************
 .. highlight:: console
@@ -11,20 +12,20 @@ native Ubuntu packages are preferred. To install most of the dependencies, pleas
 
 .. code-block:: bash
 
-    $ apt-get install python3-numpy python3-nibabel python3-pyqt5 python3-matplotlib python3-six python3-yaml python3-argcomplete
+    $ sudo apt-get install python3-numpy python3-nibabel python3-pyqt5 python3-matplotlib python3-six python3-yaml python3-argcomplete
 
 
 Then, install MDT with pip (no Ubuntu package is available yet):
 
 .. code-block:: bash
 
-    $ pip3 install MDT
+    $ sudo pip3 install MDT
 
 On older Ubuntu systems (<15.10) some dependencies will be recompiled with pip. This might fail because of missing some packages, install these with:
 
 .. code-block:: bash
 
-    $ apt-get install libpng-dev libfreetype6-dev libxft-dev
+    $ sudo apt-get install libpng-dev libfreetype6-dev libxft-dev
 
 and then repeat the pip3 installation. Please now continue with the section `Initialization`_ below.
 
@@ -49,7 +50,7 @@ After installation we need to initialize the MDT components folder in your home 
     $ mdt-init-user-settings
 
 in your bash or Anaconda console to install the dynamically loadable modules.
-Please see the section :ref:`concepts_dynamical_modules` for more information on these modules.
+Please see the section :ref:`dynamic_modules` for more information on these modules.
 
 
 Test the installation
@@ -66,7 +67,7 @@ or, equivalently,
 
     $ MDT
 
-to check if the GUI works. If this fails, please refer to the section :ref:`faq_pyqt5_problems` for more information or double check the above installation steps.
+to check if the GUI works. If this fails, double check the above installation steps.
 
 Another command to try is:
 

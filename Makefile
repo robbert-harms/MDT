@@ -1,7 +1,7 @@
 .PHONY: clean clean-build clean-pyc clean-test lint test tests test-all coverage docs release dist install uninstall dist-deb
 
-PYTHON=`which python`
-PROJECT=mdt
+PYTHON=`which python3`
+PROJECT_NAME=mdt
 
 help:
 	@echo "clean - remove all build, test, coverage and Python artifacts (no uninstall)"
@@ -42,7 +42,7 @@ clean-test:
 	rm -fr htmlcov/
 
 lint:
-	flake8 $(PROJECT) tests
+	flake8 $(PROJECT_NAME) tests
 
 test:
 	$(PYTHON) setup.py test
@@ -53,16 +53,16 @@ test-all:
 	tox
 
 coverage:
-	coverage run --source $(PROJECT) setup.py test
+	coverage run --source $(PROJECT_NAME) setup.py test
 	coverage report -m
 	coverage html
 	@echo "To view results type: htmlcov/index.html &"
 
 docs:
-	rm -f docs/$(PROJECT)*.rst
+	rm -f docs/$(PROJECT_NAME)*.rst
 	rm -f docs/modules.rst
 	$(MAKE) -C docs clean
-	sphinx-apidoc -o docs/ $(PROJECT)
+	sphinx-apidoc -o docs/ $(PROJECT_NAME)
 	$(MAKE) -C docs html SPHINXBUILD='python3 $(shell which sphinx-build)'
 	@echo "To view results type: firefox docs/_build/html/index.html &"
 
@@ -75,18 +75,18 @@ dist: clean
 	$(PYTHON) setup.py bdist_wheel
 	ls -l dist
 
-install: dist
-	pip install --upgrade --no-deps --force-reinstall dist/$(PROJECT)-*.tar.gz
-
-uninstall:
-	pip uninstall -y $(PROJECT)
-
 dist-deb:
 	$(PYTHON) setup.py sdist
 	rm -rf debian/source
 	$(PYTHON) setup.py --command-packages=stdeb.command debianize --with-python3 True
 	$(PYTHON) setup.py prepare_debian_dist
-	rename -f 's/$(PROJECT)-(.*)\.tar\.gz/$(PROJECT)_$$1\.orig\.tar\.gz/' dist/*.gz
-	tar -xzf dist/$(PROJECT)_*.orig.tar.gz -C dist/
-	cp -r debian dist/$(PROJECT)*/
-	cd dist/$(PROJECT)*/; dpkg-source -b .
+	rename -f 's/$(PROJECT_NAME)-(.*)\.tar\.gz/$(PROJECT_NAME)_$$1\.orig\.tar\.gz/' dist/*.gz
+	tar -xzf dist/$(PROJECT_NAME)_*.orig.tar.gz -C dist/
+	cp -r debian dist/$(PROJECT_NAME)*/
+	cd dist/$(PROJECT_NAME)*/; dpkg-source -b .
+
+install: dist
+	pip install --upgrade --no-deps --force-reinstall dist/$(PROJECT_NAME)-*.tar.gz
+
+uninstall:
+	pip uninstall -y $(PROJECT_NAME)

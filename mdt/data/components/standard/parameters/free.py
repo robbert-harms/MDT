@@ -1,3 +1,12 @@
+"""Definitions of the free parameters.
+
+The free parameters are meant to be used for parameters that one wants to optimize. They can be fixed to a certain
+value to disable them from being optimized in a given situation, but they remain classified as 'optimizable' parameters.
+
+Please choose the parameter type for a model and parameter carefully since the type signifies how the parameter and
+its data are handled during model construction.
+"""
+
 import numpy as np
 from mdt.models.parameters import FreeParameterConfig
 from mot.model_building.parameter_functions.priors import AbsSinHalfPrior, AbsSinPrior
@@ -11,15 +20,6 @@ __date__ = "2015-12-12"
 __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
-
-"""Defines the free parameters.
-
-The free parameters are meant to be used for parameters that one wants to optimize. They can be fixed to a certain
-value to disable them from being optimized in a given situation, but they remain 'optimable' parameters.
-
-Please choose the parameter type for a model and parameter carefully since the type signifies how the parameter and
-its data are handled during model construction.
-"""
 
 
 class s0(FreeParameterConfig):

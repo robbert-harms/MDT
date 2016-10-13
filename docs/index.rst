@@ -10,5 +10,6 @@ Maastricht Diffusion Toolbox
 
    install
    getting_started
+   home_folder
    FAQ <faq>
    credits
