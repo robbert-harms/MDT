@@ -20,10 +20,12 @@ Quick installation guide:
 * ``sudo pip3 install MDT``
 
 
-**Windows**
+| **Windows**
+| The installation on Windows is a little bit more complex and the following is only a quick reference guide. For complete instructions please view the `complete documentation <https://maastrichtdiffusiontoolbox.readthedocs.org>`_.
 
-* Install Python Anaconda 3.* from https://www.continuum.io/downloads
+* Install MOT using the guide at https://mot.readthedocs.io
 * Install the PyQt5 bindings
+    * Use the `M-Labs PyQt5 package <https://anaconda.org/m-labs/pyqt5>`_
 * Open a Anaconda shell and type: ``pip install MDT``
 
 

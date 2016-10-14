@@ -112,28 +112,30 @@ are commonly placed in the Python module named ``model_data.py``.
 
 Compartment model
 -----------------
-
+The compartment models form the components from which multi-compartment  
 
 
 Single models
 -------------
+todo
 
 
 Cascade models
 --------------
-
+todo
 
 Library functions
 -----------------
-
+todo
 
 Noise std. estimators
 ---------------------
-
+todo
 
 Processing strategies
 ---------------------
-
+todo
 
 Batch profiles
 --------------
+todo

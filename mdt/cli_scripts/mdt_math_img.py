@@ -19,8 +19,10 @@ This linear alphabetic indexing works with every alphabetic character except for
 one is reserved for the array.
 
 The module numpy is available under 'np' and some functions of MDT under 'mdt'.
-This allows expressions like:
+This allows expressions like::
+
     np.mean(np.concatenate(i, axis=3), axis=3)
+
 to get the mean value per voxel of all the input images.
 
 It is possible to change the mode of evaluation from single expression to a more complex python
