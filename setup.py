@@ -3,8 +3,6 @@
 import glob
 import os
 import re
-
-import shutil
 from setuptools import setup, find_packages, Command
 
 

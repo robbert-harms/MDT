@@ -1,7 +1,9 @@
 .PHONY: clean clean-build clean-pyc clean-test lint test tests test-all coverage docs release dist install uninstall dist-deb
 
-PYTHON=`which python3`
+PYTHON=$$(which python3)
 PROJECT_NAME=mdt
+PROJECT_VERSION=$$($(PYTHON) setup.py --version)
+GPG_SIGN_KEY=0E1AA560
 
 help:
 	@echo "clean - remove all build, test, coverage and Python artifacts (no uninstall)"
@@ -80,10 +82,10 @@ dist-deb:
 	rm -rf debian/source
 	$(PYTHON) setup.py --command-packages=stdeb.command debianize --with-python3 True
 	$(PYTHON) setup.py prepare_debian_dist
-	rename -f 's/$(PROJECT_NAME)-(.*)\.tar\.gz/$(PROJECT_NAME)_$$1\.orig\.tar\.gz/' dist/*.gz
-	tar -xzf dist/$(PROJECT_NAME)_*.orig.tar.gz -C dist/
-	cp -r debian dist/$(PROJECT_NAME)*/
-	cd dist/$(PROJECT_NAME)*/; dpkg-source -b .
+	cp dist/$(PROJECT_NAME)-$(PROJECT_VERSION).tar.gz dist/$(PROJECT_NAME)_$(PROJECT_VERSION).orig.tar.gz
+	tar -xzf dist/$(PROJECT_NAME)_$(PROJECT_VERSION).orig.tar.gz -C dist/
+	cp -r debian dist/$(PROJECT_NAME)-$(PROJECT_VERSION)/
+	cd dist/$(PROJECT_NAME)-$(PROJECT_VERSION)/; dpkg-source -b . ; debuild -S -sa -k$(GPG_SIGN_KEY)
 
 install: dist
 	pip install --upgrade --no-deps --force-reinstall dist/$(PROJECT_NAME)-*.tar.gz
