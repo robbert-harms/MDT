@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import glob
-import os
+
 import re
+import glob
+from textwrap import dedent
+import os
+import sys
 from setuptools import setup, find_packages, Command
 
 
@@ -22,6 +25,12 @@ with open('mdt/__version__.py') as f:
 requirements = load_requirements('requirements.txt')
 requirements_tests = load_requirements('requirements_tests.txt')
 
+long_description = readme
+if sys.argv and len(sys.argv) > 3 and sys.argv[2] == 'debianize':
+    long_description = dedent("""
+        The Maastricht Diffusion Toolbox is a parallized neuro-imaging model recovery toolbox.
+        Being GPU accelerated, it allows for high-performance computing in MRI imaging analysis.
+    """).lstrip()
 
 def load_entry_points():
     entry_points = {'console_scripts': []}
@@ -48,19 +57,22 @@ def load_entry_points():
 info_dict = dict(
     name='mdt',
     version=ver_dic["VERSION"],
-    description='Parallized neuro-imaging model recovery toolbox',
-    long_description=readme,
+    description='Maastricht Diffusion Toolbox',
+    long_description=long_description,
     author='Robbert Harms',
     author_email='robbert.harms@maastrichtuniversity.nl',
-    url='https://github.com/robbert-harms/mdt',
+    maintainer='Robbert Harms',
+    maintainer_email='robbert.harms@maastrichtuniversity.nl',
+    url='https://github.com/cbclab/MDT',
     packages=find_packages(),
     include_package_data=True,
     install_requires=requirements,
     license="LGPL v3",
     zip_safe=False,
-    keywords='mdt',
+    keywords='mdt, diffusion MRI, model recovery, imaging analysis',
     classifiers=[
         'Environment :: Console',
+        'Environment :: X11 Applications :: Qt',
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)',
@@ -110,6 +122,7 @@ class PrepareDebianDist(Command):
 
         with open('./debian/copyright', 'w') as file:
             file.write(copyright_info)
+
 
 info_dict.update(cmdclass={'prepare_debian_dist': PrepareDebianDist})
 setup(**info_dict)
