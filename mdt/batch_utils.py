@@ -561,7 +561,7 @@ def get_best_batch_profile(data_folder):
 
 
 def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, subjects_selection=None, symlink=True,
-                             move=False):
+                             symlink_absolute=False, move=False):
     """Load from the given data folder all the output files and put them into the output directory.
 
     The results are placed in the output folder per subject. Example: ``<output_dir>/<subject_id>/<model_name>``
@@ -574,6 +574,9 @@ def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, subjec
         subjects_selection (BatchSubjectSelection): the subjects to use for processing.
             If None all subjects are processed.
         symlink (boolean): only available under Unix OS's. Creates a symlink instead of copying.
+            This will create an absolute position symlink.
+        symlink_absolute (boolean): if symlink is set to true, do you want an absolute symlink (True)
+            or a relative one (False)
         move (boolean): instead of copying the files, move them to a new position. If set, this overrules the parameter
             symlink.
     """
@@ -593,7 +596,10 @@ def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, subjec
             shutil.move(subject_info.output_path, subject_out)
         else:
             if symlink:
-                os.symlink(subject_info.output_path, subject_out)
+                if symlink_absolute:
+                    os.symlink(subject_info.output_path, subject_out)
+                else:
+                    os.symlink(os.path.relpath(subject_info.output_path, os.path.dirname(subject_out)), subject_out)
             else:
                 shutil.copytree(subject_info.output_path, subject_out)
 
