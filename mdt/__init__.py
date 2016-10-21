@@ -458,7 +458,9 @@ def sort_maps(maps_to_sort_on, extra_maps_to_sort=None, reversed_sort=False, sor
 
 
 def load_volume_maps(directory, map_names=None):
-    """Read a number of Nifti volume maps that were written using write_volume_maps.
+    """Read a number of Nifti volume maps from a directory.
+
+    This ignores nifti files without data, that is, nifti files with only a header.
 
     Args:
         directory: the directory from which we want to read a number of maps

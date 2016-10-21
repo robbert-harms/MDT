@@ -249,15 +249,18 @@
             </widget>
            </item>
            <item row="0" column="1">
-            <widget class="QDoubleSpinBoxDotSeperator" name="data_scale_min">
+            <widget class="QDoubleSpinBoxDotSeparator" name="data_scale_min">
              <property name="specialValueText">
               <string/>
              </property>
+             <property name="decimals">
+              <number>5</number>
+             </property>
              <property name="minimum">
-              <double>-9999999999.989999771118164</double>
+              <double>-10000000000.000000000000000</double>
              </property>
              <property name="maximum">
-              <double>9999999999.989999771118164</double>
+              <double>10000000000.000000000000000</double>
              </property>
              <property name="singleStep">
               <double>0.010000000000000</double>
@@ -265,12 +268,15 @@
             </widget>
            </item>
            <item row="2" column="1">
-            <widget class="QDoubleSpinBoxDotSeperator" name="data_scale_max">
+            <widget class="QDoubleSpinBoxDotSeparator" name="data_scale_max">
+             <property name="decimals">
+              <number>5</number>
+             </property>
              <property name="minimum">
-              <double>-9999999999.989999771118164</double>
+              <double>-10000000000.000000000000000</double>
              </property>
              <property name="maximum">
-              <double>9999999999.989999771118164</double>
+              <double>10000000000.000000000000000</double>
              </property>
              <property name="singleStep">
               <double>0.010000000000000</double>
@@ -560,7 +566,10 @@
             </widget>
            </item>
            <item row="0" column="1">
-            <widget class="QDoubleSpinBoxDotSeperator" name="data_clipping_min">
+            <widget class="QDoubleSpinBoxDotSeparator" name="data_clipping_min">
+             <property name="decimals">
+              <number>5</number>
+             </property>
              <property name="minimum">
               <double>-9999999999.989999771118164</double>
              </property>
@@ -573,7 +582,10 @@
             </widget>
            </item>
            <item row="1" column="1">
-            <widget class="QDoubleSpinBoxDotSeperator" name="data_clipping_max">
+            <widget class="QDoubleSpinBoxDotSeparator" name="data_clipping_max">
+             <property name="decimals">
+              <number>5</number>
+             </property>
              <property name="minimum">
               <double>-9999999999.989999771118164</double>
              </property>
@@ -628,7 +640,7 @@
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>QDoubleSpinBoxDotSeperator</class>
+   <class>QDoubleSpinBoxDotSeparator</class>
    <extends>QDoubleSpinBox</extends>
    <header>..widgets</header>
   </customwidget>

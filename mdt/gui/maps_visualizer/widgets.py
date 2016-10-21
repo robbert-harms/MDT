@@ -71,10 +71,10 @@ class MapsReorderer(QListWidget):
         return False
 
 
-class QDoubleSpinBoxDotSeperator(QDoubleSpinBox):
+class QDoubleSpinBoxDotSeparator(QDoubleSpinBox):
 
     def __init__(self, *args, **kwargs):
-        super(QDoubleSpinBoxDotSeperator, self).__init__(*args, **kwargs)
+        super(QDoubleSpinBoxDotSeparator, self).__init__(*args, **kwargs)
 
     def valueFromText(self, text):
         return float(text)
