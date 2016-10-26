@@ -43,6 +43,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
 
         self.modelSelection.addItems(list(sorted(mdt.get_models_list())))
         self.modelSelection.setCurrentText('BallStick (Cascade)')
+
         self._check_enable_action_buttons()
 
     def _select_dwi(self):

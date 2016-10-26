@@ -852,10 +852,15 @@ class SingleMapInfo(object):
         def bbox(image):
             rows = np.any(image, axis=1)
             cols = np.any(image, axis=0)
-            row_min, row_max = np.where(rows)[0][[0, -1]]
-            column_min, column_max = np.where(cols)[0][[0, -1]]
 
-            return row_min, row_max, column_min, column_max
+            rows_where = np.where(rows)
+
+            if np.size(rows_where):
+                row_min, row_max = np.where(rows)[0][[0, -1]]
+                column_min, column_max = np.where(cols)[0][[0, -1]]
+
+                return row_min, row_max, column_min, column_max
+            return 0, image.shape[0]-1, 0, image.shape[1]-1
 
         slice_indexing = [slice(None)] * (self.max_dimension() + 1)
         slice_indexing[dimension] = slice_index
@@ -872,7 +877,6 @@ class SingleMapInfo(object):
             image = np.rot90(image, rotate // 90)
 
         row_min, row_max, column_min, column_max = bbox(image)
-
         return Point(column_min, row_min), Point(column_max, row_max)
 
 

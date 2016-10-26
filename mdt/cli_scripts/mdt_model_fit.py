@@ -112,17 +112,23 @@ class ModelFit(BasicShellApplication):
                 tmp_results_dir = to_set
                 break
 
+        noise_std = args.noise_std
+        if noise_std is not None:
+            if not os.path.isfile(os.path.realpath(noise_std)):
+                noise_std = float(noise_std)
+
         mdt.fit_model(args.model,
                       mdt.load_problem_data(os.path.realpath(args.dwi),
                                             os.path.realpath(args.protocol),
                                             os.path.realpath(args.mask),
                                             gradient_deviations=args.gradient_deviations,
-                                            noise_std=args.noise_std),
+                                            noise_std=noise_std),
                       output_folder, recalculate=args.recalculate,
                       only_recalculate_last=args.only_recalculate_last, cl_device_ind=args.cl_device_ind,
                       double_precision=args.double_precision,
                       cascade_subdir=args.cascade_subdir,
-                      tmp_results_dir=tmp_results_dir)
+                      tmp_results_dir=tmp_results_dir,
+                      save_user_script_info=None)
 
 
 if __name__ == '__main__':

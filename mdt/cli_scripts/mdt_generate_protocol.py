@@ -33,10 +33,10 @@ class GenerateProtocol(BasicShellApplication):
         Examples of use:
             mdt-generate-protocol data.bvec data.bval
             mdt-generate-protocol data.bvec data.bval -o my_protocol.prtcl
-            mdt-generate-protocol data.bvec data.bval --add-sequence-timings
-            mdt-generate-protocol data.bvec data.bval --add-sequence-timings --Delta 30 --delta 20
-            mdt-generate-protocol data.bvec data.bval --add-sequence-timings --sequence-timing-units 's' --Delta 0.03
-            mdt-generate-protocol data.bvec data.bval --add-sequence-timings --TE ../my_TE_file.txt
+            mdt-generate-protocol data.bvec data.bval
+            mdt-generate-protocol data.bvec data.bval --Delta 30 --delta 20
+            mdt-generate-protocol data.bvec data.bval --sequence-timing-units 's' --Delta 0.03
+            mdt-generate-protocol data.bvec data.bval --TE ../my_TE_file.txt
         """)
 
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
@@ -44,7 +44,7 @@ class GenerateProtocol(BasicShellApplication):
 
         parser.add_argument('bvec', help='the gradient vectors file').completer = FilesCompleter()
         parser.add_argument('bval', help='the gradient b-values').completer = FilesCompleter()
-        parser.add_argument('-s', '--bval-scale-factor', type=int,
+        parser.add_argument('-s', '--bval-scale-factor', type=float,
                             help="We expect the b-values in the output protocol in units of s/m^2. "
                                  "Example use: 1 or 1e6. The default is autodetect.")
 
@@ -52,17 +52,13 @@ class GenerateProtocol(BasicShellApplication):
                             help='the output protocol, defaults to "<bvec_name>.prtcl" in the same '
                                  'directory as the bvec file.').completer = FilesCompleter()
 
-        parser.add_argument('--add-sequence-timings', action='store_true',
-                            help="Add the sequence timings. If no timings given it will guess G, Delta and delta. "
-                                 "By default no timings are added.")
-
         parser.add_argument('--sequence-timing-units', choices=('ms', 's'), default='ms',
                             help="The units of the sequence timings. The default is 'ms' which we will convert to 's'.")
 
         parser.add_argument('--G',
                             help="The gradient amplitudes in T/m.")
 
-        parser.add_argument('--maxG', default=0.04,
+        parser.add_argument('--maxG',
                             help="The maximum gradient amplitude in T/m. This is only useful if we need to guess "
                                  "big Delta and small delta. Default is 0.04 T/m")
 
@@ -94,27 +90,29 @@ class GenerateProtocol(BasicShellApplication):
             output_prtcl = os.path.join(os.path.dirname(bvec),
                                         os.path.splitext(os.path.basename(bvec))[0] + '.prtcl')
 
-        bval_scale_factor = args.bval_scale_factor or 'auto'
+        if args.bval_scale_factor:
+            bval_scale_factor = float(args.bval_scale_factor)
+        else:
+            bval_scale_factor = 'auto'
 
         protocol = load_bvec_bval(bvec=bvec, bval=bval, bval_scale=bval_scale_factor)
 
-        if args.add_sequence_timings:
-            if args.G is None:
-                if os.path.isfile(str(args.maxG)):
-                    protocol.add_column_from_file('maxG', os.path.realpath(str(args.maxG)), 1)
-                else:
-                    protocol.add_column('maxG', float(args.maxG))
+        if args.G is None and args.maxG is not None:
+            if os.path.isfile(str(args.maxG)):
+                protocol.add_column_from_file('maxG', os.path.realpath(str(args.maxG)), 1)
+            else:
+                protocol.add_column('maxG', float(args.maxG))
 
-            if args.Delta is not None:
-                add_sequence_timing_column_to_protocol(protocol, 'Delta', args.Delta, args.sequence_timing_units)
-            if args.delta is not None:
-                add_sequence_timing_column_to_protocol(protocol, 'delta', args.delta, args.sequence_timing_units)
-            if args.TE is not None:
-                add_sequence_timing_column_to_protocol(protocol, 'TE', args.TE, args.sequence_timing_units)
-            if args.TR is not None:
-                add_sequence_timing_column_to_protocol(protocol, 'TR', args.TR, args.sequence_timing_units)
-            if args.G is not None:
-                add_column_to_protocol(protocol, 'G', args.G, 1)
+        if args.Delta is not None:
+            add_sequence_timing_column_to_protocol(protocol, 'Delta', args.Delta, args.sequence_timing_units)
+        if args.delta is not None:
+            add_sequence_timing_column_to_protocol(protocol, 'delta', args.delta, args.sequence_timing_units)
+        if args.TE is not None:
+            add_sequence_timing_column_to_protocol(protocol, 'TE', args.TE, args.sequence_timing_units)
+        if args.TR is not None:
+            add_sequence_timing_column_to_protocol(protocol, 'TR', args.TR, args.sequence_timing_units)
+        if args.G is not None:
+            add_column_to_protocol(protocol, 'G', args.G, 1)
 
         mdt.protocols.write_protocol(protocol, output_prtcl)
 

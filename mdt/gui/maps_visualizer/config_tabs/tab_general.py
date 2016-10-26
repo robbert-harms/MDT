@@ -1,4 +1,6 @@
 import copy
+import os
+
 from PyQt5.QtCore import pyqtSlot, Qt
 from PyQt5.QtWidgets import QWidget, QAbstractItemView
 
@@ -84,7 +86,7 @@ class TabGeneral(QWidget, Ui_TabGeneral):
     @pyqtSlot(DataInfo)
     def set_new_data(self, data_info):
         if data_info.directory:
-            self.general_info_directory.setText(data_info.directory)
+            self.general_info_directory.setText(self._split_long_path_elements(data_info.directory))
         else:
             self.general_info_directory.setText('-')
 
@@ -292,3 +294,45 @@ class TabGeneral(QWidget, Ui_TabGeneral):
                 item_list.insert(ind, new_item)
                 return
         item_list.append(new_item)
+
+    def _split_long_path_elements(self, original_path, max_single_element_length=25):
+        """Split long path elements into smaller ones using spaces
+
+        Args:
+            original_path (str): the path you want to split
+            max_single_element_length (int): the maximum length allowed per path component (folders and filename).
+
+        Returns:
+            str: the same path but with spaces in long path elements. The result will no longer be a valid path.
+        """
+        def split(p):
+            listing = []
+
+            def _split(el):
+                if el:
+                    if el == '/':
+                        listing.append('/')
+                    else:
+                        head, tail = os.path.split(el)
+                        if head:
+                            _split(head)
+                        listing.append(tail)
+
+            _split(p)
+            return listing
+
+        elements = list(split(original_path))
+        path = elements[0]
+
+        for el in elements[1:]:
+            if path != '/':
+                path += os.path.sep
+
+            if len(el) > max_single_element_length:
+                for i in range(0, len(el), max_single_element_length):
+                    path += el[i:i + max_single_element_length] + ' '
+                path = path[:-1]
+            else:
+                path += el
+
+        return path

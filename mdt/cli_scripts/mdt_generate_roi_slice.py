@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
-"""Create a (brain) mask with a region of interest that only includes the voxels in the selected slice."""
+"""Create a single slice mask that only includes the voxels in the selected slice."""
 import argparse
 import os
 import mdt
