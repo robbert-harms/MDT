@@ -528,7 +528,7 @@ def get_models_list():
     """
     l = get_list_of_cascade_models()
     l.extend(get_list_of_single_models())
-    return l
+    return list(sorted(l))
 
 
 def get_models_meta_info():
