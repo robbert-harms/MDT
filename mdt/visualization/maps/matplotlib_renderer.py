@@ -168,7 +168,7 @@ class Renderer(object):
             self.image_axes.append(axis_data)
 
     def _render_map(self, map_name, axis):
-        axis.set_title(self._get_title(map_name))
+        axis.set_title(self._get_title(map_name), y=1.0)
         axis.axis('on' if self._plot_config.show_axis else 'off')
 
         data = self._get_image(map_name)

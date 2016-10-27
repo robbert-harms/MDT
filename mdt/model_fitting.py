@@ -257,14 +257,12 @@ class ModelFit(object):
                     self._problem_data.protocol)))
 
     def run(self):
-        """Run the model and return the resulting maps
-
-        If we will not recalculate and the maps already exists, we will return the maps from file.
+        """Run the model and return the resulting voxel estimates within the ROI.
 
         Returns:
-            dict: The result maps for the model we are running.
-                This returns the results as 2d arrays with on the first dimension the optimized voxels
-                and on the second the value(s) for the micro-structure maps.
+            dict: The result maps for the current model or the last model in the cascade.
+                This returns the results as 2d arrays with on the first dimension the voxels within the ROI
+                and on the second axis the value(s) for all result maps.
         """
         return self._run(self._model, self._recalculate, self._only_recalculate_last)
 

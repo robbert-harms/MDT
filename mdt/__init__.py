@@ -100,7 +100,7 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
     """Sample a single model using the given cascading strategy.
 
     Args:
-        model (:class:`~mdt.models.single.DMRISingleModel`): the model to sample
+        model (:class:`~mdt.models.single.DMRISingleModel` or str): the model to sample
         problem_data (:class:`~mdt.utils.DMRIProblemData`): the problem data object
         output_folder (string): The path to the folder where to place the output, we will make a subdir with the
             model name in it (for the optimization results) and then a subdir with the samples output.
@@ -147,9 +147,12 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
     if cl_device_ind is not None and not isinstance(cl_device_ind, collections.Iterable):
         cl_device_ind = [cl_device_ind]
 
-    cl_context_action = mot.configuration.RuntimeConfigurationAction(
-        cl_environments=[get_cl_devices()[ind] for ind in cl_device_ind],
-        load_balancer=EvenDistribution())
+    if cl_device_ind is None:
+        cl_context_action = mot.configuration.VoidConfigurationAction()
+    else:
+        cl_context_action = mot.configuration.RuntimeConfigurationAction(
+            cl_environments=[get_cl_devices()[ind] for ind in cl_device_ind],
+            load_balancer=EvenDistribution())
 
     with mot.configuration.config_context(cl_context_action):
         if sampler is None:
