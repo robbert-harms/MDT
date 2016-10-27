@@ -7,6 +7,12 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
+"""
+The Noddi compartments and models with CamelCase are being deprecated. Please use the all-capital version (NODDI)
+instead in new works.
+"""
+
+
 class NoddiTortuosityParameterDependency(AbstractParameterDependency):
 
     def __init__(self, d, w_ec, w_ic, ):

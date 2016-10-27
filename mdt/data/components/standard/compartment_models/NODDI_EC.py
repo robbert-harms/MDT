@@ -7,12 +7,8 @@ __date__ = "2015-06-21"
 __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
-"""
-The Noddi compartments and models with CamelCase are being deprecated. Please use the all-capital version (NODDI)
-instead in new works.
-"""
 
-class Noddi_EC(CompartmentConfig):
+class NODDI_EC(CompartmentConfig):
 
     parameter_list = ('g', 'b', 'd', 'dperp0', 'theta', 'phi', 'kappa')
     dependency_list = (CerfDawson(),)
