@@ -305,34 +305,33 @@ class TabGeneral(QWidget, Ui_TabGeneral):
         Returns:
             str: the same path but with spaces in long path elements. The result will no longer be a valid path.
         """
+
         def split(p):
             listing = []
 
             def _split(el):
                 if el:
-                    if el == '/':
-                        listing.append('/')
+                    head, tail = os.path.split(el)
+                    if not tail:
+                        listing.append(head)
                     else:
-                        head, tail = os.path.split(el)
-                        if head:
-                            _split(head)
+                        _split(head)
                         listing.append(tail)
 
             _split(p)
             return listing
 
         elements = list(split(original_path))
-        path = elements[0]
+        new_elements = []
 
-        for el in elements[1:]:
-            if path != '/':
-                path += os.path.sep
-
+        for el in elements:
             if len(el) > max_single_element_length:
+                item = ''
                 for i in range(0, len(el), max_single_element_length):
-                    path += el[i:i + max_single_element_length] + ' '
-                path = path[:-1]
+                    item += el[i:i + max_single_element_length] + ' '
+                item = item[:-1]
+                new_elements.append(item)
             else:
-                path += el
+                new_elements.append(el)
 
-        return path
+        return os.path.join(*new_elements)
