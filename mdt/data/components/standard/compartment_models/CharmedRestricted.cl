@@ -6,7 +6,7 @@
  * Email = robbert.harms@maastrichtuniversity.nl
  */
 
-mot_float_type cmCharmedRestricted(const mot_float_type4 g,
+mot_float_type cmCHARMEDRestricted(const mot_float_type4 g,
                                    const mot_float_type b,
                                    const mot_float_type q,
                                    const mot_float_type Delta,

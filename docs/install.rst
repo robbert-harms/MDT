@@ -20,7 +20,7 @@ Then, install MDT with pip (no Ubuntu package is available yet):
 
 .. code-block:: bash
 
-    $ sudo pip3 install MDT
+    $ sudo pip3 install mdt
 
 This might recompile a few packages to use the latest versions. After installation please continue with the section `Initialization`_ below.
 
@@ -34,7 +34,7 @@ todo, install PytQt5 from M-Lab
 
 .. code-block:: bash
 
-    $ pip install MDT
+    $ pip install mdt
 
 If that went well please continue with the `Initialization`_ below.
 

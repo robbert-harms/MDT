@@ -7,7 +7,7 @@
  */
 
  /**
- * Generate the compartment model signal for the Noddi Extra Cellular model
+ * Generate the compartment model signal for the NODDI Extra Cellular compartment
  * @params g from the protocol /scheme
  * @params b from the protocol / scheme
  * @params d parameter
@@ -16,7 +16,7 @@
  * @params dperp parameter (hindered diffusivity outside the cylinders in perpendicular directions)
  * @params kappa parameter (concentration parameter of the Watson's distribution)
  */
-mot_float_type cmNoddi_EC(const mot_float_type4 g,
+mot_float_type cmNODDI_EC(const mot_float_type4 g,
                           const mot_float_type b,
                           const mot_float_type d,
                           const mot_float_type dperp,

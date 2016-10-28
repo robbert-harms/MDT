@@ -13,13 +13,13 @@
 // sqrt(pi)
 #define M_SQRTPI_F 1.7724538509055160f
 
-void Noddi_IC_LegendreGaussianIntegral(const mot_float_type x, mot_float_type* result);
-void Noddi_IC_WatsonSHCoeff(const mot_float_type kappa, mot_float_type* result);
-void Noddi_IC_create_legendre_terms(const mot_float_type x, mot_float_type* const legendre_terms);
+void NODDI_IC_LegendreGaussianIntegral(const mot_float_type x, mot_float_type* result);
+void NODDI_IC_WatsonSHCoeff(const mot_float_type kappa, mot_float_type* result);
+void NODDI_IC_create_legendre_terms(const mot_float_type x, mot_float_type* const legendre_terms);
 
 
 /**
- * Generate the compartment model signal for the Noddi Intra Cellular (Stick with dispersion) model.
+ * Generate the compartment model signal for the NODDI Intra Cellular (Stick with dispersion) compartment.
  * If Radius is fixed to 0 the model behaves as a stick (with dispersion), if non-fixed the model behaves as a
  * cylinder (with dispersion).
  *
@@ -37,7 +37,7 @@ void Noddi_IC_create_legendre_terms(const mot_float_type x, mot_float_type* cons
  * @params kappa parameter (concentration parameter of the Watson's distribution)
  * @params R the radius of the cylinder
  */
-mot_float_type cmNoddi_IC(const mot_float_type4 g,
+mot_float_type cmNODDI_IC(const mot_float_type4 g,
                           const mot_float_type b,
                           const mot_float_type G,
                           const mot_float_type Delta,
@@ -60,17 +60,17 @@ mot_float_type cmNoddi_IC(const mot_float_type4 g,
     mot_float_type Lpmp = LePerp + d * b;
 
     mot_float_type watson_coeff[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
-    Noddi_IC_WatsonSHCoeff(kappa, watson_coeff);
+    NODDI_IC_WatsonSHCoeff(kappa, watson_coeff);
 
     mot_float_type lgi[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
-    Noddi_IC_LegendreGaussianIntegral(Lpmp, lgi);
+    NODDI_IC_LegendreGaussianIntegral(Lpmp, lgi);
 
     // split the summation into two parts to save one array (reusing the lgi array for the legendre terms)
     for(int i = 0; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
         watson_coeff[i] *= lgi[i] * sqrt((i + 0.25)/M_PI_F);
     }
 
-    Noddi_IC_create_legendre_terms(cosTheta, lgi);
+    NODDI_IC_create_legendre_terms(cosTheta, lgi);
 
     mot_float_type signal = 0.0;
     for(int i = 0; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
@@ -95,7 +95,7 @@ mot_float_type cmNoddi_IC(const mot_float_type4 g,
  * [3] = firstLegendreTerm(x, 2 * 3)
  * ...
  */
-void Noddi_IC_create_legendre_terms(const mot_float_type x, mot_float_type* const legendre_terms){
+void NODDI_IC_create_legendre_terms(const mot_float_type x, mot_float_type* const legendre_terms){
     // this is the default if fabs(x) == 1.0
     // to eliminate the branch I added this to the front, this saves an if/else.
     // also, since we are after the legendre terms with a list with n = [0, 2*1, 2*2, 2*3, 2*4, ...]
@@ -127,7 +127,7 @@ void Noddi_IC_create_legendre_terms(const mot_float_type x, mot_float_type* cons
 }
 
 /**
-    Copied from the Matlab Noddi toolbox
+    Copied from the Matlab NODDI toolbox
 
     function [L, D] = legendreGaussianIntegral(x, n)
     Computes legendre gaussian integrals up to the order specified and the
@@ -140,7 +140,7 @@ void Noddi_IC_create_legendre_terms(const mot_float_type x, mot_float_type* cons
 
     original author: Gary Hui Zhang (gary.zhang@ucl.ac.uk)
 */
-void Noddi_IC_LegendreGaussianIntegral(const mot_float_type x, mot_float_type* const result){
+void NODDI_IC_LegendreGaussianIntegral(const mot_float_type x, mot_float_type* const result){
 
     if(x > 0.05){
         // exact
@@ -189,7 +189,7 @@ void Noddi_IC_LegendreGaussianIntegral(const mot_float_type x, mot_float_type* c
 
     author: Gary Hui Zhang (gary.zhang@ucl.ac.uk)
 */
-void Noddi_IC_WatsonSHCoeff(const mot_float_type kappa, mot_float_type* const result){
+void NODDI_IC_WatsonSHCoeff(const mot_float_type kappa, mot_float_type* const result){
     result[0] = M_SQRTPI_F * 2;
 
     if(kappa <= 30){
