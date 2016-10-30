@@ -19,7 +19,7 @@ class Noddi(CascadeConfig):
                        ('Noddi_IC.phi', 'Stick.phi')]}
 
 
-class Noddi_S0(CascadeConfig):
+class NoddiS0(CascadeConfig):
 
     name = 'Noddi (Cascade|S0)'
     description = 'Cascade for Noddi initialized with only an S0 fit.'
@@ -27,7 +27,7 @@ class Noddi_S0(CascadeConfig):
               'Noddi')
 
 
-class Noddi_Fixed(CascadeConfig):
+class NoddiFixed(CascadeConfig):
 
     name = 'Noddi (Cascade|fixed)'
     description = 'Cascade for Noddi with fixed directions from Ball&Stick.'
@@ -40,7 +40,7 @@ class Noddi_Fixed(CascadeConfig):
                        ('Noddi_IC.phi', 'Stick.phi')]}
 
 
-class Noddi_2(CascadeConfig):
+class Noddi2(CascadeConfig):
 
     name = 'Noddi2 (Cascade)'
     description = 'Cascade for Noddi2 initialized from Ball & 2x Stick.'
@@ -57,7 +57,7 @@ class Noddi_2(CascadeConfig):
                        ('Noddi_IC1.phi', 'Stick1.phi')]}
 
 
-class Noddi2_Fixed(CascadeConfig):
+class Noddi2Fixed(CascadeConfig):
 
     name = 'Noddi2 (Cascade|fixed)'
     description = 'Cascade for Noddi2 with fixed directions from Ball & 2x Stick.'
