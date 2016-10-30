@@ -7,12 +7,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-"""
-The Charmed compartments and models with CamelCase are being deprecated. Please use the all-capital version (CHARMED)
-instead in new works.
-"""
-
-class CharmedRestricted(CompartmentConfig):
+class CHARMEDRestricted(CompartmentConfig):
 
     parameter_list = ('g', 'b', 'q', 'Delta', 'delta', 'TE', 'd', 'theta', 'phi')
 

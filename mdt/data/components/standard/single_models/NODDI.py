@@ -7,13 +7,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-"""
-The Noddi compartments and models with CamelCase are being deprecated. Please use the all-capital version (NODDI)
-instead in new works.
-"""
-
-
-class NoddiTortuosityParameterDependency(AbstractParameterDependency):
+class NODDITortuosityParameterDependency(AbstractParameterDependency):
 
     def __init__(self, d, w_ec, w_ic, ):
         self._d = d
@@ -42,80 +36,80 @@ class NoddiTortuosityParameterDependency(AbstractParameterDependency):
         return False
 
 
-class Noddi(DMRISingleModelConfig):
+class NODDI(DMRISingleModelConfig):
 
     ex_vivo_suitable = False
-    description = 'The standard Noddi (NODDI) model'
+    description = 'The standard NODDI model'
 
     model_expression = '''
         S0 * ((Weight(w_csf) * Ball) +
-              (Weight(w_ic) * Noddi_IC) +
-              (Weight(w_ec) * Noddi_EC)
+              (Weight(w_ic) * NODDI_IC) +
+              (Weight(w_ec) * NODDI_EC)
               )
     '''
 
-    fixes = {'Noddi_IC.d': 1.7e-9,
-             'Noddi_IC.R': 0.0,
-             'Noddi_EC.d': 1.7e-9,
+    fixes = {'NODDI_IC.d': 1.7e-9,
+             'NODDI_IC.R': 0.0,
+             'NODDI_EC.d': 1.7e-9,
              'Ball.d': 3.0e-9}
 
     dependencies = (
-        ('Noddi_EC.dperp0', NoddiTortuosityParameterDependency('Noddi_EC.d', 'w_ec.w', 'w_ic.w')),
-        ('Noddi_EC.kappa', SimpleAssignment('Noddi_IC.kappa')),
-        ('Noddi_EC.theta', SimpleAssignment('Noddi_IC.theta')),
-        ('Noddi_EC.phi', SimpleAssignment('Noddi_IC.phi'))
+        ('NODDI_EC.dperp0', NODDITortuosityParameterDependency('NODDI_EC.d', 'w_ec.w', 'w_ic.w')),
+        ('NODDI_EC.kappa', SimpleAssignment('NODDI_IC.kappa')),
+        ('NODDI_EC.theta', SimpleAssignment('NODDI_IC.theta')),
+        ('NODDI_EC.phi', SimpleAssignment('NODDI_IC.phi'))
     )
 
     post_optimization_modifiers = [
         ('NDI', lambda d: d['w_ic.w'] / (d['w_ic.w'] + d['w_ec.w'])),
-        ('ODI', lambda d: d['Noddi_IC.odi'])
+        ('ODI', lambda d: d['NODDI_IC.odi'])
     ]
 
 
-class Noddi2(DMRISingleModelConfig):
+class NODDI2(DMRISingleModelConfig):
 
     ex_vivo_suitable = False
-    description = 'The Noddi model with two IC and EC compartments'
+    description = 'The NODDI model with two IC and EC compartments, non-official adaptation by MDT'
 
     model_expression = '''
             S0 * (
-                  (Weight(w_ic0) * Noddi_IC(Noddi_IC0)) +
-                  (Weight(w_ec0) * Noddi_EC(Noddi_EC0)) +
+                  (Weight(w_ic0) * NODDI_IC(NODDI_IC0)) +
+                  (Weight(w_ec0) * NODDI_EC(NODDI_EC0)) +
 
-                  (Weight(w_ic1) * Noddi_IC(Noddi_IC1)) +
-                  (Weight(w_ec1) * Noddi_EC(Noddi_EC1)) +
+                  (Weight(w_ic1) * NODDI_IC(NODDI_IC1)) +
+                  (Weight(w_ec1) * NODDI_EC(NODDI_EC1)) +
 
                   (Weight(w_csf) * Ball)
             )
         '''
 
-    fixes = {'Noddi_IC0.d': 1.7e-9,
-             'Noddi_IC0.R': 0.0,
-             'Noddi_IC1.d': 1.7e-9,
-             'Noddi_IC1.R': 0.0,
-             'Noddi_EC0.d': 1.7e-9,
-             'Noddi_EC1.d': 1.7e-9,
+    fixes = {'NODDI_IC0.d': 1.7e-9,
+             'NODDI_IC0.R': 0.0,
+             'NODDI_IC1.d': 1.7e-9,
+             'NODDI_IC1.R': 0.0,
+             'NODDI_EC0.d': 1.7e-9,
+             'NODDI_EC1.d': 1.7e-9,
              'Ball.d': 3.0e-9}
 
     dependencies = (
-        ('Noddi_EC0.dperp0', NoddiTortuosityParameterDependency('Noddi_EC0.d', 'w_ec0.w', 'w_ic0.w')),
-        ('Noddi_IC0.kappa', SimpleAssignment('((w_ic0.w + w_ec0.w) >= {cutoff}) * Noddi_IC0.kappa'.format(cutoff=0.01),
+        ('NODDI_EC0.dperp0', NODDITortuosityParameterDependency('NODDI_EC0.d', 'w_ec0.w', 'w_ic0.w')),
+        ('NODDI_IC0.kappa', SimpleAssignment('((w_ic0.w + w_ec0.w) >= {cutoff}) * NODDI_IC0.kappa'.format(cutoff=0.01),
                                              fixed=False)),
-        ('Noddi_EC0.kappa', SimpleAssignment('Noddi_IC0.kappa')),
-        ('Noddi_EC0.theta', SimpleAssignment('Noddi_IC0.theta')),
-        ('Noddi_EC0.phi', SimpleAssignment('Noddi_IC0.phi')),
+        ('NODDI_EC0.kappa', SimpleAssignment('NODDI_IC0.kappa')),
+        ('NODDI_EC0.theta', SimpleAssignment('NODDI_IC0.theta')),
+        ('NODDI_EC0.phi', SimpleAssignment('NODDI_IC0.phi')),
 
-        ('Noddi_EC1.dperp0', NoddiTortuosityParameterDependency('Noddi_EC1.d', 'w_ec1.w', 'w_ic1.w')),
-        ('Noddi_IC1.kappa', SimpleAssignment('((w_ic1.w + w_ec1.w) >= {cutoff}) * Noddi_IC1.kappa'.format(cutoff=0.01),
+        ('NODDI_EC1.dperp0', NODDITortuosityParameterDependency('NODDI_EC1.d', 'w_ec1.w', 'w_ic1.w')),
+        ('NODDI_IC1.kappa', SimpleAssignment('((w_ic1.w + w_ec1.w) >= {cutoff}) * NODDI_IC1.kappa'.format(cutoff=0.01),
                                              fixed=False)),
-        ('Noddi_EC1.kappa', SimpleAssignment('Noddi_IC1.kappa')),
-        ('Noddi_EC1.theta', SimpleAssignment('Noddi_IC1.theta')),
-        ('Noddi_EC1.phi', SimpleAssignment('Noddi_IC1.phi')),
+        ('NODDI_EC1.kappa', SimpleAssignment('NODDI_IC1.kappa')),
+        ('NODDI_EC1.theta', SimpleAssignment('NODDI_IC1.theta')),
+        ('NODDI_EC1.phi', SimpleAssignment('NODDI_IC1.phi')),
     )
 
     post_optimization_modifiers = (
         ('NDI0', lambda d: d['w_ic0.w'] / (d['w_ic0.w'] + d['w_ec0.w'])),
-        ('ODI0', lambda d: d['Noddi_IC0.odi']),
+        ('ODI0', lambda d: d['NODDI_IC0.odi']),
         ('NDI1', lambda d: d['w_ic1.w'] / (d['w_ic1.w'] + d['w_ec1.w'])),
-        ('ODI1', lambda d: d['Noddi_IC1.odi'])
+        ('ODI1', lambda d: d['NODDI_IC1.odi'])
     )
