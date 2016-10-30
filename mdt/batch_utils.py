@@ -104,11 +104,11 @@ class SimpleBatchProfile(BatchProfile):
         self._append_mask_name_to_output_sub_dir = True
         self.models_to_fit = ('BallStick (Cascade)',
                               'Tensor (Cascade)',
-                              'Noddi (Cascade)',
+                              'NODDI (Cascade)',
                               'BallStickStickStick (Cascade)',
-                              'Charmed_r1 (Cascade)',
-                              'Charmed_r2 (Cascade)',
-                              'Charmed (Cascade)')
+                              'CHARMED_r1 (Cascade)',
+                              'CHARMED_r2 (Cascade)',
+                              'CHARMED_r3 (Cascade)')
 
     @property
     def output_base_dir(self):
