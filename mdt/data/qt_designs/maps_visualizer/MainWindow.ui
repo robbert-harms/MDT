@@ -294,7 +294,7 @@
     <addaction name="actionSave_settings"/>
     <addaction name="actionLoad_settings"/>
     <addaction name="separator"/>
-    <addaction name="actionExport"/>
+    <addaction name="actionSaveImage"/>
     <addaction name="separator"/>
     <addaction name="actionQuit"/>
    </widget>
@@ -321,12 +321,12 @@
     <string>Ctrl+Q</string>
    </property>
   </action>
-  <action name="actionExport">
+  <action name="actionSaveImage">
    <property name="text">
-    <string>&amp;Export</string>
+    <string>&amp;Save image</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+E</string>
+    <string>Ctrl+S</string>
    </property>
   </action>
   <action name="actionAbout">
@@ -346,12 +346,12 @@
   </action>
   <action name="actionSave_settings">
    <property name="text">
-    <string>&amp;Save settings</string>
+    <string>&amp;Export settings</string>
    </property>
   </action>
   <action name="actionLoad_settings">
    <property name="text">
-    <string>&amp;Load settings</string>
+    <string>&amp;Import settings</string>
    </property>
   </action>
  </widget>

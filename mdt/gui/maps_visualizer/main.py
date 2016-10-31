@@ -16,7 +16,7 @@ from mdt.gui.maps_visualizer.actions import NewConfigAction
 from mdt.gui.maps_visualizer.config_tabs.tab_general import TabGeneral
 from mdt.gui.maps_visualizer.config_tabs.tab_map_specific import TabMapSpecific
 from mdt.gui.maps_visualizer.config_tabs.tab_textual import TabTextual
-from mdt.gui.maps_visualizer.design.ui_export_dialog import Ui_ExportImageDialog
+from mdt.gui.maps_visualizer.design.ui_save_image_dialog import Ui_SaveImageDialog
 
 matplotlib.use('Qt5Agg')
 
@@ -67,7 +67,7 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
 
         self.actionAbout.triggered.connect(lambda: AboutDialog(self).exec_())
         self.actionOpen_directory.triggered.connect(self._open_new_directory)
-        self.actionExport.triggered.connect(lambda: ExportImageDialog(self, self.plotting_frame).exec_())
+        self.actionSaveImage.triggered.connect(lambda: ExportImageDialog(self, self.plotting_frame).exec_())
         self.actionBrowse_to_current_folder.triggered.connect(
             lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self._controller.get_data().directory)))
         self.actionSave_settings.triggered.connect(lambda: self._save_settings())
@@ -82,7 +82,6 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
     @pyqtSlot(DataInfo)
     def set_new_data(self, data_info):
         self.actionBrowse_to_current_folder.setDisabled(self._controller.get_data().directory is None)
-        self.actionExport.setDisabled(self._controller.get_data().directory is None)
 
     @pyqtSlot(ValidatedMapPlotConfig)
     def set_new_config(self, config):
@@ -170,7 +169,7 @@ class PlottingFrameInfoToStatusBar(PlottingFrameInfoViewer):
         self._status_bar_label.setText("")
 
 
-class ExportImageDialog(Ui_ExportImageDialog, QDialog):
+class ExportImageDialog(Ui_SaveImageDialog, QDialog):
 
     def __init__(self, parent, plotting_frame):
         super(ExportImageDialog, self).__init__(parent)

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>ExportImageDialog</class>
- <widget class="QDialog" name="ExportImageDialog">
+ <class>SaveImageDialog</class>
+ <widget class="QDialog" name="SaveImageDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Export image</string>
+   <string>Save Image</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
@@ -27,7 +27,7 @@
         </font>
        </property>
        <property name="text">
-        <string>Export image</string>
+        <string>Save image</string>
        </property>
       </widget>
      </item>
@@ -222,7 +222,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>ExportImageDialog</receiver>
+   <receiver>SaveImageDialog</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -238,7 +238,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>ExportImageDialog</receiver>
+   <receiver>SaveImageDialog</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
