@@ -2,7 +2,7 @@
 
 Dynamic modules
 ===============
-MDT automatically loads certain modules at application startup from a folder on your home drive.
+At application startup MDT automatically loads certain modules from a folder on your home drive.
 These modules are Python files containing functionality that the user can extend without the need to reinstall or recompile MDT.
 
 After installing MDT you will have a folder in your home drive named ``.mdt``. This folder contains, for every version of MDT that existed on your machine,
@@ -23,24 +23,29 @@ a directory containing the configuration files and a folder with the dynamically
                 * ...
 
 
-The components folder is split into two parts, *standard* and *user*, each containing the same folder structure. By editing the
-contents of these folders, the user can add, extend and remove functionality in MDT. The folder named *standard* contains modules
+The configuration files are discussed in :ref:`configuration`.
+The components folder is split into two parts, *standard* and *user* with an identical folder structure. By editing the
+contents of these folders, the user can add, extend and/or remove functionality in MDT. The folder named *standard* contains modules
 that come pre-supplied with MDT. These modules can change from version to version and any change you make in in this folder will be lost
-after a upgrade to a new version. Modules that you want to persist from version to version can be added to the *user* folder. The content of this folder
-is automatically copied to a new version.
-
+after an upgrade to a new version. If you want to persist your changes from version to version you can add your modules to the *user* folder.
+The content of this folder is automatically copied to a new version.
 For example, to add a custom Batch Profile, copy one of the existing batch profiles from the standard folder to the user folder and adapt it to your liking.
-Afterwards it is automatically picked up by MDT.
+At application startup it is then automatically picked up by MDT.
+In the case of naming conflicts the modules in the user folder take priority over the modules in the standard folder.
 
-The modules in the user folder take priority over the modules in the standard folder in the case of equal names.
+The rest of this chapter explains the various components in more detail.
 
 
 .. _dynamic_modules_parameters:
 
 Parameters
 ----------
-Every compartment model consists of one or more parameters. The exact semantics of each parameter is determined by the
-class from which it inherits. For example, compare these two parameters::
+Parameters form the building blocks of the compartment models. When constructing a compartment model, you have to define one or more
+parameters. The semantics of these parameters determine how the data is provided to the model. For example, protocol parameters guarantee that the
+corresponding data is loaded from the protocol file. Free parameters on the other hand are commonly the parameters being optimized.
+
+The exact semantics of each parameter is determined by the class from which it inherits.
+For example, compare these two parameters::
 
     class theta(FreeParameterConfig):
         ...
@@ -64,9 +69,9 @@ See the sections below for more details on each type.
 Free parameters
 ^^^^^^^^^^^^^^^
 These parameters are supposed to be optimized by the optimization routines. They contain some meta-information such as a
-lower- and upper- bound, sampling prior, parameter transformation function and so forth. During optimization, parameters of this type may be fixed
-to a specific value, which means that they are no longer optimized but that their values (per voxel) are provided by the fixed value.
-When fixed they are still classified as free parameters to distinguish them from the other parameter types.
+lower- and upper- bound, sampling prior, parameter transformation function and more. During optimization, parameters of this type can be fixed
+to a specific value, which means that they are no longer optimized but that their values (per voxel) are provided by a static map.
+When fixed, these parameters are still classified as free parameters to distinguish them from the other parameter types.
 
 A free parameter is identified by having the super class :py:class:`~mdt.models.parameters.FreeParameterConfig` and
 are commonly placed in the Python module named ``free.py``.
@@ -76,15 +81,15 @@ are commonly placed in the Python module named ``free.py``.
 Protocol parameters
 ^^^^^^^^^^^^^^^^^^^
 These parameters are meant to be fulfilled by the values in the Protocol (see :ref:`concepts_protocol` in Concepts). During model optimization
-MDT checks the model for protocol parameters and tries to match the parameter names with the column names in the Protocol.
-If for some protocol parameters no match can be found, MDT issues a warning that the protocol is insufficient for the given model.
+MDT checks for any protocol parameters and tries to match the parameter names in the model with the column names in the Protocol.
+This is an important step since it allows the user to add their own column definitions to the protocol file.
+If during name resolution for some protocol parameters no match can be found, MDT will issue a warning that the protocol is insufficient for the given model.
 
 The values in the protocol are assumed constant over voxels and dynamic over volumes. That is, the values in the protocol file have, for each column, one value per volume.
 That value is then used for every voxel in that volume. To have static values that are dynamic per volume and per voxel, use :ref:`static_map_parameters`.
 
 A protocol parameter is identified by having the super class :py:class:`~mdt.models.parameters.ProtocolParameterConfig` and
 are commonly placed in the Python module named ``protocol.py``.
-
 
 .. _static_map_parameters:
 
@@ -118,10 +123,11 @@ Compartment model
 -----------------
 The compartment models form the components from which the multi-compartment models are build. They consists, in basis, of
 two parts, a list of parameters (see :ref:`dynamic_modules_parameters`) and the model code in OpenCL C (the OpenCL dialect of C99).
-At runtime MDT loads the C code of the compartment and combines it with the other compartments to form the multi-compartment model.
-The parameters and their configuration are used to load the correct data from the :ref:`problem data <concepts_problem_data_models>` during, for example, model optimization.
+At runtime MDT loads the C code of the compartment model and combines it with the other compartments to form the multi-compartment model.
+The parameters and their configuration are used to load the correct data from the :ref:`problem data <concepts_problem_data_models>` for model optimization and sampling.
 
-The following is an example compartment model expression, copied from the Stick compartment in MDT::
+The compartment models must be defined in a ``.py`` file where the **filename matches** the **class name** and it only allows for **one** compartment **per file**.
+For example, the following example compartment model is named ``Stick`` and must therefore be contained in a file named ``Stick.py``::
 
     class Stick(CompartmentConfig):
 
@@ -132,24 +138,47 @@ The following is an example compartment model expression, copied from the Stick 
         '''
 
 
-this example contains all the basic definitions required for a compartment model.
-The elements of the parameter list can either be a parameter instance or it can be a reference to one of the parameters defined in the dynamically loadable parameters.
-Hence, this is also a valid parameter list::
+This ``Stick`` example compartment contains all the basic definitions required for a compartment model, a parameter list and CL code.
+The elements of the parameter list can either be reference to one of the parameters defined in the dynamically loadable parameters (like shown here), or it can be an instance of a parameter.
+For example, this is also a valid parameter list::
 
-
-    class my_special_param(FreeParameterConfig):
+    class special_param(FreeParameterConfig):
         ...
 
     class MyModel(CompartmentConfig):
 
-        parameter_list = ('g', 'b', my_special_param())
+        parameter_list = ('g', 'b', special_param())
 
 
+here the parameters ``g`` and ``b`` are loaded from the dynamically loadable parameters while the ``special_param`` is given as an instance.
 
-here the parameters ``g`` and ``b`` are loaded from the parameters
+The CL code for a compartment model can either be given in the definition of the compartment like shown here, or it can be provided in a separate ``.cl`` file with the same name as the compartment.
+For example, these two files are also a valid way of including the CL model code:
 
+``Stick.py``::
 
+    class Stick(CompartmentConfig):
 
+        parameter_list = ('g', 'b', 'd', 'theta', 'phi')
+
+``Stick.cl``:
+
+.. code-block:: c
+
+    mot_float_type cmStick(
+        const mot_float_type4 g,
+        const mot_float_type b,
+        const mot_float_type d,
+        const mot_float_type theta,
+        const mot_float_type phi){
+
+        return exp(-b * d * pown(dot(g, (mot_float_type4)(cos(phi) * sin(theta),
+                                                                  sin(phi) * sin(theta), cos(theta), 0.0)), 2));
+    }
+
+Note the absence of the attribute ``cl_code`` in the ``Stick.py`` file and note the naming scheme where the two filenames and the model name are exactly the same.
+Also note that with this setup you will need to provide the function signature and this signature should match the parameter list.
+An advantage of the external ``.cl`` file is that you can include additional subroutines in your model definition.
 
 
 Single models

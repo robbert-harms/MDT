@@ -52,10 +52,10 @@ mdt.gui.maps_visualizer.design.ui_TabTextual module
     :undoc-members:
     :show-inheritance:
 
-mdt.gui.maps_visualizer.design.ui_export_dialog module
-------------------------------------------------------
+mdt.gui.maps_visualizer.design.ui_save_image_dialog module
+----------------------------------------------------------
 
-.. automodule:: mdt.gui.maps_visualizer.design.ui_export_dialog
+.. automodule:: mdt.gui.maps_visualizer.design.ui_save_image_dialog
     :members:
     :undoc-members:
     :show-inheritance:
