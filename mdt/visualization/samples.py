@@ -114,7 +114,7 @@ class SampleVisualizer(object):
         if self._show_trace:
             nmr_maps *= 2
 
-        grid = GridSpec(nmr_maps, 1, left=0.04, right=0.96, top=0.97, bottom=0.04, hspace=0.4)
+        grid = GridSpec(nmr_maps, 1, left=0.04, right=0.96, top=0.94, bottom=0.06, hspace=0.2)
 
         i = 0
         for map_name in self.maps_to_show:
