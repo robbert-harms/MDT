@@ -123,8 +123,7 @@ Compartment model
 -----------------
 The compartment models form the components from which the multi-compartment models are build. They consists, in basis, of
 two parts, a list of parameters (see :ref:`dynamic_modules_parameters`) and the model code in OpenCL C (the OpenCL dialect of C99).
-At runtime MDT loads the C code of the compartment model and combines it with the other compartments to form the multi-compartment model.
-The parameters and their configuration are used to load the correct data from the :ref:`problem data <concepts_problem_data_models>` for model optimization and sampling.
+At runtime MDT loads the C code of the compartment model and combines it with the other compartments to form the multi-compartment model (see :ref:`concepts_cl_code`).
 
 The compartment models must be defined in a ``.py`` file where the **filename matches** the **class name** and it only allows for **one** compartment **per file**.
 For example, the following example compartment model is named ``Stick`` and must therefore be contained in a file named ``Stick.py``::
@@ -138,9 +137,9 @@ For example, the following example compartment model is named ``Stick`` and must
         '''
 
 
-This ``Stick`` example compartment contains all the basic definitions required for a compartment model, a parameter list and CL code.
-The elements of the parameter list can either be reference to one of the parameters defined in the dynamically loadable parameters (like shown here), or it can be an instance of a parameter.
-For example, this is also a valid parameter list::
+This ``Stick`` example contains all the basic definitions required for a compartment model, a parameter list and CL code.
+The elements of the parameter list can either be string, referencing one of the parameters defined in the dynamically loadable parameters (like shown here),
+or it can directly be an instance of a parameter. For example, this is also a valid parameter list::
 
     class special_param(FreeParameterConfig):
         ...
@@ -150,10 +149,12 @@ For example, this is also a valid parameter list::
         parameter_list = ('g', 'b', special_param())
 
 
-here the parameters ``g`` and ``b`` are loaded from the dynamically loadable parameters while the ``special_param`` is given as an instance.
+here the parameters ``g`` and ``b`` are loaded from the dynamically loadable parameters while the ``special_param`` is given as a parameter instance.
 
-The CL code for a compartment model can either be given in the definition of the compartment like shown here, or it can be provided in a separate ``.cl`` file with the same name as the compartment.
-For example, these two files are also a valid way of including the CL model code:
+The CL code for a compartment model can either be given in the definition of the compartment, like shown here, or it can be provided in
+a separate ``.cl`` file with the same name as the compartment.
+An advantage of using an external ``.cl`` file is that you can include additional subroutines in your model definition.
+The following is an example of splitting the CL code from the compartment model definition:
 
 ``Stick.py``::
 
@@ -177,13 +178,58 @@ For example, these two files are also a valid way of including the CL model code
     }
 
 Note the absence of the attribute ``cl_code`` in the ``Stick.py`` file and note the naming scheme where the two filenames and the model name are exactly the same.
-Also note that with this setup you will need to provide the function signature and this signature should match the parameter list.
-An advantage of the external ``.cl`` file is that you can include additional subroutines in your model definition.
+Also note that with this setup you will need to provide the function signature yourself. The syntax of this signature is as follows:
+
+.. code-block:: c
+
+    mot_float_type cm<YourModelName>(
+        <type_modifiers> <param_name>,
+        ...
+    )
+
+Where ``<YourModelName>`` ideally matches the name of your compartment model and the type modifier in ``<type_modifier>`` should match that of your parameter definition.
+MDT commonly uses the ``mot_float_type`` which is type defined to either float or double (see :ref:`concepts_cl_code`) depending on if you use double precision or not.
+The model name does not necessarily needs to match that of the filenames, but it should be unique to avoid naming conflicts during compilation.
 
 
 Single models
 -------------
-todo
+The single models, or, multi-compartment models are the models that MDT actually optimizes.
+Since multi-compartment is a long word and not all models are necessary multi-compartment models, MDT uses the name single models to refer to the
+models that are being optimized using the optimization routines. Also this differentiates them from *models* in general and from the *cascade models*.
+
+Just as the compartments are built using parameters as a building block, the single models are built using compartments as building blocks  .
+Since the compartments already contain the CL code, no further model coding is necessary in the multi-compartment models.
+When asked to optimize (or sample) a model, MDT combines the CL code of the compartments into one objective function and uses the
+parameters of the compartments to load the correct data.
+
+In contrast to the compartment models which must be placed in their own file, the single models can be placed in any ``.py`` file within the ``single_models`` directory.
+The following is an minimum example of a single (multi-compartment) model in MDT::
+
+    class BallStickStick(DMRISingleModelConfig):
+
+        model_expression = '''
+            S0 * ( (Weight(w_ball) * Ball) +
+                   (Weight(w_stick0) * Stick(Stick0)) +
+                   (Weight(w_stick1) * Stick(Stick1)) )
+        '''
+
+The model expression is a string that expresses the model in a MDT model specific mini-language.
+This language, which only accepts the operators ``*``, ``/``, ``+`` and ``-`` can be used to combine your compartments in any way possible (within the grammar of the mini-language).
+MDT parses this string, loads the compartments from the compartment models and uses the CL code of these compartments to create the CL objective function for your model.
+
+The example above combines the compartments (``Ball`` and ``Stick``) as a weighted summation using the special compartment ``Weight`` for the compartment weighting
+(these weights are sometimes called volume fractions).
+The example also shows compartment renaming.
+Since it is possible to use a compartment multiple times, it is necessary to rename the double compartments to ensure that all the compartments have a unique name.
+This renaming can be done by specifying the renamed model name in parenthesis after the compartment model name.
+For example ``Stick(Stick0)`` refers to a ``Stick`` compartment that has been renamed to ``Stick0``. This new name is then used to refer to that specific compartment in the
+rest of the single model attributes.
+
+* parameter dependencies
+* weights have auto summation
+
+
 
 
 Cascade models

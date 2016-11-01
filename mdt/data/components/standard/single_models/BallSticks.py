@@ -90,10 +90,10 @@ class BallStickStick(DMRISingleModelConfig):
     ex_vivo_suitable = False
     description = 'The Ball & 2x Stick model'
     model_expression = '''
-            S0 * ( (Weight(w_ball) * Ball) +
-                   (Weight(w_stick0) * Stick(Stick0)) +
-                   (Weight(w_stick1) * Stick(Stick1)) )
-        '''
+        S0 * ( (Weight(w_ball) * Ball) +
+               (Weight(w_stick0) * Stick(Stick0)) +
+               (Weight(w_stick1) * Stick(Stick1)) )
+    '''
     fixes = {'Ball.d': 3.0e-9,
              'Stick0.d': 1.7e-9,
              'Stick1.d': 1.7e-9}

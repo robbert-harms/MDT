@@ -59,7 +59,7 @@ Problem data and models
 -----------------------
 TODO
 
-* DMRIProblemData class
+* :py:class:`~mdt.utils.DMRIProblemData`
 * interaction between models and problem data
 
 
@@ -68,3 +68,14 @@ Dynamic modules
 MDT can easily be adapted and extended with new models using dynamically loadable modules placed in your home folder.
 These modules are Python files placed in the ``.mdt`` folder in your home drive and are reloaded every time MDT is started.
 Users are free to add, remove and modify these components, for more information see :ref:`dynamic_modules` for more information.
+
+
+.. _concepts_cl_code:
+
+CL code
+-------
+todo:
+* mot_float_type, float and double
+* how does the compilation work
+* figure from presentation julich
+* one big namespace
