@@ -1,3 +1,5 @@
+from collections import MutableMapping
+
 __author__ = 'Robbert Harms'
 __date__ = "2016-09-03"
 __maintainer__ = "Robbert Harms"
@@ -135,7 +137,39 @@ class StringConversion(IdentityConversion):
 
 
 class SimpleDictConversion(IdentityConversion):
-    pass
+
+    def __init__(self, desired_type=None, allow_null=True):
+        """Converts all the objects in the given dict.
+
+        Args:
+            desired_type (:class:`type`): if not None we cast the from_dict value to the given type
+            allow_null (bool): if True we allow None during type casting
+        """
+        super(IdentityConversion, self).__init__()
+        self._desired_type = desired_type
+        self._allow_none = allow_null
+
+    def to_dict(self, obj):
+        if obj is None:
+            if self._allow_none:
+                return None
+            else:
+                raise ValueError('The object is supposed to be not None.')
+        else:
+            if self._desired_type and isinstance(obj, MutableMapping):
+                return {key: self._desired_type(v) for key, v in obj.items()}
+        return obj
+
+    def from_dict(self, value):
+        if value is None:
+            if self._allow_none:
+                return None
+            else:
+                raise ValueError('The object is supposed to be not None.')
+        else:
+            if self._desired_type and isinstance(value, MutableMapping):
+                return {key: self._desired_type(v) for key, v in value.items()}
+        return value
 
 
 class IntConversion(IdentityConversion):

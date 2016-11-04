@@ -20,7 +20,8 @@ class MapPlotConfig(object):
 
     def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=90, colormap='hot', maps_to_show=None,
                  font=None, grid_layout=None, colorbar_nmr_ticks=10, show_axis=True, zoom=None,
-                 map_plot_options=None, interpolation='bilinear', flipud=None):
+                 map_plot_options=None, interpolation='bilinear', flipud=None,
+                 title=None):
         """Container for all plot related settings.
 
         Args:
@@ -39,6 +40,7 @@ class MapPlotConfig(object):
             map_plot_options (dict): per map the map specific plot options
             interpolation (str): one of the available interpolations
             flipud (boolean): if True we flip the image upside down
+            title (str): the title to this plot
         """
         super(MapPlotConfig, self).__init__()
         self.dimension = dimension
@@ -59,6 +61,7 @@ class MapPlotConfig(object):
         if self.flipud is None:
             self.flipud = False
         self.map_plot_options = map_plot_options or {}
+        self.title = title
 
         if interpolation not in self.get_available_interpolations():
             raise ValueError('The given interpolation ({}) is not supported.'.format(interpolation))
@@ -113,6 +116,7 @@ class MapPlotConfig(object):
                 'grid_layout': ConvertDynamicFromModule(mdt.visualization.layouts),
                 'interpolation': WhiteListConversion(cls.get_available_interpolations(), 'bilinear'),
                 'flipud': BooleanConversion(allow_null=False),
+                'title': StringConversion()
                 }
 
     @classmethod
@@ -146,9 +150,20 @@ class MapPlotConfig(object):
 
 class SingleMapConfig(object):
 
-    def __init__(self, title=None, scale=None, clipping=None, colormap=None, colorbar_label=None):
+    def __init__(self, title=None, scale=None, clipping=None, colormap=None, colorbar_label=None, title_spacing=None):
+        """Creates the configuration for a single map plot.
+
+        Args:
+            title (str): the title of this plot, can contain latex using the matplotlib latex syntax
+            scale (Scale): the scaling for the values in this map
+            clipping (Clipping): the clipping to apply to the values prior to plotting
+            colormap (str): the matplotlib colormap to use
+            colorbar_label (str): the label for the colorbar
+            title_spacing (float): the spacing between the top of the plots and the title
+        """
         super(SingleMapConfig, self).__init__()
         self.title = title
+        self.title_spacing = title_spacing
         self.scale = scale or Scale()
         self.clipping = clipping or Clipping()
         self.colormap = colormap
@@ -167,7 +182,8 @@ class SingleMapConfig(object):
                 'scale': Scale.get_conversion_info(),
                 'clipping': Clipping.get_conversion_info(),
                 'colormap': StringConversion(),
-                'colorbar_label': StringConversion()}
+                'colorbar_label': StringConversion(),
+                'title_spacing': FloatConversion()}
 
     @classmethod
     def get_available_colormaps(cls):

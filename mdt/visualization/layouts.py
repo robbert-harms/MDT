@@ -1,7 +1,6 @@
 import itertools
 import numpy as np
 from matplotlib.gridspec import GridSpec
-
 from mdt.visualization.dict_conversion import SimpleClassConversion, IntConversion, SimpleDictConversion
 
 __author__ = 'Robbert Harms'
@@ -18,13 +17,20 @@ class GridLayout(object):
                                      'top': 0.97, 'bottom': 0.04,
                                      'wspace': 0.5, 'hspace': 0.2}
 
+        if self.spacings['top'] < self.spacings['bottom']:
+            raise ValueError('The top ({}) can not be smaller than the bottom ({}) in the spacings'.format(
+                self.spacings['top'], self.spacings['bottom']))
+        if self.spacings['left'] > self.spacings['right']:
+            raise ValueError('Left ({}) can not be larger than right ({}) in the spacings'.format(
+                self.spacings['left'], self.spacings['right']))
+
     @classmethod
     def get_conversion_info(cls):
         return SimpleClassConversion(cls, cls._get_attribute_conversions())
 
     @classmethod
     def _get_attribute_conversions(cls):
-        return {'spacings': SimpleDictConversion()}
+        return {'spacings': SimpleDictConversion(desired_type=float)}
 
     def get_gridspec(self, figure, nmr_plots):
         """Get the grid layout specifier for the given figure using the given number of plots.

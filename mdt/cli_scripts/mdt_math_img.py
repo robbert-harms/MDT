@@ -84,10 +84,14 @@ class MathImg(BasicShellApplication):
                             help="Evaluates the given string as an statement.")
         parser.set_defaults(as_expression=True)
 
-        parser.add_argument('-o', '--output_file',
+        parser.add_argument('-o', '--output-file',
                             action=mdt.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
                             help='the output file, if not set nothing is written').completer = \
             FilesCompleter(['nii', 'gz', 'hdr', 'img'], directories=False)
+
+        parser.add_argument('-4d', '--input-4d', action='store_true',
+                            help='Add a singleton dimension to all input 3d maps to make them 4d, this prevents '
+                                 'some broadcast issues.')
 
         parser.add_argument('--verbose', '-v', action='store_true', help="Verbose, prints runtime information")
 
@@ -110,6 +114,10 @@ class MathImg(BasicShellApplication):
             print('')
 
         images = [mdt.load_nifti(dwi_image).get_data() for dwi_image in file_names]
+
+        if args.input_4d:
+            images = self._images_3d_to_4d(images)
+
         context_dict = {'input': images, 'i': images, 'np': np, 'mdt': mdt}
         alpha_chars = list('abcdefghjklmnopqrstuvwxyz')
 
@@ -156,6 +164,8 @@ class MathImg(BasicShellApplication):
         if write_output:
             mdt.write_image(output_file, output, mdt.load_nifti(file_names[0]).get_header())
 
+    def _images_3d_to_4d(self, images):
+        return list([image[..., np.newaxis] if len(image.shape) == 3 else image for image in images])
 
 if __name__ == '__main__':
     MathImg().start()

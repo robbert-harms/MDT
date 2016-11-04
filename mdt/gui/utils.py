@@ -192,7 +192,7 @@ class MainTab(object):
 
 class DirectoryImageWatcher(QObject):
 
-    image_updates = pyqtSignal(tuple, tuple, dict)
+    image_updates = pyqtSignal(tuple, tuple)
 
     def __init__(self, directory=None):
         """Watches a given directory for added, removed and/or updated nifti files.
@@ -241,7 +241,7 @@ class DirectoryImageWatcher(QObject):
         additions = set(new_file_list).difference(self._current_files)
 
         self._current_files = new_file_list
-        self.image_updates.emit(tuple(additions), tuple(removals), {})
+        self.image_updates.emit(tuple(additions), tuple(removals))
 
 
 class TimedUpdate(QTimer):

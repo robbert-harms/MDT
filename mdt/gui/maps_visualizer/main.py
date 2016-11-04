@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QLabel
 from PyQt5.QtWidgets import QMainWindow
 
-from mdt.gui.maps_visualizer.actions import NewConfigAction
+from mdt.gui.maps_visualizer.actions import NewConfigAction, SetMapsToShow
 from mdt.gui.maps_visualizer.config_tabs.tab_general import TabGeneral
 from mdt.gui.maps_visualizer.config_tabs.tab_map_specific import TabMapSpecific
 from mdt.gui.maps_visualizer.config_tabs.tab_textual import TabTextual
@@ -40,7 +40,7 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self._controller.new_config.connect(self.set_new_config)
 
         self._directory_watcher = DirectoryImageWatcher()
-        self._directory_watcher.image_updates.connect(self._update_viewed_images)
+        self._directory_watcher.image_updates.connect(self._directory_changed)
 
         self._coordinates_label = QLabel()
 
@@ -83,6 +83,9 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
     def set_new_data(self, data_info):
         self.actionBrowse_to_current_folder.setDisabled(self._controller.get_data().directory is None)
 
+        if self._controller.get_data().directory is not None:
+            self._directory_watcher.set_directory(self._controller.get_data().directory)
+
     @pyqtSlot(ValidatedMapPlotConfig)
     def set_new_config(self, config):
         self.undo_config.setDisabled(not self._controller.has_undo())
@@ -104,12 +107,10 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
                 self._controller.set_data(data, config)
 
     @pyqtSlot(tuple, tuple, dict)
-    def _update_viewed_images(self, additions, removals, updates):
+    def _directory_changed(self, additions, removals):
         data = DataInfo.from_dir(self._controller.get_data().directory)
-        if self._controller.get_data().maps:
-            config = self._controller.get_config()
-        else:
-            config = None
+        config = self._controller.get_config()
+        config.maps_to_show = [m for m in config.maps_to_show if m not in removals]
         self._controller.set_data(data, config)
 
     @pyqtSlot()
@@ -171,6 +172,9 @@ class PlottingFrameInfoToStatusBar(PlottingFrameInfoViewer):
 
 class ExportImageDialog(Ui_SaveImageDialog, QDialog):
 
+    previous_values = {'width': None, 'height': None,
+                       'dpi': None, 'output_file': None}
+
     def __init__(self, parent, plotting_frame):
         super(ExportImageDialog, self).__init__(parent)
         self.setupUi(self)
@@ -179,6 +183,15 @@ class ExportImageDialog(Ui_SaveImageDialog, QDialog):
         self.buttonBox.button(QDialogButtonBox.Ok).clicked.connect(self._export_image)
         self.outputFile_box.textChanged.connect(self._update_ok_button)
         self.outputFile_chooser.clicked.connect(lambda: self._select_file())
+
+        if self.previous_values['width']:
+            self.width_box.setValue(self.previous_values['width'])
+        if self.previous_values['height']:
+            self.height_box.setValue(self.previous_values['height'])
+        if self.previous_values['dpi']:
+            self.dpi_box.setValue(self.previous_values['dpi'])
+        if self.previous_values['output_file']:
+            self.outputFile_box.setText(self.previous_values['output_file'])
 
     @pyqtSlot()
     def _update_ok_button(self):
@@ -197,6 +210,10 @@ class ExportImageDialog(Ui_SaveImageDialog, QDialog):
     def _export_image(self):
         self._plotting_frame.export_image(self.outputFile_box.text(), self.width_box.value(), self.height_box.value(),
                                           dpi=self.dpi_box.value())
+        self.previous_values['width'] = self.width_box.value()
+        self.previous_values['height'] = self.height_box.value()
+        self.previous_values['dpi'] = self.dpi_box.value()
+        self.previous_values['output_file'] = self.outputFile_box.text()
 
 
 class AboutDialog(Ui_AboutDialog, QDialog):

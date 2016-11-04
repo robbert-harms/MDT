@@ -162,13 +162,17 @@ class Renderer(object):
         grid_layout_specifier = self._plot_config.grid_layout.get_gridspec(
             self._figure, len(self._plot_config.maps_to_show))
 
+        if self._plot_config.title:
+            self._figure.suptitle(self._plot_config.title, fontsize=self._plot_config.font.size,
+                                  family=self._plot_config.font.name)
+
         for ind, map_name in enumerate(self._plot_config.maps_to_show):
             axis = grid_layout_specifier.get_axis(ind)
             axis_data = self._render_map(map_name, axis)
             self.image_axes.append(axis_data)
 
     def _render_map(self, map_name, axis):
-        axis.set_title(self._get_title(map_name), y=1.0)
+        axis.set_title(self._get_title(map_name), y=self._get_title_spacing(map_name))
         axis.axis('on' if self._plot_config.show_axis else 'off')
 
         data = self._get_image(map_name)
@@ -238,6 +242,9 @@ class Renderer(object):
 
     def _get_title(self, map_name):
         return self._get_map_attr(map_name, 'title', map_name)
+
+    def _get_title_spacing(self, map_name):
+        return 1 + self._get_map_attr(map_name, 'title_spacing', 0)
 
     def _get_map_plot_options(self, map_name):
         output_dict = {'vmin': self._data_info.maps[map_name].min(),

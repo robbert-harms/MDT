@@ -104,7 +104,8 @@ class ValidatedMapPlotConfig(MapPlotConfig):
 
     def _validate_maps_to_show(self, data_info):
         if any(map(lambda k: k not in data_info.maps, self.maps_to_show)):
-            raise ValueError('One of the given maps to show is not in the data.')
+            raise ValueError('One or more of the given maps to show is not in the data: {}'.
+                             format(set(self.maps_to_show).difference(set(data_info.maps))))
 
     def _validate_dimension(self, data_info):
         max_dim = data_info.get_max_dimension(map_names=self.maps_to_show)
