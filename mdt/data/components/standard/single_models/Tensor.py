@@ -42,22 +42,3 @@ class TensorExVivo(Tensor):
     inits = {'Tensor.d': 0.6e-9,
              'Tensor.dperp0': 0.6e-10,
              'Tensor.dperp1': 0.6e-10}
-
-
-class TensorT2(Tensor):
-
-    name = 'Tensor-T2'
-    description = 'The Tensor model with in vivo defaults and extra T2 scaling.'
-    model_expression = '''
-            S0 * ExpT2Dec * Tensor
-        '''
-
-
-class TensorT2ExVivo(TensorExVivo):
-
-    name = 'Tensor-ExVivo-T2'
-    in_vivo_suitable = False
-    description = 'The Tensor model with ex vivo defaults and extra T2 scaling.'
-    model_expression = '''
-            S0 * ExpT2Dec * Tensor
-        '''
