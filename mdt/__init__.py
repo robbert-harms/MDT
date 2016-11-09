@@ -235,17 +235,25 @@ def view_maps(data, config=None, to_file=None, to_file_options=None,
               window_title=None):
     """View a number of maps using the MDT Maps Visualizer.
 
+    To save a file to an image, you can use (the simplest) the following two options::
+
+        to_file='filename.png',
+        figure_options={'width': 1200, 'height': 750, 'dpi': 100}
+
     Args:
         data (str, dict, :class:`~mdt.visualization.maps.base.DataInfo`): the data we are showing,
             either a dictionary with result maps, a string with a path name or a DataInfo object
         config (str, dict, :class:`~mdt.gui.maps_visualizer.base.ValidatedMapPlotConfig`): either a Yaml string or a
             dictionary with configuration settings or a ValidatedMapPlotConfig object to use directly
         to_file (str): if set we output the figure to a file and do not launch a GUI
-        to_file_options (dict): extra output options for the savefig command from matplotlib
+        to_file_options (dict): extra output options for the savefig command from matplotlib, if dpi is not given, we
+            use the dpi from the figure_options.
         block (boolean): if we block the plots or not
         show_maximized (boolean): if we show the window maximized or not
         use_qt (boolean): if we want to use the Qt GUI, or show the results directly in matplotlib
-        figure_options (dict): figure options for the matplotlib Figure
+        figure_options (dict): figure options for the matplotlib Figure, if figsizes is not given you can also specify
+            two ints, width and height, to indicate the pixel size of the resulting figure, together with the dpi they
+            are used to calculate the figsize.
         window_title (str): the title for the window
     """
     from mdt.gui.maps_visualizer.main import start_gui
@@ -270,21 +278,26 @@ def view_maps(data, config=None, to_file=None, to_file_options=None,
 
     if to_file:
         figure_options = figure_options or {}
-        figure_options['figsize'] = figure_options.get('figsize', (10, 8))
+
         figure_options['dpi'] = figure_options.get('dpi', 80)
+        if 'figsize' not in figure_options:
+            figure_options['figsize'] = (figure_options.pop('width', 800) / figure_options['dpi'],
+                                         figure_options.pop('height', 640) / figure_options['dpi'])
 
         figure = plt.figure(**figure_options)
         viz = MapsVisualizer(data, figure)
 
         to_file_options = to_file_options or {}
-
+        to_file_options['dpi'] = to_file_options.get('dpi', figure_options['dpi'])
         viz.to_file(to_file, config, **to_file_options)
     elif use_qt:
         start_gui(data, config, app_exec=block, show_maximized=show_maximized, window_title=window_title)
     else:
         figure_options = figure_options or {}
-        figure_options['figsize'] = figure_options.get('figsize', (18, 16))
         figure_options['dpi'] = figure_options.get('dpi', 100)
+        if 'figsize' not in figure_options:
+            figure_options['figsize'] = (figure_options.pop('width', 1800) / figure_options['dpi'],
+                                         figure_options.pop('height', 1600) / figure_options['dpi'])
 
         figure = plt.figure(**figure_options)
         viz = MapsVisualizer(data, figure)
