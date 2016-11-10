@@ -3,12 +3,10 @@ import os
 import numpy as np
 from scipy.ndimage import binary_dilation, generate_binary_structure
 from six import string_types
-from mdt import utils
+from mdt.utils import load_brain_mask
 from mdt.protocols import load_protocol
-import nibabel as nib
-from mot.cl_environments import CLEnvironmentFactory
+from mdt.IO import load_nifti, write_nifti
 from mot.cl_routines.filters.median import MedianFilter
-from mot.load_balance_strategies import PreferCPU
 import mot.configuration
 
 __author__ = 'Robbert Harms'
@@ -37,7 +35,7 @@ def create_median_otsu_brain_mask(dwi_info, protocol, mask_threshold=0, **kwargs
     logger.info('Starting calculating a brain mask')
 
     if isinstance(dwi_info, string_types):
-        signal_img = nib.load(dwi_info)
+        signal_img = load_nifti(dwi_info)
         dwi = signal_img.get_data()
     elif isinstance(dwi_info, (tuple, list)):
         dwi = dwi_info[0]
@@ -85,18 +83,18 @@ def generate_simple_wm_mask(fa_fname, brain_mask_fname, out_fname, fa_threshold=
     logger = logging.getLogger(__name__)
     logger.info('Starting calculating a white matter mask using FA.')
 
-    nib_container = nib.load(fa_fname)
+    nib_container = load_nifti(fa_fname)
     fa_data = nib_container.get_data()
 
     fa_data[fa_data < fa_threshold] = 0
     fa_data[fa_data > 0] = 1
 
-    mask = utils.load_brain_mask(brain_mask_fname)
+    mask = load_brain_mask(brain_mask_fname)
 
     median_filter = MedianFilter(median_radius)
     fa_data = median_filter.filter(fa_data, mask=mask, nmr_of_times=numpass)
 
-    nib.Nifti1Image(fa_data, None, nib_container.get_header()).to_filename(out_fname)
+    write_nifti(fa_data, nib_container.get_header(), out_fname)
     logger.info('Finished calculating a white matter mask.')
 
 
@@ -118,7 +116,7 @@ def create_write_median_otsu_brain_mask(dwi_info, protocol, output_fname, **kwar
         os.makedirs(os.path.dirname(output_fname))
 
     if isinstance(dwi_info, string_types):
-        signal_img = nib.load(dwi_info)
+        signal_img = load_nifti(dwi_info)
         dwi = signal_img.get_data()
         header = signal_img.get_header()
     else:
@@ -126,7 +124,7 @@ def create_write_median_otsu_brain_mask(dwi_info, protocol, output_fname, **kwar
         header = dwi_info[1]
 
     mask = create_median_otsu_brain_mask(dwi, protocol, **kwargs)
-    nib.Nifti1Image(mask, None, header).to_filename(output_fname)
+    write_nifti(mask, header, output_fname)
 
     return mask
 

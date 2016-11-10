@@ -1,6 +1,6 @@
 import os
 
-import nibabel as nib
+from mdt.IO import load_nifti
 import numpy as np
 from PyQt5.QtCore import pyqtSlot, QObject, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog
@@ -86,11 +86,11 @@ class GenerateBrainMaskTab(MainTab, Ui_GenerateBrainMaskTabContent):
     @pyqtSlot()
     def view_mask(self):
         mask = np.expand_dims(load_brain_mask(self.selectedOutputText.text()), axis=3)
-        image_data = nib.load(self.selectedImageText.text()).get_data()
+        image_data = load_nifti(self.selectedImageText.text()).get_data()
         masked_image = image_data * mask
 
-        data = DataInfo({'Masked': masked_image, 'DWI': image_data})
-        data.directory = os.path.dirname(self.selectedImageText.text())
+        data = DataInfo({'Masked': masked_image, 'DWI': image_data},
+                        directory=os.path.dirname(self.selectedImageText.text()))
 
         config = ValidatedMapPlotConfig()
         config.dimension = 2

@@ -1,10 +1,9 @@
 import os
 
-import nibabel as nib
+from mdt.IO import load_nifti
 from PyQt5.QtCore import pyqtSlot, QObject, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog
 
-from mdt import load_nifti
 from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig
 from mdt.visualization.maps.base import DataInfo
 from mdt.gui.maps_visualizer.main import start_gui
@@ -71,9 +70,9 @@ class GenerateROIMaskTab(MainTab, Ui_GenerateROIMaskTabContent):
 
     @pyqtSlot()
     def view_mask(self):
-        data = DataInfo({'Original mask': nib.load(self.selectedMaskText.text()).get_data(),
-                         'Slice mask': nib.load(self.selectedOutputFileText.text()).get_data()})
-        data.directory = os.path.dirname(self.selectedMaskText.text())
+        data = DataInfo({'Original mask': load_nifti(self.selectedMaskText.text()).get_data(),
+                         'Slice mask': load_nifti(self.selectedOutputFileText.text()).get_data()},
+                        directory=os.path.dirname(self.selectedMaskText.text()))
 
         config = ValidatedMapPlotConfig()
         config.dimension = self.dimensionInput.value()

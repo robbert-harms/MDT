@@ -2,14 +2,91 @@ import glob
 import os
 import numpy as np
 import nibabel as nib
-import scipy.io
-
+from mdt.deferred_mappings import DeferredActionDict
 
 __author__ = 'Robbert Harms'
 __date__ = "2014-08-28"
 __license__ = "LGPL v3"
 __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
+
+
+def load_nifti(nifti_volume):
+    """Load and return a nifti file.
+
+    This will apply path resolution if a filename without extension is given. See the function
+    :func:`~mdt.utils.nifti_filepath_resolution` for details.
+
+    Args:
+        nifti_volume (string): The filename of the volume to use.
+
+    Returns:
+        nib image proxy (from nib.use)
+    """
+    path = nifti_filepath_resolution(nifti_volume)
+    return nib.load(path)
+
+
+def write_nifti(data, header, output_fname, affine=None, **kwargs):
+    """Write data to a nifti file.
+
+    Args:
+        output_fname (str): the name of the resulting nifti file
+        data (ndarray): the data to write to that nifti file
+        header (nibabel header): the nibabel header to use as header for the nifti file
+        affine (ndarray): the affine transformation matrix
+        **kwargs: other arguments to Nifti1Image from NiBabel
+
+    """
+    nib.Nifti1Image(data, affine, header, **kwargs).to_filename(output_fname)
+
+
+def nifti_filepath_resolution(file_path):
+    """Tries to resolve the filename to a nifti based on only the filename.
+
+    For example, this resolves the path: ``/tmp/mask`` to:
+
+        - ``/tmp/mask`` if exists
+        - ``/tmp/mask.nii`` if exist
+        - ``/tmp/mask.nii.gz`` if exists
+
+    Hence, the lookup order is: ``path``, ``path.nii``, ``path.nii.gz``
+
+    If a file with an extension is given we will do no further resolving and return the path as is.
+
+    Args:
+        file_path (str): the path to the nifti file, can be without extension.
+
+    Returns:
+        str: the file path we resolved to the final file.
+
+    Raises:
+        ValueError: if no nifti file could be found
+    """
+    if file_path[:-len('.nii')] == '.nii' or file_path[:-len('.nii.gz')] == '.nii.gz':
+        return file_path
+
+    if os.path.isfile(file_path):
+        return file_path
+    elif os.path.isfile(file_path + '.nii'):
+        return file_path + '.nii'
+    elif os.path.isfile(file_path + '.nii.gz'):
+        return file_path + '.nii.gz'
+    raise ValueError('No nifti file could be found using the path {}.'.format(file_path))
+
+
+def yield_nifti_info(directory):
+    """Get information about the nifti volumes in the given directory.
+
+    Args:
+        directory (str): the directory to get the names of the available maps from
+
+    Yields:
+        tuple: (path, map_name, extension) for every map found
+    """
+    for extension in ('.nii', '.nii.gz'):
+        for f in glob.glob(os.path.join(directory, '*' + extension)):
+            yield f, os.path.basename(f)[0:-len(extension)], extension
 
 
 class Nifti(object):
@@ -58,26 +135,73 @@ class Nifti(object):
                 nib.Nifti1Image(volume, None, nifti_header).to_filename(full_filename)
 
     @staticmethod
-    def read_volume_maps(directory, map_names=None):
-        """Read a number of Nifti volume maps that were written using write_volume_maps.
+    def load_nibabel_proxies(directory, map_names=None):
+        """Loads the nibabel proxies for the maps in the given directory.
+
+        If map_names is given we will only load the given map names. Else, we load all .nii and .nii.gz files in the
+        given directory.
 
         Args:
-            directory (str): the directory from which we want to read a number of maps
-            map_names (list of str): the names of the maps we want to use. If given we only use and return these maps.
+            directory (str): the directory from which we want to read the nibabel proxies
+            map_names (list of str): the names of the maps we want to use. If given, we only use and return these maps.
 
         Returns:
             dict: A dictionary with the volumes. The keys of the dictionary are the filenames
                 without the extension of the .nii(.gz) files in the given directory.
         """
-        maps = {}
-        for extension in ('.nii', '.nii.gz'):
-            for f in glob.glob(os.path.join(directory, '*' + extension)):
-                map_name = os.path.basename(f)[0:-len(extension)]
+        maps_paths = {}
 
-                if map_names is None or map_name in map_names:
-                    if nib.load(f).get_data().size > 0:
-                        maps.update({map_name: nib.load(f).get_data()})
-        return maps
+        for path, map_name, extension in yield_nifti_info(directory):
+            if not map_names or map_name in map_names:
+                maps_paths.update({map_name: path})
+
+        return {k: nib.load(v) for k, v in maps_paths.items()}
+
+    @staticmethod
+    def read_volume_maps(directory, map_names=None, deferred=True):
+        """Read Nifti volume maps from the given directory.
+
+        If map_names is given we will only load the given map names. Else, we load all .nii and .nii.gz files in the
+        given directory.
+
+        Args:
+            directory (str): the directory from which we want to read a number of maps
+            map_names (list of str): the names of the maps we want to use. If given, we only use and return these maps.
+            deferred (boolean): if True we return an deferred loading dictionary instead of a dictionary with the values
+                loaded as arrays.
+
+        Returns:
+            dict: A dictionary with the volumes. The keys of the dictionary are the filenames
+                without the extension of the .nii(.gz) files in the given directory.
+        """
+        proxies = Nifti.load_nibabel_proxies(directory, map_names=map_names)
+        if deferred:
+            return DeferredActionDict(lambda _, item: item.get_data(), proxies)
+        else:
+            return {k: v.get_data() for k, v in proxies.items()}
+
+    @staticmethod
+    def get_image_headers(directory, map_names=None, deferred=True):
+        """Read Nifti volume headers from the given directory.
+
+        If map_names is given we will only load the given map names. Else, we load all .nii and .nii.gz files in the
+        given directory.
+
+        Args:
+            directory (str): the directory from which we want to read the headers
+            map_names (list of str): the names of the maps we want to use. If given, we only use and return these maps.
+            deferred (boolean): if True we return an deferred loading dictionary instead of a dictionary with the values
+                loaded as arrays.
+
+        Returns:
+            dict: A dictionary with the headers. The keys of the dictionary are the filenames
+                without the extension of the .nii(.gz) files in the given directory.
+        """
+        proxies = Nifti.load_nibabel_proxies(directory, map_names=map_names)
+        if deferred:
+            return DeferredActionDict(lambda _, item: item.get_header(), proxies)
+        else:
+            return {k: v.get_header() for k, v in proxies.items()}
 
     @staticmethod
     def volume_names_generator(directory):
@@ -86,12 +210,11 @@ class Nifti(object):
         Args:
             directory (str): the directory to get the names of the available maps from
 
-        Returns:
-            generator: this yields the volume names in the given directory
+        Yields
+            the volume names in the given directory
         """
-        for extension in ('.nii', '.nii.gz'):
-            for f in glob.glob(os.path.join(directory, '*' + extension)):
-                yield os.path.basename(f)[0:-len(extension)]
+        for _, map_name, _ in yield_nifti_info(directory):
+            yield map_name
 
 
 class TrackMark(object):
@@ -223,23 +346,3 @@ class TrackMark(object):
 
             m = np.transpose(volume, [2, 1, 0]).astype(np.float32).flatten('F')
             m.tofile(f, '')
-
-
-class Matlab(object):
-
-    @staticmethod
-    def load_maps_from_mat(mat_file):
-        """Load a result dictionary from the given matlab mat file
-
-        Args:
-            mat_file (str): The location of the .mat file.
-
-        Returns:
-            dict: All the items in the mat file by their name.
-        """
-        mat_data = scipy.io.loadmat(mat_file)
-        fields = (e[0] for e in scipy.io.whosmat(mat_file))
-        results = {}
-        for field in fields:
-            results.update({field: mat_data[field]})
-        return results

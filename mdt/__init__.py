@@ -473,21 +473,21 @@ def sort_maps(maps_to_sort_on, extra_maps_to_sort=None, reversed_sort=False, sor
     return sorted_maps, [], sort_index_map
 
 
-def load_volume_maps(directory, map_names=None):
+def load_volume_maps(directory, map_names=None, deferred=True):
     """Read a number of Nifti volume maps from a directory.
 
-    This ignores nifti files without data, that is, nifti files with only a header.
-
     Args:
-        directory: the directory from which we want to read a number of maps
-        map_names: the names of the maps we want to use. If given we only use and return these maps.
+        directory (str): the directory from which we want to read a number of maps
+        map_names (list or tuple): the names of the maps we want to use. If given we only use and return these maps.
+        deferred (boolean): if True we return an deferred loading dictionary instead of a dictionary with the values
+            loaded as arrays.
 
     Returns:
         dict: A dictionary with the volumes. The keys of the dictionary are the filenames (without the extension) of the
             files in the given directory.
     """
     from mdt.IO import Nifti
-    return Nifti.read_volume_maps(directory, map_names=map_names)
+    return Nifti.read_volume_maps(directory, map_names=map_names, deferred=deferred)
 
 
 def get_volume_names(directory):

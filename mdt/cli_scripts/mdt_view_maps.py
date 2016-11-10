@@ -4,10 +4,9 @@
 import argparse
 import os
 import textwrap
-
 from argcomplete.completers import FilesCompleter
-
-from mdt import init_user_settings, view_maps
+from mdt.utils import init_user_settings
+from mdt import view_maps
 from mdt.visualization.maps.base import DataInfo
 from mdt.shell_utils import BasicShellApplication, get_citation_message
 

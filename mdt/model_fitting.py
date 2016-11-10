@@ -7,12 +7,11 @@ import timeit
 from contextlib import contextmanager
 import numpy as np
 from six import string_types
-from mdt import configuration
 from mdt.__version__ import __version__
 from mdt.IO import Nifti
 from mdt.batch_utils import batch_profile_factory, AllSubjects
 from mdt.components_loader import get_model
-from mdt.configuration import get_processing_strategy
+from mdt.configuration import get_processing_strategy, get_optimizer
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.protocols import write_protocol
 from mdt.utils import create_roi, get_cl_devices, model_output_exists, \
@@ -308,7 +307,7 @@ class ModelFit(object):
                 self._logger.info('Preparing for model {0}'.format(model.name))
                 self._logger.info('Current cascade: {0}'.format(model_names))
 
-                optimizer = self._optimizer or configuration.get_optimizer()
+                optimizer = self._optimizer or get_optimizer()
 
                 if self._cl_device_indices is not None:
                     all_devices = get_cl_devices()

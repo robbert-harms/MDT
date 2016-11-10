@@ -1,7 +1,6 @@
 import os
 import six
-from mdt import protocols
-from mdt.protocols import Protocol, load_protocol
+from mdt.protocols import Protocol, load_protocol, auto_load_protocol
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-25"
@@ -84,7 +83,7 @@ class ProtocolFromDirLoader(ProtocolLoader):
 
     def get_protocol(self):
         if self._protocol is None:
-            self._protocol = protocols.auto_load_protocol(self._directory)
+            self._protocol = auto_load_protocol(self._directory)
         return self._protocol
 
 

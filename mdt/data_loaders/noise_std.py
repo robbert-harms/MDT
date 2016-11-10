@@ -1,8 +1,7 @@
 import six
-import nibabel as nib
 import numpy as np
 import numbers
-
+from mdt.IO import load_nifti
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-25"
@@ -106,4 +105,4 @@ class LoadNoiseFromFile(NoiseStdLoader):
             with open(self._file_name, 'r') as f:
                 return float(f.read())
 
-        return nib.load(self._file_name).get_data()
+        return load_nifti(self._file_name).get_data()

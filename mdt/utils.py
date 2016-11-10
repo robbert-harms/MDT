@@ -10,7 +10,6 @@ import tempfile
 from collections import defaultdict
 from contextlib import contextmanager
 
-import nibabel as nib
 import numpy as np
 import pkg_resources
 import six
@@ -19,7 +18,7 @@ from scipy.special import jnp_zeros
 from six import string_types
 
 import mot.utils
-from mdt.IO import Nifti
+from mdt.IO import Nifti, load_nifti, write_nifti
 from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
 from mdt.components_loader import get_model
 from mdt.configuration import get_config_dir
@@ -27,14 +26,15 @@ from mdt.configuration import get_logging_configuration_dict, get_noise_std_esti
 from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
 from mdt.data_loaders.noise_std import autodetect_noise_std_loader
 from mdt.data_loaders.protocol import autodetect_protocol_loader
+from mdt.deferred_mappings import DeferredActionDict, DeferredActionTuple
 from mdt.exceptions import NoiseStdEstimationNotPossible
 from mdt.log_handlers import ModelOutputLogHandler
 from mdt.protocols import load_protocol, write_protocol
-from mot.model_building.problem_data import AbstractProblemData
 from mot.cl_environments import CLEnvironmentFactory
 from mot.cl_routines.mapping.calculate_model_estimates import CalculateModelEstimates
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
 from mot.model_building.evaluation_models import OffsetGaussianEvaluationModel
+from mot.model_building.problem_data import AbstractProblemData
 
 try:
     import codecs
@@ -408,8 +408,8 @@ def read_split_write_volume(volume_fname, first_output_fname, second_output_fnam
 
     split = split_dataset(signal4d, split_dimension, split_index)
 
-    nib.Nifti1Image(split[0], None, img_header).to_filename(first_output_fname)
-    nib.Nifti1Image(split[1], None, img_header).to_filename(second_output_fname)
+    write_nifti(split[0], img_header, first_output_fname)
+    write_nifti(split[1], img_header, second_output_fname)
 
 
 def create_slice_roi(brain_mask, roi_dimension, roi_slice):
@@ -460,7 +460,7 @@ def write_slice_roi(brain_mask_fname, roi_dimension, roi_slice, output_fname, ov
     brain_mask = brain_mask_img.get_data()
     img_header = brain_mask_img.get_header()
     roi_mask = create_slice_roi(brain_mask, roi_dimension, roi_slice)
-    nib.Nifti1Image(roi_mask, None, img_header).to_filename(output_fname)
+    write_nifti(roi_mask, img_header, output_fname)
     return roi_mask
 
 
@@ -560,83 +560,13 @@ def create_roi(data, brain_mask):
             return_val = np.expand_dims(return_val, axis=1)
         return return_val
 
-    if isinstance(data, dict):
-        return DeferredROICreationDict(data, brain_mask)
-    elif isinstance(data, (list, tuple)):
-        return DeferredROICreationTuple(data, brain_mask)
+    if isinstance(data, (dict, collections.MutableMapping)):
+        return DeferredActionDict(lambda _, item: create_roi(item, brain_mask), data, memoize=True)
+    elif isinstance(data, (list, tuple, collections.Sequence)):
+        return DeferredActionTuple(lambda _, item: create_roi(item, brain_mask), data, memoize=True)
     elif isinstance(data, six.string_types):
         return creator(load_nifti(data).get_data())
     return creator(data)
-
-
-class DeferredROICreationDict(collections.MutableMapping):
-
-    def __init__(self, items, mask):
-        """Deferred ROI creation of the given items using the given mask.
-
-        On the moment one of the keys of this dict class is requested we will create the ROI if it does not yet exists.
-        The advantage of this class is that it saves memory by deferring the loading until an item is really needed.
-
-        Args:
-            items (dict): the items we want to create a ROI of
-            mask (ndarray): the matrix we use for creating the ROI
-        """
-        self._items = items.copy()
-        self._mask = mask
-        self._computed_rois = {}
-
-    def __delitem__(self, key):
-        del self._items[key]
-        if key in self._computed_rois:
-            del self._computed_rois[key]
-
-    def __getitem__(self, key):
-        if key not in self._computed_rois:
-            self._computed_rois[key] = create_roi(self._items[key], self._mask)
-        return self._computed_rois[key]
-
-    def __contains__(self, key):
-        try:
-            self._items[key]
-        except KeyError:
-            return False
-        else:
-            return True
-
-    def __iter__(self):
-        for key in self._items.keys():
-            yield key
-
-    def __len__(self):
-        return len(self._items)
-
-    def __setitem__(self, key, value):
-        self._computed_rois[key] = value
-
-
-class DeferredROICreationTuple(collections.Sequence):
-
-    def __init__(self, items, mask):
-        """Deferred ROI creation of the given items using the given mask.
-
-        On the moment one of the items of this class is requested we will create the ROI if it does not yet exists.
-        The advantage of this class is that it saves memory by deferring the loading until an item is really needed.
-
-        Args:
-            items (list, tuple): the items we want to create a ROI of
-            mask (ndarray): the matrix we use for creating the ROI
-        """
-        self._items = items
-        self._mask = mask
-        self._computed_rois = {}
-
-    def __getitem__(self, index):
-        if index not in self._computed_rois:
-            self._computed_rois[index] = create_roi(self._items[index], self._mask)
-        return self._computed_rois[index]
-
-    def __len__(self):
-        return len(self._items)
 
 
 def restore_volumes(data, brain_mask, with_volume_dim=True):
@@ -997,24 +927,7 @@ def load_brain_mask(brain_mask_fname):
     Returns:
         ndarray: The loaded brain mask data
     """
-    path = nifti_filepath_resolution(brain_mask_fname)
-    return load_nifti(path).get_data() > 0
-
-
-def load_nifti(nifti_volume):
-    """Load and return a nifti file.
-
-    This will apply path resolution if a filename without extension is given. See the function
-    :func:`~mdt.utils.nifti_filepath_resolution` for details.
-
-    Args:
-        nifti_volume (string): The filename of the volume to use.
-
-    Returns:
-        nib image proxy (from nib.use)
-    """
-    path = nifti_filepath_resolution(nifti_volume)
-    return nib.load(path)
+    return load_nifti(brain_mask_fname).get_data() > 0
 
 
 def flatten(input_it):
@@ -1212,7 +1125,7 @@ def apply_mask_to_file(input_fname, mask, output_fname=None):
     if output_fname is None:
         output_fname = input_fname
 
-    nib.Nifti1Image(apply_mask(input_fname, mask), None, load_nifti(input_fname).get_header()).to_filename(output_fname)
+    write_nifti(apply_mask(input_fname, mask), load_nifti(input_fname).get_header(), output_fname)
 
 
 def load_samples(data_folder, mode='r'):
@@ -1385,40 +1298,6 @@ def get_temporary_results_dir(user_value):
     return None
 
 
-def nifti_filepath_resolution(file_path):
-    """Tries to resolve the filename to a nifti based on only the filename.
-
-    For example, this resolves the path: ``/tmp/mask`` to:
-
-        - ``/tmp/mask`` if exists
-        - ``/tmp/mask.nii`` if exist
-        - ``/tmp/mask.nii.gz`` if exists
-
-    Hence, the lookup order is: ``path``, ``path.nii``, ``path.nii.gz``
-
-    If a file with an extension is given we will do no further resolving and return the path as is.
-
-    Args:
-        file_path (str): the path to the nifti file, can be without extension.
-
-    Returns:
-        str: the file path we resolved to the final file.
-
-    Raises:
-        ValueError: if no nifti file could be found
-    """
-    if file_path[:-len('.nii')] == '.nii' or file_path[:-len('.nii.gz')] == '.nii.gz':
-        return file_path
-
-    if os.path.isfile(file_path):
-        return file_path
-    elif os.path.isfile(file_path + '.nii'):
-        return file_path + '.nii'
-    elif os.path.isfile(file_path + '.nii.gz'):
-        return file_path + '.nii.gz'
-    raise ValueError('No nifti file could be found using the path {}.'.format(file_path))
-
-
 def create_blank_mask(volume4d_path, output_fname):
     """Create a blank mask for the given 4d volume.
 
@@ -1432,7 +1311,7 @@ def create_blank_mask(volume4d_path, output_fname):
     """
     volume_info = load_nifti(volume4d_path)
     mask = np.ones(volume_info.shape[:3])
-    nib.Nifti1Image(mask, None, volume_info.get_header()).to_filename(output_fname)
+    write_nifti(mask, volume_info.get_header(), output_fname)
 
 
 def volume_merge(volume_paths, output_fname, sort=False):
@@ -1475,7 +1354,7 @@ def volume_merge(volume_paths, output_fname, sort=False):
         images.append(image_data)
 
     combined_image = np.concatenate(images, axis=3)
-    nib.Nifti1Image(combined_image, None, header).to_filename(output_fname)
+    write_nifti(combined_image, header, output_fname)
 
     return volume_paths
 
@@ -1517,7 +1396,7 @@ def concatenate_mri_sets(items, output_volume_fname, output_protocol_fname, over
         to_concat.append((protocol, signal4d))
 
     protocol, signal4d = concatenate_two_mri_measurements(to_concat)
-    nib.Nifti1Image(signal4d, None, nii_header).to_filename(output_volume_fname)
+    write_nifti(signal4d, nii_header, output_volume_fname)
     write_protocol(protocol, output_protocol_fname)
 
 
@@ -1570,7 +1449,7 @@ def extract_volumes(input_volume_fname, input_protocol, output_volume_fname, out
 
     input_volume = load_nifti(input_volume_fname)
     image_data = input_volume.get_data()[..., volume_indices]
-    nib.Nifti1Image(image_data, None, input_volume.get_header()).to_filename(output_volume_fname)
+    write_nifti(image_data, input_volume.get_header(), output_volume_fname)
 
 
 def recalculate_error_measures(model, problem_data, data_dir, sigma, output_dir=None, sigma_param_name=None,
@@ -1655,4 +1534,4 @@ def create_signal_estimates(volume_maps, problem_data, model, output_fname):
 
     signal_estimates = restore_volumes(results, problem_data.mask)
 
-    nib.Nifti1Image(signal_estimates, None, problem_data.volume_header).to_filename(output_fname)
+    write_nifti(signal_estimates, problem_data.volume_header, output_fname)

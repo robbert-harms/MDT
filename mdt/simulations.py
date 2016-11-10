@@ -3,12 +3,11 @@
 The simulated data is on the level of diffusion MRI models, not on the level of simulated physical molecule interaction
 as found in for example Camino.
 """
-
 import numbers
 import os
-import nibabel as nib
 import numpy as np
 import mdt
+from mdt.IO import write_nifti
 from mdt.components_loader import NoiseSTDCalculatorsLoader
 from mdt.utils import MockDMRIProblemData
 from mot.cl_routines.mapping.calculate_model_estimates import CalculateModelEstimates
@@ -236,8 +235,7 @@ def save_data_volume(file_name, data):
     """
     if not os.path.isdir(os.path.dirname(file_name)):
         os.makedirs(os.path.dirname(file_name))
-    img = nib.Nifti1Image(data, np.eye(4))
-    img.to_filename(file_name)
+    write_nifti(data, None, file_name, affine=np.eye(4))
 
 
 def save_2d_list_as_4d_volume(file_name, data):

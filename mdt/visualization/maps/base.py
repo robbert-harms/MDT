@@ -5,6 +5,7 @@ import yaml
 import matplotlib.font_manager
 import mdt
 import mdt.visualization.layouts
+from mdt.deferred_mappings import DeferredActionDict
 from mdt.visualization.dict_conversion import StringConversion, \
     SimpleClassConversion, IntConversion, SimpleListConversion, BooleanConversion, \
     ConvertDictElements, ConvertDynamicFromModule, FloatConversion, WhiteListConversion
@@ -552,7 +553,8 @@ class DataInfo(object):
         """
         self.maps = maps
         self.directory = directory
-        self.map_info = {key: SingleMapInfo(key, value) for key, value in self.maps.items()}
+        self.map_info = DeferredActionDict(lambda key, value: SingleMapInfo(key, value),
+                                           self.maps)
         self.sorted_keys = list(sorted(maps.keys()))
 
     @classmethod
@@ -738,6 +740,7 @@ class SingleMapInfo(object):
         """
         self.map_name = map_name
         self.data = data
+        self.shape = self.data.shape
 
     def max_dimension(self):
         """Get the maximum dimension index in this map.
@@ -747,7 +750,7 @@ class SingleMapInfo(object):
         Returns:
             int: in the range 0, 1, 2
         """
-        return min(len(self.data.shape), 3) - 1
+        return min(len(self.shape), 3) - 1
 
     def max_slice_index(self, dimension):
         """Get the maximum slice index on the given dimension.
@@ -758,7 +761,7 @@ class SingleMapInfo(object):
         Returns:
             int: the maximum slice index in the given dimension.
         """
-        return self.data.shape[dimension] - 1
+        return self.shape[dimension] - 1
 
     def slice_has_data(self, dimension, slice_index):
         """Check if this map has non zero values in the given slice index.
@@ -782,8 +785,8 @@ class SingleMapInfo(object):
         Returns:
             int: the maximum volume index.
         """
-        if len(self.data.shape) > 3:
-            return self.data.shape[3] - 1
+        if len(self.shape) > 3:
+            return self.shape[3] - 1
         return 0
 
     def get_index_first_non_zero_slice(self, dimension):
@@ -800,7 +803,7 @@ class SingleMapInfo(object):
         if dimension > len(slice_index) - 1:
             raise ValueError('The given dimension {} is not supported.'.format(dimension))
 
-        for index in range(self.data.shape[dimension]):
+        for index in range(self.shape[dimension]):
             slice_index[dimension] = index
             if np.count_nonzero(self.data[slice_index]) > 0:
                 return index
@@ -816,7 +819,7 @@ class SingleMapInfo(object):
         Returns:
             int: the maximum x index
         """
-        shape = list(self.data.shape)[0:3]
+        shape = list(self.shape)[0:3]
         del shape[dimension]
         if rotate // 90 % 2 == 0:
             return max(0, shape[1] - 1)
@@ -832,7 +835,7 @@ class SingleMapInfo(object):
         Returns:
             int: the maximum y index
         """
-        shape = list(self.data.shape)[0:3]
+        shape = list(self.shape)[0:3]
         del shape[dimension]
         if rotate // 90 % 2 == 0:
             return max(0, shape[0] - 1)

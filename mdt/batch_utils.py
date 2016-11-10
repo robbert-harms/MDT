@@ -5,14 +5,13 @@ import shutil
 import numpy as np
 import six
 from six import string_types
-from mdt import protocols
 from mdt.components_loader import BatchProfilesLoader, get_model
 from mdt.data_loaders.protocol import ProtocolLoader
 from mdt.masking import create_write_median_otsu_brain_mask
 from mdt.models.cascade import DMRICascadeModelInterface
-from mdt.protocols import load_protocol
+from mdt.protocols import load_protocol, auto_load_protocol
 from mdt.utils import split_image_path, AutoDict, load_problem_data
-import nibabel as nib
+from mdt.IO import load_nifti
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-21"
@@ -304,7 +303,7 @@ class SimpleSubjectInfo(SubjectInfo):
 
     def _get_gradient_deviations(self):
         if self._gradient_deviations is not None:
-            return nib.load(self._gradient_deviations).get_data()
+            return load_nifti(self._gradient_deviations).get_data()
         return None
 
 
@@ -404,8 +403,8 @@ class BatchFitProtocolLoader(ProtocolLoader):
         if self._protocol_fname and os.path.isfile(self._protocol_fname):
             return load_protocol(self._protocol_fname)
 
-        return protocols.auto_load_protocol(self._base_dir, protocol_options=self._protocol_options,
-                                            bvec_fname=self._bvec_fname, bval_fname=self._bval_fname)
+        return auto_load_protocol(self._base_dir, protocol_options=self._protocol_options,
+                                  bvec_fname=self._bvec_fname, bval_fname=self._bval_fname)
 
 
 class BatchFitSubjectOutputInfo(object):

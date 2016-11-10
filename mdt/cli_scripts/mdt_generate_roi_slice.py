@@ -5,9 +5,8 @@ import argparse
 import os
 import mdt
 from argcomplete.completers import FilesCompleter
-import nibabel as nib
 import textwrap
-
+from mdt.IO import load_nifti
 import mdt.utils
 from mdt.shell_utils import BasicShellApplication
 
@@ -49,7 +48,7 @@ class GenerateRoiSlice(BasicShellApplication):
         return parser
 
     def run(self, args):
-        shape = nib.load(args.mask).shape
+        shape = load_nifti(args.mask).shape
         roi_dimension = args.dimension if args.dimension is not None else 2
         if roi_dimension > len(shape)-1 or roi_dimension < 0:
             print('Error: the given mask has only {0} dimensions with slices {1}.'.format(len(shape), shape))

@@ -3,7 +3,7 @@
 """Print some basic information about an image file."""
 import argparse
 import os
-import mdt
+from mdt.IO import load_nifti
 import textwrap
 
 from mdt.shell_utils import BasicShellApplication
@@ -37,7 +37,7 @@ class InfoImg(BasicShellApplication):
     def run(self, args):
         for image in args.images:
             image_path = os.path.realpath(image)
-            img = mdt.load_nifti(image_path)
+            img = load_nifti(image_path)
             header = img.get_header()
             print('{}'.format(image))
             self.print_info(header)

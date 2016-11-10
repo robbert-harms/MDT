@@ -3,13 +3,12 @@ from copy import deepcopy
 
 import numpy as np
 
-from mdt import utils
 from mdt.components_loader import ComponentConfig, ComponentBuilder, method_binding_meta
 from mdt.model_protocol_problem import MissingColumns, InsufficientShells
 from mdt.models.base import DMRIOptimizable
 from mdt.models.parsers.SingleModelExpressionParser import parse
 from mdt.protocols import VirtualColumnB
-from mdt.utils import create_roi
+from mdt.utils import create_roi, calculate_information_criterions
 from mot.cl_data_type import CLDataType
 from mot.model_building.cl_functions.model_functions import Weight
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
@@ -173,7 +172,7 @@ class DMRISingleModel(SampleModelBuilder, DMRIOptimizable):
         n = self._problem_data.get_nmr_inst_per_problem()
 
         results_dict.update({'LogLikelihood': log_likelihoods})
-        results_dict.update(utils.calculate_information_criterions(log_likelihoods, k, n))
+        results_dict.update(calculate_information_criterions(log_likelihoods, k, n))
 
     def _prepare_problem_data(self, problem_data):
         """Update the problem data to make it suitable for this model.

@@ -4,7 +4,8 @@ import os
 from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QFileDialog
 
-from mdt import results_preselection_names, load_nifti
+from mdt import results_preselection_names
+from mdt.IO import load_nifti
 from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig
 from mdt.visualization.maps.base import DataInfo
 from mdt.gui.maps_visualizer.main import start_gui
