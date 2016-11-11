@@ -1,10 +1,13 @@
 import glob
 import warnings
+
+import nibabel
 import numpy as np
 import yaml
 import matplotlib.font_manager
 import mdt
 import mdt.visualization.layouts
+from mdt import nifti
 from mdt.deferred_mappings import DeferredActionDict
 from mdt.visualization.dict_conversion import StringConversion, \
     SimpleClassConversion, IntConversion, SimpleListConversion, BooleanConversion, \
@@ -605,20 +608,24 @@ class DataInfo(object):
         """A container for basic information about the volume maps we are viewing.
 
         Args:
-            maps (dict): the dictionary with the maps to view
+            maps (dict): the dictionary with the maps to view, these maps can either be arrays with values or
+                nibabel proxy images.
             directory (str): the directory from which the maps where loaded
         """
-        self.maps = maps
+        self._maps = maps
         self.directory = directory
-        self.map_info = DeferredActionDict(lambda key, value: SingleMapInfo(key, value),
-                                           self.maps)
+        self.map_info = {key: SingleMapInfo(key, value) for key, value in maps.items()}
         self.sorted_keys = list(sorted(maps.keys()))
+
+    @property
+    def maps(self):
+        return DeferredActionDict(lambda k, v: self.map_info[k].data, self.map_info)
 
     @classmethod
     def from_dir(cls, directory):
         if directory is None:
             return cls({}, None)
-        return cls(mdt.load_volume_maps(directory), directory)
+        return cls(nifti.load_all_niftis(directory), directory)
 
     def get_file_name(self, map_name):
         """Get the file name of the given map
@@ -644,7 +651,7 @@ class DataInfo(object):
         Returns:
             int: either, 0, 1, 2 as the maximum dimension index in the maps.
         """
-        map_names = map_names or self.maps.keys()
+        map_names = map_names or self._maps.keys()
         if not map_names:
             raise ValueError('No maps to search in.')
         return min(self.map_info[map_name].max_dimension() for map_name in map_names)
@@ -659,7 +666,7 @@ class DataInfo(object):
         Returns:
             int: the minimum of the maximum slice indices over the given maps in the given dimension.
         """
-        map_names = map_names or self.maps.keys()
+        map_names = map_names or self._maps.keys()
         max_dimension = self.get_max_dimension(map_names)
         if not map_names:
             raise ValueError('No maps to search in.')
@@ -679,7 +686,7 @@ class DataInfo(object):
         Returns:
             int: the maximum volume index in the given list of maps. Starts from 0.
         """
-        map_names = map_names or self.maps.keys()
+        map_names = map_names or self._maps.keys()
         if not map_names:
             raise ValueError('No maps to search in.')
         return max(self.map_info[map_name].max_volume_index() for map_name in map_names)
@@ -694,7 +701,7 @@ class DataInfo(object):
         Returns:
             int: the slice index with the first non zero values.
         """
-        map_names = map_names or self.maps.keys()
+        map_names = map_names or self._maps.keys()
         if not map_names:
             raise ValueError('No maps to search in.')
         for map_name in map_names:
@@ -714,7 +721,7 @@ class DataInfo(object):
         Returns:
             bool: true if at least on of the maps has data in the given slice
         """
-        map_names = map_names or self.maps.keys()
+        map_names = map_names or self._maps.keys()
         if not map_names:
             raise ValueError('No maps to search in.')
         for map_name in map_names:
@@ -735,7 +742,7 @@ class DataInfo(object):
         Returns:
             int: the maximum x-index found.
         """
-        map_names = map_names or self.maps.keys()
+        map_names = map_names or self._maps.keys()
         if not map_names:
             raise ValueError('No maps to search in.')
         return min(self.map_info[map_name].get_max_x(dimension, rotate) for map_name in map_names)
@@ -753,7 +760,7 @@ class DataInfo(object):
         Returns:
             int: the maximum y-index found.
         """
-        map_names = map_names or self.maps.keys()
+        map_names = map_names or self._maps.keys()
         if not map_names:
             raise ValueError('No maps to search in.')
         return min(self.map_info[map_name].get_max_y(dimension, rotate) for map_name in map_names)
@@ -772,7 +779,7 @@ class DataInfo(object):
             tuple of Point: two point designating first the upper left corner and second the lower right corner of the
                 bounding box.
         """
-        map_names = map_names or self.maps.keys()
+        map_names = map_names or self._maps.keys()
         if not map_names:
             raise ValueError('No maps to search in.')
         bounding_boxes = [self.map_info[map_name].get_bounding_box(dimension, slice_index, volume_index, rotate)
@@ -793,11 +800,17 @@ class SingleMapInfo(object):
 
         Args:
             map_name (str): the name of the map
-            data (ndarray): the value of the map
+            data (ndarray or :class:`nibabel.nifti1.Nifti1Image`): the value of the map or the proxy to it
         """
         self.map_name = map_name
-        self.data = data
-        self.shape = self.data.shape
+        self._data = data
+        self.shape = self._data.shape
+
+    @property
+    def data(self):
+        if isinstance(self._data, nibabel.nifti1.Nifti1Image):
+            return self._data.get_data()
+        return self._data
 
     def max_dimension(self):
         """Get the maximum dimension index in this map.

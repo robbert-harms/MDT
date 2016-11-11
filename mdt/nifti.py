@@ -166,6 +166,7 @@ def yield_nifti_info(directory):
             yield f, os.path.basename(f)[0:-len(extension)], extension
 
 
+
 class TrackMark(object):
     """TrackMark is an proprietary visualization tool written by Alard Roebroeck and can be used to visualize fibre\
     directions. This class is meant to convert nifti files to TrackMark specific files.
