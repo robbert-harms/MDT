@@ -42,3 +42,8 @@ class TensorExVivo(Tensor):
     inits = {'Tensor.d': 0.6e-9,
              'Tensor.dperp0': 0.6e-10,
              'Tensor.dperp1': 0.6e-10}
+
+    @bind_function
+    def _get_suitable_volume_indices(self, problem_data):
+        print('goit here')
+        return list(range(problem_data.protocol.length))

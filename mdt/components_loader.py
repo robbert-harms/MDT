@@ -123,7 +123,9 @@ class ComponentConfigMeta(type):
         bound_methods = {value.__name__: value for value in attributes.values() if hasattr(value, '_bind')}
         for base in bases:
             if hasattr(base, 'bound_methods'):
-                bound_methods.update(base.bound_methods)
+                for key, value in base.bound_methods.items():
+                    if key not in bound_methods:
+                        bound_methods.update({key: value})
         result.bound_methods = bound_methods
 
         if 'name' not in attributes:
