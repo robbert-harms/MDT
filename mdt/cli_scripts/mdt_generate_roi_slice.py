@@ -6,7 +6,7 @@ import os
 import mdt
 from argcomplete.completers import FilesCompleter
 import textwrap
-from mdt.IO import load_nifti
+from mdt.nifti import load_nifti
 import mdt.utils
 from mdt.shell_utils import BasicShellApplication
 

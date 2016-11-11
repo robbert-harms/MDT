@@ -393,7 +393,7 @@ def write_trackmark_rawmaps(data, output_folder, maps_to_convert=None):
         output_folder (str): the name of the output folder. Defaults to <input_folder>/trackmark.
         maps_to_convert (:class:`list`): the list with the names of the maps we want to convert (without the extension).
     """
-    from mdt.IO import TrackMark
+    from mdt.nifti import TrackMark
 
     if isinstance(data, six.string_types):
         volumes = load_volume_maps(data, map_names=maps_to_convert)
@@ -416,7 +416,7 @@ def write_trackmark_tvl(output_tvl, vector_directions, vector_magnitudes, tvl_he
         vector_magnitudes (list of str/ndarray): a list of 4d volumes with per voxel the vector magnitude.
         tvl_header (list or tuple): The list with header arguments for writing the TVL. See IO.TrackMark for specifics.
     """
-    from mdt.IO import TrackMark
+    from mdt.nifti import TrackMark
     if len(vector_directions) != len(vector_magnitudes):
         raise ValueError('The length of the list of vector directions does not '
                          'match with the length of the list of vector magnitudes.')
@@ -486,8 +486,8 @@ def load_volume_maps(directory, map_names=None, deferred=True):
         dict: A dictionary with the volumes. The keys of the dictionary are the filenames (without the extension) of the
             files in the given directory.
     """
-    from mdt.IO import Nifti
-    return Nifti.read_volume_maps(directory, map_names=map_names, deferred=deferred)
+    from mdt.nifti import get_all_image_data
+    return get_all_image_data(directory, map_names=map_names, deferred=deferred)
 
 
 def get_volume_names(directory):
@@ -499,8 +499,8 @@ def get_volume_names(directory):
     Returns:
         :class:`list`: A list with the names of the volumes.
     """
-    from mdt.IO import Nifti
-    return list(sorted(Nifti.volume_names_generator(directory)))
+    from mdt.nifti import yield_nifti_info
+    return list(sorted(el[1] for el in yield_nifti_info(directory)))
 
 
 def write_volume_maps(maps, directory, header, overwrite_volumes=True):
@@ -512,8 +512,8 @@ def write_volume_maps(maps, directory, header, overwrite_volumes=True):
         header: The Nibabel Image Header
         overwrite_volumes (boolean): If we want to overwrite the volumes if they are present.
     """
-    from mdt.IO import Nifti
-    return Nifti.write_volume_maps(maps, directory, header, overwrite_volumes=overwrite_volumes)
+    from mdt.nifti import write_all_as_nifti
+    write_all_as_nifti(maps, directory, header, overwrite_volumes=overwrite_volumes)
 
 
 def get_list_of_single_models():

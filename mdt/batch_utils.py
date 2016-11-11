@@ -11,7 +11,7 @@ from mdt.masking import create_write_median_otsu_brain_mask
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.protocols import load_protocol, auto_load_protocol
 from mdt.utils import split_image_path, AutoDict, load_problem_data
-from mdt.IO import load_nifti
+from mdt.nifti import load_nifti
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-21"

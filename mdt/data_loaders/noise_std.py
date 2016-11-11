@@ -1,7 +1,7 @@
 import six
 import numpy as np
 import numbers
-from mdt.IO import load_nifti
+from mdt.nifti import load_nifti
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-25"

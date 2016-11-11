@@ -3,7 +3,7 @@
 """Print some basic information about an image file."""
 import argparse
 import os
-from mdt.IO import load_nifti
+from mdt.nifti import load_nifti
 import textwrap
 
 from mdt.shell_utils import BasicShellApplication

@@ -10,7 +10,7 @@ import numpy as np
 import time
 from numpy.lib.format import open_memmap
 
-from mdt.IO import Nifti
+from mdt.nifti import write_all_as_nifti, get_all_image_data
 from mdt.configuration import gzip_optimization_results, gzip_sampling_results
 from mdt.utils import create_roi, load_samples
 
@@ -388,7 +388,7 @@ def _combine_volumes_write_out(info_pair):
     chunks_dir, output_dir, volume_header, write_gzipped = info_list
 
     data = np.load(os.path.join(chunks_dir, map_name + '.npy'), mmap_mode='r')
-    Nifti.write_volume_maps({map_name: data}, output_dir, volume_header, gzip=write_gzipped)
+    write_all_as_nifti({map_name: data}, output_dir, volume_header, gzip=write_gzipped)
     del data
 
 
@@ -416,7 +416,7 @@ class FittingProcessingWorker(ModelProcessingWorker):
     def combine(self):
         super(FittingProcessingWorker, self).combine()
         self._combine_volumes(self._output_dir, self._tmp_storage_dir, self._problem_data.volume_header)
-        return create_roi(Nifti.read_volume_maps(self._output_dir), self._problem_data.mask)
+        return create_roi(get_all_image_data(self._output_dir), self._problem_data.mask)
 
 
 class SamplingProcessingWorker(ModelProcessingWorker):

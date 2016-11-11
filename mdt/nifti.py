@@ -15,16 +15,63 @@ def load_nifti(nifti_volume):
     """Load and return a nifti file.
 
     This will apply path resolution if a filename without extension is given. See the function
-    :func:`~mdt.utils.nifti_filepath_resolution` for details.
+    :func:`nifti_filepath_resolution` for details.
 
     Args:
         nifti_volume (string): The filename of the volume to use.
 
     Returns:
-        nib image proxy (from nib.use)
+        :class:`nibabel.nifti1.Nifti1Image`
     """
     path = nifti_filepath_resolution(nifti_volume)
     return nib.load(path)
+
+
+def load_all_niftis(directory, map_names=None):
+    """Loads all niftis in the given directory.
+
+    If map_names is given we will only load the given maps. Else, we load all .nii and .nii.gz files in the
+    given directory. The map name is the filename of a nifti without the extension.
+
+    Args:
+        directory (str): the directory from which we want to load the niftis
+        map_names (list of str): the names of the maps we want to use. If given, we only use and return these maps.
+
+    Returns:
+        dict: A dictionary with the loaded nibabel proxies (see :func:`load_nifti`).
+            The keys of the dictionary are the filenames without the extension of the .nii(.gz) files
+            in the given directory.
+    """
+    maps_paths = {}
+
+    for path, map_name, _ in yield_nifti_info(directory):
+        if not map_names or map_name in map_names:
+            maps_paths.update({map_name: path})
+
+    return {k: load_nifti(v) for k, v in maps_paths.items()}
+
+
+def get_all_image_data(directory, map_names=None, deferred=True):
+    """Get the data of all the nifti volumes in the given directory.
+
+    If map_names is given we will only load the given map names. Else, we load all .nii and .nii.gz files in the
+    given directory.
+
+    Args:
+        directory (str): the directory from which we want to read a number of maps
+        map_names (list of str): the names of the maps we want to use. If given, we only use and return these maps.
+        deferred (boolean): if True we return an deferred loading dictionary instead of a dictionary with the values
+            loaded as arrays.
+
+    Returns:
+        dict: A dictionary with the volumes. The keys of the dictionary are the filenames
+            without the extension of the .nii(.gz) files in the given directory.
+    """
+    proxies = load_all_niftis(directory, map_names=map_names)
+    if deferred:
+        return DeferredActionDict(lambda _, item: item.get_data(), proxies)
+    else:
+        return {k: v.get_data() for k, v in proxies.items()}
 
 
 def write_nifti(data, header, output_fname, affine=None, **kwargs):
@@ -39,6 +86,36 @@ def write_nifti(data, header, output_fname, affine=None, **kwargs):
 
     """
     nib.Nifti1Image(data, affine, header, **kwargs).to_filename(output_fname)
+
+
+def write_all_as_nifti(volumes, directory, nifti_header, overwrite_volumes=True, gzip=True):
+    """Write a number of volume maps to the specific directory.
+
+    Args:
+        volumes (dict): the volume maps (in 3d) with the results we want to write.
+            The filenames are generated using the keys in the given volumes
+        directory (str): the directory to write to
+        nifti_header: the nifti header to use for each of the volumes
+        overwrite_volumes (boolean): defaults to True, if we want to overwrite the volumes if they exists
+        gzip (boolean): if True we write the files as .nii.gz, if False we write the files as .nii
+    """
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    for key, volume in volumes.items():
+        extension = '.nii'
+        if gzip:
+            extension += '.gz'
+        filename = key + extension
+
+        full_filename = os.path.abspath(os.path.join(directory, filename))
+
+        if os.path.exists(full_filename):
+            if overwrite_volumes:
+                os.remove(full_filename)
+                write_nifti(volume, nifti_header, full_filename)
+        else:
+            write_nifti(volume, nifti_header, full_filename)
 
 
 def nifti_filepath_resolution(file_path):
@@ -89,137 +166,9 @@ def yield_nifti_info(directory):
             yield f, os.path.basename(f)[0:-len(extension)], extension
 
 
-class Nifti(object):
-
-    @staticmethod
-    def write_volume_map(name, result_volume, directory, nifti_header, overwrite_volumes=True):
-        """Write a single volume as a nifti (.nii) to the given directory.
-
-        Args:
-            name (str): the name of the volume
-            result_volume (ndarray): the volume we want to write out
-            directory (str): the directory to write to
-            nifti_header: the nifti header to use for each of the volumes
-            overwrite_volumes (boolean): defaults to True, if we want to overwrite the volumes if they exists
-        """
-        Nifti.write_volume_maps({name: result_volume}, directory, nifti_header, overwrite_volumes)
-
-    @staticmethod
-    def write_volume_maps(result_volumes, directory, nifti_header, overwrite_volumes=True, gzip=True):
-        """Write a number of maps (image result volumes) to the specific directory.
-
-        Args:
-            result_volumes (dict): the volume maps (3d) with the results we want to write out
-                The naming of the file is the key of the volume with the extension appended by this function
-            directory (str): the directory to write to
-            nifti_header: the nifti header to use for each of the volumes
-            overwrite_volumes (boolean): defaults to True, if we want to overwrite the volumes if they exists
-            gzip (boolean): if True we write the files as .nii.gz, if False we write the files as .nii
-        """
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-
-        for key, volume in result_volumes.items():
-            extension = '.nii'
-            if gzip:
-                extension += '.gz'
-            filename = key + extension
-
-            full_filename = os.path.abspath(os.path.join(directory, filename))
-
-            if os.path.exists(full_filename):
-                if overwrite_volumes:
-                    os.remove(full_filename)
-                    nib.Nifti1Image(volume, None, nifti_header).to_filename(full_filename)
-            else:
-                nib.Nifti1Image(volume, None, nifti_header).to_filename(full_filename)
-
-    @staticmethod
-    def load_nibabel_proxies(directory, map_names=None):
-        """Loads the nibabel proxies for the maps in the given directory.
-
-        If map_names is given we will only load the given map names. Else, we load all .nii and .nii.gz files in the
-        given directory.
-
-        Args:
-            directory (str): the directory from which we want to read the nibabel proxies
-            map_names (list of str): the names of the maps we want to use. If given, we only use and return these maps.
-
-        Returns:
-            dict: A dictionary with the volumes. The keys of the dictionary are the filenames
-                without the extension of the .nii(.gz) files in the given directory.
-        """
-        maps_paths = {}
-
-        for path, map_name, extension in yield_nifti_info(directory):
-            if not map_names or map_name in map_names:
-                maps_paths.update({map_name: path})
-
-        return {k: nib.load(v) for k, v in maps_paths.items()}
-
-    @staticmethod
-    def read_volume_maps(directory, map_names=None, deferred=True):
-        """Read Nifti volume maps from the given directory.
-
-        If map_names is given we will only load the given map names. Else, we load all .nii and .nii.gz files in the
-        given directory.
-
-        Args:
-            directory (str): the directory from which we want to read a number of maps
-            map_names (list of str): the names of the maps we want to use. If given, we only use and return these maps.
-            deferred (boolean): if True we return an deferred loading dictionary instead of a dictionary with the values
-                loaded as arrays.
-
-        Returns:
-            dict: A dictionary with the volumes. The keys of the dictionary are the filenames
-                without the extension of the .nii(.gz) files in the given directory.
-        """
-        proxies = Nifti.load_nibabel_proxies(directory, map_names=map_names)
-        if deferred:
-            return DeferredActionDict(lambda _, item: item.get_data(), proxies)
-        else:
-            return {k: v.get_data() for k, v in proxies.items()}
-
-    @staticmethod
-    def get_image_headers(directory, map_names=None, deferred=True):
-        """Read Nifti volume headers from the given directory.
-
-        If map_names is given we will only load the given map names. Else, we load all .nii and .nii.gz files in the
-        given directory.
-
-        Args:
-            directory (str): the directory from which we want to read the headers
-            map_names (list of str): the names of the maps we want to use. If given, we only use and return these maps.
-            deferred (boolean): if True we return an deferred loading dictionary instead of a dictionary with the values
-                loaded as arrays.
-
-        Returns:
-            dict: A dictionary with the headers. The keys of the dictionary are the filenames
-                without the extension of the .nii(.gz) files in the given directory.
-        """
-        proxies = Nifti.load_nibabel_proxies(directory, map_names=map_names)
-        if deferred:
-            return DeferredActionDict(lambda _, item: item.get_header(), proxies)
-        else:
-            return {k: v.get_header() for k, v in proxies.items()}
-
-    @staticmethod
-    def volume_names_generator(directory):
-        """Get the names of the Nifti volume maps in the given directory.
-
-        Args:
-            directory (str): the directory to get the names of the available maps from
-
-        Yields
-            the volume names in the given directory
-        """
-        for _, map_name, _ in yield_nifti_info(directory):
-            yield map_name
-
-
 class TrackMark(object):
     """TrackMark is an proprietary visualization tool written by Alard Roebroeck and can be used to visualize fibre\
-    directions.
+    directions. This class is meant to convert nifti files to TrackMark specific files.
     """
 
     @staticmethod

@@ -1,6 +1,6 @@
 import os
 
-from mdt.IO import load_nifti
+from mdt.nifti import load_nifti
 from PyQt5.QtCore import pyqtSlot, QObject, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog
 

@@ -7,7 +7,7 @@ import numbers
 import os
 import numpy as np
 import mdt
-from mdt.IO import write_nifti
+from mdt.nifti import write_nifti
 from mdt.components_loader import NoiseSTDCalculatorsLoader
 from mdt.utils import MockDMRIProblemData
 from mot.cl_routines.mapping.calculate_model_estimates import CalculateModelEstimates

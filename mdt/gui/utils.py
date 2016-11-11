@@ -5,7 +5,7 @@ from PyQt5.QtCore import QObject, pyqtSignal, QFileSystemWatcher, pyqtSlot, QTim
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QApplication
 
-from mdt.IO import Nifti
+from mdt.nifti import yield_nifti_info
 from mdt.log_handlers import LogListenerInterface
 
 __author__ = 'Robbert Harms'
@@ -226,7 +226,7 @@ class DirectoryImageWatcher(QObject):
             self._watcher.removePath(self._watched_dir)
         self._watched_dir = directory
         self._watcher.addPath(directory)
-        self._current_files = list(Nifti.volume_names_generator(directory))
+        self._current_files = list(el[1] for el in yield_nifti_info(directory))
 
     @pyqtSlot(str)
     def _directory_changed(self, directory):
@@ -235,7 +235,7 @@ class DirectoryImageWatcher(QObject):
 
     @pyqtSlot()
     def _timer_event(self):
-        new_file_list = list(Nifti.volume_names_generator(self._watched_dir))
+        new_file_list = list(el[1] for el in yield_nifti_info(self._watched_dir))
 
         removals = set(self._current_files).difference(new_file_list)
         additions = set(new_file_list).difference(self._current_files)

@@ -8,7 +8,7 @@ from contextlib import contextmanager
 import numpy as np
 from six import string_types
 from mdt.__version__ import __version__
-from mdt.IO import Nifti
+from mdt.nifti import get_all_image_data
 from mdt.batch_utils import batch_profile_factory, AllSubjects
 from mdt.components_loader import get_model
 from mdt.configuration import get_processing_strategy, get_optimizer
@@ -366,7 +366,7 @@ class SingleModelFit(object):
                     list(map(os.remove, glob.glob(os.path.join(self._output_path, '*.nii*'))))
             else:
                 if model_output_exists(self._model, self._output_folder):
-                    maps = Nifti.read_volume_maps(self._output_path)
+                    maps = get_all_image_data(self._output_path)
                     self._logger.info('Not recalculating {} model'.format(self._model.name))
                     return create_roi(maps, self._problem_data.mask)
 

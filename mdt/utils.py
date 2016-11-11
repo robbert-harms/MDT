@@ -18,7 +18,7 @@ from scipy.special import jnp_zeros
 from six import string_types
 
 import mot.utils
-from mdt.IO import Nifti, load_nifti, write_nifti
+from mdt.nifti import load_nifti, write_nifti, write_all_as_nifti, get_all_image_data
 from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
 from mdt.components_loader import get_model
 from mdt.configuration import get_config_dir
@@ -370,7 +370,7 @@ def split_write_dataset(input_fname, split_dimension, split_index, output_folder
     for ind, v in enumerate(split):
         volumes.update({str(basename) + '_split_' + str(split_dimension) + '_' + lengths[ind]: v})
 
-    Nifti.write_volume_maps(volumes, output_folder, dataset.get_header())
+    write_all_as_nifti(volumes, output_folder, dataset.get_header())
 
 
 def get_bessel_roots(number_of_roots=30, np_data_type=np.float64):
@@ -1482,7 +1482,7 @@ def recalculate_error_measures(model, problem_data, data_dir, sigma, output_dir=
 
     model.set_problem_data(problem_data)
 
-    results_maps = create_roi(Nifti.read_volume_maps(data_dir), problem_data.mask)
+    results_maps = create_roi(get_all_image_data(data_dir), problem_data.mask)
 
     if sigma_param_name is None:
         sigma_params = list(filter(lambda key: '.sigma' in key, model.get_optimization_output_param_names()))
@@ -1509,7 +1509,7 @@ def recalculate_error_measures(model, problem_data, data_dir, sigma, output_dir=
     volumes = restore_volumes(results_maps, problem_data.mask)
 
     output_dir = output_dir or data_dir
-    Nifti.write_volume_maps(volumes, output_dir, problem_data.volume_header)
+    write_all_as_nifti(volumes, output_dir, problem_data.volume_header)
 
 
 def create_signal_estimates(volume_maps, problem_data, model, output_fname):
@@ -1525,7 +1525,7 @@ def create_signal_estimates(volume_maps, problem_data, model, output_fname):
         model = get_model(model)
 
     if isinstance(volume_maps, string_types):
-        volume_maps = Nifti.read_volume_maps(volume_maps)
+        volume_maps = get_all_image_data(volume_maps)
 
     model.set_problem_data(problem_data)
 
