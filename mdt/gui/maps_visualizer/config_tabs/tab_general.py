@@ -6,10 +6,9 @@ from PyQt5.QtWidgets import QWidget, QAbstractItemView
 
 from mdt.gui.maps_visualizer.actions import SetDimension, SetSliceIndex, SetVolumeIndex, SetColormap, SetRotate, \
     SetZoom, SetShowAxis, SetColorBarNmrTicks, SetMapsToShow, SetFont, SetInterpolation, SetFlipud
-from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig
 from mdt.gui.maps_visualizer.design.ui_TabGeneral import Ui_TabGeneral
 from mdt.gui.utils import blocked_signals, TimedUpdate
-from mdt.visualization.maps.base import Zoom, Point, DataInfo, Font
+from mdt.visualization.maps.base import Zoom, Point, DataInfo, Font, MapPlotConfig
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-09-03"
@@ -102,7 +101,7 @@ class TabGeneral(QWidget, Ui_TabGeneral):
                 item = self.general_map_selection.item(index)
                 item.setData(Qt.UserRole, map_name)
 
-    @pyqtSlot(ValidatedMapPlotConfig)
+    @pyqtSlot(MapPlotConfig)
     def set_new_config(self, config):
         data_info = self._controller.get_data()
         map_names = config.maps_to_show

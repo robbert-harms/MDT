@@ -12,8 +12,8 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
-from mdt.gui.maps_visualizer.base import PlottingFrame, ValidatedMapPlotConfig
-from mdt.visualization.maps.base import DataInfo
+from mdt.gui.maps_visualizer.base import PlottingFrame
+from mdt.visualization.maps.base import DataInfo, MapPlotConfig
 
 
 class MatplotlibPlotting(PlottingFrame, QWidget):
@@ -78,7 +78,7 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
         self.visualizer = MapsVisualizer(data_info, self.figure)
         self._timer.start(300)
 
-    @pyqtSlot(ValidatedMapPlotConfig)
+    @pyqtSlot(MapPlotConfig)
     def set_new_config(self, configuration):
         if self._auto_render:
             self._timer.start(300)

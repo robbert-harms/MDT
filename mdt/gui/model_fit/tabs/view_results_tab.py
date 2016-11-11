@@ -6,8 +6,7 @@ from PyQt5.QtWidgets import QFileDialog
 
 from mdt import results_preselection_names
 from mdt.nifti import load_nifti
-from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig
-from mdt.visualization.maps.base import DataInfo
+from mdt.visualization.maps.base import DataInfo, MapPlotConfig
 from mdt.gui.maps_visualizer.main import start_gui
 from mdt.gui.model_fit.design.ui_view_results_tab import Ui_ViewResultsTabContent
 from mdt.gui.utils import MainTab
@@ -106,7 +105,7 @@ class ViewResultsTab(MainTab, Ui_ViewResultsTabContent):
 
         data = DataInfo.from_dir(self._folder)
 
-        config = ValidatedMapPlotConfig()
+        config = MapPlotConfig()
         config.maps_to_show = maps_to_show
         config.dimension = self.initialDimensionChooser.value()
         config.slice_index = self.initialSliceChooser.value()

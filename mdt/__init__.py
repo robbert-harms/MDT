@@ -243,7 +243,7 @@ def view_maps(data, config=None, to_file=None, to_file_options=None,
     Args:
         data (str, dict, :class:`~mdt.visualization.maps.base.DataInfo`): the data we are showing,
             either a dictionary with result maps, a string with a path name or a DataInfo object
-        config (str, dict, :class:`~mdt.gui.maps_visualizer.base.ValidatedMapPlotConfig`): either a Yaml string or a
+        config (str, dict, :class:`~mdt.visualization.maps.base import MapPlotConfig`): either a Yaml string or a
             dictionary with configuration settings or a ValidatedMapPlotConfig object to use directly
         to_file (str): if set we output the figure to a file and do not launch a GUI
         to_file_options (dict): extra output options for the savefig command from matplotlib, if dpi is not given, we
@@ -257,7 +257,7 @@ def view_maps(data, config=None, to_file=None, to_file_options=None,
         window_title (str): the title for the window
     """
     from mdt.gui.maps_visualizer.main import start_gui
-    from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig
+    from mdt.visualization.maps.base import MapPlotConfig
     from mdt.visualization.maps.matplotlib_renderer import MapsVisualizer
     import matplotlib.pyplot as plt
     from mdt.visualization.maps.base import DataInfo
@@ -270,11 +270,11 @@ def view_maps(data, config=None, to_file=None, to_file_options=None,
         data = DataInfo({})
 
     if config is None:
-        config = ValidatedMapPlotConfig()
+        config = MapPlotConfig()
     elif isinstance(config, string_types):
-        config = ValidatedMapPlotConfig.from_yaml(config)
+        config = MapPlotConfig.from_yaml(config)
     elif isinstance(config, dict):
-        config = ValidatedMapPlotConfig.from_dict(config)
+        config = MapPlotConfig.from_dict(config)
 
     if to_file:
         figure_options = figure_options or {}

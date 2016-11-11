@@ -4,8 +4,7 @@ from mdt.nifti import load_nifti
 from PyQt5.QtCore import pyqtSlot, QObject, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog
 
-from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig
-from mdt.visualization.maps.base import DataInfo
+from mdt.visualization.maps.base import DataInfo, MapPlotConfig
 from mdt.gui.maps_visualizer.main import start_gui
 from mdt.gui.model_fit.design.ui_generate_roi_mask_tab import Ui_GenerateROIMaskTabContent
 from mdt.gui.utils import function_message_decorator, image_files_filters, MainTab
@@ -74,7 +73,7 @@ class GenerateROIMaskTab(MainTab, Ui_GenerateROIMaskTabContent):
                          'Slice mask': load_nifti(self.selectedOutputFileText.text()).get_data()},
                         directory=os.path.dirname(self.selectedMaskText.text()))
 
-        config = ValidatedMapPlotConfig()
+        config = MapPlotConfig()
         config.dimension = self.dimensionInput.value()
         config.slice_index = self.sliceInput.value()
         config.maps_to_show = ['Original mask', 'Slice mask']

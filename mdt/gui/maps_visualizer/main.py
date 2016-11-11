@@ -21,8 +21,8 @@ from mdt.gui.maps_visualizer.design.ui_save_image_dialog import Ui_SaveImageDial
 matplotlib.use('Qt5Agg')
 
 import mdt
-from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig, Controller, PlottingFrameInfoViewer
-from mdt.visualization.maps.base import DataInfo
+from mdt.gui.maps_visualizer.base import Controller, PlottingFrameInfoViewer
+from mdt.visualization.maps.base import DataInfo, MapPlotConfig
 from mdt.gui.maps_visualizer.renderers.matplotlib_renderer import MatplotlibPlotting
 from mdt.gui.model_fit.design.ui_about_dialog import Ui_AboutDialog
 from mdt.gui.utils import center_window, DirectoryImageWatcher, QtManager
@@ -86,7 +86,7 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         if self._controller.get_data().directory is not None:
             self._directory_watcher.set_directory(self._controller.get_data().directory)
 
-    @pyqtSlot(ValidatedMapPlotConfig)
+    @pyqtSlot(MapPlotConfig)
     def set_new_config(self, config):
         self.undo_config.setDisabled(not self._controller.has_undo())
         self.redo_config.setDisabled(not self._controller.has_redo())
@@ -96,7 +96,7 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         new_dir = QFileDialog(self).getExistingDirectory(caption='Select a folder', directory=initial_dir)
         if new_dir:
             data = DataInfo.from_dir(new_dir)
-            config = ValidatedMapPlotConfig()
+            config = MapPlotConfig()
 
             if len(data.maps):
                 config.slice_index = data.get_max_slice_index(config.dimension) // 2
@@ -143,7 +143,7 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         if file_name:
             with open(file_name, 'r') as f:
                 try:
-                    self._controller.apply_action(NewConfigAction(ValidatedMapPlotConfig.from_yaml(f.read())))
+                    self._controller.apply_action(NewConfigAction(MapPlotConfig.from_yaml(f.read())))
                 except yaml.parser.ParserError:
                     pass
                 except yaml.scanner.ScannerError:
@@ -227,14 +227,14 @@ class AboutDialog(Ui_AboutDialog, QDialog):
 class QtController(Controller, QObject):
 
     new_data = pyqtSignal(DataInfo)
-    new_config = pyqtSignal(ValidatedMapPlotConfig)
+    new_config = pyqtSignal(MapPlotConfig)
 
     def __init__(self):
         super(QtController, self).__init__()
         self._data_info = DataInfo({})
         self._actions_history = []
         self._redoable_actions = []
-        self._current_config = ValidatedMapPlotConfig()
+        self._current_config = MapPlotConfig()
 
     def set_data(self, data_info, config=None):
         self._data_info = data_info
@@ -242,9 +242,9 @@ class QtController(Controller, QObject):
         self._redoable_actions = []
 
         if not config:
-            config = ValidatedMapPlotConfig()
-        elif not isinstance(config, ValidatedMapPlotConfig):
-            config = ValidatedMapPlotConfig.from_dict(config.to_dict())
+            config = MapPlotConfig()
+        elif not isinstance(config, MapPlotConfig):
+            config = MapPlotConfig.from_dict(config.to_dict())
 
         self._apply_config(config)
         self.new_data.emit(data_info)
@@ -294,7 +294,7 @@ class QtController(Controller, QObject):
         """Apply the current configuration.
 
         Args:
-            new_config (ValidatedMapPlotConfig): the new configuration to apply
+            new_config (MapPlotConfig): the new configuration to apply
 
         Returns:
             bool: if the configuration was applied or not. If the difference with the current configuration
@@ -312,7 +312,7 @@ def start_gui(data=None, config=None, controller=None, app_exec=True, show_maxim
 
     Args:
         data (DataInfo): the initial set of data
-        config (ValidatedMapPlotConfig): the initial configuration
+        config (MapPlotConfig): the initial configuration
         controller (QtController): the controller to use in the application
         app_exec (boolean): if true we execute the Qt application, set to false to disable.
         show_maximized (true): if we want to show the window in a maximized state

@@ -3,11 +3,10 @@ from PyQt5.QtWidgets import QWidget
 
 from mdt.gui.maps_visualizer.actions import SetMapTitle, SetMapColormap, SetMapScale, SetMapClipping, \
     SetMapColorbarLabel
-from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig, ValidatedSingleMapConfig
 from mdt.gui.maps_visualizer.design.ui_MapSpecificOptions import Ui_MapSpecificOptions
 from mdt.gui.maps_visualizer.design.ui_TabMapSpecific import Ui_TabMapSpecific
 from mdt.gui.utils import blocked_signals, TimedUpdate
-from mdt.visualization.maps.base import DataInfo
+from mdt.visualization.maps.base import DataInfo, SingleMapConfig, MapPlotConfig
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-09-03"
@@ -35,7 +34,7 @@ class TabMapSpecific(QWidget, Ui_TabMapSpecific):
     def set_new_data(self, data_info):
         pass
 
-    @pyqtSlot(ValidatedMapPlotConfig)
+    @pyqtSlot(MapPlotConfig)
     def set_new_config(self, config):
         map_names = config.maps_to_show
 
@@ -147,7 +146,7 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         try:
             map_info = self._controller.get_config().map_plot_options[map_name]
         except KeyError:
-            map_info = ValidatedSingleMapConfig()
+            map_info = SingleMapConfig()
 
         data_info = self._controller.get_data()
         vmin = data_info.maps[map_name].min()
@@ -206,7 +205,7 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
 
     def _get_current_map_config(self):
         current_config = self._controller.get_config()
-        current_map_config = current_config.map_plot_options.get(self._current_map, ValidatedSingleMapConfig())
+        current_map_config = current_config.map_plot_options.get(self._current_map, SingleMapConfig())
         return current_map_config
 
     @pyqtSlot(str)

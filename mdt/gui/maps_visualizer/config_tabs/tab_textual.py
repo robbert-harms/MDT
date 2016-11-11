@@ -3,10 +3,9 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QWidget
 
 from mdt.gui.maps_visualizer.actions import NewConfigAction
-from mdt.gui.maps_visualizer.base import ValidatedMapPlotConfig
 from mdt.gui.maps_visualizer.design.ui_TabTextual import Ui_TabTextual
 from mdt.gui.utils import blocked_signals
-from mdt.visualization.maps.base import DataInfo
+from mdt.visualization.maps.base import DataInfo, MapPlotConfig
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-09-03"
@@ -33,7 +32,7 @@ class TabTextual(QWidget, Ui_TabTextual):
     def set_new_data(self, data_info):
         pass
 
-    @pyqtSlot(ValidatedMapPlotConfig)
+    @pyqtSlot(MapPlotConfig)
     def set_new_config(self, config):
         with blocked_signals(self.textConfigEdit):
             if not self._flags['updating_config_from_string']:
@@ -46,7 +45,7 @@ class TabTextual(QWidget, Ui_TabTextual):
         text = text.replace('\t', ' '*4)
         try:
             if text.strip() != '':
-                new_config = ValidatedMapPlotConfig.from_yaml(text)
+                new_config = MapPlotConfig.from_yaml(text)
                 new_config.validate(self._controller.get_data())
 
                 self._controller.apply_action(NewConfigAction(new_config))

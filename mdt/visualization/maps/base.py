@@ -134,6 +134,57 @@ class MapPlotConfig(object):
     def to_yaml(self):
         return yaml.safe_dump(self.get_conversion_info().to_dict(self))
 
+    def validate(self, data_info):
+        if data_info.maps:
+            self._validate_maps_to_show(data_info)
+            self._validate_dimension(data_info)
+
+            for key in self.__dict__:
+                if hasattr(self, '_validate_' + key):
+                    getattr(self, '_validate_' + key)(data_info)
+        return self
+
+    def _validate_maps_to_show(self, data_info):
+        if any(map(lambda k: k not in data_info.maps, self.maps_to_show)):
+            raise ValueError('One or more of the given maps to show is not in the data: {}'.
+                             format(set(self.maps_to_show).difference(set(data_info.maps))))
+
+    def _validate_dimension(self, data_info):
+        max_dim = data_info.get_max_dimension(map_names=self.maps_to_show)
+        if self.dimension is None or self.dimension > max_dim:
+            raise ValueError('The dimension ({}) can not be higher than {}.'.format(self.dimension, max_dim))
+
+    def _validate_slice_index(self, data_info):
+        max_slice_index = data_info.get_max_slice_index(self.dimension, map_names=self.maps_to_show)
+        if self.slice_index is None or self.slice_index > max_slice_index or self.slice_index < 0:
+            raise ValueError('The slice index ({}) can not be higher than '
+                             '{} or lower than 0.'.format(self.slice_index, max_slice_index))
+
+    def _validate_volume_index(self, data_info):
+        max_volume_index = data_info.get_max_volume_index(map_names=self.maps_to_show)
+        if self.volume_index > max_volume_index or self.volume_index < 0:
+            raise ValueError('The volume index ({}) can not be higher than '
+                             '{} or lower than 0.'.format(self.volume_index, max_volume_index))
+
+    def _validate_zoom(self, data_info):
+        max_x = data_info.get_max_x(self.dimension, self.rotate)
+        max_y = data_info.get_max_y(self.dimension, self.rotate)
+
+        if self.zoom.p1.x > max_x:
+            raise ValueError('The zoom maximum x ({}) can not be larger than {}'.format(self.zoom.p1.x, max_x))
+
+        if self.zoom.p1.y > max_y:
+            raise ValueError('The zoom maximum y ({}) can not be larger than {}'.format(self.zoom.p1.y, max_y))
+
+    def _validate_map_plot_options(self, data_info):
+        for key in self.map_plot_options:
+            if key not in data_info.maps:
+                del self.map_plot_options[key]
+
+        for key, value in self.map_plot_options.items():
+            if value is not None:
+                self.map_plot_options[key] = value.validate(data_info)
+
     def __repr__(self):
         return str(self.get_conversion_info().to_dict(self))
 
@@ -203,6 +254,12 @@ class SingleMapConfig(object):
 
     def to_yaml(self):
         return yaml.safe_dump(self.get_conversion_info().to_dict(self))
+
+    def validate(self, data_info):
+        for key in self.__dict__:
+            if hasattr(self, '_validate_' + key):
+                getattr(self, '_validate_' + key)(data_info)
+        return self
 
     def __repr__(self):
         return str(self.get_conversion_info().to_dict(self))
