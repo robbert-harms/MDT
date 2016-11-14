@@ -13,3 +13,4 @@ Maastricht Diffusion Toolbox
    home_folder
    FAQ <faq>
    credits
+   developers

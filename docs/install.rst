@@ -10,7 +10,7 @@ native Ubuntu packages are preferred. To install most of the dependencies, pleas
 
 .. code-block:: bash
 
-    $ sudo apt-get install python3 python3-pip python3-pyopencl \
+    $ sudo apt install python3 python3-pip python3-pyopencl \
         python3-numpy python3-nibabel python3-pyqt5 \
         python3-matplotlib python3-six python3-yaml \
         python3-argcomplete libpng-dev libfreetype6-dev libxft-dev
