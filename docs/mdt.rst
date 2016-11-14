@@ -16,14 +16,6 @@ Subpackages
 Submodules
 ----------
 
-mdt.IO module
--------------
-
-.. automodule:: mdt.IO
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 mdt.batch_utils module
 ----------------------
 
@@ -44,6 +36,14 @@ mdt.configuration module
 ------------------------
 
 .. automodule:: mdt.configuration
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+mdt.deferred_mappings module
+----------------------------
+
+.. automodule:: mdt.deferred_mappings
     :members:
     :undoc-members:
     :show-inheritance:
@@ -92,6 +92,14 @@ mdt.model_sampling module
 -------------------------
 
 .. automodule:: mdt.model_sampling
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+mdt.nifti module
+----------------
+
+.. automodule:: mdt.nifti
     :members:
     :undoc-members:
     :show-inheritance:

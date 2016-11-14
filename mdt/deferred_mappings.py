@@ -17,9 +17,11 @@ class DeferredActionDict(collections.MutableMapping):
         until it is needed.
 
         Args:
-            func (function): the callback function to apply on the given items at request, with signature::
+            func (function): the callback function to apply on the given items at request, with signature:
 
-                def callback(key, value)
+                .. code-block: python
+
+                    def callback(key, value)
 
             items (dict): the items on which we operate
             memoize (boolean): if true we memorize the function output internally. If False we apply the given function
@@ -72,9 +74,11 @@ class DeferredActionTuple(collections.Sequence):
         until it is needed.
 
         Args:
-            func (function): the callback function to apply on the given items at request, with signature::
+            func (function): the callback function to apply on the given items at request, with signature:
 
-                def callback(index, value)
+                .. code-block: python
+
+                    def callback(index, value)
 
             items (list, tuple): the items on which we operate
             memoize (boolean): if true we memorize the function output internally. If False we apply the given function

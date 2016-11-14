@@ -20,36 +20,43 @@ class Tensor(CompartmentConfig):
         eigen_vectors = eigen_vectors_from_tensor(results_dict[self.name + '.theta'], results_dict[self.name + '.phi'],
                                                   results_dict[self.name + '.psi'])
 
-        eigen_values = np.squeeze(np.concatenate([m[..., None] for m in [results_dict[self.name + '.d'],
-                                                                         results_dict[self.name + '.dperp0'],
-                                                                         results_dict[self.name + '.dperp1']]], axis=1))
+        eigen_values = Tensor.create_eigen_values_matrix([results_dict[self.name + '.d'],
+                                                          results_dict[self.name + '.dperp0'],
+                                                          results_dict[self.name + '.dperp1']])
 
-        if len(eigen_values.shape) < 2:
-            # in the case of a single voxel, the eigen values collapses to a 1d array, but we need it to be 2d
-            eigen_values = eigen_values[None, :]
-
-        ranking = np.squeeze(np.argsort(eigen_values, axis=1)[:, ::-1])
-
-        if len(ranking.shape) < 2:
-            ranking = ranking[None, :]
+        ranking = Tensor.get_ranking_matrix(eigen_values)
 
         voxels_listing = np.arange(ranking.shape[0])
         sorted_eigen_values = [eigen_values[voxels_listing, ranking[:, ind]] for ind in range(ranking.shape[1])]
 
-        extra_maps = {self.name + '.eigen_ranking': ranking}
+        fa, md = DTIMeasures().concat_and_calculate(eigen_values[:, 0], eigen_values[:, 1], eigen_values[:, 2])
+
+        extra_maps = {self.name + '.eigen_ranking': ranking,
+                      self.name + '.FA': fa,
+                      self.name + '.MD': md,
+                      self.name + '.AD': sorted_eigen_values[0],
+                      self.name + '.RD': (sorted_eigen_values[1] + sorted_eigen_values[2]) / 2}
+
         for ind in range(3):
             extra_maps.update({self.name + '.vec' + repr(ind): eigen_vectors[:, ind, :]})
 
             for dimension in range(3):
                 extra_maps.update({self.name + '.vec' + repr(ind) + '_' + repr(dimension):
                                    eigen_vectors[:, ind, dimension]})
-
-        dti_measures = DTIMeasures()
-        fa, md = dti_measures.concat_and_calculate(eigen_values[:, 0], eigen_values[:, 1], eigen_values[:, 2])
-
-        extra_maps.update({self.name + '.FA': fa,
-                           self.name + '.MD': md,
-                           self.name + '.AD': sorted_eigen_values[0],
-                           self.name + '.RD': (sorted_eigen_values[1] + sorted_eigen_values[2]) / 2})
+            extra_maps.update({self.name + '.eigval{}'.format(ind): sorted_eigen_values[ind]})
 
         return extra_maps
+
+    @staticmethod
+    def ensure_2d(array):
+        if len(array.shape) < 2:
+            return array[None, :]
+        return array
+
+    @staticmethod
+    def create_eigen_values_matrix(diffusivities):
+        return Tensor.ensure_2d(np.squeeze(np.concatenate([m[..., None] for m in diffusivities], axis=1)))
+
+    @staticmethod
+    def get_ranking_matrix(eigen_values):
+        return Tensor.ensure_2d(np.squeeze(np.argsort(eigen_values, axis=1)[:, ::-1]))
