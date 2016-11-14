@@ -668,7 +668,8 @@ def eigen_vectors_from_tensor(theta, phi, psi):
 
     Returns:
         The three eigenvectors per voxel in the ROI. The return matrix is of shape (n, 3, 3) where n is the number
-        of voxels and the three by three matrix is:
+        of voxels, the first three is the number of directions (three directions) and the last three is the
+        components of each vector, x, y and z. Hence the three by three matrix for one voxel looks like:
 
         .. code-block:: python
 

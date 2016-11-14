@@ -469,7 +469,6 @@ def sort_maps(maps_to_sort_on, extra_maps_to_sort=None, reversed_sort=False, sor
     if extra_maps_to_sort:
         sorted_extra_maps = sort_volumes_per_voxel(extra_maps_to_sort, sort_index_map)
         return sorted_maps, sorted_extra_maps, sort_index_map
-
     return sorted_maps, [], sort_index_map
 
 

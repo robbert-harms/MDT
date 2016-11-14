@@ -26,8 +26,9 @@ class Tensor(CompartmentConfig):
 
         ranking = Tensor.get_ranking_matrix(eigen_values)
 
-        voxels_listing = np.arange(ranking.shape[0])
-        sorted_eigen_values = [eigen_values[voxels_listing, ranking[:, ind]] for ind in range(ranking.shape[1])]
+        voxels_range = np.arange(ranking.shape[0])
+        sorted_eigen_values = [eigen_values[voxels_range, ranking[:, ind]] for ind in range(ranking.shape[1])]
+        sorted_eigen_vectors = [eigen_vectors[voxels_range, ranking[:, ind], :] for ind in range(ranking.shape[1])]
 
         fa, md = DTIMeasures().concat_and_calculate(eigen_values[:, 0], eigen_values[:, 1], eigen_values[:, 2])
 
@@ -38,12 +39,16 @@ class Tensor(CompartmentConfig):
                       self.name + '.RD': (sorted_eigen_values[1] + sorted_eigen_values[2]) / 2}
 
         for ind in range(3):
-            extra_maps.update({self.name + '.vec' + repr(ind): eigen_vectors[:, ind, :]})
+            extra_maps.update({self.name + '.vec' + repr(ind): eigen_vectors[:, ind, :],
+                               self.name + '.sorted_vec' + repr(ind): sorted_eigen_vectors[ind],
+                               self.name + '.eigval{}'.format(ind): sorted_eigen_values[ind]})
 
             for dimension in range(3):
                 extra_maps.update({self.name + '.vec' + repr(ind) + '_' + repr(dimension):
-                                   eigen_vectors[:, ind, dimension]})
-            extra_maps.update({self.name + '.eigval{}'.format(ind): sorted_eigen_values[ind]})
+                                       eigen_vectors[:, ind, dimension],
+                                   self.name + '.sorted_vec' + repr(ind) + '_' + repr(dimension):
+                                       sorted_eigen_vectors[ind][:, dimension]
+                                   })
 
         return extra_maps
 
@@ -55,7 +60,7 @@ class Tensor(CompartmentConfig):
 
     @staticmethod
     def create_eigen_values_matrix(diffusivities):
-        return Tensor.ensure_2d(np.squeeze(np.concatenate([m[..., None] for m in diffusivities], axis=1)))
+        return Tensor.ensure_2d(np.squeeze(np.dstack(diffusivities)))
 
     @staticmethod
     def get_ranking_matrix(eigen_values):
