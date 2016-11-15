@@ -123,7 +123,7 @@ Compartment model
 -----------------
 The compartment models form the components from which the multi-compartment models are build. They consists, in basis, of
 two parts, a list of parameters (see :ref:`dynamic_modules_parameters`) and the model code in OpenCL C (the OpenCL dialect of C99).
-At runtime MDT loads the C code of the compartment model and combines it with the other compartments to form the multi-compartment model (see :ref:`concepts_cl_code`).
+At runtime, MDT loads the C code of the compartment model and combines it with the other compartments to form the multi-compartment model (see :ref:`concepts_cl_code`).
 
 The compartment models must be defined in a ``.py`` file where the **filename matches** the **class name** and it only allows for **one** compartment **per file**.
 For example, the following example compartment model is named ``Stick`` and must therefore be contained in a file named ``Stick.py``::
