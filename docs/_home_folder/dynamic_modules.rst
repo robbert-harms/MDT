@@ -230,8 +230,6 @@ rest of the single model attributes.
 * weights have auto summation
 
 
-
-
 Cascade models
 --------------
 todo
