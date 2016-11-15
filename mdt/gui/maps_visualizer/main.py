@@ -106,7 +106,7 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
             else:
                 self._controller.set_data(data, config)
 
-    @pyqtSlot(tuple, tuple, dict)
+    @pyqtSlot(tuple, tuple)
     def _directory_changed(self, additions, removals):
         data = DataInfo.from_dir(self._controller.get_data().directory)
         config = self._controller.get_config()
