@@ -8,7 +8,7 @@ These guidelines are meant to ensure that the code and documentation of MDT stay
 
 Code guidelines
 ===============
-MDT is written in two languages, Python and OpenCL. We have a general naming style to follow and for both Python and OpenCL we have a syntax style guideline.
+MDT is written in two languages, Python and OpenCL. We have a general naming guideline and for both Python and OpenCL we have a syntax style guideline.
 
 
 Variable naming
@@ -81,18 +81,9 @@ or, in this example, this is also fine:
         return 1
 
 
-
-
-todo
-* pycharm community
-* Napoleon style docstring
-*
-
-
 Documentation
 =============
 In MDT we use the ReStructedText format (extension ``.rst``) for the documentation and we use Sphinx with the Napoleon style docstring for the API documentation generation.
-Care must be taken that the docstrings in the Python source code use the Napoleon documentation style.
 
 
 Generate the documentation
