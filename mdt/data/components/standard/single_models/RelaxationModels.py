@@ -11,7 +11,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 class S0TM(DMRISingleModelConfig):
-    #FJ(07.11.16): Please, this model HAS TO INCORPORATED DIFFUSION COMPONENT!
+    #todo: FJ(07.11.16): Please, this model HAS TO INCORPORATED DIFFUSION COMPONENT!
     name = 'S0-TM'
     description = 'Full STEAM model for T1 decay by variation in mixing time. T2 contained in S0'
     model_expression = 'S0 * ExpT1DecTM'
