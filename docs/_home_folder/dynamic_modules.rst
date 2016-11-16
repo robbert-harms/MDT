@@ -121,8 +121,8 @@ are commonly placed in the Python module named ``model_data.py``.
 
 Compartment model
 -----------------
-The compartment models form the components from which the multi-compartment models are build. They consists, in basis, of
-two parts, a list of parameters (see :ref:`dynamic_modules_parameters`) and the model code in OpenCL C (the OpenCL dialect of C99).
+The compartment models form the components from which the multi-compartment models are build. They consists, in basis,
+of two parts, a list of parameters (see :ref:`dynamic_modules_parameters`) and the model code in OpenCL C (the OpenCL dialect of C99).
 At runtime, MDT loads the C code of the compartment model and combines it with the other compartments to form the multi-compartment model (see :ref:`concepts_cl_code`).
 
 The compartment models must be defined in a ``.py`` file where the **filename matches** the **class name** and it only allows for **one** compartment **per file**.
@@ -151,7 +151,9 @@ or it can directly be an instance of a parameter. For example, this is also a va
 
 here the parameters ``g`` and ``b`` are loaded from the dynamically loadable parameters while the ``special_param`` is given as a parameter instance.
 
-The CL code for a compartment model can either be given in the definition of the compartment, like shown here, or it can be provided in
+Splitting the CL and Python file
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The CL code for a compartment model can either be given in the definition of the compartment, like shown above, or it can be provided in
 a separate ``.cl`` file with the same name as the compartment.
 An advantage of using an external ``.cl`` file is that you can include additional subroutines in your model definition.
 The following is an example of splitting the CL code from the compartment model definition:
@@ -192,6 +194,8 @@ MDT commonly uses the ``mot_float_type`` which is type defined to either float o
 The model name does not necessarily needs to match that of the filenames, but it should be unique to avoid naming conflicts during compilation.
 
 
+.. _dynamic_modules_composite_models:
+
 Composite models
 ----------------
 The composite models, or, multi-compartment models are the models that MDT actually optimizes.
@@ -226,6 +230,12 @@ rest of the composite model attributes.
 todo:
 * parameter dependencies
 * weights have auto summation
+* additional output maps
+
+.. _dynamic_modules_composite_models_protocol_options:
+
+Protocol options
+^^^^^^^^^^^^^^^^
 
 
 Cascade models
