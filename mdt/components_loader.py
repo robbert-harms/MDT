@@ -39,6 +39,26 @@ def get_model(model_name, **kwargs):
             raise ValueError('The model with the name "{}" could not be found.'.format(model_name))
 
 
+def get_meta_info(model_name):
+    """Get the meta information of a particular model
+
+    Args:
+        model_name (str): One of the models from get_list_of_single_models() or get_list_of_cascade_models()
+
+    Returns:
+        Either a cascade model or a single model. In any case, a model that can be given to the fit_model function.
+    """
+    cml = CascadeModelsLoader()
+    sml = SingleModelsLoader()
+    try:
+        return cml.get_meta_info(model_name)
+    except ImportError:
+        try:
+            return sml.get_meta_info(model_name)
+        except ImportError:
+            raise ValueError('The model with the name "{}" could not be found.'.format(model_name))
+
+
 class ComponentBuilder(object):
 
     def __init__(self):
@@ -288,7 +308,7 @@ class ComponentsSource(object):
 class UserComponentsSourceSingle(ComponentsSource):
 
     def __init__(self, user_type, component_type):
-        """
+        """Load the user components of the type *single*.
 
         This expects that the available python files contain a class with the same name as the file in which the class
         resides. For example, if we have a python file named "MySingleComponent.py" we should at least have the class
@@ -360,27 +380,51 @@ class AutoUserComponentsSourceSingle(UserComponentsSourceSingle):
         return cls
 
 
+class ComponentInfo(object):
+
+    def get_name(self):
+        """Get the name of this component
+
+        Returns:
+            str: the name of this component
+        """
+        return NotImplemented
+
+    def get_meta_info(self):
+        """Get the additional meta info of this component
+
+        Returns:
+            dict: the meta info
+        """
+        return NotImplemented
+
+    def get_component_class(self):
+        """Get the component class
+
+        Returns:
+            class: the class of the component
+        """
+        return NotImplemented
+
+
 class UserComponentsSourceMulti(ComponentsSource):
-    """Base class for components in which there are multiple components per file.
 
-    Classes implementing the user components source must overwrite the method: _get_components_from_module()
-    used to get the components in a loaded file/module.
-
-    Class Attributes:
-        loaded_modules_cache (dict): A cache for loaded components.
-            If we do not do this, we fit_model into TypeError problems when a class is reloaded while there is already
-            an instantiated object.
-
-            This dict is indexed per directory names and contains for each loaded python file a tuple with the
-            module and the loaded component.
-    """
     loaded_modules_cache = {}
 
     def __init__(self, user_type, component_type):
-        """
+        """"Base class for components in which there are multiple components per file.
+
         Args:
             user_type (str): either 'user' or 'standard'. This defines from which dir to use the components
             component_type (str): from which dir in 'user' or 'standard' to use the components
+
+        Attributes:
+            loaded_modules_cache (dict): A cache for loaded components.
+                If we do not do this, we fit_model into TypeError problems when a class is reloaded while there is already
+                an instantiated object.
+
+                This dict is indexed per directory names and contains for each loaded python file a tuple with the
+                module and the loaded component.
         """
         super(UserComponentsSourceMulti, self).__init__()
         self._user_type = user_type
@@ -399,10 +443,10 @@ class UserComponentsSourceMulti(ComponentsSource):
     def get_class(self, name):
         if name not in self._components:
             raise ImportError
-        return self._components[name][0]
+        return self._components[name].get_component_class()
 
     def get_meta_info(self, name):
-        return self._components[name][1]
+        return self._components[name].get_meta_info()
 
     def _load_all_components(self):
         self._update_modules_cache()
@@ -411,7 +455,7 @@ class UserComponentsSourceMulti(ComponentsSource):
         for module, components in self.loaded_modules_cache[self._component_type].values():
             all_components.extend(components)
 
-        return {meta_info[1]['name']: meta_info for meta_info in all_components}
+        return {component.get_name(): component for component in all_components}
 
     def _update_modules_cache(self):
         """Fill the modules cache with the components.
@@ -424,9 +468,11 @@ class UserComponentsSourceMulti(ComponentsSource):
                 module_name = self._user_type + '/' + \
                               self._component_type + '/' + \
                               os.path.splitext(os.path.basename(path))[0]
+
                 module = imp.load_source(module_name, path)
-                self.loaded_modules_cache[self._component_type][path] = [module,
-                                                                         self._get_components_from_module(module)]
+
+                self.loaded_modules_cache[self._component_type][path] = \
+                    (module, self._get_components_from_module(module))
 
     def _get_components_from_module(self, module):
         """Return a list of all the available components in the given module.
@@ -435,7 +481,7 @@ class UserComponentsSourceMulti(ComponentsSource):
             module (module): the module from which to use the components.
 
         Returns:
-            list: list of components loaded from this module
+            list: list of ComponentInfo objects
         """
         loaded_items = []
 
@@ -477,7 +523,7 @@ class AutoUserComponentsSourceMulti(UserComponentsSourceMulti):
         if name not in self._components:
             raise ImportError
 
-        base = self._components[name][0]
+        base = self._components[name].get_component_class()
         if inspect.isclass(base) and issubclass(base, ComponentConfig):
             return self.component_builder.create_class(base)
 
@@ -492,13 +538,27 @@ class AutoUserComponentsSourceMulti(UserComponentsSourceMulti):
         Returns:
             list: list of components loaded from this module
         """
+        class DynamicInfo(ComponentInfo):
+
+            def __init__(self, component):
+                self._component = component
+
+            def get_name(self):
+                return self._component.name
+
+            def get_meta_info(self):
+                return self._component.meta_info()
+
+            def get_component_class(self):
+                return self._component
+
         loaded_items = super(AutoUserComponentsSourceMulti, self)._get_components_from_module(module)
 
         items = inspect.getmembers(module, _get_class_predicate(module, self._component_class))
-        loaded_items.extend((item[1], item[1].meta_info()) for item in items)
+        loaded_items.extend(DynamicInfo(item[1]) for item in items)
 
         items = inspect.getmembers(module, _get_class_predicate(module, ComponentConfig))
-        loaded_items.extend((item[1], item[1].meta_info()) for item in items)
+        loaded_items.extend(DynamicInfo(item[1]) for item in items)
 
         return loaded_items
 

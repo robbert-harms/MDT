@@ -6,7 +6,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class BallStick(DMRISingleModelConfig):
+class BallStick_r1(DMRISingleModelConfig):
 
     ex_vivo_suitable = False
     description = 'The default Ball & Stick model'
@@ -19,9 +19,9 @@ class BallStick(DMRISingleModelConfig):
     post_optimization_modifiers = [('FS', lambda results: 1 - results['w_ball.w'])]
 
 
-class BallStickExVivo(BallStick):
+class BallStick_r1_ExVivo(BallStick_r1):
 
-    name = 'BallStick-ExVivo'
+    name = 'BallStick_r1-ExVivo'
     in_vivo_suitable = False
     ex_vivo_suitable = True
     description = 'The Ball & Stick model with ex vivo defaults',
@@ -29,7 +29,7 @@ class BallStickExVivo(BallStick):
              'Stick.d': 0.6e-9}
 
 
-class BallStickStick(DMRISingleModelConfig):
+class BallStick_r2(DMRISingleModelConfig):
 
     ex_vivo_suitable = False
     description = 'The Ball & 2x Stick model'
@@ -44,9 +44,9 @@ class BallStickStick(DMRISingleModelConfig):
     post_optimization_modifiers = [('FS', lambda results: 1 - results['w_ball.w'])]
 
 
-class BallStickStickExVivo(BallStickStick):
+class BallStick_r2_ExVivo(BallStick_r2):
 
-    name = 'BallStickStick-ExVivo'
+    name = 'BallStick_r2-ExVivo'
     in_vivo_suitable = False
     ex_vivo_suitable = True
     description = 'The Ball & 2x Stick model with ex vivo defaults'
@@ -55,7 +55,7 @@ class BallStickStickExVivo(BallStickStick):
              'Stick1.d': 0.6e-9}
 
 
-class BallStickStickStick(DMRISingleModelConfig):
+class BallStick_r3(DMRISingleModelConfig):
 
     ex_vivo_suitable = False
     description = 'The Ball & 3x Stick model'
@@ -74,9 +74,9 @@ class BallStickStickStick(DMRISingleModelConfig):
     post_optimization_modifiers = [('FS', lambda results: 1 - results['w_ball.w'])]
 
 
-class BallStickStickStickExVivo(BallStickStickStick):
+class BallStick_r3_ExVivo(BallStick_r3):
 
-    name = 'BallStickStickStick-ExVivo'
+    name = 'BallStick_r3-ExVivo'
     ex_vivo_suitable = True
     in_vivo_suitable = False
     description = 'The Ball & 3x Stick model with ex vivo defaults'

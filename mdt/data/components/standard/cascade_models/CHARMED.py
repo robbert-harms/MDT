@@ -10,7 +10,7 @@ class CHARMED1(CascadeConfig):
 
     name = 'CHARMED_r1 (Cascade)'
     description = 'Initializes the directions to Ball & Stick.'
-    models = ('BallStick (Cascade)',
+    models = ('BallStick_r1 (Cascade)',
               'CHARMED_r1')
     inits = {'CHARMED_r1': [('CHARMEDRestricted0.theta', 'Stick.theta'),
                             ('CHARMEDRestricted0.phi', 'Stick.phi'),
@@ -31,7 +31,7 @@ class CHARMEDR1Fixed(CascadeConfig):
 
     name = 'CHARMED_r1 (Cascade|fixed)'
     description = 'Fixes the directions to Ball & Stick.'
-    models = ('BallStick (Cascade)',
+    models = ('BallStick_r1 (Cascade)',
               'CHARMED_r1')
     inits = {'CHARMED_r1': [('Tensor.theta', 'Stick.theta'),
                             ('Tensor.phi', 'Stick.phi'),
@@ -44,7 +44,7 @@ class CHARMEDR2(CascadeConfig):
 
     name = 'CHARMED_r2 (Cascade)'
     description = 'Initializes the directions to 2x Ball & Stick.'
-    models = ('BallStickStick (Cascade)',
+    models = ('BallStick_r2 (Cascade)',
               'CHARMED_r2')
     inits = {'CHARMED_r2': [('Tensor.theta', 'Stick0.theta'),
                             ('Tensor.phi', 'Stick0.phi'),
@@ -68,7 +68,7 @@ class CHARMEDR2Fixed(CascadeConfig):
 
     name = 'CHARMED_r2 (Cascade|fixed)'
     description = 'Fixes the directions to 2x Ball & Stick.'
-    models = ('BallStickStick (Cascade)',
+    models = ('BallStick_r2 (Cascade)',
               'CHARMED_r2')
     inits = {'CHARMED_r2': [('Tensor.theta', 'Stick0.theta'),
                             ('Tensor.phi', 'Stick0.phi'),
@@ -85,7 +85,7 @@ class CHARMED_r3(CascadeConfig):
 
     name = 'CHARMED_r3 (Cascade)'
     description = 'Initializes the directions to 3x Ball & Stick.'
-    models = ('BallStickStickStick (Cascade)',
+    models = ('BallStick_r3 (Cascade)',
               'CHARMED_r3')
     inits = {'CHARMED_r3': [('Tensor.theta', 'Stick0.theta'),
                             ('Tensor.phi', 'Stick0.phi'),
@@ -113,7 +113,7 @@ class CHARMED_r3_Fixed(CascadeConfig):
 
     name = 'CHARMED_r3 (Cascade|fixed)'
     description = 'Fixes the directions to 3x Ball & Stick.'
-    models = ('BallStickStickStick (Cascade)',
+    models = ('BallStick_r3 (Cascade)',
               'CHARMED_r3')
     inits = {'CHARMED_r3': [('Tensor.theta', 'Stick0.theta'),
                             ('Tensor.phi', 'Stick0.phi'),

@@ -3,7 +3,8 @@ from copy import deepcopy
 import six
 
 import mdt
-from mdt.components_loader import ComponentConfig, ComponentBuilder, bind_function, method_binding_meta
+from mdt.components_loader import ComponentConfig, ComponentBuilder, bind_function, method_binding_meta, get_meta_info
+from mdt.deferred_mappings import DeferredFunctionDict
 from mdt.model_protocol_problem import NamedProtocolProblem
 from mdt.models.base import DMRIOptimizable
 from mdt.utils import simple_parameter_init
@@ -197,6 +198,7 @@ class CascadeConfig(ComponentConfig):
             .. code-block:: python
 
                 models = ('BallStick (Cascade)', 'Charmed_r1')
+
         inits (dict): per model the initializations from the previous model. Example:
 
             .. code-block:: python
@@ -207,6 +209,7 @@ class CascadeConfig(ComponentConfig):
 
             In this example the Charmed_r1 model in the cascade initializes its Tensor compartment with a previous
             Ball&Stick model and initializes with restricted compartment volume fraction with the Stick fraction.
+
         fixes (dict): per model the fixations from the previous model. Example:
 
             .. code-block:: python
@@ -229,6 +232,16 @@ class CascadeConfig(ComponentConfig):
 
         Use this if you want to control more of the initialization of the next model than only the inits and fixes.
         """
+
+    @classmethod
+    def meta_info(cls):
+        meta_info = deepcopy(ComponentConfig.meta_info())
+        meta_info.update({'name': cls.name,
+                          'description': cls.description,
+                          'in_vivo_suitable': get_meta_info(cls.models[len(cls.models) - 1])['in_vivo_suitable'],
+                          'ex_vivo_suitable': get_meta_info(cls.models[len(cls.models) - 1])['ex_vivo_suitable']
+                          })
+        return meta_info
 
 
 class CascadeBuilder(ComponentBuilder):

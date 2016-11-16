@@ -6,59 +6,59 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class BallStick(CascadeConfig):
+class BallStick_r1(CascadeConfig):
 
-    name = 'BallStick (Cascade)'
+    name = 'BallStick_r1 (Cascade)'
     description = 'Cascade for Ballstick'
     models = ('S0',
-              'BallStick')
+              'BallStick_r1')
 
 
-class BallStickS0(BallStick):
+class BallStick_r1_S0(BallStick_r1):
 
-    name = 'BallStick (Cascade|S0)'
+    name = 'BallStick_r1 (Cascade|S0)'
 
 
-class BallStickExVivo(BallStick):
+class BallStick_r1_ExVivo(BallStick_r1):
 
-    name = 'BallStick-ExVivo (Cascade)'
+    name = 'BallStick_r1-ExVivo (Cascade)'
     description = 'Cascade for Ballstick with ex vivo defaults.'
     models = ('S0',
-              'BallStick-ExVivo')
+              'BallStick_r1-ExVivo')
 
 
-class BallStickStick(CascadeConfig):
+class BallStick_r2(CascadeConfig):
 
-    name = 'BallStickStick (Cascade)'
-    description = 'Cascade for BallStickStick.'
-    models = ('BallStick (Cascade)',
-              'BallStickStick')
-    inits = {'BallStickStick': [('Stick0.theta', 'Stick.theta'),
-                                ('Stick0.phi', 'Stick.phi'),
-                                ('w_stick0.w', 'w_stick.w'),
-                                ('w_stick1.w', 0.0)]}
-
-
-class BallStickStickExVivo(BallStickStick):
-
-    name = 'BallStickStick-ExVivo (Cascade)'
-    description = 'Cascade for BallStickStick with ex vivo defaults.'
-    models = ('BallStick-ExVivo (Cascade)',
-              'BallStickStick-ExVivo')
+    name = 'BallStick_r2 (Cascade)'
+    description = 'Cascade for BallStick_r2.'
+    models = ('BallStick_r1 (Cascade)',
+              'BallStick_r2')
+    inits = {'BallStick_r2': [('Stick0.theta', 'Stick.theta'),
+                              ('Stick0.phi', 'Stick.phi'),
+                              ('w_stick0.w', 'w_stick.w'),
+                              ('w_stick1.w', 0.0)]}
 
 
-class BallStickStickStick(CascadeConfig):
+class BallStick_r2_ExVivo(BallStick_r2):
 
-    name = 'BallStickStickStick (Cascade)'
-    description = 'Cascade for BallStickStickStick.'
-    models = ('BallStickStick (Cascade)',
-              'BallStickStickStick')
-    inits = {'BallStickStickStick': [('w_stick2.w', 0.0)]}
+    name = 'BallStick_r2-ExVivo (Cascade)'
+    description = 'Cascade for BallStick_r2 with ex vivo defaults.'
+    models = ('BallStick_r1-ExVivo (Cascade)',
+              'BallStick_r2-ExVivo')
 
 
-class BallStickStickStickExVivo(BallStickStickStick):
+class BallStick_r3(CascadeConfig):
 
-    name = 'BallStickStickStick-ExVivo (Cascade)'
-    description = 'Cascade for BallStickStickStick with ex vivo defaults.'
-    models = ('BallStickStick-ExVivo (Cascade)',
-              'BallStickStickStick-ExVivo')
+    name = 'BallStick_r3 (Cascade)'
+    description = 'Cascade for BallStick_r3.'
+    models = ('BallStick_r2 (Cascade)',
+              'BallStick_r3')
+    inits = {'BallStick_r3': [('w_stick2.w', 0.0)]}
+
+
+class BallStick_r3_ExVivo(BallStick_r3):
+
+    name = 'BallStick_r3-ExVivo (Cascade)'
+    description = 'Cascade for BallStick_r3 with ex vivo defaults.'
+    models = ('BallStick_r2-ExVivo (Cascade)',
+              'BallStick_r3-ExVivo')

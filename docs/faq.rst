@@ -29,3 +29,20 @@ If your preferred device supports OpenCL and it does not show in MDT, you may be
 If you would like to run the computations on a GPU (graphics card), please install the correct drivers for that card. If you would like to run the computations on the CPU, you have two possibilities.
 The first is to install an AMD graphics card, their drivers come pre-supplied with OpenCL drivers for CPU's (for both Intel and AMD). If you do not have a graphics card, or you have an NVidia card, you
 will have to install the `Intel OpenCL Drivers <https://software.intel.com/en-us/articles/opencl-drivers>`_ to your system.
+
+
+The GUI fails to start
+----------------------
+You have successfully installed MDT, but starting the Graphical User Interface (GUI) fails.
+Most of the time this is because PyQt5 is not installed on your machine.
+If you are using Windows, please make sure you are using the very latest Anaconda version, only that one includes PyQt5.
+If you are using Linux, please make sure you download the correct Python PyQt5 package for your machine.
+That should have been done automatically when you used the Ubuntu PPA.
+
+
+
+Log file
+========
+
+What does the line "No model protocol options to apply, using original protocol" in the log file mean?
+------------------------------------------------------------------------------------------------------

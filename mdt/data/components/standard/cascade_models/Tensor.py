@@ -10,7 +10,7 @@ class Tensor(CascadeConfig):
 
     name = 'Tensor (Cascade)'
     description = 'Cascade for Tensor.'
-    models = ('BallStick (Cascade)',
+    models = ('BallStick_r1 (Cascade)',
               'Tensor')
     inits = {'Tensor': [('Tensor.theta', 'Stick.theta'),
                         ('Tensor.phi', 'Stick.phi')]}
@@ -20,7 +20,7 @@ class TensorFixed(CascadeConfig):
 
     name = 'Tensor (Cascade|fixed)'
     description = 'Cascade for Tensor with fixed angles.'
-    models = ('BallStick (Cascade)',
+    models = ('BallStick_r1 (Cascade)',
               'Tensor')
     fixes = {'Tensor': [('Tensor.theta', 'Stick.theta'),
                         ('Tensor.phi', 'Stick.phi')]}
@@ -38,13 +38,5 @@ class TensorExVivo(Tensor):
 
     name = 'Tensor-ExVivo (Cascade)'
     description = 'Cascade for Tensor with ex vivo defaults.'
-    models = ('BallStick-ExVivo (Cascade)',
+    models = ('BallStick_r1-ExVivo (Cascade)',
               'Tensor-ExVivo')
-
-
-class TensorT2(Tensor):
-
-    name = 'Tensor-T2 (Cascade)'
-    description = 'Cascade for Tensor with an extra T2 model.'
-    models = ('BallStick-T2 (Cascade)',
-              'Tensor-t2')
