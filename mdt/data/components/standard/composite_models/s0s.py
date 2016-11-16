@@ -1,7 +1,7 @@
 import numpy as np
 
 from mdt.components_loader import bind_function
-from mdt.models.single import DMRISingleModelConfig
+from mdt.models.composite import DMRICompositeModelConfig
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -9,7 +9,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class S0(DMRISingleModelConfig):
+class S0(DMRICompositeModelConfig):
 
     description = 'Models the unweighted signal (aka. b0).'
     model_expression = 'S0'

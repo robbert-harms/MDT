@@ -1,9 +1,9 @@
 import six
 from mdt.components_loader import CompartmentModelsLoader
-from .SingleModelExpression import SingleModelExpressionSemantics, SingleModelExpressionParser
+from .CompositeModelExpression import CompositeModelExpressionSemantics, CompositeModelExpressionParser
 
 
-class Semantics(SingleModelExpressionSemantics):
+class Semantics(CompositeModelExpressionSemantics):
 
     def __init__(self):
         super(Semantics, self).__init__()
@@ -49,7 +49,7 @@ def parse(model_expression):
         If the model name is followed by parenthesis the string in parenthesis will represent the model's nickname.
 
     Returns:
-        :class:`list`: the compartment model tree for use in single models.
+        :class:`list`: the compartment model tree for use in composite models.
     """
-    parser = SingleModelExpressionParser(parseinfo=False)
+    parser = CompositeModelExpressionParser(parseinfo=False)
     return parser.parse(model_expression, rule_name='result', semantics=Semantics())

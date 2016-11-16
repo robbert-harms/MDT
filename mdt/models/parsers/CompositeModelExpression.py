@@ -15,12 +15,12 @@ from grako.parsing import graken, Parser
 __version__ = (2015, 12, 12, 11, 11, 12, 5)
 
 __all__ = [
-    'SingleModelExpressionParser',
-    'SingleModelExpressionSemantics',
+    'CompositeModelExpressionParser',
+    'CompositeModelExpressionSemantics',
 ]
 
 
-class SingleModelExpressionParser(Parser):
+class CompositeModelExpressionParser(Parser):
     def __init__(self,
                  whitespace=None,
                  nameguard=None,
@@ -29,7 +29,7 @@ class SingleModelExpressionParser(Parser):
                  ignorecase=None,
                  left_recursion=True,
                  **kwargs):
-        super(SingleModelExpressionParser, self).__init__(
+        super(CompositeModelExpressionParser, self).__init__(
             whitespace=whitespace,
             nameguard=nameguard,
             comments_re=comments_re,
@@ -105,7 +105,7 @@ class SingleModelExpressionParser(Parser):
         self._pattern(r'[a-zA-Z_]\w*')
 
 
-class SingleModelExpressionSemantics(object):
+class CompositeModelExpressionSemantics(object):
     def result(self, ast):
         return ast
 

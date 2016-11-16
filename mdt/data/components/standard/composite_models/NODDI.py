@@ -1,4 +1,4 @@
-from mdt.models.single import DMRISingleModelConfig
+from mdt.models.composite import DMRICompositeModelConfig
 from mot.model_building.parameter_functions.dependencies import SimpleAssignment, AbstractParameterDependency
 
 __author__ = 'Robbert Harms'
@@ -36,7 +36,7 @@ class NODDITortuosityParameterDependency(AbstractParameterDependency):
         return False
 
 
-class NODDI(DMRISingleModelConfig):
+class NODDI(DMRICompositeModelConfig):
 
     ex_vivo_suitable = False
     description = 'The standard NODDI model'

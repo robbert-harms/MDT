@@ -42,7 +42,7 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
     """Run the optimizer on the given model.
 
     Args:
-        model (str or :class:`~mdt.models.single.DMRISingleModel` or :class:`~mdt.models.cascade.DMRICascadeModelInterface`):
+        model (str or :class:`~mdt.models.composite.DMRICompositeModel` or :class:`~mdt.models.cascade.DMRICascadeModelInterface`):
             An implementation of an AbstractModel that contains the model we want to optimize or the name of
             an model.
         problem_data (:class:`~mdt.utils.DMRIProblemData`): the problem data object containing all the info needed for
@@ -97,10 +97,10 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
 def sample_model(model, problem_data, output_folder, sampler=None, recalculate=False,
                  cl_device_ind=None, double_precision=False, store_samples=True, tmp_results_dir=True,
                  save_user_script_info=True, initialization_maps=None):
-    """Sample a single model using the given cascading strategy.
+    """Sample a composite model using the given cascading strategy.
 
     Args:
-        model (:class:`~mdt.models.single.DMRISingleModel` or str): the model to sample
+        model (:class:`~mdt.models.composite.DMRICompositeModel` or str): the model to sample
         problem_data (:class:`~mdt.utils.DMRIProblemData`): the problem data object
         output_folder (string): The path to the folder where to place the output, we will make a subdir with the
             model name in it (for the optimization results) and then a subdir with the samples output.
@@ -126,7 +126,7 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
     """
     import mdt.utils
     from mot.load_balance_strategies import EvenDistribution
-    from mdt.model_sampling import sample_single_model
+    from mdt.model_sampling import sample_composite_model
     from mdt.models.cascade import DMRICascadeModelInterface
     import mot.configuration
 
@@ -175,7 +175,7 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
 
             model.double_precision = double_precision
 
-            results = sample_single_model(model, problem_data, output_folder, sampler,
+            results = sample_composite_model(model, problem_data, output_folder, sampler,
                                           processing_strategy, recalculate=recalculate, store_samples=store_samples)
 
         easy_save_user_script_info(save_user_script_info, output_folder + '/used_scripts.py',
@@ -515,14 +515,14 @@ def write_volume_maps(maps, directory, header, overwrite_volumes=True):
     write_all_as_nifti(maps, directory, header, overwrite_volumes=overwrite_volumes)
 
 
-def get_list_of_single_models():
-    """Get a list of all available single models
+def get_list_of_composite_models():
+    """Get a list of all available composite models
 
     Returns:
-        list of str: A list of all available single model names.
+        list of str: A list of all available composite model names.
     """
-    from mdt.components_loader import SingleModelsLoader
-    return SingleModelsLoader().list_all()
+    from mdt.components_loader import CompositeModelsLoader
+    return CompositeModelsLoader().list_all()
 
 
 def get_list_of_cascade_models():
@@ -536,13 +536,13 @@ def get_list_of_cascade_models():
 
 
 def get_models_list():
-    """Get a list of all available models, single and cascade.
+    """Get a list of all available models, composite and cascade.
 
     Returns:
         list of str: A list of available model names.
     """
     l = get_list_of_cascade_models()
-    l.extend(get_list_of_single_models())
+    l.extend(get_list_of_composite_models())
     return list(sorted(l))
 
 
@@ -553,8 +553,8 @@ def get_models_meta_info():
         dict of dict: The first dictionary indexes the model names to the meta tags, the second holds the meta
             information.
     """
-    from mdt.components_loader import SingleModelsLoader, CascadeModelsLoader
-    sml = SingleModelsLoader()
+    from mdt.components_loader import CompositeModelsLoader, CascadeModelsLoader
+    sml = CompositeModelsLoader()
     cml = CascadeModelsLoader()
 
     meta_info = {}
@@ -580,7 +580,7 @@ def get_batch_profile(batch_profile_name, *args, **kwargs):
 
 
 def gui(base_dir=None, app_exec=True):
-    """Start the single model GUI.
+    """Start the model fitting GUI.
 
     Args:
         base_dir (str): the starting directory for the file opening actions

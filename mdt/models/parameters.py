@@ -89,7 +89,7 @@ class StaticMapParameterConfig(ParameterConfig):
 class ParameterBuilder(ComponentBuilder):
 
     def create_class(self, template):
-        """Creates classes with as base class DMRISingleModel
+        """Creates classes with as base class DMRICompositeModel
 
         Args:
             template (ParameterConfig): the configuration for the parameter.

@@ -1,4 +1,4 @@
-from mdt.models.single import DMRISingleModelConfig
+from mdt.models.composite import DMRICompositeModelConfig
 from mot.model_building.parameter_functions.dependencies import SimpleAssignment
 
 __author__ = 'Robbert Harms'
@@ -7,7 +7,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class ActiveAx(DMRISingleModelConfig):
+class ActiveAx(DMRICompositeModelConfig):
 
     ex_vivo_suitable = False
     description = 'The standard ActiveAx model'

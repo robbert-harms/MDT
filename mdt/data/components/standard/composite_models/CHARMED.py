@@ -1,4 +1,4 @@
-from mdt.models.single import DMRISingleModelConfig
+from mdt.models.composite import DMRICompositeModelConfig
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -6,7 +6,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class CHARMED_r1(DMRISingleModelConfig):
+class CHARMED_r1(DMRICompositeModelConfig):
 
     ex_vivo_suitable = False
     description = 'The CHARMED model with 1 restricted compartments'
@@ -37,7 +37,7 @@ class CHARMED_r1(DMRISingleModelConfig):
     ]
 
 
-class CHARMED_r2(DMRISingleModelConfig):
+class CHARMED_r2(DMRICompositeModelConfig):
 
     ex_vivo_suitable = False
     description = 'The CHARMED model with 2 restricted compartments'
@@ -71,7 +71,7 @@ class CHARMED_r2(DMRISingleModelConfig):
     ]
 
 
-class CHARMED_r3(DMRISingleModelConfig):
+class CHARMED_r3(DMRICompositeModelConfig):
 
     ex_vivo_suitable = False
     description = 'The standard CHARMED model with 3 restricted compartments'

@@ -196,7 +196,7 @@ class ComputationsThread(QThread):
 
 
 def start_gui(base_dir=None, app_exec=True):
-    """Start the single model GUI.
+    """Start the model fitting GUI.
 
     Args:
         base_dir (str): the starting directory for the file opening actions
@@ -220,13 +220,13 @@ def start_gui(base_dir=None, app_exec=True):
     timer.start(500)
     timer.timeout.connect(lambda: None)
 
-    single_model_gui = MDTGUISingleModel(state, computations_thread)
-    signal.signal(signal.SIGINT, single_model_gui.send_sigint)
+    composite_model_gui = MDTGUISingleModel(state, computations_thread)
+    signal.signal(signal.SIGINT, composite_model_gui.send_sigint)
 
-    center_window(single_model_gui)
-    single_model_gui.show()
+    center_window(composite_model_gui)
+    composite_model_gui.show()
 
-    QtManager.add_window(single_model_gui)
+    QtManager.add_window(composite_model_gui)
     if app_exec:
         QtManager.exec_()
 

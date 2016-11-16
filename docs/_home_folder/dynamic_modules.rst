@@ -192,21 +192,18 @@ MDT commonly uses the ``mot_float_type`` which is type defined to either float o
 The model name does not necessarily needs to match that of the filenames, but it should be unique to avoid naming conflicts during compilation.
 
 
-Single models
--------------
-The single models, or, multi-compartment models are the models that MDT actually optimizes.
-Since multi-compartment is a long word and not all models are necessary multi-compartment models, MDT uses the name single models to refer to the
-models that are being optimized using the optimization routines. Also this differentiates them from *models* in general and from the *cascade models*.
-
-Just as the compartments are built using parameters as a building block, the single models are built using compartments as building blocks  .
+Composite models
+----------------
+The composite models, or, multi-compartment models are the models that MDT actually optimizes.
+Just as the compartments are built using parameters as a building block, the composite models are built using compartments as building blocks.
 Since the compartments already contain the CL code, no further model coding is necessary in the multi-compartment models.
 When asked to optimize (or sample) a model, MDT combines the CL code of the compartments into one objective function and uses the
 parameters of the compartments to load the correct data.
 
-In contrast to the compartment models which must be placed in their own file, the single models can be placed in any ``.py`` file within the ``single_models`` directory.
-The following is an minimum example of a single (multi-compartment) model in MDT::
+In contrast to the compartment models which must be placed in their own file, the composite models can be placed in any ``.py`` file within the ``composite_models`` directory.
+The following is an minimum example of a composite (multi-compartment) model in MDT::
 
-    class BallStickStick(DMRISingleModelConfig):
+    class BallStickStick(DMRICompositeModelConfig):
 
         model_expression = '''
             S0 * ( (Weight(w_ball) * Ball) +
@@ -224,8 +221,9 @@ The example also shows compartment renaming.
 Since it is possible to use a compartment multiple times, it is necessary to rename the double compartments to ensure that all the compartments have a unique name.
 This renaming can be done by specifying the renamed model name in parenthesis after the compartment model name.
 For example ``Stick(Stick0)`` refers to a ``Stick`` compartment that has been renamed to ``Stick0``. This new name is then used to refer to that specific compartment in the
-rest of the single model attributes.
+rest of the composite model attributes.
 
+todo:
 * parameter dependencies
 * weights have auto summation
 

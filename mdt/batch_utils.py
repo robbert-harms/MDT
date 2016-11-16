@@ -454,7 +454,7 @@ class BatchFitOutputInfo(object):
         Returns:
             generator: returns an BatchFitSubjectOutputInfo per subject
         """
-        model_names = self._get_single_model_names(self._batch_profile.get_models_to_fit())
+        model_names = self._get_composite_model_names(self._batch_profile.get_models_to_fit())
 
         for subject_info in self._subjects:
             for model_name in model_names:
@@ -463,12 +463,12 @@ class BatchFitOutputInfo(object):
                     yield BatchFitSubjectOutputInfo(subject_info, output_path, model_name)
 
     @staticmethod
-    def _get_single_model_names(model_names):
-        """Resolve the single model names from the list of (possibly cascade) model names from the BatchProfile"""
+    def _get_composite_model_names(model_names):
+        """Resolve the composite model names from the list of (possibly cascade) model names from the BatchProfile"""
         lookup_cache = {}
 
         def get_names(current_names):
-            single_model_names = []
+            composite_model_names = []
 
             for model_name in current_names:
                 if model_name not in lookup_cache:
@@ -479,9 +479,9 @@ class BatchFitOutputInfo(object):
                     else:
                         lookup_cache[model_name] = [model_name]
 
-                single_model_names.extend(lookup_cache[model_name])
+                composite_model_names.extend(lookup_cache[model_name])
 
-            return single_model_names
+            return composite_model_names
 
         return list(set(get_names(model_names)))
 

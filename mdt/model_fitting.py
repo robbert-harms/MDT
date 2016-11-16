@@ -198,7 +198,7 @@ class ModelFit(object):
 
         Args:
             model
-                (:class:`~mdt.models.single.DMRISingleModel` or :class:`~mdt.models.cascade.DMRICascadeModelInterface`):
+                (:class:`~mdt.models.composite.DMRICompositeModel` or :class:`~mdt.models.cascade.DMRICascadeModelInterface`):
                     the model we want to optimize.
             problem_data (:class:`~mdt.utils.DMRIProblemData`): the problem data object which contains the dwi image,
                 the dwi header, the brain_mask and the protocol to use.
@@ -297,9 +297,9 @@ class ModelFit(object):
             model.reset()
             return last_result
 
-        return self._run_single_model(model, recalculate, self._model_names_list)
+        return self._run_composite_model(model, recalculate, self._model_names_list)
 
-    def _run_single_model(self, model, recalculate, model_names):
+    def _run_composite_model(self, model, recalculate, model_names):
         with mot.configuration.config_context(RuntimeConfigurationAction(cl_environments=self._cl_envs,
                                                                          load_balancer=self._load_balancer)):
             with per_model_logging_context(os.path.join(self._output_folder, model.name)):
@@ -327,13 +327,14 @@ class ModelFit(object):
 class SingleModelFit(object):
 
     def __init__(self, model, problem_data, output_folder, optimizer, processing_strategy, recalculate=False):
-        """Fits a single model.
+        """Fits a composite model.
 
-         This does not accept cascade models. Please use the more general ModelFit class for single and cascade models.
+         This does not accept cascade models. Please use the more general ModelFit class for all models,
+         composite and cascade.
 
          Args:
-             model (:class:`~mdt.models.single.DMRISingleModel`): An implementation of an single model that contains
-                the model we want to optimize.
+             model (:class:`~mdt.models.composite.DMRICompositeModel`): An implementation of an composite model
+                that contains the model we want to optimize.
              problem_data (:class:`~mdt.utils.DMRIProblemData`): The problem data object for the model
              output_folder (string): The full path to the folder where to place the output
              optimizer (:class:`mot.cl_routines.optimizing.base.AbstractOptimizer`): The optimization routine to use.
@@ -357,7 +358,7 @@ class SingleModelFit(object):
                 'The reported errors where: {}'.format(self._model.get_protocol_problems(problem_data.protocol)))
 
     def run(self):
-        """Fits the single model."""
+        """Fits the composite model."""
         with per_model_logging_context(self._output_path):
             self._model.set_problem_data(self._problem_data)
 

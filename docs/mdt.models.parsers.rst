@@ -4,18 +4,18 @@ mdt.models.parsers package
 Submodules
 ----------
 
-mdt.models.parsers.SingleModelExpression module
------------------------------------------------
+mdt.models.parsers.CompositeModelExpression module
+--------------------------------------------------
 
-.. automodule:: mdt.models.parsers.SingleModelExpression
+.. automodule:: mdt.models.parsers.CompositeModelExpression
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.models.parsers.SingleModelExpressionParser module
------------------------------------------------------
+mdt.models.parsers.CompositeModelExpressionParser module
+--------------------------------------------------------
 
-.. automodule:: mdt.models.parsers.SingleModelExpressionParser
+.. automodule:: mdt.models.parsers.CompositeModelExpressionParser
     :members:
     :undoc-members:
     :show-inheritance:

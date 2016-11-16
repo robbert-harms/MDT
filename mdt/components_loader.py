@@ -22,14 +22,14 @@ def get_model(model_name, **kwargs):
     """Load one of the available models.
 
     Args:
-        model_name (str): One of the models from get_list_of_single_models() or get_list_of_cascade_models()
+        model_name (str): One of the models from get_list_of_composite_models() or get_list_of_cascade_models()
         **kwargs: Extra keyword arguments used for the initialization of the model
 
     Returns:
-        Either a cascade model or a single model. In any case, a model that can be given to the fit_model function.
+        Either a cascade model or a composite model. In any case, a model that can be given to the fit_model function.
     """
     cml = CascadeModelsLoader()
-    sml = SingleModelsLoader()
+    sml = CompositeModelsLoader()
     try:
         return cml.load(model_name, **kwargs)
     except ImportError:
@@ -43,13 +43,13 @@ def get_meta_info(model_name):
     """Get the meta information of a particular model
 
     Args:
-        model_name (str): One of the models from get_list_of_single_models() or get_list_of_cascade_models()
+        model_name (str): One of the models from get_list_of_composite_models() or get_list_of_cascade_models()
 
     Returns:
-        Either a cascade model or a single model. In any case, a model that can be given to the fit_model function.
+        Either a cascade model or a composite model. In any case, a model that can be given to the fit_model function.
     """
     cml = CascadeModelsLoader()
-    sml = SingleModelsLoader()
+    sml = CompositeModelsLoader()
     try:
         return cml.get_meta_info(model_name)
     except ImportError:
@@ -572,12 +572,13 @@ class ParametersSource(AutoUserComponentsSourceMulti):
         super(ParametersSource, self).__init__(user_type, 'parameters', CLFunctionParameter, ParameterBuilder())
 
 
-class SingleModelSource(AutoUserComponentsSourceMulti):
+class CompositeModelSource(AutoUserComponentsSourceMulti):
 
     def __init__(self, user_type):
-        """Source for the items in the 'single_models' dir in the components folder."""
-        from mdt.models.single import DMRISingleModel, DMRISingleModelBuilder
-        super(SingleModelSource, self).__init__(user_type, 'single_models', DMRISingleModel, DMRISingleModelBuilder())
+        """Source for the items in the 'composite_models' dir in the components folder."""
+        from mdt.models.composite import DMRICompositeModel, DMRICompositeModelBuilder
+        super(CompositeModelSource, self).__init__(user_type, 'composite_models', DMRICompositeModel,
+                                                DMRICompositeModelBuilder())
 
 
 class CascadeSource(AutoUserComponentsSourceMulti):
@@ -626,8 +627,9 @@ class BatchProfilesLoader(ComponentsLoader):
 class ProcessingStrategiesLoader(ComponentsLoader):
 
     def __init__(self):
-        super(ProcessingStrategiesLoader, self).__init__([UserComponentsSourceSingle('user', 'processing_strategies'),
-                                                          UserComponentsSourceSingle('standard', 'processing_strategies')])
+        super(ProcessingStrategiesLoader, self).__init__(
+            [UserComponentsSourceSingle('user', 'processing_strategies'),
+             UserComponentsSourceSingle('standard', 'processing_strategies')])
 
 
 class NoiseSTDCalculatorsLoader(ComponentsLoader):
@@ -656,11 +658,11 @@ class LibraryFunctionsLoader(ComponentsLoader):
                                                       MOTLibraryFunctionSource()])
 
 
-class SingleModelsLoader(ComponentsLoader):
+class CompositeModelsLoader(ComponentsLoader):
 
     def __init__(self):
-        super(SingleModelsLoader, self).__init__([SingleModelSource('user'),
-                                                  SingleModelSource('standard')])
+        super(CompositeModelsLoader, self).__init__([CompositeModelSource('user'),
+                                                     CompositeModelSource('standard')])
 
 
 class ParametersLoader(ComponentsLoader):
@@ -701,8 +703,8 @@ def get_component_class(component_type, component_name):
         return ParametersLoader().get_class(component_name)
     if component_type == 'processing_strategies':
         return ProcessingStrategiesLoader().get_class(component_name)
-    if component_type == 'single_models':
-        return SingleModelsLoader().get_class(component_name)
+    if component_type == 'composite_models':
+        return CompositeModelsLoader().get_class(component_name)
     raise ValueError('Could not find the given component type {}'.format(component_type))
 
 

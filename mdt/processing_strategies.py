@@ -23,7 +23,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class ModelProcessingStrategy(object):
 
     def __init__(self, tmp_dir=None):
-        """Model processing strategies define in how many parts a single model is processed.
+        """Model processing strategies define in how many parts a composite model is processed.
 
         This uses the :attr:`~mot.model_building.model_builders.OptimizeModelBuilder.problems_to_analyze` attribute
         of the MOT model builder (:class:`mot.model_building.model_builders.OptimizeModelBuilder`) to select the
@@ -57,7 +57,7 @@ class ModelProcessingStrategy(object):
         (for example slice by slice) and run the processing on each slice separately and join the results afterwards.
 
         Args:
-             model (:class:`~mdt.models.single.DMRISingleModel`): the model we want to process
+             model (:class:`~mdt.models.composite.DMRICompositeModel`): the model we want to process
              problem_data (:class:`~mdt.utils.DMRIProblemData`): The problem data object with which
                 the model is initialized before running
              output_path (string): The full path to the folder where to place the output
@@ -210,7 +210,7 @@ class ModelProcessingWorkerCreator(object):
         """Create and return the worker that the processing strategy will use.
 
         Args:
-            model (:class:`~mdt.models.single.DMRISingleModel`): the model we want to process
+            model (:class:`~mdt.models.composite.DMRICompositeModel`): the model we want to process
             problem_data (:class:`~mdt.utils.DMRIProblemData`): The problem data object with which
                 the model is initialized before running
             output_dir (str): the location for the final output files

@@ -1,4 +1,4 @@
-from mdt.models.single import DMRISingleModelConfig
+from mdt.models.composite import DMRICompositeModelConfig
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -6,7 +6,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class BallStick_r1(DMRISingleModelConfig):
+class BallStick_r1(DMRICompositeModelConfig):
 
     ex_vivo_suitable = False
     description = 'The default Ball & Stick model'
@@ -29,7 +29,7 @@ class BallStick_r1_ExVivo(BallStick_r1):
              'Stick.d': 0.6e-9}
 
 
-class BallStick_r2(DMRISingleModelConfig):
+class BallStick_r2(DMRICompositeModelConfig):
 
     ex_vivo_suitable = False
     description = 'The Ball & 2x Stick model'
@@ -55,7 +55,7 @@ class BallStick_r2_ExVivo(BallStick_r2):
              'Stick1.d': 0.6e-9}
 
 
-class BallStick_r3(DMRISingleModelConfig):
+class BallStick_r3(DMRICompositeModelConfig):
 
     ex_vivo_suitable = False
     description = 'The Ball & 3x Stick model'

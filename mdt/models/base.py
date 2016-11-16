@@ -9,11 +9,11 @@ class DMRIOptimizable(object):
     def __init__(self, *args, **kwargs):
         """This is an interface for some base methods we expect in an MRI model.
 
-        Since we have both single dMRI models and cascade models we must have an overarching interface to make
+        Since we have both composite dMRI models and cascade models we must have an overarching interface to make
         sure that both type of models implement the same additional methods.
 
         The methods in this interface have little to do with modelling, but unify some extra required methods
-        in the cascades and single models.
+        in the cascades and composite models.
 
         Attributes:
             problems_to_analyze (list): the list with problems we want to analyze. Suppose we have a few thousands

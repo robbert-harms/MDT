@@ -35,18 +35,18 @@ mdt.models.compartments module
     :undoc-members:
     :show-inheritance:
 
-mdt.models.parameters module
-----------------------------
+mdt.models.composite module
+---------------------------
 
-.. automodule:: mdt.models.parameters
+.. automodule:: mdt.models.composite
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.models.single module
-------------------------
+mdt.models.parameters module
+----------------------------
 
-.. automodule:: mdt.models.single
+.. automodule:: mdt.models.parameters
     :members:
     :undoc-members:
     :show-inheritance:

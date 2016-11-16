@@ -13,7 +13,7 @@ class SharedState(QObject):
     state_updated_signal = pyqtSignal(str)
 
     def __init__(self, *args, **kwargs):
-        """The shared state for the single model GUI
+        """The shared state for the model fitting GUI
 
         Attributes:
             base_dir (str): the base dir for all file opening operations

@@ -474,8 +474,8 @@ def get_model_config(model_names, config):
 
     Args:
         model_names (list of str): the names of the models we want to match. This should contain the entire
-            recursive list of cascades leading to the single model we want to get the config for.
-        config (dict): the config items with as keys either a single model regex for a name or a list of regex for
+            recursive list of cascades leading to the composite model we want to get the config for.
+        config (dict): the config items with as keys either a composite model regex for a name or a list of regex for
             a chain of model names.
 
     Returns:

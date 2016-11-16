@@ -13,12 +13,12 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-def sample_single_model(model, problem_data, output_folder, sampler, processing_strategy,
+def sample_composite_model(model, problem_data, output_folder, sampler, processing_strategy,
                         recalculate=False, store_samples=True):
-    """Sample a single model.
+    """Sample a composite model.
 
     Args:
-        model (:class:`~mdt.models.single.DMRISingleModel`): a single model to sample
+        model (:class:`~mdt.models.composite.DMRICompositeModel`): a composite model to sample
         problem_data (:class:`~mdt.utils.DMRIProblemData`): The problem data object with which the model
             is initialized before running
         output_folder (string): The full path to the folder where to place the output
