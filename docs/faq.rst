@@ -46,13 +46,7 @@ Log file
 
 What do the "model protocol options" entries in the log file mean?
 ------------------------------------------------------------------
-This message may either represent itself as "Applying model protocol options, we will use a subset of the protocol and DWI." or as "No model protocol options to apply, using original protocol."
+This message represent itself either as "Applying model protocol options, we will use a subset of the protocol and DWI." or as "No model protocol options to apply, using original protocol."
 In both cases, this refers to the :ref:`dynamic_modules_composite_models_protocol_options` set in the composite model you fitted or sampled.
-In the first case we are applying model protocol options, in the second case we are not.
-
-These protocol options are meant to allow the composite model to select, using the protocol, only those volumes that it can use for optimization.
-For example, the Tensor model is defined to work with b-values up to 1500 s/mm^2, yet the user might be using a dataset that has more shells with some shells above that b-value threshold.
-To prevent the user from having to load a separate protocol and dMRI dataset for the Tensor model and another for the other models, we implemented in MDT the model protocol options.
-This way, the end user can provide the whole protocol file and the models will pick from that what they need.
-
-See the part about the :ref:`dynamic_modules_composite_models_protocol_options` on how to define these protocol options.
+In the first case we are applying model protocol options and hence we are only using a subset of all volumes, in the second case we use all volumes.
+See the part about the :ref:`dynamic_modules_composite_models_protocol_options` for more information and on how to define these protocol options.

@@ -27,14 +27,14 @@ class CalculateEigenvectors(CLRoutine):
 
         Returns:
             The three eigenvectors per voxel in the ROI. The return matrix is of shape (n, 3, 3) where n is the number
-            of voxels and the second dimension holds the number of evecs and the last dimension the direction per evec.
+            of voxels and the second dimension holds the number of vectors and the last dimension the direction
+            per vector. In other words, this gives for one voxel the matrix::
 
-            This gives for one voxel the matrix:
                 [evec_1_x, evec_1_y, evec_1_z,
                  evec_2_x, evec_2_y, evec_2_z
                  evec_3_x, evec_3_y, evec_3_z]
 
-            The resulting eigenvectors are the same as those from the Tensor.
+            The resulting eigenvectors are the same as those from the Tensor compartment model.
         """
         np_dtype = np.float32
         if double_precision:

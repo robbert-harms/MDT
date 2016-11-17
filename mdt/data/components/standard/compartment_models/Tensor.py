@@ -1,5 +1,6 @@
 import numpy as np
 
+import mdt
 from mdt.components_loader import bind_function
 from mdt.models.compartments import CompartmentConfig
 from mdt.cl_routines.mapping.dti_measures import DTIMeasures
@@ -27,27 +28,29 @@ class Tensor(CompartmentConfig):
         ranking = Tensor.get_ranking_matrix(eigen_values)
 
         voxels_range = np.arange(ranking.shape[0])
-        sorted_eigen_values = [eigen_values[voxels_range, ranking[:, ind]] for ind in range(ranking.shape[1])]
-        sorted_eigen_vectors = [eigen_vectors[voxels_range, ranking[:, ind], :] for ind in range(ranking.shape[1])]
+        sorted_eigen_values = np.concatenate([eigen_values[voxels_range, ranking[:, ind], None]
+                                              for ind in range(ranking.shape[1])], axis=1)
+        sorted_eigen_vectors = np.concatenate([eigen_vectors[voxels_range, ranking[:, ind], None, :]
+                                               for ind in range(ranking.shape[1])], axis=1)
 
-        fa, md = DTIMeasures().concat_and_calculate(eigen_values[:, 0], eigen_values[:, 1], eigen_values[:, 2])
+        fa, md = DTIMeasures().calculate(eigen_values)
 
         extra_maps = {self.name + '.eigen_ranking': ranking,
                       self.name + '.FA': fa,
                       self.name + '.MD': md,
-                      self.name + '.AD': sorted_eigen_values[0],
-                      self.name + '.RD': (sorted_eigen_values[1] + sorted_eigen_values[2]) / 2}
+                      self.name + '.AD': sorted_eigen_values[:, 0],
+                      self.name + '.RD': (sorted_eigen_values[:, 1] + sorted_eigen_values[:, 2]) / 2.0}
 
         for ind in range(3):
             extra_maps.update({self.name + '.vec' + repr(ind): eigen_vectors[:, ind, :],
-                               self.name + '.sorted_vec' + repr(ind): sorted_eigen_vectors[ind],
-                               self.name + '.eigval{}'.format(ind): sorted_eigen_values[ind]})
+                               self.name + '.sorted_vec' + repr(ind): sorted_eigen_vectors[:, ind, :],
+                               self.name + '.sorted_eigval{}'.format(ind): sorted_eigen_values[:, ind]})
 
             for dimension in range(3):
                 extra_maps.update({self.name + '.vec' + repr(ind) + '_' + repr(dimension):
                                        eigen_vectors[:, ind, dimension],
                                    self.name + '.sorted_vec' + repr(ind) + '_' + repr(dimension):
-                                       sorted_eigen_vectors[ind][:, dimension]
+                                       sorted_eigen_vectors[:, ind, dimension]
                                    })
 
         return extra_maps

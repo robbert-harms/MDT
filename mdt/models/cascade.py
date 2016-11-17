@@ -203,12 +203,19 @@ class CascadeConfig(ComponentConfig):
 
             .. code-block:: python
 
-                inits = {'Charmed_r1': [('Tensor.theta', 'Stick.theta'),
-                                        ('Tensor.phi', 'Stick.phi'),
-                                        ('w_res0.w', 'w_stick.w')]}
+                inits = {'Charmed_r1': [
+                            ('Tensor.theta', 'Stick.theta'),
+                            ('Tensor.phi', 'Stick.phi'),
+                            ('w_res0.w', lambda output_previous, output_all_previous: output_previous['w_stick.w'])
+                            ]
+                        }
 
             In this example the Charmed_r1 model in the cascade initializes its Tensor compartment with a previous
-            Ball&Stick model and initializes with restricted compartment volume fraction with the Stick fraction.
+            Ball&Stick model and initializes the restricted compartment volume fraction with the Stick fraction.
+            You can either provide a string matching the parameter name of the exact previous model, or provide
+            callback function that accepts both a dict containing the previous model estimates
+            and a dict containing all previous model estimates by model name and returns a single initialization map
+            or value.
 
         fixes (dict): per model the fixations from the previous model. Example:
 
@@ -216,6 +223,8 @@ class CascadeConfig(ComponentConfig):
 
                 fixes = {'Charmed_r1': [('CharmedRestricted0.theta', 'Stick.theta'),
                                         ('CharmedRestricted0.phi', 'Stick.phi')]}
+
+            The syntax is similar to that of the inits attribute.
     """
     name = ''
     description = ''
