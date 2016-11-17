@@ -7,13 +7,10 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-compartment_loader = CompartmentModelsLoader()
-
-
 class GDRCylinders(CompartmentConfig):
 
     parameter_list = ('g', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'gamma_k', 'gamma_beta', 'gamma_nmr_cyl')
-    dependency_list = (compartment_loader.load('CylinderGPD'),)
+    dependency_list = (CompartmentModelsLoader().load('CylinderGPD'),)
 
     @bind_function
     def get_extra_results_maps(self, results_dict):

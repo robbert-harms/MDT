@@ -24,5 +24,6 @@ Estimating Ball&Sticks and NODDI on 3T HCP data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Estimating CHARMED on HCP MGH data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 Batch fitting many subjects
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^

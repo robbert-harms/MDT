@@ -5,6 +5,7 @@ __author__ = 'Francisco.Lagos'
 # From protocol, if the signal is SE, we can setup TM = 0 in all the volumes,
 # which returns to the standard SE signal decay
 
+
 class ExpT1ExpT2STEAM(CompartmentConfig):
     """Generalised STEAM equation.
 

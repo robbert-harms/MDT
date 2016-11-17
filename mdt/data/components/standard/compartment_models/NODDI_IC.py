@@ -1,6 +1,5 @@
 from mdt.models.compartments import CompartmentConfig
-from mdt.components_loader import LibraryFunctionsLoader, bind_function
-from mot.model_building.cl_functions.library_functions import CerfErfi
+from mdt.components_loader import bind_function
 import numpy as np
 
 __author__ = 'Robbert Harms'
@@ -9,15 +8,12 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-lib_loader = LibraryFunctionsLoader()
-
-
 class NODDI_IC(CompartmentConfig):
 
     parameter_list = ('g', 'b', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'kappa', 'R')
-    dependency_list = (CerfErfi(),
-                       lib_loader.load('MRIConstants'),
-                       lib_loader.load('NeumannCylPerpPGSESum'))
+    dependency_list = ('CerfErfi',
+                       'MRIConstants',
+                       'NeumannCylPerpPGSESum')
 
     @bind_function
     def get_extra_results_maps(self, results_dict):

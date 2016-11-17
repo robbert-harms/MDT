@@ -1,0 +1,128 @@
+.. _dynamic_modules_compartments:
+
+Compartment models
+==================
+The compartment models form the components from which the multi-compartment models are build. They consists, in basis,
+of two parts, a list of parameters (see :ref:`dynamic_modules_parameters`) and the model code in OpenCL C (the OpenCL dialect of C99).
+At runtime, MDT loads the C code of the compartment model and combines it with the other compartments to form the multi-compartment model (see :ref:`concepts_cl_code`).
+
+The compartment models must be defined in a ``.py`` file where the **filename matches** the **class name** and it only allows for **one** compartment **per file**.
+For example, the following example compartment model is named ``Stick`` and must therefore be contained in a file named ``Stick.py``::
+
+    class Stick(CompartmentConfig):
+
+        parameter_list = ('g', 'b', 'd', 'theta', 'phi')
+        cl_code = '''
+            return exp(-b * d * pown(dot(g, (mot_float_type4)(cos(phi) * sin(theta),
+                                                              sin(phi) * sin(theta), cos(theta), 0.0)), 2));
+        '''
+
+
+This ``Stick`` example contains all the basic definitions required for a compartment model, a parameter list and CL code.
+The elements of the parameter list can either be string, referencing one of the parameters defined in the dynamically loadable parameters (like shown here),
+or it can directly be an instance of a parameter. For example, this is also a valid parameter list::
+
+    class special_param(FreeParameterConfig):
+        ...
+
+    class MyModel(CompartmentConfig):
+
+        parameter_list = ('g', 'b', special_param())
+
+
+here the parameters ``g`` and ``b`` are loaded from the dynamically loadable parameters while the ``special_param`` is given as a parameter instance.
+
+Splitting the CL and Python file
+--------------------------------
+The CL code for a compartment model can either be given in the definition of the compartment, like shown above, or it can be provided in
+a separate ``.cl`` file with the same name as the compartment.
+An advantage of using an external ``.cl`` file is that you can include additional subroutines in your model definition.
+The following is an example of splitting the CL code from the compartment model definition:
+
+``Stick.py``::
+
+    class Stick(CompartmentConfig):
+
+        parameter_list = ('g', 'b', 'd', 'theta', 'phi')
+
+``Stick.cl``:
+
+.. code-block:: c
+
+    mot_float_type cmStick(
+        const mot_float_type4 g,
+        const mot_float_type b,
+        const mot_float_type d,
+        const mot_float_type theta,
+        const mot_float_type phi){
+
+        return exp(-b * d * pown(dot(g, (mot_float_type4)(cos(phi) * sin(theta),
+                                                                  sin(phi) * sin(theta), cos(theta), 0.0)), 2));
+    }
+
+Note the absence of the attribute ``cl_code`` in the ``Stick.py`` file and note the naming scheme where the two filenames and the model name are exactly the same.
+Also note that with this setup you will need to provide the function signature yourself. The syntax of this signature is as follows:
+
+.. code-block:: c
+
+    mot_float_type cm<YourModelName>(
+        <type_modifiers> <param_name>,
+        ...
+    )
+
+Where ``<YourModelName>`` ideally matches the name of your compartment model and the type modifier in ``<type_modifier>`` should match that of your parameter definition.
+MDT commonly uses the ``mot_float_type`` which is type defined to either float or double (see :ref:`concepts_cl_code`) depending on if you use double precision or not.
+The model name does not necessarily needs to match that of the filenames, but it should be unique to avoid naming conflicts during compilation.
+
+
+.. _dynamic_modules_compartments_extra_result_maps:
+
+Extra result maps
+-----------------
+It is possible to add additional parameter maps to the fitting and sampling results.
+These maps are meant to be forthcoming to the end user by providing additional maps of interest to the output.
+By adding additional maps to a compartment one ensures that all composite models that use that compartment profit from the additionally calculated maps.
+One can also add additional output maps to the composite models, but they do not have this advantage.
+Preferably one adds the additional maps to the compartment model.
+If that does not work because you need information from more than one compartment you can place the additional map computations in the composite model.
+
+In compartments, one can add extra/additional result maps by adding the bound function ``get_extra_result_maps`` to your compartment. As an example:
+
+.. code-block:: python
+
+    ...
+    from mdt.components_loader import bind_function
+
+    class Stick(CompartmentConfig):
+        ...
+        @bind_function
+        def get_extra_results_maps(self, results_dict):
+            return self._get_vector_result_maps(results_dict[self.name + '.theta'],
+                                                results_dict[self.name + '.phi'])
+
+
+In this example we added the (x, y, z) component vector to the results for the Stick compartment.
+
+
+Dependency list
+---------------
+More complex compartment models may depend on other compartment models or on library functions for their model equation.
+These dependencies can be specified using the ``dependency_list`` attribute of your compartment model definition.
+As an example:
+
+.. code-block:: python
+
+    dependency_list = ('CerfErfi',
+                       'MRIConstants',
+                       CompartmentModelsLoader().load('CylinderGPD'))
+
+This list should contain :class:`~mot.model_building.cl_functions.base.CLFunction` instances, referencing library functions or other compartment models.
+Possible strings in this list are loaded automatically as :ref:`dynamic_modules_library_functions`.
+In this example the ``CerfErfi`` library function is loaded from MOT, ``MRIConstants`` from MDT and ``CylinderGPD`` is another compartment model which our example depends on.
+
+Adding items to this list means that the corresponding CL functions of these components are included into the optimized OpenCL kernel.
+Hence, after adding these items to this list you can now use the corresponding CL code in your compartment model.
+For example, the ``MRIConstants`` adds no functions but adds multiple constants to the kernel like ``GAMMA_H`` containing
+the gyromagnetic ratio of protons in water (nucleus of H) in units of (rad s^-1 T^−1).
+This definition can then be used in your kernel whenever you need this constant.
+

@@ -55,21 +55,24 @@ class DMRICompartmentModelFunction(ModelFunction):
         '''.format(dependencies=self._get_cl_dependency_code(), inclusion_guard_name=inclusion_guard_name,
                    header=self._cl_code)
 
-    def _get_vector_result_maps(self, theta, phi):
+    def _get_vector_result_maps(self, theta, phi, vector_name='vec0'):
         """Convert spherical coordinates to cartesian vector in 3d
 
         Args:
             theta (ndarray): the double array with the theta values
             phi (ndarray): the double array with the phi values
+            vector_name (str): the name for this vector, the common naming scheme is:
+                <model_name>.<vector_name>[_{0,1,2}]
 
         Returns:
-            dict: containing the cartesian vector representing the fibre direction in multiple forms.
+            dict: containing the cartesian vector with the main the fibre direction.
+                It returns an element .vec0 and elements vec0_
         """
         cartesian = spherical_to_cartesian(theta, phi)
-        extra_dict = {self.name + '.vec0': cartesian}
+        extra_dict = {'{}.{}'.format(self.name, vector_name): cartesian}
 
         for ind in range(3):
-            extra_dict.update({self.name + '.vec0_' + repr(ind): cartesian[:, ind]})
+            extra_dict.update({'{}.{}_{}'.format(self.name, vector_name, ind): cartesian[:, ind]})
 
         return extra_dict
 
@@ -216,7 +219,8 @@ class CompartmentConfig(six.with_metaclass(CompartmentConfigMeta, ComponentConfi
             instance that we append directly.
         cl_header (CLHeaderDefinition): the CL header definition to use. Defaults to CLHeaderFromTemplate.
         cl_code (CLCodeDefinition): the CL code definition to use. Defaults to CLCodeFromAdjacentFile.
-        dependency_list (list): the list of functions this function depends on
+        dependency_list (list): the list of functions this function depends on, can contain string which will be
+            resolved as library functions.
     """
     name = ''
     description = ''
@@ -252,7 +256,7 @@ class CompartmentBuilder(ComponentBuilder):
                             _get_parameters_list(template.parameter_list),
                             template.cl_header,
                             template.cl_code,
-                            deepcopy(template.dependency_list)]
+                            _resolve_dependencies(template.dependency_list)]
 
                 for ind, already_set_arg in enumerate(args):
                     new_args[ind] = already_set_arg
@@ -263,3 +267,28 @@ class CompartmentBuilder(ComponentBuilder):
                     template.init(self)
 
         return AutoCreatedDMRICompartmentModel
+
+
+def _resolve_dependencies(dependency_list):
+    """Resolve the dependency list such that the result contains all functions.
+
+    Args:
+        dependency_list (list): the list of dependencies as given by the user. Elements can either include actual
+            instances of :class:`~mot.model_building.cl_functions.base.CLFunction` or strings with the name of the
+            component to auto-load.
+
+    Returns:
+        list: a new list with the string elements resolved
+            as :class:`~mot.model_building.cl_functions.base.LibraryFunction`.
+    """
+    from mdt.components_loader import LibraryFunctionsLoader
+
+    lib_loader = LibraryFunctionsLoader()
+    result = []
+    for dependency in dependency_list:
+        if isinstance(dependency, six.string_types):
+            result.append(lib_loader.load(dependency))
+        else:
+            result.append(dependency)
+
+    return result

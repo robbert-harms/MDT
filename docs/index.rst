@@ -10,7 +10,8 @@ Maastricht Diffusion Toolbox
 
    install
    getting_started
-   home_folder
+   dynamic_modules
+   configuration
    FAQ <faq>
    credits
    developers

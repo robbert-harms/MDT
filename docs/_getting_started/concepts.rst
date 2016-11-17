@@ -71,7 +71,11 @@ At a bare minimum, this function requires:
 * ``protocol``, an Protocol instance containing the protocol information
 * ``mask``, the mask (3d) specifying which voxels to use for the computations
 
-Additionally you can provide a dictionary of static maps, gradient deviations and a standard deviation for the noise.
+Additionally you can provide a *dictionary of static maps*, *gradient deviations* and a *standard deviation* for the noise.
+For the standard deviation you have the choice to provide a single value, an ndarray with one value per voxel or the string 'auto'.
+If 'auto' is given we will use one or more of the :ref:`dynamic_modules_noise_std_estimators` to estimate the standard deviation of the
+noise of the unweighted diffusion MRI in the complex plain. The gradient deviations should be in the format described by the HCP Wu-Minn project
+and the static maps is a dictionary of maps with one value per voxel or one value per voxel per volume.
 
 
 Dynamic modules

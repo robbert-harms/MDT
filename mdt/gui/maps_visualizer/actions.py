@@ -46,7 +46,7 @@ class SetRotate(SimpleConfigAction):
             #     data_info.get_max_y(configuration.dimension, 0, configuration.maps_to_show))
 
             # return SetZoom(new_zoom).apply(data_info, configuration)
-            #todo
+            # todo, fix the zoom box rotation
             return SetZoom(Zoom.no_zoom()).apply(data_info, configuration)
 
 
