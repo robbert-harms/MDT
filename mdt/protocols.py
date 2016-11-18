@@ -781,7 +781,7 @@ def write_protocol(protocol, fname, columns_list=None):
     return protocol.column_names
 
 
-def auto_load_protocol(directory, protocol_options=None, bvec_fname=None, bval_fname=None, bval_scale='auto'):
+def auto_load_protocol(directory, protocol_columns=None, bvec_fname=None, bval_fname=None, bval_scale='auto'):
     """Load a protocol from the given directory.
 
     This function will only auto-search files in the top directory and not in the sub-directories.
@@ -815,7 +815,7 @@ def auto_load_protocol(directory, protocol_options=None, bvec_fname=None, bval_f
 
     Args:
         directory (str): the directory to use the protocol from
-        protocol_options (dict): mapping protocol items to filenames (as a subpath of the given directory)
+        protocol_columns (dict): mapping protocol items to filenames (as a subpath of the given directory)
             or mapping them to values (one value or one value per bvec line)
         bvec_fname (str): if given, the filename of the bvec file (as a subpath of the given directory)
         bval_fname (str): if given, the filename of the bvec file (as a subpath of the given directory)
@@ -858,13 +858,13 @@ def auto_load_protocol(directory, protocol_options=None, bvec_fname=None, bval_f
 
     protocol_extra_cols = ['TE', 'TR', 'Delta', 'delta', 'maxG']
 
-    if protocol_options:
+    if protocol_columns:
         for col in protocol_extra_cols:
-            if col in protocol_options:
-                if isinstance(protocol_options[col], six.string_types):
-                    protocol.add_column_from_file(col, os.path.join(directory, protocol_options[col]))
+            if col in protocol_columns:
+                if isinstance(protocol_columns[col], six.string_types):
+                    protocol.add_column_from_file(col, os.path.join(directory, protocol_columns[col]))
                 else:
-                    protocol.add_column(col, protocol_options[col])
+                    protocol.add_column(col, protocol_columns[col])
     else:
         for col in protocol_extra_cols:
             if os.path.isfile(os.path.join(directory, col)):

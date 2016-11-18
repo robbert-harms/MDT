@@ -156,8 +156,7 @@ class _BatchFitRunner(object):
             return
 
         self._logger.info('Loading the data (DWI, mask and protocol) of subject {0}'.format(subject_info.subject_id))
-        data_type = np.float64 if self._double_precision else np.float32
-        problem_data = subject_info.get_problem_data(dtype=data_type)
+        problem_data = subject_info.get_problem_data()
 
         with self._timer(subject_info.subject_id):
             for model in self._models_to_fit:

@@ -167,15 +167,16 @@ class SimpleBatchProfile(BatchProfile):
             float or None: a float if a float could be loaded from a file noise_std, else nothing.
         """
         file_path = file_path or os.path.join(self._root_dir, subject_id, 'noise_std')
-        noise_std_files = glob.glob(file_path + '.*')
+        noise_std_files = glob.glob(file_path + '*')
         if len(noise_std_files):
-            return noise_std_files[0]
+            with open(noise_std_files[0], 'r') as f:
+                return float(f.read())
         return None
 
     def _get_subjects(self):
         """Get the matching subjects from the given root dir.
 
-        This is the only function that should be implemented by implementing classes to get up and running.
+        This is the only function that should be implemented to get up and running.
 
         Returns:
             list of SubjectInfo: the information about the found subjects
@@ -204,6 +205,57 @@ class SimpleBatchProfile(BatchProfile):
 
         return output_dir
 
+    def _get_first_existing_file(self, filenames, default=None, prepend_path=None):
+        """Tries a list of filenames and returns the first filename in the list that exists.
+
+        Args:
+            filenames (iterator): the list of filenames to search for existence
+            default (str): the default value returned if none of the filenames existed
+            prepend_path (str): the path to optionally prepend to every file before checking existence
+
+        Returns:
+            str: the filename of the first existing file, if prepend path is set it is included.
+        """
+        for fname in filenames:
+            if fname:
+                if prepend_path:
+                    fname = os.path.join(prepend_path, fname)
+                if os.path.isfile(fname):
+                    return fname
+        return default
+
+    def _get_first_existing_nifti(self, filenames, default=None, prepend_path=None):
+        """Tries a list of filenames and returns the first filename in the list that exists.
+
+        Additional to the method :meth:`_get_first_existing_file`, this additionally tries to see for every filename
+        if a file with extension '.nii' or with '.nii.gz' exists (in that order) for that filename. If so,
+        the path with the added extension is returned.
+
+        Args:
+            filenames (iterator): the list of filenames to search for existence, does additional extension lookup
+                per filename
+            default (str): the default value returned if none of the filenames existed
+            prepend_path (str): the path to optionally prepend to every file before checking existence
+
+        Returns:
+            str: the filename of the first existing file, can contain an extra extension for the returned filename.
+        """
+        for fname in filenames:
+            resolve_extension = self._get_first_existing_file([fname, fname + '.nii', fname + '.nii.gz'],
+                                                              prepend_path=prepend_path)
+            if resolve_extension:
+                return resolve_extension
+        return default
+
+    def _autoload_protocol(self, path, protocols_to_try=(), bvecs_to_try=(), bvals_to_try=(), protocol_columns=None):
+        prtcl_fname = self._get_first_existing_file(protocols_to_try, prepend_path=path)
+        bval_fname = self._get_first_existing_file(bvals_to_try, prepend_path=path)
+        bvec_fname = self._get_first_existing_file(bvecs_to_try, prepend_path=path)
+
+        return BatchFitProtocolLoader(
+            path, protocol_fname=prtcl_fname, bvec_fname=bvec_fname,
+            bval_fname=bval_fname, protocol_columns=protocol_columns)
+
 
 class SubjectInfo(object):
 
@@ -225,13 +277,10 @@ class SubjectInfo(object):
         """
         return ''
 
-    def get_problem_data(self, dtype=np.float32):
+    def get_problem_data(self):
         """Get the DMRIProblemData for this subject.
 
         This is the data we will use during model fitting.
-
-        Args:
-            dtype (numpy dtype): the datatype we will use for the problem data
 
         Returns:
             :class:`~mdt.utils.DMRIProblemData`: the problem data to use during model fitting
@@ -248,7 +297,7 @@ class SubjectInfo(object):
 class SimpleSubjectInfo(SubjectInfo):
 
     def __init__(self, subject_id, dwi_fname, protocol_loader, mask_fname, output_dir, gradient_deviations=None,
-                 noise_std=None):
+                 use_gradient_deviations=True, noise_std=None):
         """This class contains all the information about found subjects during batch fitting.
 
         It is returned by the method get_subjects() from the class BatchProfile.
@@ -260,6 +309,7 @@ class SimpleSubjectInfo(SubjectInfo):
             mask_fname (str): the filename of the mask to use. If None a mask is auto generated.
             output_dir (str): the output directory
             gradient_deviations (str) if given, the path to the gradient deviations
+            use_gradient_deviations (boolean): if we use the gradient deviations or not
             noise_std (float, ndarray, str): either None for automatic noise detection or a float with the noise STD
                 to use during fitting or an ndarray with one value per voxel.
         """
@@ -269,6 +319,7 @@ class SimpleSubjectInfo(SubjectInfo):
         self._mask_fname = mask_fname
         self._output_dir = output_dir
         self._gradient_deviations = gradient_deviations
+        self._use_gradient_deviations = use_gradient_deviations
         self._noise_std = noise_std
 
         if self._mask_fname is None:
@@ -282,7 +333,7 @@ class SimpleSubjectInfo(SubjectInfo):
     def output_dir(self):
         return self._output_dir
 
-    def get_problem_data(self, dtype=np.float32):
+    def get_problem_data(self):
         protocol = self._protocol_loader.get_protocol()
         brain_mask_fname = self.get_mask_filename()
         return load_problem_data(self._dwi_fname, protocol, brain_mask_fname,
@@ -302,7 +353,7 @@ class SimpleSubjectInfo(SubjectInfo):
         return self._mask_fname
 
     def _get_gradient_deviations(self):
-        if self._gradient_deviations is not None:
+        if self._use_gradient_deviations and self._gradient_deviations is not None:
             return load_nifti(self._gradient_deviations).get_data()
         return None
 
@@ -384,7 +435,7 @@ class SelectedSubjects(BatchSubjectSelection):
 
 class BatchFitProtocolLoader(ProtocolLoader):
 
-    def __init__(self, base_dir, protocol_fname=None, protocol_options=None, bvec_fname=None, bval_fname=None):
+    def __init__(self, base_dir, protocol_fname=None, protocol_columns=None, bvec_fname=None, bval_fname=None):
         """A simple protocol loader for loading a protocol from a protocol file or bvec/bval files.
 
         This either loads the protocol file if present, or autoloads the protocol using the auto_load_protocol
@@ -395,7 +446,7 @@ class BatchFitProtocolLoader(ProtocolLoader):
         self._protocol_fname = protocol_fname
         self._bvec_fname = bvec_fname
         self._bval_fname = bval_fname
-        self._protocol_options= protocol_options
+        self._protocol_columns = protocol_columns
 
     def get_protocol(self):
         super(BatchFitProtocolLoader, self).get_protocol()
@@ -403,7 +454,7 @@ class BatchFitProtocolLoader(ProtocolLoader):
         if self._protocol_fname and os.path.isfile(self._protocol_fname):
             return load_protocol(self._protocol_fname)
 
-        return auto_load_protocol(self._base_dir, protocol_options=self._protocol_options,
+        return auto_load_protocol(self._base_dir, protocol_columns=self._protocol_columns,
                                   bvec_fname=self._bvec_fname, bval_fname=self._bval_fname)
 
 
