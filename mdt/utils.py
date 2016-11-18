@@ -1175,6 +1175,8 @@ def estimate_noise_std(problem_data, estimator=None):
             logger.info('Found global noise std {} using estimator {}.'.format(noise_std, estimation_routine))
             return noise_std
 
+        raise NoiseStdEstimationNotPossible('Could not estimate a noise from this dataset.')
+
     if estimator:
         estimators = [estimator]
     else:

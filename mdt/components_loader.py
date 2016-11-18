@@ -7,7 +7,11 @@ import glob
 import inspect
 import os
 import imp #todo in P3.4 replace imp calls with importlib.SourceFileLoader(name, path).load_module(name)
+
+import collections
 from six import with_metaclass
+
+from mdt.exceptions import NonUniqueComponent
 from mot.model_building.cl_functions.base import ModelFunction, LibraryFunction
 import mot.model_building.cl_functions.library_functions
 import mot.model_building.cl_functions.model_functions
@@ -178,6 +182,7 @@ class ComponentsLoader(object):
             sources (:class:`list`): the list of sources to use for loading the components
         """
         self._sources = sources
+        self._check_unique_names()
 
     def list_all(self):
         """List the names of all the available components."""
@@ -262,6 +267,15 @@ class ComponentsLoader(object):
             except ImportError:
                 pass
         raise ImportError("No component found with the name {}".format(name))
+
+    def _check_unique_names(self):
+        """Check if all the elements in the sources are unique."""
+        elements = []
+        for source in self._sources:
+            elements.extend(source.list())
+        non_unique = list(item for item, count in collections.Counter(elements).items() if count > 1)
+        if len(non_unique):
+            raise NonUniqueComponent('Non-unique components detected: {}, please rename them.'.format(non_unique))
 
 
 class ComponentsSource(object):
@@ -420,8 +434,8 @@ class UserComponentsSourceMulti(ComponentsSource):
 
         Attributes:
             loaded_modules_cache (dict): A cache for loaded components.
-                If we do not do this, we fit_model into TypeError problems when a class is reloaded while there is already
-                an instantiated object.
+                If we do not do this, we fit_model into TypeError problems when a class is reloaded while there is
+                already an instantiated object.
 
                 This dict is indexed per directory names and contains for each loaded python file a tuple with the
                 module and the loaded component.
@@ -430,8 +444,11 @@ class UserComponentsSourceMulti(ComponentsSource):
         self._user_type = user_type
         self._component_type = component_type
 
-        if self._component_type not in self.loaded_modules_cache:
-            self.loaded_modules_cache[self._component_type] = {}
+        if self._user_type not in self.loaded_modules_cache:
+            self.loaded_modules_cache[self._user_type] = {}
+
+        if self._component_type not in self.loaded_modules_cache[self._user_type]:
+            self.loaded_modules_cache[self._user_type][self._component_type] = {}
 
         self.path = _get_components_path(user_type, component_type)
         self._check_path()
@@ -452,7 +469,7 @@ class UserComponentsSourceMulti(ComponentsSource):
         self._update_modules_cache()
 
         all_components = []
-        for module, components in self.loaded_modules_cache[self._component_type].values():
+        for module, components in self.loaded_modules_cache[self._user_type][self._component_type].values():
             all_components.extend(components)
 
         return {component.get_name(): component for component in all_components}
@@ -464,14 +481,14 @@ class UserComponentsSourceMulti(ComponentsSource):
         are not yet loaded.
         """
         for path in self._get_python_component_files():
-            if path not in self.loaded_modules_cache[self._component_type]:
+            if path not in self.loaded_modules_cache[self._user_type][self._component_type]:
                 module_name = self._user_type + '/' + \
                               self._component_type + '/' + \
                               os.path.splitext(os.path.basename(path))[0]
 
                 module = imp.load_source(module_name, path)
 
-                self.loaded_modules_cache[self._component_type][path] = \
+                self.loaded_modules_cache[self._user_type][self._component_type][path] = \
                     (module, self._get_components_from_module(module))
 
     def _get_components_from_module(self, module):

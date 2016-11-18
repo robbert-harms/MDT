@@ -24,3 +24,10 @@ class NoiseStdEstimationNotPossible(Exception):
 
     This indicates that the noise std can not be estimated by the estimation routine.
     """
+
+
+class NonUniqueComponent(Exception):
+    """Raised when there are two components of the same type with the same name in the dynamically loadable components.
+
+    If this is raised, please double check your components for items with non-unique names.
+    """
