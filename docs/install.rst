@@ -41,6 +41,10 @@ Windows
 MDT uses the Maastricht Optimization Toolbox (MOT) for all modeling computations.
 Please install MOT first (https://mot.readthedocs.io/en/latest/install.html#windows), afterwards this installation should be fairly straightforward.
 
+Note that MDT depends on PyQt5 so make sure you do not attempt to run it in an environment with PyQt4 or earlier.
+If you followed the MOT install guide and installed the Anaconda Python3.x 64 bit version 4.2 or higher, you should be fine.
+See https://mot.readthedocs.io/en/latest/install.html#windows.
+
 Having followed the MOT install guide we can now install MDT. Open an Anaconda console and use:
 
 .. code-block:: bash
