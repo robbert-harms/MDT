@@ -1,8 +1,8 @@
 .. _configuration:
 
-*************
+#############
 Configuration
-*************
+#############
 
 .. contents:: Table of Contents
    :local:
@@ -15,8 +15,9 @@ These configuration files change the configuration of MDT at application startup
 restart MDT.
 
 
+**************
 General config
-==============
+**************
 The default configuration file is stored in ``.mdt/<version>/mdt.default.conf`` and is only there for reference. The configuration is in
 **YAML** format. To change part of the configuration you can make a copy of this file to ``.mdt/<version>/mdt.conf`` and set the specific options you want to change.
 
@@ -48,16 +49,19 @@ This leaves the rest of the configuration file at the defaults. If you also wish
 
 The ``mdt.conf`` file is automatically copied to the directory of a new version and only breaks if the layout of the configuration file changes.
 
+
+*******************
 GUI specific config
-===================
+*******************
 Next to the more general ``.mdt/<version>/mdt.conf`` which is applied in general, you can also have a GUI specific configuration file, ``.mdt/<version>/mdt.gui.conf``.
 When you start any of the MDT graphical interfaces, this file is loaded after the regular ``mdt.conf`` configuration and hence takes priority over the other settings.
 Its purpose is to contain a few GUI specific configuration values as well as to be able to set a specific configuration for the GUI only.
 The structure of the file is the same as the other configuration files.
 
 
+*********************
 Runtime configuration
-=====================
+*********************
 It is also possible to change the MDT configuration within Python using configuration contexts. Contexts are a Python programming pattern
 that allows you to run code before and after another piece of code. MDT uses this pattern to allow for temporarily changing the MDT configuration for the duration of some function.
 An advantage of this pattern is that is makes sure that the configuration is reset back to its previous state after the code has been executed.

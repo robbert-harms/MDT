@@ -1,5 +1,6 @@
+*********************
 Processing strategies
-=====================
+*********************
 Processing strategies determine the size of the processed batches and indirectly the intervals at which we save intermediate results.
 The strategies work by returning an iterator that yields batches of voxels to process (optimization and sampling).
 Regular end users will find no need to add strategies, but may still be interested in using a specific strategy for a specific model,

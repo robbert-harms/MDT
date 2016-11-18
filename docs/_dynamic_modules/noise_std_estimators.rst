@@ -1,7 +1,8 @@
 .. _dynamic_modules_noise_std_estimators:
 
+*********************
 Noise std. estimators
-=====================
+*********************
 There are different strategies thinkable to calculate the standard deviation needed for any likelihood model in a in a composite model (see :ref:`dynamic_modules_composite_model_evaluation_function` for more on this).
 This standard deviation is normally given by the :ref:`concepts_problem_data_models`, but that value can be set to 'auto' which means one of these strategies will be used to estimate the
 noise standard deviation.

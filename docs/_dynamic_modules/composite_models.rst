@@ -1,7 +1,8 @@
 .. _dynamic_modules_composite_models:
 
+****************
 Composite models
-================
+****************
 The composite models, or, multi-compartment models are the models that MDT actually optimizes.
 Just as the compartments are built using parameters as a building block, the composite models are built using compartments as building blocks.
 Since the compartments already contain the CL code, no further model coding is necessary in the multi-compartment models.
@@ -36,7 +37,7 @@ The important functionality is explained here.
 
 
 Parameter dependencies
-----------------------
+======================
 Parameter dependencies make explicit the dependency of one parameter on another.
 For example, some models have both an intra- and an extra-axonal compartment that both feature the ``theta`` and ``phi`` fibre orientation parameters.
 It could be desired that these angles are exactly the same for both compartments and that they both reflect the exact same fibre orientation.
@@ -64,7 +65,7 @@ Hence, this also removes the NODDI_EC theta and phi from the list of parameters 
 
 
 Default Weights dependency
---------------------------
+==========================
 Most composite models consist of a weighted sum of compartments models.
 An implicit dependency in this set-up is that those weights must exactly sum to one.
 To ensure this, MDT adds by default a dependency to the last Weight compartment in the composite model definition
@@ -87,7 +88,7 @@ If you wish to disable this feature, for example in a model that does not have a
 
 
 Protocol options
-----------------
+================
 It is possible to specify protocol options in a composite model.
 These protocol options are meant to allow the composite model to select, using the protocol, only those volumes that it can use for optimization.
 For example, the Tensor model is defined to work with b-values up to 1500 s/mm^2, yet the user might be using a dataset that has more shells with some shells above that b-value threshold.
@@ -102,7 +103,6 @@ To include this mechanism to your composite model, you have to add the bound fun
     from mdt.components_loader import bind_function
 
     class Tensor(DMRICompositeModelConfig):
-
         ...
 
         @bind_function
@@ -123,7 +123,7 @@ To use all volumes you can use something like this:
 
 
 Post optimization modifiers
----------------------------
+===========================
 Post optimization modifiers allow you to change the values of parameter maps after optimization, and allow you to add new maps to the final results.
 These modifiers complement the :ref:`dynamic_modules_compartments_extra_result_maps` from the compartment models.
 An example can be found in the CHARMED model, where one by default expects the ``FR`` map to be returned from model fitting.
@@ -144,10 +144,11 @@ Here FR is defined as :math:`1 - w_{hin_{0}}`, which is the same as :math:`\sum_
 More in general, for every additional map you wish to add in a model, add a tuple with the name of the desired map
 and as value a function callback that accepts the current dictionary with result maps and returns a new map to add to this dictionary.
 
+
 .. _dynamic_modules_composite_model_evaluation_function:
 
 Evaluation function and likelihood
-----------------------------------
+==================================
 Models are optimized by finding the set of free parameter values :math:`x \in R^{n}` that minimize the evaluation function or objective function of the
 modeling errors :math:`(O − S(x))` with :math:`O` the observed data and :math:`S(x)` the model signal estimate.
 In diffusion MRI the common likelihood models are the *Gaussian*, *Rician* and *Offset-Gaussian*.
@@ -169,4 +170,3 @@ Please note though that the Rician evaluation model is not very stable numerical
 
 Most evaluation functions require a standard deviation :math:`\sigma` of the noise of the images in the complex domain.
 This standard deviation is, during analysis, taken from the :ref:`concepts_problem_data_models`.
-

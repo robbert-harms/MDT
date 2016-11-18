@@ -1,5 +1,6 @@
+**************
 Batch profiles
-==============
+**************
 Batch profiles are part of the batch processing engine in MDT.
 They specify how all the necessary data for model fitting (protocol, nifti volumes, brain mask, noise std, etc.) need to be loaded from a directory containing one or more subjects.
 During batch fitting, the MDT batch fit routine asks the batch profile for the data of the each of the subjects in turn to do the processing.

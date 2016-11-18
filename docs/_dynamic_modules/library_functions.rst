@@ -1,7 +1,8 @@
 .. _dynamic_modules_library_functions:
 
+*****************
 Library functions
-=================
+*****************
 Library functions are meant for components reusable between compartment models.
 They are not used very often and their syntax is less sophisticated as the other components.
 To create one, please look at one of the existing library functions.
