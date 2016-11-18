@@ -1,12 +1,14 @@
+########
 Concepts
-========
+########
 
 This section introduces the user to a few concepts that helps you to get started with using the Maastricht Diffusion Toolbox.
 
 .. _concepts_protocol:
 
+********
 Protocol
---------
+********
 In MDT, the Protocol contains the settings used for the MRI measurements and is by convention stored in a protocol file
 with suffix ``.prtcl``.
 In such a protocol file, every row represents an MRI volume and every tab separated column represents an column with protocol settings.
@@ -58,8 +60,9 @@ Please see the relevant sections in :ref:`analysis` for more details on creating
 
 .. _concepts_problem_data_models:
 
+************
 Problem data
-------------
+************
 In MDT, all data needed to fit a model is stored independently from the model in a * :py:class:`~mdt.utils.DMRIProblemData` object.
 Before fitting a model you need to create an instance of such a problem data object and fill it with all relevant data for your model.
 Then, during model fitting, the model loads the relevant data for the computations.
@@ -78,8 +81,9 @@ noise of the unweighted diffusion MRI in the complex plain. The gradient deviati
 and the static maps is a dictionary of maps with one value per voxel or one value per voxel per volume.
 
 
+***************
 Dynamic modules
----------------
+***************
 Extending and adapting MDT with new models is made easy using dynamically loadable modules placed in your home folder.
 These modules are Python files placed in the ``.mdt`` folder in your home drive and are reloaded every time MDT is started.
 Users are free to add, remove and modify components in this folder and MDT will pickup the changes after a restart.
@@ -88,8 +92,9 @@ See :ref:`dynamic_modules` for more information.
 
 .. _concepts_cl_code:
 
+*******
 CL code
--------
+*******
 The compartment models in MDT are programmed in the OpenCL C language (CL language from hereon).
 See (https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/mathFunctions.html) for a quick reference on the available math functions in OpenCL.
 

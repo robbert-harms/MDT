@@ -1,7 +1,8 @@
 .. _dynamic_modules_compartments:
 
+******************
 Compartment models
-==================
+******************
 The compartment models form the components from which the multi-compartment models are build. They consists, in basis,
 of two parts, a list of parameters (see :ref:`dynamic_modules_parameters`) and the model code in OpenCL C (the OpenCL dialect of C99).
 At runtime, MDT loads the C code of the compartment model and combines it with the other compartments to form the multi-compartment model (see :ref:`concepts_cl_code`).
@@ -32,8 +33,9 @@ or it can directly be an instance of a parameter. For example, this is also a va
 
 here the parameters ``g`` and ``b`` are loaded from the dynamically loadable parameters while the ``special_param`` is given as a parameter instance.
 
+
 Splitting the CL and Python file
---------------------------------
+================================
 The CL code for a compartment model can either be given in the definition of the compartment, like shown above, or it can be provided in
 a separate ``.cl`` file with the same name as the compartment.
 An advantage of using an external ``.cl`` file is that you can include additional subroutines in your model definition.
@@ -78,7 +80,7 @@ The model name does not necessarily needs to match that of the filenames, but it
 .. _dynamic_modules_compartments_extra_result_maps:
 
 Extra result maps
------------------
+=================
 It is possible to add additional parameter maps to the fitting and sampling results.
 These maps are meant to be forthcoming to the end user by providing additional maps of interest to the output.
 By adding additional maps to a compartment one ensures that all composite models that use that compartment profit from the additionally calculated maps.
@@ -105,7 +107,7 @@ In this example we added the (x, y, z) component vector to the results for the S
 
 
 Dependency list
----------------
+===============
 More complex compartment models may depend on other compartment models or on library functions for their model equation.
 These dependencies can be specified using the ``dependency_list`` attribute of your compartment model definition.
 As an example:

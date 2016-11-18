@@ -1,5 +1,6 @@
+**************
 Cascade models
-==============
+**************
 Cascade models are meant to make chained optimization procedures explicit.
 For example, complex models like CHARMED and NODDI are optimized better if the optimization routine is initialized at a better starting point.
 This could be as simple as initializing the model with the height of the unweighted signal, or be as complex as initializing the fibre directions and volume fractions.
@@ -19,7 +20,7 @@ See the next section for more on the initializations.
 
 
 Parameter initializations
--------------------------
+=========================
 Identical parameters in between cascade steps are initialized automatically.
 That is, in the previous example the ``S0.s0`` parameter is initialized automatically from the BallStick_in3 results the to CHARMED_r3 model since
 both the CHARMED_r3 and the BallStick_r3 model have a S0 compartment with a s0 parameter.
@@ -47,7 +48,7 @@ Then, take the 'Stick0.phi results and use that to ... and so forth ...".
 
 
 Parameter fixations
--------------------
+===================
 It is also possible to specify parameter fixations in between cascade steps.
 These fixations fix the appointed parameter to a specific value, removing that parameter from the list of optimized functions.
 This reduces the degrees of freedom of the optimized model which normally leads to faster optimization times and possibly better results.
@@ -69,7 +70,7 @@ those directions but take them literally from the previous model.
 
 
 Value specification syntax
---------------------------
+==========================
 There are various ways in which it is possible to specify the value to use for the initialization or fixation of the next model in the cascade.
 The basic syntax of the ``inits`` and ``fixes`` attribute is:
 

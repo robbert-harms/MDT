@@ -1,4 +1,4 @@
-.PHONY: clean clean-build clean-pyc clean-test lint test tests test-all coverage docs release dist install uninstall dist-ubuntu _package-ubuntu
+.PHONY: clean clean-build clean-pyc clean-test lint test tests test-all coverage docs docs-pdf docs-man release dist install uninstall dist-ubuntu _package-ubuntu
 
 PYTHON=$$(which python3)
 PROJECT_NAME=mdt
@@ -19,6 +19,8 @@ help:
 	@echo "test-all - run tests on every Python version with tox"
 	@echo "coverage - check code coverage quickly with the default Python"
 	@echo "docs - generate Sphinx HTML documentation, including API docs"
+	@echo "docs-pdf - generate the PDF documentation, including API docs"
+	@echo "docs-man - generate the linux manpages"
 	@echo "release - package and upload a release"
 	@echo "dist - create a pip package"
 	@echo "dist-ubuntu - create an Ubuntu package"
@@ -70,6 +72,23 @@ docs:
 	sphinx-apidoc -o docs/ $(PROJECT_NAME)
 	$(MAKE) -C docs html SPHINXBUILD='python3 $(shell which sphinx-build)'
 	@echo "To view results type: firefox docs/_build/html/index.html &"
+
+docs-pdf:
+	rm -f docs/$(PROJECT_NAME)*.rst
+	rm -f docs/modules.rst
+	$(MAKE) -C docs clean
+	sphinx-apidoc -o docs/ $(PROJECT_NAME)
+	$(MAKE) -C docs latexpdf SPHINXBUILD='python3 $(shell which sphinx-build)'
+	@echo "To view results use something like: evince docs/_build/latex/mdt.pdf &"
+
+docs-man:
+	rm -f docs/$(PROJECT_NAME)*.rst
+	rm -f docs/modules.rst
+	$(MAKE) -C docs clean
+	sphinx-apidoc -o docs/ $(PROJECT_NAME)
+	$(MAKE) -C docs man SPHINXBUILD='python3 $(shell which sphinx-build)'
+	@echo "To view results use something like: man docs/_build/man/mdt.1 &"
+
 
 # todo: add GitHub Releases API hook here
 release: clean release-ubuntu-ppa release-pip

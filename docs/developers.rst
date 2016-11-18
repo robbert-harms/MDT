@@ -1,18 +1,19 @@
-**********
+##########
 Developers
-**********
+##########
 All contributions are welcome to MDT, be it Python code, documentation updates or bug reports.
 As with any software project, there are a few guidelines to follow when developing for MDT.
 These guidelines are meant to ensure that the code and documentation of MDT stay coherent over time.
 
 
+***************
 Code guidelines
-===============
+***************
 MDT is written in two languages, Python and OpenCL. We have a general naming guideline and for both Python and OpenCL we have a syntax style guideline.
 
 
 Variable naming
-^^^^^^^^^^^^^^^
+===============
 In general, in both OpenCL and Python, try to use semantically informative names for your functions and variables.
 For example, instead of typing:
 
@@ -37,7 +38,7 @@ the function does or what the variables contain. More in general, avoid acronyms
 
 
 Syntax guideline
-^^^^^^^^^^^^^^^^
+================
 For parts programmed in OpenCL you can primarily use your own syntax style, yet we do prefer that the opening brackets are on the same line as
 the function statement or the ``if`` statement and that the closing brackets are on their own line. For example:
 
@@ -81,13 +82,24 @@ or, in this example, this is also fine:
         return 1
 
 
+*************
 Documentation
-=============
+*************
 In MDT we use the ReStructedText format (extension ``.rst``) for the documentation and we use Sphinx with the Napoleon style docstring for the API documentation generation.
+
+For the section headers, please follow this convention:
+
+* % with overline, for main title
+* # with overline, for parts
+* * with overline, for chapters
+* =, for sections
+* -, for subsections
+* ^, for subsubsections
+* ", for paragraphs
 
 
 Generate the documentation
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+==========================
 Generating the documentation on your workstation is easy using the command ``make docs``.
 This command uses Sphinx to generate the documentation from the Python code (the API documentation), and then links it to general documentation files in the ``docs`` directory.
 Please note that you will only need to run this command if you want to generate the documentation on your computer, the online MDT documentation is generated automatically.
@@ -97,7 +109,16 @@ In order to run the command ``make docs``, you will need to have a few packages 
 .. code-block:: bash
 
     $ sudo apt install python3-pip python3-numpy python3-yaml \
-        python3-matplotlib python3-scipy python3-nibabel python3-argcomplete
+        python3-matplotlib python3-scipy python3-nibabel \
+        python3-argcomplete
     $ sudo pip3 install grako sphinx alabaster
 
 Some of these commands are Debian/Ubuntu specific, for other operating systems please lookup the corresponding packages for your system.
+
+If you additionally want to generate the PDF documentation file you will have to install the some Latex packages as well:
+
+.. code-block:: bash
+
+    $ sudo apt install texlive-latex-base \
+        texlive-latex-recommended \
+        texlive-fonts-recommended texlive-latex-extra

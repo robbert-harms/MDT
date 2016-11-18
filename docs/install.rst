@@ -1,10 +1,11 @@
-************
+############
 Installation
-************
+############
 
 
+*********************
 Ubuntu / Debian Linux
-=====================
+*********************
 Using the package manager, installation in Ubuntu and Debian is easy.
 
 For **Ubuntu >= 16** the MOT package can be installed with a Personal Package Archive (PPA) using:
@@ -34,9 +35,9 @@ and then install MOT with:
 
 This might recompile a few packages to use the latest versions. After installation please continue with the section `Initialization`_ below.
 
-
+*******
 Windows
-=======
+*******
 MDT uses the Maastricht Optimization Toolbox (MOT) for all modeling computations.
 Please install MOT first (https://mot.readthedocs.io/en/latest/install.html#windows), afterwards this installation should be fairly straightforward.
 
@@ -49,8 +50,9 @@ Having followed the MOT install guide we can now install MDT. Open an Anaconda c
 If that went well please continue with the `Initialization`_ below.
 
 
+**************
 Initialization
-==============
+**************
 After installation we need to initialize the MDT components folder in your home folder. Use:
 
 .. code-block:: bash
@@ -60,8 +62,9 @@ After installation we need to initialize the MDT components folder in your home 
 in your bash or Anaconda console to install the MDT library of models to your home folder.
 
 
+*********************
 Test the installation
-=====================
+*********************
 If all went well and MDT is installed and initialized, we can now perform some basic tests to see if all works well.
 Type in your console:
 

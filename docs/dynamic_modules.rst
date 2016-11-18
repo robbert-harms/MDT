@@ -1,8 +1,8 @@
 .. _dynamic_modules:
 
-***************
+###############
 Dynamic modules
-***************
+###############
 
 .. contents:: Table of Contents
    :local:

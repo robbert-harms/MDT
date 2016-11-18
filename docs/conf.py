@@ -141,7 +141,7 @@ exclude_patterns = ['_build', '_getting_started', '_dynamic_modules']
 #default_role = None
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
-#add_function_parentheses = True
+add_function_parentheses = True
 
 # If true, the current module name will be prepended to all description
 # unit titles (such as .. function::).
@@ -267,10 +267,10 @@ htmlhelp_basename = 'mdtdoc'
 
 latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
-    #'papersize': 'letterpaper',
+    'papersize': 'a4paper',
 
     # The font size ('10pt', '11pt' or '12pt').
-    #'pointsize': '10pt',
+    'pointsize': '10pt',
 
     # Additional stuff for the LaTeX preamble.
     #'preamble': '',
@@ -280,8 +280,8 @@ latex_elements = {
 # (source start file, target name, title, author, documentclass
 # [howto/manual]).
 latex_documents = [
-    ('index', 'mdt.tex',
-     u'Maastricht Diffusion Toolkit Documentation',
+    ('index_latex', 'mdt.tex',
+     u'Maastricht Diffusion Toolkit',
      u'Robbert Harms', 'manual'),
 ]
 
@@ -311,8 +311,8 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'mdt',
-     u'Maastricht Diffusion Toolkit Documentation',
+    ('index_man', 'mdt',
+     u'Maastricht Diffusion Toolkit',
      [u'Robbert Harms'], 1)
 ]
 
@@ -326,8 +326,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    ('index', 'mdt',
-     u'Maastricht Diffusion Toolbox Documentation',
+    ('index_latexz', 'mdt',
+     u'Maastricht Diffusion Toolbox',
      u'Robbert Harms',
      'mdt',
      'One line description of project.',
@@ -345,7 +345,6 @@ texinfo_documents = [
 
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
-
 
 # -- Options for napoleon ----
 autoclass_content = 'both'
