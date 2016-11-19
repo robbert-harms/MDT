@@ -14,8 +14,8 @@
    <string>MDT Maps Visualizer</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="main.qrc">
-    <normaloff>:/main/logo.gif</normaloff>:/main/logo.gif</iconset>
+   <iconset>
+    <normaloff>:/main/logo</normaloff>:/main/logo</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout_2" stretch="1">

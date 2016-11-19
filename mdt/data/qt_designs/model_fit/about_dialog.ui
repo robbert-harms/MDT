@@ -48,7 +48,7 @@
           <string/>
          </property>
          <property name="pixmap">
-          <pixmap resource="main_gui.qrc">:/main_gui/logo.gif</pixmap>
+          <pixmap resource="main_gui.qrc">:/main_gui/logo</pixmap>
          </property>
         </widget>
        </item>

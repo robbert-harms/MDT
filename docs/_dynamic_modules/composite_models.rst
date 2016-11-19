@@ -150,9 +150,9 @@ and as value a function callback that accepts the current dictionary with result
 Evaluation function and likelihood
 ==================================
 Models are optimized by finding the set of free parameter values :math:`x \in R^{n}` that minimize the evaluation function or objective function of the
-modeling errors :math:`(O − S(x))` with :math:`O` the observed data and :math:`S(x)` the model signal estimate.
+modeling errors :math:`(O - S(x))` with :math:`O` the observed data and :math:`S(x)` the model signal estimate.
 In diffusion MRI the common likelihood models are the *Gaussian*, *Rician* and *Offset-Gaussian*.
-Each has different characteristics and implements the modeling :math:`(O − S(x))` in a slightly different way.
+Each has different characteristics and implements the modeling :math:`(O - S(x))` in a slightly different way.
 Following (Harms 2017) we use, by default, the Offset Gaussian likelihood model for all models.
 To change this to another likelihood model for one of your models you can override the ``evaluation_model`` attribute, for example:
 

@@ -1,7 +1,7 @@
 <RCC>
-  <qresource prefix="main_gui" lang="English">
-    <file>../../logo.gif</file>
+  <qresource lang="English" prefix="main_gui">
     <file>icon_status_green.png</file>
     <file>icon_status_red.png</file>
+    <file alias="logo">../../logo_gui.png</file>
   </qresource>
 </RCC>

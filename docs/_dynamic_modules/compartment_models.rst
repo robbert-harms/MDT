@@ -125,6 +125,6 @@ In this example the ``CerfErfi`` library function is loaded from MOT, ``MRIConst
 Adding items to this list means that the corresponding CL functions of these components are included into the optimized OpenCL kernel.
 Hence, after adding these items to this list you can now use the corresponding CL code in your compartment model.
 For example, the ``MRIConstants`` adds no functions but adds multiple constants to the kernel like ``GAMMA_H`` containing
-the gyromagnetic ratio of protons in water (nucleus of H) in units of (rad s^-1 T^−1).
+the gyromagnetic ratio of protons in water (nucleus of H) in units of (rad s^-1 T^-1).
 This definition can then be used in your kernel whenever you need this constant.
 

@@ -13,7 +13,7 @@ class Ui_MapsVisualizer(object):
         MapsVisualizer.setObjectName("MapsVisualizer")
         MapsVisualizer.resize(1000, 754)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/main/logo.gif"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/main/logo"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         MapsVisualizer.setWindowIcon(icon)
         self.centralwidget = QtWidgets.QWidget(MapsVisualizer)
         self.centralwidget.setObjectName("centralwidget")

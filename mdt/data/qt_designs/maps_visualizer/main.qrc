@@ -2,6 +2,6 @@
   <qresource prefix="main">
     <file>arrow_redo.png</file>
     <file>arrow_undo.png</file>
-    <file>../../logo.gif</file>
+    <file alias="logo">../../logo_gui.png</file>
   </qresource>
 </RCC>

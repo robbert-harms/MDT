@@ -39,7 +39,7 @@ protocol parameter names in your model.
 
 The pre-provided list of column names is:
 
-* **b**, the b-values in :math:`s/m^2` (:math:`b = \gamma^2 G^2 \delta^2 (\Delta−\delta/3)` with :math:`\gamma = 2.675987E8 \: rads \cdot s^{-1} \cdot T^{-1}`)
+* **b**, the b-values in :math:`s/m^2` (:math:`b = \gamma^2 G^2 \delta^2 (\Delta-\delta/3)` with :math:`\gamma = 2.675987E8 \: rads \cdot s^{-1} \cdot T^{-1}`)
 * **gx, gy, gz**, the gradient direction as a unit vector
 * **Delta**, the value for :math:`{\Delta}` in seconds
 * **delta**, the value for :math:`{\delta}` in seconds

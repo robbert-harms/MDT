@@ -12,7 +12,7 @@
 
 /**
  * Gamma represent the gyromagnetic ratio of protons in water (nucleus of H)
- * and are in units of (rad s^-1 T^−1)
+ * and are in units of (rad s^-1 T^-1)
  **/
 #ifndef GAMMA_H
     #define GAMMA_H 2.675987E8

@@ -25,7 +25,7 @@ class Ui_AboutDialog(object):
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.label_2 = QtWidgets.QLabel(AboutDialog)
         self.label_2.setText("")
-        self.label_2.setPixmap(QtGui.QPixmap(":/main_gui/logo.gif"))
+        self.label_2.setPixmap(QtGui.QPixmap(":/main_gui/logo"))
         self.label_2.setObjectName("label_2")
         self.verticalLayout_2.addWidget(self.label_2)
         spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
