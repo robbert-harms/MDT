@@ -181,7 +181,7 @@ html_theme_options = {
     'description': "Maastricht Diffusion Toolbox",
     'logo_name': True,
     'sidebar_collapse': False,
-    'fixed_sidebar': True,
+    'fixed_sidebar': False,
     'extra_nav_links': {'Module index': 'py-modindex.html'}
 }
 
