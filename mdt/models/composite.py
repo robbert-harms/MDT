@@ -2,6 +2,7 @@ import logging
 from copy import deepcopy
 
 import numpy as np
+import six
 
 from mdt.components_loader import ComponentConfig, ComponentBuilder, method_binding_meta
 from mdt.model_protocol_problem import MissingColumns, InsufficientShells
@@ -15,7 +16,7 @@ from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalcul
 from mot.data_adapters import SimpleDataAdapter
 from mot.model_building.evaluation_models import OffsetGaussianEvaluationModel
 from mot.model_building.model_builders import SampleModelBuilder
-from mot.model_building.parameter_functions.dependencies import WeightSumToOneRule
+from mot.model_building.parameter_functions.dependencies import WeightSumToOneRule, SimpleAssignment
 from mot.model_building.trees import CompartmentModelTree
 
 __author__ = 'Robbert Harms'
@@ -286,7 +287,11 @@ class DMRICompositeModelConfig(ComponentConfig):
             .. code-block:: python
 
                 dependencies = [('Noddi_EC.kappa', SimpleAssignment('Noddi_IC.kappa')),
+                                ('NODDI_EC.theta', 'NODDI_IC.theta')
                                 ...]
+
+            If a string is given this is interpreted as a SimpleAssignment dependency.
+            In the example shown here both the kappa and theta parameters are dependend in the same way.
 
         model_expression (str): the model expression. For the syntax see:
             mdt.models.parsers.CompositeModelExpression.ebnf
@@ -377,7 +382,7 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                     signal_noise_model=deepcopy(template.signal_noise_model),
                     add_default_weights_dependency=template.add_default_weights_dependency)
 
-                self.add_parameter_dependencies(deepcopy(template.dependencies))
+                self.add_parameter_dependencies(_resolve_dependencies(deepcopy(template.dependencies)))
                 self.add_post_optimization_modifiers(deepcopy(template.post_optimization_modifiers))
 
                 for full_param_name, value in template.inits.items():
@@ -399,3 +404,21 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                         self.set_parameter_transform(full_param_name, deepcopy(value))
 
         return AutoCreatedDMRICompositeModel
+
+
+def _resolve_dependencies(dependencies):
+    """Resolve string dependencies to SimpleAssignment objects in the list of dependencies.
+
+    Args:
+        dependencies (list): the dependencies to resolve strings in
+
+    Returns:
+        list: the list of dependencies with dependency a proper object
+    """
+    return_list = []
+    for param, dependency in dependencies:
+        if isinstance(dependency, six.string_types):
+            return_list.append((param, SimpleAssignment(dependency)))
+        else:
+            return_list.append((param, dependency))
+    return return_list

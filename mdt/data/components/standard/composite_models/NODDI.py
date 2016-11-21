@@ -1,5 +1,5 @@
 from mdt.models.composite import DMRICompositeModelConfig
-from mot.model_building.parameter_functions.dependencies import SimpleAssignment, AbstractParameterDependency
+from mot.model_building.parameter_functions.dependencies import AbstractParameterDependency
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -55,9 +55,9 @@ class NODDI(DMRICompositeModelConfig):
 
     dependencies = (
         ('NODDI_EC.dperp0', NODDITortuosityParameterDependency('NODDI_EC.d', 'w_ec.w', 'w_ic.w')),
-        ('NODDI_EC.kappa', SimpleAssignment('NODDI_IC.kappa')),
-        ('NODDI_EC.theta', SimpleAssignment('NODDI_IC.theta')),
-        ('NODDI_EC.phi', SimpleAssignment('NODDI_IC.phi'))
+        ('NODDI_EC.kappa', 'NODDI_IC.kappa'),
+        ('NODDI_EC.theta', 'NODDI_IC.theta'),
+        ('NODDI_EC.phi', 'NODDI_IC.phi')
     )
 
     post_optimization_modifiers = [

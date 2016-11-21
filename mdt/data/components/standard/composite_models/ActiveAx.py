@@ -1,5 +1,4 @@
 from mdt.models.composite import DMRICompositeModelConfig
-from mot.model_building.parameter_functions.dependencies import SimpleAssignment
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -19,4 +18,4 @@ class ActiveAx(DMRICompositeModelConfig):
     fixes = {'CylinderGPD.d': 1.7e-9,
              'Zeppelin.d': 1.7e-9,
              'Ball.d': 3.0e-9}
-    dependencies = (('Zeppelin.dperp0', SimpleAssignment('Zeppelin.d * (w_ec.w / (w_ec.w + w_ic.w))')),)
+    dependencies = [('Zeppelin.dperp0', 'Zeppelin.d * (w_ec.w / (w_ec.w + w_ic.w))')]

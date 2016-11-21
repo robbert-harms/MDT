@@ -3,11 +3,10 @@
 ****************
 Composite models
 ****************
-The composite models, or, multi-compartment models are the models that MDT actually optimizes.
-Just as the compartments are built using parameters as a building block, the composite models are built using compartments as building blocks.
+The composite models, or, multi-compartment models, are the models that MDT actually optimizes.
+Just as the compartments are built using parameters as a building block, the composite models are built using compartments as a building block.
 Since the compartments already contain the CL code, no further model coding is necessary in the multi-compartment models.
-When asked to optimize (or sample) a model, MDT combines the CL code of the compartments into one objective function and uses the
-parameters of the compartments to load the correct data.
+When asked to optimize (or sample) a model, MDT combines the CL code of the compartments into one objective function and uses the parameters of the compartments to load the correct data.
 
 In contrast to the compartment models which must be placed in their own file, the composite models can be placed in any ``.py`` file within the ``composite_models`` directory.
 The following is an minimum example of a composite (multi-compartment) model in MDT::
@@ -26,13 +25,15 @@ MDT parses this string, loads the compartments from the compartment models and u
 
 The example above combines the compartments (``Ball`` and ``Stick``) as a weighted summation using the special compartment ``Weight`` for the compartment weighting
 (these weights are sometimes called volume fractions).
-The example also shows compartment renaming.
+
+The example above also shows compartment renaming.
 Since it is possible to use a compartment multiple times, it is necessary to rename the double compartments to ensure that all the compartments have a unique name.
 This renaming can be done by specifying the renamed model name in parenthesis after the compartment model name.
-For example ``Stick(Stick0)`` refers to a ``Stick`` compartment that has been renamed to ``Stick0``. This new name is then used to refer to that specific compartment in the
-rest of the composite model attributes.
+For example ``Stick(Stick0)`` refers to a ``Stick`` compartment that has been renamed to ``Stick0``.
+This new name is then used to refer to that specific compartment in the rest of the composite model attributes.
 
-The composite models have more functionality than what is shown here. For example, they support parameter dependencies, initialization values, parameter fixations and protocol options.
+The composite models have more functionality than what is shown here.
+For example, they support parameter dependencies, initialization values, parameter fixations and protocol options.
 The important functionality is explained here.
 
 
@@ -40,7 +41,7 @@ Parameter dependencies
 ======================
 Parameter dependencies make explicit the dependency of one parameter on another.
 For example, some models have both an intra- and an extra-axonal compartment that both feature the ``theta`` and ``phi`` fibre orientation parameters.
-It could be desired that these angles are exactly the same for both compartments and that they both reflect the exact same fibre orientation.
+It could be desired that these angles are exactly the same for both compartments, that is, that they both reflect the exact same fibre orientation.
 One possibility to solve this would be to create a new compartment having the features of both the intra- and the extra-axonal compartment.
 This however lowers the reusability of the compartments.
 Instead, one could define parameter dependencies in the composite model, for example:
@@ -54,24 +55,24 @@ Instead, one could define parameter dependencies in the composite model, for exa
         ...
         dependencies = (
             ('NODDI_EC.theta', SimpleAssignment('NODDI_IC.theta')),
-            ('NODDI_EC.phi', SimpleAssignment('NODDI_IC.phi'))
+            ('NODDI_EC.phi', 'NODDI_IC.phi')
         )
 
 
 In this example, we added the attribute ``dependencies`` to our composite model (in this example, NODDI).
-This attribute accepts a list of tuples, with as first elements the name of the parameter that is being locked to a dependency and second an dependency object.
-In this case we added two simple assignment dependencies in which the theta and phi of the NODDI_EC compartment are locked to that of the NODDI_IC compartment.
-Hence, this also removes the NODDI_EC theta and phi from the list of parameters to optimize, reducing degrees of freedom in the model.
+This attribute accepts a list of tuples, with as first elements the name of the parameter that is being locked to a dependency and second an dependency object or a string.
+If a string is given as an dependency we will use that as a SimpleAssignment object.
+In the example shown above we added two simple assignment dependencies in which the theta and phi of the NODDI_EC compartment are locked to that of the NODDI_IC compartment.
+This automatically removes the NODDI_EC theta and phi from the list of parameters to optimize, reducing the degrees of freedom of the model.
 
 
 Default Weights dependency
 ==========================
 Most composite models consist of a weighted sum of compartments models.
 An implicit dependency in this set-up is that those weights must exactly sum to one.
-To ensure this, MDT adds by default a dependency to the last Weight compartment in the composite model definition
-(see the section above on parameter dependencies in general).
+To ensure this, MDT adds by default a dependency to the last Weight compartment in the composite model definition.
 This dependency first normalizes the n-1 Weight compartments by their sum :math:`s = \sum_{i}^{n-1}w_{i}` if that sum is larger than one.
-The last Weight, not explicitly optimized, is either set to zero, i.e. :math:`w_{n} = 0` or set as :math:`w_{n}=1-s` if s is smaller than zero.
+The last Weight, not explicitly optimized, is then either set to zero, i.e. :math:`w_{n} = 0` or set as :math:`w_{n}=1-s` if s is smaller than zero.
 
 If you wish to disable this feature, for example in a model that does not have a linear sum of Weights, you can use set the attribute ``add_default_weights_dependency`` to false, e.g.:
 
@@ -89,10 +90,10 @@ If you wish to disable this feature, for example in a model that does not have a
 
 Protocol options
 ================
-It is possible to specify protocol options in a composite model.
-These protocol options are meant to allow the composite model to select, using the protocol, only those volumes that it can use for optimization.
+It is possible to add a sort of dMRI volume selection to a composite model using the "protocol options".
+These protocol options allow the composite model to select, using the protocol, only those volumes that it can use for optimization.
 For example, the Tensor model is defined to work with b-values up to 1500 s/mm^2, yet the user might be using a dataset that has more shells with some shells above that b-value threshold.
-To prevent the user from having to load a separate protocol and dMRI dataset for the Tensor model and another for the other models, we implemented in MDT the model protocol options.
+To prevent the user from having to load a separate dataset for the Tensor model and another dataset for the other models, we implemented in MDT model protocol options.
 This way, the end user can provide the whole protocol file and the models will pick from that what they need.
 
 To include this mechanism to your composite model, you have to add the bound function ``_get_suitable_volume_indices`` to your model definition. For example:
@@ -141,7 +142,7 @@ we added in MDT a post optimization modifier that adds the FR map automatically 
 
 Here FR is defined as :math:`1 - w_{hin_{0}}`, which is the same as :math:`\sum_{i}^{n} w_{res_{i}}`.
 
-More in general, for every additional map you wish to add in a model, add a tuple with the name of the desired map
+More in general, for every additional map you wish to add, add a tuple with the name of the desired map
 and as value a function callback that accepts the current dictionary with result maps and returns a new map to add to this dictionary.
 
 

@@ -33,7 +33,8 @@ and then install MOT with:
 
     $ sudo pip3 install mdt
 
-This might recompile a few packages to use the latest versions. After installation please continue with the section `Initialization`_ below.
+This might recompile a few packages to use the latest versions.
+After installation please continue with the section `Initialization`_ below.
 
 *******
 Windows

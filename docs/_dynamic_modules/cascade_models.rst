@@ -2,7 +2,7 @@
 Cascade models
 **************
 Cascade models are meant to make chained optimization procedures explicit.
-For example, complex models like CHARMED and NODDI are optimized better if the optimization routine is initialized at a better starting point.
+For example, complex models like CHARMED and NODDI are optimized better if the optimization routine is initialized at a better starting point (Harms 2017).
 This could be as simple as initializing the model with the height of the unweighted signal, or be as complex as initializing the fibre directions and volume fractions.
 To create a new cascade model, you will need to specify, at a minimum, the ``name`` and ``models`` attribute of the cascade definition, for example:
 
@@ -26,7 +26,7 @@ That is, in the previous example the ``S0.s0`` parameter is initialized automati
 both the CHARMED_r3 and the BallStick_r3 model have a S0 compartment with a s0 parameter.
 
 Using the attribute ``inits`` you can provide an additional set of parameter initializations to add to or overwrite the default implicit initializations.
-Extending the previous CHARMED_r3 example, we have:
+Extending the previous CHARMED_r3 example, we get:
 
 .. code-block:: python
 
@@ -44,7 +44,7 @@ Extending the previous CHARMED_r3 example, we have:
 
 In this extended example we still automatically initialize the S0 compartment and additionally initialize a lot more parameters.
 These ``inits`` should be read as: "When optimizing CHARMED_r3, take from the previous model fit the 'Stick0.theta' results and use that to initialize the 'Tensor.theta' parameter.
-Then, take the 'Stick0.phi results and use that to ... and so forth ...".
+Then, take the 'Stick0.phi results and use that to initialize the 'Tensor.phi' parameter, then ... and so forth ...".
 
 
 Parameter fixations
@@ -89,7 +89,7 @@ There are three different parameter specifications possible:
   The first contains the results of the previous model fit indexed by parameter names.
   The second contains the results of all prior model estimates, indexed first by model name and second by parameter name.
 
-An example highlighting these syntactic options would be:
+An example highlighting all these syntactic options would be:
 
 .. code-block:: python
 
@@ -104,5 +104,4 @@ An example highlighting these syntactic options would be:
                            ('NODDI_IC.phi', lambda output_previous, output_all_previous: output_previous['Stick.phi']]),
                            ('S0.s0', lambda output_previous, output_all_previous: output_all_previous['S0']['S0.s0'])]
                 }
-
 
