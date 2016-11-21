@@ -15,8 +15,8 @@ Introduction
     :hidden:
 
     install
-    getting_started
     concepts
+    getting_started
     dynamic_modules
     configuration
     FAQ <faq>

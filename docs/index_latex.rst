@@ -7,6 +7,7 @@ Maastricht Diffusion Toolbox
 
     readme_latex
     concepts
+    getting_started
     dynamic_modules
     configuration
     FAQ <faq>

@@ -2,7 +2,7 @@
 Concepts
 ########
 
-This section introduces the user to a few concepts that helps to get started with using the Maastricht Diffusion Toolbox.
+This chapter introduces the user to a few concepts that helps to get started with using the Maastricht Diffusion Toolbox.
 
 .. contents:: Table of Contents
    :local:
