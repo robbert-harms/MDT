@@ -4,12 +4,17 @@
 Analysis
 ********
 
+
 Using the GUI
 =============
 
 
-Using the python or command line
-================================
+Using the command line
+======================
+
+
+Using Python
+============
 For the complete Python documentation, please see: :py:class:`mdt.protocols.Protocol`.
 
 
