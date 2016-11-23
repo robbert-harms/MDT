@@ -5,18 +5,50 @@ Analysis
 ********
 
 
+
 Using the GUI
 =============
+
+Creating a protocol file
+------------------------
+
+Tensor estimation example
+-------------------------
+Estimating another model
+------------------------
+
+Estimating Ball&Sticks and NODDI on 3T HCP data
+-----------------------------------------------
+Estimating CHARMED on HCP MGH data
+----------------------------------
+
+Batch fitting many subjects
+---------------------------
+
 
 
 Using the command line
 ======================
 
+Creating a protocol file
+------------------------
+
+Tensor estimation example
+-------------------------
+Estimating another model
+------------------------
+
+Estimating Ball&Sticks and NODDI on 3T HCP data
+-----------------------------------------------
+Estimating CHARMED on HCP MGH data
+----------------------------------
+
+Batch fitting many subjects
+---------------------------
+
 
 Using Python
 ============
-For the complete Python documentation, please see: :py:class:`mdt.protocols.Protocol`.
-
 
 Creating a protocol file
 ------------------------
