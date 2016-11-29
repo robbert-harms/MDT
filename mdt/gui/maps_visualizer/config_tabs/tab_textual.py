@@ -51,7 +51,7 @@ class TabTextual(QWidget, Ui_TabTextual):
                 self._controller.apply_action(NewConfigAction(new_config))
                 self._update_status_indication(True)
 
-        except (yaml.parser.ParserError, yaml.scanner.ScannerError, ValueError, TypeError) as exc:
+        except Exception as exc:
             self._update_status_indication(False, str(exc))
             pass
         finally:
