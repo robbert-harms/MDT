@@ -9,7 +9,8 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class CHARMEDRestricted(CompartmentConfig):
 
-    parameter_list = ('g', 'b', 'q', 'Delta', 'delta', 'TE', 'd', 'theta', 'phi')
+    parameter_list = ('g', 'b', 'G', 'Delta', 'delta', 'TE', 'd', 'theta', 'phi')
+    dependency_list = ('MRIConstants',)
 
     @bind_function
     def get_extra_results_maps(self, results_dict):

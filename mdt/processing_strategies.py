@@ -466,9 +466,9 @@ class SamplingProcessingWorker(ModelProcessingWorker):
     def _write_sample_results(self, results, full_mask, roi_indices):
         """Write the sample results to a .npy file.
 
-        If the given sample files do not exists, it will create one with enough storage to hold all the samples
-        for the given total_nmr_voxels. On storing it should also be given a list of voxel indices with the indices
-        of the voxels that are being stored.
+        If the given sample files do not exists or if the existing file is not large enough it will create one
+        with enough storage to hold all the samples for the given total_nmr_voxels.
+        On storing it should also be given a list of voxel indices with the indices of the voxels that are being stored.
 
         Args:
             results (dict): the samples to write
@@ -485,6 +485,11 @@ class SamplingProcessingWorker(ModelProcessingWorker):
             mode = 'w+'
             if os.path.isfile(samples_path):
                 mode = 'r+'
+                current_results = open_memmap(samples_path, mode='r')
+                if current_results.shape[1] != samples.shape[1]:
+                    mode = 'w+'
+                del current_results # closes the memmap
+
             saved = open_memmap(samples_path, mode=mode, dtype=samples.dtype,
                                 shape=(total_nmr_voxels, samples.shape[1]))
             saved[roi_indices, :] = samples

@@ -36,15 +36,19 @@ mot_float_type cmTensor(
 
     mot_float_type4 n1 = (mot_float_type4)(cos_phi * sin_theta, sin_phi * sin_theta, cos_theta, 0.0);
 
-    // rotate around n1
-    mot_float_type rotation_factor = sin(theta+(M_PI_2_F)); // (90 degrees rotation)
-    // temporary vector
+    // rotate n1 by 90 degrees, changing, x, y and z
+    mot_float_type rotation_factor = sin(theta+(M_PI_2_F));
     mot_float_type4 n2 = (mot_float_type4)(rotation_factor * cos_phi,
                                            rotation_factor * sin_phi,
                                            cos(theta+(M_PI_2_F)),
                                            0.0);
-    int mult = select(1, -1, n1.z < 0 || ((n1.z == 0.0) && n1.x < 0.0));
-    n2 = n2 * cos_psi + (cross(n2, mult * n1) * sin_psi) + (mult * n1 * dot(mult * n1, n2) * (1-cos_psi));
+
+    // uses Rodrigues' formula to rotate n2 by psi around n1
+    // using a multiplication factor "select(1, -1, n1.z < 0 || ((n1.z == 0.0) && n1.x < 0.0))" to
+    // prevent commutative problems in the cross product between n1xn2
+    n2 = n2 * cos_psi
+                + (cross(n2, select(1, -1, n1.z < 0 || ((n1.z == 0.0) && n1.x < 0.0)) * n1) * sin_psi)
+                + (n1 * dot(n1, n2) * (1-cos_psi));
 
     return exp(-b * (d *      pown(dot(n1, g), 2) +
                      dperp *  pown(dot(n2, g), 2) +

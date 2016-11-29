@@ -27,12 +27,11 @@ class Protocol(collections.MutableMapping):
                 The values should be numpy arrays of equal length.
         """
         super(Protocol, self).__init__()
-        self._gamma_h = 2.675987E8 # radians s^-1 T^-1
+        self._gamma_h = 267.5987e6 # radians s^-1 T^-1
         self._unweighted_threshold = 25e6 # s/m^2
         self._columns = {}
         self._preferred_column_order = ('gx', 'gy', 'gz', 'G', 'Delta', 'delta', 'TE', 'T1', 'b', 'q', 'maxG')
-        self._virtual_columns = [VirtualColumnQ(),
-                                 VirtualColumnB(),
+        self._virtual_columns = [VirtualColumnB(),
                                  SimpleVirtualColumn('Delta', lambda protocol: get_sequence_timings(protocol)['Delta']),
                                  SimpleVirtualColumn('delta', lambda protocol: get_sequence_timings(protocol)['delta']),
                                  SimpleVirtualColumn('G', lambda protocol: get_sequence_timings(protocol)['G'])]
@@ -511,18 +510,6 @@ class SimpleVirtualColumn(VirtualColumn):
 
     def get_values(self, parent_protocol):
         return self._generate_function(parent_protocol)
-
-
-class VirtualColumnQ(VirtualColumn):
-
-    def __init__(self):
-        super(VirtualColumnQ, self).__init__('q')
-
-    def get_values(self, parent_protocol):
-        sequence_timings = get_sequence_timings(parent_protocol)
-        return np.reshape(np.array(parent_protocol.gamma_h *
-                                   sequence_timings['G'] *
-                                   sequence_timings['delta'] / (2 * np.pi)), (-1, 1))
 
 
 class VirtualColumnB(VirtualColumn):

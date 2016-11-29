@@ -31,7 +31,7 @@ from mdt.gui.maps_visualizer.design.ui_MainWindow import Ui_MapsVisualizer
 
 class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
 
-    def __init__(self, controller, parent=None):
+    def __init__(self, controller, parent=None, enable_directory_watcher=True):
         super(MapsVisualizerWindow, self).__init__(parent)
         self.setupUi(self)
 
@@ -40,7 +40,8 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self._controller.new_config.connect(self.set_new_config)
 
         self._directory_watcher = DirectoryImageWatcher()
-        self._directory_watcher.image_updates.connect(self._directory_changed)
+        if enable_directory_watcher:
+            self._directory_watcher.image_updates.connect(self._directory_changed)
 
         self._coordinates_label = QLabel()
 
@@ -246,6 +247,8 @@ class QtController(Controller, QObject):
         elif not isinstance(config, MapPlotConfig):
             config = MapPlotConfig.from_dict(config.to_dict())
 
+        config.maps_to_show = list(filter(lambda k: k in data_info.maps, config.maps_to_show))
+
         self._apply_config(config)
         self.new_data.emit(data_info)
         self.new_config.emit(self._current_config)
@@ -307,7 +310,8 @@ class QtController(Controller, QObject):
         return False
 
 
-def start_gui(data=None, config=None, controller=None, app_exec=True, show_maximized=False, window_title=None):
+def start_gui(data=None, config=None, controller=None, app_exec=True, show_maximized=False, window_title=None,
+              enable_directory_watcher=True):
     """Start the GUI with the given data and configuration.
 
     Args:
@@ -317,6 +321,10 @@ def start_gui(data=None, config=None, controller=None, app_exec=True, show_maxim
         app_exec (boolean): if true we execute the Qt application, set to false to disable.
         show_maximized (true): if we want to show the window in a maximized state
         window_title (str): the title of the window
+        enable_directory_watcher (boolean): if the directory watcher should be enabled/disabled.
+            If the directory watcher is enabled, the viewer will automatically add new maps when added to the folder
+            and also automatically remove maps when they are removed from the directory. It is useful to disable this
+            if you want to have multiple viewers open with old results.
 
     Returns:
         MapsVisualizerWindow: the generated window
@@ -330,7 +338,7 @@ def start_gui(data=None, config=None, controller=None, app_exec=True, show_maxim
     timer.start(500)
     timer.timeout.connect(lambda: None)
 
-    main = MapsVisualizerWindow(controller)
+    main = MapsVisualizerWindow(controller, enable_directory_watcher=enable_directory_watcher)
     main.set_window_title(window_title)
     signal.signal(signal.SIGINT, main.send_sigint)
 

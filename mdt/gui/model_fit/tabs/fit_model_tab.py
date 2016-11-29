@@ -275,8 +275,8 @@ class OptimOptions(object):
         self.use_model_default_optimizer = True
         self.double_precision = False
 
-        self.optimizer = mdt.configuration.get_optimizer_name()
-        self.patience = mdt.configuration.get_optimizer_settings()['patience']
+        self.optimizer = mdt.configuration.get_general_optimizer_name()
+        self.patience = mdt.configuration.get_general_optimizer_settings()['patience']
 
         if self.patience is None:
             self.patience = get_optimizer_by_name(self.optimizer).default_patience

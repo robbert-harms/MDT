@@ -35,10 +35,6 @@ class delta(ProtocolParameterConfig):
     pass
 
 
-class q(ProtocolParameterConfig):
-    pass
-
-
 class TE(ProtocolParameterConfig):
     pass
 

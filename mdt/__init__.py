@@ -1,13 +1,16 @@
+import collections
 import glob
 import logging
 import logging.config as logging_config
 import os
 from inspect import stack
+
 import numpy as np
 import six
 from six import string_types
+
 from .__version__ import VERSION, VERSION_STATUS, __version__
-import collections
+
 
 from mdt.configuration import get_logging_configuration_dict
 try:
@@ -232,7 +235,7 @@ def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalcul
 
 def view_maps(data, config=None, to_file=None, to_file_options=None,
               block=True, show_maximized=False, use_qt=True, figure_options=None,
-              window_title=None):
+              window_title=None, enable_directory_watcher=True):
     """View a number of maps using the MDT Maps Visualizer.
 
     To save a file to an image, you can use (the simplest) the following two options::
@@ -255,6 +258,10 @@ def view_maps(data, config=None, to_file=None, to_file_options=None,
             two ints, width and height, to indicate the pixel size of the resulting figure, together with the dpi they
             are used to calculate the figsize.
         window_title (str): the title for the window
+        enable_directory_watcher (boolean): if the directory watcher should be enabled/disabled, only applicable for the
+            QT GUI. If the directory watcher is enabled, the viewer will automatically add new maps when added
+            to the folder and also automatically remove maps when they are removed from the directory.
+            It is useful to disable this if you want to have multiple viewers open with old results.
     """
     from mdt.gui.maps_visualizer.main import start_gui
     from mdt.visualization.maps.base import MapPlotConfig
@@ -291,7 +298,8 @@ def view_maps(data, config=None, to_file=None, to_file_options=None,
         to_file_options['dpi'] = to_file_options.get('dpi', figure_options['dpi'])
         viz.to_file(to_file, config, **to_file_options)
     elif use_qt:
-        start_gui(data, config, app_exec=block, show_maximized=show_maximized, window_title=window_title)
+        start_gui(data, config, app_exec=block, show_maximized=show_maximized, window_title=window_title,
+                  enable_directory_watcher=enable_directory_watcher)
     else:
         figure_options = figure_options or {}
         figure_options['dpi'] = figure_options.get('dpi', 100)
@@ -358,7 +366,7 @@ def view_result_samples(data, **kwargs):
     if isinstance(data, string_types):
         data = load_samples(data)
 
-    if not kwargs.get('voxel_ind'):
+    if kwargs.get('voxel_ind') is None:
         kwargs.update({'voxel_ind': data[list(data.keys())[0]].shape[0] / 2})
     SampleVisualizer(data).show(**kwargs)
 
