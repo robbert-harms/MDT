@@ -55,6 +55,11 @@ class SetZoom(SimpleConfigAction):
     config_attribute = 'zoom'
 
 
+class SetPlotTitle(SimpleConfigAction):
+
+    config_attribute = 'title'
+
+
 class SetMapTitle(SimpleMapSpecificConfigAction):
 
     config_attribute = 'title'

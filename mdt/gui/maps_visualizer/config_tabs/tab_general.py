@@ -5,7 +5,7 @@ from PyQt5.QtCore import pyqtSlot, Qt
 from PyQt5.QtWidgets import QWidget, QAbstractItemView
 
 from mdt.gui.maps_visualizer.actions import SetDimension, SetSliceIndex, SetVolumeIndex, SetColormap, SetRotate, \
-    SetZoom, SetShowAxis, SetColorBarNmrTicks, SetMapsToShow, SetFont, SetInterpolation, SetFlipud
+    SetZoom, SetShowAxis, SetColorBarNmrTicks, SetMapsToShow, SetFont, SetInterpolation, SetFlipud, SetPlotTitle
 from mdt.gui.maps_visualizer.design.ui_TabGeneral import Ui_TabGeneral
 from mdt.gui.utils import blocked_signals, TimedUpdate
 from mdt.visualization.maps.base import Zoom, Point, DataInfo, Font, MapPlotConfig
@@ -57,6 +57,8 @@ class TabGeneral(QWidget, Ui_TabGeneral):
         self.general_zoom_x_1.valueChanged.connect(self._update_zoom)
         self.general_zoom_y_0.valueChanged.connect(self._update_zoom)
         self.general_zoom_y_1.valueChanged.connect(self._update_zoom)
+
+        self.plot_title.textEdited.connect(lambda txt: self._controller.apply_action(SetPlotTitle(txt)))
 
         self.general_zoom_reset.clicked.connect(lambda: self._controller.apply_action(SetZoom(Zoom.no_zoom())))
         self.general_zoom_fit.clicked.connect(self._zoom_fit)
@@ -183,6 +185,9 @@ class TabGeneral(QWidget, Ui_TabGeneral):
                     self.general_zoom_y_1.setValue(max_y)
         except ValueError:
             pass
+
+        with blocked_signals(self.plot_title):
+            self.plot_title.setText(config.title)
 
         with blocked_signals(self.general_display_order):
             self.general_display_order.clear()
