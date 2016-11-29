@@ -225,12 +225,36 @@ class CascadeConfig(ComponentConfig):
                                         ('CharmedRestricted0.phi', 'Stick.phi')]}
 
             The syntax is similar to that of the inits attribute.
+
+        lower_bounds (dict): per model the lower bounds to set using the results from the previous model
+            Example:
+
+            .. code-block:: python
+
+                lower_bounds = {'Charmed_r1': [
+                    ('S0.s0', lambda output_previous, output_all_previous: 2 * np.min(output_previous['S0.s0']))
+                ]}
+
+            The syntax is similar to that of the inits attribute.
+
+        upper_bounds (dict): per model the upper bounds to set using the results from the previous model
+            Example:
+
+            .. code-block:: python
+
+                upper_bounds = {'Charmed_r1': [
+                    ('S0.s0', lambda output_previous, output_all_previous: 2 * np.max(output_previous['S0.s0']))
+                ]}
+
+            The syntax is similar to that of the inits attribute.
     """
     name = ''
     description = ''
     models = ()
     inits = {}
     fixes = {}
+    lower_bounds = {}
+    upper_bounds = {}
 
     @bind_function
     def _prepare_model_cb(self, model, output_previous, output_all_previous):
@@ -241,6 +265,7 @@ class CascadeConfig(ComponentConfig):
 
         Use this if you want to control more of the initialization of the next model than only the inits and fixes.
         """
+
 
     @classmethod
     def meta_info(cls):
@@ -281,13 +306,17 @@ class CascadeBuilder(ComponentBuilder):
                         return v(output_previous, output_all_previous)
                     return v
 
-                if model.name in template.inits:
-                    for item in template.inits[model.name]:
-                        model.init(item[0], parse_value(item[1]))
+                for item in template.inits.get(model.name, {}):
+                    model.init(item[0], parse_value(item[1]))
 
-                if model.name in template.fixes:
-                    for item in template.fixes[model.name]:
-                        model.fix(item[0], parse_value(item[1]))
+                for item in template.fixes.get(model.name, {}):
+                    model.fix(item[0], parse_value(item[1]))
+
+                for item in template.lower_bounds.get(model.name, {}):
+                    model.set_lower_bound(item[0], parse_value(item[1]))
+
+                for item in template.upper_bounds.get(model.name, {}):
+                    model.set_upper_bound(item[0], parse_value(item[1]))
 
                 self._prepare_model_cb(model, output_previous, output_all_previous)
 

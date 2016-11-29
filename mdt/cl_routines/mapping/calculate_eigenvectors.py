@@ -67,6 +67,9 @@ class _CEWorker(Worker):
         self._all_buffers, self._evecs_buf = self._create_buffers()
         self._kernel = self._build_kernel(compile_flags)
 
+    def __del__(self):
+        list(buffer.release() for buffer in self._all_buffers)
+
     def calculate(self, range_start, range_end):
         nmr_problems = range_end - range_start
 

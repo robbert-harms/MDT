@@ -230,20 +230,25 @@ class OptimizationSettingsLoader(ConfigSectionLoader):
     """Loads the optimization section"""
 
     def load(self, value):
-        ensure_exists(['optimization', 'optimizer'])
+        ensure_exists(['optimization', 'general'])
+        ensure_exists(['optimization', 'model_specific'])
 
-        if 'optimizer' in value:
-            config_insert(['optimization', 'optimizer'], value['optimizer'])
+        if 'general' in value:
+            config_insert(['optimization', 'general'], value['general'])
+
+        if 'model_specific' in value:
+            for key, sub_value in value['model_specific'].items():
+                config_insert(['optimization', 'model_specific', key], sub_value)
 
 
 class SampleSettingsLoader(ConfigSectionLoader):
     """Loads the sampling section"""
 
     def load(self, value):
-        ensure_exists(['sampling', 'sampler'])
+        ensure_exists(['sampling', 'general'])
 
-        if 'sampler' in value:
-            config_insert(['sampling', 'sampler'], value['sampler'])
+        if 'general' in value:
+            config_insert(['sampling', 'general'], value['general'])
 
 
 class ProcessingStrategySectionLoader(ConfigSectionLoader):
@@ -384,7 +389,7 @@ def get_processing_strategy(processing_type, model_names=None):
     strategy_name = _config['processing_strategies'][processing_type]['general']['name']
     options = _config['processing_strategies'][processing_type]['general'].get('options', {}) or {}
 
-    if model_names and 'model_specific' in _config['processing_strategies'][processing_type]:
+    if model_names and ('model_specific' in _config['processing_strategies'][processing_type]):
         info_dict = get_model_config(model_names, _config['processing_strategies'][processing_type]['model_specific'])
 
         if info_dict:
@@ -416,32 +421,76 @@ def get_logging_configuration_dict():
     return _config['logging']['info_dict']
 
 
-def get_optimizer():
-    """Load the optimizer from the configuration.
+def get_general_optimizer():
+    """Load the general optimizer from the configuration.
 
     Returns:
         Optimizer: the configured optimizer for use in MDT
     """
-    optimizer = get_optimizer_by_name(_config['optimization']['optimizer']['name'])
-    return optimizer(**_config['optimization']['optimizer']['settings'])
+    return _resolve_optimizer(_config['optimization']['general'])
 
 
-def get_optimizer_name():
-    """Get the name of the currently configured optimizer
+def get_optimizer_for_model(model_names):
+    """Get the optimizer for this specific cascade of models.
+
+    This configuration function supports having a different optimizer for optimizing, for example, NODDI in a
+    cascade and NODDI without a cascade.
+
+    Args:
+        model_names (list of str): the list of model names (typically a cascade of models) for which we
+            want to get the optimizer to use.
+
+    Returns:
+        Optimizer: the optimizer to use for optimizing the specific model
+    """
+    info_dict = get_model_config(model_names, _config['optimization']['model_specific'])
+
+    if info_dict:
+        return _resolve_optimizer(info_dict)
+    else:
+        return get_general_optimizer()
+
+
+def _resolve_optimizer(optimizer_info):
+    """Resolve the optimization routine from the given information dictionary.
+
+    Args:
+        optimizer_info (dict): the optimization dictionary with at least 'name' for the optimizer and settings
+            for the optimizer settings
+
+    Returns:
+        optimizer: the optimization routine
+    """
+    name = optimizer_info['name']
+    settings = deepcopy(optimizer_info.get('settings', {}) or {})
+    optimizer = get_optimizer_by_name(name)
+
+    if 'optimizers' in settings and settings['optimizers']:
+        settings['optimizers'] = [_resolve_optimizer(info) for info in settings['optimizers']]
+
+    if 'grid_generator' in settings and settings['grid_generator']:
+        cls = getattr(mot.cl_routines.optimizing.grid_search, list(settings['grid_generator'].keys())[0])
+        settings['grid_generator'] = cls(**list(settings['grid_generator'].values())[0])
+
+    return optimizer(**settings)
+
+
+def get_general_optimizer_name():
+    """Get the name of the currently configured general optimizer
 
     Returns:
         str: the name of the currently configured optimizer
     """
-    return _config['optimization']['optimizer']['name']
+    return _config['optimization']['general']['name']
 
 
-def get_optimizer_settings():
-    """Get the settings of the currently configured optimizer
+def get_general_optimizer_settings():
+    """Get the settings of the currently configured general optimizer
 
     Returns:
         dict: the settings of the currently configured optimizer
     """
-    return _config['optimization']['optimizer']['settings']
+    return _config['optimization']['general']['settings']
 
 
 def get_sampler():
@@ -450,8 +499,8 @@ def get_sampler():
     Returns:
         Sampler: the configured sampler for use in MDT
     """
-    sampler = get_sampler_by_name(_config['sampling']['sampler']['name'])
-    return sampler(**_config['sampling']['sampler']['settings'])
+    sampler = get_sampler_by_name(_config['sampling']['general']['name'])
+    return sampler(**_config['sampling']['general']['settings'])
 
 
 def get_model_config(model_names, config):
@@ -625,6 +674,34 @@ class YamlStringAction(SimpleConfigAction):
 
     def _apply(self):
         load_from_yaml(self._yaml_str)
+
+
+class SetGeneralSampler(SimpleConfigAction):
+
+    def __init__(self, sampler_name, settings=None):
+        super(SetGeneralSampler, self).__init__()
+        self._sampler_name = sampler_name
+        self._settings = settings or {}
+
+    def _apply(self):
+        SampleSettingsLoader().load({'general': {'name': self._sampler_name,
+                                                 'settings': self._settings}})
+
+
+class SetGeneralOptimizer(SimpleConfigAction):
+
+    def __init__(self, optimizer_name, settings=None):
+        super(SetGeneralOptimizer, self).__init__()
+        self._optimizer_name = optimizer_name
+        self._settings = settings or {}
+
+    @classmethod
+    def from_object(self, optimizer):
+        return SetGeneralOptimizer(optimizer.__class__.__name__, optimizer.optimizer_settings)
+
+    def _apply(self):
+        OptimizationSettingsLoader().load({'general': {'name': self._optimizer_name,
+                                                       'settings': self._settings}})
 
 
 """Load the default configuration, and if possible, the users configuration."""
