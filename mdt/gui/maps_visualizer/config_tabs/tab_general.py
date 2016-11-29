@@ -159,8 +159,8 @@ class TabGeneral(QWidget, Ui_TabGeneral):
             self.general_map_selection.blockSignals(False)
 
         try:
-            max_x = data_info.get_max_x(config.dimension, config.rotate, map_names)
-            max_y = data_info.get_max_y(config.dimension, config.rotate, map_names)
+            max_x = data_info.get_max_x_index(config.dimension, config.rotate, map_names)
+            max_y = data_info.get_max_y_index(config.dimension, config.rotate, map_names)
 
             with blocked_signals(self.general_zoom_x_0, self.general_zoom_x_1,
                                  self.general_zoom_y_0, self.general_zoom_y_1):
@@ -255,12 +255,21 @@ class TabGeneral(QWidget, Ui_TabGeneral):
         data_info = self._controller.get_data()
         config = self._controller.get_config()
 
+        def add_padding(bounding_box, max_x, max_y):
+            bounding_box[0].x = max(bounding_box[0].x - 1, 0)
+            bounding_box[0].y = max(bounding_box[0].y - 1, 0)
+
+            bounding_box[1].y = min(bounding_box[1].y + 2, max_y)
+            bounding_box[1].x = min(bounding_box[1].x + 2, max_x)
+
+            return bounding_box
+
         if config.maps_to_show or len(data_info.maps):
             bounding_box = data_info.get_bounding_box(config.dimension, config.slice_index,
                                                       config.volume_index, config.rotate, config.maps_to_show)
 
-            max_y = data_info.get_max_y(config.dimension, rotate=config.rotate, map_names=config.maps_to_show)
-            max_x = data_info.get_max_x(config.dimension, rotate=config.rotate, map_names=config.maps_to_show)
+            max_y = data_info.get_max_y_index(config.dimension, rotate=config.rotate, map_names=config.maps_to_show)
+            max_x = data_info.get_max_x_index(config.dimension, rotate=config.rotate, map_names=config.maps_to_show)
 
             if not config.flipud:
                 # Since the renderer plots with a left top coordinate system,
@@ -269,13 +278,7 @@ class TabGeneral(QWidget, Ui_TabGeneral):
                 bounding_box[0].y = max_y - bounding_box[1].y
                 bounding_box[1].y = tmp
 
-            if bounding_box[0].x > 0:
-                bounding_box[0].x -= 1
-            if bounding_box[0].y > 0:
-                bounding_box[0].y -= 1
-
-            bounding_box[1].y = min(bounding_box[1].y + 2, max_y)
-            bounding_box[1].x = min(bounding_box[1].x + 2, max_x)
+            bounding_box = add_padding(bounding_box, max_x, max_y)
 
             self._controller.apply_action(SetZoom(Zoom(*bounding_box)))
 

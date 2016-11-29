@@ -98,7 +98,7 @@ class AxisData(object):
 
         # correct for flip upside down
         if not self._plot_config.flipud:
-            y = self._map_info.get_max_y(self._plot_config.dimension, self._plot_config.rotate) - y
+            y = self._map_info.get_max_y_index(self._plot_config.dimension, self._plot_config.rotate) - y
 
         # correct for displayed axis, the view is x-data on y-image and y-data on x-image
         x, y = y, x

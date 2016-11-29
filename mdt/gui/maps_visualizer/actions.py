@@ -39,15 +39,20 @@ class SetRotate(SimpleConfigAction):
     config_attribute = 'rotate'
 
     def _extra_actions(self, data_info, configuration):
-        if self.new_value != self._previous_config.dimension:
-            # new_zoom = self._previous_config.zoom.rotate(
-            #     self.new_value,
-            #     data_info.get_max_x(configuration.dimension, 0, configuration.maps_to_show),
-            #     data_info.get_max_y(configuration.dimension, 0, configuration.maps_to_show))
+        if self.new_value != self._previous_config.rotate:
 
-            # return SetZoom(new_zoom).apply(data_info, configuration)
-            # todo, fix the zoom box rotation
-            return SetZoom(Zoom.no_zoom()).apply(data_info, configuration)
+            new_rotation = self.new_value - self._previous_config.rotate
+            if self._previous_config.flipud:
+                new_rotation *= -1
+
+            new_zoom = self._previous_config.zoom.get_rotated(
+                new_rotation,
+                data_info.get_max_x_index(configuration.dimension, self._previous_config.rotate,
+                                          configuration.maps_to_show) + 1,
+                data_info.get_max_y_index(configuration.dimension, self._previous_config.rotate,
+                                          configuration.maps_to_show) + 1)
+
+            return SetZoom(new_zoom).apply(data_info, configuration)
 
 
 class SetZoom(SimpleConfigAction):
@@ -125,8 +130,8 @@ class SetFlipud(SimpleConfigAction):
 
     def _extra_actions(self, data_info, configuration):
         if self.new_value != self._previous_config.flipud:
-            max_y = data_info.get_max_y(configuration.dimension, configuration.rotate,
-                                        configuration.maps_to_show)
+            max_y = data_info.get_max_y_index(configuration.dimension, configuration.rotate,
+                                              configuration.maps_to_show) + 1
 
             new_zoom = Zoom(Point(configuration.zoom.p0.x, max_y - configuration.zoom.p1.y),
                             Point(configuration.zoom.p1.x, max_y - configuration.zoom.p0.y))

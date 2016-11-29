@@ -1,5 +1,6 @@
 import glob
 import warnings
+from copy import deepcopy
 
 import nibabel
 import numpy as np
@@ -170,8 +171,8 @@ class MapPlotConfig(object):
                              '{} or lower than 0.'.format(self.volume_index, max_volume_index))
 
     def _validate_zoom(self, data_info):
-        max_x = data_info.get_max_x(self.dimension, self.rotate)
-        max_y = data_info.get_max_y(self.dimension, self.rotate)
+        max_x = data_info.get_max_x_index(self.dimension, self.rotate)
+        max_y = data_info.get_max_y_index(self.dimension, self.rotate)
 
         if self.zoom.p1.x > max_x:
             raise ValueError('The zoom maximum x ({}) can not be larger than {}'.format(self.zoom.p1.x, max_x))
@@ -320,6 +321,48 @@ class Zoom(object):
         point_converter = Point.get_conversion_info()
         return {'p0': point_converter,
                 'p1': point_converter}
+
+    def get_rotated(self, rotation, x_dimension, y_dimension):
+        """Return a new Zoom instance rotated with the given factor.
+
+        This rotates the zoom box in the same way as the image is rotated.
+
+        Args:
+            rotation (int): the rotation by which to rotate in steps of 90 degrees
+            x_dimension (int): the dimension of the image in the x coordinate
+            y_dimension (int): the dimension of the image in the y coordinate
+
+        Returns:
+            Zoom: the rotated instance
+        """
+        dimensions = [x_dimension, y_dimension]
+        p0 = self.p0
+        p1 = self.p1
+
+        nmr_90_rotations = rotation % 360 // 90
+
+        for _ in range(nmr_90_rotations):
+            dimensions = np.roll(dimensions, 1)
+
+            new_p0 = Point(np.min([dimensions[0] - p0.y, dimensions[0] - p1.y]), np.min([p0.x, p1.x]))
+            new_p1 = Point(np.max([dimensions[0] - p0.y, dimensions[0] - p1.y]), np.max([p0.x, p1.x]))
+
+            p0 = new_p0
+            p1 = new_p1
+
+        if p0.x >= dimensions[0] - 1 or p0.x < 0:
+            p0 = p0.get_updated(x=0)
+
+        if p0.y >= dimensions[1] - 1 or p0.y < 0:
+            p0 = p0.get_updated(y=0)
+
+        if p1.x >= dimensions[0] - 1:
+            p1 = p1.get_updated(x=dimensions[0] - 1)
+
+        if p1.y >= dimensions[1] - 1:
+            p1 = p1.get_updated(y=dimensions[1] - 1)
+
+        return Zoom(p0, p1)
 
     def apply(self, data):
         """Apply the zoom to the given 2d array and return the new array.
@@ -729,7 +772,7 @@ class DataInfo(object):
                 return True
         return False
 
-    def get_max_x(self, dimension, rotate=0, map_names=None):
+    def get_max_x_index(self, dimension, rotate=0, map_names=None):
         """Get the maximum x index supported over the images.
 
         In essence this gets the lowest x index found.
@@ -745,9 +788,9 @@ class DataInfo(object):
         map_names = map_names or self._maps.keys()
         if not map_names:
             raise ValueError('No maps to search in.')
-        return min(self.map_info[map_name].get_max_x(dimension, rotate) for map_name in map_names)
+        return min(self.map_info[map_name].get_max_x_index(dimension, rotate) for map_name in map_names)
 
-    def get_max_y(self, dimension, rotate=0, map_names=None):
+    def get_max_y_index(self, dimension, rotate=0, map_names=None):
         """Get the maximum y index supported over the images.
 
         In essence this gets the lowest y index found.
@@ -763,7 +806,7 @@ class DataInfo(object):
         map_names = map_names or self._maps.keys()
         if not map_names:
             raise ValueError('No maps to search in.')
-        return min(self.map_info[map_name].get_max_y(dimension, rotate) for map_name in map_names)
+        return min(self.map_info[map_name].get_max_y_index(dimension, rotate) for map_name in map_names)
 
     def get_bounding_box(self, dimension, slice_index, volume_index, rotate, map_names=None):
         """Get the bounding box of the images.
@@ -879,7 +922,7 @@ class SingleMapInfo(object):
                 return index
         return 0
 
-    def get_max_x(self, dimension, rotate=0):
+    def get_max_x_index(self, dimension, rotate=0):
         """Get the maximum x index.
 
         Args:
@@ -895,7 +938,7 @@ class SingleMapInfo(object):
             return max(0, shape[1] - 1)
         return max(0, shape[0] - 1)
 
-    def get_max_y(self, dimension, rotate=0):
+    def get_max_y_index(self, dimension, rotate=0):
         """Get the maximum y index.
 
         Args:
@@ -923,7 +966,7 @@ class SingleMapInfo(object):
         Returns:
             tuple: (max_x, max_y)
         """
-        return self.get_max_x(dimension, rotate), self.get_max_y(dimension, rotate)
+        return self.get_max_x_index(dimension, rotate), self.get_max_y_index(dimension, rotate)
 
     def get_bounding_box(self, dimension, slice_index, volume_index, rotate):
         """Get the bounding box of this map when displayed using the given indicing.
