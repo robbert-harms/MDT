@@ -1,3 +1,5 @@
+.. _dynamic_modules_cascades:
+
 **************
 Cascade models
 **************
