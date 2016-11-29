@@ -21,13 +21,20 @@ class Protocol(collections.MutableMapping):
 
         Please note that we use SI units throughout MDT. Take care when loading the data that you load it in SI units.
 
+        For example:
+
+        * G (gradient amplitude) in T/m (Tesla per meter)
+        * Delta (time interval) in seconds
+        * delta (duration) in seconds
+
+
         Args:
             columns (dict): The initial list of columns used by this protocol, the keys should be the name of the
                 parameter (the same as those used in the model functions).
                 The values should be numpy arrays of equal length.
         """
         super(Protocol, self).__init__()
-        self._gamma_h = 2.675987E8 # radians s^-1 T^-1
+        self._gamma_h = 267.5987E6 # radians s^-1 T^-1 (s = seconds, T = Tesla)
         self._unweighted_threshold = 25e6 # s/m^2
         self._columns = {}
         self._preferred_column_order = ('gx', 'gy', 'gz', 'G', 'Delta', 'delta', 'TE', 'T1', 'b', 'q', 'maxG')
