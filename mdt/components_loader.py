@@ -3,7 +3,6 @@
 This modules consists of two main items, component sources and component loaders. The component loaders have a list
 of sources from which they load the available components.
 """
-import glob
 import inspect
 import os
 import imp #todo in P3.4 replace imp calls with importlib.SourceFileLoader(name, path).load_module(name)
@@ -336,20 +335,21 @@ class UserComponentsSourceSingle(ComponentsSource):
         """
         super(UserComponentsSourceSingle, self).__init__()
         self.path = _get_components_path(user_type, component_type)
+        self._class_filenames = {}
 
     def list(self):
+        items = []
         if os.path.isdir(self.path):
-            items = []
-            for item in os.listdir(self.path):
-                if item.endswith('.py') and item != '__init__.py':
-                    items.append(item[0:-3])
-            return items
-        return []
+            for dir_name, sub_dirs, files in os.walk(self.path):
+                for file in files:
+                    if file.endswith('.py') and not file.startswith('__'):
+                        items.append(file[0:-3])
+                        self._class_filenames[file[0:-3]] = os.path.join(dir_name, file)
+        return items
 
     def get_class(self, name):
-        path = os.path.join(self.path, name + '.py')
-        if os.path.exists(path):
-            module = imp.load_source(name, path)
+        if name in self._class_filenames:
+            module = imp.load_source(name, self._class_filenames[name])
             return getattr(module, name)
         raise ImportError
 
@@ -480,16 +480,21 @@ class UserComponentsSourceMulti(ComponentsSource):
         This loops through all the python files present in the dir name and tries to use them as modules if they
         are not yet loaded.
         """
-        for path in self._get_python_component_files():
-            if path not in self.loaded_modules_cache[self._user_type][self._component_type]:
-                module_name = self._user_type + '/' + \
-                              self._component_type + '/' + \
-                              os.path.splitext(os.path.basename(path))[0]
+        for dir_name, sub_dirs, files in os.walk(self.path):
+            for file in files:
+                if file.endswith('.py') and not file.startswith('__'):
+                    path = os.path.join(dir_name, file)
 
-                module = imp.load_source(module_name, path)
+                    if path not in self.loaded_modules_cache[self._user_type][self._component_type]:
+                        module_name = self._user_type + '/' + \
+                                      self._component_type + '/' + \
+                                      dir_name[len(self.path) + 1:] + '/' + \
+                                      os.path.splitext(os.path.basename(path))[0]
 
-                self.loaded_modules_cache[self._user_type][self._component_type][path] = \
-                    (module, self._get_components_from_module(module))
+                        module = imp.load_source(module_name, path)
+
+                        self.loaded_modules_cache[self._user_type][self._component_type][path] = \
+                            (module, self._get_components_from_module(module))
 
     def _get_components_from_module(self, module):
         """Return a list of all the available components in the given module.
@@ -506,9 +511,6 @@ class UserComponentsSourceMulti(ComponentsSource):
             loaded_items.extend(module.get_components_list())
 
         return loaded_items
-
-    def _get_python_component_files(self):
-        return filter(lambda v: os.path.basename(v)[0:2] != '__', glob.glob(os.path.join(self.path, '*.py')))
 
     def _check_path(self):
         if not os.path.isdir(self.path):
