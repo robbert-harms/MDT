@@ -42,7 +42,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
         self.optimizationOptionsButton.clicked.connect(self._run_optimization_options_dialog)
 
         self.modelSelection.addItems(list(sorted(mdt.get_models_list())))
-        self.modelSelection.setCurrentText('BallStick (Cascade)')
+        self.modelSelection.setCurrentText('BallStick_r1 (Cascade)')
 
         self._check_enable_action_buttons()
 
