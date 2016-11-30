@@ -185,7 +185,6 @@ class Renderer(object):
             data = np.flipud(data)
 
         data = self._plot_config.zoom.apply(data)
-        data = self._get_map_attr(map_name, 'clipping', Clipping()).apply(data)
 
         plot_options = self._get_map_plot_options(map_name)
         plot_options['origin'] = 'lower'
@@ -262,18 +261,28 @@ class Renderer(object):
     def _get_image(self, map_name):
         """Get the 2d image to display for the given data."""
         data = self._data_info.maps[map_name]
+
         dimension = self._plot_config.dimension
         slice_index = self._plot_config.slice_index
         volume_index = self._plot_config.volume_index
 
-        data = get_slice_in_dimension(data, dimension, slice_index)
-        if len(data.shape) > 2:
-            if volume_index < data.shape[2]:
-                data = np.squeeze(data[:, :, volume_index])
-            else:
-                data = np.squeeze(data[:, :, data.shape[2] - 1])
+        def get_slice(data):
+            slice = get_slice_in_dimension(data, dimension, slice_index)
+            if len(slice.shape) > 2:
+                if volume_index < slice.shape[2]:
+                    slice = np.squeeze(slice[:, :, volume_index])
+                else:
+                    slice = np.squeeze(slice[:, :, slice.shape[2] - 1])
+            return slice
 
-        return data
+        slice = get_slice(data)
+        slice = self._get_map_attr(map_name, 'clipping', Clipping()).apply(slice)
+
+        mask_name = self._get_map_attr(map_name, 'mask_name', self._plot_config.mask_name)
+        if mask_name:
+            slice = slice * (get_slice(self._data_info.maps[mask_name]) > 0)
+
+        return slice
 
     def _get_tick_locator(self, map_name):
         min_val, max_val = self._data_info.maps[map_name].min(), self._data_info.maps[map_name].max()

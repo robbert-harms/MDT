@@ -26,7 +26,7 @@ class MapPlotConfig(object):
     def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=90, colormap='hot', maps_to_show=None,
                  font=None, grid_layout=None, colorbar_nmr_ticks=10, show_axis=True, zoom=None,
                  map_plot_options=None, interpolation='bilinear', flipud=None,
-                 title=None):
+                 title=None, mask_name=None):
         """Container for all plot related settings.
 
         Args:
@@ -46,6 +46,7 @@ class MapPlotConfig(object):
             interpolation (str): one of the available interpolations
             flipud (boolean): if True we flip the image upside down
             title (str): the title to this plot
+            mask_name (str): the name of the mask to apply to the maps prior to display
         """
         super(MapPlotConfig, self).__init__()
         self.dimension = dimension
@@ -67,6 +68,7 @@ class MapPlotConfig(object):
             self.flipud = False
         self.map_plot_options = map_plot_options or {}
         self.title = title
+        self.mask_name = mask_name
 
         if interpolation not in self.get_available_interpolations():
             raise ValueError('The given interpolation ({}) is not supported.'.format(interpolation))
@@ -121,7 +123,8 @@ class MapPlotConfig(object):
                 'grid_layout': ConvertDynamicFromModule(mdt.visualization.layouts),
                 'interpolation': WhiteListConversion(cls.get_available_interpolations(), 'bilinear'),
                 'flipud': BooleanConversion(allow_null=False),
-                'title': StringConversion()
+                'title': StringConversion(),
+                'mask_name': StringConversion()
                 }
 
     @classmethod
@@ -137,6 +140,35 @@ class MapPlotConfig(object):
 
     def to_yaml(self):
         return yaml.safe_dump(self.get_conversion_info().to_dict(self))
+
+    def visible_changes(self, old_config):
+        """Checks if there are any visible changes between this configuration and the other.
+
+        This method can implement knowledge that allows the visualization routine to check if it
+        would need to update the plot or not.
+
+        It expects that the configuration you wish to display is the one on which this method is called.
+
+        Args:
+            old_config (MapPlotConfig): the previous configuration
+
+        Returns:
+            bool: if the differences between this configuration and the other would result in visible differences.
+        """
+        def visible_difference_in_map_plot_options():
+            for key in set(self.map_plot_options.keys()):
+                if key in self.maps_to_show:
+                    if key not in old_config.map_plot_options:
+                        return True
+                    if self.map_plot_options[key].visible_changes(old_config.map_plot_options[key]):
+                        return True
+            return False
+
+        if any(getattr(self, key) != getattr(old_config, key) for key in
+               filter(lambda key: key != 'map_plot_options', self.__dict__)):
+            return True
+
+        return visible_difference_in_map_plot_options()
 
     def validate(self, data_info):
         if data_info.maps:
@@ -180,6 +212,11 @@ class MapPlotConfig(object):
         if self.zoom.p1.y > max_y:
             raise ValueError('The zoom maximum y ({}) can not be larger than {}'.format(self.zoom.p1.y, max_y))
 
+    def _validate_mask_name(self, data_info):
+        if self.mask_name:
+            if self.mask_name not in data_info.maps:
+                raise ValueError('The given global mask is not found in the list of maps.')
+
     def _validate_map_plot_options(self, data_info):
         for key in self.map_plot_options:
             if key not in data_info.maps:
@@ -206,7 +243,8 @@ class MapPlotConfig(object):
 
 class SingleMapConfig(object):
 
-    def __init__(self, title=None, scale=None, clipping=None, colormap=None, colorbar_label=None, title_spacing=None):
+    def __init__(self, title=None, scale=None, clipping=None, colormap=None, colorbar_label=None, title_spacing=None,
+                 mask_name=None):
         """Creates the configuration for a single map plot.
 
         Args:
@@ -216,6 +254,7 @@ class SingleMapConfig(object):
             colormap (str): the matplotlib colormap to use
             colorbar_label (str): the label for the colorbar
             title_spacing (float): the spacing between the top of the plots and the title
+            mask_name (str): the name of the mask used to mask the data prior to visualization
         """
         super(SingleMapConfig, self).__init__()
         self.title = title
@@ -224,6 +263,7 @@ class SingleMapConfig(object):
         self.clipping = clipping or Clipping()
         self.colormap = colormap
         self.colorbar_label = colorbar_label
+        self.mask_name = mask_name
 
         if self.colormap is not None and self.colormap not in self.get_available_colormaps():
             raise ValueError('The given colormap ({}) is not supported.'.format(self.colormap))
@@ -239,7 +279,8 @@ class SingleMapConfig(object):
                 'clipping': Clipping.get_conversion_info(),
                 'colormap': StringConversion(),
                 'colorbar_label': StringConversion(),
-                'title_spacing': FloatConversion()}
+                'title_spacing': FloatConversion(),
+                'mask_name': StringConversion()}
 
     @classmethod
     def get_available_colormaps(cls):
@@ -258,6 +299,35 @@ class SingleMapConfig(object):
 
     def to_yaml(self):
         return yaml.safe_dump(self.get_conversion_info().to_dict(self))
+
+    def visible_changes(self, old_config):
+        """Checks if there are any visible changes between this configuration and the other.
+
+        This method can implement knowledge that allows the visualization routine to check if it
+        would need to update the plot or not.
+
+        It expects that the configuration you wish to display is the one on which this method is called.
+
+        Args:
+            old_config (SingleMapConfig): the previous configuration
+
+        Returns:
+            bool: if the differences between this configuration and the other would result in visible differences.
+        """
+        def filtered_attributes():
+            filtered = ['scale', 'clipping']
+            return [key for key in self.__dict__ if key not in filtered]
+
+        def visible_changes_in_scale():
+            return self.scale.visible_changes(old_config.scale)
+
+        def visible_changes_in_clipping():
+            return self.clipping.visible_changes(old_config.clipping)
+
+        if any(getattr(self, key) != getattr(old_config, key) for key in filtered_attributes()):
+            return True
+
+        return visible_changes_in_clipping() or visible_changes_in_scale()
 
     def validate(self, data_info):
         for key in self.__dict__:
@@ -490,6 +560,39 @@ class Clipping(object):
 
         return data
 
+    def visible_changes(self, old_clipping):
+        """Checks if there are any visible changes between this clipping and the other.
+
+        This method can implement knowledge that allows the visualization routine to check if it
+        would need to update the plot or not.
+
+        It expects that the clipping you wish to use is the one on which this method is called.
+
+        Args:
+            old_clipping (Clipping): the previous clipping
+
+        Returns:
+            bool: if the differences between this clipping and the other would result in visible differences.
+        """
+        if self.use_min and not old_clipping.use_min:
+            return True
+        if self.use_max and not old_clipping.use_max:
+            return True
+
+        def visible_changes_in_min():
+            if self.vmin == old_clipping.vmin:
+                return False
+            else:
+                return self.use_min
+
+        def visible_changes_in_max():
+            if self.vmax == old_clipping.vmax:
+                return False
+            else:
+                return self.use_max
+
+        return visible_changes_in_max() or visible_changes_in_min()
+
     def get_updated(self, **kwargs):
         """Get a new Clipping object with updated arguments.
 
@@ -549,6 +652,39 @@ class Scale(object):
                 'vmin': FloatConversion(allow_null=False),
                 'use_min': BooleanConversion(allow_null=False),
                 'use_max': BooleanConversion(allow_null=False)}
+
+    def visible_changes(self, old_scale):
+        """Checks if there are any visible changes between this scale and the other.
+
+        This method can implement knowledge that allows the visualization routine to check if it
+        would need to update the plot or not.
+
+        It expects that the scale you wish to use is the one on which this method is called.
+
+        Args:
+            old_scale (Scale): the previous scale
+
+        Returns:
+            bool: if the differences between this scale and the other would result in visible differences.
+        """
+        if self.use_min and not old_scale.use_min:
+            return True
+        if self.use_max and not old_scale.use_max:
+            return True
+
+        def visible_changes_in_min():
+            if self.vmin == old_scale.vmin:
+                return False
+            else:
+                return self.use_min
+
+        def visible_changes_in_max():
+            if self.vmax == old_scale.vmax:
+                return False
+            else:
+                return self.use_max
+
+        return visible_changes_in_max() or visible_changes_in_min()
 
     def get_updated(self, **kwargs):
         """Get a new Scale object with updated arguments.

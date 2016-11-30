@@ -44,12 +44,14 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
         self.setFocus()
 
-        self._timer = QTimer()
-        self._timer.timeout.connect(self._timer_event)
-        self._timer.timeout.connect(self._timer.stop)
+        self._redraw_timer = QTimer()
+        self._redraw_timer.timeout.connect(self._timer_event)
+        self._redraw_timer.timeout.connect(self._redraw_timer.stop)
 
         self._mouse_interaction = _MouseInteraction(self.figure, self._plotting_info_viewer)
         self._mouse_interaction.update_axes_data(self._axes_data)
+
+        self._previous_config = None
 
         self.setMinimumWidth(100)
 
@@ -76,12 +78,14 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
     @pyqtSlot(DataInfo)
     def set_new_data(self, data_info):
         self.visualizer = MapsVisualizer(data_info, self.figure)
-        self._timer.start(300)
+        self._redraw_timer.start(300)
 
     @pyqtSlot(MapPlotConfig)
     def set_new_config(self, configuration):
-        if self._auto_render:
-            self._timer.start(300)
+        if not self._previous_config or configuration.visible_changes(self._previous_config):
+            self._previous_config = configuration
+            if self._auto_render:
+                self._redraw_timer.start(300)
 
     def _redraw(self):
         self.figure.clf()

@@ -5,7 +5,8 @@ from PyQt5.QtCore import pyqtSlot, Qt
 from PyQt5.QtWidgets import QWidget, QAbstractItemView
 
 from mdt.gui.maps_visualizer.actions import SetDimension, SetSliceIndex, SetVolumeIndex, SetColormap, SetRotate, \
-    SetZoom, SetShowAxis, SetColorBarNmrTicks, SetMapsToShow, SetFont, SetInterpolation, SetFlipud, SetPlotTitle
+    SetZoom, SetShowAxis, SetColorBarNmrTicks, SetMapsToShow, SetFont, SetInterpolation, SetFlipud, SetPlotTitle, \
+    SetGeneralMask
 from mdt.gui.maps_visualizer.design.ui_TabGeneral import Ui_TabGeneral
 from mdt.gui.utils import blocked_signals, TimedUpdate
 from mdt.visualization.maps.base import Zoom, Point, DataInfo, Font, MapPlotConfig
@@ -84,6 +85,8 @@ class TabGeneral(QWidget, Ui_TabGeneral):
         self.general_flipud.clicked.connect(lambda: self._controller.apply_action(
             SetFlipud(self.general_flipud.isChecked())))
 
+        self.mask_name.currentIndexChanged.connect(self._update_mask_name)
+
     @pyqtSlot(DataInfo)
     def set_new_data(self, data_info):
         if data_info.directory:
@@ -102,6 +105,11 @@ class TabGeneral(QWidget, Ui_TabGeneral):
             for index, map_name in enumerate(data_info.sorted_keys):
                 item = self.general_map_selection.item(index)
                 item.setData(Qt.UserRole, map_name)
+
+        with blocked_signals(self.mask_name):
+            self.mask_name.clear()
+            self.mask_name.insertItem(0, '-- None --')
+            self.mask_name.insertItems(1, data_info.sorted_keys)
 
     @pyqtSlot(MapPlotConfig)
     def set_new_config(self, config):
@@ -219,6 +227,15 @@ class TabGeneral(QWidget, Ui_TabGeneral):
         with blocked_signals(self.general_flipud):
             self.general_flipud.setChecked(config.flipud)
 
+        with blocked_signals(self.mask_name):
+            if config.mask_name and config.mask_name in data_info.maps:
+                for ind in range(self.mask_name.count()):
+                    if self.mask_name.itemText(ind) == config.mask_name:
+                        self.mask_name.setCurrentIndex(ind)
+                        break
+            else:
+                self.mask_name.setCurrentIndex(0)
+
     @pyqtSlot()
     def _reorder_maps(self):
         items = [self.general_display_order.item(ind) for ind in range(self.general_display_order.count())]
@@ -301,6 +318,13 @@ class TabGeneral(QWidget, Ui_TabGeneral):
                 item_list.insert(ind, new_item)
                 return
         item_list.append(new_item)
+
+    @pyqtSlot(int)
+    def _update_mask_name(self, index):
+        if index == 0:
+            self._controller.apply_action(SetGeneralMask(None))
+        else:
+            self._controller.apply_action(SetGeneralMask(self.mask_name.itemText(index)))
 
     def _split_long_path_elements(self, original_path, max_single_element_length=25):
         """Split long path elements into smaller ones using spaces

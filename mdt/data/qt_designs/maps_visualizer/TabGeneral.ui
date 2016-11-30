@@ -41,9 +41,9 @@
       <property name="geometry">
        <rect>
         <x>0</x>
-        <y>-449</y>
+        <y>-479</y>
         <width>946</width>
-        <height>1181</height>
+        <height>1211</height>
        </rect>
       </property>
       <layout class="QGridLayout" name="gridLayout_6" rowstretch="0,0,0,0,0,0,0,0,0,0,0">
@@ -390,6 +390,16 @@
              </item>
              <item row="0" column="1">
               <widget class="QLineEdit" name="plot_title"/>
+             </item>
+             <item row="7" column="0">
+              <widget class="QLabel" name="label_29">
+               <property name="text">
+                <string>Mask:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="7" column="1">
+              <widget class="QComboBox" name="mask_name"/>
              </item>
             </layout>
            </widget>

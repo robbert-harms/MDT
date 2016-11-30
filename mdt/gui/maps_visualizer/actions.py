@@ -60,6 +60,11 @@ class SetZoom(SimpleConfigAction):
     config_attribute = 'zoom'
 
 
+class SetGeneralMask(SimpleConfigAction):
+
+    config_attribute = 'mask_name'
+
+
 class SetPlotTitle(SimpleConfigAction):
 
     config_attribute = 'title'
