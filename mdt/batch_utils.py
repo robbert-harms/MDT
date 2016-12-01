@@ -2,7 +2,6 @@ import glob
 import logging
 import os
 import shutil
-import numpy as np
 import six
 from six import string_types
 from mdt.components_loader import BatchProfilesLoader, get_model
@@ -101,10 +100,9 @@ class SimpleBatchProfile(BatchProfile):
         self._output_base_dir = 'output'
         self._output_sub_dir = None
         self._append_mask_name_to_output_sub_dir = True
-        self.models_to_fit = ('BallStick (Cascade)',
+        self.models_to_fit = ('BallStick_r3 (Cascade)',
                               'Tensor (Cascade)',
                               'NODDI (Cascade)',
-                              'BallStickStickStick (Cascade)',
                               'CHARMED_r1 (Cascade)',
                               'CHARMED_r2 (Cascade)',
                               'CHARMED_r3 (Cascade)')

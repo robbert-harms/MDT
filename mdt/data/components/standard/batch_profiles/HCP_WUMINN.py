@@ -39,12 +39,6 @@ class HCP_WUMINN(SimpleBatchProfile):
         self.use_gradient_deviations = False
         self._output_base_dir = 'T1w/Diffusion/output'
         self._append_mask_name_to_output_sub_dir = False
-        self.models_to_fit = ('BallStick (Cascade)',
-                              'Tensor (Cascade)',
-                              'Noddi (Cascade|fixed)',
-                              'Charmed_r1 (Cascade|fixed)',
-                              'Charmed_r2 (Cascade|fixed)',
-                              'Charmed (Cascade|fixed)')
 
     def _get_subjects(self):
         subjects = []
