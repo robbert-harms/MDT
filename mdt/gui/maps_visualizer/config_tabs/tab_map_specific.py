@@ -250,7 +250,7 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
                 new_scale = current_scale.get_updated(vmax=value)
             self._controller.apply_action(SetMapScale(self._current_map, new_scale))
 
-    @pyqtSlot(bool)
+    @pyqtSlot(int)
     def _set_use_scale(self, use_scale):
         if self._current_map:
             current_scale = self._get_current_map_config().scale
@@ -260,7 +260,7 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
                 new_scale = current_scale.get_updated(use_min=use_scale, use_max=use_scale)
             self._controller.apply_action(SetMapScale(self._current_map, new_scale))
 
-    @pyqtSlot(bool)
+    @pyqtSlot(int)
     def _set_use_data_scale_min(self, use_scale):
         if self._current_map:
             if use_scale and self._get_current_map_config().scale.use_max:
@@ -269,7 +269,7 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
                 new_scale = self._get_current_map_config().scale.get_updated(use_min=use_scale)
                 self._controller.apply_action(SetMapScale(self._current_map, new_scale))
 
-    @pyqtSlot(bool)
+    @pyqtSlot(int)
     def _set_use_data_scale_max(self, use_scale):
         if self._current_map:
             if use_scale and self._get_current_map_config().scale.use_min:
@@ -298,7 +298,7 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
                 new_clipping = current_clipping.get_updated(vmax=value)
             self._controller.apply_action(SetMapClipping(self._current_map, new_clipping))
 
-    @pyqtSlot(bool)
+    @pyqtSlot(int)
     def _set_use_clipping(self, use_clipping):
         if self._current_map:
             current_clipping = self._get_current_map_config().clipping
@@ -309,7 +309,7 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
                 new_clipping = current_clipping.get_updated(use_min=use_clipping, use_max=use_clipping)
             self._controller.apply_action(SetMapClipping(self._current_map, new_clipping))
 
-    @pyqtSlot(bool)
+    @pyqtSlot(int)
     def _set_use_data_clipping_min(self, use_clipping):
         if self._current_map:
             if use_clipping and self._get_current_map_config().clipping.use_max:
@@ -318,7 +318,7 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
                 new_clipping = self._get_current_map_config().clipping.get_updated(use_min=use_clipping)
                 self._controller.apply_action(SetMapClipping(self._current_map, new_clipping))
 
-    @pyqtSlot(bool)
+    @pyqtSlot(int)
     def _set_use_data_clipping_max(self, use_clipping):
         if self._current_map:
             if use_clipping and self._get_current_map_config().clipping.use_min:
