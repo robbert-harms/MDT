@@ -1,13 +1,9 @@
 from copy import deepcopy
-
 import six
-
 import mdt
 from mdt.components_loader import ComponentConfig, ComponentBuilder, bind_function, method_binding_meta, get_meta_info
-from mdt.deferred_mappings import DeferredFunctionDict
 from mdt.model_protocol_problem import NamedProtocolProblem
 from mdt.models.base import DMRIOptimizable
-from mdt.utils import simple_parameter_init
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-04-24"
@@ -181,8 +177,10 @@ class SimpleCascadeModel(DMRICascadeModelInterface):
         Returns:
             None, preparing should happen in-place.
         """
-        if not isinstance(model, DMRICascadeModelInterface):
-            simple_parameter_init(model, output_previous)
+        if not isinstance(model, DMRICascadeModelInterface) and output_previous:
+            for key, value in output_previous.items():
+                if model.has_parameter(key):
+                    model.init(key, value)
 
 
 class CascadeConfig(ComponentConfig):

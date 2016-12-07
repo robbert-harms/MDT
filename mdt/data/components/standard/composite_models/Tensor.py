@@ -1,6 +1,3 @@
-import numpy as np
-
-from mdt.components_loader import bind_function
 from mdt.models.composite import DMRICompositeModelConfig
 
 __author__ = 'Robbert Harms'
@@ -20,29 +17,20 @@ class Tensor(DMRICompositeModelConfig):
              'Tensor.dperp0': 1.7e-10,
              'Tensor.dperp1': 1.7e-10}
 
-    @bind_function
-    def _get_suitable_volume_indices(self, problem_data):
-        protocol = problem_data.protocol
-        unweighted_threshold = 25e6  # in SI units of s/m^2
-
-        if protocol.has_column('g') and protocol.has_column('b'):
-            protocol_indices = protocol.get_indices_bval_in_range(start=0, end=1.5e9 + 0.1e9)
-            protocol_indices = np.append(protocol_indices, protocol.get_unweighted_indices(unweighted_threshold))
-        else:
-            protocol_indices = list(range(protocol.length))
-
-        return np.unique(protocol_indices)
+    volume_selection = {'unweighted_threshold': 25e6,
+                        'use_unweighted': True,
+                        'use_weighted': True,
+                        'min_bval': 0,
+                        'max_bval': 1.5e9 + 0.1e9}
 
 
 class TensorExVivo(Tensor):
 
     name = 'Tensor-ExVivo'
+    ex_vivo_suitable = True
     in_vivo_suitable = False
     description = 'The standard Tensor model with ex vivo defaults.'
     inits = {'Tensor.d': 1e-9,
              'Tensor.dperp0': 0.6e-10,
              'Tensor.dperp1': 0.6e-10}
-
-    @bind_function
-    def _get_suitable_volume_indices(self, problem_data):
-        return list(range(problem_data.protocol.length))
+    volume_selection = None
