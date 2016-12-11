@@ -38,7 +38,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
         self.selectedMask.textChanged.connect(self._check_enable_action_buttons)
         self.selectedProtocol.textChanged.connect(self._check_enable_action_buttons)
 
-        self.runButton.clicked.connect(self.run_model)
+        self.runButton.clicked.connect(lambda: self.run_model())
         self.optimizationOptionsButton.clicked.connect(self._run_optimization_options_dialog)
 
         self.modelSelection.addItems(list(sorted(mdt.get_models_list())))

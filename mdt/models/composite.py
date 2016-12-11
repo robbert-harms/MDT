@@ -72,8 +72,8 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
             self._logger.info('Using the gradient deviations in the model optimization.')
 
             # adds the eye(3) matrix to every grad dev, so we don't have to do it in the kernel.
-            # Flattening an eye(3) matrix gives the same result with F and C ordering, I nevertheless put it here
-            # to emphasize that the gradient deviations matrix is in Fortran (column-major) order.
+            # Flattening an eye(3) matrix gives the same result with F and C ordering, I nevertheless put the ordering
+            # here to emphasize that the gradient deviations matrix is in Fortran (column-major) order.
             grad_dev += np.eye(3).flatten(order='F')
 
             if self.problems_to_analyze is not None:
@@ -108,14 +108,6 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
 
         return problems
 
-    def get_abstract_model_function(self):
-        """Get the abstract diffusion model function computed by this model.
-
-        Returns:
-            str: the abstract model function of this class
-        """
-        return self._model_tree
-
     def _set_default_dependencies(self):
         super(DMRICompositeModel, self)._set_default_dependencies()
 
@@ -125,7 +117,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
                 self.add_parameter_dependency(names[0], WeightSumToOneRule(names[1:]))
 
     def _get_weight_models(self):
-        return [n.data for n in self._model_tree.leaves if isinstance(n.data, Weight)]
+        return [cm for cm in self._model_tree.get_compartment_models() if isinstance(cm, Weight)]
 
     def _get_pre_model_expression_eval_code(self):
         if self._can_use_gradient_deviations():

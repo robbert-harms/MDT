@@ -105,9 +105,13 @@ class SimpleCascadeModel(DMRICascadeModelInterface):
 
     def get_next(self, output_previous_models):
         next_model = self._model_list[self._iteration_position]
+
         output_previous = {}
+
         if self._iteration_position > 0:
-            output_previous = output_previous_models[self._model_list[self._iteration_position - 1].name]
+            previous_model = self._model_list[self._iteration_position - 1]
+            output_previous = output_previous_models[previous_model.name]
+
         self._prepare_model(next_model, output_previous, output_previous_models)
         self._iteration_position += 1
         return self._set_model_options(next_model)
@@ -116,10 +120,7 @@ class SimpleCascadeModel(DMRICascadeModelInterface):
         self._iteration_position = 0
 
     def is_protocol_sufficient(self, protocol=None):
-        for model in self._model_list:
-            if not model.is_protocol_sufficient(protocol):
-                return False
-        return True
+        return all(model.is_protocol_sufficient(protocol) for model in self._model_list)
 
     def get_protocol_problems(self, protocol=None):
         problems = []
