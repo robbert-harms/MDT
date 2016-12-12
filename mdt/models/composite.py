@@ -13,7 +13,7 @@ from mdt.utils import create_roi, calculate_information_criterions
 from mot.cl_data_type import CLDataType
 from mot.model_building.cl_functions.model_functions import Weight
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
-from mot.data_adapters import SimpleDataAdapter
+from mot.model_building.data_adapter import SimpleDataAdapter
 from mot.model_building.evaluation_models import OffsetGaussianEvaluationModel
 from mot.model_building.model_builders import SampleModelBuilder
 from mot.model_building.parameter_functions.dependencies import WeightSumToOneRule, SimpleAssignment
@@ -60,8 +60,8 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
         self._original_problem_data = problem_data
         return super(DMRICompositeModel, self).set_problem_data(self._prepare_problem_data(problem_data))
 
-    def get_problems_var_data(self):
-        var_data_dict = super(DMRICompositeModel, self).get_problems_var_data()
+    def _get_variable_data(self):
+        var_data_dict = super(DMRICompositeModel, self)._get_variable_data()
 
         if self._problem_data.gradient_deviations is not None:
             if len(self._problem_data.gradient_deviations.shape) > 2:
@@ -72,8 +72,8 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
             self._logger.info('Using the gradient deviations in the model optimization.')
 
             # adds the eye(3) matrix to every grad dev, so we don't have to do it in the kernel.
-            # Flattening an eye(3) matrix gives the same result with F and C ordering, I nevertheless put it here
-            # to emphasize that the gradient deviations matrix is in Fortran (column-major) order.
+            # Flattening an eye(3) matrix gives the same result with F and C ordering, I nevertheless put the ordering
+            # here to emphasize that the gradient deviations matrix is in Fortran (column-major) order.
             grad_dev += np.eye(3).flatten(order='F')
 
             if self.problems_to_analyze is not None:
@@ -108,14 +108,6 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
 
         return problems
 
-    def get_abstract_model_function(self):
-        """Get the abstract diffusion model function computed by this model.
-
-        Returns:
-            str: the abstract model function of this class
-        """
-        return self._model_tree
-
     def _set_default_dependencies(self):
         super(DMRICompositeModel, self)._set_default_dependencies()
 
@@ -125,7 +117,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
                 self.add_parameter_dependency(names[0], WeightSumToOneRule(names[1:]))
 
     def _get_weight_models(self):
-        return [n.data for n in self._model_tree.leaves if isinstance(n.data, Weight)]
+        return [cm for cm in self._model_tree.get_compartment_models() if isinstance(cm, Weight)]
 
     def _get_pre_model_expression_eval_code(self):
         if self._can_use_gradient_deviations():
@@ -134,13 +126,14 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
                 mot_float_type _new_gradient_vector_length = length(_new_gradient_vector_raw);
                 g = _new_gradient_vector_raw/_new_gradient_vector_length;
             '''
-            if 'b' in list(self.get_problems_protocol_data().keys()):
+
+            if 'b' in list(self._get_protocol_data().keys()):
                 s += 'b *= _new_gradient_vector_length * _new_gradient_vector_length;' + "\n"
 
-            if 'G' in list(self.get_problems_protocol_data().keys()):
+            if 'G' in list(self._get_protocol_data().keys()):
                 s += 'G *= _new_gradient_vector_length;' + "\n"
 
-            if 'q' in list(self.get_problems_protocol_data().keys()):
+            if 'q' in list(self._get_protocol_data().keys()):
                 s += 'q *= _new_gradient_vector_length;' + "\n"
 
             return s
@@ -169,7 +162,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
 
     def _can_use_gradient_deviations(self):
         return self._problem_data.gradient_deviations is not None \
-               and 'g' in list(self.get_problems_protocol_data().keys())
+               and 'g' in list(self._get_protocol_data().keys())
 
     def _add_finalizing_result_maps(self, results_dict):
         super(DMRICompositeModel, self)._add_finalizing_result_maps(results_dict)
@@ -336,6 +329,20 @@ class DMRICompositeModelConfig(ComponentConfig):
 
         add_default_weights_dependency (boolean): set to False to disable the automatic Weight-sum-to-one dependency.
             By default it is True and we add them.
+
+        volume_selection (dict): the volume selection by this model. This can be used to limit the volumes used
+            in the analysis to only the volumes included in the specification.
+            Set to None, or an empty dict to disable.
+            The options available are:
+
+               * ``unweighted_threshold`` (float): the threshold differentiating between
+                 weighted and unweighted volumes
+               * ``use_unweighted`` (bool): if we want to use unweighted volumes or not
+               * ``use_weighted`` (bool): if we want to use the diffusion weigthed volumes or not
+               * ``min_bval`` (float): the minimum b-value to include
+               * ``max_bval`` (float): the maximum b-value to include
+
+            If the method ``_get_suitable_volume_indices`` is overwritten, this does nothing.
     """
     name = ''
     in_vivo_suitable = True
@@ -352,6 +359,7 @@ class DMRICompositeModelConfig(ComponentConfig):
     lower_bounds = {}
     parameter_transforms = {}
     add_default_weights_dependency = True
+    volume_selection = None
 
     @classmethod
     def meta_info(cls):
@@ -402,6 +410,36 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                         self.set_parameter_transform(full_param_name, value(self))
                     else:
                         self.set_parameter_transform(full_param_name, deepcopy(value))
+
+            def _get_suitable_volume_indices(self, problem_data):
+                volume_selection = template.volume_selection
+
+                if not volume_selection:
+                    return super(AutoCreatedDMRICompositeModel, self)._get_suitable_volume_indices(problem_data)
+
+                use_unweighted = volume_selection.get('use_unweighted', True)
+                use_weighted = volume_selection.get('use_weighted', True)
+                unweighted_threshold = volume_selection.get('unweighted_threshold', 25e6)
+
+                protocol = problem_data.protocol
+
+                if protocol.has_column('g') and protocol.has_column('b'):
+                    if use_weighted:
+                        if 'min_bval' in volume_selection and 'max_bval' in volume_selection:
+                            protocol_indices = protocol.get_indices_bval_in_range(start=volume_selection['min_bval'],
+                                                                                  end=volume_selection['max_bval'])
+                        else:
+                            protocol_indices = protocol.get_weighted_indices(unweighted_threshold)
+                    else:
+                        protocol_indices = []
+
+                    if use_unweighted:
+                        protocol_indices = list(protocol_indices) + \
+                                           list(protocol.get_unweighted_indices(unweighted_threshold))
+                else:
+                    return list(range(protocol.length))
+
+                return np.unique(protocol_indices)
 
         return AutoCreatedDMRICompositeModel
 

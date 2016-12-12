@@ -279,7 +279,10 @@ def view_maps(data, config=None, to_file=None, to_file_options=None,
     if config is None:
         config = MapPlotConfig()
     elif isinstance(config, string_types):
-        config = MapPlotConfig.from_yaml(config)
+        if config.strip():
+            config = MapPlotConfig.from_yaml(config)
+        else:
+            config = MapPlotConfig()
     elif isinstance(config, dict):
         config = MapPlotConfig.from_dict(config)
 

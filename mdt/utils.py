@@ -510,32 +510,6 @@ def get_slice_in_dimension(volume, dimension, index):
     return np.squeeze(array_slice)
 
 
-def simple_parameter_init(model, init_data, exclude_cb=None):
-    """Initialize the parameters that are named the same in the model and the init_data from the init_data.
-
-    This initializes the parameters in place.
-
-    Args:
-        model (AbstractModel); The model with the parameters to initialize
-        init_data (dict): The initialize data with as keys parameter names (model.param)
-            and as values the maps to initialize to.
-        exclude_cb (python function); a python function that can be called to check if an parameter needs to be excluded
-            from the simple parameter initialization. This function should accept a key with a model.param name and
-            should return true if the parameter should be excluded, false otherwise
-    """
-    if init_data is not None:
-        for key, value in init_data.items():
-            if exclude_cb and exclude_cb(key):
-                continue
-
-            items = key.split('.')
-            if len(items) == 2:
-                m, p = items
-                cmf = model.cmf(m)
-                if cmf and cmf.has_parameter_by_name(p):
-                    cmf.init(p, value)
-
-
 def create_roi(data, brain_mask):
     """Create and return masked data of the given brain volume and mask
 
