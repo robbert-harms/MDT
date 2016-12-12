@@ -296,3 +296,71 @@ class TrackMark(object):
 
             m = np.transpose(volume, [2, 1, 0]).astype(np.float32).flatten('F')
             m.tofile(f, '')
+
+    def auto_convert(self, input_folder, model_name=None, output_folder=None):
+        """Convert the nifti files in the given folder to Trackmark.
+
+        This automatically loads the correct files based on the model name. This is normally the dirname of the given
+        path. If that is not the case you can give the model name explicitly.
+
+        By default it outputs the results to a folder named "trackmark" in the given input folder. This can of course
+        be overridden using the output_folder parameter.
+
+        Args:
+            input_folder (str): the name of the input folder
+            model_name (str): the name of the model, if not given we use the last dirname of the given path
+            output_folder (str): the output folder, if not given we will output to a subfolder "trackmark" in the
+                given directory.
+        """
+        output_folder = output_folder or os.path.join(input_folder, 'trackmark')
+        model_name = model_name or os.path.basename(os.path.normpath(input_folder))
+
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+
+        conversion_profile = get_trackmark_conversion_profile(model_name)
+        conversion_profile.create_trackmark_files(input_folder, output_folder)
+
+
+def get_trackmark_conversion_profile(model_name):
+    """Get the TrackMark conversion profile for the given model name.
+
+    Args:
+        model_name (str): the name of the model
+
+    Returns:
+        TrackMarkConversionProfile: the trackmark conversion profile for the given model name
+
+    Raises:
+        ValueError: if no conversion profile for the given model name could be found.
+    """
+    if model_name == 'BallStick_r1':
+        return _TMCP_BallStick_r1()
+
+    raise ValueError('No trackmark conversion profile could be found for the model named {}.'.format(model_name))
+
+
+class TrackMarkConversionProfile(object):
+
+    def create_trackmark_files(self, input_folder, output_folder):
+        """Create the trackmark files (TVL and rawmap) using this profile for the data in the given input folder
+
+        Args:
+            input_folder (str): the folder containing the niftis to convert
+            output_folder (str): the folder to place the output in
+        """
+
+
+class _TMCP_BallStick_r1(TrackMarkConversionProfile):
+
+    def create_trackmark_files(self, input_folder, output_folder):
+        maps_to_convert = ['FS', 'w_ball.w', 'w_stick.w']
+
+        volumes = get_all_image_data(input_folder, map_names=maps_to_convert, deferred=True)
+
+        TrackMark.write_rawmaps(output_folder, volumes)
+
+        vector_directions = [load_nifti(os.path.join(input_folder, 'Stick.vec0')).get_data()]
+        vector_magnitudes = [load_nifti(os.path.join(input_folder, 'w_stick.w')).get_data() * 1e-2]
+
+        TrackMark.write_tvl_direction_pairs(output_folder + '/master.tvl', vector_directions, vector_magnitudes)
