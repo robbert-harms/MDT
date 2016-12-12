@@ -346,8 +346,8 @@ def get_trackmark_conversion_profile(model_name):
     Raises:
         ValueError: if no conversion profile for the given model name could be found.
     """
-    if '_TMCP_' + model_name.replace('-', '_') in globals():
-        return globals()['_TMCP_' + model_name.replace('-', '_')]()
+    if '_TMCP_' + model_name.replace('-ExVivo', '') in globals():
+        return globals()['_TMCP_' + model_name.replace('-ExVivo', '')]()
 
     raise ValueError('No trackmark conversion profile could be found for the model named {}.'.format(model_name))
 
@@ -521,8 +521,3 @@ class _TMCP_Tensor(TrackMarkConversionProfile):
         direction_pairs = list(zip(vector_directions, vector_magnitudes))[:3]
 
         return direction_pairs, volumes
-
-
-class _TMCP_Tensor_ExVivo(_TMCP_Tensor):
-    pass
-
