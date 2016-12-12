@@ -1512,3 +1512,5 @@ def create_signal_estimates(volume_maps, problem_data, model, output_fname):
     signal_estimates = restore_volumes(results, problem_data.mask)
 
     write_nifti(signal_estimates, problem_data.volume_header, output_fname)
+
+
