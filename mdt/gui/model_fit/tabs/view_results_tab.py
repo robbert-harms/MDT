@@ -86,17 +86,14 @@ class ViewResultsTab(MainTab, Ui_ViewResultsTabContent):
 
             self.maximumIndexLabel.setText(str(maximum))
 
-    @pyqtSlot()
     def invert_selection(self):
         for item in [self.selectMaps.item(index) for index in range(self.selectMaps.count())]:
             item.setSelected(not item.isSelected())
 
-    @pyqtSlot()
     def deselect_all(self):
         for item in [self.selectMaps.item(index) for index in range(self.selectMaps.count())]:
             item.setSelected(False)
 
-    @pyqtSlot()
     def view_maps(self):
         maps_to_show = []
         for item in [self.selectMaps.item(index) for index in range(self.selectMaps.count())]:
