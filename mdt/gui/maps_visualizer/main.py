@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import QDialogButtonBox
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QLabel
 from PyQt5.QtWidgets import QMainWindow
+from PyQt5.QtWidgets import QMessageBox
 
 from mdt.gui.maps_visualizer.actions import NewConfigAction, SetMapsToShow
 from mdt.gui.maps_visualizer.config_tabs.tab_general import TabGeneral
@@ -178,6 +179,7 @@ class ExportImageDialog(Ui_SaveImageDialog, QDialog):
 
     def __init__(self, parent, plotting_frame):
         super(ExportImageDialog, self).__init__(parent)
+        self._extension_filters = [['png', '(*.png)'], ['svg', '(*.svg)']]
         self.setupUi(self)
         self._plotting_frame = plotting_frame
         self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(False)
@@ -199,22 +201,43 @@ class ExportImageDialog(Ui_SaveImageDialog, QDialog):
         self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(self.outputFile_box.text() != '')
 
     def _select_file(self):
-        graphical_image_filters = ['png (*.png)', 'svg (*.svg)', 'All files (*)']
+        graphical_image_filters = [' '.join(el) for el in self._extension_filters] + ['All files (*)']
 
         open_file, used_filter = QFileDialog().getSaveFileName(caption='Select the output file',
                                                                filter=';;'.join(graphical_image_filters))
+
+        if not any(open_file.endswith(el[0]) for el in self._extension_filters):
+            extension_from_filter = list(filter(lambda v: ' '.join(v) == used_filter, self._extension_filters))
+            if extension_from_filter:
+                extension = extension_from_filter[0][0]
+            else:
+                extension = self._extension_filters[0][0]
+
+            open_file += '.{}'.format(extension)
 
         if open_file:
             self.outputFile_box.setText(open_file)
             self._update_ok_button()
 
     def _export_image(self):
-        self._plotting_frame.export_image(self.outputFile_box.text(), self.width_box.value(), self.height_box.value(),
-                                          dpi=self.dpi_box.value())
-        self.previous_values['width'] = self.width_box.value()
-        self.previous_values['height'] = self.height_box.value()
-        self.previous_values['dpi'] = self.dpi_box.value()
-        self.previous_values['output_file'] = self.outputFile_box.text()
+        output_file = self.outputFile_box.text()
+        if not any(output_file.endswith(el[0]) for el in self._extension_filters):
+            output_file += '.{}'.format(self._extension_filters[0][0])
+
+        try:
+            self._plotting_frame.export_image(output_file, self.width_box.value(), self.height_box.value(),
+                                              dpi=self.dpi_box.value())
+            self.previous_values['width'] = self.width_box.value()
+            self.previous_values['height'] = self.height_box.value()
+            self.previous_values['dpi'] = self.dpi_box.value()
+            self.previous_values['output_file'] = self.outputFile_box.text()
+        except PermissionError as error:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Could not write the file to the given destination.")
+            msg.setInformativeText(str(error))
+            msg.setWindowTitle("Permission denied")
+            msg.exec_()
 
 
 class AboutDialog(Ui_AboutDialog, QDialog):
