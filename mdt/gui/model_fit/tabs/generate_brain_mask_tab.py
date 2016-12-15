@@ -82,7 +82,6 @@ class GenerateBrainMaskTab(MainTab, Ui_GenerateBrainMaskTabContent):
         self.viewButton.setEnabled(os.path.isfile(self.selectedImageText.text()) and
                                    os.path.isfile(self.selectedOutputText.text()))
 
-    @pyqtSlot()
     def view_mask(self):
         mask = np.expand_dims(load_brain_mask(self.selectedOutputText.text()), axis=3)
         image_data = load_nifti(self.selectedImageText.text()).get_data()
@@ -98,7 +97,6 @@ class GenerateBrainMaskTab(MainTab, Ui_GenerateBrainMaskTabContent):
 
         start_gui(data=data, config=config, app_exec=False)
 
-    @pyqtSlot()
     def generate_mask(self):
         self._generate_mask_worker.set_args(self.selectedImageText.text(),
                                             self.selectedProtocolText.text(),
@@ -135,7 +133,6 @@ class GenerateMaskWorker(QObject):
         self._kwargs = kwargs
 
     @function_message_decorator('Started creating a mask.', 'Finished creating a mask.')
-    @pyqtSlot()
     def run(self):
         create_median_otsu_brain_mask(*self._args, **self._kwargs)
         self.finished.emit()

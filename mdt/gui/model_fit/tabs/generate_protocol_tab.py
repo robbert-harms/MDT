@@ -65,7 +65,6 @@ class GenerateProtocolTab(MainTab, Ui_GenerateProtocolTabContent):
             mdt.write_protocol(self._protocol, output_file_name)
             print('Saved protocol as: {}'.format(output_file_name))
 
-    @pyqtSlot()
     def _clear_table(self):
         self._protocol = Protocol()
         self._update_views()
@@ -175,7 +174,6 @@ class GenerateProtocolTab(MainTab, Ui_GenerateProtocolTabContent):
             cells.append(cell)
         return cells
 
-    @pyqtSlot()
     def show_header_context_menu(self, position):
         all_column_names, real_column_names, estimated_column_names, system_column_names = self._get_column_names()
         column_index = self.protocol_table.horizontalHeader().logicalIndexAt(position)
@@ -268,7 +266,6 @@ class LoadColumnDialog(Ui_UpdateColumnDialog, QDialog):
             self.fileInput.setDisabled(False)
             self.selectedFile.setDisabled(False)
 
-    @pyqtSlot()
     def _update_ok_button(self):
         self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(self.columnNameInput.text() != '' and self._has_value())
 
@@ -322,7 +319,6 @@ class LoadGBDialog(Ui_LoadGBDialog, QDialog):
                               bval=self.bvalFileInput.text(),
                               bval_scale=bval_scale)
 
-    @pyqtSlot()
     def _update_ok_button(self):
         enable = os.path.isfile(self.bvalFileInput.text()) and os.path.isfile(self.bvecFileInput.text())
         self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(enable)

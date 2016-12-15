@@ -67,7 +67,6 @@ class GenerateROIMaskTab(MainTab, Ui_GenerateROIMaskTabContent):
         self.viewButton.setEnabled(os.path.isfile(self.selectedMaskText.text()) and
                                    os.path.isfile(self.selectedOutputFileText.text()))
 
-    @pyqtSlot()
     def view_mask(self):
         data = DataInfo({'Original mask': load_nifti(self.selectedMaskText.text()).get_data(),
                          'Slice mask': load_nifti(self.selectedOutputFileText.text()).get_data()},
@@ -80,7 +79,6 @@ class GenerateROIMaskTab(MainTab, Ui_GenerateROIMaskTabContent):
 
         start_gui(data=data, config=config, app_exec=False)
 
-    @pyqtSlot()
     def generate_roi_mask(self):
         self._generate_mask_worker.set_args(mask=self.selectedMaskText.text(),
                                             output=self.selectedOutputFileText.text(),
@@ -154,7 +152,6 @@ class GenerateROIMaskWorker(QObject):
         self._kwargs = kwargs
 
     @function_message_decorator('Started with generating a slice ROI', 'Finished generating a slice ROI')
-    @pyqtSlot()
     def run(self):
         write_slice_roi(self._kwargs['mask'], self._kwargs['dimension'],
                         self._kwargs['slice'], self._kwargs['output'], overwrite_if_exists=True)

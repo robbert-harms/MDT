@@ -112,6 +112,7 @@ class Ui_GenerateProtocolTabContent(object):
         self.label_4.setObjectName("label_4")
         self.horizontalLayout_9.addWidget(self.label_4)
         self.differentShells = QtWidgets.QLabel(GenerateProtocolTabContent)
+        self.differentShells.setWordWrap(True)
         self.differentShells.setObjectName("differentShells")
         self.horizontalLayout_9.addWidget(self.differentShells)
         spacerItem5 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
