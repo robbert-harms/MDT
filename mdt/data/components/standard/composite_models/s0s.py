@@ -10,6 +10,6 @@ class S0(DMRICompositeModelConfig):
 
     description = 'Models the unweighted signal (aka. b0).'
     model_expression = 'S0'
-    volume_selection = {'unweighted_threshold': 25e6,
+    volume_selection = {'unweighted_threshold': 200e6,
                         'use_unweighted': True,
                         'use_weighted': False}
