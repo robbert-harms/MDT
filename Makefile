@@ -1,6 +1,7 @@
 .PHONY: clean clean-build clean-pyc clean-test lint test tests test-all coverage docs docs-pdf docs-man release dist install uninstall dist-ubuntu _package-ubuntu
 
 PYTHON=$$(which python3)
+PIP=$$(which pip3)
 PROJECT_NAME=mdt
 PROJECT_VERSION=$$($(PYTHON) setup.py --version)
 GPG_SIGN_KEY=0E1AA560
@@ -133,7 +134,7 @@ _package-ubuntu:
 	cd dist/$(PROJECT_NAME)-$(PROJECT_VERSION)/; debuild -S $(build-flag) -k$(GPG_SIGN_KEY)
 
 install: dist
-	pip install --upgrade --no-deps --force-reinstall dist/$(PROJECT_NAME)-*.tar.gz
+	$(PIP) install --upgrade --no-deps --force-reinstall dist/$(PROJECT_NAME)-*.tar.gz
 
 uninstall:
-	pip uninstall -y $(PROJECT_NAME)
+	$(PIP) uninstall -y $(PROJECT_NAME)

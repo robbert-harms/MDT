@@ -35,7 +35,7 @@ class InfoProtocol(BasicShellApplication):
 
         return parser
 
-    def run(self, args):
+    def run(self, args, extra_args):
         protocol = mdt.load_protocol(os.path.realpath(args.protocol))
         self.print_info(protocol)
 

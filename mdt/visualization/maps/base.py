@@ -574,9 +574,7 @@ class Clipping(object):
         Returns:
             bool: if the differences between this clipping and the other would result in visible differences.
         """
-        if self.use_min and not old_clipping.use_min:
-            return True
-        if self.use_max and not old_clipping.use_max:
+        if self.use_min != old_clipping.use_min or self.use_max != old_clipping.use_max:
             return True
 
         def visible_changes_in_min():
@@ -667,9 +665,7 @@ class Scale(object):
         Returns:
             bool: if the differences between this scale and the other would result in visible differences.
         """
-        if self.use_min and not old_scale.use_min:
-            return True
-        if self.use_max and not old_scale.use_max:
+        if self.use_min != old_scale.use_min or self.use_max != old_scale.use_max:
             return True
 
         def visible_changes_in_min():

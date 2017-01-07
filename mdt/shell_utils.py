@@ -35,6 +35,9 @@ def get_argparse_extension_checker(choices, dir_allowed=False):
 
 class BasicShellApplication(object):
 
+    def __init__(self):
+        self.parse_unknown_args = False
+
     @classmethod
     def console_script(cls):
         """Method used to start the command when launched from a distutils console script."""
@@ -51,13 +54,19 @@ class BasicShellApplication(object):
 
         parser = self._get_arg_parser()
         argcomplete.autocomplete(parser)
-        args = parser.parse_args(run_args)
-        self.run(args)
 
-    def run(self, args):
+        if self.parse_unknown_args:
+            args, unknown = parser.parse_known_args(run_args)
+            self.run(args, unknown)
+        else:
+            args = parser.parse_args(run_args)
+            self.run(args, {})
+
+    def run(self, args, extra_args):
         """Run the application with the given arguments.
 
         Args:
+            extra_args:
             args: the arguments from the argparser.
         """
 

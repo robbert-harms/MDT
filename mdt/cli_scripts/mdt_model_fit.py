@@ -24,6 +24,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class ModelFit(BasicShellApplication):
 
     def __init__(self):
+        super(ModelFit, self).__init__()
         self.available_devices = list((ind for ind, env in
                                        enumerate(cl_environments.CLEnvironmentFactory.smart_device_selection())))
 
@@ -35,8 +36,9 @@ class ModelFit(BasicShellApplication):
             Examples of use:
                 mdt-model-fit "BallStick (Cascade)" data.nii.gz data.prtcl roi_mask_0_50.nii.gz
                 mdt-model-fit "BallStick (Cascade)" data.nii.gz data.prtcl data_mask.nii.gz --no-recalculate
-                mdt-model-fit "BallStick (Cascade)" data.nii.gz data.prtcl data_mask.nii.gz --cl-device-ind 1
-                mdt-model-fit "BallStick (Cascade)" data.nii.gz data.prtcl data_mask.nii.gz --cl-device-ind {0, 1}
+                mdt-model-fit ... --cl-device-ind 1
+                mdt-model-fit ... --cl-device-ind {0, 1}
+                mdt-model-fit ... --static-maps b1_static=b1_static.nii.gz fa_map=fa_map.nii.gz
         """)
 
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
@@ -99,9 +101,16 @@ class ModelFit(BasicShellApplication):
                             help='The directory for the temporary results. The default ("True") uses the config file '
                                  'setting. Set to the literal "None" to disable.').completer = FilesCompleter()
 
+        parser.add_argument('--config-context', dest='config_context', type=str,
+                            help='The configuration context to use during fitting the model. '
+                                 'Same syntax as config files')
+
+        parser.add_argument('--static-maps', dest='static_maps', type=str, nargs='+',
+                            help='The static maps, provide as <key>=<value> pairs')
+
         return parser
 
-    def run(self, args):
+    def run(self, args, extra_args):
         mask_name = os.path.splitext(os.path.basename(os.path.realpath(args.mask)))[0]
         mask_name = mask_name.replace('.nii', '')
         output_folder = args.output_folder or os.path.join(os.path.dirname(args.dwi), 'output', mask_name)
@@ -117,18 +126,43 @@ class ModelFit(BasicShellApplication):
             if not os.path.isfile(os.path.realpath(noise_std)):
                 noise_std = float(noise_std)
 
-        mdt.fit_model(args.model,
-                      mdt.load_problem_data(os.path.realpath(args.dwi),
-                                            os.path.realpath(args.protocol),
-                                            os.path.realpath(args.mask),
-                                            gradient_deviations=args.gradient_deviations,
-                                            noise_std=noise_std),
-                      output_folder, recalculate=args.recalculate,
-                      only_recalculate_last=args.only_recalculate_last, cl_device_ind=args.cl_device_ind,
-                      double_precision=args.double_precision,
-                      cascade_subdir=args.cascade_subdir,
-                      tmp_results_dir=tmp_results_dir,
-                      save_user_script_info=None)
+        def fit_model():
+            mdt.fit_model(args.model,
+                          mdt.load_problem_data(os.path.realpath(args.dwi),
+                                                os.path.realpath(args.protocol),
+                                                os.path.realpath(args.mask),
+                                                gradient_deviations=args.gradient_deviations,
+                                                noise_std=noise_std,
+                                                static_maps=get_static_maps(args.static_maps, os.path.realpath(''))),
+                          output_folder, recalculate=args.recalculate,
+                          only_recalculate_last=args.only_recalculate_last, cl_device_ind=args.cl_device_ind,
+                          double_precision=args.double_precision,
+                          cascade_subdir=args.cascade_subdir,
+                          tmp_results_dir=tmp_results_dir,
+                          save_user_script_info=None)
+
+        if args.config_context:
+            with mdt.config_context(args.config_context):
+                fit_model()
+        else:
+            fit_model()
+
+
+def get_static_maps(static_maps_listing, base_dir):
+    static_maps = {}
+
+    if static_maps_listing:
+        for argument in static_maps_listing:
+            key, value = argument.split('=')
+
+            if os.path.isfile(value):
+                static_maps[key] = value
+            elif os.path.isfile(base_dir + '/' + value):
+                static_maps[key] = base_dir + '/' + value
+            else:
+                static_maps[key] = float(value)
+
+    return static_maps
 
 
 if __name__ == '__main__':

@@ -179,7 +179,7 @@ class Ui_MapsVisualizer(object):
         self.redo_config.setToolTip(_translate("MapsVisualizer", "Redo"))
         self.menuFile.setTitle(_translate("MapsVisualizer", "&File"))
         self.menuAbout.setTitle(_translate("MapsVisualizer", "&Help"))
-        self.actionOpen_directory.setText(_translate("MapsVisualizer", "&Open directory"))
+        self.actionOpen_directory.setText(_translate("MapsVisualizer", "&Open new directory"))
         self.actionQuit.setText(_translate("MapsVisualizer", "&Quit"))
         self.actionQuit.setShortcut(_translate("MapsVisualizer", "Ctrl+Q"))
         self.actionSaveImage.setText(_translate("MapsVisualizer", "&Save image"))

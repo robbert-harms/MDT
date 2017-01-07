@@ -19,6 +19,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class GUI(BasicShellApplication):
 
     def __init__(self):
+        super(GUI, self).__init__()
         init_user_settings(pass_if_exists=True)
 
     def _get_arg_parser(self):
@@ -38,7 +39,7 @@ class GUI(BasicShellApplication):
 
         return parser
 
-    def run(self, args):
+    def run(self, args, extra_args):
         if args.dir:
             data = DataInfo.from_dir(os.path.realpath(args.dir))
         else:

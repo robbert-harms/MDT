@@ -44,7 +44,7 @@ class ApplyMask(BasicShellApplication):
                                                                                        directories=False)
         return parser
 
-    def run(self, args):
+    def run(self, args, extra_args):
         mask = mdt.load_brain_mask(os.path.realpath(args.mask))
 
         file_names = []

@@ -39,15 +39,14 @@ class Ui_SaveImageDialog(object):
         self.gridLayout.setObjectName("gridLayout")
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
-        self.outputFile_chooser = QtWidgets.QPushButton(SaveImageDialog)
-        self.outputFile_chooser.setEnabled(True)
-        self.outputFile_chooser.setObjectName("outputFile_chooser")
-        self.horizontalLayout.addWidget(self.outputFile_chooser)
         self.outputFile_box = QtWidgets.QLineEdit(SaveImageDialog)
         self.outputFile_box.setEnabled(True)
         self.outputFile_box.setObjectName("outputFile_box")
         self.horizontalLayout.addWidget(self.outputFile_box)
-        self.horizontalLayout.setStretch(1, 1)
+        self.outputFile_chooser = QtWidgets.QPushButton(SaveImageDialog)
+        self.outputFile_chooser.setEnabled(True)
+        self.outputFile_chooser.setObjectName("outputFile_chooser")
+        self.horizontalLayout.addWidget(self.outputFile_chooser)
         self.gridLayout.addLayout(self.horizontalLayout, 3, 1, 1, 1)
         self.label_12 = QtWidgets.QLabel(SaveImageDialog)
         font = QtGui.QFont()
@@ -115,8 +114,6 @@ class Ui_SaveImageDialog(object):
         self.buttonBox.accepted.connect(SaveImageDialog.accept)
         self.buttonBox.rejected.connect(SaveImageDialog.reject)
         QtCore.QMetaObject.connectSlotsByName(SaveImageDialog)
-        SaveImageDialog.setTabOrder(self.dpi_box, self.outputFile_chooser)
-        SaveImageDialog.setTabOrder(self.outputFile_chooser, self.outputFile_box)
 
     def retranslateUi(self, SaveImageDialog):
         _translate = QtCore.QCoreApplication.translate

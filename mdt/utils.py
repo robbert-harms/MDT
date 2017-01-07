@@ -33,7 +33,6 @@ from mdt.protocols import load_protocol, write_protocol
 from mot.cl_environments import CLEnvironmentFactory
 from mot.cl_routines.mapping.calculate_model_estimates import CalculateModelEstimates
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
-from mot.model_building.evaluation_models import OffsetGaussianEvaluationModel
 from mot.model_building.problem_data import AbstractProblemData
 
 try:
@@ -527,6 +526,9 @@ def create_roi(data, brain_mask):
     """
     from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
     brain_mask = autodetect_brain_mask_loader(brain_mask).get_data()
+
+    if len(brain_mask.shape) > 3:
+        brain_mask = brain_mask[..., 0]
 
     def creator(v):
         return_val = v[brain_mask]
@@ -1429,8 +1431,7 @@ def extract_volumes(input_volume_fname, input_protocol, output_volume_fname, out
     write_nifti(image_data, input_volume.get_header(), output_volume_fname)
 
 
-def recalculate_error_measures(model, problem_data, data_dir, sigma, output_dir=None, sigma_param_name=None,
-                               evaluation_model=None):
+def recalculate_error_measures(model, problem_data, data_dir, output_dir=None, evaluation_model=None):
     """Recalculate the information criterion maps.
 
     This will write the results either to the original data directory, or to the given output dir.
@@ -1440,16 +1441,10 @@ def recalculate_error_measures(model, problem_data, data_dir, sigma, output_dir=
             or the name of an model we use with get_model()
         problem_data (DMRIProblemData): the problem data object
         data_dir (str): the directory containing the results for the given model
-        sigma (float): the new noise sigma we use for calculating the log likelihood and then the
-            information criteria's.
         output_dir (str): if given, we write the output to this directory instead of the data dir.
-        sigma_param_name (str): the name of the parameter to which we will set sigma. If not given we search
-            the result maps for something ending in .sigma
         evaluation_model: the evaluation model, we will manually fix the sigma in this function
     """
     from mdt.models.cascade import DMRICascadeModelInterface
-
-    logger = logging.getLogger(__name__)
 
     if isinstance(model, string_types):
         model = get_model(model)
@@ -1460,20 +1455,6 @@ def recalculate_error_measures(model, problem_data, data_dir, sigma, output_dir=
     model.set_problem_data(problem_data)
 
     results_maps = create_roi(get_all_image_data(data_dir), problem_data.mask)
-
-    if sigma_param_name is None:
-        sigma_params = list(filter(lambda key: '.sigma' in key, model.get_optimization_output_param_names()))
-
-        if not sigma_params:
-            raise ValueError('Could not find a suitable parameter to set sigma for.')
-
-        sigma_param_name = sigma_params[0]
-        logger.info('Setting the given sigma value to the model parameter {}.'.format(sigma_param_name))
-
-    model.fix(sigma_param_name, sigma)
-
-    evaluation_model = evaluation_model or OffsetGaussianEvaluationModel()
-    evaluation_model.set_noise_level_std(sigma)
 
     log_likelihood_calc = LogLikelihoodCalculator()
     log_likelihoods = log_likelihood_calc.calculate(model, results_maps, evaluation_model=evaluation_model)

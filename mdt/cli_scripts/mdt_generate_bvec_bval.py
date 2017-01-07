@@ -19,6 +19,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class GenerateBvecBval(BasicShellApplication):
 
     def __init__(self):
+        super(GenerateBvecBval, self).__init__()
         mdt.init_user_settings(pass_if_exists=True)
 
     def _get_arg_parser(self):
@@ -40,7 +41,7 @@ class GenerateBvecBval(BasicShellApplication):
 
         return parser
 
-    def run(self, args):
+    def run(self, args, extra_args):
         protocol_base = os.path.join(os.path.dirname(os.path.realpath(args.protocol)),
                                      os.path.splitext(os.path.basename(args.protocol))[0])
 

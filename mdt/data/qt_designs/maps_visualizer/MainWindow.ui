@@ -14,7 +14,7 @@
    <string>MDT Maps Visualizer</string>
   </property>
   <property name="windowIcon">
-   <iconset>
+   <iconset resource="main.qrc">
     <normaloff>:/main/logo</normaloff>:/main/logo</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
@@ -310,7 +310,7 @@
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionOpen_directory">
    <property name="text">
-    <string>&amp;Open directory</string>
+    <string>&amp;Open new directory</string>
    </property>
   </action>
   <action name="actionQuit">

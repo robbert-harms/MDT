@@ -54,7 +54,7 @@ class VolumeMerge(BasicShellApplication):
 
         return parser
 
-    def run(self, args):
+    def run(self, args, extra_args):
         output_file = os.path.realpath(args.output_file)
 
         if os.path.isfile(output_file):

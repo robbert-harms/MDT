@@ -596,10 +596,10 @@ def config_context(config_action):
     .. code-block:: python
 
         config = '''
-        optimization:
-            general:
-                optimizers:
-                    -   name: 'NMSimplex'
+            optimization:
+                general:
+                    name: 'NMSimplex'
+                    settings:
                         patience: 10
         '''
         with mdt.config_context(mdt.configuration.YamlStringAction(config)):

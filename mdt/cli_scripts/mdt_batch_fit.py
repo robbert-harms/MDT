@@ -31,6 +31,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class BatchFit(BasicShellApplication):
 
     def __init__(self):
+        super(BatchFit, self).__init__()
         self.available_devices = list((ind for ind, env in
                                        enumerate(cl_environments.CLEnvironmentFactory.smart_device_selection())))
 
@@ -105,7 +106,7 @@ class BatchFit(BasicShellApplication):
 
         return parser
 
-    def run(self, args):
+    def run(self, args, extra_args):
         batch_profile = batch_profile_factory(args.batch_profile, os.path.realpath(args.data_folder))
 
         if args.use_gradient_deviations is not None:

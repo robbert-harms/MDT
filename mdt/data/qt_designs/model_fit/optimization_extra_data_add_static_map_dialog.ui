@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>SaveImageDialog</class>
- <widget class="QDialog" name="SaveImageDialog">
+ <class>AddStaticMapDialog</class>
+ <widget class="QDialog" name="AddStaticMapDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>722</width>
-    <height>253</height>
+    <width>719</width>
+    <height>187</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Save Image</string>
+   <string>Add map</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
@@ -27,7 +27,7 @@
         </font>
        </property>
        <property name="text">
-        <string>Save image</string>
+        <string>Add static map</string>
        </property>
       </widget>
      </item>
@@ -39,7 +39,7 @@
         </font>
        </property>
        <property name="text">
-        <string>Export the current view to an image.</string>
+        <string>Add an additional static map to the problem data</string>
        </property>
       </widget>
      </item>
@@ -54,28 +54,47 @@
    </item>
    <item>
     <layout class="QGridLayout" name="gridLayout">
-     <item row="3" column="1">
-      <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0">
+     <item row="0" column="2">
+      <widget class="QLabel" name="label_10">
+       <property name="font">
+        <font>
+         <italic>true</italic>
+        </font>
+       </property>
+       <property name="text">
+        <string>(The map name matching the static parameters of the model)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="0">
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>Map name: </string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <layout class="QHBoxLayout" name="horizontalLayout">
        <item>
-        <widget class="QLineEdit" name="outputFile_box">
+        <widget class="QLineEdit" name="valueInput">
          <property name="enabled">
           <bool>true</bool>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="outputFile_chooser">
+        <widget class="QPushButton" name="fileBrowse">
          <property name="enabled">
           <bool>true</bool>
          </property>
          <property name="text">
-          <string>Browse</string>
+          <string>File browser</string>
          </property>
         </widget>
        </item>
       </layout>
      </item>
-     <item row="0" column="2">
+     <item row="1" column="2">
       <widget class="QLabel" name="label_12">
        <property name="font">
         <font>
@@ -83,98 +102,17 @@
         </font>
        </property>
        <property name="text">
-        <string>(The width of the image in pixels)</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="2">
-      <widget class="QLabel" name="label_11">
-       <property name="font">
-        <font>
-         <italic>true</italic>
-        </font>
-       </property>
-       <property name="text">
-        <string>(Dots/pixels per inch)</string>
+        <string>(Either a nifti file or a scalar value)</string>
        </property>
       </widget>
      </item>
      <item row="0" column="1">
-      <widget class="QSpinBox" name="width_box">
-       <property name="minimum">
-        <number>100</number>
-       </property>
-       <property name="maximum">
-        <number>9999</number>
-       </property>
-       <property name="value">
-        <number>1280</number>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="2">
-      <widget class="QLabel" name="label_14">
-       <property name="font">
-        <font>
-         <italic>true</italic>
-        </font>
-       </property>
-       <property name="text">
-        <string>(The height of the image in pixels)</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="0">
-      <widget class="QLabel" name="label_6">
-       <property name="text">
-        <string>Width:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="0">
-      <widget class="QLabel" name="label_7">
-       <property name="text">
-        <string>Output file:</string>
-       </property>
-      </widget>
+      <widget class="QLineEdit" name="mapNameInput"/>
      </item>
      <item row="1" column="0">
-      <widget class="QLabel" name="label">
+      <widget class="QLabel" name="label_6">
        <property name="text">
-        <string>Height:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="1">
-      <widget class="QSpinBox" name="height_box">
-       <property name="minimum">
-        <number>100</number>
-       </property>
-       <property name="maximum">
-        <number>9999</number>
-       </property>
-       <property name="value">
-        <number>720</number>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="0">
-      <widget class="QLabel" name="label_5">
-       <property name="text">
-        <string>DPI:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="1">
-      <widget class="QSpinBox" name="dpi_box">
-       <property name="minimum">
-        <number>10</number>
-       </property>
-       <property name="maximum">
-        <number>1000</number>
-       </property>
-       <property name="value">
-        <number>100</number>
+        <string>Value:</string>
        </property>
       </widget>
      </item>
@@ -213,14 +151,16 @@
   </layout>
  </widget>
  <tabstops>
-  <tabstop>dpi_box</tabstop>
+  <tabstop>mapNameInput</tabstop>
+  <tabstop>valueInput</tabstop>
+  <tabstop>fileBrowse</tabstop>
  </tabstops>
  <resources/>
  <connections>
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>SaveImageDialog</receiver>
+   <receiver>AddStaticMapDialog</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -236,7 +176,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>SaveImageDialog</receiver>
+   <receiver>AddStaticMapDialog</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">

@@ -1,15 +1,18 @@
 import os
+from textwrap import dedent
 
 from mdt.nifti import load_nifti
 import numpy as np
-from PyQt5.QtCore import pyqtSlot, QObject, pyqtSignal
+from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog
 
 from mdt import load_brain_mask, create_median_otsu_brain_mask
+from mdt.utils import split_image_path
 from mdt.visualization.maps.base import DataInfo, MapPlotConfig
 from mdt.gui.maps_visualizer.main import start_gui
 from mdt.gui.model_fit.design.ui_generate_brain_mask_tab import Ui_GenerateBrainMaskTabContent
-from mdt.gui.utils import function_message_decorator, image_files_filters, protocol_files_filters, MainTab
+from mdt.gui.utils import function_message_decorator, image_files_filters, protocol_files_filters, MainTab, \
+    get_script_file_header_text
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-06-26"
@@ -49,6 +52,10 @@ class GenerateBrainMaskTab(MainTab, Ui_GenerateBrainMaskTabContent):
         if os.path.isfile(open_file):
             self.selectedImageText.setText(open_file)
             self._shared_state.base_dir = os.path.dirname(open_file)
+
+            if self.selectedOutputText.text() == '':
+                split_path = split_image_path(open_file)
+                self.selectedOutputText.setText(os.path.join(split_path[0], split_path[1] + '_mask' + split_path[2]))
 
     def _select_protocol(self):
         initial_dir = self._shared_state.base_dir
@@ -98,12 +105,11 @@ class GenerateBrainMaskTab(MainTab, Ui_GenerateBrainMaskTabContent):
         start_gui(data=data, config=config, app_exec=False)
 
     def generate_mask(self):
-        self._generate_mask_worker.set_args(self.selectedImageText.text(),
-                                            self.selectedProtocolText.text(),
-                                            self.selectedOutputText.text(),
-                                            median_radius=self.medianRadiusInput.value(),
-                                            numpass=self.numberOfPassesInput.value(),
-                                            mask_threshold=self.finalThresholdInput.value())
+        args = (self.selectedImageText.text(), self.selectedProtocolText.text(), self.selectedOutputText.text())
+        kwargs = dict(median_radius=self.medianRadiusInput.value(), numpass=self.numberOfPassesInput.value(),
+                      mask_threshold=self.finalThresholdInput.value())
+
+        self._generate_mask_worker.set_args(*args, **kwargs)
         self._computations_thread.start()
         self._generate_mask_worker.moveToThread(self._computations_thread)
 
@@ -114,7 +120,43 @@ class GenerateBrainMaskTab(MainTab, Ui_GenerateBrainMaskTabContent):
         self._generate_mask_worker.finished.connect(lambda: self.generateButton.setEnabled(True))
         self._generate_mask_worker.finished.connect(lambda: self.viewButton.setEnabled(True))
 
+        script_basename = os.path.join(*(split_image_path(self.selectedOutputText.text())[:2]))
+        self._generate_mask_worker.finished.connect(
+            lambda: self._write_python_script_file(script_basename + '_script.py', *args, **kwargs))
+
+        self._generate_mask_worker.finished.connect(
+            lambda: self._write_bash_script_file(script_basename + '_script.sh', *args, **kwargs))
+
         self._generate_mask_worker.starting.emit()
+
+    def _write_python_script_file(self, output_file, *args, **kwargs):
+        with open(output_file, 'w') as f:
+            f.write('#!/usr/bin/env python')
+            f.write(dedent('''
+
+                {header}
+
+                import mdt
+
+                mdt.create_median_otsu_brain_mask(
+                    {args},
+                    {kwargs})
+
+            ''').format(header=get_script_file_header_text({'Purpose': 'Generated a brain mask'}),
+                        args=', \n\t'.join("{!r}".format(arg) for arg in args),
+                        kwargs=', \n\t'.join('{}={!r}'.format(*el) for el in kwargs.items())))
+
+    def _write_bash_script_file(self, output_file, *args, **kwargs):
+        with open(output_file, 'w') as f:
+            f.write('#!/usr/bin/env bash')
+            f.write(dedent('''
+
+                {header}
+
+                mdt-generate-mask "{data}" "{prtcl}" -o "{output}" {kwargs}
+            ''').format(header=get_script_file_header_text({'Purpose': 'Generated a brain mask'}),
+                        data=args[0], prtcl=args[1], output=args[2],
+                        kwargs=' '.join('--{} {!r}'.format(el[0].replace('_', '-'), el[1]) for el in kwargs.items())))
 
 
 class GenerateMaskWorker(QObject):

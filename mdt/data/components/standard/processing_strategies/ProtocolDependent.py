@@ -34,7 +34,7 @@ class ProtocolDependent(SimpleProcessingStrategy):
 
     def run(self, model, problem_data, output_path, recalculate, worker_generator):
         strategy = self._get_strategy(problem_data)
-        return strategy.run(model, problem_data, output_path, recalculate, worker_generator)
+        return strategy.run(model, None)
 
     def _get_strategy(self, problem_data):
         for col_length, voxel_range in reversed(self._steps):
