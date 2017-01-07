@@ -1,3 +1,6 @@
+import os
+from textwrap import dedent
+
 import matplotlib
 import signal
 import yaml
@@ -26,7 +29,7 @@ from mdt.gui.maps_visualizer.base import Controller, PlottingFrameInfoViewer
 from mdt.visualization.maps.base import DataInfo, MapPlotConfig
 from mdt.gui.maps_visualizer.renderers.matplotlib_renderer import MatplotlibPlotting
 from mdt.gui.model_fit.design.ui_about_dialog import Ui_AboutDialog
-from mdt.gui.utils import center_window, DirectoryImageWatcher, QtManager
+from mdt.gui.utils import center_window, DirectoryImageWatcher, QtManager, get_script_file_header_text
 from mdt.gui.maps_visualizer.design.ui_MainWindow import Ui_MapsVisualizer
 
 
@@ -69,7 +72,8 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
 
         self.actionAbout.triggered.connect(lambda: AboutDialog(self).exec_())
         self.actionOpen_directory.triggered.connect(self._open_new_directory)
-        self.actionSaveImage.triggered.connect(lambda: ExportImageDialog(self, self.plotting_frame).exec_())
+        self.actionSaveImage.triggered.connect(lambda: ExportImageDialog(self, self.plotting_frame,
+                                                                         self._controller).exec_())
         self.actionBrowse_to_current_folder.triggered.connect(
             lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self._controller.get_data().directory)))
         self.actionSave_settings.triggered.connect(lambda: self._save_settings())
@@ -175,13 +179,16 @@ class PlottingFrameInfoToStatusBar(PlottingFrameInfoViewer):
 class ExportImageDialog(Ui_SaveImageDialog, QDialog):
 
     previous_values = {'width': None, 'height': None,
-                       'dpi': None, 'output_file': None}
+                       'dpi': None, 'output_file': None,
+                       'writeScriptsAndConfig': None}
 
-    def __init__(self, parent, plotting_frame):
+    def __init__(self, parent, plotting_frame, controller):
         super(ExportImageDialog, self).__init__(parent)
         self._extension_filters = [['png', '(*.png)'], ['svg', '(*.svg)']]
         self.setupUi(self)
         self._plotting_frame = plotting_frame
+        self._controller = controller
+
         self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(False)
         self.buttonBox.button(QDialogButtonBox.Ok).clicked.connect(self._export_image)
         self.outputFile_box.textChanged.connect(self._update_ok_button)
@@ -195,6 +202,8 @@ class ExportImageDialog(Ui_SaveImageDialog, QDialog):
             self.dpi_box.setValue(self.previous_values['dpi'])
         if self.previous_values['output_file']:
             self.outputFile_box.setText(self.previous_values['output_file'])
+        if self.previous_values['writeScriptsAndConfig'] is not None:
+            self.writeScriptsAndConfig.setChecked(self.previous_values['writeScriptsAndConfig'])
 
     @pyqtSlot()
     def _update_ok_button(self):
@@ -231,6 +240,16 @@ class ExportImageDialog(Ui_SaveImageDialog, QDialog):
             self.previous_values['height'] = self.height_box.value()
             self.previous_values['dpi'] = self.dpi_box.value()
             self.previous_values['output_file'] = self.outputFile_box.text()
+            self.previous_values['writeScriptsAndConfig'] = self.writeScriptsAndConfig.isChecked()
+
+            if self.writeScriptsAndConfig.isChecked():
+                output_basename = os.path.splitext(output_file)[0]
+                self._write_config_file(output_basename + '.conf')
+                self._write_python_script_file(output_basename + '_script.py', output_basename + '.conf', output_file,
+                                             self.width_box.value(), self.height_box.value(), self.dpi_box.value())
+                self._write_bash_script_file(output_basename + '_script.sh', output_basename + '.conf', output_file,
+                                             self.width_box.value(), self.height_box.value(), self.dpi_box.value())
+
         except PermissionError as error:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)
@@ -238,6 +257,54 @@ class ExportImageDialog(Ui_SaveImageDialog, QDialog):
             msg.setInformativeText(str(error))
             msg.setWindowTitle("Permission denied")
             msg.exec_()
+
+    def _write_config_file(self, output_basename):
+        with open(output_basename, 'w') as f:
+            f.write(self._controller.get_config().to_yaml())
+
+    def _write_python_script_file(self, script_fname, configuration_fname, output_image_fname, width, height, dpi):
+        with open(script_fname, 'w') as f:
+            f.write('#!/usr/bin/env python\n')
+            f.write(dedent('''
+                {header}
+
+                import mdt
+
+                with open({config!r}, 'r') as f:
+                    config = f.read()
+
+                mdt.write_view_maps_figure(
+                    {dir!r},
+                    {output_name!r},
+                    config=config,
+                    width={width},
+                    height={height},
+                    dpi={dpi})
+
+            ''').format(header=get_script_file_header_text({'Purpose': 'Generate a results figure'}),
+                        dir=self._controller.get_data().directory,
+                        config=configuration_fname,
+                        output_name=output_image_fname,
+                        width=width, height=height, dpi=dpi))
+
+    def _write_bash_script_file(self, script_fname, configuration_fname, output_image_fname, width, height, dpi):
+        with open(script_fname, 'w') as f:
+            f.write('#!/usr/bin/env bash\n')
+            f.write(dedent('''
+                {header}
+
+                mdt-view-maps \\
+                    "{dir}" \\
+                    --config "{config}" \\
+                    --to-file "{output_name}" \\
+                    --width {width} \\
+                    --height {height} \\
+                    --dpi {dpi}
+            ''').format(header=get_script_file_header_text({'Purpose': 'Generate a results figure'}),
+                        dir=self._controller.get_data().directory,
+                        config=configuration_fname,
+                        output_name=output_image_fname,
+                        width=width, height=height, dpi=dpi))
 
 
 class AboutDialog(Ui_AboutDialog, QDialog):

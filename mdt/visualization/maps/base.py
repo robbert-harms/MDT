@@ -24,7 +24,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class MapPlotConfig(object):
 
     def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=90, colormap='hot', maps_to_show=None,
-                 font=None, grid_layout=None, colorbar_nmr_ticks=10, show_axis=True, zoom=None,
+                 font=None, grid_layout=None, colorbar_nmr_ticks=4, show_axis=False, zoom=None,
                  map_plot_options=None, interpolation='bilinear', flipud=None,
                  title=None, mask_name=None):
         """Container for all plot related settings.

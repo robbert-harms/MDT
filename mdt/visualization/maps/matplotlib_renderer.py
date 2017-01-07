@@ -37,7 +37,7 @@ class MapsVisualizer(object):
         if not os.path.isdir(os.path.dirname(file_name)):
             os.makedirs(os.path.dirname(file_name))
 
-        kwargs['dpi'] = kwargs.get('dpi') or 300
+        kwargs['dpi'] = kwargs.get('dpi') or 100
         self._figure.savefig(file_name, **kwargs)
 
     def show(self, plot_config, block=True, maximize=False, window_title=None):
