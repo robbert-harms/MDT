@@ -144,7 +144,11 @@ class Ui_FitModelTabContent(object):
         self.horizontalLayout_6.addWidget(self.selectedProtocol)
         self.gridLayout.addLayout(self.horizontalLayout_6, 2, 1, 1, 1)
         self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_4.setSpacing(10)
         self.horizontalLayout_4.setObjectName("horizontalLayout_4")
+        self.additionalDataButton = QtWidgets.QPushButton(FitModelTabContent)
+        self.additionalDataButton.setObjectName("additionalDataButton")
+        self.horizontalLayout_4.addWidget(self.additionalDataButton)
         self.optimizationOptionsButton = QtWidgets.QPushButton(FitModelTabContent)
         self.optimizationOptionsButton.setObjectName("optimizationOptionsButton")
         self.horizontalLayout_4.addWidget(self.optimizationOptionsButton)
@@ -188,7 +192,9 @@ class Ui_FitModelTabContent(object):
         FitModelTabContent.setTabOrder(self.selectedProtocol, self.selectOutputFolder)
         FitModelTabContent.setTabOrder(self.selectOutputFolder, self.selectedOutputFolder)
         FitModelTabContent.setTabOrder(self.selectedOutputFolder, self.modelSelection)
-        FitModelTabContent.setTabOrder(self.modelSelection, self.runButton)
+        FitModelTabContent.setTabOrder(self.modelSelection, self.additionalDataButton)
+        FitModelTabContent.setTabOrder(self.additionalDataButton, self.optimizationOptionsButton)
+        FitModelTabContent.setTabOrder(self.optimizationOptionsButton, self.runButton)
 
     def retranslateUi(self, FitModelTabContent):
         _translate = QtCore.QCoreApplication.translate
@@ -209,6 +215,7 @@ class Ui_FitModelTabContent(object):
         self.label_15.setText(_translate("FitModelTabContent", "(Please select a model)"))
         self.selectMask.setText(_translate("FitModelTabContent", "Browse"))
         self.selectProtocol.setText(_translate("FitModelTabContent", "Browse"))
+        self.additionalDataButton.setText(_translate("FitModelTabContent", "Additional data"))
         self.optimizationOptionsButton.setText(_translate("FitModelTabContent", "Optimization options"))
         self.label_17.setText(_translate("FitModelTabContent", "(Additional settings)"))
         self.runButton.setText(_translate("FitModelTabContent", "Run"))

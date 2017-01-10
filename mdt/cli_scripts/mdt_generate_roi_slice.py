@@ -47,7 +47,7 @@ class GenerateRoiSlice(BasicShellApplication):
 
         return parser
 
-    def run(self, args):
+    def run(self, args, extra_args):
         shape = load_nifti(args.mask).shape
         roi_dimension = args.dimension if args.dimension is not None else 2
         if roi_dimension > len(shape)-1 or roi_dimension < 0:

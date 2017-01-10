@@ -25,7 +25,7 @@ def create_median_otsu_brain_mask(dwi_info, protocol, mask_threshold=0, **kwargs
             - or a tuple with as first index a ndarray with the DWI and as second index the header
             - or only the image as an ndarray
         protocol (string or :class:`~mdt.protocols.Protocol`): The filename of the protocol file or a Protocol object
-        mask_threshold (double): everything below this threshold is masked away
+        mask_threshold (float): everything below this b-value threshold is masked away (value in s/m^2)
         **kwargs: the additional arguments for median_otsu.
 
     Returns:

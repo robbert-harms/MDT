@@ -22,7 +22,7 @@ class ListModels(BasicShellApplication):
         parser.add_argument('-l', '--long', action='store_true', help='print the descriptions')
         return parser
 
-    def run(self, args):
+    def run(self, args, extra_args):
         mdt.init_user_settings(pass_if_exists=True)
 
         meta_info = mdt.get_models_meta_info()

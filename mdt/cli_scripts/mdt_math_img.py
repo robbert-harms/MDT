@@ -97,7 +97,7 @@ class MathImg(BasicShellApplication):
 
         return parser
 
-    def run(self, args):
+    def run(self, args, extra_args):
         write_output = args.output_file is not None
 
         if write_output:

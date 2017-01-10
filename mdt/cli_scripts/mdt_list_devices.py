@@ -23,7 +23,7 @@ class ListDevices(BasicShellApplication):
         parser.add_argument('-l', '--long', action='store_true', help='print all info about the devices')
         return parser
 
-    def run(self, args):
+    def run(self, args, extra_args):
         mdt.init_user_settings(pass_if_exists=True)
 
         for ind, env in enumerate(cl_environments.CLEnvironmentFactory.smart_device_selection()):

@@ -6,7 +6,7 @@ import os
 import textwrap
 from argcomplete.completers import FilesCompleter
 from mdt.utils import init_user_settings
-from mdt import view_maps
+from mdt import view_maps, write_view_maps_figure
 from mdt.visualization.maps.base import DataInfo
 from mdt.shell_utils import BasicShellApplication, get_citation_message
 
@@ -19,6 +19,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class GUI(BasicShellApplication):
 
     def __init__(self):
+        super(GUI, self).__init__()
         init_user_settings(pass_if_exists=True)
 
     def _get_arg_parser(self):
@@ -36,9 +37,17 @@ class GUI(BasicShellApplication):
         parser.add_argument('-m', '--maximize', action='store_true', help="Maximize the shown window")
         parser.add_argument('--to-file', type=str, help="If set export the figure to the given filename")
 
+        parser.add_argument('--width', type=int, help="The width of the output file when --to-file is set")
+        parser.add_argument('--height', type=int, help="The height of the output file when --to-file is set")
+        parser.add_argument('--dpi', type=int, help="The dpi of the output file when --to-file is set")
+
+        parser.add_argument('--enable-directory-watcher', action='store_true',
+                            help="Enable autoloading new images when they appear in the folder.")
+
+
         return parser
 
-    def run(self, args):
+    def run(self, args, extra_args):
         if args.dir:
             data = DataInfo.from_dir(os.path.realpath(args.dir))
         else:
@@ -55,7 +64,20 @@ class GUI(BasicShellApplication):
                 with open(filename, 'r') as f:
                     config = f.read()
 
-        view_maps(data, config, show_maximized=args.maximize, to_file=to_file)
+        figure_options = {}
+        if to_file:
+            if args.width:
+                figure_options.update({'width': args.width})
+            if args.height:
+                figure_options.update({'height': args.height})
+            if args.dpi:
+                figure_options.update({'dpi': args.dpi})
+
+            write_view_maps_figure(data, to_file, config, figure_options=figure_options)
+
+        else:
+            view_maps(data, config, show_maximized=args.maximize,
+                      enable_directory_watcher=args.enable_directory_watcher)
 
 if __name__ == '__main__':
     GUI().start()

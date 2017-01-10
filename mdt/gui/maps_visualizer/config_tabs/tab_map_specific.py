@@ -99,6 +99,11 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
 
         self.info_Clipping.set_collapse(True)
 
+        self._auto_enable_scale_min = False
+        self._auto_enable_scale_max = False
+        self._auto_enable_clipping_min = False
+        self._auto_enable_clipping_max = False
+
     def reset(self):
         """Set all the values to their defaults"""
         self._current_map = None
@@ -234,20 +239,32 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
     def _update_scale_min(self, value):
         if self._current_map:
             current_scale = self._get_current_map_config().scale
-            if current_scale.use_min and current_scale.use_max and value > current_scale.vmax:
-                new_scale = current_scale.get_updated(vmin=value, vmax=value)
-            else:
-                new_scale = current_scale.get_updated(vmin=value)
+            kwargs = dict(vmin=value)
+
+            if current_scale.use_max and current_scale.use_min and value > current_scale.vmax:
+                kwargs.update(dict(use_min=False))
+                self._auto_enable_scale_min = True
+            elif self._auto_enable_scale_min and value < current_scale.vmax:
+                kwargs.update(dict(use_min=True))
+                self._auto_enable_scale_min = False
+
+            new_scale = current_scale.get_updated(**kwargs)
             self._controller.apply_action(SetMapScale(self._current_map, new_scale))
 
     @pyqtSlot(float)
     def _update_scale_max(self, value):
         if self._current_map:
             current_scale = self._get_current_map_config().scale
-            if current_scale.use_min and current_scale.use_max and value < current_scale.vmin:
-                new_scale = current_scale.get_updated(vmin=value, vmax=value)
-            else:
-                new_scale = current_scale.get_updated(vmax=value)
+            kwargs = dict(vmax=value)
+
+            if current_scale.use_max and current_scale.use_min and value < current_scale.vmin:
+                kwargs.update(dict(use_max=False))
+                self._auto_enable_scale_max = True
+            elif self._auto_enable_scale_max and value > current_scale.vmin:
+                kwargs.update(dict(use_max=True))
+                self._auto_enable_scale_max = False
+
+            new_scale = current_scale.get_updated(**kwargs)
             self._controller.apply_action(SetMapScale(self._current_map, new_scale))
 
     @pyqtSlot(int)
@@ -282,20 +299,32 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
     def _update_clipping_min(self, value):
         if self._current_map:
             current_clipping = self._get_current_map_config().clipping
-            if current_clipping.use_min and current_clipping.use_max and value > current_clipping.vmax:
-                new_clipping = current_clipping.get_updated(vmin=value, vmax=value)
-            else:
-                new_clipping = current_clipping.get_updated(vmin=value)
+            kwargs = dict(vmin=value)
+
+            if current_clipping.use_max and current_clipping.use_min and value > current_clipping.vmax:
+                kwargs.update(dict(use_min=False))
+                self._auto_enable_scale_min = True
+            elif self._auto_enable_scale_min and value < current_clipping.vmax:
+                kwargs.update(dict(use_min=True))
+                self._auto_enable_scale_min = False
+
+            new_clipping = current_clipping.get_updated(**kwargs)
             self._controller.apply_action(SetMapClipping(self._current_map, new_clipping))
 
     @pyqtSlot(float)
     def _update_clipping_max(self, value):
         if self._current_map:
             current_clipping = self._get_current_map_config().clipping
-            if current_clipping.use_min and current_clipping.use_max and value < current_clipping.vmin:
-                new_clipping = current_clipping.get_updated(vmin=value, vmax=value)
-            else:
-                new_clipping = current_clipping.get_updated(vmax=value)
+            kwargs = dict(vmax=value)
+
+            if current_clipping.use_max and current_clipping.use_min and value < current_clipping.vmin:
+                kwargs.update(dict(use_max=False))
+                self._auto_enable_scale_max = True
+            elif self._auto_enable_scale_max and value > current_clipping.vmin:
+                kwargs.update(dict(use_max=True))
+                self._auto_enable_scale_max = False
+
+            new_clipping = current_clipping.get_updated(**kwargs)
             self._controller.apply_action(SetMapClipping(self._current_map, new_clipping))
 
     @pyqtSlot(int)

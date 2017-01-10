@@ -24,7 +24,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class MapPlotConfig(object):
 
     def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=90, colormap='hot', maps_to_show=None,
-                 font=None, grid_layout=None, colorbar_nmr_ticks=10, show_axis=True, zoom=None,
+                 font=None, grid_layout=None, colorbar_nmr_ticks=4, show_axis=False, zoom=None,
                  map_plot_options=None, interpolation='bilinear', flipud=None,
                  title=None, mask_name=None):
         """Container for all plot related settings.
@@ -574,9 +574,7 @@ class Clipping(object):
         Returns:
             bool: if the differences between this clipping and the other would result in visible differences.
         """
-        if self.use_min and not old_clipping.use_min:
-            return True
-        if self.use_max and not old_clipping.use_max:
+        if self.use_min != old_clipping.use_min or self.use_max != old_clipping.use_max:
             return True
 
         def visible_changes_in_min():
@@ -667,9 +665,7 @@ class Scale(object):
         Returns:
             bool: if the differences between this scale and the other would result in visible differences.
         """
-        if self.use_min and not old_scale.use_min:
-            return True
-        if self.use_max and not old_scale.use_max:
+        if self.use_min != old_scale.use_min or self.use_max != old_scale.use_max:
             return True
 
         def visible_changes_in_min():

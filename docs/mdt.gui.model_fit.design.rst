@@ -76,6 +76,22 @@ mdt.gui.model_fit.design.ui_main_gui module
     :undoc-members:
     :show-inheritance:
 
+mdt.gui.model_fit.design.ui_optimization_extra_data_add_static_map_dialog module
+--------------------------------------------------------------------------------
+
+.. automodule:: mdt.gui.model_fit.design.ui_optimization_extra_data_add_static_map_dialog
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+mdt.gui.model_fit.design.ui_optimization_extra_data_dialog module
+-----------------------------------------------------------------
+
+.. automodule:: mdt.gui.model_fit.design.ui_optimization_extra_data_dialog
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 mdt.gui.model_fit.design.ui_optimization_options_dialog module
 --------------------------------------------------------------
 

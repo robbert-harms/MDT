@@ -66,7 +66,7 @@ Please see the relevant sections in :ref:`analysis` for more details on creating
 ************
 Problem data
 ************
-In MDT, all data needed to fit a model is stored independently from the model in a * :py:class:`~mdt.utils.DMRIProblemData` object.
+In MDT, all data needed to fit a model is stored independently from the model in a :py:class:`~mdt.utils.DMRIProblemData` object.
 An instance of this object needs to be created before fitting a model.
 Then, during model fitting, the model loads the relevant data for the computations.
 

@@ -15,14 +15,6 @@ class BallStick_r1(CascadeConfig):
     models = ('S0',
               'BallStick_r1')
 
-    lower_bounds = {'BallStick_r1': [
-        ('S0.s0', lambda output_previous, output_all_previous: 2 * np.min(output_previous['S0.s0']))
-    ]}
-
-    upper_bounds = {'BallStick_r1': [
-        ('S0.s0', lambda output_previous, output_all_previous: 2 * np.max(output_previous['S0.s0']))
-    ]}
-
 
 class BallStick_r1_S0(BallStick_r1):
 

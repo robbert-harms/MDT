@@ -58,6 +58,10 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
         """
         self._check_data_consistency(problem_data)
         self._original_problem_data = problem_data
+
+        if problem_data.gradient_deviations is not None:
+            self._logger.info('Using the gradient deviations in the model optimization.')
+
         return super(DMRICompositeModel, self).set_problem_data(self._prepare_problem_data(problem_data))
 
     def _get_variable_data(self):
@@ -68,8 +72,6 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
                 grad_dev = create_roi(self._problem_data.gradient_deviations, self._problem_data.mask)
             else:
                 grad_dev = np.copy(self._problem_data.gradient_deviations)
-
-            self._logger.info('Using the gradient deviations in the model optimization.')
 
             # adds the eye(3) matrix to every grad dev, so we don't have to do it in the kernel.
             # Flattening an eye(3) matrix gives the same result with F and C ordering, I nevertheless put the ordering

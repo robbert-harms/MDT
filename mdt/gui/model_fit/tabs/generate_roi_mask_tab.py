@@ -1,4 +1,5 @@
 import os
+from textwrap import dedent
 
 from mdt.nifti import load_nifti
 from PyQt5.QtCore import pyqtSlot, QObject, pyqtSignal
@@ -7,7 +8,7 @@ from PyQt5.QtWidgets import QFileDialog
 from mdt.visualization.maps.base import DataInfo, MapPlotConfig
 from mdt.gui.maps_visualizer.main import start_gui
 from mdt.gui.model_fit.design.ui_generate_roi_mask_tab import Ui_GenerateROIMaskTabContent
-from mdt.gui.utils import function_message_decorator, image_files_filters, MainTab
+from mdt.gui.utils import function_message_decorator, image_files_filters, MainTab, get_script_file_header_text
 from mdt.utils import split_image_path, write_slice_roi
 
 __author__ = 'Robbert Harms'
@@ -80,10 +81,9 @@ class GenerateROIMaskTab(MainTab, Ui_GenerateROIMaskTabContent):
         start_gui(data=data, config=config, app_exec=False)
 
     def generate_roi_mask(self):
-        self._generate_mask_worker.set_args(mask=self.selectedMaskText.text(),
-                                            output=self.selectedOutputFileText.text(),
-                                            dimension=self.dimensionInput.value(),
-                                            slice=self.sliceInput.value())
+        kwargs = dict(mask=self.selectedMaskText.text(), output=self.selectedOutputFileText.text(),
+                      dimension=self.dimensionInput.value(), slice=self.sliceInput.value())
+        self._generate_mask_worker.set_args(**kwargs)
         self._computations_thread.start()
         self._generate_mask_worker.moveToThread(self._computations_thread)
 
@@ -93,6 +93,13 @@ class GenerateROIMaskTab(MainTab, Ui_GenerateROIMaskTabContent):
         self._generate_mask_worker.starting.connect(lambda: self.generateButton.setEnabled(False))
         self._generate_mask_worker.finished.connect(lambda: self.generateButton.setEnabled(True))
         self._generate_mask_worker.finished.connect(lambda: self.viewButton.setEnabled(True))
+
+        script_basename = os.path.join(*(split_image_path(self.selectedOutputFileText.text())[:2]))
+        self._generate_mask_worker.finished.connect(
+            lambda: self._write_python_script_file(script_basename + '_script.py', **kwargs))
+
+        self._generate_mask_worker.finished.connect(
+            lambda: self._write_bash_script_file(script_basename + '_script.sh', **kwargs))
 
         self._generate_mask_worker.starting.emit()
 
@@ -134,6 +141,36 @@ class GenerateROIMaskTab(MainTab, Ui_GenerateROIMaskTabContent):
                 self.selectedOutputFileText.setText('{}_{}_{}.nii.gz'.format(folder_base,
                                                                              self.dimensionInput.value(),
                                                                              self.sliceInput.value()))
+
+    def _write_python_script_file(self, output_file, **kwargs):
+        with open(output_file, 'w') as f:
+            f.write('#!/usr/bin/env python')
+            f.write(dedent('''
+
+                {header}
+
+                import mdt
+
+                mdt.write_slice_roi(
+                    {mask!r},
+                    {dimension!r},
+                    {slice!r},
+                    {output!r},
+                    overwrite_if_exists=True)
+
+            ''').format(header=get_script_file_header_text({'Purpose': 'Generated a slice ROI mask'}),
+                        **kwargs))
+
+    def _write_bash_script_file(self, output_file, **kwargs):
+        with open(output_file, 'w') as f:
+            f.write('#!/usr/bin/env bash')
+            f.write(dedent('''
+
+                {header}
+
+                mdt-generate-roi-slice "{mask}" -d {dimension} -s {slice} -o "{output}"
+            ''').format(header=get_script_file_header_text({'Purpose': 'Generated a slice ROI mask'}),
+                        **kwargs))
 
 
 class GenerateROIMaskWorker(QObject):

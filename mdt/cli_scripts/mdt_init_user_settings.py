@@ -33,7 +33,7 @@ class InitUserSettings(BasicShellApplication):
 
         return parser
 
-    def run(self, args):
+    def run(self, args, extra_args):
         mdt.init_user_settings(pass_if_exists=args.pass_if_exists)
 
 
