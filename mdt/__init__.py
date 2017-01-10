@@ -4,7 +4,7 @@ import logging
 import logging.config as logging_config
 import os
 from inspect import stack
-
+from contextlib import contextmanager
 import numpy as np
 import six
 from six import string_types
@@ -22,7 +22,7 @@ except ValueError:
 from mdt.user_script_info import easy_save_user_script_info
 from mdt.utils import estimate_noise_std, get_cl_devices, load_problem_data, create_blank_mask, create_index_matrix, \
     volume_index_to_roi_index, roi_index_to_volume_index, load_brain_mask, init_user_settings, restore_volumes, \
-    apply_mask, create_roi, volume_merge, concatenate_mri_sets, create_median_otsu_brain_mask, load_samples, \
+    apply_mask, create_roi, volume_merge, protocol_merge, create_median_otsu_brain_mask, load_samples, \
     load_nifti, write_slice_roi, split_write_dataset, apply_mask_to_file, extract_volumes, recalculate_error_measures, \
     create_signal_estimates, get_slice_in_dimension, per_model_logging_context, get_temporary_results_dir
 from mdt.batch_utils import collect_batch_fit_output, run_function_on_batch_fit_output
@@ -620,3 +620,31 @@ def gui(base_dir=None, app_exec=True):
     """
     from mdt.gui.model_fit.qt_main import start_gui
     return start_gui(base_dir=base_dir, app_exec=app_exec)
+
+
+def reset_logging():
+    """Reset the logging to reflect the current configuration.
+
+    This is commonly called after updating the logging configuration to let the changes take affect.
+    """
+    logging_config.dictConfig(get_logging_configuration_dict())
+
+
+@contextmanager
+def disable_logging_context():
+    """A context in which the logging is temporarily disabled"""
+    config = '''
+    logging:
+        info_dict:
+            version: 1
+            loggers:
+                mot:
+                    handlers: []
+
+                mdt:
+                    handlers: []
+    '''
+    with config_context(config):
+        reset_logging()
+        yield
+    reset_logging()

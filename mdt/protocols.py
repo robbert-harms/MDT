@@ -708,13 +708,19 @@ def write_bvec_bval(protocol, bvec_fname, bval_fname, column_based=True, bval_sc
 def load_protocol(protocol_fname):
     """Load an protocol from the given protocol file, with as column names the given list of names.
 
+    If the given file could not be found it tries once more by appending .prtcl to the end of the file.
+
     Args:
         protocol_fname (string): The filename of the protocol file to use.
-            This should be a comma separated or tab delimited file with equal length columns.
 
     Returns:
-        An protocol with all the columns loaded.
+        :class:`Protocol`: An protocol object with all the columns loaded.
     """
+    if not os.path.exists(protocol_fname):
+        protocol_fname += '.prtcl'
+    if not os.path.exists(protocol_fname):
+        raise FileNotFoundError(protocol_fname)
+
     with open(protocol_fname) as f:
         protocol = f.readlines()
 

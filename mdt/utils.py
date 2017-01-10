@@ -464,35 +464,6 @@ def write_slice_roi(brain_mask_fname, roi_dimension, roi_slice, output_fname, ov
     return roi_mask
 
 
-def concatenate_two_mri_measurements(datasets):
-    """ Concatenate the given datasets (combination of volumes and protocols)
-
-    For example, as input one can give:
-
-    .. code-block:: python
-
-        ((protocol_1, volume_1),
-         (protocol_2, volume_2),
-         ...)
-
-    And the output is: ``(protocol, volumes)`` where the volumes is for every voxel a concatenation
-    of the given volumes, and the protocol is a concatenation of the given protocols.
-
-    Args:
-        datasets: a list of datasets, where a dataset is a tuple structured as: (protocol, volume).
-
-    Returns
-        A single tuple holding the concatenation of the given datasets
-    """
-    signal_list = [datasets[0][1]]
-    protocol_concat = datasets[0][0].deepcopy()
-    for i in range(1, len(datasets)):
-        signal_list.append(datasets[i][1])
-        protocol_concat.append_protocol(datasets[i][0])
-    signal4d_concat = np.concatenate(signal_list, 3)
-    return protocol_concat, signal4d_concat
-
-
 def get_slice_in_dimension(volume, dimension, index):
     """From the given volume get a slice on the given dimension (x, y, z, ...) and then on the given index.
 
@@ -1307,7 +1278,7 @@ def volume_merge(volume_paths, output_fname, sort=False):
         volume_paths (list of str): the list with the input filenames
         output_fname (str): the output filename
         sort (boolean): if true we natural sort the list of DWI images before we merge them. If false we don't.
-            The default is True.
+            The default is False.
 
     Returns:
         list of str: the list with the filenames in the order of concatenation.
@@ -1316,9 +1287,7 @@ def volume_merge(volume_paths, output_fname, sort=False):
     header = None
 
     if sort:
-        def natural_key(_str):
-            return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', _str)]
-        volume_paths.sort(key=natural_key)
+        volume_paths.sort(key=natural_key_sort_cb)
 
     for volume in volume_paths:
         nib_container = load_nifti(volume)
@@ -1336,45 +1305,38 @@ def volume_merge(volume_paths, output_fname, sort=False):
     return volume_paths
 
 
-def concatenate_mri_sets(items, output_volume_fname, output_protocol_fname, overwrite_if_exists=False):
-    """Concatenate two or more DMRI datasets. Normally used to concatenate different DWI shells into one image.
+def protocol_merge(protocol_paths, output_fname, sort=False):
+    """Merge a list of protocols files. Writes the result as a file.
 
-    This writes a single volume and a single protocol file.
+    You can enable sorting the list of protocol names based on a natural key sort. This is
+    the most convenient option in the case of globbing files. By default this behaviour is disabled.
+
+    Example usage with globbing:
+
+    .. code-block:: python
+
+        mdt.protocol_merge(glob.glob('*.prtcl'), 'merged.prtcl', True)
 
     Args:
-        items (tuple of dict): A tuple of dicts with volume filenames and protocol filenames:
+        protocol_paths (list of str): the list with the input protocol filenames
+        output_fname (str): the output filename
+        sort (boolean): if true we natural sort the list of protocol files before we merge them. If false we don't.
+            The default is False.
 
-            .. code-block:: python
-
-                (
-                 {'volume': volume_fname,
-                  'protocol': protocol_filename
-                 }, ...
-                )
-        output_volume_fname (string): The name of the output volume
-        output_protocol_fname (string): The name of the output protocol file
-        overwrite_if_exists (boolean, optional, default false): Overwrite the output files if they already exists.
+    Returns:
+        list of str: the list with the filenames in the order of concatenation.
     """
-    if not items:
-        return
+    if sort:
+        protocol_paths.sort(key=natural_key_sort_cb)
 
-    if os.path.exists(output_volume_fname) and os.path.exists(output_protocol_fname) and not overwrite_if_exists:
-        return
+    protocols = list(map(load_protocol, protocol_paths))
 
-    to_concat = []
-    nii_header = None
+    protocol = protocols[0]
+    for i in range(1, len(protocols)):
+        protocol.append_protocol(protocols[i])
 
-    for e in items:
-        signal_img = load_nifti(e['volume'])
-        signal4d = signal_img.get_data()
-        nii_header = signal_img.get_header()
-
-        protocol = load_protocol(e['protocol'])
-        to_concat.append((protocol, signal4d))
-
-    protocol, signal4d = concatenate_two_mri_measurements(to_concat)
-    write_nifti(signal4d, nii_header, output_volume_fname)
-    write_protocol(protocol, output_protocol_fname)
+    write_protocol(protocol, output_fname)
+    return protocol_paths
 
 
 def create_median_otsu_brain_mask(dwi_info, protocol, output_fname=None, **kwargs):
@@ -1514,3 +1476,13 @@ def create_signal_estimates(volume_maps, problem_data, model, output_fname):
     write_nifti(signal_estimates, problem_data.volume_header, output_fname)
 
 
+def natural_key_sort_cb(_str):
+    """Sorting transformation to use when wanting to sorting a list using natural key sorting.
+
+    Args:
+        _str (str): the string to sort
+
+    Returns:
+        list: the key to use for sorting the current element.
+    """
+    return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', _str)]
