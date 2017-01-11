@@ -191,7 +191,7 @@ class GenerateProtocolTab(MainTab, Ui_GenerateProtocolTabContent):
                                              QMessageBox.Yes, QMessageBox.No)
 
                 if reply == QMessageBox.Yes:
-                    self._protocol.remove_column(column_name)
+                    self._protocol = self._protocol.copy_column_removed(column_name)
                     self._update_views()
 
     def _load_column_action(self):
@@ -199,7 +199,7 @@ class GenerateProtocolTab(MainTab, Ui_GenerateProtocolTabContent):
         return_value = dialog.exec_()
 
         if return_value:
-            dialog.update_protocol(self._protocol)
+            self._protocol = dialog.update_protocol(self._protocol)
             self._update_views()
 
     def _load_g_and_b(self):
@@ -251,9 +251,9 @@ class LoadColumnDialog(Ui_UpdateColumnDialog, QDialog):
 
             if self.inputMethodSelector.currentIndex() == self._input_options['from_value']:
                 value = float(self.singleValueInput.text())
-                protocol.add_column(column_name, value * scale)
+                return protocol.copy_added_column(column_name, value * scale)
             else:
-                protocol.add_column_from_file(column_name, self.selectedFile.text(), scale)
+                return protocol.copy_with_added_column_from_file(column_name, self.selectedFile.text(), scale)
 
     @pyqtSlot(int)
     def enable_correct_inputs(self, selection):

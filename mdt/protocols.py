@@ -14,7 +14,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class Protocol(collections.MutableMapping):
+class Protocol(collections.Mapping):
 
     def __init__(self, columns=None):
         """Create a new protocol. Optionally initializes the protocol with the given set of columns.
@@ -26,7 +26,6 @@ class Protocol(collections.MutableMapping):
         * G (gradient amplitude) in T/m (Tesla per meter)
         * Delta (time interval) in seconds
         * delta (duration) in seconds
-
 
         Args:
             columns (dict): The initial list of columns used by this protocol, the keys should be the name of the
@@ -63,31 +62,30 @@ class Protocol(collections.MutableMapping):
         """
         return self._gamma_h
 
-    def update_column(self, name, data):
-        """Updates the given column with new information.
+    def copy_with_update(self, name, data):
+        """Create a copy of the protocol with the given column updated to a new value.
 
-        This actually calls add_column(name, data) in the background. This function is included to allow for clearer
-        function calls.
+        Args:
+            name (str): The name of the column to add
+            data (ndarray or float): The value or vector to add to this protocol.
+
+        Returns:
+            Protocol: the updated protocol
+        """
+        return self.copy_added_column(name, data)
+
+    def copy_added_column(self, name, data):
+        """Create a copy of this protocol with the given column updated/added.
 
         Args:
             name (str): The name of the column to add
             data (ndarray): The vector to add to this protocol.
 
         Returns:
-            self: for chaining
+            Protocol: the new protocol with the updated columns
         """
-        return self.add_column(name, data)
+        columns = copy.copy(self._columns)
 
-    def add_column(self, name, data):
-        """Add a column to this protocol. This overrides the column if present.
-
-        Args:
-            name (str): The name of the column to add
-            data (ndarray): The vector to add to this protocol.
-
-        Returns:
-            self: for chaining
-        """
         if isinstance(data, six.string_types):
             data = float(data)
 
@@ -101,21 +99,21 @@ class Protocol(collections.MutableMapping):
         if self.length and s[0] > self.length:
             self._logger.info("The column '{}' has to many elements ({}), we will only use the first {}.".format(
                 name, s[0], self.length))
-            self._columns.update({name: data[:self.length]})
+            columns.update({name: data[:self.length]})
         elif self.length and s[0] < self.length:
             raise ValueError("Incorrect column length given for '{}', expected {} and got {}.".format(
                 name, self.length, s[0]))
         else:
             if name == 'g' and len(data.shape) > 1 and data.shape[1] == 3:
-                self._columns.update({'gx': data[:, 0], 'gy': data[:, 1], 'gz': data[:, 2]})
+                columns.update({'gx': data[:, 0], 'gy': data[:, 1], 'gz': data[:, 2]})
             else:
-                self._columns.update({name: data})
-        return self
+                columns.update({name: data})
+        return Protocol(columns)
 
-    def add_column_from_file(self, name, file_name, multiplication_factor=1):
-        """Add a column to this protocol, loaded from the given file.
+    def copy_with_added_column_from_file(self, name, file_name, multiplication_factor=1):
+        """Create a copy of this protocol with the given column (loaded from a file) added to this protocol.
 
-        The given file can either contain a single value (which is broadcasted), or one value per protocol line.
+        The given file can either contain a single value or one value per protocol line.
 
         Args:
             name (str): The name of the column to add
@@ -125,40 +123,62 @@ class Protocol(collections.MutableMapping):
         Returns:
             self: for chaining
         """
+        columns = copy.copy(self._columns)
         if name == 'g':
-            self._columns.update(get_g_columns(file_name))
+            columns.update(get_g_columns(file_name))
             for column_name in ('gx', 'gy', 'gz'):
-                self._columns[column_name] *= multiplication_factor
-            return self
-        data = np.genfromtxt(file_name)
-        data *= multiplication_factor
-        self.add_column(name, data)
-        return self
+                columns[column_name] *= multiplication_factor
+            return Protocol(columns)
+        else:
+            data = np.genfromtxt(file_name)
+            data *= multiplication_factor
+            return self.copy_added_column(name, data)
 
-    def remove_column(self, column_name):
-        """Completely remove a column from this protocol.
+    def copy_column_removed(self, column_name):
+        """Create a copy of this protocol with the given column removed.
 
         Args:
             column_name (str): The name of the column to remove
+
+        Returns:
+            Protocol: the new updated protocol
         """
+        columns = copy.copy(self._columns)
+
         if column_name == 'g':
-            del self._columns['gx']
-            del self._columns['gy']
-            del self._columns['gz']
+            del columns['gx']
+            del columns['gy']
+            del columns['gz']
         else:
             if column_name in self._columns:
-                del self._columns[column_name]
+                del columns[column_name]
 
-    def remove_rows(self, rows):
-        """Remove a list of rows from all the columns.
+        return Protocol(columns)
+
+    def copy_rows_removed(self, rows):
+        """Create a copy of the protocol with a list of rows removed from all the columns.
 
         Please note that the protocol is 0 indexed.
 
         Args:
             rows (list of int): List with indices of the rows to remove
         """
-        for key, column in self._columns.items():
-            self._columns[key] = np.delete(column, rows)
+        columns = copy.copy(self._columns)
+        for key, column in columns.items():
+            columns[key] = np.delete(column, rows)
+        return Protocol(columns)
+
+    def append_protocol(self, protocol):
+        """Append another protocol to this protocol and return the result as a new protocol.
+
+        This will add the columns of the other protocol to the columns of (a copy of) this protocol
+        This supposes that both protocols have the same columns.
+        """
+        columns = copy.copy(self._columns)
+        if type(protocol) is type(self):
+            for key, value in self._columns.items():
+                columns[key] = np.append(value, protocol[key], 0)
+        return Protocol(columns)
 
     def get_columns(self, column_names):
         """Get a matrix containing the requested column names in the order given.
@@ -374,16 +394,6 @@ class Protocol(collections.MutableMapping):
         """
         return Protocol(columns=copy.deepcopy(self._columns))
 
-    def append_protocol(self, protocol):
-        """Append another protocol to this protocol.
-
-        This will add the columns of the other protocol to the columns of this protocol. This supposes both protocols
-        have the same columns.
-        """
-        if type(protocol) is type(self):
-            for key, value in self._columns.items():
-                self._columns[key] = np.append(self[key], protocol[key], 0)
-
     def get_new_protocol_with_indices(self, indices):
         """Create a new protocol object with all the columns but as rows only those of the given indices.
 
@@ -459,15 +469,9 @@ class Protocol(collections.MutableMapping):
     def __getitem__(self, column):
         return self.get_column(column)
 
-    def __delitem__(self, key):
-        return self.remove_column(key)
-
     def __iter__(self):
         for key in self._columns.keys():
             yield key
-
-    def __setitem__(self, key, value):
-        return self.add_column(key, value)
 
     def __str__(self):
         s = 'Column names: ' + ', '.join(self.column_names) + "\n"
@@ -862,12 +866,13 @@ def auto_load_protocol(directory, protocol_columns=None, bvec_fname=None, bval_f
         for col in protocol_extra_cols:
             if col in protocol_columns:
                 if isinstance(protocol_columns[col], six.string_types):
-                    protocol.add_column_from_file(col, os.path.join(directory, protocol_columns[col]))
+                    protocol = protocol.copy_with_added_column_from_file(
+                        col, os.path.join(directory, protocol_columns[col]))
                 else:
-                    protocol.add_column(col, protocol_columns[col])
+                    protocol = protocol.copy_added_column(col, protocol_columns[col])
     else:
         for col in protocol_extra_cols:
             if os.path.isfile(os.path.join(directory, col)):
-                protocol.add_column_from_file(col, os.path.join(directory, col))
+                protocol = protocol.copy_with_added_column_from_file(col, os.path.join(directory, col))
 
     return protocol

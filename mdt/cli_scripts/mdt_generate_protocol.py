@@ -106,22 +106,22 @@ class GenerateProtocol(BasicShellApplication):
 
         if args.G is None and args.maxG is not None:
             if os.path.isfile(str(args.maxG)):
-                protocol.add_column_from_file('maxG', os.path.realpath(str(args.maxG)), 1)
+                protocol = protocol.copy_with_added_column_from_file('maxG', os.path.realpath(str(args.maxG)), 1)
             else:
-                protocol.add_column('maxG', float(args.maxG))
+                protocol = protocol.copy_added_column('maxG', float(args.maxG))
 
         if args.Delta is not None:
-            add_sequence_timing_column_to_protocol(protocol, 'Delta', args.Delta, args.sequence_timing_units)
+            protocol = add_sequence_timing_column_to_protocol(protocol, 'Delta', args.Delta, args.sequence_timing_units)
         if args.delta is not None:
-            add_sequence_timing_column_to_protocol(protocol, 'delta', args.delta, args.sequence_timing_units)
+            protocol = add_sequence_timing_column_to_protocol(protocol, 'delta', args.delta, args.sequence_timing_units)
         if args.TE is not None:
-            add_sequence_timing_column_to_protocol(protocol, 'TE', args.TE, args.sequence_timing_units)
+            protocol = add_sequence_timing_column_to_protocol(protocol, 'TE', args.TE, args.sequence_timing_units)
         if args.TR is not None:
-            add_sequence_timing_column_to_protocol(protocol, 'TR', args.TR, args.sequence_timing_units)
+            protocol = add_sequence_timing_column_to_protocol(protocol, 'TR', args.TR, args.sequence_timing_units)
         if args.G is not None:
-            add_column_to_protocol(protocol, 'G', args.G, 1)
+            protocol = add_column_to_protocol(protocol, 'G', args.G, 1)
 
-        add_extra_columns(protocol, extra_args)
+        protocol = add_extra_columns(protocol, extra_args)
 
         mdt.protocols.write_protocol(protocol, output_prtcl)
 
@@ -131,24 +131,25 @@ def add_extra_columns(protocol, extra_args):
     for element in extra_args:
         if '=' in element and element.startswith('--'):
             key, value = element[2:].split('=')
-            add_column_to_protocol(protocol, key, value, 1)
+            protocol = add_column_to_protocol(protocol, key, value, 1)
         elif element.startswith('--'):
             key = element[2:]
         else:
-            add_column_to_protocol(protocol, key, element, 1)
+            protocol = add_column_to_protocol(protocol, key, element, 1)
+    return protocol
 
 
 def add_column_to_protocol(protocol, column, value, mult_factor):
     if value is not None:
         if os.path.isfile(value):
-            protocol.add_column_from_file(column, os.path.realpath(value), mult_factor)
+            return protocol.copy_with_added_column_from_file(column, os.path.realpath(value), mult_factor)
         else:
-            protocol.add_column(column, float(value) * mult_factor)
+            return protocol.copy_added_column(column, float(value) * mult_factor)
 
 
 def add_sequence_timing_column_to_protocol(protocol, column, value, units):
     mult_factor = 1e-3 if units == 'ms' else 1
-    add_column_to_protocol(protocol, column, value, mult_factor)
+    return add_column_to_protocol(protocol, column, value, mult_factor)
 
 
 if __name__ == '__main__':

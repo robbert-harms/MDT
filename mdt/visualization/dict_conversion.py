@@ -1,4 +1,4 @@
-from collections import MutableMapping
+from collections import Mapping
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-09-03"
@@ -156,7 +156,7 @@ class SimpleDictConversion(IdentityConversion):
             else:
                 raise ValueError('The object is supposed to be not None.')
         else:
-            if self._desired_type and isinstance(obj, MutableMapping):
+            if self._desired_type and isinstance(obj, Mapping):
                 return {key: self._desired_type(v) for key, v in obj.items()}
         return obj
 
@@ -167,7 +167,7 @@ class SimpleDictConversion(IdentityConversion):
             else:
                 raise ValueError('The object is supposed to be not None.')
         else:
-            if self._desired_type and isinstance(value, MutableMapping):
+            if self._desired_type and isinstance(value, Mapping):
                 return {key: self._desired_type(v) for key, v in value.items()}
         return value
 

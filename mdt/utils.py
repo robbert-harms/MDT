@@ -507,7 +507,7 @@ def create_roi(data, brain_mask):
             return_val = np.expand_dims(return_val, axis=1)
         return return_val
 
-    if isinstance(data, (dict, collections.MutableMapping)):
+    if isinstance(data, (dict, collections.Mapping)):
         return DeferredActionDict(lambda _, item: create_roi(item, brain_mask), data, memoize=True)
     elif isinstance(data, six.string_types):
         return creator(load_nifti(data).get_data())
@@ -563,7 +563,7 @@ def restore_volumes(data, brain_mask, with_volume_dim=True):
                 return np.expand_dims(volume, axis=3)
             return volume
 
-    if isinstance(data, collections.MutableMapping):
+    if isinstance(data, collections.Mapping):
         return {key: restorer(value) for key, value in data.items()}
     elif isinstance(data, list):
         return [restorer(value) for value in data]
@@ -1335,7 +1335,7 @@ def protocol_merge(protocol_paths, output_fname, sort=False):
 
     protocol = protocols[0]
     for i in range(1, len(protocols)):
-        protocol.append_protocol(protocols[i])
+        protocol = protocol.append_protocol(protocols[i])
 
     write_protocol(protocol, output_fname)
     return protocol_paths

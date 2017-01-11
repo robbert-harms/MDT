@@ -20,7 +20,10 @@ import numpy as np
 import mdt
 from argcomplete.completers import FilesCompleter
 import textwrap
+
+from mdt.protocols import Protocol
 from mdt.shell_utils import BasicShellApplication
+from mot.utils import is_scalar
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"
@@ -36,10 +39,11 @@ class MathProtocol(BasicShellApplication):
 
         epilog = textwrap.dedent("""
             Examples of use:
-                mdt-math-protocol protocol.prtcl 'G *= 1e-3'
+                mdt-math-protocol protocol.prtcl 'G *= 1e-3' -o new_protocol.prtcl
                 mdt-math-protocol protocol.prtcl 'G *= 1e-3; TR /= 1000; TE /= 1000'
                 mdt-math-protocol protocol.prtcl "rm('G')"
                 mdt-math-protocol protocol.prtcl "add('TE', 50e-3)"
+                mdt-math-protocol protocol.prtcl -a Delta.txt "Delta = files[0]"
         """)
 
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
@@ -54,6 +58,9 @@ class MathProtocol(BasicShellApplication):
         parser.add_argument('-o', '--output_file',
                             help='the output protocol, defaults to the input protocol.').completer = FilesCompleter()
 
+        parser.add_argument('-a', '--additional-file', type=str, action='append', dest='additional_files',
+                            help='additional file to load to be used for columns, placed in \'files\' list by index')
+
         return parser
 
     def run(self, args, extra_args):
@@ -62,22 +69,27 @@ class MathProtocol(BasicShellApplication):
         else:
             output_file = os.path.realpath(args.input_protocol)
 
+        additional_files = []
+        if args.additional_files:
+            for file in args.additional_files:
+                additional_files.append(np.genfromtxt(file))
+
         protocol = mdt.load_protocol(os.path.realpath(args.input_protocol))
         context_dict = {name: protocol.get_column(name) for name in protocol.column_names}
 
         def rm(column_name):
-            protocol.remove_column(column_name)
             del context_dict[column_name]
 
         def add(column_name, value):
-            protocol.add_column(column_name, value)
             context_dict[column_name] = value
 
-        exec(args.expr, {'np': np, 'rm': rm, 'add': add}, context_dict)
+        exec(args.expr, {'np': np, 'rm': rm, 'add': add, 'files': additional_files}, context_dict)
 
-        for name, value in context_dict.items():
-            protocol.update_column(name, value)
+        for key in context_dict:
+            if is_scalar(context_dict[key]):
+                context_dict[key] = np.ones(protocol.length) * context_dict[key]
 
+        protocol = Protocol(context_dict)
         mdt.write_protocol(protocol, output_file)
 
 
