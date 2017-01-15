@@ -120,13 +120,12 @@ class DeferredActionTuple(collections.Sequence):
         self._func = func
         self._items = copy.copy(items)
         self._applied_on_index = {}
-        self._memoized = {}
 
     def __getitem__(self, index):
         if index not in self._applied_on_index or not self._applied_on_index[index]:
             self._items[index] = self._func(index, self._items[index])
             self._applied_on_index[index] = True
-        return self._memoized[index]
+        return self._items[index]
 
     def __len__(self):
         return len(self._items)
