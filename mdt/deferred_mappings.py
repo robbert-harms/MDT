@@ -38,6 +38,7 @@ class DeferredActionDict(collections.MutableMapping):
     def __getitem__(self, key):
         if key not in self._applied_on_key or not self._applied_on_key[key]:
             self._items[key] = self._func(key, self._items[key])
+            self._applied_on_key[key] = True
         return self._items[key]
 
     def __contains__(self, key):
@@ -78,9 +79,9 @@ class DeferredFunctionDict(collections.MutableMapping):
             del self._applied_on_key[key]
 
     def __getitem__(self, key):
-
         if key not in self._applied_on_key or not self._applied_on_key[key]:
             self._items[key] = self._items[key]()
+            self._applied_on_key[key] = True
         return self._items[key]
 
     def __contains__(self, key):
@@ -100,7 +101,7 @@ class DeferredFunctionDict(collections.MutableMapping):
 
 class DeferredActionTuple(collections.Sequence):
 
-    def __init__(self, func, items, memoize=True):
+    def __init__(self, func, items):
         """Applies the given function on the given items at moment of request.
 
         On the moment one of the elements is requested we apply the given function on the given items
@@ -115,20 +116,16 @@ class DeferredActionTuple(collections.Sequence):
                     def callback(index, value)
 
             items (list, tuple): the items on which we operate
-            memoize (boolean): if true we memorize the function output internally. If False we apply the given function
-                on every request.
         """
         self._func = func
         self._items = copy.copy(items)
-        self._memoize = memoize
+        self._applied_on_index = {}
         self._memoized = {}
 
     def __getitem__(self, index):
-        if not self._memoize:
-            return self._func(index, self._items[index])
-
-        if index not in self._memoized:
-            self._memoized[index] = self._func(index, self._items[index])
+        if index not in self._applied_on_index or not self._applied_on_index[index]:
+            self._items[index] = self._func(index, self._items[index])
+            self._applied_on_index[index] = True
         return self._memoized[index]
 
     def __len__(self):

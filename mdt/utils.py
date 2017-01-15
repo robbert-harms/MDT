@@ -508,7 +508,7 @@ def create_roi(data, brain_mask):
         return return_val
 
     if isinstance(data, (dict, collections.Mapping)):
-        return DeferredActionDict(lambda _, item: create_roi(item, brain_mask), data, memoize=True)
+        return DeferredActionDict(lambda _, item: create_roi(item, brain_mask), data)
     elif isinstance(data, six.string_types):
         return creator(load_nifti(data).get_data())
     elif isinstance(data, (list, tuple, collections.Sequence)):
