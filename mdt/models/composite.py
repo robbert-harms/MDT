@@ -384,7 +384,7 @@ class DMRICompositeModelBuilder(ComponentBuilder):
         """
         class AutoCreatedDMRICompositeModel(method_binding_meta(template, DMRICompositeModel)):
 
-            def __init__(self, *args):
+            def __init__(self):
                 super(AutoCreatedDMRICompositeModel, self).__init__(
                     deepcopy(template.name),
                     CompartmentModelTree(parse(template.model_expression)),
