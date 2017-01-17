@@ -42,3 +42,11 @@ class TensorExVivo(Tensor):
     description = 'Cascade for Tensor with ex vivo defaults.'
     models = ('BallStick_r1-ExVivo (Cascade)',
               'Tensor-ExVivo')
+
+
+class TensorExVivoS0(Tensor):
+
+    name = 'Tensor-ExVivo (Cascade|S0)'
+    description = 'Cascade S0 for Tensor with ex vivo defaults.'
+    models = ('S0',
+              'Tensor-ExVivo')
