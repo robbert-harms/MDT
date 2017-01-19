@@ -8,6 +8,7 @@ import os
 import imp #todo in P3.4 replace imp calls with importlib.SourceFileLoader(name, path).load_module(name)
 
 import collections
+
 from six import with_metaclass
 
 from mdt.exceptions import NonUniqueComponent
@@ -639,24 +640,24 @@ class MOTCompartmentModelsSource(MOTSourceSingle):
 class BatchProfilesLoader(ComponentsLoader):
 
     def __init__(self):
-        super(BatchProfilesLoader, self).__init__([UserComponentsSourceSingle('user', 'batch_profiles'),
-                                                   UserComponentsSourceSingle('standard', 'batch_profiles')])
+        super(BatchProfilesLoader, self).__init__([UserComponentsSourceSingle('standard', 'batch_profiles'),
+                                                   UserComponentsSourceSingle('user', 'batch_profiles')])
 
 
 class ProcessingStrategiesLoader(ComponentsLoader):
 
     def __init__(self):
         super(ProcessingStrategiesLoader, self).__init__(
-            [UserComponentsSourceSingle('user', 'processing_strategies'),
-             UserComponentsSourceSingle('standard', 'processing_strategies')])
+            [UserComponentsSourceSingle('standard', 'processing_strategies'),
+             UserComponentsSourceSingle('user', 'processing_strategies')])
 
 
 class NoiseSTDCalculatorsLoader(ComponentsLoader):
 
     def __init__(self):
         super(NoiseSTDCalculatorsLoader, self).__init__(
-            [UserComponentsSourceSingle('user', 'noise_std_estimators'),
-             UserComponentsSourceSingle('standard', 'noise_std_estimators')])
+            [UserComponentsSourceSingle('standard', 'noise_std_estimators'),
+             UserComponentsSourceSingle('user', 'noise_std_estimators')])
 
 
 class CompartmentModelsLoader(ComponentsLoader):
@@ -664,38 +665,38 @@ class CompartmentModelsLoader(ComponentsLoader):
     def __init__(self):
         from mdt.models.compartments import CompartmentBuilder
         super(CompartmentModelsLoader, self).__init__(
-            [AutoUserComponentsSourceSingle('user', 'compartment_models', CompartmentBuilder()),
-             AutoUserComponentsSourceSingle('standard', 'compartment_models', CompartmentBuilder()),
+            [AutoUserComponentsSourceSingle('standard', 'compartment_models', CompartmentBuilder()),
+             AutoUserComponentsSourceSingle('user', 'compartment_models', CompartmentBuilder()),
              MOTCompartmentModelsSource()])
 
 
 class LibraryFunctionsLoader(ComponentsLoader):
 
     def __init__(self):
-        super(LibraryFunctionsLoader, self).__init__([UserComponentsSourceSingle('user', 'library_functions'),
-                                                      UserComponentsSourceSingle('standard', 'library_functions'),
+        super(LibraryFunctionsLoader, self).__init__([UserComponentsSourceSingle('standard', 'library_functions'),
+                                                      UserComponentsSourceSingle('user', 'library_functions'),
                                                       MOTLibraryFunctionSource()])
 
 
 class CompositeModelsLoader(ComponentsLoader):
 
     def __init__(self):
-        super(CompositeModelsLoader, self).__init__([CompositeModelSource('user'),
-                                                     CompositeModelSource('standard')])
+        super(CompositeModelsLoader, self).__init__([CompositeModelSource('standard'),
+                                                     CompositeModelSource('user')])
 
 
 class ParametersLoader(ComponentsLoader):
 
     def __init__(self):
-        super(ParametersLoader, self).__init__([ParametersSource('user'),
-                                                ParametersSource('standard')])
+        super(ParametersLoader, self).__init__([ParametersSource('standard'),
+                                                ParametersSource('user')])
 
 
 class CascadeModelsLoader(ComponentsLoader):
 
     def __init__(self):
-        super(CascadeModelsLoader, self).__init__([CascadeSource('user'),
-                                                   CascadeSource('standard')])
+        super(CascadeModelsLoader, self).__init__([CascadeSource('standard'),
+                                                   CascadeSource('user')])
 
 
 def get_component_class(component_type, component_name):
@@ -741,6 +742,45 @@ def load_component(component_type, component_name, *args, **kwargs):
     """
     component = get_component_class(component_type, component_name)
     return component(*args, **kwargs)
+
+
+def component_import(import_str, component_name):
+    """Load one of the components as a module and return the desired component from that module.
+
+    This is in usage similar to 'from ... import ...' except that we use a function for it here.
+    You can use it to import raw template classes from the components folders to use as super classes. Example::
+
+        from mdt import component_import
+
+        class MyCHARMED_r1(component_import('standard.composite_models.CHARMED', 'CHARMED_r1')):
+            pass
+
+    Here we create a new CHARMED_r1 template using the standard CHARMED_r1 template as a basis.
+
+    Args:
+        import_str (str): the import string, something like 'standard.composite_models.CHARMED'.
+        component_name (str): the component to load from the virtually imported module
+
+    Returns:
+        object: the loaded object from the given module
+    """
+    def get_component_path(import_str):
+        import_items = import_str.split('.')
+        component_path = _get_components_path(import_items[0], import_items[1])
+
+        for ind, import_item in enumerate(import_items[2:-1]):
+            component_path = os.path.join(component_path, import_item)
+
+        return os.path.join(component_path, import_items[-1] + '.py')
+
+    module_name = 'mdt.virtual_components.' + import_str
+    module = imp.load_source(module_name, get_component_path(import_str))
+
+    items = inspect.getmembers(module)
+
+    for name, item in items:
+        if name == component_name:
+            return item
 
 
 def _get_class_predicate(module, class_type):
