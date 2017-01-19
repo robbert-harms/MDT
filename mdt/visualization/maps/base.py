@@ -752,7 +752,14 @@ class Font(object):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             fonts = matplotlib.font_manager.get_fontconfig_fonts()
-            names = [matplotlib.font_manager.FontProperties(fname=font_name).get_name() for font_name in fonts]
+            names = []
+
+            for font_name in fonts:
+                try:
+                    names.append(matplotlib.font_manager.FontProperties(fname=font_name).get_name())
+                except RuntimeError:
+                    pass
+
         return list(sorted(['sans-serif', 'serif', 'cursive', 'fantasy', 'monospace'])) + list(sorted(names))
 
     @classmethod
