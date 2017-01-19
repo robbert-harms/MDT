@@ -376,12 +376,12 @@ class SingleModelFit(object):
                 results = self._processing_strategy.run(
                     self._model, self._problem_data, self._output_path, self.recalculate,
                     SimpleModelProcessingWorkerGenerator(lambda *args: FittingProcessingWorker(self._optimizer, *args)))
-                self._write_protocol()
+                self._write_protocol(self._model.get_problem_data().protocol)
 
         return results
 
-    def _write_protocol(self):
-        write_protocol(self._problem_data.protocol, os.path.join(self._output_path, 'used_protocol.prtcl'))
+    def _write_protocol(self, protocol):
+        write_protocol(protocol, os.path.join(self._output_path, 'used_protocol.prtcl'))
 
     @contextmanager
     def _logging(self):

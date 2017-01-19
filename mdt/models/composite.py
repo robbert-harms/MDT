@@ -64,6 +64,14 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
 
         return super(DMRICompositeModel, self).set_problem_data(self._prepare_problem_data(problem_data))
 
+    def get_problem_data(self):
+        """Get the problem data actually being used by this model.
+
+        Returns:
+            mdt.utils.DMRIProblemData: the problem data being used by this model
+        """
+        return self._problem_data
+
     def _get_variable_data(self):
         var_data_dict = super(DMRICompositeModel, self)._get_variable_data()
 
