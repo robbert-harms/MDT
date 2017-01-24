@@ -26,7 +26,7 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
 
         self._auto_render = True
 
-        self.figure = Figure()
+        self.figure = Figure(facecolor='#bfbfbf')
         self.visualizer = MapsVisualizer(self._controller.get_data(), self.figure)
         self._axes_data = self.visualizer.render(self._controller.get_config())
 

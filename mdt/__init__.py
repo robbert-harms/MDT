@@ -438,7 +438,7 @@ def make_path_joiner(*folder):
     """Generates and returns an instance of utils.PathJoiner to quickly join pathnames.
 
     Returns:
-        PathJoiner: easy path manipulation path joiner
+         mdt.utils.PathJoiner: easy path manipulation path joiner
     """
     from mdt.utils import PathJoiner
     return PathJoiner(*folder)

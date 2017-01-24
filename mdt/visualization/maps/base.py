@@ -24,7 +24,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class MapPlotConfig(object):
 
     def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=90, colormap='hot', maps_to_show=None,
-                 font=None, grid_layout=None, colorbar_nmr_ticks=4, show_axis=False, zoom=None,
+                 font=None, grid_layout=None, colorbar_nmr_ticks=4, show_axis=False, zoom=None, show_colorbar=True,
                  map_plot_options=None, interpolation='bilinear', flipud=None,
                  title=None, mask_name=None):
         """Container for all plot related settings.
@@ -42,6 +42,7 @@ class MapPlotConfig(object):
             colorbar_nmr_ticks (int): the number of ticks on the colorbar
             show_axis (bool): if we show the axis or not
             zoom (Zoom): the zoom setting for all the plots
+            show_colorbar (boolean): the global setting for enabling/disabling the colorbar
             map_plot_options (dict): per map the map specific plot options
             interpolation (str): one of the available interpolations
             flipud (boolean): if True we flip the image upside down
@@ -58,6 +59,7 @@ class MapPlotConfig(object):
         self.zoom = zoom or Zoom.no_zoom()
         self.font = font or Font()
         self.colorbar_nmr_ticks = colorbar_nmr_ticks
+        self.show_colorbar = show_colorbar
         self.show_axis = show_axis
         if self.show_axis is None:
             self.show_axis = True
@@ -124,7 +126,8 @@ class MapPlotConfig(object):
                 'interpolation': WhiteListConversion(cls.get_available_interpolations(), 'bilinear'),
                 'flipud': BooleanConversion(allow_null=False),
                 'title': StringConversion(),
-                'mask_name': StringConversion()
+                'mask_name': StringConversion(),
+                'show_colorbar': BooleanConversion()
                 }
 
     @classmethod
@@ -243,8 +246,8 @@ class MapPlotConfig(object):
 
 class SingleMapConfig(object):
 
-    def __init__(self, title=None, scale=None, clipping=None, colormap=None, colorbar_label=None, title_spacing=None,
-                 mask_name=None):
+    def __init__(self, title=None, scale=None, clipping=None, colormap=None, colorbar_label=None, show_colorbar=True,
+                 title_spacing=None, mask_name=None):
         """Creates the configuration for a single map plot.
 
         Args:
@@ -253,6 +256,7 @@ class SingleMapConfig(object):
             clipping (Clipping): the clipping to apply to the values prior to plotting
             colormap (str): the matplotlib colormap to use
             colorbar_label (str): the label for the colorbar
+            show_colorbar (boolean): if we want to show the colorbar or not
             title_spacing (float): the spacing between the top of the plots and the title
             mask_name (str): the name of the mask used to mask the data prior to visualization
         """
@@ -263,6 +267,7 @@ class SingleMapConfig(object):
         self.clipping = clipping or Clipping()
         self.colormap = colormap
         self.colorbar_label = colorbar_label
+        self.show_colorbar = show_colorbar
         self.mask_name = mask_name
 
         if self.colormap is not None and self.colormap not in self.get_available_colormaps():
@@ -280,7 +285,8 @@ class SingleMapConfig(object):
                 'colormap': StringConversion(),
                 'colorbar_label': StringConversion(),
                 'title_spacing': FloatConversion(),
-                'mask_name': StringConversion()}
+                'mask_name': StringConversion(),
+                'show_colorbar': BooleanConversion()}
 
     @classmethod
     def get_available_colormaps(cls):

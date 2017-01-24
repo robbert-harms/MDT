@@ -191,11 +191,12 @@ class Renderer(object):
         plot_options['interpolation'] = self._plot_config.interpolation
         vf = axis.imshow(data, **plot_options)
 
-        divider = make_axes_locatable(axis)
-        colorbar_axis = divider.append_axes("right", size="5%", pad=0.05)
+        if self._get_map_attr(map_name, 'show_colorbar', self._plot_config.show_colorbar):
+            divider = make_axes_locatable(axis)
+            colorbar_axis = divider.append_axes("right", size="5%", pad=0.05)
 
-        self._add_colorbar(map_name, colorbar_axis, vf, self._get_map_attr(map_name, 'colorbar_label'))
-        self._apply_font(axis, colorbar_axis)
+            self._add_colorbar(map_name, colorbar_axis, vf, self._get_map_attr(map_name, 'colorbar_label'))
+            self._apply_font(axis, colorbar_axis)
 
         return AxisData(axis, map_name, self._data_info.map_info[map_name], self._plot_config)
 
@@ -235,7 +236,7 @@ class Renderer(object):
     def _get_map_attr(self, map_name, option, default=None):
         if map_name in self._plot_config.map_plot_options:
             value = getattr(self._plot_config.map_plot_options[map_name], option)
-            if value:
+            if value is not None:
                 return value
         return default
 

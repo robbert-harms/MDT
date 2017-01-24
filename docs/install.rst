@@ -27,13 +27,15 @@ Please install the dependencies first:
         python3-matplotlib python3-six python3-yaml \
         python3-argcomplete libpng-dev libfreetype6-dev libxft-dev
 
-and then install MOT with:
+and then install MDT with:
 
 .. code-block:: bash
 
     $ sudo pip3 install mdt
 
 This might recompile a few packages to use the latest versions.
+Note that ``python3-nibabel`` may need NeuroDebian to be available on your machine.
+An alternative is to use ``pip3 install nibabel`` instead.
 After installation please continue with the section `Initialization`_ below.
 
 *******
