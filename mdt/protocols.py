@@ -176,8 +176,8 @@ class Protocol(collections.Mapping):
         """
         columns = copy.copy(self._columns)
         if type(protocol) is type(self):
-            for key, value in self._columns.items():
-                columns[key] = np.append(value, protocol[key], 0)
+            for key in self._columns:
+                columns[key] = np.append(self[key], protocol[key], 0)
         return Protocol(columns)
 
     def get_columns(self, column_names):
