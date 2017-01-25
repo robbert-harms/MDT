@@ -223,7 +223,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
             double_precision=kwargs['double_precision'],
             cl_device_ind=[ind for ind, device in enumerate(all_cl_devices) if device in user_selected_devices])
 
-        with open(output_file, 'w') as f:
+        with open(output_file.replace('|', '.'), 'w') as f:
             f.write('#!/usr/bin/env python\n')
 
             if optim_options.use_model_default_optimizer:
@@ -285,7 +285,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
         all_cl_devices = CLEnvironmentFactory.smart_device_selection()
         user_selected_devices = mot.configuration.get_cl_environments()
 
-        with open(output_file, 'w') as f:
+        with open(output_file.replace('|', '.'), 'w') as f:
             f.write('#!/usr/bin/env bash\n')
             f.write(dedent('''
                 {header}
