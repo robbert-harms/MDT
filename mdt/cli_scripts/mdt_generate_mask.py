@@ -79,7 +79,11 @@ class GenerateMask(BasicShellApplication):
     def run(self, args, extra_args):
         dwi_name = os.path.splitext(os.path.realpath(args.dwi))[0]
         dwi_name = dwi_name.replace('.nii', '')
-        output_name = os.path.realpath(args.output_name) or dwi_name + '_mask.nii.gz'
+
+        if args.output_name:
+            output_name = os.path.realpath(args.output_name)
+        else:
+            output_name = dwi_name + '_mask.nii.gz'
 
         if args.cl_device_ind:
             if isinstance(args.cl_device_ind, int):

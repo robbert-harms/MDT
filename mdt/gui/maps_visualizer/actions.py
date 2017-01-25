@@ -138,7 +138,15 @@ class SetFlipud(SimpleConfigAction):
             max_y = data_info.get_max_y_index(configuration.dimension, configuration.rotate,
                                               configuration.maps_to_show) + 1
 
-            new_zoom = Zoom(Point(configuration.zoom.p0.x, max_y - configuration.zoom.p1.y),
-                            Point(configuration.zoom.p1.x, max_y - configuration.zoom.p0.y))
+            new_p0_y = max_y - configuration.zoom.p1.y
+            if new_p0_y >= max_y - 1:
+                new_p0_y = 0
+
+            new_p1_y = max_y - configuration.zoom.p0.y
+            if new_p1_y >= max_y - 1:
+                new_p1_y = max_y - 1
+
+            new_zoom = Zoom(Point(configuration.zoom.p0.x, new_p0_y),
+                            Point(configuration.zoom.p1.x, new_p1_y))
 
             return SetZoom(new_zoom).apply(data_info, configuration)

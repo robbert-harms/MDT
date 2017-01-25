@@ -99,7 +99,7 @@ class GenerateBrainMaskTab(MainTab, Ui_GenerateBrainMaskTabContent):
 
         config = MapPlotConfig()
         config.dimension = 2
-        config.slice_index = image_data.shape[2] // 2.0
+        config.slice_index = image_data.shape[2] // 2
         config.maps_to_show = ['DWI', 'Masked']
 
         start_gui(data=data, config=config, app_exec=False)
