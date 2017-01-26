@@ -104,9 +104,12 @@ class Ui_MainWindow(object):
         self.action_RuntimeSettings.setObjectName("action_RuntimeSettings")
         self.actionAbout = QtWidgets.QAction(MainWindow)
         self.actionAbout.setObjectName("actionAbout")
+        self.action_GetExampleData = QtWidgets.QAction(MainWindow)
+        self.action_GetExampleData.setObjectName("action_GetExampleData")
         self.menuMenu.addAction(self.action_RuntimeSettings)
         self.menuMenu.addSeparator()
         self.menuMenu.addAction(self.actionExit)
+        self.menuHelp.addAction(self.action_GetExampleData)
         self.menuHelp.addAction(self.actionAbout)
         self.menubar.addAction(self.menuMenu.menuAction())
         self.menubar.addAction(self.menuHelp.menuAction())
@@ -132,5 +135,6 @@ class Ui_MainWindow(object):
         self.actionExit.setShortcut(_translate("MainWindow", "Ctrl+Q"))
         self.action_RuntimeSettings.setText(_translate("MainWindow", "&Runtime settings"))
         self.actionAbout.setText(_translate("MainWindow", "&About"))
+        self.action_GetExampleData.setText(_translate("MainWindow", "&Get example data"))
 
 from . import main_gui_rc

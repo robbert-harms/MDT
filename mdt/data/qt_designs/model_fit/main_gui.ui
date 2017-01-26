@@ -20,7 +20,7 @@
    <string>Maastricht Diffusion Toolbox</string>
   </property>
   <property name="windowIcon">
-   <iconset>
+   <iconset resource="main_gui.qrc">
     <normaloff>:/main_gui/logo</normaloff>:/main_gui/logo</iconset>
   </property>
   <property name="tabShape">
@@ -192,6 +192,7 @@
     <property name="title">
      <string>&amp;Help</string>
     </property>
+    <addaction name="action_GetExampleData"/>
     <addaction name="actionAbout"/>
    </widget>
    <addaction name="menuMenu"/>
@@ -213,6 +214,11 @@
   <action name="actionAbout">
    <property name="text">
     <string>&amp;About</string>
+   </property>
+  </action>
+  <action name="action_GetExampleData">
+   <property name="text">
+    <string>&amp;Get example data</string>
    </property>
   </action>
  </widget>

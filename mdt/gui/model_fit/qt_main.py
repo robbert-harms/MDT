@@ -1,9 +1,12 @@
+import os
 import signal
 import sys
 
 from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtWidgets import QFileDialog
 
 from mdt.gui.model_fit.design.ui_about_dialog import Ui_AboutDialog
+from mdt.gui.model_fit.design.ui_dialog_get_example_data import Ui_GetExampleDataDialog
 from mdt.gui.model_fit.design.ui_runtime_settings_dialog import Ui_RuntimeSettingsDialog
 from mdt.gui.model_fit.tabs.fit_model_tab import FitModelTab
 from mdt.gui.model_fit.tabs.generate_brain_mask_tab import GenerateBrainMaskTab
@@ -65,6 +68,7 @@ class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
 
         self.action_RuntimeSettings.triggered.connect(lambda: RuntimeSettingsDialog(self).exec_())
         self.actionAbout.triggered.connect(lambda: AboutDialog(self).exec_())
+        self.action_GetExampleData.triggered.connect(lambda: GetExampleDataDialog(self, shared_state).exec_())
 
         self.executionStatusLabel.setText('Idle')
         self.executionStatusIcon.setPixmap(QtGui.QPixmap(":/main_gui/icon_status_red.png"))
@@ -171,6 +175,37 @@ class AboutDialog(Ui_AboutDialog, QDialog):
         super(AboutDialog, self).__init__(parent)
         self.setupUi(self)
         self.contentLabel.setText(self.contentLabel.text().replace('{version}', mdt.__version__))
+
+
+class GetExampleDataDialog(Ui_GetExampleDataDialog, QDialog):
+
+    def __init__(self, parent, shared_state):
+        super(GetExampleDataDialog, self).__init__(parent)
+        self._shared_state = shared_state
+        self.setupUi(self)
+        self.outputFileSelect.clicked.connect(lambda: self._select_output_folder())
+        self.outputFile.textChanged.connect(self._check_enable_ok_button)
+        self.buttonBox.button(QDialogButtonBox.Ok).clicked.connect(
+            lambda: mdt.utils.get_example_data(self.outputFile.text()))
+        self._check_enable_ok_button()
+
+    def _select_output_folder(self):
+        initial_dir = self._shared_state.base_dir
+        if self.outputFile.text() != '':
+            initial_dir = self.outputFile.text()
+
+        output_dir = QFileDialog().getExistingDirectory(
+            caption='Select the output folder', directory=initial_dir)
+
+        if output_dir:
+            self.outputFile.setText(output_dir)
+            self._shared_state.base_dir = output_dir
+
+    def _check_enable_ok_button(self):
+        enabled = True
+        if self.outputFile.text() == '':
+            enabled = False
+        self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(enabled)
 
 
 class ComputationsThread(QThread):

@@ -1467,3 +1467,28 @@ def natural_key_sort_cb(_str):
         list: the key to use for sorting the current element.
     """
     return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', _str)]
+
+
+def get_example_data(output_directory):
+    """Get the MDT example data that is accompanying the installation.
+
+    This will write the MDT example data (b1k_b2k and b6k datasets) to the indicated directory. You can use this data
+    for testing MDT on your computer. These example datasets are contained within the MDT package and as such are
+    available on every machine with MDT installed.
+
+    Args:
+        output_directory (str): the directory to write the files to
+    """
+    example_data_dir = os.path.abspath(pkg_resources.resource_filename('mdt', 'data/mdt_example_data'))
+    for dataset_name in os.listdir(example_data_dir):
+
+        dataset_output_path = os.path.join(output_directory, 'mdt_example_data', dataset_name)
+
+        if not os.path.isdir(dataset_output_path):
+            os.makedirs(dataset_output_path)
+
+        for fname in os.listdir(os.path.join(example_data_dir, dataset_name)):
+            full_fname = os.path.join(example_data_dir, dataset_name, fname)
+
+            if os.path.isfile(full_fname):
+                shutil.copy(full_fname, dataset_output_path)
