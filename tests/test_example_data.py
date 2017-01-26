@@ -18,26 +18,23 @@ from pkg_resources import resource_filename
 
 class ExampleDataTest(unittest.TestCase):
 
-    def __init__(self, *args):
-        super(ExampleDataTest, self).__init__(*args)
-        self._tmp_dir = None
-        self._tmp_dir_subdir = 'mdt_example_data'
-
-    def setUp(self):
-        if not self._tmp_dir:
-            self._tmp_dir = tempfile.mkdtemp('mdt_example_data_test')
+    @classmethod
+    def setUpClass(cls):
+        cls._tmp_dir = tempfile.mkdtemp('mdt_example_data_test')
+        cls._tmp_dir_subdir = 'mdt_example_data'
         shutil.copytree(os.path.abspath(resource_filename('mdt', 'data/mdt_example_data')),
-                        os.path.join(self._tmp_dir, self._tmp_dir_subdir))
+                        os.path.join(cls._tmp_dir, cls._tmp_dir_subdir))
 
-        self._run_b1k_b2k_analysis()
-        self._run_b6k_analysis()
+        cls._run_b1k_b2k_analysis()
+        cls._run_b6k_analysis()
 
-    def tearDown(self):
-        if self._tmp_dir:
-            shutil.rmtree(self._tmp_dir)
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls._tmp_dir)
 
-    def _run_b1k_b2k_analysis(self):
-        pjoin = mdt.make_path_joiner(os.path.join(self._tmp_dir, self._tmp_dir_subdir, 'b1k_b2k'))
+    @classmethod
+    def _run_b1k_b2k_analysis(cls):
+        pjoin = mdt.make_path_joiner(os.path.join(cls._tmp_dir, cls._tmp_dir_subdir, 'b1k_b2k'))
 
         problem_data = mdt.load_problem_data(pjoin('b1k_b2k_example_slices_24_38'),
                                              pjoin('b1k_b2k.prtcl'),
@@ -46,8 +43,9 @@ class ExampleDataTest(unittest.TestCase):
         for model_name in ['BallStick_r1 (Cascade)', 'Tensor (Cascade)', 'NODDI (Cascade)']:
             mdt.fit_model(model_name, problem_data, pjoin('output', 'b1k_b2k_example_slices_24_38_mask'))
 
-    def _run_b6k_analysis(self):
-        pjoin = mdt.make_path_joiner(os.path.join(self._tmp_dir, self._tmp_dir_subdir, 'b6k'))
+    @classmethod
+    def _run_b6k_analysis(cls):
+        pjoin = mdt.make_path_joiner(os.path.join(cls._tmp_dir, cls._tmp_dir_subdir, 'b6k'))
 
         problem_data = mdt.load_problem_data(pjoin('b6k_example_slices_24_38'),
                                              pjoin('b6k.prtcl'),
@@ -78,8 +76,8 @@ class ExampleDataTest(unittest.TestCase):
         msg_prefix = 'b1k_b2k - Tensor'
 
         for map_name in known_volumes:
-            self._test_map(user_volumes, known_volumes, map_name, msg_prefix)
-        
+            self._test_map(user_volumes, known_volumes, map_name, msg_prefix, rtol=1e-2)
+
     def _test_map(self, user_volumes, known_volumes, map_to_test, msg_prefix, rtol=1e-4):
         np.testing.assert_allclose(np.mean(user_volumes[map_to_test]), np.mean(known_volumes[map_to_test]),
                                    rtol=rtol, err_msg='{} - {} - mean'.format(map_to_test, msg_prefix))
