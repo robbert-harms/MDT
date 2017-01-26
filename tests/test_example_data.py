@@ -66,11 +66,11 @@ class ExampleDataTest(unittest.TestCase):
 
         models_to_test = [('S0', 'S0'),
                           ('BallStick_r1 (Cascade)', 'BallStick_r1'),
-                          # ('BallStick_r2 (Cascade)', 'BallStick_r2'),
-                          # ('BallStick_r3 (Cascade)', 'BallStick_r3'),
-                          # ('CHARMED_r1 (Cascade)', 'CHARMED_r1'),
-                          # ('CHARMED_r2 (Cascade)', 'CHARMED_r2'),
-                          # ('CHARMED_r3 (Cascade)', 'CHARMED_r3')
+                          ('BallStick_r2 (Cascade)', 'BallStick_r2'),
+                          ('BallStick_r3 (Cascade)', 'BallStick_r3'),
+                          ('CHARMED_r1 (Cascade)', 'CHARMED_r1'),
+                          ('CHARMED_r2 (Cascade)', 'CHARMED_r2'),
+                          ('CHARMED_r3 (Cascade)', 'CHARMED_r3')
                           ]
 
         for model_name, model_basename in models_to_test:
