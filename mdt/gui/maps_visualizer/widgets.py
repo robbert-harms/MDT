@@ -1,7 +1,6 @@
 from PyQt5.QtCore import QEvent
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtCore import pyqtSlot
-from PyQt5.QtWidgets import QDoubleSpinBox
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QLabel
 from PyQt5.QtWidgets import QListWidget
@@ -69,15 +68,3 @@ class MapsReorderer(QListWidget):
         if event.type() == QEvent.ChildRemoved:
             self.items_reordered.emit()
         return False
-
-
-class QDoubleSpinBoxDotSeparator(QDoubleSpinBox):
-
-    def __init__(self, *args, **kwargs):
-        super(QDoubleSpinBoxDotSeparator, self).__init__(*args, **kwargs)
-
-    def valueFromText(self, text):
-        return float(text)
-
-    def textFromValue(self, value):
-        return str(value)

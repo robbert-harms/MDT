@@ -149,7 +149,7 @@ def nifti_filepath_resolution(file_path):
         return file_path + '.nii'
     elif os.path.isfile(file_path + '.nii.gz'):
         return file_path + '.nii.gz'
-    raise ValueError('No nifti file could be found using the path {}.'.format(file_path))
+    raise ValueError('No nifti file could be found using the path {}'.format(file_path))
 
 
 def yield_nifti_info(directory):

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>648</width>
-    <height>564</height>
+    <height>584</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -224,62 +224,31 @@
           <number>3</number>
          </property>
          <item row="0" column="0">
-          <layout class="QGridLayout" name="gridLayout_7" columnstretch="0,1,0">
+          <layout class="QGridLayout" name="gridLayout_7" columnstretch="0,0,0">
            <property name="topMargin">
             <number>0</number>
            </property>
            <property name="bottomMargin">
             <number>0</number>
            </property>
-           <item row="2" column="2">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label">
+             <property name="text">
+              <string>Min:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="2">
             <widget class="QCheckBox" name="use_data_scale_max">
              <property name="text">
               <string/>
              </property>
             </widget>
            </item>
-           <item row="3" column="1">
-            <widget class="QLabel" name="label_4">
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_5">
              <property name="text">
-              <string>Enable:</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QDoubleSpinBoxDotSeparator" name="data_scale_min">
-             <property name="specialValueText">
-              <string/>
-             </property>
-             <property name="decimals">
-              <number>5</number>
-             </property>
-             <property name="minimum">
-              <double>-10000000000.000000000000000</double>
-             </property>
-             <property name="maximum">
-              <double>10000000000.000000000000000</double>
-             </property>
-             <property name="singleStep">
-              <double>0.010000000000000</double>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="1">
-            <widget class="QDoubleSpinBoxDotSeparator" name="data_scale_max">
-             <property name="decimals">
-              <number>5</number>
-             </property>
-             <property name="minimum">
-              <double>-10000000000.000000000000000</double>
-             </property>
-             <property name="maximum">
-              <double>10000000000.000000000000000</double>
-             </property>
-             <property name="singleStep">
-              <double>0.010000000000000</double>
+              <string>Max:</string>
              </property>
             </widget>
            </item>
@@ -290,26 +259,28 @@
              </property>
             </widget>
            </item>
-           <item row="3" column="2">
+           <item row="2" column="1">
+            <widget class="QLabel" name="label_4">
+             <property name="text">
+              <string>Enable:</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="2">
             <widget class="QCheckBox" name="data_set_use_scale">
              <property name="text">
               <string/>
              </property>
             </widget>
            </item>
-           <item row="0" column="0">
-            <widget class="QLabel" name="label">
-             <property name="text">
-              <string>Min:</string>
-             </property>
-            </widget>
+           <item row="0" column="1">
+            <widget class="ScientificNumberScroller" name="data_scale_min" native="true"/>
            </item>
-           <item row="2" column="0">
-            <widget class="QLabel" name="label_5">
-             <property name="text">
-              <string>Max:</string>
-             </property>
-            </widget>
+           <item row="1" column="1">
+            <widget class="ScientificNumberScroller" name="data_scale_max" native="true"/>
            </item>
           </layout>
          </item>
@@ -565,38 +536,6 @@
              </property>
             </widget>
            </item>
-           <item row="0" column="1">
-            <widget class="QDoubleSpinBoxDotSeparator" name="data_clipping_min">
-             <property name="decimals">
-              <number>5</number>
-             </property>
-             <property name="minimum">
-              <double>-9999999999.989999771118164</double>
-             </property>
-             <property name="maximum">
-              <double>9999999999.989999771118164</double>
-             </property>
-             <property name="singleStep">
-              <double>0.010000000000000</double>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1">
-            <widget class="QDoubleSpinBoxDotSeparator" name="data_clipping_max">
-             <property name="decimals">
-              <number>5</number>
-             </property>
-             <property name="minimum">
-              <double>-9999999999.989999771118164</double>
-             </property>
-             <property name="maximum">
-              <double>9999999999.989999771118164</double>
-             </property>
-             <property name="singleStep">
-              <double>0.010000000000000</double>
-             </property>
-            </widget>
-           </item>
            <item row="1" column="2">
             <widget class="QCheckBox" name="use_data_clipping_max">
              <property name="text">
@@ -610,6 +549,12 @@
               <string>Max:</string>
              </property>
             </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="ScientificNumberScroller" name="data_clipping_min" native="true"/>
+           </item>
+           <item row="1" column="1">
+            <widget class="ScientificNumberScroller" name="data_clipping_max" native="true"/>
            </item>
           </layout>
          </item>
@@ -640,22 +585,19 @@
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>QDoubleSpinBoxDotSeparator</class>
-   <extends>QDoubleSpinBox</extends>
-   <header>..widgets</header>
+   <class>ScientificNumberScroller</class>
+   <extends>QWidget</extends>
+   <header>mdt.gui.widgets.composite_widgets</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <tabstops>
   <tabstop>map_title</tabstop>
   <tabstop>data_colorbar_label</tabstop>
   <tabstop>colormap</tabstop>
-  <tabstop>data_scale_min</tabstop>
-  <tabstop>data_scale_max</tabstop>
   <tabstop>use_data_scale_min</tabstop>
   <tabstop>use_data_scale_max</tabstop>
   <tabstop>data_set_use_scale</tabstop>
-  <tabstop>data_clipping_min</tabstop>
-  <tabstop>data_clipping_max</tabstop>
   <tabstop>use_data_clipping_min</tabstop>
   <tabstop>use_data_clipping_max</tabstop>
   <tabstop>data_set_use_clipping</tabstop>

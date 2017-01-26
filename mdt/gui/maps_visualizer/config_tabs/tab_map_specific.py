@@ -6,6 +6,7 @@ from mdt.gui.maps_visualizer.actions import SetMapTitle, SetMapColormap, SetMapS
 from mdt.gui.maps_visualizer.design.ui_MapSpecificOptions import Ui_MapSpecificOptions
 from mdt.gui.maps_visualizer.design.ui_TabMapSpecific import Ui_TabMapSpecific
 from mdt.gui.utils import blocked_signals, TimedUpdate
+from mdt.gui.widgets.composite_widgets import ScientificNumberScroller
 from mdt.visualization.maps.base import DataInfo, SingleMapConfig, MapPlotConfig
 
 __author__ = 'Robbert Harms'
