@@ -15,8 +15,6 @@ import mdt
 import os
 from pkg_resources import resource_filename
 
-from mdt.utils import split_image_path
-
 
 class ExampleDataTest(unittest.TestCase):
 
@@ -45,9 +43,8 @@ class ExampleDataTest(unittest.TestCase):
                                              pjoin('b1k_b2k.prtcl'),
                                              pjoin('b1k_b2k_example_slices_24_38_mask'))
 
-        for model_name in ['BallStick_r1 (Cascade)']:
-            mdt.fit_model(model_name, problem_data, pjoin('output', 'b1k_b2k_example_slices_24_38_mask'),
-                          cl_device_ind=[1])
+        for model_name in ['BallStick_r1 (Cascade)', 'Tensor (Cascade)', 'NODDI (Cascade)']:
+            mdt.fit_model(model_name, problem_data, pjoin('output', 'b1k_b2k_example_slices_24_38_mask'))
 
     def _run_b6k_analysis(self):
         pjoin = mdt.make_path_joiner(os.path.join(self._tmp_dir, self._tmp_dir_subdir, 'b6k'))
@@ -59,30 +56,46 @@ class ExampleDataTest(unittest.TestCase):
         for model_name in ['BallStick_r1 (Cascade)']:
             mdt.fit_model(model_name, problem_data, pjoin('output', 'b6k_example_slices_24_38_mask'))
 
-    def test_compare_b1k_b2k_ballstick(self):
+    def test_b1k_b2k_ballstick(self):
         pjoin = mdt.make_path_joiner(os.path.join(self._tmp_dir, self._tmp_dir_subdir, 'b1k_b2k'))
 
         known_volumes = mdt.load_volume_maps(pjoin('test_output', 'b1k_b2k_example_slices_24_38_mask', 'BallStick_r1'))
         user_volumes = mdt.load_volume_maps(pjoin('output', 'b1k_b2k_example_slices_24_38_mask', 'BallStick_r1'))
 
-        np.testing.assert_allclose(np.mean(user_volumes['w_stick.w']), np.mean(known_volumes['w_stick.w']),
-                                   rtol=1e-4, err_msg='b1k_b2k - BallStick_r1 - w_stick.w - mean')
-        np.testing.assert_allclose(np.std(user_volumes['w_stick.w']), np.std(known_volumes['w_stick.w']),
-                                   rtol=1e-4, err_msg='b1k_b2k - BallStick_r1 - w_stick.w - std')
+        msg_prefix = 'b1k_b2k - BallStick_r1'
 
-        np.testing.assert_allclose(np.mean(user_volumes['LogLikelihood']), np.mean(known_volumes['LogLikelihood']),
-                                   rtol=1e-4, err_msg='b1k_b2k - BallStick_r1 - LogLikelihood - mean')
-        np.testing.assert_allclose(np.std(user_volumes['LogLikelihood']), np.std(known_volumes['LogLikelihood']),
-                                   rtol=1e-4, err_msg='b1k_b2k - BallStick_r1 - LogLikelihood - std')
+        self._test_map(user_volumes, known_volumes, 'LogLikelihood', msg_prefix)
+        self._test_map(user_volumes, known_volumes, 'w_stick.w', msg_prefix)
+        self._test_weighted_maps(user_volumes, known_volumes, ['Stick.theta', 'Stick.phi'],
+                                 'w_stick.w', msg_prefix)
 
-        for map_name in ['Stick.theta', 'Stick.phi']:
-            known = known_volumes[map_name] * known_volumes['w_stick.w']
-            user = user_volumes[map_name] * user_volumes['w_stick.w']
+    def test_b1k_b2k_tensor(self):
+        pjoin = mdt.make_path_joiner(os.path.join(self._tmp_dir, self._tmp_dir_subdir, 'b1k_b2k'))
+
+        known_volumes = mdt.load_volume_maps(pjoin('test_output', 'b1k_b2k_example_slices_24_38_mask', 'Tensor'))
+        user_volumes = mdt.load_volume_maps(pjoin('output', 'b1k_b2k_example_slices_24_38_mask', 'Tensor'))
+
+        msg_prefix = 'b1k_b2k - Tensor'
+
+        for map_name in known_volumes:
+            self._test_map(user_volumes, known_volumes, map_name, msg_prefix)
+        
+    def _test_map(self, user_volumes, known_volumes, map_to_test, msg_prefix, rtol=1e-4):
+        np.testing.assert_allclose(np.mean(user_volumes[map_to_test]), np.mean(known_volumes[map_to_test]),
+                                   rtol=rtol, err_msg='{} - {} - mean'.format(map_to_test, msg_prefix))
+        np.testing.assert_allclose(np.std(user_volumes[map_to_test]), np.std(known_volumes[map_to_test]),
+                                   rtol=rtol, err_msg='{} - {} - std'.format(map_to_test, msg_prefix))
+
+    def _test_weighted_maps(self, user_volumes, known_volumes, maps_to_test, map_to_weight_by, msg_prefix, rtol=1e-2):
+        for map_name in maps_to_test:
+            known = known_volumes[map_name] * known_volumes[map_to_weight_by]
+            user = user_volumes[map_name] * user_volumes[map_to_weight_by]
 
             np.testing.assert_allclose(np.mean(user), np.mean(known),
-                                       rtol=1e-2, err_msg='b1k_b2k - BallStick_r1 - {} - mean'.format(map_name))
+                                       rtol=rtol, err_msg='{} - {} - mean'.format(msg_prefix, map_name))
             np.testing.assert_allclose(np.std(user), np.std(known),
-                                       rtol=1e-2, err_msg='b1k_b2k - BallStick_r1 - {} - std'.format(map_name))
+                                       rtol=rtol, err_msg='{} - {} - std'.format(msg_prefix, map_name))
+
 
 
 if __name__ == '__main__':
