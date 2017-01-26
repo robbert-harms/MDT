@@ -44,8 +44,7 @@ class ExampleDataTest(unittest.TestCase):
 
         output_dir = pjoin('output', 'b1k_b2k_example_slices_24_38_mask')
 
-        models_to_test = [('S0', 'S0'),
-                          ('BallStick_r1 (Cascade)', 'BallStick_r1'),
+        models_to_test = [('BallStick_r1 (Cascade)', 'BallStick_r1'),
                           ('NODDI (Cascade)', 'NODDI'),
                           ('Tensor (Cascade)', 'Tensor')]
 
@@ -64,8 +63,7 @@ class ExampleDataTest(unittest.TestCase):
 
         output_dir = pjoin('output', 'b6k_example_slices_24_38_mask')
 
-        models_to_test = [('S0', 'S0'),
-                          ('BallStick_r1 (Cascade)', 'BallStick_r1'),
+        models_to_test = [('BallStick_r1 (Cascade)', 'BallStick_r1'),
                           ('BallStick_r2 (Cascade)', 'BallStick_r2'),
                           ('BallStick_r3 (Cascade)', 'BallStick_r3'),
                           ('CHARMED_r1 (Cascade)', 'CHARMED_r1'),

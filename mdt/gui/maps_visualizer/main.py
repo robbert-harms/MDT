@@ -169,7 +169,7 @@ class PlottingFrameInfoToStatusBar(PlottingFrameInfoViewer):
 
     def set_voxel_info(self, onscreen_coords, data_index, value):
         super(PlottingFrameInfoToStatusBar, self).set_voxel_info(onscreen_coords, data_index, value)
-        self._status_bar_label.setText("{}, {}, {:.3f}".format(onscreen_coords, data_index, value))
+        self._status_bar_label.setText("{}, {}, {:.3e}".format(onscreen_coords, data_index, value))
 
     def clear_voxel_info(self):
         super(PlottingFrameInfoToStatusBar, self).clear_voxel_info()
