@@ -234,6 +234,7 @@ class LoadColumnDialog(Ui_UpdateColumnDialog, QDialog):
         self._shared_state = shared_state
         self.setupUi(self)
         self.inputMethodSelector.currentIndexChanged.connect(self.enable_correct_inputs)
+        self.inputMethodSelector.setCurrentIndex(1)
         self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(False)
         self.columnNameInput.textChanged.connect(self._update_ok_button)
         self.singleValueInput.textChanged.connect(self._update_ok_button)

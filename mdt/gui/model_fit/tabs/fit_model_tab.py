@@ -178,7 +178,13 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
         self._run_model_worker.finished.connect(
             lambda: self._shared_state.set_output_folder(self._get_full_model_output_path()))
 
-        script_base_name = self.selectedOutputFolder.text() + '/' + self.modelSelection.currentText()
+        image_path = split_image_path(self._problem_data_info.dwi)
+        script_basename = os.path.join(image_path[0], 'scripts',
+                                       'fit_model_{}_{}'.format(self.modelSelection.currentText().replace('|', '.'),
+                                                                image_path[1]))
+        if not os.path.isdir(os.path.join(image_path[0], 'scripts')):
+            os.makedirs(os.path.join(image_path[0], 'scripts'))
+
         script_info = dict(optim_options=self._optim_options,
                            problem_data_info=self._problem_data_info,
                            model=self.modelSelection.currentText(),
@@ -189,10 +195,10 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
                            save_user_script_info=False)
 
         self._run_model_worker.finished.connect(
-            lambda: self._write_python_script_file(script_base_name + '_script.py', **script_info))
+            lambda: self._write_python_script_file(script_basename + '.py', **script_info))
 
         self._run_model_worker.finished.connect(
-            lambda: self._write_bash_script_file(script_base_name + '_script.sh', **script_info))
+            lambda: self._write_bash_script_file(script_basename + '.sh', **script_info))
 
         self._run_model_worker.starting.emit()
 
@@ -223,7 +229,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
             double_precision=kwargs['double_precision'],
             cl_device_ind=[ind for ind, device in enumerate(all_cl_devices) if device in user_selected_devices])
 
-        with open(output_file.replace('|', '.'), 'w') as f:
+        with open(output_file, 'w') as f:
             f.write('#!/usr/bin/env python\n')
 
             if optim_options.use_model_default_optimizer:
@@ -285,7 +291,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
         all_cl_devices = CLEnvironmentFactory.smart_device_selection()
         user_selected_devices = mot.configuration.get_cl_environments()
 
-        with open(output_file.replace('|', '.'), 'w') as f:
+        with open(output_file, 'w') as f:
             f.write('#!/usr/bin/env bash\n')
             f.write(dedent('''
                 {header}

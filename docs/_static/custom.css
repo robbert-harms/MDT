@@ -39,3 +39,7 @@ div.body h3{
 #table-of-contents > ul > li:first-child{
     margin-top:0px;
 }
+
+.caption-text{
+    font-style:italic;
+}

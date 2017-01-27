@@ -96,6 +96,43 @@ Users are free to add, remove and modify components in this folder and MDT will 
 See :ref:`dynamic_modules` for more information.
 
 
+.. _concepts_composite_and_cascade_models:
+
+****************************
+Composite and cascade models
+****************************
+Broadly there are two types of models that MDT can use in the model fitting routines,
+single composite models like "BallStick_r1" and cascaded models like "BallStick_r1 (Cascade)".
+The composite models are simply multi-compartment models like "NODDI" and "CHARMED" taken from the reference papers and are the models being optimized by the optimization algorithms.
+Cascade models add a layer on top of the composite models by optimizing multiple models in turn and using the calculated maps of the more simpler models
+for the initialization of the more complex models.
+These cascade models are not directly optimized per-se but are more of a meta-optimization strategy for the final model in the cascade.
+
+By default, the composite models follow a naming scheme in which models that can feature more than one restricted compartment are indicated with the postfix ``_r{n}``.
+For example "BallStick_r1" is a model with only one restricted compartment (i.e. only one Stick), while the model "BallStick_r2" has two restricted compartments.
+The restricted compartment can differ per model, so in the "CHARMED_r2" model we have two cylinders since the restricted compartment in the "CHARMED" model is a cylinder.
+
+In terms of cascaded models, MDT comes standard pre-supplied with three variants:
+
+* Cascade S0 (CS) with model postfix "(Cascade|S0)"
+* Cascade Initialized (CI) with model postfix "(Cascade)"
+* Cascade Fixed (CF) with model postfix "(Cascade|fixed)"
+
+All these cascade variants are ways of initializing the next model in the cascade to ensure a good starting position.
+In (Harms 2017) it is shown that this way of cascading can improve the fit over regular model optimization.
+
+The following figure shows how the three different cascades work with as example the NODDI model.
+
+.. figure:: _static/figures/cascading_illustration.png
+
+    Illustration of the three different cascading strategies (for the example of the NODDI model): CS, CI and CF.
+    The blue arrows indicate initialization of a parameter, the orange arrows indicate fixing a parameter.
+
+
+In general we always recommend to run at least a "(Cascade|S0)" for any model and to gradually move to CI with the "(Cascade)" postfix
+or CF with the "(Cascade|fixed)" postfix.
+
+
 .. _concepts_cl_code:
 
 *******

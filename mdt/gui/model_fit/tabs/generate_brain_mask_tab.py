@@ -120,12 +120,16 @@ class GenerateBrainMaskTab(MainTab, Ui_GenerateBrainMaskTabContent):
         self._generate_mask_worker.finished.connect(lambda: self.generateButton.setEnabled(True))
         self._generate_mask_worker.finished.connect(lambda: self.viewButton.setEnabled(True))
 
-        script_basename = os.path.join(*(split_image_path(self.selectedOutputText.text())[:2]))
-        self._generate_mask_worker.finished.connect(
-            lambda: self._write_python_script_file(script_basename + '_script.py', *args, **kwargs))
+        image_path = split_image_path(self.selectedOutputText.text())
+        script_basename = os.path.join(image_path[0], 'scripts', 'generate_mask_' + image_path[1])
+        if not os.path.isdir(os.path.join(image_path[0], 'scripts')):
+            os.makedirs(os.path.join(image_path[0], 'scripts'))
 
         self._generate_mask_worker.finished.connect(
-            lambda: self._write_bash_script_file(script_basename + '_script.sh', *args, **kwargs))
+            lambda: self._write_python_script_file(script_basename + '.py', *args, **kwargs))
+
+        self._generate_mask_worker.finished.connect(
+            lambda: self._write_bash_script_file(script_basename + '.sh', *args, **kwargs))
 
         self._generate_mask_worker.starting.emit()
 
