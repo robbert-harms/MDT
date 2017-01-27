@@ -3,11 +3,11 @@
 ###############
 Dynamic modules
 ###############
-At application startup MDT automatically loads certain modules from a folder on your home drive.
-These modules are Python files containing functionality that the user can extend without the need to reinstall or recompile MDT.
-
 After installing MDT you will have a folder in your home drive named ``.mdt``.
-This folder contains, for every version of MDT that existed on your machine, a directory containing the configuration files and a
+This folder contains diffusion MRI models and other functionality that the user can extend without the need to reinstall or recompile MDT.
+At application startup, MDT automatically loads these modules and are directly ready to be used.
+
+The ``.mdt`` folder contains, for every version of MDT that existed on your machine, a directory containing the configuration files and a
 folder with the dynamically loadable modules.
 A typical layout of the ``.mdt`` directory is:
 
@@ -35,8 +35,8 @@ The components folder consists of two sub-folders, *standard* and *user*, with a
 
 By editing the contents of these folders, the user can add, extend and/or remove functionality in MDT.
 The folder named *standard* contains modules that come pre-supplied with MDT.
-These modules can change from version to version and any change you make in in this folder will be lost after a version upgrade.
-To make changes that persist over upgrades you can add your modules to the *user* folder.
+These modules can change from version to version and any change you make in in this folder will be lost after an update.
+To make persistent changes you can add your modules to the *user* folder.
 The content of this folder is automatically copied to a new version.
 
 The rest of this chapter explains the various components in more detail.

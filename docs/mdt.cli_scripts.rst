@@ -28,6 +28,14 @@ mdt.cli_scripts.mdt_batch_fit module
     :undoc-members:
     :show-inheritance:
 
+mdt.cli_scripts.mdt_estimate_noise_std module
+---------------------------------------------
+
+.. automodule:: mdt.cli_scripts.mdt_estimate_noise_std
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 mdt.cli_scripts.mdt_generate_bvec_bval module
 ---------------------------------------------
 
@@ -56,6 +64,14 @@ mdt.cli_scripts.mdt_generate_roi_slice module
 ---------------------------------------------
 
 .. automodule:: mdt.cli_scripts.mdt_generate_roi_slice
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+mdt.cli_scripts.mdt_get_example_data module
+-------------------------------------------
+
+.. automodule:: mdt.cli_scripts.mdt_get_example_data
     :members:
     :undoc-members:
     :show-inheritance:

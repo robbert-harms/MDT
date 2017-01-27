@@ -8,6 +8,7 @@ Subpackages
 
     mdt.gui.maps_visualizer
     mdt.gui.model_fit
+    mdt.gui.widgets
 
 Submodules
 ----------

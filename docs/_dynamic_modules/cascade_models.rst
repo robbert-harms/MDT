@@ -6,7 +6,7 @@ Cascade models
 Cascade models are meant to make chained optimization procedures explicit.
 For example, complex models like CHARMED and NODDI are optimized better if the optimization routine is initialized at a better starting point (Harms 2017).
 This could be as simple as initializing the model with the height of the unweighted signal, or be as complex as initializing the fibre directions and volume fractions.
-To create a new cascade model, you will need to specify, at a minimum, the ``name`` and ``models`` attribute of the cascade definition, for example:
+To create a new cascade model, you will need to specify, at a minimum, the ``name`` and the ``models`` attributes:
 
 .. code-block:: python
 
@@ -18,7 +18,6 @@ To create a new cascade model, you will need to specify, at a minimum, the ``nam
 
 
 In this example we create a cascade going from a (cascaded) BallStick_r3 model to a CHARMED_r3 model.
-See the next section for more on the initializations.
 
 
 Parameter initializations
@@ -46,7 +45,8 @@ Extending the previous CHARMED_r3 example, we get:
 
 In this extended example we still automatically initialize the S0 compartment and additionally initialize a lot more parameters.
 These ``inits`` should be read as: "When optimizing CHARMED_r3, take from the previous model fit the 'Stick0.theta' results and use that to initialize the 'Tensor.theta' parameter.
-Then, take the 'Stick0.phi results and use that to initialize the 'Tensor.phi' parameter, then ... and so forth ...".
+Then, take the 'Stick0.phi results and use that to initialize the 'Tensor.phi' parameter, then ..., and so forth."
+For the exact specification syntax, please see below.
 
 
 Parameter fixations
@@ -69,12 +69,13 @@ For example:
 Using the attribute ``fixes`` we here specified that some of the parameters are fixed to a previous value instead of initializing them.
 In this example we fixed the ``theta`` and ``phi`` parameter of the intra-axonal compartments to that of a previous BallStick fit, which means we are no longer optimizing
 those directions but take them literally from the previous model.
+For the exact specification syntax, please see below.
 
 
 Value specification syntax
 ==========================
-There are various ways in which it is possible to specify the value to use for the initialization or fixation of the next model in the cascade.
-The basic syntax of the ``inits`` and ``fixes`` attribute is:
+There are various ways in which it is possible to specify the ``inits`` and ``fixes`` in a cascade.
+The basic syntax is:
 
 .. code-block:: python
 
@@ -82,10 +83,11 @@ The basic syntax of the ``inits`` and ``fixes`` attribute is:
      ...
     }
 
-Where model name is one of the models in the cascade followed by a list of parameters value specifications that specify what to do with the parameters of that model.
+
+This is a dictionary with per model in the cascade you have a list of parameter specifications that specify what to do with the parameters of that model.
 There are three different parameter specifications possible:
 
-* *Single value* or *ndarray*: specify a value to use, for example using a value of 1e5 for the S0.s0 parameter of a model
+* *Single value* or *ndarray*: specify a value to use
 * *String*: the name of a parameter from the previous model, this is the most common approach
 * *Function*: specify a function that accepts two dictionaries, ``output_previous`` and ``output_all_previous``.
   The first contains the results of the previous model fit indexed by parameter names.
@@ -102,8 +104,10 @@ An example highlighting all these syntactic options would be:
                   'NODDI')
 
         inits = {'BallStick_r1': [('S0.s0', 1e5)],
-                 'NODDI': [('NODDI_IC.theta', 'Stick.theta'),
-                           ('NODDI_IC.phi', lambda output_previous, output_all_previous: output_previous['Stick.phi']]),
-                           ('S0.s0', lambda output_previous, output_all_previous: output_all_previous['S0']['S0.s0'])]
+                 'NODDI':        [('NODDI_IC.theta', 'Stick.theta'),
+                                  ('NODDI_IC.phi', lambda output_previous, output_all_previous:
+                                                            output_previous['Stick.phi']),
+                                  ('S0.s0', lambda output_previous, output_all_previous:
+                                                            output_all_previous['S0']['S0.s0'])]
                 }
 

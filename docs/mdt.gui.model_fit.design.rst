@@ -20,6 +20,14 @@ mdt.gui.model_fit.design.ui_about_dialog module
     :undoc-members:
     :show-inheritance:
 
+mdt.gui.model_fit.design.ui_dialog_get_example_data module
+----------------------------------------------------------
+
+.. automodule:: mdt.gui.model_fit.design.ui_dialog_get_example_data
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 mdt.gui.model_fit.design.ui_fit_model_tab module
 ------------------------------------------------
 

@@ -3,7 +3,7 @@ Batch profiles
 **************
 Batch profiles are part of the batch processing engine in MDT.
 They specify how all the necessary data for model fitting (protocol, nifti volumes, brain mask, noise std, etc.) can be loaded from a directory containing one or more subjects.
-This information is then used during for example batch fitting where MDT routinely asks the batch profile for the data of each of the subjects to be able to process them.
+During batch fitting the batch profiles provide the data of each of the subjects in turn such that MDT can process them.
 
 For example, suppose you have a directory containing a lot of subjects on which you want to run the NODDI analysis using MDT.
 One way to do this would be to write a script that loops over the directories and calls the right fitting commands per subject.
@@ -17,5 +17,3 @@ This makes batch processing in some instances as simple as using:
 .. code-block:: bash
 
     $ mdt-batch-fit .
-
-

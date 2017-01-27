@@ -2,7 +2,7 @@
 Concepts
 ########
 
-This chapter introduces the user to a few concepts that helps to get started with using the Maastricht Diffusion Toolbox.
+This chapter introduces the reader to a few concepts that help to get started with the Maastricht Diffusion Toolbox.
 
 .. contents:: Table of Contents
    :local:
@@ -13,8 +13,8 @@ This chapter introduces the user to a few concepts that helps to get started wit
 ********
 Protocol
 ********
-In MDT, the Protocol contains the settings used for the MRI measurements and is by convention stored in a protocol file with suffix ``.prtcl``.
-In such a protocol file, every row represents an MRI volume and every column (tab separated) represents a specific protocol settings.
+In MDT, the Protocol contains the settings used in the MRI measurements and is by convention stored in a protocol file with suffix ``.prtcl``.
+In such a protocol file, every row represents an MRI volume, and every column (tab separated) represents a specific protocol settings.
 Since every row (within a column) can have a distinct value, this setup automatically enables *multi-shell protocol* files (just change the b-value per volume/row).
 
 The following is an example of a simple MDT protocol file::
@@ -35,8 +35,8 @@ And, for a more advanced protocol file::
     ...
 
 
-The header (starting with #) is a single required line with per data column a name for that column.
-The order of the columns does not matter but the order of the names should match the order of the value columns.
+The header (starting with #) is a single required line with per column a name.
+The order of the columns does not matter but the order of the header names should match the order of the value columns.
 MDT automatically links protocol columns to the protocol parameters of a model (see :ref:`protocol_parameters`), so make sure that the columns names are identical to the
 protocol parameter names in your model.
 
@@ -52,12 +52,12 @@ The pre-provided list of column names is:
 
 Note that MDT expects the columns to be in **SI units**.
 
-The protocol dependencies change per model and MDT issues a warning if a required column is missing from the protocol.
+The protocol dependencies change per model and MDT will issue a warning if a required column is missing from the protocol.
 If no b-value is provided, MDT will calculate one using Delta, delta and G.
 If the b-value and two out of three of ``{Delta, delta, G}`` are given, the provided b-value will take preference.
 If at least three of ``{b, Delta, delta, G}`` are given the missing value will be calculated automatically when required.
 
-A protocol can be created from a bvec/bval pair of files using the command line, python shell or GUI.
+A protocol can be created from a bvec/bval pair using the command line, python shell and/or GUI.
 Please see the relevant sections in :ref:`analysis` for more details on creating a protocol.
 
 
@@ -66,23 +66,25 @@ Please see the relevant sections in :ref:`analysis` for more details on creating
 ************
 Problem data
 ************
-In MDT, all data needed to fit a model is stored independently from the model in a :py:class:`~mdt.utils.DMRIProblemData` object.
+In MDT, all data that is needed to fit a model is stored in a :py:class:`~mdt.utils.DMRIProblemData` object.
 An instance of this object needs to be created before fitting a model.
 Then, during model fitting, the model loads the relevant data for the computations.
 
 The easiest way to instantiate a problem data object is by using the function :func:`~mdt.utils.load_problem_data`.
 At a bare minimum, this function requires:
 
-* ``volume_info``, the diffusion weighted volume, or MRI data in general in the case of other MRI modalities
+* ``volume_info``, a path to the diffusion weighted volume
 * ``protocol``, an Protocol instance containing the protocol information
 * ``mask``, the mask (3d) specifying which voxels to use for the computations
 
 Additionally you can provide a *dictionary of static maps*, a *gradient deviations* file and a *standard deviation* for the noise.
-For the standard deviation you have the choice to either provide a single value, an ndarray with one value per voxel or the string 'auto'.
-If 'auto' is given MDT will use one or more of the :ref:`dynamic_modules_noise_std_estimators` to estimate the standard deviation of the
+For the standard deviation you have the choice to either provide a single value, an ndarray with a value per voxel, or the string 'auto'.
+If 'auto' is given, MDT will use one or more of the :ref:`dynamic_modules_noise_std_estimators` to estimate the standard deviation of the
 noise of the unweighted diffusion MRI in the complex plain.
 The gradient deviations should be in the format described by the HCP Wu-Minn project.
-The static maps then is a dictionary of maps with one value per voxel or, alternatively, one value per voxel per volume.
+Using the static maps the user can optionally provide an dictionary of maps to be used in the model fitting.
+The model will take from this what it needs (and if it needs it) for model optimization.
+The maps in this dictionary can either contain one value per voxel or one value per voxel per volume.
 
 
 ***************
@@ -90,7 +92,7 @@ Dynamic modules
 ***************
 Extending and adapting MDT with new models is made easy using dynamically loadable modules placed in your home folder.
 These modules are Python files placed in the ``.mdt`` folder in your home drive and are reloaded every time MDT is started.
-Users are free to add, remove and modify components in this folder and MDT will pickup the changes after a restart.
+Users are free to add, remove and modify components in this folder and MDT will pickup the changes automatically.
 See :ref:`dynamic_modules` for more information.
 
 
@@ -99,6 +101,10 @@ See :ref:`dynamic_modules` for more information.
 *******
 CL code
 *******
+While MDT (and MOT) are programmed in Python, the actual computations are executed using OpenCL.
+OpenCL is a platform and language specification that allows you to run C-like code on both the processor (CPU) and the graphics cards (GPU).
+The reason MDT is fast is since it a) uses a compiled language (OpenCL C) for the computations and b) executes it on the graphics card.
+
 The compartment models in MDT are programmed in the OpenCL C language (CL language from hereon).
 See (https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/mathFunctions.html) for a quick reference on the available math functions in OpenCL.
 
@@ -107,10 +113,11 @@ See this figure for the general compilation flow in MDT:
 
 .. image:: _static/figures/mdt_compilation_flow.png
 
-There is one catch to this setup, one must avoid naming conflicts.
+
+When creating a compartment model in MDT, please make sure to follow the compartment modeling guidelines in :ref:`model_building_defining_compartments` to prevent naming conflicts.
 Since OpenCL kernels have a single global function namespace and a lot of functions are combined into one kernel
 (e.g. compartment models, optimization routines, library routines etc.) it is possible to have naming conflicts.
-If you follow the compartment modeling guidelines in :ref:`model_building_defining_compartments` you are generally fine.
+If you follow the modeling guidelines you are generally fine.
 
 To support both single and double floating point precision, MDT uses the ``mot_float_type`` instead of ``float`` and ``double`` for most of the variables and function definitions.
 During optimization and sampling, ``mot_float_type`` is type-defined to be either a float or a double, depending on the desired precision.

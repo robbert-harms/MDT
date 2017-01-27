@@ -44,7 +44,7 @@ That should have been done automatically when you used the Ubuntu PPA.
 
 
 ********
-Log file
+Analysis
 ********
 
 What do the "model protocol options" entries in the log file mean?
@@ -53,3 +53,13 @@ This message represent itself either as "Applying model protocol options, we wil
 In both cases, this refers to the :ref:`dynamic_modules_composite_models_protocol_options` set in the composite model you fitted or sampled.
 In the first case we are applying model protocol options and hence we are only using a subset of all volumes, in the second case we use all volumes.
 See the part about the :ref:`dynamic_modules_composite_models_protocol_options` for more information and on how to define these protocol options.
+
+
+Why does the noise standard deviation differ when using another mask?
+=====================================================================
+By default MDT tries to estimate the noise standard deviation of the images in the complex domain.
+This standard deviation is used in the analysis as the standard deviation in the evaluation model (commonly Offset-Gaussian).
+This standard deviation is commonly estimated using an average of per-voxel estimations.
+When a different mask is used there are different voxels used for the standard deviation estimation and hence the resulting value differs.
+
+To prevent this from happening it is suggested that researchers estimate the noise std. beforehand using a whole brain mask and use that value in all other analysis.
