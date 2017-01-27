@@ -22,3 +22,4 @@ Introduction
     FAQ <faq>
     credits
     developers
+    cli_index

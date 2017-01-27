@@ -22,7 +22,7 @@ class GenerateBvecBval(BasicShellApplication):
         super(GenerateBvecBval, self).__init__()
         mdt.init_user_settings(pass_if_exists=True)
 
-    def _get_arg_parser(self):
+    def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
         description += self._get_citation_message()
 

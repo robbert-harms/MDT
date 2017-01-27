@@ -16,7 +16,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class InitUserSettings(BasicShellApplication):
 
-    def _get_arg_parser(self):
+    def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__ + """
 
             The location we will write to is: {}

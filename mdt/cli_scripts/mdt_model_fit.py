@@ -28,7 +28,7 @@ class ModelFit(BasicShellApplication):
         self.available_devices = list((ind for ind, env in
                                        enumerate(cl_environments.CLEnvironmentFactory.smart_device_selection())))
 
-    def _get_arg_parser(self):
+    def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
         description += mdt.shell_utils.get_citation_message()
 

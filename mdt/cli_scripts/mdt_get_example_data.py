@@ -21,7 +21,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class GetExampleData(BasicShellApplication):
 
-    def _get_arg_parser(self):
+    def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
         description += mdt.shell_utils.get_citation_message()
 

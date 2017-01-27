@@ -70,11 +70,32 @@ class BasicShellApplication(object):
             args: the arguments from the argparser.
         """
 
-    def _get_arg_parser(self):
+    def get_arg_parser(self, doc_parser=False):
+        """Get the argument parser.
+
+        Args:
+            doc_parser (boolean): If true the parser should be prepared for the documentation. If false (the default)
+                the parser should be generated for the command line.
+
+        Returns:
+            argparse.ArgumentParser: the argument parser
+        """
+        return self._get_arg_parser(doc_parser=doc_parser)
+
+    def _get_arg_parser(self, doc_parser=False):
         """Create the auto parser. This should be implemented by the implementing class.
 
         To enable autocomplete in your shell please execute activate-global-python-argcomplete in your shell.
 
+        The arg parser should support two output modes, one for the command line (default) and one for generating
+        the documentation. If the flag doc_parser is true the parser should be generated for the documentation.
+
+        Args:
+            doc_parser (boolean): If true the parser should be prepared for the documentation. If false (the default)
+                the parser should be generated for the command line.
+
+        Returns:
+            argparse.ArgumentParser: the argument parser
         """
         description = textwrap.dedent("""
             Basic parser introduction here.

@@ -14,7 +14,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class ListModels(BasicShellApplication):
 
-    def _get_arg_parser(self):
+    def _get_arg_parser(self, doc_parser=False):
         description = __doc__
         description += mdt.shell_utils.get_citation_message()
 

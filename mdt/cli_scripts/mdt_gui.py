@@ -23,9 +23,11 @@ class GUI(BasicShellApplication):
         super(GUI, self).__init__()
         init_user_settings(pass_if_exists=True)
 
-    def _get_arg_parser(self):
+    def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
-        description += get_citation_message()
+
+        if not doc_parser:
+            description += get_citation_message()
 
         parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument('-d', '--dir', metavar='dir', type=str, help='the base directory for the file choosers',
@@ -39,6 +41,11 @@ class GUI(BasicShellApplication):
             cwd = os.getcwd()
 
         start_gui(cwd)
+
+
+def get_doc_arg_parser():
+    return GUI().get_arg_parser(doc_parser=True)
+
 
 if __name__ == '__main__':
     GUI().start()

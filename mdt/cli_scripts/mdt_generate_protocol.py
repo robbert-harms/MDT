@@ -29,7 +29,7 @@ class GenerateProtocol(BasicShellApplication):
         mdt.init_user_settings(pass_if_exists=True)
         self.parse_unknown_args = True
 
-    def _get_arg_parser(self):
+    def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
         description += get_citation_message()
 

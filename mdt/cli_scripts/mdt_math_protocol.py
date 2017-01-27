@@ -33,7 +33,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class MathProtocol(BasicShellApplication):
 
-    def _get_arg_parser(self):
+    def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
         description += self._get_citation_message()
 
