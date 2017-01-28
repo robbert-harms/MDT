@@ -1,3 +1,5 @@
+.. _dynamic_modules_batch_profiles:
+
 **************
 Batch profiles
 **************

@@ -122,26 +122,154 @@ The defaults are generally fine.
 
 Using the command line
 ======================
-Another way of interfacing with MDT is by using the
+After installation a few command line functions are installed to your system.
+These commands, starting with ``mdt-`` allow you to use various functionality of MDT using the command line.
+For an overview of the available commands, please see: :ref:`cli_index`.
 
+Obtaining the example data
+--------------------------
+While this guide can in principle be followed using any dataset it is advised to first follow it using the MDT example data.
+A few slices of this example data come pre-supplied with MDT.
+To obtain these with the command line, please use the command :ref:`cli_index_mdt-get-example-data` to retrieve the data:
+
+.. code-block:: console
+
+    $ mdt-get-example-data .
 
 
 Creating a protocol file
 ------------------------
+As explained in :ref:`concepts_protocol`, MDT stores all the acquisition settings relevant for the analysis in a Protocol file.
+To create one using the command line, you can use the command :ref:`cli_index_mdt-generate-protocol`.
+The most basic usage is to create a protocol file from a b-vec and b-val file:
+
+.. code-block:: console
+
+    $ mdt-generate-protocol data.bvec data.bval
+
+which will generate a protocol file named "data.prtcl".
+For a more sophisticated protocol, one can add additional columns using the ``--<column_name> <value>`` syntax.
+For example:
+
+.. code-block:: console
+
+    $ mdt-generate-protocol d.bvec d.bval --Delta 42 --delta delta.txt
+
+which will add both the column ``Delta`` to your protocol file (with a static value of 42 ms) and the column ``delta``
+which is read from a file. If a file is given it can either contain a column, row or scalar.
+
+If you have already generated a protocol file and wish to change it you can use the :ref:`cli_index_mdt-math-protocol` command.
+This command allows you to change a protocol file using a expression. For example:
+
+.. code-block:: console
+
+    $ mdt-math-protocol p.prtcl 'G *= 1e-3; TE = 60e-3; del(TR)' -o new.prtcl
+
+
+this command scales G, adds or replaces TE and deletes the column TR from the protocol and writes it to a new protocol file.
+
+An example usage in the case of the MDT example data would be the command:
+
+.. code-block:: console
+
+    $ cd b1k_b2k
+    $ mdt-generate-protocol b1k_b2k.bvec b1k_b2k.bval \
+        --Delta 42 \
+        --delta 31.7 \
+        --TE 60 \
+        --TR 7100 \
+
+note that by default the sequence timings are in ``ms``.
+
+
+Generating a brain mask
+-----------------------
+MDT has some rough functionality for creating a brain mask, similar to the ``median_otsu`` algorithm in Dipy.
+This algorithm is not as sophisticated as for example BET in FSL, therefore we will not go in to much detail here.
+The mask generating functionality in MDT is merely meant for quickly creating a mask within MDT.
+
+Nevertheless, creating a mask is made easy using the command :ref:`cli_index_mdt-generate-mask`:
+
+.. code-block:: console
+
+    $ mdt-generate-mask data.nii.gz data.prtcl
+
+which generates a mask named ``data_mask.nii.gz``.
+
+
+Generating a ROI mask
+---------------------
+It is sometimes convenient to run analysis on a single slice (Region Of Interest) before running it whole brain.
+For the example data we do not need this step since that dataset is already compressed to two slices.
+
+To create a ROI mask for your own data you can either use the :ref:`cli_index_mdt-generate-roi-slice` command:
+
+.. code-block:: console
+
+    $ mdt-generate-roi-slice mask.nii.gz -d 2 -s 30
+
+this generates a mask in dimension 2 on index 30 (0-based).
+
+Another way of generating a mask is by using the :ref:`cli_index_mdt-math-img` command:
+
+.. code-block:: console
+
+    $ mdt-math-img mask.nii.gz 'a[..., 30]' -o mask_2_30.nii.gz
+
+Since :ref:`cli_index_mdt-math-img` allows expressions on nifti files, it can generate more complex ROI masks.
+
 
 Ball&Stick_r1 estimation example
 --------------------------------
+Model fitting using the command line is made easy using the :ref:`cli_index_mdt-model-fit` command.
+Please see the reference manual for all switches and options for the model fit command.
 
-Estimating another model
-------------------------
+The basic usage is to fit for example Ball&Stick_r1 on a dataset:
 
-Estimating Ball&Sticks and NODDI on 3T HCP data
------------------------------------------------
-Estimating CHARMED on HCP MGH data
-----------------------------------
+.. code-block:: console
+
+    $ cd b1k_b2k
+    $ mdt-model-fit "BallStick_r1 (Cascade)" \
+        b1k_b2k_example_slices_24_38.nii.gz \
+        b1k_b2k.prtcl \
+        *mask.nii.gz
+
+This command needs at least a model name, a dataset, a protocol and a mask to function.
+For a list of supported models, please run the command :ref:`cli_index_mdt-list-models`.
+
+
+Estimating any model
+--------------------
+In principle every model in MDT can be fitted using the :ref:`cli_index_mdt-model-fit`.
+Please be advised though that some models require specific protocol settings and/or require specific static maps to be present.
+For example, the CHARMED models requires that the "TE" is specified in your protocol.
+MDT will help you by warning you if the available data is not suited for the selected model.
+
+Using command line parameters it is possible to add additional data like static maps, a noise standard deviation or a gradient deviations map to the model fit command.
+
 
 Batch fitting many subjects
 ---------------------------
+MDT features a batch fitting routine that can analyze many subjects with just one command.
+This feature uses :ref:`dynamic_modules_batch_profiles` to gather information about the subjects in a directory and uses that to analyze the found subjects.
+
+As an example, to run ``BallStick_r1`` on the two provided example datasets you can use the command :ref:`cli_index_mdt-batch-fit`. For example:
+
+.. code-block:: console
+
+    $ cd mdt_example_data
+    $ mdt-batch-fit . --models-to-fit 'BallStick_r1 (Cascade)'
+
+
+There are various batch profiles available in MDT, for example there are profiles for the HCP-MGH and HCP Wu-Minn folder layouts and simple
+layouts following one subject per directory.
+For example, if you want to analyze ``NODDI`` on all your downloaded HCP Wu-Minn datasets you can use:
+
+.. code-block:: console
+
+    $ mdt-batch-fit ~/download_dir/ --models-to-fit 'NODDI (Cascade)'
+
+and it will autodetect the Wu-Minn layout and fit NODDI to all the subjects.
 
 
 .. _analysis_using_python:

@@ -36,14 +36,14 @@ class ModelFit(BasicShellApplication):
             description += self._get_citation_message()
 
         examples = textwrap.dedent('''
-            mdt-model-fit "BallStick (Cascade)" data.nii.gz data.prtcl roi_mask_0_50.nii.gz
-            mdt-model-fit "BallStick (Cascade)" data.nii.gz data.prtcl data_mask.nii.gz --no-recalculate
+            mdt-model-fit "BallStick_r1 (Cascade)" data.nii.gz data.prtcl roi_mask_0_50.nii.gz
+            mdt-model-fit "BallStick_r1 (Cascade)" data.nii.gz data.prtcl data_mask.nii.gz --no-recalculate
             mdt-model-fit ... --cl-device-ind 1
             mdt-model-fit ... --cl-device-ind {0, 1}
             mdt-model-fit ... --static-maps b1_static=b1_static.nii.gz fa_map=fa_map.nii.gz
            ''')
         epilog = self._format_examples(doc_parser, examples)
-        
+
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
                                          formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument('model', metavar='model', choices=mdt.get_models_list(),

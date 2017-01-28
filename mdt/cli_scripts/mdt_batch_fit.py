@@ -45,7 +45,7 @@ class BatchFit(BasicShellApplication):
             mdt-batch-fit .
             mdt-batch-fit /data/mgh --batch-profile 'HCP_MGH'
             mdt-batch-fit . --subjects-index 0 1 2 --subjects-id 1003 1004
-            mdt-batch-fit . --dry-run
+            mdt-batch-fit . --dry-run --models-to-fit 'BallStick_r1 (Cascade)' 'Tensor (Cascade)'
         ''')
         epilog = self._format_examples(doc_parser, examples)
 

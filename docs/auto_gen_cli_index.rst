@@ -1,3 +1,5 @@
+.. _cli_index_MDT:
+
 MDT
 ===
 
@@ -6,6 +8,8 @@ MDT
    :prog: MDT
 
 
+
+.. _cli_index_mdt-apply-mask:
 
 mdt-apply-mask
 ==============
@@ -16,6 +20,8 @@ mdt-apply-mask
 
 
 
+.. _cli_index_mdt-batch-fit:
+
 mdt-batch-fit
 =============
 
@@ -24,6 +30,8 @@ mdt-batch-fit
    :prog: mdt-batch-fit
 
 
+
+.. _cli_index_mdt-estimate-noise-std:
 
 mdt-estimate-noise-std
 ======================
@@ -34,6 +42,8 @@ mdt-estimate-noise-std
 
 
 
+.. _cli_index_mdt-generate-bvec-bval:
+
 mdt-generate-bvec-bval
 ======================
 
@@ -42,6 +52,8 @@ mdt-generate-bvec-bval
    :prog: mdt-generate-bvec-bval
 
 
+
+.. _cli_index_mdt-generate-mask:
 
 mdt-generate-mask
 =================
@@ -52,6 +64,8 @@ mdt-generate-mask
 
 
 
+.. _cli_index_mdt-generate-protocol:
+
 mdt-generate-protocol
 =====================
 
@@ -60,6 +74,8 @@ mdt-generate-protocol
    :prog: mdt-generate-protocol
 
 
+
+.. _cli_index_mdt-generate-roi-slice:
 
 mdt-generate-roi-slice
 ======================
@@ -70,6 +86,8 @@ mdt-generate-roi-slice
 
 
 
+.. _cli_index_mdt-get-example-data:
+
 mdt-get-example-data
 ====================
 
@@ -78,6 +96,8 @@ mdt-get-example-data
    :prog: mdt-get-example-data
 
 
+
+.. _cli_index_mdt-gui:
 
 mdt-gui
 =======
@@ -88,6 +108,8 @@ mdt-gui
 
 
 
+.. _cli_index_mdt-info-img:
+
 mdt-info-img
 ============
 
@@ -96,6 +118,8 @@ mdt-info-img
    :prog: mdt-info-img
 
 
+
+.. _cli_index_mdt-info-protocol:
 
 mdt-info-protocol
 =================
@@ -106,6 +130,8 @@ mdt-info-protocol
 
 
 
+.. _cli_index_mdt-init-user-settings:
+
 mdt-init-user-settings
 ======================
 
@@ -114,6 +140,8 @@ mdt-init-user-settings
    :prog: mdt-init-user-settings
 
 
+
+.. _cli_index_mdt-list-devices:
 
 mdt-list-devices
 ================
@@ -124,6 +152,8 @@ mdt-list-devices
 
 
 
+.. _cli_index_mdt-list-models:
+
 mdt-list-models
 ===============
 
@@ -132,6 +162,8 @@ mdt-list-models
    :prog: mdt-list-models
 
 
+
+.. _cli_index_mdt-math-img:
 
 mdt-math-img
 ============
@@ -142,6 +174,8 @@ mdt-math-img
 
 
 
+.. _cli_index_mdt-math-protocol:
+
 mdt-math-protocol
 =================
 
@@ -150,6 +184,8 @@ mdt-math-protocol
    :prog: mdt-math-protocol
 
 
+
+.. _cli_index_mdt-model-fit:
 
 mdt-model-fit
 =============
@@ -160,6 +196,8 @@ mdt-model-fit
 
 
 
+.. _cli_index_mdt-view-maps:
+
 mdt-view-maps
 =============
 
@@ -168,6 +206,8 @@ mdt-view-maps
    :prog: mdt-view-maps
 
 
+
+.. _cli_index_mdt-volume-merge:
 
 mdt-volume-merge
 ================

@@ -95,6 +95,8 @@ def get_cli_doc_items():
 
         if command_class_name is not None:
             item = dedent("""
+                .. _cli_index_{command_name}:
+
                 {command_name}
                 {command_name_highlight}
 
@@ -172,7 +174,7 @@ release = mdt.__version__
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['_build', '_getting_started', '_dynamic_modules']
+exclude_patterns = ['_build', '_getting_started', '_dynamic_modules', 'auto_gen_cli_index.rst']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
