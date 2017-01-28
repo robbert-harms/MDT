@@ -21,7 +21,9 @@ class InitUserSettings(BasicShellApplication):
 
             The location we will write to is: {}
         """.format(os.path.dirname(get_config_dir())))
-        description += mdt.shell_utils.get_citation_message()
+
+        if not doc_parser:
+            description += mdt.shell_utils.get_citation_message()
 
         parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
 
@@ -35,6 +37,10 @@ class InitUserSettings(BasicShellApplication):
 
     def run(self, args, extra_args):
         mdt.init_user_settings(pass_if_exists=args.pass_if_exists)
+
+
+def get_doc_arg_parser():
+    return InitUserSettings().get_documentation_arg_parser()
 
 
 if __name__ == '__main__':

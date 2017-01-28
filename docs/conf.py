@@ -19,6 +19,9 @@ from datetime import datetime
 from functools import wraps
 from unittest.mock import MagicMock
 import builtins
+import glob
+import re
+from textwrap import dedent
 
 
 mock_as_class = ['SampleModelBuilder', 'QWidget', 'QMainWindow', 'QDialog', 'QObject',
@@ -72,6 +75,41 @@ def import_mock(name, *args, **kwargs):
     return orig_import(name, *args, **kwargs)
 
 builtins.__import__ = import_mock
+
+
+def get_cli_doc_items():
+    items = []
+
+    for file in sorted(glob.glob('../mdt/cli_scripts/*.py')):
+        module_name = os.path.splitext(os.path.basename(file))[0]
+        command_name = module_name.replace('_', '-')
+
+        def get_command_class_name():
+            with open(file) as f:
+                match = re.search(r'class (\w*)\(', f.read())
+                if match:
+                    return match.group(1)
+                return None
+
+        command_class_name = get_command_class_name()
+
+        if command_class_name is not None:
+            item = dedent("""
+                {command_name}
+                {command_name_highlight}
+
+                .. argparse::
+                   :ref: mdt.cli_scripts.{module_name}.get_doc_arg_parser
+                   :prog: {command_name}
+            """).format(command_name=command_name, command_name_highlight='='*len(command_name),
+                        module_name=module_name)
+
+            items.append(item)
+    return items
+
+with open('auto_gen_cli_index.rst', 'w') as f:
+    for item in get_cli_doc_items():
+        f.write(item[1:] + '\n\n\n')
 
 
 # If extensions (or modules to document with autodoc) are in another

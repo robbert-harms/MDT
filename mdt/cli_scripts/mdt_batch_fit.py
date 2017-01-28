@@ -37,15 +37,18 @@ class BatchFit(BasicShellApplication):
 
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
-        description += mdt.shell_utils.get_citation_message()
 
-        epilog = textwrap.dedent("""
-            Examples of use:
-                mdt-batch-fit .
-                mdt-batch-fit /data/mgh --batch-profile 'HCP_MGH'
-                mdt-batch-fit . --subjects-index 0 1 2 --subjects-id 1003 1004
-                mdt-batch-fit . --dry-run
-        """)
+        if not doc_parser:
+            description += self._get_citation_message()
+
+        examples = textwrap.dedent('''
+            mdt-batch-fit .
+            mdt-batch-fit /data/mgh --batch-profile 'HCP_MGH'
+            mdt-batch-fit . --subjects-index 0 1 2 --subjects-id 1003 1004
+            mdt-batch-fit . --dry-run
+        ''')
+        epilog = self._format_examples(doc_parser, examples)
+
         batch_profiles = BatchProfilesLoader().list_all()
 
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
@@ -81,11 +84,11 @@ class BatchFit(BasicShellApplication):
         parser.set_defaults(double_precision=False)
 
         parser.add_argument('--subjects-index', type=int, nargs='*',
-                            help="The index of the subjects we would like to fit. This reduces the set of"
+                            help="The index of the subjects we would like to fit. This reduces the set of "
                                  "subjects.")
 
         parser.add_argument('--subjects-id', type=str, nargs='*',
-                            help="The id of the subjects we would like to fit. This reduces the set of"
+                            help="The id of the subjects we would like to fit. This reduces the set of "
                                  "subjects.")
 
         parser.add_argument('--models-to-fit', type=str, nargs='*',
@@ -137,6 +140,10 @@ class BatchFit(BasicShellApplication):
                       dry_run=args.dry_run,
                       cascade_subdir=args.cascade_subdir,
                       tmp_results_dir=tmp_results_dir)
+
+
+def get_doc_arg_parser():
+    return BatchFit().get_documentation_arg_parser()
 
 
 if __name__ == '__main__':

@@ -23,13 +23,15 @@ class GetExampleData(BasicShellApplication):
 
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
-        description += mdt.shell_utils.get_citation_message()
 
-        epilog = textwrap.dedent("""
-            Examples of use:
-                mdt-get-example-data
-                mdt-get-example-data .
-        """)
+        if not doc_parser:
+            description += self._get_citation_message()
+
+        examples = textwrap.dedent('''
+            mdt-get-example-data
+            mdt-get-example-data .
+        ''')
+        epilog = self._format_examples(doc_parser, examples)
 
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
                                          formatter_class=argparse.RawTextHelpFormatter)
@@ -45,6 +47,10 @@ class GetExampleData(BasicShellApplication):
             output_dir = os.getcwd()
 
         mdt.get_example_data(output_dir)
+
+
+def get_doc_arg_parser():
+    return GetExampleData().get_documentation_arg_parser()
 
 
 if __name__ == '__main__':

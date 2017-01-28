@@ -19,12 +19,14 @@ class InfoProtocol(BasicShellApplication):
 
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
-        description += self._get_citation_message()
 
-        epilog = textwrap.dedent("""
-            Examples of use:
-                mdt-info-protocol my_protocol.prtcl
-        """)
+        if not doc_parser:
+            description += self._get_citation_message()
+
+        examples = textwrap.dedent('''
+            mdt-info-protocol my_protocol.prtcl
+           ''')
+        epilog = self._format_examples(doc_parser, examples)
 
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
                                          formatter_class=argparse.RawTextHelpFormatter)
@@ -55,6 +57,10 @@ class InfoProtocol(BasicShellApplication):
         print(row_format.format('shells', ', '.join(shells_text)))
         print(row_format.format('nmr_columns', protocol.number_of_columns))
         print(row_format.format('columns', ', '.join(protocol.column_names)))
+
+
+def get_doc_arg_parser():
+    return InfoProtocol().get_documentation_arg_parser()
 
 
 if __name__ == '__main__':

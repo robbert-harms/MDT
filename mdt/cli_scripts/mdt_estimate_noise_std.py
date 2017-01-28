@@ -32,12 +32,14 @@ class NoiseStdEstimation(BasicShellApplication):
 
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
-        description += mdt.shell_utils.get_citation_message()
 
-        epilog = textwrap.dedent("""
-            Examples of use:
-                mdt-estimate-noise-std data.nii.gz data.prtcl full_mask.nii.gz
-        """)
+        if not doc_parser:
+            description += self._get_citation_message()
+
+        examples = textwrap.dedent('''
+            mdt-estimate-noise-std data.nii.gz data.prtcl full_mask.nii.gz
+        ''')
+        epilog = self._format_examples(doc_parser, examples)
 
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
                                          formatter_class=argparse.RawTextHelpFormatter)
@@ -58,7 +60,7 @@ class NoiseStdEstimation(BasicShellApplication):
 
         return parser
 
-    def run(self, args):
+    def run(self, args, extra_args):
         problem_data = mdt.load_problem_data(os.path.realpath(args.dwi),
                                              os.path.realpath(args.protocol),
                                              os.path.realpath(args.mask))
@@ -70,6 +72,10 @@ class NoiseStdEstimation(BasicShellApplication):
         with mdt.disable_logging_context():
             noise_std = mdt.estimate_noise_std(problem_data, estimator=estimator)
             print(noise_std)
+
+
+def get_doc_arg_parser():
+    return NoiseStdEstimation().get_documentation_arg_parser()
 
 
 if __name__ == '__main__':

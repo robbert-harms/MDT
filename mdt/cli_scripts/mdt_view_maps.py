@@ -24,7 +24,9 @@ class GUI(BasicShellApplication):
 
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
-        description += get_citation_message()
+
+        if not doc_parser:
+            description += get_citation_message()
 
         parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument('dir', metavar='dir', type=str, nargs='?', help='the directory to use',
@@ -78,6 +80,11 @@ class GUI(BasicShellApplication):
         else:
             view_maps(data, config, show_maximized=args.maximize,
                       enable_directory_watcher=args.enable_directory_watcher)
+
+
+def get_doc_arg_parser():
+    return GUI().get_documentation_arg_parser()
+
 
 if __name__ == '__main__':
     GUI().start()

@@ -18,13 +18,15 @@ class InfoImg(BasicShellApplication):
 
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
-        description += self._get_citation_message()
 
-        epilog = textwrap.dedent("""
-            Examples of use:
-                mdt-info-img my_img.nii
-                mdt-info-img *.nii
-        """)
+        if not doc_parser:
+            description += self._get_citation_message()
+
+        examples = textwrap.dedent('''
+            mdt-info-img my_img.nii
+            mdt-info-img *.nii
+           ''')
+        epilog = self._format_examples(doc_parser, examples)
 
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
                                          formatter_class=argparse.RawTextHelpFormatter)
@@ -53,6 +55,10 @@ class InfoImg(BasicShellApplication):
 
         for ind, el in enumerate(header.get_zooms()):
             print(row_format.format('pixdim{}'.format(ind), el))
+
+
+def get_doc_arg_parser():
+    return InfoImg().get_documentation_arg_parser()
 
 
 if __name__ == '__main__':

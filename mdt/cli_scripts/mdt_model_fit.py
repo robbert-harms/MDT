@@ -32,15 +32,18 @@ class ModelFit(BasicShellApplication):
         description = textwrap.dedent(__doc__)
         description += mdt.shell_utils.get_citation_message()
 
-        epilog = textwrap.dedent("""
-            Examples of use:
-                mdt-model-fit "BallStick (Cascade)" data.nii.gz data.prtcl roi_mask_0_50.nii.gz
-                mdt-model-fit "BallStick (Cascade)" data.nii.gz data.prtcl data_mask.nii.gz --no-recalculate
-                mdt-model-fit ... --cl-device-ind 1
-                mdt-model-fit ... --cl-device-ind {0, 1}
-                mdt-model-fit ... --static-maps b1_static=b1_static.nii.gz fa_map=fa_map.nii.gz
-        """)
+        if not doc_parser:
+            description += self._get_citation_message()
 
+        examples = textwrap.dedent('''
+            mdt-model-fit "BallStick (Cascade)" data.nii.gz data.prtcl roi_mask_0_50.nii.gz
+            mdt-model-fit "BallStick (Cascade)" data.nii.gz data.prtcl data_mask.nii.gz --no-recalculate
+            mdt-model-fit ... --cl-device-ind 1
+            mdt-model-fit ... --cl-device-ind {0, 1}
+            mdt-model-fit ... --static-maps b1_static=b1_static.nii.gz fa_map=fa_map.nii.gz
+           ''')
+        epilog = self._format_examples(doc_parser, examples)
+        
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
                                          formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument('model', metavar='model', choices=mdt.get_models_list(),
@@ -163,6 +166,10 @@ def get_static_maps(static_maps_listing, base_dir):
                 static_maps[key] = float(value)
 
     return static_maps
+
+
+def get_doc_arg_parser():
+    return ModelFit().get_documentation_arg_parser()
 
 
 if __name__ == '__main__':

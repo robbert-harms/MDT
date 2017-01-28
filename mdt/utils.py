@@ -1464,7 +1464,7 @@ def natural_key_sort_cb(_str):
         _str (str): the string to sort
 
     Returns:
-        list: the key to use for sorting the current element.
+        :py:func:`list`: the key to use for sorting the current element.
     """
     return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', _str)]
 

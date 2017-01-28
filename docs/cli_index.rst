@@ -1,12 +1,15 @@
+:tocdepth: 1
+
 .. _cli_index:
 
 #########
 CLI index
 #########
 
-.. argparse::
-   :ref: mdt.cli_scripts.mdt_gui.get_doc_arg_parser
-   :prog: mdt-gui
+
+.. contents:: Table of Contents
+   :local:
+   :backlinks: none
 
 
-todo
+.. include:: auto_gen_cli_index.rst

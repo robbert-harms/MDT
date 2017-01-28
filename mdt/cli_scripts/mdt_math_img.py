@@ -57,17 +57,19 @@ class MathImg(BasicShellApplication):
 
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
-        description += self._get_citation_message()
 
-        epilog = textwrap.dedent("""
-            Examples of use:
-                mdt-math-img fiso.nii ficvf.nii '(1-input[0]) * i[1]' -o Wic.w.nii.gz
-                mdt-math-img fiso.nii ficvf.nii '(1-a) * b' -o Wic.w.nii.gz
-                mdt-math-img *.nii.gz 'np.mean(np.concatenate(i, axis=3), axis=3)' -o output.nii.gz
-                mdt-math-img FA.nii.gz 'np.mean(a)'
-                mdt-math-img FA.nii white_matter_mask.nii 'np.mean(mdt.create_roi(a, b))'
-                mdt-math-img images*.nii.gz mask.nii 'list(map(lambda f: np.mean(mdt.create_roi(f, i[-1])), i[0:-1]))'
-        """)
+        if not doc_parser:
+            description += self._get_citation_message()
+
+        examples = textwrap.dedent('''
+            mdt-math-img fiso.nii ficvf.nii '(1-input[0]) * i[1]' -o Wic.w.nii.gz
+            mdt-math-img fiso.nii ficvf.nii '(1-a) * b' -o Wic.w.nii.gz
+            mdt-math-img *.nii.gz 'np.mean(np.concatenate(i, axis=3), axis=3)' -o output.nii.gz
+            mdt-math-img FA.nii.gz 'np.mean(a)'
+            mdt-math-img FA.nii white_matter_mask.nii 'np.mean(mdt.create_roi(a, b))'
+            mdt-math-img images*.nii.gz mask.nii 'list(map(lambda f: np.mean(mdt.create_roi(f, i[-1])), i[0:-1]))'
+           ''')
+        epilog = self._format_examples(doc_parser, examples)
 
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
                                          formatter_class=argparse.RawTextHelpFormatter)
@@ -166,6 +168,11 @@ class MathImg(BasicShellApplication):
 
     def _images_3d_to_4d(self, images):
         return list([image[..., np.newaxis] if len(image.shape) == 3 else image for image in images])
+
+
+def get_doc_arg_parser():
+    return MathImg().get_documentation_arg_parser()
+
 
 if __name__ == '__main__':
     MathImg().start()

@@ -44,7 +44,7 @@ class GUI(BasicShellApplication):
 
 
 def get_doc_arg_parser():
-    return GUI().get_arg_parser(doc_parser=True)
+    return GUI().get_documentation_arg_parser()
 
 
 if __name__ == '__main__':

@@ -31,16 +31,20 @@ class GenerateProtocol(BasicShellApplication):
 
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
-        description += get_citation_message()
 
-        epilog = textwrap.dedent("""
-            Examples of use:
-                mdt-generate-protocol data.bvec data.bval
-                mdt-generate-protocol data.bvec data.bval -o my_protocol.prtcl
-                mdt-generate-protocol data.bvec data.bval
-                mdt-generate-protocol data.bvec data.bval --Delta 30 --delta 20
-                mdt-generate-protocol data.bvec data.bval --sequence-timing-units 's' --Delta 0.03
-                mdt-generate-protocol data.bvec data.bval --TE ../my_TE_file.txt
+        if not doc_parser:
+            description += self._get_citation_message()
+
+        examples = textwrap.dedent('''
+            mdt-generate-protocol data.bvec data.bval
+            mdt-generate-protocol data.bvec data.bval -o my_protocol.prtcl
+            mdt-generate-protocol data.bvec data.bval
+            mdt-generate-protocol data.bvec data.bval --Delta 30 --delta 20
+            mdt-generate-protocol data.bvec data.bval --sequence-timing-units 's' --Delta 0.03
+            mdt-generate-protocol data.bvec data.bval --TE ../my_TE_file.txt
+           ''')
+        epilog = self._format_examples(doc_parser, examples)
+        epilog += textwrap.dedent("""
 
             Additional columns can be specified using the syntax: \"--{column_name} {value}\" structure.
             Please note that these additional values will not be auto-converted from ms to s.
@@ -150,6 +154,10 @@ def add_column_to_protocol(protocol, column, value, mult_factor):
 def add_sequence_timing_column_to_protocol(protocol, column, value, units):
     mult_factor = 1e-3 if units == 'ms' else 1
     return add_column_to_protocol(protocol, column, value, mult_factor)
+
+
+def get_doc_arg_parser():
+    return GenerateProtocol().get_documentation_arg_parser()
 
 
 if __name__ == '__main__':

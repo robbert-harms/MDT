@@ -70,17 +70,13 @@ class BasicShellApplication(object):
             args: the arguments from the argparser.
         """
 
-    def get_arg_parser(self, doc_parser=False):
-        """Get the argument parser.
-
-        Args:
-            doc_parser (boolean): If true the parser should be prepared for the documentation. If false (the default)
-                the parser should be generated for the command line.
+    def get_documentation_arg_parser(self):
+        """Get the argument parser that can be used for writing the documentation
 
         Returns:
             argparse.ArgumentParser: the argument parser
         """
-        return self._get_arg_parser(doc_parser=doc_parser)
+        return self._get_arg_parser(doc_parser=True)
 
     def _get_arg_parser(self, doc_parser=False):
         """Create the auto parser. This should be implemented by the implementing class.
@@ -114,6 +110,25 @@ class BasicShellApplication(object):
     def _get_citation_message(self):
         return get_citation_message()
 
+    def _format_examples(self, doc_parser, example_string):
+        """Format the examples for either documentation or command line, with the given examples.
+
+        This is commonly used in the epilog where you provide examples of use for your script.
+
+        Args:
+            doc_parser (boolean): if true we are preparing for the documentation, if false for a CLI
+            example_string (str): the examples we wish to show
+        """
+        if doc_parser:
+            return_str = 'Example_of_use::\n\n'
+        else:
+            return_str = 'Example_of_use:\n'
+
+        for line in example_string.split('\n'):
+            return_str += ' '*4 + line + '\n'
+
+        return return_str
+
 
 def get_citation_message():
     """The citation message used in the shell scripts.
@@ -122,7 +137,7 @@ def get_citation_message():
         str: the citation message for use in the description of every shell script
     """
     return textwrap.dedent("""
-        If you use any of the scripts/functions/tools from MDT in your research, please cite the following paper:
+        If you use any of the scripts/functions/tools from MDT in your research, please consider citing:
             <citation here>
     """)
 

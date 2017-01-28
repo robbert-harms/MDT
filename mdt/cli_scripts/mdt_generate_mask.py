@@ -28,14 +28,16 @@ class GenerateMask(BasicShellApplication):
 
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
-        description += mdt.shell_utils.get_citation_message()
 
-        epilog = textwrap.dedent("""
-            Examples of use:
-                mdt-generate-mask data.nii.gz data.prtcl
-                mdt-generate-mask data.nii.gz data.prtcl -o data_mask.nii.gz
-                mdt-generate-mask data.nii.gz data.prtcl -o data_mask.nii.gz --median-radius 2
-        """)
+        if not doc_parser:
+            description += self._get_citation_message()
+
+        examples = textwrap.dedent('''
+            mdt-generate-mask data.nii.gz data.prtcl
+            mdt-generate-mask data.nii.gz data.prtcl -o data_mask.nii.gz
+            mdt-generate-mask data.nii.gz data.prtcl -o data_mask.nii.gz --median-radius 2
+        ''')
+        epilog = self._format_examples(doc_parser, examples)
 
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
                                          formatter_class=argparse.RawTextHelpFormatter)
@@ -100,6 +102,10 @@ class GenerateMask(BasicShellApplication):
 
         logger = logging.getLogger(__name__)
         logger.info('Saved the mask to: {}'.format(output_name))
+
+
+def get_doc_arg_parser():
+    return GenerateMask().get_documentation_arg_parser()
 
 
 if __name__ == '__main__':

@@ -8,11 +8,10 @@ can be any valid python string separated if needed with the semicolon (;).
 The columns of the input protocol are loaded and stored as arrays with as variable names the names of the
 columns. Next, the expression is evaluated on those columns and the result is stored in the indicated file.
 
-An additional function "rm(<column_name>)" is also available with wich you can remove columns from
-the protocol, and a function "add(<column_name>, <value>)" is available to add columns. When adding
+Columns can easily be removed with the python 'del' command. New columns can easily be added by assignment.When adding
 a column, the value can either be a scalar or a vector.
 
-Additionally the numpy library is available with prefix 'np.'.
+Additionally, the numpy library is available with prefix 'np.'.
 """
 import argparse
 import os
@@ -35,16 +34,18 @@ class MathProtocol(BasicShellApplication):
 
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
-        description += self._get_citation_message()
 
-        epilog = textwrap.dedent("""
-            Examples of use:
-                mdt-math-protocol protocol.prtcl 'G *= 1e-3' -o new_protocol.prtcl
-                mdt-math-protocol protocol.prtcl 'G *= 1e-3; TR /= 1000; TE /= 1000'
-                mdt-math-protocol protocol.prtcl "rm('G')"
-                mdt-math-protocol protocol.prtcl "add('TE', 50e-3)"
-                mdt-math-protocol protocol.prtcl -a Delta.txt "Delta = files[0]"
-        """)
+        if not doc_parser:
+            description += self._get_citation_message()
+
+        examples = textwrap.dedent('''
+            mdt-math-protocol protocol.prtcl 'G *= 1e-3' -o new_protocol.prtcl
+            mdt-math-protocol p.prtcl 'G *= 1e-3; TR /= 1000; TE /= 1000'
+            mdt-math-protocol p.prtcl 'del(G)'
+            mdt-math-protocol p.prtcl 'TE  = 50e-3'
+            mdt-math-protocol p.prtcl -a Delta.txt 'Delta = files[0]'
+           ''')
+        epilog = self._format_examples(doc_parser, examples)
 
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
                                          formatter_class=argparse.RawTextHelpFormatter)
@@ -77,13 +78,7 @@ class MathProtocol(BasicShellApplication):
         protocol = mdt.load_protocol(os.path.realpath(args.input_protocol))
         context_dict = {name: protocol.get_column(name) for name in protocol.column_names}
 
-        def rm(column_name):
-            del context_dict[column_name]
-
-        def add(column_name, value):
-            context_dict[column_name] = value
-
-        exec(args.expr, {'np': np, 'rm': rm, 'add': add, 'files': additional_files}, context_dict)
+        exec(args.expr, {'np': np, 'files': additional_files}, context_dict)
 
         for key in context_dict:
             if is_scalar(context_dict[key]):
@@ -91,6 +86,10 @@ class MathProtocol(BasicShellApplication):
 
         protocol = Protocol(context_dict)
         mdt.write_protocol(protocol, output_file)
+
+
+def get_doc_arg_parser():
+    return MathProtocol().get_documentation_arg_parser()
 
 
 if __name__ == '__main__':

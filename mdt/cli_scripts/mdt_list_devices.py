@@ -17,7 +17,9 @@ class ListDevices(BasicShellApplication):
 
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
-        description += mdt.shell_utils.get_citation_message()
+
+        if not doc_parser:
+            description += mdt.shell_utils.get_citation_message()
 
         parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument('-l', '--long', action='store_true', help='print all info about the devices')
@@ -32,6 +34,10 @@ class ListDevices(BasicShellApplication):
                 print(repr(env))
             else:
                 print(str(env))
+
+
+def get_doc_arg_parser():
+    return ListDevices().get_documentation_arg_parser()
 
 
 if __name__ == '__main__':

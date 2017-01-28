@@ -20,14 +20,16 @@ class GenerateRoiSlice(BasicShellApplication):
 
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
-        description += mdt.shell_utils.get_citation_message()
 
-        epilog = textwrap.dedent("""
-            Examples of use:
-                mdt-generate-roi-slice mask.nii.gz
-                mdt-generate-roi-slice mask.nii.gz -d 1 -s 50
-                mdt-generate-roi-slice mask.nii.gz -d 1 -s 50 -o my_roi_1_50.nii.gz
-        """)
+        if not doc_parser:
+            description += self._get_citation_message()
+
+        examples = textwrap.dedent('''
+            mdt-generate-roi-slice mask.nii.gz
+            mdt-generate-roi-slice mask.nii.gz -d 1 -s 50
+            mdt-generate-roi-slice mask.nii.gz -d 1 -s 50 -o my_roi_1_50.nii.gz
+           ''')
+        epilog = self._format_examples(doc_parser, examples)
 
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
                                          formatter_class=argparse.RawTextHelpFormatter)
@@ -69,6 +71,10 @@ class GenerateRoiSlice(BasicShellApplication):
 
         mdt.utils.write_slice_roi(os.path.realpath(args.mask), roi_dimension, roi_slice, output_name,
                                   overwrite_if_exists=True)
+
+
+def get_doc_arg_parser():
+    return GenerateRoiSlice().get_documentation_arg_parser()
 
 
 if __name__ == '__main__':
