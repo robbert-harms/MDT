@@ -62,6 +62,20 @@ class Protocol(collections.Mapping):
         """
         return self._gamma_h
 
+    def copy_with_updates(self, additional_columns):
+        """Creates a copy of this protocol with the given columns from a dictionary added.
+
+        Args:
+            additional_columns (dict): the additional columns to add
+
+        Returns:
+            Protocol: the new updated protocol
+        """
+        protocol = self
+        for key, value in additional_columns.items():
+            protocol = protocol.copy_with_update(key, value)
+        return protocol
+
     def copy_with_update(self, name, data):
         """Create a copy of the protocol with the given column updated to a new value.
 

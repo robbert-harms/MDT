@@ -480,6 +480,12 @@ class SamplingProcessingWorker(ModelProcessingWorker):
         if not os.path.exists(self._output_dir):
             os.makedirs(self._output_dir)
 
+        for fname in os.listdir(self._output_dir):
+            if fname.endswith('.samples.npy'):
+                chain_name = fname[0:-len('.samples.npy')]
+                if chain_name not in results:
+                    os.remove(os.path.join(self._output_dir, fname))
+
         for map_name, samples in results.items():
             samples_path = os.path.join(self._output_dir, map_name + '.samples.npy')
             mode = 'w+'

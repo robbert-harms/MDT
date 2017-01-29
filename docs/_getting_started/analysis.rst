@@ -237,6 +237,13 @@ The basic usage is to fit for example Ball&Stick_r1 on a dataset:
 This command needs at least a model name, a dataset, a protocol and a mask to function.
 For a list of supported models, please run the command :ref:`cli_index_mdt-list-models`.
 
+When the calculations are done you can use the MDT maps visualizer (:ref:`cli_index_mdt-view-maps`) for viewing the results:
+
+.. code-block:: console
+
+    $ cd output/BallStick_r1
+    $ mdt-view-maps .
+
 
 Estimating any model
 --------------------
@@ -261,7 +268,7 @@ As an example, to run ``BallStick_r1`` on the two provided example datasets you 
     $ mdt-batch-fit . --models-to-fit 'BallStick_r1 (Cascade)'
 
 
-There are various batch profiles available in MDT, for example there are profiles for the HCP-MGH and HCP Wu-Minn folder layouts and simple
+There are various batch profiles available in MDT, for example there are profiles for the HCP-MGH and HCP Wu-Minn folder layouts and there are simple
 layouts following one subject per directory.
 For example, if you want to analyze ``NODDI`` on all your downloaded HCP Wu-Minn datasets you can use:
 
@@ -277,19 +284,152 @@ and it will autodetect the Wu-Minn layout and fit NODDI to all the subjects.
 
 Using Python
 ============
+The most direct method to interface with MDT is by using the Python interface.
+The most common actions in MDT can be accessed in the ``mdt`` namespace, obtainable using:
+
+.. code-block:: python
+
+    import mdt
+
+When using MDT in an interactive shell you can use the default ``dir`` and ``help`` commands to get more information
+about the MDT functions. For example:
+
+.. code-block:: python
+
+    >>> import mdt
+    >>> dir(mdt) # shows the functions in the MDT namespace
+    ...
+    >>> help(mdt.fit_model) # shows the documentation about a given function
+    ...
+
+
+Obtaining the example data
+--------------------------
+While this guide can in principle be followed using any dataset it is advised to first follow it using the MDT example data.
+A few slices of this example data come pre-supplied with MDT and can be obtained with the function :func:`mdt.utils.get_example_data`:
+
+.. code-block:: python
+
+    import mdt
+    mdt.get_example_data('/tmp')
+
+In the remainder of this chapter we assume that you have imported mdt in your namespace (using ``import mdt``).
 
 Creating a protocol file
 ------------------------
+As explained in :ref:`concepts_protocol`, MDT stores all the acquisition settings relevant for the analysis in a Protocol file.
+To create one within Python you can use one of the command :func:`~mdt.protocols.load_bvec_bval` to create a new Protocol object from a bvec and bval file.
+Afterwards, new columns can be added using the :meth:`~mdt.protocols.Protocol.copy_with_update` method of the :class:`~mdt.protocols.Protocol` class.
 
-Tensor estimation example
--------------------------
-Estimating another model
-------------------------
+To (re-)create the protocol file for the b1k_b2k dataset you can use the following commands:
 
-Estimating Ball&Sticks and NODDI on 3T HCP data
------------------------------------------------
-Estimating CHARMED on HCP MGH data
-----------------------------------
+.. code-block:: python
+
+    protocol = mdt.load_bvec_bval('b1k_b2k.bvec', 'b1k_b2k.bval')
+    protocol = protocol.copy_with_updates(
+        {'Delta': 42e-3, 'delta': 31.7e-3, 'TE': 60e-3, 'TR': 7.1})
+
+
+Please note that the Protocol class is a singleton and adding or removing columns involves a copy operation.
+Also note that we require the columns to be in **SI units**.
+
+
+Generating a brain mask
+-----------------------
+MDT has some rough functionality for creating a brain mask, similar to the ``median_otsu`` algorithm in Dipy.
+This algorithm is not as sophisticated as for example BET in FSL, therefore we will not go in to much detail here.
+The mask generating functionality in MDT is merely meant for quickly creating a mask within MDT.
+
+Creating a mask with the MDT Python interface can be done using the function :func:`~mdt.utils.create_median_otsu_brain_mask`.
+For example:
+
+.. code-block:: python
+
+    mdt.create_median_otsu_brain_mask(
+        'b1k_b2k_example_slices_24_38.nii.gz',
+        'b1k_b2k.prtcl',
+        'data_mask.nii.gz')
+
+
+which generates a mask named ``data_mask.nii.gz``.
+
+
+Generating a ROI mask
+---------------------
+It is sometimes convenient to run analysis on a single slice (Region Of Interest) before running it whole brain.
+For the example data we do not need this step since that dataset is already compressed to two slices.
+
+Since we are using the Python interface we can use any Numpy slice operation to cut the data as we please.
+An example of operating on a nifti file is given by:
+
+.. code-block:: python
+
+    nifti = mdt.load_nifti('mask.nii.gz')
+    data = nifti.get_data()
+    header = nifti.get_header()
+
+    roi_slice = data[..., 30]
+
+    mdt.write_image('roi_mask.nii.gz', roi_slice, header)
+
+this generates a mask in dimension 2 on index 30 (0-based).
+
+
+Ball&Stick_r1 estimation example
+--------------------------------
+For model fitting you can use the :func:`~mdt.fit_model` command.
+This command allows you to optimize any of the models in MDT given only a model, problem data and output folder.
+
+The basic usage is to fit for example Ball&Stick_r1 on a dataset:
+
+.. code-block:: python
+
+    problem_data = mdt.load_problem_data(
+        pjoin('b1k_b2k_example_slices_24_38'),
+        pjoin('b1k_b2k.prtcl'),
+        pjoin('b1k_b2k_example_slices_24_38_mask'))
+
+    mdt.fit_model('BallStick_r1 (Cascade)', problem_data, 'output')
+
+
+The model fit commands requires you to prepare your problem data up front (see :func:`~mdt.utils.load_problem_data`) such that it can be used in the model fitting.
+
+When the calculations are done you can use the MDT maps visualizer for viewing the results:
+
+.. code-block:: python
+
+    mdt.view_maps('output/BallStick_r1')
+
+
+Estimating any model
+--------------------
+In principle every model in MDT can be fitted using the model fitting routines.
+Please be advised though that some models require specific protocol settings and/or require specific static maps to be present.
+For example, the CHARMED models requires that the "TE" is specified in your protocol.
+MDT will help you by warning you if the available data is not suited for the selected model.
+
 
 Batch fitting many subjects
 ---------------------------
+MDT features a batch fitting routine that can analyze many subjects with just one command.
+This feature uses :ref:`dynamic_modules_batch_profiles` to gather information about the subjects in a directory and uses that to analyze the found subjects.
+
+As an example, to run ``BallStick_r1`` on the two provided example datasets you can use the command :func:`~mdt.batch_fit`. For example:
+
+.. code-block:: python
+
+    mdt.batch_fit('mdt_example_data',
+                  models_to_fit=['BallStick_r1 (Cascade)'])
+
+
+There are various batch profiles available in MDT, for example there are profiles for the HCP-MGH and HCP Wu-Minn folder layouts and there are simple
+layouts following one subject per directory.
+For example, if you want to analyze ``NODDI`` on all your downloaded HCP Wu-Minn datasets you can use:
+
+.. code-block:: python
+
+    mdt.batch_fit('~/download_dir/',
+                  models_to_fit=['NODDI (Cascade)'])
+
+
+and it will autodetect the Wu-Minn layout and fit NODDI to all the subjects.

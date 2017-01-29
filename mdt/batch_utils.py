@@ -506,7 +506,7 @@ class BatchFitOutputInfo(object):
         model_names = self._get_composite_model_names(self._batch_profile.get_models_to_fit())
 
         for subject_info in self._subjects:
-            for model_name in model_names:
+            for model_name in sorted(model_names):
                 output_path = os.path.join(subject_info.output_dir, model_name)
                 if os.path.isdir(output_path):
                     yield BatchFitSubjectOutputInfo(subject_info, output_path, model_name)

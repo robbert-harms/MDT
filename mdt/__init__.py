@@ -175,6 +175,7 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
             logger.info('Preparing for model {0}'.format(model.name))
 
             if initialization_maps:
+                logger.info('Initializing the sampler using provided maps')
                 model.set_initial_parameters(create_roi(initialization_maps, problem_data.mask))
 
             model.double_precision = double_precision
