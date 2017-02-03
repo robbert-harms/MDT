@@ -13,7 +13,9 @@ Additionally, MDT can be extended to other modalities and other parametric model
 Summary
 *******
 * Free software: LGPL v3 license
-* Scriptable modeling
+* Python and OpenCL based
+* GUI, command line and python interface
+* Scriptable modeling: write new compartment equations and combine compartments into models
 * Full documentation: http://maastrichtdiffusiontoolbox.readthedocs.io
 * Project home: https://github.com/cbclab/MDT
 * Uses the `GitLab workflow <https://docs.gitlab.com/ee/workflow/gitlab_flow.html>`_
