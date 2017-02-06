@@ -12,8 +12,8 @@ There are two MDT example datasets, a b1k_b2k dataset and a b6k dataset.
 The b1k_b2k has a shell of b=1000s/mm^2 and of b=2000s/mm^2 and is very well suited for e.g. Tensor, Ball&Stick and NODDI.
 The b1k shell is the standard Jones 30 direction table, including 6 b0 measurements at the start.
 The b2k shell is a 60 whole-sphere direction set create with an electrostatic repulsion algorithm and has another 7 b0 measurements, 2 at the start of the shell and then one every 12 directions.
-The other dataset has a range of 8 shells between b=750s/mm^2 and b=6000s/mm^2 (in steps of 750s/mm^2) with an increasing number of durections per shell (see `De Santis et al., MRM, 2013 <http://dx.doi.org/10.1002/mrm.24717>`) and is well suited for CHARMED analysis and other models that require high b-values (but no diffusion time variations).
-Both datasets were acquired in the same session on a Siemens Prisma system, on the VE11C software line, with the standard product diffusion sequence at 2mm isotropic with GRAPPA in-plane acceleration factor 2 and 6/8 partial fourier.
+The b6k dataset has 6 b0's at the start and a range of 8 shells between b=750s/mm^2 and b=6000s/mm^2 (in steps of 750s/mm^2) with an increasing number of durections per shell (see `De Santis et al., MRM, 2013 <http://dx.doi.org/10.1002/mrm.24717>`_) and is well suited for CHARMED analysis and other models that require high b-values (but no diffusion time variations).
+Both datasets were acquired in the same session on a Siemens Prisma system, on the VE11C software line, with the standard product diffusion sequence at 2mm isotropic with GRAPPA in-plane acceleration factor 2 and 6/8 partial fourier (no multiband/simultaneous multi-slice).
 Two slices of both these datasets are directly available after MDT installation, for obtaining these follow the guide.
 The complete example datasets can be downloaded from: TODO provide download location
 
@@ -51,23 +51,25 @@ Creating a protocol file
 ------------------------
 As explained in :ref:`concepts_protocol`, MDT stores all the acquisition settings relevant for the analysis in a Protocol file.
 To create one using the GUI, please go to the tab "Generate protocol file".
-On the bottom of the tab you can find the button "Load g & b" that is meant to load a b-vec and b-val file in the GUI.
-Please click the button and, for the sake of this example, load from the MDT example data the b-vec and b-val file of the b1k_b2k dataset.
+On the bottom of the tab you can find the button "Load g & b" which is meant to load a b-vec and b-val file into the GUI.
+Please click the button and, for the sake of this example, load from the MDT example data folder the b-vec and b-val file of the b1k_b2k dataset.
 This tab should now look similar to this example:
 
 .. figure:: _static/figures/mdt_gui_generate_protocol.png
 
     The Protocol tab after loading a bvec and bval file.
 
-Having loaded a b-vec/b-val pair (or a Protocol file), you are presented with a tabular overview of your protocol, with some basic statics below the table.
+Having loaded a b-vec/b-val pair (or a Protocol file), you are presented with a tabular overview of your protocol, with some basic statistics below the table.
 The table shows you per volume (rows) the values for each of the columns.
-Columns in gray are automatically calculated or estimated from the other columns.
-For example, in the screenshot above, ``G``, ``Delta`` and ``delta`` are estimated from the b-values by assuming ``Delta == delta``.
+Columns in gray are automatically calculated or estimated from the other columns. Note that these derived values are there for your convenience and as a check on protocol validity, but cannot be assumed to be strictly correct.
+For example, in the screenshot above, ``G``, ``Delta`` and ``delta`` are estimated from the b-values by assuming ``Delta == delta``. Since in reality ``Delta ~= delta + refocussing RF-pulse length`` in PGSE, this will underestimate both ``delta`` and ``G``.
+Gray calculated columns are not part of a protocol and will not be saved.
 
 To add or update a column you can use the dialog under the button "Add / update column".
 To remove a column, right click the column header and select the "Remove column" option.
 
-For the sake of this example, please add to the loaded b-vec and b-val files the columns "Delta", "delta", "TE" and "TR" with values
+
+For the sake of this example, please add to the loaded b-vec and b-val files the "Single value" columns "Delta", "delta", "TE" and "TR" with values
 42e-3 seconds, 31.7e-3 seconds, 60e-3 and 7.1 seconds respectively.
 Then, please save the protocol as "b1k_b2k_test.prtcl" and compare it to the pre-supplied protocol for comparison (open both in a separate GUI).
 
@@ -96,10 +98,10 @@ Ball&Stick_r1 estimation example
 With a protocol and mask ready we can now proceed with model analysis.
 Please open the tab "Fit model" and fill in the fields using the "b1k_b2k" dataset as an example.
 Selecting a model is made easy using the drop down menu.
-All models that MDT can find are in this list, single composite models and cascaded models, standard supplied models and your own models.
+All models that MDT can find are in this list, both single composite models and cascaded models, and both standard supplied models and your own (user) models.
 See :ref:`dynamic_modules` on how to add models to this list, see :ref:`concepts_composite_and_cascade_models` for more information on the types of models (composite and cascade).
 
-Having filled in all the required fields you can now press "Run" and wait a moment while MDT calculates your selected model.
+Having filled in all the required fields, select the "Ball&Stick_r1 (Cascade|S0)" model, and press "Run" and wait a moment while MDT calculates your selected model.
 Afterwards you go to the "View results" tab to launch the MDT map viewer GUI for visually inspecting the results.
 
 By default MDT returns a lot of result maps, like various error maps, additional maps like FSL like vector component maps, and more.
