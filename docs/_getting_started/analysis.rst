@@ -120,7 +120,7 @@ MDT will help you by warning you if the available data is not suited for the sel
 
 For adding additional data, like static maps, a noise standard deviation or a gradient deviations map you can use the button "Additional data".
 The button "Optimization options" allows you to set specific optimization options like which optimizer to use and with which precision you would like to estimate the models.
-The defaults are generally fine.
+The defaults have been tuned to give optimal fit quality and run-time (see Harms et al., in press).
 
 
 .. _analysis_using_the_cli:
