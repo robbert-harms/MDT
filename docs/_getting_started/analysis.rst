@@ -9,8 +9,11 @@ This guide will walk you through basic model analysis with MDT using all of thes
 
 This guide can in principle be followed with any compatible dataset, but it is suggested to first follow the guide using the MDT example datasets.
 There are two MDT example datasets, a b1k_b2k dataset and a b6k dataset.
-The first has a shell of b=1000 and of b=2000 and is very well suited for Tensor and NODDI.
-The other dataset has a range of shells between b=1000 and b=6000 and is ideally suited for CHARMED analysis.
+The b1k_b2k has a shell of b=1000s/mm^2 and of b=2000s/mm^2 and is very well suited for e.g. Tensor, Ball&Stick and NODDI.
+The b1k shell is the standard Jones 30 direction table, including 6 b0 measurements at the start.
+The b2k shell is a 60 whole-sphere direction set create with an electrostatic repulsion algorithm and has another 7 b0 measurements, 2 at the start of the shell and then one every 12 directions.
+The other dataset has a range of 8 shells between b=750s/mm^2 and b=6000s/mm^2 (in steps of 750s/mm^2) with an increasing number of durections per shell (see `De Santis et al., MRM, 2013 <http://dx.doi.org/10.1002/mrm.24717>`) and is well suited for CHARMED analysis and other models that require high b-values (but no diffusion time variations).
+Both datasets were acquired in the same session on a Siemens Prisma system, on the VE11C software line, with the standard product diffusion sequence at 2mm isotropic with GRAPPA in-plane acceleration factor 2 and 6/8 partial fourier.
 Two slices of both these datasets are directly available after MDT installation, for obtaining these follow the guide.
 The complete example datasets can be downloaded from: TODO provide download location
 
