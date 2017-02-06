@@ -445,6 +445,9 @@ class SamplingProcessingWorker(ModelProcessingWorker):
 
         self._write_volumes(roi_indices, other_output, os.path.join(self._tmp_storage_dir, 'volume_maps'))
 
+        chain_end_point = {key: result[:, -1] for key, result in results.items()}
+        self._write_volumes(roi_indices, chain_end_point, os.path.join(self._tmp_storage_dir, 'chain_end_point'))
+
         if self._store_samples:
             self._write_sample_results(results, self._problem_data.mask, roi_indices)
             return results
@@ -455,6 +458,9 @@ class SamplingProcessingWorker(ModelProcessingWorker):
         super(SamplingProcessingWorker, self).combine()
         self._combine_volumes(self._output_dir, self._tmp_storage_dir,
                               self._problem_data.volume_header, maps_subdir='volume_maps')
+
+        self._combine_volumes(self._output_dir, self._tmp_storage_dir,
+                              self._problem_data.volume_header, maps_subdir='chain_end_point')
 
         if self._store_samples:
             for samples in glob.glob(os.path.join(self._tmp_storage_dir, '*.samples.npy')):

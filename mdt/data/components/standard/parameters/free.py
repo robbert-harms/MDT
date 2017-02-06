@@ -143,7 +143,7 @@ class d(FreeParameterConfig):
     lower_bound = 0
     upper_bound = 1.0e-8
     parameter_transform = SinSqrClampTransform()
-    sampling_proposal = GaussianProposal(1e-14)
+    sampling_proposal = GaussianProposal(1e-11)
 
 
 class dperp0(FreeParameterConfig):
@@ -152,7 +152,7 @@ class dperp0(FreeParameterConfig):
     lower_bound = 0
     upper_bound = 1.0e-8
     parameter_transform = SinSqrClampTransform()
-    sampling_proposal = GaussianProposal(1e-15)
+    sampling_proposal = GaussianProposal(1e-11)
 
 
 class dperp1(FreeParameterConfig):
@@ -161,7 +161,7 @@ class dperp1(FreeParameterConfig):
     lower_bound = 0
     upper_bound = 1.0e-8
     parameter_transform = SinSqrClampTransform()
-    sampling_proposal = GaussianProposal(1e-15)
+    sampling_proposal = GaussianProposal(1e-11)
 
 
 class R(FreeParameterConfig):
@@ -170,7 +170,7 @@ class R(FreeParameterConfig):
     lower_bound = 1e-6
     upper_bound = 20e-6
     parameter_transform = CosSqrClampTransform()
-    sampling_proposal = GaussianProposal(1e-6)
+    sampling_proposal = GaussianProposal(1e-7)
 
 
 class kappa(FreeParameterConfig):
