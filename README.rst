@@ -2,12 +2,13 @@
 Maastricht Diffusion Toolbox
 ############################
 The Maastricht Diffusion Toolbox, MDT, is a framework and library for parallelized (GPU and multi-core CPU) diffusion Magnetic Resonance Imaging (MRI) modeling.
-MDT's object oriented and modular design allows arbitrary user specification and combination of biophysical MRI compartment models, diffusion- and T1, T2, T2* based microstructure models,
+MDT's object oriented and modular design allows arbitrary user specification and combination of: biophysical MRI compartment models, diffusion- and T1, T2, T2* based microstructure models,
 likelihood functions and optimization algorithms. MDT was designed with compatibility in mind and adheres to input, output and variable names conventions used by other related software tools.
-Many diffusion microstructure models are included, and new models can be added simply by adding Python script files.
+Many diffusion and relaxometry microstructure models are included, and new models can be added simply by adding Python script files.
+MDT can be extended to other modalities and other parametric models estimated from data volumes varying along controlled parameters (such as b-values, diffusion times, TE, TM, flip angle, etc).
 The parallelized accelerated computations allow for tens to hundred times faster model fitting, even on standard GPU hardware,
-which makes MDT ideal for population studies.
-Additionally, MDT can be extended to other modalities and other parametric models estimated from data volumes varying along controlled parameters (such as b-values, diffusion times, TE, TM, flip angle, etc).
+which makes MDT ideal for large group studies or population studies.
+
 
 *******
 Summary
