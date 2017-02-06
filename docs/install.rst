@@ -6,7 +6,7 @@ Installation
 *********************
 Ubuntu / Debian Linux
 *********************
-Using the package manager, installation in Ubuntu and Debian is easy.
+Using the package manager, installation in Ubuntu and Debian is relatively straightforward.
 
 For **Ubuntu >= 16** the MOT package can be installed with a Personal Package Archive (PPA) using:
 
@@ -18,7 +18,7 @@ For **Ubuntu >= 16** the MOT package can be installed with a Personal Package Ar
 
 By using a PPA your Ubuntu system can update MDT automatically whenever a new version is out.
 
-For **Debian**, and **Ubuntu < 16**, using a PPA is not possible (because of missing dependend packages) and we need a more manual installation.
+For **Debian**, and **Ubuntu < 16**, using a PPA is not possible (because of missing dependent packages) and we need a more manual installation.
 Please install the dependencies first:
 
 .. code-block:: bash
