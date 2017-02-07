@@ -29,7 +29,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
 
     def __init__(self, model_name, model_tree, evaluation_model, signal_noise_model=None, problem_data=None,
-                 add_default_weights_dependency=True):
+                 enforce_weights_sum_to_one=True):
         """Create a composite dMRI sample model.
 
         This also implements the perturbation interface to allow perturbation of the data during meta-optimization.
@@ -38,14 +38,14 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
         to check if the protocol is correct for the model we try to fit.
 
         Args:
-            add_default_weights_dependency (boolean): if we want to add the default weights dependency to this model
+            enforce_weights_sum_to_one (boolean): if we want to add the default weights dependency to this model
                 or not, by default we use this.
 
         Attributes:
             required_nmr_shells (int): Define the minimum number of unique shells necessary for this model.
                 The default is false, which means that we don't check for this.
         """
-        self._add_default_weights_dependency = add_default_weights_dependency
+        self._enforce_weights_sum_to_one = enforce_weights_sum_to_one
         super(DMRICompositeModel, self).__init__(model_name, model_tree, evaluation_model, signal_noise_model,
                                                  problem_data=problem_data)
         self.required_nmr_shells = False
@@ -121,7 +121,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
     def _set_default_dependencies(self):
         super(DMRICompositeModel, self)._set_default_dependencies()
 
-        if self._add_default_weights_dependency:
+        if self._enforce_weights_sum_to_one:
             names = [w.name + '.w' for w in self._get_weight_models()]
             if len(names):
                 self.add_parameter_dependency(names[0], WeightSumToOneRule(names[1:]))
@@ -337,7 +337,7 @@ class DMRICompositeModelConfig(ComponentConfig):
                                                     [(self, self._get_parameter_by_name('Tensor.dperp0'))])
                 }
 
-        add_default_weights_dependency (boolean): set to False to disable the automatic Weight-sum-to-one dependency.
+        enforce_weights_sum_to_one (boolean): set to False to disable the automatic Weight-sum-to-one dependency.
             By default it is True and we add them.
 
         volume_selection (dict): the volume selection by this model. This can be used to limit the volumes used
@@ -368,7 +368,7 @@ class DMRICompositeModelConfig(ComponentConfig):
     upper_bounds = {}
     lower_bounds = {}
     parameter_transforms = {}
-    add_default_weights_dependency = True
+    enforce_weights_sum_to_one = True
     volume_selection = None
 
     @classmethod
@@ -398,7 +398,7 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                     CompartmentModelTree(parse(template.model_expression)),
                     deepcopy(template.evaluation_model),
                     signal_noise_model=deepcopy(template.signal_noise_model),
-                    add_default_weights_dependency=template.add_default_weights_dependency)
+                    enforce_weights_sum_to_one=template.enforce_weights_sum_to_one)
 
                 self.add_parameter_dependencies(_resolve_dependencies(deepcopy(template.dependencies)))
                 self.add_post_optimization_modifiers(deepcopy(template.post_optimization_modifiers))

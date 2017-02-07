@@ -83,6 +83,11 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         self.data_scale_min.valueChanged.connect(self._update_scale_min)
         self.data_scale_max.valueChanged.connect(self._update_scale_max)
 
+        self.data_scale_max.set_update_delay(500)
+        self.data_scale_min.set_update_delay(500)
+        self.data_clipping_max.set_update_delay(500)
+        self.data_clipping_min.set_update_delay(500)
+
         self.data_set_use_scale.stateChanged.connect(self._set_use_scale)
         self.use_data_scale_min.stateChanged.connect(self._set_use_data_scale_min)
         self.use_data_scale_max.stateChanged.connect(self._set_use_data_scale_max)

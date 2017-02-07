@@ -2,6 +2,7 @@ import numpy as np
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QWidget
 
+from mdt.gui.utils import TimedUpdate
 from mdt.gui.widgets.design.ui_scientific_number_scroller_widget import Ui_ScientificScroller
 
 __author__ = 'Robbert Harms'
@@ -17,8 +18,17 @@ class ScientificNumberScroller(Ui_ScientificScroller, QWidget):
     def __init__(self, parent):
         super(ScientificNumberScroller, self).__init__(parent)
         self.setupUi(self)
-        self.mantissa.valueChanged.connect(self._signal_new_value)
-        self.exponent.valueChanged.connect(self._signal_new_value)
+        self.mantissa.valueChanged.connect(self._value_changed_cb)
+        self.exponent.valueChanged.connect(self._value_changed_cb)
+        self._timer = TimedUpdate(self._signal_new_value)
+        self._update_delay = 0
+
+    @pyqtSlot()
+    def _value_changed_cb(self):
+        return self._timer.add_delayed_callback(self._update_delay)
+
+    def set_update_delay(self, update_delay):
+        self._update_delay = update_delay
 
     @pyqtSlot()
     def _signal_new_value(self):

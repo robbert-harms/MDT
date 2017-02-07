@@ -235,6 +235,7 @@
   <tabstop>singleValueInput</tabstop>
   <tabstop>fileInput</tabstop>
   <tabstop>selectedFile</tabstop>
+  <tabstop>valueScale</tabstop>
  </tabstops>
  <resources/>
  <connections>

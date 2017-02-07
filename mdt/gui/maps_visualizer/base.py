@@ -1,6 +1,5 @@
 import copy
-from mdt.visualization.dict_conversion import ConvertDictElements
-from mdt.visualization.maps.base import SingleMapConfig, MapPlotConfig, Zoom, Point
+from mdt.visualization.maps.base import SingleMapConfig, MapPlotConfig
 
 
 class PlottingFrame(object):

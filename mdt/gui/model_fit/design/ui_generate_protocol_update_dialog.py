@@ -133,6 +133,7 @@ class Ui_UpdateColumnDialog(object):
         UpdateColumnDialog.setTabOrder(self.inputMethodSelector, self.singleValueInput)
         UpdateColumnDialog.setTabOrder(self.singleValueInput, self.fileInput)
         UpdateColumnDialog.setTabOrder(self.fileInput, self.selectedFile)
+        UpdateColumnDialog.setTabOrder(self.selectedFile, self.valueScale)
 
     def retranslateUi(self, UpdateColumnDialog):
         _translate = QtCore.QCoreApplication.translate

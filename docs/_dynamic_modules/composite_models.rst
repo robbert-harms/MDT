@@ -67,22 +67,22 @@ In the example above we added two simple assignment dependencies in which the th
 This dependency locks the NODDI_EC theta and phi to that of NODDI_IC assuring that both the intra cellular and extra cellular models reflect the same orientation.
 
 
-Default Weights dependency
-==========================
+Weights sum to one
+==================
 Most composite models consist of a weighted sum of compartments models.
 An implicit dependency in this set-up is that those weights must exactly sum to one.
 To ensure this, MDT adds, by default, a dependency to the last Weight compartment in the composite model definition.
 This dependency first normalizes (if needed) the n-1 Weight compartments by their sum :math:`s = \sum_{i}^{n-1}w_{i}`.
 Then, the last Weight, which is not optimized explicitly, is then either set to zero, i.e. :math:`w_{n} = 0` or set as :math:`w_{n}=1-s` if s is smaller than zero.
 
-If you wish to disable this feature, for example in a model that does not have a linear sum of Weights, you can use set the attribute ``add_default_weights_dependency`` to false, e.g.:
+If you wish to disable this feature, for example in a model that does not have a linear sum of weighted compartments, you can use set the attribute ``enforce_weights_sum_to_one`` to false, e.g.:
 
 .. code-block:: python
 
 
     class MyModel(DMRICompositeModelConfig):
         ...
-        add_default_weights_dependency = False
+        enforce_weights_sum_to_one = False
 
 
 .. _dynamic_modules_composite_models_protocol_options:

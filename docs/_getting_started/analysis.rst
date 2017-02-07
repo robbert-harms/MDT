@@ -8,14 +8,13 @@ There are three ways to interface with MDT, the :ref:`Graphical User Interface (
 This guide will walk you through basic model analysis with MDT using all of these interfaces.
 
 This guide can in principle be followed with any compatible dataset, but it is suggested to first follow the guide using the MDT example datasets.
-There are two MDT example datasets, a b1k_b2k dataset and a b6k dataset.
+There are two MDT example datasets, a b1k_b2k dataset and a multishell_b6k_max dataset.
 The b1k_b2k has a shell of b=1000s/mm^2 and of b=2000s/mm^2 and is very well suited for e.g. Tensor, Ball&Stick and NODDI.
 The b1k shell is the standard Jones 30 direction table, including 6 b0 measurements at the start.
 The b2k shell is a 60 whole-sphere direction set create with an electrostatic repulsion algorithm and has another 7 b0 measurements, 2 at the start of the shell and then one every 12 directions.
-The b6k dataset has 6 b0's at the start and a range of 8 shells between b=750s/mm^2 and b=6000s/mm^2 (in steps of 750s/mm^2) with an increasing number of durections per shell (see `De Santis et al., MRM, 2013 <http://dx.doi.org/10.1002/mrm.24717>`_) and is well suited for CHARMED analysis and other models that require high b-values (but no diffusion time variations).
+The multishell_b6k_max dataset has 6 b0's at the start and a range of 8 shells between b=750s/mm^2 and b=6000s/mm^2 (in steps of 750s/mm^2) with an increasing number of durections per shell (see `De Santis et al., MRM, 2013 <http://dx.doi.org/10.1002/mrm.24717>`_) and is well suited for CHARMED analysis and other models that require high b-values (but no diffusion time variations).
 Both datasets were acquired in the same session on a Siemens Prisma system, on the VE11C software line, with the standard product diffusion sequence at 2mm isotropic with GRAPPA in-plane acceleration factor 2 and 6/8 partial fourier (no multiband/simultaneous multi-slice).
-Two slices of both these datasets are directly available after MDT installation, for obtaining these follow the guide.
-The complete example datasets can be downloaded from: TODO provide download location
+Two slices of both these datasets are directly available after MDT installation. For obtaining these follow the guide.
 
 
 .. _analysis_using_the_gui:
@@ -70,7 +69,7 @@ To remove a column, right click the column header and select the "Remove column"
 
 
 For the sake of this example, please add to the loaded b-vec and b-val files the "Single value" columns "Delta", "delta", "TE" and "TR" with values
-42e-3 seconds, 31.7e-3 seconds, 60e-3 and 7.1 seconds respectively.
+26.5e-3 seconds, 16.2e-3 seconds, 60e-3 and 7.1 seconds respectively.
 Then, please save the protocol as "b1k_b2k_test.prtcl" and compare it to the pre-supplied protocol for comparison (open both in a separate GUI).
 
 
@@ -158,7 +157,7 @@ For example:
 
 .. code-block:: console
 
-    $ mdt-generate-protocol d.bvec d.bval --Delta 42 --delta delta.txt
+    $ mdt-generate-protocol d.bvec d.bval --Delta 26.5 --delta delta.txt
 
 which will add both the column ``Delta`` to your protocol file (with a static value of 42 ms) and the column ``delta``
 which is read from a file. If a file is given it can either contain a column, row or scalar.
@@ -179,12 +178,12 @@ An example usage in the case of the MDT example data would be the command:
 
     $ cd b1k_b2k
     $ mdt-generate-protocol b1k_b2k.bvec b1k_b2k.bval \
-        --Delta 42 \
-        --delta 31.7 \
+        --Delta 26.5 \
+        --delta 16.2 \
         --TE 60 \
         --TR 7100 \
 
-note that by default the sequence timings are in ``ms``.
+note that by default the sequence timings are in ``ms`` for this function.
 
 
 Generating a brain mask
@@ -332,7 +331,7 @@ To (re-)create the protocol file for the b1k_b2k dataset you can use the followi
 
     protocol = mdt.load_bvec_bval('b1k_b2k.bvec', 'b1k_b2k.bval')
     protocol = protocol.copy_with_updates(
-        {'Delta': 42e-3, 'delta': 31.7e-3, 'TE': 60e-3, 'TR': 7.1})
+        {'Delta': 26.5e-3, 'delta': 16.2-3, 'TE': 60e-3, 'TR': 7.1})
 
 
 Please note that the Protocol class is a singleton and adding or removing columns involves a copy operation.

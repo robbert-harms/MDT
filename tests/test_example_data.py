@@ -45,14 +45,14 @@ class ExampleDataTest(unittest.TestCase):
 
     @classmethod
     def _run_b6k_analysis(cls):
-        pjoin = mdt.make_path_joiner(os.path.join(cls._tmp_dir, cls._tmp_dir_subdir, 'b6k'))
+        pjoin = mdt.make_path_joiner(os.path.join(cls._tmp_dir, cls._tmp_dir_subdir, 'multishell_b6k_max'))
 
-        problem_data = mdt.load_problem_data(pjoin('b6k_example_slices_24_38'),
-                                             pjoin('b6k.prtcl'),
-                                             pjoin('b6k_example_slices_24_38_mask'))
+        problem_data = mdt.load_problem_data(pjoin('multishell_b6k_max_example_slices_24_38'),
+                                             pjoin('multishell_b6k_max.prtcl'),
+                                             pjoin('multishell_b6k_max_example_slices_24_38_mask'))
 
         for model_name in ['BallStick_r1 (Cascade)']:
-            mdt.fit_model(model_name, problem_data, pjoin('output', 'b6k_example_slices_24_38_mask'))
+            mdt.fit_model(model_name, problem_data, pjoin('output', 'multishell_b6k_max_example_slices_24_38_mask'))
 
     def test_b1k_b2k_ballstick(self):
         pjoin = mdt.make_path_joiner(os.path.join(self._tmp_dir, self._tmp_dir_subdir, 'b1k_b2k'))
