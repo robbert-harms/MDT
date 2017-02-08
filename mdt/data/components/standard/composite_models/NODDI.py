@@ -27,14 +27,6 @@ class NODDITortuosityParameterDependency(AbstractParameterDependency):
     def assignment_code(self):
         return '{d} * _tortuosity_mult_{d}'.format(d=self._d)
 
-    @property
-    def fixed(self):
-        return True
-
-    @property
-    def has_side_effects(self):
-        return False
-
 
 class NODDI(DMRICompositeModelConfig):
 
@@ -53,12 +45,12 @@ class NODDI(DMRICompositeModelConfig):
              'NODDI_EC.d': 1.7e-9,
              'Ball.d': 3.0e-9}
 
-    dependencies = (
-        ('NODDI_EC.dperp0', NODDITortuosityParameterDependency('NODDI_EC.d', 'w_ec.w', 'w_ic.w')),
-        ('NODDI_EC.kappa', 'NODDI_IC.kappa'),
-        ('NODDI_EC.theta', 'NODDI_IC.theta'),
-        ('NODDI_EC.phi', 'NODDI_IC.phi')
-    )
+    dependencies = {
+        'NODDI_EC.dperp0': NODDITortuosityParameterDependency('NODDI_EC.d', 'w_ec.w', 'w_ic.w'),
+        'NODDI_EC.kappa': 'NODDI_IC.kappa',
+        'NODDI_EC.theta': 'NODDI_IC.theta',
+        'NODDI_EC.phi': 'NODDI_IC.phi'
+    }
 
     post_optimization_modifiers = [
         ('NDI', lambda d: d['w_ic.w'] / (d['w_ic.w'] + d['w_ec.w'])),

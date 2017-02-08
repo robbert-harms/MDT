@@ -269,16 +269,17 @@ class DMRICompositeModelConfig(ComponentConfig):
 
                 post_optimization_modifiers = [('SNIF', lambda d: 1 - d['Wcsf.w']),
                                            ...]
-        dependencies (list): the dependencies between model parameters. Example:
+        dependencies (dict): the dependencies between model parameters. Example:
 
             .. code-block:: python
 
-                dependencies = [('Noddi_EC.kappa', SimpleAssignment('Noddi_IC.kappa')),
-                                ('NODDI_EC.theta', 'NODDI_IC.theta')
-                                ...]
+                dependencies = {'Noddi_EC.kappa': SimpleAssignment('Noddi_IC.kappa'),
+                                'NODDI_EC.theta', 'NODDI_IC.theta',
+                                ...}
 
-            If a string is given this is interpreted as a SimpleAssignment dependency.
-            In the example shown here both the kappa and theta parameters are dependend in the same way.
+            If a string is given it is interpreted as a SimpleAssignment dependency.
+            In the example above, both the kappa and theta parameters are fixed in the same way using
+            a simple assignment.
 
         model_expression (str): the model expression. For the syntax see:
             mdt.models.parsers.CompositeModelExpression.ebnf
@@ -343,7 +344,7 @@ class DMRICompositeModelConfig(ComponentConfig):
     ex_vivo_suitable = True
     description = ''
     post_optimization_modifiers = []
-    dependencies = []
+    dependencies = {}
     model_expression = ''
     evaluation_model = OffsetGaussianEvaluationModel()
     signal_noise_model = None
@@ -384,7 +385,7 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                     signal_noise_model=deepcopy(template.signal_noise_model),
                     enforce_weights_sum_to_one=template.enforce_weights_sum_to_one)
 
-                self.add_parameter_dependencies(_resolve_dependencies(deepcopy(template.dependencies)))
+                self.add_parameter_dependencies(_resolve_dependencies(deepcopy(template.dependencies)).items())
                 self.add_post_optimization_modifiers(deepcopy(template.post_optimization_modifiers))
 
                 for full_param_name, value in template.inits.items():
@@ -439,18 +440,18 @@ class DMRICompositeModelBuilder(ComponentBuilder):
 
 
 def _resolve_dependencies(dependencies):
-    """Resolve string dependencies to SimpleAssignment objects in the list of dependencies.
+    """Resolve string dependencies to SimpleAssignment objects in the set of dependencies.
 
     Args:
-        dependencies (list): the dependencies to resolve strings in
+        dependencies (dict): the dependencies in which to resolve strings
 
     Returns:
-        list: the list of dependencies with dependency a proper object
+        dict: the dict of proper dependencies objects
     """
-    return_list = []
-    for param, dependency in dependencies:
+    return_val = {}
+    for param, dependency in dependencies.items():
         if isinstance(dependency, six.string_types):
-            return_list.append((param, SimpleAssignment(dependency)))
+            return_val.update({param: SimpleAssignment(dependency)})
         else:
-            return_list.append((param, dependency))
-    return return_list
+            return_val.update({param: dependency})
+    return return_val

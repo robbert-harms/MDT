@@ -53,15 +53,18 @@ For example:
 
     class NODDI(DMRICompositeModelConfig):
         ...
-        dependencies = (
-            ('NODDI_EC.theta', SimpleAssignment('NODDI_IC.theta')),
-            ('NODDI_EC.phi', 'NODDI_IC.phi')
-        )
+        dependencies = {
+            'NODDI_EC.dperp0': NODDITortuosityParameterDependency(
+                'NODDI_EC.d', 'w_ec.w', 'w_ic.w'),
+            'NODDI_EC.kappa': 'NODDI_IC.kappa',
+            'NODDI_EC.theta': 'NODDI_IC.theta',
+            'NODDI_EC.phi': 'NODDI_IC.phi'
+        }
 
 
 In this example, we added the attribute ``dependencies`` to our composite model.
-This attribute accepts a list of tuples, with as first element the name of the subject and as second element the dependency, either a dependency object or a string.
-If a string is given as an dependency MDT assumes a a SimpleAssignment assignment.
+This attribute accepts a dictionary, with as key the name of the parameter to fix and as value the dependency, either a dependency object or a string.
+If a string is given as the dependency, MDT assumes it is a SimpleAssignment assignment.
 
 In the example above we added two simple assignment dependencies in which the theta and phi of the NODDI_EC compartment are locked to that of the NODDI_IC compartment.
 This dependency locks the NODDI_EC theta and phi to that of NODDI_IC assuring that both the intra cellular and extra cellular models reflect the same orientation.
