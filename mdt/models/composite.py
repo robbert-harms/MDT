@@ -11,12 +11,11 @@ from mdt.models.parsers.CompositeModelExpressionParser import parse
 from mdt.protocols import VirtualColumnB
 from mdt.utils import create_roi, calculate_information_criterions
 from mot.cl_data_type import CLDataType
-from mot.model_building.cl_functions.model_functions import Weight
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
 from mot.model_building.data_adapter import SimpleDataAdapter
 from mot.model_building.evaluation_models import OffsetGaussianEvaluationModel
 from mot.model_building.model_builders import SampleModelBuilder
-from mot.model_building.parameter_functions.dependencies import WeightSumToOneRule, SimpleAssignment
+from mot.model_building.parameter_functions.dependencies import SimpleAssignment
 from mot.model_building.trees import CompartmentModelTree
 
 __author__ = 'Robbert Harms'
@@ -37,17 +36,13 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
         It furthermore implements some protocol check functions. These are used by the fit_model functions in MDT
         to check if the protocol is correct for the model we try to fit.
 
-        Args:
-            enforce_weights_sum_to_one (boolean): if we want to add the default weights dependency to this model
-                or not, by default we use this.
-
         Attributes:
             required_nmr_shells (int): Define the minimum number of unique shells necessary for this model.
                 The default is false, which means that we don't check for this.
         """
-        self._enforce_weights_sum_to_one = enforce_weights_sum_to_one
         super(DMRICompositeModel, self).__init__(model_name, model_tree, evaluation_model, signal_noise_model,
-                                                 problem_data=problem_data)
+                                                 problem_data=problem_data,
+                                                 enforce_weights_sum_to_one=enforce_weights_sum_to_one)
         self.required_nmr_shells = False
         self._logger = logging.getLogger(__name__)
         self._original_problem_data = None
@@ -117,17 +112,6 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
             pass
 
         return problems
-
-    def _set_default_dependencies(self):
-        super(DMRICompositeModel, self)._set_default_dependencies()
-
-        if self._enforce_weights_sum_to_one:
-            names = [w.name + '.w' for w in self._get_weight_models()]
-            if len(names):
-                self.add_parameter_dependency(names[0], WeightSumToOneRule(names[1:]))
-
-    def _get_weight_models(self):
-        return [cm for cm in self._model_tree.get_compartment_models() if isinstance(cm, Weight)]
 
     def _get_pre_model_expression_eval_code(self):
         if self._can_use_gradient_deviations():
