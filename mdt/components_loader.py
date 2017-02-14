@@ -3,18 +3,17 @@
 This modules consists of two main items, component sources and component loaders. The component loaders have a list
 of sources from which they load the available components.
 """
+import collections
+import imp #todo in P3.4 replace imp calls with importlib.SourceFileLoader(name, path).load_module(name)
 import inspect
 import os
-import imp #todo in P3.4 replace imp calls with importlib.SourceFileLoader(name, path).load_module(name)
-
-import collections
-
+from contextlib import contextmanager
 from six import with_metaclass
 
-from mdt.exceptions import NonUniqueComponent
-from mot.model_building.cl_functions.base import ModelFunction, LibraryFunction
 import mot.model_building.cl_functions.library_functions
 import mot.model_building.cl_functions.model_functions
+from mdt.exceptions import NonUniqueComponent
+from mot.model_building.cl_functions.base import ModelFunction, LibraryFunction
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -61,6 +60,18 @@ def get_meta_info(model_name):
             return sml.get_meta_info(model_name)
         except ImportError:
             raise ValueError('The model with the name "{}" could not be found.'.format(model_name))
+
+
+@contextmanager
+def user_preferred_components(components_dict):
+    """Creates a context manager in which the provided components take precedence over existing ones.
+
+    Args:
+        components_dict (dict): dictionary with the structure ``{<component_type>: {<name>: <cls>, ...}, ...}``
+    """
+    UserPreferredSource.add_components(components_dict)
+    yield
+    UserPreferredSource.remove_components(components_dict)
 
 
 class ComponentBuilder(object):
@@ -272,7 +283,8 @@ class ComponentsLoader(object):
         """Check if all the elements in the sources are unique."""
         elements = []
         for source in self._sources:
-            elements.extend(source.list())
+            if source.use_in_uniqueness_check():
+                elements.extend(source.list())
         non_unique = list(item for item, count in collections.Counter(elements).items() if count > 1)
         if len(non_unique):
             raise NonUniqueComponent('Non-unique components detected: {}, please rename them.'.format(non_unique))
@@ -317,6 +329,105 @@ class ComponentsSource(object):
                 - description (str): the description of the component
         """
         return {}
+
+    def use_in_uniqueness_check(self):
+        """If this source should be used when checking for unique components over all sources.
+
+        By default this is set to True to be able to warn the user if multiple components are found. There are
+        cases however in which you may want to disable this feature for a component source such that you can overwrite
+        existing components.
+
+        Returns:
+            bool: if this class should be used when checking for unique components
+        """
+        return True
+
+
+class UserPreferredSource(ComponentsSource):
+
+    _components = {}
+
+    def __init__(self, component_type):
+        """A source for user defined preferred components.
+
+        To function correctly, this source should be set as the primary source for a component loader. Then,
+        the user can use the static methods of this class to add component items on the fly. This allows for example
+        'monkey patching' some components by replacing it with a preferred component prior to loading.
+
+        To use, add a new instance of this source to one of your components loaders while ensuring that the
+        ``component_type`` is set correctly. Then, using class attributes the correct class elements are returned when
+         requested.
+
+        Args:
+            component_type (str): the component type for this source
+        """
+        super(UserPreferredSource, self).__init__()
+        self._component_type = component_type
+
+    def list(self):
+        return list(self._components.get(self._component_type, {}))
+
+    def get_class(self, name):
+        components = self._components.get(self._component_type, {})
+        if name in components:
+            return components[name]
+        raise ImportError
+
+    def use_in_uniqueness_check(self):
+        return False
+
+    @classmethod
+    def add_component(cls, component_type, name, component_class):
+        """Add a component to the general user preferred component source.
+
+        This class is designed to work with components of various types where the instance of an class determines which
+        component is loaded. Hence, when adding a component we need to set the component type.
+
+        Args:
+            component_type (str): the type of this component
+            name (str): the name of this component
+            component_class (cls): the class to load when this component / name is required.
+        """
+        if component_type not in cls._components:
+            cls._components[component_type] = {}
+        cls._components[component_type][name] = component_class
+
+    @classmethod
+    def add_components(cls, components_dict):
+        """Add one or more components to this source using a dictionary.
+
+        This will load all provided components in the given dictionary.
+
+        Args:
+            components_dict (dict): dictionary with the structure ``{<component_type>: {<name>: <cls>, ...}, ...}``
+        """
+        for component_type in components_dict:
+            for name, component_class in components_dict[component_type].items():
+                cls.add_component(component_type, name, component_class)
+
+    @classmethod
+    def remove_component(cls, component_type, name, component_class):
+        """Remove a component from the general user preferred component source.
+
+        Args:
+            component_type (str): the type of this component
+            name (str): the name of this component
+            component_class (cls): the class to load when this component / name is required.
+        """
+        if component_type in cls._components:
+            if name in cls._components[component_type]:
+                del cls._components[component_type][name]
+
+    @classmethod
+    def remove_components(cls, components_dict):
+        """Remove one or more components from this source using a dictionary.
+
+        Args:
+            components_dict (dict): dictionary with the structure ``{<component_type>: {<name>: <cls>, ...}, ...}``
+        """
+        for component_type in components_dict:
+            for name, component_class in components_dict[component_type].items():
+                cls.remove_component(component_type, name, component_class)
 
 
 class UserComponentsSourceSingle(ComponentsSource):
@@ -642,15 +753,18 @@ class MOTCompartmentModelsSource(MOTSourceSingle):
 class BatchProfilesLoader(ComponentsLoader):
 
     def __init__(self):
-        super(BatchProfilesLoader, self).__init__([UserComponentsSourceSingle('standard', 'batch_profiles'),
-                                                   UserComponentsSourceSingle('user', 'batch_profiles')])
+        super(BatchProfilesLoader, self).__init__(
+            [UserPreferredSource('batch_profiles'),
+             UserComponentsSourceSingle('standard', 'batch_profiles'),
+             UserComponentsSourceSingle('user', 'batch_profiles')])
 
 
 class ProcessingStrategiesLoader(ComponentsLoader):
 
     def __init__(self):
         super(ProcessingStrategiesLoader, self).__init__(
-            [UserComponentsSourceSingle('standard', 'processing_strategies'),
+            [UserPreferredSource('processing_strategies'),
+             UserComponentsSourceSingle('standard', 'processing_strategies'),
              UserComponentsSourceSingle('user', 'processing_strategies')])
 
 
@@ -658,7 +772,8 @@ class NoiseSTDCalculatorsLoader(ComponentsLoader):
 
     def __init__(self):
         super(NoiseSTDCalculatorsLoader, self).__init__(
-            [UserComponentsSourceSingle('standard', 'noise_std_estimators'),
+            [UserPreferredSource('noise_std_estimators'),
+             UserComponentsSourceSingle('standard', 'noise_std_estimators'),
              UserComponentsSourceSingle('user', 'noise_std_estimators')])
 
 
@@ -667,7 +782,8 @@ class CompartmentModelsLoader(ComponentsLoader):
     def __init__(self):
         from mdt.components_config.compartment_models import CompartmentBuilder
         super(CompartmentModelsLoader, self).__init__(
-            [AutoUserComponentsSourceSingle('standard', 'compartment_models', CompartmentBuilder()),
+            [UserPreferredSource('compartment_models'),
+             AutoUserComponentsSourceSingle('standard', 'compartment_models', CompartmentBuilder()),
              AutoUserComponentsSourceSingle('user', 'compartment_models', CompartmentBuilder()),
              MOTCompartmentModelsSource()])
 
@@ -676,31 +792,38 @@ class LibraryFunctionsLoader(ComponentsLoader):
 
     def __init__(self):
         from mdt.components_config.library_functions import LibraryFunctionsBuilder
-        super(LibraryFunctionsLoader, self).__init__([
-            AutoUserComponentsSourceSingle('standard', 'library_functions', LibraryFunctionsBuilder()),
-            AutoUserComponentsSourceSingle('user', 'library_functions', LibraryFunctionsBuilder()),
-            MOTLibraryFunctionSource()])
+        super(LibraryFunctionsLoader, self).__init__(
+            [UserPreferredSource('library_functions'),
+             AutoUserComponentsSourceSingle('standard', 'library_functions', LibraryFunctionsBuilder()),
+             AutoUserComponentsSourceSingle('user', 'library_functions', LibraryFunctionsBuilder()),
+             MOTLibraryFunctionSource()])
 
 
 class CompositeModelsLoader(ComponentsLoader):
 
     def __init__(self):
-        super(CompositeModelsLoader, self).__init__([CompositeModelSource('standard'),
-                                                     CompositeModelSource('user')])
+        super(CompositeModelsLoader, self).__init__(
+            [UserPreferredSource('composite_models'),
+             CompositeModelSource('standard'),
+             CompositeModelSource('user')])
 
 
 class ParametersLoader(ComponentsLoader):
 
     def __init__(self):
-        super(ParametersLoader, self).__init__([ParametersSource('standard'),
-                                                ParametersSource('user')])
+        super(ParametersLoader, self).__init__(
+            [UserPreferredSource('parameters'),
+             ParametersSource('standard'),
+             ParametersSource('user')])
 
 
 class CascadeModelsLoader(ComponentsLoader):
 
     def __init__(self):
-        super(CascadeModelsLoader, self).__init__([CascadeSource('standard'),
-                                                   CascadeSource('user')])
+        super(CascadeModelsLoader, self).__init__(
+            [UserPreferredSource('cascade_models'),
+             CascadeSource('standard'),
+             CascadeSource('user')])
 
 
 def get_component_class(component_type, component_name):
