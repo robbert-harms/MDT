@@ -309,19 +309,6 @@ class DMRICompositeModelConfig(ComponentConfig):
 
                 lower_bounds = {'Stick.theta': 0}
 
-        parameter_transforms (dict): the parameter transform to use for a specific parameter. Can also be
-            a python callback function accepting as single parameter 'self', a reference to the build model.
-            This overwrites the default parameter transform of the specified parameter to the given transformation.
-            Example:
-
-            .. code-block:: python
-
-                parameter_transforms = {
-                    'Tensor.dperp0': SinSqrClampTransform(),
-                    'Tensor.dperp1': lambda self: SinSqrClampDependentTransform(
-                                                    [(self, self._get_parameter_by_name('Tensor.dperp0'))])
-                }
-
         enforce_weights_sum_to_one (boolean): set to False to disable the automatic Weight-sum-to-one dependency.
             By default it is True and we add them.
 
@@ -352,7 +339,6 @@ class DMRICompositeModelConfig(ComponentConfig):
     fixes = {}
     upper_bounds = {}
     lower_bounds = {}
-    parameter_transforms = {}
     enforce_weights_sum_to_one = True
     volume_selection = None
 
@@ -399,12 +385,6 @@ class DMRICompositeModelBuilder(ComponentBuilder):
 
                 for full_param_name, value in template.upper_bounds.items():
                     self.set_upper_bound(full_param_name, deepcopy(value))
-
-                for full_param_name, value in template.parameter_transforms.items():
-                    if hasattr(value, '__call__'):
-                        self.set_parameter_transform(full_param_name, value(self))
-                    else:
-                        self.set_parameter_transform(full_param_name, deepcopy(value))
 
             def _get_suitable_volume_indices(self, problem_data):
                 volume_selection = template.volume_selection

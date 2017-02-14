@@ -21,7 +21,6 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-
 class s0(FreeParameterConfig):
 
     init_value = 1e4
