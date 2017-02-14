@@ -1,5 +1,5 @@
 from mdt.components_loader import bind_function
-from mdt.models.compartments import CompartmentConfig
+from mdt.components_config.compartment_models import CompartmentConfig
 from mot.model_building.cl_functions.library_functions import CerfDawson
 
 __author__ = 'Robbert Harms'

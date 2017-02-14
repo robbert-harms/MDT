@@ -588,7 +588,7 @@ class ParametersSource(AutoUserComponentsSourceMulti):
     def __init__(self, user_type):
         """Source for the items in the 'parameters' dir in the components folder."""
         from mot.model_building.cl_functions.parameters import CLFunctionParameter
-        from mdt.models.parameters import ParameterBuilder
+        from mdt.components_config.parameters import ParameterBuilder
         super(ParametersSource, self).__init__(user_type, 'parameters', CLFunctionParameter, ParameterBuilder())
 
 
@@ -596,7 +596,8 @@ class CompositeModelSource(AutoUserComponentsSourceMulti):
 
     def __init__(self, user_type):
         """Source for the items in the 'composite_models' dir in the components folder."""
-        from mdt.models.composite import DMRICompositeModel, DMRICompositeModelBuilder
+        from mdt.models.composite import DMRICompositeModel
+        from mdt.components_config.composite_models import DMRICompositeModelBuilder
         super(CompositeModelSource, self).__init__(user_type, 'composite_models', DMRICompositeModel,
                                                 DMRICompositeModelBuilder())
 
@@ -605,7 +606,8 @@ class CascadeSource(AutoUserComponentsSourceMulti):
 
     def __init__(self, user_type):
         """Source for the items in the 'cascade_models' dir in the components folder."""
-        from mdt.models.cascade import DMRICascadeModelInterface, CascadeBuilder
+        from mdt.models.cascade import DMRICascadeModelInterface
+        from mdt.components_config.cascade_models import CascadeBuilder
         super(CascadeSource, self).__init__(user_type, 'cascade_models', DMRICascadeModelInterface, CascadeBuilder())
 
 
@@ -663,7 +665,7 @@ class NoiseSTDCalculatorsLoader(ComponentsLoader):
 class CompartmentModelsLoader(ComponentsLoader):
 
     def __init__(self):
-        from mdt.models.compartments import CompartmentBuilder
+        from mdt.components_config.compartment_models import CompartmentBuilder
         super(CompartmentModelsLoader, self).__init__(
             [AutoUserComponentsSourceSingle('standard', 'compartment_models', CompartmentBuilder()),
              AutoUserComponentsSourceSingle('user', 'compartment_models', CompartmentBuilder()),
@@ -673,9 +675,11 @@ class CompartmentModelsLoader(ComponentsLoader):
 class LibraryFunctionsLoader(ComponentsLoader):
 
     def __init__(self):
-        super(LibraryFunctionsLoader, self).__init__([UserComponentsSourceSingle('standard', 'library_functions'),
-                                                      UserComponentsSourceSingle('user', 'library_functions'),
-                                                      MOTLibraryFunctionSource()])
+        from mdt.components_config.library_functions import LibraryFunctionsBuilder
+        super(LibraryFunctionsLoader, self).__init__([
+            AutoUserComponentsSourceSingle('standard', 'library_functions', LibraryFunctionsBuilder()),
+            AutoUserComponentsSourceSingle('user', 'library_functions', LibraryFunctionsBuilder()),
+            MOTLibraryFunctionSource()])
 
 
 class CompositeModelsLoader(ComponentsLoader):

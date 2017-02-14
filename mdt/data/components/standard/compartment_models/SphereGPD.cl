@@ -7,9 +7,9 @@
  */
 
 mot_float_type cmSphereGPD(const mot_float_type Delta,
-                        const mot_float_type delta,
-                        const mot_float_type d,
-                        const mot_float_type R){
+                           const mot_float_type delta,
+                           const mot_float_type d,
+                           const mot_float_type R){
 
     const mot_float_type cl_jnp_zeros[] = {
         1.84118378,   5.33144277,   8.53631637,  11.7060049 ,

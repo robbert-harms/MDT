@@ -1,6 +1,3 @@
-#ifndef NEUMANN_CYL_PERP_PGSE_SUM_CL
-#define NEUMANN_CYL_PERP_PGSE_SUM_CL
-
 /**
  * Author = Robbert Harms
  * Date = 2014-02-01
@@ -9,9 +6,6 @@
  * Email = robbert.harms@maastrichtuniversity.nl
  */
 
-/**
- * See the header definition for explanation
- */
 mot_float_type NeumannCylPerpPGSESum(const mot_float_type Delta,
                                      const mot_float_type delta,
                                      const mot_float_type d,
@@ -47,5 +41,3 @@ mot_float_type NeumannCylPerpPGSESum(const mot_float_type Delta,
     }
     return (mot_float_type)sum;
 }
-
-#endif //NEUMANN_CYL_PERP_PGSE_SUM_CL

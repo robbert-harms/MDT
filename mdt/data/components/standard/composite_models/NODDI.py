@@ -1,4 +1,4 @@
-from mdt.models.composite import DMRICompositeModelConfig
+from mdt.components_config.composite_models import DMRICompositeModelConfig
 from mot.model_building.parameter_functions.dependencies import AbstractParameterDependency
 
 __author__ = 'Robbert Harms'

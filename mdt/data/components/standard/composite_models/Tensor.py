@@ -1,4 +1,4 @@
-from mdt.models.composite import DMRICompositeModelConfig
+from mdt.components_config.composite_models import DMRICompositeModelConfig
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"

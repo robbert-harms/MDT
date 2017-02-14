@@ -8,7 +8,7 @@ its data are handled during model construction.
 """
 
 import numpy as np
-from mdt.models.parameters import FreeParameterConfig
+from mdt.components_config.parameters import FreeParameterConfig
 from mot.model_building.parameter_functions.priors import AbsSinHalfPrior, AbsSinPrior
 from mot.model_building.parameter_functions.proposals import GaussianProposal, CircularGaussianProposal
 from mot.model_building.parameter_functions.sample_statistics import CircularGaussianPSS

@@ -2,7 +2,7 @@ import numpy as np
 
 import mdt
 from mdt.components_loader import bind_function
-from mdt.models.compartments import CompartmentConfig
+from mdt.components_config.compartment_models import CompartmentConfig
 from mdt.cl_routines.mapping.dti_measures import DTIMeasures
 from mdt.utils import eigen_vectors_from_tensor
 

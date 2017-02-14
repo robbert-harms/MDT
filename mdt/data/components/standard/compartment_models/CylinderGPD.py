@@ -1,4 +1,4 @@
-from mdt.models.compartments import CompartmentConfig
+from mdt.components_config.compartment_models import CompartmentConfig
 from mdt.components_loader import bind_function
 
 __author__ = 'Robbert Harms'

@@ -7,7 +7,7 @@ Please choose the parameter type for a model and parameter carefully since the t
 its data are handled during model construction.
 
 """
-from mdt.models.parameters import StaticMapParameterConfig
+from mdt.components_config.parameters import StaticMapParameterConfig
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-02-14"

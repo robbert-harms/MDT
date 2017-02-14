@@ -1,6 +1,6 @@
 import numpy as np
 
-from mdt.models.cascade import CascadeConfig
+from mdt.components_config.cascade_models import CascadeConfig
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"

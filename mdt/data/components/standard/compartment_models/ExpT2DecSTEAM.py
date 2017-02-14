@@ -1,4 +1,4 @@
-from mdt.models.compartments import CompartmentConfig
+from mdt.components_config.compartment_models import CompartmentConfig
 
 __author__ = 'Francisco J. Fritz'
 __date__ = "2016-09-06"

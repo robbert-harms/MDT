@@ -10,7 +10,7 @@ its data are handled during model construction.
 """
 
 import numpy as np
-from mdt.models.parameters import ModelDataParameterConfig
+from mdt.components_config.parameters import ModelDataParameterConfig
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-12-12"
