@@ -56,7 +56,17 @@ For complete instructions please view the `complete documentation <https://maast
 
 * Install Anaconda Python 3.5
 * Install MOT using the guide at https://mot.readthedocs.io
-* Open a Anaconda shell and type: ``pip install mdt``
+* Open an Anaconda shell and type: ``pip install mdt``
+
+
+**Mac**
+
+* Install Anaconda Python 3.5
+* Open a terminal and type: ``pip install mdt``
+
+Please note that Mac support is experimental due to the unstable nature of the OpenCL drivers in Mac.
+Users running Running MDT with the GPU as selected device may experience crashes.
+Running MDT in the CPU seems to work though.
 
 
 For more information and installation instructions, please see: https://maastrichtdiffusiontoolbox.readthedocs.org

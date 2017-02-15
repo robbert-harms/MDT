@@ -42,6 +42,7 @@ This might recompile a few packages to use the latest versions.
 
 After installation please continue with the section `Initialization`_ below.
 
+
 *******
 Windows
 *******
@@ -60,6 +61,28 @@ Open an Anaconda console and use:
     $ pip install mdt
 
 If that went well please continue with the `Initialization`_ below.
+
+
+***
+Mac
+***
+Installation on Mac is pretty easy using the Anaconda 4.2 or higher Python distribution.
+Please download and install the Python3.x 64 bit distribution, version 4.2 or higher which includes PyQt5,
+from `Anaconda <https://www.continuum.io/downloads>`_ and install it with the default settings.
+
+Afterwards, open a terminal and type:
+
+.. code-block:: bash
+
+    $ pip install mdt
+
+
+To install MDT to your system.
+If that went well please continue with the `Initialization`_ below.
+
+Please note that Mac support is experimental due to the unstable nature of the OpenCL drivers in Mac.
+Users running Running MDT with the GPU as selected device may experience crashes.
+Running MDT in the CPU seems to work though.
 
 
 **************

@@ -356,7 +356,7 @@ class UserPreferredSource(ComponentsSource):
 
         To use, add a new instance of this source to one of your components loaders while ensuring that the
         ``component_type`` is set correctly. Then, using class attributes the correct class elements are returned when
-         requested.
+        requested.
 
         Args:
             component_type (str): the component type for this source

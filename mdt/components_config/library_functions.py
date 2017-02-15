@@ -117,6 +117,8 @@ class LibraryFunctionConfigMeta(ComponentConfigMeta):
             if hasattr(base, 'cl_code') and base.cl_code is not None:
                 return base.cl_code
 
+        return ''
+
     @classmethod
     def _get_cl_header(mcs, result, bases, attributes):
         if 'cl_header' in attributes and attributes['cl_header'] is not None:
@@ -132,8 +134,7 @@ class LibraryFunctionConfigMeta(ComponentConfigMeta):
             if hasattr(base, 'cl_header') and base.cl_code is not None:
                 return base.cl_header
 
-        return _construct_cl_function_definition('mot_float_type', result.cl_function_name,
-                                                 _get_parameters_list(result.parameter_list)) + ';'
+        return ''
 
 
 class LibraryFunctionConfig(six.with_metaclass(LibraryFunctionConfigMeta, ComponentConfig)):
@@ -161,7 +162,7 @@ class LibraryFunctionConfig(six.with_metaclass(LibraryFunctionConfigMeta, Compon
     name = ''
     description = ''
     cl_function_name = None
-    return_type = 'mot_float_type'
+    return_type = 'void'
     parameter_list = []
     cl_header = None
     cl_code = None

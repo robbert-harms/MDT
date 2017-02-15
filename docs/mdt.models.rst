@@ -43,14 +43,6 @@ mdt.models.composite module
     :undoc-members:
     :show-inheritance:
 
-mdt.models.parameters module
-----------------------------
-
-.. automodule:: mdt.models.parameters
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 
 Module contents
 ---------------

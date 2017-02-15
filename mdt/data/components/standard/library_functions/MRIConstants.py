@@ -40,4 +40,3 @@ class MRIConstants(LibraryFunctionConfig):
             #define GAMMA_H_HZ_SQ (GAMMA_H_HZ * GAMMA_H_HZ)
         #endif
     '''
-    cl_code = ''
