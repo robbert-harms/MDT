@@ -13,16 +13,16 @@
  * @params d the parameter d
  * @params theta the parameter theta
  * @params phi the parameter phi
- * @params dperp parameter perpendicular diffusion 1
- * @params dperp2 parameter perpendicular diffusion 2
+ * @params dperp0 parameter perpendicular diffusion 1
+ * @params dperp1 parameter perpendicular diffusion 2
  * @params psi the third rotation angle
  */
 mot_float_type cmTensor(
         const mot_float_type4 g,
         const mot_float_type b,
         const mot_float_type d,
-        const mot_float_type dperp,
-        const mot_float_type dperp2,
+        const mot_float_type dperp0,
+        const mot_float_type dperp1,
         const mot_float_type theta,
         const mot_float_type phi,
         const mot_float_type psi){
@@ -51,8 +51,8 @@ mot_float_type cmTensor(
                 + (n1 * dot(n1, n2) * (1-cos_psi));
 
     return exp(-b * (d *      pown(dot(n1, g), 2) +
-                     dperp *  pown(dot(n2, g), 2) +
-                     dperp2 * pown(dot(cross(n1, n2), g), 2)
+                     dperp0 *  pown(dot(n2, g), 2) +
+                     dperp1 * pown(dot(cross(n1, n2), g), 2)
                   )
                );
 }

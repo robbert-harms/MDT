@@ -37,7 +37,7 @@ class DMRICompositeModelConfig(ComponentConfig):
             .. code-block:: python
 
                 dependencies = {'Noddi_EC.kappa': SimpleAssignment('Noddi_IC.kappa'),
-                                'NODDI_EC.theta', 'NODDI_IC.theta',
+                                'NODDI_EC.theta': 'NODDI_IC.theta',
                                 ...}
 
             If a string is given it is interpreted as a SimpleAssignment dependency.
