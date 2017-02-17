@@ -781,18 +781,38 @@ def per_model_logging_context(output_path, overwrite=False):
     configure_per_model_logging(None)
 
 
-def create_sort_matrix(input_4d_vol, reversed_sort=False):
-    """Create an index matrix that sorts the given input on the 4th volume from small to large values (per voxel).
-
-    This uses
+def create_sort_matrix(input_volumes, reversed_sort=False):
+    """Create an index matrix that sorts the given input on the 4th dimension from small to large values (per element).
 
     Args:
-        input_4d_vol (ndarray): the 4d input volume for which we create a sort index matrix
+        input_volumes (ndarray or list): either a list with 3d volumes (or 4d with a singleton on the fourth dimension),
+            or a 4d volume to use directly.
         reversed_sort (boolean): if True we reverse the sort and we sort from large to small.
 
     Returns:
         ndarray: a 4d matrix with on the 4th dimension the indices of the elements in sorted order.
     """
+    def load_maps(map_list):
+        tmp = []
+        for data in map_list:
+            if isinstance(data, string_types):
+                data = load_nifti(data).get_data()
+
+            if len(data.shape) < 4:
+                data = data[..., None]
+
+            if data.shape[3] > 1:
+                raise ValueError('Can not sort input volumes where one has more than one items on the 4th dimension.')
+
+            tmp.append(data)
+        return tmp
+
+    if isinstance(input_volumes, collections.Sequence):
+        maps_to_sort_on = load_maps(input_volumes)
+        input_4d_vol = np.concatenate([m for m in maps_to_sort_on], axis=3)
+    else:
+        input_4d_vol = input_volumes
+
     sort_index = np.argsort(input_4d_vol, axis=3)
 
     if reversed_sort:
@@ -817,6 +837,23 @@ def sort_volumes_per_voxel(input_volumes, sort_matrix):
     Returns:
         :class:`list`: the same input volumes but then with every voxel sorted according to the given sort index.
     """
+    def load_maps(map_list):
+        tmp = []
+        for data in map_list:
+            if isinstance(data, string_types):
+                data = load_nifti(data).get_data()
+
+            if len(data.shape) < 4:
+                data = data[..., None]
+
+            if data.shape[3] > 1:
+                raise ValueError('Can not sort input volumes where one has more than one items on the 4th dimension.')
+
+            tmp.append(data)
+        return tmp
+
+    input_volumes = load_maps(input_volumes)
+
     if input_volumes[0].shape[3] > 1:
         volume = np.concatenate([np.reshape(m, m.shape[0:3] + (1,) + (m.shape[3],)) for m in input_volumes], axis=3)
         grid = np.ogrid[[slice(x) for x in volume.shape]]

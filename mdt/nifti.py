@@ -388,16 +388,18 @@ class _TMCP_BallStick_r2(TrackMarkConversionProfile):
 
         maps_to_convert = ['FS', 'w_ball.w']
 
-        sort_output = mdt.sort_maps(
-            [os.path.join(input_folder, 'w_stick{}.w.nii.gz'.format(i)) for i in range(2)],
-            extra_maps_to_sort=[os.path.join(input_folder, 'Stick{}.vec0.nii.gz'.format(i)) for i in range(2)],
-            reversed_sort=True)
+        sort_index_matrix = mdt.create_sort_matrix([os.path.join(input_folder, 'w_stick{}.w.nii.gz'.format(i))
+                                                 for i in range(2)], reversed_sort=True)
+        sorted_weights = mdt.sort_maps([os.path.join(input_folder, 'w_stick{}.w.nii.gz'.format(i)) for i in range(2)],
+                                       sort_index_matrix=sort_index_matrix)
+        sorted_vecs = mdt.sort_maps([os.path.join(input_folder, 'Stick{}.vec0.nii.gz'.format(i)) for i in range(2)],
+                                    sort_index_matrix=sort_index_matrix)
 
         volumes = get_all_image_data(input_folder, map_names=maps_to_convert, deferred=True)
-        volumes.update(dict(zip(['w_stick{}.w'.format(i) for i in range(2)], sort_output[0])))
+        volumes.update(dict(zip(['w_stick{}.w'.format(i) for i in range(2)], sorted_weights)))
 
-        vector_directions = sort_output[1]
-        vector_magnitudes = [v * 1e-2 for v in sort_output[0]]
+        vector_directions = sorted_vecs
+        vector_magnitudes = [v * 1e-2 for v in sorted_weights]
 
         direction_pairs = list(zip(vector_directions, vector_magnitudes))[:3]
 
@@ -411,16 +413,18 @@ class _TMCP_BallStick_r3(TrackMarkConversionProfile):
 
         maps_to_convert = ['FS', 'w_ball.w']
 
-        sort_output = mdt.sort_maps(
-            [os.path.join(input_folder, 'w_stick{}.w.nii.gz'.format(i)) for i in range(3)],
-            extra_maps_to_sort=[os.path.join(input_folder, 'Stick{}.vec0.nii.gz'.format(i)) for i in range(3)],
-            reversed_sort=True)
+        sort_index_matrix = mdt.create_sort_matrix([os.path.join(input_folder, 'w_stick{}.w.nii.gz'.format(i))
+                                                    for i in range(3)], reversed_sort=True)
+        sorted_weights = mdt.sort_maps([os.path.join(input_folder, 'w_stick{}.w.nii.gz'.format(i)) for i in range(3)],
+                                       sort_index_matrix=sort_index_matrix)
+        sorted_vecs = mdt.sort_maps([os.path.join(input_folder, 'Stick{}.vec0.nii.gz'.format(i)) for i in range(3)],
+                                    sort_index_matrix=sort_index_matrix)
 
         volumes = get_all_image_data(input_folder, map_names=maps_to_convert, deferred=True)
-        volumes.update(dict(zip(['w_stick{}.w'.format(i) for i in range(3)], sort_output[0])))
+        volumes.update(dict(zip(['w_stick{}.w'.format(i) for i in range(3)], sorted_weights)))
 
-        vector_directions = sort_output[1]
-        vector_magnitudes = [v * 1e-2 for v in sort_output[0]]
+        vector_directions = sorted_vecs
+        vector_magnitudes = [v * 1e-2 for v in sorted_weights]
 
         direction_pairs = list(zip(vector_directions, vector_magnitudes))[:3]
 
@@ -449,17 +453,18 @@ class _TMCP_CHARMED_r2(TrackMarkConversionProfile):
 
         maps_to_convert = ['FR', 'Tensor.FA', 'w_hin0.w']
 
-        sort_output = mdt.sort_maps(
-            [os.path.join(input_folder, 'w_res{}.w.nii.gz'.format(i)) for i in range(2)],
-            extra_maps_to_sort=[os.path.join(input_folder, 'CHARMEDRestricted{}.vec0.nii.gz'.format(i))
-                                for i in range(2)],
-            reversed_sort=True)
+        sort_index_matrix = mdt.create_sort_matrix([os.path.join(input_folder, 'w_res{}.w.nii.gz'.format(i))
+                                                    for i in range(2)], reversed_sort=True)
+        sorted_weights = mdt.sort_maps([os.path.join(input_folder, 'w_res{}.w.nii.gz'.format(i)) for i in range(2)],
+                                       sort_index_matrix=sort_index_matrix)
+        sorted_vecs = mdt.sort_maps([os.path.join(input_folder, 'CHARMEDRestricted{}.vec0.nii.gz'.format(i))
+                                     for i in range(2)], sort_index_matrix=sort_index_matrix)
 
         volumes = get_all_image_data(input_folder, map_names=maps_to_convert, deferred=True)
-        volumes.update(dict(zip(['CHARMEDRestricted{}.w'.format(i) for i in range(2)], sort_output[0])))
+        volumes.update(dict(zip(['CHARMEDRestricted{}.w'.format(i) for i in range(2)], sorted_weights)))
 
-        vector_directions = sort_output[1]
-        vector_magnitudes = [v * 1e-2 for v in sort_output[0]]
+        vector_directions = sorted_vecs
+        vector_magnitudes = [v * 1e-2 for v in sorted_weights]
 
         direction_pairs = list(zip(vector_directions, vector_magnitudes))[:3]
 
@@ -473,17 +478,18 @@ class _TMCP_CHARMED_r3(TrackMarkConversionProfile):
 
         maps_to_convert = ['FR', 'Tensor.FA', 'w_hin0.w']
 
-        sort_output = mdt.sort_maps(
-            [os.path.join(input_folder, 'w_res{}.w.nii.gz'.format(i)) for i in range(3)],
-            extra_maps_to_sort=[os.path.join(input_folder, 'CHARMEDRestricted{}.vec0.nii.gz'.format(i))
-                                for i in range(3)],
-            reversed_sort=True)
+        sort_index_matrix = mdt.create_sort_matrix([os.path.join(input_folder, 'w_res{}.w.nii.gz'.format(i))
+                                                    for i in range(3)], reversed_sort=True)
+        sorted_weights = mdt.sort_maps([os.path.join(input_folder, 'w_res{}.w.nii.gz'.format(i)) for i in range(3)],
+                                       sort_index_matrix=sort_index_matrix)
+        sorted_vecs = mdt.sort_maps([os.path.join(input_folder, 'CHARMEDRestricted{}.vec0.nii.gz'.format(i))
+                                     for i in range(3)], sort_index_matrix=sort_index_matrix)
 
         volumes = get_all_image_data(input_folder, map_names=maps_to_convert, deferred=True)
-        volumes.update(dict(zip(['CHARMEDRestricted{}.w'.format(i) for i in range(3)], sort_output[0])))
+        volumes.update(dict(zip(['CHARMEDRestricted{}.w'.format(i) for i in range(3)], sorted_weights)))
 
-        vector_directions = sort_output[1]
-        vector_magnitudes = [v * 1e-2 for v in sort_output[0]]
+        vector_directions = sorted_vecs
+        vector_magnitudes = [v * 1e-2 for v in sorted_weights]
 
         direction_pairs = list(zip(vector_directions, vector_magnitudes))[:3]
 

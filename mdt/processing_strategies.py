@@ -441,9 +441,10 @@ class SamplingProcessingWorker(ModelProcessingWorker):
         self._store_samples = store_samples
 
     def process(self, roi_indices):
-        results, other_output = self._sampler.sample(self._model, full_output=True)
+        results, volume_maps, proposal_state = self._sampler.sample(self._model, full_output=True)
 
-        self._write_volumes(roi_indices, other_output, os.path.join(self._tmp_storage_dir, 'volume_maps'))
+        self._write_volumes(roi_indices, volume_maps, os.path.join(self._tmp_storage_dir, 'volume_maps'))
+        self._write_volumes(roi_indices, proposal_state, os.path.join(self._tmp_storage_dir, 'proposal_state'))
 
         chain_end_point = {key: result[:, -1] for key, result in results.items()}
         self._write_volumes(roi_indices, chain_end_point, os.path.join(self._tmp_storage_dir, 'chain_end_point'))
@@ -456,11 +457,10 @@ class SamplingProcessingWorker(ModelProcessingWorker):
 
     def combine(self):
         super(SamplingProcessingWorker, self).combine()
-        self._combine_volumes(self._output_dir, self._tmp_storage_dir,
-                              self._problem_data.volume_header, maps_subdir='volume_maps')
 
-        self._combine_volumes(self._output_dir, self._tmp_storage_dir,
-                              self._problem_data.volume_header, maps_subdir='chain_end_point')
+        for subdir in ['volume_maps', 'proposal_state', 'chain_end_point']:
+            self._combine_volumes(self._output_dir, self._tmp_storage_dir,
+                                  self._problem_data.volume_header, maps_subdir=subdir)
 
         if self._store_samples:
             for samples in glob.glob(os.path.join(self._tmp_storage_dir, '*.samples.npy')):

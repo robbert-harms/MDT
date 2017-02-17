@@ -276,14 +276,14 @@ class Renderer(object):
                     slice = np.squeeze(slice[:, :, slice.shape[2] - 1])
             return slice
 
-        slice = get_slice(data)
-        slice = self._get_map_attr(map_name, 'clipping', Clipping()).apply(slice)
+        data_slice = get_slice(data)
+        data_slice = self._get_map_attr(map_name, 'clipping', Clipping()).apply(data_slice)
 
         mask_name = self._get_map_attr(map_name, 'mask_name', self._plot_config.mask_name)
         if mask_name:
-            slice = slice * (get_slice(self._data_info.maps[mask_name]) > 0)
+            data_slice = data_slice * (get_slice(self._data_info.maps[mask_name]) > 0)
 
-        return slice
+        return data_slice
 
     def _get_tick_locator(self, map_name):
         min_val, max_val = self._data_info.maps[map_name].min(), self._data_info.maps[map_name].max()

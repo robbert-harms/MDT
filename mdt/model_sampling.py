@@ -14,7 +14,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 def sample_composite_model(model, problem_data, output_folder, sampler, processing_strategy,
-                        recalculate=False, store_samples=True):
+                           recalculate=False, store_samples=True):
     """Sample a composite model.
 
     Args:

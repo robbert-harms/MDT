@@ -6,6 +6,7 @@ import os
 from inspect import stack
 from contextlib import contextmanager
 import numpy as np
+import shutil
 import six
 from six import string_types
 
@@ -25,7 +26,7 @@ from mdt.utils import estimate_noise_std, get_cl_devices, load_problem_data, cre
     apply_mask, create_roi, volume_merge, protocol_merge, create_median_otsu_brain_mask, load_samples, \
     load_nifti, write_slice_roi, split_write_dataset, apply_mask_to_file, extract_volumes, recalculate_error_measures, \
     create_signal_estimates, get_slice_in_dimension, per_model_logging_context, get_temporary_results_dir, \
-    get_example_data
+    get_example_data, create_sort_matrix, sort_volumes_per_voxel
 from mdt.batch_utils import collect_batch_fit_output, run_function_on_batch_fit_output
 from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, write_protocol, write_bvec_bval
 from mdt.components_loader import load_component, get_model, component_import
@@ -169,6 +170,9 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
         if not os.path.isdir(output_folder):
             os.makedirs(output_folder)
 
+        if recalculate:
+            shutil.rmtree(output_folder)
+
         with per_model_logging_context(output_folder, overwrite=recalculate):
             logger = logging.getLogger(__name__)
             logger.info('Using MDT version {}'.format(__version__))
@@ -181,7 +185,7 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
             model.double_precision = double_precision
 
             results = sample_composite_model(model, problem_data, output_folder, sampler,
-                                          processing_strategy, recalculate=recalculate, store_samples=store_samples)
+                                             processing_strategy, recalculate=recalculate, store_samples=store_samples)
 
         easy_save_user_script_info(save_user_script_info, output_folder + '/used_scripts.py',
                                    stack()[1][0].f_globals.get('__file__'))
@@ -270,7 +274,7 @@ def view_maps(data, config=None, figure_options=None,
 
     if isinstance(data, string_types):
         data = DataInfo.from_dir(data)
-    elif isinstance(data, dict):
+    elif isinstance(data, collections.MutableMapping):
         data = DataInfo(data)
     elif data is None:
         data = DataInfo({})
@@ -515,53 +519,27 @@ def write_trackmark_tvl(output_tvl, vector_directions, vector_magnitudes, tvl_he
     TrackMark.write_tvl_direction_pairs(output_tvl, tvl_header, list(zip(vector_directions, vector_magnitudes))[:3])
 
 
-def sort_maps(maps_to_sort_on, extra_maps_to_sort=None, reversed_sort=False, sort_index_map=None):
-    """Sort the given maps on the maps to sort on.
+def sort_maps(input_maps, reversed_sort=False, sort_index_matrix=None):
+    """Sort the given maps.
 
     This first creates a sort matrix to index the maps in sorted order per voxel. Next, it creates the output
     maps for the maps we sort on. If extra_maps_to_sort is given it should be of the same length as the maps_to_sort_on.
 
     Args:
-        maps_to_sort_on (:class:`list`): a list of string (filenames) or ndarrays we will use and compare
-        extra_maps_to_sort (:class:`list`) an additional list we will sort based on the indices in maps_to_sort. This should
-            be of the same length as maps_to_sort_on.
+        input_maps (:class:`list`): a list of string (filenames) or ndarrays we will use and compare
         reversed_sort (boolean): if we want to sort from large to small instead of small to large.
-        sort_index_map (ndarray): if given we use this sort index map instead of generating one by sorting the
+            This is not used if a sort index map is provided.
+        sort_index_matrix (ndarray): if given we use this sort index map instead of generating one by sorting the
             maps_to_sort_on.
 
     Returns:
-        tuple: the first element is the list of sorted volumes, the second the list of extra sorted maps and the
-            last is the sort index map used.
+        list: the list of sorted volumes
     """
-    def load_maps(map_list):
-        tmp = []
-        for data in map_list:
-            if isinstance(data, string_types):
-                tmp.append(load_nifti(data).get_data())
-            else:
-                tmp.append(data)
-        return tmp
-
-    maps_to_sort_on = load_maps(maps_to_sort_on)
-    if extra_maps_to_sort:
-        extra_maps_to_sort = load_maps(extra_maps_to_sort)
-
-        if len(extra_maps_to_sort) != len(maps_to_sort_on):
-            raise ValueError('The length of the maps to sort on and the extra maps to sort do not match.')
-
-    from mdt.utils import create_sort_matrix, sort_volumes_per_voxel
-
-    if sort_index_map is None:
-        sort_index_map = create_sort_matrix(np.concatenate([m for m in maps_to_sort_on], axis=3),
-                                            reversed_sort=reversed_sort)
-    elif isinstance(sort_index_map, string_types):
-        sort_index_map = np.round(load_nifti(sort_index_map).get_data()).astype(np.int64)
-
-    sorted_maps = sort_volumes_per_voxel(maps_to_sort_on, sort_index_map)
-    if extra_maps_to_sort:
-        sorted_extra_maps = sort_volumes_per_voxel(extra_maps_to_sort, sort_index_map)
-        return sorted_maps, sorted_extra_maps, sort_index_map
-    return sorted_maps, [], sort_index_map
+    if sort_index_matrix is None:
+        sort_index_matrix = create_sort_matrix(input_maps, reversed_sort=reversed_sort)
+    elif isinstance(sort_index_matrix, string_types):
+        sort_index_matrix = np.round(load_nifti(sort_index_matrix).get_data()).astype(np.int64)
+    return sort_volumes_per_voxel(input_maps, sort_index_matrix)
 
 
 def load_volume_maps(directory, map_names=None, deferred=True):

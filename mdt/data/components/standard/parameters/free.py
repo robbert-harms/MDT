@@ -27,7 +27,7 @@ class s0(FreeParameterConfig):
     lower_bound = 1e-5
     upper_bound = 1e10
     parameter_transform = ClampTransform()
-    sampling_proposal = GaussianProposal(std=25.0)
+    sampling_proposal = GaussianProposal(std=10.0)
 
 
 class T1(FreeParameterConfig):
@@ -109,7 +109,7 @@ class theta(FreeParameterConfig):
     lower_bound = 0
     upper_bound = np.pi
     parameter_transform = AbsModPiTransform()
-    sampling_proposal = CircularGaussianProposal(np.pi, 0.02)
+    sampling_proposal = CircularGaussianProposal(np.pi, 0.1)
     sampling_prior = AbsSinHalfPrior()
     sampling_statistics = CircularGaussianPSS()
 
@@ -120,7 +120,7 @@ class phi(FreeParameterConfig):
     lower_bound = 0
     upper_bound = np.pi
     parameter_transform = AbsModPiTransform()
-    sampling_proposal = CircularGaussianProposal(np.pi, 0.02)
+    sampling_proposal = CircularGaussianProposal(np.pi, 0.1)
     sampling_prior = AbsSinPrior()
     sampling_statistics = CircularGaussianPSS()
 
@@ -131,7 +131,7 @@ class psi(FreeParameterConfig):
     lower_bound = 0
     upper_bound = np.pi
     parameter_transform = AbsModPiTransform()
-    sampling_proposal = CircularGaussianProposal(np.pi, 0.02)
+    sampling_proposal = CircularGaussianProposal(np.pi, 0.5)
     sampling_prior = AbsSinPrior()
     sampling_statistics = CircularGaussianPSS()
 
@@ -142,7 +142,7 @@ class d(FreeParameterConfig):
     lower_bound = 0
     upper_bound = 1.0e-8
     parameter_transform = SinSqrClampTransform()
-    sampling_proposal = GaussianProposal(1e-11)
+    sampling_proposal = GaussianProposal(1e-10)
 
 
 class dperp0(FreeParameterConfig):
@@ -151,7 +151,7 @@ class dperp0(FreeParameterConfig):
     lower_bound = 0
     upper_bound = 1.0e-8
     parameter_transform = SinSqrClampTransform()
-    sampling_proposal = GaussianProposal(1e-11)
+    sampling_proposal = GaussianProposal(5e-10)
 
 
 class dperp1(FreeParameterConfig):
@@ -160,7 +160,7 @@ class dperp1(FreeParameterConfig):
     lower_bound = 0
     upper_bound = 1.0e-8
     parameter_transform = SinSqrClampTransform()
-    sampling_proposal = GaussianProposal(1e-11)
+    sampling_proposal = GaussianProposal(5e-10)
 
 
 class R(FreeParameterConfig):

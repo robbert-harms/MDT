@@ -1,6 +1,4 @@
 import numpy as np
-
-import mdt
 from mdt.components_loader import bind_function
 from mdt.components_config.compartment_models import CompartmentConfig
 from mdt.cl_routines.mapping.dti_measures import DTIMeasures
