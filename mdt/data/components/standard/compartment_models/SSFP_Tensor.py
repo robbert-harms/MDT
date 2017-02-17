@@ -4,7 +4,7 @@ from mdt.components_loader import component_import
 class SSFP_Tensor(component_import('standard.compartment_models.Tensor', 'Tensor')):
 
     parameter_list = ('g', 'd', 'dperp0', 'dperp1', 'theta', 'phi', 'psi', 'delta',
-                      'G', 'TR', 'flip_angle', 'b1_static', 'T1_exvivo', 'T2_exvivo')
+                      'G', 'TR', 'flip_angle', 'b1_static', 'T1', 'T2')
     dependency_list = ('SSFP',)
     cl_code = '''
         mot_float_type cos_theta;
@@ -35,5 +35,5 @@ class SSFP_Tensor(component_import('standard.compartment_models.Tensor', 'Tensor
                               dperp1 * pown(dot(cross(n1, n2), g), 2)
                               );
 
-        return SSFP(adc, delta, G, TR, flip_angle, b1_static, T1_exvivo, T2_exvivo);
+        return SSFP(adc, delta, G, TR, flip_angle, b1_static, T1, T2);
     '''

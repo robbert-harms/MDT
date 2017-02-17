@@ -39,13 +39,6 @@ class T1(FreeParameterConfig):
     sampling_proposal = GaussianProposal(0.0001)
 
 
-class T1_exvivo(T1):
-
-    init_value = 0.2
-    lower_bound = 1e-5
-    upper_bound = 0.5
-
-
 class T2(FreeParameterConfig):
 
     init_value = 0.01
@@ -53,13 +46,6 @@ class T2(FreeParameterConfig):
     upper_bound = 2.0
     parameter_transform = ClampTransform()
     sampling_proposal = GaussianProposal(0.0001)
-
-
-class T2_exvivo(T2):
-
-    init_value = 0.01
-    lower_bound = 1e-5
-    upper_bound = 0.1
 
 
 class T2_star(FreeParameterConfig):
