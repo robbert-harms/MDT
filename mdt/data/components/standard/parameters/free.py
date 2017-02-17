@@ -32,9 +32,41 @@ class s0(FreeParameterConfig):
 
 class T1(FreeParameterConfig):
 
-    init_value = 0.03
-    lower_bound = 0.0
+    init_value = 0.02
+    lower_bound = 1e-5
     upper_bound = 4.0
+    parameter_transform = ClampTransform()
+    sampling_proposal = GaussianProposal(0.0001)
+
+
+class T1_exvivo(T1):
+
+    init_value = 0.2
+    lower_bound = 1e-5
+    upper_bound = 0.5
+
+
+class T2(FreeParameterConfig):
+
+    init_value = 0.01
+    lower_bound = 1e-5
+    upper_bound = 2.0
+    parameter_transform = ClampTransform()
+    sampling_proposal = GaussianProposal(0.0001)
+
+
+class T2_exvivo(T2):
+
+    init_value = 0.01
+    lower_bound = 1e-5
+    upper_bound = 0.1
+
+
+class T2_star(FreeParameterConfig):
+
+    init_value = 0.01
+    lower_bound = 0.0
+    upper_bound = 1.0
     parameter_transform = ClampTransform()
     sampling_proposal = GaussianProposal(0.0001)
 
@@ -49,24 +81,6 @@ class E1(FreeParameterConfig):
     """
 
     init_value = 0.37
-    lower_bound = 0.0
-    upper_bound = 1.0
-    parameter_transform = ClampTransform()
-    sampling_proposal = GaussianProposal(0.0001)
-
-
-class T2(FreeParameterConfig):
-
-    init_value = 0.01
-    lower_bound = 0.0
-    upper_bound = 2.0
-    parameter_transform = ClampTransform()
-    sampling_proposal = GaussianProposal(0.0001)
-
-
-class T2s(FreeParameterConfig):
-
-    init_value = 0.01
     lower_bound = 0.0
     upper_bound = 1.0
     parameter_transform = ClampTransform()
