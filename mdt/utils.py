@@ -190,6 +190,9 @@ class MockDMRIProblemData(DMRIProblemData):
         """
         super(MockDMRIProblemData, self).__init__(protocol, dwi_volume, mask, volume_header, **kwargs)
 
+    def get_nmr_problems(self):
+        return 0
+
     @property
     def observations(self):
         return self._observation_list
