@@ -12,10 +12,10 @@ class Zeppelin(CompartmentConfig):
     parameter_list = ('g', 'b', 'd', 'dperp0', 'theta', 'phi')
     cl_code = '''
         return exp(-b *
-                    (((d - dperp) *
-                          pown(dot(g, (mot_float_type4)(cos(phi) * sin(theta),
-                                                        sin(phi) * sin(theta), cos(theta), 0.0)), 2)
-                    ) + dperp));
+                    (((d - dperp0) * pown(dot(g, (mot_float_type4)(cos(phi) * sin(theta),
+                                                                   sin(phi) * sin(theta), cos(theta), 0.0)), 2))
+                     + dperp0)
+                  );
     '''
 
     @bind_function
