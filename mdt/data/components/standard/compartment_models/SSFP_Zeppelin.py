@@ -1,8 +1,7 @@
-from mdt.components_config.compartment_models import CompartmentConfig
-from mdt.components_loader import bind_function
+from mdt.components_loader import component_import
 
 
-class SSFP_Zeppelin(CompartmentConfig):
+class SSFP_Zeppelin(component_import('standard.compartment_models.Zeppelin', 'Zeppelin')):
 
     parameter_list = ('g', 'd', 'dperp0', 'theta', 'phi', 'delta', 'G', 'TR', 'flip_angle', 'b1_static', 'T1', 'T2')
     dependency_list = ('SSFP',)
@@ -12,8 +11,3 @@ class SSFP_Zeppelin(CompartmentConfig):
 
         return SSFP(adc, delta, G, TR, flip_angle, b1_static, T1, T2);
     '''
-
-    @bind_function
-    def get_extra_results_maps(self, results_dict):
-        return self._get_vector_result_maps(results_dict[self.name + '.theta'],
-                                            results_dict[self.name + '.phi'])

@@ -18,7 +18,7 @@ class Ui_ScientificScroller(object):
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.mantissa = QDoubleSpinBoxDotSeparator(ScientificScroller)
         self.mantissa.setSpecialValueText("")
-        self.mantissa.setDecimals(3)
+        self.mantissa.setDecimals(4)
         self.mantissa.setMinimum(-1000.0)
         self.mantissa.setMaximum(1000.0)
         self.mantissa.setSingleStep(0.01)

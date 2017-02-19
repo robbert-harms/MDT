@@ -4,10 +4,10 @@ from copy import deepcopy
 
 import six
 
-from mdt.components_loader import ParametersLoader, ComponentConfigMeta, ComponentConfig, ComponentBuilder, \
+from mdt.components_loader import ComponentConfigMeta, ComponentConfig, ComponentBuilder, \
     method_binding_meta
 from mot.cl_data_type import CLDataType
-from mot.model_building.cl_functions.base import LibraryFunction, SimpleLibraryFunction
+from mot.model_building.cl_functions.base import SimpleLibraryFunction
 from mot.model_building.cl_functions.parameters import LibraryParameter
 
 __author__ = 'Robbert Harms'
@@ -31,7 +31,7 @@ def _get_parameters_list(parameter_list):
     parameters = []
     for item in parameter_list:
         if isinstance(item, six.string_types):
-            LibraryParameter(CLDataType.from_string('mot_float_type'), item)
+            parameters.append(LibraryParameter(CLDataType.from_string('mot_float_type'), item))
         else:
             parameters.append(deepcopy(item))
     return parameters
@@ -101,9 +101,18 @@ class LibraryFunctionConfigMeta(ComponentConfigMeta):
 
     @classmethod
     def _get_cl_code(mcs, result, bases, attributes):
+
+        def get_return_type():
+            if 'return_type' in attributes:
+                return attributes['return_type']
+            else:
+                for base in bases:
+                    if hasattr(base, 'return_type') and base.return_type is not None:
+                        return base.return_type
+
         if 'cl_code' in attributes and attributes['cl_code'] is not None:
             s = _construct_cl_function_definition(
-                'mot_float_type', result.cl_function_name, _get_parameters_list(result.parameter_list))
+                get_return_type(), result.cl_function_name, _get_parameters_list(result.parameter_list))
             s += '{\n' + attributes['cl_code'] + '\n}'
             return s
 
@@ -150,7 +159,7 @@ class LibraryFunctionConfig(six.with_metaclass(LibraryFunctionConfigMeta, Compon
         name (str): the name of the model, defaults to the class name
         description (str): model description
         cl_function_name (str): the name of the function in the CL kernel
-        return_type (str): the return type of the function, defaults to ``mot_float_type``
+        return_type (str): the return type of the function, defaults to ``void``
         parameter_list (list): the list of parameters to use. If a parameter is a string we will
             use it automatically, if not it is supposed to be a LibraryParameter
             instance that we append directly.

@@ -36,9 +36,13 @@ class ScientificNumberScroller(Ui_ScientificScroller, QWidget):
 
     @pyqtSlot(float)
     def setValue(self, value):
+        # here as a reminder that this always needs to be taken care of
         if value == 0:
             self.exponent.setValue(0)
             self.mantissa.setValue(0)
+        elif 1e-3 < value < 1e3:
+            self.exponent.setValue(0)
+            self.mantissa.setValue(value)
         else:
             exponent = np.floor(np.log10(np.abs(value))).astype(int)
             self.exponent.setValue(exponent)

@@ -1,3 +1,5 @@
+from textwrap import wrap
+
 from PyQt5.QtCore import pyqtSlot, Qt
 from PyQt5.QtWidgets import QWidget
 
@@ -5,7 +7,7 @@ from mdt.gui.maps_visualizer.actions import SetMapTitle, SetMapColormap, SetMapS
     SetMapColorbarLabel
 from mdt.gui.maps_visualizer.design.ui_MapSpecificOptions import Ui_MapSpecificOptions
 from mdt.gui.maps_visualizer.design.ui_TabMapSpecific import Ui_TabMapSpecific
-from mdt.gui.utils import blocked_signals, TimedUpdate
+from mdt.gui.utils import blocked_signals, TimedUpdate, split_long_path_elements
 from mdt.visualization.maps.base import DataInfo, SingleMapConfig, MapPlotConfig
 
 __author__ = 'Robbert Harms'
@@ -206,7 +208,7 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
 
         map_filename = data_info.get_file_name(map_name)
         if map_filename:
-            self.info_file_location.setText(map_filename)
+            self.info_file_location.setText(split_long_path_elements(map_filename, 25))
 
         self.info_maximum.setText(str(vmax))
         self.info_minimum.setText(str(vmin))

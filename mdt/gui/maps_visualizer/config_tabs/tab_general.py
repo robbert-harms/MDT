@@ -1,5 +1,4 @@
 import copy
-import os
 
 from PyQt5.QtCore import pyqtSlot, Qt
 from PyQt5.QtWidgets import QWidget, QAbstractItemView
@@ -8,7 +7,7 @@ from mdt.gui.maps_visualizer.actions import SetDimension, SetSliceIndex, SetVolu
     SetZoom, SetShowAxis, SetColorBarNmrTicks, SetMapsToShow, SetFont, SetInterpolation, SetFlipud, SetPlotTitle, \
     SetGeneralMask
 from mdt.gui.maps_visualizer.design.ui_TabGeneral import Ui_TabGeneral
-from mdt.gui.utils import blocked_signals, TimedUpdate
+from mdt.gui.utils import blocked_signals, TimedUpdate, split_long_path_elements
 from mdt.visualization.maps.base import Zoom, Point, DataInfo, Font, MapPlotConfig
 
 __author__ = 'Robbert Harms'
@@ -90,7 +89,7 @@ class TabGeneral(QWidget, Ui_TabGeneral):
     @pyqtSlot(DataInfo)
     def set_new_data(self, data_info):
         if data_info.directory:
-            self.general_info_directory.setText(self._split_long_path_elements(data_info.directory))
+            self.general_info_directory.setText(split_long_path_elements(data_info.directory))
         else:
             self.general_info_directory.setText('-')
 
@@ -325,44 +324,3 @@ class TabGeneral(QWidget, Ui_TabGeneral):
             self._controller.apply_action(SetGeneralMask(None))
         else:
             self._controller.apply_action(SetGeneralMask(self.mask_name.itemText(index)))
-
-    def _split_long_path_elements(self, original_path, max_single_element_length=25):
-        """Split long path elements into smaller ones using spaces
-
-        Args:
-            original_path (str): the path you want to split
-            max_single_element_length (int): the maximum length allowed per path component (folders and filename).
-
-        Returns:
-            str: the same path but with spaces in long path elements. The result will no longer be a valid path.
-        """
-
-        def split(p):
-            listing = []
-
-            def _split(el):
-                if el:
-                    head, tail = os.path.split(el)
-                    if not tail:
-                        listing.append(head)
-                    else:
-                        _split(head)
-                        listing.append(tail)
-
-            _split(p)
-            return listing
-
-        elements = list(split(original_path))
-        new_elements = []
-
-        for el in elements:
-            if len(el) > max_single_element_length:
-                item = ''
-                for i in range(0, len(el), max_single_element_length):
-                    item += el[i:i + max_single_element_length] + ' '
-                item = item[:-1]
-                new_elements.append(item)
-            else:
-                new_elements.append(el)
-
-        return os.path.join(*new_elements)

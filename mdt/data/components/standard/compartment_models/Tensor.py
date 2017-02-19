@@ -13,6 +13,17 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class Tensor(CompartmentConfig):
 
     parameter_list = ('g', 'b', 'd', 'dperp0', 'dperp1', 'theta', 'phi', 'psi')
+    dependency_list = ['TensorSphericalToCartesian']
+    cl_code = '''
+        mot_float_type4 vec0, vec1, vec2;
+        TensorSphericalToCartesian(theta, phi, psi, &vec0, &vec1, &vec2);
+
+        return exp(-b * (d *      pown(dot(vec0, g), 2) +
+                         dperp0 * pown(dot(vec1, g), 2) +
+                         dperp1 * pown(dot(vec2, g), 2)
+                         )
+                   );
+    '''
 
     @bind_function
     def get_extra_results_maps(self, results_dict):

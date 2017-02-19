@@ -10,11 +10,13 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class SSFP(LibraryFunctionConfig):
 
     description = '''
-        Following Buxton equation and Miller paper (2008), the equation receives the following variables:
+        Implementation of the SSFP signal attenuation.
+
+        This uses the algorithm described in:
+        "The Diffusion Sensitivity of Fast Steady-State Free Precession Imaging", Richard B. Buxton (1993)
 
         Args:
-            g: gradient vector (unity)
-            d: diffusivity of the stick (eigenvalue, m^2/s)
+            d: diffusivity or Apparent Diffusion Coefficient
             delta: gradient diffusion duration (s)
             G: gradient amplitude T/m
             TR: repetition time

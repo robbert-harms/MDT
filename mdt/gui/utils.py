@@ -1,3 +1,4 @@
+import os
 import time
 from contextlib import contextmanager
 from functools import wraps
@@ -299,3 +300,45 @@ def get_script_file_header_text(info_fields=None):
         header_text += '# {key}: {value} \n'.format(key=key, value=value)
 
     return header_text[:-1]
+
+
+def split_long_path_elements(original_path, max_single_element_length=25):
+    """Split long path elements into smaller ones using spaces
+
+    Args:
+        original_path (str): the path you want to split
+        max_single_element_length (int): the maximum length allowed per path component (folders and filename).
+
+    Returns:
+        str: the same path but with spaces in long path elements. The result will no longer be a valid path.
+    """
+
+    def split(p):
+        listing = []
+
+        def _split(el):
+            if el:
+                head, tail = os.path.split(el)
+                if not tail:
+                    listing.append(head)
+                else:
+                    _split(head)
+                    listing.append(tail)
+
+        _split(p)
+        return listing
+
+    elements = list(split(original_path))
+    new_elements = []
+
+    for el in elements:
+        if len(el) > max_single_element_length:
+            item = ''
+            for i in range(0, len(el), max_single_element_length):
+                item += el[i:i + max_single_element_length] + ' '
+            item = item[:-1]
+            new_elements.append(item)
+        else:
+            new_elements.append(el)
+
+    return os.path.join(*new_elements)
