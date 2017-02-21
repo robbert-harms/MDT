@@ -244,23 +244,18 @@ def view_maps(data, config=None, figure_options=None,
               window_title=None, enable_directory_watcher=True):
     """View a number of maps using the MDT Maps Visualizer.
 
-    To save a file to an image, you can use (the simplest) the following two options::
-
-        to_file='filename.png',
-        figure_options={'width': 1200, 'height': 750, 'dpi': 100}
-
     Args:
         data (str, dict, :class:`~mdt.visualization.maps.base.DataInfo`): the data we are showing,
             either a dictionary with result maps, a string with a path name or a DataInfo object
         config (str, dict, :class:`~mdt.visualization.maps.base import MapPlotConfig`): either a Yaml string or a
             dictionary with configuration settings or a ValidatedMapPlotConfig object to use directly
-        block (boolean): if we block the plots or not
-        show_maximized (boolean): if we show the window maximized or not
-        use_qt (boolean): if we want to use the Qt GUI, or show the results directly in matplotlib
         figure_options (dict): figure options for the matplotlib Figure, if figsizes is not given you can also specify
             two ints, width and height, to indicate the pixel size of the resulting figure, together with the dpi they
             are used to calculate the figsize. Only used if use_qt=False.
+        block (boolean): if we block the plots or not
+        show_maximized (boolean): if we show the window maximized or not
         window_title (str): the title for the window
+        use_qt (boolean): if we want to use the Qt GUI, or show the results directly in matplotlib
         enable_directory_watcher (boolean): if the directory watcher should be enabled/disabled, only applicable for the
             QT GUI. If the directory watcher is enabled, the viewer will automatically add new maps when added
             to the folder and also automatically remove maps when they are removed from the directory.
