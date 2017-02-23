@@ -26,7 +26,7 @@ from mdt.utils import estimate_noise_std, get_cl_devices, load_problem_data, cre
     apply_mask, create_roi, volume_merge, protocol_merge, create_median_otsu_brain_mask, load_samples, \
     load_nifti, write_slice_roi, split_write_dataset, apply_mask_to_file, extract_volumes, recalculate_error_measures, \
     create_signal_estimates, get_slice_in_dimension, per_model_logging_context, get_temporary_results_dir, \
-    get_example_data, create_sort_matrix, sort_volumes_per_voxel
+    get_example_data, create_sort_matrix, sort_volumes_per_voxel, sort_orientations
 from mdt.batch_utils import collect_batch_fit_output, run_function_on_batch_fit_output
 from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, write_protocol, write_bvec_bval
 from mdt.components_loader import load_component, get_model, component_import
@@ -472,7 +472,7 @@ def auto_convert_to_trackmark(input_folder, model_name=None, output_folder=None)
         output_folder (str): the output folder, if not given we will output to a subfolder "trackmark" in the
             given directory.
     """
-    from mdt.nifti import TrackMark
+    from mdt.file_conversions.trackmark import TrackMark
     TrackMark.auto_convert(input_folder, model_name=model_name, output_folder=output_folder)
 
 
@@ -484,7 +484,7 @@ def write_trackmark_rawmaps(data, output_folder, maps_to_convert=None):
         output_folder (str): the name of the output folder. Defaults to <input_folder>/trackmark.
         maps_to_convert (:class:`list`): the list with the names of the maps we want to convert (without the extension).
     """
-    from mdt.nifti import TrackMark
+    from mdt.file_conversions.trackmark import TrackMark
 
     if isinstance(data, six.string_types):
         volumes = load_volume_maps(data, map_names=maps_to_convert)
@@ -507,7 +507,7 @@ def write_trackmark_tvl(output_tvl, vector_directions, vector_magnitudes, tvl_he
         vector_magnitudes (list of str/ndarray): a list of 4d volumes with per voxel the vector magnitude.
         tvl_header (list or tuple): The list with header arguments for writing the TVL. See IO.TrackMark for specifics.
     """
-    from mdt.nifti import TrackMark
+    from mdt.file_conversions.trackmark import TrackMark
     if len(vector_directions) != len(vector_magnitudes):
         raise ValueError('The length of the list of vector directions does not '
                          'match with the length of the list of vector magnitudes.')

@@ -115,6 +115,9 @@ class AxisData(object):
         elif self._plot_config.rotate == 270:
             rotated.x = shape[0] + rotated.x
 
+        if len(self._map_info.shape) == 2:
+            return [rotated.x, rotated.y]
+
         # create the index
         index = [rotated.x, rotated.y]
         index.insert(self._plot_config.dimension, self._plot_config.slice_index)
@@ -268,15 +271,23 @@ class Renderer(object):
         volume_index = self._plot_config.volume_index
 
         def get_slice(data):
-            slice = get_slice_in_dimension(data, dimension, slice_index)
-            if len(slice.shape) > 2:
-                if volume_index < slice.shape[2]:
-                    slice = np.squeeze(slice[:, :, volume_index])
+            data_slice = get_slice_in_dimension(data, dimension, slice_index)
+            if len(data_slice.shape) > 2:
+                if volume_index < data_slice.shape[2]:
+                    data_slice = np.squeeze(data_slice[:, :, volume_index])
                 else:
-                    slice = np.squeeze(slice[:, :, slice.shape[2] - 1])
-            return slice
+                    data_slice = np.squeeze(data_slice[:, :, data_slice.shape[2] - 1])
 
-        data_slice = get_slice(data)
+            if len(data_slice.shape) == 1:
+                data_slice = data_slice[:, None]
+
+            return data_slice
+
+        if len(data.shape) == 2:
+            data_slice = data
+        else:
+            data_slice = get_slice(data)
+
         data_slice = self._get_map_attr(map_name, 'clipping', Clipping()).apply(data_slice)
 
         mask_name = self._get_map_attr(map_name, 'mask_name', self._plot_config.mask_name)

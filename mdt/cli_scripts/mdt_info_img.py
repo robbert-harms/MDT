@@ -39,11 +39,13 @@ class InfoImg(BasicShellApplication):
     def run(self, args, extra_args):
         for image in args.images:
             image_path = os.path.realpath(image)
-            img = load_nifti(image_path)
-            header = img.get_header()
-            print('{}'.format(image))
-            self.print_info(header)
-            print('')
+            if os.path.isfile(image_path):
+                if image_path.endswith('.nii') or image_path.endswith('.nii.gz'):
+                    img = load_nifti(image_path)
+                    header = img.get_header()
+                    print('{}'.format(image))
+                    self.print_info(header)
+                    print('')
 
     def print_info(self, header):
         row_format = "{:<15}{}"

@@ -9,6 +9,7 @@ import shutil
 import tempfile
 from collections import defaultdict
 from contextlib import contextmanager
+from copy import copy
 
 import numpy as np
 import pkg_resources
@@ -429,7 +430,10 @@ def create_slice_roi(brain_mask, roi_dimension, roi_slice):
 
     ind_pos = [slice(None)] * roi_mask.ndim
     ind_pos[roi_dimension] = roi_slice
-    roi_mask[tuple(ind_pos)] = get_slice_in_dimension(brain_mask, roi_dimension, roi_slice)
+
+    data_slice = get_slice_in_dimension(brain_mask, roi_dimension, roi_slice)
+
+    roi_mask[tuple(ind_pos)] = data_slice
 
     return roi_mask
 
@@ -479,8 +483,7 @@ def get_slice_in_dimension(volume, dimension, index):
     """
     ind_pos = [slice(None)] * volume.ndim
     ind_pos[dimension] = index
-    array_slice = volume[tuple(ind_pos)]
-    return np.squeeze(array_slice)
+    return volume[tuple(ind_pos)]
 
 
 def create_roi(data, brain_mask):
@@ -1532,3 +1535,55 @@ def get_example_data(output_directory):
 
             if os.path.isfile(full_fname):
                 shutil.copy(full_fname, dataset_output_path)
+
+
+def sort_orientations(data_input, weight_names, extra_sortable_maps):
+    """Sort the orientations of multi-direction models voxel-wise.
+
+    For instance, the optimization results of a BallStick_r3 fit (hence, with three Sticks) gives angles and volume
+    fractions for each Stick. There is no voxel-wise order over Sticks since for the optimizer they are all equal
+    compartments. However, when using ARD with sampling, there is order within the compartments since the ARD is
+    commonly placed on the second and third Sticks meaning these Sticks and there corresponding orientations are
+    compressed to zero if they are not supported. In that case, the Stick with the primary orientation of diffusion
+    has to be the first.
+
+    This method accepts as input results from (MDT) model fitting and is able to sort all the maps belonging to
+    a given set of equal compartments per voxel.
+
+    Example::
+
+        sort_orientations('./output/BallStick_r3',
+                          ['w_stick0.w', 'w_stick1.w', 'w_stick2.w'],
+                          [['Stick0.theta', 'Stick1.theta', 'Stick2.theta'],
+                           ['Stick0.phi', 'Stick1.phi', 'Stick2.phi'], ...])
+
+    Args:
+        data_input (str or dict): either a directory or a dictionary containing the maps
+        weight_names (list of str): The names of the maps we use for sorting all other maps. These will be sorted
+            as well.
+        extra_sortable_maps (list of list): the list of additional maps to sort. Every element in the given list should
+            be another list with the names of the maps. The length of these second layer of lists should match the
+            length of the ``weight_names``.
+
+    Returns:
+        dict: the sorted results in a new dictionary.
+    """
+    if isinstance(data_input, six.string_types):
+        input_maps = get_all_image_data(data_input)
+        result_maps = input_maps
+    else:
+        input_maps = data_input
+        result_maps = copy(input_maps)
+
+    weight_names = list(weight_names)
+    sortable_maps = copy(extra_sortable_maps)
+    sortable_maps.append(weight_names)
+
+    sort_index_matrix = create_sort_matrix([input_maps[k] for k in weight_names], reversed_sort=True)
+
+    for sortable_map_names in sortable_maps:
+        sorted = dict(zip(sortable_map_names, sort_volumes_per_voxel([input_maps[k] for k in sortable_map_names],
+                                                                     sort_index_matrix)))
+        result_maps.update(sorted)
+
+    return result_maps

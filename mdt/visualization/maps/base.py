@@ -189,31 +189,35 @@ class MapPlotConfig(object):
                              format(set(self.maps_to_show).difference(set(data_info.maps))))
 
     def _validate_dimension(self, data_info):
-        max_dim = data_info.get_max_dimension(map_names=self.maps_to_show)
-        if self.dimension is None or self.dimension > max_dim:
-            raise ValueError('The dimension ({}) can not be higher than {}.'.format(self.dimension, max_dim))
+        if self.maps_to_show:
+            max_dim = data_info.get_max_dimension(map_names=self.maps_to_show)
+            if self.dimension is None or self.dimension > max_dim:
+                raise ValueError('The dimension ({}) can not be higher than {}.'.format(self.dimension, max_dim))
 
     def _validate_slice_index(self, data_info):
-        max_slice_index = data_info.get_max_slice_index(self.dimension, map_names=self.maps_to_show)
-        if self.slice_index is None or self.slice_index > max_slice_index or self.slice_index < 0:
-            raise ValueError('The slice index ({}) can not be higher than '
-                             '{} or lower than 0.'.format(self.slice_index, max_slice_index))
+        if self.maps_to_show:
+            max_slice_index = data_info.get_max_slice_index(self.dimension, map_names=self.maps_to_show)
+            if self.slice_index is None or self.slice_index > max_slice_index or self.slice_index < 0:
+                raise ValueError('The slice index ({}) can not be higher than '
+                                 '{} or lower than 0.'.format(self.slice_index, max_slice_index))
 
     def _validate_volume_index(self, data_info):
-        max_volume_index = data_info.get_max_volume_index(map_names=self.maps_to_show)
-        if self.volume_index > max_volume_index or self.volume_index < 0:
-            raise ValueError('The volume index ({}) can not be higher than '
-                             '{} or lower than 0.'.format(self.volume_index, max_volume_index))
+        if self.maps_to_show:
+            max_volume_index = data_info.get_max_volume_index(map_names=self.maps_to_show)
+            if self.volume_index > max_volume_index or self.volume_index < 0:
+                raise ValueError('The volume index ({}) can not be higher than '
+                                 '{} or lower than 0.'.format(self.volume_index, max_volume_index))
 
     def _validate_zoom(self, data_info):
-        max_x = data_info.get_max_x_index(self.dimension, self.rotate)
-        max_y = data_info.get_max_y_index(self.dimension, self.rotate)
+        if self.maps_to_show:
+            max_x = data_info.get_max_x_index(self.dimension, self.rotate, map_names=self.maps_to_show)
+            max_y = data_info.get_max_y_index(self.dimension, self.rotate, map_names=self.maps_to_show)
 
-        if self.zoom.p1.x > max_x:
-            raise ValueError('The zoom maximum x ({}) can not be larger than {}'.format(self.zoom.p1.x, max_x))
+            if self.zoom.p1.x > max_x:
+                raise ValueError('The zoom maximum x ({}) can not be larger than {}'.format(self.zoom.p1.x, max_x))
 
-        if self.zoom.p1.y > max_y:
-            raise ValueError('The zoom maximum y ({}) can not be larger than {}'.format(self.zoom.p1.y, max_y))
+            if self.zoom.p1.y > max_y:
+                raise ValueError('The zoom maximum y ({}) can not be larger than {}'.format(self.zoom.p1.y, max_y))
 
     def _validate_mask_name(self, data_info):
         if self.mask_name:
@@ -221,7 +225,7 @@ class MapPlotConfig(object):
                 raise ValueError('The given global mask is not found in the list of maps.')
 
     def _validate_map_plot_options(self, data_info):
-        for key in self.map_plot_options:
+        for key in list(self.map_plot_options):
             if key not in data_info.maps:
                 del self.map_plot_options[key]
 
@@ -1078,7 +1082,10 @@ class SingleMapInfo(object):
             int: the maximum x index
         """
         shape = list(self.shape)[0:3]
-        del shape[dimension]
+
+        if len(shape) > 2:
+            del shape[dimension]
+
         if rotate // 90 % 2 == 0:
             return max(0, shape[1] - 1)
         return max(0, shape[0] - 1)
@@ -1094,7 +1101,10 @@ class SingleMapInfo(object):
             int: the maximum y index
         """
         shape = list(self.shape)[0:3]
-        del shape[dimension]
+
+        if len(shape) > 2:
+            del shape[dimension]
+
         if rotate // 90 % 2 == 0:
             return max(0, shape[0] - 1)
         return max(0, shape[1] - 1)
@@ -1139,10 +1149,12 @@ class SingleMapInfo(object):
                 return row_min, row_max, column_min, column_max
             return 0, image.shape[0]-1, 0, image.shape[1]-1
 
-        slice_indexing = [slice(None)] * (self.max_dimension() + 1)
-        slice_indexing[dimension] = slice_index
-
-        image = self.data[slice_indexing]
+        if len(self.shape) == 2:
+            image = self.data
+        else:
+            slice_indexing = [slice(None)] * (self.max_dimension() + 1)
+            slice_indexing[dimension] = slice_index
+            image = self.data[slice_indexing]
 
         if len(image.shape) > 2:
             if image.shape[2] > 1:

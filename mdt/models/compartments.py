@@ -58,12 +58,8 @@ class DMRICompartmentModelFunction(ModelFunction):
 
         Returns:
             dict: containing the cartesian vector with the main the fibre direction.
-                It returns an element .vec0 and elements vec0_
+                It returns only the element .vec0
         """
         cartesian = spherical_to_cartesian(theta, phi)
         extra_dict = {'{}.{}'.format(self.name, vector_name): cartesian}
-
-        for ind in range(3):
-            extra_dict.update({'{}.{}_{}'.format(self.name, vector_name, ind): cartesian[:, ind]})
-
         return extra_dict

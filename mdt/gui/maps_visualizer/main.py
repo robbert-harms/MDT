@@ -342,6 +342,10 @@ class QtController(Controller, QObject):
         elif not isinstance(config, MapPlotConfig):
             config = MapPlotConfig.from_dict(config.to_dict())
 
+        max_dim = data_info.get_max_dimension()
+        if max_dim < config.dimension:
+            config.dimension = max_dim
+
         config.maps_to_show = list(filter(lambda k: k in data_info.maps, config.maps_to_show))
 
         self._apply_config(config)

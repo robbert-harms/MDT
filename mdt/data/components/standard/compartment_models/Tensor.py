@@ -55,13 +55,6 @@ class Tensor(CompartmentConfig):
                                self.name + '.sorted_vec' + repr(ind): sorted_eigen_vectors[:, ind, :],
                                self.name + '.sorted_eigval{}'.format(ind): sorted_eigen_values[:, ind]})
 
-            for dimension in range(3):
-                extra_maps.update({self.name + '.vec' + repr(ind) + '_' + repr(dimension):
-                                       eigen_vectors[:, ind, dimension],
-                                   self.name + '.sorted_vec' + repr(ind) + '_' + repr(dimension):
-                                       sorted_eigen_vectors[:, ind, dimension]
-                                   })
-
         return extra_maps
 
     @staticmethod
