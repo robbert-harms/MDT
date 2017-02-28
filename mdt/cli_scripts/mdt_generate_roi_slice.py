@@ -21,9 +21,6 @@ class GenerateRoiSlice(BasicShellApplication):
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
 
-        if not doc_parser:
-            description += self._get_citation_message()
-
         examples = textwrap.dedent('''
             mdt-generate-roi-slice mask.nii.gz
             mdt-generate-roi-slice mask.nii.gz -d 1 -s 50

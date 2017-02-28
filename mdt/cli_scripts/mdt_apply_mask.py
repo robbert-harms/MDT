@@ -25,9 +25,6 @@ class ApplyMask(BasicShellApplication):
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
 
-        if not doc_parser:
-            description += mdt.shell_utils.get_citation_message()
-
         examples = textwrap.dedent('''
             mdt-apply-mask data.nii.gz -m roi_mask_0_50.nii.gz
             mdt-apply-mask *.nii.gz -m my_mask.nii.gz

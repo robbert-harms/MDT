@@ -26,9 +26,6 @@ class VolumeMerge(BasicShellApplication):
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
 
-        if not doc_parser:
-            description += self._get_citation_message()
-
         examples = textwrap.dedent('''
             mdt-volume-merge merged.nii.gz *.nii.gz
             mdt-volume-merge --no-sort merged.nii.gz *.nii.gz

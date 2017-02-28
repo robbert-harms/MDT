@@ -17,9 +17,6 @@ class ListModels(BasicShellApplication):
     def _get_arg_parser(self, doc_parser=False):
         description = __doc__
 
-        if not doc_parser:
-            description += mdt.shell_utils.get_citation_message()
-
         parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument('-l', '--long', action='store_true', help='print the descriptions')
         return parser

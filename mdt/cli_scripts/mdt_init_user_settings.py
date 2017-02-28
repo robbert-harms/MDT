@@ -22,9 +22,6 @@ class InitUserSettings(BasicShellApplication):
             The location we will write to is: {}
         """.format(os.path.dirname(get_config_dir())))
 
-        if not doc_parser:
-            description += mdt.shell_utils.get_citation_message()
-
         parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
 
         parser.add_argument('--pass-if-exists', dest='pass_if_exists', action='store_true',

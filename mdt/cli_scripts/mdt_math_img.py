@@ -58,9 +58,6 @@ class MathImg(BasicShellApplication):
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
 
-        if not doc_parser:
-            description += self._get_citation_message()
-
         examples = textwrap.dedent('''
             mdt-math-img fiso.nii ficvf.nii '(1-input[0]) * i[1]' -o Wic.w.nii.gz
             mdt-math-img fiso.nii ficvf.nii '(1-a) * b' -o Wic.w.nii.gz

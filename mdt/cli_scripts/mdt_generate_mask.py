@@ -29,9 +29,6 @@ class GenerateMask(BasicShellApplication):
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
 
-        if not doc_parser:
-            description += self._get_citation_message()
-
         examples = textwrap.dedent('''
             mdt-generate-mask data.nii.gz data.prtcl
             mdt-generate-mask data.nii.gz data.prtcl -o data_mask.nii.gz

@@ -9,7 +9,7 @@ from argcomplete.completers import FilesCompleter
 
 from mdt import init_user_settings
 from mdt.gui.model_fit.qt_main import start_gui
-from mdt.shell_utils import BasicShellApplication, get_citation_message
+from mdt.shell_utils import BasicShellApplication
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"
@@ -25,9 +25,6 @@ class GUI(BasicShellApplication):
 
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
-
-        if not doc_parser:
-            description += get_citation_message()
 
         parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument('-d', '--dir', metavar='dir', type=str, help='the base directory for the file choosers',

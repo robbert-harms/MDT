@@ -107,9 +107,6 @@ class BasicShellApplication(object):
                                          formatter_class=argparse.RawTextHelpFormatter)
         return parser
 
-    def _get_citation_message(self):
-        return get_citation_message()
-
     def _format_examples(self, doc_parser, example_string):
         """Format the examples for either documentation or command line, with the given examples.
 
@@ -128,17 +125,3 @@ class BasicShellApplication(object):
             return_str += ' '*4 + line + '\n'
 
         return return_str
-
-
-def get_citation_message():
-    """The citation message used in the shell scripts.
-
-    Returns:
-        str: the citation message for use in the description of every shell script
-    """
-    return textwrap.dedent("""
-        If you use any of the scripts/functions/tools from MDT in your research, please consider citing:
-            <citation here>
-    """)
-
-

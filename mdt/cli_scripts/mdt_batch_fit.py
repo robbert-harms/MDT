@@ -38,9 +38,6 @@ class BatchFit(BasicShellApplication):
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
 
-        if not doc_parser:
-            description += self._get_citation_message()
-
         examples = textwrap.dedent('''
             mdt-batch-fit .
             mdt-batch-fit /data/mgh --batch-profile 'HCP_MGH'

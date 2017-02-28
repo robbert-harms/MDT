@@ -30,10 +30,6 @@ class ModelFit(BasicShellApplication):
 
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
-        description += mdt.shell_utils.get_citation_message()
-
-        if not doc_parser:
-            description += self._get_citation_message()
 
         examples = textwrap.dedent('''
             mdt-model-fit "BallStick_r1 (Cascade)" data.nii.gz data.prtcl roi_mask_0_50.nii.gz

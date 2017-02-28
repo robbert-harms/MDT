@@ -8,7 +8,7 @@ from argcomplete.completers import FilesCompleter
 from mdt.utils import init_user_settings
 from mdt import view_maps, write_view_maps_figure
 from mdt.visualization.maps.base import DataInfo
-from mdt.shell_utils import BasicShellApplication, get_citation_message
+from mdt.shell_utils import BasicShellApplication
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"
@@ -24,9 +24,6 @@ class GUI(BasicShellApplication):
 
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
-
-        if not doc_parser:
-            description += get_citation_message()
 
         parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument('dir', metavar='dir', type=str, nargs='?', help='the directory to use',

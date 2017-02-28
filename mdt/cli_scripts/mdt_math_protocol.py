@@ -35,9 +35,6 @@ class MathProtocol(BasicShellApplication):
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
 
-        if not doc_parser:
-            description += self._get_citation_message()
-
         examples = textwrap.dedent('''
             mdt-math-protocol protocol.prtcl 'G *= 1e-3' -o new_protocol.prtcl
             mdt-math-protocol p.prtcl 'G *= 1e-3; TR /= 1000; TE /= 1000'

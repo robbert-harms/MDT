@@ -13,7 +13,7 @@ import shlex
 from argcomplete.completers import FilesCompleter
 import textwrap
 import mdt.protocols
-from mdt.shell_utils import BasicShellApplication, get_citation_message
+from mdt.shell_utils import BasicShellApplication
 from mdt.protocols import load_bvec_bval
 
 __author__ = 'Robbert Harms'
@@ -31,9 +31,6 @@ class GenerateProtocol(BasicShellApplication):
 
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
-
-        if not doc_parser:
-            description += self._get_citation_message()
 
         examples = textwrap.dedent('''
             mdt-generate-protocol data.bvec data.bval
