@@ -1005,7 +1005,7 @@ def split_image_path(image_path):
         image_path (str): the path to an image
 
     Returns:
-        list of str: the path, the basename and the extension
+        list of str: the path, the basename and the extension (extension includes the dot)
     """
     folder = os.path.dirname(image_path)
     basename = os.path.basename(image_path)
@@ -1559,11 +1559,11 @@ def sort_orientations(data_input, weight_names, extra_sortable_maps):
 
     Args:
         data_input (str or dict): either a directory or a dictionary containing the maps
-        weight_names (list of str): The names of the maps we use for sorting all other maps. These will be sorted
+        weight_names (iterable of str): The names of the maps we use for sorting all other maps. These will be sorted
             as well.
-        extra_sortable_maps (list of list): the list of additional maps to sort. Every element in the given list should
-            be another list with the names of the maps. The length of these second layer of lists should match the
-            length of the ``weight_names``.
+        extra_sortable_maps (iterable of iterable): the list of additional maps to sort. Every element in the given
+            list should be another list with the names of the maps. The length of these second layer of lists should
+            match the length of the ``weight_names``.
 
     Returns:
         dict: the sorted results in a new dictionary.

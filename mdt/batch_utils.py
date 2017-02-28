@@ -501,7 +501,7 @@ class BatchFitOutputInfo(object):
         """Generates for every subject an output info object which contains all relevant information about the subject.
 
         Returns:
-            generator: returns an BatchFitSubjectOutputInfo per subject
+            generator: returns an :class:`mdt.batch_utils.BatchFitSubjectOutputInfo` per subject
         """
         model_names = self._get_composite_model_names(self._batch_profile.get_models_to_fit())
 
@@ -539,7 +539,7 @@ def run_function_on_batch_fit_output(data_folder, func, batch_profile=None, subj
     """Run a function on the output of a batch fitting routine.
 
     This enables you to run a function on every model output from every subject. The callback python function
-    should accept as single argument an instance of the class BatchFitSubjectOutputInfo.
+    should accept as single argument an instance of the class :class:`mdt.batch_utils.BatchFitSubjectOutputInfo`.
 
     Args:
         data_folder (str): The data folder with the output files

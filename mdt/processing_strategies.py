@@ -389,7 +389,7 @@ def _combine_volumes_write_out(info_pair):
 
     data = np.load(os.path.join(chunks_dir, map_name + '.npy'), mmap_mode='r')
     write_all_as_nifti({map_name: data}, output_dir, volume_header, gzip=write_gzipped)
-    del data
+    del data  # force closing memmap
 
 
 class FittingProcessingWorker(ModelProcessingWorker):
@@ -439,6 +439,32 @@ class SamplingProcessingWorker(ModelProcessingWorker):
         self._sampler = sampler
         self._write_volumes_gzipped = gzip_sampling_results()
         self._store_samples = store_samples
+
+    def get_voxels_to_compute(self):
+        """Get the ROI indices of the voxels we need to compute.
+
+        This should either return an entire list with all the ROI indices for the given brain mask, or a list
+        with the specific roi indices we want the strategy to compute.
+
+        Returns:
+            ndarray: the list of ROI indices (indexing the current mask) with the voxels we want to compute.
+        """
+        if self._honor_voxels_to_analyze and self._model.problems_to_analyze:
+            roi_list = self._model.problems_to_analyze
+        else:
+            roi_list = np.arange(0, np.count_nonzero(self._problem_data.mask))
+
+        samples_paths = glob.glob(os.path.join(self._output_dir, '*.samples.npy'))
+        if samples_paths:
+            samples_file = samples_paths[0]
+            current_results = open_memmap(samples_file, mode='r')
+            if current_results.shape[0] == np.count_nonzero(self._problem_data.mask):
+                mask_path = os.path.join(self._tmp_storage_dir, 'volume_maps', '{}.npy'.format(self._used_mask_name))
+                if os.path.exists(mask_path):
+                    return roi_list[np.logical_not(np.squeeze(create_roi(np.load(mask_path, mmap_mode='r'),
+                                                                         self._problem_data.mask)[roi_list]))]
+            del current_results  # force closing memmap
+        return roi_list
 
     def process(self, roi_indices):
         results, volume_maps, proposal_state = self._sampler.sample(self._model, full_output=True)
