@@ -27,7 +27,7 @@ def volume_map_npy_to_nifti(npy_fname, nifti_header, nifti_fname=None):
     write_nifti(data, nifti_header, nifti_fname)
 
 
-def sample_npy_to_nifti(samples_npy_fname, used_mask, nifti_header, nifti_fname=None):
+def samples_npy_to_nifti(samples_npy_fname, used_mask, nifti_header, nifti_fname=None):
     """Convert a npy file containing sampling results to a nifti file.
 
     Since the sample npy files are stored as a two dimensional matrix (with on the first axis the ROI index number
@@ -46,9 +46,9 @@ def sample_npy_to_nifti(samples_npy_fname, used_mask, nifti_header, nifti_fname=
         used_mask = load_nifti(used_mask).get_data()
 
     if np.count_nonzero(used_mask) != samples.shape[0]:
-        raise ValueError('The number of voxels in the mask ({}) does not correspond '
-                         'with the number of voxels in the samples file ({})'.format(
-            np.count_nonzero(used_mask), samples.shape[0]))
+        raise ValueError(
+            'The number of voxels in the mask ({}) does not correspond '
+            'with the number of voxels in the samples file ({})'.format(np.count_nonzero(used_mask), samples.shape[0]))
 
     if nifti_fname is None:
         nifti_fname = os.path.join(os.path.dirname(samples_npy_fname),
