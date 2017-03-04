@@ -642,14 +642,67 @@ def collect_batch_fit_output(data_folder, output_dir, batch_profile=None, subjec
 
         if move:
             shutil.move(subject_info.output_path, subject_out)
-        else:
-            if symlink:
-                if symlink_absolute:
-                    os.symlink(subject_info.output_path, subject_out)
-                else:
-                    os.symlink(os.path.relpath(subject_info.output_path, os.path.dirname(subject_out)), subject_out)
+        elif symlink:
+            if symlink_absolute:
+                os.symlink(subject_info.output_path, subject_out)
             else:
-                shutil.copytree(subject_info.output_path, subject_out)
+                os.symlink(os.path.relpath(subject_info.output_path, os.path.dirname(subject_out)), subject_out)
+        else:
+            shutil.copytree(subject_info.output_path, subject_out)
+
+    run_function_on_batch_fit_output(data_folder, copy_function, batch_profile=batch_profile,
+                                     subjects_selection=subjects_selection)
+
+
+def collect_batch_fit_single_map(data_folder, output_dir, model_name, map_name,
+                                 batch_profile=None, subjects_selection=None, symlink=True,
+                                 symlink_absolute=False, move=False):
+    """Load from the given data folder a single map from a single model and place it under the subject id in the output.
+
+    The results are placed in the output folder with as basename the subject id.
+    Example: ``<output_dir>/<subject_id>.nii(.gz)``
+
+    Args:
+        data_folder (str): The data folder with the output files
+        output_dir (str): The path to the output folder where all the files will be put.
+        model_name (str): the name of the model for which we want to get the map
+        map_name (str): the (base)name of the map we want to retreive (this function will take care of the extension).
+        batch_profile (:class:`BatchProfile` or str): the batch profile to use, can also be the name
+            of a batch profile to use. If not given it is auto detected.
+        subjects_selection (BatchSubjectSelection): the subjects to use for processing.
+            If None all subjects are processed.
+        symlink (boolean): only available under Unix OS's. Creates a symlink instead of copying.
+            This will create an absolute position symlink.
+        symlink_absolute (boolean): if symlink is set to true, do you want an absolute symlink (True)
+            or a relative one (False)
+        move (boolean): instead of copying the files, move them to a new position. If set, this overrules the parameter
+            symlink.
+    """
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    def copy_function(subject_info):
+        if subject_info.model_name == model_name:
+            map_file = glob.glob(os.path.join(subject_info.output_path, map_name + '.nii*'))[0]
+            extension = split_image_path(map_file)[2]
+
+            subject_out = os.path.join(output_dir, subject_info.subject_id + '{}'.format(extension))
+
+            if os.path.exists(subject_out) or os.path.islink(subject_out):
+                if os.path.islink(subject_out):
+                    os.unlink(subject_out)
+                else:
+                    os.remove(subject_out)
+
+            if move:
+                shutil.move(map_file, subject_out)
+            elif symlink:
+                if symlink_absolute:
+                    os.symlink(map_file, subject_out)
+                else:
+                    os.symlink(os.path.relpath(map_file, os.path.dirname(subject_out)), subject_out)
+            else:
+                shutil.copy(map_file, subject_out)
 
     run_function_on_batch_fit_output(data_folder, copy_function, batch_profile=batch_profile,
                                      subjects_selection=subjects_selection)

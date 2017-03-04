@@ -14,71 +14,61 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class DTIMeasures(CLRoutine):
 
-    def concat_and_calculate(self, eigenval1, eigenval2, eigenval3, double_precision=True):
-        """Calculate DTI statistics from the given eigenvalues.
-
-        This concatenates the eigenvalue matrices and runs self.calculate(eigenvalues) on them.
-
-        Args:
-            eigenval1 (ndarray):
-                The first set of eigenvalues, can be 2d, per voxel one eigenvalue,
-                or 3d, per voxel multiple eigenvalues.
-            eigenval2 (ndarray):
-                The first set of eigenvalues, can be 2d, per voxel one eigenvalue,
-                or 3d, per voxel multiple eigenvalues.
-            eigenval3 (ndarray):
-                The first set of eigenvalues, can be 2d, per voxel one eigenvalue,
-                or 3d, per voxel multiple eigenvalues.
-            double_precision (boolean): if we want to use float (set it to False) or double (set it to True)
-
-        Returns:
-            Per voxel, and optionally per instance per voxel, the FA and MD: (fa, md)
-        """
-        s = eigenval1.shape
-        if len(s) < 3:
-            return self.calculate(np.concatenate((np.reshape(eigenval1, (s[0], 1)),
-                                                  np.reshape(eigenval2, (s[0], 1)),
-                                                  np.reshape(eigenval3, (s[0], 1))), axis=1), double_precision)
-        else:
-            return self.calculate(np.concatenate((np.reshape(eigenval1, (s[0], s[1], 1)),
-                                                  np.reshape(eigenval2, (s[0], s[1], 1)),
-                                                  np.reshape(eigenval3, (s[0], s[1], 1))), axis=2), double_precision)
-
-    def calculate(self, eigenvalues, double_precision=True):
+    def calculate(self, eigenvalues, eigenvectors):
         """Calculate DTI statistics from the given eigenvalues.
 
         Args:
-            eigenvalues (ndarray):
-                The set of eigen values, can be 2d, per voxel one eigenvalue, or 3d, per voxel multiple eigenvalues.
-            double_precision (boolean): if we want to use float (set it to False) or double (set it to True)
+            eigenvalues (ndarray): List of eigenvalues per voxel. This requires as 2d matrix with for every voxel
+                three eigenvalues. They need not be sorted, we will sort them and the sorted maps are part
+                of the output.
+            eigenvectors (ndarray): List of eigenvectors per voxel. This requires a 3d matrix of the same length (in the
+                first dimension) as the eigenvalues. The other two dimensions should represent a 3x3 matrix with the
+                three eigenvectors.
 
         Returns:
-            Per voxel, and optionally per instance per voxel, the FA and MD: (fa, md)
+            dict: as keys typical elements like 'FA, 'MD', 'eigval' etc. and as per values the maps.
+                These maps are per voxel, and optionally per instance per voxel
         """
-        np_dtype = np.float32
-        if double_precision:
-            np_dtype = np.float64
+        fa_host, md_host = self._get_fa_md(eigenvalues)
+        sorted_eigenvalues, sorted_eigenvectors, ranking = self._sort_eigensystem(eigenvalues, eigenvectors)
+
+        output = {'FA': fa_host,
+                  'MD': md_host,
+                  'AD': sorted_eigenvalues[:, 0],
+                  'RD': (sorted_eigenvalues[:, 1] + sorted_eigenvalues[:, 2]) / 2.0,
+                  'eigen_ranking': ranking}
+
+        for ind in range(3):
+            output.update({'sorted_vec' + repr(ind): sorted_eigenvectors[:, ind, :],
+                           'sorted_eigval{}'.format(ind): sorted_eigenvalues[:, ind]})
+
+        return output
+
+    def _sort_eigensystem(self, eigenvalues, eigenvectors):
+        ranking = np.atleast_2d(np.squeeze(np.argsort(eigenvalues, axis=1)[:, ::-1]))
+        voxels_range = np.arange(ranking.shape[0])
+        sorted_eigenvalues = np.concatenate([eigenvalues[voxels_range, ranking[:, ind], None]
+                                             for ind in range(ranking.shape[1])], axis=1)
+        sorted_eigenvectors = np.concatenate([eigenvectors[voxels_range, ranking[:, ind], None, :]
+                                              for ind in range(ranking.shape[1])], axis=1)
+
+        return sorted_eigenvalues, sorted_eigenvectors, ranking
+
+    def _get_fa_md(self, eigenvalues):
+        np_dtype = np.float64
 
         eigenvalues = np.require(eigenvalues, np_dtype, requirements=['C', 'A', 'O'])
 
         s = eigenvalues.shape
-        if len(s) < 3:
-            fa_host = np.zeros((s[0], 1), dtype=np_dtype)
-            md_host = np.zeros((s[0], 1), dtype=np_dtype)
-            items = s[0]
-        else:
-            fa_host = np.zeros((s[0] * s[1], 1), dtype=np_dtype)
-            md_host = np.zeros((s[0] * s[1], 1), dtype=np_dtype)
-            items = s[0] * s[1]
-            eigenvalues = np.reshape(eigenvalues, (s[0] * s[1], -1))
+        fa_host = np.zeros((s[0], 1), dtype=np_dtype)
+        md_host = np.zeros((s[0], 1), dtype=np_dtype)
+        nmr_voxels = s[0]
 
         workers = self._create_workers(lambda cl_environment: _DTIMeasuresWorker(
-            cl_environment, self.get_compile_flags_list(), eigenvalues, fa_host, md_host, double_precision))
-        self.load_balancer.process(workers, items)
+            cl_environment, self.get_compile_flags_list(double_precision=True), eigenvalues,
+            fa_host, md_host, True))
+        self.load_balancer.process(workers, nmr_voxels)
 
-        if len(s) > 2:
-            fa_host = np.reshape(fa_host, (s[0], s[1], 1))
-            md_host = np.reshape(md_host, (s[0], s[1], 1))
         return fa_host, md_host
 
 

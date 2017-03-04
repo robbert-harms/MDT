@@ -39,7 +39,7 @@ be a .txt file (global noise) or a nifti file (voxel wise noise).
 
 Optional items (all case sensitive):
     /<name>.TE
-    /<name>.Delta
+    /<name>.Delta (can also be named /<name>.big_delta for case insensitive filesystems)
     /<name>.delta
     /<name>.noise_std.{txt,nii,nii.gz}
 '''}
@@ -93,6 +93,9 @@ class SingleDir(SimpleBatchProfile):
             for option in protocol_options:
                 if basename + '.' + option in files:
                     extra_cols_from_file.update({option: pjoin(basename + '.' + option)})
+
+            if basename + '.big_delta' in files:
+                extra_cols_from_file.update({'Delta': pjoin(basename + '.' + 'big_delta')})
 
             if dwi_fname and (prtcl_fname or (bval_fname and bvec_fname)):
                 protocol_loader = BatchFitProtocolLoader(

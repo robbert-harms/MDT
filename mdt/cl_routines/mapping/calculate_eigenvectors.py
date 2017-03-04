@@ -3,6 +3,7 @@ import numpy as np
 from mot.utils import get_float_type_def
 from mot.cl_routines.base import CLRoutine
 from mot.load_balance_strategies import Worker
+from mdt.components_loader import LibraryFunctionsLoader
 
 
 __author__ = 'Robbert Harms'
@@ -47,7 +48,8 @@ class CalculateEigenvectors(CLRoutine):
         rows = theta_roi.shape[0]
         evecs = np.zeros((rows, 3, 3), dtype=np_dtype, order='C')
 
-        workers = self._create_workers(lambda cl_environment: _CEWorker(cl_environment, self.get_compile_flags_list(),
+        workers = self._create_workers(lambda cl_environment: _CEWorker(cl_environment,
+                                                                        self.get_compile_flags_list(double_precision),
                                                                         theta_roi, phi_roi,
                                                                         psi_roi, evecs, double_precision))
         self.load_balancer.process(workers, rows)
@@ -97,6 +99,10 @@ class _CEWorker(Worker):
     def _get_kernel_source(self):
         kernel_source = ''
         kernel_source += get_float_type_def(self._double_precision)
+
+        lib_loader = LibraryFunctionsLoader()
+        kernel_source += lib_loader.load('TensorSphericalToCartesian').get_cl_code()
+
         kernel_source += '''
             __kernel void generate_tensor(
                 global mot_float_type* thetas,
@@ -106,38 +112,20 @@ class _CEWorker(Worker):
                 ){
                     int gid = get_global_id(0);
 
-                    mot_float_type theta = thetas[gid];
-                    mot_float_type phi = phis[gid];
-                    mot_float_type psi = psis[gid];
+                    mot_float_type4 vec0, vec1, vec2;
+                    TensorSphericalToCartesian(thetas[gid], phis[gid], psis[gid], &vec0, &vec1, &vec2);
 
-                    mot_float_type cos_theta;
-                    mot_float_type sin_theta = sincos(theta, &cos_theta);
-                    mot_float_type cos_phi;
-                    mot_float_type sin_phi = sincos(phi, &cos_phi);
-                    mot_float_type cos_psi;
-                    mot_float_type sin_psi = sincos(psi, &cos_psi);
+                    evecs[gid*9] = vec0.x;
+                    evecs[gid*9 + 1] = vec0.y;
+                    evecs[gid*9 + 2] = vec0.z;
 
-                    mot_float_type4 n1 = (mot_float_type4)(cos_phi * sin_theta, sin_phi * sin_theta, cos_theta, 0.0);
+                    evecs[gid*9 + 3] = vec1.x;
+                    evecs[gid*9 + 4] = vec1.y;
+                    evecs[gid*9 + 5] = vec1.z;
 
-                    // rotate around n1
-                    mot_float_type tmp = sin(theta+(M_PI_2)); // using tmp as the rotation factor (90 degrees)
-                    mot_float_type4 n2 = (mot_float_type4)(tmp * cos_phi, tmp * sin_phi, cos(theta+(M_PI_2)), 0.0);
-                    tmp = select(1, -1, n1.z < 0 || ((n1.z == 0.0) && n1.x < 0.0)); // using tmp as the multiplier
-                    n2 = n2 * cos_psi + (cross(n2, tmp * n1) * sin_psi) + (tmp * n1 * dot(tmp * n1, n2) * (1-cos_psi));
-
-                    mot_float_type4 n3 = cross(n1, n2);
-
-                    evecs[gid*9] = n1.x;
-                    evecs[gid*9 + 1] = n1.y;
-                    evecs[gid*9 + 2] = n1.z;
-
-                    evecs[gid*9 + 3] = n2.x;
-                    evecs[gid*9 + 4] = n2.y;
-                    evecs[gid*9 + 5] = n2.z;
-
-                    evecs[gid*9 + 6] = n3.x;
-                    evecs[gid*9 + 7] = n3.y;
-                    evecs[gid*9 + 8] = n3.z;
+                    evecs[gid*9 + 6] = vec2.x;
+                    evecs[gid*9 + 7] = vec2.y;
+                    evecs[gid*9 + 8] = vec2.z;
             }
         '''
         return kernel_source

@@ -17,20 +17,13 @@ class CHARMED_r1(DMRICompositeModelConfig):
                )
     '''
 
-    lower_bounds = {'Tensor.d': 1e-9,
-                    'Tensor.dperp0': 0.3e-9,
-                    'Tensor.dperp1': 0.3e-9,
-                    'CHARMEDRestricted0.d': 0.3e-9}
-
-    upper_bounds = {'Tensor.d': 5e-9,
-                    'Tensor.dperp0': 5e-9,
-                    'Tensor.dperp1': 3e-9,
-                    'CHARMEDRestricted0.d': 3e-9}
+    lower_bounds = {'CHARMEDRestricted0.d': 0.3e-9}
+    upper_bounds = {'CHARMEDRestricted0.d': 3e-9}
 
     inits = {'Tensor.d': 1.2e-9,
              'Tensor.dperp0': 0.5e-9,
              'Tensor.dperp1': 0.5e-9,
-             'CHARMEDRestricted0.d': 1e-9}
+             'CHARMEDRestricted0.d': 0.5e-9}
 
     post_optimization_modifiers = [
         ('FR', lambda results: 1 - results['w_hin0.w'])
@@ -48,23 +41,19 @@ class CHARMED_r2(DMRICompositeModelConfig):
                (Weight(w_res1) * CHARMEDRestricted(CHARMEDRestricted1)) )
     '''
 
-    lower_bounds = {'Tensor.d': 1e-9,
-                    'Tensor.dperp0': 0.3e-9,
-                    'Tensor.dperp1': 0.3e-9,
-                    'CHARMEDRestricted0.d': 0.3e-9,
+    lower_bounds = {'CHARMEDRestricted0.d': 0.3e-9,
                     'CHARMEDRestricted1.d': 0.3e-9}
 
-    upper_bounds = {'Tensor.d': 5e-9,
-                    'Tensor.dperp0': 5e-9,
-                    'Tensor.dperp1': 3e-9,
-                    'CHARMEDRestricted0.d': 3e-9,
+    upper_bounds = {'CHARMEDRestricted0.d': 3e-9,
                     'CHARMEDRestricted1.d': 3e-9}
 
     inits = {'Tensor.d': 1.2e-9,
              'Tensor.dperp0': 0.5e-9,
              'Tensor.dperp1': 0.5e-9,
-             'CHARMEDRestricted0.d': 1e-9,
-             'CHARMEDRestricted1.d': 1e-9}
+             'CHARMEDRestricted0.d': 0.5e-9,
+             'CHARMEDRestricted1.d': 0.5e-9,
+             'w_res0': 0.1,
+             'w_res1': 0.1}
 
     post_optimization_modifiers = [
         ('FR', lambda results: 1 - results['w_hin0.w'])
@@ -83,27 +72,23 @@ class CHARMED_r3(DMRICompositeModelConfig):
                (Weight(w_res2) * CHARMEDRestricted(CHARMEDRestricted2)) )
     '''
 
-    lower_bounds = {'Tensor.d': 1e-9,
-                    'Tensor.dperp0': 0.3e-9,
-                    'Tensor.dperp1': 0.3e-9,
-                    'CHARMEDRestricted0.d': 0.3e-9,
+    lower_bounds = {'CHARMEDRestricted0.d': 0.3e-9,
                     'CHARMEDRestricted1.d': 0.3e-9,
                     'CHARMEDRestricted2.d': 0.3e-9}
 
-    upper_bounds = {'Tensor.d': 5e-9,
-                    'Tensor.dperp0': 5e-9,
-                    'Tensor.dperp1': 3e-9,
-                    'CHARMEDRestricted0.d': 3e-9,
+    upper_bounds = {'CHARMEDRestricted0.d': 3e-9,
                     'CHARMEDRestricted1.d': 3e-9,
                     'CHARMEDRestricted2.d': 3e-9}
 
     inits = {'Tensor.d': 1.2e-9,
              'Tensor.dperp0': 0.5e-9,
              'Tensor.dperp1': 0.5e-9,
-             'CHARMEDRestricted0.d': 1e-9,
-             'CHARMEDRestricted1.d': 1e-9,
-             'CHARMEDRestricted2.d': 1e-9,
-             'w_res2.w': 0}
+             'CHARMEDRestricted0.d': 0.5e-9,
+             'CHARMEDRestricted1.d': 0.5e-9,
+             'CHARMEDRestricted2.d': 0.5e-9,
+             'w_res0': 0.1,
+             'w_res1': 0.1,
+             'w_res2': 0.1}
 
     post_optimization_modifiers = [
         ('FR', lambda results: 1 - results['w_hin0.w'])

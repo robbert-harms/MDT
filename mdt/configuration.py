@@ -28,7 +28,7 @@ from contextlib import contextmanager
 from pkg_resources import resource_stream
 from six import string_types
 
-from mot.factory import get_optimizer_by_name, get_sampler_by_name
+from mot.factory import get_optimizer_by_name, get_sampler_by_name, get_proposal_update_by_name
 from mdt.components_loader import ProcessingStrategiesLoader, NoiseSTDCalculatorsLoader
 import mot.configuration
 from mot.load_balance_strategies import EvenDistribution
@@ -133,7 +133,7 @@ def load_from_yaml(yaml_str):
     Args:
         yaml_str (str): The string containing the YAML config to parse.
     """
-    config_dict = yaml.load(yaml_str) or {}
+    config_dict = yaml.safe_load(yaml_str) or {}
     load_from_dict(config_dict)
 
 
@@ -171,14 +171,14 @@ def update_write_config(config_file, update_dict):
             pass
 
     with open(config_file, 'r') as f:
-        config_dict = yaml.load(f.read()) or {}
+        config_dict = yaml.safe_load(f.read()) or {}
 
     for key, value in update_dict.items():
         loader = get_section_loader(key)
         loader.update(config_dict, value)
 
     with open(config_file, 'w') as f:
-        yaml.dump(config_dict, f)
+        yaml.safe_dump(config_dict, f)
 
 
 class ConfigSectionLoader(object):
@@ -285,6 +285,19 @@ class NoiseStdEstimationSectionLoader(ConfigSectionLoader):
             config_insert(['noise_std_estimating', 'estimators'], value['estimators'])
 
 
+class DefaultProposalUpdateLoader(ConfigSectionLoader):
+    """Load the default proposal update function."""
+
+    def load(self, value):
+        if 'name' in value:
+            kwargs = {}
+            if 'settings' in value:
+                kwargs = value['settings']
+
+            update_class = get_proposal_update_by_name(value['name'])
+            mot.configuration.set_default_proposal_update(update_class(**kwargs))
+
+
 class RuntimeSettingsLoader(ConfigSectionLoader):
 
     def load(self, value):
@@ -341,6 +354,9 @@ def get_section_loader(section):
 
     if section == 'runtime_settings':
         return RuntimeSettingsLoader()
+
+    if section == 'default_proposal_update':
+        return DefaultProposalUpdateLoader()
 
     raise ValueError('Could not find a suitable configuration loader for the section {}.'.format(section))
 

@@ -1,6 +1,5 @@
 import glob
 import warnings
-from copy import deepcopy
 
 import nibabel
 import numpy as np
@@ -132,7 +131,7 @@ class MapPlotConfig(object):
 
     @classmethod
     def from_yaml(cls, text):
-        return cls.get_conversion_info().from_dict(yaml.load(text))
+        return cls.get_conversion_info().from_dict(yaml.safe_load(text))
 
     @classmethod
     def from_dict(cls, config_dict):
@@ -298,7 +297,7 @@ class SingleMapConfig(object):
 
     @classmethod
     def from_yaml(cls, text):
-        return cls.get_conversion_info().from_dict(yaml.load(text))
+        return cls.get_conversion_info().from_dict(yaml.safe_load(text))
 
     @classmethod
     def from_dict(cls, config_dict):

@@ -27,7 +27,7 @@ from mdt.utils import estimate_noise_std, get_cl_devices, load_problem_data, cre
     load_nifti, write_slice_roi, split_write_dataset, apply_mask_to_file, extract_volumes, recalculate_error_measures, \
     create_signal_estimates, get_slice_in_dimension, per_model_logging_context, get_temporary_results_dir, \
     get_example_data, create_sort_matrix, sort_volumes_per_voxel, sort_orientations
-from mdt.batch_utils import collect_batch_fit_output, run_function_on_batch_fit_output
+from mdt.batch_utils import collect_batch_fit_output, collect_batch_fit_single_map, run_function_on_batch_fit_output
 from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, write_protocol, write_bvec_bval
 from mdt.components_loader import load_component, get_model, component_import
 from mdt.configuration import config_context, get_processing_strategy

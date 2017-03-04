@@ -337,7 +337,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
                             settings:
                                 patience: {}
                 '''.format(optim_options.optimizer, optim_options.patience)
-                config_context = yaml.dump(yaml.load(config), default_flow_style=True).rstrip()
+                config_context = yaml.safe_dump(yaml.safe_load(config), default_flow_style=True).rstrip()
                 write_new_line('--config-context "{}"'.format(config_context))
 
 

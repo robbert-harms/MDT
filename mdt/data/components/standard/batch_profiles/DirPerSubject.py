@@ -32,7 +32,7 @@ Optional items:
 
     /*/TE (in seconds)
     /*/delta (in seconds)
-    /*/Delta (in seconds)
+    /*/Delta (in seconds) (it is also possible to use a filename /*/big_delta for case insensitive filesystems)
 
     /*/*_mask.nii(.gz)
 
@@ -99,9 +99,9 @@ class DirPerSubject(SimpleBatchProfile):
                 output_dir = self._get_subject_output_dir(subject_id, mask_fname)
 
                 return SimpleSubjectInfo(subject_id, dwi_fname, protocol_loader, mask_fname, output_dir,
-                                                  gradient_deviations=grad_dev,
-                                                  use_gradient_deviations=self.use_gradient_deviations,
-                                                  noise_std=noise_std)
+                                         gradient_deviations=grad_dev,
+                                         use_gradient_deviations=self.use_gradient_deviations,
+                                         noise_std=noise_std)
         return None
 
     def __str__(self):

@@ -9,7 +9,7 @@ its data are handled during model construction.
 
 import numpy as np
 from mdt.components_config.parameters import FreeParameterConfig
-from mot.model_building.parameter_functions.priors import AbsSinHalfPrior, AbsSinPrior
+from mot.model_building.parameter_functions.priors import AbsSinHalfPrior, AbsSinPrior, UniformWithinBoundsPrior
 from mot.model_building.parameter_functions.proposals import GaussianProposal, CircularGaussianProposal
 from mot.model_building.parameter_functions.sample_statistics import CircularGaussianPSS
 from mot.model_building.parameter_functions.transformations import ClampTransform, AbsModPiTransform, \
@@ -110,7 +110,7 @@ class theta(FreeParameterConfig):
     upper_bound = np.pi
     parameter_transform = AbsModPiTransform()
     sampling_proposal = CircularGaussianProposal(np.pi, 0.1)
-    sampling_prior = AbsSinHalfPrior()
+    sampling_prior = UniformWithinBoundsPrior()
     sampling_statistics = CircularGaussianPSS()
 
 
@@ -121,7 +121,7 @@ class phi(FreeParameterConfig):
     upper_bound = np.pi
     parameter_transform = AbsModPiTransform()
     sampling_proposal = CircularGaussianProposal(np.pi, 0.1)
-    sampling_prior = AbsSinPrior()
+    sampling_prior = UniformWithinBoundsPrior()
     sampling_statistics = CircularGaussianPSS()
 
 
@@ -132,7 +132,7 @@ class psi(FreeParameterConfig):
     upper_bound = np.pi
     parameter_transform = AbsModPiTransform()
     sampling_proposal = CircularGaussianProposal(np.pi, 0.5)
-    sampling_prior = AbsSinPrior()
+    sampling_prior = UniformWithinBoundsPrior()
     sampling_statistics = CircularGaussianPSS()
 
 

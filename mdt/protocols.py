@@ -828,6 +828,7 @@ def auto_load_protocol(directory, protocol_columns=None, bvec_fname=None, bval_f
         - TE: the TE in seconds, either a file or, one value or one value per bvec
         - TR: the TR in seconds, either a file or, either one value or one value per bvec
         - Delta: the big Delta in seconds, either a file or, either one value or one value per bvec
+            can alternatively named ``big_delta``
         - delta: the small delta in seconds, either a file or, either one value or one value per bvec
         - maxG: the maximum gradient amplitude G in T/m. Used in estimating G, Delta and delta if not given.
 
@@ -888,5 +889,9 @@ def auto_load_protocol(directory, protocol_columns=None, bvec_fname=None, bval_f
         for col in protocol_extra_cols:
             if os.path.isfile(os.path.join(directory, col)):
                 protocol = protocol.copy_with_added_column_from_file(col, os.path.join(directory, col))
+
+        # special case for Delta named as big_delta
+        if os.path.isfile(os.path.join(directory, 'big_delta')):
+            protocol = protocol.copy_with_added_column_from_file('Delta', os.path.join(directory, 'big_delta'))
 
     return protocol
