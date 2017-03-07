@@ -1,5 +1,3 @@
-import numpy as np
-
 from mdt.components_config.cascade_models import CascadeConfig
 
 __author__ = 'Robbert Harms'
@@ -14,11 +12,6 @@ class BallStick_r1(CascadeConfig):
     description = 'Cascade for Ballstick'
     models = ('S0',
               'BallStick_r1')
-
-
-class BallStick_r1_S0(BallStick_r1):
-
-    name = 'BallStick_r1 (Cascade|S0)'
 
 
 class BallStick_r1_ExVivo(BallStick_r1):

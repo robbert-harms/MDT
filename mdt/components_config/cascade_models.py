@@ -93,7 +93,6 @@ class CascadeConfig(ComponentConfig):
         Use this if you want to control more of the initialization of the next model than only the inits and fixes.
         """
 
-
     @classmethod
     def meta_info(cls):
         meta_info = deepcopy(ComponentConfig.meta_info())

@@ -62,6 +62,36 @@ def get_meta_info(model_name):
             raise ValueError('The model with the name "{}" could not be found.'.format(model_name))
 
 
+def construct_component(component):
+    """Construct the component from configuration to derived class.
+
+    This function will perform the lookup from config type to builder class and will subsequently build the
+    component class from the config.
+
+    Args:
+        component (ComponentConfig): the component we wish to construct into a class.
+
+    Returns:
+        class: the constructed class from the given component
+    """
+    from mdt.components_config.cascade_models import CascadeConfig, CascadeBuilder
+    from mdt.components_config.compartment_models import CompartmentConfig, CompartmentBuilder
+    from mdt.components_config.composite_models import DMRICompositeModelConfig, DMRICompositeModelBuilder
+    from mdt.components_config.library_functions import LibraryFunctionConfig, LibraryFunctionsBuilder
+    from mdt.components_config.parameters import ParameterConfig, ParameterBuilder
+
+    builder_lookup = {CascadeConfig: CascadeBuilder(),
+                      CompartmentConfig: CompartmentBuilder(),
+                      DMRICompositeModelConfig: DMRICompositeModelBuilder(),
+                      LibraryFunctionConfig: LibraryFunctionsBuilder(),
+                      ParameterConfig: ParameterBuilder()}
+
+    for config_cls, builder in builder_lookup.items():
+        if issubclass(component, config_cls):
+            return builder.create_class(component)
+    raise ValueError("No suitable builder for the given component could be found.")
+
+
 @contextmanager
 def user_preferred_components(components_dict):
     """Creates a context manager in which the provided components take precedence over existing ones.
@@ -406,7 +436,7 @@ class UserPreferredSource(ComponentsSource):
                 cls.add_component(component_type, name, component_class)
 
     @classmethod
-    def remove_component(cls, component_type, name, component_class):
+    def remove_component(cls, component_type, name):
         """Remove a component from the general user preferred component source.
 
         Args:
@@ -423,11 +453,87 @@ class UserPreferredSource(ComponentsSource):
         """Remove one or more components from this source using a dictionary.
 
         Args:
-            components_dict (dict): dictionary with the structure ``{<component_type>: {<name>: <cls>, ...}, ...}``
+            components_dict (dict): dictionary with the structure ``{<component_type>: [<name>, ...], ...}``
+                That is, per component type a list of components to remove.
         """
         for component_type in components_dict:
-            for name, component_class in components_dict[component_type].items():
-                cls.remove_component(component_type, name, component_class)
+            for name in components_dict[component_type]:
+                cls.remove_component(component_type, name)
+
+
+class AutomaticCascadeSource(ComponentsSource):
+
+    _can_create_list = True
+
+    def __init__(self):
+        """A source that automatically creates cascade models if there is no existing cascade.
+
+        This generates cascade models matching the scheme in Harms 2017: CS, CI and CF cascades.
+
+        The first type of cascades generates are the Cascade S0 schemes. In this we initialize the desired model
+        using an estimate of the unweighted signal S0 (sometimes called B0). Creating cascades for this type is easy
+        since it is a two component cascade.
+        """
+        super(AutomaticCascadeSource, self).__init__()
+
+    def list(self):
+        from mdt.configuration import use_automatic_generated_cascades, get_automatic_generated_cascades_excluded
+        if use_automatic_generated_cascades():
+            if AutomaticCascadeSource._can_create_list:
+                AutomaticCascadeSource._can_create_list = False
+                models_list = CompositeModelsLoader().list_all()
+                cascades_list = CascadeModelsLoader().list_all()
+                AutomaticCascadeSource._can_create_list = True
+
+                excludes = get_automatic_generated_cascades_excluded()
+                models_list = [m for m in models_list if m not in excludes]
+
+                return_list = []
+                return_list.extend(self._get_missing_s0_cascades(models_list, cascades_list))
+
+                return return_list
+        return []
+
+    def get_class(self, name):
+        available_models = self.list()
+        if name in available_models:
+            return self._generate_cascade(name)
+
+        raise ImportError
+
+    def _get_missing_s0_cascades(self, models, cascades):
+        """Get the list of cascade model names that are missing from the list of cascades.
+
+        Args:
+            models (list): the list of composite model names
+            cascades (list): the list of existing cascaded model names
+        """
+        missing_cascades = []
+        for model_name in models:
+            if '{} (Cascade|S0)'.format(model_name) not in cascades:
+                missing_cascades.append('{} (Cascade|S0)'.format(model_name))
+        return missing_cascades
+
+    def _generate_cascade(self, cascaded_name):
+        """Generate the cascade for the given name.
+
+        The provided name has the format "<model> (Cascade[|S0]?)". This class will create the right model based
+        on the cascade extension.
+
+        Args:
+            cascaded_name (str): the model name we are going to generate
+        """
+        from mdt.components_config.cascade_models import CascadeConfig
+
+        if '(Cascade|S0)' in cascaded_name:
+            class template(CascadeConfig):
+                name = cascaded_name
+                description = 'Automatically generated cascade.'
+                models = ('S0',
+                          cascaded_name[0:-len('(Cascade|S0)')].strip())
+            return construct_component(template)
+
+        raise ImportError
 
 
 class UserComponentsSourceSingle(ComponentsSource):
@@ -710,7 +816,7 @@ class CompositeModelSource(AutoUserComponentsSourceMulti):
         from mdt.models.composite import DMRICompositeModel
         from mdt.components_config.composite_models import DMRICompositeModelBuilder
         super(CompositeModelSource, self).__init__(user_type, 'composite_models', DMRICompositeModel,
-                                                DMRICompositeModelBuilder())
+                                                   DMRICompositeModelBuilder())
 
 
 class CascadeSource(AutoUserComponentsSourceMulti):
@@ -823,7 +929,8 @@ class CascadeModelsLoader(ComponentsLoader):
         super(CascadeModelsLoader, self).__init__(
             [UserPreferredSource('cascade_models'),
              CascadeSource('standard'),
-             CascadeSource('user')])
+             CascadeSource('user'),
+             AutomaticCascadeSource()])
 
 
 def get_component_class(component_type, component_name):

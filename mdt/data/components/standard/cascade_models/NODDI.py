@@ -19,14 +19,6 @@ class NODDI(CascadeConfig):
                        ('NODDI_IC.phi', 'Stick.phi')]}
 
 
-class NODDI_S0(CascadeConfig):
-
-    name = 'NODDI (Cascade|S0)'
-    description = 'Cascade for NODDI initialized with only an S0 fit.'
-    models = ('S0',
-              'NODDI')
-
-
 class NODDI_Fixed(CascadeConfig):
 
     name = 'NODDI (Cascade|fixed)'

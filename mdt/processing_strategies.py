@@ -150,8 +150,6 @@ class ChunksProcessingStrategy(SimpleProcessingStrategy):
 
     def run(self, model, problem_data, output_path, recalculate, worker_generator):
         """Compute all the slices using the implemented chunks generator"""
-        start_time = timeit.default_timer()
-
         with self._tmp_storage_dir(output_path, recalculate) as tmp_storage_dir:
             voxels_processed = 0
 
@@ -160,11 +158,15 @@ class ChunksProcessingStrategy(SimpleProcessingStrategy):
 
             total_roi_indices = worker.get_voxels_to_compute()
             if len(total_roi_indices):
+
+                start_time = timeit.default_timer()
+                start_nmr_processed = (np.count_nonzero(problem_data.mask) - len(total_roi_indices))
+
                 for chunk_indices in self._chunks_generator(model, problem_data, output_path, worker,
                                                             total_roi_indices):
                     with self._selected_indices(model, chunk_indices):
                         self._run_on_chunk(problem_data, worker, chunk_indices, total_roi_indices,
-                                           voxels_processed, start_time)
+                                           voxels_processed, start_time, start_nmr_processed)
 
                     voxels_processed += len(chunk_indices)
 
@@ -181,13 +183,14 @@ class ChunksProcessingStrategy(SimpleProcessingStrategy):
         """
         raise NotImplementedError
 
-    def _run_on_chunk(self, problem_data, worker, voxel_indices, voxels_to_process, voxels_processed, start_time):
+    def _run_on_chunk(self, problem_data, worker, voxel_indices, voxels_to_process, voxels_processed, start_time,
+                      start_nmr_processed):
         """Run the worker on the given chunk."""
         total_nmr_voxels = np.count_nonzero(problem_data.mask)
         total_processed = (total_nmr_voxels - len(voxels_to_process)) + voxels_processed
 
         run_time = timeit.default_timer() - start_time
-        current_percentage = total_processed / total_nmr_voxels
+        current_percentage = voxels_processed / (total_nmr_voxels - total_processed)
         if current_percentage > 0:
             remaining_time = (run_time / current_percentage) - run_time
         else:

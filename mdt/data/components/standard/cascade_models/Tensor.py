@@ -1,5 +1,3 @@
-import numpy as np
-
 from mdt.components_config.cascade_models import CascadeConfig
 
 __author__ = 'Robbert Harms'
@@ -28,25 +26,9 @@ class TensorFixed(CascadeConfig):
                         ('Tensor.phi', 'Stick.phi')]}
 
 
-class TensorS0(CascadeConfig):
-
-    name = 'Tensor (Cascade|S0)'
-    description = 'Cascade for Tensor initialized with only an S0 fit.'
-    models = ('S0',
-              'Tensor')
-
-
 class TensorExVivo(Tensor):
 
     name = 'Tensor-ExVivo (Cascade)'
     description = 'Cascade for Tensor with ex vivo defaults.'
     models = ('BallStick_r1-ExVivo (Cascade)',
-              'Tensor-ExVivo')
-
-
-class TensorExVivoS0(Tensor):
-
-    name = 'Tensor-ExVivo (Cascade|S0)'
-    description = 'Cascade S0 for Tensor with ex vivo defaults.'
-    models = ('S0',
               'Tensor-ExVivo')

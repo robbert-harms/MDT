@@ -19,14 +19,6 @@ class CHARMED1(CascadeConfig):
                             ('w_res0.w', 'w_stick.w')]}
 
 
-class CHARMEDR1S0(CascadeConfig):
-
-    name = 'CHARMED_r1 (Cascade|S0)'
-    description = 'Cascade for CHARMED r1 initialized with only an S0 fit.'
-    models = ('S0',
-              'CHARMED_r1')
-
-
 class CHARMEDR1Fixed(CascadeConfig):
 
     name = 'CHARMED_r1 (Cascade|fixed)'
@@ -54,14 +46,6 @@ class CHARMEDR2(CascadeConfig):
                             ('CHARMEDRestricted1.phi', 'Stick1.phi'),
                             ('w_res0.w', 'w_stick0.w'),
                             ('w_res1.w', 'w_stick1.w')]}
-
-
-class CHARMEDR2S0(CascadeConfig):
-
-    name = 'CHARMED_r2 (Cascade|S0)'
-    description = 'Initializes with only an S0 fit.'
-    models = ('S0',
-              'CHARMED_r2')
 
 
 class CHARMEDR2Fixed(CascadeConfig):
@@ -99,14 +83,6 @@ class CHARMED_r3(CascadeConfig):
                             ('CHARMEDRestricted2.theta', 'Stick2.theta'),
                             ('CHARMEDRestricted2.phi', 'Stick2.phi'),
                             ]}
-
-
-class CHARMED_r3_S0(CascadeConfig):
-
-    name = 'CHARMED_r3 (Cascade|S0)'
-    description = 'Initializes with only an S0 fit.'
-    models = ('S0',
-              'CHARMED_r3')
 
 
 class CHARMED_r3_Fixed(CascadeConfig):

@@ -298,6 +298,14 @@ class DefaultProposalUpdateLoader(ConfigSectionLoader):
             mot.configuration.set_default_proposal_update(update_class(**kwargs))
 
 
+class AutomaticCascadeModels(ConfigSectionLoader):
+    """Load the automatic cascade model settings."""
+
+    def load(self, value):
+        config_insert(['auto_generate_cascade_models', 'enabled'], value.get('enabled', True))
+        config_insert(['auto_generate_cascade_models', 'excluded'], value.get('excluded', []))
+
+
 class RuntimeSettingsLoader(ConfigSectionLoader):
 
     def load(self, value):
@@ -357,6 +365,9 @@ def get_section_loader(section):
 
     if section == 'default_proposal_update':
         return DefaultProposalUpdateLoader()
+
+    if section == 'auto_generate_cascade_models':
+        return AutomaticCascadeModels()
 
     raise ValueError('Could not find a suitable configuration loader for the section {}.'.format(section))
 
@@ -524,6 +535,24 @@ def get_sampler():
     """
     sampler = get_sampler_by_name(_config['sampling']['general']['name'])
     return sampler(**_config['sampling']['general']['settings'])
+
+
+def use_automatic_generated_cascades():
+    """Check if we want to use the automatic cascade generation in MDT.
+
+    Returns:
+        boolean: True if we want to use the automatic cascades, False otherwise
+    """
+    return _config['auto_generate_cascade_models']['enabled']
+
+
+def get_automatic_generated_cascades_excluded():
+    """Get the information about the model names excluded from automatic cascade generation.
+
+    Returns:
+        list: the names of the composite models we want to exclude from automatic cascade generation
+    """
+    return _config['auto_generate_cascade_models']['excluded']
 
 
 def get_model_config(model_names, config):
