@@ -190,7 +190,7 @@ class ChunksProcessingStrategy(SimpleProcessingStrategy):
         total_processed = (total_nmr_voxels - len(voxels_to_process)) + voxels_processed
 
         run_time = timeit.default_timer() - start_time
-        current_percentage = voxels_processed / (total_nmr_voxels - total_processed)
+        current_percentage = voxels_processed / (total_nmr_voxels - start_nmr_processed)
         if current_percentage > 0:
             remaining_time = (run_time / current_percentage) - run_time
         else:
