@@ -175,11 +175,11 @@ class DMRIProblemData(AbstractProblemData):
             logger.warn('Failed to obtain a noise std for this subject. We will continue with an std of 1.')
             noise_std = 1
 
+        self._noise_std = noise_std
+
         if is_scalar(noise_std):
-            self._logger.info('Using a scalar noise standard deviation of {0}'.format(noise_std))
             return noise_std
         else:
-            self._logger.info('Using a voxel wise noise standard deviation.')
             return create_roi(noise_std, self.mask)
 
 

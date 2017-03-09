@@ -427,7 +427,7 @@ class SamplingProcessingWorker(ModelProcessingWorker):
     class SampleChainNotStored(object):
         pass
 
-    def __init__(self, sampler, store_samples=False, *args):
+    def __init__(self, sampler, store_samples=False, store_volume_maps=True, *args):
         """The processing worker for model sampling.
 
         Use this if you want to use the model processing strategy to do model sampling.
@@ -437,11 +437,14 @@ class SamplingProcessingWorker(ModelProcessingWorker):
             store_samples (boolean): if set to False we will store none of the samples. Use this
                 if you are only interested in the volume maps and not in the entire sample chain.
                 If set to True the process and combine function will no longer return any results.
+            store_volume_maps (boolean): if we want to store the elements in the 'volume_maps' directory.
+                This stores the mean and std maps and some other maps based on the samples.
         """
         super(SamplingProcessingWorker, self).__init__(*args)
         self._sampler = sampler
         self._write_volumes_gzipped = gzip_sampling_results()
         self._store_samples = store_samples
+        self._store_volume_maps = store_volume_maps
 
     def get_voxels_to_compute(self):
         """Get the ROI indices of the voxels we need to compute.
@@ -472,7 +475,9 @@ class SamplingProcessingWorker(ModelProcessingWorker):
     def process(self, roi_indices):
         results, volume_maps, proposal_state = self._sampler.sample(self._model, full_output=True)
 
-        self._write_volumes(roi_indices, volume_maps, os.path.join(self._tmp_storage_dir, 'volume_maps'))
+        if self._store_volume_maps:
+            self._write_volumes(roi_indices, volume_maps, os.path.join(self._tmp_storage_dir, 'volume_maps'))
+
         self._write_volumes(roi_indices, proposal_state, os.path.join(self._tmp_storage_dir, 'proposal_state'))
 
         chain_end_point = {key: result[:, -1] for key, result in results.items()}
@@ -487,7 +492,11 @@ class SamplingProcessingWorker(ModelProcessingWorker):
     def combine(self):
         super(SamplingProcessingWorker, self).combine()
 
-        for subdir in ['volume_maps', 'proposal_state', 'chain_end_point']:
+        if self._store_volume_maps:
+            self._combine_volumes(self._output_dir, self._tmp_storage_dir,
+                                  self._problem_data.volume_header, maps_subdir='volume_maps')
+
+        for subdir in ['proposal_state', 'chain_end_point']:
             self._combine_volumes(self._output_dir, self._tmp_storage_dir,
                                   self._problem_data.volume_header, maps_subdir=subdir)
 

@@ -114,7 +114,10 @@ or, equivalently,
     $ MDT
 
 to check if the GUI works.
-If this fails, double check the above installation steps.
+
+If this fails with the message ``pyopencl.cffi_cl.LogicError: clGetPlatformIDs failed: <unknown error -1001>``, then
+PyOpenCL can not find the OpenCL environment on your computer.
+Please refer to the section :ref:`faq_clGetPlatformIDs_failed` for help on this problem.
 
 Another command to try is:
 
@@ -123,5 +126,5 @@ Another command to try is:
     $ mdt-list-devices
 
 This should print a list of OpenCL devices in your computer.
-If this returns nothing you may be lacking OpenCL drivers for your machine.
-Please refer to the section :ref:`faq_no_opencl_device_found` for help on this problem.
+If this crashes with an exception then most likely the OpenCL environment can not be found, see :ref:`faq_clGetPlatformIDs_failed`.
+If it works but no devices can be found then please refer to the section :ref:`faq_no_opencl_device_found`.

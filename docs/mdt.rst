@@ -10,6 +10,7 @@ Subpackages
     mdt.cli_scripts
     mdt.components_config
     mdt.data_loaders
+    mdt.file_conversions
     mdt.gui
     mdt.models
     mdt.visualization

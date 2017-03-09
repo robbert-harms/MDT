@@ -37,6 +37,7 @@ class DeferredActionDict(collections.MutableMapping):
 
     def __getitem__(self, key):
         if key not in self._applied_on_key or not self._applied_on_key[key]:
+            self._func(key, self._items[key])
             self._items[key] = self._func(key, self._items[key])
             self._applied_on_key[key] = True
         return self._items[key]
@@ -54,6 +55,9 @@ class DeferredActionDict(collections.MutableMapping):
     def __setitem__(self, key, value):
         self._items[key] = value
         self._applied_on_key[key] = True
+
+    def __copy__(self):
+        return type(self)(self._func, copy.copy(self._items))
 
 
 class DeferredFunctionDict(collections.MutableMapping):
@@ -98,6 +102,9 @@ class DeferredFunctionDict(collections.MutableMapping):
         self._items[key] = value
         self._applied_on_key[key] = True
 
+    def __copy__(self):
+        return type(self)(copy.copy(self._items))
+
 
 class DeferredActionTuple(collections.Sequence):
 
@@ -129,3 +136,6 @@ class DeferredActionTuple(collections.Sequence):
 
     def __len__(self):
         return len(self._items)
+
+    def __copy__(self):
+        return type(self)(self._func, copy.copy(self._items))

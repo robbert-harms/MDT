@@ -11,6 +11,29 @@ Frequently Asked Questions
 Installation problems
 *********************
 
+
+.. _faq_clGetPlatformIDs_failed:
+
+MDT crashes with "clGetPlatformIDs failed: <unknown error -1001>"
+=================================================================
+After a successful installation some users are confronted with the message ``pyopencl.cffi_cl.LogicError: clGetPlatformIDs failed: <unknown error -1001>`` when starting MDT.
+This is an OpenCL environment related problem and can have two causes, either the OpenCL environment is not correctly installed or PyOpenCL can not find the environment.
+
+Check OpenCL environment
+------------------------
+The first thing to do would be to install an independent package to test the presence of the OpenCL environment on your computer.
+In Linux that package could be the ``clinfo`` package, found in the repository of all major distributions (Debian, Ubuntu, Suse).
+If that command also fails to run then your OpenCL environment is not installed correctly.
+Please double check the full installation guide and try to install the OpenCL driver for the device you are targeting.
+
+
+Working OpenCL
+--------------
+If OpenCL is correctly installed but PyOpenCL still crashes, then the problem could be related to PyOpenCL using the wrong libraries.
+This could be solved by reinstalling PyOpenCL (``pip uninstall pyopencl``, ``pip install pyopencl``).
+
+
+
 .. _faq_no_opencl_device_found:
 
 No OpenCL device found

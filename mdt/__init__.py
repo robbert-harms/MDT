@@ -10,6 +10,7 @@ import shutil
 import six
 from six import string_types
 
+from mdt.model_sampling import combine_sampling_information
 from .__version__ import VERSION, VERSION_STATUS, __version__
 
 
@@ -100,8 +101,8 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
 
 
 def sample_model(model, problem_data, output_folder, sampler=None, recalculate=False,
-                 cl_device_ind=None, double_precision=False, store_samples=True, tmp_results_dir=True,
-                 save_user_script_info=True, initialization_maps=None):
+                 cl_device_ind=None, double_precision=False, store_samples=True, append_samples=False,
+                 tmp_results_dir=True, save_user_script_info=True, initialization_maps=None):
     """Sample a composite model using the given cascading strategy.
 
     Args:
@@ -116,6 +117,10 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
         double_precision (boolean): if we would like to do the calculations in double precision
         store_samples (boolean): if set to False we will store none of the samples. Use this
                 if you are only interested in the volume maps and not in the entire sample chain.
+        append_samples (boolean): if set to True, recalculate set to False and store_samples set to True,
+            we append the samples found to the already existing samples. This additionally requires that in previous
+            runs store_samples was also set to True. If no other initialization_maps are given, this switch will
+            initialize the sampler to the last point in the chain.
         tmp_results_dir (str, True or None): The temporary dir for the calculations. Set to a string to use
                 that path directly, set to True to use the config value, set to None to disable.
         save_user_script_info (boolean, str or SaveUserScriptInfo): The info we need to save about the script the
@@ -149,6 +154,12 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
             'The given protocol is insufficient for this model. '
             'The reported errors where: {}'.format(model.get_protocol_problems(problem_data.protocol)))
 
+    if not store_samples and append_samples:
+        raise ValueError('Invalid switches: store_samples is set to False while append_samples is set to True.')
+
+    if recalculate and append_samples:
+        raise ValueError('Invalid switches: both recalculate and append_samples are set to True.')
+
     if cl_device_ind is not None and not isinstance(cl_device_ind, collections.Iterable):
         cl_device_ind = [cl_device_ind]
 
@@ -166,28 +177,44 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
         processing_strategy = get_processing_strategy('sampling', model_names=model.name)
         processing_strategy.set_tmp_dir(get_temporary_results_dir(tmp_results_dir))
 
-        output_folder = os.path.join(output_folder, model.name, 'samples')
+        base_dir = os.path.join(output_folder, model.name, 'samples')
+
+        if append_samples:
+            output_folder = os.path.join(base_dir, '_to_append')
+        else:
+            output_folder = base_dir
+
         if not os.path.isdir(output_folder):
             os.makedirs(output_folder)
 
         if recalculate:
             shutil.rmtree(output_folder)
 
-        with per_model_logging_context(output_folder, overwrite=recalculate):
+        with per_model_logging_context(base_dir, overwrite=recalculate):
             logger = logging.getLogger(__name__)
             logger.info('Using MDT version {}'.format(__version__))
             logger.info('Preparing for model {0}'.format(model.name))
 
+            if append_samples:
+                logger.info('Append samples is set to True, we will append this run to the '
+                            'previously calculated samples.')
+
             if initialization_maps:
-                logger.info('Initializing the sampler using provided maps')
+                logger.info('Initializing the sampler using provided maps.')
                 model.set_initial_parameters(create_roi(initialization_maps, problem_data.mask))
 
             model.double_precision = double_precision
 
             results = sample_composite_model(model, problem_data, output_folder, sampler,
-                                             processing_strategy, recalculate=recalculate, store_samples=store_samples)
+                                             processing_strategy, recalculate=recalculate,
+                                             store_samples=store_samples,
+                                             store_volume_maps=not append_samples)
 
-        easy_save_user_script_info(save_user_script_info, output_folder + '/used_scripts.py',
+            if append_samples:
+                combine_sampling_information(base_dir, output_folder, model)
+                shutil.rmtree(output_folder)
+
+        easy_save_user_script_info(save_user_script_info, os.path.join(base_dir, 'used_scripts.py'),
                                    stack()[1][0].f_globals.get('__file__'))
         return results
 
