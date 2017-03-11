@@ -57,7 +57,9 @@ class DeferredActionDict(collections.MutableMapping):
         self._applied_on_key[key] = True
 
     def __copy__(self):
-        return type(self)(self._func, copy.copy(self._items))
+        new_one = type(self)(self._func, copy.copy(self._items))
+        new_one._applied_on_key = copy.copy(self._applied_on_key)
+        return new_one
 
 
 class DeferredFunctionDict(collections.MutableMapping):
@@ -103,7 +105,9 @@ class DeferredFunctionDict(collections.MutableMapping):
         self._applied_on_key[key] = True
 
     def __copy__(self):
-        return type(self)(copy.copy(self._items))
+        new_one = type(self)(copy.copy(self._items))
+        new_one._applied_on_key = copy.copy(self._applied_on_key)
+        return new_one
 
 
 class DeferredActionTuple(collections.Sequence):
@@ -138,4 +142,6 @@ class DeferredActionTuple(collections.Sequence):
         return len(self._items)
 
     def __copy__(self):
-        return type(self)(self._func, copy.copy(self._items))
+        new_one = type(self)(self._func, copy.copy(self._items))
+        new_one._applied_on_index = copy.copy(self._applied_on_index)
+        return new_one

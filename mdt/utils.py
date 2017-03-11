@@ -203,6 +203,62 @@ class MockDMRIProblemData(DMRIProblemData):
         return self._noise_std
 
 
+class InitializationData(object):
+
+    def get_inits(self):
+        """Get the initialization values.
+
+        Returns:
+            dict: the initialization values with per map either a scalar or a 3d/4d volume
+        """
+        raise NotImplementedError()
+
+    def get_fixes(self):
+        """Determines which parameters need to be fixed and to which values.
+
+        Returns:
+            dict: the initialization values with per map either a scalar or a 3d/4d volume
+        """
+        raise NotImplementedError()
+
+
+class SimpleInitializationData(InitializationData):
+
+    def __init__(self, inits=None, fixes=None):
+        """A storage class for initialization data during model fitting and sampling.
+
+        Every element is supposed to be a dictionary with as keys the name of a parameter and as value a scalar value,
+        a 3d/4d volume or a string which is taken to be a filename to a 3d/4d volume.
+
+        Args:
+            inits (dict): indicating the initialization values for the parameters. Example of use:
+
+                .. code-block:: python
+
+                    inits = {'Stick.theta': np.pi,
+                             'Stick.phi': './my_init_map.nii.gz'}
+
+            fixes (dict): indicating fixations of a parameter. Example of use:
+
+                .. code-block:: python
+
+                    fixes = {'Ball.d': 3.0e-9}
+        """
+        self._inits = inits or {}
+        self._fixes = fixes or {}
+
+    def get_inits(self):
+        return DeferredActionDict(self._resolve_value, self._inits)
+
+    def get_fixes(self):
+        return DeferredActionDict(self._resolve_value, self._fixes)
+
+    def _resolve_value(self, key, value):
+        if isinstance(value, six.string_types):
+            return load_nifti(value).get_data()
+        return value
+
+
 class PathJoiner(object):
 
     def __init__(self, *args):

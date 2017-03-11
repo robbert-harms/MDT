@@ -76,7 +76,7 @@ class ExampleDataTest(unittest.TestCase):
         msg_prefix = 'b1k_b2k - Tensor'
 
         for map_name in known_volumes:
-            self._test_map(user_volumes, known_volumes, map_name, msg_prefix, rtol=1e-2)
+            self._test_map(user_volumes, known_volumes, map_name, msg_prefix, rtol=0.1)
 
     def _test_map(self, user_volumes, known_volumes, map_to_test, msg_prefix, rtol=1e-4):
         np.testing.assert_allclose(np.mean(user_volumes[map_to_test]), np.mean(known_volumes[map_to_test]),

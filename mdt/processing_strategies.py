@@ -198,7 +198,8 @@ class ChunksProcessingStrategy(SimpleProcessingStrategy):
 
         self._logger.info('Computations are at {0:.2%}, processing next {1} voxels ('
                           '{2} voxels in total, {3} processed). Time spent: {4}, time left: {5} (h:m:s).'.
-                          format(total_processed / total_nmr_voxels, len(voxel_indices),
+                          format(total_processed / total_nmr_voxels,
+                                 len(voxel_indices),
                                  total_nmr_voxels,
                                  total_processed,
                                  time.strftime('%H:%M:%S', time.gmtime(run_time)),

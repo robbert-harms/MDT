@@ -36,9 +36,9 @@ class DMRICascadeModelInterface(DMRIOptimizable):
         """
 
     def get_next(self, output_previous_models):
-        """Get the next model in the cascade. This is the only function called by the cascade model optimizer
+        """Get the next model in the cascade. This is the only function called by the model optimizer.
 
-        This class is supposed to remember which model is next.
+        This cascade class is supposed to remember which model is next.
 
         Args:
             output_previous_models (dict): The output of all the previous models. The first level of the

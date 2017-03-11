@@ -6,8 +6,10 @@ import time
 
 from numpy.lib.format import open_memmap
 import shutil
+
+from mdt.deferred_mappings import DeferredActionDict
 from mdt.nifti import load_nifti, write_all_as_nifti
-from mdt.utils import model_output_exists, load_samples, restore_volumes
+from mdt.utils import model_output_exists, load_samples, restore_volumes, is_scalar, create_roi
 from mdt.processing_strategies import SimpleModelProcessingWorkerGenerator, SamplingProcessingWorker
 from mdt.exceptions import InsufficientProtocolError
 from mot.cl_routines.mapping.error_measures import ErrorMeasures
@@ -20,7 +22,8 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 def sample_composite_model(model, problem_data, output_folder, sampler, processing_strategy,
-                           recalculate=False, store_samples=True, store_volume_maps=True):
+                           recalculate=False, store_samples=True, store_volume_maps=True,
+                           initialization_data=None):
     """Sample a composite model.
 
     Args:
@@ -34,6 +37,9 @@ def sample_composite_model(model, problem_data, output_folder, sampler, processi
         store_samples (boolean): if set to False we will store none of the samples. Use this
             if you are only interested in the volume maps and not in the entire sample chain.
         store_volume_maps (boolean): if set to False we will not store the mean and std. volume maps.
+        initialization_data (:class:`~mdt.utils.InitializationData`): provides (extra) initialization data to use
+            during model fitting. If we are optimizing a cascade model this data only applies to the last model in the
+            cascade.
     """
     if not model.is_protocol_sufficient(problem_data.protocol):
         raise InsufficientProtocolError(
@@ -55,10 +61,36 @@ def sample_composite_model(model, problem_data, output_folder, sampler, processi
 
     model.set_problem_data(problem_data)
 
+    if initialization_data:
+        logger.info('Preparing the model with the user provided initialization data.')
+        _apply_user_provided_initialization_data(model, initialization_data, problem_data.mask)
+
     with _log_info(logger, model.name):
         worker_generator = SimpleModelProcessingWorkerGenerator(
             lambda *args: SamplingProcessingWorker(sampler, store_samples, store_volume_maps, *args))
         return processing_strategy.run(model, problem_data, output_folder, recalculate, worker_generator)
+
+
+def _apply_user_provided_initialization_data(model, initialization_data, mask):
+    """Apply the initialization data to the model.
+
+    This potentially initializes parameter maps, priors and proposals.
+
+    Args:
+        model: the composite model we are preparing for fitting. Changes happen in place.
+        initialization_data (:class:`~mdt.utils.InitializationData`): the initialization data to apply
+        mask (ndarray): the current mask
+    """
+
+    def prepare_value(key, v):
+        if is_scalar(v):
+            return v
+        return create_roi(v, mask)
+
+    model.set_initial_parameters(DeferredActionDict(prepare_value, initialization_data.get_inits()))
+
+    for key, value in initialization_data.get_fixes().items():
+        model.fix(key, prepare_value(key, value))
 
 
 @contextmanager

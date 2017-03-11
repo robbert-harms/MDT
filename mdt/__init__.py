@@ -27,7 +27,7 @@ from mdt.utils import estimate_noise_std, get_cl_devices, load_problem_data, cre
     apply_mask, create_roi, volume_merge, protocol_merge, create_median_otsu_brain_mask, load_samples, \
     load_nifti, write_slice_roi, split_write_dataset, apply_mask_to_file, extract_volumes, recalculate_error_measures, \
     create_signal_estimates, get_slice_in_dimension, per_model_logging_context, get_temporary_results_dir, \
-    get_example_data, create_sort_matrix, sort_volumes_per_voxel, sort_orientations
+    get_example_data, create_sort_matrix, sort_volumes_per_voxel, sort_orientations, SimpleInitializationData
 from mdt.batch_utils import collect_batch_fit_output, collect_batch_fit_single_map, run_function_on_batch_fit_output
 from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, write_protocol, write_bvec_bval
 from mdt.components_loader import load_component, get_model, component_import, construct_component
@@ -44,7 +44,8 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 def fit_model(model, problem_data, output_folder, optimizer=None,
               recalculate=False, only_recalculate_last=False, cascade_subdir=False,
-              cl_device_ind=None, double_precision=False, tmp_results_dir=True, save_user_script_info=True):
+              cl_device_ind=None, double_precision=False, tmp_results_dir=True, save_user_script_info=True,
+              initialization_data=None):
     """Run the optimizer on the given model.
 
     Args:
@@ -76,11 +77,13 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
             and save that using a SaveFromScript saver. If a string is given we use that filename again for the
             SaveFromScript saver. If False or None, we do not write any information. If a SaveUserScriptInfo is
             given we use that directly.
+        initialization_data (:class:`~mdt.utils.InitializationData`): provides (extra) initialization data to use
+            during model fitting. If we are optimizing a cascade model this data only applies to the last model in the
+            cascade.
 
     Returns:
-        dict: The result maps for the (final) optimized model.
-                This returns the results as 2d arrays with on the first dimension the optimized voxels
-                and on the second the value(s) for the micro-structure maps.
+        dict: The result maps for the given composite model or the last model in the cascade.
+            This returns the results as 3d/4d volumes for every output map.
     """
     import mdt.utils
     from mdt.model_fitting import ModelFit
@@ -92,7 +95,7 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
                          only_recalculate_last=only_recalculate_last,
                          cascade_subdir=cascade_subdir,
                          cl_device_ind=cl_device_ind, double_precision=double_precision,
-                         tmp_results_dir=tmp_results_dir)
+                         tmp_results_dir=tmp_results_dir, initialization_data=initialization_data)
 
     results = model_fit.run()
     easy_save_user_script_info(save_user_script_info, output_folder + '/used_scripts.py',
@@ -102,7 +105,7 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
 
 def sample_model(model, problem_data, output_folder, sampler=None, recalculate=False,
                  cl_device_ind=None, double_precision=False, store_samples=True, append_samples=False,
-                 tmp_results_dir=True, save_user_script_info=True, initialization_maps=None):
+                 tmp_results_dir=True, save_user_script_info=True, initialization_data=None):
     """Sample a composite model using the given cascading strategy.
 
     Args:
@@ -128,11 +131,13 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
             and save that using a SaveFromScript saver. If a string is given we use that filename again for the
             SaveFromScript saver. If False or None, we do not write any information. If a SaveUserScriptInfo is
             given we use that directly.
-        initialization_maps (dict): 4d maps to initialize the sampling with. Per default this is None,
-            common practice is to use the maps from an optimization as starting point
+        initialization_data (:class:`~mdt.utils.InitializationData`): provides (extra) initialization data to use
+            during model fitting. If we are optimizing a cascade model this data only applies to the last model in the
+            cascade.
 
     Returns:
-        dict: the samples per parameter as a numpy memmap if store_samples is True
+        dict: if store_samples is True then we return the samples per parameter as a numpy memmap. If store_samples
+            is False we return None
     """
     import mdt.utils
     from mot.load_balance_strategies import EvenDistribution
@@ -199,16 +204,13 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
                 logger.info('Append samples is set to True, we will append this run to the '
                             'previously calculated samples.')
 
-            if initialization_maps:
-                logger.info('Initializing the sampler using provided maps.')
-                model.set_initial_parameters(create_roi(initialization_maps, problem_data.mask))
-
             model.double_precision = double_precision
 
             results = sample_composite_model(model, problem_data, output_folder, sampler,
                                              processing_strategy, recalculate=recalculate,
                                              store_samples=store_samples,
-                                             store_volume_maps=not append_samples)
+                                             store_volume_maps=not append_samples,
+                                             initialization_data=initialization_data)
 
             if append_samples:
                 combine_sampling_information(base_dir, output_folder, model)

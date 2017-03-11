@@ -29,7 +29,10 @@ def load_nifti(nifti_volume):
 
 
 def load_all_niftis(directory, map_names=None):
-    """Loads all niftis in the given directory.
+    """Loads all niftis in the given directory as nibabel nifti files.
+
+    This does not load the data directly, it loads the niftis in a dictionary. To get a direct handle to the image
+    data use the function :func:`get_all_image_data`.
 
     If map_names is given we will only load the given maps. Else, we load all .nii and .nii.gz files in the
     given directory. The map name is the filename of a nifti without the extension.

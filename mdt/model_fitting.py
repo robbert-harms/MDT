@@ -7,6 +7,7 @@ import timeit
 from contextlib import contextmanager
 from six import string_types
 from mdt.__version__ import __version__
+from mdt.deferred_mappings import DeferredActionDict
 from mdt.nifti import get_all_image_data
 from mdt.batch_utils import batch_profile_factory, AllSubjects
 from mdt.components_loader import get_model
@@ -14,7 +15,7 @@ from mdt.configuration import get_processing_strategy, get_optimizer_for_model
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.protocols import write_protocol
 from mdt.utils import create_roi, get_cl_devices, model_output_exists, \
-    per_model_logging_context, get_temporary_results_dir
+    per_model_logging_context, get_temporary_results_dir, SimpleInitializationData, is_scalar
 from mdt.processing_strategies import SimpleModelProcessingWorkerGenerator, FittingProcessingWorker
 from mdt.exceptions import InsufficientProtocolError
 from mot.load_balance_strategies import EvenDistribution
@@ -189,14 +190,13 @@ class ModelFit(object):
 
     def __init__(self, model, problem_data, output_folder, optimizer=None,
                  recalculate=False, only_recalculate_last=False, cascade_subdir=False,
-                 cl_device_ind=None, double_precision=False, tmp_results_dir=True):
+                 cl_device_ind=None, double_precision=False, tmp_results_dir=True, initialization_data=None):
         """Setup model fitting for the given input model and data.
 
         To actually fit the model call run().
 
         Args:
-            model
-                (:class:`~mdt.models.composite.DMRICompositeModel` or :class:`~mdt.models.cascade.DMRICascadeModelInterface`):
+            model (str or :class:`~mdt.models.composite.DMRICompositeModel` or :class:`~mdt.models.cascade.DMRICascadeModelInterface`):
                     the model we want to optimize.
             problem_data (:class:`~mdt.utils.DMRIProblemData`): the problem data object which contains the dwi image,
                 the dwi header, the brain_mask and the protocol to use.
@@ -218,6 +218,9 @@ class ModelFit(object):
             double_precision (boolean): if we would like to do the calculations in double precision
             tmp_results_dir (str, True or None): The temporary dir for the calculations. Set to a string to use
                 that path directly, set to True to use the config value, set to None to disable.
+            initialization_data (:class:`~mdt.utils.InitializationData`): extra initialization data to use
+                during model fitting. If we are optimizing a cascade model this data only applies to the last model in the
+                cascade.
         """
         if isinstance(model, string_types):
             model = get_model(model)
@@ -236,6 +239,7 @@ class ModelFit(object):
         self._cl_device_indices = cl_device_ind
         self._model_names_list = []
         self._tmp_results_dir = get_temporary_results_dir(tmp_results_dir)
+        self._initialization_data = initialization_data or SimpleInitializationData()
 
         if self._cl_device_indices is not None and not isinstance(self._cl_device_indices, collections.Iterable):
             self._cl_device_indices = [self._cl_device_indices]
@@ -257,19 +261,25 @@ class ModelFit(object):
         """Run the model and return the resulting voxel estimates within the ROI.
 
         Returns:
-            dict: The result maps for the current model or the last model in the cascade.
-                This returns the results as 2d arrays with on the first dimension the voxels within the ROI
-                and on the second axis the value(s) for all result maps.
+            dict: The result maps for the given composite model or the last model in the cascade.
+                This returns the results as 3d/4d volumes for every output map.
         """
-        return self._run(self._model, self._recalculate, self._only_recalculate_last)
+        self._run(self._model, self._recalculate, self._only_recalculate_last)
 
-    def _run(self, model, recalculate, only_recalculate_last):
+        if isinstance(self._model, DMRICascadeModelInterface):
+            model_name = self._model.get_model_names()[-1]
+        else:
+            model_name = self._model.name
+        return get_all_image_data(os.path.join(self._output_folder, model_name))
+
+    def _run(self, model, recalculate, only_recalculate_last, _in_recursion=False):
         """Recursively calculate the (cascade) models
 
         Args:
             model: The model to fit, if cascade we recurse
             recalculate (boolean): if we recalculate
             only_recalculate_last: if we recalculate, if we only recalculate the last item in the first cascade
+            _in_recursion (boolean): private flag, not to be set by the calling function.
         """
         self._model_names_list.append(model.name)
 
@@ -287,7 +297,11 @@ class ModelFit(object):
                     else:
                         sub_recalculate = True
 
-                new_results = self._run(sub_model, sub_recalculate, recalculate)
+                new_in_recursion = True
+                if not _in_recursion and not model.has_next():
+                    new_in_recursion = False
+
+                new_results = self._run(sub_model, sub_recalculate, recalculate, _in_recursion=new_in_recursion)
                 results.update({sub_model.name: new_results})
                 last_result = new_results
                 self._model_names_list.pop()
@@ -295,15 +309,19 @@ class ModelFit(object):
             model.reset()
             return last_result
 
-        return self._run_composite_model(model, recalculate, self._model_names_list)
+        return self._run_composite_model(model, recalculate, self._model_names_list,
+                                         apply_user_provided_initialization=not _in_recursion)
 
-    def _run_composite_model(self, model, recalculate, model_names):
+    def _run_composite_model(self, model, recalculate, model_names, apply_user_provided_initialization=False):
         with mot.configuration.config_context(RuntimeConfigurationAction(cl_environments=self._cl_envs,
                                                                          load_balancer=self._load_balancer)):
             with per_model_logging_context(os.path.join(self._output_folder, model.name)):
                 self._logger.info('Using MDT version {}'.format(__version__))
                 self._logger.info('Preparing for model {0}'.format(model.name))
                 self._logger.info('Current cascade: {0}'.format(model_names))
+
+                if apply_user_provided_initialization:
+                    self._apply_user_provided_initialization_data(model)
 
                 optimizer = self._optimizer or get_optimizer_for_model(model_names)
 
@@ -321,6 +339,26 @@ class ModelFit(object):
 
         return results
 
+    def _apply_user_provided_initialization_data(self, model):
+        """Apply the initialization data to the model.
+
+        This has the ability to initialize maps as well as fix maps.
+
+        Args:
+            model: the composite model we are preparing for fitting. Changes happen in place.
+        """
+        self._logger.info('Preparing model {0} with the user provided initialization data.'.format(model.name))
+
+        def prepare_value(key, v):
+            if is_scalar(v):
+                return v
+            return create_roi(v, self._problem_data.mask)
+
+        model.set_initial_parameters(DeferredActionDict(prepare_value, self._initialization_data.get_inits()))
+
+        for key, value in self._initialization_data.get_fixes().items():
+            model.fix(key, prepare_value(key, value))
+
 
 class SingleModelFit(object):
 
@@ -334,7 +372,8 @@ class SingleModelFit(object):
              model (:class:`~mdt.models.composite.DMRICompositeModel`): An implementation of an composite model
                 that contains the model we want to optimize.
              problem_data (:class:`~mdt.utils.DMRIProblemData`): The problem data object for the model
-             output_folder (string): The full path to the folder where to place the output
+             output_folder (string): The path to the folder where to place the output.
+                The resulting maps are placed in a subdirectory (named after the model name) in this output folder.
              optimizer (:class:`mot.cl_routines.optimizing.base.AbstractOptimizer`): The optimization routine to use.
              processing_strategy (:class:`~mdt.processing_strategies.ModelProcessingStrategy`): the processing strategy
                 to use

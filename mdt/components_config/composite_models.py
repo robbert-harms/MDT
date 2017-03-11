@@ -52,7 +52,7 @@ class DMRICompositeModelConfig(ComponentConfig):
 
             .. code-block:: python
 
-                inits = {'Stick.theta: pi}
+                inits = {'Stick.theta': np.pi}
 
         fixes (dict): indicating the constant value for the given parameters. Example:
 
