@@ -209,3 +209,12 @@ class gamma_nmr_cyl(FreeParameterConfig):
     upper_bound = 10
     parameter_transform = SinSqrClampTransform()
     sampling_proposal = GaussianProposal(1)
+
+# for use in ExpT1DecSTEAM model. It is assumed for ex-vivo values. For in-vivo use d instead.
+class d_exvivo(FreeParameterConfig):
+
+    init_value = 5.0e-10
+    lower_bound = 0.0
+    upper_bound = 1.0e-8
+    parameter_transform = SinSqrClampTransform()
+    sampling_proposal = GaussianProposal(1e-11)
