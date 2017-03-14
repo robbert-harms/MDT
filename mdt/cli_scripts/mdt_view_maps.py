@@ -40,9 +40,9 @@ class GUI(BasicShellApplication):
         parser.add_argument('--height', type=int, help="The height of the output file when --to-file is set")
         parser.add_argument('--dpi', type=int, help="The dpi of the output file when --to-file is set")
 
-        parser.add_argument('--enable-directory-watcher', action='store_true',
-                            help="Enable autoloading new images when they appear in the folder.")
-
+        parser.add_argument('--disable-directory-watcher', dest='directory_watcher', action='store_false',
+                            help="Disable autoloading new images when they appear in the folder.")
+        parser.set_defaults(directory_watcher=True)
 
         return parser
 
@@ -76,7 +76,7 @@ class GUI(BasicShellApplication):
 
         else:
             view_maps(data, config, show_maximized=args.maximize,
-                      enable_directory_watcher=args.enable_directory_watcher)
+                      enable_directory_watcher=args.directory_watcher)
 
 
 def get_doc_arg_parser():

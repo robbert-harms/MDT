@@ -65,6 +65,7 @@ class MathImg(BasicShellApplication):
             mdt-math-img FA.nii.gz 'np.mean(a)'
             mdt-math-img FA.nii white_matter_mask.nii 'np.mean(mdt.create_roi(a, b))'
             mdt-math-img images*.nii.gz mask.nii 'list(map(lambda f: np.mean(mdt.create_roi(f, i[-1])), i[0:-1]))'
+            mdt-math-img FA.nii.gz
            ''')
         epilog = self._format_examples(doc_parser, examples)
 
@@ -77,14 +78,13 @@ class MathImg(BasicShellApplication):
         parser.add_argument('expr', metavar='expr', type=str,
                             help="The expression/statement to evaluate.")
 
-        parser.add_argument('--as-expression', dest='as_expression', action='store_true',
+        parser.add_argument('-e', '--as-expression', dest='as_expression', action='store_true',
                             help="Evaluates the given string as an expression (default).")
-        parser.add_argument('--as-statement', dest='as_expression', action='store_false',
+        parser.add_argument('-s', '--as-statement', dest='as_expression', action='store_false',
                             help="Evaluates the given string as an statement.")
         parser.set_defaults(as_expression=True)
 
         parser.add_argument('-o', '--output-file',
-                            action=mdt.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
                             help='the output file, if not set nothing is written').completer = \
             FilesCompleter(['nii', 'gz', 'hdr', 'img'], directories=False)
 
@@ -102,17 +102,21 @@ class MathImg(BasicShellApplication):
         if write_output:
             output_file = os.path.realpath(args.output_file)
 
-            if os.path.isfile(output_file):
-                os.remove(output_file)
-
         file_names = []
+        images = []
         for file in args.input_files:
-            file_names.extend(glob.glob(file))
+            globbed = glob.glob(file)
+
+            if globbed:
+                for fname in globbed:
+                    file_names.append(fname)
+                    images.append(mdt.load_nifti(os.path.realpath(fname)).get_data())
+            else:
+                file_names.append(file)
+                images.append(mdt.load_nifti(os.path.realpath(file)).get_data())
 
         if args.verbose:
             print('')
-
-        images = [mdt.load_nifti(dwi_image).get_data() for dwi_image in file_names]
 
         if args.input_4d:
             images = self._images_3d_to_4d(images)

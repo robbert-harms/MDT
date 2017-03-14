@@ -477,12 +477,18 @@ def make_path_joiner(*folder):
 def write_image(fname, data, header):
     """Write the given data with the given header to the given file.
 
+    If the file has no extension like '.nii' or '.nii.gz' we will add one.
+
     Args:
         fname (str): The output filename
         data (ndarray): The data to write
         header (nibabel header): The header to use
     """
     import nibabel as nib
+
+    if not (fname.endswith('.nii.gz') or fname.endswith('.nii')):
+        fname += '.nii.gz'
+
     nib.Nifti1Image(data, None, header).to_filename(fname)
 
 
