@@ -62,25 +62,33 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
 
     def _get_variable_data(self):
         var_data_dict = super(DMRICompositeModel, self)._get_variable_data()
-
         if self._problem_data.gradient_deviations is not None:
-            if len(self._problem_data.gradient_deviations.shape) > 2:
-                grad_dev = create_roi(self._problem_data.gradient_deviations, self._problem_data.mask)
-            else:
-                grad_dev = np.copy(self._problem_data.gradient_deviations)
-
-            # adds the eye(3) matrix to every grad dev, so we don't have to do it in the kernel.
-            # Flattening an eye(3) matrix gives the same result with F and C ordering, I nevertheless put the ordering
-            # here to emphasize that the gradient deviations matrix is in Fortran (column-major) order.
-            grad_dev += np.eye(3).flatten(order='F')
-
-            if self.problems_to_analyze is not None:
-                grad_dev = grad_dev[self.problems_to_analyze, ...]
-
-            adapter = SimpleDataAdapter(grad_dev, CLDataType.from_string('mot_float_type*'), self._get_mot_float_type())
-            var_data_dict.update({'gradient_deviations': adapter})
-
+            var_data_dict.update({'gradient_deviations': self._get_gradient_deviation_data_adapter()})
         return var_data_dict
+
+    def _get_gradient_deviation_data_adapter(self):
+        """Get the gradient deviation data for use in the kernel.
+
+        This already adds the eye(3) matrix to every gradient deviation matrix, so we don't have to do it in the kernel.
+
+        Please note that the gradient deviations matrix is in Fortran (column-major) order (per voxel).
+
+        Returns:
+            ndarray: the gradient deviations for the voxels being optimized (this function already takes care
+                of the problems_to_analyze setting).
+        """
+        if len(self._problem_data.gradient_deviations.shape) > 2:
+            grad_dev = create_roi(self._problem_data.gradient_deviations, self._problem_data.mask)
+        else:
+            grad_dev = np.copy(self._problem_data.gradient_deviations)
+
+        grad_dev += np.eye(3).flatten()
+
+        if self.problems_to_analyze is not None:
+            grad_dev = grad_dev[self.problems_to_analyze, ...]
+
+        return SimpleDataAdapter(grad_dev, CLDataType.from_string('mot_float_type*'), self._get_mot_float_type(),
+                                 allow_local_pointer=False)
 
     def is_protocol_sufficient(self, protocol=None):
         """See ProtocolCheckInterface"""
@@ -120,9 +128,6 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
             if 'G' in list(self._get_protocol_data().keys()):
                 s += 'G *= _new_gradient_vector_length;' + "\n"
 
-            if 'q' in list(self._get_protocol_data().keys()):
-                s += 'q *= _new_gradient_vector_length;' + "\n"
-
             return s
 
     def _get_pre_model_expression_eval_function(self):
@@ -130,8 +135,9 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
             return '''
                 #ifndef GET_NEW_GRADIENT_RAW
                 #define GET_NEW_GRADIENT_RAW
-                mot_float_type4 _get_new_gradient_raw(mot_float_type4 g,
-                                                   global const mot_float_type* const gradient_deviations){
+                mot_float_type4 _get_new_gradient_raw(
+                        mot_float_type4 g,
+                        global const mot_float_type* const gradient_deviations){
 
                     const mot_float_type4 il_0 = (mot_float_type4)(gradient_deviations[0], gradient_deviations[3],
                                                              gradient_deviations[6], 0.0);
