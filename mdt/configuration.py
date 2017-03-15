@@ -402,13 +402,14 @@ def get_tmp_results_dir():
     return _config['tmp_results_dir']
 
 
-def get_processing_strategy(processing_type, model_names=None):
+def get_processing_strategy(processing_type, model_names=None, **kwargs):
     """Get the correct processing strategy for the given model.
 
     Args:
         processing_type (str): 'optimization', 'sampling' or any other of the
             processing_strategies defined in the config
         model_names (list of str): the list of model names (the full recursive cascade of model names)
+        **kwargs: passed to the constructor of the loaded processing strategy.
 
     Returns:
         ModelProcessingStrategy: the processing strategy to use for this model
@@ -422,6 +423,8 @@ def get_processing_strategy(processing_type, model_names=None):
         if info_dict:
             strategy_name = info_dict['name']
             options = info_dict.get('options', {}) or {}
+
+    options.update(kwargs)
 
     return ProcessingStrategiesLoader().load(strategy_name, **options)
 

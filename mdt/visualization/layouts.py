@@ -80,7 +80,7 @@ class AutoGridLayout(GridLayout):
         return GridLayoutSpecifier(GridSpec(rows, cols, **self.spacings), figure)
 
     def _get_row_cols_square(self, nmr_plots):
-        defaults = ((1, 1), (1, 2), (1, 3), (2, 2), (2, 3), (2, 3), (2, 3))
+        defaults = ((1, 1), (1, 2), (2, 2), (2, 2), (2, 3), (2, 3), (2, 3))
         if nmr_plots < len(defaults):
             return defaults[nmr_plots - 1]
         else:

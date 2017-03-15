@@ -1,3 +1,4 @@
+import glob
 import os
 import numpy as np
 import six
@@ -25,6 +26,25 @@ def volume_map_npy_to_nifti(npy_fname, nifti_header, nifti_fname=None):
         nifti_fname = os.path.join(os.path.dirname(npy_fname),
                                    os.path.splitext(os.path.basename(npy_fname))[0] + '.nii.gz')
     write_nifti(data, nifti_header, nifti_fname)
+
+
+def load_all_npy_files(directory):
+    """Load all the npy files in the given directory.
+
+    Args:
+        directory (str): the directory to load the npy files in
+
+    Returns:
+        dict: the loaded npy files with as keys the filename (without the .npy extension) and as value the
+            memory mapped array
+    """
+    file_names = list(map(lambda p: os.path.splitext(os.path.basename(p))[0],
+                          glob.glob(os.path.join(directory, '*.npy'))))
+
+    results_dict = {}
+    for file_name in file_names:
+        results_dict[file_name] = np.load(os.path.join(directory, file_name + '.npy'), mmap_mode='r')
+    return results_dict
 
 
 def samples_npy_to_nifti(samples_npy_fname, used_mask, nifti_header, nifti_fname=None):

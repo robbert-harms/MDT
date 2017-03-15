@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from six import string_types
 from mdt.__version__ import __version__
 from mdt.deferred_mappings import DeferredActionDict
+from mdt.file_conversions.npy import load_all_npy_files
 from mdt.nifti import get_all_image_data
 from mdt.batch_utils import batch_profile_factory, AllSubjects
 from mdt.components_loader import get_model
@@ -190,7 +191,8 @@ class ModelFit(object):
 
     def __init__(self, model, problem_data, output_folder, optimizer=None,
                  recalculate=False, only_recalculate_last=False, cascade_subdir=False,
-                 cl_device_ind=None, double_precision=False, tmp_results_dir=True, initialization_data=None):
+                 cl_device_ind=None, double_precision=False, tmp_results_dir=True, initialization_data=None,
+                 write_niftis=True):
         """Setup model fitting for the given input model and data.
 
         To actually fit the model call run().
@@ -221,6 +223,8 @@ class ModelFit(object):
             initialization_data (:class:`~mdt.utils.InitializationData`): extra initialization data to use
                 during model fitting. If we are optimizing a cascade model this data only applies to the last model in the
                 cascade.
+            write_niftis (boolean): if set to False we will not write the nifti files at the end of the optimization.
+                This will keep the (normally) temporary result files and load the results dictionary from that.
         """
         if isinstance(model, string_types):
             model = get_model(model)
@@ -240,6 +244,7 @@ class ModelFit(object):
         self._model_names_list = []
         self._tmp_results_dir = get_temporary_results_dir(tmp_results_dir)
         self._initialization_data = initialization_data or SimpleInitializationData()
+        self._write_niftis = write_niftis
 
         if self._cl_device_indices is not None and not isinstance(self._cl_device_indices, collections.Iterable):
             self._cl_device_indices = [self._cl_device_indices]
@@ -264,13 +269,8 @@ class ModelFit(object):
             dict: The result maps for the given composite model or the last model in the cascade.
                 This returns the results as 3d/4d volumes for every output map.
         """
-        self._run(self._model, self._recalculate, self._only_recalculate_last)
-
-        if isinstance(self._model, DMRICascadeModelInterface):
-            model_name = self._model.get_model_names()[-1]
-        else:
-            model_name = self._model.name
-        return get_all_image_data(os.path.join(self._output_folder, model_name))
+        _, maps = self._run(self._model, self._recalculate, self._only_recalculate_last)
+        return maps
 
     def _run(self, model, recalculate, only_recalculate_last, _in_recursion=False):
         """Recursively calculate the (cascade) models
@@ -280,12 +280,16 @@ class ModelFit(object):
             recalculate (boolean): if we recalculate
             only_recalculate_last: if we recalculate, if we only recalculate the last item in the first cascade
             _in_recursion (boolean): private flag, not to be set by the calling function.
+
+        Returns:
+            tuple: the first element are a dictionary with the ROI results for the maps, the second element is the
+                dictionary with the reconstructed map results.
         """
         self._model_names_list.append(model.name)
 
         if isinstance(model, DMRICascadeModelInterface):
             results = {}
-            last_result = None
+            last_results = None
             while model.has_next():
                 sub_model = model.get_next(results)
 
@@ -301,13 +305,14 @@ class ModelFit(object):
                 if not _in_recursion and not model.has_next():
                     new_in_recursion = False
 
-                new_results = self._run(sub_model, sub_recalculate, recalculate, _in_recursion=new_in_recursion)
-                results.update({sub_model.name: new_results})
-                last_result = new_results
+                new_results_roi, new_results_maps = self._run(sub_model, sub_recalculate, recalculate,
+                                                              _in_recursion=new_in_recursion)
+                results.update({sub_model.name: new_results_roi})
+                last_results = new_results_roi, new_results_maps
                 self._model_names_list.pop()
 
             model.reset()
-            return last_result
+            return last_results
 
         return self._run_composite_model(model, recalculate, self._model_names_list,
                                          apply_user_provided_initialization=not _in_recursion)
@@ -330,14 +335,21 @@ class ModelFit(object):
                     optimizer.cl_environments = [all_devices[ind] for ind in self._cl_device_indices]
                     optimizer.load_balancer = EvenDistribution()
 
-                processing_strategy = get_processing_strategy('optimization', model_names=model_names)
-                processing_strategy.set_tmp_dir(self._tmp_results_dir)
+                processing_strategy = get_processing_strategy('optimization', model_names=model_names,
+                                                              tmp_dir=self._tmp_results_dir,
+                                                              auto_rm_tmp_dir=self._write_niftis)
 
                 fitter = SingleModelFit(model, self._problem_data, self._output_folder, optimizer, processing_strategy,
-                                        recalculate=recalculate)
+                                        recalculate=recalculate, write_niftis=self._write_niftis)
                 results = fitter.run()
 
-        return results
+        if self._write_niftis:
+            map_results = get_all_image_data(os.path.join(self._output_folder, model.name))
+        else:
+            map_results = load_all_npy_files(processing_strategy.get_full_tmp_results_path(
+                os.path.join(self._output_folder, model.name)))
+
+        return results, map_results
 
     def _apply_user_provided_initialization_data(self, model):
         """Apply the initialization data to the model.
@@ -362,7 +374,8 @@ class ModelFit(object):
 
 class SingleModelFit(object):
 
-    def __init__(self, model, problem_data, output_folder, optimizer, processing_strategy, recalculate=False):
+    def __init__(self, model, problem_data, output_folder, optimizer, processing_strategy, recalculate=False,
+                 write_niftis=True):
         """Fits a composite model.
 
          This does not accept cascade models. Please use the more general ModelFit class for all models,
@@ -378,6 +391,8 @@ class SingleModelFit(object):
              processing_strategy (:class:`~mdt.processing_strategies.ModelProcessingStrategy`): the processing strategy
                 to use
              recalculate (boolean): If we want to recalculate the results if they are already present.
+             write_niftis (boolean): if set to False we will not write the nifti files at the end of the optimization.
+                This will keep the (normally) temporary result files and load the results dictionary from that.
          """
         self.recalculate = recalculate
 
@@ -388,6 +403,7 @@ class SingleModelFit(object):
         self._optimizer = optimizer
         self._logger = logging.getLogger(__name__)
         self._processing_strategy = processing_strategy
+        self._write_niftis = write_niftis
 
         if not self._model.is_protocol_sufficient(problem_data.protocol):
             raise InsufficientProtocolError(
@@ -395,7 +411,7 @@ class SingleModelFit(object):
                 'The reported errors where: {}'.format(self._model.get_protocol_problems(problem_data.protocol)))
 
     def run(self):
-        """Fits the composite model."""
+        """Fits the composite model and returns the results as ROI lists per map."""
         with per_model_logging_context(self._output_path):
             self._model.set_problem_data(self._problem_data)
 
@@ -412,9 +428,12 @@ class SingleModelFit(object):
                 os.makedirs(self._output_path)
 
             with self._logging():
+                worker_generator = SimpleModelProcessingWorkerGenerator(
+                    lambda *args: FittingProcessingWorker(self._optimizer, *args, write_niftis=self._write_niftis))
+
                 results = self._processing_strategy.run(
-                    self._model, self._problem_data, self._output_path, self.recalculate,
-                    SimpleModelProcessingWorkerGenerator(lambda *args: FittingProcessingWorker(self._optimizer, *args)))
+                    self._model, self._problem_data, self._output_path, self.recalculate, worker_generator)
+
                 self._write_protocol(self._model.get_problem_data().protocol)
 
         return results
