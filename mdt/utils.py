@@ -1570,29 +1570,29 @@ def recalculate_error_measures(model, problem_data, data_dir, output_dir=None, e
     write_all_as_nifti(volumes, output_dir, problem_data.volume_header)
 
 
-def create_signal_estimates(volume_maps, problem_data, model, output_fname):
-    """Estimate and write the signals of a given model on the given data.
+def create_signal_estimates(model, problem_data, parameters):
+    """Estimate the signals of a given model on the given data.
 
     Args:
-        volume_maps (str or dict): either a directory file name or a dictionary containing the results
-        problem_data (DMRIProblemData): the problem data object, we will set this to the model
         model (str or model): the model or the name of the model to use for estimating the signals
-        output_fname (str): the file name of the file to write the signal estimates to (.nii or .nii.gz)
+        problem_data (DMRIProblemData): the problem data object, we will set this to the model
+        parameters (str or dict): either a directory file name or a dictionary containing the results
+
+    Returns:
+        ndarray: the matrix with the signal estimates per voxel
     """
     if isinstance(model, string_types):
         model = get_model(model)
 
-    if isinstance(volume_maps, string_types):
-        volume_maps = get_all_image_data(volume_maps)
+    if isinstance(parameters, string_types):
+        parameters = get_all_image_data(parameters)
 
     model.set_problem_data(problem_data)
 
     calculator = CalculateModelEstimates()
-    results = calculator.calculate(model, create_roi(volume_maps, problem_data.mask))
+    results = calculator.calculate(model, create_roi(parameters, problem_data.mask))
 
-    signal_estimates = restore_volumes(results, problem_data.mask)
-
-    write_nifti(signal_estimates, problem_data.volume_header, output_fname)
+    return restore_volumes(results, problem_data.mask)
 
 
 def natural_key_sort_cb(_str):
