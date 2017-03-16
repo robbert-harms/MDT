@@ -178,10 +178,10 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
         Overwrite this function to limit the problem data to a suitable range.
 
         Args:
-            problem_data (DMRIProblemData): the problem data set by the user
+            problem_data (mdt.utils.DMRIProblemData): the problem data set by the user
 
         Returns:
-            DMRIProblemData: either the same problem data or a changed copy.
+            mdt.utils.DMRIProblemData: either the same problem data or a changed copy.
         """
         protocol = problem_data.protocol
         indices = self._get_suitable_volume_indices(problem_data)
@@ -190,10 +190,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
             self._logger.info('For this model, {}, we will use a subset of the protocol and DWI.'.format(self._name))
             self._logger.info('Using {} out of {} volumes, indices: {}'.format(
                 len(indices), protocol.length, str(indices).replace('\n', '').replace('[  ', '[')))
-
-            new_protocol = protocol.get_new_protocol_with_indices(indices)
-            new_dwi_volume = problem_data.dwi_volume[..., indices]
-            return problem_data.copy_with_updates(new_protocol, new_dwi_volume)
+            return problem_data.copy_subset(indices)
         else:
             self._logger.info('No model protocol options to apply, using original protocol.')
         return problem_data

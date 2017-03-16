@@ -97,6 +97,45 @@ class DMRIProblemData(AbstractProblemData):
 
         return DMRIProblemData(*new_args, **new_kwargs)
 
+    def copy_subset(self, volumes_to_keep):
+        """Create a copy of this problem data where we only keep a subset of the volumes.
+
+        This creates a a new :class:`DMRIProblemData` with a subset of the protocol and the DWI volume, keeping those
+        specified.
+
+        Args:
+            volumes_to_keep (list): the list with volumes we would like to keep.
+
+        Returns:
+            DMRIProblemData: the new problem data
+        """
+        if is_scalar(volumes_to_keep):
+            volumes_to_keep = [volumes_to_keep]
+
+        new_protocol = self.protocol.get_new_protocol_with_indices(volumes_to_keep)
+        new_dwi_volume = self.dwi_volume[..., volumes_to_keep]
+        return self.copy_with_updates(new_protocol, new_dwi_volume)
+
+    def copy_with_filtered_volumes(self, volumes_to_remove):
+        """Create a copy of this problem data where we remove some of the volumes.
+
+        This creates a a new :class:`DMRIProblemData` with a subset of the protocol and the DWI volume, removing
+        those specified.
+
+        Args:
+            volumes_to_remove (list): the list with volumes we would like to remove
+
+        Returns:
+            DMRIProblemData: the new problem data
+        """
+        if is_scalar(volumes_to_remove):
+            volumes_to_remove = [volumes_to_remove]
+
+        indices = list(range(self.get_nmr_inst_per_problem()))
+        for remove_ind in volumes_to_remove:
+            del indices[remove_ind]
+        return self.copy_subset(indices)
+
     def get_nmr_inst_per_problem(self):
         return self._protocol.length
 
