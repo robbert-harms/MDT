@@ -191,8 +191,7 @@ class ModelFit(object):
 
     def __init__(self, model, problem_data, output_folder, optimizer=None,
                  recalculate=False, only_recalculate_last=False, cascade_subdir=False,
-                 cl_device_ind=None, double_precision=False, tmp_results_dir=True, initialization_data=None,
-                 write_niftis=True):
+                 cl_device_ind=None, double_precision=False, tmp_results_dir=True, initialization_data=None):
         """Setup model fitting for the given input model and data.
 
         To actually fit the model call run().
@@ -223,8 +222,6 @@ class ModelFit(object):
             initialization_data (:class:`~mdt.utils.InitializationData`): extra initialization data to use
                 during model fitting. If we are optimizing a cascade model this data only applies to the last model in the
                 cascade.
-            write_niftis (boolean): if set to False we will not write the nifti files at the end of the optimization.
-                This will keep the (normally) temporary result files and load the results dictionary from that.
         """
         if isinstance(model, string_types):
             model = get_model(model)
@@ -244,7 +241,6 @@ class ModelFit(object):
         self._model_names_list = []
         self._tmp_results_dir = get_temporary_results_dir(tmp_results_dir)
         self._initialization_data = initialization_data or SimpleInitializationData()
-        self._write_niftis = write_niftis
 
         if self._cl_device_indices is not None and not isinstance(self._cl_device_indices, collections.Iterable):
             self._cl_device_indices = [self._cl_device_indices]
@@ -336,19 +332,13 @@ class ModelFit(object):
                     optimizer.load_balancer = EvenDistribution()
 
                 processing_strategy = get_processing_strategy('optimization', model_names=model_names,
-                                                              tmp_dir=self._tmp_results_dir,
-                                                              auto_rm_tmp_dir=self._write_niftis)
+                                                              tmp_dir=self._tmp_results_dir)
 
                 fitter = SingleModelFit(model, self._problem_data, self._output_folder, optimizer, processing_strategy,
-                                        recalculate=recalculate, write_niftis=self._write_niftis)
+                                        recalculate=recalculate)
                 results = fitter.run()
 
-        if self._write_niftis:
-            map_results = get_all_image_data(os.path.join(self._output_folder, model.name))
-        else:
-            map_results = load_all_npy_files(processing_strategy.get_full_tmp_results_path(
-                os.path.join(self._output_folder, model.name)))
-
+        map_results = get_all_image_data(os.path.join(self._output_folder, model.name))
         return results, map_results
 
     def _apply_user_provided_initialization_data(self, model):
@@ -374,8 +364,7 @@ class ModelFit(object):
 
 class SingleModelFit(object):
 
-    def __init__(self, model, problem_data, output_folder, optimizer, processing_strategy, recalculate=False,
-                 write_niftis=True):
+    def __init__(self, model, problem_data, output_folder, optimizer, processing_strategy, recalculate=False):
         """Fits a composite model.
 
          This does not accept cascade models. Please use the more general ModelFit class for all models,
@@ -391,8 +380,6 @@ class SingleModelFit(object):
              processing_strategy (:class:`~mdt.processing_strategies.ModelProcessingStrategy`): the processing strategy
                 to use
              recalculate (boolean): If we want to recalculate the results if they are already present.
-             write_niftis (boolean): if set to False we will not write the nifti files at the end of the optimization.
-                This will keep the (normally) temporary result files and load the results dictionary from that.
          """
         self.recalculate = recalculate
 
@@ -403,7 +390,6 @@ class SingleModelFit(object):
         self._optimizer = optimizer
         self._logger = logging.getLogger(__name__)
         self._processing_strategy = processing_strategy
-        self._write_niftis = write_niftis
 
         if not self._model.is_protocol_sufficient(problem_data.protocol):
             raise InsufficientProtocolError(
@@ -429,7 +415,7 @@ class SingleModelFit(object):
 
             with self._logging():
                 worker_generator = SimpleModelProcessingWorkerGenerator(
-                    lambda *args: FittingProcessingWorker(self._optimizer, *args, write_niftis=self._write_niftis))
+                    lambda *args: FittingProcessingWorker(self._optimizer, *args))
 
                 results = self._processing_strategy.run(
                     self._model, self._problem_data, self._output_path, self.recalculate, worker_generator)

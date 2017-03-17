@@ -45,7 +45,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 def fit_model(model, problem_data, output_folder, optimizer=None,
               recalculate=False, only_recalculate_last=False, cascade_subdir=False,
               cl_device_ind=None, double_precision=False, tmp_results_dir=True, save_user_script_info=True,
-              initialization_data=None, write_niftis=True):
+              initialization_data=None):
     """Run the optimizer on the given model.
 
     Args:
@@ -80,8 +80,6 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
         initialization_data (:class:`~mdt.utils.InitializationData`): provides (extra) initialization data to use
             during model fitting. If we are optimizing a cascade model this data only applies to the last model in the
             cascade.
-        write_niftis (boolean): if set to False we will not write the nifti files at the end of the optimization.
-            This will keep the (normally) temporary result files and load the results dictionary from that.
 
     Returns:
         dict: The result maps for the given composite model or the last model in the cascade.
@@ -97,8 +95,7 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
                          only_recalculate_last=only_recalculate_last,
                          cascade_subdir=cascade_subdir,
                          cl_device_ind=cl_device_ind, double_precision=double_precision,
-                         tmp_results_dir=tmp_results_dir, initialization_data=initialization_data,
-                         write_niftis=write_niftis)
+                         tmp_results_dir=tmp_results_dir, initialization_data=initialization_data)
 
     results = model_fit.run()
     easy_save_user_script_info(save_user_script_info, output_folder + '/used_scripts.py',

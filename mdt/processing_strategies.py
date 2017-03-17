@@ -456,19 +456,17 @@ def _combine_volumes_write_out(info_pair):
 
 class FittingProcessingWorker(SimpleModelProcessingWorker):
 
-    def __init__(self, optimizer, *args, write_niftis=True):
+    def __init__(self, optimizer, *args):
         """The processing worker for model fitting.
 
         Use this if you want to use the model processing strategy to do model fitting.
 
         Args:
             optimizer: the optimization routine to use
-            write_niftis (boolean): if we want to write the nifti files at the end of optimization
         """
         super(FittingProcessingWorker, self).__init__(*args)
         self._optimizer = optimizer
         self._write_volumes_gzipped = gzip_optimization_results()
-        self._write_niftis = write_niftis
 
     def process(self, roi_indices):
         results, extra_output = self._optimizer.minimize(self._model, full_output=True)
@@ -480,20 +478,8 @@ class FittingProcessingWorker(SimpleModelProcessingWorker):
     def combine(self):
         super(FittingProcessingWorker, self).combine()
 
-        if self._write_niftis:
-            self._combine_volumes(self._output_dir, self._tmp_storage_dir, self._problem_data.volume_header)
-            return create_roi(get_all_image_data(self._output_dir), self._problem_data.mask)
-
-        if self._clean_tmp_dir:
-            new_tmp_dir = os.path.join(self._output_dir, DEFAULT_TMP_RESULTS_SUBDIR_NAME)
-
-            if os.path.exists(new_tmp_dir):
-                shutil.rmtree(new_tmp_dir)
-
-            shutil.copytree(self._tmp_storage_dir, new_tmp_dir)
-            return create_roi(load_all_npy_files(new_tmp_dir), self._problem_data.mask)
-        else:
-            return create_roi(load_all_npy_files(self._tmp_storage_dir), self._problem_data.mask)
+        self._combine_volumes(self._output_dir, self._tmp_storage_dir, self._problem_data.volume_header)
+        return create_roi(get_all_image_data(self._output_dir), self._problem_data.mask)
 
 
 class SamplingProcessingWorker(SimpleModelProcessingWorker):
