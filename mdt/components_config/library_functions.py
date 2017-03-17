@@ -6,7 +6,7 @@ import six
 
 from mdt.components_loader import ComponentConfigMeta, ComponentConfig, ComponentBuilder, \
     method_binding_meta
-from mot.cl_data_type import CLDataType
+from mot.cl_data_type import SimpleCLDataType
 from mot.model_building.cl_functions.base import SimpleLibraryFunction
 from mot.model_building.cl_functions.parameters import LibraryParameter
 
@@ -31,7 +31,7 @@ def _get_parameters_list(parameter_list):
     parameters = []
     for item in parameter_list:
         if isinstance(item, six.string_types):
-            parameters.append(LibraryParameter(CLDataType.from_string('mot_float_type'), item))
+            parameters.append(LibraryParameter(SimpleCLDataType.from_string('mot_float_type'), item))
         else:
             parameters.append(deepcopy(item))
     return parameters

@@ -1,6 +1,6 @@
 import six
 from mdt.components_loader import ComponentConfig, ComponentBuilder, method_binding_meta
-from mot.cl_data_type import CLDataType
+from mot.cl_data_type import SimpleCLDataType
 from mot.model_building.cl_functions.parameters import StaticMapParameter, ProtocolParameter, ModelDataParameter, \
     FreeParameter
 from mot.model_building.parameter_functions.priors import UniformWithinBoundsPrior
@@ -96,7 +96,7 @@ class ParameterBuilder(ComponentBuilder):
         """
         data_type = template.data_type
         if isinstance(data_type, six.string_types):
-            data_type = CLDataType.from_string(data_type)
+            data_type = SimpleCLDataType.from_string(data_type)
 
         if template.type.lower() == 'protocol':
             class AutoProtocolParameter(method_binding_meta(template, ProtocolParameter)):

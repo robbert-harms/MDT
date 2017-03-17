@@ -6,7 +6,7 @@ from mdt.model_protocol_problem import MissingColumns, InsufficientShells
 from mdt.models.base import DMRIOptimizable
 from mdt.protocols import VirtualColumnB
 from mdt.utils import create_roi, calculate_information_criterions
-from mot.cl_data_type import CLDataType
+from mot.cl_data_type import SimpleCLDataType
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
 from mot.model_building.data_adapter import SimpleDataAdapter
 from mot.model_building.model_builders import SampleModelBuilder
@@ -87,7 +87,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
         if self.problems_to_analyze is not None:
             grad_dev = grad_dev[self.problems_to_analyze, ...]
 
-        return SimpleDataAdapter(grad_dev, CLDataType.from_string('mot_float_type*'), self._get_mot_float_type(),
+        return SimpleDataAdapter(grad_dev, SimpleCLDataType.from_string('mot_float_type*'), self._get_mot_float_type(),
                                  allow_local_pointer=False)
 
     def is_protocol_sufficient(self, protocol=None):

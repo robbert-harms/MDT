@@ -1,5 +1,5 @@
 from mdt.components_config.library_functions import LibraryFunctionConfig
-from mot.cl_data_type import CLDataType
+from mot.cl_data_type import SimpleCLDataType
 from mot.model_building.cl_functions.parameters import LibraryParameter
 
 __author__ = 'Robbert Harms'
@@ -23,9 +23,9 @@ class TensorSphericalToCartesian(LibraryFunctionConfig):
             psi: rotation around the first vector, used to generate the perpendicular vectors.
     '''
     parameter_list = ['theta', 'phi', 'psi',
-                      LibraryParameter(CLDataType.from_string('mot_float_type4*'), 'vec0'),
-                      LibraryParameter(CLDataType.from_string('mot_float_type4*'), 'vec1'),
-                      LibraryParameter(CLDataType.from_string('mot_float_type4*'), 'vec2')]
+                      LibraryParameter(SimpleCLDataType.from_string('mot_float_type4*'), 'vec0'),
+                      LibraryParameter(SimpleCLDataType.from_string('mot_float_type4*'), 'vec1'),
+                      LibraryParameter(SimpleCLDataType.from_string('mot_float_type4*'), 'vec2')]
     cl_code = '''
         mot_float_type cos_theta;
         mot_float_type sin_theta = sincos(theta, &cos_theta);
