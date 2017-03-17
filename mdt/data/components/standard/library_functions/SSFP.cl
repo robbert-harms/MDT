@@ -1,5 +1,5 @@
 
-mot_float_type SSFP(
+double SSFP(
         const mot_float_type d,
         const mot_float_type delta,
         const mot_float_type G,

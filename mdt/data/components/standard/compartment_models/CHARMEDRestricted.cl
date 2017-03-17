@@ -6,15 +6,15 @@
  * Email = robbert.harms@maastrichtuniversity.nl
  */
 
-mot_float_type cmCHARMEDRestricted(const mot_float_type4 g,
-                                   const mot_float_type b,
-                                   const mot_float_type G,
-                                   const mot_float_type Delta,
-                                   const mot_float_type delta,
-                                   const mot_float_type TE,
-                                   const mot_float_type d,
-                                   const mot_float_type theta,
-                                   const mot_float_type phi){
+double cmCHARMEDRestricted(const mot_float_type4 g,
+                           const mot_float_type b,
+                           const mot_float_type G,
+                           const mot_float_type Delta,
+                           const mot_float_type delta,
+                           const mot_float_type TE,
+                           const mot_float_type d,
+                           const mot_float_type theta,
+                           const mot_float_type phi){
 
     const mot_float_type q_magnitude_2 = GAMMA_H_HZ_SQ * (G * G) * (delta * delta);
 

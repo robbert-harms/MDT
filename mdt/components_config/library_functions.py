@@ -44,10 +44,10 @@ def _construct_cl_function_definition(return_type, cl_function_name, parameters)
 
     .. code-block:: c
 
-        mot_float_type NeumannCylPerpPGSESum(const mot_float_type Delta,
-                                             const mot_float_type delta,
-                                             const mot_float_type d,
-                                             const mot_float_type R)
+        double NeumannCylPerpPGSESum(const mot_float_type Delta,
+                                     const mot_float_type delta,
+                                     const mot_float_type d,
+                                     const mot_float_type R)
 
     Args:
         return_type (str): the return type

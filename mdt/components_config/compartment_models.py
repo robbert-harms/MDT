@@ -46,11 +46,11 @@ def _construct_cl_function_definition(return_type, cl_function_name, parameters)
 
     .. code-block:: c
 
-        mot_float_type cmStick(const mot_float_type4 g,
-                               const mot_float_type b,
-                               const mot_float_type d,
-                               const mot_float_type theta,
-                               const mot_float_type phi)
+        double cmStick(const mot_float_type4 g,
+                       const mot_float_type b,
+                       const mot_float_type d,
+                       const mot_float_type theta,
+                       const mot_float_type phi)
 
     Args:
         return_type (str): the return type
@@ -104,9 +104,11 @@ class CompartmentConfigMeta(ComponentConfigMeta):
 
     @classmethod
     def _get_cl_code(mcs, result, bases, attributes):
+        return_type = CompartmentConfigMeta._resolve_attribute(bases, attributes, 'return_type') or 'double'
+
         if 'cl_code' in attributes and attributes['cl_code'] is not None:
             s = _construct_cl_function_definition(
-                'mot_float_type', result.cl_function_name, _get_parameters_list(result.parameter_list))
+                return_type, result.cl_function_name, _get_parameters_list(result.parameter_list))
             s += '{\n' + attributes['cl_code'] + '\n}'
             return s
 
@@ -122,6 +124,8 @@ class CompartmentConfigMeta(ComponentConfigMeta):
 
     @classmethod
     def _get_cl_header(mcs, result, bases, attributes):
+        return_type = CompartmentConfigMeta._resolve_attribute(bases, attributes, 'return_type') or 'double'
+
         if 'cl_header' in attributes and attributes['cl_header'] is not None:
             return attributes['cl_header']
 
@@ -135,8 +139,17 @@ class CompartmentConfigMeta(ComponentConfigMeta):
             if hasattr(base, 'cl_header') and base.cl_code is not None:
                 return base.cl_header
 
-        return _construct_cl_function_definition('mot_float_type', result.cl_function_name,
+        return _construct_cl_function_definition(return_type, result.cl_function_name,
                                                  _get_parameters_list(result.parameter_list)) + ';'
+
+    @staticmethod
+    def _resolve_attribute(bases, attributes, attribute_name):
+        if attribute_name in attributes:
+            return attributes[attribute_name]
+        for base in bases:
+            if hasattr(base, attribute_name):
+                return getattr(base, attribute_name)
+        raise ValueError('Attribute not found in this component config or its superclasses.')
 
 
 class CompartmentConfig(six.with_metaclass(CompartmentConfigMeta, ComponentConfig)):
@@ -159,6 +172,7 @@ class CompartmentConfig(six.with_metaclass(CompartmentConfigMeta, ComponentConfi
         cl_code (CLCodeDefinition): the CL code definition to use. Defaults to CLCodeFromAdjacentFile.
         dependency_list (list): the list of functions this function depends on, can contain string which will be
             resolved as library functions.
+        return_type (str): the return type of this compartment, defaults to double.
     """
     name = ''
     description = ''
@@ -167,6 +181,7 @@ class CompartmentConfig(six.with_metaclass(CompartmentConfigMeta, ComponentConfi
     cl_header = None
     cl_code = None
     dependency_list = []
+    return_type = 'double'
 
 
 class CompartmentBuildingBase(DMRICompartmentModelFunction):

@@ -22,7 +22,6 @@ class TensorSphericalToCartesian(LibraryFunctionConfig):
             phi: azimuth angle of the first vector
             psi: rotation around the first vector, used to generate the perpendicular vectors.
     '''
-    # return_type = 'void'
     parameter_list = ['theta', 'phi', 'psi',
                       LibraryParameter(CLDataType.from_string('mot_float_type4*'), 'vec0'),
                       LibraryParameter(CLDataType.from_string('mot_float_type4*'), 'vec1'),

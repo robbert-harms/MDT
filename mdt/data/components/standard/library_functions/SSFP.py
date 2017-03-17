@@ -25,6 +25,6 @@ class SSFP(LibraryFunctionConfig):
             T1: longitudinal relaxation time
             T2: transversal relaxation time
     '''
-    return_type = 'mot_float_type'
+    return_type = 'double'
     parameter_list = ['d', 'delta', 'G', 'TR', 'flip_angle', 'b1', 'T1', 'T2']
     dependency_list = ('MRIConstants',)
