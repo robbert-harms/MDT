@@ -86,55 +86,62 @@ class DMRIProblemData(AbstractProblemData):
         You can use any of the arguments (args and kwargs) of the constructor for this call.
         If given we will use those values instead of the values in this problem data object for the copy.
         """
-        new_args = [self._protocol, self.dwi_volume, self._mask, self.volume_header]
+        new_args, new_kwargs = self._get_constructor_args()
+
         for ind, value in enumerate(args):
             new_args[ind] = value
 
-        new_kwargs = dict(static_maps=self._static_maps, gradient_deviations=self.gradient_deviations,
-                          noise_std=self._noise_std)
         for key, value in kwargs.items():
             new_kwargs[key] = value
 
         return DMRIProblemData(*new_args, **new_kwargs)
 
-    def copy_subset(self, volumes_to_keep):
+    def _get_constructor_args(self):
+        """Get the constructor arguments needed to create a copy of this batch util using a copy constructor.
+
+        Returns:
+            tuple: args and kwargs tuple
+        """
+        args = [self._protocol, self.dwi_volume, self._mask, self.volume_header]
+        kwargs = dict(static_maps=self._static_maps, gradient_deviations=self.gradient_deviations,
+                      noise_std=self._noise_std)
+        return args, kwargs
+
+    def get_subset(self, volumes_to_keep=None, volumes_to_remove=None):
         """Create a copy of this problem data where we only keep a subset of the volumes.
 
         This creates a a new :class:`DMRIProblemData` with a subset of the protocol and the DWI volume, keeping those
         specified.
 
+        One can either specify a list with volumes to keep or a list with volumes to remove (and we will keep the rest).
+        At least one and at most one list must be specified.
+
         Args:
             volumes_to_keep (list): the list with volumes we would like to keep.
+            volumes_to_remove (list): the list with volumes we would like to remove (keeping the others).
 
         Returns:
             DMRIProblemData: the new problem data
         """
-        if is_scalar(volumes_to_keep):
-            volumes_to_keep = [volumes_to_keep]
+        if (volumes_to_keep is not None) and (volumes_to_remove is not None):
+            raise ValueError('You can not specify both the list with volumes to keep and volumes to remove. Choose one.')
+        if (volumes_to_keep is None) and (volumes_to_remove is None):
+            raise ValueError('Please specify either the list with volumes to keep or the list with volumes to remove.')
+
+        if volumes_to_keep is not None:
+            if is_scalar(volumes_to_keep):
+                volumes_to_keep = [volumes_to_keep]
+        elif volumes_to_remove is not None:
+            if is_scalar(volumes_to_remove):
+                volumes_to_remove = [volumes_to_remove]
+
+            volumes_to_keep = list(range(self.get_nmr_inst_per_problem()))
+            for remove_ind in volumes_to_remove:
+                del volumes_to_keep[remove_ind]
 
         new_protocol = self.protocol.get_new_protocol_with_indices(volumes_to_keep)
         new_dwi_volume = self.dwi_volume[..., volumes_to_keep]
         return self.copy_with_updates(new_protocol, new_dwi_volume)
-
-    def copy_with_filtered_volumes(self, volumes_to_remove):
-        """Create a copy of this problem data where we remove some of the volumes.
-
-        This creates a a new :class:`DMRIProblemData` with a subset of the protocol and the DWI volume, removing
-        those specified.
-
-        Args:
-            volumes_to_remove (list): the list with volumes we would like to remove
-
-        Returns:
-            DMRIProblemData: the new problem data
-        """
-        if is_scalar(volumes_to_remove):
-            volumes_to_remove = [volumes_to_remove]
-
-        indices = list(range(self.get_nmr_inst_per_problem()))
-        for remove_ind in volumes_to_remove:
-            del indices[remove_ind]
-        return self.copy_subset(indices)
 
     def get_nmr_inst_per_problem(self):
         return self._protocol.length
@@ -244,6 +251,17 @@ class MockDMRIProblemData(DMRIProblemData):
 
 class InitializationData(object):
 
+    def apply_to_model(self, model, problem_data):
+        """Apply all information in this initialization data to the given model.
+
+        This applies the information in this init data to given model in place.
+
+        Args:
+            model: the model to apply the initializations on
+            problem_data (DMRIProblemData): the problem data used in the fit
+        """
+        raise NotImplementedError()
+
     def get_inits(self):
         """Get the initialization values.
 
@@ -260,10 +278,26 @@ class InitializationData(object):
         """
         raise NotImplementedError()
 
+    def get_lower_bounds(self):
+        """Get the lower bounds to use in the model processing.
+
+        Returns:
+            dict: the lower bounds values with per map either a scalar or a 3d/4d volume
+        """
+        raise NotImplementedError()
+
+    def get_upper_bounds(self):
+        """Get the upper bounds to use in the model processing.
+
+        Returns:
+            dict: the upper bounds values with per map either a scalar or a 3d/4d volume
+        """
+        raise NotImplementedError()
+
 
 class SimpleInitializationData(InitializationData):
 
-    def __init__(self, inits=None, fixes=None):
+    def __init__(self, inits=None, fixes=None, lower_bounds=None, upper_bounds=None):
         """A storage class for initialization data during model fitting and sampling.
 
         Every element is supposed to be a dictionary with as keys the name of a parameter and as value a scalar value,
@@ -282,15 +316,45 @@ class SimpleInitializationData(InitializationData):
                 .. code-block:: python
 
                     fixes = {'Ball.d': 3.0e-9}
+
+            lower_bounds (dict): the lower bounds per parameter, same syntax as the inits or fixes
+            upper_bounds (dict): the upper bounds per parameter, same syntax as the inits or fixes
         """
         self._inits = inits or {}
         self._fixes = fixes or {}
+        self._lower_bounds = lower_bounds or {}
+        self._upper_bounds = upper_bounds or {}
+
+    def apply_to_model(self, model, problem_data):
+        def prepare_value(key, v):
+            if is_scalar(v):
+                return v
+            return create_roi(v, problem_data.mask)
+
+        if len(self._inits):
+            model.set_initial_parameters(DeferredActionDict(prepare_value, self.get_inits()))
+
+        if len(self._lower_bounds):
+            model.set_lower_bounds(DeferredActionDict(prepare_value, self.get_lower_bounds()))
+
+        if len(self._upper_bounds):
+            model.set_upper_bounds(DeferredActionDict(prepare_value, self.get_upper_bounds()))
+
+        if len(self._upper_bounds):
+            for key, value in self.get_fixes().items():
+                model.fix(key, prepare_value(key, value))
 
     def get_inits(self):
         return DeferredActionDict(self._resolve_value, self._inits)
 
     def get_fixes(self):
         return DeferredActionDict(self._resolve_value, self._fixes)
+
+    def get_lower_bounds(self):
+        return DeferredActionDict(self._resolve_value, self._lower_bounds)
+
+    def get_upper_bounds(self):
+        return DeferredActionDict(self._resolve_value, self._upper_bounds)
 
     def _resolve_value(self, key, value):
         if isinstance(value, six.string_types):

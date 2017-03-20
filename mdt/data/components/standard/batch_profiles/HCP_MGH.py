@@ -33,9 +33,9 @@ Optional items (these will take precedence if present):
 
 class HCP_MGH(SimpleBatchProfile):
 
-    def __init__(self):
-        super(HCP_MGH, self).__init__()
-        self._output_base_dir = 'diff/preproc/output'
+    def __init__(self, root_dir, **kwargs):
+        kwargs['output_base_dir'] = 'diff/preproc/output'
+        super(HCP_MGH, self).__init__(root_dir, **kwargs)
 
     def _get_subjects(self):
         dirs = sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._root_dir, '*'))])

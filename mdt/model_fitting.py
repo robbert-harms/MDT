@@ -350,16 +350,7 @@ class ModelFit(object):
             model: the composite model we are preparing for fitting. Changes happen in place.
         """
         self._logger.info('Preparing model {0} with the user provided initialization data.'.format(model.name))
-
-        def prepare_value(key, v):
-            if is_scalar(v):
-                return v
-            return create_roi(v, self._problem_data.mask)
-
-        model.set_initial_parameters(DeferredActionDict(prepare_value, self._initialization_data.get_inits()))
-
-        for key, value in self._initialization_data.get_fixes().items():
-            model.fix(key, prepare_value(key, value))
+        self._initialization_data.apply_to_model(model, self._problem_data)
 
 
 class SingleModelFit(object):

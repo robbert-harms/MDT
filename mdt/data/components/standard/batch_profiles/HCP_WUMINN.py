@@ -34,11 +34,16 @@ Optional items (these will take precedence if present):
 
 class HCP_WUMINN(SimpleBatchProfile):
 
-    def __init__(self):
-        super(HCP_WUMINN, self).__init__()
-        self.use_gradient_deviations = False
-        self._output_base_dir = 'T1w/Diffusion/output'
-        self._append_mask_name_to_output_sub_dir = False
+    def __init__(self, root_dir, use_gradient_deviations=False, **kwargs):
+        kwargs['output_base_dir'] = 'T1w/Diffusion/output'
+        kwargs['auto_append_mask_name_to_output_sub_dir'] = False
+        super(HCP_WUMINN, self).__init__(root_dir, **kwargs)
+        self.use_gradient_deviations = use_gradient_deviations
+
+    def _get_constructor_args(self):
+        args, kwargs = super(HCP_WUMINN, self)._get_constructor_args()
+        kwargs.update(use_gradient_deviations=self.use_gradient_deviations)
+        return args, kwargs
 
     def _get_subjects(self):
         subjects = []

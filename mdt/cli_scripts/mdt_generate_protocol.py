@@ -107,9 +107,9 @@ class GenerateProtocol(BasicShellApplication):
 
         if args.G is None and args.maxG is not None:
             if os.path.isfile(str(args.maxG)):
-                protocol = protocol.copy_with_added_column_from_file('maxG', os.path.realpath(str(args.maxG)), 1)
+                protocol = protocol.with_added_column_from_file('maxG', os.path.realpath(str(args.maxG)), 1)
             else:
-                protocol = protocol.copy_added_column('maxG', float(args.maxG))
+                protocol = protocol.with_new_column('maxG', float(args.maxG))
 
         if args.Delta is not None:
             protocol = add_sequence_timing_column_to_protocol(protocol, 'Delta', args.Delta, args.sequence_timing_units)
@@ -143,9 +143,9 @@ def add_extra_columns(protocol, extra_args):
 def add_column_to_protocol(protocol, column, value, mult_factor):
     if value is not None:
         if os.path.isfile(value):
-            return protocol.copy_with_added_column_from_file(column, os.path.realpath(value), mult_factor)
+            return protocol.with_added_column_from_file(column, os.path.realpath(value), mult_factor)
         else:
-            return protocol.copy_added_column(column, float(value) * mult_factor)
+            return protocol.with_new_column(column, float(value) * mult_factor)
 
 
 def add_sequence_timing_column_to_protocol(protocol, column, value, units):

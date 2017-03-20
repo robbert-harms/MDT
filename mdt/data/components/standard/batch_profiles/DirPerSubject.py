@@ -45,9 +45,14 @@ They should either contain exactly 1 value (for all protocol lines), or a value 
 
 class DirPerSubject(SimpleBatchProfile):
 
-    def __init__(self):
-        super(DirPerSubject, self).__init__()
-        self.use_gradient_deviations = False
+    def __init__(self, root_dir, use_gradient_deviations=False, **kwargs):
+        super(DirPerSubject, self).__init__(root_dir, **kwargs)
+        self.use_gradient_deviations = use_gradient_deviations
+
+    def _get_constructor_args(self):
+        args, kwargs = super(DirPerSubject, self)._get_constructor_args()
+        kwargs.update(use_gradient_deviations=self.use_gradient_deviations)
+        return args, kwargs
 
     def _get_subjects(self):
         subjects = []

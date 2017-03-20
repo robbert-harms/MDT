@@ -10,7 +10,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class DeferredActionDict(collections.MutableMapping):
 
     def __init__(self, func, items):
-        """Applies the given function on the given items at moment of request.
+        """Applies the given function on the given items at the moment of data request.
 
         On the moment one of the keys of this dict class is requested we apply the given function on the given items
         and return the result of that function. The advantage of this class is that it defers an expensive operation

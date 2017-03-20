@@ -1,3 +1,16 @@
+"""Routines for fitting models on multiple subjects.
+
+The most important part of this are the batch profiles. These encapsulate information about the subjects
+and about the modelling settings. Suppose you have a directory full of subjects that you want to analyze with a
+few models. One way to do that is to write some scripts yourself that walk through the directory and fit
+the models to the subjects. The other way would be to implement a :class:`BatchProfile` that contains details
+about your directory structure and let :func:`mdt.batch_fit` fetch all the subjects for you.
+
+Batch profiles contain a list with subject information (see :class:`SubjectInfo`) and a list of models
+we wish to apply to these subjects. Furthermore each profile should support some functionality that checks
+if this profile is suitable for a given directory. Using those functions the :func:`mdt.batch_fit` can try
+to auto-recognize the batch profile to use based on the profile that is suitable and returns the most subjects.
+"""
 import glob
 import logging
 import os
@@ -20,38 +33,25 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class BatchProfile(object):
 
-    def __init__(self):
-        """Batch profiles encapsulate information about the subjects and modelling settings.
-
-        Suppose you have a directory full of subjects that you want to analyze with a few models. One way to do that
-        is to write some scripts yourself that walk through the directory and fit the models to the subjects. The other
-        way would be to implement a :class:`BatchProfile` that contains details about your directory structure and let
-        :func:`mdt.batch_fit` fetch all the subjects for you.
-
-        Batch profiles contain a list with subject information (see :class:`SubjectInfo`) and a list of models
-        we wish to apply to these subjects. Furthermore each profile should support some functionality that checks
-        if this profile is suitable for a given directory. Using those functions the :func:`mdt.batch_fit` can try
-        to auto-recognize the batch profile to use based on the profile that is suitable and returns the most subjects.
-        """
-        self._root_dir = ''
-
-    def set_root_dir(self, root_dir):
-        """Set the root dir. That is, the directory we search for subjects.
-
-        This is function level dependency injection.
-
-        Args:
-            root_dir (str): the root dir to use
-        """
-        self._root_dir = root_dir
-
-    def get_root_dir(self):
-        """Get the root dir this profile uses.
+    @property
+    def root_dir(self):
+        """Get the root dir used in this batch profile.
 
         Returns:
-            str: the root dir this batch profile uses.
+            str: the root dir used
         """
-        return self._root_dir
+        raise NotImplementedError()
+
+    def with_root_dir(self, root_dir):
+        """Create a copy of this batch profile using this new root directory as the root dir
+
+        Args:
+            root_dir (str): the root directory
+
+        Returns:
+            class: an instance of the derived BatchProfile class
+        """
+        raise NotImplementedError()
 
     def get_models_to_fit(self):
         """Get the list of models we want to fit to every found subject.
@@ -61,13 +61,15 @@ class BatchProfile(object):
         Returns:
             :class:`list`: the list of models we want to fit to the subjects
         """
+        raise NotImplementedError()
 
     def get_subjects(self):
         """Get the information about all the subjects in the current folder.
 
         Returns:
-            list of :class`SubjectInfo`: the information about the found subjects
+            list of :class:`SubjectInfo`: the information about the found subjects
         """
+        raise NotImplementedError()
 
     def profile_suitable(self):
         """Check if this directory can be used to use subjects from using this batch fitting profile.
@@ -79,6 +81,7 @@ class BatchProfile(object):
             boolean: true if this batch fitting profile can use the subjects in the current root directory,
                 false otherwise.
         """
+        raise NotImplementedError()
 
     def get_subjects_count(self):
         """Get the number of subjects this batch fitting profile can use from the current root directory.
@@ -86,52 +89,82 @@ class BatchProfile(object):
         Returns:
             int: the number of subjects this batch fitting profile can use from the current root directory.
         """
+        raise NotImplementedError()
 
 
 class SimpleBatchProfile(BatchProfile):
 
-    def __init__(self):
+    def __init__(self, root_dir, models_to_fit=None, output_base_dir=None, output_sub_dir=None,
+                 auto_append_mask_name_to_output_sub_dir=True):
         """A base class for quickly implementing a batch profile.
 
         Implementing classes need only implement the method :meth:`_get_subjects`, then this class will handle the rest.
+
+        Args:
+            root_dir (str): the root directory from which we will load the subjects information
+            models_to_fit (list or str): the list with models we would like to fit to the subjects
+            output_base_dir (str): the base dir in which we put the subjects output. Defaults to 'output'.
+            output_sub_dir (str): an additional subdirectory in the output_base_dir
+            auto_append_mask_name_to_output_sub_dir (boolean): if we automatically want to append the mask name
+                at the end of the output dir. This comes after the output_sub_dir (if set).
         """
         super(SimpleBatchProfile, self).__init__()
+        self._root_dir = root_dir
+        self._output_base_dir = output_base_dir or 'output'
+        self._output_sub_dir = output_sub_dir
+        self._auto_append_mask_name_to_output_sub_dir = auto_append_mask_name_to_output_sub_dir
+        self._models_to_fit = models_to_fit or ('BallStick_r3 (Cascade)',
+                                                'Tensor (Cascade)',
+                                                'NODDI (Cascade)',
+                                                'CHARMED_r1 (Cascade)',
+                                                'CHARMED_r2 (Cascade)',
+                                                'CHARMED_r3 (Cascade)')
+
         self._subjects_found = None
-        self._output_base_dir = 'output'
-        self._output_sub_dir = None
-        self._append_mask_name_to_output_sub_dir = True
-        self.models_to_fit = ('BallStick_r3 (Cascade)',
-                              'Tensor (Cascade)',
-                              'NODDI (Cascade)',
-                              'CHARMED_r1 (Cascade)',
-                              'CHARMED_r2 (Cascade)',
-                              'CHARMED_r3 (Cascade)')
+
+    @property
+    def root_dir(self):
+        return self._root_dir
+
+    def with_root_dir(self, root_dir):
+        args, kwargs = self._get_constructor_args()
+        return type(self)(root_dir, **kwargs)
+
+    @property
+    def models_to_fit(self):
+        return self._models_to_fit
+
+    def with_models_to_fit(self, models_to_fit):
+        args, kwargs = self._get_constructor_args()
+        kwargs.update(models_to_fit=models_to_fit)
+        return type(self)(args, **kwargs)
 
     @property
     def output_base_dir(self):
         return self._output_base_dir
 
-    @output_base_dir.setter
-    def output_base_dir(self, output_base_dir):
-        self._output_base_dir = output_base_dir
-        self._subjects_found = None
+    def with_output_base_dir(self, output_base_dir):
+        args, kwargs = self._get_constructor_args()
+        kwargs.update(output_base_dir=output_base_dir)
+        return type(self)(args, **kwargs)
 
     @property
     def append_mask_name_to_output_sub_dir(self):
-        return self._append_mask_name_to_output_sub_dir
+        return self._auto_append_mask_name_to_output_sub_dir
 
-    @append_mask_name_to_output_sub_dir.setter
-    def append_mask_name_to_output_sub_dir(self, append_mask_name_to_output_sub_dir):
-        self._append_mask_name_to_output_sub_dir = append_mask_name_to_output_sub_dir
+    def with_auto_append_mask_name_to_output_sub_dir(self, auto_append_mask_name_to_output_sub_dir):
+        args, kwargs = self._get_constructor_args()
+        kwargs.update(auto_append_mask_name_to_output_sub_dir=auto_append_mask_name_to_output_sub_dir)
+        return type(self)(args, **kwargs)
 
     @property
     def output_sub_dir(self):
         return self._output_sub_dir
 
-    @output_sub_dir.setter
-    def output_sub_dir(self, output_sub_dir):
-        self._output_sub_dir = output_sub_dir
-        self._subjects_found = None
+    def with_output_sub_dir(self, output_sub_dir):
+        args, kwargs = self._get_constructor_args()
+        kwargs.update(output_sub_dir=output_sub_dir)
+        return type(self)(args, **kwargs)
 
     def get_models_to_fit(self):
         return self.models_to_fit
@@ -153,6 +186,18 @@ class SimpleBatchProfile(BatchProfile):
             self._subjects_found = self._get_subjects()
 
         return len(self._subjects_found)
+
+    def _get_constructor_args(self):
+        """Get the constructor arguments needed to create a copy of this batch util using a copy constructor.
+
+        Returns:
+            tuple: args and kwargs tuple
+        """
+        args = [self._root_dir]
+        kwargs = dict(output_base_dir=self._output_base_dir,
+                      output_sub_dir=self._output_sub_dir,
+                      auto_append_mask_name_to_output_sub_dir=self._auto_append_mask_name_to_output_sub_dir)
+        return args, kwargs
 
     def _autoload_noise_std(self, subject_id, file_path=None):
         """Try to autoload the noise standard deviation from a noise_std file.
@@ -198,7 +243,7 @@ class SimpleBatchProfile(BatchProfile):
         if self.output_sub_dir:
             output_dir = os.path.join(output_dir, self.output_sub_dir)
 
-        if self._append_mask_name_to_output_sub_dir and mask_fname:
+        if self._auto_append_mask_name_to_output_sub_dir and mask_fname:
             output_dir = os.path.join(output_dir, split_image_path(mask_fname)[1])
 
         return output_dir
@@ -264,7 +309,7 @@ class SubjectInfo(object):
         Returns:
             str: the id of this subject
         """
-        return ''
+        raise NotImplementedError()
 
     @property
     def output_dir(self):
@@ -273,7 +318,7 @@ class SubjectInfo(object):
         Returns:
             str: the output folder
         """
-        return ''
+        raise NotImplementedError()
 
     def get_problem_data(self):
         """Get the DMRIProblemData for this subject.
@@ -283,6 +328,7 @@ class SubjectInfo(object):
         Returns:
             :class:`~mdt.utils.DMRIProblemData`: the problem data to use during model fitting
         """
+        raise NotImplementedError()
 
     def get_mask_filename(self):
         """Get the filename of the mask to use.
@@ -290,6 +336,7 @@ class SubjectInfo(object):
         Returns:
             str: the filename of the mask to use
         """
+        raise NotImplementedError()
 
 
 class SimpleSubjectInfo(SubjectInfo):
@@ -367,7 +414,7 @@ class BatchSubjectSelection(object):
         Returns:
             list of :class:`SubjectInfo`: the given list or a subset of the given list with the subjects to process.
         """
-        pass
+        raise NotImplementedError()
 
 
 class AllSubjects(BatchSubjectSelection):
@@ -562,24 +609,25 @@ def run_function_on_batch_fit_output(data_folder, func, batch_profile=None, subj
     return results.to_normal_dict()
 
 
-def batch_profile_factory(batch_profile, data_folder):
+def batch_profile_factory(batch_profile, root_dir):
     """Wrapper function for getting a batch profile.
 
     Args:
         batch_profile (None, string or BatchProfile): indication of the batch profile to use.
             If a string is given it is loaded from the users home folder. Else the best matching profile is returned.
-        data_folder (str): the data folder we want to use the batch profile on.
+        root_dir (str): the data folder we want to use the batch profile on.
 
     Returns:
         If the given batch profile is None we return the output from get_best_batch_profile(). If batch profile is
         a string we use it from the batch profiles loader. Else we return the input.
     """
     if batch_profile is None:
-        batch_profile = get_best_batch_profile(data_folder)
+        batch_profile = get_best_batch_profile(root_dir)
     elif isinstance(batch_profile, string_types):
-        batch_profile = BatchProfilesLoader().load(batch_profile)
+        batch_profile = BatchProfilesLoader().load(batch_profile, root_dir)
+    else:
+        batch_profile = batch_profile.with_root_dir(root_dir)
 
-    batch_profile.set_root_dir(data_folder)
     return batch_profile
 
 
@@ -593,12 +641,11 @@ def get_best_batch_profile(data_folder):
         BatchProfile: the best matching batch profile.
     """
     profile_loader = BatchProfilesLoader()
-    crawlers = [profile_loader.load(c) for c in profile_loader.list_all()]
+    crawlers = [profile_loader.load(c, data_folder) for c in profile_loader.list_all()]
 
     best_crawler = None
     best_subjects_count = 0
     for crawler in crawlers:
-        crawler.set_root_dir(data_folder)
         if crawler.profile_suitable():
             tmp_count = crawler.get_subjects_count()
             if tmp_count > best_subjects_count:

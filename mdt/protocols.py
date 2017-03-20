@@ -62,8 +62,8 @@ class Protocol(collections.Mapping):
         """
         return self._gamma_h
 
-    def copy_with_updates(self, additional_columns):
-        """Creates a copy of this protocol with the given columns from a dictionary added.
+    def with_updates(self, additional_columns):
+        """Creates a copy of this protocol with the given columns added.
 
         Args:
             additional_columns (dict): the additional columns to add
@@ -73,11 +73,13 @@ class Protocol(collections.Mapping):
         """
         protocol = self
         for key, value in additional_columns.items():
-            protocol = protocol.copy_with_update(key, value)
+            protocol = protocol.with_update(key, value)
         return protocol
 
-    def copy_with_update(self, name, data):
+    def with_update(self, name, data):
         """Create a copy of the protocol with the given column updated to a new value.
+
+        Synonymous to :meth:`with_new_column`.
 
         Args:
             name (str): The name of the column to add
@@ -86,9 +88,9 @@ class Protocol(collections.Mapping):
         Returns:
             Protocol: the updated protocol
         """
-        return self.copy_added_column(name, data)
+        return self.with_new_column(name, data)
 
-    def copy_added_column(self, name, data):
+    def with_new_column(self, name, data):
         """Create a copy of this protocol with the given column updated/added.
 
         Args:
@@ -124,7 +126,7 @@ class Protocol(collections.Mapping):
                 columns.update({name: data})
         return Protocol(columns)
 
-    def copy_with_added_column_from_file(self, name, file_name, multiplication_factor=1):
+    def with_added_column_from_file(self, name, file_name, multiplication_factor=1):
         """Create a copy of this protocol with the given column (loaded from a file) added to this protocol.
 
         The given file can either contain a single value or one value per protocol line.
@@ -146,9 +148,9 @@ class Protocol(collections.Mapping):
         else:
             data = np.genfromtxt(file_name)
             data *= multiplication_factor
-            return self.copy_added_column(name, data)
+            return self.with_new_column(name, data)
 
-    def copy_column_removed(self, column_name):
+    def with_column_removed(self, column_name):
         """Create a copy of this protocol with the given column removed.
 
         Args:
@@ -169,7 +171,7 @@ class Protocol(collections.Mapping):
 
         return Protocol(columns)
 
-    def copy_rows_removed(self, rows):
+    def with_rows_removed(self, rows):
         """Create a copy of the protocol with a list of rows removed from all the columns.
 
         Please note that the protocol is 0 indexed.
@@ -881,17 +883,17 @@ def auto_load_protocol(directory, protocol_columns=None, bvec_fname=None, bval_f
         for col in protocol_extra_cols:
             if col in protocol_columns:
                 if isinstance(protocol_columns[col], six.string_types):
-                    protocol = protocol.copy_with_added_column_from_file(
+                    protocol = protocol.with_added_column_from_file(
                         col, os.path.join(directory, protocol_columns[col]))
                 else:
-                    protocol = protocol.copy_added_column(col, protocol_columns[col])
+                    protocol = protocol.with_new_column(col, protocol_columns[col])
     else:
         for col in protocol_extra_cols:
             if os.path.isfile(os.path.join(directory, col)):
-                protocol = protocol.copy_with_added_column_from_file(col, os.path.join(directory, col))
+                protocol = protocol.with_added_column_from_file(col, os.path.join(directory, col))
 
         # special case for Delta named as big_delta
         if os.path.isfile(os.path.join(directory, 'big_delta')):
-            protocol = protocol.copy_with_added_column_from_file('Delta', os.path.join(directory, 'big_delta'))
+            protocol = protocol.with_added_column_from_file('Delta', os.path.join(directory, 'big_delta'))
 
     return protocol

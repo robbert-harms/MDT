@@ -30,7 +30,7 @@ from mdt.utils import estimate_noise_std, get_cl_devices, load_problem_data, cre
     get_example_data, create_sort_matrix, sort_volumes_per_voxel, sort_orientations, SimpleInitializationData
 from mdt.batch_utils import collect_batch_fit_output, collect_batch_fit_single_map, run_function_on_batch_fit_output
 from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, write_protocol, write_bvec_bval
-from mdt.components_loader import load_component, get_model, component_import, construct_component
+from mdt.components_loader import load_component, get_model, component_import, construct_component, get_component_class
 from mdt.configuration import config_context, get_processing_strategy
 from mdt.exceptions import InsufficientProtocolError
 
@@ -665,18 +665,18 @@ def get_models_meta_info():
     return meta_info
 
 
-def get_batch_profile(batch_profile_name, *args, **kwargs):
-    """Load one of the batch profiles.
+def get_batch_profile(batch_profile_name):
+    """Load the class reference to one of the batch profiles.
 
-    This is short for load_component('batch_profiles', batch_profile_name).
+    This is short for mdt.components_loader.get_component_class('batch_profiles', batch_profile_name)
 
     Args:
         batch_profile_name (str): the name of the batch profile to use
 
     Returns:
-        BatchProfile: the batch profile for use in batch fitting routines.
+        class: a reference to a :class:`mdt.batch_utils.BatchProfile`.
     """
-    return load_component('batch_profiles', batch_profile_name, *args, **kwargs)
+    return get_component_class('batch_profiles', batch_profile_name)
 
 
 def gui(base_dir=None, app_exec=True):

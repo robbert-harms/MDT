@@ -190,7 +190,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
             self._logger.info('For this model, {}, we will use a subset of the protocol and DWI.'.format(self._name))
             self._logger.info('Using {} out of {} volumes, indices: {}'.format(
                 len(indices), protocol.length, str(indices).replace('\n', '').replace('[  ', '[')))
-            return problem_data.copy_subset(indices)
+            return problem_data.get_subset(volumes_to_keep=indices)
         else:
             self._logger.info('No model protocol options to apply, using original protocol.')
         return problem_data

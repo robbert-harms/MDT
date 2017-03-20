@@ -63,34 +63,12 @@ def sample_composite_model(model, problem_data, output_folder, sampler, processi
 
     if initialization_data:
         logger.info('Preparing the model with the user provided initialization data.')
-        _apply_user_provided_initialization_data(model, initialization_data, problem_data.mask)
+        initialization_data.apply_to_model(model, problem_data)
 
     with _log_info(logger, model.name):
         worker_generator = SimpleModelProcessingWorkerGenerator(
             lambda *args: SamplingProcessingWorker(sampler, store_samples, store_volume_maps, *args))
         return processing_strategy.run(model, problem_data, output_folder, recalculate, worker_generator)
-
-
-def _apply_user_provided_initialization_data(model, initialization_data, mask):
-    """Apply the initialization data to the model.
-
-    This potentially initializes parameter maps, priors and proposals.
-
-    Args:
-        model: the composite model we are preparing for fitting. Changes happen in place.
-        initialization_data (:class:`~mdt.utils.InitializationData`): the initialization data to apply
-        mask (ndarray): the current mask
-    """
-
-    def prepare_value(key, v):
-        if is_scalar(v):
-            return v
-        return create_roi(v, mask)
-
-    model.set_initial_parameters(DeferredActionDict(prepare_value, initialization_data.get_inits()))
-
-    for key, value in initialization_data.get_fixes().items():
-        model.fix(key, prepare_value(key, value))
 
 
 @contextmanager
