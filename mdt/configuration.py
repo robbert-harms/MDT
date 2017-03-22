@@ -501,10 +501,6 @@ def _resolve_optimizer(optimizer_info):
     if 'optimizer' in settings and settings['optimizer']:
         settings['optimizer'] = _resolve_optimizer(settings['optimizer'])
 
-    if 'grid_generator' in settings and settings['grid_generator']:
-        cls = getattr(mot.cl_routines.optimizing.grid_search, list(settings['grid_generator'].keys())[0])
-        settings['grid_generator'] = cls(**list(settings['grid_generator'].values())[0])
-
     if 'starting_point_generator' in settings and settings['starting_point_generator']:
         cls = getattr(mot.cl_routines.optimizing.random_restart, list(settings['starting_point_generator'].keys())[0])
         settings['starting_point_generator'] = cls(**list(settings['starting_point_generator'].values())[0])

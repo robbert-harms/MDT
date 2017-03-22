@@ -10,10 +10,9 @@ import numpy as np
 import time
 from numpy.lib.format import open_memmap
 
-from mdt.file_conversions.npy import load_all_npy_files
 from mdt.nifti import write_all_as_nifti, get_all_image_data
 from mdt.configuration import gzip_optimization_results, gzip_sampling_results
-from mdt.utils import create_roi, load_samples
+from mdt.utils import create_roi, load_samples, post_process_samples, post_process_optimization
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-07-29"
@@ -467,10 +466,14 @@ class FittingProcessingWorker(SimpleModelProcessingWorker):
         super(FittingProcessingWorker, self).__init__(*args)
         self._optimizer = optimizer
         self._write_volumes_gzipped = gzip_optimization_results()
+        self._logger = logging.getLogger(__name__)
 
     def process(self, roi_indices):
-        results, extra_output = self._optimizer.minimize(self._model, full_output=True)
-        results.update(extra_output)
+        optimization_results = self._optimizer.minimize(self._model)
+
+        self._logger.info('Starting optimization post-processing')
+        results = post_process_optimization(self._model, optimization_results)
+        self._logger.info('Finished optimization post-processing')
 
         self._write_volumes(roi_indices, results, self._tmp_storage_dir)
         return results
@@ -505,6 +508,7 @@ class SamplingProcessingWorker(SimpleModelProcessingWorker):
         self._write_volumes_gzipped = gzip_sampling_results()
         self._store_samples = store_samples
         self._store_volume_maps = store_volume_maps
+        self._logger = logging.getLogger(__name__)
 
     def get_voxels_to_compute(self):
         """Get the ROI indices of the voxels we need to compute.
@@ -533,12 +537,17 @@ class SamplingProcessingWorker(SimpleModelProcessingWorker):
         return roi_list
 
     def process(self, roi_indices):
-        results, volume_maps, proposal_state = self._sampler.sample(self._model, full_output=True)
+        sampling_output = self._sampler.sample(self._model)
+
+        self._logger.info('Starting sampling post-processing')
+        results, volume_maps = post_process_samples(self._model, sampling_output)
+        self._logger.info('Finished sampling post-processing')
 
         if self._store_volume_maps:
             self._write_volumes(roi_indices, volume_maps, os.path.join(self._tmp_storage_dir, 'volume_maps'))
 
-        self._write_volumes(roi_indices, proposal_state, os.path.join(self._tmp_storage_dir, 'proposal_state'))
+        # todo
+        # self._write_volumes(roi_indices, proposal_state, os.path.join(self._tmp_storage_dir, 'proposal_state'))
 
         chain_end_point = {key: result[:, -1] for key, result in results.items()}
         self._write_volumes(roi_indices, chain_end_point, os.path.join(self._tmp_storage_dir, 'chain_end_point'))
@@ -556,7 +565,9 @@ class SamplingProcessingWorker(SimpleModelProcessingWorker):
             self._combine_volumes(self._output_dir, self._tmp_storage_dir,
                                   self._problem_data.volume_header, maps_subdir='volume_maps')
 
-        for subdir in ['proposal_state', 'chain_end_point']:
+        #todo
+        #'proposal_state',
+        for subdir in ['chain_end_point']:
             self._combine_volumes(self._output_dir, self._tmp_storage_dir,
                                   self._problem_data.volume_header, maps_subdir=subdir)
 

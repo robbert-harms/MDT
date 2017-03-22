@@ -33,8 +33,12 @@ from mdt.log_handlers import ModelOutputLogHandler
 from mdt.protocols import load_protocol, write_protocol
 from mot.cl_environments import CLEnvironmentFactory
 from mot.cl_routines.mapping.calculate_model_estimates import CalculateModelEstimates
+from mot.cl_routines.mapping.error_measures import ErrorMeasures
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
+from mot.cl_routines.mapping.residual_calculator import ResidualCalculator
+from mot.mcmc_diagnostics import multivariate_ess, univariate_ess
 from mot.model_building.problem_data import AbstractProblemData
+from mot.utils import results_to_dict
 
 try:
     import codecs
@@ -1746,3 +1750,50 @@ def sort_orientations(data_input, weight_names, extra_sortable_maps):
         result_maps.update(sorted)
 
     return result_maps
+
+
+def post_process_samples(model, sampling_output):
+    """Post process MCMC samples
+
+    Args:
+        model (mdt.models.composite.DMRICompositeModel): the model corresponding to the samples results
+        sampling_output (mot.cl_routines.sampling.base.SamplingOutput): the sampling output
+
+    Returns:
+        tuple: first element a dictionary with the samples split up into parameters.
+            and as second element a dictionary with the volumetric voxel values (in ROI space).
+    """
+    samples = sampling_output.get_samples()
+
+    samples_dict = results_to_dict(samples, model.get_optimized_param_names())
+    volume_maps = model.finalize_optimization_results(model.samples_to_statistics(samples_dict))
+
+    errors = ResidualCalculator().calculate(model, volume_maps)
+    error_measures = ErrorMeasures(double_precision=model.double_precision).calculate(errors)
+    volume_maps.update(error_measures)
+
+    mv_ess = multivariate_ess(samples)
+    volume_maps.update(MultivariateESS=mv_ess)
+
+    uv_ess = univariate_ess(samples, method='standard_error')
+    uv_ess_maps = results_to_dict(uv_ess, [a + '.UnivariateESS' for a in model.get_optimized_param_names()])
+    volume_maps.update(uv_ess_maps)
+
+    return samples_dict, volume_maps
+
+
+def post_process_optimization(model, optimization_results):
+    """Post process optimization results
+
+    Args:
+        model (mdt.models.composite.DMRICompositeModel): the model corresponding to the samples results
+        optimization_results (mot.cl_routines.optimizing.base.OptimizationResults): the optimization results object
+
+    Returns:
+        dict: the output maps we want to store
+    """
+    end_points = optimization_results.get_optimization_result()
+    results = model.finalize_optimization_results(results_to_dict(end_points, model.get_optimized_param_names()))
+    results.update({'ReturnCodes': optimization_results.get_return_codes()})
+    results.update(optimization_results.get_error_measures())
+    return results
