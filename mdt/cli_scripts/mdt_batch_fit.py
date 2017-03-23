@@ -113,7 +113,7 @@ class BatchFit(BasicShellApplication):
             batch_profile.use_gradient_deviations = args.use_gradient_deviations
 
         if args.models_to_fit is not None:
-            batch_profile.models_to_fit = args.models_to_fit
+            batch_profile = batch_profile.with_models_to_fit(args.models_to_fit)
 
         subjects_selection = None
         if args.subjects_index or args.subjects_id:
