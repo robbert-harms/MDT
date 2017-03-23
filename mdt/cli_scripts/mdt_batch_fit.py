@@ -81,7 +81,7 @@ class BatchFit(BasicShellApplication):
         parser.set_defaults(double_precision=False)
 
         parser.add_argument('--subjects-index', type=int, nargs='*',
-                            help="The index of the subjects we would like to fit. This reduces the set of "
+                            help="The indices of the subjects we would like to fit. This reduces the set of "
                                  "subjects.")
 
         parser.add_argument('--subjects-id', type=str, nargs='*',
