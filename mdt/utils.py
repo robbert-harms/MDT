@@ -1766,7 +1766,7 @@ def post_process_samples(model, sampling_output):
     samples = sampling_output.get_samples()
 
     samples_dict = results_to_dict(samples, model.get_optimized_param_names())
-    volume_maps = model.finalize_optimization_results(model.samples_to_statistics(samples_dict))
+    volume_maps = model.add_extra_result_maps(model.samples_to_statistics(samples_dict))
 
     errors = ResidualCalculator().calculate(model, volume_maps)
     error_measures = ErrorMeasures(double_precision=model.double_precision).calculate(errors)
@@ -1793,7 +1793,7 @@ def post_process_optimization(model, optimization_results):
         dict: the output maps we want to store
     """
     end_points = optimization_results.get_optimization_result()
-    results = model.finalize_optimization_results(results_to_dict(end_points, model.get_optimized_param_names()))
+    results = model.add_extra_result_maps(results_to_dict(end_points, model.get_optimized_param_names()))
     results.update({'ReturnCodes': optimization_results.get_return_codes()})
     results.update(optimization_results.get_error_measures())
     return results

@@ -8,6 +8,8 @@ from contextlib import contextmanager
 
 import numpy as np
 import time
+
+from mot.utils import results_to_dict
 from numpy.lib.format import open_memmap
 
 from mdt.nifti import write_all_as_nifti, get_all_image_data
@@ -546,8 +548,11 @@ class SamplingProcessingWorker(SimpleModelProcessingWorker):
         if self._store_volume_maps:
             self._write_volumes(roi_indices, volume_maps, os.path.join(self._tmp_storage_dir, 'volume_maps'))
 
-        # todo
-        # self._write_volumes(roi_indices, proposal_state, os.path.join(self._tmp_storage_dir, 'proposal_state'))
+        self._write_volumes(roi_indices, results_to_dict(sampling_output.get_proposal_state(),
+                                                         self._model.get_proposal_state_names()),
+                            os.path.join(self._tmp_storage_dir, 'proposal_state'))
+
+        self._tmp_store_mh_state(roi_indices, sampling_output.get_mh_state())
 
         chain_end_point = {key: result[:, -1] for key, result in results.items()}
         self._write_volumes(roi_indices, chain_end_point, os.path.join(self._tmp_storage_dir, 'chain_end_point'))
@@ -565,9 +570,7 @@ class SamplingProcessingWorker(SimpleModelProcessingWorker):
             self._combine_volumes(self._output_dir, self._tmp_storage_dir,
                                   self._problem_data.volume_header, maps_subdir='volume_maps')
 
-        #todo
-        #'proposal_state',
-        for subdir in ['chain_end_point']:
+        for subdir in ['proposal_state','chain_end_point', 'mh_state']:
             self._combine_volumes(self._output_dir, self._tmp_storage_dir,
                                   self._problem_data.volume_header, maps_subdir=subdir)
 
@@ -577,6 +580,20 @@ class SamplingProcessingWorker(SimpleModelProcessingWorker):
             return load_samples(self._output_dir)
 
         return SamplingProcessingWorker.SampleChainNotStored()
+
+    def _tmp_store_mh_state(self, roi_indices, mh_state):
+        items = {'proposal_state_sampling_counter': mh_state.get_proposal_state_sampling_counter(),
+                 'proposal_state_acceptance_counter': mh_state.get_proposal_state_acceptance_counter(),
+                 'online_parameter_variance': mh_state.get_online_parameter_variance(),
+                 'online_parameter_variance_update_m2': mh_state.get_online_parameter_variance_update_m2(),
+                 'online_parameter_mean': mh_state.get_online_parameter_mean()}
+
+        self._write_volumes(roi_indices, items, os.path.join(self._tmp_storage_dir, 'mh_state'))
+
+        if not os.path.isdir(os.path.join(self._output_dir, 'mh_state')):
+            os.makedirs(os.path.join(self._output_dir, 'mh_state'))
+        with open(os.path.join(self._output_dir, 'mh_state', 'nmr_samples_drawn.txt'), 'w') as f:
+            f.write(str(mh_state.nmr_samples_drawn))
 
     def _write_sample_results(self, results, full_mask, roi_indices):
         """Write the sample results to a .npy file.

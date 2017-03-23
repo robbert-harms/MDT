@@ -122,8 +122,8 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
                 if you are only interested in the volume maps and not in the entire sample chain.
         append_samples (boolean): if set to True, recalculate set to False and store_samples set to True,
             we append the samples found to the already existing samples. This additionally requires that in previous
-            runs store_samples was also set to True. If no other initialization_maps are given, this switch will
-            initialize the sampler to the last point in the chain.
+            runs store_samples was also set to True. Currently this will not use the stored MH state object for
+            continuing the chain, that is still left as todo.
         tmp_results_dir (str, True or None): The temporary dir for the calculations. Set to a string to use
                 that path directly, set to True to use the config value, set to None to disable.
         save_user_script_info (boolean, str or SaveUserScriptInfo): The info we need to save about the script the

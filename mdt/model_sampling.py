@@ -131,7 +131,7 @@ def combine_sampling_information(base_dir, append_dir, model, output_dir=None):
     def create_volume_maps():
         samples = load_samples(output_dir)
 
-        volume_rois = model.finalize_optimization_results(model.samples_to_statistics(samples))
+        volume_rois = model.add_extra_result_maps(model.samples_to_statistics(samples))
         errors = ResidualCalculator().calculate(model, volume_rois)
         error_measures = ErrorMeasures().calculate(errors)
         volume_rois.update(error_measures)
