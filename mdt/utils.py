@@ -344,7 +344,7 @@ class SimpleInitializationData(InitializationData):
         if len(self._upper_bounds):
             model.set_upper_bounds(DeferredActionDict(prepare_value, self.get_upper_bounds()))
 
-        if len(self._upper_bounds):
+        if len(self._fixes):
             for key, value in self.get_fixes().items():
                 model.fix(key, prepare_value(key, value))
 
