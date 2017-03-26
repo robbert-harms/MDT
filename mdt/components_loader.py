@@ -538,6 +538,8 @@ class AutomaticCascadeSource(ComponentsSource):
 
 class UserComponentsSourceSingle(ComponentsSource):
 
+    loaded_modules_cache = {}
+
     def __init__(self, user_type, component_type):
         """Load the user components of the type *single*.
 
@@ -567,16 +569,19 @@ class UserComponentsSourceSingle(ComponentsSource):
 
     def get_class(self, name):
         if name in self._class_filenames:
-            module = imp.load_source(name, self._class_filenames[name])
-            return getattr(module, name)
+            if name not in self.loaded_modules_cache:
+                module = imp.load_source(name, self._class_filenames[name])
+                self.loaded_modules_cache[name] = (module, getattr(module, name))
+            return self.loaded_modules_cache[name][1]
         raise ImportError
 
     def get_meta_info(self, name):
-        path = os.path.join(self.path, name + '.py')
-        if os.path.exists(path):
-            module = imp.load_source(name, path)
+        if name in self._class_filenames:
+            if name not in self.loaded_modules_cache:
+                module = imp.load_source(name, self._class_filenames[name])
+                self.loaded_modules_cache[name] = (module, getattr(module, name))
             try:
-                return getattr(module, 'meta_info')
+                return getattr(self.loaded_modules_cache[name][0], 'meta_info')
             except AttributeError:
                 try:
                     cls = self.get_class(name)

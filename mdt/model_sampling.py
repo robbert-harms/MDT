@@ -7,9 +7,8 @@ import time
 from numpy.lib.format import open_memmap
 import shutil
 
-from mdt.deferred_mappings import DeferredActionDict
 from mdt.nifti import load_nifti, write_all_as_nifti
-from mdt.utils import model_output_exists, load_samples, restore_volumes, is_scalar, create_roi
+from mdt.utils import model_output_exists, load_samples, restore_volumes
 from mdt.processing_strategies import SimpleModelProcessingWorkerGenerator, SamplingProcessingWorker
 from mdt.exceptions import InsufficientProtocolError
 from mot.cl_routines.mapping.error_measures import ErrorMeasures
