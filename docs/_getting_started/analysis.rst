@@ -414,7 +414,7 @@ An example of operating on a nifti file is given by:
 
     roi_slice = data[..., 30]
 
-    mdt.write_image('roi_mask.nii.gz', roi_slice, header)
+    mdt.write_nifti(roi_slice, header, 'roi_mask.nii.gz')
 
 this generates a mask in dimension 2 on index 30 (be wary, Numpy and hence MDT use 0-based indicing).
 

@@ -3,6 +3,7 @@ import warnings
 
 import nibabel
 import numpy as np
+import numpy.ma as ma
 import yaml
 import matplotlib.font_manager
 import mdt
@@ -1002,6 +1003,36 @@ class SingleMapInfo(object):
         if isinstance(self._data, nibabel.nifti1.Nifti1Image):
             return self._data.get_data()
         return self._data
+
+    def min(self, mask=None):
+        """Get the minimum value in this data.
+
+        If a mask is provided we get the minimum value within the given mask.
+
+        Args:
+            mask (ndarray): the mask, we only include elements for which the mask > 0
+
+        Returns:
+            float: the minimum value
+        """
+        if mask is not None:
+            return mdt.create_roi(self.data, mask).min()
+        return self.data.min()
+
+    def max(self, mask=None):
+        """Get the maximum value in this data.
+
+        If a mask is provided we get the maximum value within the given mask.
+
+        Args:
+            mask (ndarray): the mask, we only include elements for which the mask > 0
+
+        Returns:
+            float: the maximum value
+        """
+        if mask is not None:
+            return mdt.create_roi(self.data, mask).max()
+        return self.data.max()
 
     def max_dimension(self):
         """Get the maximum dimension index in this map.

@@ -121,6 +121,12 @@ class SimpleBatchProfile(BatchProfile):
                                                 'CHARMED_r3 (Cascade)')
 
         self._subjects_found = None
+        self._constructor_args = [self._root_dir]
+        self._constructor_kwargs = dict(
+            models_to_fit=self._models_to_fit,
+            output_base_dir=self._output_base_dir,
+            output_sub_dir=self._output_sub_dir,
+            auto_append_mask_name_to_output_sub_dir=self._auto_append_mask_name_to_output_sub_dir)
 
     @property
     def root_dir(self):
@@ -193,11 +199,7 @@ class SimpleBatchProfile(BatchProfile):
         Returns:
             tuple: args and kwargs tuple
         """
-        args = [self._root_dir]
-        kwargs = dict(output_base_dir=self._output_base_dir,
-                      output_sub_dir=self._output_sub_dir,
-                      auto_append_mask_name_to_output_sub_dir=self._auto_append_mask_name_to_output_sub_dir)
-        return args, kwargs
+        return self._constructor_args, self._constructor_kwargs
 
     def _autoload_noise_std(self, subject_id, file_path=None):
         """Try to autoload the noise standard deviation from a noise_std file.

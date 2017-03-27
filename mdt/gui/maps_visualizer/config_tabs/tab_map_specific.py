@@ -151,6 +151,22 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         self.info_minimum.setText('-')
         self.info_shape.setText('-')
 
+    def _get_mask(self, data_info, map_name):
+        plot_config = self._controller.get_config()
+
+        def get_map_attr():
+            if map_name in plot_config.map_plot_options:
+                value = getattr(plot_config.map_plot_options[map_name], 'mask_name')
+                if value is not None:
+                    return value
+            return plot_config.mask_name
+
+        mask_name = get_map_attr()
+
+        if mask_name is not None:
+            return data_info.maps[mask_name]
+        return None
+
     def use(self, map_name):
         """Load the settings of the given map"""
         self._current_map = map_name
@@ -161,8 +177,8 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
             map_info = SingleMapConfig()
 
         data_info = self._controller.get_data()
-        vmin = data_info.maps[map_name].min()
-        vmax = data_info.maps[map_name].max()
+        vmin = data_info.map_info[map_name].min(mask=self._get_mask(data_info, map_name))
+        vmax = data_info.map_info[map_name].max(mask=self._get_mask(data_info, map_name))
 
         with blocked_signals(self.map_title):
             self.map_title.setText(map_info.title if map_info.title else '')

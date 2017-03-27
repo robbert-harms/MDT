@@ -10,7 +10,6 @@ import shutil
 import six
 from six import string_types
 
-from mdt.model_sampling import combine_sampling_information
 from .__version__ import VERSION, VERSION_STATUS, __version__
 
 
@@ -33,6 +32,8 @@ from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, wri
 from mdt.components_loader import load_component, get_model, component_import, construct_component, get_component_class
 from mdt.configuration import config_context, get_processing_strategy
 from mdt.exceptions import InsufficientProtocolError
+from mdt.model_sampling import combine_sampling_information
+from mdt.nifti import write_nifti
 
 
 __author__ = 'Robbert Harms'
@@ -472,24 +473,6 @@ def make_path_joiner(*folder):
     """
     from mdt.utils import PathJoiner
     return PathJoiner(*folder)
-
-
-def write_image(fname, data, header):
-    """Write the given data with the given header to the given file.
-
-    If the file has no extension like '.nii' or '.nii.gz' we will add one.
-
-    Args:
-        fname (str): The output filename
-        data (ndarray): The data to write
-        header (nibabel header): The header to use
-    """
-    import nibabel as nib
-
-    if not (fname.endswith('.nii.gz') or fname.endswith('.nii')):
-        fname += '.nii.gz'
-
-    nib.Nifti1Image(data, None, header).to_filename(fname)
 
 
 def auto_convert_to_trackmark(input_folder, model_name=None, output_folder=None):

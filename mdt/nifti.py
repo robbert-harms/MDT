@@ -1,7 +1,9 @@
 import glob
 import os
+from contextlib import contextmanager
 
 import nibabel as nib
+import numpy as np
 
 from mdt.deferred_mappings import DeferredActionDict
 
@@ -78,18 +80,41 @@ def get_all_image_data(directory, map_names=None, deferred=True):
         return {k: v.get_data() for k, v in proxies.items()}
 
 
-def write_nifti(data, header, output_fname, affine=None, **kwargs):
+def write_nifti(data, header, output_fname, affine=None, use_data_dtype=True, **kwargs):
     """Write data to a nifti file.
 
     Args:
-        output_fname (str): the name of the resulting nifti file
+        output_fname (str): the name of the resulting nifti file, this function will append .nii.gz if no
+            suitable extension is given.
         data (ndarray): the data to write to that nifti file
         header (nibabel header): the nibabel header to use as header for the nifti file
         affine (ndarray): the affine transformation matrix
+        use_data_dtype (boolean): if we want to use the dtype from the data instead of that from the header
+            when saving the nifti.
         **kwargs: other arguments to Nifti1Image from NiBabel
-
     """
-    nib.Nifti1Image(data, affine, header, **kwargs).to_filename(output_fname)
+    @contextmanager
+    def header_dtype():
+        old_dtype = header.get_data_dtype()
+
+        if use_data_dtype:
+            dtype = data.dtype
+            if data.dtype == np.bool:
+                dtype = np.char
+
+            try:
+                header.set_data_dtype(dtype)
+            except nib.spatialimages.HeaderDataError:
+                pass
+
+        yield header
+        header.set_data_dtype(old_dtype)
+
+    if not (output_fname.endswith('.nii.gz') or output_fname.endswith('.nii')):
+        output_fname += '.nii.gz'
+
+    with header_dtype() as header:
+        nib.Nifti1Image(data, affine, header, **kwargs).to_filename(output_fname)
 
 
 def write_all_as_nifti(volumes, directory, nifti_header, overwrite_volumes=True, gzip=True):

@@ -39,11 +39,7 @@ class HCP_WUMINN(SimpleBatchProfile):
         kwargs['auto_append_mask_name_to_output_sub_dir'] = False
         super(HCP_WUMINN, self).__init__(root_dir, **kwargs)
         self.use_gradient_deviations = use_gradient_deviations
-
-    def _get_constructor_args(self):
-        args, kwargs = super(HCP_WUMINN, self)._get_constructor_args()
-        kwargs.update(use_gradient_deviations=self.use_gradient_deviations)
-        return args, kwargs
+        self._constructor_kwargs.update(use_gradient_deviations=self.use_gradient_deviations)
 
     def _get_subjects(self):
         subjects = []

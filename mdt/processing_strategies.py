@@ -10,6 +10,7 @@ import numpy as np
 import time
 
 from mot.utils import results_to_dict
+import gc
 from numpy.lib.format import open_memmap
 
 from mdt.nifti import write_all_as_nifti, get_all_image_data
@@ -174,6 +175,7 @@ class ChunksProcessingStrategy(SimpleProcessingStrategy):
                                            voxels_processed, start_time, start_nmr_processed)
 
                     voxels_processed += len(chunk_indices)
+                    gc.collect()
 
             self._logger.info('Computed all voxels, now creating nifti\'s')
             return_data = worker.combine()
@@ -586,7 +588,8 @@ class SamplingProcessingWorker(SimpleModelProcessingWorker):
                  'proposal_state_acceptance_counter': mh_state.get_proposal_state_acceptance_counter(),
                  'online_parameter_variance': mh_state.get_online_parameter_variance(),
                  'online_parameter_variance_update_m2': mh_state.get_online_parameter_variance_update_m2(),
-                 'online_parameter_mean': mh_state.get_online_parameter_mean()}
+                 'online_parameter_mean': mh_state.get_online_parameter_mean(),
+                 'rng_state': mh_state.get_rng_state()}
 
         self._write_volumes(roi_indices, items, os.path.join(self._tmp_storage_dir, 'mh_state'))
 
@@ -631,3 +634,4 @@ class SamplingProcessingWorker(SimpleModelProcessingWorker):
             saved = open_memmap(samples_path, mode=mode, dtype=samples.dtype,
                                 shape=(total_nmr_voxels, samples.shape[1]))
             saved[roi_indices, :] = samples
+            del saved
