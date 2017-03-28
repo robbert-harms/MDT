@@ -2,6 +2,8 @@ import collections
 import glob
 import numbers
 import os
+from warnings import warn
+
 import numpy as np
 import copy
 import six
@@ -113,7 +115,7 @@ class Protocol(collections.Mapping):
 
         s = data.shape
         if self.length and s[0] > self.length:
-            self._logger.info("The column '{}' has to many elements ({}), we will only use the first {}.".format(
+            warn("The column '{}' has to many elements ({}), we will only use the first {}.".format(
                 name, s[0], self.length))
             columns.update({name: data[:self.length]})
         elif self.length and s[0] < self.length:
