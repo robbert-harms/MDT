@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-test_mot
+test_mdt
 ----------------------------------
 
-Tests for `mot` module.
+Tests for `mdt` module.
 """
 import tempfile
 import unittest
@@ -21,6 +21,7 @@ class ExampleDataTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls._tmp_dir = tempfile.mkdtemp('mdt_example_data_test')
+        cls._tmp_dir = '/tmp/tmp7lilr83cmdt_example_data_test'
         cls._tmp_dir_subdir = 'mdt_example_data'
         shutil.copytree(os.path.abspath(resource_filename('mdt', 'data/mdt_example_data')),
                         os.path.join(cls._tmp_dir, cls._tmp_dir_subdir))
@@ -51,7 +52,7 @@ class ExampleDataTest(unittest.TestCase):
                                              pjoin('multishell_b6k_max.prtcl'),
                                              pjoin('multishell_b6k_max_example_slices_24_38_mask'))
 
-        for model_name in ['BallStick_r1 (Cascade)']:
+        for model_name in ['CHARMED_r1 (Cascade|fixed)', 'CHARMED_r2 (Cascade|fixed)', 'CHARMED_r3 (Cascade|fixed)']:
             mdt.fit_model(model_name, problem_data, pjoin('output', 'multishell_b6k_max_example_slices_24_38_mask'))
 
     def test_b1k_b2k_ballstick(self):
@@ -76,7 +77,46 @@ class ExampleDataTest(unittest.TestCase):
         msg_prefix = 'b1k_b2k - Tensor'
 
         for map_name in known_volumes:
-            self._test_map(user_volumes, known_volumes, map_name, msg_prefix, rtol=0.1)
+            self._test_map(user_volumes, known_volumes, map_name, msg_prefix)
+
+    def test_b6k_charmed_r1(self):
+        pjoin = mdt.make_path_joiner(os.path.join(self._tmp_dir, self._tmp_dir_subdir, 'multishell_b6k_max'))
+
+        known_volumes = mdt.load_volume_maps(pjoin('test_output', 'multishell_b6k_max_example_slices_24_38_mask',
+                                                   'CHARMED_r1'))
+        user_volumes = mdt.load_volume_maps(pjoin('output', 'multishell_b6k_max_example_slices_24_38_mask',
+                                                  'CHARMED_r1'))
+
+        msg_prefix = 'b6k_max - CHARMED_r1'
+
+        for map_name in known_volumes:
+            self._test_map(user_volumes, known_volumes, map_name, msg_prefix)
+
+    def test_b6k_charmed_r2(self):
+        pjoin = mdt.make_path_joiner(os.path.join(self._tmp_dir, self._tmp_dir_subdir, 'multishell_b6k_max'))
+
+        known_volumes = mdt.load_volume_maps(pjoin('test_output', 'multishell_b6k_max_example_slices_24_38_mask',
+                                                   'CHARMED_r2'))
+        user_volumes = mdt.load_volume_maps(pjoin('output', 'multishell_b6k_max_example_slices_24_38_mask',
+                                                  'CHARMED_r2'))
+
+        msg_prefix = 'b6k_max - CHARMED_r2'
+
+        for map_name in known_volumes:
+            self._test_map(user_volumes, known_volumes, map_name, msg_prefix)
+
+    def test_b6k_charmed_r3(self):
+        pjoin = mdt.make_path_joiner(os.path.join(self._tmp_dir, self._tmp_dir_subdir, 'multishell_b6k_max'))
+
+        known_volumes = mdt.load_volume_maps(pjoin('test_output', 'multishell_b6k_max_example_slices_24_38_mask',
+                                                   'CHARMED_r2'))
+        user_volumes = mdt.load_volume_maps(pjoin('output', 'multishell_b6k_max_example_slices_24_38_mask',
+                                                  'CHARMED_r2'))
+
+        msg_prefix = 'b6k_max - CHARMED_r3'
+
+        for map_name in known_volumes:
+            self._test_map(user_volumes, known_volumes, map_name, msg_prefix)
 
     def _test_map(self, user_volumes, known_volumes, map_to_test, msg_prefix, rtol=1e-4):
         np.testing.assert_allclose(np.mean(user_volumes[map_to_test]), np.mean(known_volumes[map_to_test]),
@@ -84,7 +124,7 @@ class ExampleDataTest(unittest.TestCase):
         np.testing.assert_allclose(np.std(user_volumes[map_to_test]), np.std(known_volumes[map_to_test]),
                                    rtol=rtol, err_msg='{} - {} - std'.format(map_to_test, msg_prefix))
 
-    def _test_weighted_maps(self, user_volumes, known_volumes, maps_to_test, map_to_weight_by, msg_prefix, rtol=1e-2):
+    def _test_weighted_maps(self, user_volumes, known_volumes, maps_to_test, map_to_weight_by, msg_prefix, rtol=1e-4):
         for map_name in maps_to_test:
             known = known_volumes[map_name] * known_volumes[map_to_weight_by]
             user = user_volumes[map_name] * user_volumes[map_to_weight_by]
@@ -93,7 +133,6 @@ class ExampleDataTest(unittest.TestCase):
                                        rtol=rtol, err_msg='{} - {} - mean'.format(msg_prefix, map_name))
             np.testing.assert_allclose(np.std(user), np.std(known),
                                        rtol=rtol, err_msg='{} - {} - std'.format(msg_prefix, map_name))
-
 
 
 if __name__ == '__main__':

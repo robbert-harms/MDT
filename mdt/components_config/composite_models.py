@@ -149,6 +149,8 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                 for full_param_name, value in template.upper_bounds.items():
                     self.set_upper_bound(full_param_name, deepcopy(value))
 
+                self.nmr_parameters_for_bic_calculation = self.get_nmr_estimable_parameters()
+
             def _get_suitable_volume_indices(self, problem_data):
                 volume_selection = template.volume_selection
 

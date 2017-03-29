@@ -39,6 +39,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
         self.required_nmr_shells = False
         self._logger = logging.getLogger(__name__)
         self._original_problem_data = None
+        self.nmr_parameters_for_bic_calculation = self.get_nmr_estimable_parameters()
 
     def set_problem_data(self, problem_data):
         """Overwrites the super implementation by adding a call to _prepare_problem_data() before the problem data is
@@ -163,7 +164,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
         log_likelihood_calc = LogLikelihoodCalculator()
         log_likelihoods = log_likelihood_calc.calculate(self, results_dict)
 
-        k = self.get_nmr_estimable_parameters()
+        k = self.nmr_parameters_for_bic_calculation
         n = self._problem_data.get_nmr_inst_per_problem()
 
         results_dict.update({'LogLikelihood': log_likelihoods})
