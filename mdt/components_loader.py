@@ -13,7 +13,7 @@ from six import with_metaclass
 import mot.model_building.cl_functions.library_functions
 import mot.model_building.cl_functions.model_functions
 from mdt.exceptions import NonUniqueComponent
-from mot.model_building.cl_functions.base import ModelFunction, LibraryFunction
+from mot.model_building.cl_functions.base import ModelFunction, SimpleCLLibrary
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -846,8 +846,8 @@ class MOTLibraryFunctionSource(MOTSourceSingle):
 
     def list(self):
         module = mot.model_building.cl_functions.library_functions
-        items = inspect.getmembers(module,  _get_class_predicate(module, LibraryFunction))
-        return [x[0] for x in items if x[0] != 'LibraryFunction']
+        items = inspect.getmembers(module, _get_class_predicate(module, SimpleCLLibrary))
+        return [x[0] for x in items if x[0] != 'SimpleCLLibrary']
 
 
 class MOTCompartmentModelsSource(MOTSourceSingle):

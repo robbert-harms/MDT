@@ -7,7 +7,7 @@ import six
 from mdt.components_loader import ComponentConfigMeta, ComponentConfig, ComponentBuilder, \
     method_binding_meta
 from mot.cl_data_type import SimpleCLDataType
-from mot.model_building.cl_functions.base import SimpleLibraryFunction
+from mot.model_building.cl_functions.base import SimpleCLLibrary
 from mot.model_building.cl_functions.parameters import LibraryParameter
 
 __author__ = 'Robbert Harms'
@@ -85,7 +85,7 @@ class LibraryFunctionConfigMeta(ComponentConfigMeta):
     def __new__(mcs, name, bases, attributes):
         """Extends the default meta class with extra functionality for the library functions.
 
-        This adds the cl_function_name if it is not defined, and creates the correct cl_code and cl_header.
+        This adds the cl_function_name if it is not defined, and creates the correct cl_code.
         """
         result = super(LibraryFunctionConfigMeta, mcs).__new__(mcs, name, bases, attributes)
 
@@ -95,7 +95,6 @@ class LibraryFunctionConfigMeta(ComponentConfigMeta):
         # to prevent the base from loading the initial meta class.
         if any(isinstance(base, LibraryFunctionConfigMeta) for base in bases):
             result.cl_code = mcs._get_cl_code(result, bases, attributes)
-            result.cl_header = mcs._get_cl_header(result, bases, attributes)
 
         return result
 
@@ -128,30 +127,13 @@ class LibraryFunctionConfigMeta(ComponentConfigMeta):
 
         return ''
 
-    @classmethod
-    def _get_cl_header(mcs, result, bases, attributes):
-        if 'cl_header' in attributes and attributes['cl_header'] is not None:
-            return attributes['cl_header']
-
-        module_path = os.path.abspath(inspect.getfile(result))
-        path = os.path.join(os.path.dirname(module_path), os.path.splitext(os.path.basename(module_path))[0]) + '.h'
-        if os.path.isfile(path):
-            with open(path, 'r') as f:
-                return f.read()
-
-        for base in bases:
-            if hasattr(base, 'cl_header') and base.cl_code is not None:
-                return base.cl_header
-
-        return ''
-
 
 class LibraryFunctionConfig(six.with_metaclass(LibraryFunctionConfigMeta, ComponentConfig)):
     """The library function config to inherit from.
 
     These configs are loaded on the fly by the LibraryFunctionsBuilder.
 
-    All methods you define are automatically bound to the LibraryFunction. Also, to do extra
+    All methods you define are automatically bound to the SimpleCLLibrary. Also, to do extra
     initialization you can define a method ``init``. This method is called after object construction to allow
     for additional initialization and is is not added to the final object.
 
@@ -163,7 +145,6 @@ class LibraryFunctionConfig(six.with_metaclass(LibraryFunctionConfigMeta, Compon
         parameter_list (list): the list of parameters to use. If a parameter is a string we will
             use it automatically, if not it is supposed to be a LibraryParameter
             instance that we append directly.
-        cl_header (CLHeaderDefinition): the CL header definition to use. Defaults to CLHeaderFromTemplate.
         cl_code (CLCodeDefinition): the CL code definition to use. Defaults to CLCodeFromAdjacentFile.
         dependency_list (list): the list of functions this function depends on, can contain string which will be
             resolved as library functions.
@@ -173,12 +154,11 @@ class LibraryFunctionConfig(six.with_metaclass(LibraryFunctionConfigMeta, Compon
     cl_function_name = None
     return_type = 'void'
     parameter_list = []
-    cl_header = None
     cl_code = None
     dependency_list = []
 
 
-class LibraryFunctionBuildingBase(SimpleLibraryFunction):
+class LibraryFunctionBuildingBase(SimpleCLLibrary):
     """Use this class in super calls if you want to overwrite methods in the inherited compartment configs.
 
     In python2 super needs a type to be able to do its work. This is the type you can give it to allow
@@ -197,19 +177,18 @@ class LibraryFunctionsBuilder(ComponentBuilder):
         """
         class AutoCreatedLibraryFunction(method_binding_meta(template, LibraryFunctionBuildingBase)):
 
-            def __init__(self, *args):
-                new_args = [template.return_type,
-                            template.cl_function_name,
-                            _get_parameters_list(template.parameter_list),
-                            _resolve_dependencies(template.dependency_list),
-                            template.cl_header,
+            def __init__(self, *args, **kwargs):
+                new_args = [template.cl_function_name,
                             template.cl_code,
                             ]
 
                 for ind, already_set_arg in enumerate(args):
                     new_args[ind] = already_set_arg
 
-                super(AutoCreatedLibraryFunction, self).__init__(*new_args)
+                new_kwargs = dict(dependencies=_resolve_dependencies(template.dependency_list))
+                new_kwargs.update(kwargs)
+
+                super(AutoCreatedLibraryFunction, self).__init__(*new_args, **new_kwargs)
 
                 if hasattr(template, 'init'):
                     template.init(self)
@@ -227,7 +206,7 @@ def _resolve_dependencies(dependency_list):
 
     Returns:
         list: a new list with the string elements resolved
-            as :class:`~mot.model_building.cl_functions.base.LibraryFunction`.
+            as :class:`~mot.model_building.cl_functions.base.SimpleCLLibrary`.
     """
     from mdt.components_loader import LibraryFunctionsLoader
 

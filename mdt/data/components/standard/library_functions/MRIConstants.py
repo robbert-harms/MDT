@@ -10,7 +10,7 @@ class MRIConstants(LibraryFunctionConfig):
 
     name = ''
     description = 'Some constants that might be of use in dMRI model functions'
-    cl_header = '''
+    cl_code = '''
         /**
          * Gamma represent the gyromagnetic ratio of protons in water (nucleus of H)
          * and are in units of (rad s^-1 T^-1)

@@ -88,7 +88,7 @@ class CompartmentConfigMeta(ComponentConfigMeta):
     def __new__(mcs, name, bases, attributes):
         """Extends the default meta class with extra functionality for the compartments.
 
-        This adds the cl_function_name if it is not defined, and creates the correct cl_code and cl_header.
+        This adds the cl_function_name if it is not defined, and creates the correct cl_code.
         """
         result = super(CompartmentConfigMeta, mcs).__new__(mcs, name, bases, attributes)
 
@@ -98,7 +98,6 @@ class CompartmentConfigMeta(ComponentConfigMeta):
         # to prevent the base from loading the initial meta class.
         if any(isinstance(base, CompartmentConfigMeta) for base in bases):
             result.cl_code = mcs._get_cl_code(result, bases, attributes)
-            result.cl_header = mcs._get_cl_header(result, bases, attributes)
 
         return result
 
@@ -121,26 +120,6 @@ class CompartmentConfigMeta(ComponentConfigMeta):
         for base in bases:
             if hasattr(base, 'cl_code') and base.cl_code is not None:
                 return base.cl_code
-
-    @classmethod
-    def _get_cl_header(mcs, result, bases, attributes):
-        return_type = CompartmentConfigMeta._resolve_attribute(bases, attributes, 'return_type') or 'double'
-
-        if 'cl_header' in attributes and attributes['cl_header'] is not None:
-            return attributes['cl_header']
-
-        module_path = os.path.abspath(inspect.getfile(result))
-        path = os.path.join(os.path.dirname(module_path), os.path.splitext(os.path.basename(module_path))[0]) + '.h'
-        if os.path.isfile(path):
-            with open(path, 'r') as f:
-                return f.read()
-
-        for base in bases:
-            if hasattr(base, 'cl_header') and base.cl_code is not None:
-                return base.cl_header
-
-        return _construct_cl_function_definition(return_type, result.cl_function_name,
-                                                 _get_parameters_list(result.parameter_list)) + ';'
 
     @staticmethod
     def _resolve_attribute(bases, attributes, attribute_name):
@@ -168,7 +147,6 @@ class CompartmentConfig(six.with_metaclass(CompartmentConfigMeta, ComponentConfi
         parameter_list (list): the list of parameters to use. If a parameter is a string we will
             use it automatically, if not it is supposed to be a CLFunctionParameter
             instance that we append directly.
-        cl_header (CLHeaderDefinition): the CL header definition to use. Defaults to CLHeaderFromTemplate.
         cl_code (CLCodeDefinition): the CL code definition to use. Defaults to CLCodeFromAdjacentFile.
         dependency_list (list): the list of functions this function depends on, can contain string which will be
             resolved as library functions.
@@ -178,7 +156,6 @@ class CompartmentConfig(six.with_metaclass(CompartmentConfigMeta, ComponentConfi
     description = ''
     cl_function_name = None
     parameter_list = []
-    cl_header = None
     cl_code = None
     dependency_list = []
     return_type = 'double'
@@ -207,7 +184,6 @@ class CompartmentBuilder(ComponentBuilder):
                 new_args = [template.name,
                             template.cl_function_name,
                             _get_parameters_list(template.parameter_list),
-                            template.cl_header,
                             template.cl_code,
                             _resolve_dependencies(template.dependency_list)]
 
@@ -232,7 +208,7 @@ def _resolve_dependencies(dependency_list):
 
     Returns:
         list: a new list with the string elements resolved
-            as :class:`~mot.model_building.cl_functions.base.LibraryFunction`.
+            as :class:`~mot.model_building.cl_functions.base.SimpleCLLibrary`.
     """
     from mdt.components_loader import LibraryFunctionsLoader
 
