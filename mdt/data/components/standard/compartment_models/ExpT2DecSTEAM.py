@@ -8,7 +8,13 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class ExpT2DecSTEAM(CompartmentConfig):
 
-    parameter_list = ('SEf', 'TR', 'TE', 'flip_angle', 'Refoc_fa1', 'Refoc_fa2', 'T2')
+    parameter_list = ('SEf', 'TE', 'TM', 'b', 'flip_angle', 'excitation_b1_map', 'Refoc_fa1', 'refocusing1_b1_map', 'Refoc_fa2', 'refocusing2_b1_map', 'T2', 'T1', 'd_exvivo')
     cl_code = """
-        return pow(0.5, SEf) * sin(flip_angle) * sin(Refoc_fa1) * sin(Refoc_fa2) * exp(-TE / T2);
+        return powr((double)0.5, (double)SEf)
+            *   sin((double)flip_angle * (double)excitation_b1_map)
+            *   sin((double)Refoc_fa1 * (double)refocusing1_b1_map)
+            *   sin((double)Refoc_fa2 * ((double)refocusing2_b1_map * (double)SEf + (double)refocusing1_b1_map * (double)(1 - SEf)))
+            *   exp(- (double)TE / (double)T2)
+            *   exp(- (double)TM * SEf / (double) T1)
+            *   exp(- (double)b * (double)d_exvivo);
     """
