@@ -1,12 +1,14 @@
+import inspect
 from copy import deepcopy
 
 import numpy as np
 import six
 
-from mdt.components_loader import ComponentConfig, ComponentBuilder, method_binding_meta
+import mot
+from mdt.components_loader import ComponentConfig, ComponentBuilder, method_binding_meta, get_component_class
 from mdt.models.composite import DMRICompositeModel
 from mdt.models.parsers.CompositeModelExpressionParser import parse
-from mot.model_building.evaluation_models import OffsetGaussianEvaluationModel
+from mot.model_building.evaluation_models import OffsetGaussianEvaluationModel, EvaluationModel
 from mot.model_building.parameter_functions.dependencies import SimpleAssignment
 from mot.model_building.trees import CompartmentModelTree
 
@@ -46,7 +48,8 @@ class DMRICompositeModelConfig(ComponentConfig):
 
         model_expression (str): the model expression. For the syntax see:
             mdt.models.parsers.CompositeModelExpression.ebnf
-        evaluation_model (EvaluationModel): the evaluation model to use during optimization
+        evaluation_model (EvaluationModel or str): the evaluation model to use during optimization,
+            also a string can be given with one of 'Gaussian', 'OffsetGaussian' or 'Rician'.
         signal_noise_model (SignalNoiseModel): optional signal noise decorator
         inits (dict): indicating the initialization values for the parameters. Example:
 
@@ -96,7 +99,7 @@ class DMRICompositeModelConfig(ComponentConfig):
     post_optimization_modifiers = []
     dependencies = {}
     model_expression = ''
-    evaluation_model = OffsetGaussianEvaluationModel()
+    evaluation_model = 'OffsetGaussian'
     signal_noise_model = None
     inits = {}
     fixes = {}
@@ -130,7 +133,7 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                 super(AutoCreatedDMRICompositeModel, self).__init__(
                     deepcopy(template.name),
                     CompartmentModelTree(parse(template.model_expression)),
-                    deepcopy(template.evaluation_model),
+                    deepcopy(_resolve_evaluation_model(template.evaluation_model)),
                     signal_noise_model=deepcopy(template.signal_noise_model),
                     enforce_weights_sum_to_one=template.enforce_weights_sum_to_one)
 
@@ -200,3 +203,21 @@ def _resolve_dependencies(dependencies):
         else:
             return_val.update({param: dependency})
     return return_val
+
+
+def _resolve_evaluation_model(evaluation_model):
+    """Resolve the evaluation model from string if necessary.
+
+    The composite models accept evaluation models from string and evaluation models as object. This function
+    resolves the strings if a string is given, else it returns the object passed.
+
+    Args:
+        evaluation_model (str or object): the evaluation model to resolve to an object
+
+    Returns:
+        mot.model_building.evaluation_models.EvaluationModel: the evaluation model to use
+    """
+    if isinstance(evaluation_model, six.string_types):
+        return get_component_class('evaluation_models', evaluation_model + 'EvaluationModel')()
+    else:
+        return evaluation_model

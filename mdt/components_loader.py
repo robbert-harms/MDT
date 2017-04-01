@@ -14,6 +14,7 @@ import mot.model_building.cl_functions.library_functions
 import mot.model_building.cl_functions.model_functions
 from mdt.exceptions import NonUniqueComponent
 from mot.model_building.cl_functions.base import ModelFunction, SimpleCLLibrary
+from mot.model_building.evaluation_models import EvaluationModel
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -861,6 +862,17 @@ class MOTCompartmentModelsSource(MOTSourceSingle):
         return [x[0] for x in items if x[0] != 'ModelFunction']
 
 
+class MOTEvaluationModelSource(MOTSourceSingle):
+
+    def get_class(self, name):
+        return getattr(mot.model_building.evaluation_models, name)
+
+    def list(self):
+        module = mot.model_building.evaluation_models
+        items = inspect.getmembers(module, _get_class_predicate(module, EvaluationModel))
+        return [x[0] for x in items if x[0] != 'EvaluationModel']
+
+
 class BatchProfilesLoader(ComponentsLoader):
 
     def __init__(self):
@@ -908,6 +920,13 @@ class LibraryFunctionsLoader(ComponentsLoader):
              AutoUserComponentsSourceSingle('standard', 'library_functions', LibraryFunctionsBuilder()),
              AutoUserComponentsSourceSingle('user', 'library_functions', LibraryFunctionsBuilder()),
              MOTLibraryFunctionSource()])
+
+
+class EvaluationModelsLoader(ComponentsLoader):
+
+    def __init__(self):
+        super(EvaluationModelsLoader, self).__init__(
+            [MOTEvaluationModelSource()])
 
 
 class CompositeModelsLoader(ComponentsLoader):
@@ -964,6 +983,8 @@ def get_component_class(component_type, component_name):
         return ProcessingStrategiesLoader().get_class(component_name)
     if component_type == 'composite_models':
         return CompositeModelsLoader().get_class(component_name)
+    if component_type == 'evaluation_models':
+        return EvaluationModelsLoader().get_class(component_name)
     raise ValueError('Could not find the given component type {}'.format(component_type))
 
 

@@ -170,10 +170,23 @@ Evaluation function and likelihood
 ==================================
 Models are optimized by finding the set of free parameter values :math:`x \in R^{n}` that minimize the evaluation function or objective function of the
 modeling errors :math:`(O - S(x))` with :math:`O` the observed data and :math:`S(x)` the model signal estimate.
-In diffusion MRI the common likelihood models are the *Gaussian*, *Rician* and *Offset-Gaussian* models.
+In diffusion MRI the common likelihood models are the *Gaussian*, *Rician* and *OffsetGaussian* models.
 Each has different characteristics and implements the modeling :math:`(O - S(x))` in a slightly different way.
 Following (Harms 2017) we use, by default, the Offset Gaussian likelihood model for all models.
 To change this to another likelihood model for one of your models you can override the ``evaluation_model`` attribute, for example:
+
+.. code-block:: python
+
+    class MyModel(DMRICompositeModelConfig)
+        ...
+        evaluation_model = 'Rician'
+
+
+By default the ``evaluation_model`` attribute is set to ``OffsetGaussian``.
+The evaluation model can either be defined as a string or as an object.
+Using a string, the possible options are ``Gaussian``, ``OffsetGaussian`` and ``Rician``.
+Using an object, you must provide an instance of :class:`mot.model_building.evaluation_models.EvaluationModel`.
+For example:
 
 .. code-block:: python
 
@@ -184,8 +197,6 @@ To change this to another likelihood model for one of your models you can overri
         ...
         evaluation_model = RicianEvaluationModel()
 
-
-Please note though that the Rician evaluation model is not very stable numerically.
 
 Most evaluation functions require a standard deviation :math:`\sigma` of the noise of the images in the complex domain.
 This standard deviation is, during analysis, taken from the :ref:`concepts_problem_data_models`.
