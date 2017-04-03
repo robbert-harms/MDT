@@ -597,7 +597,8 @@ def run_function_on_batch_fit_output(data_folder, func, batch_profile=None, subj
         batch_profile (BatchProfile class or str): the batch profile to use, can also be the name
             of a batch profile to use. If not given it is auto detected.
         subjects_selection (BatchSubjectSelection): the subjects to use for processing.
-            If None all subjects are processed.
+            If None all subjects are processed. Typical this uses :class:`mdt.batch_utils.SelectedSubjects`
+            or :class:`mdt.batch_utils.AllSubjects` (the default).
 
     Returns:
         dict: indexed by subject->model_name, values are the return values of the users function
