@@ -1,4 +1,4 @@
-VERSION = '0.9.29'
+VERSION = '0.9.30'
 
 _items = VERSION.split('-')
 
