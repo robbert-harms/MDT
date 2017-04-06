@@ -175,6 +175,7 @@ class Renderer(object):
             self.image_axes.append(axis_data)
 
     def _render_map(self, map_name, axis):
+        """Render a single map to the given axis"""
         axis.set_title(self._get_title(map_name), y=self._get_title_spacing(map_name))
         axis.axis('on' if self._plot_config.show_axis else 'off')
 
@@ -194,6 +195,8 @@ class Renderer(object):
         plot_options['interpolation'] = self._plot_config.interpolation
         vf = axis.imshow(data, **plot_options)
 
+        self._add_patches(map_name, axis)
+
         if self._get_map_attr(map_name, 'show_colorbar', self._plot_config.show_colorbar):
             divider = make_axes_locatable(axis)
             colorbar_axis = divider.append_axes("right", size="5%", pad=0.05)
@@ -204,6 +207,7 @@ class Renderer(object):
         return AxisData(axis, map_name, self._data_info.map_info[map_name], self._plot_config)
 
     def _apply_font(self, image_axis, colorbar_axis):
+        """Apply the font from the plot configuration to the image and colorbar axis"""
         items = [image_axis.xaxis.label, image_axis.yaxis.label]
         items.extend(image_axis.get_xticklabels())
         items.extend(image_axis.get_yticklabels())
@@ -222,7 +226,20 @@ class Renderer(object):
         colorbar_axis.yaxis.offsetText.set_fontsize(self._plot_config.font.size - 3)
         colorbar_axis.yaxis.offsetText.set_family(self._plot_config.font.name)
 
+    def _add_patches(self, map_name, axis):
+        """Add the patches defined in the global config and in the map specific config to this image plot."""
+        for patch_info in self._plot_config.drawable_patches:
+            axis.add_patch(patch_info.get_patch())
+
+        for patch_info in self._get_map_attr(map_name, 'drawable_patches', []):
+            axis.add_patch(patch_info.get_patch())
+
     def _add_colorbar(self, map_name, axis, image_figure, colorbar_label):
+        """Add a colorbar to the axis
+
+        Returns:
+            axis: the colorbar axis
+        """
         kwargs = dict(cax=axis, ticks=self._get_tick_locator(map_name))
         if colorbar_label:
             kwargs.update(dict(label=colorbar_label))

@@ -227,9 +227,11 @@ class DirectoryImageWatcher(QObject):
         """
         if self._watched_dir:
             self._watcher.removePath(self._watched_dir)
-        self._watched_dir = directory
-        self._watcher.addPath(directory)
-        self._current_files = list(el[1] for el in yield_nifti_info(directory))
+
+        if os.path.exists(directory):
+            self._watched_dir = directory
+            self._watcher.addPath(directory)
+            self._current_files = list(el[1] for el in yield_nifti_info(directory))
 
     @pyqtSlot(str)
     def _directory_changed(self, directory):

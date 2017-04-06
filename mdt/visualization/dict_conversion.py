@@ -1,4 +1,4 @@
-from collections import Mapping
+from collections import Mapping, Sequence
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-09-03"
@@ -68,6 +68,20 @@ class ConvertDictElements(ConversionSpecification):
         return {key: self._conversion_type.from_dict(v) for key, v in value.items()}
 
 
+class ConvertListElements(ConversionSpecification):
+
+    def __init__(self, conversion_type):
+        """Converts all the elements in the value (a list) using the given conversion type."""
+        super(ConvertListElements, self).__init__()
+        self._conversion_type = conversion_type
+
+    def to_dict(self, obj):
+        return [self._conversion_type.to_dict(v) for v in obj]
+
+    def from_dict(self, value):
+        return [self._conversion_type.from_dict(v) for v in value]
+
+
 class ConvertDynamicFromModule(ConversionSpecification):
 
     def __init__(self, module):
@@ -130,12 +144,6 @@ class IdentityConversion(ConversionSpecification):
         return value
 
 
-class StringConversion(IdentityConversion):
-
-    def __init__(self, allow_null=True):
-        super(StringConversion, self).__init__(str, allow_null=allow_null)
-
-
 class SimpleDictConversion(IdentityConversion):
 
     def __init__(self, desired_type=None, allow_null=True):
@@ -145,31 +153,55 @@ class SimpleDictConversion(IdentityConversion):
             desired_type (:class:`type`): if not None we cast the from_dict value to the given type
             allow_null (bool): if True we allow None during type casting
         """
-        super(IdentityConversion, self).__init__()
-        self._desired_type = desired_type
-        self._allow_none = allow_null
+        super(SimpleDictConversion, self).__init__(
+            desired_type=SimpleDictConversion._get_conversion_func(desired_type),
+            allow_null=allow_null)
 
-    def to_dict(self, obj):
-        if obj is None:
-            if self._allow_none:
-                return None
-            else:
-                raise ValueError('The object is supposed to be not None.')
-        else:
-            if self._desired_type and isinstance(obj, Mapping):
-                return {key: self._desired_type(v) for key, v in obj.items()}
-        return obj
+    @staticmethod
+    def _get_conversion_func(desired_type):
+        """Wraps the desired type into a dict(desired_type) function."""
+        if desired_type is None:
+            return None
 
-    def from_dict(self, value):
-        if value is None:
-            if self._allow_none:
-                return None
-            else:
-                raise ValueError('The object is supposed to be not None.')
-        else:
-            if self._desired_type and isinstance(value, Mapping):
-                return {key: self._desired_type(v) for key, v in value.items()}
-        return value
+        def conversion_wrapper(obj):
+            if isinstance(obj, Mapping):
+                return {key: desired_type(v) for key, v in obj.items()}
+            return obj
+
+        return conversion_wrapper
+
+
+class SimpleListConversion(IdentityConversion):
+
+    def __init__(self, desired_type=None, allow_null=True):
+        """Converts all the objects in the given list.
+
+        Args:
+            desired_type (:class:`type`): if not None we cast the from_dict value to the given type
+            allow_null (bool): if True we allow None during type casting
+        """
+        super(SimpleListConversion, self).__init__(
+            desired_type=SimpleListConversion._get_conversion_func(desired_type),
+            allow_null=allow_null)
+
+    @staticmethod
+    def _get_conversion_func(desired_type):
+        """Wraps the desired type into a dict(desired_type) function."""
+        if desired_type is None:
+            return None
+
+        def conversion_wrapper(obj):
+            if isinstance(obj, Sequence):
+                return [desired_type(el) for el in obj]
+            return obj
+
+        return conversion_wrapper
+
+
+class StringConversion(IdentityConversion):
+
+    def __init__(self, allow_null=True):
+        super(StringConversion, self).__init__(str, allow_null=allow_null)
 
 
 class IntConversion(IdentityConversion):
@@ -182,12 +214,6 @@ class FloatConversion(IdentityConversion):
 
     def __init__(self, allow_null=True):
         super(FloatConversion, self).__init__(float, allow_null=allow_null)
-
-
-class SimpleListConversion(IdentityConversion):
-
-    def __init__(self, allow_null=True):
-        super(SimpleListConversion, self).__init__(list, allow_null=allow_null)
 
 
 class BooleanConversion(IdentityConversion):

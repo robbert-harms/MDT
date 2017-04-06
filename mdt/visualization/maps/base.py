@@ -1,9 +1,9 @@
 import glob
+import inspect
 import warnings
 
 import nibabel
 import numpy as np
-import numpy.ma as ma
 import yaml
 import matplotlib.font_manager
 import mdt
@@ -12,8 +12,10 @@ from mdt import nifti
 from mdt.deferred_mappings import DeferredActionDict
 from mdt.visualization.dict_conversion import StringConversion, \
     SimpleClassConversion, IntConversion, SimpleListConversion, BooleanConversion, \
-    ConvertDictElements, ConvertDynamicFromModule, FloatConversion, WhiteListConversion
+    ConvertDictElements, ConvertDynamicFromModule, FloatConversion, WhiteListConversion, SimpleDictConversion, \
+    ConvertListElements
 from mdt.visualization.layouts import Rectangular
+
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-09-02"
@@ -21,12 +23,68 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class MapPlotConfig(object):
+class ConvertibleConfig(object):
+    """Base class for convertible configuration containers.
+
+    Objects implementing this interface return a conversion specification that describes how the implementing
+    class can be converted to and from a simple dictionary containing only primitives and simple
+    data structures.
+    """
+
+    @classmethod
+    def get_conversion_info(cls):
+        """Get the conversion specification information for this class.
+
+        Returns:
+            mdt.visualization.dict_conversion.ConversionSpecification: the conversion specification
+        """
+        raise NotImplementedError()
+
+
+class SimpleConvertibleConfig(object):
+    """Offers an simplified implementation of convertible configs.
+
+    In addition to slightly simplifying the creation of the conversion specification, it also implements
+    object equality checking (__eq__ and__ne__) as this is commonly used in the configuration objects,
+    and it offers a default representation (__repr__) implementation based on the conversion specification.
+    """
+
+    @classmethod
+    def get_conversion_info(cls):
+        return SimpleClassConversion(cls, cls._get_attribute_conversions())
+
+    @classmethod
+    def _get_attribute_conversions(cls):
+        """Simplifies the creation of the conversion info by returning a dictionary of conversion specifications.
+
+        Returns:
+            dict: a dictionary with for every attribute of the class a conversion specification (instance of
+                :class:`~mdt.visualization.dict_conversion.ConversionSpecification`) describing how to
+                transform every attribute of the class.
+        """
+        raise NotImplementedError()
+
+    def __repr__(self):
+        return str(self.get_conversion_info().to_dict(self))
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return NotImplemented
+        for key, value in self.__dict__.items():
+            if value != getattr(other, key):
+                return False
+        return True
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+
+class MapPlotConfig(SimpleConvertibleConfig):
 
     def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=90, colormap='hot', maps_to_show=None,
                  font=None, grid_layout=None, colorbar_nmr_ticks=4, show_axis=False, zoom=None, show_colorbar=True,
                  map_plot_options=None, interpolation='bilinear', flipud=None,
-                 title=None, mask_name=None):
+                 title=None, mask_name=None, drawable_patches=None):
         """Container for all plot related settings.
 
         Args:
@@ -48,6 +106,7 @@ class MapPlotConfig(object):
             flipud (boolean): if True we flip the image upside down
             title (str): the title to this plot
             mask_name (str): the name of the mask to apply to the maps prior to display
+            drawable_patches (list of DrawablePatch): the patches that need to be drawn on every displayed image
         """
         super(MapPlotConfig, self).__init__()
         self.dimension = dimension
@@ -71,6 +130,7 @@ class MapPlotConfig(object):
         self.map_plot_options = map_plot_options or {}
         self.title = title
         self.mask_name = mask_name
+        self.drawable_patches = drawable_patches or []
 
         if interpolation not in self.get_available_interpolations():
             raise ValueError('The given interpolation ({}) is not supported.'.format(interpolation))
@@ -106,10 +166,6 @@ class MapPlotConfig(object):
         return get_available_colormaps()
 
     @classmethod
-    def get_conversion_info(cls):
-        return SimpleClassConversion(cls, cls._get_attribute_conversions())
-
-    @classmethod
     def _get_attribute_conversions(cls):
         return {'dimension': IntConversion(),
                 'slice_index': IntConversion(),
@@ -127,7 +183,8 @@ class MapPlotConfig(object):
                 'flipud': BooleanConversion(allow_null=False),
                 'title': StringConversion(),
                 'mask_name': StringConversion(),
-                'show_colorbar': BooleanConversion()
+                'show_colorbar': BooleanConversion(),
+                'drawable_patches': ConvertListElements(DrawablePatches.get_conversion_info())
                 }
 
     @classmethod
@@ -233,25 +290,11 @@ class MapPlotConfig(object):
             if value is not None:
                 self.map_plot_options[key] = value.validate(data_info)
 
-    def __repr__(self):
-        return str(self.get_conversion_info().to_dict(self))
 
-    def __eq__(self, other):
-        if not isinstance(other, MapPlotConfig):
-            return NotImplemented
-        for key, value in self.__dict__.items():
-            if value != getattr(other, key):
-                return False
-        return True
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-
-class SingleMapConfig(object):
+class SingleMapConfig(SimpleConvertibleConfig):
 
     def __init__(self, title=None, scale=None, clipping=None, colormap=None, colorbar_label=None, show_colorbar=True,
-                 title_spacing=None, mask_name=None):
+                 title_spacing=None, mask_name=None, drawable_patches=None):
         """Creates the configuration for a single map plot.
 
         Args:
@@ -263,6 +306,7 @@ class SingleMapConfig(object):
             show_colorbar (boolean): if we want to show the colorbar or not
             title_spacing (float): the spacing between the top of the plots and the title
             mask_name (str): the name of the mask used to mask the data prior to visualization
+            drawable_patches (list of DrawablePatch): the patches that need to be drawn on every displayed image
         """
         super(SingleMapConfig, self).__init__()
         self.title = title
@@ -273,13 +317,10 @@ class SingleMapConfig(object):
         self.colorbar_label = colorbar_label
         self.show_colorbar = show_colorbar
         self.mask_name = mask_name
+        self.drawable_patches = drawable_patches or []
 
         if self.colormap is not None and self.colormap not in self.get_available_colormaps():
             raise ValueError('The given colormap ({}) is not supported.'.format(self.colormap))
-
-    @classmethod
-    def get_conversion_info(cls):
-        return SimpleClassConversion(cls, cls._get_attribute_conversions())
 
     @classmethod
     def _get_attribute_conversions(cls):
@@ -290,7 +331,8 @@ class SingleMapConfig(object):
                 'colorbar_label': StringConversion(),
                 'title_spacing': FloatConversion(),
                 'mask_name': StringConversion(),
-                'show_colorbar': BooleanConversion()}
+                'show_colorbar': BooleanConversion(),
+                'drawable_patches': ConvertListElements(DrawablePatches.get_conversion_info())}
 
     @classmethod
     def get_available_colormaps(cls):
@@ -345,23 +387,8 @@ class SingleMapConfig(object):
                 getattr(self, '_validate_' + key)(data_info)
         return self
 
-    def __repr__(self):
-        return str(self.get_conversion_info().to_dict(self))
 
-    def __eq__(self, other):
-        if not isinstance(other, SingleMapConfig):
-            return NotImplemented
-
-        for key, value in self.__dict__.items():
-            if value != getattr(other, key):
-                return False
-        return True
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-
-class Zoom(object):
+class Zoom(SimpleConvertibleConfig):
 
     def __init__(self, p0, p1):
         """Container for zooming a map between the two given points.
@@ -391,10 +418,6 @@ class Zoom(object):
     @classmethod
     def no_zoom(cls):
         return cls(Point(0, 0), Point(0, 0))
-
-    @classmethod
-    def get_conversion_info(cls):
-        return SimpleClassConversion(cls, cls._get_attribute_conversions())
 
     @classmethod
     def _get_attribute_conversions(cls):
@@ -457,23 +480,8 @@ class Zoom(object):
             return data[self.p0.y:self.p1.y, self.p0.x:self.p1.x]
         return data
 
-    def __repr__(self):
-        return str(self.get_conversion_info().to_dict(self))
 
-    def __eq__(self, other):
-        if not isinstance(other, Zoom):
-            return NotImplemented
-
-        for key, value in self.__dict__.items():
-            if value != getattr(other, key):
-                return False
-        return True
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-
-class Point(object):
+class Point(SimpleConvertibleConfig):
 
     def __init__(self, x, y):
         """Container for a single point"""
@@ -492,10 +500,6 @@ class Point(object):
         new_values = dict(x=self.x, y=self.y)
         new_values.update(**kwargs)
         return Point(**new_values)
-
-    @classmethod
-    def get_conversion_info(cls):
-        return SimpleClassConversion(cls, cls._get_attribute_conversions())
 
     @classmethod
     def _get_attribute_conversions(cls):
@@ -522,23 +526,58 @@ class Point(object):
 
         return Point(*rotate_coordinate(self.x, self.y, nmr_rotations))
 
-    def __repr__(self):
-        return 'Point(x={}, y={})'.format(self.x, self.y)
 
-    def __eq__(self, other):
-        if not isinstance(other, Point):
-            return NotImplemented
+class DrawablePatches(SimpleConvertibleConfig):
 
-        for key, value in self.__dict__.items():
-            if value != getattr(other, key):
-                return False
-        return True
+    def __init__(self, patch_type, patch_args=None, patch_kwargs=None):
+        """Container and constructor  for simple drawable patches.
 
-    def __ne__(self, other):
-        return not self.__eq__(other)
+        This class constructs an object in ``matplotlib.patches`` of the given (patch) type with as arguments
+        the given args and kwargs.
+
+        Args:
+            patch_type (str): the type of patch we want to generate. Should be one of the classes in matplotlib.patches.
+            patch_args (list_: passed to the constructor of the patch
+            patch_kwargs (dict): passed to the constructor of the patch
+        """
+        self.patch_type = patch_type
+        self.patch_args = patch_args or []
+        self.patch_kwargs = patch_kwargs or {}
+
+        self._construct_patch()
+
+    @classmethod
+    def _get_attribute_conversions(cls):
+        return {'patch_type': StringConversion(allow_null=False),
+                'patch_args': SimpleListConversion(),
+                'patch_kwargs': SimpleDictConversion()}
+
+    def get_patch(self):
+        """Get the actual Patch that matplotlib can draw on the images
+
+        Returns:
+            patch: the patch to draw on the images
+        """
+        return self._construct_patch()
+
+    def _construct_patch(self):
+        class_type = self._patch_type_to_class(self.patch_type)
+        if class_type is None:
+            raise ValueError('The given patch type ({}) could not be found, '
+                             'please use one of matplotlib.patches.'.format(self.patch_type))
+        return class_type(*self.patch_args, **self.patch_kwargs)
+
+    @staticmethod
+    def _patch_type_to_class(patch_type):
+        import matplotlib.patches
+        classes = inspect.getmembers(matplotlib.patches, inspect.isclass)
+        for name, class_type in classes:
+            if name == patch_type:
+                return class_type
+        return None
 
 
-class Clipping(object):
+class Clipping(SimpleConvertibleConfig):
 
     def __init__(self, vmin=0, vmax=0, use_min=False, use_max=False):
         """Container for the map clipping information"""
@@ -615,30 +654,14 @@ class Clipping(object):
         return Clipping(**new_values)
 
     @classmethod
-    def get_conversion_info(cls):
-        return SimpleClassConversion(cls, cls._get_attribute_conversions())
-
-    @classmethod
     def _get_attribute_conversions(cls):
         return {'vmax': FloatConversion(allow_null=False),
                 'vmin': FloatConversion(allow_null=False),
                 'use_min': BooleanConversion(allow_null=False),
                 'use_max': BooleanConversion(allow_null=False)}
 
-    def __eq__(self, other):
-        if not isinstance(other, Clipping):
-            return NotImplemented
 
-        for key, value in self.__dict__.items():
-            if value != getattr(other, key):
-                return False
-        return True
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-
-class Scale(object):
+class Scale(SimpleConvertibleConfig):
 
     def __init__(self, vmin=0, vmax=0, use_min=False, use_max=False):
         """Container the map scaling information"""
@@ -649,10 +672,6 @@ class Scale(object):
 
         if use_min and use_max and vmin > vmax:
             raise ValueError('The minimum scale ({}) can not be larger than the maximum scale ({})'.format(vmin, vmax))
-
-    @classmethod
-    def get_conversion_info(cls):
-        return SimpleClassConversion(cls, cls._get_attribute_conversions())
 
     @classmethod
     def _get_attribute_conversions(cls):
@@ -705,20 +724,8 @@ class Scale(object):
         new_values.update(**kwargs)
         return Scale(**new_values)
 
-    def __eq__(self, other):
-        if not isinstance(other, Scale):
-            return NotImplemented
 
-        for key, value in self.__dict__.items():
-            if value != getattr(other, key):
-                return False
-        return True
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-
-class Font(object):
+class Font(SimpleConvertibleConfig):
 
     def __init__(self, family='sans-serif', size=14):
         """Information about the font to use
@@ -773,25 +780,9 @@ class Font(object):
         return list(sorted(['sans-serif', 'serif', 'cursive', 'fantasy', 'monospace'])) + list(sorted(names))
 
     @classmethod
-    def get_conversion_info(cls):
-        return SimpleClassConversion(cls, cls._get_attribute_conversions())
-
-    @classmethod
     def _get_attribute_conversions(cls):
         return {'family': StringConversion(),
                 'size': IntConversion()}
-
-    def __eq__(self, other):
-        if not isinstance(other, Font):
-            return NotImplemented
-
-        for key, value in self.__dict__.items():
-            if value != getattr(other, key):
-                return False
-        return True
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
 
 
 class DataInfo(object):
