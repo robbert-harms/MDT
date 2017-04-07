@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib.patches import Rectangle
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from mdt import get_slice_in_dimension
@@ -88,47 +89,9 @@ class AxisData(object):
             y (int): The y-coordinate in data coordinates.
 
         Returns
-            x, y, z, v : Index coordinates of the map associated with the image.
+            tuple: Index coordinates of the map associated with the image (x, y, z, d).
         """
-        shape = self._map_info.get_size_in_dimension(self._plot_config.dimension, self._plot_config.rotate)
-
-        # correct for zoom
-        x += self._plot_config.zoom.p0.x
-        y += self._plot_config.zoom.p0.y
-
-        # correct for flip upside down
-        if not self._plot_config.flipud:
-            y = self._map_info.get_max_y_index(self._plot_config.dimension, self._plot_config.rotate) - y
-
-        # correct for displayed axis, the view is x-data on y-image and y-data on x-image
-        x, y = y, x
-
-        # rotate the point
-        rotated = Point(x, y).rotate90((-1 * self._plot_config.rotate % 360) // 90)
-
-        # translate the point back to a new origin
-        if self._plot_config.rotate == 90:
-            rotated.y = shape[1] + rotated.y
-        elif self._plot_config.rotate == 180:
-            rotated.x = shape[1] + rotated.x
-            rotated.y = shape[0] + rotated.y
-        elif self._plot_config.rotate == 270:
-            rotated.x = shape[0] + rotated.x
-
-        if len(self._map_info.shape) == 2:
-            return [rotated.x, rotated.y]
-
-        # create the index
-        index = [rotated.x, rotated.y]
-        index.insert(self._plot_config.dimension, self._plot_config.slice_index)
-
-        if len(self._map_info.data.shape) > 3:
-            if self._plot_config.volume_index < self._map_info.data.shape[3]:
-                index.append(self._plot_config.volume_index)
-            else:
-                index.append(self._map_info.data.shape[3] - 1)
-
-        return index
+        return _coordinates_to_index(self._map_info, self._plot_config, x, y)
 
     def get_value(self, index):
         """Get the value of this axis data at the given index.
@@ -196,6 +159,7 @@ class Renderer(object):
         vf = axis.imshow(data, **plot_options)
 
         self._add_patches(map_name, axis)
+        self._add_data_cursors(map_name, axis)
 
         if self._get_map_attr(map_name, 'show_colorbar', self._plot_config.show_colorbar):
             divider = make_axes_locatable(axis)
@@ -233,6 +197,17 @@ class Renderer(object):
 
         for patch_info in self._get_map_attr(map_name, 'drawable_patches', []):
             axis.add_patch(patch_info.get_patch())
+
+    def _add_data_cursors(self, map_name, axis):
+        # position = (43, 68)
+        #
+        # patch = Rectangle(np.array(position) - 1, 2, 2)
+        # axis.add_patch(patch)
+        #
+        #
+        # axis.text(0.05, 0.95, "Test = 1\ntest = 1", transform=axis.transAxes, fontsize=14,
+        #         verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+        pass
 
     def _add_colorbar(self, map_name, axis, image_figure, colorbar_label):
         """Add a colorbar to the axis
@@ -323,3 +298,57 @@ class Renderer(object):
             min_val = scale.vmin
 
         return MyColourBarTickLocator(min_val, max_val, numticks=self._plot_config.colorbar_nmr_ticks)
+
+
+def _coordinates_to_index(map_info, plot_config, x, y):
+    """Converts data coordinates to index coordinates of the array.
+
+    Args:
+        map_info (SingleMapInfo): the map information
+        plot_config (MapPlotConfig): the map plot configuration
+        x (int): The x-coordinate in data coordinates.
+        y (int): The y-coordinate in data coordinates.
+
+    Returns
+        tuple: Index coordinates of the map associated with the image (x, y, z, d).
+    """
+    shape = map_info.get_size_in_dimension(plot_config.dimension, plot_config.rotate)
+
+    # correct for zoom
+    x += plot_config.zoom.p0.x
+    y += plot_config.zoom.p0.y
+
+    # correct for flip upside down
+    if not plot_config.flipud:
+        y = map_info.get_max_y_index(plot_config.dimension, plot_config.rotate) - y
+
+    # correct for displayed axis, the view is x-data on y-image and y-data on x-image
+    x, y = y, x
+
+    # rotate the point
+    rotated = Point(x, y).rotate90((-1 * plot_config.rotate % 360) // 90)
+
+    # translate the point back to a new origin
+    if plot_config.rotate == 90:
+        rotated.y = shape[1] + rotated.y
+    elif plot_config.rotate == 180:
+        rotated.x = shape[1] + rotated.x
+        rotated.y = shape[0] + rotated.y
+    elif plot_config.rotate == 270:
+        rotated.x = shape[0] + rotated.x
+
+    if len(map_info.shape) == 2:
+        return [rotated.x, rotated.y]
+
+    # create the index
+    index = [rotated.x, rotated.y]
+    index.insert(plot_config.dimension, plot_config.slice_index)
+
+    if len(map_info.data.shape) > 3:
+        if plot_config.volume_index < map_info.data.shape[3]:
+            index.append(plot_config.volume_index)
+        else:
+            index.append(map_info.data.shape[3] - 1)
+
+    return index
+

@@ -57,11 +57,9 @@ class NoOptPlottingFrameInfoViewer(PlottingFrameInfoViewer):
 
     def set_voxel_info(self, onscreen_coords, data_index, value):
         super(NoOptPlottingFrameInfoViewer, self).set_voxel_info(onscreen_coords, data_index, value)
-        print(onscreen_coords, data_index, value)
 
     def clear_voxel_info(self):
         super(NoOptPlottingFrameInfoViewer, self).clear_voxel_info()
-        print('clear')
 
 
 def cast_value(value, desired_type, alt_value):

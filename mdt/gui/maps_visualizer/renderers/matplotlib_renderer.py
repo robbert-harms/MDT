@@ -210,8 +210,8 @@ class _DraggingManager(object):
             self._drag_timer.start(50)
 
     def _perform_drag(self):
-        delta_x = int(np.floor(self._start_x) - np.ceil(self._end_x))
-        delta_y = int(np.floor(self._start_y) - np.ceil(self._end_y))
+        delta_x = int(np.round(self._start_x) - np.round(self._end_x))
+        delta_y = int(np.round(self._start_y) - np.round(self._end_y))
 
         config = self.controller.get_config()
         data_info = self.controller.get_data()
@@ -248,7 +248,8 @@ class _DraggingManager(object):
             new_zoom = current_zoom
 
         self.controller.apply_action(SetZoom(new_zoom))
-        self._scrolls = 0
+        self._start_x = self._end_x
+        self._start_y = self._end_y
 
 
 class _ScrollingManager(object):

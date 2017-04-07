@@ -535,6 +535,9 @@ class DrawablePatches(SimpleConvertibleConfig):
         This class constructs an object in ``matplotlib.patches`` of the given (patch) type with as arguments
         the given args and kwargs.
 
+        Examples:
+            DrawablePatches('Rectangle', [xy, width, height], {angle=0.0, ...})
+
         Args:
             patch_type (str): the type of patch we want to generate. Should be one of the classes in matplotlib.patches.
             patch_args (list_: passed to the constructor of the patch
