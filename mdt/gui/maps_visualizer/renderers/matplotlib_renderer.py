@@ -132,9 +132,6 @@ class _MouseInteraction(object):
             index = axis_data.coordinates_to_index(x, y)
             value = axis_data.get_value(index)
             # todo draw info box on the figure
-
-
-
             # from mdt.gui.maps_visualizer.actions import SetRotate
             # self.controller.apply_action(SetRotate(180))
 

@@ -159,7 +159,6 @@ class Renderer(object):
         vf = axis.imshow(data, **plot_options)
 
         self._add_patches(map_name, axis)
-        self._add_data_cursors(map_name, axis)
 
         if self._get_map_attr(map_name, 'show_colorbar', self._plot_config.show_colorbar):
             divider = make_axes_locatable(axis)
@@ -197,17 +196,6 @@ class Renderer(object):
 
         for patch_info in self._get_map_attr(map_name, 'drawable_patches', []):
             axis.add_patch(patch_info.get_patch())
-
-    def _add_data_cursors(self, map_name, axis):
-        # position = (43, 68)
-        #
-        # patch = Rectangle(np.array(position) - 1, 2, 2)
-        # axis.add_patch(patch)
-        #
-        #
-        # axis.text(0.05, 0.95, "Test = 1\ntest = 1", transform=axis.transAxes, fontsize=14,
-        #         verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
-        pass
 
     def _add_colorbar(self, map_name, axis, image_figure, colorbar_label):
         """Add a colorbar to the axis
