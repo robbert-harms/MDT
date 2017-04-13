@@ -44,7 +44,7 @@ class ScientificNumberScroller(Ui_ScientificScroller, QWidget):
             self.exponent.setValue(0)
             self.mantissa.setValue(value)
         else:
-            exponent = np.floor(np.log10(np.abs(value))).astype(int)
+            exponent = int(np.floor(np.log10(np.abs(value))))
             self.exponent.setValue(exponent)
             self.mantissa.setValue(value / 10**exponent)
 
