@@ -110,8 +110,8 @@ class _DTIMeasuresWorker(Worker):
                 global mot_float_type* fas,
                 global mot_float_type* mds
                 ){
-                    int gid = get_global_id(0);
-                    int voxel = gid * 3;
+                    ulong gid = get_global_id(0);
+                    ulong voxel = gid * 3;
 
                     mot_float_type v1 = eigenvalues[voxel];
                     mot_float_type v2 = eigenvalues[voxel + 1];

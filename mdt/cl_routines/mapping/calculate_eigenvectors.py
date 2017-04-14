@@ -110,7 +110,7 @@ class _CEWorker(Worker):
                 global mot_float_type* psis,
                 global mot_float_type* evecs
                 ){
-                    int gid = get_global_id(0);
+                    ulong gid = get_global_id(0);
 
                     mot_float_type4 vec0, vec1, vec2;
                     TensorSphericalToCartesian(thetas[gid], phis[gid], psis[gid], &vec0, &vec1, &vec2);
