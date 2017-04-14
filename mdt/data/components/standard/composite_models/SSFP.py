@@ -1,5 +1,4 @@
 from mdt.components_config.composite_models import DMRICompositeModelConfig
-from mdt.components_loader import component_import
 
 
 class SSFP_BallStick_r1_ExVivo(DMRICompositeModelConfig):

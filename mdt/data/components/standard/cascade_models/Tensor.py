@@ -24,11 +24,3 @@ class TensorFixed(CascadeConfig):
               'Tensor')
     fixes = {'Tensor': [('Tensor.theta', 'Stick.theta'),
                         ('Tensor.phi', 'Stick.phi')]}
-
-
-class TensorExVivo(Tensor):
-
-    name = 'Tensor-ExVivo (Cascade)'
-    description = 'Cascade for Tensor with ex vivo defaults.'
-    models = ('BallStick_r1-ExVivo (Cascade)',
-              'Tensor-ExVivo')
