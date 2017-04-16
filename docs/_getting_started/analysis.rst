@@ -310,15 +310,15 @@ As an example, to run ``BallStick_r1`` on the two provided example datasets you 
 .. code-block:: console
 
     $ cd mdt_example_data
-    $ mdt-batch-fit . --models-to-fit 'BallStick_r1 (Cascade)'
+    $ mdt-batch-fit . 'BallStick_r1 (Cascade)'
 
 
-There are various batch profiles available in MDT, for example profiles for the HCP-MGH and HCP Wu-Minn folder layouts and simple layouts expecting one subject per directory.
+There are various batch profiles available in MDT, for example profiles for the HCP-MGH and HCP Wu-Minn folder layouts, and simple layouts expecting one subject per directory.
 As an illustration, if you want to analyze ``NODDI`` on all your downloaded HCP Wu-Minn datasets, you can use:
 
 .. code-block:: console
 
-    $ mdt-batch-fit ~/download_dir/ --models-to-fit 'NODDI (Cascade)'
+    $ mdt-batch-fit ~/download_dir/ 'NODDI (Cascade)'
 
 and it will autodetect the Wu-Minn layout and fit NODDI to all the subjects.
 
@@ -464,8 +464,7 @@ As an example, to run ``BallStick_r1`` on the two provided example datasets you 
 
 .. code-block:: python
 
-    mdt.batch_fit('mdt_example_data',
-                  models_to_fit=['BallStick_r1 (Cascade)'])
+    mdt.batch_fit('mdt_example_data', ['BallStick_r1 (Cascade)'])
 
 
 There are various batch profiles available in MDT, for example there are profiles for the HCP-MGH and HCP Wu-Minn folder layouts and there are simple
@@ -474,8 +473,7 @@ For example, if you want to analyze ``NODDI`` on all your downloaded HCP Wu-Minn
 
 .. code-block:: python
 
-    mdt.batch_fit('~/download_dir/',
-                  models_to_fit=['NODDI (Cascade)'])
+    mdt.batch_fit('~/download_dir/', ['NODDI (Cascade)'])
 
 
 and it will autodetect the Wu-Minn layout and fit NODDI to all the subjects.

@@ -7,8 +7,6 @@ import timeit
 from contextlib import contextmanager
 from six import string_types
 from mdt.__version__ import __version__
-from mdt.deferred_mappings import DeferredActionDict
-from mdt.file_conversions.npy import load_all_npy_files
 from mdt.nifti import get_all_image_data
 from mdt.batch_utils import batch_profile_factory, AllSubjects
 from mdt.components_loader import get_model
@@ -31,9 +29,8 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class BatchFitting(object):
 
-    def __init__(self, data_folder, batch_profile=None, subjects_selection=None, recalculate=False,
-                 models_to_fit=None, cascade_subdir=False,
-                 cl_device_ind=None, double_precision=False, tmp_results_dir=True):
+    def __init__(self, data_folder, models_to_fit, batch_profile=None, subjects_selection=None, recalculate=False,
+                 cascade_subdir=False, cl_device_ind=None, double_precision=False, tmp_results_dir=True):
         """This class is meant to make running computations as simple as possible.
 
         The idea is that a single folder is enough to fit_model the computations. One can optionally give it the
@@ -45,6 +42,7 @@ class BatchFitting(object):
 
         Args:
             data_folder (str): the main directory to look for items to process.
+            models_to_fit (list of str): A list of models to fit to the data.
             batch_profile (:class:`~mdt.batch_utils.BatchProfile` or str): the batch profile to use
                 or the name of a batch profile to use from the users folder.
             subjects_selection (:class:`~mdt.batch_utils.BatchSubjectSelection`): the subjects to use for processing.
@@ -56,8 +54,6 @@ class BatchFitting(object):
                 the BallStick results also for BallStick -> Charmed). This flag disables that behaviour and instead
                 outputs the results of a cascade model to a subdirectory for that cascade.
                 This does not apply recursive.
-            models_to_fit (list of str): A list of models to fit to the data. This overrides the models in
-                the batch config.
             cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
                 get_cl_devices().
             double_precision (boolean): if we would like to do the calculations in double precision
@@ -68,12 +64,7 @@ class BatchFitting(object):
         self._batch_profile = batch_profile_factory(batch_profile, data_folder)
         self._subjects_selection = subjects_selection or AllSubjects()
         self._tmp_results_dir = tmp_results_dir
-
-        if models_to_fit:
-            self._models_to_fit = models_to_fit
-        else:
-            self._models_to_fit = self._batch_profile.get_models_to_fit()
-
+        self._models_to_fit = models_to_fit
         self._cl_device_ind = cl_device_ind
         self._recalculate = recalculate
         self._double_precision = double_precision
@@ -89,6 +80,7 @@ class BatchFitting(object):
 
         self._logger.info('Subjects found: {0}'.format(self._batch_profile.get_subjects_count()))
         self._logger.info('Subjects to process: {0}'.format(len(self._subjects)))
+        self._logger.info('Going to fit these models to all data: {}'.format(self._models_to_fit))
 
         if self._cl_device_ind is not None:
             if not isinstance(self._cl_device_ind, collections.Iterable):

@@ -10,9 +10,10 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 meta_info = {'title': 'Directory per subject',
-             'description': 'General layout for batch fitting with a folder per subject.',
-             'directory_layout':
-'''
+             'description': '''
+
+General layout for batch fitting with a folder per subject.
+
 Every subject has its own directory. For every type of file (protocol, bvec, bval, TE, Delta, delta, DWI, mask)
 we use the first one found.
 
@@ -45,15 +46,15 @@ They should either contain exactly 1 value (for all protocol lines), or a value 
 
 class DirPerSubject(SimpleBatchProfile):
 
-    def __init__(self, root_dir, use_gradient_deviations=False, **kwargs):
-        super(DirPerSubject, self).__init__(root_dir, **kwargs)
+    def __init__(self, base_directory, use_gradient_deviations=False, **kwargs):
+        super(DirPerSubject, self).__init__(base_directory, **kwargs)
         self.use_gradient_deviations = use_gradient_deviations
         self._constructor_kwargs.update(use_gradient_deviations=self.use_gradient_deviations)
 
     def _get_subjects(self):
         subjects = []
-        for subject_id in sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._root_dir, '*'))]):
-            pjoin = mdt.make_path_joiner(self._root_dir, subject_id)
+        for subject_id in sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._base_directory, '*'))]):
+            pjoin = mdt.make_path_joiner(self._base_directory, subject_id)
             subject_info = self._get_subject_in_directory(subject_id, pjoin)
             if subject_info:
                 subjects.append(subject_info)
@@ -93,7 +94,7 @@ class DirPerSubject(SimpleBatchProfile):
 
             if dwi_fname and (protocol_fname or (bval_fname and bvec_fname)):
                 protocol_loader = BatchFitProtocolLoader(
-                    os.path.join(self._root_dir, subject_id),
+                    os.path.join(self._base_directory, subject_id),
                     protocol_fname=protocol_fname, bvec_fname=bvec_fname,
                     bval_fname=bval_fname)
 

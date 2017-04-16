@@ -10,9 +10,10 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 meta_info = {'title': 'Single directory',
-             'description': 'All files in one directory, distinct name per subject.',
-             'directory_layout':
-'''
+             'description': '''
+
+All files in one directory, distinct name per subject.
+
 For every subject in the directory the base name must be equal to be recognized as
 belonging to one subject.
 
@@ -48,7 +49,7 @@ Optional items (all case sensitive):
 class SingleDir(SimpleBatchProfile):
 
     def _get_subjects(self):
-        pjoin = mdt.make_path_joiner(self._root_dir)
+        pjoin = mdt.make_path_joiner(self._base_directory)
 
         files = [os.path.basename(f) for f in glob.glob(pjoin('*'))]
         basenames = sorted(list({split_image_path(f)[1] for f in files}))

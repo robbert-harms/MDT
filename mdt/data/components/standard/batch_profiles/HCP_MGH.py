@@ -9,9 +9,10 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 meta_info = {'title': 'HCP MGH',
-             'description': 'The profile for the MGH data from the Human Connectome project',
-             'directory_layout':
-'''
+             'description': '''
+
+The profile for the MGH data from the Human Connectome project.
+
 This assumes that you downloaded and extracted the MGH data in one folder and that you now have one folder per subject.
 
 You can provide the noise standard deviation to use using a noise_std file containing a single float.
@@ -33,15 +34,15 @@ Optional items (these will take precedence if present):
 
 class HCP_MGH(SimpleBatchProfile):
 
-    def __init__(self, root_dir, **kwargs):
+    def __init__(self, base_directory, **kwargs):
         kwargs['output_base_dir'] = 'diff/preproc/output'
-        super(HCP_MGH, self).__init__(root_dir, **kwargs)
+        super(HCP_MGH, self).__init__(base_directory, **kwargs)
 
     def _get_subjects(self):
-        dirs = sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._root_dir, '*'))])
+        dirs = sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._base_directory, '*'))])
         subjects = []
         for subject_id in dirs:
-            pjoin = mdt.make_path_joiner(self._root_dir, subject_id, 'diff', 'preproc')
+            pjoin = mdt.make_path_joiner(self._base_directory, subject_id, 'diff', 'preproc')
             if os.path.isdir(pjoin()):
                 dwi_fname = list(glob.glob(pjoin('mri', 'diff_preproc.nii*')))[0]
                 noise_std = self._autoload_noise_std(subject_id, file_path=pjoin('noise_std'))

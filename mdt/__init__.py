@@ -222,20 +222,19 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
         return results
 
 
-def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalculate=False,
-              models_to_fit=None, cascade_subdir=False, cl_device_ind=None, dry_run=False,
+def batch_fit(data_folder, models_to_fit, batch_profile=None, subjects_selection=None, recalculate=False,
+              cascade_subdir=False, cl_device_ind=None, dry_run=False,
               double_precision=False, tmp_results_dir=True):
     """Run all the available and applicable models on the data in the given folder.
 
     Args:
         data_folder (str): The data folder to process
+        models_to_fit (list of str): A list of models to fit to the data.
         batch_profile (:class:`~mdt.batch_utils.BatchProfile` or str): the batch profile to use,
             or the name of a batch profile to use. If not given it is auto detected.
         subjects_selection (:class:`~mdt.batch_utils.BatchSubjectSelection`): the subjects to use for processing.
             If None all subjects are processed.
         recalculate (boolean): If we want to recalculate the results if they are already present.
-        models_to_fit (list of str): A list of models to fit to the data. This overrides the models in
-                the batch config.
         cascade_subdir (boolean): if we want to create a subdirectory for every cascade model.
             Per default we output the maps of cascaded results in the same directory, this allows reusing cascaded
             results for other cascades (for example, if you cascade BallStick -> Noddi you can use the BallStick results
@@ -258,8 +257,9 @@ def batch_fit(data_folder, batch_profile=None, subjects_selection=None, recalcul
     if not mdt.utils.check_user_components():
         init_user_settings(pass_if_exists=True)
 
-    batch_fitting = BatchFitting(data_folder, batch_profile=batch_profile, subjects_selection=subjects_selection,
-                                 recalculate=recalculate, models_to_fit=models_to_fit, cascade_subdir=cascade_subdir,
+    batch_fitting = BatchFitting(data_folder, models_to_fit, batch_profile=batch_profile,
+                                 subjects_selection=subjects_selection,
+                                 recalculate=recalculate, cascade_subdir=cascade_subdir,
                                  cl_device_ind=cl_device_ind, double_precision=double_precision,
                                  tmp_results_dir=tmp_results_dir)
 

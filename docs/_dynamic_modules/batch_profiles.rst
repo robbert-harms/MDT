@@ -18,4 +18,6 @@ This makes batch processing in some instances as simple as using:
 
 .. code-block:: bash
 
-    $ mdt-batch-fit .
+    $ mdt-batch-fit . 'BallStick_r1 (Cascade)'
+
+To fit BallStick_r1 to all subjects found.

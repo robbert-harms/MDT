@@ -9,9 +9,10 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 meta_info = {'title': 'HCP WU-Minn',
-             'description': 'The profile for the WU-Minn data from the Human Connectome project',
-             'directory_layout':
-'''
+             'description': '''
+
+The profile for the WU-Minn data from the Human Connectome project',
+
 This assumes that you downloaded and extracted the WU-Minn data in one folder which gives one folder per subject.
 
 You can provide the noise standard deviation to use using a noise_std file containing a single float.
@@ -34,17 +35,17 @@ Optional items (these will take precedence if present):
 
 class HCP_WUMINN(SimpleBatchProfile):
 
-    def __init__(self, root_dir, use_gradient_deviations=False, **kwargs):
+    def __init__(self, base_directory, use_gradient_deviations=False, **kwargs):
         kwargs['output_base_dir'] = 'T1w/Diffusion/output'
         kwargs['auto_append_mask_name_to_output_sub_dir'] = False
-        super(HCP_WUMINN, self).__init__(root_dir, **kwargs)
+        super(HCP_WUMINN, self).__init__(base_directory, **kwargs)
         self.use_gradient_deviations = use_gradient_deviations
         self._constructor_kwargs.update(use_gradient_deviations=self.use_gradient_deviations)
 
     def _get_subjects(self):
         subjects = []
-        for subject_id in sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._root_dir, '*'))]):
-            pjoin = mdt.make_path_joiner(self._root_dir, subject_id, 'T1w', 'Diffusion')
+        for subject_id in sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._base_directory, '*'))]):
+            pjoin = mdt.make_path_joiner(self._base_directory, subject_id, 'T1w', 'Diffusion')
             if os.path.isdir(pjoin()):
                 subject_info = self._get_subject_in_directory(subject_id, pjoin)
                 if subject_info:

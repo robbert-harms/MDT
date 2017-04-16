@@ -53,6 +53,9 @@ class BatchFit(BasicShellApplication):
 
         parser.add_argument('data_folder', help='the directory with the subject to fit').completer = FilesCompleter()
 
+        parser.add_argument('models_to_fit', type=str, nargs='*',
+                            help="The models to fit, allows cascade models.")
+
         parser.add_argument('-b', '--batch_profile', default=None, choices=batch_profiles,
                             help='The batch profile (by name) to use during fitting. If not given a'
                                  'batch profile is auto-detected.')
@@ -88,9 +91,6 @@ class BatchFit(BasicShellApplication):
                             help="The id of the subjects we would like to fit. This reduces the set of "
                                  "subjects.")
 
-        parser.add_argument('--models-to-fit', type=str, nargs='*',
-                            help="The models to fit, this overrides the models in the batch profile.")
-
         parser.add_argument('--dry-run', dest='dry_run', action='store_true',
                             help="Shows what it will do without the dry run argument.")
         parser.set_defaults(dry_run=False)
@@ -112,9 +112,6 @@ class BatchFit(BasicShellApplication):
         if args.use_gradient_deviations is not None:
             batch_profile.use_gradient_deviations = args.use_gradient_deviations
 
-        if args.models_to_fit is not None:
-            batch_profile = batch_profile.with_models_to_fit(args.models_to_fit)
-
         subjects_selection = None
         if args.subjects_index or args.subjects_id:
             indices = args.subjects_index if args.subjects_index else []
@@ -129,6 +126,7 @@ class BatchFit(BasicShellApplication):
                 break
 
         mdt.batch_fit(os.path.realpath(args.data_folder),
+                      args.models_to_fit,
                       subjects_selection=subjects_selection,
                       batch_profile=batch_profile,
                       recalculate=args.recalculate,
