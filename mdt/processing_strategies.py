@@ -196,6 +196,11 @@ class ChunksProcessingStrategy(SimpleProcessingStrategy):
         total_nmr_voxels = np.count_nonzero(problem_data.mask)
         total_processed = (total_nmr_voxels - len(voxels_to_process)) + voxels_processed
 
+        def calculate_run_days(runtime):
+            if runtime > 24 * 60 * 60:
+                return runtime // 24 * 60 * 60
+            return 0
+
         run_time = timeit.default_timer() - start_time
         current_percentage = voxels_processed / (total_nmr_voxels - start_nmr_processed)
         if current_percentage > 0:
@@ -203,14 +208,18 @@ class ChunksProcessingStrategy(SimpleProcessingStrategy):
         else:
             remaining_time = None
 
+        run_time_str = str(calculate_run_days(run_time)) + ':' + time.strftime('%H:%M:%S', time.gmtime(run_time))
+        remaining_time_str = (str(calculate_run_days(remaining_time)) + ':' +
+                              time.strftime('%H:%M:%S', time.gmtime(remaining_time))) if remaining_time else '?'
+
         self._logger.info('Computations are at {0:.2%}, processing next {1} voxels ('
-                          '{2} voxels in total, {3} processed). Time spent: {4}, time left: {5} (h:m:s).'.
+                          '{2} voxels in total, {3} processed). Time spent: {4}, time left: {5} (d:h:m:s).'.
                           format(total_processed / total_nmr_voxels,
                                  len(voxel_indices),
                                  total_nmr_voxels,
                                  total_processed,
-                                 time.strftime('%H:%M:%S', time.gmtime(run_time)),
-                                 time.strftime('%H:%M:%S', time.gmtime(remaining_time)) if remaining_time else '?'))
+                                 run_time_str,
+                                 remaining_time_str))
 
         worker.process(voxel_indices)
 

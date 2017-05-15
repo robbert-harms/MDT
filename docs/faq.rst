@@ -70,6 +70,22 @@ That should have been done automatically when you used the Ubuntu PPA.
 Analysis
 ********
 
+How does NODDI in MDT compare to the NODDI toolbox?
+===================================================
+Please see the following figure for a graphical illustration of the comparison between the NODDI Matlab toolbox and MDT results.
+
+.. figure:: _static/noddi_comparison/noddi_comparison.png
+
+    Comparison between the NODDI Matlab implementation (top) and MDT (bottom).
+
+While both toolboxes have a high agreement in white matter there are some small differences visible in the CSF.
+These differences are most likely caused by NODDI model unidentifiability, i.e. a high dispersion can substitute for the Ball compartment in CSF making the results in CSF unpredictable.
+
+The NODDI Matlab results where computed using the NODDI Matlab toolbox by Dr. Gary Zhang, version 0.9 using Matlab 2012b on an Ubuntu 14.04 system.
+The MDT results where computed using MDT version 0.9.31 and MOT version 0.2.39 on the same system, using an AMD Fury X graphics card for the computations and
+using the cascade fixed initialization strategy ("NODDI (Cascade|fixed)") and the default Powell optimizer with a patience of 2.
+
+
 What do the "model protocol options" entries in the log file mean?
 ==================================================================
 This message represent itself either as "Applying model protocol options, we will use a subset of the protocol and DWI." or as "No model protocol options to apply, using original protocol."
