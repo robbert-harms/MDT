@@ -53,7 +53,9 @@ For example:
 
     class NODDI(DMRICompositeModelConfig):
         ...
-        dependencies = {
+        fixes = {
+            ...
+            'Ball.d': 3.0e-9,
             'NODDI_EC.dperp0': NODDITortuosityParameterDependency(
                 'NODDI_EC.d', 'w_ec.w', 'w_ic.w'),
             'NODDI_EC.kappa': 'NODDI_IC.kappa',
@@ -62,9 +64,9 @@ For example:
         }
 
 
-In this example, we added the attribute ``dependencies`` to our composite model.
-This attribute accepts a dictionary, with as key the name of the parameter to fix and as value the dependency, either a dependency object or a string.
-If a string is given as the dependency, MDT assumes it is a SimpleAssignment assignment.
+In this example, we used the attribute ``fixes`` to specify dependencies and parameter fixations.
+The attribute ``fixes`` accepts a dictionary with as key the name of the parameter and as value a scalar, a map or a dependency.
+The dependency can either be given as a string or as a dependency object.
 
 In the example above we added two simple assignment dependencies in which the theta and phi of the NODDI_EC compartment are locked to that of the NODDI_IC compartment.
 This dependency locks the NODDI_EC theta and phi to that of NODDI_IC assuring that both the intra cellular and extra cellular models reflect the same orientation.

@@ -43,14 +43,11 @@ class NODDI(DMRICompositeModelConfig):
     fixes = {'NODDI_IC.d': 1.7e-9,
              'NODDI_IC.R': 0.0,
              'NODDI_EC.d': 1.7e-9,
-             'Ball.d': 3.0e-9}
-
-    dependencies = {
-        'NODDI_EC.dperp0': NODDITortuosityParameterDependency('NODDI_EC.d', 'w_ec.w', 'w_ic.w'),
-        'NODDI_EC.kappa': 'NODDI_IC.kappa',
-        'NODDI_EC.theta': 'NODDI_IC.theta',
-        'NODDI_EC.phi': 'NODDI_IC.phi'
-    }
+             'Ball.d': 3.0e-9,
+             'NODDI_EC.dperp0': NODDITortuosityParameterDependency('NODDI_EC.d', 'w_ec.w', 'w_ic.w'),
+             'NODDI_EC.kappa': 'NODDI_IC.kappa',
+             'NODDI_EC.theta': 'NODDI_IC.theta',
+             'NODDI_EC.phi': 'NODDI_IC.phi'}
 
     post_optimization_modifiers = [
         ('NDI', lambda d: d['w_ic.w'] / (d['w_ic.w'] + d['w_ec.w'])),

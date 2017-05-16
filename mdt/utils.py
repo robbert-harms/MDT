@@ -37,6 +37,7 @@ from mot.cl_routines.mapping.error_measures import ErrorMeasures
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
 from mot.cl_routines.mapping.residual_calculator import ResidualCalculator
 from mot.mcmc_diagnostics import multivariate_ess, univariate_ess
+from mot.model_building.parameter_functions.dependencies import AbstractParameterDependency
 from mot.model_building.problem_data import AbstractProblemData
 from mot.utils import results_to_dict
 
@@ -301,11 +302,11 @@ class InitializationData(object):
 
 class SimpleInitializationData(InitializationData):
 
-    def __init__(self, inits=None, fixes=None, lower_bounds=None, upper_bounds=None):
+    def __init__(self, inits=None, fixes=None, lower_bounds=None, upper_bounds=None, unfix=None):
         """A storage class for initialization data during model fitting and sampling.
 
-        Every element is supposed to be a dictionary with as keys the name of a parameter and as value a scalar value,
-        a 3d/4d volume or a string which is taken to be a filename to a 3d/4d volume.
+        Every element is supposed to be a dictionary with as keys the name of a parameter and as value a scalar value
+        or a 3d/4d volume.
 
         Args:
             inits (dict): indicating the initialization values for the parameters. Example of use:
@@ -321,18 +322,29 @@ class SimpleInitializationData(InitializationData):
 
                     fixes = {'Ball.d': 3.0e-9}
 
-            lower_bounds (dict): the lower bounds per parameter, same syntax as the inits or fixes
-            upper_bounds (dict): the upper bounds per parameter, same syntax as the inits or fixes
+                As values it accepts scalars and maps but also strings defining dependencies.
+
+            lower_bounds (dict): the lower bounds per parameter
+            upper_bounds (dict): the upper bounds per parameter
+            unfix (list or tuple): the list of parameters to unfix
         """
         self._inits = inits or {}
         self._fixes = fixes or {}
         self._lower_bounds = lower_bounds or {}
         self._upper_bounds = upper_bounds or {}
+        self._unfix = unfix or []
 
     def apply_to_model(self, model, problem_data):
         def prepare_value(key, v):
             if is_scalar(v):
                 return v
+
+            if isinstance(v, six.string_types):
+                return v
+
+            if isinstance(v, AbstractParameterDependency):
+                return v
+
             return create_roi(v, problem_data.mask)
 
         if len(self._inits):
@@ -348,11 +360,15 @@ class SimpleInitializationData(InitializationData):
             for key, value in self.get_fixes().items():
                 model.fix(key, prepare_value(key, value))
 
+        if len(self._unfix):
+            for param_name in self._unfix:
+                model.unfix(param_name)
+
     def get_inits(self):
         return DeferredActionDict(self._resolve_value, self._inits)
 
     def get_fixes(self):
-        return DeferredActionDict(self._resolve_value, self._fixes)
+        return self._fixes
 
     def get_lower_bounds(self):
         return DeferredActionDict(self._resolve_value, self._lower_bounds)
@@ -1644,7 +1660,7 @@ def create_signal_estimates(model, problem_data, parameters):
     Args:
         model (str or model): the model or the name of the model to use for estimating the signals
         problem_data (DMRIProblemData): the problem data object, we will set this to the model
-        parameters (str or dict): either a directory file name or a dictionary containing the results
+        parameters (str or dict): either a directory file name or a dictionary containing optimization results
 
     Returns:
         ndarray: the matrix with the signal estimates per voxel

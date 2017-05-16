@@ -12,9 +12,9 @@ class SSFP_BallStick_r1_ExVivo(DMRICompositeModelConfig):
                (Weight(w_stick) * SSFP_Stick) )
     '''
     fixes = {'SSFP_Ball.d': 2.0e-9,
-             'SSFP_Stick.d': 0.6e-9}
-    dependencies = {# 'SSFP_Ball.d': 'SSFP_Stick.d',
-                    }
+             'SSFP_Stick.d': 0.6e-9,
+             # 'SSFP_Ball.d': 'SSFP_Stick.d'
+             }
     post_optimization_modifiers = [('FS', lambda results: 1 - results['w_ball.w'])]
 
 

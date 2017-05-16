@@ -1,15 +1,10 @@
-import inspect
 from copy import deepcopy
-
 import numpy as np
 import six
-
-import mot
 from mdt.components_loader import ComponentConfig, ComponentBuilder, method_binding_meta, get_component_class
 from mdt.models.composite import DMRICompositeModel
 from mdt.models.parsers.CompositeModelExpressionParser import parse
-from mot.model_building.evaluation_models import OffsetGaussianEvaluationModel, EvaluationModel
-from mot.model_building.parameter_functions.dependencies import SimpleAssignment
+from mot.model_building.evaluation_models import EvaluationModel
 from mot.model_building.trees import CompartmentModelTree
 
 __author__ = 'Robbert Harms'
@@ -34,17 +29,6 @@ class DMRICompositeModelConfig(ComponentConfig):
 
                 post_optimization_modifiers = [('SNIF', lambda d: 1 - d['Wcsf.w']),
                                            ...]
-        dependencies (dict): the dependencies between model parameters. Example:
-
-            .. code-block:: python
-
-                dependencies = {'Noddi_EC.kappa': SimpleAssignment('Noddi_IC.kappa'),
-                                'NODDI_EC.theta': 'NODDI_IC.theta',
-                                ...}
-
-            If a string is given it is interpreted as a SimpleAssignment dependency.
-            In the example above, both the kappa and theta parameters are fixed in the same way using
-            a simple assignment.
 
         model_expression (str): the model expression. For the syntax see:
             mdt.models.parsers.CompositeModelExpression.ebnf
@@ -61,7 +45,11 @@ class DMRICompositeModelConfig(ComponentConfig):
 
             .. code-block:: python
 
-                fixes = {'Ball.d': 3.0e-9}
+                fixes = {'Ball.d': 3.0e-9,
+                         'NODDI_EC.kappa': SimpleAssignment('NODDI_IC.kappa'),
+                         'NODDI_EC.theta': 'NODDI_IC.theta'}
+
+            Next to values, this also accepts strings as dependencies (or dependecy objects directly).
 
         upper_bounds (dict): indicating the upper bounds for the given parameters. Example:
 
@@ -97,7 +85,6 @@ class DMRICompositeModelConfig(ComponentConfig):
     ex_vivo_suitable = True
     description = ''
     post_optimization_modifiers = []
-    dependencies = {}
     model_expression = ''
     evaluation_model = 'OffsetGaussian'
     signal_noise_model = None
@@ -137,7 +124,6 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                     signal_noise_model=deepcopy(template.signal_noise_model),
                     enforce_weights_sum_to_one=template.enforce_weights_sum_to_one)
 
-                self.add_parameter_dependencies(_resolve_dependencies(deepcopy(template.dependencies)).items())
                 self.add_post_optimization_modifiers(deepcopy(template.post_optimization_modifiers))
 
                 for full_param_name, value in template.inits.items():
@@ -185,24 +171,6 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                 return np.unique(protocol_indices)
 
         return AutoCreatedDMRICompositeModel
-
-
-def _resolve_dependencies(dependencies):
-    """Resolve string dependencies to SimpleAssignment objects in the set of dependencies.
-
-    Args:
-        dependencies (dict): the dependencies in which to resolve strings
-
-    Returns:
-        dict: the dict of proper dependencies objects
-    """
-    return_val = {}
-    for param, dependency in dependencies.items():
-        if isinstance(dependency, six.string_types):
-            return_val.update({param: SimpleAssignment(dependency)})
-        else:
-            return_val.update({param: dependency})
-    return return_val
 
 
 def _resolve_evaluation_model(evaluation_model):
