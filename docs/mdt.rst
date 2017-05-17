@@ -18,128 +18,128 @@ Subpackages
 Submodules
 ----------
 
-mdt.batch_utils module
-----------------------
+mdt\.batch\_utils module
+------------------------
 
 .. automodule:: mdt.batch_utils
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.components_loader module
-----------------------------
+mdt\.components\_loader module
+------------------------------
 
 .. automodule:: mdt.components_loader
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.configuration module
-------------------------
+mdt\.configuration module
+-------------------------
 
 .. automodule:: mdt.configuration
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.deferred_mappings module
-----------------------------
+mdt\.deferred\_mappings module
+------------------------------
 
 .. automodule:: mdt.deferred_mappings
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.exceptions module
----------------------
+mdt\.exceptions module
+----------------------
 
 .. automodule:: mdt.exceptions
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.log_handlers module
------------------------
+mdt\.log\_handlers module
+-------------------------
 
 .. automodule:: mdt.log_handlers
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.masking module
-------------------
+mdt\.masking module
+-------------------
 
 .. automodule:: mdt.masking
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.model_fitting module
-------------------------
+mdt\.model\_fitting module
+--------------------------
 
 .. automodule:: mdt.model_fitting
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.model_protocol_problem module
----------------------------------
+mdt\.model\_protocol\_problem module
+------------------------------------
 
 .. automodule:: mdt.model_protocol_problem
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.model_sampling module
--------------------------
+mdt\.model\_sampling module
+---------------------------
 
 .. automodule:: mdt.model_sampling
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.nifti module
-----------------
+mdt\.nifti module
+-----------------
 
 .. automodule:: mdt.nifti
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.processing_strategies module
---------------------------------
+mdt\.processing\_strategies module
+----------------------------------
 
 .. automodule:: mdt.processing_strategies
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.protocols module
---------------------
+mdt\.protocols module
+---------------------
 
 .. automodule:: mdt.protocols
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.shell_utils module
-----------------------
+mdt\.shell\_utils module
+------------------------
 
 .. automodule:: mdt.shell_utils
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.user_script_info module
----------------------------
+mdt\.user\_script\_info module
+------------------------------
 
 .. automodule:: mdt.user_script_info
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.utils module
-----------------
+mdt\.utils module
+-----------------
 
 .. automodule:: mdt.utils
     :members:

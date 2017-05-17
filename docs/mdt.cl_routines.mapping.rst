@@ -1,19 +1,19 @@
-mdt.cl_routines.mapping package
-===============================
+mdt\.cl\_routines\.mapping package
+==================================
 
 Submodules
 ----------
 
-mdt.cl_routines.mapping.calculate_eigenvectors module
------------------------------------------------------
+mdt\.cl\_routines\.mapping\.calculate\_eigenvectors module
+----------------------------------------------------------
 
 .. automodule:: mdt.cl_routines.mapping.calculate_eigenvectors
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.cl_routines.mapping.dti_measures module
--------------------------------------------
+mdt\.cl\_routines\.mapping\.dti\_measures module
+------------------------------------------------
 
 .. automodule:: mdt.cl_routines.mapping.dti_measures
     :members:

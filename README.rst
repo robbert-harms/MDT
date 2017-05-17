@@ -2,18 +2,18 @@
 Maastricht Diffusion Toolbox
 ############################
 The Maastricht Diffusion Toolbox, MDT, is a framework and library for parallelized (GPU and multi-core CPU) diffusion Magnetic Resonance Imaging (MRI) modeling.
-MDT's object oriented and modular design allows arbitrary user specification and combination of: biophysical MRI compartment models, diffusion- and T1, T2, T2* based microstructure models,
-likelihood functions and optimization algorithms. MDT was designed with compatibility in mind and adheres to input, output and variable names conventions used by other related software tools.
+MDT's object oriented and modular design allows arbitrary user specification and combination of biophysical MRI compartment models, diffusion- and T1, T2, T2* based microstructure models,
+likelihood functions and optimization algorithms.
+MDT was designed with compatibility in mind and adheres to input, output and variable naming conventions used by other related software tools.
 Many diffusion and relaxometry microstructure models are included, and new models can be added simply by adding Python script files.
 MDT can be extended to other modalities and other parametric models estimated from data volumes varying along controlled parameters (such as b-values, diffusion times, TE, TM, flip angle, etc).
-The parallelized accelerated computations allow for tens to hundred times faster model fitting, even on standard GPU hardware,
-which makes MDT ideal for large group studies or population studies.
+The parallelized accelerated computations allow for tens to hundred times faster model fitting, even on standard GPU (and/or CPU) hardware, making MDT ideal for large group studies or population studies.
 
 
 *******
 Summary
 *******
-* Free software: LGPL v3 license
+* Free Open Source Software: LGPL v3 license
 * Python and OpenCL based
 * GUI, command line and python interface
 * Scriptable modeling: write new compartment equations and combine compartments into models
@@ -64,9 +64,8 @@ For complete instructions please view the `complete documentation <https://maast
 * Install Anaconda Python 3.5
 * Open a terminal and type: ``pip install mdt``
 
-Please note that Mac support is experimental due to the unstable nature of the OpenCL drivers in Mac.
-Users running Running MDT with the GPU as selected device may experience crashes.
+Please note that Mac support is experimental due to the unstable nature of the OpenCL drivers in Mac, that is, users running MDT with the GPU as selected device may experience crashes.
 Running MDT in the CPU seems to work though.
 
 
-For more information and installation instructions, please see: https://maastrichtdiffusiontoolbox.readthedocs.org
+For more information and full installation instructions see https://maastrichtdiffusiontoolbox.readthedocs.org

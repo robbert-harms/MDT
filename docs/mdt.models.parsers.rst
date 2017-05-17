@@ -1,19 +1,19 @@
-mdt.models.parsers package
-==========================
+mdt\.models\.parsers package
+============================
 
 Submodules
 ----------
 
-mdt.models.parsers.CompositeModelExpression module
---------------------------------------------------
+mdt\.models\.parsers\.CompositeModelExpression module
+-----------------------------------------------------
 
 .. automodule:: mdt.models.parsers.CompositeModelExpression
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.models.parsers.CompositeModelExpressionParser module
---------------------------------------------------------
+mdt\.models\.parsers\.CompositeModelExpressionParser module
+-----------------------------------------------------------
 
 .. automodule:: mdt.models.parsers.CompositeModelExpressionParser
     :members:

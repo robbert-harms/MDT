@@ -1,5 +1,5 @@
-mdt.visualization package
-=========================
+mdt\.visualization package
+==========================
 
 Subpackages
 -----------
@@ -11,32 +11,32 @@ Subpackages
 Submodules
 ----------
 
-mdt.visualization.dict_conversion module
-----------------------------------------
+mdt\.visualization\.dict\_conversion module
+-------------------------------------------
 
 .. automodule:: mdt.visualization.dict_conversion
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.visualization.layouts module
---------------------------------
+mdt\.visualization\.layouts module
+----------------------------------
 
 .. automodule:: mdt.visualization.layouts
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.visualization.samples module
---------------------------------
+mdt\.visualization\.samples module
+----------------------------------
 
 .. automodule:: mdt.visualization.samples
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.visualization.utils module
-------------------------------
+mdt\.visualization\.utils module
+--------------------------------
 
 .. automodule:: mdt.visualization.utils
     :members:

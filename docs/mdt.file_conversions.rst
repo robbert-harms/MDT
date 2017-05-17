@@ -1,19 +1,19 @@
-mdt.file_conversions package
-============================
+mdt\.file\_conversions package
+==============================
 
 Submodules
 ----------
 
-mdt.file_conversions.npy module
--------------------------------
+mdt\.file\_conversions\.npy module
+----------------------------------
 
 .. automodule:: mdt.file_conversions.npy
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.file_conversions.trackmark module
--------------------------------------
+mdt\.file\_conversions\.trackmark module
+----------------------------------------
 
 .. automodule:: mdt.file_conversions.trackmark
     :members:

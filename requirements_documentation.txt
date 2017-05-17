@@ -7,3 +7,4 @@ nibabel
 argcomplete
 grako
 sphinx-argparse
+sphinxcontrib-bibtex

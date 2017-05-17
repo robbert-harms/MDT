@@ -1,11 +1,11 @@
-mdt.gui.maps_visualizer.renderers package
-=========================================
+mdt\.gui\.maps\_visualizer\.renderers package
+=============================================
 
 Submodules
 ----------
 
-mdt.gui.maps_visualizer.renderers.matplotlib_renderer module
-------------------------------------------------------------
+mdt\.gui\.maps\_visualizer\.renderers\.matplotlib\_renderer module
+------------------------------------------------------------------
 
 .. automodule:: mdt.gui.maps_visualizer.renderers.matplotlib_renderer
     :members:

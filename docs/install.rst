@@ -8,7 +8,7 @@ Ubuntu / Debian Linux
 *********************
 Using the package manager, installation in Ubuntu and Debian is relatively straightforward.
 
-For **Ubuntu >= 16** the MOT package can be installed with a Personal Package Archive (PPA) using:
+For **Ubuntu >= 16** the MOT package can be installed from our Personal Package Archive (PPA) using:
 
 .. code-block:: bash
 
@@ -47,7 +47,7 @@ After installation please continue with the section `Initialization`_ below.
 Windows
 *******
 MDT uses the Maastricht Optimization Toolbox (MOT) for all analysis computations.
-Please install MOT first (https://mot.readthedocs.io/en/latest/install.html#windows) and afterwards this installation should be fairly straightforward.
+Please install MOT first (https://mot.readthedocs.io/en/latest/install.html#windows). Afterwards this installation should be fairly straightforward.
 
 Note that MDT depends on PyQt5 so make sure you do not attempt to run it in an environment with PyQt4 or earlier.
 If you followed the MOT install guide and installed the Anaconda version 4.2 or higher with Python3.x, you should be fine.
@@ -101,7 +101,18 @@ in your bash or Anaconda console to install the MDT model library to your home f
 Test the installation
 *********************
 If all went well and MDT is installed and initialized, we can now perform some basic tests to see if everything works well.
-Type in your console:
+The first command to try is:
+
+.. code-block:: bash
+
+    $ mdt-list-devices
+
+which should print to the console a list of available CL devices.
+If this crashes or if there are no devices returned, please check to see if your OpenCL drivers are correctly installed.
+If this crashes with an exception then most likely the OpenCL environment can not be found, see :ref:`faq_clGetPlatformIDs_failed`.
+If it works but no devices can be found then please refer to the section :ref:`faq_no_opencl_device_found`.
+
+Next, one could try starting the graphical interface using:
 
 .. code-block:: bash
 
@@ -113,18 +124,5 @@ or, equivalently,
 
     $ MDT
 
-to check if the GUI works.
-
-If this fails with the message ``pyopencl.cffi_cl.LogicError: clGetPlatformIDs failed: <unknown error -1001>``, then
-PyOpenCL can not find the OpenCL environment on your computer.
-Please refer to the section :ref:`faq_clGetPlatformIDs_failed` for help on this problem.
-
-Another command to try is:
-
-.. code-block:: bash
-
-    $ mdt-list-devices
-
-This should print a list of OpenCL devices in your computer.
-If this crashes with an exception then most likely the OpenCL environment can not be found, see :ref:`faq_clGetPlatformIDs_failed`.
-If it works but no devices can be found then please refer to the section :ref:`faq_no_opencl_device_found`.
+This should start the GUI. If there are problems in this stage it is most likely related to Qt problems.
+Please check if you have installed the Qt5 package and not the Qt4 package.

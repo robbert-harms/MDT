@@ -1,5 +1,5 @@
-mdt.gui.model_fit package
-=========================
+mdt\.gui\.model\_fit package
+============================
 
 Subpackages
 -----------
@@ -12,16 +12,16 @@ Subpackages
 Submodules
 ----------
 
-mdt.gui.model_fit.qt_main module
---------------------------------
+mdt\.gui\.model\_fit\.qt\_main module
+-------------------------------------
 
 .. automodule:: mdt.gui.model_fit.qt_main
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.gui.model_fit.utils module
-------------------------------
+mdt\.gui\.model\_fit\.utils module
+----------------------------------
 
 .. automodule:: mdt.gui.model_fit.utils
     :members:

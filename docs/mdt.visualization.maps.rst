@@ -1,19 +1,19 @@
-mdt.visualization.maps package
-==============================
+mdt\.visualization\.maps package
+================================
 
 Submodules
 ----------
 
-mdt.visualization.maps.base module
-----------------------------------
+mdt\.visualization\.maps\.base module
+-------------------------------------
 
 .. automodule:: mdt.visualization.maps.base
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.visualization.maps.matplotlib_renderer module
--------------------------------------------------
+mdt\.visualization\.maps\.matplotlib\_renderer module
+-----------------------------------------------------
 
 .. automodule:: mdt.visualization.maps.matplotlib_renderer
     :members:

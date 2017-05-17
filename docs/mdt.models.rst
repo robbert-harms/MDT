@@ -1,5 +1,5 @@
-mdt.models package
-==================
+mdt\.models package
+===================
 
 Subpackages
 -----------
@@ -11,32 +11,32 @@ Subpackages
 Submodules
 ----------
 
-mdt.models.base module
-----------------------
+mdt\.models\.base module
+------------------------
 
 .. automodule:: mdt.models.base
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.models.cascade module
--------------------------
+mdt\.models\.cascade module
+---------------------------
 
 .. automodule:: mdt.models.cascade
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.models.compartments module
-------------------------------
+mdt\.models\.compartments module
+--------------------------------
 
 .. automodule:: mdt.models.compartments
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.models.composite module
----------------------------
+mdt\.models\.composite module
+-----------------------------
 
 .. automodule:: mdt.models.composite
     :members:
