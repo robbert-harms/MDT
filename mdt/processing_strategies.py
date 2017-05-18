@@ -566,7 +566,7 @@ class SamplingProcessingWorker(SimpleModelProcessingWorker):
         self._tmp_store_mh_state(roi_indices, sampling_output.get_mh_state())
 
         self._write_volumes(roi_indices, results_to_dict(sampling_output.get_current_chain_position(),
-                                                         self._model.get_optimized_param_names()),
+                                                         self._model.get_free_param_names()),
                             os.path.join(self._tmp_storage_dir, 'chain_end_point'))
 
         if self._store_samples:

@@ -1652,7 +1652,10 @@ def recalculate_error_measures(model, problem_data, data_dir, output_dir=None, e
 
 
 def create_signal_estimates(model, problem_data, parameters):
-    """Estimate the signals of a given model on the given data.
+    """Create the signals estimates for your estimated model parameters.
+
+    Use this if you have fitted a model to some data and now wish to obtain the corresponding signal estimates.
+    This function is basically a convenience wrapper around :func:`simulate_signals`.
 
     Args:
         model (str or model): the model or the name of the model to use for estimating the signals
@@ -1660,7 +1663,7 @@ def create_signal_estimates(model, problem_data, parameters):
         parameters (str or dict): either a directory file name or a dictionary containing optimization results
 
     Returns:
-        ndarray: the matrix with the signal estimates per voxel
+        ndarray: the 4d array with the signal estimates per voxel
     """
     if isinstance(model, string_types):
         model = get_model(model)
@@ -1668,12 +1671,36 @@ def create_signal_estimates(model, problem_data, parameters):
     if isinstance(parameters, string_types):
         parameters = get_all_image_data(parameters)
 
-    model.set_problem_data(problem_data)
+    # model.set_problem_data(problem_data)
+
+    # calculator = CalculateModelEstimates()
+    # results = calculator.calculate(model, create_roi(parameters, problem_data.mask))
+
+    # return restore_volumes(results, problem_data.mask)
+
+    results = simulate_signals(model, problem_data.protocol, create_roi(parameters, problem_data.mask))
+    return restore_volumes(results, problem_data.mask)
+
+
+def simulate_signals(model, protocol, parameters):
+    """Estimate the signals of a given model for the given combination of protocol and parameters.
+
+    Args:
+        model (str or model): the model or the name of the model to use for estimating the signals
+        protocol (mdt.protocols.Protocol): the protocol we will use for the signal simulation
+        parameters (dict or ndarray): the parameters for which to simulate the signal. It can either be a matrix with
+            for every row every model parameter, or a dictionary with for every parameter a 1d array.
+
+    Returns:
+        ndarray: a 2d array with for every parameter combination the simulated model signal
+    """
+    if isinstance(model, string_types):
+        model = get_model(model)
+
+    model.set_problem_data(MockDMRIProblemData(protocol=protocol))
 
     calculator = CalculateModelEstimates()
-    results = calculator.calculate(model, create_roi(parameters, problem_data.mask))
-
-    return restore_volumes(results, problem_data.mask)
+    return calculator.calculate(model, parameters)
 
 
 def natural_key_sort_cb(_str):
@@ -1778,7 +1805,7 @@ def post_process_samples(model, sampling_output):
     """
     samples = sampling_output.get_samples()
 
-    samples_dict = results_to_dict(samples, model.get_optimized_param_names())
+    samples_dict = results_to_dict(samples, model.get_free_param_names())
     volume_maps = model.add_extra_result_maps(model.samples_to_statistics(samples_dict))
 
     errors = ResidualCalculator().calculate(model, volume_maps)
@@ -1789,7 +1816,7 @@ def post_process_samples(model, sampling_output):
     volume_maps.update(MultivariateESS=mv_ess)
 
     uv_ess = univariate_ess(samples, method='standard_error')
-    uv_ess_maps = results_to_dict(uv_ess, [a + '.UnivariateESS' for a in model.get_optimized_param_names()])
+    uv_ess_maps = results_to_dict(uv_ess, [a + '.UnivariateESS' for a in model.get_free_param_names()])
     volume_maps.update(uv_ess_maps)
 
     return samples_dict, volume_maps
@@ -1806,7 +1833,7 @@ def post_process_optimization(model, optimization_results):
         dict: the output maps we want to store
     """
     end_points = optimization_results.get_optimization_result()
-    results = model.add_extra_result_maps(results_to_dict(end_points, model.get_optimized_param_names()))
+    results = model.add_extra_result_maps(results_to_dict(end_points, model.get_free_param_names()))
     results.update({'ReturnCodes': optimization_results.get_return_codes()})
     results.update(optimization_results.get_error_measures())
     return results
