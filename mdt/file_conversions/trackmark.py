@@ -25,7 +25,7 @@ class TrackMark(object):
 
         Args:
             tvl_filename (str): the filename to write to
-            tvl_header (:class:`list`): the header for the TVL file. This is a list of either 4 or 10 entries.
+            tvl_header (:class:`list` or tuple): the header for the TVL file. This is a list of either 4 or 10 entries.
                 4 entries: [version, res, gap, offset]
                 10 entries: [version, x_res, x_gap, x_offset, y_res, y_gap, y_offset, z_res, z_gap, z_offset]
             direction_pairs (list of ndarrays): The list with direction pairs, only three are used.
@@ -167,8 +167,7 @@ class TrackMark(object):
 
         conversion_profile = conversion_profile or get_trackmark_conversion_profile(model_name)
         direction_pairs, volumes = conversion_profile.get_info(input_folder)
-
-        tvl_header = (1, 1.8, 0, 0)
+        tvl_header = conversion_profile.get_tvl_header(input_folder)
 
         TrackMark.write_rawmaps(output_folder, volumes)
         TrackMark.write_tvl_direction_pairs(output_folder + '/master.tvl', tvl_header, direction_pairs)
@@ -207,9 +206,21 @@ class TrackMarkConversionProfile(object):
             input_folder (str): the folder containing the niftis to convert
 
         Returns:
-            tuple: the (direction_paris, volumes) tuple. The first should contain the direction pairs
+            tuple: the (direction_pairs, volumes) tuple. The first should contain the direction pairs
                 needed for the TVL output, the second is the list of volumes to write as rawmaps.
         """
+        raise NotImplementedError()
+
+    def get_tvl_header(self, input_folder):
+        """Get the TVL header we use for the TVL output.
+
+        Args:
+            input_folder (str): the folder containing the niftis to convert
+
+        Returns:
+            tuple: the tvl header data
+        """
+        raise NotImplementedError()
 
 
 class _TMCP_BallStick_r1(TrackMarkConversionProfile):
@@ -225,6 +236,9 @@ class _TMCP_BallStick_r1(TrackMarkConversionProfile):
         direction_pairs = list(zip(vector_directions, vector_magnitudes))[:3]
 
         return direction_pairs, volumes
+
+    def get_tvl_header(self, input_folder):
+        return 1, load_nifti(os.path.join(input_folder, 'Stick.vec0')).get_header().get_zooms()[0], 0, 0
 
 
 class _TMCP_BallStick_r2(TrackMarkConversionProfile):
@@ -251,6 +265,9 @@ class _TMCP_BallStick_r2(TrackMarkConversionProfile):
 
         return direction_pairs, volumes
 
+    def get_tvl_header(self, input_folder):
+        return 1, load_nifti(os.path.join(input_folder, 'Stick0.vec0')).get_header().get_zooms()[0], 0, 0
+
 
 class _TMCP_BallStick_r3(TrackMarkConversionProfile):
 
@@ -276,6 +293,9 @@ class _TMCP_BallStick_r3(TrackMarkConversionProfile):
 
         return direction_pairs, volumes
 
+    def get_tvl_header(self, input_folder):
+        return 1, load_nifti(os.path.join(input_folder, 'Stick0.vec0')).get_header().get_zooms()[0], 0, 0
+
 
 class _TMCP_CHARMED_r1(TrackMarkConversionProfile):
 
@@ -290,6 +310,9 @@ class _TMCP_CHARMED_r1(TrackMarkConversionProfile):
         direction_pairs = list(zip(vector_directions, vector_magnitudes))[:3]
 
         return direction_pairs, volumes
+
+    def get_tvl_header(self, input_folder):
+        return 1, load_nifti(os.path.join(input_folder, 'CHARMEDRestricted0.vec0')).get_header().get_zooms()[0], 0, 0
 
 
 class _TMCP_CHARMED_r2(TrackMarkConversionProfile):
@@ -316,6 +339,9 @@ class _TMCP_CHARMED_r2(TrackMarkConversionProfile):
 
         return direction_pairs, volumes
 
+    def get_tvl_header(self, input_folder):
+        return 1, load_nifti(os.path.join(input_folder, 'CHARMEDRestricted0.vec0')).get_header().get_zooms()[0], 0, 0
+
 
 class _TMCP_CHARMED_r3(TrackMarkConversionProfile):
 
@@ -341,6 +367,9 @@ class _TMCP_CHARMED_r3(TrackMarkConversionProfile):
 
         return direction_pairs, volumes
 
+    def get_tvl_header(self, input_folder):
+        return 1, load_nifti(os.path.join(input_folder, 'CHARMEDRestricted0.vec0')).get_header().get_zooms()[0], 0, 0
+
 
 class _TMCP_NODDI(TrackMarkConversionProfile):
 
@@ -355,6 +384,9 @@ class _TMCP_NODDI(TrackMarkConversionProfile):
         direction_pairs = list(zip(vector_directions, vector_magnitudes))[:3]
 
         return direction_pairs, volumes
+
+    def get_tvl_header(self, input_folder):
+        return 1, load_nifti(os.path.join(input_folder, 'NODDI_IC.vec0')).get_header().get_zooms()[0], 0, 0
 
 
 class _TMCP_Tensor(TrackMarkConversionProfile):
@@ -373,3 +405,6 @@ class _TMCP_Tensor(TrackMarkConversionProfile):
         direction_pairs = list(zip(vector_directions, vector_magnitudes))[:3]
 
         return direction_pairs, volumes
+
+    def get_tvl_header(self, input_folder):
+        return 1, load_nifti(os.path.join(input_folder, 'Tensor.sorted_vec0')).get_header().get_zooms()[0], 0, 0
