@@ -1031,9 +1031,6 @@ def sort_volumes_per_voxel(input_volumes, sort_matrix):
             if len(data.shape) < 4:
                 data = data[..., None]
 
-            if data.shape[3] > 1:
-                raise ValueError('Can not sort input volumes where one has more than one items on the 4th dimension.')
-
             tmp.append(data)
         return tmp
 

@@ -536,10 +536,10 @@ def sort_maps(input_maps, reversed_sort=False, sort_index_matrix=None):
     """Sort the given maps.
 
     This first creates a sort matrix to index the maps in sorted order per voxel. Next, it creates the output
-    maps for the maps we sort on. If extra_maps_to_sort is given it should be of the same length as the maps_to_sort_on.
+    maps for the maps we sort on.
 
     Args:
-        input_maps (:class:`list`): a list of string (filenames) or ndarrays we will use and compare
+        input_maps (:class:`list`): a list of string (filenames) or ndarrays we will sort
         reversed_sort (boolean): if we want to sort from large to small instead of small to large.
             This is not used if a sort index map is provided.
         sort_index_matrix (ndarray): if given we use this sort index map instead of generating one by sorting the

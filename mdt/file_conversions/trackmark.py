@@ -231,7 +231,7 @@ class _TMCP_BallStick_r1(TrackMarkConversionProfile):
         volumes = get_all_image_data(input_folder, map_names=maps_to_convert, deferred=True)
 
         vector_directions = [load_nifti(os.path.join(input_folder, 'Stick.vec0')).get_data()]
-        vector_magnitudes = [load_nifti(os.path.join(input_folder, 'w_stick.w')).get_data() * 1e-2]
+        vector_magnitudes = [load_nifti(os.path.join(input_folder, 'w_stick.w')).get_data() * 1e-3]
 
         direction_pairs = list(zip(vector_directions, vector_magnitudes))[:3]
 
@@ -259,7 +259,7 @@ class _TMCP_BallStick_r2(TrackMarkConversionProfile):
         volumes.update(dict(zip(['w_stick{}.w'.format(i) for i in range(2)], sorted_weights)))
 
         vector_directions = sorted_vecs
-        vector_magnitudes = [v * 1e-2 for v in sorted_weights]
+        vector_magnitudes = [v * 1e-3 for v in sorted_weights]
 
         direction_pairs = list(zip(vector_directions, vector_magnitudes))[:3]
 
@@ -287,7 +287,7 @@ class _TMCP_BallStick_r3(TrackMarkConversionProfile):
         volumes.update(dict(zip(['w_stick{}.w'.format(i) for i in range(3)], sorted_weights)))
 
         vector_directions = sorted_vecs
-        vector_magnitudes = [v * 1e-2 for v in sorted_weights]
+        vector_magnitudes = [v * 1e-3 for v in sorted_weights]
 
         direction_pairs = list(zip(vector_directions, vector_magnitudes))[:3]
 
@@ -305,7 +305,7 @@ class _TMCP_CHARMED_r1(TrackMarkConversionProfile):
         volumes = get_all_image_data(input_folder, map_names=maps_to_convert, deferred=True)
 
         vector_directions = [load_nifti(os.path.join(input_folder, 'CHARMEDRestricted0.vec0')).get_data()]
-        vector_magnitudes = [load_nifti(os.path.join(input_folder, 'w_res0.w')).get_data() * 1e-2]
+        vector_magnitudes = [load_nifti(os.path.join(input_folder, 'w_res0.w')).get_data() * 1e-3]
 
         direction_pairs = list(zip(vector_directions, vector_magnitudes))[:3]
 
@@ -333,7 +333,7 @@ class _TMCP_CHARMED_r2(TrackMarkConversionProfile):
         volumes.update(dict(zip(['CHARMEDRestricted{}.w'.format(i) for i in range(2)], sorted_weights)))
 
         vector_directions = sorted_vecs
-        vector_magnitudes = [v * 1e-2 for v in sorted_weights]
+        vector_magnitudes = [v * 1e-3 for v in sorted_weights]
 
         direction_pairs = list(zip(vector_directions, vector_magnitudes))[:3]
 
@@ -361,7 +361,7 @@ class _TMCP_CHARMED_r3(TrackMarkConversionProfile):
         volumes.update(dict(zip(['CHARMEDRestricted{}.w'.format(i) for i in range(3)], sorted_weights)))
 
         vector_directions = sorted_vecs
-        vector_magnitudes = [v * 1e-2 for v in sorted_weights]
+        vector_magnitudes = [v * 1e-3 for v in sorted_weights]
 
         direction_pairs = list(zip(vector_directions, vector_magnitudes))[:3]
 
@@ -379,7 +379,7 @@ class _TMCP_NODDI(TrackMarkConversionProfile):
         volumes = get_all_image_data(input_folder, map_names=maps_to_convert, deferred=True)
 
         vector_directions = [load_nifti(os.path.join(input_folder, 'NODDI_IC.vec0')).get_data()]
-        vector_magnitudes = [load_nifti(os.path.join(input_folder, 'w_ic.w')).get_data() * 1e-2]
+        vector_magnitudes = [load_nifti(os.path.join(input_folder, 'w_ic.w')).get_data() * 1e-3]
 
         direction_pairs = list(zip(vector_directions, vector_magnitudes))[:3]
 
