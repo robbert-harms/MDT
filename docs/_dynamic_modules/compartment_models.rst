@@ -7,15 +7,19 @@ The compartment models are the building blocks of the composite models.
 They consists in basis of two parts, a list of parameters (see :ref:`dynamic_modules_parameters`) and the model code in OpenCL C (see :ref:`concepts_cl_code`).
 At runtime, MDT loads the C code of the compartment model and combines it with the other compartments to form the composite model.
 
-The compartment models must be defined in a ``.py`` file where the **filename matches** the **class name** and it only allows for **one** compartment **per file**.
+The compartment models must be defined in a ``.py`` file where the **filename matches the class name** and it only allows for **one compartment per file**.
 For example, the following example compartment model is named ``Stick`` and must therefore be contained in a file named ``Stick.py``::
 
     class Stick(CompartmentConfig):
 
         parameter_list = ('g', 'b', 'd', 'theta', 'phi')
         cl_code = '''
-            return exp(-b * d * pown(dot(g, (mot_float_type4)(cos(phi) * sin(theta),
-                                                              sin(phi) * sin(theta), cos(theta), 0.0)), 2));
+            mot_float_type4 n = (mot_float_type4)(cos(phi) * sin(theta),
+                                                  sin(phi) * sin(theta),
+                                                  cos(theta),
+                                                  0);
+
+            return exp(-b * d * pown(dot(g, n), 2));
         '''
 
 
@@ -24,8 +28,8 @@ This ``Stick`` example contains all the basic definitions required for a compart
 
 Defining parameters
 ===================
-The elements of the parameter list can either be string, referencing one of the parameters defined in the dynamically loadable parameters (like shown in the example above),
-or it can directly be an instance of a parameter. For example, this is also a valid parameter list::
+The elements of the parameter list can either be string referencing one of the parameters defined in the dynamically loadable parameters (like shown in the example above),
+or it can be a direct instance of a parameter. For example, this is also a valid parameter list::
 
     class special_param(FreeParameterConfig):
         ...
@@ -56,7 +60,7 @@ The following is an example of splitting the CL code from the compartment model 
 
 .. code-block:: c
 
-    mot_float_type cmStick(
+    double cmStick(
         const mot_float_type4 g,
         const mot_float_type b,
         const mot_float_type d,
@@ -106,8 +110,9 @@ In compartments, one can add extra/additional result maps by adding the bound fu
         ...
         @bind_function
         def get_extra_results_maps(self, results_dict):
-            return self._get_vector_result_maps(results_dict[self.name + '.theta'],
-                                                results_dict[self.name + '.phi'])
+            return self._get_vector_result_maps(
+                            results_dict[self.name + '.theta'],
+                            results_dict[self.name + '.phi'])
 
 
 In this example we added the (x, y, z) component vector to the results for the Stick compartment.

@@ -81,7 +81,7 @@ Please see the following figure for a graphical comparison between the NODDI Mat
 For all practical purposes both toolboxes are in high agreement in white matter.
 There are some small differences visible in the CSF.
 These differences are caused by NODDI model unidentifiability, that is, the intracellular compartment with a high dispersion can substitute
-for the Ball compartment in CSF.
+for the Ball compartment in CSF (this is similar to the findings in Jelescu 2015 :cite:`Jelescu2015`).
 
 The NODDI Matlab results where computed using the NODDI Matlab toolbox by Dr. Gary Zhang, version 0.9 with Matlab 2012b on an Ubuntu 14.04 system.
 The MDT results where computed using MDT version 0.9.31 and MOT version 0.2.39 on the same Ubuntu system, using an AMD Fury X graphics card for the computations.
@@ -104,3 +104,11 @@ This standard deviation is commonly estimated using an average of per-voxel esti
 When a different mask is used there are different voxels used for the standard deviation estimation and hence the resulting value differs.
 
 To prevent this from happening it is suggested that researchers estimate the noise std. beforehand using a whole brain mask and use that value in all other analysis.
+
+
+.. rubric:: References
+
+.. bibliography:: references.bib
+    :cited:
+    :style: plain
+    :filter: author % "Jelescu"

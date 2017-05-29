@@ -19,7 +19,6 @@ from scipy.special import jnp_zeros
 from six import string_types
 
 import mot.utils
-from mdt.nifti import load_nifti, write_nifti, write_all_as_nifti, get_all_image_data
 from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
 from mdt.components_loader import get_model
 from mdt.configuration import get_config_dir
@@ -30,9 +29,9 @@ from mdt.data_loaders.protocol import autodetect_protocol_loader
 from mdt.deferred_mappings import DeferredActionDict, DeferredActionTuple
 from mdt.exceptions import NoiseStdEstimationNotPossible
 from mdt.log_handlers import ModelOutputLogHandler
+from mdt.nifti import load_nifti, write_nifti, write_all_as_nifti, get_all_image_data
 from mdt.protocols import load_protocol, write_protocol
 from mot.cl_environments import CLEnvironmentFactory
-from mot.cl_routines.mapping.calculate_model_estimates import CalculateModelEstimates
 from mot.cl_routines.mapping.error_measures import ErrorMeasures
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
 from mot.cl_routines.mapping.residual_calculator import ResidualCalculator
@@ -1649,58 +1648,6 @@ def recalculate_error_measures(model, problem_data, data_dir, output_dir=None, e
 
     output_dir = output_dir or data_dir
     write_all_as_nifti(volumes, output_dir, problem_data.volume_header)
-
-
-def create_signal_estimates(model, problem_data, parameters):
-    """Create the signals estimates for your estimated model parameters.
-
-    Use this if you have fitted a model to some data and now wish to obtain the corresponding signal estimates.
-    This function is basically a convenience wrapper around :func:`simulate_signals`.
-
-    Args:
-        model (str or model): the model or the name of the model to use for estimating the signals
-        problem_data (DMRIProblemData): the problem data object, we will set this to the model
-        parameters (str or dict): either a directory file name or a dictionary containing optimization results
-
-    Returns:
-        ndarray: the 4d array with the signal estimates per voxel
-    """
-    if isinstance(model, string_types):
-        model = get_model(model)
-
-    if isinstance(parameters, string_types):
-        parameters = get_all_image_data(parameters)
-
-    # model.set_problem_data(problem_data)
-
-    # calculator = CalculateModelEstimates()
-    # results = calculator.calculate(model, create_roi(parameters, problem_data.mask))
-
-    # return restore_volumes(results, problem_data.mask)
-
-    results = simulate_signals(model, problem_data.protocol, create_roi(parameters, problem_data.mask))
-    return restore_volumes(results, problem_data.mask)
-
-
-def simulate_signals(model, protocol, parameters):
-    """Estimate the signals of a given model for the given combination of protocol and parameters.
-
-    Args:
-        model (str or model): the model or the name of the model to use for estimating the signals
-        protocol (mdt.protocols.Protocol): the protocol we will use for the signal simulation
-        parameters (dict or ndarray): the parameters for which to simulate the signal. It can either be a matrix with
-            for every row every model parameter, or a dictionary with for every parameter a 1d array.
-
-    Returns:
-        ndarray: a 2d array with for every parameter combination the simulated model signal
-    """
-    if isinstance(model, string_types):
-        model = get_model(model)
-
-    model.set_problem_data(MockDMRIProblemData(protocol=protocol))
-
-    calculator = CalculateModelEstimates()
-    return calculator.calculate(model, parameters)
 
 
 def natural_key_sort_cb(_str):

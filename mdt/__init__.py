@@ -25,9 +25,10 @@ from mdt.utils import estimate_noise_std, get_cl_devices, load_problem_data, cre
     volume_index_to_roi_index, roi_index_to_volume_index, load_brain_mask, init_user_settings, restore_volumes, \
     apply_mask, create_roi, volume_merge, protocol_merge, create_median_otsu_brain_mask, load_samples, \
     load_nifti, write_slice_roi, split_write_dataset, apply_mask_to_file, extract_volumes, recalculate_error_measures, \
-    create_signal_estimates, simulate_signals, get_slice_in_dimension, per_model_logging_context, \
+    get_slice_in_dimension, per_model_logging_context, \
     get_temporary_results_dir, get_example_data, create_sort_matrix, sort_volumes_per_voxel, \
     sort_orientations, SimpleInitializationData
+from mdt.simulations import create_signal_estimates, simulate_signals, add_rician_noise
 from mdt.batch_utils import collect_batch_fit_output, collect_batch_fit_single_map, run_function_on_batch_fit_output
 from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, write_protocol, write_bvec_bval
 from mdt.components_loader import load_component, get_model, component_import, construct_component, get_component_class

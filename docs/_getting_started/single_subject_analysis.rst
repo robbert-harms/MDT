@@ -1,8 +1,8 @@
 .. _analysis:
 
-********
-Analysis
-********
+***********************
+Single subject analysis
+***********************
 There are three ways to interface with MDT, the :ref:`Graphical User Interface (GUI) <analysis_using_the_gui>`,
 :ref:`the command line <analysis_using_the_cli>` and :ref:`using Python directly <analysis_using_python>`.
 This guide will walk you through basic model analysis with MDT using all of these interfaces.
@@ -300,29 +300,6 @@ Just as in the GUI, it is possible to add additional data like static maps, a no
 Please see the available switches of the :ref:`cli_index_mdt-model-fit` command.
 
 
-Batch fitting many subjects
----------------------------
-MDT features a batch fitting routine that can analyze many subjects with just one command.
-This feature uses :ref:`dynamic_modules_batch_profiles` to gather information about the subjects in a directory and uses that to analyze the found subjects.
-
-As an example, to run ``BallStick_r1`` on the two provided example datasets you can use the command :ref:`cli_index_mdt-batch-fit`. For example:
-
-.. code-block:: console
-
-    $ cd mdt_example_data
-    $ mdt-batch-fit . 'BallStick_r1 (Cascade)'
-
-
-There are various batch profiles available in MDT, for example profiles for the HCP-MGH and HCP Wu-Minn folder layouts, and simple layouts expecting one subject per directory.
-As an illustration, if you want to analyze ``NODDI`` on all your downloaded HCP Wu-Minn datasets, you can use:
-
-.. code-block:: console
-
-    $ mdt-batch-fit ~/download_dir/ 'NODDI (Cascade)'
-
-and it will autodetect the Wu-Minn layout and fit NODDI to all the subjects.
-
-
 .. _analysis_using_python:
 
 Using Python
@@ -342,7 +319,7 @@ about the MDT functions. For example:
     >>> import mdt
     >>> dir(mdt) # shows the functions in the MDT namespace
     ...
-    >>> help(mdt.fit_model) # shows the documentation about a given function
+    >>> help(mdt.fit_model) # shows the documentation a function
     ...
 
 
@@ -453,27 +430,3 @@ For example, the CHARMED models requires that the "TE" is specified in your prot
 MDT will help you by warning you if the available data is not suited for the selected model.
 
 To add additional data to your model computations, you can use the additional keyword arguments to the :func:`~mdt.utils.load_problem_data` command.
-
-
-Batch fitting many subjects
----------------------------
-MDT features a batch fitting routine that can analyze many subjects with just one command.
-This feature uses :ref:`dynamic_modules_batch_profiles` to gather information about the subjects in a directory and uses that to analyze the found subjects.
-
-As an example, to run ``BallStick_r1`` on the two provided example datasets you can use the command :func:`~mdt.batch_fit`. For example:
-
-.. code-block:: python
-
-    mdt.batch_fit('mdt_example_data', ['BallStick_r1 (Cascade)'])
-
-
-There are various batch profiles available in MDT, for example there are profiles for the HCP-MGH and HCP Wu-Minn folder layouts and there are simple
-layouts following one subject per directory.
-For example, if you want to analyze ``NODDI`` on all your downloaded HCP Wu-Minn datasets you can use:
-
-.. code-block:: python
-
-    mdt.batch_fit('~/download_dir/', ['NODDI (Cascade)'])
-
-
-and it will autodetect the Wu-Minn layout and fit NODDI to all the subjects.

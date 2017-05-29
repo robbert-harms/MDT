@@ -21,8 +21,8 @@ class ExampleDataTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls._tmp_dir = tempfile.mkdtemp('mdt_example_data_test')
-        cls._tmp_dir = '/tmp/tmp7lilr83cmdt_example_data_test'
         cls._tmp_dir_subdir = 'mdt_example_data'
+
         shutil.copytree(os.path.abspath(resource_filename('mdt', 'data/mdt_example_data')),
                         os.path.join(cls._tmp_dir, cls._tmp_dir_subdir))
 
