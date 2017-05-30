@@ -9,6 +9,9 @@ from contextlib import contextmanager
 import numpy as np
 import time
 
+from mot.cl_routines.mapping.codec_runner import CodecRunner
+from mot.cl_routines.optimizing.base import SimpleOptimizationResult
+from mot.model_building.model_builders import ParameterTransformedModel
 from mot.utils import results_to_dict
 import gc
 from numpy.lib.format import open_memmap
@@ -482,7 +485,16 @@ class FittingProcessingWorker(SimpleModelProcessingWorker):
         self._logger = logging.getLogger(__name__)
 
     def process(self, roi_indices):
-        optimization_results = self._optimizer.minimize(self._model)
+        # decorate the model with the parameter transformations
+        model = ParameterTransformedModel(self._model, self._model.get_parameter_codec())
+
+        # minimize the decorated model
+        optimization_results = self._optimizer.minimize(model)
+
+        # return the optimized parameters back to their original space
+        optimization_results = SimpleOptimizationResult(
+            self._model, model.decode_parameters(optimization_results.get_optimization_result()),
+            optimization_results.get_return_codes())
 
         self._logger.info('Starting optimization post-processing')
         results = post_process_optimization(self._model, optimization_results)
