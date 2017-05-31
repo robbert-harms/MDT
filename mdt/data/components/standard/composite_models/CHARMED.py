@@ -65,8 +65,8 @@ class CHARMED_r2(DMRICompositeModelConfig):
              'Tensor.dperp1': 0.5e-9,
              'CHARMEDRestricted0.d': 1e-9,
              'CHARMEDRestricted1.d': 1e-9,
-             'w_res0': 0.1,
-             'w_res1': 0.1}
+             'w_res0.w': 0.1,
+             'w_res1.w': 0.1}
 
     post_optimization_modifiers = [
         ('FR', lambda results: 1 - results['w_hin0.w'])
@@ -105,9 +105,9 @@ class CHARMED_r3(DMRICompositeModelConfig):
              'CHARMEDRestricted0.d': 1e-9,
              'CHARMEDRestricted1.d': 1e-9,
              'CHARMEDRestricted2.d': 1e-9,
-             'w_res0': 0.1,
-             'w_res1': 0.1,
-             'w_res2': 0.1}
+             'w_res0.w': 0.1,
+             'w_res1.w': 0.1,
+             'w_res2.w': 0.1}
 
     post_optimization_modifiers = [
         ('FR', lambda results: 1 - results['w_hin0.w'])
