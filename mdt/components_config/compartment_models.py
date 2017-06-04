@@ -6,7 +6,7 @@ import six
 
 from mdt.components_loader import ParametersLoader, ComponentConfigMeta, ComponentConfig, ComponentBuilder, \
     method_binding_meta
-from mdt.models.compartments import DMRICompartmentModelFunction
+from mdt.models.compartments import DMRICompartmentModelFunction, CompartmentPrior, SimpleCompartmentPrior
 from mot.model_building.cl_functions.parameters import CurrentObservationParam
 
 __author__ = 'Robbert Harms'
@@ -151,6 +151,10 @@ class CompartmentConfig(six.with_metaclass(CompartmentConfigMeta, ComponentConfi
         dependency_list (list): the list of functions this function depends on, can contain string which will be
             resolved as library functions.
         return_type (str): the return type of this compartment, defaults to double.
+        prior (str or None): an extra MCMC sampling prior for this compartment. This is additional to the priors
+            defined in the parameters. This should be an instance of :class:`~mdt.models.compartments.CompartmentPrior`
+            or a string with a CL function body. If the latter, the :class:`~mdt.models.compartments.CompartmentPrior`
+            is automatically constructed based on the content of the string (automatic parameter recognition).
     """
     name = ''
     description = ''
@@ -159,6 +163,7 @@ class CompartmentConfig(six.with_metaclass(CompartmentConfigMeta, ComponentConfi
     cl_code = None
     dependency_list = []
     return_type = 'double'
+    prior = None
 
 
 class CompartmentBuildingBase(DMRICompartmentModelFunction):
@@ -180,17 +185,22 @@ class CompartmentBuilder(ComponentBuilder):
         """
         class AutoCreatedDMRICompartmentModel(method_binding_meta(template, CompartmentBuildingBase)):
 
-            def __init__(self, *args):
+            def __init__(self, *args, **kwargs):
+                parameter_list = _get_parameters_list(template.parameter_list)
+
                 new_args = [template.name,
                             template.cl_function_name,
-                            _get_parameters_list(template.parameter_list),
+                            parameter_list,
                             template.cl_code,
                             _resolve_dependencies(template.dependency_list)]
 
                 for ind, already_set_arg in enumerate(args):
                     new_args[ind] = already_set_arg
 
-                super(AutoCreatedDMRICompartmentModel, self).__init__(*new_args)
+                new_kwargs = {'prior': _resolve_prior(template.prior, template.name, [p.name for p in parameter_list])}
+                new_kwargs.update(kwargs)
+
+                super(AutoCreatedDMRICompartmentModel, self).__init__(*new_args, **new_kwargs)
 
                 if hasattr(template, 'init'):
                     template.init(self)
@@ -221,3 +231,26 @@ def _resolve_dependencies(dependency_list):
             result.append(dependency)
 
     return result
+
+
+def _resolve_prior(prior, compartment_name, compartment_parameters):
+    """Create a proper prior out of the given prior information.
+
+    Args:
+        prior (str or mdt.models.compartments.CompartmentPrior or None):
+            The prior from which to construct a prior.
+        compartment_name (str): the name of the compartment
+        compartment_parameters (list of str): the list of parameters of this compartment, used
+            for looking up the used parameters in a string prior
+
+    Returns:
+        None or mdt.models.compartments.CompartmentPrior: a proper prior instance
+    """
+    if prior is None:
+        return None
+
+    if isinstance(prior, CompartmentPrior):
+        return prior
+
+    parameters = [p for p in compartment_parameters if p in prior]
+    return SimpleCompartmentPrior(prior, parameters, 'prior_' + compartment_name)

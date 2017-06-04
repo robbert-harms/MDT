@@ -6,6 +6,7 @@ from mdt.models.composite import DMRICompositeModel
 from mdt.models.parsers.CompositeModelExpressionParser import parse
 from mot.model_building.evaluation_models import EvaluationModel
 from mot.model_building.trees import CompartmentModelTree
+from mot.model_building.utils import ModelPrior, SimpleModelPrior
 
 __author__ = 'Robbert Harms'
 __date__ = "2017-02-14"
@@ -79,6 +80,10 @@ class DMRICompositeModelConfig(ComponentConfig):
                * ``max_bval`` (float): the maximum b-value to include
 
             If the method ``_get_suitable_volume_indices`` is overwritten, this does nothing.
+
+        prior (str, mot.model_building.utils.ModelPrior or None): a model wide prior. This is used in conjunction with
+            the compartment priors and the parameter priors. If a string is given we will automatically construct a
+            :class:`mot.model_building.utils.ModelPrior` from that string.
     """
     name = ''
     in_vivo_suitable = True
@@ -94,6 +99,7 @@ class DMRICompositeModelConfig(ComponentConfig):
     lower_bounds = {}
     enforce_weights_sum_to_one = True
     volume_selection = None
+    prior = None
 
     @classmethod
     def meta_info(cls):
@@ -139,6 +145,13 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                     self.set_upper_bound(full_param_name, deepcopy(value))
 
                 self.nmr_parameters_for_bic_calculation = self.get_nmr_estimable_parameters()
+
+                self._model_priors.extend(_resolve_model_prior(
+                    template.prior, self._model_functions_info.get_model_parameter_list()))
+
+                self._model_priors.extend(_convert_compartment_priors_to_model_priors(
+                    self._model_functions_info.get_model_list()))
+
 
             def _get_suitable_volume_indices(self, problem_data):
                 volume_selection = template.volume_selection
@@ -189,3 +202,65 @@ def _resolve_evaluation_model(evaluation_model):
         return get_component_class('evaluation_models', evaluation_model + 'EvaluationModel')()
     else:
         return evaluation_model
+
+
+def _resolve_model_prior(prior, model_parameters):
+    """Resolve the model priors.
+
+    Args:
+        model_prior (None or str or mot.model_building.utils.ModelPrior): the prior defined in the composite model
+            template.
+        model_parameters (str): the (model, parameter) tuple for all the parameters in the model
+
+    Returns:
+        list of mot.model_building.utils.ModelPrior: list of model priors
+    """
+    if prior is None:
+        return []
+
+    if isinstance(prior, ModelPrior):
+        return [prior]
+
+    parameters = []
+    for m, p in model_parameters:
+        dotted_name = '{}.{}'.format(m.name, p.name)
+        bar_name = dotted_name.replace('.', '_')
+
+        if dotted_name in prior:
+            prior = prior.replace(dotted_name, bar_name)
+            parameters.append(dotted_name)
+        elif bar_name in prior:
+            parameters.append(dotted_name)
+
+    return [SimpleModelPrior(prior, parameters, 'model_prior')]
+
+
+def _convert_compartment_priors_to_model_priors(compartments):
+    """Convert the compartment prior to model priors for use in the composite model.
+
+    The compartment priors (and the parameters there-in) are defined only relative to the given compartment.
+    This function converts these priors to ModelPriors to make the parameters absolutely named.
+    """
+    priors = []
+    for compartment in compartments:
+        if hasattr(compartment, 'prior') and compartment.prior:
+            priors.append(_CompartmentToModelPrior(compartment.prior, compartment.name))
+    return priors
+
+
+class _CompartmentToModelPrior(ModelPrior):
+    def __init__(self, compartment_prior, compartment_name):
+        """Simple prior class for easily converting the compartment priors to model priors"""
+        self._prior_function = compartment_prior.get_prior_function()
+        self._parameters = ['{}.{}'.format(compartment_name, p)
+                            for p in compartment_prior.get_function_parameters()]
+        self._function_name = compartment_prior.get_prior_function_name()
+
+    def get_prior_function(self):
+        return self._prior_function
+
+    def get_function_parameters(self):
+        return self._parameters
+
+    def get_function_name(self):
+        return self._function_name

@@ -55,7 +55,12 @@ class DTIMeasures(CLRoutine):
         return sorted_eigenvalues, sorted_eigenvectors, ranking
 
     def _get_fa_md(self, eigenvalues):
-        np_dtype = np.float64
+        if eigenvalues.dtype == np.float32:
+            np_dtype = np.float32
+            double_precision = False
+        else:
+            np_dtype = np.float64
+            double_precision = True
 
         eigenvalues = np.require(eigenvalues, np_dtype, requirements=['C', 'A', 'O'])
 
@@ -66,7 +71,7 @@ class DTIMeasures(CLRoutine):
 
         workers = self._create_workers(lambda cl_environment: _DTIMeasuresWorker(
             cl_environment, self.get_compile_flags_list(double_precision=True), eigenvalues,
-            fa_host, md_host, True))
+            fa_host, md_host, double_precision))
         self.load_balancer.process(workers, nmr_voxels)
 
         return fa_host, md_host

@@ -1716,7 +1716,7 @@ def sort_orientations(data_input, weight_names, extra_sortable_maps):
             match the length of the ``weight_names``.
 
     Returns:
-        dict: the sorted results in a new dictionary.
+        dict: the sorted results in a new dictionary. This returns all input maps with some of them sorted.
     """
     if isinstance(data_input, six.string_types):
         input_maps = get_all_image_data(data_input)
@@ -1751,8 +1751,8 @@ def post_process_samples(model, sampling_output):
             and as second element a dictionary with the volumetric voxel values (in ROI space).
     """
     samples = sampling_output.get_samples()
-
     samples_dict = results_to_dict(samples, model.get_free_param_names())
+
     volume_maps = model.add_extra_result_maps(model.samples_to_statistics(samples_dict))
 
     errors = ResidualCalculator().calculate(model, volume_maps)

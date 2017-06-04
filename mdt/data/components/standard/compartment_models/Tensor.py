@@ -24,9 +24,11 @@ class Tensor(CompartmentConfig):
                          )
                    );
     '''
+    prior = 'return dperp1 < dperp0 && dperp0 < d;'
 
     @bind_function
     def get_extra_results_maps(self, results_dict):
+        # todo simplify, remove the self.name dependency
         eigen_vectors = eigen_vectors_from_tensor(results_dict[self.name + '.theta'], results_dict[self.name + '.phi'],
                                                   results_dict[self.name + '.psi'])
 
