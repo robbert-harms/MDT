@@ -50,7 +50,7 @@ class DMRICompartmentModelFunction(ModelFunction):
                 It returns only the element .vec0
         """
         cartesian = spherical_to_cartesian(theta, phi)
-        extra_dict = {'{}.{}'.format(self.name, vector_name): cartesian}
+        extra_dict = {'{}'.format(vector_name): cartesian}
         return extra_dict
 
 

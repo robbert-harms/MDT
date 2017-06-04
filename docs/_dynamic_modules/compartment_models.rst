@@ -110,9 +110,7 @@ In compartments, one can add extra/additional result maps by adding the bound fu
         ...
         @bind_function
         def get_extra_results_maps(self, results_dict):
-            return self._get_vector_result_maps(
-                            results_dict[self.name + '.theta'],
-                            results_dict[self.name + '.phi'])
+            return self._get_vector_result_maps(results_dict['theta'], results_dict['phi'])
 
 
 In this example we added the (x, y, z) component vector to the results for the Stick compartment.

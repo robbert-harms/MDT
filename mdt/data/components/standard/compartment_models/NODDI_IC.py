@@ -17,7 +17,6 @@ class NODDI_IC(CompartmentConfig):
 
     @bind_function
     def get_extra_results_maps(self, results_dict):
-        maps = self._get_vector_result_maps(results_dict[self.name + '.theta'],
-                                            results_dict[self.name + '.phi'])
-        maps.update({self.name + '.odi': np.arctan2(1.0, results_dict[self.name + '.kappa'] * 10) * 2 / np.pi})
+        maps = self._get_vector_result_maps(results_dict['theta'], results_dict['phi'])
+        maps.update({'odi': np.arctan2(1.0, results_dict['kappa'] * 10) * 2 / np.pi})
         return maps

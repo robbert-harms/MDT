@@ -28,13 +28,11 @@ class Tensor(CompartmentConfig):
 
     @bind_function
     def get_extra_results_maps(self, results_dict):
-        # todo simplify, remove the self.name dependency
-        eigen_vectors = eigen_vectors_from_tensor(results_dict[self.name + '.theta'], results_dict[self.name + '.phi'],
-                                                  results_dict[self.name + '.psi'])
+        eigen_vectors = eigen_vectors_from_tensor(results_dict['theta'], results_dict['phi'], results_dict['psi'])
 
-        eigen_values = np.atleast_2d(np.squeeze(np.dstack([results_dict[self.name + '.d'],
-                                                           results_dict[self.name + '.dperp0'],
-                                                           results_dict[self.name + '.dperp1']])))
+        eigen_values = np.atleast_2d(np.squeeze(np.dstack([results_dict['d'],
+                                                           results_dict['dperp0'],
+                                                           results_dict['dperp1']])))
 
         measures = DTIMeasures().calculate(eigen_values, eigen_vectors)
-        return {'{}.{}'.format(self.name, key): value for key, value in measures.items()}
+        return {'{}'.format(key): value for key, value in measures.items()}

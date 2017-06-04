@@ -49,10 +49,9 @@ class SymmetricNonParametricTensor(CompartmentConfig):
     @bind_function
     def get_extra_results_maps(self, results_dict):
         matrix = np.array(
-            [[results_dict['{}.D{}{}'.format(self.name, i, j) if '{}.D{}{}'.format(self.name, i, j)
-                           in results_dict else '{}.D{}{}'.format(self.name, j, i)]
+            [[results_dict['D{}{}'.format(i, j) if 'D{}{}'.format(i, j) in results_dict else 'D{}{}'.format(j, i)]
               for j in range(3)] for i in range(3)]).transpose()
 
         eigen_values, eigen_vectors = np.linalg.eig(matrix)
         measures = DTIMeasures().calculate(eigen_values, eigen_vectors)
-        return {'{}.{}'.format(self.name, key): value for key, value in measures.items()}
+        return {'{}'.format(key): value for key, value in measures.items()}

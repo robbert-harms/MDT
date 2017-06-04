@@ -17,5 +17,4 @@ class Stick(CompartmentConfig):
 
     @bind_function
     def get_extra_results_maps(self, results_dict):
-        return self._get_vector_result_maps(results_dict[self.name + '.theta'],
-                                            results_dict[self.name + '.phi'])
+        return self._get_vector_result_maps(results_dict['theta'], results_dict['phi'])
