@@ -4,8 +4,6 @@ from mdt.components_config.composite_models import DMRICompositeModelConfig
 class SSFP_BallStick_r1_ExVivo(DMRICompositeModelConfig):
 
     name = 'SSFP_BallStick_r1-ExVivo'
-    ex_vivo_suitable = True
-    in_vivo_suitable = False
     description = 'The SSFP Ball & Stick model'
     model_expression = '''
         S0 * ( (Weight(w_ball) * SSFP_Ball) +
@@ -28,6 +26,4 @@ class SSFP_Tensor_ExVivo(DMRICompositeModelConfig):
     inits = {'SSFP_Tensor.d': 1e-9,
              'SSFP_Tensor.dperp0': 0.6e-10,
              'SSFP_Tensor.dperp1': 0.6e-10}
-    ex_vivo_suitable = True
-    in_vivo_suitable = False
     volume_selection = None

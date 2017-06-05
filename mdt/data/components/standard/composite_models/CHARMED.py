@@ -8,7 +8,6 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class CHARMED_r1(DMRICompositeModelConfig):
 
-    ex_vivo_suitable = False
     description = 'The CHARMED model with 1 restricted compartments'
 
     model_expression = '''
@@ -39,7 +38,6 @@ class CHARMED_r1(DMRICompositeModelConfig):
 
 class CHARMED_r2(DMRICompositeModelConfig):
 
-    ex_vivo_suitable = False
     description = 'The CHARMED model with 2 restricted compartments'
 
     model_expression = '''
@@ -77,7 +75,6 @@ class CHARMED_r2(DMRICompositeModelConfig):
 
 class CHARMED_r3(DMRICompositeModelConfig):
 
-    ex_vivo_suitable = False
     description = 'The standard CHARMED model with 3 restricted compartments'
 
     model_expression = '''

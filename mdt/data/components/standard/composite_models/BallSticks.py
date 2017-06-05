@@ -8,7 +8,6 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class BallStick_r1(DMRICompositeModelConfig):
 
-    ex_vivo_suitable = False
     description = 'The default Ball & Stick model'
     model_expression = '''
         S0 * ( (Weight(w_ball) * Ball) +
@@ -21,7 +20,6 @@ class BallStick_r1(DMRICompositeModelConfig):
 
 class BallStick_r2(DMRICompositeModelConfig):
 
-    ex_vivo_suitable = False
     description = 'The Ball & 2x Stick model'
     model_expression = '''
         S0 * ( (Weight(w_ball) * Ball) +
@@ -38,7 +36,6 @@ class BallStick_r2(DMRICompositeModelConfig):
 
 class BallStick_r3(DMRICompositeModelConfig):
 
-    ex_vivo_suitable = False
     description = 'The Ball & 3x Stick model'
     model_expression = '''
             S0 * ( (Weight(w_ball) * Ball) +

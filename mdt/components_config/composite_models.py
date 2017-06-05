@@ -21,8 +21,6 @@ class DMRICompositeModelConfig(ComponentConfig):
 
     Attributes:
         name (str): the name of the model, defaults to the class name
-        in_vivo_suitable (boolean): flag indicating if the model is suitable for in vivo data
-        ex_vivo_suitable (boolean): flag indicating if the model is suitable for ex vivo data
         description (str): model description
         post_optimization_modifiers (list): a list of modification callbacks for use after optimization. Examples:
 
@@ -91,8 +89,6 @@ class DMRICompositeModelConfig(ComponentConfig):
             :class:`mot.model_building.utils.ModelPrior` from that string.
     """
     name = ''
-    in_vivo_suitable = True
-    ex_vivo_suitable = True
     description = ''
     post_optimization_modifiers = []
     model_expression = ''
@@ -110,8 +106,6 @@ class DMRICompositeModelConfig(ComponentConfig):
     def meta_info(cls):
         meta_info = deepcopy(ComponentConfig.meta_info())
         meta_info.update({'name': cls.name,
-                          'in_vivo_suitable': cls.in_vivo_suitable,
-                          'ex_vivo_suitable': cls.ex_vivo_suitable,
                           'description': cls.description})
         return meta_info
 
