@@ -769,14 +769,15 @@ def spherical_to_cartesian(theta, phi):
         z = cos(theta)
 
     Args:
-        theta (ndarray): The 1d vector with theta's
-        phi (ndarray): The 1d vector with phi's
+        theta (ndarray): The 1d vector with the inclinations
+        phi (ndarray): The 1d vector with the azimuths
 
     Returns:
         ndarray: Two dimensional array with on the first axis the voxels and on the second the [x, y, z] coordinates.
     """
     theta = np.squeeze(theta)
     phi = np.squeeze(phi)
+
     sin_theta = np.sin(theta)
     return_val = np.array([np.cos(phi) * sin_theta, np.sin(phi) * sin_theta, np.cos(theta)]).transpose()
 

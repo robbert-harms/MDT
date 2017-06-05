@@ -155,6 +155,19 @@ class CompartmentConfig(six.with_metaclass(CompartmentConfigMeta, ComponentConfi
             defined in the parameters. This should be an instance of :class:`~mdt.models.compartments.CompartmentPrior`
             or a string with a CL function body. If the latter, the :class:`~mdt.models.compartments.CompartmentPrior`
             is automatically constructed based on the content of the string (automatic parameter recognition).
+        post_optimization_modifiers (list): a list of modification callbacks for use after optimization. Examples:
+
+            .. code-block:: python
+
+                post_optimization_modifiers = [('FS', lambda d: 1 - d['w_ball.w']),
+                                               ('Ball.d', lambda d: d['Ball.d'] * 1e9),
+                                               (['Power2', 'Power3'], lambda d: [d['foo']**2, d['foo']**3]),
+                                           ...]
+
+            The last entry in the above example shows that it is possible to include more than one
+            modifier in one modifier expression.
+
+            These modifiers are supposed to be called before the modifiers of the composite model.
     """
     name = ''
     description = ''
@@ -164,6 +177,7 @@ class CompartmentConfig(six.with_metaclass(CompartmentConfigMeta, ComponentConfi
     dependency_list = []
     return_type = 'double'
     prior = None
+    post_optimization_modifiers = None
 
 
 class CompartmentBuildingBase(DMRICompartmentModelFunction):
@@ -197,7 +211,8 @@ class CompartmentBuilder(ComponentBuilder):
                 for ind, already_set_arg in enumerate(args):
                     new_args[ind] = already_set_arg
 
-                new_kwargs = {'prior': _resolve_prior(template.prior, template.name, [p.name for p in parameter_list])}
+                new_kwargs = {'prior': _resolve_prior(template.prior, template.name, [p.name for p in parameter_list]),
+                              'post_optimization_modifiers': template.post_optimization_modifiers}
                 new_kwargs.update(kwargs)
 
                 super(AutoCreatedDMRICompartmentModel, self).__init__(*new_args, **new_kwargs)

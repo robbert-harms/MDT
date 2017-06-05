@@ -1,4 +1,3 @@
-from mdt.utils import spherical_to_cartesian
 from mot.model_building.cl_functions.base import ModelFunction
 
 __author__ = 'Robbert Harms'
@@ -9,7 +8,8 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class DMRICompartmentModelFunction(ModelFunction):
 
-    def __init__(self, name, cl_function_name, parameter_list, cl_code, dependency_list, prior=None):
+    def __init__(self, name, cl_function_name, parameter_list, cl_code, dependency_list, prior=None,
+                 post_optimization_modifiers=None):
         """Create a new dMRI compartment model function.
 
         Args:
@@ -19,11 +19,21 @@ class DMRICompartmentModelFunction(ModelFunction):
             cl_code (str): the code for the function in CL
             dependency_list (list): the list of functions we depend on inside the kernel
             prior (CompartmentPrior): an additional prior on top of the parameter priors.
+            post_optimization_modifiers (None or list or tuple): a list of modification callbacks for use after
+                optimization. Examples:
+
+                .. code-block:: python
+
+                    post_optimization_modifiers = [('vec0', lambda d: spherical_to_cartesian(d['theta'], d['phi'])),
+                                                   ...]
+
+                These modifiers are supposed to be called before the post optimization modifiers of the composite model.
         """
         super(DMRICompartmentModelFunction, self).__init__(name, cl_function_name, parameter_list,
                                                            dependency_list=dependency_list)
         self._cl_code = cl_code
         self.prior = prior
+        self.post_optimization_modifiers = post_optimization_modifiers or []
 
     def get_cl_code(self):
         return '''
@@ -35,23 +45,6 @@ class DMRICompartmentModelFunction(ModelFunction):
         '''.format(dependencies=self._get_cl_dependency_code(),
                    inclusion_guard_name='DMRICM_' + self.cl_function_name + '_CL',
                    code=self._cl_code)
-
-    def _get_vector_result_maps(self, theta, phi, vector_name='vec0'):
-        """Convert spherical coordinates to cartesian vector in 3d
-
-        Args:
-            theta (ndarray): the double array with the theta values
-            phi (ndarray): the double array with the phi values
-            vector_name (str): the name for this vector, the common naming scheme is:
-                <model_name>.<vector_name>[_{0,1,2}]
-
-        Returns:
-            dict: containing the cartesian vector with the main the fibre direction.
-                It returns only the element .vec0
-        """
-        cartesian = spherical_to_cartesian(theta, phi)
-        extra_dict = {'{}'.format(vector_name): cartesian}
-        return extra_dict
 
 
 class CompartmentPrior(object):

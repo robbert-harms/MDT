@@ -39,10 +39,22 @@ class DTIMeasures(CLRoutine):
                   'eigen_ranking': ranking}
 
         for ind in range(3):
-            output.update({'sorted_vec' + repr(ind): sorted_eigenvectors[:, ind, :],
+            output.update({'sorted_vec{}'.format(ind): sorted_eigenvectors[:, ind, :],
                            'sorted_eigval{}'.format(ind): sorted_eigenvalues[:, ind]})
 
         return output
+
+    def get_output_names(self):
+        """Get a list of the map names calculated by this class.
+
+        Returns:
+            list of str: the list of map names this calculator returns
+        """
+        return_names = ['FA', 'MD', 'AD', 'RD', 'eigen_ranking']
+        for ind in range(3):
+            return_names.append('sorted_vec{}'.format(ind))
+            return_names.append('sorted_eigval{}'.format(ind))
+        return return_names
 
     def _sort_eigensystem(self, eigenvalues, eigenvectors):
         ranking = np.atleast_2d(np.squeeze(np.argsort(eigenvalues, axis=1)[:, ::-1]))

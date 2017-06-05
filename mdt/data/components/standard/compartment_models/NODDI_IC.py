@@ -1,6 +1,7 @@
 from mdt.components_config.compartment_models import CompartmentConfig
-from mdt.components_loader import bind_function
 import numpy as np
+
+from mdt.utils import spherical_to_cartesian
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -14,9 +15,5 @@ class NODDI_IC(CompartmentConfig):
     dependency_list = ('CerfErfi',
                        'MRIConstants',
                        'NeumannCylPerpPGSESum')
-
-    @bind_function
-    def get_extra_results_maps(self, results_dict):
-        maps = self._get_vector_result_maps(results_dict['theta'], results_dict['phi'])
-        maps.update({'odi': np.arctan2(1.0, results_dict['kappa'] * 10) * 2 / np.pi})
-        return maps
+    post_optimization_modifiers = [('vec0', lambda results: spherical_to_cartesian(results['theta'], results['phi'])),
+                                   ('odi', lambda results: np.arctan2(1.0, results['kappa'] * 10) * 2 / np.pi)]

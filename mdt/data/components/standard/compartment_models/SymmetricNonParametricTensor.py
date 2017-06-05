@@ -1,8 +1,6 @@
 import numpy as np
 from mot.model_building.parameter_functions.proposals import GaussianProposal
-
 from mdt.components_config.parameters import FreeParameterConfig, ParameterBuilder
-from mdt.components_loader import bind_function
 from mdt.components_config.compartment_models import CompartmentConfig
 from mdt.cl_routines.mapping.dti_measures import DTIMeasures
 from mot.model_building.parameter_functions.transformations import SinSqrClampTransform
@@ -29,6 +27,22 @@ def get_param(param_name):
     return ParameterBuilder().create_class(matrix_element_param)()
 
 
+def get_dti_measures_modifier():
+    measures_calculator = DTIMeasures()
+    return_names = measures_calculator.get_output_names()
+
+    def modifier_routine(results_dict):
+        matrix = np.array(
+            [[results_dict['D{}{}'.format(i, j) if 'D{}{}'.format(i, j) in results_dict else 'D{}{}'.format(j, i)]
+              for j in range(3)] for i in range(3)]).transpose()
+
+        eigen_values, eigen_vectors = np.linalg.eig(matrix)
+        measures = measures_calculator.calculate(eigen_values, eigen_vectors)
+        return [measures[name] for name in return_names]
+
+    return return_names, modifier_routine
+
+
 class SymmetricNonParametricTensor(CompartmentConfig):
 
     description = "The Tensor model in which a symmetric D matrix is optimized directly " \
@@ -45,13 +59,4 @@ class SymmetricNonParametricTensor(CompartmentConfig):
 
         return exp(-b * diff);
     '''
-
-    @bind_function
-    def get_extra_results_maps(self, results_dict):
-        matrix = np.array(
-            [[results_dict['D{}{}'.format(i, j) if 'D{}{}'.format(i, j) in results_dict else 'D{}{}'.format(j, i)]
-              for j in range(3)] for i in range(3)]).transpose()
-
-        eigen_values, eigen_vectors = np.linalg.eig(matrix)
-        measures = DTIMeasures().calculate(eigen_values, eigen_vectors)
-        return {'{}'.format(key): value for key, value in measures.items()}
+    post_optimization_modifiers = [get_dti_measures_modifier()]

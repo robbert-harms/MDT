@@ -24,12 +24,17 @@ class DMRICompositeModelConfig(ComponentConfig):
         in_vivo_suitable (boolean): flag indicating if the model is suitable for in vivo data
         ex_vivo_suitable (boolean): flag indicating if the model is suitable for ex vivo data
         description (str): model description
-        post_optimization_modifiers (list): a list of modification callbacks for use after optimization. Example:
+        post_optimization_modifiers (list): a list of modification callbacks for use after optimization. Examples:
 
             .. code-block:: python
 
-                post_optimization_modifiers = [('SNIF', lambda d: 1 - d['Wcsf.w']),
+                post_optimization_modifiers = [('FS', lambda d: 1 - d['w_ball.w']),
+                                               ('Ball.d', lambda d: d['Ball.d'] * 1e9),
+                                               (['Power2', 'Power3'], lambda d: [d['foo']**2, d['foo']**3]),
                                            ...]
+
+            The last entry in the above example shows that it is possible to include more than one
+            modifier in one modifier expression.
 
         model_expression (str): the model expression. For the syntax see:
             mdt.models.parsers.CompositeModelExpression.ebnf
@@ -130,6 +135,8 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                     signal_noise_model=deepcopy(template.signal_noise_model),
                     enforce_weights_sum_to_one=template.enforce_weights_sum_to_one)
 
+                self.add_post_optimization_modifiers(_get_model_post_optimization_modifiers(
+                    self._model_functions_info.get_model_list()))
                 self.add_post_optimization_modifiers(deepcopy(template.post_optimization_modifiers))
 
                 for full_param_name, value in template.inits.items():
@@ -151,7 +158,6 @@ class DMRICompositeModelBuilder(ComponentBuilder):
 
                 self._model_priors.extend(_convert_compartment_priors_to_model_priors(
                     self._model_functions_info.get_model_list()))
-
 
             def _get_suitable_volume_indices(self, problem_data):
                 volume_selection = template.volume_selection
@@ -240,6 +246,9 @@ def _convert_compartment_priors_to_model_priors(compartments):
 
     The compartment priors (and the parameters there-in) are defined only relative to the given compartment.
     This function converts these priors to ModelPriors to make the parameters absolutely named.
+
+    Args:
+        compartments (list): the list of compartment models from which to get the prior
     """
     priors = []
     for compartment in compartments:
@@ -249,8 +258,9 @@ def _convert_compartment_priors_to_model_priors(compartments):
 
 
 class _CompartmentToModelPrior(ModelPrior):
+
     def __init__(self, compartment_prior, compartment_name):
-        """Simple prior class for easily converting the compartment priors to model priors"""
+        """Simple prior class for easily converting the compartment priors to composite model priors."""
         self._prior_function = compartment_prior.get_prior_function()
         self._parameters = ['{}.{}'.format(compartment_name, p)
                             for p in compartment_prior.get_function_parameters()]
@@ -264,3 +274,38 @@ class _CompartmentToModelPrior(ModelPrior):
 
     def get_function_name(self):
         return self._function_name
+
+
+def _get_model_post_optimization_modifiers(compartments):
+    """Get a list of all the post optimization modifiers defined in the models.
+
+    This function will add a wrapper around the modification routines to make the input and output maps relative to the
+    model. That it, these functions expect the parameter names without the model name and output map names without
+    the model name, whereas the expected input and output of the modifiers of the model is with the full model.map name.
+
+    Args:
+        compartments (list): the list of compartment models from which to get the modifiers
+    """
+    modifiers = []
+
+    def get_wrapped_modifier(compartment_name, original_map_names, original_modifier):
+        single_output = isinstance(original_map_names, six.string_types)
+
+        if single_output:
+            wrapped_names = '{}.{}'.format(compartment_name, original_map_names)
+        else:
+            wrapped_names = ['{}.{}'.format(compartment_name, map_name) for map_name in original_map_names]
+
+        def wrapped_modifier(maps):
+            compartment_specific_maps = {k[len(compartment_name) + 1:]: v for k, v in maps.items()
+                                         if k.startswith(compartment_name)}
+            return original_modifier(compartment_specific_maps)
+
+        return wrapped_names, wrapped_modifier
+
+    for compartment in compartments:
+        if hasattr(compartment, 'post_optimization_modifiers'):
+            for map_names, modifier in compartment.post_optimization_modifiers:
+                modifiers.append(get_wrapped_modifier(compartment.name, map_names, modifier))
+
+    return modifiers
