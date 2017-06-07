@@ -127,7 +127,7 @@ As an example:
                        'MRIConstants',
                        CompartmentModelsLoader().load('CylinderGPD'))
 
-This list should contain :class:`~mot.model_building.cl_functions.base.CLFunction` instances, referencing library functions or other compartment models.
+This list should contain :class:`~mot.library_functions.CLLibrary` instances, referencing library functions or other compartment models.
 Possible strings in this list are loaded automatically as :ref:`dynamic_modules_library_functions`.
 In this example the ``CerfErfi`` library function is loaded from MOT, ``MRIConstants`` from MDT and ``CylinderGPD`` is another compartment model which our example depends on.
 

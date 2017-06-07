@@ -150,9 +150,6 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                 self._model_priors.extend(_resolve_model_prior(
                     template.prior, self._model_functions_info.get_model_parameter_list()))
 
-                self._model_priors.extend(_convert_compartment_priors_to_model_priors(
-                    self._model_functions_info.get_model_list()))
-
             def _get_suitable_volume_indices(self, problem_data):
                 volume_selection = template.volume_selection
 
@@ -233,41 +230,6 @@ def _resolve_model_prior(prior, model_parameters):
             parameters.append(dotted_name)
 
     return [SimpleModelPrior(prior, parameters, 'model_prior')]
-
-
-def _convert_compartment_priors_to_model_priors(compartments):
-    """Convert the compartment prior to model priors for use in the composite model.
-
-    The compartment priors (and the parameters there-in) are defined only relative to the given compartment.
-    This function converts these priors to ModelPriors to make the parameters absolutely named.
-
-    Args:
-        compartments (list): the list of compartment models from which to get the prior
-    """
-    priors = []
-    for compartment in compartments:
-        if hasattr(compartment, 'prior') and compartment.prior:
-            priors.append(_CompartmentToModelPrior(compartment.prior, compartment.name))
-    return priors
-
-
-class _CompartmentToModelPrior(ModelPrior):
-
-    def __init__(self, compartment_prior, compartment_name):
-        """Simple prior class for easily converting the compartment priors to composite model priors."""
-        self._prior_function = compartment_prior.get_prior_function()
-        self._parameters = ['{}.{}'.format(compartment_name, p)
-                            for p in compartment_prior.get_function_parameters()]
-        self._function_name = compartment_prior.get_prior_function_name()
-
-    def get_prior_function(self):
-        return self._prior_function
-
-    def get_function_parameters(self):
-        return self._parameters
-
-    def get_function_name(self):
-        return self._function_name
 
 
 def _get_model_post_optimization_modifiers(compartments):

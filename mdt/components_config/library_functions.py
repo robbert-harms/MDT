@@ -1,14 +1,12 @@
 import inspect
 import os
 from copy import deepcopy
-
 import six
-
 from mdt.components_loader import ComponentConfigMeta, ComponentConfig, ComponentBuilder, \
     method_binding_meta
 from mot.cl_data_type import SimpleCLDataType
-from mot.model_building.cl_functions.base import SimpleCLLibrary
-from mot.model_building.cl_functions.parameters import LibraryParameter
+from mot.library_functions import SimpleCLLibrary
+from mot.model_building.parameters import LibraryParameter
 
 __author__ = 'Robbert Harms'
 __date__ = "2017-02-14"
@@ -19,7 +17,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 def _get_parameters_list(parameter_list):
     """Convert all the parameters in the given parameter list to actual parameter objects.
 
-    This will load all the parameters as :class:`~mot.model_building.cl_functions.parameters.LibraryParameter`.
+    This will load all the parameters as :class:`~mot.model_building.parameters.LibraryParameter`.
 
     Args:
         parameter_list (list): a list containing a mix of either parameter objects or strings. If it is a parameter
@@ -201,12 +199,12 @@ def _resolve_dependencies(dependency_list):
 
     Args:
         dependency_list (list): the list of dependencies as given by the user. Elements can either include actual
-            instances of :class:`~mot.model_building.cl_functions.base.CLFunction` or strings with the name of the
+            instances of :class:`~mot.library_functions.CLLibrary` or strings with the name of the
             component to auto-load.
 
     Returns:
         list: a new list with the string elements resolved
-            as :class:`~mot.model_building.cl_functions.base.SimpleCLLibrary`.
+            as :class:`~mot.library_functions.CLLibrary`.
     """
     from mdt.components_loader import LibraryFunctionsLoader
 

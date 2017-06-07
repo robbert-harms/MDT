@@ -1,12 +1,14 @@
 import logging
 
 import numpy as np
+from six import string_types
 
 from mdt.model_protocol_problem import MissingColumns, InsufficientShells
 from mdt.models.base import DMRIOptimizable
 from mdt.protocols import VirtualColumnB
-from mdt.utils import create_roi, calculate_information_criterions
+from mdt.utils import create_roi, calculate_information_criterions, is_scalar
 from mot.cl_data_type import SimpleCLDataType
+from mot.cl_routines.mapping.calc_dependent_params import CalculateDependentParameters
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
 from mot.model_building.data_adapter import SimpleDataAdapter
 from mot.model_building.model_builders import SampleModelBuilder
@@ -60,6 +62,83 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
             mdt.utils.DMRIProblemData: the problem data being used by this model
         """
         return self._problem_data
+
+    def add_post_optimization_modifier(self, result_names, mod_routine):
+        """Add a modification function that can update the results of model optimization.
+
+        The mod routine should be a function accepting a dictionary as input and should return one or more maps of
+        the same dimension as the maps in the dictionary. The idea is that the given ``mod_routine`` callback receives
+        the result dictionary from the optimization routine and calculates new maps.
+        These maps are then returned and the dictionary is updated with the returned maps as value and the here provided
+        model_param_name as key.
+
+        It is possible to add more than one modifier function. In that case, they are called in the order they
+        were appended to this model.
+
+        It is possible to add multiple maps in one modification routine, in that case the ``model_param_name`` should
+        be a tuple of map names and the modification routine should also output a list of map names.
+
+        Args:
+            result_names (str or tuple of str): the name of the output(s) of the mod_routine.
+                Example ``'Power2'`` or ``('Power2' 'Power3')``.
+            mod_routine (python function): the callback function to apply on the results of the referenced parameter.
+                Example: ``lambda d: d**2`` or ``lambda d: (d**2, d**3)``
+        """
+        self._post_optimization_modifiers.append((result_names, mod_routine))
+        return self
+
+    def add_post_optimization_modifiers(self, modifiers):
+        """Add a list of modifier functions.
+
+        The same as add_post_optimization_modifier() except that it accepts a list of modifiers.
+        Every element in the list should be a tuple like (model_param_name, mod_routine)
+
+        Args:
+            modifiers (tuple or list): The list of modifiers to add (in the given order).
+        """
+        self._post_optimization_modifiers.extend(modifiers)
+        return self
+
+    def get_optimization_output_param_names(self):
+        """See super class for details"""
+        output_names = super(DMRICompositeModel, self).get_optimization_output_param_names()
+
+        for name, _ in self._post_optimization_modifiers:
+            if isinstance(name, string_types):
+                output_names.append(name)
+            else:
+                output_names.extend(name)
+
+        return output_names
+
+    def add_extra_result_maps(self, results_dict):
+        """This adds some extra optimization maps to the results dictionary.
+
+        This function behaves as a procedure and as a function. The input dict can be updated in place, but it should
+        also return a dict but that is merely for the purpose of chaining.
+
+        Steps in finalizing the results dict:
+
+            1) It first adds the maps for the dependent and fixed parameters
+            2) Second it adds the extra maps defined in the models itself.
+            3) Third it loops through the post_optimization_modifiers callback functions for the final updates.
+            4) Finally it adds additional maps defined in this model subclass
+
+        For more documentation see the base method.
+
+        Args:
+            results_dict (dict): A dictionary with as keys the names of the parameters and as values the 1d maps with
+                for each voxel the optimized parameter value. The given dictionary can be altered by this function.
+
+        Returns:
+            dict: The same result dictionary but with updated values or with additional maps.
+                It should at least return the results_dict.
+        """
+        self._add_dependent_parameter_maps(results_dict)
+        self._add_fixed_parameter_maps(results_dict)
+        self._add_post_optimization_modifier_maps(results_dict)
+        self._add_finalizing_result_maps(results_dict)
+        return results_dict
 
     def _get_variable_data(self):
         var_data_dict = super(DMRICompositeModel, self)._get_variable_data()
@@ -158,18 +237,6 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
         return self._problem_data.gradient_deviations is not None \
                and 'g' in list(self._get_protocol_data().keys())
 
-    def _add_finalizing_result_maps(self, results_dict):
-        super(DMRICompositeModel, self)._add_finalizing_result_maps(results_dict)
-
-        log_likelihood_calc = LogLikelihoodCalculator()
-        log_likelihoods = log_likelihood_calc.calculate(self, results_dict)
-
-        k = self.nmr_parameters_for_bic_calculation
-        n = self._problem_data.get_nmr_inst_per_problem()
-
-        results_dict.update({'LogLikelihood': log_likelihoods})
-        results_dict.update(calculate_information_criterions(log_likelihoods, k, n))
-
     def _prepare_problem_data(self, problem_data):
         """Update the problem data to make it suitable for this model.
 
@@ -248,3 +315,66 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
             list: the list of indices we want to use for this model.
         """
         return list(range(problem_data.protocol.length))
+
+    def _add_dependent_parameter_maps(self, results_dict):
+        """In place add complete maps for the dependent parameters."""
+        estimable_parameters = self._model_functions_info.get_estimable_parameters_list(exclude_priors=True)
+        dependent_parameters = self._model_functions_info.get_dependency_fixed_parameters_list(exclude_priors=True)
+
+        if len(dependent_parameters):
+            func = ''
+            func += self._get_fixed_parameters_listing()
+            func += self._get_estimable_parameters_listing()
+            func += self._get_dependent_parameters_listing()
+
+            estimable_params = ['{}.{}'.format(m.name, p.name) for m, p in estimable_parameters]
+            estimated_parameters = [results_dict[k] for k in estimable_params]
+
+            dependent_parameter_names = [('{}.{}'.format(m.name, p.name).replace('.', '_'),
+                                          '{}.{}'.format(m.name, p.name))
+                                         for m, p in dependent_parameters]
+
+            cpd = CalculateDependentParameters(double_precision=self.double_precision)
+            dependent_parameters = cpd.calculate(self, estimated_parameters, func, dependent_parameter_names)
+
+            results_dict.update(dependent_parameters)
+
+    def _add_fixed_parameter_maps(self, results_dict):
+        """In place add complete maps for the fixed parameters."""
+        fixed_params = self._model_functions_info.get_value_fixed_parameters_list(exclude_priors=True)
+
+        for (m, p) in fixed_params:
+            name = '{}.{}'.format(m.name, p.name)
+            value = self._model_functions_info.get_parameter_value(name)
+
+            if is_scalar(value):
+                results_dict.update({name: np.tile(np.array([value]), (self.get_nmr_problems(),))})
+            else:
+                if self.problems_to_analyze is not None:
+                    value = value[self.problems_to_analyze, ...]
+                results_dict.update({name: value})
+
+    def _add_post_optimization_modifier_maps(self, results_dict):
+        """Add the extra maps defined in the post optimization modifiers to the results."""
+        for names, routine in self._post_optimization_modifiers:
+            if isinstance(names, string_types):
+                results_dict[names] = routine(results_dict)
+            else:
+                results_dict.update(zip(names, routine(results_dict)))
+
+    def _add_finalizing_result_maps(self, results_dict):
+        """Add some final results maps to the results dictionary.
+
+        This called by the function add_extra_result_maps() as last call to add more maps.
+
+        Args:
+            results_dict (args): the results from model optmization. We are to modify this in-place.
+        """
+        log_likelihood_calc = LogLikelihoodCalculator()
+        log_likelihoods = log_likelihood_calc.calculate(self, results_dict)
+
+        k = self.nmr_parameters_for_bic_calculation
+        n = self._problem_data.get_nmr_inst_per_problem()
+
+        results_dict.update({'LogLikelihood': log_likelihoods})
+        results_dict.update(calculate_information_criterions(log_likelihoods, k, n))

@@ -1,6 +1,6 @@
 from mdt.components_config.library_functions import LibraryFunctionConfig
 from mot.cl_data_type import SimpleCLDataType
-from mot.model_building.cl_functions.parameters import LibraryParameter
+from mot.model_building.parameters import LibraryParameter
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"

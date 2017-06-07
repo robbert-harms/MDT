@@ -6,8 +6,9 @@ import six
 
 from mdt.components_loader import ParametersLoader, ComponentConfigMeta, ComponentConfig, ComponentBuilder, \
     method_binding_meta
-from mdt.models.compartments import DMRICompartmentModelFunction, CompartmentPrior, SimpleCompartmentPrior
-from mot.model_building.cl_functions.parameters import CurrentObservationParam
+from mdt.models.compartments import DMRICompartmentModelFunction
+from mot.model_building.model_function_priors import ModelFunctionPrior, SimpleModelFunctionPrior
+from mot.model_building.parameters import CurrentObservationParam
 
 __author__ = 'Robbert Harms'
 __date__ = "2017-02-14"
@@ -206,12 +207,14 @@ class CompartmentBuilder(ComponentBuilder):
                             template.cl_function_name,
                             parameter_list,
                             template.cl_code,
-                            _resolve_dependencies(template.dependency_list)]
+                            _resolve_dependencies(template.dependency_list),
+                            template.return_type]
 
                 for ind, already_set_arg in enumerate(args):
                     new_args[ind] = already_set_arg
 
-                new_kwargs = {'prior': _resolve_prior(template.prior, template.name, [p.name for p in parameter_list]),
+                new_kwargs = {'model_function_priors': (_resolve_prior(template.prior, template.name,
+                                                                       [p.name for p in parameter_list],)),
                               'post_optimization_modifiers': template.post_optimization_modifiers}
                 new_kwargs.update(kwargs)
 
@@ -228,12 +231,11 @@ def _resolve_dependencies(dependency_list):
 
     Args:
         dependency_list (list): the list of dependencies as given by the user. Elements can either include actual
-            instances of :class:`~mot.model_building.cl_functions.base.CLFunction` or strings with the name of the
+            instances of :class:`~mot.library_functions.CLLibrary` or strings with the name of the
             component to auto-load.
 
     Returns:
-        list: a new list with the string elements resolved
-            as :class:`~mot.model_building.cl_functions.base.SimpleCLLibrary`.
+        list: a new list with the string elements resolved as :class:`~mot.library_functions.CLLibrary`.
     """
     from mdt.components_loader import LibraryFunctionsLoader
 
@@ -264,8 +266,8 @@ def _resolve_prior(prior, compartment_name, compartment_parameters):
     if prior is None:
         return None
 
-    if isinstance(prior, CompartmentPrior):
+    if isinstance(prior, ModelFunctionPrior):
         return prior
 
     parameters = [p for p in compartment_parameters if p in prior]
-    return SimpleCompartmentPrior(prior, parameters, 'prior_' + compartment_name)
+    return SimpleModelFunctionPrior(prior, parameters, 'prior_' + compartment_name)

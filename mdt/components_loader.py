@@ -9,11 +9,11 @@ import inspect
 import os
 from contextlib import contextmanager
 from six import with_metaclass
-
-import mot.model_building.cl_functions.library_functions
-import mot.model_building.cl_functions.model_functions
+import mot.library_functions
+import mot.model_building.model_functions
 from mdt.exceptions import NonUniqueComponent
-from mot.model_building.cl_functions.base import ModelFunction, SimpleCLLibrary
+from mot.library_functions import SimpleCLLibrary
+from mot.model_building.model_functions import ModelFunction
 from mot.model_building.evaluation_models import EvaluationModel
 
 __author__ = 'Robbert Harms'
@@ -810,7 +810,7 @@ class ParametersSource(AutoUserComponentsSourceMulti):
 
     def __init__(self, user_type):
         """Source for the items in the 'parameters' dir in the components folder."""
-        from mot.model_building.cl_functions.parameters import CLFunctionParameter
+        from mot.model_building.parameters import CLFunctionParameter
         from mdt.components_config.parameters import ParameterBuilder
         super(ParametersSource, self).__init__(user_type, 'parameters', CLFunctionParameter, ParameterBuilder())
 
@@ -843,10 +843,10 @@ class MOTSourceSingle(ComponentsSource):
 class MOTLibraryFunctionSource(MOTSourceSingle):
 
     def get_class(self, name):
-        return getattr(mot.model_building.cl_functions.library_functions, name)
+        return getattr(mot.library_functions, name)
 
     def list(self):
-        module = mot.model_building.cl_functions.library_functions
+        module = mot.library_functions
         items = inspect.getmembers(module, _get_class_predicate(module, SimpleCLLibrary))
         return [x[0] for x in items if x[0] != 'SimpleCLLibrary']
 
@@ -854,10 +854,10 @@ class MOTLibraryFunctionSource(MOTSourceSingle):
 class MOTCompartmentModelsSource(MOTSourceSingle):
 
     def get_class(self, name):
-        return getattr(mot.model_building.cl_functions.model_functions, name)
+        return getattr(mot.model_building.model_functions, name)
 
     def list(self):
-        module = mot.model_building.cl_functions.model_functions
+        module = mot.model_building.model_functions
         items = inspect.getmembers(module, _get_class_predicate(module, ModelFunction))
         return [x[0] for x in items if x[0] != 'ModelFunction']
 
