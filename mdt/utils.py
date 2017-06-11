@@ -98,7 +98,7 @@ class DMRIProblemData(AbstractProblemData):
         for key, value in kwargs.items():
             new_kwargs[key] = value
 
-        return DMRIProblemData(*new_args, **new_kwargs)
+        return self.__class__(*new_args, **new_kwargs)
 
     def _get_constructor_args(self):
         """Get the constructor arguments needed to create a copy of this batch util using a copy constructor.
@@ -143,9 +143,16 @@ class DMRIProblemData(AbstractProblemData):
             for remove_ind in volumes_to_remove:
                 del volumes_to_keep[remove_ind]
 
-        new_protocol = self.protocol.get_new_protocol_with_indices(volumes_to_keep)
-        new_dwi_volume = self.dwi_volume[..., volumes_to_keep]
+        new_protocol = self.protocol
+        if self.protocol:
+            new_protocol = self.protocol.get_new_protocol_with_indices(volumes_to_keep)
+
+        new_dwi_volume = self.dwi_volume
+        if self.dwi_volume:
+            new_dwi_volume = self.dwi_volume[..., volumes_to_keep]
+
         return self.copy_with_updates(new_protocol, new_dwi_volume)
+
 
     def get_nmr_inst_per_problem(self):
         return self._protocol.length
@@ -241,6 +248,16 @@ class MockDMRIProblemData(DMRIProblemData):
         """
         super(MockDMRIProblemData, self).__init__(protocol, dwi_volume, mask, volume_header, **kwargs)
 
+    def _get_constructor_args(self):
+        """Get the constructor arguments needed to create a copy of this batch util using a copy constructor.
+
+        Returns:
+            tuple: args and kwargs tuple
+        """
+        args = [self._protocol, self.dwi_volume, self._mask, self.volume_header]
+        kwargs = {}
+        return args, kwargs
+
     def get_nmr_problems(self):
         return 0
 
@@ -250,7 +267,7 @@ class MockDMRIProblemData(DMRIProblemData):
 
     @property
     def noise_std(self):
-        return self._noise_std
+        return 1
 
 
 class InitializationData(object):
