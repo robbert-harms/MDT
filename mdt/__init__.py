@@ -120,8 +120,8 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
         cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices().
         double_precision (boolean): if we would like to do the calculations in double precision
-        store_samples (boolean): if set to False we will store none of the samples. Use this
-                if you are only interested in the volume maps and not in the entire sample chain.
+        store_samples (boolean or int): if set to False we will store none of the samples. If set to an integer we will
+            store only thinned samples with that amount.
         tmp_results_dir (str, True or None): The temporary dir for the calculations. Set to a string to use
                 that path directly, set to True to use the config value, set to None to disable.
         save_user_script_info (boolean, str or SaveUserScriptInfo): The info we need to save about the script the

@@ -97,7 +97,7 @@ class _DTIMeasuresWorker(Worker):
         self._fa_host = fa_host
         self._md_host = md_host
         self._double_precision = double_precision
-        self._kernel = self._build_kernel(compile_flags)
+        self._kernel = self._build_kernel(self._get_kernel_source(), compile_flags)
 
     def calculate(self, range_start, range_end):
         nmr_problems = range_end - range_start

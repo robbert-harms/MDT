@@ -4,7 +4,8 @@ import os
 import timeit
 import time
 from mdt.utils import model_output_exists, load_samples, restore_volumes
-from mdt.processing_strategies import SimpleModelProcessingWorkerGenerator, SamplingProcessingWorker
+from mdt.processing_strategies import SimpleModelProcessingWorkerGenerator, SamplingProcessingWorker, SaveAllSamples, \
+    SaveNoSamples, SaveThinnedSamples
 from mdt.exceptions import InsufficientProtocolError
 
 
@@ -27,19 +28,27 @@ def sample_composite_model(model, problem_data, output_folder, sampler, processi
         sampler (:class:`mot.cl_routines.sampling.base.AbstractSampler`): The sampling routine to use.
         processing_strategy (:class:`~mdt.processing_strategies.ModelProcessingStrategy`): the processing strategy
         recalculate (boolean): If we want to recalculate the results if they are already present.
-        store_samples (boolean): if set to False we will store none of the samples. Use this
-            if you are only interested in the volume maps and not in the entire sample chain.
+        store_samples (boolean or int): if set to False we will store none of the samples. If set to an integer we will
+            store only thinned samples with that amount.
         store_volume_maps (boolean): if set to False we will not store the mean and std. volume maps.
         initialization_data (:class:`~mdt.utils.InitializationData`): provides (extra) initialization data to use
             during model fitting. If we are optimizing a cascade model this data only applies to the last model in the
             cascade.
     """
+    if store_samples:
+        if isinstance(store_samples, int):
+            sample_to_save_method = SaveThinnedSamples(store_samples)
+        else:
+            sample_to_save_method = SaveAllSamples()
+    else:
+        sample_to_save_method = SaveNoSamples()
+
     if not model.is_protocol_sufficient(problem_data.protocol):
         raise InsufficientProtocolError(
             'The provided protocol is insufficient for this model. '
             'The reported errors where: {}'.format(model.get_protocol_problems(problem_data.protocol)))
 
-    if not store_samples and not store_volume_maps:
+    if not sample_to_save_method.store_samples() and not store_volume_maps:
         raise ValueError('Both store_samples and store_volume_maps are set to False, nothing to compute.')
 
     logger = logging.getLogger(__name__)
@@ -60,7 +69,7 @@ def sample_composite_model(model, problem_data, output_folder, sampler, processi
 
     with _log_info(logger, model.name):
         worker_generator = SimpleModelProcessingWorkerGenerator(
-            lambda *args: SamplingProcessingWorker(sampler, store_samples, store_volume_maps, *args))
+            lambda *args: SamplingProcessingWorker(sampler, sample_to_save_method, store_volume_maps, *args))
         return processing_strategy.run(model, problem_data, output_folder, recalculate, worker_generator)
 
 

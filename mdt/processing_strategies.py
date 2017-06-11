@@ -9,7 +9,6 @@ from contextlib import contextmanager
 import numpy as np
 import time
 
-from mot.cl_routines.mapping.codec_runner import CodecRunner
 from mot.cl_routines.optimizing.base import SimpleOptimizationResult
 from mot.model_building.model_builders import ParameterTransformedModel
 from mot.utils import results_to_dict
@@ -18,7 +17,7 @@ from numpy.lib.format import open_memmap
 
 from mdt.nifti import write_all_as_nifti, get_all_image_data
 from mdt.configuration import gzip_optimization_results, gzip_sampling_results
-from mdt.utils import create_roi, load_samples, post_process_samples, post_process_optimization
+from mdt.utils import create_roi, load_samples
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-07-29"
@@ -191,7 +190,7 @@ class ChunksProcessingStrategy(SimpleProcessingStrategy):
         Yields:
             ndarray: the roi indices per chunk we want to process
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def _run_on_chunk(self, problem_data, worker, voxel_indices, voxels_to_process, voxels_processed, start_time,
                       start_nmr_processed):
@@ -497,11 +496,17 @@ class FittingProcessingWorker(SimpleModelProcessingWorker):
             optimization_results.get_return_codes())
 
         self._logger.info('Starting optimization post-processing')
-        results = post_process_optimization(self._model, optimization_results)
+
+        end_points = optimization_results.get_optimization_result()
+        volume_maps = self._model.add_extra_post_optimization_maps(
+            results_to_dict(end_points, model.get_free_param_names()))
+        volume_maps.update({'ReturnCodes': optimization_results.get_return_codes()})
+        volume_maps.update(optimization_results.get_error_measures())
+
         self._logger.info('Finished optimization post-processing')
 
-        self._write_volumes(roi_indices, results, self._tmp_storage_dir)
-        return results
+        self._write_volumes(roi_indices, volume_maps, self._tmp_storage_dir)
+        return volume_maps
 
     def combine(self):
         super(FittingProcessingWorker, self).combine()
@@ -515,23 +520,21 @@ class SamplingProcessingWorker(SimpleModelProcessingWorker):
     class SampleChainNotStored(object):
         pass
 
-    def __init__(self, sampler, store_samples=False, store_volume_maps=True, *args):
+    def __init__(self, sampler, samples_to_save_method=None, store_volume_maps=True, *args):
         """The processing worker for model sampling.
 
         Use this if you want to use the model processing strategy to do model sampling.
 
         Args:
             sampler (AbstractSampler): the optimization sampler to use
-            store_samples (boolean): if set to False we will store none of the samples. Use this
-                if you are only interested in the volume maps and not in the entire sample chain.
-                If set to True the process and combine function will no longer return any results.
+            samples_to_save_method (SamplesToSaveMethod): indicates which samples to store
             store_volume_maps (boolean): if we want to store the elements in the 'volume_maps' directory.
                 This stores the mean and std maps and some other maps based on the samples.
         """
         super(SamplingProcessingWorker, self).__init__(*args)
         self._sampler = sampler
         self._write_volumes_gzipped = gzip_sampling_results()
-        self._store_samples = store_samples
+        self._samples_to_save_method = samples_to_save_method or SaveAllSamples()
         self._store_volume_maps = store_volume_maps
         self._logger = logging.getLogger(__name__)
 
@@ -563,13 +566,14 @@ class SamplingProcessingWorker(SimpleModelProcessingWorker):
 
     def process(self, roi_indices):
         sampling_output = self._sampler.sample(self._model)
-
-        self._logger.info('Starting sampling post-processing')
-        results, volume_maps = post_process_samples(self._model, sampling_output)
-        self._logger.info('Finished sampling post-processing')
+        samples = sampling_output.get_samples()
+        samples_dict = results_to_dict(samples, self._model.get_free_param_names())
 
         if self._store_volume_maps:
+            self._logger.info('Starting sampling post-processing')
+            volume_maps = self._model.get_post_sampling_maps(samples)
             self._write_volumes(roi_indices, volume_maps, os.path.join(self._tmp_storage_dir, 'volume_maps'))
+            self._logger.info('Finished sampling post-processing')
 
         self._write_volumes(roi_indices, results_to_dict(sampling_output.get_proposal_state(),
                                                          self._model.get_proposal_state_names()),
@@ -581,9 +585,9 @@ class SamplingProcessingWorker(SimpleModelProcessingWorker):
                                                          self._model.get_free_param_names()),
                             os.path.join(self._tmp_storage_dir, 'chain_end_point'))
 
-        if self._store_samples:
-            self._write_sample_results(results, self._problem_data.mask, roi_indices)
-            return results
+        if self._samples_to_save_method.store_samples():
+            self._write_sample_results(samples_dict, self._problem_data.mask, roi_indices)
+            return samples_dict
 
         return SamplingProcessingWorker.SampleChainNotStored()
 
@@ -598,9 +602,7 @@ class SamplingProcessingWorker(SimpleModelProcessingWorker):
             self._combine_volumes(self._output_dir, self._tmp_storage_dir,
                                   self._problem_data.volume_header, maps_subdir=subdir)
 
-        if self._store_samples:
-            for samples in glob.glob(os.path.join(self._tmp_storage_dir, '*.samples.npy')):
-                shutil.move(samples, self._output_dir)
+        if self._samples_to_save_method.store_samples():
             return load_samples(self._output_dir)
 
         return SamplingProcessingWorker.SampleChainNotStored()
@@ -631,6 +633,7 @@ class SamplingProcessingWorker(SimpleModelProcessingWorker):
             results (dict): the samples to write
             full_mask (ndarray): the complete mask for the entire brain
             roi_indices (ndarray): the roi indices of the voxels we computed
+            save_indices (ndarray): the indices of the samples to save
         """
         total_nmr_voxels = np.count_nonzero(full_mask)
 
@@ -643,17 +646,88 @@ class SamplingProcessingWorker(SimpleModelProcessingWorker):
                 if chain_name not in results:
                     os.remove(os.path.join(self._output_dir, fname))
 
+        save_indices = self._samples_to_save_method.indices_to_store(results[list(results.keys())[0]].shape[1])
+
         for map_name, samples in results.items():
             samples_path = os.path.join(self._output_dir, map_name + '.samples.npy')
             mode = 'w+'
+
             if os.path.isfile(samples_path):
                 mode = 'r+'
                 current_results = open_memmap(samples_path, mode='r')
-                if current_results.shape[1] != samples.shape[1]:
+                if current_results.shape[1] != len(save_indices):
                     mode = 'w+'
                 del current_results # closes the memmap
 
             saved = open_memmap(samples_path, mode=mode, dtype=samples.dtype,
-                                shape=(total_nmr_voxels, samples.shape[1]))
-            saved[roi_indices, :] = samples
+                                shape=(total_nmr_voxels, len(save_indices)))
+            saved[roi_indices, :] = samples[:, save_indices]
             del saved
+
+
+class SamplesToSaveMethod(object):
+    """Defines if and how many samples are being stored.
+
+    This can be used to only save a subset of the calculated samples, while still using the entire chain for
+    the point estimates. This is the ideal combination of high estimate accuracy and storage.
+    """
+
+    def store_samples(self):
+        """If we should store the samples at all
+
+        Returns:
+            boolean: if we should store the samples
+        """
+        raise NotImplementedError()
+
+    def indices_to_store(self, nmr_samples):
+        """Return indices that indicate how many and which samples to store.
+
+        The return indices should be between 0 and nmr_samples
+
+        Args:
+            nmr_samples (int): the maximum number of samples
+
+        Returns:
+            ndarray: indices of the samples to store
+        """
+        raise NotImplementedError()
+
+
+class SaveAllSamples(SamplesToSaveMethod):
+    """Indicates that all the samples should be saved."""
+
+    def store_samples(self):
+        return True
+
+    def indices_to_store(self, nmr_samples):
+        return np.arange(nmr_samples)
+
+
+class SaveThinnedSamples(SamplesToSaveMethod):
+
+    def __init__(self, thinning):
+        """Indicates that only every n sample should be saved.
+
+        For example, if thinning = 1 we save every sample. If thinning = 2 we save every other sample, etc.
+
+        Args:
+            thinning (int): the thinning factor to apply
+        """
+        self._thinning = thinning
+
+    def store_samples(self):
+        return True
+
+    def indices_to_store(self, nmr_samples):
+        return np.arange(0, nmr_samples, self._thinning)
+
+
+class SaveNoSamples(SamplesToSaveMethod):
+    """Indicates that no samples should be saved."""
+
+    def store_samples(self):
+        return False
+
+    def indices_to_store(self, nmr_samples):
+        return np.array([])
