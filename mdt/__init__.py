@@ -273,14 +273,14 @@ def view_maps(data, config=None, figure_options=None,
     from mdt.visualization.maps.base import MapPlotConfig
     from mdt.visualization.maps.matplotlib_renderer import MapsVisualizer
     import matplotlib.pyplot as plt
-    from mdt.visualization.maps.base import DataInfo
+    from mdt.visualization.maps.base import SimpleDataInfo
 
     if isinstance(data, string_types):
-        data = DataInfo.from_dir(data)
+        data = SimpleDataInfo.from_dir(data)
     elif isinstance(data, collections.MutableMapping):
-        data = DataInfo(data)
+        data = SimpleDataInfo(data)
     elif data is None:
-        data = DataInfo({})
+        data = SimpleDataInfo({})
 
     if config is None:
         config = MapPlotConfig()
@@ -330,14 +330,14 @@ def write_view_maps_figure(data, output_filename, config=None, width=None, heigh
     from mdt.visualization.maps.base import MapPlotConfig
     from mdt.visualization.maps.matplotlib_renderer import MapsVisualizer
     import matplotlib.pyplot as plt
-    from mdt.visualization.maps.base import DataInfo
+    from mdt.visualization.maps.base import SimpleDataInfo
 
     if isinstance(data, string_types):
-        data = DataInfo.from_dir(data)
+        data = SimpleDataInfo.from_dir(data)
     elif isinstance(data, dict):
-        data = DataInfo(data)
+        data = SimpleDataInfo(data)
     elif data is None:
-        data = DataInfo({})
+        data = SimpleDataInfo({})
 
     if config is None:
         config = MapPlotConfig()

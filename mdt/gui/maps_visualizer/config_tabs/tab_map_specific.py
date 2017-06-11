@@ -1,5 +1,3 @@
-from textwrap import wrap
-
 from PyQt5.QtCore import pyqtSlot, Qt
 from PyQt5.QtWidgets import QWidget
 
@@ -164,7 +162,7 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         mask_name = get_map_attr()
 
         if mask_name is not None:
-            return data_info.maps[mask_name]
+            return data_info.get_map_data(mask_name)
         return None
 
     def use(self, map_name):
@@ -177,8 +175,7 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
             map_info = SingleMapConfig()
 
         data_info = self._controller.get_data()
-        vmin = data_info.map_info[map_name].min(mask=self._get_mask(data_info, map_name))
-        vmax = data_info.map_info[map_name].max(mask=self._get_mask(data_info, map_name))
+        vmin, vmax = data_info.get_single_map_info(map_name).min_max(mask=self._get_mask(data_info, map_name))
 
         with blocked_signals(self.map_title):
             self.map_title.setText(map_info.title if map_info.title else '')
@@ -228,7 +225,7 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
 
         self.info_maximum.setText(str(vmax))
         self.info_minimum.setText(str(vmin))
-        self.info_shape.setText(str(data_info.maps[map_name].shape))
+        self.info_shape.setText(str(data_info.get_single_map_info(map_name).shape))
 
     def _get_current_map_config(self):
         current_config = self._controller.get_config()

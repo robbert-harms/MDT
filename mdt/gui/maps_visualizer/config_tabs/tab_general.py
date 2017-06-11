@@ -88,27 +88,30 @@ class TabGeneral(QWidget, Ui_TabGeneral):
 
     @pyqtSlot(DataInfo)
     def set_new_data(self, data_info):
-        if data_info.directory:
-            self.general_info_directory.setText(split_long_path_elements(data_info.directory))
+        sorted_keys = list(sorted(data_info.get_map_names()))
+
+        if self._controller.get_data().get_directories():
+            self.general_info_directory.setText(split_long_path_elements(
+                self._controller.get_data().get_directories()[0]))
         else:
             self.general_info_directory.setText('-')
 
-        if len(data_info.maps):
-            self.general_info_nmr_maps.setText(str(len(data_info.maps)))
+        if len(data_info.get_map_names()):
+            self.general_info_nmr_maps.setText(str(len(data_info.get_map_names())))
         else:
             self.general_info_nmr_maps.setText('0')
 
         with blocked_signals(self.general_map_selection):
             self.general_map_selection.clear()
-            self.general_map_selection.addItems(data_info.sorted_keys)
-            for index, map_name in enumerate(data_info.sorted_keys):
+            self.general_map_selection.addItems(sorted_keys)
+            for index, map_name in enumerate(sorted_keys):
                 item = self.general_map_selection.item(index)
                 item.setData(Qt.UserRole, map_name)
 
         with blocked_signals(self.mask_name):
             self.mask_name.clear()
             self.mask_name.insertItem(0, '-- None --')
-            self.mask_name.insertItems(1, data_info.sorted_keys)
+            self.mask_name.insertItems(1, sorted_keys)
 
     @pyqtSlot(MapPlotConfig)
     def set_new_config(self, config):
@@ -154,12 +157,12 @@ class TabGeneral(QWidget, Ui_TabGeneral):
         if self.general_map_selection.count():
             for map_name, map_config in config.map_plot_options.items():
                 if map_config.title:
-                    index = data_info.sorted_keys.index(map_name)
+                    index = list(sorted(data_info.get_map_names())).index(map_name)
                     item = self.general_map_selection.item(index)
                     item.setData(Qt.DisplayRole, map_name + ' (' + map_config.title + ')')
 
             self.general_map_selection.blockSignals(True)
-            for index, map_name in enumerate(data_info.sorted_keys):
+            for index, map_name in enumerate(list(sorted(data_info.get_map_names()))):
                 item = self.general_map_selection.item(index)
                 if item:
                     item.setSelected(map_name in map_names)
@@ -227,7 +230,7 @@ class TabGeneral(QWidget, Ui_TabGeneral):
             self.general_flipud.setChecked(config.flipud)
 
         with blocked_signals(self.mask_name):
-            if config.mask_name and config.mask_name in data_info.maps:
+            if config.mask_name and config.mask_name in data_info.get_map_names():
                 for ind in range(self.mask_name.count()):
                     if self.mask_name.itemText(ind) == config.mask_name:
                         self.mask_name.setCurrentIndex(ind)
@@ -264,7 +267,7 @@ class TabGeneral(QWidget, Ui_TabGeneral):
     @pyqtSlot()
     def _invert_map_selection(self):
         self._controller.apply_action(SetMapsToShow(
-            set(self._controller.get_data().maps.keys()).difference(set(self._controller.get_config().maps_to_show))))
+            set(self._controller.get_data().get_map_names()).difference(set(self._controller.get_config().maps_to_show))))
 
     @pyqtSlot()
     def _zoom_fit(self):
@@ -280,7 +283,7 @@ class TabGeneral(QWidget, Ui_TabGeneral):
 
             return bounding_box
 
-        if config.maps_to_show or len(data_info.maps):
+        if config.maps_to_show or len(data_info.get_map_names()):
             bounding_box = data_info.get_bounding_box(config.dimension, config.slice_index,
                                                       config.volume_index, config.rotate, config.maps_to_show)
 
