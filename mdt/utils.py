@@ -144,11 +144,11 @@ class DMRIProblemData(AbstractProblemData):
                 del volumes_to_keep[remove_ind]
 
         new_protocol = self.protocol
-        if self.protocol:
+        if self.protocol is not None:
             new_protocol = self.protocol.get_new_protocol_with_indices(volumes_to_keep)
 
         new_dwi_volume = self.dwi_volume
-        if self.dwi_volume:
+        if self.dwi_volume is not None:
             new_dwi_volume = self.dwi_volume[..., volumes_to_keep]
 
         return self.copy_with_updates(new_protocol, new_dwi_volume)
