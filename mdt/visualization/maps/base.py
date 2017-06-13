@@ -730,7 +730,7 @@ class Scale(SimpleConvertibleConfig):
 
 class Font(SimpleConvertibleConfig):
 
-    def __init__(self, family='Arial', size=14):
+    def __init__(self, family='sans-serif', size=14):
         """Information about the font to use
 
         Args:
