@@ -169,6 +169,14 @@ class TrackMark(object):
         direction_pairs, volumes = conversion_profile.get_info(input_folder)
         tvl_header = conversion_profile.get_tvl_header(input_folder)
 
+        transformed_direction_pairs = []
+        for vectors, scalars in direction_pairs:
+            transformed_direction_pairs.append((tensor_wise_transformations(voxel_wise_transformation(vectors)),
+                                                voxel_wise_transformation(scalars)))
+        direction_pairs = transformed_direction_pairs
+
+        volumes = {key: voxel_wise_transformation(value) for key, value in volumes.items()}
+
         TrackMark.write_rawmaps(output_folder, volumes)
         TrackMark.write_tvl_direction_pairs(output_folder + '/master.tvl', tvl_header, direction_pairs)
 
@@ -177,6 +185,19 @@ class TrackMark(object):
         if len(array.shape) < 3:
             return array[..., None]
         return array
+
+
+def voxel_wise_transformation(volume):
+    """"Transform from LAS to PIL"""
+    volume = np.swapaxes(volume, 0, 2)
+    volume = np.swapaxes(volume, 0, 1)
+    volume = volume[::-1, ::-1]
+    return volume
+
+
+def tensor_wise_transformations(vector_volume):
+    """Transform from LAS to PIL"""
+    return vector_volume[..., [1, 2, 0]] * np.array([-1, -1, 1])
 
 
 def get_trackmark_conversion_profile(model_name):
