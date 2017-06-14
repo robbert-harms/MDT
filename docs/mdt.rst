@@ -130,6 +130,14 @@ mdt\.shell\_utils module
     :undoc-members:
     :show-inheritance:
 
+mdt\.simulations module
+-----------------------
+
+.. automodule:: mdt.simulations
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 mdt\.user\_script\_info module
 ------------------------------
 

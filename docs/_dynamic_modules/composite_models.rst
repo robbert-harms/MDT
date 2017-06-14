@@ -165,6 +165,19 @@ Here FR is defined as :math:`1 - w_{hin_{0}}`, which is the same as :math:`\sum_
 More in general, for every additional map you wish to add, add a tuple with the name of the desired map
 and as value a function callback that accepts the current dictionary with result maps and returns a new map to add to this dictionary.
 
+It is also possible to return more than one map from a single modifier, using both a list for the parameter name as for the modifier dictionary output.
+Something like:
+
+.. code-block:: python
+
+    class FooBar(DMRICompositeModelConfig):
+        ...
+        post_optimization_modifiers = [
+            ( ['Power2', 'Power3'], lambda d: [d['foo']**2, d['foo']**3] ),
+        ]
+
+This is useful if the callback function is a more complex function that converts multiple inputs to multiple outputs.
+
 
 .. _dynamic_modules_composite_model_evaluation_function:
 

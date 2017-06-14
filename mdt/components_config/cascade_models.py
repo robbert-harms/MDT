@@ -97,10 +97,7 @@ class CascadeConfig(ComponentConfig):
     def meta_info(cls):
         meta_info = deepcopy(ComponentConfig.meta_info())
         meta_info.update({'name': cls.name,
-                          'description': cls.description,
-                          'in_vivo_suitable': get_meta_info(cls.models[len(cls.models) - 1])['in_vivo_suitable'],
-                          'ex_vivo_suitable': get_meta_info(cls.models[len(cls.models) - 1])['ex_vivo_suitable']
-                          })
+                          'description': cls.description})
         return meta_info
 
 

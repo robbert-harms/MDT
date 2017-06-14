@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QFileDialog
 
 from mdt import load_brain_mask, create_median_otsu_brain_mask
 from mdt.utils import split_image_path
-from mdt.visualization.maps.base import DataInfo, MapPlotConfig
+from mdt.visualization.maps.base import SimpleDataInfo, MapPlotConfig
 from mdt.gui.maps_visualizer.main import start_gui
 from mdt.gui.model_fit.design.ui_generate_brain_mask_tab import Ui_GenerateBrainMaskTabContent
 from mdt.gui.utils import function_message_decorator, image_files_filters, protocol_files_filters, MainTab, \
@@ -94,8 +94,7 @@ class GenerateBrainMaskTab(MainTab, Ui_GenerateBrainMaskTabContent):
         image_data = load_nifti(self.selectedImageText.text()).get_data()
         masked_image = image_data * mask
 
-        data = DataInfo({'Masked': masked_image, 'DWI': image_data},
-                        directory=os.path.dirname(self.selectedImageText.text()))
+        data = SimpleDataInfo({'Masked': masked_image, 'DWI': image_data})
 
         config = MapPlotConfig()
         config.dimension = 2

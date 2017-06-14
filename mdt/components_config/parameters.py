@@ -1,7 +1,7 @@
 import six
 from mdt.components_loader import ComponentConfig, ComponentBuilder, method_binding_meta
 from mot.cl_data_type import SimpleCLDataType
-from mot.model_building.cl_functions.parameters import StaticMapParameter, ProtocolParameter, ModelDataParameter, \
+from mot.model_building.parameters import StaticMapParameter, ProtocolParameter, ModelDataParameter, \
     FreeParameter
 from mot.model_building.parameter_functions.priors import UniformWithinBoundsPrior
 from mot.model_building.parameter_functions.proposals import GaussianProposal

@@ -6,6 +6,7 @@ from mdt.models.composite import DMRICompositeModel
 from mdt.models.parsers.CompositeModelExpressionParser import parse
 from mot.model_building.evaluation_models import EvaluationModel
 from mot.model_building.trees import CompartmentModelTree
+from mot.model_building.utils import ModelPrior, SimpleModelPrior
 
 __author__ = 'Robbert Harms'
 __date__ = "2017-02-14"
@@ -20,15 +21,18 @@ class DMRICompositeModelConfig(ComponentConfig):
 
     Attributes:
         name (str): the name of the model, defaults to the class name
-        in_vivo_suitable (boolean): flag indicating if the model is suitable for in vivo data
-        ex_vivo_suitable (boolean): flag indicating if the model is suitable for ex vivo data
         description (str): model description
-        post_optimization_modifiers (list): a list of modification callbacks for use after optimization. Example:
+        post_optimization_modifiers (list): a list of modification callbacks for use after optimization. Examples:
 
             .. code-block:: python
 
-                post_optimization_modifiers = [('SNIF', lambda d: 1 - d['Wcsf.w']),
+                post_optimization_modifiers = [('FS', lambda d: 1 - d['w_ball.w']),
+                                               ('Ball.d', lambda d: d['Ball.d'] * 1e9),
+                                               (['Power2', 'Power3'], lambda d: [d['foo']**2, d['foo']**3]),
                                            ...]
+
+            The last entry in the above example shows that it is possible to include more than one
+            modifier in one modifier expression.
 
         model_expression (str): the model expression. For the syntax see:
             mdt.models.parsers.CompositeModelExpression.ebnf
@@ -79,10 +83,12 @@ class DMRICompositeModelConfig(ComponentConfig):
                * ``max_bval`` (float): the maximum b-value to include
 
             If the method ``_get_suitable_volume_indices`` is overwritten, this does nothing.
+
+        prior (str, mot.model_building.utils.ModelPrior or None): a model wide prior. This is used in conjunction with
+            the compartment priors and the parameter priors. If a string is given we will automatically construct a
+            :class:`mot.model_building.utils.ModelPrior` from that string.
     """
     name = ''
-    in_vivo_suitable = True
-    ex_vivo_suitable = True
     description = ''
     post_optimization_modifiers = []
     model_expression = ''
@@ -94,13 +100,12 @@ class DMRICompositeModelConfig(ComponentConfig):
     lower_bounds = {}
     enforce_weights_sum_to_one = True
     volume_selection = None
+    prior = None
 
     @classmethod
     def meta_info(cls):
         meta_info = deepcopy(ComponentConfig.meta_info())
         meta_info.update({'name': cls.name,
-                          'in_vivo_suitable': cls.in_vivo_suitable,
-                          'ex_vivo_suitable': cls.ex_vivo_suitable,
                           'description': cls.description})
         return meta_info
 
@@ -124,6 +129,8 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                     signal_noise_model=deepcopy(template.signal_noise_model),
                     enforce_weights_sum_to_one=template.enforce_weights_sum_to_one)
 
+                self.add_post_optimization_modifiers(_get_model_post_optimization_modifiers(
+                    self._model_functions_info.get_model_list()))
                 self.add_post_optimization_modifiers(deepcopy(template.post_optimization_modifiers))
 
                 for full_param_name, value in template.inits.items():
@@ -139,6 +146,9 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                     self.set_upper_bound(full_param_name, deepcopy(value))
 
                 self.nmr_parameters_for_bic_calculation = self.get_nmr_estimable_parameters()
+
+                self._model_priors.extend(_resolve_model_prior(
+                    template.prior, self._model_functions_info.get_model_parameter_list()))
 
             def _get_suitable_volume_indices(self, problem_data):
                 volume_selection = template.volume_selection
@@ -189,3 +199,69 @@ def _resolve_evaluation_model(evaluation_model):
         return get_component_class('evaluation_models', evaluation_model + 'EvaluationModel')()
     else:
         return evaluation_model
+
+
+def _resolve_model_prior(prior, model_parameters):
+    """Resolve the model priors.
+
+    Args:
+        model_prior (None or str or mot.model_building.utils.ModelPrior): the prior defined in the composite model
+            template.
+        model_parameters (str): the (model, parameter) tuple for all the parameters in the model
+
+    Returns:
+        list of mot.model_building.utils.ModelPrior: list of model priors
+    """
+    if prior is None:
+        return []
+
+    if isinstance(prior, ModelPrior):
+        return [prior]
+
+    parameters = []
+    for m, p in model_parameters:
+        dotted_name = '{}.{}'.format(m.name, p.name)
+        bar_name = dotted_name.replace('.', '_')
+
+        if dotted_name in prior:
+            prior = prior.replace(dotted_name, bar_name)
+            parameters.append(dotted_name)
+        elif bar_name in prior:
+            parameters.append(dotted_name)
+
+    return [SimpleModelPrior(prior, parameters, 'model_prior')]
+
+
+def _get_model_post_optimization_modifiers(compartments):
+    """Get a list of all the post optimization modifiers defined in the models.
+
+    This function will add a wrapper around the modification routines to make the input and output maps relative to the
+    model. That it, these functions expect the parameter names without the model name and output map names without
+    the model name, whereas the expected input and output of the modifiers of the model is with the full model.map name.
+
+    Args:
+        compartments (list): the list of compartment models from which to get the modifiers
+    """
+    modifiers = []
+
+    def get_wrapped_modifier(compartment_name, original_map_names, original_modifier):
+        single_output = isinstance(original_map_names, six.string_types)
+
+        if single_output:
+            wrapped_names = '{}.{}'.format(compartment_name, original_map_names)
+        else:
+            wrapped_names = ['{}.{}'.format(compartment_name, map_name) for map_name in original_map_names]
+
+        def wrapped_modifier(maps):
+            compartment_specific_maps = {k[len(compartment_name) + 1:]: v for k, v in maps.items()
+                                         if k.startswith(compartment_name)}
+            return original_modifier(compartment_specific_maps)
+
+        return wrapped_names, wrapped_modifier
+
+    for compartment in compartments:
+        if hasattr(compartment, 'post_optimization_modifiers'):
+            for map_names, modifier in compartment.post_optimization_modifiers:
+                modifiers.append(get_wrapped_modifier(compartment.name, map_names, modifier))
+
+    return modifiers

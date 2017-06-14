@@ -1,5 +1,6 @@
 from mdt.components_config.compartment_models import CompartmentConfig
-from mdt.components_loader import CompartmentModelsLoader, bind_function
+from mdt.components_loader import CompartmentModelsLoader
+from mdt.utils import spherical_to_cartesian
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -34,8 +35,4 @@ class GDRCylindersFixedRadii(CompartmentConfig):
         }
         return signal;
     '''
-
-    @bind_function
-    def get_extra_results_maps(self, results_dict):
-        return self._get_vector_result_maps(results_dict[self.name + '.theta'],
-                                            results_dict[self.name + '.phi'])
+    post_optimization_modifiers = [('vec0', lambda results: spherical_to_cartesian(results['theta'], results['phi']))]

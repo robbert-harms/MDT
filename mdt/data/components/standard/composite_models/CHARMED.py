@@ -8,7 +8,6 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class CHARMED_r1(DMRICompositeModelConfig):
 
-    ex_vivo_suitable = False
     description = 'The CHARMED model with 1 restricted compartments'
 
     model_expression = '''
@@ -39,7 +38,6 @@ class CHARMED_r1(DMRICompositeModelConfig):
 
 class CHARMED_r2(DMRICompositeModelConfig):
 
-    ex_vivo_suitable = False
     description = 'The CHARMED model with 2 restricted compartments'
 
     model_expression = '''
@@ -65,17 +63,18 @@ class CHARMED_r2(DMRICompositeModelConfig):
              'Tensor.dperp1': 0.5e-9,
              'CHARMEDRestricted0.d': 1e-9,
              'CHARMEDRestricted1.d': 1e-9,
-             'w_res0': 0.1,
-             'w_res1': 0.1}
+             'w_res0.w': 0.1,
+             'w_res1.w': 0.1}
 
     post_optimization_modifiers = [
         ('FR', lambda results: 1 - results['w_hin0.w'])
     ]
 
+    prior = 'return w_res1.w < w_res0.w;'
+
 
 class CHARMED_r3(DMRICompositeModelConfig):
 
-    ex_vivo_suitable = False
     description = 'The standard CHARMED model with 3 restricted compartments'
 
     model_expression = '''
@@ -105,10 +104,12 @@ class CHARMED_r3(DMRICompositeModelConfig):
              'CHARMEDRestricted0.d': 1e-9,
              'CHARMEDRestricted1.d': 1e-9,
              'CHARMEDRestricted2.d': 1e-9,
-             'w_res0': 0.1,
-             'w_res1': 0.1,
-             'w_res2': 0.1}
+             'w_res0.w': 0.1,
+             'w_res1.w': 0.1,
+             'w_res2.w': 0.1}
 
     post_optimization_modifiers = [
         ('FR', lambda results: 1 - results['w_hin0.w'])
     ]
+
+    prior = 'return w_res2.w < w_res1.w && w_res1.w < w_res0.w;'

@@ -36,8 +36,11 @@ def load_all_niftis(directory, map_names=None):
     This does not load the data directly, it loads the niftis in a dictionary. To get a direct handle to the image
     data use the function :func:`get_all_image_data`.
 
-    If map_names is given we will only load the given maps. Else, we load all .nii and .nii.gz files in the
-    given directory. The map name is the filename of a nifti without the extension.
+    If ``map_names`` is given we will only load the given maps. Else, we will load all .nii and .nii.gz files.
+    The map name is the filename of a nifti without the extension.
+
+    In the case both an .nii and a .nii.gz with the same name exists we will load the .nii as the main map
+    and the .nii.gz with its extension.
 
     Args:
         directory (str): the directory from which we want to load the niftis
@@ -50,8 +53,10 @@ def load_all_niftis(directory, map_names=None):
     """
     maps_paths = {}
 
-    for path, map_name, _ in yield_nifti_info(directory):
+    for path, map_name, extension in yield_nifti_info(directory):
         if not map_names or map_name in map_names:
+            if map_name in maps_paths:
+                map_name += extension
             maps_paths.update({map_name: path})
 
     return {k: load_nifti(v) for k, v in maps_paths.items()}
@@ -193,3 +198,17 @@ def yield_nifti_info(directory):
     for extension in ('.nii', '.nii.gz'):
         for f in glob.glob(os.path.join(directory, '*' + extension)):
             yield f, os.path.basename(f)[0:-len(extension)], extension
+
+
+def is_nifti_file(file_name):
+    """Check if the given file is a nifti file.
+
+    This only checks if the extension of the given file ends with .nii or with .nii.gz
+
+    Args:
+        file_name (str): the name of the file
+
+    Returns:
+        boolean: true if the file looks like a nifti file, false otherwise
+    """
+    return file_name.endswith('.nii') or file_name.endswith('.nii.gz')

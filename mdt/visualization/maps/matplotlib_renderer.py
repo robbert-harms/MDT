@@ -167,7 +167,7 @@ class Renderer(object):
             self._add_colorbar(map_name, colorbar_axis, vf, self._get_map_attr(map_name, 'colorbar_label'))
             self._apply_font(axis, colorbar_axis)
 
-        return AxisData(axis, map_name, self._data_info.map_info[map_name], self._plot_config)
+        return AxisData(axis, map_name, self._data_info.get_single_map_info(map_name), self._plot_config)
 
     def _apply_font(self, image_axis, colorbar_axis):
         """Apply the font from the plot configuration to the image and colorbar axis"""
@@ -230,8 +230,8 @@ class Renderer(object):
         return 1 + self._get_map_attr(map_name, 'title_spacing', 0)
 
     def _get_map_plot_options(self, map_name):
-        output_dict = {'vmin': self._data_info.maps[map_name].min(),
-                       'vmax': self._data_info.maps[map_name].max(),
+        output_dict = {'vmin': self._data_info.get_single_map_info(map_name).min(),
+                       'vmax': self._data_info.get_single_map_info(map_name).max(),
                        'cmap': self._get_map_attr(map_name, 'colormap', self._plot_config.colormap)}
 
         scale = self._get_map_attr(map_name, 'scale', Scale())
@@ -244,7 +244,7 @@ class Renderer(object):
 
     def _get_image(self, map_name):
         """Get the 2d image to display for the given data."""
-        data = self._data_info.maps[map_name]
+        data = self._data_info.get_map_data(map_name)
 
         dimension = self._plot_config.dimension
         slice_index = self._plot_config.slice_index
@@ -272,12 +272,12 @@ class Renderer(object):
 
         mask_name = self._get_map_attr(map_name, 'mask_name', self._plot_config.mask_name)
         if mask_name:
-            data_slice = data_slice * (get_slice(self._data_info.maps[mask_name]) > 0)
+            data_slice = data_slice * (get_slice(self._data_info.get_map_data(mask_name)) > 0)
 
         return data_slice
 
     def _get_tick_locator(self, map_name):
-        min_val, max_val = self._data_info.maps[map_name].min(), self._data_info.maps[map_name].max()
+        min_val, max_val = self._data_info.get_single_map_info(map_name).min_max()
 
         scale = self._get_map_attr(map_name, 'scale', Scale())
         if scale.use_max:

@@ -208,10 +208,14 @@ class DirectoryImageWatcher(QObject):
                 the list of additions, removals and changes where changes is a dict mapping the old name to a new one.
         """
         super(DirectoryImageWatcher, self).__init__()
-        self._watched_dir = None
-        self._current_files = []
+
         self._watcher = QFileSystemWatcher()
         self._watcher.directoryChanged.connect(self._directory_changed)
+
+        self._watched_dir = None
+        self._watched_dir_parent = None
+        self._current_files = []
+
         self._timer = QTimer()
         self._timer.timeout.connect(self._timer_event)
         self._timer.timeout.connect(self._timer.stop)
@@ -227,16 +231,24 @@ class DirectoryImageWatcher(QObject):
         """
         if self._watched_dir:
             self._watcher.removePath(self._watched_dir)
+            self._watcher.removePath(self._watched_dir_parent)
 
         if os.path.exists(directory):
             self._watched_dir = directory
-            self._watcher.addPath(directory)
+            self._watched_dir_parent = os.path.abspath(os.path.join(directory, os.pardir))
+
+            self._watcher.addPath(self._watched_dir)
+            self._watcher.addPath(self._watched_dir_parent)
+
             self._current_files = list(el[1] for el in yield_nifti_info(directory))
 
     @pyqtSlot(str)
     def _directory_changed(self, directory):
         if directory == self._watched_dir:
             self._timer.start(100)
+        elif directory == self._watched_dir_parent:
+            if not os.path.isdir(self._watched_dir):
+                self._timer.start(0)
 
     @pyqtSlot()
     def _timer_event(self):

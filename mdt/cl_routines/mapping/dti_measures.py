@@ -39,10 +39,22 @@ class DTIMeasures(CLRoutine):
                   'eigen_ranking': ranking}
 
         for ind in range(3):
-            output.update({'sorted_vec' + repr(ind): sorted_eigenvectors[:, ind, :],
+            output.update({'sorted_vec{}'.format(ind): sorted_eigenvectors[:, ind, :],
                            'sorted_eigval{}'.format(ind): sorted_eigenvalues[:, ind]})
 
         return output
+
+    def get_output_names(self):
+        """Get a list of the map names calculated by this class.
+
+        Returns:
+            list of str: the list of map names this calculator returns
+        """
+        return_names = ['FA', 'MD', 'AD', 'RD', 'eigen_ranking']
+        for ind in range(3):
+            return_names.append('sorted_vec{}'.format(ind))
+            return_names.append('sorted_eigval{}'.format(ind))
+        return return_names
 
     def _sort_eigensystem(self, eigenvalues, eigenvectors):
         ranking = np.atleast_2d(np.squeeze(np.argsort(eigenvalues, axis=1)[:, ::-1]))
@@ -55,7 +67,12 @@ class DTIMeasures(CLRoutine):
         return sorted_eigenvalues, sorted_eigenvectors, ranking
 
     def _get_fa_md(self, eigenvalues):
-        np_dtype = np.float64
+        if eigenvalues.dtype == np.float32:
+            np_dtype = np.float32
+            double_precision = False
+        else:
+            np_dtype = np.float64
+            double_precision = True
 
         eigenvalues = np.require(eigenvalues, np_dtype, requirements=['C', 'A', 'O'])
 
@@ -66,7 +83,7 @@ class DTIMeasures(CLRoutine):
 
         workers = self._create_workers(lambda cl_environment: _DTIMeasuresWorker(
             cl_environment, self.get_compile_flags_list(double_precision=True), eigenvalues,
-            fa_host, md_host, True))
+            fa_host, md_host, double_precision))
         self.load_balancer.process(workers, nmr_voxels)
 
         return fa_host, md_host
@@ -80,7 +97,7 @@ class _DTIMeasuresWorker(Worker):
         self._fa_host = fa_host
         self._md_host = md_host
         self._double_precision = double_precision
-        self._kernel = self._build_kernel(compile_flags)
+        self._kernel = self._build_kernel(self._get_kernel_source(), compile_flags)
 
     def calculate(self, range_start, range_end):
         nmr_problems = range_end - range_start

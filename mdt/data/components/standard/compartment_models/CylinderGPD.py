@@ -1,5 +1,5 @@
 from mdt.components_config.compartment_models import CompartmentConfig
-from mdt.components_loader import bind_function
+from mdt.utils import spherical_to_cartesian
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -21,8 +21,4 @@ class CylinderGPD(CompartmentConfig):
         return exp(-2 * GAMMA_H_SQ * pown(G * sin(omega), 2) * sum) *
                 exp(-(Delta - (delta/3.0)) * pown(GAMMA_H * delta * G * cos(omega), 2) * d);
     '''
-
-    @bind_function
-    def get_extra_results_maps(self, results_dict):
-        return self._get_vector_result_maps(results_dict[self.name + '.theta'],
-                                            results_dict[self.name + '.phi'])
+    post_optimization_modifiers = [('vec0', lambda results: spherical_to_cartesian(results['theta'], results['phi']))]

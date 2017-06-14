@@ -8,7 +8,6 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class Tensor(DMRICompositeModelConfig):
 
-    ex_vivo_suitable = False
     description = 'The standard Tensor model with in vivo defaults.'
     model_expression = '''
         S0 * Tensor

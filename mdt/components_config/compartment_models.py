@@ -7,7 +7,8 @@ import six
 from mdt.components_loader import ParametersLoader, ComponentConfigMeta, ComponentConfig, ComponentBuilder, \
     method_binding_meta
 from mdt.models.compartments import DMRICompartmentModelFunction
-from mot.model_building.cl_functions.parameters import CurrentObservationParam
+from mot.model_building.model_function_priors import ModelFunctionPrior, SimpleModelFunctionPrior
+from mot.model_building.parameters import CurrentObservationParam
 
 __author__ = 'Robbert Harms'
 __date__ = "2017-02-14"
@@ -151,6 +152,23 @@ class CompartmentConfig(six.with_metaclass(CompartmentConfigMeta, ComponentConfi
         dependency_list (list): the list of functions this function depends on, can contain string which will be
             resolved as library functions.
         return_type (str): the return type of this compartment, defaults to double.
+        prior (str or None): an extra MCMC sampling prior for this compartment. This is additional to the priors
+            defined in the parameters. This should be an instance of :class:`~mdt.models.compartments.CompartmentPrior`
+            or a string with a CL function body. If the latter, the :class:`~mdt.models.compartments.CompartmentPrior`
+            is automatically constructed based on the content of the string (automatic parameter recognition).
+        post_optimization_modifiers (list): a list of modification callbacks for use after optimization. Examples:
+
+            .. code-block:: python
+
+                post_optimization_modifiers = [('FS', lambda d: 1 - d['w_ball.w']),
+                                               ('Ball.d', lambda d: d['Ball.d'] * 1e9),
+                                               (['Power2', 'Power3'], lambda d: [d['foo']**2, d['foo']**3]),
+                                           ...]
+
+            The last entry in the above example shows that it is possible to include more than one
+            modifier in one modifier expression.
+
+            These modifiers are supposed to be called before the modifiers of the composite model.
     """
     name = ''
     description = ''
@@ -159,6 +177,8 @@ class CompartmentConfig(six.with_metaclass(CompartmentConfigMeta, ComponentConfi
     cl_code = None
     dependency_list = []
     return_type = 'double'
+    prior = None
+    post_optimization_modifiers = None
 
 
 class CompartmentBuildingBase(DMRICompartmentModelFunction):
@@ -180,17 +200,25 @@ class CompartmentBuilder(ComponentBuilder):
         """
         class AutoCreatedDMRICompartmentModel(method_binding_meta(template, CompartmentBuildingBase)):
 
-            def __init__(self, *args):
+            def __init__(self, *args, **kwargs):
+                parameter_list = _get_parameters_list(template.parameter_list)
+
                 new_args = [template.name,
                             template.cl_function_name,
-                            _get_parameters_list(template.parameter_list),
+                            parameter_list,
                             template.cl_code,
-                            _resolve_dependencies(template.dependency_list)]
+                            _resolve_dependencies(template.dependency_list),
+                            template.return_type]
 
                 for ind, already_set_arg in enumerate(args):
                     new_args[ind] = already_set_arg
 
-                super(AutoCreatedDMRICompartmentModel, self).__init__(*new_args)
+                new_kwargs = {'model_function_priors': (_resolve_prior(template.prior, template.name,
+                                                                       [p.name for p in parameter_list],)),
+                              'post_optimization_modifiers': template.post_optimization_modifiers}
+                new_kwargs.update(kwargs)
+
+                super(AutoCreatedDMRICompartmentModel, self).__init__(*new_args, **new_kwargs)
 
                 if hasattr(template, 'init'):
                     template.init(self)
@@ -203,12 +231,11 @@ def _resolve_dependencies(dependency_list):
 
     Args:
         dependency_list (list): the list of dependencies as given by the user. Elements can either include actual
-            instances of :class:`~mot.model_building.cl_functions.base.CLFunction` or strings with the name of the
+            instances of :class:`~mot.library_functions.CLLibrary` or strings with the name of the
             component to auto-load.
 
     Returns:
-        list: a new list with the string elements resolved
-            as :class:`~mot.model_building.cl_functions.base.SimpleCLLibrary`.
+        list: a new list with the string elements resolved as :class:`~mot.library_functions.CLLibrary`.
     """
     from mdt.components_loader import LibraryFunctionsLoader
 
@@ -221,3 +248,26 @@ def _resolve_dependencies(dependency_list):
             result.append(dependency)
 
     return result
+
+
+def _resolve_prior(prior, compartment_name, compartment_parameters):
+    """Create a proper prior out of the given prior information.
+
+    Args:
+        prior (str or mdt.models.compartments.CompartmentPrior or None):
+            The prior from which to construct a prior.
+        compartment_name (str): the name of the compartment
+        compartment_parameters (list of str): the list of parameters of this compartment, used
+            for looking up the used parameters in a string prior
+
+    Returns:
+        None or mdt.models.compartments.CompartmentPrior: a proper prior instance
+    """
+    if prior is None:
+        return None
+
+    if isinstance(prior, ModelFunctionPrior):
+        return prior
+
+    parameters = [p for p in compartment_parameters if p in prior]
+    return SimpleModelFunctionPrior(prior, parameters, 'prior_' + compartment_name)

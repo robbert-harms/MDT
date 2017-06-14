@@ -98,7 +98,7 @@ class DMRIProblemData(AbstractProblemData):
         for key, value in kwargs.items():
             new_kwargs[key] = value
 
-        return DMRIProblemData(*new_args, **new_kwargs)
+        return self.__class__(*new_args, **new_kwargs)
 
     def _get_constructor_args(self):
         """Get the constructor arguments needed to create a copy of this batch util using a copy constructor.
@@ -143,9 +143,16 @@ class DMRIProblemData(AbstractProblemData):
             for remove_ind in volumes_to_remove:
                 del volumes_to_keep[remove_ind]
 
-        new_protocol = self.protocol.get_new_protocol_with_indices(volumes_to_keep)
-        new_dwi_volume = self.dwi_volume[..., volumes_to_keep]
+        new_protocol = self.protocol
+        if self.protocol is not None:
+            new_protocol = self.protocol.get_new_protocol_with_indices(volumes_to_keep)
+
+        new_dwi_volume = self.dwi_volume
+        if self.dwi_volume is not None:
+            new_dwi_volume = self.dwi_volume[..., volumes_to_keep]
+
         return self.copy_with_updates(new_protocol, new_dwi_volume)
+
 
     def get_nmr_inst_per_problem(self):
         return self._protocol.length
@@ -241,6 +248,16 @@ class MockDMRIProblemData(DMRIProblemData):
         """
         super(MockDMRIProblemData, self).__init__(protocol, dwi_volume, mask, volume_header, **kwargs)
 
+    def _get_constructor_args(self):
+        """Get the constructor arguments needed to create a copy of this batch util using a copy constructor.
+
+        Returns:
+            tuple: args and kwargs tuple
+        """
+        args = [self._protocol, self.dwi_volume, self._mask, self.volume_header]
+        kwargs = {}
+        return args, kwargs
+
     def get_nmr_problems(self):
         return 0
 
@@ -250,7 +267,7 @@ class MockDMRIProblemData(DMRIProblemData):
 
     @property
     def noise_std(self):
-        return self._noise_std
+        return 1
 
 
 class InitializationData(object):
@@ -769,14 +786,15 @@ def spherical_to_cartesian(theta, phi):
         z = cos(theta)
 
     Args:
-        theta (ndarray): The 1d vector with theta's
-        phi (ndarray): The 1d vector with phi's
+        theta (ndarray): The 1d vector with the inclinations
+        phi (ndarray): The 1d vector with the azimuths
 
     Returns:
         ndarray: Two dimensional array with on the first axis the voxels and on the second the [x, y, z] coordinates.
     """
     theta = np.squeeze(theta)
     phi = np.squeeze(phi)
+
     sin_theta = np.sin(theta)
     return_val = np.array([np.cos(phi) * sin_theta, np.sin(phi) * sin_theta, np.cos(theta)]).transpose()
 
@@ -1191,8 +1209,11 @@ def split_image_path(image_path):
     return folder, basename, ''
 
 
-def calculate_information_criterions(log_likelihoods, k, n):
-    """Calculate various information criterions.
+def calculate_point_estimate_information_criterions(log_likelihoods, k, n):
+    """Calculate various point estimate information criterions.
+
+    These are meant to be used after maximum likelihood estimation as they assume you have a point estimate of your
+    likelihood per problem.
 
     Args:
         log_likelihoods (1d np array): the array with the log likelihoods
@@ -1642,7 +1663,7 @@ def recalculate_error_measures(model, problem_data, data_dir, output_dir=None, e
     k = model.get_nmr_estimable_parameters()
     n = problem_data.get_nmr_inst_per_problem()
     results_maps.update({'LogLikelihood': log_likelihoods})
-    results_maps.update(calculate_information_criterions(log_likelihoods, k, n))
+    results_maps.update(calculate_point_estimate_information_criterions(log_likelihoods, k, n))
 
     volumes = restore_volumes(results_maps, problem_data.mask)
 
@@ -1716,7 +1737,7 @@ def sort_orientations(data_input, weight_names, extra_sortable_maps):
             match the length of the ``weight_names``.
 
     Returns:
-        dict: the sorted results in a new dictionary.
+        dict: the sorted results in a new dictionary. This returns all input maps with some of them sorted.
     """
     if isinstance(data_input, six.string_types):
         input_maps = get_all_image_data(data_input)
@@ -1737,50 +1758,3 @@ def sort_orientations(data_input, weight_names, extra_sortable_maps):
         result_maps.update(sorted)
 
     return result_maps
-
-
-def post_process_samples(model, sampling_output):
-    """Post process MCMC samples
-
-    Args:
-        model (mdt.models.composite.DMRICompositeModel): the model corresponding to the samples results
-        sampling_output (mot.cl_routines.sampling.base.SamplingOutput): the sampling output
-
-    Returns:
-        tuple: first element a dictionary with the samples split up into parameters.
-            and as second element a dictionary with the volumetric voxel values (in ROI space).
-    """
-    samples = sampling_output.get_samples()
-
-    samples_dict = results_to_dict(samples, model.get_free_param_names())
-    volume_maps = model.add_extra_result_maps(model.samples_to_statistics(samples_dict))
-
-    errors = ResidualCalculator().calculate(model, volume_maps)
-    error_measures = ErrorMeasures(double_precision=model.double_precision).calculate(errors)
-    volume_maps.update(error_measures)
-
-    mv_ess = multivariate_ess(samples)
-    volume_maps.update(MultivariateESS=mv_ess)
-
-    uv_ess = univariate_ess(samples, method='standard_error')
-    uv_ess_maps = results_to_dict(uv_ess, [a + '.UnivariateESS' for a in model.get_free_param_names()])
-    volume_maps.update(uv_ess_maps)
-
-    return samples_dict, volume_maps
-
-
-def post_process_optimization(model, optimization_results):
-    """Post process optimization results
-
-    Args:
-        model (mdt.models.composite.DMRICompositeModel): the model corresponding to the samples results
-        optimization_results (mot.cl_routines.optimizing.base.OptimizationResults): the optimization results object
-
-    Returns:
-        dict: the output maps we want to store
-    """
-    end_points = optimization_results.get_optimization_result()
-    results = model.add_extra_result_maps(results_to_dict(end_points, model.get_free_param_names()))
-    results.update({'ReturnCodes': optimization_results.get_return_codes()})
-    results.update(optimization_results.get_error_measures())
-    return results

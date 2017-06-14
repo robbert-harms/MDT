@@ -95,24 +95,19 @@ The model name does not necessarily needs to match that of the filenames, but it
 Extra result maps
 =================
 It is possible to add additional parameter maps to the fitting and sampling results.
-These maps are meant to be forthcoming to the user by providing additional interesting maps to the output.
+These maps are meant to be forthcoming to the end-user by providing additional maps to the output.
 Extra results maps can be added by both the composite model as well as by the compartment models.
 By defining them in a compartment model one ensures that all composite models that use that compartment profit from the additional output maps.
 
-In compartments, one can add extra/additional result maps by adding the bound function ``get_extra_result_maps`` to your compartment. For example:
+Just as with composite models, one can add extra output maps by adding a list of post optimization modifiers, like for example:
 
 .. code-block:: python
 
-    ...
-    from mdt.components_loader import bind_function
+    from mdt.utils import spherical_to_cartesian
 
     class Stick(CompartmentConfig):
         ...
-        @bind_function
-        def get_extra_results_maps(self, results_dict):
-            return self._get_vector_result_maps(
-                            results_dict[self.name + '.theta'],
-                            results_dict[self.name + '.phi'])
+        post_optimization_modifiers = [('vec0', lambda results: spherical_to_cartesian(results['theta'], results['phi']))]
 
 
 In this example we added the (x, y, z) component vector to the results for the Stick compartment.
@@ -132,7 +127,7 @@ As an example:
                        'MRIConstants',
                        CompartmentModelsLoader().load('CylinderGPD'))
 
-This list should contain :class:`~mot.model_building.cl_functions.base.CLFunction` instances, referencing library functions or other compartment models.
+This list should contain :class:`~mot.library_functions.CLLibrary` instances, referencing library functions or other compartment models.
 Possible strings in this list are loaded automatically as :ref:`dynamic_modules_library_functions`.
 In this example the ``CerfErfi`` library function is loaded from MOT, ``MRIConstants`` from MDT and ``CylinderGPD`` is another compartment model which our example depends on.
 

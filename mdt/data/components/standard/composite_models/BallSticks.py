@@ -8,7 +8,6 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class BallStick_r1(DMRICompositeModelConfig):
 
-    ex_vivo_suitable = False
     description = 'The default Ball & Stick model'
     model_expression = '''
         S0 * ( (Weight(w_ball) * Ball) +
@@ -21,7 +20,6 @@ class BallStick_r1(DMRICompositeModelConfig):
 
 class BallStick_r2(DMRICompositeModelConfig):
 
-    ex_vivo_suitable = False
     description = 'The Ball & 2x Stick model'
     model_expression = '''
         S0 * ( (Weight(w_ball) * Ball) +
@@ -33,10 +31,11 @@ class BallStick_r2(DMRICompositeModelConfig):
              'Stick1.d': 1.7e-9}
     post_optimization_modifiers = [('FS', lambda results: 1 - results['w_ball.w'])]
 
+    prior = 'return w_stick1.w < w_stick0.w;'
+
 
 class BallStick_r3(DMRICompositeModelConfig):
 
-    ex_vivo_suitable = False
     description = 'The Ball & 3x Stick model'
     model_expression = '''
             S0 * ( (Weight(w_ball) * Ball) +
@@ -51,3 +50,5 @@ class BallStick_r3(DMRICompositeModelConfig):
     inits = {'w_stick2.w': 0}
 
     post_optimization_modifiers = [('FS', lambda results: 1 - results['w_ball.w'])]
+
+    prior = 'return w_stick2.w < w_stick1.w && w_stick1.w < w_stick0.w;'

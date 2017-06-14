@@ -1,3 +1,4 @@
+import copy
 import os
 from textwrap import dedent
 
@@ -21,12 +22,14 @@ from mdt.gui.maps_visualizer.config_tabs.tab_general import TabGeneral
 from mdt.gui.maps_visualizer.config_tabs.tab_map_specific import TabMapSpecific
 from mdt.gui.maps_visualizer.config_tabs.tab_textual import TabTextual
 from mdt.gui.maps_visualizer.design.ui_save_image_dialog import Ui_SaveImageDialog
+from mdt.nifti import is_nifti_file, load_nifti
+from mdt.utils import split_image_path
 
 matplotlib.use('Qt5Agg')
 
 import mdt
 from mdt.gui.maps_visualizer.base import Controller, PlottingFrameInfoViewer
-from mdt.visualization.maps.base import DataInfo, MapPlotConfig
+from mdt.visualization.maps.base import DataInfo, SimpleDataInfo, MapPlotConfig, SingleMapInfo
 from mdt.gui.maps_visualizer.renderers.matplotlib_renderer import MatplotlibPlotting
 from mdt.gui.model_fit.design.ui_about_dialog import Ui_AboutDialog
 from mdt.gui.utils import center_window, DirectoryImageWatcher, QtManager, get_script_file_header_text
@@ -46,6 +49,8 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self._directory_watcher = DirectoryImageWatcher()
         if enable_directory_watcher:
             self._directory_watcher.image_updates.connect(self._directory_changed)
+
+        self.setAcceptDrops(True)
 
         self._coordinates_label = QLabel()
 
@@ -74,8 +79,9 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self.actionOpen_directory.triggered.connect(self._open_new_directory)
         self.actionSaveImage.triggered.connect(lambda: ExportImageDialog(self, self.plotting_frame,
                                                                          self._controller).exec_())
+
         self.actionBrowse_to_current_folder.triggered.connect(
-            lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self._controller.get_data().directory)))
+            lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self._controller.get_data().get_directories()[0])))
         self.actionSave_settings.triggered.connect(lambda: self._save_settings())
         self.actionLoad_settings.triggered.connect(lambda: self._load_settings())
 
@@ -87,10 +93,10 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
 
     @pyqtSlot(DataInfo)
     def set_new_data(self, data_info):
-        self.actionBrowse_to_current_folder.setDisabled(self._controller.get_data().directory is None)
+        self.actionBrowse_to_current_folder.setDisabled(not len(self._controller.get_data().get_directories()))
 
-        if self._controller.get_data().directory is not None:
-            self._directory_watcher.set_directory(self._controller.get_data().directory)
+        if self._controller.get_data().get_directories():
+            self._directory_watcher.set_directory(self._controller.get_data().get_directories()[0])
 
     @pyqtSlot(MapPlotConfig)
     def set_new_config(self, config):
@@ -98,23 +104,23 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self.redo_config.setDisabled(not self._controller.has_redo())
 
     def _open_new_directory(self):
-        initial_dir = self._controller.get_data().directory
+        initial_dir = self._controller.get_data().get_directories()[0]
         new_dir = QFileDialog(self).getExistingDirectory(caption='Select a folder', directory=initial_dir)
         if new_dir:
-            data = DataInfo.from_dir(new_dir)
+            data = SimpleDataInfo.from_dir(new_dir)
             config = MapPlotConfig()
 
-            if len(data.maps):
+            if len(data.get_map_names()):
                 config.slice_index = data.get_max_slice_index(config.dimension) // 2
 
-            if self._controller.get_data().maps:
+            if self._controller.get_data().get_map_names():
                 start_gui(data, config, app_exec=False)
             else:
                 self._controller.set_data(data, config)
 
     @pyqtSlot(tuple, tuple)
     def _directory_changed(self, additions, removals):
-        data = DataInfo.from_dir(self._controller.get_data().directory)
+        data = SimpleDataInfo.from_dir(self._controller.get_data().get_directories())
         config = self._controller.get_config()
         config.maps_to_show = [m for m in config.maps_to_show if m not in removals]
         self._controller.set_data(data, config)
@@ -128,6 +134,31 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
 
     def send_sigint(self, *args):
         self.close()
+
+    def dragEnterEvent(self, event):
+        """Function to allow dragging nifti files in the viewer for viewing purpose."""
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        """One or more files where dropped in the GUI, load all the nifti files among them."""
+        nifti_paths = []
+        for url in event.mimeData().urls():
+            path = url.toLocalFile()
+            if os.path.isfile(path) and is_nifti_file(path):
+                nifti_paths.append(path)
+
+        additional_maps = {}
+        for nifti_path in nifti_paths:
+            folder, basename, ext = split_image_path(nifti_path)
+            additional_maps.update({basename: SingleMapInfo(basename, load_nifti(nifti_path), nifti_path)})
+
+        map_names = copy.copy(self._controller.get_config().maps_to_show)
+        map_names.extend(additional_maps)
+        self._controller.set_data(self._controller.get_data().get_updated(additional_maps))
+        self._controller.apply_action(SetMapsToShow(map_names))
 
     def _save_settings(self):
         """Save the current settings as a text file.
@@ -287,7 +318,7 @@ class ExportImageDialog(Ui_SaveImageDialog, QDialog):
                     dpi={dpi})
 
             ''').format(header=get_script_file_header_text({'Purpose': 'Generate a results figure'}),
-                        dir=self._controller.get_data().directory,
+                        dir=self._controller.get_data().get_directories()[0],
                         config=configuration_fname,
                         output_name=output_image_fname,
                         width=width, height=height, dpi=dpi))
@@ -306,7 +337,7 @@ class ExportImageDialog(Ui_SaveImageDialog, QDialog):
                     --height {height} \\
                     --dpi {dpi}
             ''').format(header=get_script_file_header_text({'Purpose': 'Generate a results figure'}),
-                        dir=self._controller.get_data().directory,
+                        dir=self._controller.get_data().get_directories()[0],
                         config=configuration_fname,
                         output_name=output_image_fname,
                         width=width, height=height, dpi=dpi))
@@ -327,7 +358,7 @@ class QtController(Controller, QObject):
 
     def __init__(self):
         super(QtController, self).__init__()
-        self._data_info = DataInfo({})
+        self._data_info = SimpleDataInfo({})
         self._actions_history = []
         self._redoable_actions = []
         self._current_config = MapPlotConfig()
@@ -342,12 +373,12 @@ class QtController(Controller, QObject):
         elif not isinstance(config, MapPlotConfig):
             config = MapPlotConfig.from_dict(config.to_dict())
 
-        if data_info.maps:
+        if data_info.get_map_names():
             max_dim = data_info.get_max_dimension()
             if max_dim < config.dimension:
                 config.dimension = max_dim
 
-        config.maps_to_show = list(filter(lambda k: k in data_info.maps, config.maps_to_show))
+        config.maps_to_show = list(filter(lambda k: k in data_info.get_map_names(), config.maps_to_show))
 
         self._apply_config(config)
         self.new_data.emit(data_info)

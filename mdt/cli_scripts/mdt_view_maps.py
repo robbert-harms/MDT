@@ -7,7 +7,7 @@ import textwrap
 from argcomplete.completers import FilesCompleter
 from mdt.utils import init_user_settings
 from mdt import view_maps, write_view_maps_figure
-from mdt.visualization.maps.base import DataInfo
+from mdt.visualization.maps.base import SimpleDataInfo
 from mdt.shell_utils import BasicShellApplication
 
 __author__ = 'Robbert Harms'
@@ -48,9 +48,9 @@ class GUI(BasicShellApplication):
 
     def run(self, args, extra_args):
         if args.dir:
-            data = DataInfo.from_dir(os.path.realpath(args.dir))
+            data = SimpleDataInfo.from_dir(os.path.realpath(args.dir))
         else:
-            data = DataInfo.from_dir(os.getcwd())
+            data = SimpleDataInfo.from_dir(os.getcwd())
 
         to_file = None
         if args.to_file:

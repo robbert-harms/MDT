@@ -67,7 +67,7 @@ class _CEWorker(Worker):
         self._evecs = evecs
         self._double_precision = double_precision
         self._all_buffers, self._evecs_buf = self._create_buffers()
-        self._kernel = self._build_kernel(compile_flags)
+        self._kernel = self._build_kernel(self._get_kernel_source(), compile_flags)
 
     def __del__(self):
         list(buffer.release() for buffer in self._all_buffers)

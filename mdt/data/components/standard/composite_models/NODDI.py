@@ -30,7 +30,6 @@ class NODDITortuosityParameterDependency(AbstractParameterDependency):
 
 class NODDI(DMRICompositeModelConfig):
 
-    ex_vivo_suitable = False
     description = 'The standard NODDI model'
 
     model_expression = '''
