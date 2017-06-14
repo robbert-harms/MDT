@@ -155,8 +155,9 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
             folder, basename, ext = split_image_path(nifti_path)
             additional_maps.update({basename: SingleMapInfo(basename, load_nifti(nifti_path), nifti_path)})
 
-        map_names = copy.copy(self._controller.get_config().maps_to_show)
-        map_names.extend(additional_maps)
+        map_names = list(copy.copy(self._controller.get_config().maps_to_show))
+        map_names.extend(additional_maps.keys())
+
         self._controller.set_data(self._controller.get_data().get_updated(additional_maps))
         self._controller.apply_action(SetMapsToShow(map_names))
 
