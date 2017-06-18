@@ -28,9 +28,11 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
 
         self._auto_render = True
 
+        current_model = self._controller.get_model()
+
         self.figure = Figure(facecolor='#bfbfbf')
-        self.visualizer = MapsVisualizer(self._controller.get_data(), self.figure)
-        self._axes_data = self.visualizer.render(self._controller.get_config())
+        self.visualizer = MapsVisualizer(current_model.get_data(), self.figure)
+        self._axes_data = self.visualizer.render(current_model.get_config())
 
         self.canvas = FigureCanvas(self.figure)
         self.canvas.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
@@ -58,14 +60,16 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
         self.setMinimumWidth(100)
 
     def export_image(self, filename, width, height, dpi=100):
+        current_model = self._controller.get_model()
+
         width_inch = width / dpi
         height_inch = height / dpi
 
         figure = Figure(figsize=(width_inch, height_inch), dpi=dpi)
-        visualizer = MapsVisualizer(self._controller.get_data(), figure)
+        visualizer = MapsVisualizer(current_model.get_data(), figure)
         FigureCanvas(figure)
 
-        visualizer.to_file(filename, self._controller.get_config(), dpi=dpi)
+        visualizer.to_file(filename, current_model.get_config(), dpi=dpi)
 
     def set_auto_rendering(self, auto_render):
         self._auto_render = auto_render
@@ -90,9 +94,11 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
                 self._redraw_timer.start(300)
 
     def _redraw(self):
+        current_model = self._controller.get_model()
+
         self.figure.clf()
 
-        self._axes_data = self.visualizer.render(self._controller.get_config())
+        self._axes_data = self.visualizer.render(current_model.get_config())
         self._mouse_interaction.update_axes_data(self._axes_data)
 
         self.figure.canvas.draw()
@@ -207,13 +213,15 @@ class _DraggingManager(object):
             self._drag_timer.start(50)
 
     def _perform_drag(self):
+        current_model = self.controller.get_model()
+
         delta_x = int(np.round(self._start_x) - np.round(self._end_x))
         delta_y = int(np.round(self._start_y) - np.round(self._end_y))
 
-        config = self.controller.get_config()
-        data_info = self.controller.get_data()
+        config = current_model.get_config()
+        data_info = current_model.get_data()
 
-        current_zoom = self.controller.get_config().zoom
+        current_zoom = current_model.get_config().zoom
 
         max_y = data_info.get_max_y_index(config.dimension, rotate=config.rotate, map_names=config.maps_to_show)
         max_x = data_info.get_max_x_index(config.dimension, rotate=config.rotate, map_names=config.maps_to_show)
@@ -269,10 +277,11 @@ class _ScrollingManager(object):
         self._scroll_timer.start(200)
 
     def _perform_scroll(self):
-        config = self.controller.get_config()
-        data_info = self.controller.get_data()
+        current_model = self.controller.get_model()
+        config = current_model.get_config()
+        data_info = current_model.get_data()
 
-        current_zoom = self.controller.get_config().zoom
+        current_zoom = config.zoom
 
         max_y = data_info.get_max_y_index(config.dimension, rotate=config.rotate, map_names=config.maps_to_show)
         max_x = data_info.get_max_x_index(config.dimension, rotate=config.rotate, map_names=config.maps_to_show)

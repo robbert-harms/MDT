@@ -75,8 +75,11 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         super(MapSpecificOptions, self).__init__(parent)
         self.setupUi(self)
         self._controller = controller
+
+        current_model = self._controller.get_model()
+
         self._current_map = None
-        self.colormap.addItems(['-- Use global --'] + self._controller.get_config().get_available_colormaps())
+        self.colormap.addItems(['-- Use global --'] + current_model.get_config().get_available_colormaps())
         self.colormap.currentIndexChanged.connect(self._update_colormap)
         self.data_clipping_min.valueChanged.connect(self._update_clipping_min)
         self.data_clipping_max.valueChanged.connect(self._update_clipping_max)
@@ -150,7 +153,8 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         self.info_shape.setText('-')
 
     def _get_mask(self, data_info, map_name):
-        plot_config = self._controller.get_config()
+        current_model = self._controller.get_model()
+        plot_config = current_model.get_config()
 
         def get_map_attr():
             if map_name in plot_config.map_plot_options:
@@ -169,12 +173,14 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         """Load the settings of the given map"""
         self._current_map = map_name
 
+        current_model = self._controller.get_model()
+
         try:
-            map_info = self._controller.get_config().map_plot_options[map_name]
+            map_info = current_model.get_config().map_plot_options[map_name]
         except KeyError:
             map_info = SingleMapConfig()
 
-        data_info = self._controller.get_data()
+        data_info = current_model.get_data()
         vmin, vmax = data_info.get_single_map_info(map_name).min_max(mask=self._get_mask(data_info, map_name))
 
         with blocked_signals(self.map_title):
@@ -228,7 +234,8 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         self.info_shape.setText(str(data_info.get_single_map_info(map_name).shape))
 
     def _get_current_map_config(self):
-        current_config = self._controller.get_config()
+        current_model = self._controller.get_model()
+        current_config = current_model.get_config()
         current_map_config = current_config.map_plot_options.get(self._current_map, SingleMapConfig())
         return current_map_config
 

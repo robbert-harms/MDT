@@ -1,7 +1,7 @@
 import copy
 
-from PyQt5.QtCore import pyqtSlot, Qt
-from PyQt5.QtWidgets import QWidget, QAbstractItemView
+from PyQt5.QtCore import pyqtSlot, Qt, QPoint
+from PyQt5.QtWidgets import QWidget, QAbstractItemView, QMenu
 
 from mdt.gui.maps_visualizer.actions import SetDimension, SetSliceIndex, SetVolumeIndex, SetColormap, SetRotate, \
     SetZoom, SetShowAxis, SetColorBarNmrTicks, SetMapsToShow, SetFont, SetInterpolation, SetFlipud, SetPlotTitle, \
@@ -26,12 +26,14 @@ class TabGeneral(QWidget, Ui_TabGeneral):
         self._controller.new_data.connect(self.set_new_data)
         self._controller.new_config.connect(self.set_new_config)
 
+        current_model = self._controller.get_model()
+
         self.general_display_order.setDragDropMode(QAbstractItemView.InternalMove)
         self.general_display_order.setSelectionMode(QAbstractItemView.SingleSelection)
 
-        self.general_colormap.addItems(self._controller.get_config().get_available_colormaps())
+        self.general_colormap.addItems(current_model.get_config().get_available_colormaps())
         self.general_rotate.addItems(['0', '90', '180', '270'])
-        self.general_rotate.setCurrentText(str(self._controller.get_config().rotate))
+        self.general_rotate.setCurrentText(str(current_model.get_config().rotate))
 
         self.general_DisplayOrder.set_collapse(True)
         self.general_Miscellaneous.set_collapse(True)
@@ -49,6 +51,8 @@ class TabGeneral(QWidget, Ui_TabGeneral):
         self._map_selection_timer = TimedUpdate(self._update_maps_to_show)
         self.general_map_selection.itemSelectionChanged.connect(
             lambda: self._map_selection_timer.add_delayed_callback(500))
+        self.general_map_selection.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.general_map_selection.customContextMenuRequested.connect(self.select_maps_context_menu)
 
         self.general_deselect_all_maps.clicked.connect(self._deleselect_all_maps)
         self.general_invert_map_selection.clicked.connect(self._invert_map_selection)
@@ -71,13 +75,13 @@ class TabGeneral(QWidget, Ui_TabGeneral):
 
         self.general_font_family.addItems(Font.font_names())
         self.general_font_family.currentTextChanged.connect(
-            lambda v: self._controller.apply_action(SetFont(self._controller.get_config().font.get_updated(family=v))))
+            lambda v: self._controller.apply_action(SetFont(current_model.get_config().font.get_updated(family=v))))
 
         self.general_font_size.valueChanged.connect(
             lambda: self._controller.apply_action(
-                SetFont(self._controller.get_config().font.get_updated(size=self.general_font_size.value()))))
+                SetFont(current_model.get_config().font.get_updated(size=self.general_font_size.value()))))
 
-        self.general_interpolation.addItems(self._controller.get_config().get_available_interpolations())
+        self.general_interpolation.addItems(current_model.get_config().get_available_interpolations())
         self.general_interpolation.currentTextChanged.connect(
             lambda v: self._controller.apply_action(SetInterpolation(v)))
 
@@ -88,11 +92,13 @@ class TabGeneral(QWidget, Ui_TabGeneral):
 
     @pyqtSlot(DataInfo)
     def set_new_data(self, data_info):
+        current_model = self._controller.get_model()
+
         sorted_keys = list(sorted(data_info.get_map_names()))
 
-        if self._controller.get_data().get_directories():
+        if current_model.get_data().get_directories():
             self.general_info_directory.setText(split_long_path_elements(
-                self._controller.get_data().get_directories()[0]))
+                current_model.get_data().get_directories()[0]))
         else:
             self.general_info_directory.setText('-')
 
@@ -115,7 +121,8 @@ class TabGeneral(QWidget, Ui_TabGeneral):
 
     @pyqtSlot(MapPlotConfig)
     def set_new_config(self, config):
-        data_info = self._controller.get_data()
+        current_model = self._controller.get_model()
+        data_info = current_model.get_data()
         map_names = config.maps_to_show
 
         with blocked_signals(self.general_dimension):
@@ -238,6 +245,30 @@ class TabGeneral(QWidget, Ui_TabGeneral):
             else:
                 self.mask_name.setCurrentIndex(0)
 
+    def select_maps_context_menu(self, position):
+        global_position = self.general_map_selection.mapToGlobal(position)
+
+        if self.general_map_selection.count():
+            row = self.general_map_selection.indexAt(position)
+            if row:
+                element = self.general_map_selection.item(row.row())
+                if element:
+                    menu = QMenu()
+
+                    section_title = menu.addAction(element.data(Qt.UserRole))
+                    section_title.setEnabled(False)
+                    font = section_title.font()
+                    font.setBold(True)
+                    section_title.setFont(font)
+                    menu.setStyleSheet("QMenu::item:disabled {color:black}")
+
+                    menu.addSeparator()
+                    menu.addAction('R&emove', lambda: print('TODO'))
+                    menu.addAction('Use as &mask', lambda: print('TODO'))
+                    menu.addAction('&Reload', lambda: print('TODO'))
+
+                    menu.exec(global_position)
+
     @pyqtSlot()
     def _reorder_maps(self):
         items = [self.general_display_order.item(ind) for ind in range(self.general_display_order.count())]
@@ -246,7 +277,8 @@ class TabGeneral(QWidget, Ui_TabGeneral):
 
     @pyqtSlot()
     def _update_maps_to_show(self):
-        map_names = copy.copy(self._controller.get_config().maps_to_show)
+        current_model = self._controller.get_model()
+        map_names = copy.copy(current_model.get_config().maps_to_show)
 
         for item in [self.general_map_selection.item(ind) for ind in range(self.general_map_selection.count())]:
             map_name = item.data(Qt.UserRole)
@@ -266,13 +298,15 @@ class TabGeneral(QWidget, Ui_TabGeneral):
 
     @pyqtSlot()
     def _invert_map_selection(self):
+        current_model = self._controller.get_model()
         self._controller.apply_action(SetMapsToShow(
-            set(self._controller.get_data().get_map_names()).difference(set(self._controller.get_config().maps_to_show))))
+            set(current_model.get_data().get_map_names()).difference(set(current_model.get_config().maps_to_show))))
 
     @pyqtSlot()
     def _zoom_fit(self):
-        data_info = self._controller.get_data()
-        config = self._controller.get_config()
+        current_model = self._controller.get_model()
+        data_info = current_model.get_data()
+        config = current_model.get_config()
 
         def add_padding(bounding_box, max_x, max_y):
             bounding_box[0].x = max(bounding_box[0].x - 1, 0)

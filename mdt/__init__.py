@@ -249,7 +249,7 @@ def batch_fit(data_folder, models_to_fit, batch_profile=None, subjects_selection
 
 def view_maps(data, config=None, figure_options=None,
               block=True, show_maximized=False, use_qt=True,
-              window_title=None, enable_directory_watcher=True):
+              window_title=None):
     """View a number of maps using the MDT Maps Visualizer.
 
     Args:
@@ -264,10 +264,6 @@ def view_maps(data, config=None, figure_options=None,
         show_maximized (boolean): if we show the window maximized or not
         window_title (str): the title for the window
         use_qt (boolean): if we want to use the Qt GUI, or show the results directly in matplotlib
-        enable_directory_watcher (boolean): if the directory watcher should be enabled/disabled, only applicable for the
-            QT GUI. If the directory watcher is enabled, the viewer will automatically add new maps when added
-            to the folder and also automatically remove maps when they are removed from the directory.
-            It is useful to disable this if you want to have multiple viewers open with old results.
     """
     from mdt.gui.maps_visualizer.main import start_gui
     from mdt.visualization.maps.base import MapPlotConfig
@@ -293,8 +289,7 @@ def view_maps(data, config=None, figure_options=None,
         config = MapPlotConfig.from_dict(config)
 
     if use_qt:
-        start_gui(data, config, app_exec=block, show_maximized=show_maximized, window_title=window_title,
-                  enable_directory_watcher=enable_directory_watcher)
+        start_gui(data, config, app_exec=block, show_maximized=show_maximized, window_title=window_title)
     else:
         figure_options = figure_options or {}
         figure_options['dpi'] = figure_options.get('dpi', 100)

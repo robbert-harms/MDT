@@ -45,8 +45,9 @@ class TabTextual(QWidget, Ui_TabTextual):
         text = text.replace('\t', ' '*4)
         try:
             if text.strip() != '':
+                current_model = self._controller.get_model()
                 new_config = MapPlotConfig.from_yaml(text)
-                new_config.validate(self._controller.get_data())
+                new_config.validate(current_model.get_data())
 
                 self._controller.apply_action(NewConfigAction(new_config))
                 self._update_status_indication(True)

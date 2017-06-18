@@ -28,27 +28,23 @@ from mdt.utils import split_image_path
 matplotlib.use('Qt5Agg')
 
 import mdt
-from mdt.gui.maps_visualizer.base import Controller, PlottingFrameInfoViewer
+from mdt.gui.maps_visualizer.base import Controller, PlottingFrameInfoViewer, SimpleModel
 from mdt.visualization.maps.base import DataInfo, SimpleDataInfo, MapPlotConfig, SingleMapInfo
 from mdt.gui.maps_visualizer.renderers.matplotlib_renderer import MatplotlibPlotting
 from mdt.gui.model_fit.design.ui_about_dialog import Ui_AboutDialog
-from mdt.gui.utils import center_window, DirectoryImageWatcher, QtManager, get_script_file_header_text
+from mdt.gui.utils import center_window, QtManager, get_script_file_header_text, image_files_filters
 from mdt.gui.maps_visualizer.design.ui_MainWindow import Ui_MapsVisualizer
 
 
 class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
 
-    def __init__(self, controller, parent=None, enable_directory_watcher=True):
+    def __init__(self, controller, parent=None):
         super(MapsVisualizerWindow, self).__init__(parent)
         self.setupUi(self)
 
         self._controller = controller
         self._controller.new_data.connect(self.set_new_data)
         self._controller.new_config.connect(self.set_new_config)
-
-        self._directory_watcher = DirectoryImageWatcher()
-        if enable_directory_watcher:
-            self._directory_watcher.image_updates.connect(self._directory_changed)
 
         self.setAcceptDrops(True)
 
@@ -76,12 +72,14 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self.manual_render.clicked.connect(lambda: self.plotting_frame.redraw())
 
         self.actionAbout.triggered.connect(lambda: AboutDialog(self).exec_())
-        self.actionOpen_directory.triggered.connect(self._open_new_directory)
+        self.actionAdd_new_files.triggered.connect(self._add_new_files)
+        self.action_Clear.triggered.connect(self._remove_files)
         self.actionSaveImage.triggered.connect(lambda: ExportImageDialog(self, self.plotting_frame,
                                                                          self._controller).exec_())
 
-        self.actionBrowse_to_current_folder.triggered.connect(
-            lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self._controller.get_data().get_directories()[0])))
+        # self.actionBrowse_to_current_folder.triggered.connect(
+        #     lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self._controller.get_data().get_directories()[0])))
+
         self.actionSave_settings.triggered.connect(lambda: self._save_settings())
         self.actionLoad_settings.triggered.connect(lambda: self._load_settings())
 
@@ -93,36 +91,39 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
 
     @pyqtSlot(DataInfo)
     def set_new_data(self, data_info):
-        self.actionBrowse_to_current_folder.setDisabled(not len(self._controller.get_data().get_directories()))
-
-        if self._controller.get_data().get_directories():
-            self._directory_watcher.set_directory(self._controller.get_data().get_directories()[0])
+        pass
 
     @pyqtSlot(MapPlotConfig)
     def set_new_config(self, config):
         self.undo_config.setDisabled(not self._controller.has_undo())
         self.redo_config.setDisabled(not self._controller.has_redo())
 
-    def _open_new_directory(self):
-        initial_dir = self._controller.get_data().get_directories()[0]
-        new_dir = QFileDialog(self).getExistingDirectory(caption='Select a folder', directory=initial_dir)
-        if new_dir:
-            data = SimpleDataInfo.from_dir(new_dir)
-            config = MapPlotConfig()
+    def _add_new_files(self):
+        current_model = self._controller.get_model()
 
-            if len(data.get_map_names()):
+        initial_dir = None
+        if current_model.get_data().get_directories():
+            initial_dir = current_model.get_data().get_directories()[0]
+
+        new_files = QFileDialog(self).getOpenFileNames(caption='Nifti files', directory=initial_dir,
+                                                       filter=';;'.join(image_files_filters))
+        if new_files[0]:
+            additional_maps = {}
+            for nifti_path in new_files[0]:
+                folder, basename, ext = split_image_path(nifti_path)
+                additional_maps.update({basename: SingleMapInfo(basename, load_nifti(nifti_path), nifti_path)})
+
+            data = current_model.get_data().get_updated(additional_maps)
+            config = current_model.get_config()
+
+            if not len(current_model.get_data().get_map_names()):
                 config.slice_index = data.get_max_slice_index(config.dimension) // 2
 
-            if self._controller.get_data().get_map_names():
-                start_gui(data, config, app_exec=False)
-            else:
-                self._controller.set_data(data, config)
+            self._controller.set_data(data, config)
 
-    @pyqtSlot(tuple, tuple)
-    def _directory_changed(self, additions, removals):
-        data = SimpleDataInfo.from_dir(self._controller.get_data().get_directories())
-        config = self._controller.get_config()
-        config.maps_to_show = [m for m in config.maps_to_show if m not in removals]
+    def _remove_files(self):
+        data = SimpleDataInfo({})
+        config = MapPlotConfig()
         self._controller.set_data(data, config)
 
     @pyqtSlot()
@@ -155,9 +156,10 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
             folder, basename, ext = split_image_path(nifti_path)
             additional_maps.update({basename: SingleMapInfo(basename, load_nifti(nifti_path), nifti_path)})
 
-        map_names = copy.copy(self._controller.get_config().maps_to_show)
+        current_model = self._controller.get_model()
+        map_names = copy.copy(current_model.get_config().maps_to_show)
         map_names.extend(additional_maps)
-        self._controller.set_data(self._controller.get_data().get_updated(additional_maps))
+        self._controller.set_data(current_model.get_data().get_updated(additional_maps))
         self._controller.apply_action(SetMapsToShow(map_names))
 
     def _save_settings(self):
@@ -166,12 +168,14 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         Args:
             file_name: the filename to write to
         """
+        current_model = self._controller.get_model()
+
         config_file = ['conf (*.conf)', 'All files (*)']
         file_name, used_filter = QFileDialog().getSaveFileName(caption='Select the GUI config file',
                                                                filter=';;'.join(config_file))
         if file_name:
             with open(file_name, 'w') as f:
-                f.write(self._controller.get_config().to_yaml())
+                f.write(current_model.get_config().to_yaml())
 
     def _load_settings(self):
         config_file = ['conf (*.conf)', 'All files (*)']
@@ -295,10 +299,13 @@ class ExportImageDialog(Ui_SaveImageDialog, QDialog):
             msg.exec_()
 
     def _write_config_file(self, output_basename):
+        current_model = self._controller.get_model()
         with open(output_basename, 'w') as f:
-            f.write(self._controller.get_config().to_yaml())
+            f.write(current_model.get_config().to_yaml())
 
     def _write_python_script_file(self, script_fname, configuration_fname, output_image_fname, width, height, dpi):
+        current_model = self._controller.get_model()
+
         with open(script_fname, 'w') as f:
             f.write('#!/usr/bin/env python\n')
             f.write(dedent('''
@@ -318,12 +325,14 @@ class ExportImageDialog(Ui_SaveImageDialog, QDialog):
                     dpi={dpi})
 
             ''').format(header=get_script_file_header_text({'Purpose': 'Generate a results figure'}),
-                        dir=self._controller.get_data().get_directories()[0],
+                        dir=current_model.get_data().get_directories()[0],
                         config=configuration_fname,
                         output_name=output_image_fname,
                         width=width, height=height, dpi=dpi))
 
     def _write_bash_script_file(self, script_fname, configuration_fname, output_image_fname, width, height, dpi):
+        current_model = self._controller.get_model()
+
         with open(script_fname, 'w') as f:
             f.write('#!/usr/bin/env bash\n')
             f.write(dedent('''
@@ -337,7 +346,7 @@ class ExportImageDialog(Ui_SaveImageDialog, QDialog):
                     --height {height} \\
                     --dpi {dpi}
             ''').format(header=get_script_file_header_text({'Purpose': 'Generate a results figure'}),
-                        dir=self._controller.get_data().get_directories()[0],
+                        dir=current_model.get_data().get_directories()[0],
                         config=configuration_fname,
                         output_name=output_image_fname,
                         width=width, height=height, dpi=dpi))
@@ -359,9 +368,9 @@ class QtController(Controller, QObject):
     def __init__(self):
         super(QtController, self).__init__()
         self._data_info = SimpleDataInfo({})
+        self._current_config = MapPlotConfig()
         self._actions_history = []
         self._redoable_actions = []
-        self._current_config = MapPlotConfig()
 
     def set_data(self, data_info, config=None):
         self._data_info = data_info
@@ -384,18 +393,8 @@ class QtController(Controller, QObject):
         self.new_data.emit(data_info)
         self.new_config.emit(self._current_config)
 
-    def get_data(self):
-        return self._data_info
-
-    def set_config(self, general_config):
-        applied = self._apply_config(general_config)
-        if applied:
-            self._actions_history.clear()
-            self._redoable_actions.clear()
-            self.new_config.emit(self._current_config)
-
-    def get_config(self):
-        return self._current_config
+    def get_model(self):
+        return SimpleModel(self._data_info, self._current_config)
 
     def apply_action(self, action):
         applied = self._apply_config(action.apply(self._data_info, self._current_config))
@@ -441,8 +440,7 @@ class QtController(Controller, QObject):
         return False
 
 
-def start_gui(data=None, config=None, controller=None, app_exec=True, show_maximized=False, window_title=None,
-              enable_directory_watcher=True):
+def start_gui(data=None, config=None, controller=None, app_exec=True, show_maximized=False, window_title=None):
     """Start the GUI with the given data and configuration.
 
     Args:
@@ -452,10 +450,6 @@ def start_gui(data=None, config=None, controller=None, app_exec=True, show_maxim
         app_exec (boolean): if true we execute the Qt application, set to false to disable.
         show_maximized (true): if we want to show the window in a maximized state
         window_title (str): the title of the window
-        enable_directory_watcher (boolean): if the directory watcher should be enabled/disabled.
-            If the directory watcher is enabled, the viewer will automatically add new maps when added to the folder
-            and also automatically remove maps when they are removed from the directory. It is useful to disable this
-            if you want to have multiple viewers open with old results.
 
     Returns:
         MapsVisualizerWindow: the generated window
@@ -469,7 +463,7 @@ def start_gui(data=None, config=None, controller=None, app_exec=True, show_maxim
     timer.start(500)
     timer.timeout.connect(lambda: None)
 
-    main = MapsVisualizerWindow(controller, enable_directory_watcher=enable_directory_watcher)
+    main = MapsVisualizerWindow(controller)
     main.set_window_title(window_title)
     signal.signal(signal.SIGINT, main.send_sigint)
 
@@ -480,10 +474,9 @@ def start_gui(data=None, config=None, controller=None, app_exec=True, show_maxim
 
     main.show()
 
-    if data:
-        controller.set_data(data, config)
-    elif config:
-        controller.set_config(config)
+    if data is None:
+        data = SimpleDataInfo({})
+    controller.set_data(data, config)
 
     QtManager.add_window(main)
     if app_exec:

@@ -177,11 +177,59 @@ class SimpleMapSpecificConfigAction(SimpleConfigAction):
         return single_map_config
 
 
+class Model(object):
+    """The model contains all the state information for viewing the maps, both the data and the configuration."""
+
+    def get_data(self):
+        """Get the current data.
+
+        Returns:
+            mdt.visualization.maps.base.DataInfo: the information about the data we are viewing
+        """
+        raise NotImplementedError()
+
+    def get_config(self):
+        """Get the current configuration.
+
+        Returns:
+            MapPlotConfig: the visualization configuration.
+        """
+        raise NotImplementedError()
+
+
+class SimpleModel(Model):
+
+    def __init__(self, data, config):
+        """The model contains all the state information of the current viewing.
+
+        Args:
+            data (mdt.visualization.maps.base.DataInfo): the data information object
+            config (MapPlotConfig): the configuration
+        """
+        self._data = data
+        self._config = config
+
+    def get_data(self):
+        return self._data
+
+    def get_config(self):
+        return self._config
+
+
 class Controller(object):
 
     def __init__(self):
         """Controller interface"""
         super(Controller, self).__init__()
+
+    def get_model(self):
+        """Get the model the view should represent.
+
+        Returns:
+            Model: the model the view should represent. This is also the model the actions can use for updating
+                the model.
+        """
+        raise NotImplementedError()
 
     def set_data(self, data_info, config=None):
         """Set new data to visualize.
@@ -190,29 +238,6 @@ class Controller(object):
             data_info (mdt.visualization.maps.base.DataInfo): the new data to visualize
             config (MapPlotConfig): the new configuration for the data
                 If given, we will display the new data immediately with the given config
-        """
-
-    def get_data(self):
-        """Get the current data.
-
-        Returns:
-            mdt.visualization.maps.base.DataInfo: the current data information
-        """
-
-    def set_config(self, general_config):
-        """Set the general configuration to the given config.
-
-        Setting this should automatically update all the listeners.
-
-        Args:
-            general_config (MapPlotConfig): the general configuration
-        """
-
-    def get_config(self):
-        """Get the current configuration.
-
-        Returns:
-            MapPlotConfig: the current general configuration.
         """
 
     def apply_action(self, action):

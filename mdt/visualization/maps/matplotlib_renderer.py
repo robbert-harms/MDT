@@ -2,7 +2,6 @@ import os
 
 import numpy as np
 from matplotlib import pyplot as plt
-from matplotlib.patches import Rectangle
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from mdt import get_slice_in_dimension
