@@ -26,7 +26,7 @@ class GUI(BasicShellApplication):
         description = textwrap.dedent(__doc__)
 
         parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
-        parser.add_argument('dir', metavar='dir', type=str, nargs='?', help='the directory to use',
+        parser.add_argument('items', metavar='items', type=str, nargs='*', help='the directory or file(s)',
                             default=None).completer = FilesCompleter()
 
         parser.add_argument('-c', '--config', type=str,
@@ -43,10 +43,13 @@ class GUI(BasicShellApplication):
         return parser
 
     def run(self, args, extra_args):
-        if args.dir:
-            data = SimpleDataInfo.from_dir(os.path.realpath(args.dir))
+        if args.items:
+            items = []
+            for path in args.items:
+                items.append(os.path.realpath(path))
+            data = SimpleDataInfo.from_paths(items)
         else:
-            data = SimpleDataInfo.from_dir(os.getcwd())
+            data = SimpleDataInfo.from_paths([os.getcwd()])
 
         to_file = None
         if args.to_file:

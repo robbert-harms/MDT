@@ -171,7 +171,7 @@ class Ui_MapsVisualizer(object):
         self.commandTabs.setTabText(self.commandTabs.indexOf(self.generalOptions), _translate("MapsVisualizer", "General"))
         self.commandTabs.setTabText(self.commandTabs.indexOf(self.mapOptions), _translate("MapsVisualizer", "Maps"))
         self.commandTabs.setTabText(self.commandTabs.indexOf(self.textInfoTab), _translate("MapsVisualizer", "Textual"))
-        self.auto_rendering.setText(_translate("MapsVisualizer", "Auto render"))
+        self.auto_rendering.setText(_translate("MapsVisualizer", "Auto redraw"))
         self.manual_render.setToolTip(_translate("MapsVisualizer", "Manually redraw the figure"))
         self.manual_render.setText(_translate("MapsVisualizer", "Redraw"))
         self.undo_config.setToolTip(_translate("MapsVisualizer", "Undo"))

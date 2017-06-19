@@ -75,9 +75,6 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self.actionSaveImage.triggered.connect(lambda: ExportImageDialog(self, self.plotting_frame,
                                                                          self._controller).exec_())
 
-        # self.actionBrowse_to_current_folder.triggered.connect(
-        #     lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self._controller.get_data().get_directories()[0])))
-
         self.actionSave_settings.triggered.connect(lambda: self._save_settings())
         self.actionLoad_settings.triggered.connect(lambda: self._load_settings())
 
@@ -95,17 +92,13 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
     def _add_new_files(self):
         current_model = self._controller.get_model()
 
-        initial_dir = None
-        if current_model.get_data().get_directories():
-            initial_dir = current_model.get_data().get_directories()[0]
-
-        new_files = QFileDialog(self).getOpenFileNames(caption='Nifti files', directory=initial_dir,
+        new_files = QFileDialog(self).getOpenFileNames(caption='Nifti files',
                                                        filter=';;'.join(image_files_filters))
         if new_files[0]:
             additional_maps = {}
             for nifti_path in new_files[0]:
                 folder, basename, ext = split_image_path(nifti_path)
-                additional_maps.update({basename: SingleMapInfo(basename, load_nifti(nifti_path), nifti_path)})
+                additional_maps.update({basename: SingleMapInfo.from_file(nifti_path)})
 
             data = current_model.get_data().get_updated(additional_maps)
             config = current_model.get_config()
@@ -148,7 +141,7 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         additional_maps = {}
         for nifti_path in nifti_paths:
             folder, basename, ext = split_image_path(nifti_path)
-            additional_maps.update({basename: SingleMapInfo(basename, load_nifti(nifti_path), nifti_path)})
+            additional_maps.update({basename: SingleMapInfo.from_file(nifti_path)})
 
         current_model = self._controller.get_model()
         map_names = copy.copy(current_model.get_config().maps_to_show)
@@ -298,8 +291,6 @@ class ExportImageDialog(Ui_SaveImageDialog, QDialog):
             f.write(current_model.get_config().to_yaml())
 
     def _write_python_script_file(self, script_fname, configuration_fname, output_image_fname, width, height, dpi):
-        current_model = self._controller.get_model()
-
         with open(script_fname, 'w') as f:
             f.write('#!/usr/bin/env python\n')
             f.write(dedent('''
@@ -311,7 +302,7 @@ class ExportImageDialog(Ui_SaveImageDialog, QDialog):
                     config = f.read()
 
                 mdt.write_view_maps_figure(
-                    {dir!r},
+                    {paths},
                     {output_name!r},
                     config=config,
                     width={width},
@@ -319,31 +310,36 @@ class ExportImageDialog(Ui_SaveImageDialog, QDialog):
                     dpi={dpi})
 
             ''').format(header=get_script_file_header_text({'Purpose': 'Generate a results figure'}),
-                        dir=current_model.get_data().get_directories()[0],
+                        paths='[' + ', '.join(['{el!r}'.format(el=el) for el in self._get_file_paths()]) + ']',
                         config=configuration_fname,
                         output_name=output_image_fname,
                         width=width, height=height, dpi=dpi))
 
     def _write_bash_script_file(self, script_fname, configuration_fname, output_image_fname, width, height, dpi):
-        current_model = self._controller.get_model()
-
         with open(script_fname, 'w') as f:
             f.write('#!/usr/bin/env bash\n')
             f.write(dedent('''
                 {header}
 
                 mdt-view-maps \\
-                    "{dir}" \\
+                    {paths} \\
                     --config "{config}" \\
                     --to-file "{output_name}" \\
                     --width {width} \\
                     --height {height} \\
                     --dpi {dpi}
             ''').format(header=get_script_file_header_text({'Purpose': 'Generate a results figure'}),
-                        dir=current_model.get_data().get_directories()[0],
+                        paths=' '.join(['{el!r}'.format(el=el) for el in self._get_file_paths()]),
                         config=configuration_fname,
                         output_name=output_image_fname,
                         width=width, height=height, dpi=dpi))
+
+    def _get_file_paths(self):
+        data = self._controller.get_model().get_data()
+        file_paths = []
+        for map_name in data.get_map_names():
+            file_paths.append(data.get_file_path(map_name))
+        return file_paths
 
 
 class AboutDialog(Ui_AboutDialog, QDialog):

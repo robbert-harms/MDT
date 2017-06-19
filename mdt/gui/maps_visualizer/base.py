@@ -168,7 +168,7 @@ class QtController(Controller, QObject):
                 and the old one is None, we return False. Else we return True.
         """
         new_config = new_model.get_config()
-        if new_config.validate(self._current_model.get_data())\
+        if new_config.validate(new_model.get_data())\
                 or self._current_model.get_data() != new_model.get_data():
             self._current_model = new_model
             return True

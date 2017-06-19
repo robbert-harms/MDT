@@ -100,7 +100,7 @@ class ViewResultsTab(MainTab, Ui_ViewResultsTabContent):
             if item.isSelected():
                 maps_to_show.append(item.text())
 
-        data = SimpleDataInfo.from_dir(self._folder)
+        data = SimpleDataInfo.from_paths([self._folder])
 
         config = MapPlotConfig()
         config.maps_to_show = maps_to_show

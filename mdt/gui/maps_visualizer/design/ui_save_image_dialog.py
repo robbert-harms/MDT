@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_SaveImageDialog(object):
     def setupUi(self, SaveImageDialog):
         SaveImageDialog.setObjectName("SaveImageDialog")
-        SaveImageDialog.resize(722, 253)
+        SaveImageDialog.resize(722, 284)
         self.verticalLayout = QtWidgets.QVBoxLayout(SaveImageDialog)
         self.verticalLayout.setObjectName("verticalLayout")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout()
@@ -121,6 +121,12 @@ class Ui_SaveImageDialog(object):
         self.buttonBox.accepted.connect(SaveImageDialog.accept)
         self.buttonBox.rejected.connect(SaveImageDialog.reject)
         QtCore.QMetaObject.connectSlotsByName(SaveImageDialog)
+        SaveImageDialog.setTabOrder(self.width_box, self.height_box)
+        SaveImageDialog.setTabOrder(self.height_box, self.dpi_box)
+        SaveImageDialog.setTabOrder(self.dpi_box, self.outputFile_box)
+        SaveImageDialog.setTabOrder(self.outputFile_box, self.outputFile_chooser)
+        SaveImageDialog.setTabOrder(self.outputFile_chooser, self.writeScriptsAndConfig)
+        SaveImageDialog.setTabOrder(self.writeScriptsAndConfig, self.buttonBox)
 
     def retranslateUi(self, SaveImageDialog):
         _translate = QtCore.QCoreApplication.translate

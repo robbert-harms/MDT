@@ -109,6 +109,8 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         self._auto_enable_clipping_min = False
         self._auto_enable_clipping_max = False
 
+        self.reset()
+
     def reset(self):
         """Set all the values to their defaults"""
         self._current_map = None
@@ -222,7 +224,7 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         with blocked_signals(self.use_data_scale_max):
             self.use_data_scale_max.setChecked(map_info.scale.use_max)
 
-        map_filename = data_info.get_file_name(map_name)
+        map_filename = data_info.get_file_path(map_name)
         if map_filename:
             self.info_file_location.setText(split_long_path_elements(map_filename, 25))
 

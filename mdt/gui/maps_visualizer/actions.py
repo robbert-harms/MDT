@@ -28,7 +28,11 @@ class ModelUpdateAction(object):
 class NewDataAction(ModelUpdateAction):
 
     def __init__(self, data, config=None):
-        """Sets the new data and (optional) configuration when applied."""
+        """Sets the new data and (optional) configuration when applied.
+
+        This class will change some parts of the configuration to make sure that removing or adding maps does not
+        result in an improper configuration.
+        """
         self._previous_model = None
         self._new_config = config
         self._new_data = data
@@ -44,6 +48,17 @@ class NewDataAction(ModelUpdateAction):
         """
         self._previous_model = data_config_model
         config = self._new_config or self._previous_model.get_config()
+        config = copy.deepcopy(config)
+
+        if self._new_data.get_map_names():
+            max_dim = self._new_data.get_max_dimension()
+            if max_dim < config.dimension:
+                config.dimension = max_dim
+
+        config.maps_to_show = list(filter(lambda k: k in self._new_data.get_map_names(), config.maps_to_show))
+        if config.mask_name not in self._new_data.get_map_names():
+            config.mask_name = None
+
         return SimpleDataConfigModel(self._new_data, config)
 
     def unapply(self):

@@ -1,3 +1,4 @@
+import glob
 from copy import copy
 import os
 import inspect
@@ -9,7 +10,8 @@ import yaml
 import matplotlib.font_manager
 import mdt
 import mdt.visualization.layouts
-from mdt.nifti import yield_nifti_info, load_nifti
+from mdt.nifti import yield_nifti_info, load_nifti, nifti_filepath_resolution
+from mdt.utils import split_image_path
 from mdt.visualization.dict_conversion import StringConversion, \
     SimpleClassConversion, IntConversion, SimpleListConversion, BooleanConversion, \
     ConvertDictElements, ConvertDynamicFromModule, FloatConversion, WhiteListConversion, SimpleDictConversion, \
@@ -421,16 +423,7 @@ class DataInfo(object):
         """
         raise NotImplementedError()
 
-    def get_directories(self):
-        """Get a list of directories that host all the files in this data info.
-
-        Returns:
-            list of str: the list of directories for every file that has an associated directory.
-                This list is typically ordered to the number of maps in each directory.
-        """
-        raise NotImplementedError()
-
-    def get_file_name(self, map_name):
+    def get_file_path(self, map_name):
         """Get the file name of the given map
 
         Returns:
@@ -559,36 +552,43 @@ class SimpleDataInfo(DataInfo):
         self._input_maps = maps
 
     @classmethod
-    def from_dir(cls, directory):
-        if directory is None:
-            return cls({}, None)
+    def from_paths(cls, paths):
+        """Load all the nifti files from the given paths.
 
-        if isinstance(directory, (list, tuple)):
-            directory = directory[0]
-
-        maps_paths = {}
-
-        for path, map_name, extension in yield_nifti_info(directory):
-            if map_name in maps_paths:
-                map_name += extension
-            maps_paths.update({map_name: path})
-
-        return cls({k: SingleMapInfo(k, load_nifti(v), v) for k, v in maps_paths.items()})
-
-    def get_updated(self, maps):
-        """Get a new simple data info object that includes the given new maps.
-
-        In the case of double naming, the old maps are overwritten.
+        For paths that are directories we load all the elements inside that directory (but without recursion).
 
         Args:
-            maps (dict): the dictionary with the maps to view, these maps can either be arrays with values,
+            list of str: the list of paths to load (directories and files)
+
+        Returns:
+            SimpleDataInfo: the simple data info
+        """
+        nifti_files = find_all_nifti_files(paths)
+        return cls(load_data_info(nifti_files))
+
+    def get_updated(self, updates=None, removals=None):
+        """Get a new simple data info object that includes the given new maps.
+
+        In the case of double map names are the old maps overwritten.
+
+        Args:
+            updates (dict): the dictionary with the maps to view, these maps can either be arrays with values,
                 nibabel proxy images or SingleMapInfo objects.
+            removals (list): a list of maps to remove
 
         Returns:
             SimpleDataInfo: a new updated data info object
         """
         new_maps = copy(self._input_maps)
-        new_maps.update(maps)
+
+        if updates:
+            new_maps.update(updates)
+
+        if removals:
+            for map_name in removals:
+                if map_name in new_maps:
+                    del new_maps[map_name]
+
         return SimpleDataInfo(new_maps)
 
     def get_map_names(self):
@@ -600,23 +600,10 @@ class SimpleDataInfo(DataInfo):
     def get_single_map_info(self, map_name):
         value = self._input_maps[map_name]
         if not isinstance(value, SingleMapInfo):
-            return SingleMapInfo(map_name, value)
+            return SingleMapInfo(value)
         return value
 
-    def get_directories(self):
-        directories = {}
-
-        for map_name in self.get_map_names():
-            file_path = self.get_single_map_info(map_name).file_path
-            if file_path:
-                if os.path.dirname(file_path) in directories:
-                    directories.update({os.path.dirname(file_path): directories[os.path.dirname(file_path)]+1})
-                else:
-                    directories.update({os.path.dirname(file_path): 0})
-
-        return [el[0] for el in sorted(directories.items(), key=lambda x: x[1], reverse=True)]
-
-    def get_file_name(self, map_name):
+    def get_file_path(self, map_name):
         return self.get_single_map_info(map_name).file_path
 
     def get_max_dimension(self, map_names=None):
@@ -772,22 +759,20 @@ class SimpleDataInfo(DataInfo):
 
 class SingleMapInfo(object):
 
-    def __init__(self, map_name, data, file_path=None):
+    def __init__(self, data, file_path=None):
         """Holds information about a single map.
 
         Args:
-            map_name (str): the name of the map
             data (ndarray or :class:`nibabel.nifti1.Nifti1Image`): the value of the map or the proxy to it
             file_path (str): optionally, the file path with the location of this map
         """
-        self._map_name = map_name
         self._data = data
         self._shape = self._data.shape
         self._file_path = file_path
 
-    @property
-    def map_name(self):
-        return self._map_name
+    @classmethod
+    def from_file(cls, nifti_path):
+        return cls(load_nifti(nifti_path), nifti_path)
 
     @property
     def shape(self):
@@ -1437,4 +1422,112 @@ def get_available_colormaps():
     """
     return sorted(matplotlib.cm.datad)
 
+
+def find_all_nifti_files(paths):
+    """Find the paths to the nifti files in the given paths.
+
+    For directories we add all the nifti files from that directory, for file we try to resolve them to nifti files.
+
+    Args:
+        paths (list of str): the list of file paths
+
+    Returns:
+        list of str: the list of all nifti files (no more directories)
+    """
+    def find_niftis(paths, recurse=True):
+        niftis = []
+        for path in paths:
+            if os.path.isdir(path):
+                if recurse:
+                    niftis.extend(find_niftis(glob.glob(path + '/*.nii*'), recurse=False))
+            else:
+                niftis.append(nifti_filepath_resolution(path))
+        return niftis
+    return find_niftis(paths)
+
+
+def find_map_paths(nifti_files):
+    """Get the paths to the map names.
+
+    Returns:
+        dict: a dictionary with for every map name a list with the paths that would normally result in that map name.
+    """
+    map_name_paths = {}
+    for full_path in nifti_files:
+        _, map_name, _ = split_image_path(full_path)
+        if map_name not in map_name_paths:
+            map_name_paths[map_name] = [full_path]
+        else:
+            map_name_paths[map_name].append(full_path)
+    return map_name_paths
+
+
+def load_data_info(nifti_files):
+    """Load the data info for all the nifti files.
+
+    In the case of conflicting simplified map names we name the maps to the shortest unique names.
+
+    Returns:
+        dict[str, SingleMapInfo]: the dictionary with the single map information
+    """
+    data_info = {}
+
+    for map_name, paths in find_map_paths(nifti_files).items():
+        if len(paths) == 1:
+            data_info.update({map_name: SingleMapInfo.from_file(paths[0])})
+        else:
+            map_names = get_shortest_unique_names(paths)
+            for ind in range(len(map_names)):
+                data_info[map_names[ind]] = SingleMapInfo.from_file(paths[ind])
+
+    return data_info
+
+
+def get_shortest_unique_names(paths):
+    """Get the shortest unique map name between two or more nifti file paths.
+
+    This function is handy when you are loading two maps like for example ``./foo.nii`` and ``./foo.nii.gz`` or like:
+    ``S1/foo.nii``, ``S2/foo.nii``. In both cases the map name (foo) is similar, but we want to be able to show them
+    distinctly. Hence, this function tries to find the shortest unique map names.
+
+    Args:
+        paths (list of str): the paths to the different nifti files
+
+    Returns:
+        tuple: the map names for the given two paths (in the same order)
+    """
+    dirs, names, exts = zip(*map(split_image_path, paths))
+
+    if len(set(paths)) == 1:
+        return names
+
+    if len(set(names)) == len(names):
+        return names
+
+    new_names = []
+
+    multiple_dirs = len(set(dirs)) > 1
+    shortest_dir = sorted(dirs, key=lambda d: len(d))[0]
+
+    def multiple_maps_in_same_dir(current_ind, current_directory):
+        for ind, (directory, name, ext, full_path) in enumerate(zip(dirs, names, exts, paths)):
+            if ind != current_ind and directory == current_directory:
+                return True
+        return False
+
+    for ind, (directory, name, ext, full_path) in enumerate(zip(dirs, names, exts, paths)):
+        if multiple_dirs:
+            if directory == shortest_dir:
+                new_name = os.path.basename(directory) + '/' + name
+            else:
+                new_name = os.path.relpath(directory, shortest_dir) + '/' + name
+                if new_name.startswith('../'):
+                    new_name = new_name[3:]
+
+            if multiple_maps_in_same_dir(ind, directory):
+                new_name += ext
+
+            new_names.append(new_name)
+
+    return new_names
 

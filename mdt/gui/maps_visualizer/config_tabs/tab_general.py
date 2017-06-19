@@ -1,11 +1,13 @@
 import copy
+import os
 
-from PyQt5.QtCore import pyqtSlot, Qt, QPoint
-from PyQt5.QtWidgets import QWidget, QAbstractItemView, QMenu
+from PyQt5.QtCore import pyqtSlot, Qt, QPoint, QUrl
+from PyQt5.QtGui import QDesktopServices
+from PyQt5.QtWidgets import QWidget, QAbstractItemView, QMenu, QWidgetAction, QLabel
 
 from mdt.gui.maps_visualizer.actions import SetDimension, SetSliceIndex, SetVolumeIndex, SetColormap, SetRotate, \
     SetZoom, SetShowAxis, SetColorBarNmrTicks, SetMapsToShow, SetFont, SetInterpolation, SetFlipud, SetPlotTitle, \
-    SetGeneralMask
+    SetGeneralMask, NewDataAction
 from mdt.gui.maps_visualizer.base import DataConfigModel
 from mdt.gui.maps_visualizer.design.ui_TabGeneral import Ui_TabGeneral
 from mdt.gui.utils import blocked_signals, TimedUpdate, split_long_path_elements
@@ -105,25 +107,40 @@ class TabGeneral(QWidget, Ui_TabGeneral):
     def select_maps_context_menu(self, position):
         global_position = self.general_map_selection.mapToGlobal(position)
 
+        def get_header_action(parent, map_name):
+            label = QLabel(map_name)
+
+            font = label.font()
+            font.setBold(True)
+            label.setFont(font)
+            label.setStyleSheet('color: black; margin:5px; margin-left: 15px;')
+
+            action = QWidgetAction(parent)
+            action.setDisabled(True)
+            action.setDefaultWidget(label)
+
+            return action
+
         if self.general_map_selection.count():
             row = self.general_map_selection.indexAt(position)
             if row:
                 element = self.general_map_selection.item(row.row())
                 if element:
+                    map_name = element.data(Qt.UserRole)
+                    file_path = self._controller.get_model().get_data().get_file_path(map_name)
+
                     menu = QMenu()
-
-                    section_title = menu.addAction(element.data(Qt.UserRole))
-                    section_title.setEnabled(False)
-                    font = section_title.font()
-                    font.setBold(True)
-                    section_title.setFont(font)
-                    menu.setStyleSheet("QMenu::item:disabled {color:black}")
-
+                    menu.addAction(get_header_action(menu, map_name))
                     menu.addSeparator()
-                    menu.addAction('R&emove', lambda: print('TODO'))
-                    menu.addAction('Use as &mask', lambda: print('TODO'))
-                    menu.addAction('&Reload', lambda: print('TODO'))
 
+                    show_in_folder = menu.addAction('&Show in folder', lambda:
+                        QDesktopServices.openUrl(QUrl.fromLocalFile(os.path.dirname(file_path))))
+                    if file_path is None:
+                        show_in_folder.setEnabled(False)
+
+                    menu.addAction('Use as &mask', lambda: self._controller.apply_action(SetGeneralMask(map_name)))
+                    menu.addAction('R&emove', lambda: self._controller.apply_action(
+                        NewDataAction(self._controller.get_model().get_data().get_updated(removals=[map_name]))))
                     menu.exec(global_position)
 
     @pyqtSlot()
@@ -220,15 +237,7 @@ class TabGeneral(QWidget, Ui_TabGeneral):
             self._controller.apply_action(SetGeneralMask(self.mask_name.itemText(index)))
 
     def _update_data(self, data_info):
-        current_model = self._controller.get_model()
-
         sorted_keys = list(sorted(data_info.get_map_names()))
-
-        if current_model.get_data().get_directories():
-            self.general_info_directory.setText(split_long_path_elements(
-                current_model.get_data().get_directories()[0]))
-        else:
-            self.general_info_directory.setText('-')
 
         if len(data_info.get_map_names()):
             self.general_info_nmr_maps.setText(str(len(data_info.get_map_names())))

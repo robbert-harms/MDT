@@ -156,7 +156,7 @@
              <item>
               <widget class="QCheckBox" name="auto_rendering">
                <property name="text">
-                <string>Auto render</string>
+                <string>Auto redraw</string>
                </property>
               </widget>
              </item>

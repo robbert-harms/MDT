@@ -253,8 +253,9 @@ def view_maps(data, config=None, figure_options=None,
     """View a number of maps using the MDT Maps Visualizer.
 
     Args:
-        data (str, dict, :class:`~mdt.visualization.maps.base.DataInfo`): the data we are showing,
-            either a dictionary with result maps, a string with a path name or a DataInfo object
+        data (str, dict, :class:`~mdt.visualization.maps.base.DataInfo`, list, tuple): the data we are showing,
+            either a dictionary with result maps, a string with a path name, a DataInfo object or a list
+            with filenames and/or directories.
         config (str, dict, :class:`~mdt.visualization.maps.base import MapPlotConfig`): either a Yaml string or a
             dictionary with configuration settings or a ValidatedMapPlotConfig object to use directly
         figure_options (dict): figure options for the matplotlib Figure, if figsizes is not given you can also specify
@@ -272,9 +273,11 @@ def view_maps(data, config=None, figure_options=None,
     from mdt.visualization.maps.base import SimpleDataInfo
 
     if isinstance(data, string_types):
-        data = SimpleDataInfo.from_dir(data)
+        data = SimpleDataInfo.from_paths([data])
     elif isinstance(data, collections.MutableMapping):
         data = SimpleDataInfo(data)
+    elif isinstance(data, collections.Sequence):
+        data = SimpleDataInfo.from_paths(data)
     elif data is None:
         data = SimpleDataInfo({})
 
@@ -307,8 +310,9 @@ def write_view_maps_figure(data, output_filename, config=None, width=None, heigh
     """Saves the view maps figure to a file.
 
     Args:
-        data (str, dict, :class:`~mdt.visualization.maps.base.DataInfo`): the data we are showing,
-            either a dictionary with result maps, a string with a path name or a DataInfo object
+        data (str, dict, :class:`~mdt.visualization.maps.base.DataInfo`, list, tuple): the data we are showing,
+            either a dictionary with result maps, a string with a path name, a DataInfo object or a list
+            with filenames and or directories.
         config (str, dict, :class:`~mdt.visualization.maps.base import MapPlotConfig`): either a Yaml string or a
             dictionary with configuration settings or a ValidatedMapPlotConfig object to use directly
         output_filename (str): the output filename
@@ -328,9 +332,11 @@ def write_view_maps_figure(data, output_filename, config=None, width=None, heigh
     from mdt.visualization.maps.base import SimpleDataInfo
 
     if isinstance(data, string_types):
-        data = SimpleDataInfo.from_dir(data)
+        data = SimpleDataInfo.from_paths([data])
     elif isinstance(data, dict):
         data = SimpleDataInfo(data)
+    elif isinstance(data, collections.Sequence):
+        data = SimpleDataInfo.from_paths(data)
     elif data is None:
         data = SimpleDataInfo({})
 
