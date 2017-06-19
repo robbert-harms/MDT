@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QWidget
 
 from mdt.gui.maps_visualizer.actions import SetMapTitle, SetMapColormap, SetMapScale, SetMapClipping, \
     SetMapColorbarLabel
+from mdt.gui.maps_visualizer.base import DataConfigModel
 from mdt.gui.maps_visualizer.design.ui_MapSpecificOptions import Ui_MapSpecificOptions
 from mdt.gui.maps_visualizer.design.ui_TabMapSpecific import Ui_TabMapSpecific
 from mdt.gui.utils import blocked_signals, TimedUpdate, split_long_path_elements
@@ -24,18 +25,14 @@ class TabMapSpecific(QWidget, Ui_TabMapSpecific):
         self.mapSpecificOptionsPosition.addWidget(self.map_specific_tab)
 
         self._controller = controller
-        self._controller.new_data.connect(self.set_new_data)
-        self._controller.new_config.connect(self.set_new_config)
+        self._controller.model_updated.connect(self.model_updated)
 
         self.selectedMap.currentIndexChanged.connect(
             lambda ind: self._update_map_specifics(self.selectedMap.itemData(ind, Qt.UserRole)))
 
-    @pyqtSlot(DataInfo)
-    def set_new_data(self, data_info):
-        pass
-
-    @pyqtSlot(MapPlotConfig)
-    def set_new_config(self, config):
+    @pyqtSlot(DataConfigModel)
+    def model_updated(self, model):
+        config = model.get_config()
         map_names = config.maps_to_show
 
         with blocked_signals(self.selectedMap):

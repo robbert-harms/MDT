@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import QWidget, QAbstractItemView, QMenu
 from mdt.gui.maps_visualizer.actions import SetDimension, SetSliceIndex, SetVolumeIndex, SetColormap, SetRotate, \
     SetZoom, SetShowAxis, SetColorBarNmrTicks, SetMapsToShow, SetFont, SetInterpolation, SetFlipud, SetPlotTitle, \
     SetGeneralMask
+from mdt.gui.maps_visualizer.base import DataConfigModel
 from mdt.gui.maps_visualizer.design.ui_TabGeneral import Ui_TabGeneral
 from mdt.gui.utils import blocked_signals, TimedUpdate, split_long_path_elements
 from mdt.visualization.maps.base import Zoom, Point, DataInfo, Font, MapPlotConfig
@@ -23,9 +24,9 @@ class TabGeneral(QWidget, Ui_TabGeneral):
         self.setupUi(self)
 
         self._controller = controller
-        self._controller.new_data.connect(self.set_new_data)
-        self._controller.new_config.connect(self.set_new_config)
+        self._controller.model_updated.connect(self.update_model)
 
+        self._previous_model = None
         current_model = self._controller.get_model()
 
         self.general_display_order.setDragDropMode(QAbstractItemView.InternalMove)
@@ -90,160 +91,16 @@ class TabGeneral(QWidget, Ui_TabGeneral):
 
         self.mask_name.currentIndexChanged.connect(self._update_mask_name)
 
-    @pyqtSlot(DataInfo)
-    def set_new_data(self, data_info):
-        current_model = self._controller.get_model()
+    @pyqtSlot(DataConfigModel)
+    def update_model(self, model):
+        data = model.get_data()
+        config = model.get_config()
 
-        sorted_keys = list(sorted(data_info.get_map_names()))
+        if not self._previous_model or model.get_data() != self._previous_model.get_data():
+            self._previous_model = model
+            self._update_data(data)
 
-        if current_model.get_data().get_directories():
-            self.general_info_directory.setText(split_long_path_elements(
-                current_model.get_data().get_directories()[0]))
-        else:
-            self.general_info_directory.setText('-')
-
-        if len(data_info.get_map_names()):
-            self.general_info_nmr_maps.setText(str(len(data_info.get_map_names())))
-        else:
-            self.general_info_nmr_maps.setText('0')
-
-        with blocked_signals(self.general_map_selection):
-            self.general_map_selection.clear()
-            self.general_map_selection.addItems(sorted_keys)
-            for index, map_name in enumerate(sorted_keys):
-                item = self.general_map_selection.item(index)
-                item.setData(Qt.UserRole, map_name)
-
-        with blocked_signals(self.mask_name):
-            self.mask_name.clear()
-            self.mask_name.insertItem(0, '-- None --')
-            self.mask_name.insertItems(1, sorted_keys)
-
-    @pyqtSlot(MapPlotConfig)
-    def set_new_config(self, config):
-        current_model = self._controller.get_model()
-        data_info = current_model.get_data()
-        map_names = config.maps_to_show
-
-        with blocked_signals(self.general_dimension):
-            try:
-                max_dimension = data_info.get_max_dimension(map_names)
-                self.general_dimension.setMaximum(max_dimension)
-                self.maximumDimension.setText(str(max_dimension))
-            except ValueError:
-                self.general_dimension.setMaximum(0)
-                self.maximumDimension.setText(str(0))
-            self.general_dimension.setValue(config.dimension)
-
-        with blocked_signals(self.general_slice_index):
-            try:
-                max_slice = data_info.get_max_slice_index(config.dimension, map_names)
-                self.general_slice_index.setMaximum(max_slice)
-                self.maximumIndex.setText(str(max_slice))
-            except ValueError:
-                self.general_slice_index.setMaximum(0)
-                self.maximumIndex.setText(str(0))
-            self.general_slice_index.setValue(config.slice_index)
-
-        with blocked_signals(self.general_volume_index):
-            try:
-                max_volume = data_info.get_max_volume_index(map_names)
-                self.general_volume_index.setMaximum(max_volume)
-                self.maximumVolume.setText(str(max_volume))
-            except ValueError:
-                self.general_volume_index.setMaximum(0)
-                self.maximumVolume.setText(str(0))
-            self.general_volume_index.setValue(config.volume_index)
-
-        with blocked_signals(self.general_colormap):
-            self.general_colormap.setCurrentText(config.colormap)
-
-        with blocked_signals(self.general_rotate):
-            self.general_rotate.setCurrentText(str(config.rotate))
-
-        if self.general_map_selection.count():
-            for map_name, map_config in config.map_plot_options.items():
-                if map_config.title:
-                    index = list(sorted(data_info.get_map_names())).index(map_name)
-                    item = self.general_map_selection.item(index)
-                    item.setData(Qt.DisplayRole, map_name + ' (' + map_config.title + ')')
-
-            self.general_map_selection.blockSignals(True)
-            for index, map_name in enumerate(list(sorted(data_info.get_map_names()))):
-                item = self.general_map_selection.item(index)
-                if item:
-                    item.setSelected(map_name in map_names)
-            self.general_map_selection.blockSignals(False)
-
-        try:
-            max_x = data_info.get_max_x_index(config.dimension, config.rotate, map_names)
-            max_y = data_info.get_max_y_index(config.dimension, config.rotate, map_names)
-
-            with blocked_signals(self.general_zoom_x_0, self.general_zoom_x_1,
-                                 self.general_zoom_y_0, self.general_zoom_y_1):
-                self.general_zoom_x_0.setMaximum(max_x)
-                self.general_zoom_x_0.setValue(config.zoom.p0.x)
-
-                self.general_zoom_x_1.setMaximum(max_x)
-                self.general_zoom_x_1.setMinimum(config.zoom.p0.x)
-                self.general_zoom_x_1.setValue(config.zoom.p1.x)
-
-                self.general_zoom_y_0.setMaximum(max_y)
-                self.general_zoom_y_0.setValue(config.zoom.p0.y)
-
-                self.general_zoom_y_1.setMaximum(max_y)
-                self.general_zoom_y_1.setMinimum(config.zoom.p0.y)
-                self.general_zoom_y_1.setValue(config.zoom.p1.y)
-
-                if config.zoom.p0.x == 0 and config.zoom.p1.x == 0:
-                    self.general_zoom_x_1.setValue(max_x)
-
-                if config.zoom.p0.y == 0 and config.zoom.p1.y == 0:
-                    self.general_zoom_y_1.setValue(max_y)
-        except ValueError:
-            pass
-
-        with blocked_signals(self.plot_title):
-            self.plot_title.setText(config.title)
-
-        with blocked_signals(self.general_display_order):
-            self.general_display_order.clear()
-            self.general_display_order.addItems(map_names)
-
-            for index, map_name in enumerate(map_names):
-                item = self.general_display_order.item(index)
-                item.setData(Qt.UserRole, map_name)
-
-                if map_name in config.map_plot_options and config.map_plot_options[map_name].title:
-                    title = config.map_plot_options[map_name].title
-                    item.setData(Qt.DisplayRole, map_name + ' (' + title + ')')
-
-        with blocked_signals(self.general_show_axis):
-            self.general_show_axis.setChecked(config.show_axis)
-
-        with blocked_signals(self.general_colorbar_nmr_ticks):
-            self.general_colorbar_nmr_ticks.setValue(config.colorbar_nmr_ticks)
-
-        with blocked_signals(self.general_font_family):
-            self.general_font_family.setCurrentText(config.font.family)
-
-        with blocked_signals(self.general_font_size):
-            self.general_font_size.setValue(config.font.size)
-
-        with blocked_signals(self.general_interpolation):
-            self.general_interpolation.setCurrentText(config.interpolation)
-
-        with blocked_signals(self.general_flipud):
-            self.general_flipud.setChecked(config.flipud)
-
-        with blocked_signals(self.mask_name):
-            if config.mask_name and config.mask_name in data_info.get_map_names():
-                for ind in range(self.mask_name.count()):
-                    if self.mask_name.itemText(ind) == config.mask_name:
-                        self.mask_name.setCurrentIndex(ind)
-                        break
-            else:
-                self.mask_name.setCurrentIndex(0)
+        self._update_config(data, config)
 
     def select_maps_context_menu(self, position):
         global_position = self.general_map_selection.mapToGlobal(position)
@@ -361,3 +218,154 @@ class TabGeneral(QWidget, Ui_TabGeneral):
             self._controller.apply_action(SetGeneralMask(None))
         else:
             self._controller.apply_action(SetGeneralMask(self.mask_name.itemText(index)))
+
+    def _update_data(self, data_info):
+        current_model = self._controller.get_model()
+
+        sorted_keys = list(sorted(data_info.get_map_names()))
+
+        if current_model.get_data().get_directories():
+            self.general_info_directory.setText(split_long_path_elements(
+                current_model.get_data().get_directories()[0]))
+        else:
+            self.general_info_directory.setText('-')
+
+        if len(data_info.get_map_names()):
+            self.general_info_nmr_maps.setText(str(len(data_info.get_map_names())))
+        else:
+            self.general_info_nmr_maps.setText('0')
+
+        with blocked_signals(self.general_map_selection):
+            self.general_map_selection.clear()
+            self.general_map_selection.addItems(sorted_keys)
+            for index, map_name in enumerate(sorted_keys):
+                item = self.general_map_selection.item(index)
+                item.setData(Qt.UserRole, map_name)
+
+        with blocked_signals(self.mask_name):
+            self.mask_name.clear()
+            self.mask_name.insertItem(0, '-- None --')
+            self.mask_name.insertItems(1, sorted_keys)
+
+    def _update_config(self, data, config):
+        map_names = config.maps_to_show
+
+        with blocked_signals(self.general_dimension):
+            try:
+                max_dimension = data.get_max_dimension(map_names)
+                self.general_dimension.setMaximum(max_dimension)
+                self.maximumDimension.setText(str(max_dimension))
+            except ValueError:
+                self.general_dimension.setMaximum(0)
+                self.maximumDimension.setText(str(0))
+            self.general_dimension.setValue(config.dimension)
+
+        with blocked_signals(self.general_slice_index):
+            try:
+                max_slice = data.get_max_slice_index(config.dimension, map_names)
+                self.general_slice_index.setMaximum(max_slice)
+                self.maximumIndex.setText(str(max_slice))
+            except ValueError:
+                self.general_slice_index.setMaximum(0)
+                self.maximumIndex.setText(str(0))
+            self.general_slice_index.setValue(config.slice_index)
+
+        with blocked_signals(self.general_volume_index):
+            try:
+                max_volume = data.get_max_volume_index(map_names)
+                self.general_volume_index.setMaximum(max_volume)
+                self.maximumVolume.setText(str(max_volume))
+            except ValueError:
+                self.general_volume_index.setMaximum(0)
+                self.maximumVolume.setText(str(0))
+            self.general_volume_index.setValue(config.volume_index)
+
+        with blocked_signals(self.general_colormap):
+            self.general_colormap.setCurrentText(config.colormap)
+
+        with blocked_signals(self.general_rotate):
+            self.general_rotate.setCurrentText(str(config.rotate))
+
+        if self.general_map_selection.count():
+            for map_name, map_config in config.map_plot_options.items():
+                if map_config.title:
+                    index = list(sorted(data.get_map_names())).index(map_name)
+                    item = self.general_map_selection.item(index)
+                    item.setData(Qt.DisplayRole, map_name + ' (' + map_config.title + ')')
+
+            self.general_map_selection.blockSignals(True)
+            for index, map_name in enumerate(list(sorted(data.get_map_names()))):
+                item = self.general_map_selection.item(index)
+                if item:
+                    item.setSelected(map_name in map_names)
+            self.general_map_selection.blockSignals(False)
+
+        try:
+            max_x = data.get_max_x_index(config.dimension, config.rotate, map_names)
+            max_y = data.get_max_y_index(config.dimension, config.rotate, map_names)
+
+            with blocked_signals(self.general_zoom_x_0, self.general_zoom_x_1,
+                                 self.general_zoom_y_0, self.general_zoom_y_1):
+                self.general_zoom_x_0.setMaximum(max_x)
+                self.general_zoom_x_0.setValue(config.zoom.p0.x)
+
+                self.general_zoom_x_1.setMaximum(max_x)
+                self.general_zoom_x_1.setMinimum(config.zoom.p0.x)
+                self.general_zoom_x_1.setValue(config.zoom.p1.x)
+
+                self.general_zoom_y_0.setMaximum(max_y)
+                self.general_zoom_y_0.setValue(config.zoom.p0.y)
+
+                self.general_zoom_y_1.setMaximum(max_y)
+                self.general_zoom_y_1.setMinimum(config.zoom.p0.y)
+                self.general_zoom_y_1.setValue(config.zoom.p1.y)
+
+                if config.zoom.p0.x == 0 and config.zoom.p1.x == 0:
+                    self.general_zoom_x_1.setValue(max_x)
+
+                if config.zoom.p0.y == 0 and config.zoom.p1.y == 0:
+                    self.general_zoom_y_1.setValue(max_y)
+        except ValueError:
+            pass
+
+        with blocked_signals(self.plot_title):
+            self.plot_title.setText(config.title)
+
+        with blocked_signals(self.general_display_order):
+            self.general_display_order.clear()
+            self.general_display_order.addItems(map_names)
+
+            for index, map_name in enumerate(map_names):
+                item = self.general_display_order.item(index)
+                item.setData(Qt.UserRole, map_name)
+
+                if map_name in config.map_plot_options and config.map_plot_options[map_name].title:
+                    title = config.map_plot_options[map_name].title
+                    item.setData(Qt.DisplayRole, map_name + ' (' + title + ')')
+
+        with blocked_signals(self.general_show_axis):
+            self.general_show_axis.setChecked(config.show_axis)
+
+        with blocked_signals(self.general_colorbar_nmr_ticks):
+            self.general_colorbar_nmr_ticks.setValue(config.colorbar_nmr_ticks)
+
+        with blocked_signals(self.general_font_family):
+            self.general_font_family.setCurrentText(config.font.family)
+
+        with blocked_signals(self.general_font_size):
+            self.general_font_size.setValue(config.font.size)
+
+        with blocked_signals(self.general_interpolation):
+            self.general_interpolation.setCurrentText(config.interpolation)
+
+        with blocked_signals(self.general_flipud):
+            self.general_flipud.setChecked(config.flipud)
+
+        with blocked_signals(self.mask_name):
+            if config.mask_name and config.mask_name in data.get_map_names():
+                for ind in range(self.mask_name.count()):
+                    if self.mask_name.itemText(ind) == config.mask_name:
+                        self.mask_name.setCurrentIndex(ind)
+                        break
+            else:
+                self.mask_name.setCurrentIndex(0)

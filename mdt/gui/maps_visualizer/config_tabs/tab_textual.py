@@ -3,6 +3,7 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QWidget
 
 from mdt.gui.maps_visualizer.actions import NewConfigAction
+from mdt.gui.maps_visualizer.base import DataConfigModel
 from mdt.gui.maps_visualizer.design.ui_TabTextual import Ui_TabTextual
 from mdt.gui.utils import blocked_signals
 from mdt.visualization.maps.base import DataInfo, MapPlotConfig
@@ -20,23 +21,18 @@ class TabTextual(QWidget, Ui_TabTextual):
         self.setupUi(self)
 
         self._controller = controller
-        self._controller.new_data.connect(self.set_new_data)
-        self._controller.new_config.connect(self.set_new_config)
+        self._controller.model_updated.connect(self.set_new_model)
 
         self.textConfigEdit.new_config.connect(self._config_from_string)
         self._update_status_indication(True)
 
         self._flags = {'updating_config_from_string': False}
 
-    @pyqtSlot(DataInfo)
-    def set_new_data(self, data_info):
-        pass
-
-    @pyqtSlot(MapPlotConfig)
-    def set_new_config(self, config):
+    @pyqtSlot(DataConfigModel)
+    def set_new_model(self, model):
         with blocked_signals(self.textConfigEdit):
             if not self._flags['updating_config_from_string']:
-                self.textConfigEdit.setPlainText(config.to_yaml())
+                self.textConfigEdit.setPlainText(model.get_config().to_yaml())
                 self._update_status_indication(True)
 
     @pyqtSlot(str)

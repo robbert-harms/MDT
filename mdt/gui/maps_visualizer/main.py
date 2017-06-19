@@ -1,15 +1,12 @@
 import copy
 import os
+import signal
 from textwrap import dedent
 
 import matplotlib
-import signal
 import yaml
-from PyQt5.QtCore import QObject, pyqtSlot
 from PyQt5.QtCore import QTimer
-from PyQt5.QtCore import QUrl
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtGui import QDesktopServices
+from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QDialog
 from PyQt5.QtWidgets import QDialogButtonBox
 from PyQt5.QtWidgets import QFileDialog
@@ -17,7 +14,7 @@ from PyQt5.QtWidgets import QLabel
 from PyQt5.QtWidgets import QMainWindow
 from PyQt5.QtWidgets import QMessageBox
 
-from mdt.gui.maps_visualizer.actions import NewConfigAction, SetMapsToShow
+from mdt.gui.maps_visualizer.actions import NewConfigAction, SetMapsToShow, NewDataAction
 from mdt.gui.maps_visualizer.config_tabs.tab_general import TabGeneral
 from mdt.gui.maps_visualizer.config_tabs.tab_map_specific import TabMapSpecific
 from mdt.gui.maps_visualizer.config_tabs.tab_textual import TabTextual
@@ -28,7 +25,9 @@ from mdt.utils import split_image_path
 matplotlib.use('Qt5Agg')
 
 import mdt
-from mdt.gui.maps_visualizer.base import Controller, PlottingFrameInfoViewer, SimpleModel
+from mdt.gui.maps_visualizer.base import DataConfigModel, \
+    QtController
+from mdt.gui.maps_visualizer.renderers.base import PlottingFrameInfoViewer
 from mdt.visualization.maps.base import DataInfo, SimpleDataInfo, MapPlotConfig, SingleMapInfo
 from mdt.gui.maps_visualizer.renderers.matplotlib_renderer import MatplotlibPlotting
 from mdt.gui.model_fit.design.ui_about_dialog import Ui_AboutDialog
@@ -43,8 +42,7 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self.setupUi(self)
 
         self._controller = controller
-        self._controller.new_data.connect(self.set_new_data)
-        self._controller.new_config.connect(self.set_new_config)
+        self._controller.model_updated.connect(self.update_model)
 
         self.setAcceptDrops(True)
 
@@ -89,12 +87,8 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self.undo_config.clicked.connect(lambda: self._controller.undo())
         self.redo_config.clicked.connect(lambda: self._controller.redo())
 
-    @pyqtSlot(DataInfo)
-    def set_new_data(self, data_info):
-        pass
-
-    @pyqtSlot(MapPlotConfig)
-    def set_new_config(self, config):
+    @pyqtSlot(DataConfigModel)
+    def update_model(self, model):
         self.undo_config.setDisabled(not self._controller.has_undo())
         self.redo_config.setDisabled(not self._controller.has_redo())
 
@@ -119,12 +113,12 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
             if not len(current_model.get_data().get_map_names()):
                 config.slice_index = data.get_max_slice_index(config.dimension) // 2
 
-            self._controller.set_data(data, config)
+            self._controller.apply_action(NewDataAction(data, config))
 
     def _remove_files(self):
         data = SimpleDataInfo({})
         config = MapPlotConfig()
-        self._controller.set_data(data, config)
+        self._controller.apply_action(NewDataAction(data, config))
 
     @pyqtSlot()
     def _set_auto_rendering(self):
@@ -159,7 +153,7 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         current_model = self._controller.get_model()
         map_names = copy.copy(current_model.get_config().maps_to_show)
         map_names.extend(additional_maps)
-        self._controller.set_data(current_model.get_data().get_updated(additional_maps))
+        self._controller.apply_action(NewDataAction(current_model.get_data().get_updated(additional_maps)))
         self._controller.apply_action(SetMapsToShow(map_names))
 
     def _save_settings(self):
@@ -360,93 +354,13 @@ class AboutDialog(Ui_AboutDialog, QDialog):
         self.contentLabel.setText(self.contentLabel.text().replace('{version}', mdt.__version__))
 
 
-class QtController(Controller, QObject):
-
-    new_data = pyqtSignal(DataInfo)
-    new_config = pyqtSignal(MapPlotConfig)
-
-    def __init__(self):
-        super(QtController, self).__init__()
-        self._data_info = SimpleDataInfo({})
-        self._current_config = MapPlotConfig()
-        self._actions_history = []
-        self._redoable_actions = []
-
-    def set_data(self, data_info, config=None):
-        self._data_info = data_info
-        self._actions_history = []
-        self._redoable_actions = []
-
-        if not config:
-            config = MapPlotConfig()
-        elif not isinstance(config, MapPlotConfig):
-            config = MapPlotConfig.from_dict(config.to_dict())
-
-        if data_info.get_map_names():
-            max_dim = data_info.get_max_dimension()
-            if max_dim < config.dimension:
-                config.dimension = max_dim
-
-        config.maps_to_show = list(filter(lambda k: k in data_info.get_map_names(), config.maps_to_show))
-
-        self._apply_config(config)
-        self.new_data.emit(data_info)
-        self.new_config.emit(self._current_config)
-
-    def get_model(self):
-        return SimpleModel(self._data_info, self._current_config)
-
-    def apply_action(self, action):
-        applied = self._apply_config(action.apply(self._data_info, self._current_config))
-        if applied:
-            self._actions_history.append(action)
-            self._redoable_actions = []
-            self.new_config.emit(self._current_config)
-
-    def undo(self):
-        if len(self._actions_history):
-            action = self._actions_history.pop()
-            self._apply_config(action.unapply())
-            self._redoable_actions.append(action)
-            self.new_config.emit(self._current_config)
-
-    def redo(self):
-        if len(self._redoable_actions):
-            action = self._redoable_actions.pop()
-            self._apply_config(action.apply(self._data_info, self._current_config))
-            self._actions_history.append(action)
-            self.new_config.emit(self._current_config)
-
-    def has_undo(self):
-        return len(self._actions_history) > 0
-
-    def has_redo(self):
-        return len(self._redoable_actions) > 0
-
-    def _apply_config(self, new_config):
-        """Apply the current configuration.
-
-        Args:
-            new_config (MapPlotConfig): the new configuration to apply
-
-        Returns:
-            bool: if the configuration was applied or not. If the difference with the current configuration
-                and the old one is None, False is returned. Else True is returned.
-        """
-        validated_config = new_config.validate(self._data_info)
-        if self._current_config != validated_config:
-            self._current_config = validated_config
-            return True
-        return False
-
-
 def start_gui(data=None, config=None, controller=None, app_exec=True, show_maximized=False, window_title=None):
     """Start the GUI with the given data and configuration.
 
     Args:
         data (DataInfo): the initial set of data
         config (MapPlotConfig): the initial configuration
-        controller (QtController): the controller to use in the application
+        controller (mdt.gui.maps_visualizer.base.QtController): the controller to use in the application
         app_exec (boolean): if true we execute the Qt application, set to false to disable.
         show_maximized (true): if we want to show the window in a maximized state
         window_title (str): the title of the window
@@ -476,7 +390,7 @@ def start_gui(data=None, config=None, controller=None, app_exec=True, show_maxim
 
     if data is None:
         data = SimpleDataInfo({})
-    controller.set_data(data, config)
+    controller.apply_action(NewDataAction(data, config=config), store_in_history=False)
 
     QtManager.add_window(main)
     if app_exec:

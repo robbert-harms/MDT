@@ -388,406 +388,6 @@ class SingleMapConfig(SimpleConvertibleConfig):
         return self
 
 
-class Zoom(SimpleConvertibleConfig):
-
-    def __init__(self, p0, p1):
-        """Container for zooming a map between the two given points.
-
-        Args:
-            p0 (Point): the lower left corner of the zoomed area
-            p1 (Point): the upper right corner of the zoomed area
-        """
-        self.p0 = p0
-        self.p1 = p1
-
-        if p0.x > p1.x or p0.y > p1.y:
-            raise ValueError('The lower left point ({}, {}) should be smaller than the upper right point ({}, {})'.
-                             format(p0.x, p0.y, p1.x, p1.y))
-
-        if p0.x < 0 or p0.y < 0 or p1.x < 0 or p1.y < 0:
-            raise ValueError('The zoom box ({}, {}), ({}, {}) can not '
-                             'be negative in any way.'.format(p0.x, p0.y, p1.x, p1.y))
-
-        if self.p0 is None or self.p1 is None:
-            raise ValueError('One of the zoom points is None.')
-
-    @classmethod
-    def from_coords(cls, x0, y0, x1, y1):
-        return cls(Point(x0, y0), Point(x1, y1))
-
-    @classmethod
-    def no_zoom(cls):
-        return cls(Point(0, 0), Point(0, 0))
-
-    @classmethod
-    def _get_attribute_conversions(cls):
-        point_converter = Point.get_conversion_info()
-        return {'p0': point_converter,
-                'p1': point_converter}
-
-    def get_rotated(self, rotation, x_dimension, y_dimension):
-        """Return a new Zoom instance rotated with the given factor.
-
-        This rotates the zoom box in the same way as the image is rotated.
-
-        Args:
-            rotation (int): the rotation by which to rotate in steps of 90 degrees
-            x_dimension (int): the dimension of the image in the x coordinate
-            y_dimension (int): the dimension of the image in the y coordinate
-
-        Returns:
-            Zoom: the rotated instance
-        """
-        dimensions = [x_dimension, y_dimension]
-        p0 = self.p0
-        p1 = self.p1
-
-        nmr_90_rotations = rotation % 360 // 90
-
-        for _ in range(nmr_90_rotations):
-            dimensions = np.roll(dimensions, 1)
-
-            new_p0 = Point(np.min([dimensions[0] - p0.y, dimensions[0] - p1.y]), np.min([p0.x, p1.x]))
-            new_p1 = Point(np.max([dimensions[0] - p0.y, dimensions[0] - p1.y]), np.max([p0.x, p1.x]))
-
-            p0 = new_p0
-            p1 = new_p1
-
-        if p0.x >= dimensions[0] - 1 or p0.x < 0:
-            p0 = p0.get_updated(x=0)
-
-        if p0.y >= dimensions[1] - 1 or p0.y < 0:
-            p0 = p0.get_updated(y=0)
-
-        if p1.x >= dimensions[0] - 1:
-            p1 = p1.get_updated(x=dimensions[0] - 1)
-
-        if p1.y >= dimensions[1] - 1:
-            p1 = p1.get_updated(y=dimensions[1] - 1)
-
-        return Zoom(p0, p1)
-
-    def apply(self, data):
-        """Apply the zoom to the given 2d array and return the new array.
-
-        Args:
-            data (ndarray): the data to zoom in on
-        """
-        correct = self.p0.x < data.shape[1] and self.p1.x < data.shape[1] \
-                  and self.p0.y < data.shape[0] and self.p1.y < data.shape[0] \
-                  and self.p0.x < self.p1.x and self.p0.y < self.p1.y
-        if correct:
-            return data[self.p0.y:self.p1.y, self.p0.x:self.p1.x]
-        return data
-
-
-class Point(SimpleConvertibleConfig):
-
-    def __init__(self, x, y):
-        """Container for a single point"""
-        self.x = x
-        self.y = y
-
-    def get_updated(self, **kwargs):
-        """Get a new Point object with updated arguments.
-
-        Args:
-            **kwargs (dict): the new keyword values, when given these take precedence over the current ones.
-
-        Returns:
-            Point: a new scale with updated values.
-        """
-        new_values = dict(x=self.x, y=self.y)
-        new_values.update(**kwargs)
-        return Point(**new_values)
-
-    @classmethod
-    def _get_attribute_conversions(cls):
-        return {'x': IntConversion(allow_null=False),
-                'y': IntConversion(allow_null=False)}
-
-    def rotate90(self, nmr_rotations):
-        """Rotate this point around a 90 degree angle
-
-        Args:
-            nmr_rotations (int): the number of 90 degreee rotations, can be negative
-
-        Returns:
-            Point: the rotated point
-        """
-
-        def rotate_coordinate(x, y, nmr_rotations):
-            rotation_matrix = np.array([[0, -1],
-                                        [1, 0]])
-            rx, ry = x, y
-            for rotation in range(1, nmr_rotations + 1):
-                rx, ry = rotation_matrix.dot([rx, ry])
-            return rx, ry
-
-        return Point(*rotate_coordinate(self.x, self.y, nmr_rotations))
-
-
-class DrawablePatches(SimpleConvertibleConfig):
-
-    def __init__(self, patch_type, patch_args=None, patch_kwargs=None):
-        """Container and constructor  for simple drawable patches.
-
-        This class constructs an object in ``matplotlib.patches`` of the given (patch) type with as arguments
-        the given args and kwargs.
-
-        Examples:
-            DrawablePatches('Rectangle', [xy, width, height], {angle=0.0, ...})
-
-        Args:
-            patch_type (str): the type of patch we want to generate. Should be one of the classes in matplotlib.patches.
-            patch_args (list_: passed to the constructor of the patch
-            patch_kwargs (dict): passed to the constructor of the patch
-        """
-        self.patch_type = patch_type
-        self.patch_args = patch_args or []
-        self.patch_kwargs = patch_kwargs or {}
-
-        self._construct_patch()
-
-    @classmethod
-    def _get_attribute_conversions(cls):
-        return {'patch_type': StringConversion(allow_null=False),
-                'patch_args': SimpleListConversion(),
-                'patch_kwargs': SimpleDictConversion()}
-
-    def get_patch(self):
-        """Get the actual Patch that matplotlib can draw on the images
-
-        Returns:
-            patch: the patch to draw on the images
-        """
-        return self._construct_patch()
-
-    def _construct_patch(self):
-        class_type = self._patch_type_to_class(self.patch_type)
-        if class_type is None:
-            raise ValueError('The given patch type ({}) could not be found, '
-                             'please use one of matplotlib.patches.'.format(self.patch_type))
-        return class_type(*self.patch_args, **self.patch_kwargs)
-
-    @staticmethod
-    def _patch_type_to_class(patch_type):
-        import matplotlib.patches
-        classes = inspect.getmembers(matplotlib.patches, inspect.isclass)
-        for name, class_type in classes:
-            if name == patch_type:
-                return class_type
-        return None
-
-
-class Clipping(SimpleConvertibleConfig):
-
-    def __init__(self, vmin=0, vmax=0, use_min=False, use_max=False):
-        """Container for the map clipping information"""
-        self.vmin = vmin
-        self.vmax = vmax
-        self.use_min = use_min
-        self.use_max = use_max
-
-        if use_min and use_max and vmin > vmax:
-            raise ValueError('The minimum clipping ({}) can not be larger than the maximum clipping({})'.format(
-                vmin, vmax))
-
-    def apply(self, data):
-        """Apply the clipping to the given 2d array and return the new array.
-
-        Args:
-           data (ndarray): the data to clip
-        """
-        if self.use_max or self.use_min:
-            clipping_min = data.min()
-            if self.use_min:
-                clipping_min = self.vmin
-
-            clipping_max = data.max()
-            if self.use_max:
-                clipping_max = self.vmax
-
-            return np.clip(data, clipping_min, clipping_max)
-
-        return data
-
-    def visible_changes(self, old_clipping):
-        """Checks if there are any visible changes between this clipping and the other.
-
-        This method can implement knowledge that allows the visualization routine to check if it
-        would need to update the plot or not.
-
-        It expects that the clipping you wish to use is the one on which this method is called.
-
-        Args:
-            old_clipping (Clipping): the previous clipping
-
-        Returns:
-            bool: if the differences between this clipping and the other would result in visible differences.
-        """
-        if self.use_min != old_clipping.use_min or self.use_max != old_clipping.use_max:
-            return True
-
-        def visible_changes_in_min():
-            if self.vmin == old_clipping.vmin:
-                return False
-            else:
-                return self.use_min
-
-        def visible_changes_in_max():
-            if self.vmax == old_clipping.vmax:
-                return False
-            else:
-                return self.use_max
-
-        return visible_changes_in_max() or visible_changes_in_min()
-
-    def get_updated(self, **kwargs):
-        """Get a new Clipping object with updated arguments.
-
-        Args:
-            **kwargs (dict): the new keyword values, when given these take precedence over the current ones.
-
-        Returns:
-            Clipping: a new scale with updated values.
-        """
-        new_values = dict(vmin=self.vmin, vmax=self.vmax, use_min=self.use_min, use_max=self.use_max)
-        new_values.update(**kwargs)
-        return Clipping(**new_values)
-
-    @classmethod
-    def _get_attribute_conversions(cls):
-        return {'vmax': FloatConversion(allow_null=False),
-                'vmin': FloatConversion(allow_null=False),
-                'use_min': BooleanConversion(allow_null=False),
-                'use_max': BooleanConversion(allow_null=False)}
-
-
-class Scale(SimpleConvertibleConfig):
-
-    def __init__(self, vmin=0, vmax=0, use_min=False, use_max=False):
-        """Container the map scaling information"""
-        self.vmin = vmin
-        self.vmax = vmax
-        self.use_min = use_min
-        self.use_max = use_max
-
-        if use_min and use_max and vmin > vmax:
-            raise ValueError('The minimum scale ({}) can not be larger than the maximum scale ({})'.format(vmin, vmax))
-
-    @classmethod
-    def _get_attribute_conversions(cls):
-        return {'vmax': FloatConversion(allow_null=False),
-                'vmin': FloatConversion(allow_null=False),
-                'use_min': BooleanConversion(allow_null=False),
-                'use_max': BooleanConversion(allow_null=False)}
-
-    def visible_changes(self, old_scale):
-        """Checks if there are any visible changes between this scale and the other.
-
-        This method can implement knowledge that allows the visualization routine to check if it
-        would need to update the plot or not.
-
-        It expects that the scale you wish to use is the one on which this method is called.
-
-        Args:
-            old_scale (Scale): the previous scale
-
-        Returns:
-            bool: if the differences between this scale and the other would result in visible differences.
-        """
-        if self.use_min != old_scale.use_min or self.use_max != old_scale.use_max:
-            return True
-
-        def visible_changes_in_min():
-            if self.vmin == old_scale.vmin:
-                return False
-            else:
-                return self.use_min
-
-        def visible_changes_in_max():
-            if self.vmax == old_scale.vmax:
-                return False
-            else:
-                return self.use_max
-
-        return visible_changes_in_max() or visible_changes_in_min()
-
-    def get_updated(self, **kwargs):
-        """Get a new Scale object with updated arguments.
-
-        Args:
-            **kwargs (dict): the new keyword values, when given these take precedence over the current ones.
-
-        Returns:
-            Scale: a new scale with updated values.
-        """
-        new_values = dict(vmin=self.vmin, vmax=self.vmax, use_min=self.use_min, use_max=self.use_max)
-        new_values.update(**kwargs)
-        return Scale(**new_values)
-
-
-class Font(SimpleConvertibleConfig):
-
-    def __init__(self, family='sans-serif', size=14):
-        """Information about the font to use
-
-        Args:
-            name: the name of the font to use
-            size: the size of the font (> 0).
-        """
-        self.family = family
-        self.size = size
-
-        if family not in self.font_names():
-            raise ValueError("The given font \"{}\" is not recognized.".format(family))
-        if size < 1:
-            raise ValueError("The size ({}) can not be smaller than 1".format(str(size)))
-
-    def get_updated(self, **kwargs):
-        """Get a new Font object with updated arguments.
-
-        Args:
-            **kwargs (dict): the new keyword values, when given these take precedence over the current ones.
-
-        Returns:
-            Font: a new Font with updated values.
-        """
-        new_values = dict(family=self.family, size=self.size)
-        new_values.update(**kwargs)
-        return Font(**new_values)
-
-    @property
-    def name(self):
-        return self.family
-
-    @classmethod
-    def font_names(cls):
-        """Get the name of supported fonts
-
-        Returns:
-            list of str: the name of the supported fonts and font families.
-        """
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            fonts = matplotlib.font_manager.get_fontconfig_fonts()
-            names = []
-
-            for font_name in fonts:
-                try:
-                    names.append(matplotlib.font_manager.FontProperties(fname=font_name).get_name())
-                except RuntimeError:
-                    pass
-
-        return list(sorted(['sans-serif', 'serif', 'cursive', 'fantasy', 'monospace'])) + list(sorted(names))
-
-    @classmethod
-    def _get_attribute_conversions(cls):
-        return {'family': StringConversion(),
-                'size': IntConversion()}
-
-
 class DataInfo(object):
     """Information about the maps we are viewing."""
 
@@ -1414,6 +1014,406 @@ class SingleMapInfo(object):
         return Point(column_min, row_min), Point(column_max, row_max)
 
 
+class Zoom(SimpleConvertibleConfig):
+
+    def __init__(self, p0, p1):
+        """Container for zooming a map between the two given points.
+
+        Args:
+            p0 (Point): the lower left corner of the zoomed area
+            p1 (Point): the upper right corner of the zoomed area
+        """
+        self.p0 = p0
+        self.p1 = p1
+
+        if p0.x > p1.x or p0.y > p1.y:
+            raise ValueError('The lower left point ({}, {}) should be smaller than the upper right point ({}, {})'.
+                             format(p0.x, p0.y, p1.x, p1.y))
+
+        if p0.x < 0 or p0.y < 0 or p1.x < 0 or p1.y < 0:
+            raise ValueError('The zoom box ({}, {}), ({}, {}) can not '
+                             'be negative in any way.'.format(p0.x, p0.y, p1.x, p1.y))
+
+        if self.p0 is None or self.p1 is None:
+            raise ValueError('One of the zoom points is None.')
+
+    @classmethod
+    def from_coords(cls, x0, y0, x1, y1):
+        return cls(Point(x0, y0), Point(x1, y1))
+
+    @classmethod
+    def no_zoom(cls):
+        return cls(Point(0, 0), Point(0, 0))
+
+    @classmethod
+    def _get_attribute_conversions(cls):
+        point_converter = Point.get_conversion_info()
+        return {'p0': point_converter,
+                'p1': point_converter}
+
+    def get_rotated(self, rotation, x_dimension, y_dimension):
+        """Return a new Zoom instance rotated with the given factor.
+
+        This rotates the zoom box in the same way as the image is rotated.
+
+        Args:
+            rotation (int): the rotation by which to rotate in steps of 90 degrees
+            x_dimension (int): the dimension of the image in the x coordinate
+            y_dimension (int): the dimension of the image in the y coordinate
+
+        Returns:
+            Zoom: the rotated instance
+        """
+        dimensions = [x_dimension, y_dimension]
+        p0 = self.p0
+        p1 = self.p1
+
+        nmr_90_rotations = rotation % 360 // 90
+
+        for _ in range(nmr_90_rotations):
+            dimensions = np.roll(dimensions, 1)
+
+            new_p0 = Point(np.min([dimensions[0] - p0.y, dimensions[0] - p1.y]), np.min([p0.x, p1.x]))
+            new_p1 = Point(np.max([dimensions[0] - p0.y, dimensions[0] - p1.y]), np.max([p0.x, p1.x]))
+
+            p0 = new_p0
+            p1 = new_p1
+
+        if p0.x >= dimensions[0] - 1 or p0.x < 0:
+            p0 = p0.get_updated(x=0)
+
+        if p0.y >= dimensions[1] - 1 or p0.y < 0:
+            p0 = p0.get_updated(y=0)
+
+        if p1.x >= dimensions[0] - 1:
+            p1 = p1.get_updated(x=dimensions[0] - 1)
+
+        if p1.y >= dimensions[1] - 1:
+            p1 = p1.get_updated(y=dimensions[1] - 1)
+
+        return Zoom(p0, p1)
+
+    def apply(self, data):
+        """Apply the zoom to the given 2d array and return the new array.
+
+        Args:
+            data (ndarray): the data to zoom in on
+        """
+        correct = self.p0.x < data.shape[1] and self.p1.x < data.shape[1] \
+                  and self.p0.y < data.shape[0] and self.p1.y < data.shape[0] \
+                  and self.p0.x < self.p1.x and self.p0.y < self.p1.y
+        if correct:
+            return data[self.p0.y:self.p1.y, self.p0.x:self.p1.x]
+        return data
+
+
+class Point(SimpleConvertibleConfig):
+
+    def __init__(self, x, y):
+        """Container for a single point"""
+        self.x = x
+        self.y = y
+
+    def get_updated(self, **kwargs):
+        """Get a new Point object with updated arguments.
+
+        Args:
+            **kwargs (dict): the new keyword values, when given these take precedence over the current ones.
+
+        Returns:
+            Point: a new scale with updated values.
+        """
+        new_values = dict(x=self.x, y=self.y)
+        new_values.update(**kwargs)
+        return Point(**new_values)
+
+    @classmethod
+    def _get_attribute_conversions(cls):
+        return {'x': IntConversion(allow_null=False),
+                'y': IntConversion(allow_null=False)}
+
+    def rotate90(self, nmr_rotations):
+        """Rotate this point around a 90 degree angle
+
+        Args:
+            nmr_rotations (int): the number of 90 degreee rotations, can be negative
+
+        Returns:
+            Point: the rotated point
+        """
+
+        def rotate_coordinate(x, y, nmr_rotations):
+            rotation_matrix = np.array([[0, -1],
+                                        [1, 0]])
+            rx, ry = x, y
+            for rotation in range(1, nmr_rotations + 1):
+                rx, ry = rotation_matrix.dot([rx, ry])
+            return rx, ry
+
+        return Point(*rotate_coordinate(self.x, self.y, nmr_rotations))
+
+
+class DrawablePatches(SimpleConvertibleConfig):
+
+    def __init__(self, patch_type, patch_args=None, patch_kwargs=None):
+        """Container and constructor  for simple drawable patches.
+
+        This class constructs an object in ``matplotlib.patches`` of the given (patch) type with as arguments
+        the given args and kwargs.
+
+        Examples:
+            DrawablePatches('Rectangle', [xy, width, height], {angle=0.0, ...})
+
+        Args:
+            patch_type (str): the type of patch we want to generate. Should be one of the classes in matplotlib.patches.
+            patch_args (list_: passed to the constructor of the patch
+            patch_kwargs (dict): passed to the constructor of the patch
+        """
+        self.patch_type = patch_type
+        self.patch_args = patch_args or []
+        self.patch_kwargs = patch_kwargs or {}
+
+        self._construct_patch()
+
+    @classmethod
+    def _get_attribute_conversions(cls):
+        return {'patch_type': StringConversion(allow_null=False),
+                'patch_args': SimpleListConversion(),
+                'patch_kwargs': SimpleDictConversion()}
+
+    def get_patch(self):
+        """Get the actual Patch that matplotlib can draw on the images
+
+        Returns:
+            patch: the patch to draw on the images
+        """
+        return self._construct_patch()
+
+    def _construct_patch(self):
+        class_type = self._patch_type_to_class(self.patch_type)
+        if class_type is None:
+            raise ValueError('The given patch type ({}) could not be found, '
+                             'please use one of matplotlib.patches.'.format(self.patch_type))
+        return class_type(*self.patch_args, **self.patch_kwargs)
+
+    @staticmethod
+    def _patch_type_to_class(patch_type):
+        import matplotlib.patches
+        classes = inspect.getmembers(matplotlib.patches, inspect.isclass)
+        for name, class_type in classes:
+            if name == patch_type:
+                return class_type
+        return None
+
+
+class Clipping(SimpleConvertibleConfig):
+
+    def __init__(self, vmin=0, vmax=0, use_min=False, use_max=False):
+        """Container for the map clipping information"""
+        self.vmin = vmin
+        self.vmax = vmax
+        self.use_min = use_min
+        self.use_max = use_max
+
+        if use_min and use_max and vmin > vmax:
+            raise ValueError('The minimum clipping ({}) can not be larger than the maximum clipping({})'.format(
+                vmin, vmax))
+
+    def apply(self, data):
+        """Apply the clipping to the given 2d array and return the new array.
+
+        Args:
+           data (ndarray): the data to clip
+        """
+        if self.use_max or self.use_min:
+            clipping_min = data.min()
+            if self.use_min:
+                clipping_min = self.vmin
+
+            clipping_max = data.max()
+            if self.use_max:
+                clipping_max = self.vmax
+
+            return np.clip(data, clipping_min, clipping_max)
+
+        return data
+
+    def visible_changes(self, old_clipping):
+        """Checks if there are any visible changes between this clipping and the other.
+
+        This method can implement knowledge that allows the visualization routine to check if it
+        would need to update the plot or not.
+
+        It expects that the clipping you wish to use is the one on which this method is called.
+
+        Args:
+            old_clipping (Clipping): the previous clipping
+
+        Returns:
+            bool: if the differences between this clipping and the other would result in visible differences.
+        """
+        if self.use_min != old_clipping.use_min or self.use_max != old_clipping.use_max:
+            return True
+
+        def visible_changes_in_min():
+            if self.vmin == old_clipping.vmin:
+                return False
+            else:
+                return self.use_min
+
+        def visible_changes_in_max():
+            if self.vmax == old_clipping.vmax:
+                return False
+            else:
+                return self.use_max
+
+        return visible_changes_in_max() or visible_changes_in_min()
+
+    def get_updated(self, **kwargs):
+        """Get a new Clipping object with updated arguments.
+
+        Args:
+            **kwargs (dict): the new keyword values, when given these take precedence over the current ones.
+
+        Returns:
+            Clipping: a new scale with updated values.
+        """
+        new_values = dict(vmin=self.vmin, vmax=self.vmax, use_min=self.use_min, use_max=self.use_max)
+        new_values.update(**kwargs)
+        return Clipping(**new_values)
+
+    @classmethod
+    def _get_attribute_conversions(cls):
+        return {'vmax': FloatConversion(allow_null=False),
+                'vmin': FloatConversion(allow_null=False),
+                'use_min': BooleanConversion(allow_null=False),
+                'use_max': BooleanConversion(allow_null=False)}
+
+
+class Scale(SimpleConvertibleConfig):
+
+    def __init__(self, vmin=0, vmax=0, use_min=False, use_max=False):
+        """Container the map scaling information"""
+        self.vmin = vmin
+        self.vmax = vmax
+        self.use_min = use_min
+        self.use_max = use_max
+
+        if use_min and use_max and vmin > vmax:
+            raise ValueError('The minimum scale ({}) can not be larger than the maximum scale ({})'.format(vmin, vmax))
+
+    @classmethod
+    def _get_attribute_conversions(cls):
+        return {'vmax': FloatConversion(allow_null=False),
+                'vmin': FloatConversion(allow_null=False),
+                'use_min': BooleanConversion(allow_null=False),
+                'use_max': BooleanConversion(allow_null=False)}
+
+    def visible_changes(self, old_scale):
+        """Checks if there are any visible changes between this scale and the other.
+
+        This method can implement knowledge that allows the visualization routine to check if it
+        would need to update the plot or not.
+
+        It expects that the scale you wish to use is the one on which this method is called.
+
+        Args:
+            old_scale (Scale): the previous scale
+
+        Returns:
+            bool: if the differences between this scale and the other would result in visible differences.
+        """
+        if self.use_min != old_scale.use_min or self.use_max != old_scale.use_max:
+            return True
+
+        def visible_changes_in_min():
+            if self.vmin == old_scale.vmin:
+                return False
+            else:
+                return self.use_min
+
+        def visible_changes_in_max():
+            if self.vmax == old_scale.vmax:
+                return False
+            else:
+                return self.use_max
+
+        return visible_changes_in_max() or visible_changes_in_min()
+
+    def get_updated(self, **kwargs):
+        """Get a new Scale object with updated arguments.
+
+        Args:
+            **kwargs (dict): the new keyword values, when given these take precedence over the current ones.
+
+        Returns:
+            Scale: a new scale with updated values.
+        """
+        new_values = dict(vmin=self.vmin, vmax=self.vmax, use_min=self.use_min, use_max=self.use_max)
+        new_values.update(**kwargs)
+        return Scale(**new_values)
+
+
+class Font(SimpleConvertibleConfig):
+
+    def __init__(self, family='sans-serif', size=14):
+        """Information about the font to use
+
+        Args:
+            name: the name of the font to use
+            size: the size of the font (> 0).
+        """
+        self.family = family
+        self.size = size
+
+        if family not in self.font_names():
+            raise ValueError("The given font \"{}\" is not recognized.".format(family))
+        if size < 1:
+            raise ValueError("The size ({}) can not be smaller than 1".format(str(size)))
+
+    def get_updated(self, **kwargs):
+        """Get a new Font object with updated arguments.
+
+        Args:
+            **kwargs (dict): the new keyword values, when given these take precedence over the current ones.
+
+        Returns:
+            Font: a new Font with updated values.
+        """
+        new_values = dict(family=self.family, size=self.size)
+        new_values.update(**kwargs)
+        return Font(**new_values)
+
+    @property
+    def name(self):
+        return self.family
+
+    @classmethod
+    def font_names(cls):
+        """Get the name of supported fonts
+
+        Returns:
+            list of str: the name of the supported fonts and font families.
+        """
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            fonts = matplotlib.font_manager.get_fontconfig_fonts()
+            names = []
+
+            for font_name in fonts:
+                try:
+                    names.append(matplotlib.font_manager.FontProperties(fname=font_name).get_name())
+                except RuntimeError:
+                    pass
+
+        return list(sorted(['sans-serif', 'serif', 'cursive', 'fantasy', 'monospace'])) + list(sorted(names))
+
+    @classmethod
+    def _get_attribute_conversions(cls):
+        return {'family': StringConversion(),
+                'size': IntConversion()}
+
+
 def get_available_interpolations():
     """The available interpolations for either the general map plot config or the map specifics.
 
@@ -1436,3 +1436,5 @@ def get_available_colormaps():
         list of str: the list of available colormaps.
     """
     return sorted(matplotlib.cm.datad)
+
+

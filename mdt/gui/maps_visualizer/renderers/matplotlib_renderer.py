@@ -14,8 +14,9 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
-from mdt.gui.maps_visualizer.base import PlottingFrame
-from mdt.visualization.maps.base import DataInfo, MapPlotConfig, Zoom
+from mdt.gui.maps_visualizer.base import DataConfigModel
+from mdt.gui.maps_visualizer.renderers.base import PlottingFrame
+from mdt.visualization.maps.base import Zoom
 
 
 class MatplotlibPlotting(PlottingFrame, QWidget):
@@ -23,8 +24,7 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
     def __init__(self, controller, parent=None, plotting_info_viewer=None):
         super(MatplotlibPlotting, self).__init__(controller, plotting_info_viewer=plotting_info_viewer)
 
-        self._controller.new_data.connect(self.set_new_data)
-        self._controller.new_config.connect(self.set_new_config)
+        self._controller.model_updated.connect(self.update_model)
 
         self._auto_render = True
 
@@ -55,8 +55,7 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
         self._mouse_interaction = _MouseInteraction(self.figure, self._plotting_info_viewer, self._controller)
         self._mouse_interaction.update_axes_data(self._axes_data)
 
-        self._previous_config = None
-
+        self._previous_model = None
         self.setMinimumWidth(100)
 
     def export_image(self, filename, width, height, dpi=100):
@@ -81,17 +80,20 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
     def _timer_event(self):
         self._redraw()
 
-    @pyqtSlot(DataInfo)
-    def set_new_data(self, data_info):
-        self.visualizer = MapsVisualizer(data_info, self.figure)
-        self._redraw_timer.start(300)
-
-    @pyqtSlot(MapPlotConfig)
-    def set_new_config(self, configuration):
-        if not self._previous_config or configuration.visible_changes(self._previous_config):
-            self._previous_config = configuration
+    @pyqtSlot(DataConfigModel)
+    def update_model(self, model):
+        def update():
+            self._previous_model = model
+            self.visualizer = MapsVisualizer(model.get_data(), self.figure)
             if self._auto_render:
                 self._redraw_timer.start(300)
+
+        if not self._previous_model:
+            update()
+        elif model.get_config().visible_changes(self._previous_model.get_config()):
+            update()
+        elif model.get_data() != self._previous_model.get_data():
+            update()
 
     def _redraw(self):
         current_model = self._controller.get_model()
