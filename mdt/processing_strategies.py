@@ -37,165 +37,66 @@ class ModelProcessingStrategy(object):
     instead of all of them. We set the range, optimize, collect the data and then repeat until all the voxels
     are optimized."""
 
-    def run(self, model, problem_data, output_path, recalculate, worker_generator):
-        """Process the given dataset.
+    def process(self, worker):
+        """Process the model given the given worker.
 
         Subclasses of this base class can implement all kind of logic to divide a large dataset in smaller chunks
         (for example slice by slice) and run the processing on each slice separately and join the results afterwards.
-
-        Args:
-             model (:class:`~mdt.models.composite.DMRICompositeModel`): the model we want to process
-             problem_data (:class:`~mdt.utils.DMRIProblemData`): The problem data object with which
-                the model is initialized before running
-             output_path (string): The full path to the folder where we will place the output
-             recalculate (boolean): If we want to recalculate the results if they are already present.
-             worker_generator (ModelProcessingWorkerCreator): the generator for creating the worker we will use
 
         Returns:
             dict: the results as a dictionary of roi lists
         """
         raise NotImplementedError()
 
-    def get_full_tmp_results_path(self, output_path):
-        """Get the full path to the temporary results dir we will use.
 
-        If self._tmp_dir is set to a non null value we will use a subdirectory in self._tmp_dir.
-        Else, if self._tmp_dir is null, we will use a subdir of the model_output_path.
+class ChunksProcessingStrategy(ModelProcessingStrategy):
 
-        Args:
-            output_path (str): the output path of the final model results.
-
-        Returns:
-            str: the path to store the temporary results in
-        """
-        raise NotImplementedError()
-
-
-class SimpleProcessingStrategy(ModelProcessingStrategy):
-
-    def __init__(self, tmp_dir=None, auto_rm_tmp_dir=True, honor_voxels_to_analyze=True):
+    def __init__(self):
         """This class is a base class for all model slice fitting strategies that fit the data in chunks/parts.
 
         Args:
-            tmp_dir (str): The temporary dir for the calculations. If set to None we write the temporary results in the
-                results folder of each subject. Else, if set set to a specific path we will store the temporary results
-                in a subfolder in the given folder (the subfolder will be a hash of the original folder).
-            auto_rm_tmp_dir (boolean): if we automatically remove the temporary results directory or not.
-            honor_voxels_to_analyze (bool): if set to True, we use the model's voxels_to_analyze setting if set,
-                instead of fitting all voxels in the mask
+            worker (ModelProcessingWorker): the worker we use for processing the datasets
         """
-        super(SimpleProcessingStrategy, self).__init__()
+        super(ChunksProcessingStrategy, self).__init__()
         self._logger = logging.getLogger(__name__)
-        self._honor_voxels_to_analyze = honor_voxels_to_analyze
-        self._tmp_dir = tmp_dir
-        self._auto_rm_tmp_dir = auto_rm_tmp_dir
 
-    def run(self, model, problem_data, output_path, recalculate, worker_generator):
-        raise NotImplementedError()
-
-    @contextmanager
-    def _tmp_storage_dir(self, model_output_path, recalculate):
-        """Creates a temporary storage dir for the calculations. Removes the dir after calculations.
-
-        Use this manager as a context for running the calculations.
-
-        Args:
-            model_output_path (str): the output path of the final model results. We use this to create the tmp_dir.
-            recalculate (boolean): if true and the data exists, we throw everything away to start over.
-        """
-        tmp_storage_dir = self.get_full_tmp_results_path(model_output_path)
-        self._logger.info('Using as tmp storage dir: {}.'.format(tmp_storage_dir))
-        self._prepare_tmp_storage_dir(tmp_storage_dir, recalculate)
-
-        yield tmp_storage_dir
-
-        if self._auto_rm_tmp_dir:
-            shutil.rmtree(tmp_storage_dir)
-
-    def get_full_tmp_results_path(self, output_path):
-        if self._tmp_dir is None:
-            return os.path.join(output_path, DEFAULT_TMP_RESULTS_SUBDIR_NAME)
-
-        if not output_path.endswith('/'):
-            output_path += '/'
-
-        return os.path.join(self._tmp_dir, hashlib.md5(output_path.encode('utf-8')).hexdigest())
-
-    @staticmethod
-    def _prepare_tmp_storage_dir(tmp_storage_dir, recalculate):
-        """Prepare the directory for the temporary storage.
-
-        If recalculate is set to True we will remove the storage dir if it exists. Else if False, we will create the
-        dir if it does not exist.
-
-        Args:
-            tmp_storage_dir (str): the full path to the chunks directory.
-            recalculate (boolean): if true and the data exists, we throw everything away to start over.
-        """
-        if recalculate:
-            if os.path.exists(tmp_storage_dir):
-                shutil.rmtree(tmp_storage_dir)
-
-        if not os.path.exists(tmp_storage_dir):
-            os.makedirs(tmp_storage_dir)
-
-    @contextmanager
-    def _selected_indices(self, model, chunk_indices):
-        """Create a context in which problems_to_analyze attribute of the models is set to the selected indices.
-
-        Args:
-            model: the model to which to set the problems_to_analyze
-            chunk_indices (ndarray): the list of voxel indices we want to use for processing
-        """
-        old_setting = model.problems_to_analyze
-        model.problems_to_analyze = chunk_indices
-        yield
-        model.problems_to_analyze = old_setting
-
-
-class ChunksProcessingStrategy(SimpleProcessingStrategy):
-
-    def run(self, model, problem_data, output_path, recalculate, worker_generator):
+    def process(self, worker):
         """Compute all the slices using the implemented chunks generator"""
-        with self._tmp_storage_dir(output_path, recalculate) as tmp_storage_dir:
-            voxels_processed = 0
+        voxels_processed = 0
 
-            worker = worker_generator.create_worker(model, problem_data, output_path,
-                                                    tmp_storage_dir, self._honor_voxels_to_analyze,
-                                                    clean_tmp_dir=self._auto_rm_tmp_dir)
+        total_roi_indices = worker.get_voxels_to_compute()
+        total_nmr_voxels = worker.get_total_nmr_voxels()
 
-            total_roi_indices = worker.get_voxels_to_compute()
-            if len(total_roi_indices):
+        chunks = self._get_chunks(total_roi_indices)
 
-                start_time = timeit.default_timer()
-                start_nmr_processed = (np.count_nonzero(problem_data.mask) - len(total_roi_indices))
+        if len(total_roi_indices):
+            start_time = timeit.default_timer()
+            start_nmr_processed = (total_nmr_voxels - len(total_roi_indices))
 
-                for chunk_indices in self._chunks_generator(model, problem_data, output_path, worker,
-                                                            total_roi_indices):
-                    with self._selected_indices(model, chunk_indices):
-                        self._run_on_chunk(problem_data, worker, chunk_indices, total_roi_indices,
-                                           voxels_processed, start_time, start_nmr_processed)
+            for chunk in chunks:
+                self._run_on_chunk(total_nmr_voxels, chunk, total_roi_indices,
+                                   voxels_processed, start_time, start_nmr_processed, worker)
 
-                    voxels_processed += len(chunk_indices)
-                    gc.collect()
+                voxels_processed += len(chunk)
+                gc.collect()
 
-            self._logger.info('Computed all voxels, now creating nifti\'s')
-            return_data = worker.combine()
+        self._logger.info('Computed all voxels, now creating nifti\'s')
+        return_data = worker.combine()
+        worker.finalize()
 
         return return_data
 
-    def _chunks_generator(self, model, problem_data, output_path, worker, total_roi_indices):
+    def _get_chunks(self, total_roi_indices):
         """Generate the slices/chunks we will use for the fitting.
 
-        Yields:
-            ndarray: the roi indices per chunk we want to process
+        Returns:
+            lists of ndarray: lists with the voxels to process per chunk
         """
         raise NotImplementedError()
 
-    def _run_on_chunk(self, problem_data, worker, voxel_indices, voxels_to_process, voxels_processed, start_time,
-                      start_nmr_processed):
+    def _run_on_chunk(self, total_nmr_voxels, voxel_indices, voxels_to_process, voxels_processed, start_time,
+                      start_nmr_processed, worker):
         """Run the worker on the given chunk."""
-        total_nmr_voxels = np.count_nonzero(problem_data.mask)
         total_processed = (total_nmr_voxels - len(voxels_to_process)) + voxels_processed
 
         def calculate_run_days(runtime):
@@ -226,45 +127,31 @@ class ChunksProcessingStrategy(SimpleProcessingStrategy):
         worker.process(voxel_indices)
 
 
-class ModelProcessingWorkerCreator(object):
+class VoxelRange(ChunksProcessingStrategy):
 
-    def create_worker(self, model, problem_data, output_dir, tmp_storage_dir, honor_voxels_to_analyze, clean_tmp_dir):
-        """Create and return the worker that the processing strategy will use.
-
-        Args:
-            model (:class:`~mdt.models.composite.DMRICompositeModel`): the model we want to process
-            problem_data (:class:`~mdt.utils.DMRIProblemData`): The problem data object with which
-                the model is initialized before running
-            output_dir (str): the location for the final output files
-            tmp_storage_dir (str): the location for the temporary output files
-            honor_voxels_to_analyze (boolean): if we should honor the voxels_to_analyze list in the model if applicable.
-            clean_tmp_dir (boolean): if we should clean the tmp dir at the end of processing or we can keep it
-                for things like memory mapping.
-
-        Returns:
-            ModelProcessingWorker: the worker representing the processing strategy will use.
-        """
-
-
-class SimpleModelProcessingWorkerGenerator(ModelProcessingWorkerCreator):
-
-    def __init__(self, callback_function):
-        """Create a generator that will instantiate the worker using the given callback function.
+    def __init__(self, max_nmr_voxels=40000):
+        """Optimize a given dataset in batches of the given number of voxels
 
         Args:
-            callback_function: the callback function we will call when create_worker is called.
-        """
-        self._callback_function = callback_function
+            max_nmr_voxels (int): the number of voxels per batch
 
-    def create_worker(self, model, problem_data, output_dir, tmp_storage_dir,
-                      honor_voxels_to_analyze, clean_tmp_dir):
-        return self._callback_function(model, problem_data, output_dir, tmp_storage_dir,
-                                       honor_voxels_to_analyze, clean_tmp_dir)
+        Attributes:
+            max_nmr_voxels (int): the number of voxels per chunk
+        """
+        super(VoxelRange, self).__init__()
+        self.nmr_voxels = max_nmr_voxels
+
+    def _get_chunks(self, total_roi_indices):
+        chunks = []
+        for ind_start in range(0, len(total_roi_indices), self.nmr_voxels):
+            ind_end = min(len(total_roi_indices), ind_start + self.nmr_voxels)
+            chunks.append(total_roi_indices[ind_start:ind_end])
+        return chunks
 
 
 class ModelProcessingWorker(object):
 
-    def __init__(self, model, problem_data, output_dir, tmp_storage_dir, honor_voxels_to_analyze, clean_tmp_dir):
+    def __init__(self, model, problem_data, output_dir, tmp_storage_dir, clean_tmp_dir, recalculate):
         """The abstract base class for processing a model.
 
         While the processing strategies determine how to split the work in batches, the workers
@@ -277,9 +164,9 @@ class ModelProcessingWorker(object):
                 the model is initialized before running
             output_dir (str): the location for the final output files
             tmp_storage_dir (str): the location for the temporary output files
-            honor_voxels_to_analyze (boolean): if we should honor the voxels_to_analyze list in the model if applicable.
             clean_tmp_dir (boolean): if we should clean the tmp dir at the end of processing or we can keep it
                 for things like memory mapping.
+            recalculate (boolean): if we want to recalculate existing results if present
         """
         self._write_volumes_gzipped = True
         self._used_mask_name = 'UsedMask'
@@ -287,9 +174,17 @@ class ModelProcessingWorker(object):
         self._problem_data = problem_data
         self._output_dir = output_dir
         self._tmp_storage_dir = tmp_storage_dir
-        self._honor_voxels_to_analyze = honor_voxels_to_analyze
+        self._prepare_tmp_storage(recalculate, self._tmp_storage_dir)
         self._roi_lookup_path = os.path.join(self._tmp_storage_dir, '_roi_voxel_lookup_table.npy')
         self._clean_tmp_dir = clean_tmp_dir
+
+    def _prepare_tmp_storage(self, recalculate, tmp_storage_dir):
+        if recalculate:
+            if os.path.exists(tmp_storage_dir):
+                shutil.rmtree(tmp_storage_dir)
+
+        if not os.path.exists(tmp_storage_dir):
+            os.makedirs(tmp_storage_dir)
 
     def process(self, roi_indices):
         """Process the indicated voxels in the way prescribed by this worker.
@@ -316,6 +211,16 @@ class ModelProcessingWorker(object):
         """
         raise NotImplementedError()
 
+    def get_total_nmr_voxels(self):
+        """Get the total number of voxels that are available for processing.
+
+        This is used for the logging in the processing strategy.
+
+        Returns:
+            int: the total number of voxels available for processing
+        """
+        return np.count_nonzero(self._problem_data.mask)
+
     def combine(self):
         """Combine all the calculated parts.
 
@@ -324,17 +229,33 @@ class ModelProcessingWorker(object):
         """
         raise NotImplementedError()
 
+    def finalize(self):
+        """Finalize the processing, this might remove the temporary files for example."""
+        if self._clean_tmp_dir:
+            shutil.rmtree(self._tmp_storage_dir)
+
+    @contextmanager
+    def _build_model(self, chunk_indices):
+        """Create a context in which problems_to_analyze attribute of the models is set to the selected indices.
+
+        Args:
+            model: the model to which to set the problems_to_analyze
+            chunk_indices (ndarray): the list of voxel indices we want to use for processing
+        """
+        yield self._model.build(chunk_indices)
+
 
 class SimpleModelProcessingWorker(ModelProcessingWorker):
 
-    def __init__(self, *args):
+    def __init__(self, model, problem_data, output_dir, tmp_storage_dir, clean_tmp_dir, recalculate):
         """The abstract base class for processing a model.
 
         While the processing strategies determine how to split the work in batches, the workers
         implement the logic on how to process the model. For example, optimization and sampling both require
         different processing, while the batch sizes can be determined by a processing strategy.
         """
-        super(SimpleModelProcessingWorker, self).__init__(*args)
+        super(SimpleModelProcessingWorker, self).__init__(model, problem_data, output_dir,
+                                                          tmp_storage_dir, clean_tmp_dir, recalculate)
         self._volume_indices = self._create_roi_to_volume_index_lookup_table()
 
     def process(self, roi_indices):
@@ -352,11 +273,7 @@ class SimpleModelProcessingWorker(ModelProcessingWorker):
         raise NotImplementedError()
 
     def get_voxels_to_compute(self):
-        if self._honor_voxels_to_analyze and self._model.problems_to_analyze:
-            roi_list = self._model.problems_to_analyze
-        else:
-            roi_list = np.arange(0, np.count_nonzero(self._problem_data.mask))
-
+        roi_list = np.arange(0, np.count_nonzero(self._problem_data.mask))
         mask_path = os.path.join(self._tmp_storage_dir, '{}.npy'.format(self._used_mask_name))
         if os.path.exists(mask_path):
             return roi_list[np.logical_not(np.squeeze(create_roi(np.load(mask_path, mmap_mode='r'),
@@ -470,7 +387,7 @@ def _combine_volumes_write_out(info_pair):
 
 class FittingProcessingWorker(SimpleModelProcessingWorker):
 
-    def __init__(self, optimizer, *args):
+    def __init__(self, optimizer, model, problem_data, output_dir, tmp_storage_dir, clean_tmp_dir, recalculate):
         """The processing worker for model fitting.
 
         Use this if you want to use the model processing strategy to do model fitting.
@@ -478,28 +395,32 @@ class FittingProcessingWorker(SimpleModelProcessingWorker):
         Args:
             optimizer: the optimization routine to use
         """
-        super(FittingProcessingWorker, self).__init__(*args)
+        super(FittingProcessingWorker, self).__init__(model, problem_data, output_dir, tmp_storage_dir,
+                                                      clean_tmp_dir, recalculate)
         self._optimizer = optimizer
         self._write_volumes_gzipped = gzip_optimization_results()
         self._logger = logging.getLogger(__name__)
 
     def process(self, roi_indices):
+        # build the model for the given indices
+        model = self._model.build(roi_indices)
+
         # decorate the model with the parameter transformations
-        model = ParameterTransformedModel(self._model, self._model.get_parameter_codec())
+        decorated_model = ParameterTransformedModel(model, self._model.get_parameter_codec())
 
         # minimize the decorated model
-        optimization_results = self._optimizer.minimize(model)
+        optimization_results = self._optimizer.minimize(decorated_model)
 
         # return the optimized parameters back to their original space
         optimization_results = SimpleOptimizationResult(
-            self._model, model.decode_parameters(optimization_results.get_optimization_result()),
+            model, decorated_model.decode_parameters(optimization_results.get_optimization_result()),
             optimization_results.get_return_codes())
 
         self._logger.info('Starting optimization post-processing')
 
         end_points = optimization_results.get_optimization_result()
-        volume_maps = self._model.add_extra_post_optimization_maps(
-            results_to_dict(end_points, model.get_free_param_names()))
+        volume_maps = results_to_dict(end_points, decorated_model.get_free_param_names())
+        volume_maps = model.add_extra_post_optimization_maps(volume_maps, results_array=end_points)
         volume_maps.update({'ReturnCodes': optimization_results.get_return_codes()})
         volume_maps.update(optimization_results.get_error_measures())
 
@@ -510,7 +431,6 @@ class FittingProcessingWorker(SimpleModelProcessingWorker):
 
     def combine(self):
         super(FittingProcessingWorker, self).combine()
-
         self._combine_volumes(self._output_dir, self._tmp_storage_dir, self._problem_data.volume_header)
         return create_roi(get_all_image_data(self._output_dir), self._problem_data.mask)
 
@@ -520,7 +440,8 @@ class SamplingProcessingWorker(SimpleModelProcessingWorker):
     class SampleChainNotStored(object):
         pass
 
-    def __init__(self, sampler, samples_to_save_method=None, store_volume_maps=True, *args):
+    def __init__(self, sampler, model, problem_data, output_dir, tmp_storage_dir, clean_tmp_dir, recalculate,
+                 samples_to_save_method=None, store_volume_maps=True):
         """The processing worker for model sampling.
 
         Use this if you want to use the model processing strategy to do model sampling.
@@ -531,7 +452,8 @@ class SamplingProcessingWorker(SimpleModelProcessingWorker):
             store_volume_maps (boolean): if we want to store the elements in the 'volume_maps' directory.
                 This stores the mean and std maps and some other maps based on the samples.
         """
-        super(SamplingProcessingWorker, self).__init__(*args)
+        super(SamplingProcessingWorker, self).__init__(model, problem_data, output_dir, tmp_storage_dir,
+                                                       clean_tmp_dir, recalculate)
         self._sampler = sampler
         self._write_volumes_gzipped = gzip_sampling_results()
         self._samples_to_save_method = samples_to_save_method or SaveAllSamples()
@@ -547,11 +469,7 @@ class SamplingProcessingWorker(SimpleModelProcessingWorker):
         Returns:
             ndarray: the list of ROI indices (indexing the current mask) with the voxels we want to compute.
         """
-        if self._honor_voxels_to_analyze and self._model.problems_to_analyze:
-            roi_list = self._model.problems_to_analyze
-        else:
-            roi_list = np.arange(0, np.count_nonzero(self._problem_data.mask))
-
+        roi_list = np.arange(0, np.count_nonzero(self._problem_data.mask))
         samples_paths = glob.glob(os.path.join(self._output_dir, '*.samples.npy'))
         if samples_paths:
             samples_file = samples_paths[0]
@@ -565,24 +483,26 @@ class SamplingProcessingWorker(SimpleModelProcessingWorker):
         return roi_list
 
     def process(self, roi_indices):
-        sampling_output = self._sampler.sample(self._model)
+        model = self._model.build(roi_indices)
+
+        sampling_output = self._sampler.sample(model)
         samples = sampling_output.get_samples()
-        samples_dict = results_to_dict(samples, self._model.get_free_param_names())
+        samples_dict = results_to_dict(samples, model.get_free_param_names())
 
         if self._store_volume_maps:
             self._logger.info('Starting sampling post-processing')
-            volume_maps = self._model.get_post_sampling_maps(samples)
+            volume_maps = model.get_post_sampling_maps(samples)
             self._write_volumes(roi_indices, volume_maps, os.path.join(self._tmp_storage_dir, 'volume_maps'))
             self._logger.info('Finished sampling post-processing')
 
-        self._write_volumes(roi_indices, results_to_dict(sampling_output.get_proposal_state(),
-                                                         self._model.get_proposal_state_names()),
+        self._write_volumes(roi_indices,
+                            results_to_dict(sampling_output.get_proposal_state(), model.get_proposal_state_names()),
                             os.path.join(self._tmp_storage_dir, 'proposal_state'))
 
         self._tmp_store_mh_state(roi_indices, sampling_output.get_mh_state())
 
-        self._write_volumes(roi_indices, results_to_dict(sampling_output.get_current_chain_position(),
-                                                         self._model.get_free_param_names()),
+        self._write_volumes(roi_indices,
+                            results_to_dict(sampling_output.get_current_chain_position(), model.get_free_param_names()),
                             os.path.join(self._tmp_storage_dir, 'chain_end_point'))
 
         if self._samples_to_save_method.store_samples():
@@ -731,3 +651,22 @@ class SaveNoSamples(SamplesToSaveMethod):
 
     def indices_to_store(self, nmr_samples):
         return np.array([])
+
+
+def get_full_tmp_results_path(output_dir, tmp_dir):
+    """Get a temporary results path for processing.
+
+    Args:
+        output_dir (str): the output directory of the results
+        tmp_dir (str): a preferred tmp dir. If not given we create a temporary directory in the output_dir.
+
+    Returns:
+        str: a temporary results path for saving computation results
+    """
+    if tmp_dir is None:
+        return os.path.join(output_dir, DEFAULT_TMP_RESULTS_SUBDIR_NAME)
+
+    if not output_dir.endswith('/'):
+        output_dir += '/'
+
+    return os.path.join(tmp_dir, hashlib.md5(output_dir.encode('utf-8')).hexdigest())

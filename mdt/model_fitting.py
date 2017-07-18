@@ -14,8 +14,8 @@ from mdt.configuration import get_processing_strategy, get_optimizer_for_model
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.protocols import write_protocol
 from mdt.utils import create_roi, get_cl_devices, model_output_exists, \
-    per_model_logging_context, get_temporary_results_dir, SimpleInitializationData, is_scalar
-from mdt.processing_strategies import SimpleModelProcessingWorkerGenerator, FittingProcessingWorker
+    per_model_logging_context, get_temporary_results_dir, SimpleInitializationData
+from mdt.processing_strategies import FittingProcessingWorker, get_full_tmp_results_path
 from mdt.exceptions import InsufficientProtocolError
 from mot.load_balance_strategies import EvenDistribution
 import mot.configuration
@@ -323,11 +323,8 @@ class ModelFit(object):
                     optimizer.cl_environments = [all_devices[ind] for ind in self._cl_device_indices]
                     optimizer.load_balancer = EvenDistribution()
 
-                processing_strategy = get_processing_strategy('optimization', model_names=model_names,
-                                                              tmp_dir=self._tmp_results_dir)
-
-                fitter = SingleModelFit(model, self._problem_data, self._output_folder, optimizer, processing_strategy,
-                                        recalculate=recalculate)
+                fitter = SingleModelFit(model, self._problem_data, self._output_folder, optimizer,
+                                        self._tmp_results_dir, recalculate=recalculate)
                 results = fitter.run()
 
         map_results = get_all_image_data(os.path.join(self._output_folder, model.name))
@@ -347,7 +344,7 @@ class ModelFit(object):
 
 class SingleModelFit(object):
 
-    def __init__(self, model, problem_data, output_folder, optimizer, processing_strategy, recalculate=False):
+    def __init__(self, model, problem_data, output_folder, optimizer, tmp_results_dir, recalculate=False):
         """Fits a composite model.
 
          This does not accept cascade models. Please use the more general ModelFit class for all models,
@@ -360,8 +357,7 @@ class SingleModelFit(object):
              output_folder (string): The path to the folder where to place the output.
                 The resulting maps are placed in a subdirectory (named after the model name) in this output folder.
              optimizer (:class:`mot.cl_routines.optimizing.base.AbstractOptimizer`): The optimization routine to use.
-             processing_strategy (:class:`~mdt.processing_strategies.ModelProcessingStrategy`): the processing strategy
-                to use
+             tmp_results_dir (str): the main directory to use for the temporary results
              recalculate (boolean): If we want to recalculate the results if they are already present.
          """
         self.recalculate = recalculate
@@ -372,7 +368,7 @@ class SingleModelFit(object):
         self._output_path = os.path.join(self._output_folder, self._model.name)
         self._optimizer = optimizer
         self._logger = logging.getLogger(__name__)
-        self._processing_strategy = processing_strategy
+        self._tmp_results_dir = tmp_results_dir
 
         if not self._model.is_protocol_sufficient(problem_data.protocol):
             raise InsufficientProtocolError(
@@ -397,11 +393,14 @@ class SingleModelFit(object):
                 os.makedirs(self._output_path)
 
             with self._logging():
-                worker_generator = SimpleModelProcessingWorkerGenerator(
-                    lambda *args: FittingProcessingWorker(self._optimizer, *args))
+                tmp_dir = get_full_tmp_results_path(self._output_path, self._tmp_results_dir)
+                self._logger.info('Saving temporary results in {}.'.format(tmp_dir))
 
-                results = self._processing_strategy.run(
-                    self._model, self._problem_data, self._output_path, self.recalculate, worker_generator)
+                worker = FittingProcessingWorker(self._optimizer, self._model, self._problem_data, self._output_path,
+                                                 tmp_dir, True, self.recalculate)
+
+                processing_strategy = get_processing_strategy('optimization')
+                results = processing_strategy.process(worker)
 
                 self._write_protocol(self._model.get_problem_data().protocol)
 

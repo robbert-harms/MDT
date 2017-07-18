@@ -171,9 +171,6 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
         if sampler is None:
             sampler = configuration.get_sampler()
 
-        processing_strategy = get_processing_strategy('sampling', model_names=model.name,
-                                                      tmp_dir=get_temporary_results_dir(tmp_results_dir))
-
         base_dir = os.path.join(output_folder, model.name, 'samples')
         output_folder = base_dir
 
@@ -191,7 +188,7 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
             model.double_precision = double_precision
 
             results = sample_composite_model(model, problem_data, output_folder, sampler,
-                                             processing_strategy, recalculate=recalculate,
+                                             get_temporary_results_dir(tmp_results_dir), recalculate=recalculate,
                                              store_samples=store_samples,
                                              initialization_data=initialization_data)
 

@@ -882,15 +882,6 @@ class BatchProfilesLoader(ComponentsLoader):
              UserComponentsSourceSingle('user', 'batch_profiles')])
 
 
-class ProcessingStrategiesLoader(ComponentsLoader):
-
-    def __init__(self):
-        super(ProcessingStrategiesLoader, self).__init__(
-            [UserPreferredSource('processing_strategies'),
-             UserComponentsSourceSingle('standard', 'processing_strategies'),
-             UserComponentsSourceSingle('user', 'processing_strategies')])
-
-
 class NoiseSTDCalculatorsLoader(ComponentsLoader):
 
     def __init__(self):
@@ -979,8 +970,6 @@ def get_component_class(component_type, component_name):
         return NoiseSTDCalculatorsLoader().get_class(component_name)
     if component_type == 'parameters':
         return ParametersLoader().get_class(component_name)
-    if component_type == 'processing_strategies':
-        return ProcessingStrategiesLoader().get_class(component_name)
     if component_type == 'composite_models':
         return CompositeModelsLoader().get_class(component_name)
     if component_type == 'evaluation_models':
