@@ -29,13 +29,7 @@ DEFAULT_TMP_RESULTS_SUBDIR_NAME = 'tmp_results'
 
 
 class ModelProcessingStrategy(object):
-    """Model processing strategies define in how many parts a composite model is processed.
-
-    This typically uses the :attr:`~mot.model_building.model_builders.OptimizeModelBuilder.problems_to_analyze`
-    attribute of the MOT model builder (:class:`mot.model_building.model_builders.OptimizeModelBuilder`) to select the
-    voxels to process. That attribute arranges that only a selection of the problems are analyzed
-    instead of all of them. We set the range, optimize, collect the data and then repeat until all the voxels
-    are optimized."""
+    """Model processing strategies define in how many parts a composite model is processed."""
 
     def process(self, worker):
         """Process the model given the given worker.
@@ -410,7 +404,7 @@ class FittingProcessingWorker(SimpleModelProcessingWorker):
 
         # minimize the decorated model
         optimization_results = self._optimizer.minimize(decorated_model)
-
+        
         # return the optimized parameters back to their original space
         optimization_results = SimpleOptimizationResult(
             model, decorated_model.decode_parameters(optimization_results.get_optimization_result()),
