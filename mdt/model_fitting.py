@@ -15,7 +15,7 @@ from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.protocols import write_protocol
 from mdt.utils import create_roi, get_cl_devices, model_output_exists, \
     per_model_logging_context, get_temporary_results_dir, SimpleInitializationData
-from mdt.processing_strategies import FittingProcessingWorker, get_full_tmp_results_path
+from mdt.processing_strategies import FittingProcessor, get_full_tmp_results_path
 from mdt.exceptions import InsufficientProtocolError
 from mot.load_balance_strategies import EvenDistribution
 import mot.configuration
@@ -396,8 +396,8 @@ class SingleModelFit(object):
                 tmp_dir = get_full_tmp_results_path(self._output_path, self._tmp_results_dir)
                 self._logger.info('Saving temporary results in {}.'.format(tmp_dir))
 
-                worker = FittingProcessingWorker(self._optimizer, self._model, self._problem_data, self._output_path,
-                                                 tmp_dir, True, self.recalculate)
+                worker = FittingProcessor(self._optimizer, self._model, self._problem_data, self._output_path,
+                                          tmp_dir, True, self.recalculate)
 
                 processing_strategy = get_processing_strategy('optimization')
                 results = processing_strategy.process(worker)

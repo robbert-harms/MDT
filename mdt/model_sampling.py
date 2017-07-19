@@ -6,7 +6,7 @@ import time
 
 from mdt import get_processing_strategy
 from mdt.utils import model_output_exists, load_samples
-from mdt.processing_strategies import SamplingProcessingWorker, SaveAllSamples, \
+from mdt.processing_strategies import SamplingProcessor, SaveAllSamples, \
     SaveNoSamples, SaveThinnedSamples, get_full_tmp_results_path
 from mdt.exceptions import InsufficientProtocolError
 
@@ -70,7 +70,7 @@ def sample_composite_model(model, problem_data, output_folder, sampler, tmp_dir,
         initialization_data.apply_to_model(model, problem_data)
 
     with _log_info(logger, model.name):
-        worker = SamplingProcessingWorker(
+        worker = SamplingProcessor(
             sampler, model, problem_data, output_folder,
             get_full_tmp_results_path(output_folder, tmp_dir), True, recalculate,
             samples_to_save_method=sample_to_save_method, store_volume_maps=store_volume_maps)
