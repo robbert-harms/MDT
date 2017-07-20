@@ -7,17 +7,17 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class NeumannCylPerpPGSESum(LibraryFunctionConfig):
+class NeumannCylindricalRestrictedSignal(LibraryFunctionConfig):
 
     description = '''
-        This function returns the summation of the signal attenuation in perpendicular direction (LePerp)
-        for Radius R, according to the Neumann model.
+        This function returns the displacement in the restricted signal attenuation for Radius R 
+        according to the Neuman model.
 
-        The summation is the sum over the Bessel roots up to a accuracy of 1e-8, it does not
-        calculate the complete signal for a cylinder dMRI compartment model.
+        This includes a summation over the Bessel roots up to a accuracy of 1e-8.
     '''
     return_type = 'double'
-    parameter_list = ['Delta', 'delta', 'd', 'R']
+    parameter_list = ['Delta', 'delta', 'd', 'R', 'G']
+    dependency_list = ['MRIConstants']
     cl_code = '''
         if(R == 0.0 || R < MOT_EPSILON){
             return 0;
@@ -46,7 +46,7 @@ class NeumannCylPerpPGSESum(LibraryFunctionConfig):
                         + (2 * exp(-dam * Delta))
                         - exp(-dam * (Delta - delta))
                         - exp(-dam * (Delta + delta)))
-                    / ((dam * amrdiv * dam * amrdiv) * ((R * amrdiv * R * amrdiv) - 1));
+                    / ((dam * amrdiv * dam * amrdiv) * (R * amrdiv * R * amrdiv - 1));
         }
-        return sum;
+        return -2 * GAMMA_H_SQ * (G*G) * sum;
     '''

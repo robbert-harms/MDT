@@ -89,6 +89,9 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self.undo_config.setDisabled(not self._controller.has_undo())
         self.redo_config.setDisabled(not self._controller.has_redo())
 
+    def resizeEvent(self, event):
+        ExportImageDialog.plot_frame_resized()
+
     def _add_new_files(self):
         current_model = self._controller.get_model()
 
@@ -223,14 +226,25 @@ class ExportImageDialog(Ui_SaveImageDialog, QDialog):
 
         if self.previous_values['width']:
             self.width_box.setValue(self.previous_values['width'])
+        else:
+            self.width_box.setValue(self._plotting_frame.width())
+
         if self.previous_values['height']:
             self.height_box.setValue(self.previous_values['height'])
+        else:
+            self.height_box.setValue(self._plotting_frame.height())
+
         if self.previous_values['dpi']:
             self.dpi_box.setValue(self.previous_values['dpi'])
         if self.previous_values['output_file']:
             self.outputFile_box.setText(self.previous_values['output_file'])
         if self.previous_values['writeScriptsAndConfig'] is not None:
             self.writeScriptsAndConfig.setChecked(self.previous_values['writeScriptsAndConfig'])
+
+    @staticmethod
+    def plot_frame_resized():
+        ExportImageDialog.previous_values['width'] = None
+        ExportImageDialog.previous_values['height'] = None
 
     @pyqtSlot()
     def _update_ok_button(self):

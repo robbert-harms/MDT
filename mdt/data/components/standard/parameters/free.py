@@ -165,8 +165,8 @@ class dperp1(FreeParameterConfig):
 
 class R(FreeParameterConfig):
 
-    init_value = 2.0e-6
-    lower_bound = 1e-6
+    init_value = 1.0e-6
+    lower_bound = 1e-7
     upper_bound = 20e-6
     parameter_transform = CosSqrClampTransform()
     sampling_proposal = GaussianProposal(1e-7)

@@ -38,11 +38,11 @@ def _get_parameters_list(parameter_list):
 def _construct_cl_function_definition(return_type, cl_function_name, parameters):
     """Create the CL function definition for a compartment function.
 
-    This will construct something like (for the NeumannCylPerpPGSESum model):
+    This will construct something like (for the NeumannCylindricalRestrictedSignal model):
 
     .. code-block:: c
 
-        double NeumannCylPerpPGSESum(const mot_float_type Delta,
+        double NeumannCylindricalRestrictedSignal(const mot_float_type Delta,
                                      const mot_float_type delta,
                                      const mot_float_type d,
                                      const mot_float_type R)

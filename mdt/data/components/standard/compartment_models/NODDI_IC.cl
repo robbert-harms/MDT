@@ -55,7 +55,7 @@ double cmNODDI_IC(const mot_float_type4 g,
         cosTheta = cosTheta / fabs(cosTheta);
     }
 
-    mot_float_type LePerp = -2 * GAMMA_H_SQ * (G*G) * NeumannCylPerpPGSESum(Delta, delta, d, R);
+    mot_float_type LePerp = NeumannCylindricalRestrictedSignal(Delta, delta, d, R, G);
     mot_float_type ePerp = exp(LePerp);
     mot_float_type Lpmp = LePerp + d * b;
 

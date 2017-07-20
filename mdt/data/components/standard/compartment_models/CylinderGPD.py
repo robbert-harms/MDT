@@ -11,14 +11,13 @@ class CylinderGPD(CompartmentConfig):
 
     parameter_list = ('g', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'R')
     dependency_list = ('MRIConstants',
-                       'NeumannCylPerpPGSESum')
+                       'NeumannCylindricalRestrictedSignal')
     cl_code = '''
-        mot_float_type sum = NeumannCylPerpPGSESum(Delta, delta, d, R);
-
-        const mot_float_type4 n = (mot_float_type4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0.0);
-        mot_float_type omega = (G == 0.0) ? M_PI_2 : acos(dot(n, g * G) / (G * length(n)));
-
-        return exp(-2 * GAMMA_H_SQ * pown(G * sin(omega), 2) * sum) *
-                exp(-(Delta - (delta/3.0)) * pown(GAMMA_H * delta * G * cos(omega), 2) * d);
+        mot_float_type b = pown(GAMMA_H * delta * G, 2) * (Delta - (delta/3.0));
+        mot_float_type lperp = NeumannCylindricalRestrictedSignal(Delta, delta, d, R, G);
+        mot_float_type gn2 = pown(dot(g, (mot_float_type4)(cos(phi) * sin(theta), 
+                                                           sin(phi) * sin(theta), cos(theta), 0.0)), 2);
+        
+        return exp( ((1 - gn2) * lperp) + (-b * d * gn2));
     '''
     post_optimization_modifiers = [('vec0', lambda results: spherical_to_cartesian(results['theta'], results['phi']))]
