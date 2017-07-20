@@ -9,4 +9,4 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class Dot(CompartmentConfig):
 
     parameter_list = ()
-    cl_code = 'return (mot_float_type)1.0;'
+    cl_code = 'return 1.0;'

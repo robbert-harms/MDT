@@ -14,7 +14,9 @@ class CylinderGPD(CompartmentConfig):
                        'NeumannCylindricalRestrictedSignal')
     cl_code = '''
         mot_float_type b = pown(GAMMA_H * delta * G, 2) * (Delta - (delta/3.0));
+        
         mot_float_type lperp = NeumannCylindricalRestrictedSignal(Delta, delta, d, R, G);
+        
         mot_float_type gn2 = pown(dot(g, (mot_float_type4)(cos(phi) * sin(theta), 
                                                            sin(phi) * sin(theta), cos(theta), 0.0)), 2);
         

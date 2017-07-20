@@ -1,7 +1,7 @@
 import unittest
 
+from scipy.special import jnp_zeros
 import numpy as np
-from numpy import cos, exp, sin
 import pyopencl as cl
 from numpy.testing import assert_allclose
 
@@ -9,20 +9,20 @@ import mdt
 from mot.utils import get_float_type_def
 
 
-class test_SSFP(unittest.TestCase):
+class test_NeumannCylindricalRestrictedSignal(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
-        super(test_SSFP, self).__init__(*args, **kwargs)
+        super(test_NeumannCylindricalRestrictedSignal, self).__init__(*args, **kwargs)
 
-    def test_ssfp_float(self):
+    def test_ncrs_float(self):
         test_params = self._generate_test_params().astype(dtype=np.float32)
 
         python_results = self._calculate_python(test_params)
         cl_results = self._calculate_cl(test_params, double_precision=False)
 
-        assert_allclose(np.nan_to_num(python_results), np.nan_to_num(cl_results), atol=1e-5)
+        assert_allclose(np.nan_to_num(python_results), np.nan_to_num(cl_results), atol=1e-5, rtol=1e-5)
 
-    def test_ssfp_double(self):
+    def test_ncrs_double(self):
         test_params = self._generate_test_params().astype(dtype=np.float64)
 
         python_results = self._calculate_python(test_params)
@@ -51,7 +51,7 @@ class test_SSFP(unittest.TestCase):
         output_buffer = cl.Buffer(ctx, mf.WRITE_ONLY | mf.USE_HOST_PTR, hostbuf=results)
         buffers = [input_args_buffer, output_buffer]
 
-        kernel_event = prg.test_ssfp(queue, (input_args.shape[0],), None, *buffers)
+        kernel_event = prg.test_ncrs(queue, (input_args.shape[0],), None, *buffers)
         self._enqueue_readout(queue, output_buffer, results, 0, input_args.shape[0], [kernel_event])
 
     def _enqueue_readout(self, queue, buffer, host_array, range_start, range_end, wait_for):
@@ -64,23 +64,20 @@ class test_SSFP(unittest.TestCase):
     def _get_kernel_source(self, double_precision, nmr_problems):
         src = ''
         src += get_float_type_def(double_precision)
-        src += mdt.get_component_class('library_functions', 'SSFP')().get_cl_code()
+        src += mdt.get_component_class('library_functions', 'NeumannCylindricalRestrictedSignal')().get_cl_code()
         src += '''
-            __kernel void test_ssfp(global mot_float_type input_args[''' + str(nmr_problems) + '''][8],
+            __kernel void test_ncrs(global mot_float_type input_args[''' + str(nmr_problems) + '''][5],
                                     global double output[''' + str(nmr_problems) + ''']){
 
                 uint gid = get_global_id(0);
-
-                mot_float_type d = input_args[gid][0];
+                
+                mot_float_type Delta = input_args[gid][0];
                 mot_float_type delta = input_args[gid][1];
-                mot_float_type G = input_args[gid][2];
-                mot_float_type TR = input_args[gid][3];
-                mot_float_type flip_angle = input_args[gid][4];
-                mot_float_type b1 = input_args[gid][5];
-                mot_float_type T1 = input_args[gid][6];
-                mot_float_type T2 = input_args[gid][7];
-
-                output[gid] = SSFP(d, delta, G, TR, flip_angle, b1, T1, T2);
+                mot_float_type d = input_args[gid][2];
+                mot_float_type R = input_args[gid][3];
+                mot_float_type G = input_args[gid][4];
+                
+                output[gid] = NeumannCylindricalRestrictedSignal(Delta, delta, d, R, G);
             }
         '''
         return src
@@ -88,19 +85,15 @@ class test_SSFP(unittest.TestCase):
     def _generate_test_params(self):
         """
 
-        [d (m/s^2), delta (s), G (T/m), TR (s), flip_angle (rad), b1 (a.u.), T1 (s), T2 (s)]
+        [Delta (s), delta (s), d (m/s^2), R (m), G (T/m)]
 
         """
 
         test_param_sets = [
-            # In vivo
-            {'default': [1e-9, 1e-2, 5e-2, 0.5, np.pi / 6, 1.0, 1.5, 1.0],
-             'lower_bounds': [0, 1e-5, 1e-5, 1e-4, 0, 0.1, 1e-5, 1e-5],
-             'upper_bounds': [1e-8, 1e-1, 1e-1, 2, np.pi / 2, 2.0, 4, 2]},
-            # Ex vivo
-            {'default': [1e-10, 1e-2, 5e-2, 0.05, np.pi / 6, 1.0, 0.5, 0.05],
-             'lower_bounds': [0, 1e-5, 1e-5, 1e-4, 0, 0.1, 1e-3, 1e-3],
-             'upper_bounds': [1e-8, 1e-1, 1e-1, 0.1, np.pi / 2, 2.0, 1.0, 0.1]}]
+            {'default': [0.5, 1e-2, 1e-9, 1e-6, 0.05],
+             'lower_bounds': [0.1, 1e-3, 1e-10, 1e-7, 1e-4],
+             'upper_bounds': [1, 0.1, 1e-8, 2e-5, 0.1]}
+        ]
 
         def generate_params_matrix(defaults, lower_bounds, upper_bounds, nmr_steps):
             params_matrix = np.tile(default_values, (nmr_steps * len(default_values), 1))
@@ -124,42 +117,36 @@ class test_SSFP(unittest.TestCase):
 
         test_cases = np.vstack(matrices)
 
-        # filter delta >= TR
-        test_cases = test_cases[test_cases[:, 1] < test_cases[:, 3]]
-
         return test_cases
 
     def _calculate_python(self, input_params):
         results = np.zeros(input_params.shape[0])
 
         for ind in range(input_params.shape[0]):
-            results[ind] = self._ssfp_python(*list(input_params[ind, :]))
+            results[ind] = self._ncrs_python(*list(input_params[ind, :]))
 
         return results
 
-    def _ssfp_python(self, d, delta, G, TR, flip_angle, b1, T1, T2):
-        larmor_freq = 267.5987e6
-        alpha = flip_angle * b1
+    def _ncrs_python(self, Delta, delta, d, R, G):
+        if R == 0 or R < np.finfo(float).eps:
+            return 0
 
-        E1 = exp(-TR / T1)
-        E2 = exp(-TR / T2)
+        GAMMA = 267.5987E6
+        alpha_roots = jnp_zeros(1, 20) / R
 
-        b = (larmor_freq * G * delta)**2 * TR
-        beta = (larmor_freq * G * delta)**2 * delta
+        sum = 0
+        for i in range(20):
+            alpha = alpha_roots[i]
 
-        A1 = exp(-b * d)
-        A2 = exp(-beta * d)
+            num = (2 * d * alpha**2 * delta
+                   - 2
+                   + 2 * np.exp(-d * alpha**2 * delta)
+                   + 2 * np.exp(-d * alpha**2 * Delta)
+                   - np.exp(-d * alpha**2 * (Delta - delta))
+                   - np.exp(-d * alpha**2 * (Delta + delta)))
+            dem = d**2 * alpha**6 * (R**2 * alpha**2 - 1)
 
-        s = E2 * A1 * A2**(-4/3.0) * (1 - E1 * cos(alpha)) + E2 * A2**(-1/3.0) * (cos(alpha) - 1)
+            sum += (num / dem)
 
-        r = 1 - E1 * cos(alpha) + E2**2 * A1 * A2**(1/3.0) * (cos(alpha) - E1)
+        return -2 * GAMMA**2 * G**2 * sum
 
-        if (1 - E1 * A1) < 1e-10:
-            print(dict(d=d, delta=delta, G=G, TR=TR, flip_angle=flip_angle, b1=b1, T1=T1, T2=T2))
-
-        K = (1 - E1 * A1 * cos(alpha) - E2**2 * A1**2 * A2**(-2/3.0) * (E1 * A1 - cos(alpha))) \
-            / (E2 * A1 * A2**(-4/3.0) * (1 + cos(alpha)) * (1 - E1 * A1))
-
-        F1 = K - np.sqrt(K**2 - A2**2)
-
-        return -((1 - E1) * E2 * A2**(-2/3.0) * (F1 - E2 * A1 * A2**(2/3.0)) * sin(alpha)) / (r - F1 * s)

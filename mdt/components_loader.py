@@ -271,6 +271,17 @@ class ComponentsLoader(object):
         source = self._get_preferred_source(name)
         return source.get_meta_info(name)
 
+    def get_template(self, name):
+        # todo
+        """Get the template for the class of this component.
+
+        Args:
+            name:
+
+        Returns:
+
+        """
+
     def get_class(self, name):
         """Get the class to the component of the given name.
 
@@ -508,6 +519,9 @@ class AutomaticCascadeSource(ComponentsSource):
         Args:
             models (list): the list of composite model names
             cascades (list): the list of existing cascaded model names
+
+        Returns:
+            list: the list with cascade models that may be missing
         """
         missing_cascades = []
         for model_name in models:
@@ -948,6 +962,33 @@ class CascadeModelsLoader(ComponentsLoader):
              AutomaticCascadeSource()])
 
 
+def get_component_template(component_type, component_name):
+    """Return the component template definition of the given component.
+
+    This is only available for component types that are constructed from a template, such as cascades, composite models,
+    compartments, parameters and library functions.
+
+    Args:
+        component_type (str): the type of component, for example 'batch_profiles' or 'parameters'
+        component_name (str): the name of the component to use
+
+    Returns:
+        class: the template class definition of the given component
+    """
+    # todo
+    if component_type == 'cascade_models':
+        return CascadeModelsLoader().get_template(component_name)
+    if component_type == 'composite_models':
+        return CompositeModelsLoader().get_template(component_name)
+    if component_type == 'compartment_models':
+        return CompartmentModelsLoader().get_template(component_name)
+    if component_type == 'library_functions':
+        return LibraryFunctionsLoader().get_template(component_name)
+    if component_type == 'parameters':
+        return ParametersLoader().get_template(component_name)
+    raise ValueError('Could not find the given component type {}'.format(component_type))
+
+
 def get_component_class(component_type, component_name):
     """Return the class of the given component.
 
@@ -956,12 +997,14 @@ def get_component_class(component_type, component_name):
         component_name (str): the name of the component to use
 
     Returns:
-        the class of the given component
+        class: the class of the given component
     """
     if component_type == 'batch_profiles':
         return BatchProfilesLoader().get_class(component_name)
     if component_type == 'cascade_models':
         return CascadeModelsLoader().get_class(component_name)
+    if component_type == 'composite_models':
+        return CompositeModelsLoader().get_class(component_name)
     if component_type == 'compartment_models':
         return CompartmentModelsLoader().get_class(component_name)
     if component_type == 'library_functions':
@@ -970,8 +1013,6 @@ def get_component_class(component_type, component_name):
         return NoiseSTDCalculatorsLoader().get_class(component_name)
     if component_type == 'parameters':
         return ParametersLoader().get_class(component_name)
-    if component_type == 'composite_models':
-        return CompositeModelsLoader().get_class(component_name)
     if component_type == 'evaluation_models':
         return EvaluationModelsLoader().get_class(component_name)
     raise ValueError('Could not find the given component type {}'.format(component_type))
