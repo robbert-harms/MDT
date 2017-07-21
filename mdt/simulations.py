@@ -32,6 +32,8 @@ def create_signal_estimates(model, problem_data, parameters):
     if isinstance(parameters, string_types):
         parameters = get_all_image_data(parameters)
 
+    model.set_fixed_parameter_values(problem_data.static_maps)
+
     results = simulate_signals(model, problem_data.protocol, create_roi(parameters, problem_data.mask))
     return restore_volumes(results, problem_data.mask)
 
@@ -52,9 +54,10 @@ def simulate_signals(model, protocol, parameters):
         model = get_model(model)
 
     model.set_problem_data(MockDMRIProblemData(protocol=protocol))
+    params_array = model.param_dict_to_array(parameters)
 
     calculator = CalculateModelEstimates()
-    return calculator.calculate(model, parameters)
+    return calculator.calculate(model.build(), params_array)
 
 
 def add_rician_noise(signals, noise_level, seed=None):
