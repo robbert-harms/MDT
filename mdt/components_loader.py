@@ -4,17 +4,18 @@ This modules consists of two main items, component sources and component loaders
 of sources from which they load the available components.
 """
 import collections
-import imp #todo in P3.4 replace imp calls with importlib.SourceFileLoader(name, path).load_module(name)
+import imp  # todo in P3.4 replace imp calls with importlib.SourceFileLoader(name, path).load_module(name)
 import inspect
 import os
 from contextlib import contextmanager
-from six import with_metaclass
+
 import mot.library_functions
 import mot.model_building.model_functions
+from mdt.component_templates.base import ComponentTemplate, construct_component
 from mdt.exceptions import NonUniqueComponent
 from mot.library_functions import SimpleCLLibrary
-from mot.model_building.model_functions import ModelFunction
 from mot.model_building.evaluation_models import EvaluationModel
+from mot.model_building.model_functions import ModelFunction
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -63,39 +64,11 @@ def get_meta_info(model_name):
             raise ValueError('The model with the name "{}" could not be found.'.format(model_name))
 
 
-def construct_component(component):
-    """Construct the component from configuration to derived class.
-
-    This function will perform the lookup from config type to builder class and will subsequently build the
-    component class from the config.
-
-    Args:
-        component (ComponentConfig): the component we wish to construct into a class.
-
-    Returns:
-        class: the constructed class from the given component
-    """
-    from mdt.components_config.cascade_models import CascadeConfig, CascadeBuilder
-    from mdt.components_config.compartment_models import CompartmentConfig, CompartmentBuilder
-    from mdt.components_config.composite_models import DMRICompositeModelConfig, DMRICompositeModelBuilder
-    from mdt.components_config.library_functions import LibraryFunctionConfig, LibraryFunctionsBuilder
-    from mdt.components_config.parameters import ParameterConfig, ParameterBuilder
-
-    builder_lookup = {CascadeConfig: CascadeBuilder(),
-                      CompartmentConfig: CompartmentBuilder(),
-                      DMRICompositeModelConfig: DMRICompositeModelBuilder(),
-                      LibraryFunctionConfig: LibraryFunctionsBuilder(),
-                      ParameterConfig: ParameterBuilder()}
-
-    for config_cls, builder in builder_lookup.items():
-        if issubclass(component, config_cls):
-            return builder.create_class(component)
-    raise ValueError("No suitable builder for the given component could be found.")
-
-
 @contextmanager
 def user_preferred_components(components_dict):
     """Creates a context manager in which the provided components take precedence over existing ones.
+
+    Useful if you want to monkey patch certain parts of a model.
 
     Args:
         components_dict (dict): dictionary with the structure ``{<component_type>: {<name>: <cls>, ...}, ...}``
@@ -105,129 +78,23 @@ def user_preferred_components(components_dict):
     UserPreferredSource.remove_components(components_dict)
 
 
-class ComponentBuilder(object):
-
-    def __init__(self):
-        """The base class for component builders.
-
-        Component builders, together with ComponentConfig allow you to define components using class attributes.
-
-        The idea is that the ComponentConfig contains class attributes defining the component and that the
-        ComponentBuilder is able to create a class of the right type from the information in the component config.
-        """
-
-    def create_class(self, template):
-        """Create a class of the right type given the information in the template.
-
-        Args:
-            template (ComponentConfig): the information as a component config
-
-        Returns:
-            class: the class of the right type
-        """
-
-
-def bind_function(func):
-    """This decorator is for methods in ComponentConfigs that we would like to bind to the constructed component.
-
-    Example suppose you want to inherit or overwrite a function in the constructed model, then in your template/config
-    you should define the function and add @bind_function to it as a decorator, like this:
-
-    .. code-block:: python
-
-        # the class we want to create
-        class MyGoal(object):
-            def test(self):
-                print('test')
-
-        # the template class from which we want to construct a new MyGoal, note the @bind_function
-        class MyConfig(ComponentConfig):
-            @bind_function
-            def test(self):
-                super(MyGoal, self).test()
-                print('test2')
-
-    The component builder takes care to actually bind the new method to the final object.
-
-    What this will do essentially is that it will add the property bind to the function. This should act as a
-    flag indicating that that function should be bound.
-
-    Args:
-        func (python function): the function to bind to the build object
-    """
-    func._bind = True
-    return func
-
-
-def method_binding_meta(template, *bases):
-    """Adds all bound functions from the ComponentConfig to the class being constructed.
-
-     This returns a metaclass similar to the with_metaclass of the six library.
-
-     Args:
-         template (ComponentConfig): the component config with the bound_methods attribute which we will all add
-            to the attributes of the to creating class.
-     """
-    class ApplyMethodBinding(type):
-        def __new__(mcs, name, bases, attributes):
-            attributes.update(template.bound_methods)
-            return super(ApplyMethodBinding, mcs).__new__(mcs, name, bases, attributes)
-
-    return with_metaclass(ApplyMethodBinding, *bases)
-
-
-class ComponentConfigMeta(type):
-
-    def __new__(mcs, name, bases, attributes):
-        """A pre-processor for the components.
-
-        On the moment this meta class does two things, first it adds all functions with the '_bind' property
-        to the bound_methods list for binding them later to the constructed class. Second, it sets the 'name' attribute
-        of the component to the class name if there is no name attribute defined.
-        """
-        result = super(ComponentConfigMeta, mcs).__new__(mcs, name, bases, attributes)
-        bound_methods = {value.__name__: value for value in attributes.values() if hasattr(value, '_bind')}
-        for base in bases:
-            if hasattr(base, 'bound_methods'):
-                for key, value in base.bound_methods.items():
-                    if key not in bound_methods:
-                        bound_methods.update({key: value})
-        result.bound_methods = bound_methods
-
-        if 'name' not in attributes:
-            result.name = name
-
-        return result
-
-
-class ComponentConfig(with_metaclass(ComponentConfigMeta, object)):
-    """The component configuration.
-
-    By overriding the class attributes you can define complex configurations. The actual class distilled from these
-    configurations are loaded by the ComponentBuilder
-    """
-    name = ''
-    description = ''
-
-    @classmethod
-    def meta_info(cls):
-        return {'name': cls.name,
-                'description': cls.description}
-
-
 class ComponentsLoader(object):
 
     def __init__(self, sources):
         """The base class for loading and displaying components.
 
         Args:
-            sources (:class:`list`): the list of sources to use for loading the components
+            sources (list of ComponentsSource): the list of sources to use for loading the components
         """
         self._sources = sources
         self._check_unique_names()
 
     def list_all(self):
-        """List the names of all the available components."""
+        """List the names of all the available components.
+
+        Returns:
+            list of str: the list of available components by name
+        """
         components = []
         for source in self._sources:
             components.extend(source.list())
@@ -271,17 +138,6 @@ class ComponentsLoader(object):
         source = self._get_preferred_source(name)
         return source.get_meta_info(name)
 
-    def get_template(self, name):
-        # todo
-        """Get the template for the class of this component.
-
-        Args:
-            name:
-
-        Returns:
-
-        """
-
     def get_class(self, name):
         """Get the class to the component of the given name.
 
@@ -312,6 +168,9 @@ class ComponentsLoader(object):
         """Try to get the preferred source for the component with the given name.
 
         The order of the sources matter, the first source takes precedence over the latter ones and so forth.
+
+        Returns:
+            ComponentsSource: the source from where to load the given component
         """
         for source in self._sources:
             try:
@@ -322,7 +181,11 @@ class ComponentsLoader(object):
         raise ImportError("No component found with the name {}".format(name))
 
     def _check_unique_names(self):
-        """Check if all the elements in the sources are unique."""
+        """Check if all the elements in the sources are unique.
+
+        Raises:
+            NonUniqueComponent: if two components with the same name are found.
+        """
         elements = []
         for source in self._sources:
             if source.use_in_uniqueness_check():
@@ -333,12 +196,10 @@ class ComponentsLoader(object):
 
 
 class ComponentsSource(object):
+    """Defines a source for components.
 
-    def __init__(self):
-        """Defines a source for components.
-
-        This has functions for listing the available components as well as getting the class and meta information.
-        """
+    This has functions for listing the available components as well as getting the class and meta information.
+    """
 
     def list(self):
         """Get the names of all the available components from this source.
@@ -346,7 +207,7 @@ class ComponentsSource(object):
         Returns:
             list or str: list of the names of all the components loadable from this source.
         """
-        return []
+        raise NotImplementedError()
 
     def get_class(self, name):
         """Get the class for the component by the given name
@@ -357,7 +218,7 @@ class ComponentsSource(object):
         Returns:
             the construction function
         """
-        raise ImportError
+        raise NotImplementedError()
 
     def get_meta_info(self, name):
         """Get the meta information of a component of the given name.
@@ -370,7 +231,7 @@ class ComponentsSource(object):
                 - name (str): the name of the component
                 - description (str): the description of the component
         """
-        return {}
+        raise NotImplementedError()
 
     def use_in_uniqueness_check(self):
         """If this source should be used when checking for unique components over all sources.
@@ -382,7 +243,7 @@ class ComponentsSource(object):
         Returns:
             bool: if this class should be used when checking for unique components
         """
-        return True
+        raise NotImplementedError()
 
 
 class UserPreferredSource(ComponentsSource):
@@ -417,6 +278,9 @@ class UserPreferredSource(ComponentsSource):
 
     def use_in_uniqueness_check(self):
         return False
+
+    def get_meta_info(self, name):
+        return {}
 
     @classmethod
     def add_component(cls, component_type, name, component_class):
@@ -454,7 +318,6 @@ class UserPreferredSource(ComponentsSource):
         Args:
             component_type (str): the type of this component
             name (str): the name of this component
-            component_class (cls): the class to load when this component / name is required.
         """
         if component_type in cls._components:
             if name in cls._components[component_type]:
@@ -513,6 +376,12 @@ class AutomaticCascadeSource(ComponentsSource):
 
         raise ImportError
 
+    def use_in_uniqueness_check(self):
+        return True
+
+    def get_meta_info(self, name):
+        return {}
+
     def _get_missing_s0_cascades(self, models, cascades):
         """Get the list of cascade model names that are missing from the list of cascades.
 
@@ -538,10 +407,10 @@ class AutomaticCascadeSource(ComponentsSource):
         Args:
             cascaded_name (str): the model name we are going to generate
         """
-        from mdt.components_config.cascade_models import CascadeConfig
+        from mdt.component_templates.cascade_models import CascadeTemplate
 
         if '(Cascade|S0)' in cascaded_name:
-            class template(CascadeConfig):
+            class template(CascadeTemplate):
                 name = cascaded_name
                 description = 'Automatically generated cascade.'
                 models = ('S0',
@@ -605,6 +474,9 @@ class UserComponentsSourceSingle(ComponentsSource):
                     return {}
         return {}
 
+    def use_in_uniqueness_check(self):
+        return True
+
 
 class AutoUserComponentsSourceSingle(UserComponentsSourceSingle):
 
@@ -612,22 +484,22 @@ class AutoUserComponentsSourceSingle(UserComponentsSourceSingle):
         """
 
         This class extends the default single components source loader by also being able to use components defined
-        using the ComponentConfig method. This means that the components are defined as subclasses of ComponentConfig
+        using the ComponentTemplate method. This means that the components are defined as subclasses of ComponentTemplate
         and we need a ComponentBuilder to actually create the components.
 
         Args:
             user_type (str): either 'standard' or 'user'
             component_type (str): the type of component we wish to use. This should be named exactly to one of the
                 directories available in mdt/data/components/
-            component_builder (ComponentBuilder): the component creator that can create components using
-                ComponentConfig classes
+            component_builder (mdt.component_templates.base.ComponentBuilder): the component creator that can create components using
+                ComponentTemplate classes
         """
         self.component_builder = component_builder
         super(AutoUserComponentsSourceSingle, self).__init__(user_type, component_type)
 
     def get_class(self, name):
         cls = super(AutoUserComponentsSourceSingle, self).get_class(name)
-        if issubclass(cls, ComponentConfig):
+        if issubclass(cls, ComponentTemplate):
             return self.component_builder.create_class(cls)
         return cls
 
@@ -703,6 +575,9 @@ class UserComponentsSourceMulti(ComponentsSource):
     def get_meta_info(self, name):
         return self._components[name].get_meta_info()
 
+    def use_in_uniqueness_check(self):
+        return True
+
     def _load_all_components(self):
         self._update_modules_cache()
 
@@ -762,15 +637,15 @@ class AutoUserComponentsSourceMulti(UserComponentsSourceMulti):
         """Create a component source that can create components using multiple types of definitions.
 
         This will use either objects of the class defined by component_class or it will use objects
-        of type ComponentConfig using the builder defined by component_creator or it will use the objects
+        of type ComponentTemplate using the builder defined by component_creator or it will use the objects
         from the get_components_list function.
 
         Args:
             user_type (str): either 'user' or 'standard'. This defines from which dir to use the components
             component_type (str): from which dir in 'user' or 'standard' to use the components
             component_class (class): the class to auto use
-            component_builder (ComponentBuilder): the component creator to use for components defined as a
-                ComponentConfig.
+            component_builder (mdt.component_templates.base.ComponentBuilder): the component creator to use for components defined as a
+                ComponentTemplate.
         """
         self._component_class = component_class
         self.component_builder = component_builder
@@ -781,7 +656,7 @@ class AutoUserComponentsSourceMulti(UserComponentsSourceMulti):
             raise ImportError
 
         base = self._components[name].get_component_class()
-        if inspect.isclass(base) and issubclass(base, ComponentConfig):
+        if inspect.isclass(base) and issubclass(base, ComponentTemplate):
             return self.component_builder.create_class(base)
 
         return super(AutoUserComponentsSourceMulti, self).get_class(name)
@@ -814,7 +689,7 @@ class AutoUserComponentsSourceMulti(UserComponentsSourceMulti):
         items = inspect.getmembers(module, _get_class_predicate(module, self._component_class))
         loaded_items.extend(DynamicInfo(item[1]) for item in items)
 
-        items = inspect.getmembers(module, _get_class_predicate(module, ComponentConfig))
+        items = inspect.getmembers(module, _get_class_predicate(module, ComponentTemplate))
         loaded_items.extend(DynamicInfo(item[1]) for item in items)
 
         return loaded_items
@@ -825,7 +700,7 @@ class ParametersSource(AutoUserComponentsSourceMulti):
     def __init__(self, user_type):
         """Source for the items in the 'parameters' dir in the components folder."""
         from mot.model_building.parameters import CLFunctionParameter
-        from mdt.components_config.parameters import ParameterBuilder
+        from mdt.component_templates.parameters import ParameterBuilder
         super(ParametersSource, self).__init__(user_type, 'parameters', CLFunctionParameter, ParameterBuilder())
 
 
@@ -834,7 +709,7 @@ class CompositeModelSource(AutoUserComponentsSourceMulti):
     def __init__(self, user_type):
         """Source for the items in the 'composite_models' dir in the components folder."""
         from mdt.models.composite import DMRICompositeModel
-        from mdt.components_config.composite_models import DMRICompositeModelBuilder
+        from mdt.component_templates.composite_models import DMRICompositeModelBuilder
         super(CompositeModelSource, self).__init__(user_type, 'composite_models', DMRICompositeModel,
                                                    DMRICompositeModelBuilder())
 
@@ -844,14 +719,23 @@ class CascadeSource(AutoUserComponentsSourceMulti):
     def __init__(self, user_type):
         """Source for the items in the 'cascade_models' dir in the components folder."""
         from mdt.models.cascade import DMRICascadeModelInterface
-        from mdt.components_config.cascade_models import CascadeBuilder
+        from mdt.component_templates.cascade_models import CascadeBuilder
         super(CascadeSource, self).__init__(user_type, 'cascade_models', DMRICascadeModelInterface, CascadeBuilder())
 
 
 class MOTSourceSingle(ComponentsSource):
 
+    def list(self):
+        raise NotImplementedError()
+
+    def get_class(self, name):
+        raise NotImplementedError()
+
     def get_meta_info(self, name):
         return {}
+
+    def use_in_uniqueness_check(self):
+        return True
 
 
 class MOTLibraryFunctionSource(MOTSourceSingle):
@@ -908,7 +792,7 @@ class NoiseSTDCalculatorsLoader(ComponentsLoader):
 class CompartmentModelsLoader(ComponentsLoader):
 
     def __init__(self):
-        from mdt.components_config.compartment_models import CompartmentBuilder
+        from mdt.component_templates.compartment_models import CompartmentBuilder
         super(CompartmentModelsLoader, self).__init__(
             [UserPreferredSource('compartment_models'),
              AutoUserComponentsSourceSingle('standard', 'compartment_models', CompartmentBuilder()),
@@ -919,7 +803,7 @@ class CompartmentModelsLoader(ComponentsLoader):
 class LibraryFunctionsLoader(ComponentsLoader):
 
     def __init__(self):
-        from mdt.components_config.library_functions import LibraryFunctionsBuilder
+        from mdt.component_templates.library_functions import LibraryFunctionsBuilder
         super(LibraryFunctionsLoader, self).__init__(
             [UserPreferredSource('library_functions'),
              AutoUserComponentsSourceSingle('standard', 'library_functions', LibraryFunctionsBuilder()),
@@ -962,33 +846,6 @@ class CascadeModelsLoader(ComponentsLoader):
              AutomaticCascadeSource()])
 
 
-def get_component_template(component_type, component_name):
-    """Return the component template definition of the given component.
-
-    This is only available for component types that are constructed from a template, such as cascades, composite models,
-    compartments, parameters and library functions.
-
-    Args:
-        component_type (str): the type of component, for example 'batch_profiles' or 'parameters'
-        component_name (str): the name of the component to use
-
-    Returns:
-        class: the template class definition of the given component
-    """
-    # todo
-    if component_type == 'cascade_models':
-        return CascadeModelsLoader().get_template(component_name)
-    if component_type == 'composite_models':
-        return CompositeModelsLoader().get_template(component_name)
-    if component_type == 'compartment_models':
-        return CompartmentModelsLoader().get_template(component_name)
-    if component_type == 'library_functions':
-        return LibraryFunctionsLoader().get_template(component_name)
-    if component_type == 'parameters':
-        return ParametersLoader().get_template(component_name)
-    raise ValueError('Could not find the given component type {}'.format(component_type))
-
-
 def get_component_class(component_type, component_name):
     """Return the class of the given component.
 
@@ -1015,7 +872,7 @@ def get_component_class(component_type, component_name):
         return ParametersLoader().get_class(component_name)
     if component_type == 'evaluation_models':
         return EvaluationModelsLoader().get_class(component_name)
-    raise ValueError('Could not find the given component type {}'.format(component_type))
+    raise ValueError('Could not find the given component type "{}"'.format(component_type))
 
 
 def load_component(component_type, component_name, *args, **kwargs):
@@ -1037,7 +894,7 @@ def load_component(component_type, component_name, *args, **kwargs):
 def component_import(import_str, component_name):
     """Load one of the components as a module and return the desired component from that module.
 
-    This is in usage similar to 'from ... import ...' except that we use a function for it here.
+    This is in usage similar to 'from ... import ...' except that we use a function in this case.
     You can use it to import raw template classes from the components folders to use as super classes. Example::
 
         from mdt import component_import
@@ -1073,21 +930,21 @@ def component_import(import_str, component_name):
             return item
 
 
-def _get_class_predicate(module, class_type):
+def _get_class_predicate(desired_module, class_type):
     """A predicate to be used in the function inspect.getmembers
 
-    This predicate checks if the module of the item we inspect matches the given module, checks the class type
-    to be the given class type and checks if the checked item is not in the exclude list.
+    This predicate checks if the module of the item we inspect matches the given module and checks if the class type
+    is of the given class type.
 
     Args:
-        module (module): the module to check against the module of the item
-        class_type (module): the module to check against the class_type of the item
+        desired_module (module): the module to check against the module of the item
+        class_type (Type): the module to check against the class_type of the item
 
     Returns:
         function: a function to be used as a predicate in inspect.getmembers
     """
     def defined_in_module(item):
-        return item.__module__ == module.__name__
+        return item.__module__ == desired_module.__name__
 
     def complete_predicate(item):
         return inspect.isclass(item) and defined_in_module(item) and issubclass(item, class_type)

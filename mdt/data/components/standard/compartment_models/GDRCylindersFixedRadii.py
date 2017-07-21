@@ -1,4 +1,4 @@
-from mdt.components_config.compartment_models import CompartmentConfig
+from mdt.component_templates.compartment_models import CompartmentTemplate
 from mdt.components_loader import CompartmentModelsLoader
 from mdt.utils import spherical_to_cartesian
 
@@ -11,7 +11,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 compartment_loader = CompartmentModelsLoader()
 
 
-class GDRCylindersFixedRadii(CompartmentConfig):
+class GDRCylindersFixedRadii(CompartmentTemplate):
 
     description = '''
         Generate the compartment model signal for the Gamma Distributed Radii model.

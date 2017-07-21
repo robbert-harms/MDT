@@ -1,4 +1,4 @@
-from mdt.components_config.compartment_models import CompartmentConfig
+from mdt.component_templates.compartment_models import CompartmentTemplate
 import numpy as np
 
 from mdt.utils import spherical_to_cartesian
@@ -9,7 +9,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class NODDI_IC(CompartmentConfig):
+class NODDI_IC(CompartmentTemplate):
 
     parameter_list = ('g', 'b', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'kappa', 'R')
     dependency_list = ('CerfErfi',

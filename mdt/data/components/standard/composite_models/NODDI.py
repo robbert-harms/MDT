@@ -1,4 +1,4 @@
-from mdt.components_config.composite_models import DMRICompositeModelConfig
+from mdt.component_templates.composite_models import DMRICompositeModelTemplate
 from mot.model_building.parameter_functions.dependencies import AbstractParameterDependency
 
 __author__ = 'Robbert Harms'
@@ -28,7 +28,7 @@ class NODDITortuosityParameterDependency(AbstractParameterDependency):
         return '{d} * _tortuosity_mult_{d}'.format(d=self._d)
 
 
-class NODDI(DMRICompositeModelConfig):
+class NODDI(DMRICompositeModelTemplate):
 
     description = 'The standard NODDI model'
 

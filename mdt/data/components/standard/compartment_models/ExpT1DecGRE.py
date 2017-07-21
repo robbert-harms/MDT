@@ -1,9 +1,9 @@
-from mdt.components_config.compartment_models import CompartmentConfig
+from mdt.component_templates.compartment_models import CompartmentTemplate
 
 __author__ = 'Francisco.Lagos'
 
 
-class ExpT1DecGRE(CompartmentConfig):
+class ExpT1DecGRE(CompartmentTemplate):
 
     parameter_list = ('TR', 'flip_angle', 'b1_static', 'T1')
     cl_code = """

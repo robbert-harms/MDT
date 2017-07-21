@@ -1,7 +1,7 @@
-from mdt.components_config.composite_models import DMRICompositeModelConfig
+from mdt.component_templates.composite_models import DMRICompositeModelTemplate
 
 
-class SSFP_BallStick_r1_ExVivo(DMRICompositeModelConfig):
+class SSFP_BallStick_r1_ExVivo(DMRICompositeModelTemplate):
 
     name = 'SSFP_BallStick_r1-ExVivo'
     description = 'The SSFP Ball & Stick model'
@@ -16,7 +16,7 @@ class SSFP_BallStick_r1_ExVivo(DMRICompositeModelConfig):
     post_optimization_modifiers = [('FS', lambda results: 1 - results['w_ball.w'])]
 
 
-class SSFP_Tensor_ExVivo(DMRICompositeModelConfig):
+class SSFP_Tensor_ExVivo(DMRICompositeModelTemplate):
 
     name = 'SSFP_Tensor-ExVivo'
     description = 'The SSFP Tensor model with ex vivo defaults.'

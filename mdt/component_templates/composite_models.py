@@ -1,7 +1,8 @@
 from copy import deepcopy
 import numpy as np
 import six
-from mdt.components_loader import ComponentConfig, ComponentBuilder, method_binding_meta, get_component_class
+from mdt.components_loader import get_component_class
+from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate, register_builder
 from mdt.models.composite import DMRICompositeModel
 from mdt.models.parsers.CompositeModelExpressionParser import parse
 from mot.model_building.evaluation_models import EvaluationModel
@@ -14,7 +15,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class DMRICompositeModelConfig(ComponentConfig):
+class DMRICompositeModelTemplate(ComponentTemplate):
     """The cascade config to inherit from.
 
     These configs are loaded on the fly by the DMRICompositeModelBuilder
@@ -104,7 +105,7 @@ class DMRICompositeModelConfig(ComponentConfig):
 
     @classmethod
     def meta_info(cls):
-        meta_info = deepcopy(ComponentConfig.meta_info())
+        meta_info = deepcopy(ComponentTemplate.meta_info())
         meta_info.update({'name': cls.name,
                           'description': cls.description})
         return meta_info
@@ -116,10 +117,12 @@ class DMRICompositeModelBuilder(ComponentBuilder):
         """Creates classes with as base class DMRICompositeModel
 
         Args:
-            template (DMRICompositeModelConfig): the composite model config template
+            template (DMRICompositeModelTemplate): the composite model config template
                 to use for creating the class with the right init settings.
         """
         class AutoCreatedDMRICompositeModel(method_binding_meta(template, DMRICompositeModel)):
+
+            _template = deepcopy(template)
 
             def __init__(self):
                 super(AutoCreatedDMRICompositeModel, self).__init__(
@@ -265,3 +268,6 @@ def _get_model_post_optimization_modifiers(compartments):
                 modifiers.append(get_wrapped_modifier(compartment.name, map_names, modifier))
 
     return modifiers
+
+
+register_builder(DMRICompositeModelTemplate, DMRICompositeModelBuilder())

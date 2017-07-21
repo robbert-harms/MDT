@@ -4,8 +4,9 @@ from copy import deepcopy
 
 import six
 
-from mdt.components_loader import ParametersLoader, ComponentConfigMeta, ComponentConfig, ComponentBuilder, \
-    method_binding_meta
+from mdt.components_loader import ParametersLoader
+from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplateMeta, \
+    ComponentTemplate, register_builder
 from mdt.models.compartments import DMRICompartmentModelFunction
 from mot.model_building.model_function_priors import ModelFunctionPrior, SimpleModelFunctionPrior
 from mot.model_building.parameters import CurrentObservationParam
@@ -84,27 +85,27 @@ def _construct_cl_function_definition(return_type, cl_function_name, parameters)
                                                                    parameters=parameters_str)
 
 
-class CompartmentConfigMeta(ComponentConfigMeta):
+class CompartmentTemplateMeta(ComponentTemplateMeta):
 
     def __new__(mcs, name, bases, attributes):
         """Extends the default meta class with extra functionality for the compartments.
 
         This adds the cl_function_name if it is not defined, and creates the correct cl_code.
         """
-        result = super(CompartmentConfigMeta, mcs).__new__(mcs, name, bases, attributes)
+        result = super(CompartmentTemplateMeta, mcs).__new__(mcs, name, bases, attributes)
 
         if 'cl_function_name' not in attributes:
             result.cl_function_name = 'cm{}'.format(name)
 
         # to prevent the base from loading the initial meta class.
-        if any(isinstance(base, CompartmentConfigMeta) for base in bases):
+        if any(isinstance(base, CompartmentTemplateMeta) for base in bases):
             result.cl_code = mcs._get_cl_code(result, bases, attributes)
 
         return result
 
     @classmethod
     def _get_cl_code(mcs, result, bases, attributes):
-        return_type = CompartmentConfigMeta._resolve_attribute(bases, attributes, 'return_type') or 'double'
+        return_type = CompartmentTemplateMeta._resolve_attribute(bases, attributes, 'return_type') or 'double'
 
         if 'cl_code' in attributes and attributes['cl_code'] is not None:
             s = _construct_cl_function_definition(
@@ -132,7 +133,7 @@ class CompartmentConfigMeta(ComponentConfigMeta):
         raise ValueError('Attribute not found in this component config or its superclasses.')
 
 
-class CompartmentConfig(six.with_metaclass(CompartmentConfigMeta, ComponentConfig)):
+class CompartmentTemplate(six.with_metaclass(CompartmentTemplateMeta, ComponentTemplate)):
     """The compartment config to inherit from.
 
     These configs are loaded on the fly by the CompartmentBuilder.
@@ -195,10 +196,12 @@ class CompartmentBuilder(ComponentBuilder):
         """Creates classes with as base class CompartmentBuildingBase
 
         Args:
-            template (CompartmentConfig): the compartment config template to use for
+            template (CompartmentTemplate): the compartment config template to use for
                 creating the class with the right init settings.
         """
         class AutoCreatedDMRICompartmentModel(method_binding_meta(template, CompartmentBuildingBase)):
+
+            _template = deepcopy(template)
 
             def __init__(self, *args, **kwargs):
                 parameter_list = _get_parameters_list(template.parameter_list)
@@ -271,3 +274,6 @@ def _resolve_prior(prior, compartment_name, compartment_parameters):
 
     parameters = [p for p in compartment_parameters if p in prior]
     return SimpleModelFunctionPrior(prior, parameters, 'prior_' + compartment_name)
+
+
+register_builder(CompartmentTemplate, CompartmentBuilder())

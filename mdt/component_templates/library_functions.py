@@ -2,8 +2,8 @@ import inspect
 import os
 from copy import deepcopy
 import six
-from mdt.components_loader import ComponentConfigMeta, ComponentConfig, ComponentBuilder, \
-    method_binding_meta
+from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplateMeta, \
+    ComponentTemplate, register_builder
 from mot.cl_data_type import SimpleCLDataType
 from mot.library_functions import SimpleCLLibrary
 from mot.model_building.parameters import LibraryParameter
@@ -78,20 +78,20 @@ def _construct_cl_function_definition(return_type, cl_function_name, parameters)
                                                                    parameters=parameters_str)
 
 
-class LibraryFunctionConfigMeta(ComponentConfigMeta):
+class LibraryFunctionTemplateMeta(ComponentTemplateMeta):
 
     def __new__(mcs, name, bases, attributes):
         """Extends the default meta class with extra functionality for the library functions.
 
         This adds the cl_function_name if it is not defined, and creates the correct cl_code.
         """
-        result = super(LibraryFunctionConfigMeta, mcs).__new__(mcs, name, bases, attributes)
+        result = super(LibraryFunctionTemplateMeta, mcs).__new__(mcs, name, bases, attributes)
 
         if 'cl_function_name' not in attributes:
             result.cl_function_name = '{}'.format(name)
 
         # to prevent the base from loading the initial meta class.
-        if any(isinstance(base, LibraryFunctionConfigMeta) for base in bases):
+        if any(isinstance(base, LibraryFunctionTemplateMeta) for base in bases):
             result.cl_code = mcs._get_cl_code(result, bases, attributes)
 
         return result
@@ -126,7 +126,7 @@ class LibraryFunctionConfigMeta(ComponentConfigMeta):
         return ''
 
 
-class LibraryFunctionConfig(six.with_metaclass(LibraryFunctionConfigMeta, ComponentConfig)):
+class LibraryFunctionTemplate(six.with_metaclass(LibraryFunctionTemplateMeta, ComponentTemplate)):
     """The library function config to inherit from.
 
     These configs are loaded on the fly by the LibraryFunctionsBuilder.
@@ -170,10 +170,12 @@ class LibraryFunctionsBuilder(ComponentBuilder):
         """Creates classes with as base class LibraryFunctionsBase
 
         Args:
-            template (LibraryFunctionConfig): the library config template to use for creating
+            template (LibraryFunctionTemplate): the library config template to use for creating
                 the class with the right init settings.
         """
         class AutoCreatedLibraryFunction(method_binding_meta(template, LibraryFunctionBuildingBase)):
+
+            _template = deepcopy(template)
 
             def __init__(self, *args, **kwargs):
                 new_args = [template.cl_function_name,
@@ -217,3 +219,6 @@ def _resolve_dependencies(dependency_list):
             result.append(dependency)
 
     return result
+
+
+register_builder(LibraryFunctionTemplate, LibraryFunctionsBuilder())

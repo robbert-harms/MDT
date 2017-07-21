@@ -1,4 +1,4 @@
-from mdt.components_config.compartment_models import CompartmentConfig
+from mdt.component_templates.compartment_models import CompartmentTemplate
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -6,7 +6,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class ExpT2Dec(CompartmentConfig):
+class ExpT2Dec(CompartmentTemplate):
 
     parameter_list = ('TE', 'T2')
     cl_code = 'return exp(-TE / T2);'

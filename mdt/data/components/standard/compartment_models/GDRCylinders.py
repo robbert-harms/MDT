@@ -1,4 +1,4 @@
-from mdt.components_config.compartment_models import CompartmentConfig
+from mdt.component_templates.compartment_models import CompartmentTemplate
 from mdt.components_loader import CompartmentModelsLoader
 from mdt.utils import spherical_to_cartesian
 
@@ -8,7 +8,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class GDRCylinders(CompartmentConfig):
+class GDRCylinders(CompartmentTemplate):
 
     parameter_list = ('g', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'gamma_k', 'gamma_beta', 'gamma_nmr_cyl')
     dependency_list = (CompartmentModelsLoader().load('CylinderGPD'),)

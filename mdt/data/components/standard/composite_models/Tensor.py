@@ -1,4 +1,4 @@
-from mdt.components_config.composite_models import DMRICompositeModelConfig
+from mdt.component_templates.composite_models import DMRICompositeModelTemplate
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -6,7 +6,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class Tensor(DMRICompositeModelConfig):
+class Tensor(DMRICompositeModelTemplate):
 
     description = 'The standard Tensor model with in vivo defaults.'
     model_expression = '''

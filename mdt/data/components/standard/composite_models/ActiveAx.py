@@ -1,6 +1,6 @@
 import numpy as np
 
-from mdt.components_config.composite_models import DMRICompositeModelConfig
+from mdt.component_templates.composite_models import DMRICompositeModelTemplate
 
 __author__ = 'Robbert Harms'
 __date__ = '2017-07-19'
@@ -9,7 +9,7 @@ __email__ = 'robbert.harms@maastrichtuniversity.nl'
 __licence__ = 'LGPL v3'
 
 
-class ActiveAx(DMRICompositeModelConfig):
+class ActiveAx(DMRICompositeModelTemplate):
 
     description = '''
         The ActiveAx model for use in in-vivo measurements.
@@ -37,7 +37,7 @@ class ActiveAx(DMRICompositeModelConfig):
     ]
 
 
-class ActiveAx_ExVivo(DMRICompositeModelConfig):
+class ActiveAx_ExVivo(DMRICompositeModelTemplate):
 
     description = '''
         The ActiveAx model for use in ex-vivo measurements.

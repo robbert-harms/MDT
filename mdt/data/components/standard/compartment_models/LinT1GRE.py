@@ -1,4 +1,4 @@
-from mdt.components_config.compartment_models import CompartmentConfig
+from mdt.component_templates.compartment_models import CompartmentTemplate
 
 __author__ = 'Francisco.Lagos'
 
@@ -15,7 +15,7 @@ Also, DATA HAS TO BE PROCESSED BEFORE TO USE THIS EQUATION. Please apply log() o
 """
 
 
-class LinT1GRE(CompartmentConfig):
+class LinT1GRE(CompartmentTemplate):
 
     parameter_list = ('Sw_static', 'E1')
     #cl_code = """

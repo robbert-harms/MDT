@@ -7,7 +7,7 @@ Please choose the parameter type for a model and parameter carefully since the t
 its data are handled during model construction.
 
 """
-from mdt.components_config.parameters import StaticMapParameterConfig
+from mdt.component_templates.parameters import StaticMapParameterTemplate
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-02-14"
@@ -15,19 +15,19 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class b1_static(StaticMapParameterConfig):
+class b1_static(StaticMapParameterTemplate):
 
     data_type = 'mot_float_type'
     value = 1
 
 
-class fa_static(StaticMapParameterConfig):
+class fa_static(StaticMapParameterTemplate):
 
     data_type = 'mot_float_type'
     value = 1
 
 
-class Sw_static(StaticMapParameterConfig):
+class Sw_static(StaticMapParameterTemplate):
     """This parameter is created only for linear T1 decay fitting of GRE data with variable flip angle.
 
     S_weighted is defined as the input data divided by the
@@ -38,16 +38,16 @@ class Sw_static(StaticMapParameterConfig):
     value = 1
 
 
-class T1_static(StaticMapParameterConfig):
+class T1_static(StaticMapParameterTemplate):
 
     data_type = 'mot_float_type'
 
 
-class T2_static(StaticMapParameterConfig):
+class T2_static(StaticMapParameterTemplate):
 
     data_type = 'mot_float_type'
 
 
-class T2s_static(StaticMapParameterConfig):
+class T2s_static(StaticMapParameterTemplate):
 
     data_type = 'mot_float_type'

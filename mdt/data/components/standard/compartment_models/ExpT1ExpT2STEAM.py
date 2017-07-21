@@ -1,4 +1,4 @@
-from mdt.components_config.compartment_models import CompartmentConfig
+from mdt.component_templates.compartment_models import CompartmentTemplate
 
 __author__ = 'Francisco.Lagos'
 
@@ -6,7 +6,7 @@ __author__ = 'Francisco.Lagos'
 # which returns to the standard SE signal decay
 
 
-class ExpT1ExpT2STEAM(CompartmentConfig):
+class ExpT1ExpT2STEAM(CompartmentTemplate):
     """Generalised STEAM equation.
 
     From protocol, if the signal is SE, we can setup TM = 0 in all the volumes,

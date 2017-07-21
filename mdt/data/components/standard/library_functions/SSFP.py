@@ -1,4 +1,4 @@
-from mdt.components_config.library_functions import LibraryFunctionConfig
+from mdt.component_templates.library_functions import LibraryFunctionTemplate
 
 
 __author__ = 'Robbert Harms'
@@ -7,7 +7,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class SSFP(LibraryFunctionConfig):
+class SSFP(LibraryFunctionTemplate):
 
     description = '''
         Implementation of the SSFP signal attenuation.

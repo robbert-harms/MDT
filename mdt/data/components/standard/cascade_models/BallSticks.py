@@ -1,4 +1,4 @@
-from mdt.components_config.cascade_models import CascadeConfig
+from mdt.component_templates.cascade_models import CascadeTemplate
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -6,7 +6,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class BallStick_r1(CascadeConfig):
+class BallStick_r1(CascadeTemplate):
 
     name = 'BallStick_r1 (Cascade)'
     description = 'Cascade for Ballstick'
@@ -14,7 +14,7 @@ class BallStick_r1(CascadeConfig):
               'BallStick_r1')
 
 
-class BallStick_r2(CascadeConfig):
+class BallStick_r2(CascadeTemplate):
 
     name = 'BallStick_r2 (Cascade)'
     description = 'Cascade for BallStick_r2.'
@@ -25,7 +25,7 @@ class BallStick_r2(CascadeConfig):
                               ('w_stick0.w', 'w_stick.w'),
                               ('w_stick1.w', 0.0)]}
 
-class BallStick_r3(CascadeConfig):
+class BallStick_r3(CascadeTemplate):
 
     name = 'BallStick_r3 (Cascade)'
     description = 'Cascade for BallStick_r3.'

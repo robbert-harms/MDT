@@ -1,4 +1,4 @@
-from mdt.components_config.compartment_models import CompartmentConfig
+from mdt.component_templates.compartment_models import CompartmentTemplate
 from mdt.utils import spherical_to_cartesian
 
 __author__ = 'Robbert Harms'
@@ -7,7 +7,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class CylinderGPD(CompartmentConfig):
+class CylinderGPD(CompartmentTemplate):
 
     parameter_list = ('g', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'R')
     dependency_list = ('MRIConstants',

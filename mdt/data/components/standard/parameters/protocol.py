@@ -7,7 +7,7 @@ Please choose the parameter type for a model and parameter carefully since the t
 its data are handled during model construction.
 
 """
-from mdt.components_config.parameters import ProtocolParameterConfig
+from mdt.component_templates.parameters import ProtocolParameterTemplate
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-12-12"
@@ -15,55 +15,55 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class g(ProtocolParameterConfig):
+class g(ProtocolParameterTemplate):
     data_type = 'mot_float_type4'
 
 
-class b(ProtocolParameterConfig):
+class b(ProtocolParameterTemplate):
     pass
 
 
-class G(ProtocolParameterConfig):
+class G(ProtocolParameterTemplate):
     pass
 
 
-class Delta(ProtocolParameterConfig):
+class Delta(ProtocolParameterTemplate):
     pass
 
 
-class delta(ProtocolParameterConfig):
+class delta(ProtocolParameterTemplate):
     pass
 
 
-class TE(ProtocolParameterConfig):
+class TE(ProtocolParameterTemplate):
     pass
 
 
-class TM(ProtocolParameterConfig):
+class TM(ProtocolParameterTemplate):
     pass
 
 
-class Ti(ProtocolParameterConfig):
+class Ti(ProtocolParameterTemplate):
     pass
 
 
-class TR(ProtocolParameterConfig):
+class TR(ProtocolParameterTemplate):
     pass
 
 
-class flip_angle(ProtocolParameterConfig):
+class flip_angle(ProtocolParameterTemplate):
     pass
 
 # For STEAM/TSE sequences, depending on the model in which they are used.
-class Refoc_fa1(ProtocolParameterConfig):
-    pass
-
-
-# For STEAM/TSE sequences, depending on the model in which they are used.
-class Refoc_fa2(ProtocolParameterConfig):
+class Refoc_fa1(ProtocolParameterTemplate):
     pass
 
 
 # For STEAM/TSE sequences, depending on the model in which they are used.
-class SEf(ProtocolParameterConfig):
+class Refoc_fa2(ProtocolParameterTemplate):
+    pass
+
+
+# For STEAM/TSE sequences, depending on the model in which they are used.
+class SEf(ProtocolParameterTemplate):
     pass

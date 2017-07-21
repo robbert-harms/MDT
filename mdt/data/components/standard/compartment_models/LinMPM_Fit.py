@@ -1,4 +1,4 @@
-from mdt.components_config.compartment_models import CompartmentConfig
+from mdt.component_templates.compartment_models import CompartmentTemplate
 
 __author__ = 'Francisco.Lagos'
 
@@ -11,7 +11,7 @@ in this data.
 """
 
 
-class LinMPM_Fit(CompartmentConfig):
+class LinMPM_Fit(CompartmentTemplate):
 
     parameter_list = ('TR', 'flip_angle', 'b1_static', 'T1')
     cl_code = 'return log(flip_angle * b1_static) + log(TR / T1) - log( pown(flip_angle * b1_static, 2) / 2 + ( TR / T1 ) ) ;'

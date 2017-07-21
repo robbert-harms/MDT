@@ -1,9 +1,8 @@
 from copy import deepcopy
-
 import six
-
 import mdt
-from mdt.components_loader import ComponentConfig, bind_function, get_meta_info, ComponentBuilder, method_binding_meta
+from mdt.component_templates.base import ComponentBuilder, bind_function, method_binding_meta, ComponentTemplate, \
+    register_builder
 from mdt.models.cascade import SimpleCascadeModel
 
 __author__ = 'Robbert Harms'
@@ -12,7 +11,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class CascadeConfig(ComponentConfig):
+class CascadeTemplate(ComponentTemplate):
     """The cascade config to inherit from.
 
     These configs are loaded on the fly by the CascadeBuilder.
@@ -95,7 +94,7 @@ class CascadeConfig(ComponentConfig):
 
     @classmethod
     def meta_info(cls):
-        meta_info = deepcopy(ComponentConfig.meta_info())
+        meta_info = deepcopy(ComponentTemplate.meta_info())
         meta_info.update({'name': cls.name,
                           'description': cls.description})
         return meta_info
@@ -107,10 +106,12 @@ class CascadeBuilder(ComponentBuilder):
         """Creates classes with as base class SimpleCascadeModel
 
         Args:
-            template (CascadeConfig): the cascade config template to use for creating the class with the right init
+            template (CascadeTemplate): the cascade config template to use for creating the class with the right init
                 settings.
         """
         class AutoCreatedCascadeModel(method_binding_meta(template, SimpleCascadeModel)):
+
+            _template = deepcopy(template)
 
             def __init__(self, *args):
                 new_args = [deepcopy(template.name),
@@ -144,3 +145,6 @@ class CascadeBuilder(ComponentBuilder):
                 self._prepare_model_cb(model, output_previous, output_all_previous)
 
         return AutoCreatedCascadeModel
+
+
+register_builder(CascadeTemplate, CascadeBuilder())

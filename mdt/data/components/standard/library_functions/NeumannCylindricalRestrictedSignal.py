@@ -1,4 +1,4 @@
-from mdt.components_config.library_functions import LibraryFunctionConfig
+from mdt.component_templates.library_functions import LibraryFunctionTemplate
 
 
 __author__ = 'Robbert Harms'
@@ -7,7 +7,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class NeumannCylindricalRestrictedSignal(LibraryFunctionConfig):
+class NeumannCylindricalRestrictedSignal(LibraryFunctionTemplate):
 
     description = '''
         This function returns the displacement in the restricted signal attenuation for Radius R 
@@ -24,11 +24,11 @@ class NeumannCylindricalRestrictedSignal(LibraryFunctionConfig):
         }
 
         const mot_float_type cl_jnp_zeros[] = {
-            1.8411837813406593, 5.3314427735250325, 8.536316366346286, 11.706004902592063, 
-            14.863588633909032, 18.015527862681804, 21.16436985918879, 24.311326857210776, 
+            1.8411837813406593, 5.3314427735250325, 8.536316366346286,  11.706004902592063, 
+            14.863588633909032, 18.015527862681804, 21.16436985918879,  24.311326857210776, 
             27.457050571059245, 30.601922972669094, 33.746182898667385, 36.88998740923681, 
-            40.03344405335068, 43.17662896544882, 46.319597561173914, 49.46239113970275, 
-            52.60504111155669, 55.74757179225101, 58.8900022991857, 62.03234787066199
+            40.03344405335068,  43.17662896544882,  46.319597561173914, 49.46239113970275, 
+            52.60504111155669,  55.74757179225101,  58.8900022991857,   62.03234787066199
         };
         const int cl_jnp_zeros_length = 20;
 

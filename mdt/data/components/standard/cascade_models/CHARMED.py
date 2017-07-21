@@ -1,4 +1,4 @@
-from mdt.components_config.cascade_models import CascadeConfig
+from mdt.component_templates.cascade_models import CascadeTemplate
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -6,7 +6,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class CHARMED1(CascadeConfig):
+class CHARMED1(CascadeTemplate):
 
     name = 'CHARMED_r1 (Cascade)'
     description = 'Initializes the directions to Ball & Stick.'
@@ -19,7 +19,7 @@ class CHARMED1(CascadeConfig):
                             ('w_res0.w', 'w_stick.w')]}
 
 
-class CHARMEDR1Fixed(CascadeConfig):
+class CHARMEDR1Fixed(CascadeTemplate):
 
     name = 'CHARMED_r1 (Cascade|fixed)'
     description = 'Fixes the directions to Ball & Stick.'
@@ -32,7 +32,7 @@ class CHARMEDR1Fixed(CascadeConfig):
                             ('CHARMEDRestricted0.phi', 'Stick.phi')]}
 
 
-class CHARMEDR2(CascadeConfig):
+class CHARMEDR2(CascadeTemplate):
 
     name = 'CHARMED_r2 (Cascade)'
     description = 'Initializes the directions to 2x Ball & Stick.'
@@ -48,7 +48,7 @@ class CHARMEDR2(CascadeConfig):
                             ('w_res1.w', 'w_stick1.w')]}
 
 
-class CHARMEDR2Fixed(CascadeConfig):
+class CHARMEDR2Fixed(CascadeTemplate):
 
     name = 'CHARMED_r2 (Cascade|fixed)'
     description = 'Fixes the directions to 2x Ball & Stick.'
@@ -65,7 +65,7 @@ class CHARMEDR2Fixed(CascadeConfig):
                             ]}
 
 
-class CHARMED_r3(CascadeConfig):
+class CHARMED_r3(CascadeTemplate):
 
     name = 'CHARMED_r3 (Cascade)'
     description = 'Initializes the directions to 3x Ball & Stick.'
@@ -85,7 +85,7 @@ class CHARMED_r3(CascadeConfig):
                             ]}
 
 
-class CHARMED_r3_Fixed(CascadeConfig):
+class CHARMED_r3_Fixed(CascadeTemplate):
 
     name = 'CHARMED_r3 (Cascade|fixed)'
     description = 'Fixes the directions to 3x Ball & Stick.'

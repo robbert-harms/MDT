@@ -1,4 +1,4 @@
-from mdt.components_config.compartment_models import CompartmentConfig
+from mdt.component_templates.compartment_models import CompartmentTemplate
 
 __author__ = 'Francisco J. Fritz'
 __date__ = "2016-09-06"
@@ -6,7 +6,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class ExpT1DecTM(CompartmentConfig):
+class ExpT1DecTM(CompartmentTemplate):
 
     parameter_list = ('SEf', 'TR', 'TM', 'TE', 'flip_angle', 'excitation_b1_map', 'Refoc_fa1', 'refocusing1_b1_map', 'Refoc_fa2', 'refocusing2_b1_map', 'b', 'T1', 'd_exvivo')
     cl_code = """
