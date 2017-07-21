@@ -13,5 +13,5 @@ in this data.
 
 class MPM_Fit(CompartmentTemplate):
 
-    parameter_list = ('TR', 'flip_angle', 'b1_static', 'T1')
-    cl_code = 'return (flip_angle * b1_static) * ( (TR / T1) / ( pown(flip_angle * b1_static, 2) / 2 + ( TR / T1 ) ) );'
+    parameter_list = ('TR', 'flip_angle', 'excitation_b1_map', 'T1')
+    cl_code = 'return (flip_angle * excitation_b1_map) * ( (TR / T1) / ( pown(flip_angle * excitation_b1_map, 2) / 2 + ( TR / T1 ) ) );'

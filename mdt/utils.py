@@ -153,7 +153,6 @@ class DMRIProblemData(AbstractProblemData):
 
         return self.copy_with_updates(new_protocol, new_dwi_volume)
 
-
     def get_nmr_inst_per_problem(self):
         return self._protocol.length
 
