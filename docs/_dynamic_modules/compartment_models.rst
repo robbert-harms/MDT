@@ -46,8 +46,8 @@ It is also possible to provide a nickname for a parameter by stating something l
     parameter_list = ('my_theta(theta)', ...)
 
 Here, the parameter ``my_theta`` is loaded with the nickname ``theta``.
-This allows you to experiment with different parameters with different behaviour while still using the same (external) name.
-This prevents a rename in all locations where this parameter is used (for example, inside the model equation, inside the composite model, inside cascade models, etc.).
+This allows you to use simpler names for the parameters of a compartment and allows you to swap a parameter for a different type while still using the same (external) name.
+Without it, the name of the parameter should be updated in all referenced locations, like for example inside the model equation, inside the composite model, inside cascade models, etc.
 
 
 Splitting the CL and Python file
