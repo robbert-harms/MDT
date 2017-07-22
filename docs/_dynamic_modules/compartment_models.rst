@@ -41,6 +41,13 @@ or it can be a direct instance of a parameter. For example, this is also a valid
 
 
 where the parameters ``g`` and ``b`` are loaded from the dynamically loadable parameters while the ``special_param`` is given as a parameter instance.
+It is also possible to provide a nickname for a parameter by stating something like::
+
+    parameter_list = ('my_theta(theta)', ...)
+
+Here, the parameter ``my_theta`` is loaded with the nickname ``theta``.
+This allows you to experiment with different parameters with different behaviour while still using the same (external) name.
+This prevents a rename in all locations where this parameter is used (for example, inside the model equation, inside the composite model, inside cascade models, etc.).
 
 
 Splitting the CL and Python file

@@ -21,8 +21,10 @@ def _get_parameters_list(parameter_list):
     """Convert all the parameters in the given parameter list to actual parameter objects.
 
     Args:
-        parameter_list (list): a list containing a mix of either parameter objects or strings. If it is a parameter
-            we add a copy of it to the return list. If it is a string we will autoload it.
+        parameter_list (list): a list containing a mix of either parameter objects, strings or tuples. If it is a
+            parameter we add a copy of it to the return list. If it is a string we will autoload it, if it is a tuple
+            it should be a tuple (<parameter>, <nick_name>) specifying the nick name for that parameter in this
+            compartment.
 
     Returns:
         list: the list of actual parameter objects
@@ -35,7 +37,13 @@ def _get_parameters_list(parameter_list):
             if item == '_observation':
                 parameters.append(CurrentObservationParam())
             else:
-                parameters.append(parameters_loader.load(item))
+                if '(' in item:
+                    param_name = item[:item.index('(')].strip()
+                    nickname = item[item.index('(')+1:item.index(')')].strip()
+                else:
+                    param_name = item
+                    nickname = None
+                parameters.append(parameters_loader.load(param_name, nickname=nickname))
         else:
             parameters.append(deepcopy(item))
     return parameters

@@ -30,7 +30,6 @@ class ParameterTemplate(ComponentTemplate):
     name = ''
     description = ''
     data_type = 'mot_float_type'
-    type = None
 
 
 class ProtocolParameterTemplate(ParameterTemplate):
@@ -38,7 +37,6 @@ class ProtocolParameterTemplate(ParameterTemplate):
 
     This sets the attribute type to protocol.
     """
-    type = 'protocol'
     data_type = 'mot_float_type'
 
 
@@ -58,7 +56,6 @@ class FreeParameterTemplate(ParameterTemplate):
         sampling_prior: the prior function
         sampling_statistics: the sampling statistic, used after the sampling
     """
-    type = 'free'
     data_type = 'mot_float_type'
     fixed = False
     init_value = 0.03
@@ -75,7 +72,6 @@ class ModelDataParameterTemplate(ParameterTemplate):
 
     This sets the attribute type to model_data.
     """
-    type = 'model_data'
     value = None
 
 
@@ -84,7 +80,6 @@ class StaticMapParameterTemplate(ParameterTemplate):
 
     This sets the attribute type to static_map.
     """
-    type = 'static_map'
     value = None
 
 
@@ -94,26 +89,28 @@ class ParameterBuilder(ComponentBuilder):
         """Creates classes with as base class DMRICompositeModel
 
         Args:
-            template (ParameterTemplate): the configuration for the parameter.
+            template (Type[ParameterTemplate]): the configuration for the parameter.
         """
         data_type = template.data_type
         if isinstance(data_type, six.string_types):
             data_type = SimpleCLDataType.from_string(data_type)
 
-        if template.type.lower() == 'protocol':
+        if issubclass(template, ProtocolParameterTemplate):
             class AutoProtocolParameter(method_binding_meta(template, ProtocolParameter)):
                 _template = deepcopy(template)
-                def __init__(self):
-                    super(AutoProtocolParameter, self).__init__(data_type, template.name)
+
+                def __init__(self, nickname=None):
+                    super(AutoProtocolParameter, self).__init__(data_type, nickname or template.name)
             return AutoProtocolParameter
 
-        elif template.type.lower() == 'free':
+        elif issubclass(template, FreeParameterTemplate):
             class AutoFreeParameter(method_binding_meta(template, FreeParameter)):
                 _template = deepcopy(template)
-                def __init__(self):
+
+                def __init__(self, nickname=None):
                     super(AutoFreeParameter, self).__init__(
                         data_type,
-                        template.name,
+                        nickname or template.name,
                         template.fixed,
                         template.init_value,
                         template.lower_bound,
@@ -125,18 +122,20 @@ class ParameterBuilder(ComponentBuilder):
                     )
             return AutoFreeParameter
 
-        elif template.type.lower() == 'model_data':
+        elif issubclass(template, ModelDataParameterTemplate):
             class AutoModelDataParameter(method_binding_meta(template, ModelDataParameter)):
                 _template = deepcopy(template)
-                def __init__(self):
-                    super(AutoModelDataParameter, self).__init__(data_type, template.name, template.value)
+
+                def __init__(self, nickname=None):
+                    super(AutoModelDataParameter, self).__init__(data_type, nickname or template.name, template.value)
             return AutoModelDataParameter
 
-        elif template.type.lower() == 'static_map':
+        elif issubclass(template, StaticMapParameterTemplate):
             class AutoStaticMapParameter(method_binding_meta(template, StaticMapParameter)):
                 _template = deepcopy(template)
-                def __init__(self):
-                    super(AutoStaticMapParameter, self).__init__(data_type, template.name, template.value)
+
+                def __init__(self, nickname=None):
+                    super(AutoStaticMapParameter, self).__init__(data_type, nickname or template.name, template.value)
             return AutoStaticMapParameter
 
 
