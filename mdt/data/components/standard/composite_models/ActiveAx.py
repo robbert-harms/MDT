@@ -68,3 +68,21 @@ class ActiveAx_ExVivo(DMRICompositeModelTemplate):
         ('AxonDensityIndex', lambda d: (4 * (d['w_ic.w'] / (d['w_ec.w'] + d['w_ic.w'])))
                                         / (np.pi * (2 * d['CylinderGPD.R'])**2)),
     ]
+
+
+class TimeDependentActiveAx(DMRICompositeModelTemplate):
+
+    description = 'Fits the extra-axonal time dependent ActiveAx model (De Santis 2016).'
+    model_expression = '''
+        S0 * ExpT1DecTM_simple * ( (Weight(w_ic) * CylinderGPD) + 
+                                   (Weight(w_ec) * TimeDependentZeppelin)
+                                  )
+    '''
+    fixes = {'TimeDependentZeppelin.d': 'CylinderGPD.d',
+             'TimeDependentZeppelin.theta': 'CylinderGPD.theta',
+             'TimeDependentZeppelin.phi': 'CylinderGPD.phi',
+             }
+    post_optimization_modifiers = [
+        ('AxonDensityIndex', lambda d: (4 * (d['w_ic.w'] / (d['w_ec.w'] + d['w_ic.w'])))
+                                        / (np.pi * (2 * d['CylinderGPD.R']) ** 2)),
+    ]
