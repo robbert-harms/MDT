@@ -105,6 +105,17 @@ class ComponentTemplateMeta(type):
 
         return result
 
+    @staticmethod
+    def _resolve_attribute(bases, attributes, attribute_name):
+        """Search for the given attribute in the given attributes or in the attributes of the bases."""
+        if attribute_name in attributes:
+            return attributes[attribute_name]
+        for base in bases:
+            if hasattr(base, attribute_name):
+                return getattr(base, attribute_name)
+        raise ValueError('Attribute not found in this component config or its superclasses.')
+
+
 
 class ComponentTemplate(with_metaclass(ComponentTemplateMeta, object)):
     """The component configuration.

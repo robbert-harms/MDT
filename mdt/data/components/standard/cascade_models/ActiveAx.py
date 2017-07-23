@@ -9,7 +9,6 @@ __licence__ = 'LGPL v3'
 
 class ActiveAx_ExVivo(CascadeTemplate):
 
-    name = 'ActiveAx_ExVivo (Cascade)'
     description = 'Initializes the directions to Ball & Stick.'
     models = ('BallStick_r1 (Cascade)',
               'ActiveAx_ExVivo')

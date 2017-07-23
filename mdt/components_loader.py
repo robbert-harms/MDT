@@ -372,7 +372,7 @@ class AutomaticCascadeSource(ComponentsSource):
     def get_class(self, name):
         available_models = self.list()
         if name in available_models:
-            return self._generate_cascade(name)
+            return construct_component(self._generate_cascade(name))
 
         raise ImportError
 
@@ -380,7 +380,8 @@ class AutomaticCascadeSource(ComponentsSource):
         return True
 
     def get_meta_info(self, name):
-        return {}
+        template = self._generate_cascade(name)
+        return template.meta_info()
 
     def _get_missing_s0_cascades(self, models, cascades):
         """Get the list of cascade model names that are missing from the list of cascades.
@@ -411,11 +412,11 @@ class AutomaticCascadeSource(ComponentsSource):
 
         if '(Cascade|S0)' in cascaded_name:
             class template(CascadeTemplate):
-                name = cascaded_name
+                cascade_name_modifier = 'S0'
                 description = 'Automatically generated cascade.'
                 models = ('S0',
                           cascaded_name[0:-len('(Cascade|S0)')].strip())
-            return construct_component(template)
+            return template
 
         raise ImportError
 

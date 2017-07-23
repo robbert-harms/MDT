@@ -17,6 +17,8 @@ from mdt.gui.utils import function_message_decorator, image_files_filters, proto
 from mdt.utils import split_image_path
 from mot.cl_environments import CLEnvironmentFactory
 from mot.factory import get_optimizer_by_name
+from mdt.components_loader import CascadeModelsLoader
+
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-06-27"
@@ -51,8 +53,15 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
         self.optimizationOptionsButton.clicked.connect(self._run_optimization_options_dialog)
         self.additionalDataButton.clicked.connect(self._extra_data_dialog)
 
-        self.modelSelection.addItems(list(sorted(mdt.get_models_list())))
-        self.modelSelection.setCurrentText('BallStick_r1 (Cascade)')
+        self.cascadedFitButtonGroup.buttonClicked.connect(self._update_cascade_selection_possible)
+
+        self.modelSelection.addItems(list(sorted(mdt.get_list_of_composite_models())))
+        self.modelSelection.currentIndexChanged.connect(self._update_cascade_selection)
+        initial_model = 'BallStick_r1'
+
+        self.modelSelection.setCurrentText(initial_model)
+        self._update_cascade_selection()
+        self.cascadeSelection.setCurrentText('Cascade')
 
         if self._problem_data_info.dwi:
             self.selectedDWI.setText(self._problem_data_info.dwi)
@@ -63,6 +72,35 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
 
         self.update_output_folder_text()
         self._check_enable_action_buttons()
+
+    def _update_cascade_selection_possible(self):
+        self.cascadeSelection.setDisabled(self.noCascades.isChecked())
+
+    def _update_cascade_selection(self):
+        composite_model_name = self.modelSelection.currentText()
+        loader = CascadeModelsLoader()
+        cascade_models = mdt.get_list_of_cascade_models(composite_model_name)
+
+        previous_cascade_selection = self.cascadeSelection.currentText()
+
+        cascade_type_names = [loader.get_meta_info(model)['cascade_type_name'] for model in cascade_models]
+
+        self.cascadeSelection.clear()
+        self.cascadeSelection.addItems(cascade_type_names)
+
+        if previous_cascade_selection in cascade_type_names:
+            self.cascadeSelection.setCurrentText(previous_cascade_selection)
+        elif 'Cascade' in cascade_type_names:
+            self.cascadeSelection.setCurrentText('Cascade')
+
+        if not cascade_type_names:
+            self.noCascades.setChecked(True)
+            self._update_cascade_selection_possible()
+            self.useCascades.setDisabled(True)
+        else:
+            self.useCascades.setEnabled(True)
+            self.useCascades.setChecked(True)
+            self._update_cascade_selection_possible()
 
     def _select_dwi(self):
         initial_dir = self._shared_state.base_dir
@@ -146,9 +184,15 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
         if return_value:
             dialog.write_config()
 
+    def _get_current_model_name(self):
+        model_name = self.modelSelection.currentText()
+        if self.useCascades.isChecked():
+            model_name += ' ({})'.format(self.cascadeSelection.currentText())
+        return model_name
+
     @pyqtSlot()
     def run_model(self):
-        model = mdt.get_model(self.modelSelection.currentText())
+        model = mdt.get_model(self._get_current_model_name())
         protocol = mdt.load_protocol(self._problem_data_info.protocol)
 
         if not model.is_protocol_sufficient(protocol):
@@ -180,14 +224,14 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
 
         image_path = split_image_path(self._problem_data_info.dwi)
         script_basename = os.path.join(image_path[0], 'scripts',
-                                       'fit_model_{}_{}'.format(self.modelSelection.currentText().replace('|', '.'),
+                                       'fit_model_{}_{}'.format(self._get_current_model_name().replace('|', '.'),
                                                                 image_path[1]))
         if not os.path.isdir(os.path.join(image_path[0], 'scripts')):
             os.makedirs(os.path.join(image_path[0], 'scripts'))
 
         script_info = dict(optim_options=self._optim_options,
                            problem_data_info=self._problem_data_info,
-                           model=self.modelSelection.currentText(),
+                           model=self._get_current_model_name(),
                            output_folder=self.selectedOutputFolder.text(),
                            recalculate=True,
                            double_precision=self._optim_options.double_precision,
@@ -204,7 +248,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
 
     def _get_full_model_output_path(self):
         parts = [self.selectedOutputFolder.text()]
-        parts.append(self.modelSelection.currentText().split(' ')[0])
+        parts.append(self._get_current_model_name().split(' ')[0])
         return os.path.join(*parts)
 
     def _write_python_script_file(self, output_file, **kwargs):

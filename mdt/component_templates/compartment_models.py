@@ -113,7 +113,7 @@ class CompartmentTemplateMeta(ComponentTemplateMeta):
 
     @classmethod
     def _get_cl_code(mcs, result, bases, attributes):
-        return_type = CompartmentTemplateMeta._resolve_attribute(bases, attributes, 'return_type') or 'double'
+        return_type = ComponentTemplateMeta._resolve_attribute(bases, attributes, 'return_type') or 'double'
 
         if 'cl_code' in attributes and attributes['cl_code'] is not None:
             s = _construct_cl_function_definition(
@@ -130,15 +130,6 @@ class CompartmentTemplateMeta(ComponentTemplateMeta):
         for base in bases:
             if hasattr(base, 'cl_code') and base.cl_code is not None:
                 return base.cl_code
-
-    @staticmethod
-    def _resolve_attribute(bases, attributes, attribute_name):
-        if attribute_name in attributes:
-            return attributes[attribute_name]
-        for base in bases:
-            if hasattr(base, attribute_name):
-                return getattr(base, attribute_name)
-        raise ValueError('Attribute not found in this component config or its superclasses.')
 
 
 class CompartmentTemplate(six.with_metaclass(CompartmentTemplateMeta, ComponentTemplate)):

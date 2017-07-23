@@ -6,18 +6,39 @@ Cascade models
 Cascade models are meant to make chained optimization procedures explicit.
 For example, complex models like CHARMED and NODDI are optimized better if the optimization routine is initialized at a better starting point (Harms 2017).
 This could be as simple as initializing the model with the height of the unweighted signal, or be as complex as initializing the fibre directions and volume fractions.
-To create a new cascade model, you will need to specify, at a minimum, the ``name`` and the ``models`` attributes:
+To create a new cascade model, you will need to specify, at a minimum, the ``models`` attribute:
 
 .. code-block:: python
 
     class CHARMED_r3(CascadeConfig):
 
-        name = 'CHARMED_r3 (Cascade)'
         models = ('BallStick_r3 (Cascade)',
                   'CHARMED_r3')
 
 
 In this example we create a cascade going from a (cascaded) BallStick_r3 model to a CHARMED_r3 model.
+
+
+Cascade naming
+==============
+All cascade models are automatically named after the last model in the cascade, appended with ``(Cascade)``.
+So, in the example above, the cascade model would be named ``CHARMED_r3 (Cascade)``.
+If you wish to indicate that your cascade is of a special type you can use the attribute ``cascade_name_modifier`` to specify this.
+For example, if we update our ``CHARMED_r3`` cascade to read:
+
+
+.. code-block:: python
+
+    class CHARMED_r3(CascadeConfig):
+
+        cascade_name_modifier = 'fixed'
+        models = ('BallStick_r3 (Cascade)',
+                  'CHARMED_r3')
+
+
+then the cascade will be named ``CHARMED_r3 (Cascade|fixed)`` instead.
+That is, if a name modifier is given we add ``|<modifier>`` to the ``(Cascade)`` postfix.
+
 
 
 Parameter initializations
