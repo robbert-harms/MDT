@@ -26,8 +26,8 @@ class ActiveAx(DMRICompositeModelTemplate):
         'w_csf.w': 0.01
     }
     fixes = {'CylinderGPD.d': 1.7e-9,
-             'Zeppelin.d': 1.7e-9,
              'Ball.d': 3.0e-9,
+             'Zeppelin.d': 'CylinderGPD.d',
              'Zeppelin.dperp0': 'Zeppelin.d * (w_ec.w / (w_ec.w + w_ic.w))',
              'Zeppelin.theta': 'CylinderGPD.theta',
              'Zeppelin.phi': 'CylinderGPD.phi'}
@@ -58,8 +58,8 @@ class ActiveAx_ExVivo(DMRICompositeModelTemplate):
     }
     fixes = {
         'CylinderGPD.d': 0.6e-9,
-        'Zeppelin.d': 0.6e-9,
         'Ball.d': 2.0e-9,
+        'Zeppelin.d': 'CylinderGPD.d',
         'Zeppelin.dperp0': 'Zeppelin.d * (w_ec.w / (w_ec.w + w_ic.w))',
         'Zeppelin.theta': 'CylinderGPD.theta',
         'Zeppelin.phi': 'CylinderGPD.phi'
