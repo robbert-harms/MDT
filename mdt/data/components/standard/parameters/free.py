@@ -210,6 +210,7 @@ class gamma_nmr_cyl(FreeParameterTemplate):
     parameter_transform = SinSqrClampTransform()
     sampling_proposal = GaussianProposal(1)
 
+
 # for use in ExpT1DecSTEAM model. It is assumed for ex-vivo values. For in-vivo use d instead.
 class d_exvivo(FreeParameterTemplate):
 

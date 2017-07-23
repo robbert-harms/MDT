@@ -10,7 +10,7 @@
  * Generate the compartment model signal for the NODDI Extra Cellular compartment
  * @params g from the protocol /scheme
  * @params b from the protocol / scheme
- * @params d parameter
+ * @params d parameter (parallel diffusivity)
  * @params theta parameter
  * @params phi parameter
  * @params dperp parameter (hindered diffusivity outside the cylinders in perpendicular directions)
