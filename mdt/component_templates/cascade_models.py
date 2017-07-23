@@ -2,7 +2,7 @@ from copy import deepcopy
 import six
 import mdt
 from mdt.component_templates.base import ComponentBuilder, bind_function, method_binding_meta, ComponentTemplate, \
-    register_builder
+    register_builder, ComponentTemplateMeta
 from mdt.models.cascade import SimpleCascadeModel
 
 __author__ = 'Robbert Harms'
@@ -11,13 +11,37 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class CascadeTemplate(ComponentTemplate):
+class CascadeTemplateMeta(ComponentTemplateMeta):
+
+    def __new__(mcs, name, bases, attributes):
+        name_attribute = ComponentTemplateMeta._resolve_attribute(bases, attributes, 'name')
+
+        result = super(CascadeTemplateMeta, mcs).__new__(mcs, name, bases, attributes)
+
+        if name != 'CascadeTemplate':
+            if name_attribute is None:
+                if attributes['models']:
+                    name_attribute = attributes['models'][-1]
+
+                name_modifier = ComponentTemplateMeta._resolve_attribute(bases, attributes, 'cascade_name_modifier')
+                if name_modifier:
+                    result.name = '{} (Cascade|{})'.format(name_attribute, name_modifier)
+                else:
+                    result.name = '{} (Cascade)'.format(name_attribute)
+        return result
+
+
+class CascadeTemplate(six.with_metaclass(CascadeTemplateMeta, ComponentTemplate)):
     """The cascade config to inherit from.
 
     These configs are loaded on the fly by the CascadeBuilder.
 
     Attributes:
-        name (str): the name of this cascade
+        name (str): the name of this cascade, if not specified we will name the model to the
+            last model in the cascade appended with the cascade type variable.
+        cascade_name_modifier (str): the cascade type name modifier. This is used to automatically construct the
+            name of the model. The format of the cascade model names is ``<Model> (Cascade|<cascade_name_modifier>)`` if
+            some name modifier is given, else it is just ``<Model> (Cascade)``.
         description (str): the description
         models (tuple): the list of models we wish to optimize (in that order) Example:
 
@@ -74,7 +98,8 @@ class CascadeTemplate(ComponentTemplate):
 
             The syntax is similar to that of the inits attribute.
     """
-    name = ''
+    name = None
+    cascade_name_modifier = ''
     description = ''
     models = ()
     inits = {}
@@ -94,9 +119,19 @@ class CascadeTemplate(ComponentTemplate):
 
     @classmethod
     def meta_info(cls):
+        target_model = None
+        if cls.models:
+            target_model = cls.models[-1]
+
+        cascade_type_name = 'Cascade'
+        if cls.cascade_name_modifier:
+            cascade_type_name += '|' + cls.cascade_name_modifier
+
         meta_info = deepcopy(ComponentTemplate.meta_info())
         meta_info.update({'name': cls.name,
-                          'description': cls.description})
+                          'description': cls.description,
+                          'target_model': target_model,
+                          'cascade_type_name': cascade_type_name})
         return meta_info
 
 

@@ -8,7 +8,6 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class BallStick_r1(CascadeTemplate):
 
-    name = 'BallStick_r1 (Cascade)'
     description = 'Cascade for Ballstick'
     models = ('S0',
               'BallStick_r1')
@@ -16,7 +15,6 @@ class BallStick_r1(CascadeTemplate):
 
 class BallStick_r2(CascadeTemplate):
 
-    name = 'BallStick_r2 (Cascade)'
     description = 'Cascade for BallStick_r2.'
     models = ('BallStick_r1 (Cascade)',
               'BallStick_r2')
@@ -27,7 +25,6 @@ class BallStick_r2(CascadeTemplate):
 
 class BallStick_r3(CascadeTemplate):
 
-    name = 'BallStick_r3 (Cascade)'
     description = 'Cascade for BallStick_r3.'
     models = ('BallStick_r2 (Cascade)',
               'BallStick_r3')

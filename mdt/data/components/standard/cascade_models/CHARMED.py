@@ -8,7 +8,6 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class CHARMED1(CascadeTemplate):
 
-    name = 'CHARMED_r1 (Cascade)'
     description = 'Initializes the directions to Ball & Stick.'
     models = ('BallStick_r1 (Cascade)',
               'CHARMED_r1')
@@ -21,7 +20,7 @@ class CHARMED1(CascadeTemplate):
 
 class CHARMEDR1Fixed(CascadeTemplate):
 
-    name = 'CHARMED_r1 (Cascade|fixed)'
+    cascade_name_modifier = 'fixed'
     description = 'Fixes the directions to Ball & Stick.'
     models = ('BallStick_r1 (Cascade)',
               'CHARMED_r1')
@@ -34,7 +33,6 @@ class CHARMEDR1Fixed(CascadeTemplate):
 
 class CHARMEDR2(CascadeTemplate):
 
-    name = 'CHARMED_r2 (Cascade)'
     description = 'Initializes the directions to 2x Ball & Stick.'
     models = ('BallStick_r2 (Cascade)',
               'CHARMED_r2')
@@ -50,7 +48,7 @@ class CHARMEDR2(CascadeTemplate):
 
 class CHARMEDR2Fixed(CascadeTemplate):
 
-    name = 'CHARMED_r2 (Cascade|fixed)'
+    cascade_name_modifier = 'fixed'
     description = 'Fixes the directions to 2x Ball & Stick.'
     models = ('BallStick_r2 (Cascade)',
               'CHARMED_r2')
@@ -67,7 +65,6 @@ class CHARMEDR2Fixed(CascadeTemplate):
 
 class CHARMED_r3(CascadeTemplate):
 
-    name = 'CHARMED_r3 (Cascade)'
     description = 'Initializes the directions to 3x Ball & Stick.'
     models = ('BallStick_r3 (Cascade)',
               'CHARMED_r3')
@@ -87,7 +84,7 @@ class CHARMED_r3(CascadeTemplate):
 
 class CHARMED_r3_Fixed(CascadeTemplate):
 
-    name = 'CHARMED_r3 (Cascade|fixed)'
+    cascade_name_modifier = 'fixed'
     description = 'Fixes the directions to 3x Ball & Stick.'
     models = ('BallStick_r3 (Cascade)',
               'CHARMED_r3')

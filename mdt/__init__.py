@@ -404,8 +404,8 @@ def results_preselection_names(data):
     else:
         keys = data
 
-    filter_match = ('.vec', '.d', '.sigma', 'AIC', 'Errors.mse', 'Errors.sse', '.eigen_ranking',
-                    'SignalEstimates', 'UsedMask')
+    filter_match = ('.vec', '.d', '.sigma', '.theta', '.phi', 'AIC', 'Errors', 'Errors', '.eigen_ranking',
+                    'SignalEstimates', 'UsedMask', 'BIC')
     return list(sorted(filter(lambda v: all(m not in v for m in filter_match), keys)))
 
 
@@ -579,19 +579,27 @@ def get_list_of_composite_models():
     """Get a list of all available composite models
 
     Returns:
-        list of str: A list of all available composite model names.
+        list of str: A list of all available composite model names
     """
     from mdt.components_loader import CompositeModelsLoader
     return CompositeModelsLoader().list_all()
 
 
-def get_list_of_cascade_models():
+def get_list_of_cascade_models(target_model_name=None):
     """Get a list of all available cascade models
+
+    Args:
+        target_model_name (str): if given we will only return the list of cascades that end with this composite model.
 
     Returns:
         list of str: A list of available cascade models
     """
     from mdt.components_loader import CascadeModelsLoader
+
+    if target_model_name:
+        meta_infos = CascadeModelsLoader().get_all_meta_info()
+        return [k for k, m in meta_infos.items() if m['target_model'] == target_model_name]
+
     return CascadeModelsLoader().list_all()
 
 
@@ -639,7 +647,7 @@ def get_batch_profile(batch_profile_name):
     return get_component_class('batch_profiles', batch_profile_name)
 
 
-def gui(base_dir=None, app_exec=True):
+def start_gui(base_dir=None, app_exec=True):
     """Start the model fitting GUI.
 
     Args:

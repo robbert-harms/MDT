@@ -8,7 +8,6 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class NODDI(CascadeTemplate):
 
-    name = 'NODDI (Cascade)'
     description = 'Cascade for NODDI initialized from Ball&Stick.'
     models = ('BallStick_r1 (Cascade)',
               'NODDI')
@@ -21,7 +20,7 @@ class NODDI(CascadeTemplate):
 
 class NODDI_Fixed(CascadeTemplate):
 
-    name = 'NODDI (Cascade|fixed)'
+    cascade_name_modifier = 'fixed'
     description = 'Cascade for NODDI with fixed directions from Ball&Stick.'
     models = ('BallStick_r1 (Cascade)',
               'NODDI')

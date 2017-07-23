@@ -8,7 +8,6 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class Tensor(CascadeTemplate):
 
-    name = 'Tensor (Cascade)'
     description = 'Cascade for Tensor.'
     models = ('BallStick_r1 (Cascade)',
               'Tensor')
@@ -18,7 +17,7 @@ class Tensor(CascadeTemplate):
 
 class TensorFixed(CascadeTemplate):
 
-    name = 'Tensor (Cascade|fixed)'
+    cascade_name_modifier = 'fixed'
     description = 'Cascade for Tensor with fixed angles.'
     models = ('BallStick_r1 (Cascade)',
               'Tensor')
