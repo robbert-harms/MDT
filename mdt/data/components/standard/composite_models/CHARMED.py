@@ -113,3 +113,23 @@ class CHARMED_r3(DMRICompositeModelTemplate):
     ]
 
     prior = 'return w_res2.w < w_res1.w && w_res1.w < w_res0.w;'
+
+
+class TimeDependentCHARMED_r1(DMRICompositeModelTemplate):
+
+    description = 'The CHARMED model with 1 restricted compartments including diffusion time dependence in ' \
+                  'the extra-axonal space (De Santis 2016).'
+
+    model_expression = '''
+        S0 * ExpT1DecTM_simple * ( (Weight(w_hin0) * TimeDependentZeppelin) +
+                                   (Weight(w_res0) * CHARMEDRestricted(CHARMEDRestricted0))
+                                  )
+    '''
+    inits = {'CHARMEDRestricted0.d': 1e-9}
+    lower_bounds = {'CHARMEDRestricted0.d': 0.3e-9}
+    upper_bounds = {'CHARMEDRestricted0.d': 3e-9}
+    fixes = {'TimeDependentZeppelin.d': 'CHARMEDRestricted0.d'}
+    post_optimization_modifiers = [
+        ('FR', lambda results: 1 - results['w_hin0.w'])
+    ]
+
