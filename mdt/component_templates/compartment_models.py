@@ -56,11 +56,11 @@ def _construct_cl_function_definition(return_type, cl_function_name, parameters)
 
     .. code-block:: c
 
-        double cmStick(const mot_float_type4 g,
-                       const mot_float_type b,
-                       const mot_float_type d,
-                       const mot_float_type theta,
-                       const mot_float_type phi)
+        double Stick(const mot_float_type4 g,
+                     const mot_float_type b,
+                     const mot_float_type d,
+                     const mot_float_type theta,
+                     const mot_float_type phi)
 
     Args:
         return_type (str): the return type
@@ -103,7 +103,7 @@ class CompartmentTemplateMeta(ComponentTemplateMeta):
         result = super(CompartmentTemplateMeta, mcs).__new__(mcs, name, bases, attributes)
 
         if 'cl_function_name' not in attributes:
-            result.cl_function_name = 'cm{}'.format(name)
+            result.cl_function_name = name
 
         # to prevent the base from loading the initial meta class.
         if any(isinstance(base, CompartmentTemplateMeta) for base in bases):
@@ -242,19 +242,24 @@ def _resolve_dependencies(dependency_list):
 
     Args:
         dependency_list (list): the list of dependencies as given by the user. Elements can either include actual
-            instances of :class:`~mot.library_functions.CLLibrary` or strings with the name of the
-            component to auto-load.
+            instances of :class:`~mot.library_functions.CLLibrary` or strings with the name of libraries or
+            other compartments to load.
 
     Returns:
         list: a new list with the string elements resolved as :class:`~mot.library_functions.CLLibrary`.
     """
-    from mdt.components_loader import LibraryFunctionsLoader
+    from mdt.components_loader import LibraryFunctionsLoader, CompartmentModelsLoader
 
     lib_loader = LibraryFunctionsLoader()
+    compartment_loader = CompartmentModelsLoader()
+
     result = []
     for dependency in dependency_list:
         if isinstance(dependency, six.string_types):
-            result.append(lib_loader.load(dependency))
+            if lib_loader.has_component(dependency):
+                result.append(lib_loader.load(dependency))
+            else:
+                result.append(compartment_loader.load(dependency))
         else:
             result.append(dependency)
 

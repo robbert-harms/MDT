@@ -23,16 +23,16 @@ mot_float_type findGammaCDFCrossing(mot_float_type startx, mot_float_type stopx,
                                  const mot_float_type convergence, const mot_float_type gamma_k,
                                  const mot_float_type gamma_beta);
 
-double cmGDRCylinders(const mot_float_type4 g,
-                      const mot_float_type G,
-                      const mot_float_type Delta,
-                      const mot_float_type delta,
-                      const mot_float_type d,
-                      const mot_float_type theta,
-                      const mot_float_type phi,
-                      const mot_float_type gamma_k,
-                      const mot_float_type gamma_beta,
-                      const mot_float_type gamma_nmr_cyl){
+double GDRCylinders(const mot_float_type4 g,
+                    const mot_float_type G,
+                    const mot_float_type Delta,
+                    const mot_float_type delta,
+                    const mot_float_type d,
+                    const mot_float_type theta,
+                    const mot_float_type phi,
+                    const mot_float_type gamma_k,
+                    const mot_float_type gamma_beta,
+                    const mot_float_type gamma_nmr_cyl){
 
     int nmr_cyl = round(gamma_nmr_cyl);
 

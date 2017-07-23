@@ -16,13 +16,13 @@
  * @params dperp parameter (hindered diffusivity outside the cylinders in perpendicular directions)
  * @params kappa parameter (concentration parameter of the Watson's distribution)
  */
-double cmNODDI_EC(const mot_float_type4 g,
-                  const mot_float_type b,
-                  const mot_float_type d,
-                  const mot_float_type dperp,
-                  const mot_float_type theta,
-                  const mot_float_type phi,
-                  const mot_float_type kappa){
+double NODDI_EC(const mot_float_type4 g,
+                const mot_float_type b,
+                const mot_float_type d,
+                const mot_float_type dperp,
+                const mot_float_type theta,
+                const mot_float_type phi,
+                const mot_float_type kappa){
 
     const mot_float_type kappa_scaled = kappa * 10;
     mot_float_type tmp;

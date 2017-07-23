@@ -67,7 +67,7 @@ The following is an example of splitting the CL code from the compartment model 
 
 .. code-block:: c
 
-    double cmStick(
+    double Stick(
         const mot_float_type4 g,
         const mot_float_type b,
         const mot_float_type d,
@@ -87,7 +87,7 @@ Also note that with this setup you will need to provide the CL function signatur
 
 .. code-block:: c
 
-    mot_float_type cm<YourModelName>(
+    mot_float_type <YourModelName>(
         <type_modifiers> <param_name>,
         ...
     )

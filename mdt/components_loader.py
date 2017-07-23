@@ -741,7 +741,10 @@ class MOTSourceSingle(ComponentsSource):
 class MOTLibraryFunctionSource(MOTSourceSingle):
 
     def get_class(self, name):
-        return getattr(mot.library_functions, name)
+        try:
+            return getattr(mot.library_functions, name)
+        except AttributeError:
+            raise ImportError
 
     def list(self):
         module = mot.library_functions

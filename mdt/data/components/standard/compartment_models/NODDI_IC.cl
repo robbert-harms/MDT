@@ -37,16 +37,16 @@ void NODDI_IC_create_legendre_terms(const mot_float_type x, mot_float_type* cons
  * @params kappa parameter (concentration parameter of the Watson's distribution)
  * @params R the radius of the cylinder
  */
-double cmNODDI_IC(const mot_float_type4 g,
-                  const mot_float_type b,
-                  const mot_float_type G,
-                  const mot_float_type Delta,
-                  const mot_float_type delta,
-                  const mot_float_type d,
-                  const mot_float_type theta,
-                  const mot_float_type phi,
-                  const mot_float_type kappa_non_scaled,
-                  const mot_float_type R){
+double NODDI_IC(const mot_float_type4 g,
+                const mot_float_type b,
+                const mot_float_type G,
+                const mot_float_type Delta,
+                const mot_float_type delta,
+                const mot_float_type d,
+                const mot_float_type theta,
+                const mot_float_type phi,
+                const mot_float_type kappa_non_scaled,
+                const mot_float_type R){
 
     const mot_float_type kappa = kappa_non_scaled * 10;
 

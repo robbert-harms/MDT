@@ -1,3 +1,4 @@
+import inspect
 import logging
 
 import numpy as np
@@ -45,6 +46,9 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
                                                  enforce_weights_sum_to_one=enforce_weights_sum_to_one)
         self._logger = logging.getLogger(__name__)
         self._original_problem_data = None
+
+        self._post_optimization_modifiers = []
+
         self.nmr_parameters_for_bic_calculation = self.get_nmr_estimable_parameters()
         self.required_nmr_shells = False
 

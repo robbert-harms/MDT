@@ -219,3 +219,22 @@ class d_exvivo(FreeParameterTemplate):
     upper_bound = 1.0e-8
     parameter_transform = SinSqrClampTransform()
     sampling_proposal = GaussianProposal(1e-11)
+
+
+class time_dependent_characteristic_coefficient(FreeParameterTemplate):
+    """The time dependent characteristic as used in the TimeDependentZeppelin model. Values are in m^2."""
+    init_value = 1e-6
+    lower_bound = 1e-7
+    upper_bound = 1e-5
+    parameter_transform = CosSqrClampTransform()
+    sampling_proposal = GaussianProposal(1e-7)
+
+
+class d_bulk(FreeParameterTemplate):
+
+    init_value = 0.e-9
+    lower_bound = 0
+    upper_bound = 1.0e-8
+    parameter_transform = SinSqrClampTransform()
+    sampling_proposal = GaussianProposal(1e-10)
+

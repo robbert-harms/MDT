@@ -45,5 +45,5 @@ class DMRICompartmentModelFunction(SimpleModelFunction):
             {code}
             #endif // {inclusion_guard_name}
         '''.format(dependencies=self._get_cl_dependency_code(),
-                   inclusion_guard_name='DMRICM_' + self.cl_function_name + '_CL',
+                   inclusion_guard_name='DMRI_' + self.cl_function_name + '_CL',
                    code=self._cl_code)
