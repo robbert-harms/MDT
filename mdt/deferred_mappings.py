@@ -30,7 +30,7 @@ class DeferredActionDict(collections.MutableMapping):
         self._applied_on_key = {}
 
     def __delitem__(self, key):
-        if key in self._items():
+        if key in self._items:
             del self._items[key]
         if key in self._applied_on_key:
             del self._applied_on_key[key]
@@ -79,7 +79,7 @@ class DeferredFunctionDict(collections.MutableMapping):
         self._applied_on_key = {}
 
     def __delitem__(self, key):
-        if key in self._items():
+        if key in self._items:
             del self._items[key]
         if key in self._applied_on_key:
             del self._applied_on_key[key]

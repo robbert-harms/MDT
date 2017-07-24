@@ -153,7 +153,6 @@ class DMRIProblemData(AbstractProblemData):
 
         return self.copy_with_updates(new_protocol, new_dwi_volume)
 
-
     def get_nmr_inst_per_problem(self):
         return self._protocol.length
 
@@ -1632,7 +1631,7 @@ def extract_volumes(input_volume_fname, input_protocol, output_volume_fname, out
     write_nifti(image_data, input_volume.get_header(), output_volume_fname)
 
 
-def recalculate_error_measures(model, problem_data, data_dir, output_dir=None, evaluation_model=None):
+def recalculate_error_measures(model, problem_data, data_dir, output_dir=None):
     """Recalculate the information criterion maps.
 
     This will write the results either to the original data directory, or to the given output dir.
@@ -1643,7 +1642,6 @@ def recalculate_error_measures(model, problem_data, data_dir, output_dir=None, e
         problem_data (DMRIProblemData): the problem data object
         data_dir (str): the directory containing the results for the given model
         output_dir (str): if given, we write the output to this directory instead of the data dir.
-        evaluation_model: the evaluation model, we will manually fix the sigma in this function
     """
     from mdt.models.cascade import DMRICascadeModelInterface
 
@@ -1658,7 +1656,7 @@ def recalculate_error_measures(model, problem_data, data_dir, output_dir=None, e
     results_maps = create_roi(get_all_image_data(data_dir), problem_data.mask)
 
     log_likelihood_calc = LogLikelihoodCalculator()
-    log_likelihoods = log_likelihood_calc.calculate(model, results_maps, evaluation_model=evaluation_model)
+    log_likelihoods = log_likelihood_calc.calculate(model, model.param_dict_to_array(results_maps))
 
     k = model.get_nmr_estimable_parameters()
     n = problem_data.get_nmr_inst_per_problem()

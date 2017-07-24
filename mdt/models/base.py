@@ -16,13 +16,9 @@ class DMRIOptimizable(object):
         in the cascades and composite models.
 
         Attributes:
-            problems_to_analyze (list): the list with problems we want to analyze. Suppose we have a few thousands
-                problems defined in this model, but we want to run the optimization only on a few problems. By setting
-                this attribute to a list of problems indices only those problems will be analyzed.
             double_precision (boolean): if we do the computations in double or float precision
         """
         super(DMRIOptimizable, self).__init__()
-        self.problems_to_analyze = None
         self.double_precision = False
 
     def is_protocol_sufficient(self, protocol=None):

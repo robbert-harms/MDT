@@ -1,4 +1,4 @@
-from mdt.components_config.compartment_models import CompartmentConfig
+from mdt.component_templates.compartment_models import CompartmentTemplate
 
 __author__ = 'Francisco.Lagos'
 
@@ -6,7 +6,7 @@ __author__ = 'Francisco.Lagos'
 # which returns to the standard SE signal decay
 
 
-class ExpT1ExpT2STEAM(CompartmentConfig):
+class ExpT1ExpT2STEAM(CompartmentTemplate):
     """Generalised STEAM equation.
 
     From protocol, if the signal is SE, we can setup TM = 0 in all the volumes,
@@ -17,14 +17,15 @@ class ExpT1ExpT2STEAM(CompartmentConfig):
 
     (1) For SE data, the original equation contains only the first refocusing pulse variable, but half of this value
         and in the power of two (sin(Refoc_fa1/2)**2). For that it is needed to define Refoc_fa2 = Refoc_fa1 and
-        Refoc_fa1 has to be HALF of the used FA in the protocol (then, also Refoc_fa2). Also, the 0.5 factor is not included,
-        then SEf (Spin echo flag) should be 0. Finally, TM (mixing time) has to be 0.
+        Refoc_fa1 has to be HALF of the used FA in the protocol (then, also Refoc_fa2). Also, the 0.5 factor is
+        not included, then SEf (Spin echo flag) should be 0. Finally, TM (mixing time) has to be 0.
     (2) For STE data, this equation is used totally. Just SEf = 1.
 
     //UPDATE (24.03.17): This sequence is valid for STE SIGNAL ONLY! Don't mix with SE volumes.
     """
 
-    parameter_list = ('SEf', 'TR', 'TE', 'TM', 'b', 'flip_angle', 'excitation_b1_map', 'Refoc_fa1', 'refocusing1_b1_map', 'Refoc_fa2', 'refocusing2_b1_map', 'T2', 'T1', 'd_exvivo')
+    parameter_list = ('SEf', 'TR', 'TE', 'TM', 'b', 'flip_angle', 'excitation_b1_map', 'Refoc_fa1',
+                      'refocusing1_b1_map', 'Refoc_fa2', 'refocusing2_b1_map', 'T2', 'T1', 'd_exvivo')
     cl_code = """
         return sin((double)flip_angle * (double)excitation_b1_map)
             *   sin((double)Refoc_fa1 * (double)refocusing1_b1_map)

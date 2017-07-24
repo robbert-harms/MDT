@@ -41,6 +41,13 @@ or it can be a direct instance of a parameter. For example, this is also a valid
 
 
 where the parameters ``g`` and ``b`` are loaded from the dynamically loadable parameters while the ``special_param`` is given as a parameter instance.
+It is also possible to provide a nickname for a parameter by stating something like::
+
+    parameter_list = ('my_theta(theta)', ...)
+
+Here, the parameter ``my_theta`` is loaded with the nickname ``theta``.
+This allows you to use simpler names for the parameters of a compartment and allows you to swap a parameter for a different type while still using the same (external) name.
+Without it, the name of the parameter should be updated in all referenced locations, like for example inside the model equation, inside the composite model, inside cascade models, etc.
 
 
 Splitting the CL and Python file
@@ -60,7 +67,7 @@ The following is an example of splitting the CL code from the compartment model 
 
 .. code-block:: c
 
-    double cmStick(
+    double Stick(
         const mot_float_type4 g,
         const mot_float_type b,
         const mot_float_type d,
@@ -80,7 +87,7 @@ Also note that with this setup you will need to provide the CL function signatur
 
 .. code-block:: c
 
-    mot_float_type cm<YourModelName>(
+    mot_float_type <YourModelName>(
         <type_modifiers> <param_name>,
         ...
     )

@@ -1,4 +1,6 @@
-from mdt.components_config.composite_models import DMRICompositeModelConfig
+import numpy as np
+
+from mdt.component_templates.composite_models import DMRICompositeModelTemplate
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -6,7 +8,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class CHARMED_r1(DMRICompositeModelConfig):
+class CHARMED_r1(DMRICompositeModelTemplate):
 
     description = 'The CHARMED model with 1 restricted compartments'
 
@@ -36,7 +38,7 @@ class CHARMED_r1(DMRICompositeModelConfig):
     ]
 
 
-class CHARMED_r2(DMRICompositeModelConfig):
+class CHARMED_r2(DMRICompositeModelTemplate):
 
     description = 'The CHARMED model with 2 restricted compartments'
 
@@ -73,7 +75,7 @@ class CHARMED_r2(DMRICompositeModelConfig):
     prior = 'return w_res1.w < w_res0.w;'
 
 
-class CHARMED_r3(DMRICompositeModelConfig):
+class CHARMED_r3(DMRICompositeModelTemplate):
 
     description = 'The standard CHARMED model with 3 restricted compartments'
 
@@ -113,3 +115,4 @@ class CHARMED_r3(DMRICompositeModelConfig):
     ]
 
     prior = 'return w_res2.w < w_res1.w && w_res1.w < w_res0.w;'
+

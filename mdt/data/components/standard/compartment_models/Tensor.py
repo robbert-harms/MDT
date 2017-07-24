@@ -1,5 +1,5 @@
 import numpy as np
-from mdt.components_config.compartment_models import CompartmentConfig
+from mdt.component_templates.compartment_models import CompartmentTemplate
 from mdt.cl_routines.mapping.dti_measures import DTIMeasures
 from mdt.utils import eigen_vectors_from_tensor
 
@@ -26,7 +26,7 @@ def get_dti_measures_modifier():
     return return_names, modifier_routine
 
 
-class Tensor(CompartmentConfig):
+class Tensor(CompartmentTemplate):
 
     parameter_list = ('g', 'b', 'd', 'dperp0', 'dperp1', 'theta', 'phi', 'psi')
     dependency_list = ['TensorSphericalToCartesian']
@@ -41,4 +41,5 @@ class Tensor(CompartmentConfig):
                    );
     '''
     prior = 'return dperp1 < dperp0 && dperp0 < d;'
+    auto_add_cartesian_vector = False
     post_optimization_modifiers = [get_dti_measures_modifier()]

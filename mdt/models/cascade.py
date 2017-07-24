@@ -90,7 +90,6 @@ class SimpleCascadeModel(DMRICascadeModelInterface):
         self._name = name
         self._model_list = model_list
         self._iteration_position = 0
-        self.problems_to_analyze = None
 
     @property
     def name(self):
@@ -155,8 +154,6 @@ class SimpleCascadeModel(DMRICascadeModelInterface):
         Returns:
             model: the same model with all extra's set.
         """
-        if self.problems_to_analyze:
-            model.problems_to_analyze = self.problems_to_analyze
         model.double_precision = self.double_precision
         return model
 

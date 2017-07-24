@@ -86,7 +86,11 @@ class test_SSFP(unittest.TestCase):
         return src
 
     def _generate_test_params(self):
-        # [d (m/s^2), delta (s), G (T/m), TR (s), flip_angle (rad), b1 (a.u.), T1 (s), T2 (s)]
+        """
+
+        [d (m/s^2), delta (s), G (T/m), TR (s), flip_angle (rad), b1 (a.u.), T1 (s), T2 (s)]
+
+        """
 
         test_param_sets = [
             # In vivo

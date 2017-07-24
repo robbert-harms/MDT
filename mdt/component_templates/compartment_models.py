@@ -1,12 +1,15 @@
 import inspect
 import os
 from copy import deepcopy
+from textwrap import indent, dedent
 
 import six
 
-from mdt.components_loader import ParametersLoader, ComponentConfigMeta, ComponentConfig, ComponentBuilder, \
-    method_binding_meta
+from mdt.components_loader import ParametersLoader
+from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplateMeta, \
+    ComponentTemplate, register_builder
 from mdt.models.compartments import DMRICompartmentModelFunction
+from mdt.utils import spherical_to_cartesian
 from mot.model_building.model_function_priors import ModelFunctionPrior, SimpleModelFunctionPrior
 from mot.model_building.parameters import CurrentObservationParam
 
@@ -20,8 +23,10 @@ def _get_parameters_list(parameter_list):
     """Convert all the parameters in the given parameter list to actual parameter objects.
 
     Args:
-        parameter_list (list): a list containing a mix of either parameter objects or strings. If it is a parameter
-            we add a copy of it to the return list. If it is a string we will autoload it.
+        parameter_list (list): a list containing a mix of either parameter objects, strings or tuples. If it is a
+            parameter we add a copy of it to the return list. If it is a string we will autoload it, if it is a tuple
+            it should be a tuple (<parameter>, <nick_name>) specifying the nick name for that parameter in this
+            compartment.
 
     Returns:
         list: the list of actual parameter objects
@@ -34,7 +39,13 @@ def _get_parameters_list(parameter_list):
             if item == '_observation':
                 parameters.append(CurrentObservationParam())
             else:
-                parameters.append(parameters_loader.load(item))
+                if '(' in item:
+                    param_name = item[:item.index('(')].strip()
+                    nickname = item[item.index('(')+1:item.index(')')].strip()
+                else:
+                    param_name = item
+                    nickname = None
+                parameters.append(parameters_loader.load(param_name, nickname=nickname))
         else:
             parameters.append(deepcopy(item))
     return parameters
@@ -47,11 +58,11 @@ def _construct_cl_function_definition(return_type, cl_function_name, parameters)
 
     .. code-block:: c
 
-        double cmStick(const mot_float_type4 g,
-                       const mot_float_type b,
-                       const mot_float_type d,
-                       const mot_float_type theta,
-                       const mot_float_type phi)
+        double Stick(const mot_float_type4 g,
+                     const mot_float_type b,
+                     const mot_float_type d,
+                     const mot_float_type theta,
+                     const mot_float_type phi)
 
     Args:
         return_type (str): the return type
@@ -78,38 +89,37 @@ def _construct_cl_function_definition(return_type, cl_function_name, parameters)
 
         return s
 
-    parameters_str = ',\n'.join(parameter_str(parameter) for parameter in parameters)
-    return '{return_type} {cl_function_name}({parameters})'.format(return_type=return_type,
-                                                                   cl_function_name=cl_function_name,
-                                                                   parameters=parameters_str)
+    parameters_str = indent(',\n'.join(parameter_str(parameter) for parameter in parameters), ' '*4*2)
+    return '\n{return_type} {cl_function_name}(\n{parameters})'.format(
+        return_type=return_type, cl_function_name=cl_function_name, parameters=parameters_str)
 
 
-class CompartmentConfigMeta(ComponentConfigMeta):
+class CompartmentTemplateMeta(ComponentTemplateMeta):
 
     def __new__(mcs, name, bases, attributes):
         """Extends the default meta class with extra functionality for the compartments.
 
         This adds the cl_function_name if it is not defined, and creates the correct cl_code.
         """
-        result = super(CompartmentConfigMeta, mcs).__new__(mcs, name, bases, attributes)
+        result = super(CompartmentTemplateMeta, mcs).__new__(mcs, name, bases, attributes)
 
         if 'cl_function_name' not in attributes:
-            result.cl_function_name = 'cm{}'.format(name)
+            result.cl_function_name = name
 
         # to prevent the base from loading the initial meta class.
-        if any(isinstance(base, CompartmentConfigMeta) for base in bases):
+        if any(isinstance(base, CompartmentTemplateMeta) for base in bases):
             result.cl_code = mcs._get_cl_code(result, bases, attributes)
 
         return result
 
     @classmethod
     def _get_cl_code(mcs, result, bases, attributes):
-        return_type = CompartmentConfigMeta._resolve_attribute(bases, attributes, 'return_type') or 'double'
+        return_type = ComponentTemplateMeta._resolve_attribute(bases, attributes, 'return_type') or 'double'
 
         if 'cl_code' in attributes and attributes['cl_code'] is not None:
             s = _construct_cl_function_definition(
                 return_type, result.cl_function_name, _get_parameters_list(result.parameter_list))
-            s += '{\n' + attributes['cl_code'] + '\n}'
+            s += '{\n\n' + indent(dedent(attributes['cl_code'].strip('\n')), ' '*4) + '\n}'
             return s
 
         module_path = os.path.abspath(inspect.getfile(result))
@@ -122,17 +132,8 @@ class CompartmentConfigMeta(ComponentConfigMeta):
             if hasattr(base, 'cl_code') and base.cl_code is not None:
                 return base.cl_code
 
-    @staticmethod
-    def _resolve_attribute(bases, attributes, attribute_name):
-        if attribute_name in attributes:
-            return attributes[attribute_name]
-        for base in bases:
-            if hasattr(base, attribute_name):
-                return getattr(base, attribute_name)
-        raise ValueError('Attribute not found in this component config or its superclasses.')
 
-
-class CompartmentConfig(six.with_metaclass(CompartmentConfigMeta, ComponentConfig)):
+class CompartmentTemplate(six.with_metaclass(CompartmentTemplateMeta, ComponentTemplate)):
     """The compartment config to inherit from.
 
     These configs are loaded on the fly by the CompartmentBuilder.
@@ -169,6 +170,9 @@ class CompartmentConfig(six.with_metaclass(CompartmentConfigMeta, ComponentConfi
             modifier in one modifier expression.
 
             These modifiers are supposed to be called before the modifiers of the composite model.
+        auto_add_cartesian_vector (boolean): if set to True we will automatically add a post optimization modifier
+            that constructs a cartesian vector from the ``theta`` and ``phi`` parameter if present. This modifier
+            is run before the other user defined modifiers.
     """
     name = ''
     description = ''
@@ -179,6 +183,7 @@ class CompartmentConfig(six.with_metaclass(CompartmentConfigMeta, ComponentConfi
     return_type = 'double'
     prior = None
     post_optimization_modifiers = None
+    auto_add_cartesian_vector = True
 
 
 class CompartmentBuildingBase(DMRICompartmentModelFunction):
@@ -195,9 +200,11 @@ class CompartmentBuilder(ComponentBuilder):
         """Creates classes with as base class CompartmentBuildingBase
 
         Args:
-            template (CompartmentConfig): the compartment config template to use for
+            template (CompartmentTemplate): the compartment config template to use for
                 creating the class with the right init settings.
         """
+        builder = self
+
         class AutoCreatedDMRICompartmentModel(method_binding_meta(template, CompartmentBuildingBase)):
 
             def __init__(self, *args, **kwargs):
@@ -215,7 +222,8 @@ class CompartmentBuilder(ComponentBuilder):
 
                 new_kwargs = {'model_function_priors': (_resolve_prior(template.prior, template.name,
                                                                        [p.name for p in parameter_list],)),
-                              'post_optimization_modifiers': template.post_optimization_modifiers}
+                              'post_optimization_modifiers': builder._get_post_optimization_modifiers(template,
+                                                                                                      parameter_list)}
                 new_kwargs.update(kwargs)
 
                 super(AutoCreatedDMRICompartmentModel, self).__init__(*new_args, **new_kwargs)
@@ -225,25 +233,41 @@ class CompartmentBuilder(ComponentBuilder):
 
         return AutoCreatedDMRICompartmentModel
 
+    def _get_post_optimization_modifiers(self, template, parameter_list):
+        post_optimization_modifiers = []
+        if getattr(template, 'auto_add_cartesian_vector', False):
+            if all(map(lambda name: name in [p.name for p in parameter_list], ('theta', 'phi'))):
+                modifier = ('vec0', lambda results: spherical_to_cartesian(results['theta'], results['phi']))
+                post_optimization_modifiers.append(modifier)
+
+        if template.post_optimization_modifiers:
+            post_optimization_modifiers.extend(template.post_optimization_modifiers)
+        return post_optimization_modifiers
+
 
 def _resolve_dependencies(dependency_list):
     """Resolve the dependency list such that the result contains all functions.
 
     Args:
         dependency_list (list): the list of dependencies as given by the user. Elements can either include actual
-            instances of :class:`~mot.library_functions.CLLibrary` or strings with the name of the
-            component to auto-load.
+            instances of :class:`~mot.library_functions.CLLibrary` or strings with the name of libraries or
+            other compartments to load.
 
     Returns:
         list: a new list with the string elements resolved as :class:`~mot.library_functions.CLLibrary`.
     """
-    from mdt.components_loader import LibraryFunctionsLoader
+    from mdt.components_loader import LibraryFunctionsLoader, CompartmentModelsLoader
 
     lib_loader = LibraryFunctionsLoader()
+    compartment_loader = CompartmentModelsLoader()
+
     result = []
     for dependency in dependency_list:
         if isinstance(dependency, six.string_types):
-            result.append(lib_loader.load(dependency))
+            if lib_loader.has_component(dependency):
+                result.append(lib_loader.load(dependency))
+            else:
+                result.append(compartment_loader.load(dependency))
         else:
             result.append(dependency)
 
@@ -271,3 +295,6 @@ def _resolve_prior(prior, compartment_name, compartment_parameters):
 
     parameters = [p for p in compartment_parameters if p in prior]
     return SimpleModelFunctionPrior(prior, parameters, 'prior_' + compartment_name)
+
+
+register_builder(CompartmentTemplate, CompartmentBuilder())

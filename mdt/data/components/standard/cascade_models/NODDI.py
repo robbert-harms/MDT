@@ -1,4 +1,4 @@
-from mdt.components_config.cascade_models import CascadeConfig
+from mdt.component_templates.cascade_models import CascadeTemplate
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -6,9 +6,8 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class NODDI(CascadeConfig):
+class NODDI(CascadeTemplate):
 
-    name = 'NODDI (Cascade)'
     description = 'Cascade for NODDI initialized from Ball&Stick.'
     models = ('BallStick_r1 (Cascade)',
               'NODDI')
@@ -19,9 +18,9 @@ class NODDI(CascadeConfig):
                        ('NODDI_IC.phi', 'Stick.phi')]}
 
 
-class NODDI_Fixed(CascadeConfig):
+class NODDI_Fixed(CascadeTemplate):
 
-    name = 'NODDI (Cascade|fixed)'
+    cascade_name_modifier = 'fixed'
     description = 'Cascade for NODDI with fixed directions from Ball&Stick.'
     models = ('BallStick_r1 (Cascade)',
               'NODDI')

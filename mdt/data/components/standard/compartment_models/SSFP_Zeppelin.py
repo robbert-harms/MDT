@@ -1,7 +1,7 @@
-from mdt.components_loader import component_import
+from mdt.component_templates.compartment_models import CompartmentTemplate
 
 
-class SSFP_Zeppelin(component_import('standard.compartment_models.Zeppelin', 'Zeppelin')):
+class SSFP_Zeppelin(CompartmentTemplate):
 
     parameter_list = ('g', 'd', 'dperp0', 'theta', 'phi', 'delta', 'G', 'TR', 'flip_angle', 'b1_static', 'T1', 'T2')
     dependency_list = ('SSFP',)

@@ -1,7 +1,7 @@
 import numpy as np
 from mot.model_building.parameter_functions.proposals import GaussianProposal
-from mdt.components_config.parameters import FreeParameterConfig, ParameterBuilder
-from mdt.components_config.compartment_models import CompartmentConfig
+from mdt.component_templates.parameters import FreeParameterTemplate, ParameterBuilder
+from mdt.component_templates.compartment_models import CompartmentTemplate
 from mdt.cl_routines.mapping.dti_measures import DTIMeasures
 from mot.model_building.parameter_functions.transformations import SinSqrClampTransform
 
@@ -16,7 +16,7 @@ def get_param(param_name):
     lower_bounds = {'D00': 0, 'D11': 0, 'D22': 0, 'D01': -1e-9, 'D02': -1e-9, 'D12': -1e-9}
     upper_bounds = {'D00': 5e-9, 'D11': 5e-9, 'D22': 5e-9, 'D01': 1e-9, 'D02':  1e-9, 'D12': 1e-9}
 
-    class matrix_element_param(FreeParameterConfig):
+    class matrix_element_param(FreeParameterTemplate):
         name = param_name
         init_value = initial_values[param_name] if param_name in initial_values else 0
         lower_bound = lower_bounds[param_name] if param_name in lower_bounds else 0
@@ -43,7 +43,7 @@ def get_dti_measures_modifier():
     return return_names, modifier_routine
 
 
-class SymmetricNonParametricTensor(CompartmentConfig):
+class SymmetricNonParametricTensor(CompartmentTemplate):
 
     description = "The Tensor model in which a symmetric D matrix is optimized directly " \
                   "(without vector/diffusivity parameterization)."

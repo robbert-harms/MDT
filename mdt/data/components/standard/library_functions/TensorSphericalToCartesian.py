@@ -1,4 +1,4 @@
-from mdt.components_config.library_functions import LibraryFunctionConfig
+from mdt.component_templates.library_functions import LibraryFunctionTemplate
 from mot.cl_data_type import SimpleCLDataType
 from mot.model_building.parameters import LibraryParameter
 
@@ -8,7 +8,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class TensorSphericalToCartesian(LibraryFunctionConfig):
+class TensorSphericalToCartesian(LibraryFunctionTemplate):
 
     description = '''
         Generates the D matrix for a Tensor compartment.

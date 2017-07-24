@@ -46,7 +46,7 @@ The pre-provided list of column names is:
 * **gx, gy, gz**, the gradient direction as a unit vector
 * **Delta**, the value for :math:`{\Delta}` in seconds
 * **delta**, the value for :math:`{\delta}` in seconds
-* **G**, the gradient amplitude
+* **G**, the gradient amplitude in T/m (Tesla per meter)
 * **TE**, the echo time in seconds
 * **TR**, the repetition time in seconds
 

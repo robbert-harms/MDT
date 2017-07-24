@@ -1,4 +1,4 @@
-from mdt.components_config.library_functions import LibraryFunctionConfig
+from mdt.component_templates.library_functions import LibraryFunctionTemplate
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -6,10 +6,11 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class MRIConstants(LibraryFunctionConfig):
+class MRIConstants(LibraryFunctionTemplate):
 
     name = ''
     description = 'Some constants that might be of use in dMRI model functions'
+    is_function = False
     cl_code = '''
         /**
          * Gamma represent the gyromagnetic ratio of protons in water (nucleus of H)

@@ -29,7 +29,7 @@ from pkg_resources import resource_stream
 from six import string_types
 
 from mot.factory import get_optimizer_by_name, get_sampler_by_name, get_proposal_update_by_name
-from mdt.components_loader import ProcessingStrategiesLoader, NoiseSTDCalculatorsLoader
+from mdt.components_loader import NoiseSTDCalculatorsLoader
 import mot.configuration
 from mot.load_balance_strategies import EvenDistribution
 
@@ -256,18 +256,9 @@ class ProcessingStrategySectionLoader(ConfigSectionLoader):
 
     def load(self, value):
         if 'optimization' in value:
-            self._load_options('optimization', value['optimization'])
+            config_insert(['processing_strategies', 'optimization'], value['optimization'])
         if 'sampling' in value:
-            self._load_options('sampling', value['sampling'])
-
-    def _load_options(self, current_type, options):
-        if 'general' in options:
-            config_insert(['processing_strategies', current_type, 'general'], options['general'])
-
-        ensure_exists(['processing_strategies', current_type, 'model_specific'])
-        if 'model_specific' in options:
-            for key, value in options['model_specific'].items():
-                config_insert(['processing_strategies', current_type, 'model_specific', key], value)
+            config_insert(['processing_strategies', 'sampling'], value['sampling'])
 
 
 class TmpResultsDirSectionLoader(ConfigSectionLoader):
@@ -402,7 +393,7 @@ def get_tmp_results_dir():
     return _config['tmp_results_dir']
 
 
-def get_processing_strategy(processing_type, model_names=None, **kwargs):
+def get_processing_strategy(processing_type, *args, **kwargs):
     """Get the correct processing strategy for the given model.
 
     Args:
@@ -414,19 +405,10 @@ def get_processing_strategy(processing_type, model_names=None, **kwargs):
     Returns:
         ModelProcessingStrategy: the processing strategy to use for this model
     """
-    strategy_name = _config['processing_strategies'][processing_type]['general']['name']
-    options = _config['processing_strategies'][processing_type]['general'].get('options', {}) or {}
-
-    if model_names and ('model_specific' in _config['processing_strategies'][processing_type]):
-        info_dict = get_model_config(model_names, _config['processing_strategies'][processing_type]['model_specific'])
-
-        if info_dict:
-            strategy_name = info_dict['name']
-            options = info_dict.get('options', {}) or {}
-
+    from mdt.processing_strategies import VoxelRange
+    options = _config['processing_strategies'].get(processing_type, {}) or {}
     options.update(kwargs)
-
-    return ProcessingStrategiesLoader().load(strategy_name, **options)
+    return VoxelRange(*args, **options)
 
 
 def get_noise_std_estimators():

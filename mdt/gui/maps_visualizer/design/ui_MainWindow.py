@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'MainWindow.ui'
 #
-# Created by: PyQt5 UI code generator 5.4.2
+# Created by: PyQt5 UI code generator 5.5.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -131,8 +131,6 @@ class Ui_MapsVisualizer(object):
         self.statusbar = QtWidgets.QStatusBar(MapsVisualizer)
         self.statusbar.setObjectName("statusbar")
         MapsVisualizer.setStatusBar(self.statusbar)
-        self.actionOpen_directory = QtWidgets.QAction(MapsVisualizer)
-        self.actionOpen_directory.setObjectName("actionOpen_directory")
         self.actionQuit = QtWidgets.QAction(MapsVisualizer)
         self.actionQuit.setObjectName("actionQuit")
         self.actionSaveImage = QtWidgets.QAction(MapsVisualizer)
@@ -141,21 +139,22 @@ class Ui_MapsVisualizer(object):
         self.actionAbout.setObjectName("actionAbout")
         self.actionExtra_plot_options = QtWidgets.QAction(MapsVisualizer)
         self.actionExtra_plot_options.setObjectName("actionExtra_plot_options")
-        self.actionBrowse_to_current_folder = QtWidgets.QAction(MapsVisualizer)
-        self.actionBrowse_to_current_folder.setObjectName("actionBrowse_to_current_folder")
         self.actionSave_settings = QtWidgets.QAction(MapsVisualizer)
         self.actionSave_settings.setObjectName("actionSave_settings")
         self.actionLoad_settings = QtWidgets.QAction(MapsVisualizer)
         self.actionLoad_settings.setObjectName("actionLoad_settings")
-        self.menuFile.addAction(self.actionOpen_directory)
-        self.menuFile.addSeparator()
-        self.menuFile.addAction(self.actionBrowse_to_current_folder)
+        self.actionAdd_new_files = QtWidgets.QAction(MapsVisualizer)
+        self.actionAdd_new_files.setObjectName("actionAdd_new_files")
+        self.action_Clear = QtWidgets.QAction(MapsVisualizer)
+        self.action_Clear.setObjectName("action_Clear")
+        self.menuFile.addAction(self.actionAdd_new_files)
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionSave_settings)
         self.menuFile.addAction(self.actionLoad_settings)
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionSaveImage)
         self.menuFile.addSeparator()
+        self.menuFile.addAction(self.action_Clear)
         self.menuFile.addAction(self.actionQuit)
         self.menuAbout.addAction(self.actionAbout)
         self.menubar.addAction(self.menuFile.menuAction())
@@ -172,22 +171,22 @@ class Ui_MapsVisualizer(object):
         self.commandTabs.setTabText(self.commandTabs.indexOf(self.generalOptions), _translate("MapsVisualizer", "General"))
         self.commandTabs.setTabText(self.commandTabs.indexOf(self.mapOptions), _translate("MapsVisualizer", "Maps"))
         self.commandTabs.setTabText(self.commandTabs.indexOf(self.textInfoTab), _translate("MapsVisualizer", "Textual"))
-        self.auto_rendering.setText(_translate("MapsVisualizer", "Auto render"))
+        self.auto_rendering.setText(_translate("MapsVisualizer", "Auto redraw"))
         self.manual_render.setToolTip(_translate("MapsVisualizer", "Manually redraw the figure"))
         self.manual_render.setText(_translate("MapsVisualizer", "Redraw"))
         self.undo_config.setToolTip(_translate("MapsVisualizer", "Undo"))
         self.redo_config.setToolTip(_translate("MapsVisualizer", "Redo"))
         self.menuFile.setTitle(_translate("MapsVisualizer", "&File"))
         self.menuAbout.setTitle(_translate("MapsVisualizer", "&Help"))
-        self.actionOpen_directory.setText(_translate("MapsVisualizer", "&Open new directory"))
         self.actionQuit.setText(_translate("MapsVisualizer", "&Quit"))
         self.actionQuit.setShortcut(_translate("MapsVisualizer", "Ctrl+Q"))
         self.actionSaveImage.setText(_translate("MapsVisualizer", "&Save image"))
         self.actionSaveImage.setShortcut(_translate("MapsVisualizer", "Ctrl+S"))
         self.actionAbout.setText(_translate("MapsVisualizer", "&About"))
         self.actionExtra_plot_options.setText(_translate("MapsVisualizer", "&Extra plot options"))
-        self.actionBrowse_to_current_folder.setText(_translate("MapsVisualizer", "&Browse to current folder"))
         self.actionSave_settings.setText(_translate("MapsVisualizer", "&Export settings"))
         self.actionLoad_settings.setText(_translate("MapsVisualizer", "&Import settings"))
+        self.actionAdd_new_files.setText(_translate("MapsVisualizer", "&Add new file(s)"))
+        self.action_Clear.setText(_translate("MapsVisualizer", "&Clear"))
 
 from . import main_rc

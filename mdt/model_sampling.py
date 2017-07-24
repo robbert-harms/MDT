@@ -3,9 +3,11 @@ import logging
 import os
 import timeit
 import time
-from mdt.utils import model_output_exists, load_samples, restore_volumes
-from mdt.processing_strategies import SimpleModelProcessingWorkerGenerator, SamplingProcessingWorker, SaveAllSamples, \
-    SaveNoSamples, SaveThinnedSamples
+
+from mdt import get_processing_strategy
+from mdt.utils import model_output_exists, load_samples
+from mdt.processing_strategies import SamplingProcessor, SaveAllSamples, \
+    SaveNoSamples, SaveThinnedSamples, get_full_tmp_results_path
 from mdt.exceptions import InsufficientProtocolError
 
 
@@ -15,7 +17,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-def sample_composite_model(model, problem_data, output_folder, sampler, processing_strategy,
+def sample_composite_model(model, problem_data, output_folder, sampler, tmp_dir,
                            recalculate=False, store_samples=True, store_volume_maps=True,
                            initialization_data=None):
     """Sample a composite model.
@@ -26,7 +28,7 @@ def sample_composite_model(model, problem_data, output_folder, sampler, processi
             is initialized before running
         output_folder (string): The full path to the folder where to place the output
         sampler (:class:`mot.cl_routines.sampling.base.AbstractSampler`): The sampling routine to use.
-        processing_strategy (:class:`~mdt.processing_strategies.ModelProcessingStrategy`): the processing strategy
+        tmp_dir (str): the preferred temporary storage dir
         recalculate (boolean): If we want to recalculate the results if they are already present.
         store_samples (boolean or int): if set to False we will store none of the samples. If set to an integer we will
             store only thinned samples with that amount.
@@ -68,9 +70,13 @@ def sample_composite_model(model, problem_data, output_folder, sampler, processi
         initialization_data.apply_to_model(model, problem_data)
 
     with _log_info(logger, model.name):
-        worker_generator = SimpleModelProcessingWorkerGenerator(
-            lambda *args: SamplingProcessingWorker(sampler, sample_to_save_method, store_volume_maps, *args))
-        return processing_strategy.run(model, problem_data, output_folder, recalculate, worker_generator)
+        worker = SamplingProcessor(
+            sampler, model, problem_data, output_folder,
+            get_full_tmp_results_path(output_folder, tmp_dir), True, recalculate,
+            samples_to_save_method=sample_to_save_method, store_volume_maps=store_volume_maps)
+
+        processing_strategy = get_processing_strategy('sampling')
+        processing_strategy.process(worker)
 
 
 @contextmanager

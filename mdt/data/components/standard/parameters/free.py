@@ -8,7 +8,7 @@ its data are handled during model construction.
 """
 
 import numpy as np
-from mdt.components_config.parameters import FreeParameterConfig
+from mdt.component_templates.parameters import FreeParameterTemplate
 from mot.model_building.parameter_functions.priors import UniformWithinBoundsPrior
 from mot.model_building.parameter_functions.proposals import GaussianProposal, CircularGaussianProposal
 from mot.model_building.parameter_functions.sample_statistics import CircularGaussianPSS
@@ -21,7 +21,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class s0(FreeParameterConfig):
+class s0(FreeParameterTemplate):
 
     init_value = 1e4
     lower_bound = 1e-5
@@ -30,7 +30,7 @@ class s0(FreeParameterConfig):
     sampling_proposal = GaussianProposal(std=10.0)
 
 
-class T1(FreeParameterConfig):
+class T1(FreeParameterTemplate):
 
     init_value = 0.02
     lower_bound = 1e-5
@@ -39,7 +39,7 @@ class T1(FreeParameterConfig):
     sampling_proposal = GaussianProposal(0.0001)
 
 
-class T2(FreeParameterConfig):
+class T2(FreeParameterTemplate):
 
     init_value = 0.01
     lower_bound = 1e-5
@@ -48,7 +48,7 @@ class T2(FreeParameterConfig):
     sampling_proposal = GaussianProposal(0.0001)
 
 
-class T2_star(FreeParameterConfig):
+class T2_star(FreeParameterTemplate):
 
     init_value = 0.01
     lower_bound = 0.0
@@ -57,7 +57,7 @@ class T2_star(FreeParameterConfig):
     sampling_proposal = GaussianProposal(0.0001)
 
 
-class E1(FreeParameterConfig):
+class E1(FreeParameterTemplate):
     """This parameter is defined *only* for linear decay T1 fitting in GRE data *with* TR constant.
 
     This parameter is also defined in the SSFP equation. However, in SSFP this parameter is from the protocol (!)
@@ -73,7 +73,7 @@ class E1(FreeParameterConfig):
     sampling_proposal = GaussianProposal(0.0001)
 
 
-class R1(FreeParameterConfig):
+class R1(FreeParameterTemplate):
     """R1 = 1/T1, for linear T1Dec or other models. """
 
     init_value = 2
@@ -83,7 +83,7 @@ class R1(FreeParameterConfig):
     sampling_proposal = GaussianProposal(0.0001)
 
 
-class R2(FreeParameterConfig):
+class R2(FreeParameterTemplate):
     """R2 = 1/T2, for linear T2Dec or other models."""
 
     init_value = 5
@@ -93,7 +93,7 @@ class R2(FreeParameterConfig):
     sampling_proposal = GaussianProposal(0.0001)
 
 
-class R2s(FreeParameterConfig):
+class R2s(FreeParameterTemplate):
     """R2s = 1/T2s, for lineaR T2sDec or other models."""
 
     init_value = 10
@@ -103,7 +103,7 @@ class R2s(FreeParameterConfig):
     sampling_proposal = GaussianProposal(0.0001)
 
 
-class theta(FreeParameterConfig):
+class theta(FreeParameterTemplate):
 
     init_value = 1 / 2.0 * np.pi
     lower_bound = 0
@@ -114,7 +114,7 @@ class theta(FreeParameterConfig):
     sampling_statistics = CircularGaussianPSS()
 
 
-class phi(FreeParameterConfig):
+class phi(FreeParameterTemplate):
 
     init_value = 1 / 2.0 * np.pi
     lower_bound = 0
@@ -125,7 +125,7 @@ class phi(FreeParameterConfig):
     sampling_statistics = CircularGaussianPSS()
 
 
-class psi(FreeParameterConfig):
+class psi(FreeParameterTemplate):
 
     init_value = 1 / 2.0 * np.pi
     lower_bound = 0
@@ -136,7 +136,7 @@ class psi(FreeParameterConfig):
     sampling_statistics = CircularGaussianPSS()
 
 
-class d(FreeParameterConfig):
+class d(FreeParameterTemplate):
 
     init_value = 1.7e-9
     lower_bound = 0
@@ -145,7 +145,7 @@ class d(FreeParameterConfig):
     sampling_proposal = GaussianProposal(1e-10)
 
 
-class dperp0(FreeParameterConfig):
+class dperp0(FreeParameterTemplate):
 
     init_value = 1.7e-10
     lower_bound = 0
@@ -154,7 +154,7 @@ class dperp0(FreeParameterConfig):
     sampling_proposal = GaussianProposal(5e-10)
 
 
-class dperp1(FreeParameterConfig):
+class dperp1(FreeParameterTemplate):
 
     init_value = 1.7e-11
     lower_bound = 0
@@ -163,16 +163,16 @@ class dperp1(FreeParameterConfig):
     sampling_proposal = GaussianProposal(5e-10)
 
 
-class R(FreeParameterConfig):
+class R(FreeParameterTemplate):
 
-    init_value = 2.0e-6
-    lower_bound = 1e-6
+    init_value = 1.0e-6
+    lower_bound = 1e-7
     upper_bound = 20e-6
     parameter_transform = CosSqrClampTransform()
     sampling_proposal = GaussianProposal(1e-7)
 
 
-class kappa(FreeParameterConfig):
+class kappa(FreeParameterTemplate):
 
     init_value = 1
     lower_bound = 1e-5
@@ -182,39 +182,49 @@ class kappa(FreeParameterConfig):
 
 
 # for use in the GDRCylinder model
-class gamma_k(FreeParameterConfig):
+class gamma_shape(FreeParameterTemplate):
 
     init_value = 1
-    lower_bound = 0
+    lower_bound = 0.1e-3
     upper_bound = 20
-    parameter_transform = SinSqrClampTransform()
-    sampling_proposal = GaussianProposal(1.0)
+    parameter_transform = CosSqrClampTransform()
+    sampling_proposal = GaussianProposal(1.0e-2)
 
 
 # for use in the GDRCylinder model
-class gamma_beta(FreeParameterConfig):
+class gamma_scale(FreeParameterTemplate):
 
-    init_value = 1
-    lower_bound = 1.0e-7
-    upper_bound = 3.0e-7
-    parameter_transform = SinSqrClampTransform()
-    sampling_proposal = GaussianProposal(1e-7)
+    init_value = 1e-6
+    lower_bound = 0.1e-9
+    upper_bound = 20e-6
+    parameter_transform = CosSqrClampTransform()
+    sampling_proposal = GaussianProposal(1e-9)
 
-
-# for use in the GDRCylinder model
-class gamma_nmr_cyl(FreeParameterConfig):
-
-    init_value = 5
-    lower_bound = 1
-    upper_bound = 10
-    parameter_transform = SinSqrClampTransform()
-    sampling_proposal = GaussianProposal(1)
 
 # for use in ExpT1DecSTEAM model. It is assumed for ex-vivo values. For in-vivo use d instead.
-class d_exvivo(FreeParameterConfig):
+class d_exvivo(FreeParameterTemplate):
 
     init_value = 5.0e-10
     lower_bound = 0.0
     upper_bound = 1.0e-8
     parameter_transform = SinSqrClampTransform()
     sampling_proposal = GaussianProposal(1e-11)
+
+
+class time_dependent_characteristic_coefficient(FreeParameterTemplate):
+    """The time dependent characteristic as used in the TimeDependentZeppelin model. Values are in m^2."""
+    init_value = 1e-6
+    lower_bound = 1e-7
+    upper_bound = 1e-5
+    parameter_transform = CosSqrClampTransform()
+    sampling_proposal = GaussianProposal(1e-7)
+
+
+class d_bulk(FreeParameterTemplate):
+
+    init_value = 0.e-9
+    lower_bound = 0
+    upper_bound = 1.0e-8
+    parameter_transform = SinSqrClampTransform()
+    sampling_proposal = GaussianProposal(1e-10)
+

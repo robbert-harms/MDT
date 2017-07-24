@@ -31,7 +31,8 @@ from mdt.utils import estimate_noise_std, get_cl_devices, load_problem_data, cre
 from mdt.simulations import create_signal_estimates, simulate_signals, add_rician_noise
 from mdt.batch_utils import collect_batch_fit_output, collect_batch_fit_single_map, run_function_on_batch_fit_output
 from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, write_protocol, write_bvec_bval
-from mdt.components_loader import load_component, get_model, component_import, construct_component, get_component_class
+from mdt.components_loader import load_component, get_model, component_import, get_component_class, get_meta_info
+from mdt.component_templates.base import construct_component
 from mdt.configuration import config_context, get_processing_strategy
 from mdt.exceptions import InsufficientProtocolError
 from mdt.nifti import write_nifti
@@ -171,9 +172,6 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
         if sampler is None:
             sampler = configuration.get_sampler()
 
-        processing_strategy = get_processing_strategy('sampling', model_names=model.name,
-                                                      tmp_dir=get_temporary_results_dir(tmp_results_dir))
-
         base_dir = os.path.join(output_folder, model.name, 'samples')
         output_folder = base_dir
 
@@ -191,7 +189,7 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
             model.double_precision = double_precision
 
             results = sample_composite_model(model, problem_data, output_folder, sampler,
-                                             processing_strategy, recalculate=recalculate,
+                                             get_temporary_results_dir(tmp_results_dir), recalculate=recalculate,
                                              store_samples=store_samples,
                                              initialization_data=initialization_data)
 
@@ -249,12 +247,13 @@ def batch_fit(data_folder, models_to_fit, batch_profile=None, subjects_selection
 
 def view_maps(data, config=None, figure_options=None,
               block=True, show_maximized=False, use_qt=True,
-              window_title=None, enable_directory_watcher=True):
+              window_title=None):
     """View a number of maps using the MDT Maps Visualizer.
 
     Args:
-        data (str, dict, :class:`~mdt.visualization.maps.base.DataInfo`): the data we are showing,
-            either a dictionary with result maps, a string with a path name or a DataInfo object
+        data (str, dict, :class:`~mdt.visualization.maps.base.DataInfo`, list, tuple): the data we are showing,
+            either a dictionary with result maps, a string with a path name, a DataInfo object or a list
+            with filenames and/or directories.
         config (str, dict, :class:`~mdt.visualization.maps.base import MapPlotConfig`): either a Yaml string or a
             dictionary with configuration settings or a ValidatedMapPlotConfig object to use directly
         figure_options (dict): figure options for the matplotlib Figure, if figsizes is not given you can also specify
@@ -264,10 +263,6 @@ def view_maps(data, config=None, figure_options=None,
         show_maximized (boolean): if we show the window maximized or not
         window_title (str): the title for the window
         use_qt (boolean): if we want to use the Qt GUI, or show the results directly in matplotlib
-        enable_directory_watcher (boolean): if the directory watcher should be enabled/disabled, only applicable for the
-            QT GUI. If the directory watcher is enabled, the viewer will automatically add new maps when added
-            to the folder and also automatically remove maps when they are removed from the directory.
-            It is useful to disable this if you want to have multiple viewers open with old results.
     """
     from mdt.gui.maps_visualizer.main import start_gui
     from mdt.visualization.maps.base import MapPlotConfig
@@ -276,9 +271,11 @@ def view_maps(data, config=None, figure_options=None,
     from mdt.visualization.maps.base import SimpleDataInfo
 
     if isinstance(data, string_types):
-        data = SimpleDataInfo.from_dir(data)
+        data = SimpleDataInfo.from_paths([data])
     elif isinstance(data, collections.MutableMapping):
         data = SimpleDataInfo(data)
+    elif isinstance(data, collections.Sequence):
+        data = SimpleDataInfo.from_paths(data)
     elif data is None:
         data = SimpleDataInfo({})
 
@@ -293,8 +290,7 @@ def view_maps(data, config=None, figure_options=None,
         config = MapPlotConfig.from_dict(config)
 
     if use_qt:
-        start_gui(data, config, app_exec=block, show_maximized=show_maximized, window_title=window_title,
-                  enable_directory_watcher=enable_directory_watcher)
+        start_gui(data, config, app_exec=block, show_maximized=show_maximized, window_title=window_title)
     else:
         figure_options = figure_options or {}
         figure_options['dpi'] = figure_options.get('dpi', 100)
@@ -312,8 +308,9 @@ def write_view_maps_figure(data, output_filename, config=None, width=None, heigh
     """Saves the view maps figure to a file.
 
     Args:
-        data (str, dict, :class:`~mdt.visualization.maps.base.DataInfo`): the data we are showing,
-            either a dictionary with result maps, a string with a path name or a DataInfo object
+        data (str, dict, :class:`~mdt.visualization.maps.base.DataInfo`, list, tuple): the data we are showing,
+            either a dictionary with result maps, a string with a path name, a DataInfo object or a list
+            with filenames and or directories.
         config (str, dict, :class:`~mdt.visualization.maps.base import MapPlotConfig`): either a Yaml string or a
             dictionary with configuration settings or a ValidatedMapPlotConfig object to use directly
         output_filename (str): the output filename
@@ -333,9 +330,11 @@ def write_view_maps_figure(data, output_filename, config=None, width=None, heigh
     from mdt.visualization.maps.base import SimpleDataInfo
 
     if isinstance(data, string_types):
-        data = SimpleDataInfo.from_dir(data)
+        data = SimpleDataInfo.from_paths([data])
     elif isinstance(data, dict):
         data = SimpleDataInfo(data)
+    elif isinstance(data, collections.Sequence):
+        data = SimpleDataInfo.from_paths(data)
     elif data is None:
         data = SimpleDataInfo({})
 
@@ -405,8 +404,8 @@ def results_preselection_names(data):
     else:
         keys = data
 
-    filter_match = ('.vec', '.d', '.sigma', 'AIC', 'Errors.mse', 'Errors.sse', '.eigen_ranking',
-                    'SignalEstimates', 'UsedMask')
+    filter_match = ('.vec', '.d', '.sigma', '.theta', '.phi', 'AIC', 'Errors', 'Errors', '.eigen_ranking',
+                    'SignalEstimates', 'UsedMask', 'BIC')
     return list(sorted(filter(lambda v: all(m not in v for m in filter_match), keys)))
 
 
@@ -580,19 +579,27 @@ def get_list_of_composite_models():
     """Get a list of all available composite models
 
     Returns:
-        list of str: A list of all available composite model names.
+        list of str: A list of all available composite model names
     """
     from mdt.components_loader import CompositeModelsLoader
     return CompositeModelsLoader().list_all()
 
 
-def get_list_of_cascade_models():
+def get_list_of_cascade_models(target_model_name=None):
     """Get a list of all available cascade models
+
+    Args:
+        target_model_name (str): if given we will only return the list of cascades that end with this composite model.
 
     Returns:
         list of str: A list of available cascade models
     """
     from mdt.components_loader import CascadeModelsLoader
+
+    if target_model_name:
+        meta_infos = CascadeModelsLoader().get_all_meta_info()
+        return [k for k, m in meta_infos.items() if m['target_model'] == target_model_name]
+
     return CascadeModelsLoader().list_all()
 
 
@@ -640,7 +647,7 @@ def get_batch_profile(batch_profile_name):
     return get_component_class('batch_profiles', batch_profile_name)
 
 
-def gui(base_dir=None, app_exec=True):
+def start_gui(base_dir=None, app_exec=True):
     """Start the model fitting GUI.
 
     Args:

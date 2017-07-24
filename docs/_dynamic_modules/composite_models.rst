@@ -122,7 +122,7 @@ The second method is to add the bound function ``_get_suitable_volume_indices`` 
 .. code-block:: python
 
     ...
-    from mdt.components_loader import bind_function
+    from mdt.component_templates.base import bind_function
 
     class Tensor(DMRICompositeModelConfig):
         ...

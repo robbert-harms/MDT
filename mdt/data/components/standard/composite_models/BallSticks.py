@@ -1,4 +1,4 @@
-from mdt.components_config.composite_models import DMRICompositeModelConfig
+from mdt.component_templates.composite_models import DMRICompositeModelTemplate
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -6,7 +6,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class BallStick_r1(DMRICompositeModelConfig):
+class BallStick_r1(DMRICompositeModelTemplate):
 
     description = 'The default Ball & Stick model'
     model_expression = '''
@@ -18,7 +18,7 @@ class BallStick_r1(DMRICompositeModelConfig):
     post_optimization_modifiers = [('FS', lambda results: 1 - results['w_ball.w'])]
 
 
-class BallStick_r2(DMRICompositeModelConfig):
+class BallStick_r2(DMRICompositeModelTemplate):
 
     description = 'The Ball & 2x Stick model'
     model_expression = '''
@@ -34,7 +34,7 @@ class BallStick_r2(DMRICompositeModelConfig):
     prior = 'return w_stick1.w < w_stick0.w;'
 
 
-class BallStick_r3(DMRICompositeModelConfig):
+class BallStick_r3(DMRICompositeModelTemplate):
 
     description = 'The Ball & 3x Stick model'
     model_expression = '''

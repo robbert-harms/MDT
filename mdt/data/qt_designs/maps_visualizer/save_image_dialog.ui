@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>722</width>
-    <height>253</height>
+    <height>284</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -230,7 +230,13 @@
   </layout>
  </widget>
  <tabstops>
+  <tabstop>width_box</tabstop>
+  <tabstop>height_box</tabstop>
   <tabstop>dpi_box</tabstop>
+  <tabstop>outputFile_box</tabstop>
+  <tabstop>outputFile_chooser</tabstop>
+  <tabstop>writeScriptsAndConfig</tabstop>
+  <tabstop>buttonBox</tabstop>
  </tabstops>
  <resources/>
  <connections>

@@ -1,9 +1,11 @@
 import inspect
 import os
 from copy import deepcopy
+from textwrap import indent, dedent
+
 import six
-from mdt.components_loader import ComponentConfigMeta, ComponentConfig, ComponentBuilder, \
-    method_binding_meta
+from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplateMeta, \
+    ComponentTemplate, register_builder
 from mot.cl_data_type import SimpleCLDataType
 from mot.library_functions import SimpleCLLibrary
 from mot.model_building.parameters import LibraryParameter
@@ -38,14 +40,15 @@ def _get_parameters_list(parameter_list):
 def _construct_cl_function_definition(return_type, cl_function_name, parameters):
     """Create the CL function definition for a compartment function.
 
-    This will construct something like (for the NeumannCylPerpPGSESum model):
+    This will construct something like (for the NeumannCylindricalRestrictedSignal model):
 
     .. code-block:: c
 
-        double NeumannCylPerpPGSESum(const mot_float_type Delta,
-                                     const mot_float_type delta,
-                                     const mot_float_type d,
-                                     const mot_float_type R)
+        double NeumannCylindricalRestrictedSignal(
+                const mot_float_type Delta,
+                const mot_float_type delta,
+                const mot_float_type d,
+                const mot_float_type R)
 
     Args:
         return_type (str): the return type
@@ -72,26 +75,25 @@ def _construct_cl_function_definition(return_type, cl_function_name, parameters)
 
         return s
 
-    parameters_str = ',\n'.join(parameter_str(parameter) for parameter in parameters)
-    return '{return_type} {cl_function_name}({parameters})'.format(return_type=return_type,
-                                                                   cl_function_name=cl_function_name,
-                                                                   parameters=parameters_str)
+    parameters_str = indent(',\n'.join(parameter_str(parameter) for parameter in parameters), ' ' * 4 * 2)
+    return '\n{return_type} {cl_function_name}(\n{parameters})'.format(
+        return_type=return_type, cl_function_name=cl_function_name, parameters=parameters_str)
 
 
-class LibraryFunctionConfigMeta(ComponentConfigMeta):
+class LibraryFunctionTemplateMeta(ComponentTemplateMeta):
 
     def __new__(mcs, name, bases, attributes):
         """Extends the default meta class with extra functionality for the library functions.
 
         This adds the cl_function_name if it is not defined, and creates the correct cl_code.
         """
-        result = super(LibraryFunctionConfigMeta, mcs).__new__(mcs, name, bases, attributes)
+        result = super(LibraryFunctionTemplateMeta, mcs).__new__(mcs, name, bases, attributes)
 
         if 'cl_function_name' not in attributes:
             result.cl_function_name = '{}'.format(name)
 
         # to prevent the base from loading the initial meta class.
-        if any(isinstance(base, LibraryFunctionConfigMeta) for base in bases):
+        if any(isinstance(base, LibraryFunctionTemplateMeta) for base in bases):
             result.cl_code = mcs._get_cl_code(result, bases, attributes)
 
         return result
@@ -108,9 +110,13 @@ class LibraryFunctionConfigMeta(ComponentConfigMeta):
                         return base.return_type
 
         if 'cl_code' in attributes and attributes['cl_code'] is not None:
-            s = _construct_cl_function_definition(
-                get_return_type(), result.cl_function_name, _get_parameters_list(result.parameter_list))
-            s += '{\n' + attributes['cl_code'] + '\n}'
+            if ComponentTemplateMeta._resolve_attribute(bases, attributes, 'is_function'):
+                s = _construct_cl_function_definition(
+                    ComponentTemplateMeta._resolve_attribute(bases, attributes, 'return_type', lambda v: v is not None),
+                    result.cl_function_name, _get_parameters_list(result.parameter_list))
+                s += '{\n\n' + indent(dedent(attributes['cl_code'].strip('\n')), ' '*4) + '\n}'
+            else:
+                s = '\n' + dedent(attributes['cl_code'].strip('\n'))
             return s
 
         module_path = os.path.abspath(inspect.getfile(result))
@@ -126,7 +132,7 @@ class LibraryFunctionConfigMeta(ComponentConfigMeta):
         return ''
 
 
-class LibraryFunctionConfig(six.with_metaclass(LibraryFunctionConfigMeta, ComponentConfig)):
+class LibraryFunctionTemplate(six.with_metaclass(LibraryFunctionTemplateMeta, ComponentTemplate)):
     """The library function config to inherit from.
 
     These configs are loaded on the fly by the LibraryFunctionsBuilder.
@@ -146,6 +152,8 @@ class LibraryFunctionConfig(six.with_metaclass(LibraryFunctionConfigMeta, Compon
         cl_code (CLCodeDefinition): the CL code definition to use. Defaults to CLCodeFromAdjacentFile.
         dependency_list (list): the list of functions this function depends on, can contain string which will be
             resolved as library functions.
+        is_function (boolean): set to False to disable the automatic generation of a function signature.
+            Use this for C macro only libraries.
     """
     name = ''
     description = ''
@@ -154,6 +162,7 @@ class LibraryFunctionConfig(six.with_metaclass(LibraryFunctionConfigMeta, Compon
     parameter_list = []
     cl_code = None
     dependency_list = []
+    is_function = True
 
 
 class LibraryFunctionBuildingBase(SimpleCLLibrary):
@@ -170,7 +179,7 @@ class LibraryFunctionsBuilder(ComponentBuilder):
         """Creates classes with as base class LibraryFunctionsBase
 
         Args:
-            template (LibraryFunctionConfig): the library config template to use for creating
+            template (LibraryFunctionTemplate): the library config template to use for creating
                 the class with the right init settings.
         """
         class AutoCreatedLibraryFunction(method_binding_meta(template, LibraryFunctionBuildingBase)):
@@ -217,3 +226,6 @@ def _resolve_dependencies(dependency_list):
             result.append(dependency)
 
     return result
+
+
+register_builder(LibraryFunctionTemplate, LibraryFunctionsBuilder())

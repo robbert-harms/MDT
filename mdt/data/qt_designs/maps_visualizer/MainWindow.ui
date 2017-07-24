@@ -22,16 +22,7 @@
     <property name="spacing">
      <number>0</number>
     </property>
-    <property name="leftMargin">
-     <number>0</number>
-    </property>
-    <property name="topMargin">
-     <number>0</number>
-    </property>
-    <property name="rightMargin">
-     <number>0</number>
-    </property>
-    <property name="bottomMargin">
+    <property name="margin">
      <number>0</number>
     </property>
     <item>
@@ -43,16 +34,7 @@
        <enum>QFrame::Sunken</enum>
       </property>
       <layout class="QGridLayout" name="gridLayout_2">
-       <property name="leftMargin">
-        <number>0</number>
-       </property>
-       <property name="topMargin">
-        <number>0</number>
-       </property>
-       <property name="rightMargin">
-        <number>0</number>
-       </property>
-       <property name="bottomMargin">
+       <property name="margin">
         <number>0</number>
        </property>
        <property name="spacing">
@@ -96,16 +78,7 @@
                <string>General</string>
               </attribute>
               <layout class="QGridLayout" name="gridLayout_4">
-               <property name="leftMargin">
-                <number>0</number>
-               </property>
-               <property name="topMargin">
-                <number>0</number>
-               </property>
-               <property name="rightMargin">
-                <number>0</number>
-               </property>
-               <property name="bottomMargin">
+               <property name="margin">
                 <number>0</number>
                </property>
                <property name="spacing">
@@ -125,16 +98,7 @@
                <string>Maps</string>
               </attribute>
               <layout class="QGridLayout" name="gridLayout">
-               <property name="leftMargin">
-                <number>0</number>
-               </property>
-               <property name="topMargin">
-                <number>0</number>
-               </property>
-               <property name="rightMargin">
-                <number>0</number>
-               </property>
-               <property name="bottomMargin">
+               <property name="margin">
                 <number>0</number>
                </property>
                <property name="spacing">
@@ -192,7 +156,7 @@
              <item>
               <widget class="QCheckBox" name="auto_rendering">
                <property name="text">
-                <string>Auto render</string>
+                <string>Auto redraw</string>
                </property>
               </widget>
              </item>
@@ -287,15 +251,14 @@
     <property name="title">
      <string>&amp;File</string>
     </property>
-    <addaction name="actionOpen_directory"/>
-    <addaction name="separator"/>
-    <addaction name="actionBrowse_to_current_folder"/>
+    <addaction name="actionAdd_new_files"/>
     <addaction name="separator"/>
     <addaction name="actionSave_settings"/>
     <addaction name="actionLoad_settings"/>
     <addaction name="separator"/>
     <addaction name="actionSaveImage"/>
     <addaction name="separator"/>
+    <addaction name="action_Clear"/>
     <addaction name="actionQuit"/>
    </widget>
    <widget class="QMenu" name="menuAbout">
@@ -308,11 +271,6 @@
    <addaction name="menuAbout"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <action name="actionOpen_directory">
-   <property name="text">
-    <string>&amp;Open new directory</string>
-   </property>
-  </action>
   <action name="actionQuit">
    <property name="text">
     <string>&amp;Quit</string>
@@ -339,11 +297,6 @@
     <string>&amp;Extra plot options</string>
    </property>
   </action>
-  <action name="actionBrowse_to_current_folder">
-   <property name="text">
-    <string>&amp;Browse to current folder</string>
-   </property>
-  </action>
   <action name="actionSave_settings">
    <property name="text">
     <string>&amp;Export settings</string>
@@ -352,6 +305,16 @@
   <action name="actionLoad_settings">
    <property name="text">
     <string>&amp;Import settings</string>
+   </property>
+  </action>
+  <action name="actionAdd_new_files">
+   <property name="text">
+    <string>&amp;Add new file(s)</string>
+   </property>
+  </action>
+  <action name="action_Clear">
+   <property name="text">
+    <string>&amp;Clear</string>
    </property>
   </action>
  </widget>

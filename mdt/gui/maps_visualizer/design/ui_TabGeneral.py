@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'TabGeneral.ui'
 #
-# Created by: PyQt5 UI code generator 5.4.2
+# Created by: PyQt5 UI code generator 5.5.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -21,7 +21,7 @@ class Ui_TabGeneral(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setObjectName("scrollArea")
         self.scrollAreaWidgetContents = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, -479, 946, 1211))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, -253, 947, 955))
         self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
         self.gridLayout_6 = QtWidgets.QGridLayout(self.scrollAreaWidgetContents)
         self.gridLayout_6.setContentsMargins(6, 6, 6, 6)
@@ -310,21 +310,12 @@ class Ui_TabGeneral(object):
         self.gridLayout_12.setHorizontalSpacing(6)
         self.gridLayout_12.setVerticalSpacing(3)
         self.gridLayout_12.setObjectName("gridLayout_12")
-        self.label_3 = QtWidgets.QLabel(self.frame_8)
-        self.label_3.setObjectName("label_3")
-        self.gridLayout_12.addWidget(self.label_3, 1, 0, 1, 1)
         self.label_7 = QtWidgets.QLabel(self.frame_8)
         self.label_7.setObjectName("label_7")
-        self.gridLayout_12.addWidget(self.label_7, 2, 0, 1, 1)
+        self.gridLayout_12.addWidget(self.label_7, 1, 0, 1, 1)
         self.general_info_nmr_maps = QtWidgets.QLabel(self.frame_8)
         self.general_info_nmr_maps.setObjectName("general_info_nmr_maps")
-        self.gridLayout_12.addWidget(self.general_info_nmr_maps, 2, 1, 1, 1)
-        self.general_info_directory = QtWidgets.QLabel(self.frame_8)
-        self.general_info_directory.setWordWrap(True)
-        self.general_info_directory.setTextInteractionFlags(QtCore.Qt.LinksAccessibleByMouse)
-        self.general_info_directory.setObjectName("general_info_directory")
-        self.gridLayout_12.addWidget(self.general_info_directory, 1, 1, 1, 1)
-        self.gridLayout_12.setColumnStretch(1, 1)
+        self.gridLayout_12.addWidget(self.general_info_nmr_maps, 1, 1, 1, 1)
         self.verticalLayout_9.addWidget(self.frame_8)
         self.gridLayout_6.addWidget(self.general_Info, 9, 0, 1, 1)
         spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
@@ -482,10 +473,8 @@ class Ui_TabGeneral(object):
         self.general_deselect_all_maps.setText(_translate("TabGeneral", "Deselect all"))
         self.general_invert_map_selection.setText(_translate("TabGeneral", "Invert selection"))
         self.label_24.setText(_translate("TabGeneral", "Info"))
-        self.label_3.setText(_translate("TabGeneral", "Directory: "))
         self.label_7.setText(_translate("TabGeneral", "Map count:"))
         self.general_info_nmr_maps.setText(_translate("TabGeneral", "-"))
-        self.general_info_directory.setText(_translate("TabGeneral", "-"))
         self.label_26.setText(_translate("TabGeneral", "Font"))
         self.label_6.setText(_translate("TabGeneral", "Family:"))
         self.label_8.setText(_translate("TabGeneral", "Size:"))

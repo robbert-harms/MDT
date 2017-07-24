@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QWidget
 
 from mdt.gui.maps_visualizer.actions import SetMapTitle, SetMapColormap, SetMapScale, SetMapClipping, \
     SetMapColorbarLabel
+from mdt.gui.maps_visualizer.base import DataConfigModel
 from mdt.gui.maps_visualizer.design.ui_MapSpecificOptions import Ui_MapSpecificOptions
 from mdt.gui.maps_visualizer.design.ui_TabMapSpecific import Ui_TabMapSpecific
 from mdt.gui.utils import blocked_signals, TimedUpdate, split_long_path_elements
@@ -24,18 +25,14 @@ class TabMapSpecific(QWidget, Ui_TabMapSpecific):
         self.mapSpecificOptionsPosition.addWidget(self.map_specific_tab)
 
         self._controller = controller
-        self._controller.new_data.connect(self.set_new_data)
-        self._controller.new_config.connect(self.set_new_config)
+        self._controller.model_updated.connect(self.model_updated)
 
         self.selectedMap.currentIndexChanged.connect(
             lambda ind: self._update_map_specifics(self.selectedMap.itemData(ind, Qt.UserRole)))
 
-    @pyqtSlot(DataInfo)
-    def set_new_data(self, data_info):
-        pass
-
-    @pyqtSlot(MapPlotConfig)
-    def set_new_config(self, config):
+    @pyqtSlot(DataConfigModel)
+    def model_updated(self, model):
+        config = model.get_config()
         map_names = config.maps_to_show
 
         with blocked_signals(self.selectedMap):
@@ -75,8 +72,11 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         super(MapSpecificOptions, self).__init__(parent)
         self.setupUi(self)
         self._controller = controller
+
+        current_model = self._controller.get_model()
+
         self._current_map = None
-        self.colormap.addItems(['-- Use global --'] + self._controller.get_config().get_available_colormaps())
+        self.colormap.addItems(['-- Use global --'] + current_model.get_config().get_available_colormaps())
         self.colormap.currentIndexChanged.connect(self._update_colormap)
         self.data_clipping_min.valueChanged.connect(self._update_clipping_min)
         self.data_clipping_max.valueChanged.connect(self._update_clipping_max)
@@ -108,6 +108,8 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         self._auto_enable_scale_max = False
         self._auto_enable_clipping_min = False
         self._auto_enable_clipping_max = False
+
+        self.reset()
 
     def reset(self):
         """Set all the values to their defaults"""
@@ -150,7 +152,8 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         self.info_shape.setText('-')
 
     def _get_mask(self, data_info, map_name):
-        plot_config = self._controller.get_config()
+        current_model = self._controller.get_model()
+        plot_config = current_model.get_config()
 
         def get_map_attr():
             if map_name in plot_config.map_plot_options:
@@ -169,12 +172,14 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         """Load the settings of the given map"""
         self._current_map = map_name
 
+        current_model = self._controller.get_model()
+
         try:
-            map_info = self._controller.get_config().map_plot_options[map_name]
+            map_info = current_model.get_config().map_plot_options[map_name]
         except KeyError:
             map_info = SingleMapConfig()
 
-        data_info = self._controller.get_data()
+        data_info = current_model.get_data()
         vmin, vmax = data_info.get_single_map_info(map_name).min_max(mask=self._get_mask(data_info, map_name))
 
         with blocked_signals(self.map_title):
@@ -219,7 +224,7 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         with blocked_signals(self.use_data_scale_max):
             self.use_data_scale_max.setChecked(map_info.scale.use_max)
 
-        map_filename = data_info.get_file_name(map_name)
+        map_filename = data_info.get_file_path(map_name)
         if map_filename:
             self.info_file_location.setText(split_long_path_elements(map_filename, 25))
 
@@ -228,7 +233,8 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         self.info_shape.setText(str(data_info.get_single_map_info(map_name).shape))
 
     def _get_current_map_config(self):
-        current_config = self._controller.get_config()
+        current_model = self._controller.get_model()
+        current_config = current_model.get_config()
         current_map_config = current_config.map_plot_options.get(self._current_map, SingleMapConfig())
         return current_map_config
 

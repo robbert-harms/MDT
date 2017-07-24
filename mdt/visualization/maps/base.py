@@ -1,3 +1,4 @@
+import glob
 from copy import copy
 import os
 import inspect
@@ -9,7 +10,8 @@ import yaml
 import matplotlib.font_manager
 import mdt
 import mdt.visualization.layouts
-from mdt.nifti import yield_nifti_info, load_nifti
+from mdt.nifti import yield_nifti_info, load_nifti, nifti_filepath_resolution
+from mdt.utils import split_image_path
 from mdt.visualization.dict_conversion import StringConversion, \
     SimpleClassConversion, IntConversion, SimpleListConversion, BooleanConversion, \
     ConvertDictElements, ConvertDynamicFromModule, FloatConversion, WhiteListConversion, SimpleDictConversion, \
@@ -386,6 +388,615 @@ class SingleMapConfig(SimpleConvertibleConfig):
             if hasattr(self, '_validate_' + key):
                 getattr(self, '_validate_' + key)(data_info)
         return self
+
+
+class DataInfo(object):
+    """Information about the maps we are viewing."""
+
+    def get_map_names(self):
+        """Get a list of the names of all the maps in this data info object.
+
+        Returns:
+            list: the list of map names
+        """
+        raise NotImplementedError()
+
+    def get_map_data(self, map_name):
+        """Get the data for the indicated map.
+
+        Args:
+            map_name (str): the name of the map we want the data of
+
+        Returns:
+            ndarray: the data of the given map
+        """
+        raise NotImplementedError()
+
+    def get_single_map_info(self, map_name):
+        """Get an information object for a single map.
+
+        Args:
+            map_name (str): the name of the map we want information about
+
+        Returns:
+            SingleMapInfo: information object about that map
+        """
+        raise NotImplementedError()
+
+    def get_file_path(self, map_name):
+        """Get the file name of the given map
+
+        Returns:
+            None if the map could not be found on dir, else a string with the file path.
+        """
+        raise NotImplementedError()
+
+    def get_max_dimension(self, map_names=None):
+        """Get the minimum of the maximum dimension index over the maps
+
+        Args:
+            map_names (list of str): if given we will only scan the given list of maps
+
+        Returns:
+            int: either, 0, 1, 2 as the maximum dimension index in the maps.
+        """
+        raise NotImplementedError()
+
+    def get_max_slice_index(self, dimension, map_names=None):
+        """Get the maximum slice index in the given map on the given dimension.
+
+        Args:
+            dimension (int): the dimension we want the slice index of (maximum 3)
+            map_names (list of str): if given we will only scan the given list of maps
+
+        Returns:
+            int: the minimum of the maximum slice indices over the given maps in the given dimension.
+        """
+        raise NotImplementedError()
+
+    def get_max_volume_index(self, map_names=None):
+        """Get the maximum volume index in the given maps.
+
+        In contrast to the max dimension and max slice index functions, this gives the maximum over all the
+        images. This since handling different volumes is implemented in the viewer.
+
+        Args:
+            map_names (list of str): if given we will only scan the given list of maps
+
+        Returns:
+            int: the maximum volume index in the given list of maps. Starts from 0.
+        """
+        raise NotImplementedError()
+
+    def get_index_first_non_zero_slice(self, dimension, map_names=None):
+        """Get the index of the first non zero slice in the maps.
+
+        Args:
+            dimension (int): the dimension to search in
+            map_names (list of str): if given we will only scan the given list of maps
+
+        Returns:
+            int: the slice index with the first non zero values.
+        """
+        raise NotImplementedError()
+
+    def slice_has_data(self, dimension, slice_index, map_names=None):
+        """Check if at least one of the maps has non zero numbers on the given slice.
+
+        Args:
+            dimension (int): the dimension to search in
+            slice_index (int): the index of the slice in the given dimension
+            map_names (list of str): if given we will only scan the given list of maps
+
+        Returns:
+            bool: true if at least on of the maps has data in the given slice
+        """
+        raise NotImplementedError()
+
+    def get_max_x_index(self, dimension, rotate=0, map_names=None):
+        """Get the maximum x index supported over the images.
+
+        In essence this gets the lowest x index found.
+
+        Args:
+            dimension (int): the dimension to search in
+            rotate (int): the rotation factor by which we rotate the slices within the given dimension
+            map_names (list of str): if given we will only scan the given list of maps
+
+        Returns:
+            int: the maximum x-index found.
+        """
+        raise NotImplementedError()
+
+    def get_max_y_index(self, dimension, rotate=0, map_names=None):
+        """Get the maximum y index supported over the images.
+
+        In essence this gets the lowest y index found.
+
+        Args:
+            dimension (int): the dimension to search in
+            rotate (int): the rotation factor by which we rotate the slices within the given dimension
+            map_names (list of str): if given we will only scan the given list of maps
+
+        Returns:
+            int: the maximum y-index found.
+        """
+        raise NotImplementedError()
+
+    def get_bounding_box(self, dimension, slice_index, volume_index, rotate, map_names=None):
+        """Get the bounding box of the images.
+
+        Args:
+            dimension (int): the dimension to search in
+            slice_index (int): the slice index in that dimension
+            volume_index (int): the current volume index
+            rotate (int): the angle by which to rotate the image before getting the bounding box
+            map_names (list of str): if given we will only scan the given list of maps
+
+        Returns:
+            tuple of Point: two point designating first the upper left corner and second the lower right corner of the
+                bounding box.
+        """
+        raise NotImplementedError()
+
+
+class SimpleDataInfo(DataInfo):
+
+    def __init__(self, maps):
+        """A container for basic information about the volume maps we are viewing.
+
+        Args:
+            maps (dict): the dictionary with the maps to view, these maps can either be arrays with values,
+                nibabel proxy images or SingleMapInfo objects.
+        """
+        self._input_maps = maps
+
+    @classmethod
+    def from_paths(cls, paths):
+        """Load all the nifti files from the given paths.
+
+        For paths that are directories we load all the elements inside that directory (but without recursion).
+
+        Args:
+            list of str: the list of paths to load (directories and files)
+
+        Returns:
+            SimpleDataInfo: the simple data info
+        """
+        nifti_files = find_all_nifti_files(paths)
+        return cls(load_data_info(nifti_files))
+
+    def get_updated(self, updates=None, removals=None):
+        """Get a new simple data info object that includes the given new maps.
+
+        In the case of double map names are the old maps overwritten.
+
+        Args:
+            updates (dict): the dictionary with the maps to view, these maps can either be arrays with values,
+                nibabel proxy images or SingleMapInfo objects.
+            removals (list): a list of maps to remove
+
+        Returns:
+            SimpleDataInfo: a new updated data info object
+        """
+        new_maps = copy(self._input_maps)
+
+        if updates:
+            new_maps.update(updates)
+
+        if removals:
+            for map_name in removals:
+                if map_name in new_maps:
+                    del new_maps[map_name]
+
+        return SimpleDataInfo(new_maps)
+
+    def get_map_names(self):
+        return self._input_maps.keys()
+
+    def get_map_data(self, map_name):
+        return self.get_single_map_info(map_name).data
+
+    def get_single_map_info(self, map_name):
+        value = self._input_maps[map_name]
+        if not isinstance(value, SingleMapInfo):
+            return SingleMapInfo(value)
+        return value
+
+    def get_file_path(self, map_name):
+        return self.get_single_map_info(map_name).file_path
+
+    def get_max_dimension(self, map_names=None):
+        """Get the minimum of the maximum dimension index over the maps
+
+        Args:
+            map_names (list of str): if given we will only scan the given list of maps
+
+        Returns:
+            int: either, 0, 1, 2 as the maximum dimension index in the maps.
+        """
+        map_names = map_names or self._input_maps.keys()
+        if not map_names:
+            raise ValueError('No maps to search in.')
+        return min(self.get_single_map_info(map_name).max_dimension() for map_name in map_names)
+
+    def get_max_slice_index(self, dimension, map_names=None):
+        """Get the maximum slice index in the given map on the given dimension.
+
+        Args:
+            dimension (int): the dimension we want the slice index of (maximum 3)
+            map_names (list of str): if given we will only scan the given list of maps
+
+        Returns:
+            int: the minimum of the maximum slice indices over the given maps in the given dimension.
+        """
+        map_names = map_names or self._input_maps.keys()
+        max_dimension = self.get_max_dimension(map_names)
+        if not map_names:
+            raise ValueError('No maps to search in.')
+        if dimension > max_dimension:
+            raise ValueError('Dimension can not exceed {}.'.format(max_dimension))
+        return min(self.get_single_map_info(map_name).max_slice_index(dimension) for map_name in map_names)
+
+    def get_max_volume_index(self, map_names=None):
+        """Get the maximum volume index in the given maps.
+
+        In contrast to the max dimension and max slice index functions, this gives the maximum over all the
+        images. This since handling different volumes is implemented in the viewer.
+
+        Args:
+            map_names (list of str): if given we will only scan the given list of maps
+
+        Returns:
+            int: the maximum volume index in the given list of maps. Starts from 0.
+        """
+        map_names = map_names or self._input_maps.keys()
+        if not map_names:
+            raise ValueError('No maps to search in.')
+        return max(self.get_single_map_info(map_name).max_volume_index() for map_name in map_names)
+
+    def get_index_first_non_zero_slice(self, dimension, map_names=None):
+        """Get the index of the first non zero slice in the maps.
+
+        Args:
+            dimension (int): the dimension to search in
+            map_names (list of str): if given we will only scan the given list of maps
+
+        Returns:
+            int: the slice index with the first non zero values.
+        """
+        map_names = map_names or self._input_maps.keys()
+        if not map_names:
+            raise ValueError('No maps to search in.')
+        for map_name in map_names:
+            index = self.get_single_map_info(map_name).get_index_first_non_zero_slice(dimension)
+            if index is not None:
+                return index
+        return 0
+
+    def slice_has_data(self, dimension, slice_index, map_names=None):
+        """Check if at least one of the maps has non zero numbers on the given slice.
+
+        Args:
+            dimension (int): the dimension to search in
+            slice_index (int): the index of the slice in the given dimension
+            map_names (list of str): if given we will only scan the given list of maps
+
+        Returns:
+            bool: true if at least on of the maps has data in the given slice
+        """
+        map_names = map_names or self._input_maps.keys()
+        if not map_names:
+            raise ValueError('No maps to search in.')
+        for map_name in map_names:
+            if self.get_single_map_info(map_name).slice_has_data(dimension, slice_index):
+                return True
+        return False
+
+    def get_max_x_index(self, dimension, rotate=0, map_names=None):
+        """Get the maximum x index supported over the images.
+
+        In essence this gets the lowest x index found.
+
+        Args:
+            dimension (int): the dimension to search in
+            rotate (int): the rotation factor by which we rotate the slices within the given dimension
+            map_names (list of str): if given we will only scan the given list of maps
+
+        Returns:
+            int: the maximum x-index found.
+        """
+        map_names = map_names or self._input_maps.keys()
+        if not map_names:
+            raise ValueError('No maps to search in.')
+        return min(self.get_single_map_info(map_name).get_max_x_index(dimension, rotate) for map_name in map_names)
+
+    def get_max_y_index(self, dimension, rotate=0, map_names=None):
+        """Get the maximum y index supported over the images.
+
+        In essence this gets the lowest y index found.
+
+        Args:
+            dimension (int): the dimension to search in
+            rotate (int): the rotation factor by which we rotate the slices within the given dimension
+            map_names (list of str): if given we will only scan the given list of maps
+
+        Returns:
+            int: the maximum y-index found.
+        """
+        map_names = map_names or self._input_maps.keys()
+        if not map_names:
+            raise ValueError('No maps to search in.')
+        return min(self.get_single_map_info(map_name).get_max_y_index(dimension, rotate) for map_name in map_names)
+
+    def get_bounding_box(self, dimension, slice_index, volume_index, rotate, map_names=None):
+        """Get the bounding box of the images.
+
+        Args:
+            dimension (int): the dimension to search in
+            slice_index (int): the slice index in that dimension
+            volume_index (int): the current volume index
+            rotate (int): the angle by which to rotate the image before getting the bounding box
+            map_names (list of str): if given we will only scan the given list of maps
+
+        Returns:
+            tuple of Point: two point designating first the upper left corner and second the lower right corner of the
+                bounding box.
+        """
+        map_names = map_names or self._input_maps.keys()
+        if not map_names:
+            raise ValueError('No maps to search in.')
+        bounding_boxes = [self.get_single_map_info(map_name).get_bounding_box(dimension, slice_index, volume_index, rotate)
+                          for map_name in map_names]
+
+        p0x = min([bbox[0].x for bbox in bounding_boxes])
+        p0y = min([bbox[0].y for bbox in bounding_boxes])
+        p1x = max([bbox[1].x for bbox in bounding_boxes])
+        p1y = max([bbox[1].y for bbox in bounding_boxes])
+
+        return Point(p0x, p0y), Point(p1x, p1y)
+
+
+class SingleMapInfo(object):
+
+    def __init__(self, data, file_path=None):
+        """Holds information about a single map.
+
+        Args:
+            data (ndarray or :class:`nibabel.nifti1.Nifti1Image`): the value of the map or the proxy to it
+            file_path (str): optionally, the file path with the location of this map
+        """
+        self._data = data
+        self._shape = self._data.shape
+        self._file_path = file_path
+
+    @classmethod
+    def from_file(cls, nifti_path):
+        return cls(load_nifti(nifti_path), nifti_path)
+
+    @property
+    def shape(self):
+        return self._shape
+
+    @property
+    def data(self):
+        if isinstance(self._data, nibabel.nifti1.Nifti1Image):
+            return self._data.get_data()
+        return self._data
+
+    @property
+    def file_path(self):
+        return self._file_path
+
+    def min(self, mask=None):
+        """Get the minimum value in this data.
+
+        If a mask is provided we get the minimum value within the given mask.
+
+        Args:
+            mask (ndarray): the mask, we only include elements for which the mask > 0
+
+        Returns:
+            float: the minimum value
+        """
+        if mask is not None:
+            return mdt.create_roi(self.data, mask).min()
+        return self.data.min()
+
+    def max(self, mask=None):
+        """Get the maximum value in this data.
+
+        If a mask is provided we get the maximum value within the given mask.
+
+        Args:
+            mask (ndarray): the mask, we only include elements for which the mask > 0
+
+        Returns:
+            float: the maximum value
+        """
+        if mask is not None:
+            return mdt.create_roi(self.data, mask).max()
+        return self.data.max()
+
+    def min_max(self, mask=None):
+        """Get the minimum and maximum value in this data.
+
+        If a mask is provided we get the min and max value within the given mask.
+
+        Args:
+            mask (ndarray): the mask, we only include elements for which the mask > 0
+
+        Returns:
+            tuple: (min, max) the minimum and maximum values
+        """
+        if mask is not None:
+            roi = mdt.create_roi(self.data, mask)
+            return roi.min(), roi.max()
+        return self.data.min(), self.data.max()
+
+    def max_dimension(self):
+        """Get the maximum dimension index in this map.
+
+        The maximum value returned by this method is 2 and the minimum is 0.
+
+        Returns:
+            int: in the range 0, 1, 2
+        """
+        return min(len(self.shape), 3) - 1
+
+    def max_slice_index(self, dimension):
+        """Get the maximum slice index on the given dimension.
+
+        Args:
+            dimension (int): the dimension we want the slice index of (maximum 3)
+
+        Returns:
+            int: the maximum slice index in the given dimension.
+        """
+        return self.shape[dimension] - 1
+
+    def slice_has_data(self, dimension, slice_index):
+        """Check if this map has non zero values in the given slice index.
+
+        Args:
+            dimension (int): the dimension we want the slice index of (maximum 3)
+            slice_index (int): the slice index to look in
+
+        Returns:
+            int: the maximum slice index in the given dimension.
+        """
+        slice_indexing = [slice(None)] * (self.max_dimension() + 1)
+        slice_indexing[dimension] = slice_index
+        return np.count_nonzero(self.data[slice_indexing])
+
+    def max_volume_index(self):
+        """Get the maximum volume index in this map.
+
+        The minimum is 0.
+
+        Returns:
+            int: the maximum volume index.
+        """
+        if len(self.shape) > 3:
+            return self.shape[3] - 1
+        return 0
+
+    def get_index_first_non_zero_slice(self, dimension):
+        """Get the index of the first non zero slice in this map.
+
+        Args:
+            dimension (int): the dimension to search in
+
+        Returns:
+            int: the slice index with the first non zero values.
+        """
+        slice_index = [slice(None)] * (self.max_dimension() + 1)
+
+        if dimension > len(slice_index) - 1:
+            raise ValueError('The given dimension {} is not supported.'.format(dimension))
+
+        for index in range(self.shape[dimension]):
+            slice_index[dimension] = index
+            if np.count_nonzero(self.data[slice_index]) > 0:
+                return index
+        return 0
+
+    def get_max_x_index(self, dimension, rotate=0):
+        """Get the maximum x index.
+
+        Args:
+            dimension (int): the dimension to search in
+            rotate (int): the value by which to rotate the slices in the given dimension
+
+        Returns:
+            int: the maximum x index
+        """
+        shape = list(self.shape)[0:3]
+
+        if len(shape) > 2:
+            del shape[dimension]
+
+        if rotate // 90 % 2 == 0:
+            return max(0, shape[1] - 1)
+        return max(0, shape[0] - 1)
+
+    def get_max_y_index(self, dimension, rotate=0):
+        """Get the maximum y index.
+
+        Args:
+            dimension (int): the dimension to search in
+            rotate (int): the value by which to rotate the slices in the given dimension
+
+        Returns:
+            int: the maximum y index
+        """
+        shape = list(self.shape)[0:3]
+
+        if len(shape) > 2:
+            del shape[dimension]
+
+        if rotate // 90 % 2 == 0:
+            return max(0, shape[0] - 1)
+        return max(0, shape[1] - 1)
+
+    def get_size_in_dimension(self, dimension, rotate=0):
+        """Get the shape of the 2d view on the data in the given dimension.
+
+        This basically returns a pair of (max_x, max_y).
+
+        Args:
+            dimension (int): the dimension to search in
+            rotate (int): the value by which to rotate the slices in the given dimension
+
+        Returns:
+            tuple: (max_x, max_y)
+        """
+        return self.get_max_x_index(dimension, rotate), self.get_max_y_index(dimension, rotate)
+
+    def get_bounding_box(self, dimension, slice_index, volume_index, rotate):
+        """Get the bounding box of this map when displayed using the given indicing.
+
+        Args:
+            dimension (int): the dimension to search in
+            slice_index (int): the slice index in that dimension
+            volume_index (int): the current volume index
+            rotate (int): the angle by which to rotate the image before getting the bounding box
+
+        Returns:
+            tuple of Point: two point designating first the upper left corner and second the lower right corner of the
+                bounding box.
+        """
+        def bbox(image):
+            rows = np.any(image, axis=1)
+            cols = np.any(image, axis=0)
+
+            rows_where = np.where(rows)
+
+            if np.size(rows_where):
+                row_min, row_max = np.where(rows)[0][[0, -1]]
+                column_min, column_max = np.where(cols)[0][[0, -1]]
+
+                return row_min, row_max, column_min, column_max
+            return 0, image.shape[0]-1, 0, image.shape[1]-1
+
+        if len(self.shape) == 2:
+            image = self.data
+        else:
+            slice_indexing = [slice(None)] * (self.max_dimension() + 1)
+            slice_indexing[dimension] = slice_index
+            image = self.data[slice_indexing]
+
+        if len(image.shape) > 2:
+            if image.shape[2] > 1:
+                image = image[..., volume_index]
+            else:
+                image = image[..., 0]
+
+        if rotate:
+            image = np.rot90(image, rotate // 90)
+
+        row_min, row_max, column_min, column_max = bbox(image)
+        return Point(column_min, row_min), Point(column_max, row_max)
 
 
 class Zoom(SimpleConvertibleConfig):
@@ -788,632 +1399,6 @@ class Font(SimpleConvertibleConfig):
                 'size': IntConversion()}
 
 
-class DataInfo(object):
-    """Information about the maps we are viewing."""
-
-    def get_map_names(self):
-        """Get a list of the names of all the maps in this data info object.
-
-        Returns:
-            list: the list of map names
-        """
-        raise NotImplementedError()
-
-    def get_map_data(self, map_name):
-        """Get the data for the indicated map.
-
-        Args:
-            map_name (str): the name of the map we want the data of
-
-        Returns:
-            ndarray: the data of the given map
-        """
-        raise NotImplementedError()
-
-    def get_single_map_info(self, map_name):
-        """Get an information object for a single map.
-
-        Args:
-            map_name (str): the name of the map we want information about
-
-        Returns:
-            SingleMapInfo: information object about that map
-        """
-        raise NotImplementedError()
-
-    def get_directories(self):
-        """Get a list of directories that host all the files in this data info.
-
-        Returns:
-            list of str: the list of directories for every file that has an associated directory.
-                This list is typically ordered to the number of maps in each directory.
-        """
-        raise NotImplementedError()
-
-    def get_file_name(self, map_name):
-        """Get the file name of the given map
-
-        Returns:
-            None if the map could not be found on dir, else a string with the file path.
-        """
-        raise NotImplementedError()
-
-    def get_max_dimension(self, map_names=None):
-        """Get the minimum of the maximum dimension index over the maps
-
-        Args:
-            map_names (list of str): if given we will only scan the given list of maps
-
-        Returns:
-            int: either, 0, 1, 2 as the maximum dimension index in the maps.
-        """
-        raise NotImplementedError()
-
-    def get_max_slice_index(self, dimension, map_names=None):
-        """Get the maximum slice index in the given map on the given dimension.
-
-        Args:
-            dimension (int): the dimension we want the slice index of (maximum 3)
-            map_names (list of str): if given we will only scan the given list of maps
-
-        Returns:
-            int: the minimum of the maximum slice indices over the given maps in the given dimension.
-        """
-        raise NotImplementedError()
-
-    def get_max_volume_index(self, map_names=None):
-        """Get the maximum volume index in the given maps.
-
-        In contrast to the max dimension and max slice index functions, this gives the maximum over all the
-        images. This since handling different volumes is implemented in the viewer.
-
-        Args:
-            map_names (list of str): if given we will only scan the given list of maps
-
-        Returns:
-            int: the maximum volume index in the given list of maps. Starts from 0.
-        """
-        raise NotImplementedError()
-
-    def get_index_first_non_zero_slice(self, dimension, map_names=None):
-        """Get the index of the first non zero slice in the maps.
-
-        Args:
-            dimension (int): the dimension to search in
-            map_names (list of str): if given we will only scan the given list of maps
-
-        Returns:
-            int: the slice index with the first non zero values.
-        """
-        raise NotImplementedError()
-
-    def slice_has_data(self, dimension, slice_index, map_names=None):
-        """Check if at least one of the maps has non zero numbers on the given slice.
-
-        Args:
-            dimension (int): the dimension to search in
-            slice_index (int): the index of the slice in the given dimension
-            map_names (list of str): if given we will only scan the given list of maps
-
-        Returns:
-            bool: true if at least on of the maps has data in the given slice
-        """
-        raise NotImplementedError()
-
-    def get_max_x_index(self, dimension, rotate=0, map_names=None):
-        """Get the maximum x index supported over the images.
-
-        In essence this gets the lowest x index found.
-
-        Args:
-            dimension (int): the dimension to search in
-            rotate (int): the rotation factor by which we rotate the slices within the given dimension
-            map_names (list of str): if given we will only scan the given list of maps
-
-        Returns:
-            int: the maximum x-index found.
-        """
-        raise NotImplementedError()
-
-    def get_max_y_index(self, dimension, rotate=0, map_names=None):
-        """Get the maximum y index supported over the images.
-
-        In essence this gets the lowest y index found.
-
-        Args:
-            dimension (int): the dimension to search in
-            rotate (int): the rotation factor by which we rotate the slices within the given dimension
-            map_names (list of str): if given we will only scan the given list of maps
-
-        Returns:
-            int: the maximum y-index found.
-        """
-        raise NotImplementedError()
-
-    def get_bounding_box(self, dimension, slice_index, volume_index, rotate, map_names=None):
-        """Get the bounding box of the images.
-
-        Args:
-            dimension (int): the dimension to search in
-            slice_index (int): the slice index in that dimension
-            volume_index (int): the current volume index
-            rotate (int): the angle by which to rotate the image before getting the bounding box
-            map_names (list of str): if given we will only scan the given list of maps
-
-        Returns:
-            tuple of Point: two point designating first the upper left corner and second the lower right corner of the
-                bounding box.
-        """
-        raise NotImplementedError()
-
-
-class SimpleDataInfo(DataInfo):
-
-    def __init__(self, maps):
-        """A container for basic information about the volume maps we are viewing.
-
-        Args:
-            maps (dict): the dictionary with the maps to view, these maps can either be arrays with values,
-                nibabel proxy images or SingleMapInfo objects.
-        """
-        self._input_maps = maps
-
-    @classmethod
-    def from_dir(cls, directory):
-        if directory is None:
-            return cls({}, None)
-
-        if isinstance(directory, (list, tuple)):
-            directory = directory[0]
-
-        maps_paths = {}
-
-        for path, map_name, extension in yield_nifti_info(directory):
-            if map_name in maps_paths:
-                map_name += extension
-            maps_paths.update({map_name: path})
-
-        return cls({k: SingleMapInfo(k, load_nifti(v), v) for k, v in maps_paths.items()})
-
-    def get_updated(self, maps):
-        """Get a new simple data info object that includes the given new maps.
-
-        In the case of double naming, the old maps are overwritten.
-
-        Args:
-            maps (dict): the dictionary with the maps to view, these maps can either be arrays with values,
-                nibabel proxy images or SingleMapInfo objects.
-
-        Returns:
-            SimpleDataInfo: a new updated data info object
-        """
-        new_maps = copy(self._input_maps)
-        new_maps.update(maps)
-        return SimpleDataInfo(new_maps)
-
-    def get_map_names(self):
-        return self._input_maps.keys()
-
-    def get_map_data(self, map_name):
-        return self.get_single_map_info(map_name).data
-
-    def get_single_map_info(self, map_name):
-        value = self._input_maps[map_name]
-        if not isinstance(value, SingleMapInfo):
-            return SingleMapInfo(map_name, value)
-        return value
-
-    def get_directories(self):
-        directories = {}
-
-        for map_name in self.get_map_names():
-            file_path = self.get_single_map_info(map_name).file_path
-            if file_path:
-                if os.path.dirname(file_path) in directories:
-                    directories.update({os.path.dirname(file_path): directories[os.path.dirname(file_path)]+1})
-                else:
-                    directories.update({os.path.dirname(file_path): 0})
-
-        return [el[0] for el in sorted(directories.items(), key=lambda x: x[1], reverse=True)]
-
-    def get_file_name(self, map_name):
-        return self.get_single_map_info(map_name).file_path
-
-    def get_max_dimension(self, map_names=None):
-        """Get the minimum of the maximum dimension index over the maps
-
-        Args:
-            map_names (list of str): if given we will only scan the given list of maps
-
-        Returns:
-            int: either, 0, 1, 2 as the maximum dimension index in the maps.
-        """
-        map_names = map_names or self._input_maps.keys()
-        if not map_names:
-            raise ValueError('No maps to search in.')
-        return min(self.get_single_map_info(map_name).max_dimension() for map_name in map_names)
-
-    def get_max_slice_index(self, dimension, map_names=None):
-        """Get the maximum slice index in the given map on the given dimension.
-
-        Args:
-            dimension (int): the dimension we want the slice index of (maximum 3)
-            map_names (list of str): if given we will only scan the given list of maps
-
-        Returns:
-            int: the minimum of the maximum slice indices over the given maps in the given dimension.
-        """
-        map_names = map_names or self._input_maps.keys()
-        max_dimension = self.get_max_dimension(map_names)
-        if not map_names:
-            raise ValueError('No maps to search in.')
-        if dimension > max_dimension:
-            raise ValueError('Dimension can not exceed {}.'.format(max_dimension))
-        return min(self.get_single_map_info(map_name).max_slice_index(dimension) for map_name in map_names)
-
-    def get_max_volume_index(self, map_names=None):
-        """Get the maximum volume index in the given maps.
-
-        In contrast to the max dimension and max slice index functions, this gives the maximum over all the
-        images. This since handling different volumes is implemented in the viewer.
-
-        Args:
-            map_names (list of str): if given we will only scan the given list of maps
-
-        Returns:
-            int: the maximum volume index in the given list of maps. Starts from 0.
-        """
-        map_names = map_names or self._input_maps.keys()
-        if not map_names:
-            raise ValueError('No maps to search in.')
-        return max(self.get_single_map_info(map_name).max_volume_index() for map_name in map_names)
-
-    def get_index_first_non_zero_slice(self, dimension, map_names=None):
-        """Get the index of the first non zero slice in the maps.
-
-        Args:
-            dimension (int): the dimension to search in
-            map_names (list of str): if given we will only scan the given list of maps
-
-        Returns:
-            int: the slice index with the first non zero values.
-        """
-        map_names = map_names or self._input_maps.keys()
-        if not map_names:
-            raise ValueError('No maps to search in.')
-        for map_name in map_names:
-            index = self.get_single_map_info(map_name).get_index_first_non_zero_slice(dimension)
-            if index is not None:
-                return index
-        return 0
-
-    def slice_has_data(self, dimension, slice_index, map_names=None):
-        """Check if at least one of the maps has non zero numbers on the given slice.
-
-        Args:
-            dimension (int): the dimension to search in
-            slice_index (int): the index of the slice in the given dimension
-            map_names (list of str): if given we will only scan the given list of maps
-
-        Returns:
-            bool: true if at least on of the maps has data in the given slice
-        """
-        map_names = map_names or self._input_maps.keys()
-        if not map_names:
-            raise ValueError('No maps to search in.')
-        for map_name in map_names:
-            if self.get_single_map_info(map_name).slice_has_data(dimension, slice_index):
-                return True
-        return False
-
-    def get_max_x_index(self, dimension, rotate=0, map_names=None):
-        """Get the maximum x index supported over the images.
-
-        In essence this gets the lowest x index found.
-
-        Args:
-            dimension (int): the dimension to search in
-            rotate (int): the rotation factor by which we rotate the slices within the given dimension
-            map_names (list of str): if given we will only scan the given list of maps
-
-        Returns:
-            int: the maximum x-index found.
-        """
-        map_names = map_names or self._input_maps.keys()
-        if not map_names:
-            raise ValueError('No maps to search in.')
-        return min(self.get_single_map_info(map_name).get_max_x_index(dimension, rotate) for map_name in map_names)
-
-    def get_max_y_index(self, dimension, rotate=0, map_names=None):
-        """Get the maximum y index supported over the images.
-
-        In essence this gets the lowest y index found.
-
-        Args:
-            dimension (int): the dimension to search in
-            rotate (int): the rotation factor by which we rotate the slices within the given dimension
-            map_names (list of str): if given we will only scan the given list of maps
-
-        Returns:
-            int: the maximum y-index found.
-        """
-        map_names = map_names or self._input_maps.keys()
-        if not map_names:
-            raise ValueError('No maps to search in.')
-        return min(self.get_single_map_info(map_name).get_max_y_index(dimension, rotate) for map_name in map_names)
-
-    def get_bounding_box(self, dimension, slice_index, volume_index, rotate, map_names=None):
-        """Get the bounding box of the images.
-
-        Args:
-            dimension (int): the dimension to search in
-            slice_index (int): the slice index in that dimension
-            volume_index (int): the current volume index
-            rotate (int): the angle by which to rotate the image before getting the bounding box
-            map_names (list of str): if given we will only scan the given list of maps
-
-        Returns:
-            tuple of Point: two point designating first the upper left corner and second the lower right corner of the
-                bounding box.
-        """
-        map_names = map_names or self._input_maps.keys()
-        if not map_names:
-            raise ValueError('No maps to search in.')
-        bounding_boxes = [self.get_single_map_info(map_name).get_bounding_box(dimension, slice_index, volume_index, rotate)
-                          for map_name in map_names]
-
-        p0x = min([bbox[0].x for bbox in bounding_boxes])
-        p0y = min([bbox[0].y for bbox in bounding_boxes])
-        p1x = max([bbox[1].x for bbox in bounding_boxes])
-        p1y = max([bbox[1].y for bbox in bounding_boxes])
-
-        return Point(p0x, p0y), Point(p1x, p1y)
-
-
-class SingleMapInfo(object):
-
-    def __init__(self, map_name, data, file_path=None):
-        """Holds information about a single map.
-
-        Args:
-            map_name (str): the name of the map
-            data (ndarray or :class:`nibabel.nifti1.Nifti1Image`): the value of the map or the proxy to it
-            file_path (str): optionally, the file path with the location of this map
-        """
-        self._map_name = map_name
-        self._data = data
-        self._shape = self._data.shape
-        self._file_path = file_path
-
-    @property
-    def map_name(self):
-        return self._map_name
-
-    @property
-    def shape(self):
-        return self._shape
-
-    @property
-    def data(self):
-        if isinstance(self._data, nibabel.nifti1.Nifti1Image):
-            return self._data.get_data()
-        return self._data
-
-    @property
-    def file_path(self):
-        return self._file_path
-
-    def min(self, mask=None):
-        """Get the minimum value in this data.
-
-        If a mask is provided we get the minimum value within the given mask.
-
-        Args:
-            mask (ndarray): the mask, we only include elements for which the mask > 0
-
-        Returns:
-            float: the minimum value
-        """
-        if mask is not None:
-            return mdt.create_roi(self.data, mask).min()
-        return self.data.min()
-
-    def max(self, mask=None):
-        """Get the maximum value in this data.
-
-        If a mask is provided we get the maximum value within the given mask.
-
-        Args:
-            mask (ndarray): the mask, we only include elements for which the mask > 0
-
-        Returns:
-            float: the maximum value
-        """
-        if mask is not None:
-            return mdt.create_roi(self.data, mask).max()
-        return self.data.max()
-
-    def min_max(self, mask=None):
-        """Get the minimum and maximum value in this data.
-
-        If a mask is provided we get the min and max value within the given mask.
-
-        Args:
-            mask (ndarray): the mask, we only include elements for which the mask > 0
-
-        Returns:
-            tuple: (min, max) the minimum and maximum values
-        """
-        if mask is not None:
-            roi = mdt.create_roi(self.data, mask)
-            return roi.min(), roi.max()
-        return self.data.min(), self.data.max()
-
-    def max_dimension(self):
-        """Get the maximum dimension index in this map.
-
-        The maximum value returned by this method is 2 and the minimum is 0.
-
-        Returns:
-            int: in the range 0, 1, 2
-        """
-        return min(len(self.shape), 3) - 1
-
-    def max_slice_index(self, dimension):
-        """Get the maximum slice index on the given dimension.
-
-        Args:
-            dimension (int): the dimension we want the slice index of (maximum 3)
-
-        Returns:
-            int: the maximum slice index in the given dimension.
-        """
-        return self.shape[dimension] - 1
-
-    def slice_has_data(self, dimension, slice_index):
-        """Check if this map has non zero values in the given slice index.
-
-        Args:
-            dimension (int): the dimension we want the slice index of (maximum 3)
-            slice_index (int): the slice index to look in
-
-        Returns:
-            int: the maximum slice index in the given dimension.
-        """
-        slice_indexing = [slice(None)] * (self.max_dimension() + 1)
-        slice_indexing[dimension] = slice_index
-        return np.count_nonzero(self.data[slice_indexing])
-
-    def max_volume_index(self):
-        """Get the maximum volume index in this map.
-
-        The minimum is 0.
-
-        Returns:
-            int: the maximum volume index.
-        """
-        if len(self.shape) > 3:
-            return self.shape[3] - 1
-        return 0
-
-    def get_index_first_non_zero_slice(self, dimension):
-        """Get the index of the first non zero slice in this map.
-
-        Args:
-            dimension (int): the dimension to search in
-
-        Returns:
-            int: the slice index with the first non zero values.
-        """
-        slice_index = [slice(None)] * (self.max_dimension() + 1)
-
-        if dimension > len(slice_index) - 1:
-            raise ValueError('The given dimension {} is not supported.'.format(dimension))
-
-        for index in range(self.shape[dimension]):
-            slice_index[dimension] = index
-            if np.count_nonzero(self.data[slice_index]) > 0:
-                return index
-        return 0
-
-    def get_max_x_index(self, dimension, rotate=0):
-        """Get the maximum x index.
-
-        Args:
-            dimension (int): the dimension to search in
-            rotate (int): the value by which to rotate the slices in the given dimension
-
-        Returns:
-            int: the maximum x index
-        """
-        shape = list(self.shape)[0:3]
-
-        if len(shape) > 2:
-            del shape[dimension]
-
-        if rotate // 90 % 2 == 0:
-            return max(0, shape[1] - 1)
-        return max(0, shape[0] - 1)
-
-    def get_max_y_index(self, dimension, rotate=0):
-        """Get the maximum y index.
-
-        Args:
-            dimension (int): the dimension to search in
-            rotate (int): the value by which to rotate the slices in the given dimension
-
-        Returns:
-            int: the maximum y index
-        """
-        shape = list(self.shape)[0:3]
-
-        if len(shape) > 2:
-            del shape[dimension]
-
-        if rotate // 90 % 2 == 0:
-            return max(0, shape[0] - 1)
-        return max(0, shape[1] - 1)
-
-    def get_size_in_dimension(self, dimension, rotate=0):
-        """Get the shape of the 2d view on the data in the given dimension.
-
-        This basically returns a pair of (max_x, max_y).
-
-        Args:
-            dimension (int): the dimension to search in
-            rotate (int): the value by which to rotate the slices in the given dimension
-
-        Returns:
-            tuple: (max_x, max_y)
-        """
-        return self.get_max_x_index(dimension, rotate), self.get_max_y_index(dimension, rotate)
-
-    def get_bounding_box(self, dimension, slice_index, volume_index, rotate):
-        """Get the bounding box of this map when displayed using the given indicing.
-
-        Args:
-            dimension (int): the dimension to search in
-            slice_index (int): the slice index in that dimension
-            volume_index (int): the current volume index
-            rotate (int): the angle by which to rotate the image before getting the bounding box
-
-        Returns:
-            tuple of Point: two point designating first the upper left corner and second the lower right corner of the
-                bounding box.
-        """
-        def bbox(image):
-            rows = np.any(image, axis=1)
-            cols = np.any(image, axis=0)
-
-            rows_where = np.where(rows)
-
-            if np.size(rows_where):
-                row_min, row_max = np.where(rows)[0][[0, -1]]
-                column_min, column_max = np.where(cols)[0][[0, -1]]
-
-                return row_min, row_max, column_min, column_max
-            return 0, image.shape[0]-1, 0, image.shape[1]-1
-
-        if len(self.shape) == 2:
-            image = self.data
-        else:
-            slice_indexing = [slice(None)] * (self.max_dimension() + 1)
-            slice_indexing[dimension] = slice_index
-            image = self.data[slice_indexing]
-
-        if len(image.shape) > 2:
-            if image.shape[2] > 1:
-                image = image[..., volume_index]
-            else:
-                image = image[..., 0]
-
-        if rotate:
-            image = np.rot90(image, rotate // 90)
-
-        row_min, row_max, column_min, column_max = bbox(image)
-        return Point(column_min, row_min), Point(column_max, row_max)
-
-
 def get_available_interpolations():
     """The available interpolations for either the general map plot config or the map specifics.
 
@@ -1436,3 +1421,113 @@ def get_available_colormaps():
         list of str: the list of available colormaps.
     """
     return sorted(matplotlib.cm.datad)
+
+
+def find_all_nifti_files(paths):
+    """Find the paths to the nifti files in the given paths.
+
+    For directories we add all the nifti files from that directory, for file we try to resolve them to nifti files.
+
+    Args:
+        paths (list of str): the list of file paths
+
+    Returns:
+        list of str: the list of all nifti files (no more directories)
+    """
+    def find_niftis(paths, recurse=True):
+        niftis = []
+        for path in paths:
+            if os.path.isdir(path):
+                if recurse:
+                    niftis.extend(find_niftis(glob.glob(path + '/*.nii*'), recurse=False))
+            else:
+                niftis.append(nifti_filepath_resolution(path))
+        return niftis
+    return find_niftis(paths)
+
+
+def find_map_paths(nifti_files):
+    """Get the paths to the map names.
+
+    Returns:
+        dict: a dictionary with for every map name a list with the paths that would normally result in that map name.
+    """
+    map_name_paths = {}
+    for full_path in nifti_files:
+        _, map_name, _ = split_image_path(full_path)
+        if map_name not in map_name_paths:
+            map_name_paths[map_name] = [full_path]
+        else:
+            map_name_paths[map_name].append(full_path)
+    return map_name_paths
+
+
+def load_data_info(nifti_files):
+    """Load the data info for all the nifti files.
+
+    In the case of conflicting simplified map names we name the maps to the shortest unique names.
+
+    Returns:
+        dict[str, SingleMapInfo]: the dictionary with the single map information
+    """
+    data_info = {}
+
+    for map_name, paths in find_map_paths(nifti_files).items():
+        if len(paths) == 1:
+            data_info.update({map_name: SingleMapInfo.from_file(paths[0])})
+        else:
+            map_names = get_shortest_unique_names(paths)
+            for ind in range(len(map_names)):
+                data_info[map_names[ind]] = SingleMapInfo.from_file(paths[ind])
+
+    return data_info
+
+
+def get_shortest_unique_names(paths):
+    """Get the shortest unique map name between two or more nifti file paths.
+
+    This function is handy when you are loading two maps like for example ``./foo.nii`` and ``./foo.nii.gz`` or like:
+    ``S1/foo.nii``, ``S2/foo.nii``. In both cases the map name (foo) is similar, but we want to be able to show them
+    distinctly. Hence, this function tries to find the shortest unique map names.
+
+    Args:
+        paths (list of str): the paths to the different nifti files
+
+    Returns:
+        tuple: the map names for the given two paths (in the same order)
+    """
+    dirs, names, exts = zip(*map(split_image_path, paths))
+
+    if len(set(paths)) == 1:
+        return names
+
+    if len(set(names)) == len(names):
+        return names
+
+    new_names = []
+
+    multiple_dirs = len(set(dirs)) > 1
+    shortest_dir = sorted(dirs, key=lambda d: len(d))[0]
+
+    def multiple_maps_in_same_dir(current_ind, current_directory):
+        for ind, (directory, name, ext, full_path) in enumerate(zip(dirs, names, exts, paths)):
+            if ind != current_ind and directory == current_directory:
+                return True
+        return False
+
+    for ind, (directory, name, ext, full_path) in enumerate(zip(dirs, names, exts, paths)):
+        if multiple_dirs:
+            if directory == shortest_dir:
+                new_name = os.path.basename(directory) + '/' + name
+            else:
+                new_name = os.path.relpath(directory, shortest_dir) + '/' + name
+                if new_name.startswith('../'):
+                    new_name = new_name[3:]
+
+            if multiple_maps_in_same_dir(ind, directory):
+                new_name += ext
+
+            new_names.append(new_name)
+
+    return new_names
+

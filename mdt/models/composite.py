@@ -1,6 +1,9 @@
+import inspect
 import logging
 
 import numpy as np
+
+from mot.model_interfaces import SampleModelInterface
 from mot.utils import results_to_dict
 from six import string_types
 
@@ -29,11 +32,9 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
 
     def __init__(self, model_name, model_tree, evaluation_model, signal_noise_model=None, problem_data=None,
                  enforce_weights_sum_to_one=True):
-        """Create a composite dMRI sample model.
+        """A model builder for a composite dMRI sample and optimization model.
 
-        This also implements the perturbation interface to allow perturbation of the data during meta-optimization.
-
-        It furthermore implements some protocol check functions. These are used by the fit_model functions in MDT
+        It implements some protocol check functions. These are used by the fit_model functions in MDT
         to check if the protocol is correct for the model we try to fit.
 
         Attributes:
@@ -43,15 +44,27 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
         super(DMRICompositeModel, self).__init__(model_name, model_tree, evaluation_model, signal_noise_model,
                                                  problem_data=problem_data,
                                                  enforce_weights_sum_to_one=enforce_weights_sum_to_one)
-        self.required_nmr_shells = False
         self._logger = logging.getLogger(__name__)
         self._original_problem_data = None
+
+        self._post_optimization_modifiers = []
+
         self.nmr_parameters_for_bic_calculation = self.get_nmr_estimable_parameters()
+        self.required_nmr_shells = False
+
+    def build(self, problems_to_analyze=None):
+        sample_model = super(DMRICompositeModel, self).build(problems_to_analyze)
+        return BuildCompositeModel(sample_model,
+                                   self._model_functions_info.get_estimable_parameters_list(),
+                                   self.nmr_parameters_for_bic_calculation,
+                                   self._post_optimization_modifiers,
+                                   self._get_dependent_map_calculator(),
+                                   self._get_fixed_parameter_maps(problems_to_analyze),
+                                   self._get_proposal_state_names(),
+                                   self._get_sampling_statistics())
 
     def set_problem_data(self, problem_data):
-        """Overwrites the super implementation by adding a call to _prepare_problem_data() before the problem data is
-        added to the model.
-        """
+        """Overwrites the super implementation by adding a call to _prepare_problem_data()."""
         self._check_data_consistency(problem_data)
         self._original_problem_data = problem_data
 
@@ -59,14 +72,6 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
             self._logger.info('Using the gradient deviations in the model optimization.')
 
         return super(DMRICompositeModel, self).set_problem_data(self._prepare_problem_data(problem_data))
-
-    def get_problem_data(self):
-        """Get the problem data actually being used by this model.
-
-        Returns:
-            mdt.utils.DMRIProblemData: the problem data being used by this model
-        """
-        return self._problem_data
 
     def add_post_optimization_modifier(self, result_names, mod_routine):
         """Add a modification function that can update the results of model optimization.
@@ -105,8 +110,17 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
         return self
 
     def get_optimization_output_param_names(self):
-        """See super class for details"""
-        output_names = super(DMRICompositeModel, self).get_optimization_output_param_names()
+        """Get a list with the names of the parameters, this is the list of keys to the titles and results.
+
+        See get_free_param_names() for getting the names of the parameters that are actually being optimized.
+
+        This should be a complete overview of all the maps returned from optimizing this model.
+
+        Returns:
+            list of str: a list with the parameter names
+        """
+        output_names = ['{}.{}'.format(m.name, p.name) for m, p in
+                        self._model_functions_info.get_free_parameters_list()]
 
         for name, _ in self._post_optimization_modifiers:
             if isinstance(name, string_types):
@@ -116,69 +130,13 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
 
         return output_names
 
-    def add_extra_post_optimization_maps(self, results_dict):
-        r"""This adds some extra optimization maps to the results dictionary.
-
-        This function behaves as a procedure and as a function. The input dict can be updated in place, but it should
-        also return a dict but that is merely for the purpose of chaining.
-
-        Steps in finalizing the results dict:
-
-            1) It first adds the maps for the dependent and fixed parameters
-            2) Second it adds the extra maps defined in the models itself.
-            3) Third it loops through the post_optimization_modifiers callback functions for the final updates.
-            4) Finally it adds additional maps defined in this model subclass
-
-        For more documentation see the base method.
-
-        Args:
-            results_dict (dict): A dictionary with as keys the names of the parameters and as values the 1d maps with
-                for each voxel the optimized parameter value. The given dictionary can be altered by this function.
-
-        Returns:
-            dict: The same result dictionary but with updated values or with additional maps.
-                It should at least return the results_dict.
-        """
-        self._add_dependent_parameter_maps(results_dict)
-        self._add_fixed_parameter_maps(results_dict)
-        self._add_post_optimization_modifier_maps(results_dict)
-        self._add_post_optimization_information_criterion_maps(results_dict)
-        return results_dict
-
-    def get_post_sampling_maps(self, samples):
-        """Get all the post sampling maps.
-
-        Args:
-            samples (ndarray): an (d, p, n) matrix for d problems, p parameters and n samples.
-
-        Returns:
-            dict: the volume maps with some basic post-sampling output
-        """
-        volume_maps = self.samples_to_statistics(samples)
-        volume_maps = self.add_extra_post_optimization_maps(volume_maps)
-
-        self._add_post_sampling_information_criterion_maps(samples, volume_maps)
-
-        errors = ResidualCalculator().calculate(self, volume_maps)
-        error_measures = ErrorMeasures(double_precision=self.double_precision).calculate(errors)
-        volume_maps.update(error_measures)
-
-        mv_ess = multivariate_ess(samples)
-        volume_maps.update({'MultivariateESS': mv_ess})
-
-        uv_ess = univariate_ess(samples, method='standard_error')
-        uv_ess_maps = results_to_dict(uv_ess, [a + '.UnivariateESS' for a in self.get_free_param_names()])
-        volume_maps.update(uv_ess_maps)
-
-        return volume_maps
-
-    def _get_variable_data(self):
-        var_data_dict = super(DMRICompositeModel, self)._get_variable_data()
+    def _get_variable_data(self, problems_to_analyze):
+        var_data_dict = super(DMRICompositeModel, self)._get_variable_data(problems_to_analyze)
         if self._problem_data.gradient_deviations is not None:
-            var_data_dict.update({'gradient_deviations': self._get_gradient_deviation_data_adapter()})
+            var_data_dict['gradient_deviations'] = self._get_gradient_deviation_data_adapter(problems_to_analyze)
         return var_data_dict
 
-    def _get_gradient_deviation_data_adapter(self):
+    def _get_gradient_deviation_data_adapter(self, problems_to_analyze):
         """Get the gradient deviation data for use in the kernel.
 
         This already adds the eye(3) matrix to every gradient deviation matrix, so we don't have to do it in the kernel.
@@ -196,8 +154,8 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
 
         grad_dev += np.eye(3).flatten()
 
-        if self.problems_to_analyze is not None:
-            grad_dev = grad_dev[self.problems_to_analyze, ...]
+        if problems_to_analyze is not None:
+            grad_dev = grad_dev[problems_to_analyze, ...]
 
         return SimpleDataAdapter(grad_dev, SimpleCLDataType.from_string('mot_float_type*'), self._get_mot_float_type(),
                                  allow_local_pointer=False)
@@ -225,6 +183,12 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
             pass
 
         return problems
+
+    def param_dict_to_array(self, volume_dict):
+        params = [volume_dict['{}.{}'.format(m.name, p.name)] for m, p
+                  in self._model_functions_info.get_estimable_parameters_list()]
+        return np.concatenate([np.transpose(np.array([s]))
+                               if len(s.shape) < 2 else s for s in params], axis=1)
 
     def _get_pre_model_expression_eval_code(self):
         if self._can_use_gradient_deviations():
@@ -348,8 +312,8 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
         """
         return list(range(problem_data.protocol.length))
 
-    def _add_dependent_parameter_maps(self, results_dict):
-        """In place add complete maps for the dependent parameters."""
+    def _get_dependent_map_calculator(self):
+        """Get the calculation function to compute the maps for the dependent parameters."""
         estimable_parameters = self._model_functions_info.get_estimable_parameters_list(exclude_priors=True)
         dependent_parameters = self._model_functions_info.get_dependency_fixed_parameters_list(exclude_priors=True)
 
@@ -359,32 +323,147 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
             func += self._get_estimable_parameters_listing()
             func += self._get_dependent_parameters_listing()
 
-            estimable_params = ['{}.{}'.format(m.name, p.name) for m, p in estimable_parameters]
-            estimated_parameters = [results_dict[k] for k in estimable_params]
-
             dependent_parameter_names = [('{}.{}'.format(m.name, p.name).replace('.', '_'),
                                           '{}.{}'.format(m.name, p.name))
                                          for m, p in dependent_parameters]
 
-            cpd = CalculateDependentParameters(double_precision=self.double_precision)
-            dependent_parameters = cpd.calculate(self, estimated_parameters, func, dependent_parameter_names)
+            estimable_parameter_names = ['{}.{}'.format(m.name, p.name) for m, p in estimable_parameters]
 
-            results_dict.update(dependent_parameters)
+            def calculator(model, results_dict):
+                estimated_parameters = [results_dict[k] for k in estimable_parameter_names]
+                cpd = CalculateDependentParameters(double_precision=self.double_precision)
+                return cpd.calculate(model, estimated_parameters, func, dependent_parameter_names)
+        else:
+            def calculator(model, results_dict):
+                return {}
 
-    def _add_fixed_parameter_maps(self, results_dict):
+        return calculator
+
+    def _get_fixed_parameter_maps(self, problems_to_analyze):
         """In place add complete maps for the fixed parameters."""
         fixed_params = self._model_functions_info.get_value_fixed_parameters_list(exclude_priors=True)
+
+        result = {}
 
         for (m, p) in fixed_params:
             name = '{}.{}'.format(m.name, p.name)
             value = self._model_functions_info.get_parameter_value(name)
 
             if is_scalar(value):
-                results_dict.update({name: np.tile(np.array([value]), (self.get_nmr_problems(),))})
+                result.update({name: np.tile(np.array([value]), (self._get_nmr_problems(problems_to_analyze),))})
             else:
-                if self.problems_to_analyze is not None:
-                    value = value[self.problems_to_analyze, ...]
-                results_dict.update({name: value})
+                if problems_to_analyze is not None:
+                    value = value[problems_to_analyze, ...]
+                result.update({name: value})
+
+        return result
+
+    def _get_proposal_state_names(self):
+        """Get a list of names for the adaptable proposal parameters.
+
+        Returns:
+            list: list of str with the name for each of the adaptable proposal parameters.
+        """
+        return_list = []
+        for m, p in self._model_functions_info.get_estimable_parameters_list():
+            for param in p.sampling_proposal.get_parameters():
+                if param.adaptable:
+                    return_list.append('{}.{}.proposal.{}'.format(m.name, p.name, param.name))
+        return return_list
+
+    def _get_sampling_statistics(self):
+        """Get a dictionary with for every parameter the sampling statistic function."""
+        sampling_statistics = {}
+        for parameter_name in self.get_free_param_names():
+            parameter = self._model_functions_info.get_model_parameter_by_name(parameter_name)[1]
+            sampling_statistics[parameter_name] = parameter.sampling_statistics
+        return sampling_statistics
+
+
+class BuildCompositeModel(SampleModelInterface):
+
+    def __init__(self, wrapped_sample_model, estimable_parameters_list, nmr_parameters_for_bic_calculation,
+                 post_optimization_modifiers, dependent_map_calculator, fixed_parameter_maps, proposal_state_names,
+                 sampling_statistics):
+        self._estimable_parameters_list = estimable_parameters_list
+        self.nmr_parameters_for_bic_calculation = nmr_parameters_for_bic_calculation
+        self._post_optimization_modifiers = post_optimization_modifiers
+        self._wrapped_sample_model = wrapped_sample_model
+        self._dependent_map_calculator = dependent_map_calculator
+        self._fixed_parameter_maps = fixed_parameter_maps
+        self._proposal_state_names = proposal_state_names
+        self._sampling_statistics = sampling_statistics
+
+    def get_proposal_state_names(self):
+        """Get a list of names for the adaptable proposal parameters.
+
+        Returns:
+            list: list of str with the name for each of the adaptable proposal parameters.
+        """
+        return self._proposal_state_names
+
+    def add_extra_post_optimization_maps(self, results_dict, results_array=None):
+        r"""This adds some extra optimization maps to the results dictionary.
+
+        This function behaves as a procedure and as a function. The input dict can be updated in place, but it should
+        also return a dict but that is merely for the purpose of chaining.
+
+        Steps in finalizing the results dict:
+
+            1) It first adds the maps for the dependent and fixed parameters
+            2) Second it adds the extra maps defined in the models itself.
+            3) Third it loops through the post_optimization_modifiers callback functions for the final updates.
+            4) Finally it adds additional maps defined in this model subclass
+
+        For more documentation see the base method.
+
+        Args:
+            results_dict (dict): A dictionary with as keys the names of the parameters and as values the 1d maps with
+                for each voxel the optimized parameter value. The given dictionary can be altered by this function.
+            problems_to_analyze (ndarray): the subset of voxels we are analyzing
+            results_array (ndarray): if available, the results as an array instead of as a dictionary, if not given we
+                will construct it in this function.
+
+        Returns:
+            dict: The same result dictionary but with updated values or with additional maps.
+                It should at least return the results_dict.
+        """
+        if results_array is None:
+            results_array = self._param_dict_to_array(results_dict)
+
+        results_dict.update(self._dependent_map_calculator(self, results_dict))
+        results_dict.update(self._fixed_parameter_maps)
+        self._add_post_optimization_modifier_maps(results_dict)
+        results_dict.update(self._get_post_optimization_information_criterion_maps(results_array))
+        return results_dict
+
+    def get_post_sampling_maps(self, samples):
+        """Get all the post sampling maps.
+
+        Args:
+            samples (ndarray): an (d, p, n) matrix for d problems, p parameters and n samples.
+
+        Returns:
+            dict: the volume maps with some basic post-sampling output
+        """
+        volume_maps = self.samples_to_statistics(samples)
+        results_array = self._param_dict_to_array(volume_maps)
+
+        volume_maps = self.add_extra_post_optimization_maps(volume_maps, results_array=results_array)
+        self._add_post_sampling_information_criterion_maps(samples, volume_maps)
+
+        errors = ResidualCalculator().calculate(self, results_array)
+        error_measures = ErrorMeasures(double_precision=self.double_precision).calculate(errors)
+        volume_maps.update(error_measures)
+
+        mv_ess = multivariate_ess(samples)
+        volume_maps.update({'MultivariateESS': mv_ess})
+
+        uv_ess = univariate_ess(samples, method='standard_error')
+        uv_ess_maps = results_to_dict(uv_ess, [a + '.UnivariateESS' for a in self.get_free_param_names()])
+        volume_maps.update(uv_ess_maps)
+
+        return volume_maps
 
     def _add_post_optimization_modifier_maps(self, results_dict):
         """Add the extra maps defined in the post optimization modifiers to the results."""
@@ -394,22 +473,27 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
             else:
                 results_dict.update(zip(names, routine(results_dict)))
 
-    def _add_post_optimization_information_criterion_maps(self, results_dict):
+    def _get_post_optimization_information_criterion_maps(self, results_array):
         """Add some final results maps to the results dictionary.
 
         This called by the function add_extra_post_optimization_maps() as last call to add more maps.
 
         Args:
-            results_dict (args): the results from model optmization. We are to modify this in-place.
+            results_array (ndarray): the results from model optimization.
+
+        Returns:
+            dict: the calculated information criterion maps
         """
         log_likelihood_calc = LogLikelihoodCalculator()
-        log_likelihoods = log_likelihood_calc.calculate(self, results_dict)
+        log_likelihoods = log_likelihood_calc.calculate(self, results_array)
 
         k = self.nmr_parameters_for_bic_calculation
-        n = self._problem_data.get_nmr_inst_per_problem()
+        n = self.get_nmr_inst_per_problem()
 
-        results_dict.update({'LogLikelihood': log_likelihoods})
-        results_dict.update(calculate_point_estimate_information_criterions(log_likelihoods, k, n))
+        result = {'LogLikelihood': log_likelihoods}
+        result.update(calculate_point_estimate_information_criterions(log_likelihoods, k, n))
+
+        return result
 
     def _add_post_sampling_information_criterion_maps(self, samples, results_dict):
         results_dict.update(self._calculate_deviance_information_criterions(samples, results_dict))
@@ -495,3 +579,101 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
         return {'DIC_2002': mean_deviance + pd_2002,
                 'DIC_2004': mean_deviance + pd_2004,
                 'DIC_Ando_2011': mean_deviance + 2 * pd_2002}
+
+    def _param_dict_to_array(self, volume_dict):
+        params = [volume_dict['{}.{}'.format(m.name, p.name)] for m, p in self._estimable_parameters_list]
+        return np.concatenate([np.transpose(np.array([s]))
+                               if len(s.shape) < 2 else s for s in params], axis=1)
+
+    def samples_to_statistics(self, samples):
+        """Create statistics out of the given set of samples (in a dictionary).
+
+        Args:
+            samples (ndarray): the sampled parameter maps, an (d, p, n) array with for d problems
+                and p parameters n samples.
+
+        Returns:
+            dict: A dictionary with point estimates and statistical maps (mean, avg etc.) for each parameter.
+        """
+        results = {}
+
+        for ind, parameter_name in enumerate(self.get_free_param_names()):
+            parameter_samples = samples[:, ind, ...]
+
+            statistics = self._sampling_statistics[parameter_name].get_statistics(parameter_samples)
+
+            results[parameter_name] = statistics.get_point_estimate()
+            results.update({'{}.{}'.format(parameter_name, statistic_key): v
+                            for statistic_key, v in statistics.get_additional_statistics().items()})
+        return results
+
+    @property
+    def name(self):
+        return self._wrapped_sample_model.name
+
+    @property
+    def double_precision(self):
+        return self._wrapped_sample_model.double_precision
+
+    def get_free_param_names(self):
+        return self._wrapped_sample_model.get_free_param_names()
+
+    def get_kernel_data_info(self):
+        return self._wrapped_sample_model.get_kernel_data_info()
+
+    def get_nmr_problems(self):
+        return self._wrapped_sample_model.get_nmr_problems()
+
+    def get_nmr_inst_per_problem(self):
+        return self._wrapped_sample_model.get_nmr_inst_per_problem()
+
+    def get_nmr_estimable_parameters(self):
+        return self._wrapped_sample_model.get_nmr_estimable_parameters()
+
+    def get_pre_eval_parameter_modifier(self):
+        return self._wrapped_sample_model.get_pre_eval_parameter_modifier()
+
+    def get_model_eval_function(self):
+        return self._wrapped_sample_model.get_model_eval_function()
+
+    def get_observation_return_function(self):
+        return self._wrapped_sample_model.get_observation_return_function()
+
+    def get_objective_per_observation_function(self):
+        return self._wrapped_sample_model.get_objective_per_observation_function()
+
+    def get_initial_parameters(self):
+        return self._wrapped_sample_model.get_initial_parameters()
+
+    def get_lower_bounds(self):
+        return self._wrapped_sample_model.get_lower_bounds()
+
+    def get_upper_bounds(self):
+        return self._wrapped_sample_model.get_upper_bounds()
+
+    def get_proposal_state(self):
+        return self._wrapped_sample_model.get_proposal_state()
+
+    def get_log_likelihood_per_observation_function(self, full_likelihood=True):
+        return self._wrapped_sample_model.get_log_likelihood_per_observation_function(full_likelihood=full_likelihood)
+
+    def is_proposal_symmetric(self):
+        return self._wrapped_sample_model.is_proposal_symmetric()
+
+    def get_proposal_logpdf(self, address_space_proposal_state='private'):
+        return self._wrapped_sample_model.get_proposal_logpdf(address_space_proposal_state)
+
+    def get_proposal_function(self, address_space_proposal_state='private'):
+        return self._wrapped_sample_model.get_proposal_function(address_space_proposal_state)
+
+    def get_proposal_state_update_function(self, address_space='private'):
+        return self._wrapped_sample_model.get_proposal_state_update_function(address_space)
+
+    def proposal_state_update_uses_variance(self):
+        return self._wrapped_sample_model.proposal_state_update_uses_variance()
+
+    def get_log_prior_function(self, address_space_parameter_vector='private'):
+        return self._wrapped_sample_model.get_log_prior_function(address_space_parameter_vector)
+
+    def get_metropolis_hastings_state(self):
+        return self._wrapped_sample_model.get_metropolis_hastings_state()
