@@ -8,5 +8,6 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class GDRCylinders(CompartmentTemplate):
 
-    parameter_list = ('g', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'gamma_k', 'gamma_beta', 'gamma_nmr_cyl')
-    dependency_list = ('CylinderGPD',)
+    parameter_list = ('g', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'gamma_shape', 'gamma_scale',
+                      'GDRCylinders_nmr_bins(nmr_bins)')
+    dependency_list = ('CylinderGPD', 'GammaFunctions')

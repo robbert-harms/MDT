@@ -182,33 +182,23 @@ class kappa(FreeParameterTemplate):
 
 
 # for use in the GDRCylinder model
-class gamma_k(FreeParameterTemplate):
+class gamma_shape(FreeParameterTemplate):
 
     init_value = 1
-    lower_bound = 0
+    lower_bound = 0.1e-3
     upper_bound = 20
-    parameter_transform = SinSqrClampTransform()
-    sampling_proposal = GaussianProposal(1.0)
+    parameter_transform = CosSqrClampTransform()
+    sampling_proposal = GaussianProposal(1.0e-2)
 
 
 # for use in the GDRCylinder model
-class gamma_beta(FreeParameterTemplate):
+class gamma_scale(FreeParameterTemplate):
 
-    init_value = 1
-    lower_bound = 1.0e-7
-    upper_bound = 3.0e-7
-    parameter_transform = SinSqrClampTransform()
-    sampling_proposal = GaussianProposal(1e-7)
-
-
-# for use in the GDRCylinder model
-class gamma_nmr_cyl(FreeParameterTemplate):
-
-    init_value = 5
-    lower_bound = 1
-    upper_bound = 10
-    parameter_transform = SinSqrClampTransform()
-    sampling_proposal = GaussianProposal(1)
+    init_value = 1e-6
+    lower_bound = 0.1e-9
+    upper_bound = 20e-6
+    parameter_transform = CosSqrClampTransform()
+    sampling_proposal = GaussianProposal(1e-9)
 
 
 # for use in ExpT1DecSTEAM model. It is assumed for ex-vivo values. For in-vivo use d instead.

@@ -15,4 +15,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-# No model data parameters defined as of yet.
+class GDRCylinders_nmr_bins(ModelDataParameterTemplate):
+
+    data_type = 'int'
+    value = 5
