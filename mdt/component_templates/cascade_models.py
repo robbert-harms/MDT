@@ -146,8 +146,6 @@ class CascadeBuilder(ComponentBuilder):
         """
         class AutoCreatedCascadeModel(method_binding_meta(template, SimpleCascadeModel)):
 
-            _template = deepcopy(template)
-
             def __init__(self, *args):
                 new_args = [deepcopy(template.name),
                             list(map(mdt.get_model, template.models))]

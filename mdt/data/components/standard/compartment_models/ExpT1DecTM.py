@@ -8,7 +8,8 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class ExpT1DecTM(CompartmentTemplate):
 
-    parameter_list = ('SEf', 'TR', 'TM', 'TE', 'flip_angle', 'excitation_b1_map', 'Refoc_fa1', 'refocusing1_b1_map', 'Refoc_fa2', 'refocusing2_b1_map', 'b', 'T1', 'd_exvivo')
+    parameter_list = ('SEf', 'TR', 'TM', 'TE', 'flip_angle', 'excitation_b1_map', 'Refoc_fa1', 'refocusing1_b1_map',
+                      'Refoc_fa2', 'refocusing2_b1_map', 'b', 'T1', 'd_exvivo')
     cl_code = """
         return powr((double)0.5, (double)SEf)
             * sin((double)flip_angle * excitation_b1_map)

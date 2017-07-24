@@ -41,4 +41,5 @@ class Tensor(CompartmentTemplate):
                    );
     '''
     prior = 'return dperp1 < dperp0 && dperp0 < d;'
+    auto_add_cartesian_vector = False
     post_optimization_modifiers = [get_dti_measures_modifier()]

@@ -1,5 +1,4 @@
 import six
-from copy import deepcopy
 
 from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate, register_builder
 from mot.cl_data_type import SimpleCLDataType
@@ -97,16 +96,12 @@ class ParameterBuilder(ComponentBuilder):
 
         if issubclass(template, ProtocolParameterTemplate):
             class AutoProtocolParameter(method_binding_meta(template, ProtocolParameter)):
-                _template = deepcopy(template)
-
                 def __init__(self, nickname=None):
                     super(AutoProtocolParameter, self).__init__(data_type, nickname or template.name)
             return AutoProtocolParameter
 
         elif issubclass(template, FreeParameterTemplate):
             class AutoFreeParameter(method_binding_meta(template, FreeParameter)):
-                _template = deepcopy(template)
-
                 def __init__(self, nickname=None):
                     super(AutoFreeParameter, self).__init__(
                         data_type,
@@ -124,16 +119,12 @@ class ParameterBuilder(ComponentBuilder):
 
         elif issubclass(template, ModelDataParameterTemplate):
             class AutoModelDataParameter(method_binding_meta(template, ModelDataParameter)):
-                _template = deepcopy(template)
-
                 def __init__(self, nickname=None):
                     super(AutoModelDataParameter, self).__init__(data_type, nickname or template.name, template.value)
             return AutoModelDataParameter
 
         elif issubclass(template, StaticMapParameterTemplate):
             class AutoStaticMapParameter(method_binding_meta(template, StaticMapParameter)):
-                _template = deepcopy(template)
-
                 def __init__(self, nickname=None):
                     super(AutoStaticMapParameter, self).__init__(data_type, nickname or template.name, template.value)
             return AutoStaticMapParameter

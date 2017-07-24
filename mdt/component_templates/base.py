@@ -1,3 +1,4 @@
+from copy import deepcopy
 from six import with_metaclass
 
 __author__ = 'Robbert Harms'
@@ -106,15 +107,27 @@ class ComponentTemplateMeta(type):
         return result
 
     @staticmethod
-    def _resolve_attribute(bases, attributes, attribute_name):
-        """Search for the given attribute in the given attributes or in the attributes of the bases."""
+    def _resolve_attribute(bases, attributes, attribute_name, base_predicate=None):
+        """Search for the given attribute in the given attributes or in the attributes of the bases.
+
+        Args:
+            base_predicate (func): if given a predicate that runs on the attribute of one of the bases to determine
+                if we will return that one.
+
+        Returns:
+            The value for the attribute
+
+        Raises:
+            ValueError: if the attribute could not be found in the attribute or any of the bases
+        """
+        base_predicate = base_predicate or (lambda _: True)
+
         if attribute_name in attributes:
             return attributes[attribute_name]
         for base in bases:
-            if hasattr(base, attribute_name):
+            if hasattr(base, attribute_name) and base_predicate(getattr(base, attribute_name)):
                 return getattr(base, attribute_name)
         raise ValueError('Attribute not found in this component config or its superclasses.')
-
 
 
 class ComponentTemplate(with_metaclass(ComponentTemplateMeta, object)):
@@ -129,7 +142,8 @@ class ComponentTemplate(with_metaclass(ComponentTemplateMeta, object)):
     @classmethod
     def meta_info(cls):
         return {'name': cls.name,
-                'description': cls.description}
+                'description': cls.description,
+                'template': deepcopy(cls)}
 
 
 def construct_component(template):

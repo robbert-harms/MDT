@@ -122,8 +122,6 @@ class DMRICompositeModelBuilder(ComponentBuilder):
         """
         class AutoCreatedDMRICompositeModel(method_binding_meta(template, DMRICompositeModel)):
 
-            _template = deepcopy(template)
-
             def __init__(self):
                 super(AutoCreatedDMRICompositeModel, self).__init__(
                     deepcopy(template.name),

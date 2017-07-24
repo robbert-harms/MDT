@@ -1,3 +1,5 @@
+from textwrap import dedent, indent
+
 from mot.model_building.model_functions import SimpleModelFunction
 
 __author__ = 'Robbert Harms'
@@ -38,12 +40,12 @@ class DMRICompartmentModelFunction(SimpleModelFunction):
         self.post_optimization_modifiers = post_optimization_modifiers or []
 
     def get_cl_code(self):
-        return '''
+        return dedent('''
             {dependencies}
             #ifndef {inclusion_guard_name}
             #define {inclusion_guard_name}
             {code}
             #endif // {inclusion_guard_name}
-        '''.format(dependencies=self._get_cl_dependency_code(),
+        '''.format(dependencies=indent(self._get_cl_dependency_code(), ' '*4*3),
                    inclusion_guard_name='DMRI_' + self.cl_function_name + '_CL',
-                   code=self._cl_code)
+                   code=indent('\n' + self._cl_code.strip() + '\n', ' '*4*3)))

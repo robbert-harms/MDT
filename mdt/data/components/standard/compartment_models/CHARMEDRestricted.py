@@ -1,5 +1,4 @@
 from mdt.component_templates.compartment_models import CompartmentTemplate
-from mdt.utils import spherical_to_cartesian
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -11,7 +10,6 @@ class CHARMEDRestricted(CompartmentTemplate):
 
     parameter_list = ('g', 'b', 'G', 'Delta', 'delta', 'TE', 'd', 'theta', 'phi')
     dependency_list = ('MRIConstants',)
-    post_optimization_modifiers = [('vec0', lambda results: spherical_to_cartesian(results['theta'], results['phi']))]
     cl_code = '''
         const mot_float_type q_magnitude_2 = GAMMA_H_HZ_SQ * (G * G) * (delta * delta);
         

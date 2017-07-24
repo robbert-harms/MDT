@@ -1,5 +1,4 @@
 from mdt.component_templates.compartment_models import CompartmentTemplate
-from mdt.utils import spherical_to_cartesian
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -22,4 +21,3 @@ class CylinderGPD(CompartmentTemplate):
         
         return exp( ((1 - gn2) * lperp) + (-b * d * gn2));
     '''
-    post_optimization_modifiers = [('vec0', lambda results: spherical_to_cartesian(results['theta'], results['phi']))]

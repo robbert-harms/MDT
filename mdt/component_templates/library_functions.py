@@ -1,6 +1,8 @@
 import inspect
 import os
 from copy import deepcopy
+from textwrap import indent, dedent
+
 import six
 from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplateMeta, \
     ComponentTemplate, register_builder
@@ -42,10 +44,11 @@ def _construct_cl_function_definition(return_type, cl_function_name, parameters)
 
     .. code-block:: c
 
-        double NeumannCylindricalRestrictedSignal(const mot_float_type Delta,
-                                     const mot_float_type delta,
-                                     const mot_float_type d,
-                                     const mot_float_type R)
+        double NeumannCylindricalRestrictedSignal(
+                const mot_float_type Delta,
+                const mot_float_type delta,
+                const mot_float_type d,
+                const mot_float_type R)
 
     Args:
         return_type (str): the return type
@@ -72,10 +75,9 @@ def _construct_cl_function_definition(return_type, cl_function_name, parameters)
 
         return s
 
-    parameters_str = ',\n'.join(parameter_str(parameter) for parameter in parameters)
-    return '{return_type} {cl_function_name}({parameters})'.format(return_type=return_type,
-                                                                   cl_function_name=cl_function_name,
-                                                                   parameters=parameters_str)
+    parameters_str = indent(',\n'.join(parameter_str(parameter) for parameter in parameters), ' ' * 4 * 2)
+    return '\n{return_type} {cl_function_name}(\n{parameters})'.format(
+        return_type=return_type, cl_function_name=cl_function_name, parameters=parameters_str)
 
 
 class LibraryFunctionTemplateMeta(ComponentTemplateMeta):
@@ -108,9 +110,13 @@ class LibraryFunctionTemplateMeta(ComponentTemplateMeta):
                         return base.return_type
 
         if 'cl_code' in attributes and attributes['cl_code'] is not None:
-            s = _construct_cl_function_definition(
-                get_return_type(), result.cl_function_name, _get_parameters_list(result.parameter_list))
-            s += '{\n' + attributes['cl_code'] + '\n}'
+            if ComponentTemplateMeta._resolve_attribute(bases, attributes, 'is_function'):
+                s = _construct_cl_function_definition(
+                    ComponentTemplateMeta._resolve_attribute(bases, attributes, 'return_type', lambda v: v is not None),
+                    result.cl_function_name, _get_parameters_list(result.parameter_list))
+                s += '{\n\n' + indent(dedent(attributes['cl_code'].strip('\n')), ' '*4) + '\n}'
+            else:
+                s = '\n' + dedent(attributes['cl_code'].strip('\n'))
             return s
 
         module_path = os.path.abspath(inspect.getfile(result))
@@ -146,6 +152,8 @@ class LibraryFunctionTemplate(six.with_metaclass(LibraryFunctionTemplateMeta, Co
         cl_code (CLCodeDefinition): the CL code definition to use. Defaults to CLCodeFromAdjacentFile.
         dependency_list (list): the list of functions this function depends on, can contain string which will be
             resolved as library functions.
+        is_function (boolean): set to False to disable the automatic generation of a function signature.
+            Use this for C macro only libraries.
     """
     name = ''
     description = ''
@@ -154,6 +162,7 @@ class LibraryFunctionTemplate(six.with_metaclass(LibraryFunctionTemplateMeta, Co
     parameter_list = []
     cl_code = None
     dependency_list = []
+    is_function = True
 
 
 class LibraryFunctionBuildingBase(SimpleCLLibrary):
@@ -174,8 +183,6 @@ class LibraryFunctionsBuilder(ComponentBuilder):
                 the class with the right init settings.
         """
         class AutoCreatedLibraryFunction(method_binding_meta(template, LibraryFunctionBuildingBase)):
-
-            _template = deepcopy(template)
 
             def __init__(self, *args, **kwargs):
                 new_args = [template.cl_function_name,

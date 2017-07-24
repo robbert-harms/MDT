@@ -1,6 +1,7 @@
 import inspect
 import os
 from copy import deepcopy
+from textwrap import indent, dedent
 
 import six
 
@@ -8,6 +9,7 @@ from mdt.components_loader import ParametersLoader
 from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplateMeta, \
     ComponentTemplate, register_builder
 from mdt.models.compartments import DMRICompartmentModelFunction
+from mdt.utils import spherical_to_cartesian
 from mot.model_building.model_function_priors import ModelFunctionPrior, SimpleModelFunctionPrior
 from mot.model_building.parameters import CurrentObservationParam
 
@@ -87,10 +89,9 @@ def _construct_cl_function_definition(return_type, cl_function_name, parameters)
 
         return s
 
-    parameters_str = ',\n'.join(parameter_str(parameter) for parameter in parameters)
-    return '{return_type} {cl_function_name}({parameters})'.format(return_type=return_type,
-                                                                   cl_function_name=cl_function_name,
-                                                                   parameters=parameters_str)
+    parameters_str = indent(',\n'.join(parameter_str(parameter) for parameter in parameters), ' '*4*2)
+    return '\n{return_type} {cl_function_name}(\n{parameters})'.format(
+        return_type=return_type, cl_function_name=cl_function_name, parameters=parameters_str)
 
 
 class CompartmentTemplateMeta(ComponentTemplateMeta):
@@ -118,7 +119,7 @@ class CompartmentTemplateMeta(ComponentTemplateMeta):
         if 'cl_code' in attributes and attributes['cl_code'] is not None:
             s = _construct_cl_function_definition(
                 return_type, result.cl_function_name, _get_parameters_list(result.parameter_list))
-            s += '{\n' + attributes['cl_code'] + '\n}'
+            s += '{\n\n' + indent(dedent(attributes['cl_code'].strip('\n')), ' '*4) + '\n}'
             return s
 
         module_path = os.path.abspath(inspect.getfile(result))
@@ -169,6 +170,9 @@ class CompartmentTemplate(six.with_metaclass(CompartmentTemplateMeta, ComponentT
             modifier in one modifier expression.
 
             These modifiers are supposed to be called before the modifiers of the composite model.
+        auto_add_cartesian_vector (boolean): if set to True we will automatically add a post optimization modifier
+            that constructs a cartesian vector from the ``theta`` and ``phi`` parameter if present. This modifier
+            is run before the other user defined modifiers.
     """
     name = ''
     description = ''
@@ -179,6 +183,7 @@ class CompartmentTemplate(six.with_metaclass(CompartmentTemplateMeta, ComponentT
     return_type = 'double'
     prior = None
     post_optimization_modifiers = None
+    auto_add_cartesian_vector = True
 
 
 class CompartmentBuildingBase(DMRICompartmentModelFunction):
@@ -198,9 +203,9 @@ class CompartmentBuilder(ComponentBuilder):
             template (CompartmentTemplate): the compartment config template to use for
                 creating the class with the right init settings.
         """
-        class AutoCreatedDMRICompartmentModel(method_binding_meta(template, CompartmentBuildingBase)):
+        builder = self
 
-            _template = deepcopy(template)
+        class AutoCreatedDMRICompartmentModel(method_binding_meta(template, CompartmentBuildingBase)):
 
             def __init__(self, *args, **kwargs):
                 parameter_list = _get_parameters_list(template.parameter_list)
@@ -217,7 +222,8 @@ class CompartmentBuilder(ComponentBuilder):
 
                 new_kwargs = {'model_function_priors': (_resolve_prior(template.prior, template.name,
                                                                        [p.name for p in parameter_list],)),
-                              'post_optimization_modifiers': template.post_optimization_modifiers}
+                              'post_optimization_modifiers': builder._get_post_optimization_modifiers(template,
+                                                                                                      parameter_list)}
                 new_kwargs.update(kwargs)
 
                 super(AutoCreatedDMRICompartmentModel, self).__init__(*new_args, **new_kwargs)
@@ -226,6 +232,17 @@ class CompartmentBuilder(ComponentBuilder):
                     template.init(self)
 
         return AutoCreatedDMRICompartmentModel
+
+    def _get_post_optimization_modifiers(self, template, parameter_list):
+        post_optimization_modifiers = []
+        if getattr(template, 'auto_add_cartesian_vector', False):
+            if all(map(lambda name: name in [p.name for p in parameter_list], ('theta', 'phi'))):
+                modifier = ('vec0', lambda results: spherical_to_cartesian(results['theta'], results['phi']))
+                post_optimization_modifiers.append(modifier)
+
+        if template.post_optimization_modifiers:
+            post_optimization_modifiers.extend(template.post_optimization_modifiers)
+        return post_optimization_modifiers
 
 
 def _resolve_dependencies(dependency_list):

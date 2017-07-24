@@ -1,7 +1,6 @@
 from mdt.component_templates.compartment_models import CompartmentTemplate
 import numpy as np
 
-from mdt.utils import spherical_to_cartesian
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -15,5 +14,4 @@ class NODDI_IC(CompartmentTemplate):
     dependency_list = ('CerfErfi',
                        'MRIConstants',
                        'NeumannCylindricalRestrictedSignal')
-    post_optimization_modifiers = [('vec0', lambda results: spherical_to_cartesian(results['theta'], results['phi'])),
-                                   ('odi', lambda results: np.arctan2(1.0, results['kappa'] * 10) * 2 / np.pi)]
+    post_optimization_modifiers = [('odi', lambda results: np.arctan2(1.0, results['kappa'] * 10) * 2 / np.pi)]

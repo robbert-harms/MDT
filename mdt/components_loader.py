@@ -44,26 +44,6 @@ def get_model(model_name, **kwargs):
             raise ValueError('The model with the name "{}" could not be found.'.format(model_name))
 
 
-def get_meta_info(model_name):
-    """Get the meta information of a particular model
-
-    Args:
-        model_name (str): One of the models from get_list_of_composite_models() or get_list_of_cascade_models()
-
-    Returns:
-        Either a cascade model or a composite model. In any case, a model that can be given to the fit_model function.
-    """
-    cml = CascadeModelsLoader()
-    sml = CompositeModelsLoader()
-    try:
-        return cml.get_meta_info(model_name)
-    except ImportError:
-        try:
-            return sml.get_meta_info(model_name)
-        except ImportError:
-            raise ValueError('The model with the name "{}" could not be found.'.format(model_name))
-
-
 @contextmanager
 def user_preferred_components(components_dict):
     """Creates a context manager in which the provided components take precedence over existing ones.
@@ -164,6 +144,11 @@ class ComponentsLoader(object):
         c = self.get_class(name)
         return c(*args, **kwargs)
 
+    def reload(self):
+        """Tell this component loader to empty the cache and reload the modules."""
+        for source in self._sources:
+            source.reload()
+
     def _get_preferred_source(self, name):
         """Try to get the preferred source for the component with the given name.
 
@@ -245,6 +230,10 @@ class ComponentsSource(object):
         """
         raise NotImplementedError()
 
+    def reload(self):
+        """Tell this source to empty the cache and reload the modules."""
+        raise NotImplementedError()
+
 
 class UserPreferredSource(ComponentsSource):
 
@@ -281,6 +270,9 @@ class UserPreferredSource(ComponentsSource):
 
     def get_meta_info(self, name):
         return {}
+
+    def reload(self):
+        pass
 
     @classmethod
     def add_component(cls, component_type, name, component_class):
@@ -338,7 +330,7 @@ class UserPreferredSource(ComponentsSource):
 
 class AutomaticCascadeSource(ComponentsSource):
 
-    _can_create_list = True
+    _can_create_list = True  # to prevent double recursion
 
     def __init__(self):
         """A source that automatically creates cascade models if there is no existing cascade.
@@ -382,6 +374,9 @@ class AutomaticCascadeSource(ComponentsSource):
     def get_meta_info(self, name):
         template = self._generate_cascade(name)
         return template.meta_info()
+
+    def reload(self):
+        pass
 
     def _get_missing_s0_cascades(self, models, cascades):
         """Get the list of cascade model names that are missing from the list of cascades.
@@ -466,7 +461,7 @@ class UserComponentsSourceSingle(ComponentsSource):
                 module = imp.load_source(name, self._class_filenames[name])
                 self.loaded_modules_cache[name] = (module, getattr(module, name))
             try:
-                return getattr(self.loaded_modules_cache[name][0], 'meta_info')
+                return getattr(self.loaded_modules_cache[name][-1], 'meta_info')()
             except AttributeError:
                 try:
                     cls = self.get_class(name)
@@ -474,6 +469,10 @@ class UserComponentsSourceSingle(ComponentsSource):
                 except AttributeError:
                     return {}
         return {}
+
+    def reload(self):
+        self.__class__.loaded_modules_cache = {}
+        self._class_filenames = {}
 
     def use_in_uniqueness_check(self):
         return True
@@ -554,14 +553,7 @@ class UserComponentsSourceMulti(ComponentsSource):
         super(UserComponentsSourceMulti, self).__init__()
         self._user_type = user_type
         self._component_type = component_type
-
-        if self._user_type not in self.loaded_modules_cache:
-            self.loaded_modules_cache[self._user_type] = {}
-
-        if self._component_type not in self.loaded_modules_cache[self._user_type]:
-            self.loaded_modules_cache[self._user_type][self._component_type] = {}
-
-        self.path = _get_components_path(user_type, component_type)
+        self._path = _get_components_path(user_type, component_type)
         self._check_path()
         self._components = self._load_all_components()
 
@@ -575,6 +567,10 @@ class UserComponentsSourceMulti(ComponentsSource):
 
     def get_meta_info(self, name):
         return self._components[name].get_meta_info()
+
+    def reload(self):
+        self.__class__.loaded_modules_cache = {}
+        self._load_all_components()
 
     def use_in_uniqueness_check(self):
         return True
@@ -594,7 +590,13 @@ class UserComponentsSourceMulti(ComponentsSource):
         This loops through all the python files present in the dir name and tries to use them as modules if they
         are not yet loaded.
         """
-        for dir_name, sub_dirs, files in os.walk(self.path):
+        if self._user_type not in self.loaded_modules_cache:
+            self.loaded_modules_cache[self._user_type] = {}
+
+        if self._component_type not in self.loaded_modules_cache[self._user_type]:
+            self.loaded_modules_cache[self._user_type][self._component_type] = {}
+
+        for dir_name, sub_dirs, files in os.walk(self._path):
             for file in files:
                 if file.endswith('.py') and not file.startswith('__'):
                     path = os.path.join(dir_name, file)
@@ -602,7 +604,7 @@ class UserComponentsSourceMulti(ComponentsSource):
                     if path not in self.loaded_modules_cache[self._user_type][self._component_type]:
                         module_name = self._user_type + '/' + \
                                       self._component_type + '/' + \
-                                      dir_name[len(self.path) + 1:] + '/' + \
+                                      dir_name[len(self._path) + 1:] + '/' + \
                                       os.path.splitext(os.path.basename(path))[0]
 
                         module = imp.load_source(module_name, path)
@@ -627,9 +629,9 @@ class UserComponentsSourceMulti(ComponentsSource):
         return loaded_items
 
     def _check_path(self):
-        if not os.path.isdir(self.path):
+        if not os.path.isdir(self._path):
             raise RuntimeError('The components folder "{0}" could not be found. '
-                               'Please check the path to the components in your configuration file.'.format(self.path))
+                               'Please check the path to the components in your configuration file.'.format(self._path))
 
 
 class AutoUserComponentsSourceMulti(UserComponentsSourceMulti):
@@ -734,6 +736,9 @@ class MOTSourceSingle(ComponentsSource):
 
     def get_meta_info(self, name):
         return {}
+
+    def reload(self):
+        pass
 
     def use_in_uniqueness_check(self):
         return True
@@ -850,8 +855,21 @@ class CascadeModelsLoader(ComponentsLoader):
              AutomaticCascadeSource()])
 
 
+def get_meta_info(component_type, component_name):
+    """Get the meta info of the requested component.
+
+    Args:
+        component_type (str): the type of component, for example 'batch_profiles' or 'parameters'
+        component_name (str): the name of the component to use
+
+    Returns:
+        dict: the meta information of the given component
+    """
+    return get_loader(component_type).get_meta_info(component_name)
+
+
 def get_component_class(component_type, component_name):
-    """Return the class of the given component.
+    """Return the class of the requested component.
 
     Args:
         component_type (str): the type of component, for example 'batch_profiles' or 'parameters'
@@ -860,23 +878,35 @@ def get_component_class(component_type, component_name):
     Returns:
         class: the class of the given component
     """
+    return get_loader(component_type).get_class(component_name)
+
+
+def get_loader(component_type):
+    """Get the loader corresponding to the given component type.
+
+    Args:
+        component_type (str): the type of component we want the loader for
+
+    Returns:
+        ComponentsLoader: the loader corresponding to the component type
+    """
     if component_type == 'batch_profiles':
-        return BatchProfilesLoader().get_class(component_name)
+        return BatchProfilesLoader()
     if component_type == 'cascade_models':
-        return CascadeModelsLoader().get_class(component_name)
+        return CascadeModelsLoader()
     if component_type == 'composite_models':
-        return CompositeModelsLoader().get_class(component_name)
+        return CompositeModelsLoader()
     if component_type == 'compartment_models':
-        return CompartmentModelsLoader().get_class(component_name)
+        return CompartmentModelsLoader()
     if component_type == 'library_functions':
-        return LibraryFunctionsLoader().get_class(component_name)
+        return LibraryFunctionsLoader()
     if component_type == 'noise_std_estimators':
-        return NoiseSTDCalculatorsLoader().get_class(component_name)
+        return NoiseSTDCalculatorsLoader()
     if component_type == 'parameters':
-        return ParametersLoader().get_class(component_name)
+        return ParametersLoader()
     if component_type == 'evaluation_models':
-        return EvaluationModelsLoader().get_class(component_name)
-    raise ValueError('Could not find the given component type "{}"'.format(component_type))
+        return EvaluationModelsLoader()
+    raise ValueError('Could not find a loader for the given component type "{}"'.format(component_type))
 
 
 def load_component(component_type, component_name, *args, **kwargs):

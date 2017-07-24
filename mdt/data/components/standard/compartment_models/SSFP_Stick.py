@@ -1,7 +1,7 @@
-from mdt.components_loader import component_import
+from mdt.component_templates.compartment_models import CompartmentTemplate
 
 
-class SSFP_Stick(component_import('standard.compartment_models.Stick', 'Stick')):
+class SSFP_Stick(CompartmentTemplate):
 
     parameter_list = ('g', 'd', 'theta', 'phi', 'delta', 'G', 'TR', 'flip_angle', 'b1_static', 'T1_static', 'T2_static')
     dependency_list = ('SSFP',)
