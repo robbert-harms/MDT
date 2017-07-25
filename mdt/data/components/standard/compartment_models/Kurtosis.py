@@ -40,13 +40,9 @@ def get_symmetric_indices(length, dimensions):
 
 
 def build_param(index):
-    initial_value = 0
-    if len(set(index)) == 1:  # on diagonal
-        initial_value = 0
-
     class matrix_element_param(FreeParameterTemplate):
         name = 'W_{i}{j}{k}{l}'.format(i=index[0], j=index[1], k=index[2], l=index[3])
-        init_value = initial_value
+        init_value = 0
         lower_bound = -1
         upper_bound = 1
         parameter_transform = ClampTransform()
@@ -56,11 +52,8 @@ def build_param(index):
 
 
 def get_parameter_list():
-    parameter_list = ['g', 'b',  # protocol
-                      'd', 'dperp0', 'dperp1', 'theta', 'phi', 'psi'  # Tensor
-                      ]
+    parameter_list = ['g', 'b', 'd', 'dperp0', 'dperp1', 'theta', 'phi', 'psi']
 
-    # Kurtosis W matrix
     for index in get_symmetric_indices(3, 4):
         parameter_list.append(build_param(index))
 
