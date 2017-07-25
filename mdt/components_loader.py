@@ -761,7 +761,10 @@ class MOTLibraryFunctionSource(MOTSourceSingle):
 class MOTCompartmentModelsSource(MOTSourceSingle):
 
     def get_class(self, name):
-        return getattr(mot.model_building.model_functions, name)
+        try:
+            return getattr(mot.model_building.model_functions, name)
+        except AttributeError:
+            raise ImportError
 
     def list(self):
         module = mot.model_building.model_functions
@@ -772,7 +775,10 @@ class MOTCompartmentModelsSource(MOTSourceSingle):
 class MOTEvaluationModelSource(MOTSourceSingle):
 
     def get_class(self, name):
-        return getattr(mot.model_building.evaluation_models, name)
+        try:
+            return getattr(mot.model_building.evaluation_models, name)
+        except AttributeError:
+            raise ImportError
 
     def list(self):
         module = mot.model_building.evaluation_models

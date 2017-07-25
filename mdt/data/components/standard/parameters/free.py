@@ -139,7 +139,7 @@ class psi(FreeParameterTemplate):
 class d(FreeParameterTemplate):
 
     init_value = 1.7e-9
-    lower_bound = 0
+    lower_bound = 1e-11
     upper_bound = 1.0e-8
     parameter_transform = SinSqrClampTransform()
     sampling_proposal = GaussianProposal(1e-10)
@@ -228,3 +228,58 @@ class d_bulk(FreeParameterTemplate):
     parameter_transform = SinSqrClampTransform()
     sampling_proposal = GaussianProposal(1e-10)
 
+
+# the following parameters are part of the non-parametric Tensor
+# (Tensor in which a upper triangular D matrix is optimized directly)
+class Tensor_D_00(FreeParameterTemplate):
+
+    init_value = 0.3e-9
+    lower_bound = 0
+    upper_bound = 5e-9
+    parameter_transform = SinSqrClampTransform()
+    sampling_proposal = GaussianProposal(1e-10)
+
+
+class Tensor_D_11(FreeParameterTemplate):
+
+    init_value = 0.3e-9
+    lower_bound = 0
+    upper_bound = 5e-9
+    parameter_transform = SinSqrClampTransform()
+    sampling_proposal = GaussianProposal(1e-10)
+
+
+class Tensor_D_22(FreeParameterTemplate):
+
+    init_value = 1.2e-9
+    lower_bound = 0
+    upper_bound = 5e-9
+    parameter_transform = SinSqrClampTransform()
+    sampling_proposal = GaussianProposal(1e-10)
+
+
+class Tensor_D_01(FreeParameterTemplate):
+
+    init_value = 0
+    lower_bound = -1e-9
+    upper_bound = 1e-9
+    parameter_transform = SinSqrClampTransform()
+    sampling_proposal = GaussianProposal(1e-10)
+
+
+class Tensor_D_02(FreeParameterTemplate):
+
+    init_value = 0
+    lower_bound = -1e-9
+    upper_bound = 1e-9
+    parameter_transform = SinSqrClampTransform()
+    sampling_proposal = GaussianProposal(1e-10)
+
+
+class Tensor_D_12(FreeParameterTemplate):
+
+    init_value = 0
+    lower_bound = -1e-9
+    upper_bound = 1e-9
+    parameter_transform = SinSqrClampTransform()
+    sampling_proposal = GaussianProposal(1e-10)
