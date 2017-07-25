@@ -780,8 +780,6 @@ def write_protocol(protocol, fname, columns_list=None):
         columns_list = protocol.column_names
 
         if 'G' in columns_list and 'Delta' in columns_list and 'delta' in columns_list:
-            if 'b' in columns_list:
-                columns_list.remove('b')
             if 'maxG' in columns_list:
                 columns_list.remove('maxG')
 

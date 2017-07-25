@@ -8,8 +8,8 @@ can be any valid python string separated if needed with the semicolon (;).
 The columns of the input protocol are loaded and stored as arrays with as variable names the names of the
 columns. Next, the expression is evaluated on those columns and the result is stored in the indicated file.
 
-Columns can easily be removed with the python 'del' command. New columns can easily be added by assignment.When adding
-a column, the value can either be a scalar or a vector.
+Columns can easily be removed with the python 'del' command. New columns can easily be added by assignment.
+When adding a column, the value can either be a scalar or a vector.
 
 Additionally, the numpy library is available with prefix 'np.'.
 """
