@@ -148,7 +148,7 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
 
         current_model = self._controller.get_model()
         map_names = copy.copy(current_model.get_config().maps_to_show)
-        map_names.extend(additional_maps)
+        map_names.extend(additional_maps.keys())
         self._controller.apply_action(NewDataAction(current_model.get_data().get_updated(additional_maps)))
         self._controller.apply_action(SetMapsToShow(map_names))
 
