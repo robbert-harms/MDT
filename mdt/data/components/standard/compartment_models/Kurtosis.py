@@ -6,7 +6,7 @@ from mot.model_building.parameter_functions.proposals import GaussianProposal
 from mdt.component_templates.parameters import FreeParameterTemplate, ParameterBuilder
 from mdt.component_templates.compartment_models import CompartmentTemplate
 from mdt.cl_routines.mapping.dti_measures import DTIMeasures
-from mot.model_building.parameter_functions.transformations import SinSqrClampTransform, ClampTransform
+from mot.model_building.parameter_functions.transformations import ClampTransform
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -49,7 +49,7 @@ def build_param(index):
         init_value = initial_value
         lower_bound = -1
         upper_bound = 1
-        parameter_transform = SinSqrClampTransform()
+        parameter_transform = ClampTransform()
         sampling_proposal = GaussianProposal(1e-10)
 
     return ParameterBuilder().create_class(matrix_element_param)()
