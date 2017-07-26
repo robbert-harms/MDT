@@ -82,7 +82,11 @@ These can be added to the compartment model using the ``cl_extra`` attribute. Fo
         parameter_list = ('g', 'b', 'd')
         cl_code = 'return other_function(g, b, d);'
         cl_extra = '''
-            double other_function(mot_float_type g, mot_float_type b, mot_float_type d){
+            double other_function(
+                    mot_float_type g,
+                    mot_float_type b,
+                    mot_float_type d){
+
                 ...
             }
         '''

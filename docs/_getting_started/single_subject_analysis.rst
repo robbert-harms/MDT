@@ -7,21 +7,7 @@ There are three ways to interface with MDT, the :ref:`Graphical User Interface (
 :ref:`the command line <analysis_using_the_cli>` and :ref:`using Python directly <analysis_using_python>`.
 This guide will walk you through basic model analysis with MDT using all of these interfaces.
 
-This guide can in principle be followed with any compatible dataset, but it is suggested to first follow the guide using the MDT example datasets.
-There are two MDT example datasets, a b1k_b2k dataset and a multishell_b6k_max dataset.
-The b1k_b2k has a shell of b=1000s/mm^2 and of b=2000s/mm^2 and is very well suited for e.g. Tensor, Ball&Stick and NODDI.
-In this, the b1k shell is the standard Jones 30 direction table, including 6 b0 measurements at the start.
-The b2k shell is a 60 whole-sphere direction set create with an electrostatic repulsion algorithm and has another 7 b0 measurements, 2 at the start of the shell and then one every 12 directions.
-The multishell_b6k_max dataset has 6 b0's at the start and a range of 8 shells between b=750s/mm^2 and b=6000s/mm^2 (in steps of 750s/mm^2) with an increasing number of directions per shell
-(see `De Santis et al., MRM, 2013 <http://dx.doi.org/10.1002/mrm.24717>`_) and is well suited for CHARMED analysis and other models that require high b-values (but no diffusion time variations).
-Both datasets were acquired in the same session on a Siemens Prisma system, on the VE11C software line, with the standard product diffusion sequence at 2mm isotropic with
-GRAPPA in-plane acceleration factor 2 and 6/8 partial fourier (no multiband/simultaneous multi-slice).
-Two slices of both these datasets are directly available after MDT installation.
-For obtaining these follow the guide.
-
-.. contents:: Overview
-   :local:
-   :backlinks: none
+This guide can in principle be followed with any compatible dataset, but it is suggested to first follow the guide using the MDT example datasets, see :ref:`mdt_example_data` for obtaining these.
 
 
 .. _analysis_using_the_gui:
@@ -44,14 +30,6 @@ The following is an example of the GUI running in Linux:
 Using the GUI is a good starting point for model analysis since it guides you through the steps needed for the model analysis.
 In addition, as a service to the user, the GUI writes Python and Bash script files for most of the actions performed in the GUI.
 This allows you to use the GUI to generate a coding template that can be used for further processing.
-
-
-Obtaining the example data
---------------------------
-While this guide can in principle be followed using any dataset it is advisable to first follow it using the MDT example data.
-A few slices of this example data come pre-supplied with MDT.
-To obtain these, please open the GUI and find in the menu bar: "Help -> Get example data".
-This will open a dialog in which you can specify a directory and MDT will place the example data slices in that directory.
 
 
 Creating a protocol file
@@ -170,16 +148,6 @@ Using the command line
 After installation a few command line functions are installed to your system.
 These commands, starting with ``mdt-`` allow you to use various functionality of MDT using the command line.
 For an overview of the available commands, please see: :ref:`cli_index`.
-
-Obtaining the example data
---------------------------
-While this guide can in principle be followed using any dataset it is advised to first follow it using the MDT example data.
-A few slices of this example data come pre-supplied with MDT.
-To obtain these with the command line, please use the command :ref:`cli_index_mdt-get-example-data` to retrieve the data:
-
-.. code-block:: console
-
-    $ mdt-get-example-data .
 
 
 Creating a protocol file
@@ -325,19 +293,6 @@ about the MDT functions. For example:
     ...
     >>> help(mdt.fit_model) # shows the documentation a function
     ...
-
-
-Obtaining the example data
---------------------------
-While this guide can in principle be followed using any dataset it is advised to first follow it using the MDT example data.
-A few slices of this example data come pre-supplied with MDT and can be obtained with the function :func:`mdt.utils.get_example_data`:
-
-.. code-block:: python
-
-    import mdt
-    mdt.get_example_data('/tmp')
-
-In the remainder of this chapter we assume that you have imported mdt in your namespace (using ``import mdt``) and we will not repeat it.
 
 
 Creating a protocol file

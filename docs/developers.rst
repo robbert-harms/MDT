@@ -97,9 +97,11 @@ If you additionally want to generate the PDF documentation file you will have to
 
 .. code-block:: bash
 
-    $ sudo apt install texlive-latex-base \
+    $ sudo apt install \
+        texlive-latex-base \
         texlive-latex-recommended \
-        texlive-fonts-recommended texlive-latex-extra
+        texlive-fonts-recommended texlive-latex-extra \
+        latexmk
 
 
 *******

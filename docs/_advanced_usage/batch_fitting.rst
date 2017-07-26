@@ -3,7 +3,7 @@
 *************
 Batch fitting
 *************
-MDT features a batch fitting routine that can analyze many subjects with just one command.
+MDT has support for batch fitting, allowing you to analyze many subjects with just one command.
 This feature uses :ref:`dynamic_modules_batch_profiles` to gather information about the subjects in a given directory and apply the desired operation on each of those subjects.
 
 When no batch profile is specified in the batch fitting command, MDT tests all available batch profiles and selects from that the best fitting profile automatically.
@@ -25,13 +25,13 @@ For example, to run ``BallStick_r1`` on the two provided example datasets you ca
     $ mdt-batch-fit . 'BallStick_r1 (Cascade)'
 
 
-Or, another example, if you want to analyze ``NODDI`` on all your downloaded HCP Wu-Minn datasets, you can use:
+Or, another example, if you want to analyze ``NODDI`` on all your downloaded HCP datasets, you can use:
 
 .. code-block:: console
 
-    $ mdt-batch-fit ~/download_dir/ 'NODDI (Cascade)'
+    $ mdt-batch-fit ./download_dir/ 'NODDI (Cascade)'
 
-and it will autodetect the Wu-Minn layout and fit NODDI to all the subjects.
+and it will autodetect both the MGH and Wu-Minn layout and fit NODDI to all the subjects.
 
 
 Using Python
@@ -44,11 +44,11 @@ For example:
     mdt.batch_fit('mdt_example_data', ['BallStick_r1 (Cascade)'])
 
 
-Or, another example, if you want to analyze ``NODDI`` on all your downloaded HCP Wu-Minn datasets, you can use:
+Or, another example, if you want to analyze ``NODDI`` on all your downloaded HCP datasets, you can use:
 
 .. code-block:: python
 
     mdt.batch_fit('~/download_dir/', ['NODDI (Cascade)'])
 
 
-and it will autodetect the Wu-Minn layout and fit NODDI to all the subjects.
+and it will autodetect the MGH and WuMinn layout and fit NODDI to all the subjects.

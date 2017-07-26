@@ -5,8 +5,6 @@ MDT maps visualizer
 *******************
 The MDT maps visualizer is a small convenience utility to visually inspect multiple nifti files simultaneously.
 In particular, it is useful for quickly visualizing model fitting results.
-Basically, the viewer requires a single directory and it will load and display all the nifti files in that directory.
-More advanced users may consider storing and saving plot configuration files to easily reproduce figures.
 
 This viewer is by far not as sophisticated as for example ``fslview`` and ``itksnap``, but that is also not its intention.
 The primary goal of this visualizer is to quickly display model fitting results to evaluate the quality of fit.

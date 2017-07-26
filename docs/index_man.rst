@@ -6,4 +6,3 @@ Maastricht Optimization Toolbox
     :maxdepth: 2
 
     readme_latex
-    credits

@@ -16,6 +16,7 @@ Introduction
 
     install
     getting_started
+    advanced_usage
     concepts
     adding_models
     configuration

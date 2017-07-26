@@ -6,11 +6,11 @@ Maastricht Diffusion Toolbox
     :maxdepth: 2
 
     readme_latex
-    concepts
     getting_started
-    dynamic_modules
+    advanced_usage
+    concepts
+    adding_models
     configuration
     FAQ <faq>
-    credits
     developers
     cli_index

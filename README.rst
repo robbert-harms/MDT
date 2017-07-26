@@ -13,14 +13,28 @@ The parallelized accelerated computations allow for tens to hundred times faster
 *******
 Summary
 *******
+* HCP pipelines
+* GUI, command line and python interface
+* Easy modeling language
 * Free Open Source Software: LGPL v3 license
 * Python and OpenCL based
-* GUI, command line and python interface
-* Scriptable modeling: write new compartment equations and combine compartments into models
 * Full documentation: http://maastrichtdiffusiontoolbox.readthedocs.io
 * Project home: https://github.com/cbclab/MDT
 * Uses the `GitLab workflow <https://docs.gitlab.com/ee/workflow/gitlab_flow.html>`_
 * Tags: diffusion, dMRI, MRI, optimization, parallel, opencl, python
+
+
+************
+HCP Pipeline
+************
+MDT comes pre-installed with Human Connectome Project (HCP) compatible pipelines for the MGH and the WuMinn 3T studies.
+To run, after installing MDT, go to the folder where you downloaded your HCP data (MGH or WuMinn) and execute:
+
+.. code-block:: console
+
+    $ mdt-batch-fit . 'NODDI (Cascade)'
+
+and it will autodetect the study in use and fit your selected model to all the subjects.
 
 
 ************************

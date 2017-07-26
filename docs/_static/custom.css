@@ -36,7 +36,11 @@ div.body p{
 }
 
 div.body h3{
-    font-size: 140%;
+    font-size: 145%;
+}
+
+div.body h4{
+    font-size: 135%;
 }
 
 .highlight pre{
@@ -69,4 +73,20 @@ div.body h3{
 
 #searchbox h3{
     font-size: 1em;
+}
+
+a{
+    color: #007BB0;
+}
+
+a.reference{
+    border-bottom: none;
+}
+
+div.body > .section{
+    text-align: justify;
+}
+
+div.body h1{
+    text-align:left;
 }
