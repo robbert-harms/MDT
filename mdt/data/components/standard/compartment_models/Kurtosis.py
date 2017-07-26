@@ -94,10 +94,6 @@ class Kurtosis(CompartmentTemplate):
             return 1;
         }
         
-        if(b < 25e6){
-            return exp(-b * d_app);
-        }
-        
         mot_float_type tensor_md_2 = pown((d + dperp0 + dperp1) / 3.0, 2);
         
         double kurtosis_sum = 0;

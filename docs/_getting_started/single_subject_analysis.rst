@@ -19,6 +19,10 @@ GRAPPA in-plane acceleration factor 2 and 6/8 partial fourier (no multiband/simu
 Two slices of both these datasets are directly available after MDT installation.
 For obtaining these follow the guide.
 
+.. contents:: Overview
+   :local:
+   :backlinks: none
+
 
 .. _analysis_using_the_gui:
 

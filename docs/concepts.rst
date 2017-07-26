@@ -4,10 +4,6 @@ Concepts
 
 This chapter introduces the reader to a few concepts that help to get started using this software.
 
-.. contents:: Table of Contents
-   :local:
-   :backlinks: none
-
 .. _concepts_protocol:
 
 ********

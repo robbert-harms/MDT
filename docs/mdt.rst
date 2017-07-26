@@ -8,7 +8,7 @@ Subpackages
 
     mdt.cl_routines
     mdt.cli_scripts
-    mdt.components_config
+    mdt.component_templates
     mdt.data_loaders
     mdt.file_conversions
     mdt.gui

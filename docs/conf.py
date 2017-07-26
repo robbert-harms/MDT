@@ -220,7 +220,7 @@ html_theme_options = {
     'show_powered_by': False,
     'description': "Maastricht Diffusion Toolbox",
     'logo_name': True,
-    'sidebar_collapse': False,
+    'sidebar_collapse': True,
     'fixed_sidebar': False,
     'extra_nav_links': {'Module index': 'py-modindex.html'}
 }

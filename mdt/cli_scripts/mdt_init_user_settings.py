@@ -2,10 +2,8 @@
 # PYTHON_ARGCOMPLETE_OK
 """This script is meant to update your home folder with the latest MDT models."""
 import argparse
-import os
 import textwrap
 import mdt
-from mdt.configuration import get_config_dir
 from mdt.shell_utils import BasicShellApplication
 
 __author__ = 'Robbert Harms'
@@ -19,8 +17,8 @@ class InitUserSettings(BasicShellApplication):
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__ + """
 
-            The location we will write to is: {}
-        """.format(os.path.dirname(get_config_dir())))
+            The location we will write to is: ~/.mdt (where ~ stands for your home folder).
+        """)
 
         parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
 

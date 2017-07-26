@@ -8,10 +8,6 @@ This file is merely there for reference and is not read by MDT (rather, those de
 To override the default configuration you can copy this file to ``.mdt/<version>/mdt.conf`` and set (only) the options you wish to override.
 These configuration files change the configuration of MDT at application startup, to apply a new configuration file you will need to restart MDT.
 
-.. contents:: Table of Contents
-   :local:
-   :backlinks: none
-
 
 **************
 General config

@@ -1,11 +1,10 @@
 .. _dynamic_modules:
 
-###############
-Dynamic modules
-###############
+#############
+Adding models
+#############
 After installing MDT you will have a folder in your home drive named ``.mdt``.
-This folder contains diffusion MRI models and other functionality that the user can extend without the need to reinstall or recompile MDT.
-At application startup, MDT automatically loads these modules and are directly ready to be used.
+This folder contains diffusion MRI models and other functionality that you can extend without needing to reinstall or recompile MDT.
 
 The ``.mdt`` folder contains, for every version of MDT that existed on your machine, a directory containing the configuration files and a
 folder with the dynamically loadable modules.
@@ -24,12 +23,12 @@ The components folder consists of two sub-folders, *standard* and *user*, with a
 
 * components/
     * standard
-        * batch_profiles
-        * cascade_models
+        * compartment_models
+        * composite_models
         * ...
     * user
-        * batch_profiles
-        * cascade_models
+        * compartment_models
+        * composite_models
         * ...
 
 
@@ -40,10 +39,6 @@ To make persistent changes you can add your modules to the *user* folder.
 The content of this folder is automatically copied to a new version.
 
 The rest of this chapter explains the various components in more detail.
-
-.. contents:: Table of Contents
-   :local:
-   :backlinks: none
 
 .. include:: _dynamic_modules/parameters.rst
 .. include:: _dynamic_modules/compartment_models.rst

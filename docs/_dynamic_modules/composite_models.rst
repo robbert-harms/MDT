@@ -48,16 +48,12 @@ For example:
 
 .. code-block:: python
 
-    ...
-    from mot.model_building.parameter_functions.dependencies import SimpleAssignment
-
     class NODDI(DMRICompositeModelConfig):
         ...
         fixes = {
             ...
             'Ball.d': 3.0e-9,
-            'NODDI_EC.dperp0': NODDITortuosityParameterDependency(
-                'NODDI_EC.d', 'w_ec.w', 'w_ic.w'),
+            'NODDI_EC.dperp0': 'NODDI_EC.d * (w_ec.w / (w_ec.w + w_ic.w))',
             'NODDI_EC.kappa': 'NODDI_IC.kappa',
             'NODDI_EC.theta': 'NODDI_IC.theta',
             'NODDI_EC.phi': 'NODDI_IC.phi'
@@ -91,6 +87,7 @@ If you wish to disable this feature, for example in a model that does not have a
 
 
 .. _dynamic_modules_composite_models_protocol_options:
+
 
 Protocol options
 ================

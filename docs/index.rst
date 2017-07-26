@@ -17,9 +17,8 @@ Introduction
     install
     getting_started
     concepts
-    dynamic_modules
+    adding_models
     configuration
     FAQ <faq>
-    credits
     developers
     cli_index
