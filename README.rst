@@ -28,7 +28,7 @@ Summary
 HCP Pipeline
 ************
 MDT comes pre-installed with Human Connectome Project (HCP) compatible pipelines for the MGH and the WuMinn 3T studies.
-To run, after installing MDT, go to the folder where you downloaded your HCP data (MGH or WuMinn) and execute:
+To run, after installing MDT, go to the folder where you downloaded your (pre-processed) HCP data (MGH or WuMinn) and execute:
 
 .. code-block:: console
 
