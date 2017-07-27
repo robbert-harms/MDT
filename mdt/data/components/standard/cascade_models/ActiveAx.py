@@ -14,3 +14,12 @@ class ActiveAx_ExVivo(CascadeTemplate):
               'ActiveAx_ExVivo')
     inits = {'ActiveAx_ExVivo': [('CylinderGPD.theta', 'Stick.theta'),
                                  ('CylinderGPD.phi', 'Stick.phi')]}
+
+
+class ActiveAx(CascadeTemplate):
+
+    description = 'Initializes the directions to Ball & Stick.'
+    models = ('BallStick_r1 (Cascade)',
+              'ActiveAx')
+    inits = {'ActiveAx': [('CylinderGPD.theta', 'Stick.theta'),
+                          ('CylinderGPD.phi', 'Stick.phi')]}
