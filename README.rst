@@ -14,6 +14,7 @@ The parallelized accelerated computations allow for tens to hundred times faster
 Summary
 *******
 * HCP pipelines
+* Comes with ActiveAx, CHARMED, NODDI, Ball&Sticks and Tensor models.
 * GUI, command line and python interface
 * Easy modeling language
 * Free Open Source Software: LGPL v3 license

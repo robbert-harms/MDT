@@ -69,7 +69,7 @@ For the section headers in the documentation, please follow this convention:
 
 * % with overline, for main title
 * # with overline, for parts
-* * with overline, for chapters
+* \* with overline, for chapters
 * =, for sections
 * -, for subsections
 * ^, for subsubsections

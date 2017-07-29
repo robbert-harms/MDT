@@ -30,17 +30,36 @@ div.sphinxsidebar a{
     border-bottom: none;
 }
 
+div.body h1{
+    text-align:left;
+}
+
+div.body h2{
+    margin-top: 35px;
+}
+
+div.body h3{
+    font-size: 140%;
+    margin-top: 35px;
+}
+
+div.body h4{
+    font-size: 100%;
+    font-weight:bold;
+    margin-bottom:5px;
+}
+
+div.body h5{
+    font-style: italic;
+}
+
 div.body p{
     margin-bottom:7px;
     margin-top:7px;
 }
 
-div.body h3{
-    font-size: 145%;
-}
-
-div.body h4{
-    font-size: 135%;
+div.body h4 + p{
+    margin-top:0px;
 }
 
 .highlight pre{
@@ -85,8 +104,4 @@ a.reference{
 
 div.body > .section{
     text-align: justify;
-}
-
-div.body h1{
-    text-align:left;
 }

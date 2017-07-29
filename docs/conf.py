@@ -313,7 +313,39 @@ latex_elements = {
     'pointsize': '10pt',
 
     # Additional stuff for the LaTeX preamble.
-    'preamble': """
+    'preamble': r"""
+        \makeatletter
+        \def\@makechapterhead#1{%
+          %%%%\vspace*{50\p@}% %%% removed!
+          {\parindent \z@ \raggedright \normalfont
+            \ifnum \c@secnumdepth >\m@ne
+                \huge\bfseries \@chapapp\space \thechapter
+                \par\nobreak
+                \vskip 20\p@
+            \fi
+            \interlinepenalty\@M
+            \Huge \bfseries #1\par\nobreak
+            \vskip 40\p@
+          }}
+        \def\@makeschapterhead#1{%
+          %%%%%\vspace*{50\p@}% %%% removed!
+          {\parindent \z@ \raggedright
+            \normalfont
+            \interlinepenalty\@M
+            \Huge \bfseries  #1\par\nobreak
+            \vskip 40\p@
+          }}
+        \makeatother
+
+        \setcounter{secnumdepth}{1}
+        
+        \usepackage{titlesec}
+        \titlespacing*{\section}{0pt}{6ex plus 1ex minus .2ex}{1ex plus .1ex}
+        \titlespacing*{\subsection}{0pt}{4ex plus 1ex minus .2ex}{0ex plus .1ex}
+        \titlespacing*{\subsubsection}{0pt}{3ex plus 1ex minus .2ex}{0ex}
+
+        
+        
     """,
 }
 

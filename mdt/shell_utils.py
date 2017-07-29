@@ -117,9 +117,9 @@ class BasicShellApplication(object):
             example_string (str): the examples we wish to show
         """
         if doc_parser:
-            return_str = 'Example_of_use::\n\n'
+            return_str = '**Example of use**::\n\n'
         else:
-            return_str = 'Example_of_use:\n'
+            return_str = 'Example of use:\n'
 
         for line in example_string.split('\n'):
             return_str += ' '*4 + line + '\n'
