@@ -55,6 +55,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
     def build(self, problems_to_analyze=None):
         sample_model = super(DMRICompositeModel, self).build(problems_to_analyze)
         return BuildCompositeModel(sample_model,
+                                   self._problem_data.protocol,
                                    self._model_functions_info.get_estimable_parameters_list(),
                                    self.nmr_parameters_for_bic_calculation,
                                    self._post_optimization_modifiers,
@@ -382,9 +383,11 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
 
 class BuildCompositeModel(SampleModelInterface):
 
-    def __init__(self, wrapped_sample_model, estimable_parameters_list, nmr_parameters_for_bic_calculation,
+    def __init__(self, wrapped_sample_model, protocol,
+                 estimable_parameters_list, nmr_parameters_for_bic_calculation,
                  post_optimization_modifiers, dependent_map_calculator, fixed_parameter_maps, proposal_state_names,
                  sampling_statistics):
+        self._protocol = protocol
         self._estimable_parameters_list = estimable_parameters_list
         self.nmr_parameters_for_bic_calculation = nmr_parameters_for_bic_calculation
         self._post_optimization_modifiers = post_optimization_modifiers
@@ -468,10 +471,17 @@ class BuildCompositeModel(SampleModelInterface):
     def _add_post_optimization_modifier_maps(self, results_dict):
         """Add the extra maps defined in the post optimization modifiers to the results."""
         for names, routine in self._post_optimization_modifiers:
+            def callable():
+                argspec = inspect.getfullargspec(routine)
+                if len(argspec.args) > 1:
+                    return routine(results_dict, self._protocol)
+                else:
+                    return routine(results_dict)
+
             if isinstance(names, string_types):
-                results_dict[names] = routine(results_dict)
+                results_dict[names] = callable()
             else:
-                results_dict.update(zip(names, routine(results_dict)))
+                results_dict.update(zip(names, callable()))
 
     def _get_post_optimization_information_criterion_maps(self, results_array):
         """Add some final results maps to the results dictionary.

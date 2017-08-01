@@ -1,12 +1,13 @@
 import numpy as np
 import itertools
 
+from mdt.cl_routines.mapping.dki_measures import DKIMeasures
 from mdt.utils import eigen_vectors_from_tensor
 from mot.model_building.parameter_functions.proposals import GaussianProposal
 from mdt.component_templates.parameters import FreeParameterTemplate, ParameterBuilder
 from mdt.component_templates.compartment_models import CompartmentTemplate
 from mdt.cl_routines.mapping.dti_measures import DTIMeasures
-from mot.model_building.parameter_functions.transformations import ClampTransform
+from mot.model_building.parameter_functions.transformations import IdentityTransform
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -40,18 +41,30 @@ def get_symmetric_indices(length, dimensions):
 
 
 def build_param(index):
-    class matrix_element_param(FreeParameterTemplate):
-        name = 'W_{i}{j}{k}{l}'.format(i=index[0], j=index[1], k=index[2], l=index[3])
-        init_value = 0
-        lower_bound = -1
-        upper_bound = 1
-        parameter_transform = ClampTransform()
-        sampling_proposal = GaussianProposal(1e-10)
+    """Get one of the parameters of the Kurtosis matrix as an object.
 
+    Args:
+        tuple: index, 4 integers specyfing the location of this parameter in the matrix.
+
+    Returns:
+        Parameter: a constructed parameter to be used in a compartment model.
+    """
+    class matrix_element_param(FreeParameterTemplate):
+        name = 'W_{}{}{}{}'.format(*index)
+        init_value = 0
+        lower_bound = -np.inf
+        upper_bound = np.inf
+        parameter_transform = IdentityTransform()
+        sampling_proposal = GaussianProposal(0.01)
     return ParameterBuilder().create_class(matrix_element_param)()
 
 
 def get_parameter_list():
+    """Get the list of parameters for the Kurtosis model.
+
+    Returns:
+        list: a list of parameters, some as a string some as actual parameters.
+    """
     parameter_list = ['g', 'b', 'd', 'dperp0', 'dperp1', 'theta', 'phi', 'psi']
 
     for index in get_symmetric_indices(3, 4):
@@ -61,19 +74,28 @@ def get_parameter_list():
 
 
 def get_dki_measures_modifier():
-    measures_calculator = DTIMeasures()
-    return_names = measures_calculator.get_output_names()
+    """Get the DKI post processing modification routine(s)."""
+    dti_calc = DTIMeasures()
+    dki_calc = DKIMeasures()
 
-    def modifier_routine(results_dict):
+    def _calculate_dti_results(results_dict):
         eigen_vectors = eigen_vectors_from_tensor(results_dict['theta'], results_dict['phi'], results_dict['psi'])
-
         eigen_values = np.atleast_2d(np.squeeze(np.dstack([results_dict['d'],
                                                            results_dict['dperp0'],
                                                            results_dict['dperp1']])))
+        measures = dti_calc.calculate(eigen_values, eigen_vectors)
+        return [measures[name] for name in dti_calc.get_output_names()]
 
-        measures = measures_calculator.calculate(eigen_values, eigen_vectors)
-        return [measures[name] for name in return_names]
+    def _calculate_dki_results(results_dict):
+        measures = dki_calc.calculate(results_dict)
+        return [measures[name] for name in dki_calc.get_output_names()]
 
+    def modifier_routine(results_dict):
+        dti_results = _calculate_dti_results(results_dict)
+        dki_results = _calculate_dki_results(results_dict)
+        return dti_results + dki_results
+
+    return_names = dti_calc.get_output_names() + dki_calc.get_output_names()
     return return_names, modifier_routine
 
 
@@ -100,7 +122,7 @@ class Kurtosis(CompartmentTemplate):
         kurtosis_sum += g.x * g.x * g.x * g.x * W_0000;
         kurtosis_sum += g.y * g.y * g.y * g.y * W_1111;
         kurtosis_sum += g.z * g.z * g.z * g.z * W_2222;
-        
+
         kurtosis_sum += g.y * g.x * g.x * g.x * W_1000 * 4;
         kurtosis_sum += g.z * g.x * g.x * g.x * W_2000 * 4;
         kurtosis_sum += g.y * g.y * g.y * g.x * W_1110 * 4;
@@ -116,7 +138,7 @@ class Kurtosis(CompartmentTemplate):
         kurtosis_sum += g.z * g.y * g.y * g.x * W_2110 * 12;
         kurtosis_sum += g.z * g.z * g.y * g.x * W_2210 * 12;
         
-        if(kurtosis_sum <= -2 || (((tensor_md_2 * b) / d_app) * kurtosis_sum) > 3.0){
+        if(kurtosis_sum < 0 || (((tensor_md_2 * b) / d_app) * kurtosis_sum) > 3.0){
             return INFINITY;
         }
              

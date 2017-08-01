@@ -76,13 +76,12 @@ class DTIMeasures(CLRoutine):
 
         eigenvalues = np.require(eigenvalues, np_dtype, requirements=['C', 'A', 'O'])
 
-        s = eigenvalues.shape
-        fa_host = np.zeros((s[0], 1), dtype=np_dtype)
-        md_host = np.zeros((s[0], 1), dtype=np_dtype)
-        nmr_voxels = s[0]
+        nmr_voxels = eigenvalues.shape[0]
+        fa_host = np.zeros((nmr_voxels, 1), dtype=np_dtype)
+        md_host = np.zeros((nmr_voxels, 1), dtype=np_dtype)
 
         workers = self._create_workers(lambda cl_environment: _DTIMeasuresWorker(
-            cl_environment, self.get_compile_flags_list(double_precision=True), eigenvalues,
+            cl_environment, self.get_compile_flags_list(double_precision=double_precision), eigenvalues,
             fa_host, md_host, double_precision))
         self.load_balancer.process(workers, nmr_voxels)
 

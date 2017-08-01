@@ -32,18 +32,10 @@ from mdt.log_handlers import ModelOutputLogHandler
 from mdt.nifti import load_nifti, write_nifti, write_all_as_nifti, get_all_image_data
 from mdt.protocols import load_protocol, write_protocol
 from mot.cl_environments import CLEnvironmentFactory
-from mot.cl_routines.mapping.error_measures import ErrorMeasures
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
-from mot.cl_routines.mapping.residual_calculator import ResidualCalculator
-from mot.mcmc_diagnostics import multivariate_ess, univariate_ess
 from mot.model_building.parameter_functions.dependencies import AbstractParameterDependency
 from mot.model_building.problem_data import AbstractProblemData
-from mot.utils import results_to_dict
 
-try:
-    import codecs
-except ImportError:
-    codecs = None
 
 __author__ = 'Robbert Harms'
 __date__ = "2014-02-05"
@@ -228,7 +220,7 @@ class DMRIProblemData(AbstractProblemData):
             noise_std = autodetect_noise_std_loader(self._noise_std).get_noise_std(self)
         except NoiseStdEstimationNotPossible:
             logger = logging.getLogger(__name__)
-            logger.warn('Failed to obtain a noise std for this subject. We will continue with an std of 1.')
+            logger.warning('Failed to obtain a noise std for this subject. We will continue with an std of 1.')
             noise_std = 1
 
         self._noise_std = noise_std
@@ -350,7 +342,7 @@ class SimpleInitializationData(InitializationData):
         self._unfix = unfix or []
 
     def apply_to_model(self, model, problem_data):
-        def prepare_value(key, v):
+        def prepare_value(_, v):
             if is_scalar(v):
                 return v
 

@@ -343,9 +343,6 @@ latex_elements = {
         \titlespacing*{\section}{0pt}{6ex plus 1ex minus .2ex}{1ex plus .1ex}
         \titlespacing*{\subsection}{0pt}{4ex plus 1ex minus .2ex}{0ex plus .1ex}
         \titlespacing*{\subsubsection}{0pt}{3ex plus 1ex minus .2ex}{0ex}
-
-        
-        
     """,
 }
 

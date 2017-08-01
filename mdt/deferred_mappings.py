@@ -17,13 +17,13 @@ class DeferredActionDict(collections.MutableMapping):
         until it is needed.
 
         Args:
-            func (function): the callback function to apply on the given items at request, with signature:
+            func (Function): the callback function to apply on the given items at request, with signature:
 
-                .. code-block: python
+                .. code-block:: python
 
                     def callback(key, value)
 
-            items (dict): the items on which we operate
+            items (collections.MutableMapping): the items on which we operate
         """
         self._func = func
         self._items = copy.copy(items)
@@ -72,8 +72,8 @@ class DeferredFunctionDict(collections.MutableMapping):
         The advantage of this class is that it defers an expensive operation until it is needed.
 
         Args:
-            items (dict): the items on which we operate, each value should contain a function with no parameters
-                that we run to return the results.
+            items (collections.MutableMapping): the items on which we operate, each value should
+                contain a function with no parameters that we run to return the results.
         """
         self._items = copy.copy(items)
         self._applied_on_key = {}
@@ -120,9 +120,9 @@ class DeferredActionTuple(collections.Sequence):
         until it is needed.
 
         Args:
-            func (function): the callback function to apply on the given items at request, with signature:
+            func (Function): the callback function to apply on the given items at request, with signature:
 
-                .. code-block: python
+                .. code-block:: python
 
                     def callback(index, value)
 

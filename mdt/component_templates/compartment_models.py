@@ -46,14 +46,14 @@ class CompartmentTemplate(ComponentTemplate):
             .. code-block:: python
 
                 post_optimization_modifiers = [('FS', lambda d: 1 - d['w_ball.w']),
-                                               ('Ball.d', lambda d: d['Ball.d'] * 1e9),
+                                               ('Kurtosis.MK', lambda d, protocol: <...>),
                                                (['Power2', 'Power3'], lambda d: [d['foo']**2, d['foo']**3]),
                                            ...]
 
             The last entry in the above example shows that it is possible to include more than one
-            modifier in one modifier expression.
-
-            These modifiers are supposed to be called before the modifiers of the composite model.
+            modifier in one modifier expression. In general, the function given should accept as first argument
+            the results dictionary and as optional second argument the protocol used to generate the results.
+            These modifiers are called before the modifiers of the composite model.
         auto_add_cartesian_vector (boolean): if set to True we will automatically add a post optimization modifier
             that constructs a cartesian vector from the ``theta`` and ``phi`` parameter if present. This modifier
             is run before the other user defined modifiers.

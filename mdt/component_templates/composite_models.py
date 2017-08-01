@@ -1,3 +1,4 @@
+import inspect
 from copy import deepcopy
 import numpy as np
 import six
@@ -28,13 +29,14 @@ class DMRICompositeModelTemplate(ComponentTemplate):
             .. code-block:: python
 
                 post_optimization_modifiers = [('FS', lambda d: 1 - d['w_ball.w']),
-                                               ('Ball.d', lambda d: d['Ball.d'] * 1e9),
+                                               ('Kurtosis.MK', lambda d, protocol: <...>),
                                                (['Power2', 'Power3'], lambda d: [d['foo']**2, d['foo']**3]),
                                            ...]
 
             The last entry in the above example shows that it is possible to include more than one
-            modifier in one modifier expression.
-
+            modifier in one modifier expression. In general, the function given should accept as first argument
+            the results dictionary and as optional second argument the protocol used to generate the results.
+            These modifiers are called after the modifiers of the composite model.
         model_expression (str): the model expression. For the syntax see:
             mdt.models.parsers.CompositeModelExpression.ebnf
         evaluation_model (EvaluationModel or str): the evaluation model to use during optimization,
@@ -253,10 +255,16 @@ def _get_model_post_optimization_modifiers(compartments):
         else:
             wrapped_names = ['{}.{}'.format(compartment_name, map_name) for map_name in original_map_names]
 
-        def wrapped_modifier(maps):
-            compartment_specific_maps = {k[len(compartment_name) + 1:]: v for k, v in maps.items()
-                                         if k.startswith(compartment_name)}
-            return original_modifier(compartment_specific_maps)
+        def get_compartment_specific_names(results):
+            return {k[len(compartment_name) + 1:]: v for k, v in results.items() if k.startswith(compartment_name)}
+
+        argspec = inspect.getfullargspec(original_modifier)
+        if len(argspec.args) > 1:
+            def wrapped_modifier(results, protocol):
+                return original_modifier(get_compartment_specific_names(results), protocol)
+        else:
+            def wrapped_modifier(results):
+                return original_modifier(get_compartment_specific_names(results))
 
         return wrapped_names, wrapped_modifier
 
