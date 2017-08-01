@@ -139,6 +139,18 @@ class ComponentTemplate(with_metaclass(ComponentTemplateMeta, object)):
     name = ''
     description = ''
 
+    def __new__(cls, *args, **kwargs):
+        """Instead of creating an instance of a Template, this will build the actual component.
+
+        This allows one to build the model of a template by regular object initialization. For example, these two
+        calls (a and b) are exactly the same::
+
+            template = Template
+            a = construct_component(template)
+            b = template()
+        """
+        return construct_component(cls)()
+
     @classmethod
     def meta_info(cls):
         return {'name': cls.name,
