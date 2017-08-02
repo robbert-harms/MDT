@@ -6,6 +6,7 @@ from textwrap import indent, dedent
 import six
 from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplateMeta, \
     ComponentTemplate, register_builder
+from mdt.components_loader import ParametersLoader
 from mot.cl_data_type import SimpleCLDataType
 from mot.library_functions import SimpleCLLibrary
 from mot.model_building.parameters import LibraryParameter
@@ -127,10 +128,16 @@ def _get_parameters_list(parameter_list):
     Returns:
         list: the list of actual parameter objects
     """
+    param_loader = ParametersLoader()
+
     parameters = []
     for item in parameter_list:
         if isinstance(item, six.string_types):
-            parameters.append(LibraryParameter(SimpleCLDataType.from_string('mot_float_type'), item))
+            if param_loader.has_component(item):
+                param = param_loader.load(item)
+                parameters.append(LibraryParameter(param.data_type, item))
+            else:
+                parameters.append(LibraryParameter(SimpleCLDataType.from_string('mot_float_type'), item))
         else:
             parameters.append(deepcopy(item))
     return parameters

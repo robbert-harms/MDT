@@ -20,6 +20,7 @@ class BallStick_r2(CascadeTemplate):
               'BallStick_r2')
     inits = {'BallStick_r2': [('w_stick1.w', 0.0)]}
 
+
 class BallStick_r3(CascadeTemplate):
 
     description = 'Cascade for BallStick_r3.'

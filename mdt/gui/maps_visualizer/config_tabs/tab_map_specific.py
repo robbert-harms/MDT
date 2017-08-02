@@ -83,11 +83,6 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         self.data_scale_min.valueChanged.connect(self._update_scale_min)
         self.data_scale_max.valueChanged.connect(self._update_scale_max)
 
-        self.data_scale_max.set_update_delay(500)
-        self.data_scale_min.set_update_delay(500)
-        self.data_clipping_max.set_update_delay(500)
-        self.data_clipping_min.set_update_delay(500)
-
         self.data_set_use_scale.stateChanged.connect(self._set_use_scale)
         self.use_data_scale_min.stateChanged.connect(self._set_use_data_scale_min)
         self.use_data_scale_max.stateChanged.connect(self._set_use_data_scale_max)
@@ -110,6 +105,28 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         self._auto_enable_clipping_max = False
 
         self.reset()
+        self._update_scaling_delays()
+
+    def _update_scaling_delays(self):
+        if self.use_data_scale_max.isChecked():
+            self.data_scale_max.set_update_delay(500)
+        else:
+            self.data_scale_max.set_update_delay(0)
+
+        if self.use_data_scale_min.isChecked():
+            self.data_scale_min.set_update_delay(500)
+        else:
+            self.data_scale_min.set_update_delay(0)
+
+        if self.use_data_clipping_max.isChecked():
+            self.data_clipping_max.set_update_delay(500)
+        else:
+            self.data_clipping_max.set_update_delay(0)
+
+        if self.use_data_clipping_min.isChecked():
+            self.data_clipping_min.set_update_delay(500)
+        else:
+            self.data_clipping_min.set_update_delay(0)
 
     def reset(self):
         """Set all the values to their defaults"""
@@ -302,6 +319,7 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
             else:
                 new_scale = current_scale.get_updated(use_min=use_scale, use_max=use_scale)
             self._controller.apply_action(SetMapScale(self._current_map, new_scale))
+        self._update_scaling_delays()
 
     @pyqtSlot(int)
     def _set_use_data_scale_min(self, check_state):
@@ -366,6 +384,7 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
             else:
                 new_clipping = current_clipping.get_updated(use_min=use_clipping, use_max=use_clipping)
             self._controller.apply_action(SetMapClipping(self._current_map, new_clipping))
+        self._update_scaling_delays()
 
     @pyqtSlot(int)
     def _set_use_data_clipping_min(self, check_state):

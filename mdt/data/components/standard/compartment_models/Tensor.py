@@ -29,16 +29,10 @@ def get_dti_measures_modifier():
 class Tensor(CompartmentTemplate):
 
     parameter_list = ('g', 'b', 'd', 'dperp0', 'dperp1', 'theta', 'phi', 'psi')
-    dependency_list = ['TensorSphericalToCartesian']
+    dependency_list = ['TensorApparentDiffusion']
     cl_code = '''
-        mot_float_type4 vec0, vec1, vec2;
-        TensorSphericalToCartesian(theta, phi, psi, &vec0, &vec1, &vec2);
-
-        return exp(-b * (d *      pown(dot(vec0, g), 2) +
-                         dperp0 * pown(dot(vec1, g), 2) +
-                         dperp1 * pown(dot(vec2, g), 2)
-                         )
-                   );
+        mot_float_type adc = TensorApparentDiffusion(theta, phi, psi, d, dperp0, dperp1, g);
+        return exp(-b * adc);
     '''
     prior = 'return dperp1 < dperp0 && dperp0 < d;'
     auto_add_cartesian_vector = False

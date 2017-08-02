@@ -75,13 +75,9 @@ def get_dki_measures_modifier():
     """Get the DKI post processing modification routine(s)."""
     dki_calc = DKIMeasures()
 
-    def _calculate_dki_results(results_dict):
+    def modifier_routine(results_dict):
         measures = dki_calc.calculate(results_dict)
         return [measures[name] for name in dki_calc.get_output_names()]
-
-    def modifier_routine(results_dict):
-        dki_results = _calculate_dki_results(results_dict)
-        return dki_results
 
     return_names = dki_calc.get_output_names()
     return return_names, modifier_routine
@@ -96,16 +92,11 @@ class KurtosisExtension(CompartmentTemplate):
         the Tensor model. For example, a composite model script would be: "S0 * Tensor * Kurtosis".
     '''
     parameter_list = get_parameter_list()
-    dependency_list = ['TensorSphericalToCartesian', 'KurtosisMultiplication']
+    dependency_list = ['TensorApparentDiffusion', 'KurtosisMultiplication']
     cl_code = '''
-        mot_float_type4 vec0, vec1, vec2;
-        TensorSphericalToCartesian(theta, phi, psi, &vec0, &vec1, &vec2);
-
-        mot_float_type d_app = d *      pown(dot(vec0, g), 2) +
-                               dperp0 * pown(dot(vec1, g), 2) +
-                               dperp1 * pown(dot(vec2, g), 2);
+        mot_float_type adc = TensorApparentDiffusion(theta, phi, psi, d, dperp0, dperp1, g);
         
-        if(d_app <= 0.0){
+        if(adc <= 0.0){
             return 1;
         }
         
@@ -116,7 +107,7 @@ class KurtosisExtension(CompartmentTemplate):
             W_2220, W_2111, W_2221, W_1100, W_2200, W_2211, 
             W_2100, W_2110, W_2210, g);
         
-        if(kurtosis_sum < 0 || (((tensor_md_2 * b) / d_app) * kurtosis_sum) > 3.0){
+        if(kurtosis_sum < 0 || (((tensor_md_2 * b) / adc) * kurtosis_sum) > 3.0){
             return INFINITY;
         }
              

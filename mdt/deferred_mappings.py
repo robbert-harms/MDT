@@ -129,7 +129,7 @@ class DeferredActionTuple(collections.Sequence):
             items (list, tuple): the items on which we operate
         """
         self._func = func
-        self._items = copy.copy(items)
+        self._items = list(copy.copy(items))
         self._applied_on_index = {}
 
     def __getitem__(self, index):

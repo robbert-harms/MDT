@@ -456,6 +456,7 @@ class BuildCompositeModel(SampleModelInterface):
         self._add_post_sampling_information_criterion_maps(samples, volume_maps)
 
         errors = ResidualCalculator().calculate(self, results_array)
+        errors = np.nan_to_num(errors)
         error_measures = ErrorMeasures(double_precision=self.double_precision).calculate(errors)
         volume_maps.update(error_measures)
 

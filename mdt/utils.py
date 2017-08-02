@@ -772,27 +772,54 @@ def spherical_to_cartesian(theta, phi):
 
     .. code-block:: python
 
-        x = cos(phi) * sin(theta)
-        y = sin(phi) * sin(theta)
+        x = sin(theta) * cos(phi)
+        y = sin(theta) * sin(phi)
         z = cos(theta)
 
     Args:
-        theta (ndarray): The 1d vector with the inclinations
-        phi (ndarray): The 1d vector with the azimuths
+        theta (ndarray): The matrix with the inclinations
+        phi (ndarray): The matrix with the azimuths
 
     Returns:
-        ndarray: Two dimensional array with on the first axis the voxels and on the second the [x, y, z] coordinates.
+        ndarray: matrix with same shape as the input with on the last axis the [x, y, z] coordinates of each vector.
     """
+    shape = theta.shape
+    if len(shape) > 1:
+        theta = np.reshape(theta, (-1, shape[-1]))
+        phi = np.reshape(phi, (-1, shape[-1]))
+
     theta = np.squeeze(theta)
     phi = np.squeeze(phi)
 
     sin_theta = np.sin(theta)
-    return_val = np.array([np.cos(phi) * sin_theta, np.sin(phi) * sin_theta, np.cos(theta)]).transpose()
+    return_val = np.array([sin_theta * np.cos(phi),
+                           sin_theta * np.sin(phi),
+                           np.cos(theta)]).transpose()
+
+    if len(shape) > 1:
+        return np.reshape(return_val, shape[:-1] + (-1,))
 
     if len(return_val.shape) == 1:
         return return_val[np.newaxis, :]
 
     return return_val
+
+
+def cartesian_to_spherical(vectors):
+    """Create spherical coordinates (theta and phi) from the given cartesian coordinates.
+
+    This expects a n-dimensional matrix with on the last axis a set of cartesian coordinates as (x, y, z). From that,
+    this function will calculate two n-dimensional matrices for the inclinations ``theta`` and the azimuths ``phi``.
+
+    Args:
+        vectors (ndarray): the n-dimensional set of cartesian coordinates
+
+    Returns:
+        tuple: the matrices for theta and phi.
+    """
+    theta = np.arccos(vectors[..., 2])
+    phi = np.arctan2(vectors[..., 1], vectors[..., 0])
+    return theta, phi
 
 
 def eigen_vectors_from_tensor(theta, phi, psi):

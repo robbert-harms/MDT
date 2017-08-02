@@ -393,11 +393,11 @@ class _DKIMeasuresWorker(Worker):
 
         kernel_source = ''
         kernel_source += get_float_type_def(self._double_precision)
-        kernel_source += load_component('library_functions', 'TensorSphericalToCartesian').get_cl_code()
+        kernel_source += load_component('library_functions', 'TensorApparentDiffusion').get_cl_code()
         kernel_source += load_component('library_functions', 'RotateVectors').get_cl_code()
         kernel_source += load_component('library_functions', 'KurtosisMultiplication').get_cl_code()
         kernel_source += '''
-            mot_float_type apparent_kurtosis(
+            double apparent_kurtosis(
                     global mot_float_type* params,
                     mot_float_type4 direction,
                     mot_float_type4 vec0,
@@ -407,9 +407,9 @@ class _DKIMeasuresWorker(Worker):
                 ulong gid = get_global_id(0);
                 ''' + '\n'.join(param_expansions) + '''
                 
-                mot_float_type d_app = d *      pown(dot(vec0, direction), 2) +
-                                       dperp0 * pown(dot(vec1, direction), 2) +
-                                       dperp1 * pown(dot(vec2, direction), 2);
+                mot_float_type adc = d *      pown(dot(vec0, direction), 2) +
+                                     dperp0 * pown(dot(vec1, direction), 2) +
+                                     dperp1 * pown(dot(vec2, direction), 2);
                 
                 mot_float_type tensor_md = (d + dperp0 + dperp1) / 3.0;
                 
@@ -418,7 +418,7 @@ class _DKIMeasuresWorker(Worker):
                     W_2220, W_2111, W_2221, W_1100, W_2200, W_2211, 
                     W_2100, W_2110, W_2210, direction);
                                 
-                return pown(tensor_md / d_app, 2) * kurtosis_sum;
+                return pown(tensor_md / adc, 2) * kurtosis_sum;
             }
             
             void get_principal_and_perpendicular_eigenvector(
@@ -479,7 +479,7 @@ class _DKIMeasuresWorker(Worker):
                 
                 
                 // Axial Kurtosis over the principal direction of diffusion
-                aks[gid] = apparent_kurtosis(params, *principal_vec, vec0, vec1, vec2);
+                aks[gid] = clamp(apparent_kurtosis(params, *principal_vec, vec0, vec1, vec2), (double)0, (double)10);
                 
                 
                 // Radial Kurtosis integrated over a unit circle around the principal eigenvector.
@@ -491,7 +491,7 @@ class _DKIMeasuresWorker(Worker):
                     
                     mean += (apparent_kurtosis(params, rotated_vec, vec0, vec1, vec2) - mean) / (i + 1);                       
                 }
-                rks[gid] = mean;
+                rks[gid] = max(mean, (double)0);
             }
         '''
         return kernel_source
