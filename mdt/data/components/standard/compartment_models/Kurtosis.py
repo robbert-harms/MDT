@@ -103,7 +103,7 @@ class Kurtosis(CompartmentTemplate):
 
     description = "The Kurtosis model"
     parameter_list = get_parameter_list()
-    dependency_list = ['TensorSphericalToCartesian']
+    dependency_list = ['TensorSphericalToCartesian', 'KurtosisMultiplication']
     cl_code = '''
         mot_float_type4 vec0, vec1, vec2;
         TensorSphericalToCartesian(theta, phi, psi, &vec0, &vec1, &vec2);
@@ -118,25 +118,10 @@ class Kurtosis(CompartmentTemplate):
         
         mot_float_type tensor_md_2 = pown((d + dperp0 + dperp1) / 3.0, 2);
         
-        double kurtosis_sum = 0;
-        kurtosis_sum += g.x * g.x * g.x * g.x * W_0000;
-        kurtosis_sum += g.y * g.y * g.y * g.y * W_1111;
-        kurtosis_sum += g.z * g.z * g.z * g.z * W_2222;
-
-        kurtosis_sum += g.y * g.x * g.x * g.x * W_1000 * 4;
-        kurtosis_sum += g.z * g.x * g.x * g.x * W_2000 * 4;
-        kurtosis_sum += g.y * g.y * g.y * g.x * W_1110 * 4;
-        kurtosis_sum += g.z * g.z * g.z * g.x * W_2220 * 4;
-        kurtosis_sum += g.z * g.y * g.y * g.y * W_2111 * 4;
-        kurtosis_sum += g.z * g.z * g.z * g.y * W_2221 * 4;
-        
-        kurtosis_sum += g.y * g.y * g.x * g.x * W_1100 * 6;
-        kurtosis_sum += g.z * g.z * g.x * g.x * W_2200 * 6;
-        kurtosis_sum += g.z * g.z * g.y * g.y * W_2211 * 6;
-        
-        kurtosis_sum += g.z * g.y * g.x * g.x * W_2100 * 12;
-        kurtosis_sum += g.z * g.y * g.y * g.x * W_2110 * 12;
-        kurtosis_sum += g.z * g.z * g.y * g.x * W_2210 * 12;
+        double kurtosis_sum = KurtosisMultiplication(
+            W_0000, W_1111, W_2222, W_1000, W_2000, W_1110, 
+            W_2220, W_2111, W_2221, W_1100, W_2200, W_2211, 
+            W_2100, W_2110, W_2210, g);
         
         if(kurtosis_sum < 0 || (((tensor_md_2 * b) / d_app) * kurtosis_sum) > 3.0){
             return INFINITY;

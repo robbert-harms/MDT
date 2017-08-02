@@ -210,7 +210,7 @@ class ExportImageDialog(Ui_SaveImageDialog, QDialog):
 
     previous_values = {'width': None, 'height': None,
                        'dpi': None, 'output_file': None,
-                       'writeScriptsAndConfig': None}
+                       'writeScriptsAndConfig': False}
 
     def __init__(self, parent, plotting_frame, controller):
         super(ExportImageDialog, self).__init__(parent)
