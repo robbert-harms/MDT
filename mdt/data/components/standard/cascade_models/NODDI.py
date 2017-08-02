@@ -11,11 +11,11 @@ class NODDI(CascadeTemplate):
     description = 'Cascade for NODDI initialized from Ball&Stick.'
     models = ('BallStick_r1 (Cascade)',
               'NODDI')
-    inits = {'NODDI': [('w_ic.w', lambda output_previous, _: output_previous['w_stick.w'] / 2.0),
-                       ('w_ec.w', lambda output_previous, _: output_previous['w_stick.w'] / 2.0),
+    inits = {'NODDI': [('w_ic.w', lambda output_previous, _: output_previous['w_stick0.w'] / 2.0),
+                       ('w_ec.w', lambda output_previous, _: output_previous['w_stick0.w'] / 2.0),
                        ('w_csf.w', 'w_ball.w'),
-                       ('NODDI_IC.theta', 'Stick.theta'),
-                       ('NODDI_IC.phi', 'Stick.phi')]}
+                       ('NODDI_IC.theta', 'Stick0.theta'),
+                       ('NODDI_IC.phi', 'Stick0.phi')]}
 
 
 class NODDI_Fixed(CascadeTemplate):
@@ -24,8 +24,8 @@ class NODDI_Fixed(CascadeTemplate):
     description = 'Cascade for NODDI with fixed directions from Ball&Stick.'
     models = ('BallStick_r1 (Cascade)',
               'NODDI')
-    inits = {'NODDI': [('w_ic.w', lambda output_previous, _: output_previous['w_stick.w'] / 2.0),
-                       ('w_ec.w', lambda output_previous, _: output_previous['w_stick.w'] / 2.0),
+    inits = {'NODDI': [('w_ic.w', lambda output_previous, _: output_previous['w_stick0.w'] / 2.0),
+                       ('w_ec.w', lambda output_previous, _: output_previous['w_stick0.w'] / 2.0),
                        ('w_csf.w', 'w_ball.w')]}
-    fixes = {'NODDI': [('NODDI_IC.theta', 'Stick.theta'),
-                       ('NODDI_IC.phi', 'Stick.phi')]}
+    fixes = {'NODDI': [('NODDI_IC.theta', 'Stick0.theta'),
+                       ('NODDI_IC.phi', 'Stick0.phi')]}

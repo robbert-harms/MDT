@@ -10,7 +10,7 @@ At runtime, MDT loads the C/CL code of the compartment model and combines it wit
 The compartment models must be defined in a ``.py`` file where the **filename matches the class name** and it only allows for **one compartment per file**.
 For example, the following example compartment model is named ``Stick`` and must therefore be contained in a file named ``Stick.py``::
 
-    class Stick(CompartmentConfig):
+    class Stick(CompartmentTemplate):
 
         parameter_list = ('g', 'b', 'd', 'theta', 'phi')
         cl_code = '''
@@ -31,10 +31,10 @@ Defining parameters
 The elements of the parameter list can either be string referencing one of the parameters defined in the dynamically loadable parameters (like shown in the example above),
 or it can be a direct instance of a parameter. For example, this is also a valid parameter list::
 
-    class special_param(FreeParameterConfig):
+    class special_param(FreeParameterTemplate):
         ...
 
-    class MyModel(CompartmentConfig):
+    class MyModel(CompartmentTemplate):
 
         parameter_list = ('g', 'b', special_param())
         ...
@@ -77,7 +77,7 @@ Defining extra functions for your code
 It is possible that a compartment model needs some auxiliary functions that are too small for an own library function.
 These can be added to the compartment model using the ``cl_extra`` attribute. For example::
 
-    class MyCompartment(CompartmentConfig):
+    class MyCompartment(CompartmentTemplate):
 
         parameter_list = ('g', 'b', 'd')
         cl_code = 'return other_function(g, b, d);'
@@ -107,7 +107,7 @@ Just as with composite models, one can add extra output maps by adding a list of
 
     from mdt.utils import spherical_to_cartesian
 
-    class Stick(CompartmentConfig):
+    class Stick(CompartmentTemplate):
         ...
         post_optimization_modifiers = [('vec0', lambda results: spherical_to_cartesian(results['theta'], results['phi']))]
 

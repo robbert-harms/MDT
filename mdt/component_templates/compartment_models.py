@@ -207,9 +207,8 @@ def _get_parameters_list(parameter_list):
 
     Args:
         parameter_list (list): a list containing a mix of either parameter objects, strings or tuples. If it is a
-            parameter we add a copy of it to the return list. If it is a string we will autoload it, if it is a tuple
-            it should be a tuple (<parameter>, <nick_name>) specifying the nick name for that parameter in this
-            compartment.
+            parameter we add a copy of it to the return list. If it is a string we will autoload it. It is possible to
+            specify a nickname for that parameter in this compartment using the syntax: ``<param>(<nickname>)``.
 
     Returns:
         list: the list of actual parameter objects

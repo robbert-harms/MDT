@@ -2,11 +2,9 @@ import numpy as np
 import itertools
 
 from mdt.cl_routines.mapping.dki_measures import DKIMeasures
-from mdt.utils import eigen_vectors_from_tensor
 from mot.model_building.parameter_functions.proposals import GaussianProposal
 from mdt.component_templates.parameters import FreeParameterTemplate, ParameterBuilder
 from mdt.component_templates.compartment_models import CompartmentTemplate
-from mdt.cl_routines.mapping.dti_measures import DTIMeasures
 from mot.model_building.parameter_functions.transformations import IdentityTransform
 
 __author__ = 'Robbert Harms'
@@ -75,33 +73,28 @@ def get_parameter_list():
 
 def get_dki_measures_modifier():
     """Get the DKI post processing modification routine(s)."""
-    dti_calc = DTIMeasures()
     dki_calc = DKIMeasures()
-
-    def _calculate_dti_results(results_dict):
-        eigen_vectors = eigen_vectors_from_tensor(results_dict['theta'], results_dict['phi'], results_dict['psi'])
-        eigen_values = np.atleast_2d(np.squeeze(np.dstack([results_dict['d'],
-                                                           results_dict['dperp0'],
-                                                           results_dict['dperp1']])))
-        measures = dti_calc.calculate(eigen_values, eigen_vectors)
-        return [measures[name] for name in dti_calc.get_output_names()]
 
     def _calculate_dki_results(results_dict):
         measures = dki_calc.calculate(results_dict)
         return [measures[name] for name in dki_calc.get_output_names()]
 
     def modifier_routine(results_dict):
-        dti_results = _calculate_dti_results(results_dict)
         dki_results = _calculate_dki_results(results_dict)
-        return dti_results + dki_results
+        return dki_results
 
-    return_names = dti_calc.get_output_names() + dki_calc.get_output_names()
+    return_names = dki_calc.get_output_names()
     return return_names, modifier_routine
 
 
-class Kurtosis(CompartmentTemplate):
+class KurtosisExtension(CompartmentTemplate):
 
-    description = "The Kurtosis model"
+    description = '''
+        The Kurtosis extension for the Tensor model. 
+        
+        This compartment can not be used directly as a compartment model, it always needs to be used in conjunction with 
+        the Tensor model. For example, a composite model script would be: "S0 * Tensor * Kurtosis".
+    '''
     parameter_list = get_parameter_list()
     dependency_list = ['TensorSphericalToCartesian', 'KurtosisMultiplication']
     cl_code = '''
@@ -127,6 +120,6 @@ class Kurtosis(CompartmentTemplate):
             return INFINITY;
         }
              
-        return exp(-b * d_app + (b*b)/6.0 * tensor_md_2 * kurtosis_sum);
+        return exp((b*b)/6.0 * tensor_md_2 * kurtosis_sum);
     '''
     post_optimization_modifiers = [get_dki_measures_modifier()]

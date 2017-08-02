@@ -18,10 +18,7 @@ class BallStick_r2(CascadeTemplate):
     description = 'Cascade for BallStick_r2.'
     models = ('BallStick_r1 (Cascade)',
               'BallStick_r2')
-    inits = {'BallStick_r2': [('Stick0.theta', 'Stick.theta'),
-                              ('Stick0.phi', 'Stick.phi'),
-                              ('w_stick0.w', 'w_stick.w'),
-                              ('w_stick1.w', 0.0)]}
+    inits = {'BallStick_r2': [('w_stick1.w', 0.0)]}
 
 class BallStick_r3(CascadeTemplate):
 

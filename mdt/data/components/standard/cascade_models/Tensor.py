@@ -11,8 +11,8 @@ class Tensor(CascadeTemplate):
     description = 'Cascade for Tensor.'
     models = ('BallStick_r1 (Cascade)',
               'Tensor')
-    inits = {'Tensor': [('Tensor.theta', 'Stick.theta'),
-                        ('Tensor.phi', 'Stick.phi')]}
+    inits = {'Tensor': [('Tensor.theta', 'Stick0.theta'),
+                        ('Tensor.phi', 'Stick0.phi')]}
 
 
 class TensorFixed(CascadeTemplate):
@@ -21,5 +21,5 @@ class TensorFixed(CascadeTemplate):
     description = 'Cascade for Tensor with fixed angles.'
     models = ('BallStick_r1 (Cascade)',
               'Tensor')
-    fixes = {'Tensor': [('Tensor.theta', 'Stick.theta'),
-                        ('Tensor.phi', 'Stick.phi')]}
+    fixes = {'Tensor': [('Tensor.theta', 'Stick0.theta'),
+                        ('Tensor.phi', 'Stick0.phi')]}

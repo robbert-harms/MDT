@@ -10,7 +10,7 @@ To create a new cascade model, you will need to specify, at a minimum, the ``mod
 
 .. code-block:: python
 
-    class CHARMED_r3(CascadeConfig):
+    class CHARMED_r3(CascadeTemplate):
 
         models = ('BallStick_r3 (Cascade)',
                   'CHARMED_r3')
@@ -29,7 +29,7 @@ For example, if we update our ``CHARMED_r3`` cascade to read:
 
 .. code-block:: python
 
-    class CHARMED_r3(CascadeConfig):
+    class CHARMED_r3(CascadeTemplate):
 
         cascade_name_modifier = 'fixed'
         models = ('BallStick_r3 (Cascade)',
@@ -52,7 +52,7 @@ Extending the previous CHARMED_r3 example, we get:
 
 .. code-block:: python
 
-    class CHARMED_r3(CascadeConfig):
+    class CHARMED_r3(CascadeTemplate):
         ...
         inits = {'CHARMED_r3': [('Tensor.theta', 'Stick0.theta'),
                                 ('Tensor.phi', 'Stick0.phi'),
@@ -79,7 +79,7 @@ For example:
 
 .. code-block:: python
 
-    class CHARMED_r3_Fixed(CascadeConfig):
+    class CHARMED_r3_Fixed(CascadeTemplate):
         ...
         fixes = {'CHARMED_r3': [('CHARMEDRestricted0.theta', 'Stick0.theta'),
                                 ('CHARMEDRestricted0.phi', 'Stick0.phi'),
@@ -118,7 +118,7 @@ An example highlighting all these syntactic options would be:
 
 .. code-block:: python
 
-    class Example(CascadeConfig):
+    class Example(CascadeTemplate):
         ...
         models = ('S0',
                   'BallStick_r1',

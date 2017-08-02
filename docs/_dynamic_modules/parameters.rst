@@ -9,10 +9,10 @@ They define how data is provided to the model and form a bridge between the mode
 The type of a parameters determines how the model uses that parameter.
 For example, compare these two parameters::
 
-    class theta(FreeParameterConfig):
+    class theta(FreeParameterTemplate):
         ...
 
-    class b(ProtocolParameterConfig):
+    class b(ProtocolParameterTemplate):
         ...
 
 
@@ -20,10 +20,10 @@ In this example the ``theta`` parameter is defined as a *free parameter* while t
 The type matters and defines how MDT handles the parameter.
 There are four types available:
 
-* :py:class:`~mdt.models.parameters.FreeParameterConfig`, for :ref:`free_parameters`
-* :py:class:`~mdt.models.parameters.ProtocolParameterConfig`, for :ref:`protocol_parameters`
-* :py:class:`~mdt.models.parameters.ModelDataParameterConfig`, for :ref:`model_data_parameters`
-* :py:class:`~mdt.models.parameters.StaticMapParameterConfig`, for :ref:`static_map_parameters`
+* :py:class:`~mdt.models.parameters.FreeParameterTemplate`, for :ref:`free_parameters`
+* :py:class:`~mdt.models.parameters.ProtocolParameterTemplate`, for :ref:`protocol_parameters`
+* :py:class:`~mdt.models.parameters.ModelDataParameterTemplate`, for :ref:`model_data_parameters`
+* :py:class:`~mdt.models.parameters.StaticMapParameterTemplate`, for :ref:`static_map_parameters`
 
 See the sections below for more details on each type.
 
@@ -38,7 +38,7 @@ During optimization, parameters of this type can be fixed to a specific value, w
 but that their values (per voxel) are provided by a map.
 When fixed, these parameters are still classified as free parameters (considered them as fixed free parameters).
 
-A free parameter is identified by having the super class :py:class:`~mdt.models.parameters.FreeParameterConfig` and
+A free parameter is identified by having the super class :py:class:`~mdt.models.parameters.FreeParameterTemplate` and
 are commonly placed in the Python module named ``free.py``.
 
 Hereunder we list some details that are important when adding a new free parameter to MDT.
@@ -67,7 +67,7 @@ These parameters are meant to be fulfilled by the values in the Protocol (see :r
 During model optimization, MDT checks the model for protocol parameters and tries to match the names of the protocol parameters with the names of the columns in the Protocol.
 This name matching allows the user to add their own column definitions to the protocol file, only by ensuring a common name between the protocol parameter and the protocol column name.
 
-A protocol parameter is identified by having the super class :py:class:`~mdt.models.parameters.ProtocolParameterConfig` and
+A protocol parameter is identified by having the super class :py:class:`~mdt.models.parameters.ProtocolParameterTemplate` and
 are commonly placed in the Python module named ``protocol.py``.
 
 .. _static_map_parameters:
@@ -80,7 +80,7 @@ When defined, MDT tries to load the appropriate data from the ``static_maps`` in
 The values in the static maps are meant for values per voxel (and optionally also per volume).
 They can hold, for example, b0 inhomogeneity maps or flip angle maps that have a specific value per voxel and (optionally) per volume.
 
-A static map parameter is identified by having the super class :py:class:`~mdt.models.parameters.StaticMapParameterConfig` and
+A static map parameter is identified by having the super class :py:class:`~mdt.models.parameters.StaticMapParameterTemplate` and
 are commonly placed in the Python module named ``static_maps.py``.
 
 
@@ -95,5 +95,5 @@ Some models require arrays of precomputed numbers (such as roots of an equation)
 You can of course inline these variables in the compartment model CL code (which is faster), but then the end-users can not easily change these values.
 By adding them as model data parameters, end-users can change the specifics of the model by changing the data in the model data parameters.
 
-A model data parameter is identified by having the super class :py:class:`~mdt.models.parameters.ModelDataParameterConfig` and
+A model data parameter is identified by having the super class :py:class:`~mdt.models.parameters.ModelDataParameterTemplate` and
 are commonly placed in the Python module named ``model_data.py``.

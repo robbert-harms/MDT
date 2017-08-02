@@ -11,10 +11,10 @@ class BallStick_r1(DMRICompositeModelTemplate):
     description = 'The default Ball & Stick model'
     model_expression = '''
         S0 * ( (Weight(w_ball) * Ball) +
-               (Weight(w_stick) * Stick) )
+               (Weight(w_stick0) * Stick(Stick0)) )
     '''
     fixes = {'Ball.d': 3.0e-9,
-             'Stick.d': 1.7e-9}
+             'Stick0.d': 1.7e-9}
     post_optimization_modifiers = [('FS', lambda results: 1 - results['w_ball.w'])]
 
 

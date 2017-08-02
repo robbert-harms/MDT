@@ -12,8 +12,8 @@ class ActiveAx_ExVivo(CascadeTemplate):
     description = 'Initializes the directions to Ball & Stick.'
     models = ('BallStick_r1 (Cascade)',
               'ActiveAx_ExVivo')
-    inits = {'ActiveAx_ExVivo': [('CylinderGPD.theta', 'Stick.theta'),
-                                 ('CylinderGPD.phi', 'Stick.phi')]}
+    inits = {'ActiveAx_ExVivo': [('CylinderGPD.theta', 'Stick0.theta'),
+                                 ('CylinderGPD.phi', 'Stick0.phi')]}
 
 
 class ActiveAx(CascadeTemplate):
@@ -21,5 +21,5 @@ class ActiveAx(CascadeTemplate):
     description = 'Initializes the directions to Ball & Stick.'
     models = ('BallStick_r1 (Cascade)',
               'ActiveAx')
-    inits = {'ActiveAx': [('CylinderGPD.theta', 'Stick.theta'),
-                          ('CylinderGPD.phi', 'Stick.phi')]}
+    inits = {'ActiveAx': [('CylinderGPD.theta', 'Stick0.theta'),
+                          ('CylinderGPD.phi', 'Stick0.phi')]}

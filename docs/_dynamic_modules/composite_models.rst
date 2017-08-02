@@ -11,7 +11,7 @@ and uses the parameters of the compartments to load the data.
 Composite models can be placed in any ``.py`` file within the ``composite_models`` directory (in contrast to the compartment models which must be placed in their own file).
 The following is an minimal example of a composite (multi-compartment) model in MDT::
 
-    class BallStickStick(DMRICompositeModelConfig):
+    class BallStickStick(DMRICompositeModelTemplate):
 
         model_expression = '''
             S0 * ( (Weight(w_ball) * Ball) +
@@ -48,7 +48,7 @@ For example:
 
 .. code-block:: python
 
-    class NODDI(DMRICompositeModelConfig):
+    class NODDI(DMRICompositeModelTemplate):
         ...
         fixes = {
             ...
@@ -81,7 +81,7 @@ If you wish to disable this feature, for example in a model that does not have a
 .. code-block:: python
 
 
-    class MyModel(DMRICompositeModelConfig):
+    class MyModel(DMRICompositeModelTemplate):
         ...
         enforce_weights_sum_to_one = False
 
@@ -102,7 +102,7 @@ The first is to add the ``volume_selection`` directive to your model:
 
 .. code-block:: python
 
-    class Tensor(DMRICompositeModelConfig):
+    class Tensor(DMRICompositeModelTemplate):
         ...
         volume_selection = {'unweighted_threshold': 25e6,
                             'use_unweighted': True,
@@ -121,7 +121,7 @@ The second method is to add the bound function ``_get_suitable_volume_indices`` 
     ...
     from mdt.component_templates.base import bind_function
 
-    class Tensor(DMRICompositeModelConfig):
+    class Tensor(DMRICompositeModelTemplate):
         ...
 
         @bind_function
@@ -151,7 +151,7 @@ we added in MDT a post optimization modifier that adds the FR map automatically 
 
 .. code-block:: python
 
-    class CHARMED_r3(DMRICompositeModelConfig):
+    class CHARMED_r3(DMRICompositeModelTemplate):
         ...
         post_optimization_modifiers = [
             ('FR', lambda results: 1 - results['w_hin0.w'])
@@ -167,7 +167,7 @@ Something like:
 
 .. code-block:: python
 
-    class FooBar(DMRICompositeModelConfig):
+    class FooBar(DMRICompositeModelTemplate):
         ...
         post_optimization_modifiers = [
             ( ['Power2', 'Power3'], lambda d: [d['foo']**2, d['foo']**3] ),
@@ -189,7 +189,7 @@ To change this to another likelihood model for one of your models you can overri
 
 .. code-block:: python
 
-    class MyModel(DMRICompositeModelConfig)
+    class MyModel(DMRICompositeModelTemplate)
         ...
         evaluation_model = 'Rician'
 
@@ -205,7 +205,7 @@ For example:
     ...
     from mot.model_building.evaluation_models import RicianEvaluationModel
 
-    class MyModel(DMRICompositeModelConfig)
+    class MyModel(DMRICompositeModelTemplate)
         ...
         evaluation_model = RicianEvaluationModel()
 
