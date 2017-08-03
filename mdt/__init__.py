@@ -101,7 +101,7 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
     if not mdt.utils.check_user_components():
         init_user_settings(pass_if_exists=True)
 
-    if not isinstance(initialization_data, InitializationData):
+    if not isinstance(initialization_data, InitializationData) and initialization_data is not None:
         initialization_data = SimpleInitializationData(**initialization_data)
 
     model_fit = ModelFit(model, problem_data, output_folder, optimizer=optimizer, recalculate=recalculate,
@@ -161,7 +161,7 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
     from mdt.models.cascade import DMRICascadeModelInterface
     import mot.configuration
 
-    if not isinstance(initialization_data, InitializationData):
+    if not isinstance(initialization_data, InitializationData) and initialization_data is not None:
         initialization_data = SimpleInitializationData(**initialization_data)
 
     if not mdt.utils.check_user_components():
