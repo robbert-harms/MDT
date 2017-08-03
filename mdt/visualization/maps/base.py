@@ -1418,7 +1418,10 @@ def find_all_nifti_files(paths):
                 if recurse:
                     niftis.extend(find_niftis(glob.glob(path + '/*.nii*'), recurse=False))
             else:
-                niftis.append(nifti_filepath_resolution(path))
+                try:
+                    niftis.append(nifti_filepath_resolution(path))
+                except ValueError:
+                    pass
         return niftis
     return find_niftis(paths)
 
@@ -1456,6 +1459,9 @@ def get_shortest_unique_names(paths):
     Returns:
         tuple: the map names for the given set of paths (in the same order)
     """
+    if not len(paths):
+        return []
+
     dirs, names, exts = zip(*map(split_image_path, paths))
 
     if len(set(paths)) == 1:
