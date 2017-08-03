@@ -403,32 +403,6 @@ def write_view_maps_figure(data, output_filename, config=None, width=None, heigh
     viz.to_file(output_filename, config, **savefig_settings)
 
 
-def results_preselection_names(data):
-    """Generate a list of useful map names to display.
-
-    This is primarily to be used as argument to the config option ``maps_to_show`` in the function :func:`view_maps`.
-
-    Args:
-        data (str or dict or list of str): either a directory or a dictionary of results or a list of map names.
-
-    Returns:
-        list of str: the list of useful/filtered map names.
-    """
-    keys = []
-    if isinstance(data, string_types):
-        for extension in ('.nii', '.nii.gz'):
-            for f in glob.glob(os.path.join(data, '*' + extension)):
-                keys.append(os.path.basename(f)[0:-len(extension)])
-    elif isinstance(data, dict):
-        keys = data.keys()
-    else:
-        keys = data
-
-    filter_match = ('.vec', '.d', '.sigma', '.theta', '.phi', 'AIC', 'Errors', 'Errors', '.eigen_ranking',
-                    'SignalEstimates', 'UsedMask', 'BIC')
-    return list(sorted(filter(lambda v: all(m not in v for m in filter_match), keys)))
-
-
 def block_plots(use_qt=True):
     """A small function to block matplotlib plots and Qt GUI instances.
 
@@ -463,7 +437,7 @@ def view_result_samples(data, **kwargs):
 
 
 def make_path_joiner(*folder):
-    """Generates and returns an instance of utils.PathJoiner to quickly join pathnames.
+    """Generates and returns an instance of utils.PathJoiner to quickly join path names.
 
     Returns:
          mdt.utils.PathJoiner: easy path manipulation path joiner
@@ -472,65 +446,8 @@ def make_path_joiner(*folder):
     return PathJoiner(*folder)
 
 
-def auto_convert_to_trackmark(input_folder, model_name=None, output_folder=None):
-    """Convert the nifti files in the given folder to Trackmark.
-
-    This automatically loads the correct files based on the model name. This is normally the dirname of the given
-    path. If that is not the case you can give the model name explicitly.
-
-    By default it outputs the results to a folder named "trackmark" in the given input folder. This can of course
-    be overridden using the output_folder parameter.
-
-    Args:
-        input_folder (str): the name of the input folder
-        model_name (str): the name of the model, if not given we use the last dirname of the given path
-        output_folder (str): the output folder, if not given we will output to a subfolder "trackmark" in the
-            given directory.
-    """
-    from mdt.file_conversions.trackmark import TrackMark
-    TrackMark.auto_convert(input_folder, model_name=model_name, output_folder=output_folder)
-
-
-def write_trackmark_rawmaps(data, output_folder, maps_to_convert=None):
-    """Convert the given nifti files in the input folder to rawmaps in the output folder.
-
-    Args:
-        data (str or dict): the name of the input folder, of a dictionary with maps to save.
-        output_folder (str): the name of the output folder. Defaults to <input_folder>/trackmark.
-        maps_to_convert (:class:`list`): the list with the names of the maps we want to convert (without the extension).
-    """
-    from mdt.file_conversions.trackmark import TrackMark
-
-    if isinstance(data, six.string_types):
-        volumes = load_volume_maps(data, map_names=maps_to_convert)
-    else:
-        volumes = data
-        if maps_to_convert:
-            volumes = {k: v for k, v in volumes.items() if k in maps_to_convert}
-    TrackMark.write_rawmaps(output_folder, volumes)
-
-
-def write_trackmark_tvl(output_tvl, vector_directions, vector_magnitudes, tvl_header=(1, 1.8, 0, 0)):
-    """Write a list of vector directions with corresponding magnitude to a trackmark TVL file.
-
-    Note that the length of the vector_directions and vector_magnitudes should correspond to each other. Next, we only
-    use the first three elements in both lists.
-
-    Args:
-        output_tvl (str): the name of the output tvl
-        vector_directions (list of str/ndarray): a list of 4d volumes with per voxel the normalized vector direction
-        vector_magnitudes (list of str/ndarray): a list of 4d volumes with per voxel the vector magnitude.
-        tvl_header (list or tuple): The list with header arguments for writing the TVL. See IO.TrackMark for specifics.
-    """
-    from mdt.file_conversions.trackmark import TrackMark
-    if len(vector_directions) != len(vector_magnitudes):
-        raise ValueError('The length of the list of vector directions does not '
-                         'match with the length of the list of vector magnitudes.')
-    TrackMark.write_tvl_direction_pairs(output_tvl, tvl_header, list(zip(vector_directions, vector_magnitudes))[:3])
-
-
 def sort_maps(input_maps, reversed_sort=False, sort_index_matrix=None):
-    """Sort the given maps.
+    """Sort the values of the given maps voxel by voxel.
 
     This first creates a sort matrix to index the maps in sorted order per voxel. Next, it creates the output
     maps for the maps we sort on.
@@ -690,7 +607,15 @@ def reset_logging():
 
 @contextmanager
 def disable_logging_context():
-    """A context in which the logging is temporarily disabled"""
+    """A context in which the logging is temporarily disabled.
+
+    Example of usage::
+
+        with mdt.disable_logging_context():
+            your_computations()
+
+    During the function ``your_computations`` no logging will take place from MDT and MOT.
+    """
     config = '''
     logging:
         info_dict:

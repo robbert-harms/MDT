@@ -1,14 +1,68 @@
 import os
 
 import numpy as np
+import six
 
-from mdt import load_nifti
+from mdt import load_nifti, load_volume_maps
 from mdt.nifti import get_all_image_data
 
 __author__ = 'Robbert Harms'
 __date__ = "2017-02-22"
 __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
+
+
+def auto_convert_to_trackmark(input_folder, model_name=None, output_folder=None):
+    """Convert the nifti files in the given folder to Trackmark.
+
+    This automatically loads the correct files based on the model name. This is normally the dirname of the given
+    path. If that is not the case you can give the model name explicitly.
+
+    By default it outputs the results to a folder named "trackmark" in the given input folder. This can of course
+    be overridden using the output_folder parameter.
+
+    Args:
+        input_folder (str): the name of the input folder
+        model_name (str): the name of the model, if not given we use the last dirname of the given path
+        output_folder (str): the output folder, if not given we will output to a subfolder "trackmark" in the
+            given directory.
+    """
+    TrackMark.auto_convert(input_folder, model_name=model_name, output_folder=output_folder)
+
+
+def write_trackmark_rawmaps(data, output_folder, maps_to_convert=None):
+    """Convert the given nifti files in the input folder to rawmaps in the output folder.
+
+    Args:
+        data (str or dict): the name of the input folder, of a dictionary with maps to save.
+        output_folder (str): the name of the output folder. Defaults to <input_folder>/trackmark.
+        maps_to_convert (:class:`list`): the list with the names of the maps we want to convert (without the extension).
+    """
+    if isinstance(data, six.string_types):
+        volumes = load_volume_maps(data, map_names=maps_to_convert)
+    else:
+        volumes = data
+        if maps_to_convert:
+            volumes = {k: v for k, v in volumes.items() if k in maps_to_convert}
+    TrackMark.write_rawmaps(output_folder, volumes)
+
+
+def write_trackmark_tvl(output_tvl, vector_directions, vector_magnitudes, tvl_header=(1, 1.8, 0, 0)):
+    """Write a list of vector directions with corresponding magnitude to a trackmark TVL file.
+
+    Note that the length of the vector_directions and vector_magnitudes should correspond to each other. Next, we only
+    use the first three elements in both lists.
+
+    Args:
+        output_tvl (str): the name of the output tvl
+        vector_directions (list of str/ndarray): a list of 4d volumes with per voxel the normalized vector direction
+        vector_magnitudes (list of str/ndarray): a list of 4d volumes with per voxel the vector magnitude.
+        tvl_header (list or tuple): The list with header arguments for writing the TVL. See IO.TrackMark for specifics.
+    """
+    if len(vector_directions) != len(vector_magnitudes):
+        raise ValueError('The length of the list of vector directions does not '
+                         'match with the length of the list of vector magnitudes.')
+    TrackMark.write_tvl_direction_pairs(output_tvl, tvl_header, list(zip(vector_directions, vector_magnitudes))[:3])
 
 
 class TrackMark(object):

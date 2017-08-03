@@ -1,3 +1,7 @@
+import glob
+import os
+
+import six
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from mdt.gui.utils import UpdateDescriptor
@@ -36,3 +40,30 @@ class SharedState(QObject):
             setattr(self, '_' + key, value)
             setattr(SharedState, key, UpdateDescriptor(key))
             setattr(self, 'set_' + key, get_attribute_setter(key))
+
+
+def results_preselection_names(data):
+    """Generate a list of useful map names to display.
+
+    This is primarily to be used as argument to the config option ``maps_to_show`` in the function :func:`view_maps`.
+
+    Args:
+        data (str or dict or list of str): either a directory or a dictionary of results or a list of map names.
+
+    Returns:
+        list of str: the list of useful/filtered map names.
+    """
+    keys = []
+    if isinstance(data, six.string_types):
+        for extension in ('.nii', '.nii.gz'):
+            for f in glob.glob(os.path.join(data, '*' + extension)):
+                keys.append(os.path.basename(f)[0:-len(extension)])
+    elif isinstance(data, dict):
+        keys = data.keys()
+    else:
+        keys = data
+
+    filter_match = ('.vec', '.d', '.sigma', '.theta', '.phi', 'AIC', 'Errors', 'Errors', '.eigen_ranking',
+                    'SignalEstimates', 'UsedMask', 'BIC')
+    return list(sorted(filter(lambda v: all(m not in v for m in filter_match), keys)))
+
