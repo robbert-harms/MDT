@@ -28,7 +28,8 @@ import mdt
 from mdt.gui.maps_visualizer.base import DataConfigModel, \
     QtController
 from mdt.gui.maps_visualizer.renderers.base import PlottingFrameInfoViewer
-from mdt.visualization.maps.base import DataInfo, SimpleDataInfo, MapPlotConfig, SingleMapInfo
+from mdt.visualization.maps.base import DataInfo, SimpleDataInfo, MapPlotConfig, SingleMapInfo, \
+    get_shortest_unique_names
 from mdt.gui.maps_visualizer.renderers.matplotlib_renderer import MatplotlibPlotting
 from mdt.gui.model_fit.design.ui_about_dialog import Ui_AboutDialog
 from mdt.gui.utils import center_window, QtManager, get_script_file_header_text, image_files_filters
@@ -38,6 +39,11 @@ from mdt.gui.maps_visualizer.design.ui_MainWindow import Ui_MapsVisualizer
 class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
 
     def __init__(self, controller, parent=None):
+        """Instantiate the maps GUI
+
+        Args:
+            controller (mdt.gui.maps_visualizer.base.Controller): the controller to use for updating the views
+        """
         super(MapsVisualizerWindow, self).__init__(parent)
         self.setupUi(self)
 
@@ -51,7 +57,7 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self.statusBar().addPermanentWidget(self._coordinates_label)
         self.statusBar().setStyleSheet("QStatusBar::item { border: 0px solid black }; ")
 
-        self.plotting_info_to_statusbar = PlottingFrameInfoToStatusBar(self._coordinates_label)
+        self.plotting_info_to_statusbar = PlottingFrameInfoToStatusBar(self._controller, self._coordinates_label)
         self.plotting_frame = MatplotlibPlotting(controller, parent=parent,
                                                  plotting_info_viewer=self.plotting_info_to_statusbar)
         self.plotLayout.addWidget(self.plotting_frame)
@@ -84,32 +90,106 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self.undo_config.clicked.connect(lambda: self._controller.undo())
         self.redo_config.clicked.connect(lambda: self._controller.redo())
 
+        self._qdialog_basedir_set = False
+
     @pyqtSlot(DataConfigModel)
     def update_model(self, model):
         self.undo_config.setDisabled(not self._controller.has_undo())
         self.redo_config.setDisabled(not self._controller.has_redo())
+        self._set_qdialog_basedir()
+
+
+    def _set_qdialog_basedir(self):
+        if not self._qdialog_basedir_set:
+            data = self._controller.get_model().get_data()
+            for map_name, file_path in data.get_file_paths().items():
+                if file_path:
+                    QFileDialog().setDirectory(file_path)
+                    self._qdialog_basedir_set = True
+                    return
 
     def resizeEvent(self, event):
         ExportImageDialog.plot_frame_resized()
 
     def _add_new_files(self):
-        current_model = self._controller.get_model()
-
         new_files = QFileDialog(self).getOpenFileNames(caption='Nifti files',
                                                        filter=';;'.join(image_files_filters))
         if new_files[0]:
-            additional_maps = {}
-            for nifti_path in new_files[0]:
-                folder, basename, ext = split_image_path(nifti_path)
-                additional_maps.update({basename: SingleMapInfo.from_file(nifti_path)})
+            self._add_new_maps(new_files[0])
 
-            data = current_model.get_data().get_updated(additional_maps)
-            config = current_model.get_config()
+    def _add_new_maps(self, paths):
+        """Add the given set of file paths to the current visualization.
 
-            if not len(current_model.get_data().get_map_names()):
-                config.slice_index = data.get_max_slice_index(config.dimension) // 2
+        This looks at the current set of file paths (from ``self._controller.get_config().get_data()``)
+        and the given new set of file paths and creates a new merged dataset with all files.
 
-            self._controller.apply_action(NewDataAction(data, config))
+        Since it is possible that adding new maps leads to naming collisions this function can rename both the
+        old and the new maps to better reflect the map names.
+
+        Args:
+            paths (list of str): the list of file paths to add to the visualization
+
+        Returns:
+            list of str: the display names of the newly added maps
+        """
+        def get_file_paths(data_info):
+            """Get the file paths"""
+            paths = []
+            for map_name, file_path in data_info.get_file_paths().items():
+                if file_path:
+                    paths.append(file_path)
+                else:
+                    paths.append('/' + map_name)
+            return paths
+
+        def get_changes(old_data_info, new_data_info):
+            additions = {}
+            removals = []
+            name_updates = {}
+
+            paths = get_file_paths(old_data_info) + get_file_paths(new_data_info)
+            unique_names = get_shortest_unique_names(paths)
+            new_map_names = unique_names[len(old_data_info.get_map_names()):]
+
+            for old_name, new_name in zip(old_data_info.get_map_names(), unique_names):
+                if old_name != new_name:
+                    removals.append(old_name)
+                    additions[new_name] = old_data_info.get_single_map_info(old_name)
+                    name_updates[old_name] = new_name
+
+            for new_map_name, new_map_rename in zip(new_data_info.get_map_names(), new_map_names):
+                additions[new_map_rename] = new_data_info.get_single_map_info(new_map_name)
+
+            return additions, removals, name_updates, new_map_names
+
+        current_model = self._controller.get_model()
+        current_data = current_model.get_data()
+
+        adds, rems, name_updates, new_map_names = get_changes(current_data, SimpleDataInfo.from_paths(paths))
+        data = current_data.get_updated(adds, removals=rems)
+        config = copy.deepcopy(current_model.get_config())
+
+        new_maps_to_show = []
+        for map_name in config.maps_to_show:
+            if map_name in name_updates:
+                new_maps_to_show.append(name_updates[map_name])
+            else:
+                new_maps_to_show.append(map_name)
+        config.maps_to_show = new_maps_to_show
+
+        new_map_plot_options = {}
+        for map_name, plot_options in config.map_plot_options.items():
+            if map_name in name_updates:
+                new_map_plot_options[name_updates[map_name]] = plot_options
+            else:
+                new_map_plot_options[map_name] = plot_options
+        config.map_plot_options = new_map_plot_options
+
+        if not len(current_data.get_map_names()):
+            config.slice_index = data.get_max_slice_index(config.dimension) // 2
+
+        self._controller.apply_action(NewDataAction(data, config=config))
+        return new_map_names
 
     def _remove_files(self):
         data = SimpleDataInfo({})
@@ -141,15 +221,11 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
             if os.path.isfile(path) and is_nifti_file(path):
                 nifti_paths.append(path)
 
-        additional_maps = {}
-        for nifti_path in nifti_paths:
-            folder, basename, ext = split_image_path(nifti_path)
-            additional_maps.update({basename: SingleMapInfo.from_file(nifti_path)})
+        additional_maps = self._add_new_maps(nifti_paths)
 
-        current_model = self._controller.get_model()
-        map_names = copy.copy(current_model.get_config().maps_to_show)
-        map_names.extend(additional_maps.keys())
-        self._controller.apply_action(NewDataAction(current_model.get_data().get_updated(additional_maps)))
+        map_names = copy.copy(self._controller.get_model().get_config().maps_to_show)
+        map_names.extend(additional_maps)
+
         self._controller.apply_action(SetMapsToShow(map_names))
 
     def _save_settings(self):
@@ -188,18 +264,35 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
 
 class PlottingFrameInfoToStatusBar(PlottingFrameInfoViewer):
 
-    def __init__(self, status_bar_label):
+    def __init__(self, controller, status_bar_label):
         super(PlottingFrameInfoToStatusBar, self).__init__()
+        self._controller = controller
         self._status_bar_label = status_bar_label
 
-    def set_voxel_info(self, onscreen_coords, data_index, value):
-        super(PlottingFrameInfoToStatusBar, self).set_voxel_info(onscreen_coords, data_index, value)
+    def set_voxel_info(self, map_name, onscreen_coords, data_index):
+        super(PlottingFrameInfoToStatusBar, self).set_voxel_info(map_name, onscreen_coords, data_index)
 
-        value_format = '{:.3e}'
-        if 1e-3 < value < 1e3:
-            value_format = '{:.3f}'
+        def format_value(v):
+            value_format = '{:.3e}'
+            if 1e-3 < v < 1e3:
+                value_format = '{:.3f}'
+            return value_format.format(v)
 
-        self._status_bar_label.setText("{}, {}, {}".format(onscreen_coords, data_index, value_format.format(value)))
+        data = self._controller.get_model().get_data()
+
+        if map_name in data.get_map_names():
+            value = data.get_map_data(map_name)[tuple(data_index)]
+            clipped = value
+
+            config = self._controller.get_model().get_config()
+            if map_name in config.map_plot_options:
+                clipped = config.map_plot_options[map_name].clipping.apply(value)
+
+            if clipped != value:
+                self._status_bar_label.setText("{}, {}, {} ({})".format(
+                    onscreen_coords, data_index, format_value(clipped), format_value(value)))
+            else:
+                self._status_bar_label.setText("{}, {}, {}".format(onscreen_coords, data_index, format_value(value)))
 
     def clear_voxel_info(self):
         super(PlottingFrameInfoToStatusBar, self).clear_voxel_info()
@@ -350,10 +443,7 @@ class ExportImageDialog(Ui_SaveImageDialog, QDialog):
 
     def _get_file_paths(self):
         data = self._controller.get_model().get_data()
-        file_paths = []
-        for map_name in data.get_map_names():
-            file_paths.append(data.get_file_path(map_name))
-        return file_paths
+        return data.get_file_paths()
 
 
 class AboutDialog(Ui_AboutDialog, QDialog):

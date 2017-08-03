@@ -43,13 +43,13 @@ class PlottingFrameInfoViewer(object):
         can encapsulate highlighting interesting aspects of one of the plots.
         """
 
-    def set_voxel_info(self, onscreen_coords, data_index, value):
+    def set_voxel_info(self, map_name, onscreen_coords, data_index):
         """Highlight a single voxel.
 
         Args:
+            map_name (str): the name of the map for which we are displaying the value
             onscreen_coords (tuple of x,y): the coordinates of the voxel onscreen
             data_index (tuple of x,y,z,v): the 4d coordinates of the corresponding voxel in the data
-            value (float): the value of the object in the 4d coordinates.
         """
 
     def clear_voxel_info(self):
@@ -58,8 +58,8 @@ class PlottingFrameInfoViewer(object):
 
 class NoOptPlottingFrameInfoViewer(PlottingFrameInfoViewer):
 
-    def set_voxel_info(self, onscreen_coords, data_index, value):
-        super(NoOptPlottingFrameInfoViewer, self).set_voxel_info(onscreen_coords, data_index, value)
+    def set_voxel_info(self, map_name, onscreen_coords, data_index):
+        super(NoOptPlottingFrameInfoViewer, self).set_voxel_info(map_name, onscreen_coords, data_index)
 
     def clear_voxel_info(self):
         super(NoOptPlottingFrameInfoViewer, self).clear_voxel_info()

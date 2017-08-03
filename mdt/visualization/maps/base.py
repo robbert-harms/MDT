@@ -103,7 +103,7 @@ class MapPlotConfig(SimpleConvertibleConfig):
             show_axis (bool): if we show the axis or not
             zoom (Zoom): the zoom setting for all the plots
             show_colorbar (boolean): the global setting for enabling/disabling the colorbar
-            map_plot_options (dict): per map the map specific plot options
+            map_plot_options (dict of SingleMapConfig): per map the map specific plot options
             interpolation (str): one of the available interpolations
             flipud (boolean): if True we flip the image upside down
             title (str): the title to this plot
@@ -431,6 +431,16 @@ class DataInfo(object):
         """
         raise NotImplementedError()
 
+    def get_file_paths(self):
+        """Get the file paths to each of the maps.
+
+        If one of the maps does not have a file path, None is returned.
+
+        Returns:
+            dict: mapping map names to the file paths for each of the maps in this information container.
+        """
+        raise NotImplementedError()
+
     def get_max_dimension(self, map_names=None):
         """Get the minimum of the maximum dimension index over the maps
 
@@ -592,7 +602,7 @@ class SimpleDataInfo(DataInfo):
         return SimpleDataInfo(new_maps)
 
     def get_map_names(self):
-        return self._input_maps.keys()
+        return list(self._input_maps.keys())
 
     def get_map_data(self, map_name):
         return self.get_single_map_info(map_name).data
@@ -605,6 +615,9 @@ class SimpleDataInfo(DataInfo):
 
     def get_file_path(self, map_name):
         return self.get_single_map_info(map_name).file_path
+
+    def get_file_paths(self):
+        return {map_name: self.get_file_path(map_name) for map_name in self._input_maps.keys()}
 
     def get_max_dimension(self, map_names=None):
         """Get the minimum of the maximum dimension index over the maps
@@ -1446,22 +1459,6 @@ def find_all_nifti_files(paths):
     return find_niftis(paths)
 
 
-def find_map_paths(nifti_files):
-    """Get the paths to the map names.
-
-    Returns:
-        dict: a dictionary with for every map name a list with the paths that would normally result in that map name.
-    """
-    map_name_paths = {}
-    for full_path in nifti_files:
-        _, map_name, _ = split_image_path(full_path)
-        if map_name not in map_name_paths:
-            map_name_paths[map_name] = [full_path]
-        else:
-            map_name_paths[map_name].append(full_path)
-    return map_name_paths
-
-
 def load_data_info(nifti_files):
     """Load the data info for all the nifti files.
 
@@ -1471,30 +1468,29 @@ def load_data_info(nifti_files):
         dict[str, SingleMapInfo]: the dictionary with the single map information
     """
     data_info = {}
-
-    for map_name, paths in find_map_paths(nifti_files).items():
-        if len(paths) == 1:
-            data_info.update({map_name: SingleMapInfo.from_file(paths[0])})
-        else:
-            map_names = get_shortest_unique_names(paths)
-            for ind in range(len(map_names)):
-                data_info[map_names[ind]] = SingleMapInfo.from_file(paths[ind])
-
+    for ind, map_name in enumerate(get_shortest_unique_names(nifti_files)):
+        data_info[map_name] = SingleMapInfo.from_file(nifti_files[ind])
     return data_info
 
 
 def get_shortest_unique_names(paths):
     """Get the shortest unique map name between two or more nifti file paths.
 
-    This function is handy when you are loading two maps like for example ``./foo.nii`` and ``./foo.nii.gz`` or like:
-    ``S1/foo.nii``, ``S2/foo.nii``. In both cases the map name (foo) is similar, but we want to be able to show them
-    distinctly. Hence, this function tries to find the shortest unique map names.
+    This function is useful when loading multiple maps like for example ``./foo.nii`` and ``./foo.nii.gz`` or
+    ``../directory0/foo.nii`` and ``../directory1/foo.nii``. In all cases the map name (foo) is similar,
+    but we want to be able to show them distinctly. This function tries to find the shortest unique map names
+    for each of the maps.
+
+    Example output:
+    * [``./foo.nii``] -> ``foo``
+    * [``./foo.nii``, ``./foo.nii.gz``] -> [``foo.nii``, ``foo.nii.gz``]
+    * [``../directory0/foo.nii``, ``../directory1/foo.nii``] -> [``directory0/foo``, ``directory1/foo``]
 
     Args:
         paths (list of str): the paths to the different nifti files
 
     Returns:
-        tuple: the map names for the given two paths (in the same order)
+        tuple: the map names for the given set of paths (in the same order)
     """
     dirs, names, exts = zip(*map(split_image_path, paths))
 
@@ -1509,9 +1505,9 @@ def get_shortest_unique_names(paths):
     multiple_dirs = len(set(dirs)) > 1
     shortest_dir = sorted(dirs, key=lambda d: len(d))[0]
 
-    def multiple_maps_in_same_dir(current_ind, current_directory):
+    def multiple_maps_in_same_dir(current_ind, current_directory, current_name):
         for ind, (directory, name, ext, full_path) in enumerate(zip(dirs, names, exts, paths)):
-            if ind != current_ind and directory == current_directory:
+            if ind != current_ind and directory == current_directory and name == current_name:
                 return True
         return False
 
@@ -1523,11 +1519,15 @@ def get_shortest_unique_names(paths):
                 new_name = os.path.relpath(directory, shortest_dir) + '/' + name
                 if new_name.startswith('../'):
                     new_name = new_name[3:]
+                if shortest_dir == '/':
+                    new_name = '/' + new_name
+        else:
+            new_name = name
 
-            if multiple_maps_in_same_dir(ind, directory):
-                new_name += ext
+        if multiple_maps_in_same_dir(ind, directory, name):
+            new_name += ext
 
-            new_names.append(new_name)
+        new_names.append(new_name)
 
     return new_names
 

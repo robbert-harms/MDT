@@ -169,8 +169,7 @@ class _MouseInteraction(object):
         if axis_data:
             x, y = int(np.round(event.xdata)), int(np.round(event.ydata))
             index = axis_data.coordinates_to_index(x, y)
-            value = axis_data.get_value(index)
-            self.plotting_info_viewer.set_voxel_info((x, y), tuple(index), float(value))
+            self.plotting_info_viewer.set_voxel_info(axis_data.map_name, (x, y), tuple(index))
         else:
             self.plotting_info_viewer.clear_voxel_info()
 
