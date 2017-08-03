@@ -316,3 +316,8 @@ class SetFlipud(SimpleConfigAction):
                             Point(configuration.zoom.p1.x, new_p1_y))
 
             return SetZoom(new_zoom).apply(SimpleDataConfigModel(data, configuration)).get_config()
+
+
+class SetHighlightVoxel(SimpleConfigAction):
+
+    config_attribute = 'highlight_voxel'

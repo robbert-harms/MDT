@@ -1,5 +1,5 @@
 import glob
-from copy import copy
+from copy import copy, deepcopy
 import os
 import inspect
 import warnings
@@ -86,7 +86,7 @@ class MapPlotConfig(SimpleConvertibleConfig):
     def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=90, colormap='hot', maps_to_show=None,
                  font=None, grid_layout=None, colorbar_nmr_ticks=4, show_axis=False, zoom=None, show_colorbar=True,
                  map_plot_options=None, interpolation='bilinear', flipud=None,
-                 title=None, mask_name=None, drawable_patches=None):
+                 title=None, mask_name=None, highlight_voxel=None):
         """Container for all plot related settings.
 
         Args:
@@ -108,7 +108,7 @@ class MapPlotConfig(SimpleConvertibleConfig):
             flipud (boolean): if True we flip the image upside down
             title (str): the title to this plot
             mask_name (str): the name of the mask to apply to the maps prior to display
-            drawable_patches (list of DrawablePatch): the patches that need to be drawn on every displayed image
+            highlight_voxel (tuple): the voxel to highlight
         """
         super(MapPlotConfig, self).__init__()
         self.dimension = dimension
@@ -132,7 +132,7 @@ class MapPlotConfig(SimpleConvertibleConfig):
         self.map_plot_options = map_plot_options or {}
         self.title = title
         self.mask_name = mask_name
-        self.drawable_patches = drawable_patches or []
+        self.highlight_voxel = highlight_voxel or ()
 
         if interpolation not in self.get_available_interpolations():
             raise ValueError('The given interpolation ({}) is not supported.'.format(interpolation))
@@ -186,7 +186,7 @@ class MapPlotConfig(SimpleConvertibleConfig):
                 'title': StringConversion(),
                 'mask_name': StringConversion(),
                 'show_colorbar': BooleanConversion(),
-                'drawable_patches': ConvertListElements(DrawablePatches.get_conversion_info())
+                'highlight_voxel': SimpleListConversion(desired_type=int, allow_null=False)
                 }
 
     @classmethod
@@ -292,11 +292,31 @@ class MapPlotConfig(SimpleConvertibleConfig):
             if value is not None:
                 self.map_plot_options[key] = value.validate(data_info)
 
+    def _validate_highlight_voxel(self, data_info):
+        if self.highlight_voxel:
+            if len(self.highlight_voxel) > 3:
+                raise ValueError('The location of the highlight voxel should consist of (x, y, z) '
+                                 'coordinates, {} given.'.format(self.highlight_voxel))
+            for dim, pos in enumerate(self.highlight_voxel):
+                try:
+                    max_pos = data_info.get_max_slice_index(dimension=dim)
+                except ValueError:
+                    max_pos = None
+
+                if max_pos is not None:
+                    if pos > max_pos:
+                        raise ValueError('The location of the highlighted in '
+                                         'the {} dimension is larger than {}, {} given.'.format(dim, max_pos, pos))
+
+                if pos < 0:
+                    raise ValueError('The location of the highlighted in '
+                                     'the {} dimension is negative, {} given.'.format(dim, pos))
+
 
 class SingleMapConfig(SimpleConvertibleConfig):
 
     def __init__(self, title=None, scale=None, clipping=None, colormap=None, colorbar_label=None, show_colorbar=True,
-                 title_spacing=None, mask_name=None, drawable_patches=None):
+                 title_spacing=None, mask_name=None):
         """Creates the configuration for a single map plot.
 
         Args:
@@ -308,7 +328,6 @@ class SingleMapConfig(SimpleConvertibleConfig):
             show_colorbar (boolean): if we want to show the colorbar or not
             title_spacing (float): the spacing between the top of the plots and the title
             mask_name (str): the name of the mask used to mask the data prior to visualization
-            drawable_patches (list of DrawablePatch): the patches that need to be drawn on every displayed image
         """
         super(SingleMapConfig, self).__init__()
         self.title = title
@@ -319,7 +338,6 @@ class SingleMapConfig(SimpleConvertibleConfig):
         self.colorbar_label = colorbar_label
         self.show_colorbar = show_colorbar
         self.mask_name = mask_name
-        self.drawable_patches = drawable_patches or []
 
         if self.colormap is not None and self.colormap not in self.get_available_colormaps():
             raise ValueError('The given colormap ({}) is not supported.'.format(self.colormap))
@@ -333,8 +351,7 @@ class SingleMapConfig(SimpleConvertibleConfig):
                 'colorbar_label': StringConversion(),
                 'title_spacing': FloatConversion(),
                 'mask_name': StringConversion(),
-                'show_colorbar': BooleanConversion(),
-                'drawable_patches': ConvertListElements(DrawablePatches.get_conversion_info())}
+                'show_colorbar': BooleanConversion()}
 
     @classmethod
     def get_available_colormaps(cls):
@@ -789,7 +806,7 @@ class SingleMapInfo(object):
 
     @property
     def shape(self):
-        return self._shape
+        return deepcopy(self._shape)
 
     @property
     def data(self):
@@ -1149,59 +1166,6 @@ class Point(SimpleConvertibleConfig):
             return rx, ry
 
         return Point(*rotate_coordinate(self.x, self.y, nmr_rotations))
-
-
-class DrawablePatches(SimpleConvertibleConfig):
-
-    def __init__(self, patch_type, patch_args=None, patch_kwargs=None):
-        """Container and constructor  for simple drawable patches.
-
-        This class constructs an object in ``matplotlib.patches`` of the given (patch) type with as arguments
-        the given args and kwargs.
-
-        Examples:
-            DrawablePatches('Rectangle', [xy, width, height], {angle=0.0, ...})
-
-        Args:
-            patch_type (str): the type of patch we want to generate. Should be one of the classes in matplotlib.patches.
-            patch_args (list_: passed to the constructor of the patch
-            patch_kwargs (dict): passed to the constructor of the patch
-        """
-        self.patch_type = patch_type
-        self.patch_args = patch_args or []
-        self.patch_kwargs = patch_kwargs or {}
-
-        self._construct_patch()
-
-    @classmethod
-    def _get_attribute_conversions(cls):
-        return {'patch_type': StringConversion(allow_null=False),
-                'patch_args': SimpleListConversion(),
-                'patch_kwargs': SimpleDictConversion()}
-
-    def get_patch(self):
-        """Get the actual Patch that matplotlib can draw on the images
-
-        Returns:
-            patch: the patch to draw on the images
-        """
-        return self._construct_patch()
-
-    def _construct_patch(self):
-        class_type = self._patch_type_to_class(self.patch_type)
-        if class_type is None:
-            raise ValueError('The given patch type ({}) could not be found, '
-                             'please use one of matplotlib.patches.'.format(self.patch_type))
-        return class_type(*self.patch_args, **self.patch_kwargs)
-
-    @staticmethod
-    def _patch_type_to_class(patch_type):
-        import matplotlib.patches
-        classes = inspect.getmembers(matplotlib.patches, inspect.isclass)
-        for name, class_type in classes:
-            if name == patch_type:
-                return class_type
-        return None
 
 
 class Clipping(SimpleConvertibleConfig):

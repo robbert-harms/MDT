@@ -1,7 +1,7 @@
 import os
-
+import copy
 import numpy as np
-from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt, patches
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from mdt import get_slice_in_dimension
@@ -72,8 +72,8 @@ class AxisData(object):
         Args:
             axis (Axis): the matpotlib axis
             map_name (str): the name/key of this map
-            map_info (SingleMapInfo): the map information
-            plot_config (MapPlotConfig): the map plot configuration
+            map_info (mdt.visualization.maps.base.SingleMapInfo): the map information
+            plot_config (mdt.visualization.maps.base.MapPlotConfig): the map plot configuration
         """
         self.axis = axis
         self.map_name = map_name
@@ -142,22 +142,13 @@ class Renderer(object):
         axis.axis('on' if self._plot_config.show_axis else 'off')
 
         data = self._get_image(map_name)
-        if self._plot_config.rotate:
-            data = np.rot90(data, self._plot_config.rotate // 90)
-
-        if not self._plot_config.flipud:
-            # by default we flipud to correct for matplotlib lower origin. If the user
-            # sets flipud, we do not need to to it
-            data = np.flipud(data)
-
-        data = self._plot_config.zoom.apply(data)
 
         plot_options = self._get_map_plot_options(map_name)
         plot_options['origin'] = 'lower'
         plot_options['interpolation'] = self._plot_config.interpolation
         vf = axis.imshow(data, **plot_options)
 
-        self._add_patches(map_name, axis)
+        self._add_highlight(map_name, axis, data.shape)
 
         if self._get_map_attr(map_name, 'show_colorbar', self._plot_config.show_colorbar):
             divider = make_axes_locatable(axis)
@@ -188,13 +179,69 @@ class Renderer(object):
         colorbar_axis.yaxis.offsetText.set_fontsize(self._plot_config.font.size - 3)
         colorbar_axis.yaxis.offsetText.set_family(self._plot_config.font.name)
 
-    def _add_patches(self, map_name, axis):
+    def _add_highlight(self, map_name, axis, viewport_dims):
         """Add the patches defined in the global config and in the map specific config to this image plot."""
-        for patch_info in self._plot_config.drawable_patches:
-            axis.add_patch(patch_info.get_patch())
+        def format_value(v):
+            value_format = '{:.3e}'
+            if 1e-3 < v < 1e3:
+                value_format = '{:.3f}'
+            return value_format.format(v)
 
-        for patch_info in self._get_map_attr(map_name, 'drawable_patches', []):
-            axis.add_patch(patch_info.get_patch())
+        def get_value_index(location):
+            data = self._data_info.get_map_data(map_name)
+            index = tuple(location)
+
+            if len(data.shape) > 3 and data.shape[3] > 1:
+                if len(index) < 4:
+                    index = index + (self._plot_config.volume_index,)
+                return index
+            else:
+                return index[:3]
+
+        def get_value(index):
+            data = self._data_info.get_map_data(map_name)
+            return float(data[index])
+
+        highlight_voxel = self._plot_config.highlight_voxel
+        if highlight_voxel:
+            index = get_value_index(highlight_voxel)
+            value = get_value(index)
+
+            coordinate = _index_to_coordinates(self._data_info.get_single_map_info(map_name), self._plot_config, index)
+            if coordinate is not None:
+                coordinate = np.array(coordinate)
+
+                xy_arrowhead = np.copy(coordinate)
+                xy_text = np.copy(coordinate)
+                horizontalalignment = 'right'
+                verticalalignment = 'bottom'
+                delta_x = np.clip(0.05 * viewport_dims[0], 1, 10)
+                delta_y = np.clip(0.05 * viewport_dims[1], 1, 10)
+
+                if coordinate[0] > viewport_dims[0] // 2:
+                    xy_text[0] += delta_x
+                    horizontalalignment = 'left'
+                else:
+                    xy_text[0] -= delta_x
+
+                if coordinate[1] > viewport_dims[1] // 2:
+                    xy_text[1] += delta_y
+                else:
+                    verticalalignment = 'top'
+                    xy_text[1] -= delta_y
+
+                rect = patches.Rectangle(coordinate-0.5, 1, 1, linewidth=1, edgecolor='white', facecolor='#0066ff')
+                axis.add_patch(rect)
+
+                text = "{},\n{}".format(tuple(index), format_value(value))
+
+                axis.annotate(text, xy=xy_arrowhead, xytext=xy_text,
+                              horizontalalignment=horizontalalignment, verticalalignment=verticalalignment,
+                              multialignment='left',
+                              arrowprops=dict(color='white', arrowstyle="->", connectionstyle="arc3"),
+                              color='black', size=10,
+                              bbox=dict(facecolor='white'))
+
 
     def _add_colorbar(self, map_name, axis, image_figure, colorbar_label):
         """Add a colorbar to the axis
@@ -243,13 +290,12 @@ class Renderer(object):
 
     def _get_image(self, map_name):
         """Get the 2d image to display for the given data."""
-        data = self._data_info.get_map_data(map_name)
-
-        dimension = self._plot_config.dimension
-        slice_index = self._plot_config.slice_index
-        volume_index = self._plot_config.volume_index
-
         def get_slice(data):
+            """Get the slice of the data in the desired dimension."""
+            dimension = self._plot_config.dimension
+            slice_index = self._plot_config.slice_index
+            volume_index = self._plot_config.volume_index
+
             data_slice = get_slice_in_dimension(data, dimension, slice_index)
             if len(data_slice.shape) > 2:
                 if volume_index < data_slice.shape[2]:
@@ -262,17 +308,22 @@ class Renderer(object):
 
             return data_slice
 
+        def apply_modifications(data_slice):
+            """Modify the data using (possible) value clipping and masking"""
+            data_slice = self._get_map_attr(map_name, 'clipping', Clipping()).apply(data_slice)
+            mask_name = self._get_map_attr(map_name, 'mask_name', self._plot_config.mask_name)
+            if mask_name:
+                data_slice = data_slice * (get_slice(self._data_info.get_map_data(mask_name)) > 0)
+            return data_slice
+
+        data = self._data_info.get_map_data(map_name)
         if len(data.shape) == 2:
             data_slice = data
         else:
             data_slice = get_slice(data)
 
-        data_slice = self._get_map_attr(map_name, 'clipping', Clipping()).apply(data_slice)
-
-        mask_name = self._get_map_attr(map_name, 'mask_name', self._plot_config.mask_name)
-        if mask_name:
-            data_slice = data_slice * (get_slice(self._data_info.get_map_data(mask_name)) > 0)
-
+        data_slice = apply_modifications(data_slice)
+        data_slice = _apply_transformations(self._plot_config, data_slice)
         return data_slice
 
     def _get_tick_locator(self, map_name):
@@ -287,17 +338,43 @@ class Renderer(object):
         return MyColourBarTickLocator(min_val, max_val, numticks=self._plot_config.colorbar_nmr_ticks)
 
 
+def _apply_transformations(plot_config, data_slice):
+    """Rotate, flip and zoom the data slice.
+
+    Depending on the plot configuration, this will apply some transformations to the given data slice.
+
+    Args:
+        plot_config (mdt.visualization.maps.base.MapPlotConfig): the plot configuration
+        data_slice (ndarray): the 2d slice of data to transform
+
+    Returns:
+        ndarray: the transformed 2d slice of data
+    """
+    if plot_config.rotate:
+        data_slice = np.rot90(data_slice, plot_config.rotate // 90)
+
+    if not plot_config.flipud:
+        # by default we flipud to correct for matplotlib lower origin. If the user
+        # sets flipud, we do not need to to it
+        data_slice = np.flipud(data_slice)
+
+    data_slice = plot_config.zoom.apply(data_slice)
+    return data_slice
+
+
 def _coordinates_to_index(map_info, plot_config, x, y):
     """Converts data coordinates to index coordinates of the array.
 
+    This is the inverse of :func:`_index_to_coordinates`.
+
     Args:
-        map_info (SingleMapInfo): the map information
-        plot_config (MapPlotConfig): the map plot configuration
+        map_info (mdt.visualization.maps.base.SingleMapInfo): the map information
+        plot_config (mdt.visualization.maps.base.MapPlotConfig): the map plot configuration
         x (int): The x-coordinate in data coordinates.
         y (int): The y-coordinate in data coordinates.
 
     Returns
-        tuple: Index coordinates of the map associated with the image (x, y, z, d).
+        tuple: Index coordinates of the map associated with the image (x, y, z, w).
     """
     shape = map_info.get_size_in_dimension(plot_config.dimension, plot_config.rotate)
 
@@ -339,3 +416,36 @@ def _coordinates_to_index(map_info, plot_config, x, y):
 
     return index
 
+
+def _index_to_coordinates(map_info, plot_config, index):
+    """Converts data index coordinates to an onscreen position.
+
+    This is the inverse of :func:`_coordinates_to_index`.
+
+    Args:
+        map_info (mdt.visualization.maps.base.SingleMapInfo): the map information
+        plot_config (mdt.visualization.maps.base.MapPlotConfig): the map plot configuration
+        index (tuple of int): The data index we wish to translate to an onscreen position.
+
+    Returns
+        tuple or None: Coordinates of the given index on the screen (x, y) or None if coordinate not visible.
+    """
+    dimension = plot_config.dimension
+
+    if index[dimension] != plot_config.slice_index:
+        return None
+
+    reduced_index = list(index[:3])
+    del reduced_index[dimension]
+
+    img_shape = list(map_info.shape[:3])
+    del img_shape[dimension]
+
+    index_slice = np.arange(0, int(np.prod(img_shape)), 1).reshape(img_shape)
+
+    index_nmr = index_slice[tuple(reduced_index)]
+    coordinates = np.where(_apply_transformations(plot_config, index_slice) == index_nmr)
+
+    if len(coordinates[0]) and len(coordinates[1]):
+        return coordinates[1][0], coordinates[0][0]
+    return None
