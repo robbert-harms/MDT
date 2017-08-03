@@ -12,6 +12,14 @@ mdt\.cl\_routines\.mapping\.calculate\_eigenvectors module
     :undoc-members:
     :show-inheritance:
 
+mdt\.cl\_routines\.mapping\.dki\_measures module
+------------------------------------------------
+
+.. automodule:: mdt.cl_routines.mapping.dki_measures
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 mdt\.cl\_routines\.mapping\.dti\_measures module
 ------------------------------------------------
 

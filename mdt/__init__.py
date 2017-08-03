@@ -27,7 +27,7 @@ from mdt.utils import estimate_noise_std, get_cl_devices, load_problem_data, cre
     load_nifti, write_slice_roi, split_write_dataset, apply_mask_to_file, extract_volumes, recalculate_error_measures, \
     get_slice_in_dimension, per_model_logging_context, \
     get_temporary_results_dir, get_example_data, create_sort_matrix, sort_volumes_per_voxel, \
-    sort_orientations, SimpleInitializationData
+    sort_orientations, SimpleInitializationData, InitializationData
 from mdt.simulations import create_signal_estimates, simulate_signals, add_rician_noise
 from mdt.batch_utils import collect_batch_fit_output, collect_batch_fit_single_map, run_function_on_batch_fit_output
 from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, write_protocol, write_bvec_bval
@@ -80,9 +80,16 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
             and save that using a SaveFromScript saver. If a string is given we use that filename again for the
             SaveFromScript saver. If False or None, we do not write any information. If a SaveUserScriptInfo is
             given we use that directly.
-        initialization_data (:class:`~mdt.utils.InitializationData`): provides (extra) initialization data to use
-            during model fitting. If we are optimizing a cascade model this data only applies to the last model in the
-            cascade.
+        initialization_data (:class:`~mdt.utils.InitializationData` or dict): provides (extra) initialization data to
+            use during model fitting. If we are optimizing a cascade model this data only applies to the last model
+            in the cascade. If a dictionary is given we will load the elements as arguments to the
+            :class:`mdt.utils.SimpleInitializationData` class. For example::
+
+                initialization_data = {'fixes': {...}, 'inits': {...}}
+
+            is transformed into::
+
+                initialization_data = SimpleInitializationData(fixes={...}, inits={...})
 
     Returns:
         dict: The result maps for the given composite model or the last model in the cascade.
@@ -93,6 +100,9 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
 
     if not mdt.utils.check_user_components():
         init_user_settings(pass_if_exists=True)
+
+    if not isinstance(initialization_data, InitializationData):
+        initialization_data = SimpleInitializationData(**initialization_data)
 
     model_fit = ModelFit(model, problem_data, output_folder, optimizer=optimizer, recalculate=recalculate,
                          only_recalculate_last=only_recalculate_last,
@@ -130,9 +140,16 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
             and save that using a SaveFromScript saver. If a string is given we use that filename again for the
             SaveFromScript saver. If False or None, we do not write any information. If a SaveUserScriptInfo is
             given we use that directly.
-        initialization_data (:class:`~mdt.utils.InitializationData`): provides (extra) initialization data to use
-            during model fitting. If we are optimizing a cascade model this data only applies to the last model in the
-            cascade.
+        initialization_data (:class:`~mdt.utils.InitializationData` or dict): provides (extra) initialization data to
+            use during model fitting. If we are optimizing a cascade model this data only applies to the last model
+            in the cascade. If a dictionary is given we will load the elements as arguments to the
+            :class:`mdt.utils.SimpleInitializationData` class. For example::
+
+                initialization_data = {'fixes': {...}, 'inits': {...}}
+
+            is transformed into::
+
+                initialization_data = SimpleInitializationData(fixes={...}, inits={...})
 
     Returns:
         dict: if store_samples is True then we return the samples per parameter as a numpy memmap. If store_samples
@@ -143,6 +160,9 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
     from mdt.model_sampling import sample_composite_model
     from mdt.models.cascade import DMRICascadeModelInterface
     import mot.configuration
+
+    if not isinstance(initialization_data, InitializationData):
+        initialization_data = SimpleInitializationData(**initialization_data)
 
     if not mdt.utils.check_user_components():
         init_user_settings(pass_if_exists=True)

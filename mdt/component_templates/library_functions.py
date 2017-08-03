@@ -1,10 +1,8 @@
-import inspect
-import os
 from copy import deepcopy
 from textwrap import indent, dedent
 
 import six
-from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplateMeta, \
+from mdt.component_templates.base import ComponentBuilder, method_binding_meta, \
     ComponentTemplate, register_builder
 from mdt.components_loader import ParametersLoader
 from mot.cl_data_type import SimpleCLDataType

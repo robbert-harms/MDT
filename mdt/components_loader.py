@@ -647,8 +647,8 @@ class AutoUserComponentsSourceMulti(UserComponentsSourceMulti):
             user_type (str): either 'user' or 'standard'. This defines from which dir to use the components
             component_type (str): from which dir in 'user' or 'standard' to use the components
             component_class (class): the class to auto use
-            component_builder (mdt.component_templates.base.ComponentBuilder): the component creator to use for components defined as a
-                ComponentTemplate.
+            component_builder (mdt.component_templates.base.ComponentBuilder): the component creator to use for
+                components defined as a ComponentTemplate.
         """
         self._component_class = component_class
         self.component_builder = component_builder
@@ -715,6 +715,26 @@ class CompositeModelSource(AutoUserComponentsSourceMulti):
         from mdt.component_templates.composite_models import DMRICompositeModelBuilder
         super(CompositeModelSource, self).__init__(user_type, 'composite_models', DMRICompositeModel,
                                                    DMRICompositeModelBuilder())
+
+
+class CompartmentModelSource(AutoUserComponentsSourceMulti):
+
+    def __init__(self, user_type):
+        """Source for the items in the 'composite_models' dir in the components folder."""
+        from mdt.models.compartments import DMRICompartmentModelFunction
+        from mdt.component_templates.compartment_models import CompartmentBuilder
+        super(CompartmentModelSource, self).__init__(user_type, 'compartment_models', DMRICompartmentModelFunction,
+                                                     CompartmentBuilder())
+
+
+class LibraryFunctionSource(AutoUserComponentsSourceMulti):
+
+    def __init__(self, user_type):
+        """Source for the items in the 'composite_models' dir in the components folder."""
+        from mot.library_functions import CLLibrary
+        from mdt.component_templates.library_functions import LibraryFunctionsBuilder
+        super(LibraryFunctionSource, self).__init__(user_type, 'library_functions', CLLibrary,
+                                                    LibraryFunctionsBuilder())
 
 
 class CascadeSource(AutoUserComponentsSourceMulti):
@@ -807,22 +827,20 @@ class NoiseSTDCalculatorsLoader(ComponentsLoader):
 class CompartmentModelsLoader(ComponentsLoader):
 
     def __init__(self):
-        from mdt.component_templates.compartment_models import CompartmentBuilder
         super(CompartmentModelsLoader, self).__init__(
             [UserPreferredSource('compartment_models'),
-             AutoUserComponentsSourceSingle('standard', 'compartment_models', CompartmentBuilder()),
-             AutoUserComponentsSourceSingle('user', 'compartment_models', CompartmentBuilder()),
+             CompartmentModelSource('standard'),
+             CompartmentModelSource('user'),
              MOTCompartmentModelsSource()])
 
 
 class LibraryFunctionsLoader(ComponentsLoader):
 
     def __init__(self):
-        from mdt.component_templates.library_functions import LibraryFunctionsBuilder
         super(LibraryFunctionsLoader, self).__init__(
             [UserPreferredSource('library_functions'),
-             AutoUserComponentsSourceSingle('standard', 'library_functions', LibraryFunctionsBuilder()),
-             AutoUserComponentsSourceSingle('user', 'library_functions', LibraryFunctionsBuilder()),
+             LibraryFunctionSource('standard'),
+             LibraryFunctionSource('user'),
              MOTLibraryFunctionSource()])
 
 

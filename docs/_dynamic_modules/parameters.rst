@@ -32,11 +32,21 @@ See the sections below for more details on each type.
 
 Free parameters
 ===============
-These parameters are supposed to be optimized by the optimization routines. They contain some meta-information such as a
-lower- and upper- bound, sampling prior, parameter transformation function and more.
+These parameters are normally supposed to be optimized by the optimization routines.
+They contain some meta-information such as a lower- and upper- bound, sampling prior, parameter transformation function and more.
 During optimization, parameters of this type can be fixed to a specific value, which means that they are no longer optimized
-but that their values (per voxel) are provided by a map.
-When fixed, these parameters are still classified as free parameters (considered them as fixed free parameters).
+but that their values (per voxel) are provided by a scalar or a map.
+When fixed, these parameters are still classified as free parameters (you can consider them as fixed free parameters).
+
+To fix these parameters you can either define so in a composite model, a cascade model or using the Python API before model optimization::
+
+    mdt.fit_model('CHARMED_r1',
+                  ...,
+                  initialization_data=dict(
+                      fixes={},
+                      inits={}
+                  ))
+
 
 A free parameter is identified by having the super class :py:class:`~mdt.models.parameters.FreeParameterTemplate` and
 are commonly placed in the Python module named ``free.py``.
@@ -79,6 +89,19 @@ When defined, MDT tries to load the appropriate data from the ``static_maps`` in
 
 The values in the static maps are meant for values per voxel (and optionally also per volume).
 They can hold, for example, b0 inhomogeneity maps or flip angle maps that have a specific value per voxel and (optionally) per volume.
+
+This parameter type is not meant as a replacement for free parameters when you want to fixate those to certain values.
+For example, suppose you want to optimize every parameter of ``CHARMED_r1`` except for the angles ``theta`` and ``phi``.
+Then you should not replace the ``theta`` and ``phi`` parameters with fixed parameters.
+The better way is to use the ``initialization_data`` argument of the ``mdt.fit_model`` function::
+
+    mdt.fit_model('CHARMED_r1',
+                  ...,
+                  initialization_data=dict(
+                      fixes={'CHARMEDRestricted0.theta': theta,
+                             'CHARMEDRestricted0.phi': phi}
+                  ))
+
 
 A static map parameter is identified by having the super class :py:class:`~mdt.models.parameters.StaticMapParameterTemplate` and
 are commonly placed in the Python module named ``static_maps.py``.

@@ -7,8 +7,10 @@ The compartment models are the building blocks of the composite models.
 They consists in basis of two parts, a list of parameters (see :ref:`dynamic_modules_parameters`) and the model code in OpenCL C (see :ref:`concepts_cl_code`).
 At runtime, MDT loads the C/CL code of the compartment model and combines it with the other compartments to form the composite model.
 
-The compartment models must be defined in a ``.py`` file where the **filename matches the class name** and it only allows for **one compartment per file**.
-For example, the following example compartment model is named ``Stick`` and must therefore be contained in a file named ``Stick.py``::
+The compartment models must be defined in a ``.py`` file in the ``compartment_models`` directory.
+For example, the Stick model can be defined as::
+
+    from mdt.component_templates.compartment_models import CompartmentTemplate
 
     class Stick(CompartmentTemplate):
 
@@ -54,11 +56,7 @@ Dependency list
 ===============
 Some models may depend on other compartment models or on library functions.
 These dependencies can be specified using the ``dependency_list`` attribute of the compartment model definition.
-As an example:
-
-.. code-block:: python
-
-    from mdt.components_loader import CompartmentModelsLoader
+As an example::
 
     dependency_list = ('CerfErfi', 'MRIConstants', 'CylinderGPD')
 
@@ -83,7 +81,7 @@ These can be added to the compartment model using the ``cl_extra`` attribute. Fo
         cl_code = 'return other_function(g, b, d);'
         cl_extra = '''
             double other_function(
-                    mot_float_type g,
+                    mot_float_type4 g,
                     mot_float_type b,
                     mot_float_type d){
 
@@ -109,7 +107,9 @@ Just as with composite models, one can add extra output maps by adding a list of
 
     class Stick(CompartmentTemplate):
         ...
-        post_optimization_modifiers = [('vec0', lambda results: spherical_to_cartesian(results['theta'], results['phi']))]
+        post_optimization_modifiers = [
+            ('vec0', lambda results: spherical_to_cartesian(results['theta'], results['phi']))
+        ]
 
 
 In this example we added the (x, y, z) component vector to the results for the Stick compartment.

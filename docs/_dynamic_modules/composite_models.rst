@@ -5,10 +5,11 @@ Composite models
 ****************
 The composite models, or, multi-compartment models, are the models that MDT actually optimizes.
 They are formed by a combination of compartment models and since the compartments already contain the CL code, no further CL code is necessary in the multi-compartment models.
-When asked to optimize (or sample) a composite model, MDT combines the CL code of the compartments into one objective function
-and uses the parameters of the compartments to load the data.
 
-Composite models can be placed in any ``.py`` file within the ``composite_models`` directory (in contrast to the compartment models which must be placed in their own file).
+When asked to optimize (or sample) a composite model, MDT combines the CL code of the compartments into one objective function and
+combines it with a likelihood function (Rician, OffsetGaussian, Gaussian).
+
+Composite models can be placed in any ``.py`` file within the ``composite_models`` directory.
 The following is an minimal example of a composite (multi-compartment) model in MDT::
 
     class BallStickStick(DMRICompositeModelTemplate):
