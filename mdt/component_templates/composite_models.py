@@ -10,6 +10,7 @@ from mot.model_building.evaluation_models import EvaluationModel
 from mot.model_building.trees import CompartmentModelTree
 from mot.model_building.utils import ModelPrior, SimpleModelPrior
 
+
 __author__ = 'Robbert Harms'
 __date__ = "2017-02-14"
 __maintainer__ = "Robbert Harms"
@@ -91,7 +92,7 @@ class DMRICompositeModelTemplate(ComponentTemplate):
             the compartment priors and the parameter priors. If a string is given we will automatically construct a
             :class:`mot.model_building.utils.ModelPrior` from that string.
 
-        maps_to_sort (list of tuple): The maps to sort as post-processing before the other post optimization modifiers.
+        sort_maps (list of tuple): The maps to sort as post-processing before the other post optimization modifiers.
             This will sort the given maps voxel by voxel based on the given maps as a key. The first
             tuple needs to be a parameter reference or a ``Weight`` compartment, the other tuples can contain either
             parameters or compartments.
@@ -100,11 +101,11 @@ class DMRICompositeModelTemplate(ComponentTemplate):
                 maps_to_sort = [('w0.w', 'w1.w'), ('Stick0', 'Stick1')]
 
             will sort the weights w0.w and w1.w and sort all the parameters of the Stick0 and Stick1
-            compartment according to the sorting of the other compartments.
+            compartment according to the sorting of those weights.
 
-            Alternatively, one can write::
+            One can also sort on only one parameter of a compartment using::
 
-                maps_to_sort = [('w0.w', 'w1.w'), ('Stick0.theta', 'Stick1.theta')]
+                maps_to_sort = [('w0', 'w1'), ('Stick0.theta', 'Stick1.theta')]
 
             which will again sort the weights but will only sort the theta map of both the Stick compartments.
 
@@ -122,7 +123,7 @@ class DMRICompositeModelTemplate(ComponentTemplate):
     enforce_weights_sum_to_one = True
     volume_selection = None
     prior = None
-    maps_to_sort = None
+    sort_maps = None
 
     @classmethod
     def meta_info(cls):
@@ -151,8 +152,9 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                     signal_noise_model=deepcopy(template.signal_noise_model),
                     enforce_weights_sum_to_one=template.enforce_weights_sum_to_one)
 
-                # if len(template.maps_to_sort):
-                #     self.add_post_optimization_modifiers(_get_map_sorting_modifier(template.maps_to_sort))
+                if template.sort_maps:
+                    self.add_post_optimization_modifier(*_get_map_sorting_modifier(
+                        template.sort_maps, self._model_functions_info.get_model_parameter_list()))
 
                 self.add_post_optimization_modifiers(_get_model_post_optimization_modifiers(
                     self._model_functions_info.get_model_list()))
@@ -257,21 +259,63 @@ def _resolve_model_prior(prior, model_parameters):
     return [SimpleModelPrior(prior, parameters, 'model_prior')]
 
 
-def _get_map_sorting_modifier(maps_to_sort):
+def _get_map_sorting_modifier(sort_maps, model_list):
     """Construct the map sorting modification routine for the given maps_to_sort attribute.
 
     Args:
-        list of tuple: the list with compartments/parameters to sort. Sorting is done on the first element and
+        sort_maps (list of tuple): the list with compartments/parameters to sort. Sorting is done on the first element and
             the other maps are sorted based on that indexing.
-
+        model_list (list of tuple): the list of model, parameter tuples to use for matching names.
     Returns:
         tuple: name, modification routine. The modification routine will sort the maps as specified.
     """
+    def is_param_name(name):
+        return '.' in name
+
+    def get_model_by_name(name):
+        for model, parameter in model_list:
+            if model.name == name:
+                return model
+
+    sort_keys = []
+    for name in sort_maps[0]:
+        for model, parameter in model_list:
+            full_name = '{}.{}'.format(model.name, parameter.name)
+            if model.name == name or full_name == name:
+                sort_keys.append(full_name)
+                break
+
+    other_sort_pairs = []
+    for other_pair in sort_maps[1:]:
+        if is_param_name(other_pair[0]):
+            other_sort_pairs.append(other_pair)
+        else:
+            model = get_model_by_name(other_pair[0])
+            for parameter in model.get_free_parameters():
+                sort_pair = []
+                for model_name in other_pair:
+                    sort_pair.append('{}.{}'.format(model_name, parameter.name))
+                other_sort_pairs.append(sort_pair)
+
     def map_sorting(results):
-        pass
+        sort_matrix = np.column_stack([results[map_name] for map_name in sort_keys])
+        ranking = np.atleast_2d(np.squeeze(np.argsort(sort_matrix, axis=1)[:, ::-1]))
+        list_index = np.arange(ranking.shape[0])
 
-    # return
+        sorted_maps = []
+        sorted_maps.extend(sort_matrix[list_index, ranking[:, ind], None] for ind in range(ranking.shape[1]))
 
+        for pair in other_sort_pairs:
+            sort_matrix = np.column_stack([results[map_name] for map_name in pair])
+            sorted_maps.extend(sort_matrix[list_index, ranking[:, ind], None] for ind in range(ranking.shape[1]))
+        return sorted_maps
+
+    names = []
+    names.extend(sort_keys)
+    for pairs in other_sort_pairs:
+        names.extend(pairs)
+
+    return names, map_sorting
 
 
 def _get_model_post_optimization_modifiers(compartments):

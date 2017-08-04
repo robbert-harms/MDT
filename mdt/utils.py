@@ -1728,9 +1728,11 @@ def get_example_data(output_directory):
 def sort_orientations(data_input, weight_names, extra_sortable_maps):
     """Sort the orientations of multi-direction models voxel-wise.
 
-    For instance, the optimization results of a BallStick_r3 fit (hence, with three Sticks) gives angles and volume
-    fractions for each Stick. There is no voxel-wise order over Sticks since for the optimizer they are all equal
-    compartments. However, when using ARD with sampling, there is order within the compartments since the ARD is
+    This expects as input 3d/4d volumes. Do not use this with 2d arrays.
+
+    This can be used to sort, for example, simulations of the BallStick_r3 model (with three Sticks).
+    There is no voxel-wise order over Sticks since for the model they are all equal compartments.
+    However, when using optimization or ARD with sampling, there is order within the compartments since the ARD is
     commonly placed on the second and third Sticks meaning these Sticks and there corresponding orientations are
     compressed to zero if they are not supported. In that case, the Stick with the primary orientation of diffusion
     has to be the first.

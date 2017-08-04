@@ -1,5 +1,3 @@
-import numpy as np
-
 from mdt.component_templates.composite_models import DMRICompositeModelTemplate
 
 __author__ = 'Robbert Harms'
@@ -68,6 +66,7 @@ class CHARMED_r2(DMRICompositeModelTemplate):
              'w_res0.w': 0.1,
              'w_res1.w': 0.1}
 
+    sort_maps = [('w_res0', 'w_res1'), ('CHARMEDRestricted0', 'CHARMEDRestricted1')]
     post_optimization_modifiers = [
         ('FR', lambda results: 1 - results['w_hin0.w'])
     ]
@@ -110,6 +109,7 @@ class CHARMED_r3(DMRICompositeModelTemplate):
              'w_res1.w': 0.1,
              'w_res2.w': 0.1}
 
+    sort_maps = [('w_res0', 'w_res1', 'w_res2'), ('CHARMEDRestricted0', 'CHARMEDRestricted1', 'CHARMEDRestricted2')]
     post_optimization_modifiers = [
         ('FR', lambda results: 1 - results['w_hin0.w'])
     ]
