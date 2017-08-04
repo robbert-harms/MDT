@@ -134,7 +134,7 @@ class Protocol(collections.Mapping):
         The given file can either contain a single value or one value per protocol line.
 
         Args:
-            name (str): The name of the column to add
+            name (str): The name of the column to add.
             file_name (str): The file to get the column from.
             multiplication_factor (double): we might need to scale the data by a constant. For example,
                 if the data in the file is in ms we might need to scale it to seconds by multiplying with 1e-3

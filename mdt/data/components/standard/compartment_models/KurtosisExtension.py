@@ -2,10 +2,12 @@ import numpy as np
 import itertools
 
 from mdt.cl_routines.mapping.dki_measures import DKIMeasures
+
+from mot.model_building.parameter_functions.priors import AlwaysOne, UniformWithinBoundsPrior
 from mot.model_building.parameter_functions.proposals import GaussianProposal
 from mdt.component_templates.parameters import FreeParameterTemplate, ParameterBuilder
 from mdt.component_templates.compartment_models import CompartmentTemplate
-from mot.model_building.parameter_functions.transformations import IdentityTransform
+from mot.model_building.parameter_functions.transformations import IdentityTransform, PositiveTransform
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -47,13 +49,23 @@ def build_param(index):
     Returns:
         Parameter: a constructed parameter to be used in a compartment model.
     """
+    _lower_bound = -np.inf
+    _parameter_transform = IdentityTransform()
+    _sampling_prior = AlwaysOne()
+    if len(set(index)) == 1:
+        _lower_bound = 0
+        _parameter_transform = PositiveTransform()
+        _sampling_prior = UniformWithinBoundsPrior()
+
     class matrix_element_param(FreeParameterTemplate):
         name = 'W_{}{}{}{}'.format(*index)
         init_value = 0
-        lower_bound = -np.inf
+        lower_bound = _lower_bound
         upper_bound = np.inf
-        parameter_transform = IdentityTransform()
+        parameter_transform = _parameter_transform
+        sampling_prior = _sampling_prior
         sampling_proposal = GaussianProposal(0.01)
+
     return ParameterBuilder().create_class(matrix_element_param)()
 
 
@@ -86,31 +98,31 @@ def get_dki_measures_modifier():
 class KurtosisExtension(CompartmentTemplate):
 
     description = '''
-        The Kurtosis extension for the Tensor model. 
-        
-        This compartment can not be used directly as a compartment model, it always needs to be used in conjunction with 
+        The Kurtosis extension for the Tensor model.
+
+        This compartment can not be used directly as a compartment model, it always needs to be used in conjunction with
         the Tensor model. For example, a composite model script would be: "S0 * Tensor * Kurtosis".
     '''
     parameter_list = get_parameter_list()
     dependency_list = ['TensorApparentDiffusion', 'KurtosisMultiplication']
     cl_code = '''
         mot_float_type adc = TensorApparentDiffusion(theta, phi, psi, d, dperp0, dperp1, g);
-        
+
         if(adc <= 0.0){
             return 1;
         }
-        
+
         mot_float_type tensor_md_2 = pown((d + dperp0 + dperp1) / 3.0, 2);
-        
+
         double kurtosis_sum = KurtosisMultiplication(
-            W_0000, W_1111, W_2222, W_1000, W_2000, W_1110, 
-            W_2220, W_2111, W_2221, W_1100, W_2200, W_2211, 
+            W_0000, W_1111, W_2222, W_1000, W_2000, W_1110,
+            W_2220, W_2111, W_2221, W_1100, W_2200, W_2211,
             W_2100, W_2110, W_2210, g);
-        
+
         if(kurtosis_sum < 0 || (((tensor_md_2 * b) / adc) * kurtosis_sum) > 3.0){
             return INFINITY;
         }
-             
+
         return exp((b*b)/6.0 * tensor_md_2 * kurtosis_sum);
     '''
     post_optimization_modifiers = [get_dki_measures_modifier()]
