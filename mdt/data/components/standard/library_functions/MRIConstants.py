@@ -8,7 +8,6 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class MRIConstants(LibraryFunctionTemplate):
 
-    name = ''
     description = 'Some constants that might be of use in dMRI model functions'
     is_function = False
     cl_code = '''
