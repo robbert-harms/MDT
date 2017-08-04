@@ -135,7 +135,8 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         def get_file_paths(data_info):
             """Get the file paths"""
             paths = []
-            for map_name, file_path in data_info.get_file_paths().items():
+            for map_name in data_info.get_map_names():
+                file_path = data_info.get_file_path(map_name)
                 if file_path:
                     paths.append(file_path)
                 else:
