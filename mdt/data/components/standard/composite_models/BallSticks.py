@@ -29,6 +29,8 @@ class BallStick_r2(DMRICompositeModelTemplate):
     fixes = {'Ball.d': 3.0e-9,
              'Stick0.d': 1.7e-9,
              'Stick1.d': 1.7e-9}
+
+    maps_to_sort = [('w_stick0', 'w_stick1'), ('Stick0', 'Stick1')]
     post_optimization_modifiers = [('FS', lambda results: 1 - results['w_ball.w'])]
 
     prior = 'return w_stick1.w < w_stick0.w;'
@@ -49,6 +51,7 @@ class BallStick_r3(DMRICompositeModelTemplate):
              'Stick2.d': 1.7e-9}
     inits = {'w_stick2.w': 0}
 
+    maps_to_sort = [('w_stick0', 'w_stick1', 'w_stick2'), ('Stick0', 'Stick1', 'Stick2')]
     post_optimization_modifiers = [('FS', lambda results: 1 - results['w_ball.w'])]
 
     prior = 'return w_stick2.w < w_stick1.w && w_stick1.w < w_stick0.w;'

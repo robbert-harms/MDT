@@ -80,14 +80,14 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
         The mod routine should be a function accepting a dictionary as input and should return one or more maps of
         the same dimension as the maps in the dictionary. The idea is that the given ``mod_routine`` callback receives
         the result dictionary from the optimization routine and calculates new maps.
-        These maps are then returned and the dictionary is updated with the returned maps as value and the here provided
-        model_param_name as key.
+        These maps are then returned and the result dictionary is updated with the returned maps
+        as value and the here provided model_param_name as key.
 
         It is possible to add more than one modifier function. In that case, they are called in the order they
         were appended to this model.
 
         It is possible to add multiple maps in one modification routine, in that case the ``model_param_name`` should
-        be a tuple of map names and the modification routine should also output a list of map names.
+        be a tuple of map names and the modification routine should output a list of results.
 
         Args:
             result_names (str or tuple of str): the name of the output(s) of the mod_routine.

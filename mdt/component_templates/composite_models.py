@@ -90,6 +90,24 @@ class DMRICompositeModelTemplate(ComponentTemplate):
         prior (str, mot.model_building.utils.ModelPrior or None): a model wide prior. This is used in conjunction with
             the compartment priors and the parameter priors. If a string is given we will automatically construct a
             :class:`mot.model_building.utils.ModelPrior` from that string.
+
+        maps_to_sort (list of tuple): The maps to sort as post-processing before the other post optimization modifiers.
+            This will sort the given maps voxel by voxel based on the given maps as a key. The first
+            tuple needs to be a parameter reference or a ``Weight`` compartment, the other tuples can contain either
+            parameters or compartments.
+            Example input::
+
+                maps_to_sort = [('w0.w', 'w1.w'), ('Stick0', 'Stick1')]
+
+            will sort the weights w0.w and w1.w and sort all the parameters of the Stick0 and Stick1
+            compartment according to the sorting of the other compartments.
+
+            Alternatively, one can write::
+
+                maps_to_sort = [('w0.w', 'w1.w'), ('Stick0.theta', 'Stick1.theta')]
+
+            which will again sort the weights but will only sort the theta map of both the Stick compartments.
+
     """
     name = ''
     description = ''
@@ -104,6 +122,7 @@ class DMRICompositeModelTemplate(ComponentTemplate):
     enforce_weights_sum_to_one = True
     volume_selection = None
     prior = None
+    maps_to_sort = None
 
     @classmethod
     def meta_info(cls):
@@ -131,6 +150,9 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                     deepcopy(_resolve_evaluation_model(template.evaluation_model)),
                     signal_noise_model=deepcopy(template.signal_noise_model),
                     enforce_weights_sum_to_one=template.enforce_weights_sum_to_one)
+
+                # if len(template.maps_to_sort):
+                #     self.add_post_optimization_modifiers(_get_map_sorting_modifier(template.maps_to_sort))
 
                 self.add_post_optimization_modifiers(_get_model_post_optimization_modifiers(
                     self._model_functions_info.get_model_list()))
@@ -235,6 +257,23 @@ def _resolve_model_prior(prior, model_parameters):
     return [SimpleModelPrior(prior, parameters, 'model_prior')]
 
 
+def _get_map_sorting_modifier(maps_to_sort):
+    """Construct the map sorting modification routine for the given maps_to_sort attribute.
+
+    Args:
+        list of tuple: the list with compartments/parameters to sort. Sorting is done on the first element and
+            the other maps are sorted based on that indexing.
+
+    Returns:
+        tuple: name, modification routine. The modification routine will sort the maps as specified.
+    """
+    def map_sorting(results):
+        pass
+
+    # return
+
+
+
 def _get_model_post_optimization_modifiers(compartments):
     """Get a list of all the post optimization modifiers defined in the models.
 
@@ -244,6 +283,10 @@ def _get_model_post_optimization_modifiers(compartments):
 
     Args:
         compartments (list): the list of compartment models from which to get the modifiers
+
+    Returns:
+        list of tuples: the list of modification names and routines. Example:
+            [('name1', mod1), ('name2', mod2), ...]
     """
     modifiers = []
 
