@@ -781,7 +781,8 @@ def spherical_to_cartesian(theta, phi):
         phi (ndarray): The matrix with the azimuths
 
     Returns:
-        ndarray: matrix with same shape as the input with on the last axis the [x, y, z] coordinates of each vector.
+        ndarray: matrix with same shape as the input (minimal two dimensions though) with on the last axis
+            the [x, y, z] coordinates of each vector.
     """
     shape = theta.shape
     if len(shape) > 1:
@@ -811,14 +812,26 @@ def cartesian_to_spherical(vectors):
     This expects a n-dimensional matrix with on the last axis a set of cartesian coordinates as (x, y, z). From that,
     this function will calculate two n-dimensional matrices for the inclinations ``theta`` and the azimuths ``phi``.
 
+    Please note that the range of the output is [0, pi] for both theta and phi, meaning that the y-coordinate must
+    be positive. If not, this function will transform the coordinate to the antipodal point on the sphere and return
+    the angles for that point.
+
+    Also note that this will consider the input to be unit vectors. If not, it will normalize the vectors beforehand.
+
     Args:
         vectors (ndarray): the n-dimensional set of cartesian coordinates
 
     Returns:
         tuple: the matrices for theta and phi.
     """
-    theta = np.arccos(vectors[..., 2])
-    phi = np.arctan2(vectors[..., 1], vectors[..., 0])
+    upper_hemisphere_vectors = np.copy(vectors)
+    upper_hemisphere_vectors[vectors[..., 1] < 0] *= -1
+    upper_hemisphere_vectors /= np.sqrt(np.sum(vectors**2, axis=-1))[..., None]
+    upper_hemisphere_vectors = np.nan_to_num(upper_hemisphere_vectors)
+
+    theta = np.arccos(upper_hemisphere_vectors[..., 2])
+    phi = np.arctan2(upper_hemisphere_vectors[..., 1], upper_hemisphere_vectors[..., 0])
+
     return theta, phi
 
 
