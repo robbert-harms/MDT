@@ -105,3 +105,55 @@ class ExpT2DecSTEAM(CompartmentTemplate):
             *   exp(- (double)TM * SEf / (double) T1)
             *   exp(- (double)b * (double)d_exvivo);
     """
+
+
+class MPM_Fit(CompartmentTemplate):
+    description = """MPM fitting (Weiskopf, 2016 ESMRMB Workshop)
+
+    This fitting is a model published by Helms (2008) and Weiskopf (2011) to determinate biological properties
+    of the tissue/sample in function *of several images*, which includes T1w, PDw and MTw images. 
+    This function is still an approximation and only if the assumptions of the approximations hold for ex-vivo tissue, 
+    then can be used for ex-vivo data.
+    """
+    parameter_list = ('TR', 'flip_angle', 'excitation_b1_map', 'T1')
+    cl_code = 'return (flip_angle * excitation_b1_map) * ( (TR / T1) ' \
+              '     / ( pown(flip_angle * excitation_b1_map, 2) / 2 + ( TR / T1 ) ) );'
+
+
+class LinMPM_Fit(CompartmentTemplate):
+    description = """MPM fitting (Weiskopf, 2016 ESMRMB Workshop)
+
+    This fitting is a model published by Helms (2008) and Weiskopf (2011) to determinate biological properties
+    of the tissue/sample in function *of several images*, which includes T1w, PDw and MTw images. 
+    This function is still an approximation and only if the assumptions of the approximations hold for ex-vivo tissue, 
+    then can be used for ex-vivo data.
+    """
+    parameter_list = ('TR', 'flip_angle', 'b1_static', 'T1')
+    cl_code = 'return log(flip_angle * b1_static) + log(TR / T1)' \
+              '       - log( pown(flip_angle * b1_static, 2) / 2 + ( TR / T1 ) ) ;'
+
+
+class LinT1GRE(CompartmentTemplate):
+    description = """Lineal T1 fitting (Weiskopf, 2016 ESMRMB Workshop)
+
+    This fitting is the extension of the standard GRE equation for flip angles lower than 90deg. This modelling allows a
+    linear fitting of the data if is enough data to support it. In principle, it should not be a problem if only two
+    points are used, however the addition of a constant in the equation could give some kind of uncertainty.
+
+    B1 has to be normalized *in function of the reference voltage, the angle distribution and the reference angle*.
+    Here I assume that TR <<< T1, then exp(-TR/T1) ~ 1 - TR/T1. Then the equation becomes 'simpler'. 
+    However, if this condition is not achieved, then return to the standard equation.
+    
+    Also, DATA HAS TO BE PROCESSED BEFORE TO USE THIS EQUATION. Please apply log() on the data.
+    """
+    parameter_list = ('Sw_static', 'E1')
+    cl_code = """
+        return Sw_static * E1;
+    """
+
+
+class LinT2Dec(CompartmentTemplate):
+
+    parameter_list = ('TE', 'R2')
+    cl_code = 'return -TE * R2;'
+
