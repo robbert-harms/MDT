@@ -1,5 +1,6 @@
 import inspect
 import logging
+from textwrap import dedent
 
 import numpy as np
 
@@ -10,7 +11,7 @@ from six import string_types
 from mdt.model_protocol_problem import MissingColumns, InsufficientShells
 from mdt.models.base import DMRIOptimizable
 from mdt.protocols import VirtualColumnB
-from mdt.utils import create_roi, calculate_point_estimate_information_criterions, is_scalar
+from mdt.utils import create_roi, calculate_point_estimate_information_criterions, is_scalar, spherical_to_cartesian
 from mot.cl_data_type import SimpleCLDataType
 from mot.cl_routines.mapping.calc_dependent_params import CalculateDependentParameters
 from mot.cl_routines.mapping.error_measures import ErrorMeasures
@@ -198,6 +199,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
                 mot_float_type _new_gradient_vector_length = length(_new_gradient_vector_raw);
                 g = _new_gradient_vector_raw/_new_gradient_vector_length;
             '''
+            s = dedent(s.replace('\t', ' '*4))
 
             if 'b' in list(self._get_protocol_data().keys()):
                 s += 'b *= _new_gradient_vector_length * _new_gradient_vector_length;' + "\n"
@@ -209,26 +211,32 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
 
     def _get_pre_model_expression_eval_function(self):
         if self._can_use_gradient_deviations():
-            return '''
+            return dedent('''
                 #ifndef GET_NEW_GRADIENT_RAW
                 #define GET_NEW_GRADIENT_RAW
                 mot_float_type4 _get_new_gradient_raw(
                         mot_float_type4 g,
                         global const mot_float_type* const gradient_deviations){
 
-                    const mot_float_type4 il_0 = (mot_float_type4)(gradient_deviations[0], gradient_deviations[3],
-                                                             gradient_deviations[6], 0.0);
+                    const mot_float_type4 il_0 = (mot_float_type4)(gradient_deviations[0], 
+                                                                   gradient_deviations[3],
+                                                                   gradient_deviations[6], 
+                                                                   0.0);
 
-                    const mot_float_type4 il_1 = (mot_float_type4)(gradient_deviations[1], gradient_deviations[4],
-                                                             gradient_deviations[7], 0.0);
+                    const mot_float_type4 il_1 = (mot_float_type4)(gradient_deviations[1], 
+                                                                   gradient_deviations[4],
+                                                                   gradient_deviations[7], 
+                                                                   0.0);
 
-                    const mot_float_type4 il_2 = (mot_float_type4)(gradient_deviations[2], gradient_deviations[5],
-                                                             gradient_deviations[8], 0.0);
+                    const mot_float_type4 il_2 = (mot_float_type4)(gradient_deviations[2], 
+                                                                   gradient_deviations[5],
+                                                                   gradient_deviations[8], 
+                                                                   0.0);
 
                     return (mot_float_type4)(dot(il_0, g), dot(il_1, g), dot(il_2, g), 0.0);
                 }
                 #endif //GET_NEW_GRADIENT_RAW
-            '''
+            '''.replace('\t', ' '*4))
 
     def _can_use_gradient_deviations(self):
         return self._problem_data.gradient_deviations is not None \
@@ -449,7 +457,8 @@ class BuildCompositeModel(SampleModelInterface):
         Returns:
             dict: the volume maps with some basic post-sampling output
         """
-        volume_maps = self.samples_to_statistics(samples)
+        volume_maps = self._get_univariate_parameter_statistics(samples)
+        volume_maps.update(self._get_multivariate_statistics(samples))
         results_array = self._param_dict_to_array(volume_maps)
 
         volume_maps = self.add_extra_post_optimization_maps(volume_maps, results_array=results_array)
@@ -596,15 +605,15 @@ class BuildCompositeModel(SampleModelInterface):
         return np.concatenate([np.transpose(np.array([s]))
                                if len(s.shape) < 2 else s for s in params], axis=1)
 
-    def samples_to_statistics(self, samples):
-        """Create statistics out of the given set of samples (in a dictionary).
+    def _get_univariate_parameter_statistics(self, samples):
+        """Create the statistics for each of the parameters separately.
 
         Args:
             samples (ndarray): the sampled parameter maps, an (d, p, n) array with for d problems
                 and p parameters n samples.
 
         Returns:
-            dict: A dictionary with point estimates and statistical maps (mean, avg etc.) for each parameter.
+            dict: A dictionary with point estimates and statistical maps (like standard deviation) for each parameter.
         """
         results = {}
 
@@ -617,6 +626,50 @@ class BuildCompositeModel(SampleModelInterface):
             results.update({'{}.{}'.format(parameter_name, statistic_key): v
                             for statistic_key, v in statistics.get_additional_statistics().items()})
         return results
+
+    def _get_multivariate_statistics(self, samples):
+        """Get the multivariate statistics for the given samples.
+
+        This method will first convert angular elements into cartesian coordinates and then take the covariance matrix
+        of that and all other parameters.
+
+        The results are returned as dictionary elements with every key named after a part in the lower triangle of
+        the covariance matrix.
+
+        Args:
+            samples (ndarray): the matrix with the samples
+
+        Returns:
+            dict: elements of the lower triangle of the covariance matrix
+        """
+        spherical_coords = ['Stick0.theta', 'Stick0.phi']
+        extra_cartesian_coords = ['Stick0.vec0_0', 'Stick0.vec0_1', 'Stick0.vec0_2']
+
+        param_names = [name for name in self.get_free_param_names() if name not in spherical_coords]
+        param_names += extra_cartesian_coords
+
+        lti = np.array(np.tril_indices(len(param_names))).transpose()
+        result_matrices = {}
+        result_names = []
+
+        for row, column in lti:
+            result_name = 'Covariance_{}_to_{}'.format(param_names[row], param_names[column])
+            result_names.append(result_name)
+            result_matrices[result_name] = np.zeros((samples.shape[0], 1))
+
+        cartesian = spherical_to_cartesian(samples[:, 2, :], samples[:, 3, :])
+        cartesian = np.rollaxis(cartesian, 2, 1)
+        samples = np.delete(samples, (2, 3), axis=1)
+        samples = np.column_stack([samples, cartesian])
+
+        for voxel_ind in range(samples.shape[0]):
+            covar_matrix = np.cov(samples[voxel_ind, :])
+
+            for names_ind, (row, column) in enumerate(lti):
+                result_matrices[result_names[names_ind]][voxel_ind] = covar_matrix[row, column]
+
+        return result_matrices
+
 
     @property
     def name(self):

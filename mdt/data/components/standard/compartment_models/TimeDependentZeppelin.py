@@ -1,5 +1,4 @@
 from mdt.component_templates.compartment_models import CompartmentTemplate
-from mdt.utils import spherical_to_cartesian
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -31,4 +30,3 @@ class TimeDependentZeppelin(CompartmentTemplate):
         mot_float_type dperp0 = d_bulk + A * (log(Delta/delta) + 3/2.0)/(Delta - delta/3.0);
         return Zeppelin(g, b, d, dperp0, theta, phi);
     '''
-    post_optimization_modifiers = [('vec0', lambda results: spherical_to_cartesian(results['theta'], results['phi']))]

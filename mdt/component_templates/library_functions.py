@@ -198,7 +198,7 @@ def _build_source_code(template):
         s += template.cl_extra
     if template.is_function:
         s += _construct_cl_function_definition(template.return_type, template.name,
-                                              _get_parameters_list(template.parameter_list))
+                                               _get_parameters_list(template.parameter_list))
         s += '{\n\n' + indent(dedent(template.cl_code.strip('\n')), ' ' * 4) + '\n}'
     else:
         s += '\n' + dedent(template.cl_code.strip('\n'))

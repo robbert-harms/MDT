@@ -1,6 +1,6 @@
 from copy import deepcopy
 from textwrap import indent, dedent
-
+import numpy as np
 import six
 
 from mdt.components_loader import ParametersLoader
@@ -121,7 +121,8 @@ class CompartmentBuilder(ComponentBuilder):
         post_optimization_modifiers = []
         if getattr(template, 'auto_add_cartesian_vector', False):
             if all(map(lambda name: name in [p.name for p in parameter_list], ('theta', 'phi'))):
-                modifier = ('vec0', lambda results: spherical_to_cartesian(results['theta'], results['phi']))
+                modifier = ('vec0', lambda results: spherical_to_cartesian(np.squeeze(results['theta']),
+                                                                           np.squeeze(results['phi'])))
                 post_optimization_modifiers.append(modifier)
 
         if template.post_optimization_modifiers:

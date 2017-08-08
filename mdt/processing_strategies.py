@@ -55,7 +55,7 @@ class ModelProcessingStrategy(object):
 
 class ChunksProcessingStrategy(ModelProcessingStrategy):
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         """This class is a base class for all model slice fitting strategies that fit the data in chunks/parts."""
         super(ChunksProcessingStrategy, self).__init__()
         self._logger = logging.getLogger(__name__)

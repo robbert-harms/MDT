@@ -687,7 +687,6 @@ def create_roi(data, brain_mask):
             an iterable is given we will return a tuple. If a dict is given we return a dict.
             For each result the axis are: (voxels, protocol)
     """
-    from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
     brain_mask = autodetect_brain_mask_loader(brain_mask).get_data()
 
     if len(brain_mask.shape) > 3:
@@ -784,26 +783,15 @@ def spherical_to_cartesian(theta, phi):
         ndarray: matrix with same shape as the input (minimal two dimensions though) with on the last axis
             the [x, y, z] coordinates of each vector.
     """
-    shape = theta.shape
-    if len(shape) > 1:
-        theta = np.reshape(theta, (-1, shape[-1]))
-        phi = np.reshape(phi, (-1, shape[-1]))
-
-    theta = np.squeeze(theta)
-    phi = np.squeeze(phi)
+    def ensure_shape(coordinate):
+        if len(coordinate.shape) < len(theta.shape):
+            return coordinate[..., None]
+        return coordinate
 
     sin_theta = np.sin(theta)
-    return_val = np.array([sin_theta * np.cos(phi),
-                           sin_theta * np.sin(phi),
-                           np.cos(theta)]).transpose()
-
-    if len(shape) > 1:
-        return np.reshape(return_val, shape[:-1] + (-1,))
-
-    if len(return_val.shape) == 1:
-        return return_val[np.newaxis, :]
-
-    return return_val
+    return np.stack(map(ensure_shape, [sin_theta * np.cos(phi),
+                                       sin_theta * np.sin(phi),
+                                       np.cos(theta)]), axis=len(theta.shape))
 
 
 def cartesian_to_spherical(vectors):
