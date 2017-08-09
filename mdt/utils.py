@@ -19,7 +19,6 @@ from scipy.special import jnp_zeros
 from six import string_types
 
 import mot.utils
-from mdt.cl_routines.mapping.calculate_eigenvectors import CalculateEigenvectors
 from mdt.components_loader import get_model
 from mdt.configuration import get_config_dir
 from mdt.configuration import get_logging_configuration_dict, get_noise_std_estimators, get_tmp_results_dir
@@ -769,6 +768,9 @@ def restore_volumes(data, brain_mask, with_volume_dim=True):
 def spherical_to_cartesian(theta, phi):
     """Convert polar coordinates in 3d space to cartesian unit coordinates.
 
+    This might return points lying on the entire sphere. End-users will have to manually make ensure the points to
+    lie on the right hemisphere with a positive y-axis (multiply the vector by -1 if y < 0).
+
     .. code-block:: python
 
         x = sin(theta) * cos(phi)
@@ -812,13 +814,14 @@ def cartesian_to_spherical(vectors):
     Returns:
         tuple: the matrices for theta and phi.
     """
-    upper_hemisphere_vectors = np.copy(vectors)
-    upper_hemisphere_vectors[vectors[..., 1] < 0] *= -1
-    upper_hemisphere_vectors /= np.sqrt(np.sum(vectors**2, axis=-1))[..., None]
-    upper_hemisphere_vectors = np.nan_to_num(upper_hemisphere_vectors)
+    right_hemisphere_vectors = np.copy(vectors)
+    right_hemisphere_vectors[vectors[..., 1] < 0] *= -1
 
-    theta = np.arccos(upper_hemisphere_vectors[..., 2])
-    phi = np.arctan2(upper_hemisphere_vectors[..., 1], upper_hemisphere_vectors[..., 0])
+    right_hemisphere_vectors /= np.sqrt(np.sum(vectors**2, axis=-1))[..., None]
+    right_hemisphere_vectors = np.nan_to_num(right_hemisphere_vectors)
+
+    theta = np.arccos(right_hemisphere_vectors[..., 2])
+    phi = np.arctan2(right_hemisphere_vectors[..., 1], right_hemisphere_vectors[..., 0])
 
     return theta, phi
 
@@ -830,24 +833,60 @@ def eigen_vectors_from_tensor(theta, phi, psi):
     of this function will have to sort them by eigenvalue if necessary.
 
     Args:
-        theta_roi (ndarray): The list of theta's per voxel in the ROI
-        phi_roi (ndarray): The list of phi's per voxel in the ROI
-        psi_roi (ndarray): The list of psi's per voxel in the ROI
+        theta (ndarray): matrix of list of theta's
+        phi (ndarray): matrix of list of phi's
+        psi (ndarray): matrix of list of psi's
 
     Returns:
-        The three eigenvectors per voxel in the ROI. The return matrix is of shape (n, 3, 3) where n is the number
-        of voxels, the first three is the number of directions (three directions) and the last three is the
-        components of each vector, x, y and z. Hence the three by three matrix for one voxel looks like:
-
-        .. code-block:: python
-
-            [[evec_1_x, evec_1_y, evec_1_z],
-             [evec_2_x, evec_2_y, evec_2_z],
-             [evec_3_x, evec_3_y, evec_3_z]]
-
-        The resulting eigenvectors are the same as those from the Tensor.
+        tuple: The three eigenvector for every voxel given. The return matrix for every eigenvector is of the given
+        shape + [3].
     """
-    return CalculateEigenvectors().convert_theta_phi_psi(theta, phi, psi)
+    v0 = spherical_to_cartesian(theta, phi)
+    v1 = rotate_orthogonal_vector(v0, spherical_to_cartesian(theta + np.pi / 2.0, phi), psi)
+    v2 = np.cross(v0, v1)
+    return v0, v1, v2
+
+
+def rotate_vector(basis, to_rotate, psi):
+    """Uses Rodrigues' rotation formula to rotate the given vector v by psi around k.
+
+    If a matrix is given the operation will by applied on the last dimension.
+
+    Args:
+        basis: the unit vector defining the rotation axis (k)
+        to_rotate: the vector to rotate by the angle psi (v)
+        psi: the rotation angle (psi)
+
+    Returns:
+        vector: the rotated vector
+    """
+    cross_product = np.cross(basis, to_rotate)
+    dot_product = np.sum(np.multiply(basis, to_rotate), axis=-1)[..., None]
+    cos_psi = np.cos(psi)[..., None]
+    sin_psi = np.sin(psi)[..., None]
+    return to_rotate * cos_psi + cross_product * sin_psi + basis * dot_product * (1 - cos_psi)
+
+
+def rotate_orthogonal_vector(basis, to_rotate, psi):
+    """Uses Rodrigues' rotation formula to rotate the given vector v by psi around k.
+
+    If a matrix is given the operation will by applied on the last dimension.
+
+    This function assumes that the given two vectors (or matrix of vectors) are orthogonal for every voxel.
+    This assumption allows for some speedup in the rotation calculation.
+
+    Args:
+        basis: the unit vector defining the rotation axis (k)
+        to_rotate: the vector to rotate by the angle psi (v)
+        psi: the rotation angle (psi)
+
+    Returns:
+        vector: the rotated vector
+    """
+    cross_product = np.cross(basis, to_rotate)
+    cos_psi = np.cos(psi)[..., None]
+    sin_psi = np.sin(psi)[..., None]
+    return to_rotate * cos_psi + cross_product * sin_psi
 
 
 def init_user_settings(pass_if_exists=True):

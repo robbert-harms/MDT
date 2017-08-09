@@ -218,19 +218,19 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
                         mot_float_type4 g,
                         global const mot_float_type* const gradient_deviations){
 
-                    const mot_float_type4 il_0 = (mot_float_type4)(gradient_deviations[0], 
+                    const mot_float_type4 il_0 = (mot_float_type4)(gradient_deviations[0],
                                                                    gradient_deviations[3],
-                                                                   gradient_deviations[6], 
+                                                                   gradient_deviations[6],
                                                                    0.0);
 
-                    const mot_float_type4 il_1 = (mot_float_type4)(gradient_deviations[1], 
+                    const mot_float_type4 il_1 = (mot_float_type4)(gradient_deviations[1],
                                                                    gradient_deviations[4],
-                                                                   gradient_deviations[7], 
+                                                                   gradient_deviations[7],
                                                                    0.0);
 
-                    const mot_float_type4 il_2 = (mot_float_type4)(gradient_deviations[2], 
+                    const mot_float_type4 il_2 = (mot_float_type4)(gradient_deviations[2],
                                                                    gradient_deviations[5],
-                                                                   gradient_deviations[8], 
+                                                                   gradient_deviations[8],
                                                                    0.0);
 
                     return (mot_float_type4)(dot(il_0, g), dot(il_1, g), dot(il_2, g), 0.0);
@@ -458,7 +458,7 @@ class BuildCompositeModel(SampleModelInterface):
             dict: the volume maps with some basic post-sampling output
         """
         volume_maps = self._get_univariate_parameter_statistics(samples)
-        volume_maps.update(self._get_multivariate_statistics(samples))
+        # volume_maps.update(self._get_multivariate_statistics(samples))
         results_array = self._param_dict_to_array(volume_maps)
 
         volume_maps = self.add_extra_post_optimization_maps(volume_maps, results_array=results_array)

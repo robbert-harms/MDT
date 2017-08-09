@@ -1,8 +1,7 @@
 import numpy as np
-import pyopencl as cl
-from mot.utils import get_float_type_def
+
+from mdt.utils import eigen_vectors_from_tensor
 from mot.cl_routines.base import CLRoutine
-from mot.load_balance_strategies import Worker
 
 
 __author__ = 'Robbert Harms'
@@ -14,33 +13,43 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class DTIMeasures(CLRoutine):
 
-    def calculate(self, eigenvalues, eigenvectors):
+    def calculate(self, parameters_dict):
         """Calculate DTI statistics from the given eigenvalues.
 
         Args:
-            eigenvalues (ndarray): List of eigenvalues per voxel. This requires as 2d matrix with for every voxel
-                three eigenvalues. They need not be sorted, we will sort them and the sorted maps are part
-                of the output.
-            eigenvectors (ndarray): List of eigenvectors per voxel. This requires a 3d matrix of the same length (in the
-                first dimension) as the eigenvalues. The other two dimensions should represent a 3x3 matrix with the
-                three eigenvectors.
+            parameters_dict (dict): Dictionary containing at least theta, phi, psi, d, dperp0 and dperp1
+                We will use this to generate some standard measures from the diffusion Tensor.
 
         Returns:
             dict: as keys typical elements like 'FA, 'MD', 'eigval' etc. and as per values the maps.
                 These maps are per voxel, and optionally per instance per voxel
         """
-        fa_host, md_host = self._get_fa_md(eigenvalues)
+        eigenvectors = np.stack(eigen_vectors_from_tensor(np.squeeze(parameters_dict['theta']),
+                                                          np.squeeze(parameters_dict['phi']),
+                                                          np.squeeze(parameters_dict['psi'])), axis=0)
+
+        eigenvalues = np.atleast_2d(np.squeeze(np.dstack([parameters_dict['d'],
+                                                          parameters_dict['dperp0'],
+                                                          parameters_dict['dperp1']])))
+
         sorted_eigenvalues, sorted_eigenvectors, ranking = self._sort_eigensystem(eigenvalues, eigenvectors)
 
-        output = {'FA': fa_host,
-                  'MD': md_host,
+        md = np.sum(sorted_eigenvalues, axis=1) / 3.
+        fa = np.sqrt(3/2.) * (np.sqrt(np.sum((sorted_eigenvalues - md[..., None]) ** 2, axis=1))
+                              / np.sqrt(np.sum(sorted_eigenvalues**2, axis=1)))
+
+        output = {'FA': fa,
+                  'MD': md,
                   'AD': sorted_eigenvalues[:, 0],
                   'RD': (sorted_eigenvalues[:, 1] + sorted_eigenvalues[:, 2]) / 2.0,
-                  'eigen_ranking': ranking}
+                  'eigen_ranking': ranking,
+                  'sorted_d': sorted_eigenvalues[:, 0],
+                  'sorted_dperp0': sorted_eigenvalues[:, 1],
+                  'sorted_dperp1': sorted_eigenvalues[:, 2]
+                  }
 
         for ind in range(3):
-            output.update({'sorted_vec{}'.format(ind): sorted_eigenvectors[:, ind, :],
-                           'sorted_eigval{}'.format(ind): sorted_eigenvalues[:, ind]})
+            output.update({'sorted_vec{}'.format(ind): sorted_eigenvectors[ind]})
 
         return output
 
@@ -50,10 +59,9 @@ class DTIMeasures(CLRoutine):
         Returns:
             list of str: the list of map names this calculator returns
         """
-        return_names = ['FA', 'MD', 'AD', 'RD', 'eigen_ranking']
+        return_names = ['FA', 'MD', 'AD', 'RD', 'eigen_ranking', 'sorted_d', 'sorted_dperp0', 'sorted_dperp1']
         for ind in range(3):
             return_names.append('sorted_vec{}'.format(ind))
-            return_names.append('sorted_eigval{}'.format(ind))
         return return_names
 
     def _sort_eigensystem(self, eigenvalues, eigenvectors):
@@ -61,83 +69,7 @@ class DTIMeasures(CLRoutine):
         voxels_range = np.arange(ranking.shape[0])
         sorted_eigenvalues = np.concatenate([eigenvalues[voxels_range, ranking[:, ind], None]
                                              for ind in range(ranking.shape[1])], axis=1)
-        sorted_eigenvectors = np.concatenate([eigenvectors[voxels_range, ranking[:, ind], None, :]
-                                              for ind in range(ranking.shape[1])], axis=1)
+        sorted_eigenvectors = np.stack([eigenvectors[ranking[:, ind], voxels_range, :]
+                                        for ind in range(ranking.shape[1])])
 
         return sorted_eigenvalues, sorted_eigenvectors, ranking
-
-    def _get_fa_md(self, eigenvalues):
-        if eigenvalues.dtype == np.float32:
-            np_dtype = np.float32
-            double_precision = False
-        else:
-            np_dtype = np.float64
-            double_precision = True
-
-        eigenvalues = np.require(eigenvalues, np_dtype, requirements=['C', 'A', 'O'])
-
-        nmr_voxels = eigenvalues.shape[0]
-        fa_host = np.zeros((nmr_voxels, 1), dtype=np_dtype)
-        md_host = np.zeros((nmr_voxels, 1), dtype=np_dtype)
-
-        workers = self._create_workers(lambda cl_environment: _DTIMeasuresWorker(
-            cl_environment, self.get_compile_flags_list(double_precision=double_precision), eigenvalues,
-            fa_host, md_host, double_precision))
-        self.load_balancer.process(workers, nmr_voxels)
-
-        return fa_host, md_host
-
-
-class _DTIMeasuresWorker(Worker):
-
-    def __init__(self, cl_environment, compile_flags, eigenvalues, fa_host, md_host, double_precision):
-        super(_DTIMeasuresWorker, self).__init__(cl_environment)
-        self._eigenvalues = eigenvalues
-        self._fa_host = fa_host
-        self._md_host = md_host
-        self._double_precision = double_precision
-        self._kernel = self._build_kernel(self._get_kernel_source(), compile_flags)
-
-    def calculate(self, range_start, range_end):
-        nmr_problems = range_end - range_start
-
-        eigenvalues_buf = cl.Buffer(self._cl_run_context.context,
-                                    cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR,
-                                    hostbuf=self._eigenvalues[range_start:range_end])
-        fa_buf = cl.Buffer(self._cl_run_context.context,
-                           cl.mem_flags.WRITE_ONLY | cl.mem_flags.COPY_HOST_PTR,
-                           hostbuf=self._fa_host[range_start:range_end])
-        md_buf = cl.Buffer(self._cl_run_context.context,
-                           cl.mem_flags.WRITE_ONLY | cl.mem_flags.COPY_HOST_PTR,
-                           hostbuf=self._md_host[range_start:range_end])
-
-        buffers = [eigenvalues_buf, fa_buf, md_buf]
-
-        self._kernel.calculate_measures(self._cl_run_context.queue, (int(nmr_problems), ), None, *buffers)
-        cl.enqueue_copy(self._cl_run_context.queue, self._fa_host[range_start:range_end], fa_buf, is_blocking=False)
-        cl.enqueue_copy(self._cl_run_context.queue, self._md_host[range_start:range_end], md_buf, is_blocking=False)
-
-    def _get_kernel_source(self):
-        kernel_source = ''
-        kernel_source += get_float_type_def(self._double_precision)
-        kernel_source += '''
-            __kernel void calculate_measures(
-                global mot_float_type* eigenvalues,
-                global mot_float_type* fas,
-                global mot_float_type* mds
-                ){
-                    ulong gid = get_global_id(0);
-                    ulong voxel = gid * 3;
-
-                    mot_float_type v1 = eigenvalues[voxel];
-                    mot_float_type v2 = eigenvalues[voxel + 1];
-                    mot_float_type v3 = eigenvalues[voxel + 2];
-
-                    fas[gid] = sqrt(0.5 * (((v1 - v2) * (v1 - v2)) +
-                                           ((v1 - v3) * (v1 - v3)) +
-                                           ((v2 - v3)  * (v2 - v3))) /
-                                                (v1 * v1 + v2 * v2 + v3 * v3));
-                    mds[gid] = (v1 + v2 + v3) / 3.0;
-            }
-        '''
-        return kernel_source

@@ -37,7 +37,7 @@ class CompartmentTemplate(ComponentTemplate):
         dependency_list (list): the list of functions this function depends on, can contain string which will be
             resolved as library functions.
         return_type (str): the return type of this compartment, defaults to double.
-        prior (str or None): an extra MCMC sampling prior for this compartment. This is additional to the priors
+        extra_prior (str or None): an extra MCMC sampling prior for this compartment. This is additional to the priors
             defined in the parameters. This should be an instance of :class:`~mdt.models.compartments.CompartmentPrior`
             or a string with a CL function body. If the latter, the :class:`~mdt.models.compartments.CompartmentPrior`
             is automatically constructed based on the content of the string (automatic parameter recognition).
@@ -65,7 +65,7 @@ class CompartmentTemplate(ComponentTemplate):
     cl_extra = None
     dependency_list = []
     return_type = 'double'
-    prior = None
+    extra_prior = None
     post_optimization_modifiers = None
     auto_add_cartesian_vector = True
 
@@ -104,7 +104,7 @@ class CompartmentBuilder(ComponentBuilder):
                 for ind, already_set_arg in enumerate(args):
                     new_args[ind] = already_set_arg
 
-                new_kwargs = {'model_function_priors': (_resolve_prior(template.prior, template.name,
+                new_kwargs = {'model_function_priors': (_resolve_prior(template.extra_prior, template.name,
                                                                        [p.name for p in parameter_list],)),
                               'post_optimization_modifiers': builder._get_post_optimization_modifiers(template,
                                                                                                       parameter_list)}

@@ -394,7 +394,7 @@ class _DKIMeasuresWorker(Worker):
         kernel_source = ''
         kernel_source += get_float_type_def(self._double_precision)
         kernel_source += load_component('library_functions', 'TensorApparentDiffusion').get_cl_code()
-        kernel_source += load_component('library_functions', 'RotateVectors').get_cl_code()
+        kernel_source += load_component('library_functions', 'RotateOrthogonalVector').get_cl_code()
         kernel_source += load_component('library_functions', 'KurtosisMultiplication').get_cl_code()
         kernel_source += '''
             double apparent_kurtosis(
@@ -403,34 +403,34 @@ class _DKIMeasuresWorker(Worker):
                     mot_float_type4 vec0,
                     mot_float_type4 vec1,
                     mot_float_type4 vec2){
-                
+
                 ulong gid = get_global_id(0);
                 ''' + '\n'.join(param_expansions) + '''
-                
+
                 mot_float_type adc = d *      pown(dot(vec0, direction), 2) +
                                      dperp0 * pown(dot(vec1, direction), 2) +
                                      dperp1 * pown(dot(vec2, direction), 2);
-                
+
                 mot_float_type tensor_md = (d + dperp0 + dperp1) / 3.0;
-                
+
                 double kurtosis_sum = KurtosisMultiplication(
-                    W_0000, W_1111, W_2222, W_1000, W_2000, W_1110, 
-                    W_2220, W_2111, W_2221, W_1100, W_2200, W_2211, 
+                    W_0000, W_1111, W_2222, W_1000, W_2000, W_1110,
+                    W_2220, W_2111, W_2221, W_1100, W_2200, W_2211,
                     W_2100, W_2110, W_2210, direction);
-                                
+
                 return pown(tensor_md / adc, 2) * kurtosis_sum;
             }
-            
+
             void get_principal_and_perpendicular_eigenvector(
-                    mot_float_type d, 
-                    mot_float_type dperp0, 
-                    mot_float_type dperp1, 
-                    mot_float_type4* vec0, 
-                    mot_float_type4* vec1, 
+                    mot_float_type d,
+                    mot_float_type dperp0,
+                    mot_float_type dperp1,
+                    mot_float_type4* vec0,
+                    mot_float_type4* vec1,
                     mot_float_type4* vec2,
-                    mot_float_type4** principal_vec, 
+                    mot_float_type4** principal_vec,
                     mot_float_type4** perpendicular_vec){
-                    
+
                 if(d >= dperp0 && d >= dperp1){
                     *principal_vec = vec0;
                     *perpendicular_vec = vec1;
@@ -442,7 +442,7 @@ class _DKIMeasuresWorker(Worker):
                 *principal_vec = vec2;
                 *perpendicular_vec = vec0;
             }
-            
+
             __kernel void calculate_measures(
                     global mot_float_type* params,
                     global mot_float_type4* directions,
@@ -450,46 +450,47 @@ class _DKIMeasuresWorker(Worker):
                     global mot_float_type* aks,
                     global mot_float_type* rks
                     ){
-                    
+
                 ulong gid = get_global_id(0);
                 int i, j;
-                
+
                 mot_float_type4 vec0, vec1, vec2;
                 TensorSphericalToCartesian(
                     ''' + get_param_cl_ref('theta') + ''',
                     ''' + get_param_cl_ref('phi') + ''',
                     ''' + get_param_cl_ref('psi') + ''',
                     &vec0, &vec1, &vec2);
-                
+
                 mot_float_type4* principal_vec;
                 mot_float_type4* perpendicular_vec;
                 get_principal_and_perpendicular_eigenvector(
                     ''' + get_param_cl_ref('d') + ''',
                     ''' + get_param_cl_ref('dperp0') + ''',
                     ''' + get_param_cl_ref('dperp1') + ''',
-                    &vec0, &vec1, &vec2, 
+                    &vec0, &vec1, &vec2,
                     &principal_vec, &perpendicular_vec);
-                
+
                 // Mean Kurtosis integrated over a set of directions
                 double mean = 0;
                 for(i = 0; i < ''' + str(self._directions.shape[0]) + '''; i++){
                     mean += (apparent_kurtosis(params, directions[i], vec0, vec1, vec2) - mean) / (i + 1);
                 }
                 mks[gid] = clamp(mean, (double)0, (double)3);
-                
-                
+
+
                 // Axial Kurtosis over the principal direction of diffusion
                 aks[gid] = clamp(apparent_kurtosis(params, *principal_vec, vec0, vec1, vec2), (double)0, (double)10);
-                
-                
+
+
                 // Radial Kurtosis integrated over a unit circle around the principal eigenvector.
                 mean = 0;
                 mot_float_type4 rotated_vec;
                 for(i = 0; i < ''' + str(self._nmr_radial_directions) + '''; i++){
-                    rotated_vec = RotateVectors(*principal_vec, *perpendicular_vec, 
-                                                i * (2 * M_PI_F) / ''' + str(self._nmr_radial_directions) + ''');
-                    
-                    mean += (apparent_kurtosis(params, rotated_vec, vec0, vec1, vec2) - mean) / (i + 1);                       
+                    rotated_vec = RotateOrthogonalVector(
+                        *principal_vec, *perpendicular_vec,
+                        i * (2 * M_PI_F) / ''' + str(self._nmr_radial_directions) + ''');
+
+                    mean += (apparent_kurtosis(params, rotated_vec, vec0, vec1, vec2) - mean) / (i + 1);
                 }
                 rks[gid] = max(mean, (double)0);
             }
