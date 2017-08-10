@@ -203,7 +203,7 @@ class Renderer(object):
             return float(data[index])
 
         highlight_voxel = self._plot_config.highlight_voxel
-        if highlight_voxel:
+        if highlight_voxel and len(highlight_voxel) == 3:
             index = get_value_index(highlight_voxel)
             value = get_value(index)
 
