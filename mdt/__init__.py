@@ -424,7 +424,7 @@ def view_result_samples(data, **kwargs):
 
     Args:
         data (string or dict): The location of the maps to use the samples from, or the samples themselves.
-        kwargs (dict): see SampleVisualizer for all the supported keywords
+        kwargs (kwargs): see SampleVisualizer for all the supported keywords
     """
     from mdt.visualization.samples import SampleVisualizer
 

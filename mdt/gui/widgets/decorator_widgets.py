@@ -12,7 +12,10 @@ class QDoubleSpinBoxDotSeparator(QDoubleSpinBox):
         super(QDoubleSpinBoxDotSeparator, self).__init__(*args, **kwargs)
 
     def valueFromText(self, text):
-        return float(text)
+        try:
+            return float(text)
+        except ValueError:
+            return 0
 
     def textFromValue(self, value):
         return str(value)

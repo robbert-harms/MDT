@@ -826,7 +826,7 @@ def cartesian_to_spherical(vectors):
     return theta, phi
 
 
-def eigen_vectors_from_tensor(theta, phi, psi):
+def tensor_spherical_to_cartesian(theta, phi, psi):
     """Calculate the eigenvectors for a Tensor given the three angles.
 
     This will return the eigenvectors unsorted, since this function knows nothing about the eigenvalues. The caller
@@ -845,6 +845,55 @@ def eigen_vectors_from_tensor(theta, phi, psi):
     v1 = rotate_orthogonal_vector(v0, spherical_to_cartesian(theta + np.pi / 2.0, phi), psi)
     v2 = np.cross(v0, v1)
     return v0, v1, v2
+
+
+def tensor_cartesian_to_spherical(first_eigen_vector, second_eigen_vector):
+    """Compute the spherical coordinates theta, phi and psi to match the given eigen vectors.
+
+    Only the first two eigen vectors are needed to calculate the correct angles, the last eigen vector follows
+    automatically from the dot product of the first two eigen vectors.
+
+    Since the Tensor model in MDT uses theta, phi and psi in the range [0, pi], this function can reflect the given
+    eigenvalues to comply with those ranges. In particular, there are two transformations possible. The first is if
+    the first eigen vector is in the left hemisphere (negative y-value), if so, it is reflected to its
+    antipodal point on the right hemisphere. The second transformation is if the second eigen vector does not
+    lie in the semicircle described by psi in [0, pi]. If not, the second eigen vector is reflected to
+    its antipodal point within the range of psi in [0, pi].
+
+    Args:
+        first_eigen_vector (ndarray): the first eigen vectors, with on the last dimension 3 items for [x, y, z]
+        second_eigen_vector (ndarray): the second eigen vectors, with on the last dimension 3 items for [x, y, z]
+
+    Returns:
+        tuple: theta, phi, psi for every voxel given.
+    """
+    def generate_orthogonal_vec(vec):
+        """Generate the vector orthogonal to the given vector + 1/2 pi on theta.
+
+        Instead of using spherical_to_cartesian(theta + np.pi / 2.0, phi) we can use Euclidian measures
+        on the vector instead. This is faster and perhaps more precise.
+        """
+        denom = np.sqrt(np.sum(vec[..., (0, 1)] ** 2, axis=-1))
+        return np.stack([vec[..., 2] * vec[..., 0] / denom,
+                         vec[..., 2] * vec[..., 1] / denom,
+                         -np.sqrt(1 - vec[..., 2] ** 2)], axis=-1)
+
+    def dot_product(a, b):
+        return np.sum(np.multiply(a, b), axis=-1)
+
+    right_hemisphere_e0 = np.copy(first_eigen_vector)
+    right_hemisphere_e0[first_eigen_vector[..., 1] < 0] *= -1
+
+    orthogonal_vec = generate_orthogonal_vec(right_hemisphere_e0)
+    half_psi_vec = np.cross(right_hemisphere_e0, orthogonal_vec)
+
+    correct_semicircle_e1 = np.copy(second_eigen_vector)
+    correct_semicircle_e1[dot_product(half_psi_vec, correct_semicircle_e1) < 0] *= -1
+
+    psi = np.arccos(np.clip(dot_product(orthogonal_vec, correct_semicircle_e1), -1, 1))
+    theta, phi = cartesian_to_spherical(right_hemisphere_e0)
+
+    return theta, phi, psi
 
 
 def rotate_vector(basis, to_rotate, psi):
@@ -1320,7 +1369,7 @@ def apply_mask(volume, mask, inplace=True):
         inplace (boolean): if True we apply the mask in place on the volume image. If false we do not.
 
     Returns:
-        Depending on the input either a singla image of the same size as the input image, or a list, tuple or dict.
+        Depending on the input either a single image of the same size as the input image, or a list, tuple or dict.
         This will set for all the output images the the values to zero where the mask is zero.
     """
     from six import string_types
@@ -1328,22 +1377,17 @@ def apply_mask(volume, mask, inplace=True):
 
     mask = autodetect_brain_mask_loader(mask).get_data()
 
-    def apply(volume, mask):
-        if isinstance(volume, string_types):
-            volume = load_nifti(volume).get_data()
+    def apply(_volume, _mask):
+        if isinstance(_volume, string_types):
+            _volume = load_nifti(_volume).get_data()
 
-        mask = mask.reshape(mask.shape + (volume.ndim - mask.ndim) * (1,))
+        _mask = _mask.reshape(_mask.shape + (_volume.ndim - _mask.ndim) * (1,))
 
-        if len(mask.shape) < 4:
-            mask = mask.reshape(mask.shape + (1,))
+        if not inplace:
+            _volume = np.copy(_volume)
 
-        if len(volume.shape) < 4:
-            volume = volume.reshape(volume.shape + (1,))
-
-        if inplace:
-            volume *= mask
-            return volume
-        return volume * mask
+        _volume[np.logical_not(_mask)] = 0
+        return _volume
 
     if isinstance(volume, tuple):
         return (apply(v, mask) for v in volume)
