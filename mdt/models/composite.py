@@ -469,7 +469,7 @@ class BuildCompositeModel(SampleModelInterface):
         error_measures = ErrorMeasures(double_precision=self.double_precision).calculate(errors)
         volume_maps.update(error_measures)
 
-        mv_ess = multivariate_ess(samples)
+        mv_ess = np.nan_to_num(multivariate_ess(samples))
         volume_maps.update({'MultivariateESS': mv_ess})
 
         uv_ess = univariate_ess(samples, method='standard_error')

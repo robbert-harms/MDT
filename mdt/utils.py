@@ -35,7 +35,6 @@ from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalcul
 from mot.model_building.parameter_functions.dependencies import AbstractParameterDependency
 from mot.model_building.problem_data import AbstractProblemData
 
-
 __author__ = 'Robbert Harms'
 __date__ = "2014-02-05"
 __license__ = "LGPL v3"
@@ -874,9 +873,13 @@ def tensor_cartesian_to_spherical(first_eigen_vector, second_eigen_vector):
         on the vector instead. This is faster and perhaps more precise.
         """
         denom = np.sqrt(np.sum(vec[..., (0, 1)] ** 2, axis=-1))
-        return np.stack([vec[..., 2] * vec[..., 0] / denom,
-                         vec[..., 2] * vec[..., 1] / denom,
-                         -np.sqrt(1 - vec[..., 2] ** 2)], axis=-1)
+        result = np.stack([vec[..., 2] * vec[..., 0] / denom,
+                           vec[..., 2] * vec[..., 1] / denom,
+                           -np.sqrt(1 - vec[..., 2] ** 2)], axis=-1)
+
+        # special case where x and y are both zero
+        result[np.isclose(denom, 0)] = [0, 0, 1]
+        return result
 
     def dot_product(a, b):
         return np.sum(np.multiply(a, b), axis=-1)
