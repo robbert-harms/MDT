@@ -413,18 +413,21 @@ class BuildCompositeModel(SampleModelInterface):
         """
         return self._proposal_state_names
 
-    def add_extra_post_optimization_maps(self, results_dict, results_array=None):
+    def post_process_optimization_maps(self, results_dict, results_array=None):
         r"""This adds some extra optimization maps to the results dictionary.
 
         This function behaves as a procedure and as a function. The input dict can be updated in place, but it should
         also return a dict but that is merely for the purpose of chaining.
 
-        Steps in finalizing the results dict:
+        This might change the results in the results dictionary with different parameter sets. For example,
+        it is possible to reorient some maps or swap variables in the optimization maps.
 
-            1) It first adds the maps for the dependent and fixed parameters
-            2) Second it adds the extra maps defined in the models itself.
-            3) Third it loops through the post_optimization_modifiers callback functions for the final updates.
-            4) Finally it adds additional maps defined in this model subclass
+        The current steps in this function:
+
+            1) Add the maps for the dependent and fixed parameters
+            2) Add the extra maps defined in the models itself
+            3) Apply each of the post_optimization_modifiers callback functions
+            4) Add information criteria maps
 
         For more documentation see the base method.
 
@@ -461,7 +464,7 @@ class BuildCompositeModel(SampleModelInterface):
         # volume_maps.update(self._get_multivariate_statistics(samples))
         results_array = self._param_dict_to_array(volume_maps)
 
-        volume_maps = self.add_extra_post_optimization_maps(volume_maps, results_array=results_array)
+        volume_maps = self.post_process_optimization_maps(volume_maps, results_array=results_array)
         self._add_post_sampling_information_criterion_maps(samples, volume_maps)
 
         errors = ResidualCalculator().calculate(self, results_array)
@@ -496,7 +499,7 @@ class BuildCompositeModel(SampleModelInterface):
     def _get_post_optimization_information_criterion_maps(self, results_array):
         """Add some final results maps to the results dictionary.
 
-        This called by the function add_extra_post_optimization_maps() as last call to add more maps.
+        This called by the function post_process_optimization_maps() as last call to add more maps.
 
         Args:
             results_array (ndarray): the results from model optimization.

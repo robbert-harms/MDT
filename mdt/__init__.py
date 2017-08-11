@@ -60,6 +60,8 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
         output_folder (string): The path to the folder where to place the output, we will make a subdir with the
             model name in it.
         optimizer (:class:`mot.cl_routines.optimizing.base.AbstractOptimizer`): The optimization routine to use.
+            If the optimizer is specified and the cl_device_ind is specified, we will overwrite the cl environments
+            in the optimizer with the devices specified by the cl_device_ind.
         recalculate (boolean): If we want to recalculate the results if they are already present.
         only_recalculate_last (boolean):
             This is only of importance when dealing with CascadeModels.
@@ -104,6 +106,13 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
     if not isinstance(initialization_data, InitializationData) and initialization_data is not None:
         initialization_data = SimpleInitializationData(**initialization_data)
 
+    if cl_device_ind is not None and not isinstance(cl_device_ind, collections.Iterable):
+        cl_device_ind = [cl_device_ind]
+
+    if optimizer is not None and cl_device_ind is not None:
+        all_devices = get_cl_devices()
+        optimizer.cl_environments = [all_devices[ind] for ind in cl_device_ind]
+
     model_fit = ModelFit(model, problem_data, output_folder, optimizer=optimizer, recalculate=recalculate,
                          only_recalculate_last=only_recalculate_last,
                          cascade_subdir=cascade_subdir,
@@ -126,7 +135,9 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
         problem_data (:class:`~mdt.utils.DMRIProblemData`): the problem data object
         output_folder (string): The path to the folder where to place the output, we will make a subdir with the
             model name in it (for the optimization results) and then a subdir with the samples output.
-        sampler (:class:`mot.cl_routines.sampling.base.AbstractSampler`): the sampler to use
+        sampler (:class:`mot.cl_routines.sampling.base.AbstractSampler`): the sampler to use.
+            If the sampler is specified and the cl_device_ind is specified, we will overwrite the cl environments
+            in the sampler with the devices specified by the cl_device_ind.
         recalculate (boolean): If we want to recalculate the results if they are already present.
         cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices().
@@ -184,8 +195,13 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
     if cl_device_ind is None:
         cl_context_action = mot.configuration.VoidConfigurationAction()
     else:
+        cl_envs = [get_cl_devices()[ind] for ind in cl_device_ind]
+
+        if sampler is not None:
+            sampler.cl_environments = cl_envs
+
         cl_context_action = mot.configuration.RuntimeConfigurationAction(
-            cl_environments=[get_cl_devices()[ind] for ind in cl_device_ind],
+            cl_environments=cl_envs,
             load_balancer=EvenDistribution())
 
     with mot.configuration.config_context(cl_context_action):

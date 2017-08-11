@@ -24,7 +24,9 @@ class DMRICompositeModelTemplate(ComponentTemplate):
 
     Attributes:
         name (str): the name of the model, defaults to the class name
+
         description (str): model description
+
         post_optimization_modifiers (list): a list of modification callbacks for use after optimization. Examples:
 
             .. code-block:: python
@@ -38,11 +40,15 @@ class DMRICompositeModelTemplate(ComponentTemplate):
             modifier in one modifier expression. In general, the function given should accept as first argument
             the results dictionary and as optional second argument the protocol used to generate the results.
             These modifiers are called after the modifiers of the composite model.
+
         model_expression (str): the model expression. For the syntax see:
             mdt.models.parsers.CompositeModelExpression.ebnf
+
         evaluation_model (EvaluationModel or str): the evaluation model to use during optimization,
             also a string can be given with one of 'Gaussian', 'OffsetGaussian' or 'Rician'.
+
         signal_noise_model (SignalNoiseModel): optional signal noise decorator
+
         inits (dict): indicating the initialization values for the parameters. Example:
 
             .. code-block:: python
@@ -108,7 +114,6 @@ class DMRICompositeModelTemplate(ComponentTemplate):
                 maps_to_sort = [('w0', 'w1'), ('Stick0.theta', 'Stick1.theta')]
 
             which will again sort the weights but will only sort the theta map of both the Stick compartments.
-
     """
     name = ''
     description = ''
@@ -122,7 +127,7 @@ class DMRICompositeModelTemplate(ComponentTemplate):
     lower_bounds = {}
     enforce_weights_sum_to_one = True
     volume_selection = None
-    prior = None
+    extra_prior = None
     sort_maps = None
 
     @classmethod
@@ -175,7 +180,7 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                 self.nmr_parameters_for_bic_calculation = self.get_nmr_estimable_parameters()
 
                 self._model_priors.extend(_resolve_model_prior(
-                    template.prior, self._model_functions_info.get_model_parameter_list()))
+                    template.extra_prior, self._model_functions_info.get_model_parameter_list()))
 
             def _get_suitable_volume_indices(self, problem_data):
                 volume_selection = template.volume_selection

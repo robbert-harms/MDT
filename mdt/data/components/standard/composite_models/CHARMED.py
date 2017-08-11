@@ -71,7 +71,7 @@ class CHARMED_r2(DMRICompositeModelTemplate):
         ('FR', lambda results: 1 - results['w_hin0.w'])
     ]
 
-    prior = 'return w_res1.w < w_res0.w;'
+    extra_prior = 'return w_res1.w < w_res0.w;'
 
 
 class CHARMED_r3(DMRICompositeModelTemplate):
@@ -114,5 +114,5 @@ class CHARMED_r3(DMRICompositeModelTemplate):
         ('FR', lambda results: 1 - results['w_hin0.w'])
     ]
 
-    prior = 'return w_res2.w < w_res1.w && w_res1.w < w_res0.w;'
+    extra_prior = 'return w_res2.w < w_res1.w && w_res1.w < w_res0.w;'
 

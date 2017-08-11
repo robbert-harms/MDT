@@ -382,7 +382,7 @@ class FittingProcessor(SimpleModelProcessor):
 
         end_points = optimization_results.get_optimization_result()
         volume_maps = results_to_dict(end_points, model.get_free_param_names())
-        volume_maps = model.add_extra_post_optimization_maps(volume_maps, results_array=end_points)
+        volume_maps = model.post_process_optimization_maps(volume_maps, results_array=end_points)
         volume_maps.update({'ReturnCodes': optimization_results.get_return_codes()})
         volume_maps.update(optimization_results.get_error_measures())
 
