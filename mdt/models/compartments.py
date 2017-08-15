@@ -11,7 +11,8 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class DMRICompartmentModelFunction(SimpleModelFunction):
 
     def __init__(self, name, cl_function_name, parameter_list, cl_code, dependency_list, return_type,
-                 model_function_priors=None, post_optimization_modifiers=None):
+                 model_function_priors=None, post_optimization_modifiers=None,
+                 sampling_covar_extras=None, sampling_covar_exclude=None):
         """Create a new dMRI compartment model function.
 
         Args:
@@ -32,12 +33,25 @@ class DMRICompartmentModelFunction(SimpleModelFunction):
                                                    ...]
 
                 These modifiers are supposed to be called before the post optimization modifiers of the composite model.
+
+            sampling_covar_extras (None or tuple or list): information about a single callback function that can
+            add additional maps to the covariance matrix calculated after sampling. Usage example::
+
+                sampling_covar_extras = (('theta', 'phi'), ('vec0_x', 'vec0_y', 'vec0_z'), spherical_to_cartesian)
+
+            sampling_covar_exclude (None tuple or list): parameters to exclude in the covariance matrix calculation
+                after sampling. Example::
+
+                    sampling_covar_exclude = ['theta', 'phi']
+
         """
         super(DMRICompartmentModelFunction, self).__init__(return_type, name, cl_function_name, parameter_list,
                                                            dependency_list=dependency_list,
                                                            model_function_priors=model_function_priors)
         self._cl_code = cl_code
         self.post_optimization_modifiers = post_optimization_modifiers or []
+        self.sampling_covar_extras = sampling_covar_extras
+        self.sampling_covar_exclude = sampling_covar_exclude
 
     def get_cl_code(self):
         return dedent('''

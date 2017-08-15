@@ -448,6 +448,10 @@ class SamplingProcessor(SimpleModelProcessor):
             self._write_volumes(volume_maps, roi_indices,
                                 os.path.join(self._tmp_storage_dir, 'volume_maps'))
 
+            multivariate_statistic = model.get_multivariate_sampling_statistic(samples)
+            self._write_volumes(multivariate_statistic, roi_indices,
+                                os.path.join(self._tmp_storage_dir, 'multivariate_statistic'))
+
         self._write_volumes(results_to_dict(sampling_output.get_proposal_state(),
                                             model.get_proposal_state_names()),
                             roi_indices,
@@ -472,7 +476,7 @@ class SamplingProcessor(SimpleModelProcessor):
             self._combine_volumes(self._output_dir, self._tmp_storage_dir,
                                   self._problem_data.volume_header, maps_subdir='volume_maps')
 
-        for subdir in ['proposal_state', 'chain_end_point', 'mh_state']:
+        for subdir in ['proposal_state', 'chain_end_point', 'mh_state', 'multivariate_statistic']:
             self._combine_volumes(self._output_dir, self._tmp_storage_dir,
                                   self._problem_data.volume_header, maps_subdir=subdir)
 

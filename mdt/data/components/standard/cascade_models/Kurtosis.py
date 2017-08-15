@@ -12,3 +12,12 @@ class Kurtosis(CascadeTemplate):
     description = 'Initializes the primary directions using a Tensor estimate.'
     models = ('Tensor (Cascade)',
               'Kurtosis')
+
+    inits = {'Kurtosis': [
+        ('KurtosisTensor.theta', 'Tensor.theta'),
+        ('KurtosisTensor.phi', 'Tensor.phi'),
+        ('KurtosisTensor.psi', 'Tensor.psi'),
+        ('KurtosisTensor.d', 'Tensor.d'),
+        ('KurtosisTensor.dperp0', 'Tensor.dperp0'),
+        ('KurtosisTensor.dperp1', 'Tensor.dperp1')]
+    }

@@ -41,6 +41,16 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
         Attributes:
             required_nmr_shells (int): Define the minimum number of unique shells necessary for this model.
                 The default is false, which means that we don't check for this.
+            _sampling_covar_excludes (list): the list of parameters (by model.param name) to exclude from the
+                covariance calculation after sampling.
+            _sampling_covar_extras (list): list with tuples containing information about additional variables
+                to include in the sampling covariance matrix calculation. Every element of the given list should contain
+                a tuple with three elements (list, list, Func): list of parameters required for the function, names of
+                the resulting maps and the callback function itself.
+            _post_optimization_modifiers (list): the list with post optimization modifiers. Every element
+                should contain a tuple with (str, Func) or (tuple, Func): where the first element is a single
+                output name or a list with output names and the Func is a callback function that returns one or more
+                output maps.
         """
         super(DMRICompositeModel, self).__init__(model_name, model_tree, evaluation_model, signal_noise_model,
                                                  problem_data=problem_data,
@@ -52,6 +62,8 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
 
         self.nmr_parameters_for_bic_calculation = self.get_nmr_estimable_parameters()
         self.required_nmr_shells = False
+        self._sampling_covar_excludes = []
+        self._sampling_covar_extras = []
 
     def build(self, problems_to_analyze=None):
         sample_model = super(DMRICompositeModel, self).build(problems_to_analyze)
@@ -63,7 +75,9 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
                                    self._get_dependent_map_calculator(),
                                    self._get_fixed_parameter_maps(problems_to_analyze),
                                    self._get_proposal_state_names(),
-                                   self._get_sampling_statistics())
+                                   self._get_sampling_statistics(),
+                                   self._sampling_covar_excludes,
+                                   self._sampling_covar_extras)
 
     def set_problem_data(self, problem_data):
         """Overwrites the super implementation by adding a call to _prepare_problem_data()."""
@@ -74,42 +88,6 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
             self._logger.info('Using the gradient deviations in the model optimization.')
 
         return super(DMRICompositeModel, self).set_problem_data(self._prepare_problem_data(problem_data))
-
-    def add_post_optimization_modifier(self, result_names, mod_routine):
-        """Add a modification function that can update the results of model optimization.
-
-        The mod routine should be a function accepting a dictionary as input and should return one or more maps of
-        the same dimension as the maps in the dictionary. The idea is that the given ``mod_routine`` callback receives
-        the result dictionary from the optimization routine and calculates new maps.
-        These maps are then returned and the result dictionary is updated with the returned maps
-        as value and the here provided model_param_name as key.
-
-        It is possible to add more than one modifier function. In that case, they are called in the order they
-        were appended to this model.
-
-        It is possible to add multiple maps in one modification routine, in that case the ``model_param_name`` should
-        be a tuple of map names and the modification routine should output a list of results.
-
-        Args:
-            result_names (str or tuple of str): the name of the output(s) of the mod_routine.
-                Example ``'Power2'`` or ``('Power2' 'Power3')``.
-            mod_routine (python function): the callback function to apply on the results of the referenced parameter.
-                Example: ``lambda d: d**2`` or ``lambda d: (d**2, d**3)``
-        """
-        self._post_optimization_modifiers.append((result_names, mod_routine))
-        return self
-
-    def add_post_optimization_modifiers(self, modifiers):
-        """Add a list of modifier functions.
-
-        The same as add_post_optimization_modifier() except that it accepts a list of modifiers.
-        Every element in the list should be a tuple like (model_param_name, mod_routine)
-
-        Args:
-            modifiers (tuple or list): The list of modifiers to add (in the given order).
-        """
-        self._post_optimization_modifiers.extend(modifiers)
-        return self
 
     def get_optimization_output_param_names(self):
         """Get a list with the names of the parameters, this is the list of keys to the titles and results.
@@ -394,7 +372,7 @@ class BuildCompositeModel(SampleModelInterface):
     def __init__(self, wrapped_sample_model, protocol,
                  estimable_parameters_list, nmr_parameters_for_bic_calculation,
                  post_optimization_modifiers, dependent_map_calculator, fixed_parameter_maps, proposal_state_names,
-                 sampling_statistics):
+                 sampling_statistics, sampling_covar_excludes, sampling_covar_extras):
         self._protocol = protocol
         self._estimable_parameters_list = estimable_parameters_list
         self.nmr_parameters_for_bic_calculation = nmr_parameters_for_bic_calculation
@@ -404,6 +382,8 @@ class BuildCompositeModel(SampleModelInterface):
         self._fixed_parameter_maps = fixed_parameter_maps
         self._proposal_state_names = proposal_state_names
         self._sampling_statistics = sampling_statistics
+        self._sampling_covar_excludes = sampling_covar_excludes
+        self._sampling_covar_extras = sampling_covar_extras
 
     def get_proposal_state_names(self):
         """Get a list of names for the adaptable proposal parameters.
@@ -461,7 +441,6 @@ class BuildCompositeModel(SampleModelInterface):
             dict: the volume maps with some basic post-sampling output
         """
         volume_maps = self._get_univariate_parameter_statistics(samples)
-        # volume_maps.update(self._get_multivariate_statistics(samples))
         results_array = self._param_dict_to_array(volume_maps)
 
         volume_maps = self.post_process_optimization_maps(volume_maps, results_array=results_array)
@@ -480,6 +459,51 @@ class BuildCompositeModel(SampleModelInterface):
         volume_maps.update(uv_ess_maps)
 
         return volume_maps
+
+    def get_multivariate_sampling_statistic(self, samples):
+        """Get the multivariate statistics for the given samples.
+
+        Calculates a single multivariate statistic based on the samples. This function might remove some of the
+        parameters from the samples and might add some additional parameters at its own discretion.
+
+        Args:
+            samples (ndarray): the matrix with the samples
+
+        Returns:
+            dict: the elements forming the multivariate statistic.
+        """
+        params_to_exclude = set(self.get_free_param_names()).intersection(self._sampling_covar_excludes)
+        param_names = [name for name in self.get_free_param_names() if name not in params_to_exclude]
+
+        for _, output_params, _ in self._sampling_covar_extras:
+            param_names.extend(output_params)
+
+        lti = np.array(np.tril_indices(len(param_names))).transpose()
+        result_names = ['Covariance_{}_to_{}'.format(param_names[row], param_names[column]) for row, column in lti]
+        result_matrices = {result_name: np.zeros((samples.shape[0], 1)) for result_name in result_names}
+
+        for input_params, _, func in self._sampling_covar_extras:
+            input_indices = []
+            for p in input_params:
+                if p in self.get_free_param_names():
+                    input_indices.append(self.get_free_param_names().index(p))
+
+            inputs = [samples[:, ind, :] for ind in input_indices]
+            samples = np.column_stack([samples, func(*inputs)])
+
+        indices_to_remove = tuple(set(self.get_free_param_names().index(p) for p in params_to_exclude))
+        samples = np.delete(samples, indices_to_remove, axis=1)
+
+        for voxel_ind in range(samples.shape[0]):
+            covar_matrix = np.cov(samples[voxel_ind, :])
+
+            for names_ind, (row, column) in enumerate(lti):
+                result_matrices[result_names[names_ind]][voxel_ind] = covar_matrix[row, column]
+
+        for param_ind, param_name in enumerate(param_names):
+            result_matrices['Mean_' + param_name] = np.mean(samples[:, param_ind, :], axis=1)
+
+        return result_matrices
 
     def _add_post_optimization_modifier_maps(self, results_dict):
         """Add the extra maps defined in the post optimization modifiers to the results."""
@@ -520,7 +544,7 @@ class BuildCompositeModel(SampleModelInterface):
 
     def _add_post_sampling_information_criterion_maps(self, samples, results_dict):
         results_dict.update(self._calculate_deviance_information_criterions(samples, results_dict))
-        results_dict.update({'WAIC': WAICCalculator().calculate(self, samples)})
+        results_dict.update({'WAIC': np.nan_to_num(WAICCalculator().calculate(self, samples))})
 
     def _calculate_deviance_information_criterions(self, samples, results_dict):
         r"""Calculates the Deviance Information Criteria (DIC) using two methods.
@@ -591,7 +615,7 @@ class BuildCompositeModel(SampleModelInterface):
                 criterion maps.
         """
         log_likelihood_calc = LogLikelihoodCalculator()
-        ll_per_sample = log_likelihood_calc.calculate(self, samples)
+        ll_per_sample = np.nan_to_num(log_likelihood_calc.calculate(self, samples))
 
         mean_deviance = -2 * np.mean(ll_per_sample, axis=1)
         deviance_at_mean = -2 * results_dict['LogLikelihood']
@@ -629,50 +653,6 @@ class BuildCompositeModel(SampleModelInterface):
             results.update({'{}.{}'.format(parameter_name, statistic_key): v
                             for statistic_key, v in statistics.get_additional_statistics().items()})
         return results
-
-    def _get_multivariate_statistics(self, samples):
-        """Get the multivariate statistics for the given samples.
-
-        This method will first convert angular elements into cartesian coordinates and then take the covariance matrix
-        of that and all other parameters.
-
-        The results are returned as dictionary elements with every key named after a part in the lower triangle of
-        the covariance matrix.
-
-        Args:
-            samples (ndarray): the matrix with the samples
-
-        Returns:
-            dict: elements of the lower triangle of the covariance matrix
-        """
-        spherical_coords = ['Stick0.theta', 'Stick0.phi']
-        extra_cartesian_coords = ['Stick0.vec0_0', 'Stick0.vec0_1', 'Stick0.vec0_2']
-
-        param_names = [name for name in self.get_free_param_names() if name not in spherical_coords]
-        param_names += extra_cartesian_coords
-
-        lti = np.array(np.tril_indices(len(param_names))).transpose()
-        result_matrices = {}
-        result_names = []
-
-        for row, column in lti:
-            result_name = 'Covariance_{}_to_{}'.format(param_names[row], param_names[column])
-            result_names.append(result_name)
-            result_matrices[result_name] = np.zeros((samples.shape[0], 1))
-
-        cartesian = spherical_to_cartesian(samples[:, 2, :], samples[:, 3, :])
-        cartesian = np.rollaxis(cartesian, 2, 1)
-        samples = np.delete(samples, (2, 3), axis=1)
-        samples = np.column_stack([samples, cartesian])
-
-        for voxel_ind in range(samples.shape[0]):
-            covar_matrix = np.cov(samples[voxel_ind, :])
-
-            for names_ind, (row, column) in enumerate(lti):
-                result_matrices[result_names[names_ind]][voxel_ind] = covar_matrix[row, column]
-
-        return result_matrices
-
 
     @property
     def name(self):

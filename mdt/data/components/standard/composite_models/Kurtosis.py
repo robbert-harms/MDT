@@ -10,16 +10,8 @@ class Kurtosis(DMRICompositeModelTemplate):
 
     description = 'The standard Kurtosis model with in vivo defaults.'
     model_expression = '''
-        S0 * Tensor * KurtosisExtension(Kurtosis)
+        S0 * KurtosisTensor
     '''
-
-    fixes = {'Kurtosis.d': 'Tensor.d',
-             'Kurtosis.dperp0': 'Tensor.dperp0',
-             'Kurtosis.dperp1': 'Tensor.dperp1',
-             'Kurtosis.theta': 'Tensor.theta',
-             'Kurtosis.phi': 'Tensor.phi',
-             'Kurtosis.psi': 'Tensor.psi'}
-
     volume_selection = {'unweighted_threshold': 25e6,
                         'use_unweighted': True,
                         'use_weighted': True,

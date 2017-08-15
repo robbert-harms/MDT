@@ -2,6 +2,8 @@ import numpy as np
 import itertools
 
 from mdt.cl_routines.mapping.dki_measures import DKIMeasures
+from mdt.cl_routines.mapping.dti_measures import DTIMeasures
+from mdt.utils import tensor_spherical_to_cartesian
 
 from mot.model_building.parameter_functions.priors import AlwaysOne, UniformWithinBoundsPrior
 from mot.model_building.parameter_functions.proposals import GaussianProposal
@@ -95,13 +97,25 @@ def get_dki_measures_modifier():
     return return_names, modifier_routine
 
 
-class KurtosisExtension(CompartmentTemplate):
+def get_dti_measures_modifier():
+    measures_calculator = DTIMeasures()
+    return_names = measures_calculator.get_output_names()
+
+    def modifier_routine(results_dict):
+        measures = measures_calculator.calculate(results_dict)
+        return [measures[name] for name in return_names]
+
+    return return_names, modifier_routine
+
+
+def extra_covariance_samples(theta, phi, psi):
+    return np.rollaxis(np.concatenate(tensor_spherical_to_cartesian(theta, phi, psi), axis=2), 2, 1)
+
+
+class KurtosisTensor(CompartmentTemplate):
 
     description = '''
-        The Kurtosis extension for the Tensor model.
-
-        This compartment can not be used directly as a compartment model, it always needs to be used in conjunction with
-        the Tensor model. For example, a composite model script would be: "S0 * Tensor * Kurtosis".
+        The Kurtosis Tensor model.
     '''
     parameter_list = get_parameter_list()
     dependency_list = ['TensorApparentDiffusion', 'KurtosisMultiplication']
@@ -123,6 +137,17 @@ class KurtosisExtension(CompartmentTemplate):
             return INFINITY;
         }
 
-        return exp((b*b)/6.0 * tensor_md_2 * kurtosis_sum);
+        return exp(-b*adc + (b*b)/6.0 * tensor_md_2 * kurtosis_sum);
     '''
-    post_optimization_modifiers = [get_dki_measures_modifier()]
+
+    extra_prior = 'return dperp1 < dperp0 && dperp0 < d;'
+
+    auto_add_cartesian_vector = False
+    post_optimization_modifiers = [get_dti_measures_modifier(),
+                                   get_dki_measures_modifier()]
+
+    auto_sampling_covar_cartesian = False
+    sampling_covar_extras = [(('theta', 'phi', 'psi'), ('vec0_x', 'vec0_y', 'vec0_z',
+                                                        'vec1_x', 'vec1_y', 'vec1_z',
+                                                        'vec2_x', 'vec2_y', 'vec2_z'), extra_covariance_samples)]
+    sampling_covar_exclude = ['theta', 'phi', 'psi']

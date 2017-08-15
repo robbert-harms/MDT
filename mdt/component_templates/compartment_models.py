@@ -1,11 +1,10 @@
-from copy import deepcopy
+from copy import deepcopy, copy
 from textwrap import indent, dedent
 import numpy as np
 import six
 
 from mdt.components_loader import ParametersLoader
-from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplateMeta, \
-    ComponentTemplate, register_builder
+from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate, register_builder
 from mdt.models.compartments import DMRICompartmentModelFunction
 from mdt.utils import spherical_to_cartesian
 from mot.model_building.model_function_priors import ModelFunctionPrior, SimpleModelFunctionPrior
@@ -54,9 +53,30 @@ class CompartmentTemplate(ComponentTemplate):
             modifier in one modifier expression. In general, the function given should accept as first argument
             the results dictionary and as optional second argument the protocol used to generate the results.
             These modifiers are called before the modifiers of the composite model.
+
         auto_add_cartesian_vector (boolean): if set to True we will automatically add a post optimization modifier
             that constructs a cartesian vector from the ``theta`` and ``phi`` parameter if present. This modifier
             is run before the other user defined modifiers.
+
+        sampling_covar_extras (list): list with information about callback functions that can add additional maps
+            to the covariance matrix calculated after sampling. Usage example::
+
+                sampling_covar_extras = [(('theta', 'phi'),
+                                          ('vec0_x', 'vec0_y', 'vec0_z'),
+                                          spherical_to_cartesian),
+                                         ...]
+
+            This requires a list of tuples with in those tuples three elements: the names of the parameters
+            to use as input to the callback function, the names of the output parameters and finally the callback
+             function itself.
+
+        sampling_covar_exclude (None tuple or list): parameters to exclude in the covariance matrix calculation
+                after sampling. Example::
+
+                sampling_covar_exclude = ['theta', 'phi']
+
+        auto_sampling_covar_cartesian (boolean): if set to True we automatically use cartesian coordinates for
+            the sampling covariance matrix instead of the spherical coordinates.
     """
     name = ''
     description = ''
@@ -68,14 +88,9 @@ class CompartmentTemplate(ComponentTemplate):
     extra_prior = None
     post_optimization_modifiers = None
     auto_add_cartesian_vector = True
-
-
-class CompartmentBuildingBase(DMRICompartmentModelFunction):
-    """Use this class in super calls if you want to overwrite methods in the inherited compartment configs.
-
-    In python2 super needs a type to be able to do its work. This is the type you can give it to allow
-    it to do its work.
-    """
+    sampling_covar_extras = None
+    sampling_covar_exclude = None
+    auto_sampling_covar_cartesian = True
 
 
 class CompartmentBuilder(ComponentBuilder):
@@ -89,7 +104,7 @@ class CompartmentBuilder(ComponentBuilder):
         """
         builder = self
 
-        class AutoCreatedDMRICompartmentModel(method_binding_meta(template, CompartmentBuildingBase)):
+        class AutoCreatedDMRICompartmentModel(method_binding_meta(template, DMRICompartmentModelFunction)):
 
             def __init__(self, *args, **kwargs):
                 parameter_list = _get_parameters_list(template.parameter_list)
@@ -104,10 +119,14 @@ class CompartmentBuilder(ComponentBuilder):
                 for ind, already_set_arg in enumerate(args):
                     new_args[ind] = already_set_arg
 
+                covar_extras, covar_exclude = _resolve_covariance_extra_exclude(template, parameter_list)
+
                 new_kwargs = {'model_function_priors': (_resolve_prior(template.extra_prior, template.name,
                                                                        [p.name for p in parameter_list],)),
                               'post_optimization_modifiers': builder._get_post_optimization_modifiers(template,
-                                                                                                      parameter_list)}
+                                                                                                      parameter_list),
+                              'sampling_covar_extras': covar_extras,
+                              'sampling_covar_exclude': covar_exclude}
                 new_kwargs.update(kwargs)
 
                 super(AutoCreatedDMRICompartmentModel, self).__init__(*new_args, **new_kwargs)
@@ -183,6 +202,33 @@ def _resolve_prior(prior, compartment_name, compartment_parameters):
 
     parameters = [p for p in compartment_parameters if p in prior]
     return SimpleModelFunctionPrior(prior, parameters, 'prior_' + compartment_name)
+
+
+def _resolve_covariance_extra_exclude(template, parameter_list):
+    """Resolves the defined covariance extra and exclude definitions.
+
+    If ``auto_sampling_covar_cartesian`` is defined this function sets the ``sampling_covar_extras``
+    and ``sampling_covar_exclude``
+
+    Args:
+        template (CompartmentTemplate): the template to use
+        parameter_list (list): the list of parameters in the model
+
+    Returns:
+        tuple: sane values for ``sampling_covar_extras`` and ``sampling_covar_exclude``
+    """
+    extras = copy(template.sampling_covar_extras) or []
+    excludes = copy(template.sampling_covar_exclude) or []
+
+    def conversion_func(theta, phi):
+        return np.rollaxis(spherical_to_cartesian(theta, phi), 2, 1)
+
+    if template.auto_sampling_covar_cartesian:
+        if all(map(lambda name: name in [p.name for p in parameter_list], ('theta', 'phi'))):
+            excludes.extend(['theta', 'phi'])
+            extras.append((('theta', 'phi'), ('vec0_x', 'vec0_y', 'vec0_z'), conversion_func))
+
+    return extras, excludes
 
 
 def _build_source_code(template):
