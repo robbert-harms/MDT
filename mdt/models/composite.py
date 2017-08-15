@@ -475,21 +475,20 @@ class BuildCompositeModel(SampleModelInterface):
         params_to_exclude = set(self.get_free_param_names()).intersection(self._sampling_covar_excludes)
         param_names = [name for name in self.get_free_param_names() if name not in params_to_exclude]
 
-        for _, output_params, _ in self._sampling_covar_extras:
-            param_names.extend(output_params)
-
         lti = np.array(np.tril_indices(len(param_names))).transpose()
         result_names = ['Covariance_{}_to_{}'.format(param_names[row], param_names[column]) for row, column in lti]
         result_matrices = {result_name: np.zeros((samples.shape[0], 1)) for result_name in result_names}
 
-        for input_params, _, func in self._sampling_covar_extras:
+        for input_params, output_params, func in self._sampling_covar_extras:
             input_indices = []
             for p in input_params:
                 if p in self.get_free_param_names():
                     input_indices.append(self.get_free_param_names().index(p))
 
-            inputs = [samples[:, ind, :] for ind in input_indices]
-            samples = np.column_stack([samples, func(*inputs)])
+            if input_indices:
+                param_names.extend(output_params)
+                inputs = [samples[:, ind, :] for ind in input_indices]
+                samples = np.column_stack([samples, func(*inputs)])
 
         indices_to_remove = tuple(set(self.get_free_param_names().index(p) for p in params_to_exclude))
         samples = np.delete(samples, indices_to_remove, axis=1)

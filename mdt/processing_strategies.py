@@ -14,10 +14,12 @@ import logging
 import os
 import shutil
 import timeit
+from contextlib import contextmanager
+
 import numpy as np
 import time
 
-from mdt import disable_logging_context
+from mdt.log_handlers import StdOutHandler
 from mot.cl_routines.optimizing.base import SimpleOptimizationResult
 from mot.model_building.model_builders import ParameterTransformedModel
 from mot.utils import results_to_dict
@@ -106,7 +108,7 @@ class ChunksProcessingStrategy(ModelProcessingStrategy):
                     processor.process(chunk)
                     mot_logging_enabled = False
                 else:
-                    with disable_logging_context():
+                    with self._with_logging_to_debug():
                         processor.process(chunk)
 
                 gc.collect()
@@ -114,6 +116,15 @@ class ChunksProcessingStrategy(ModelProcessingStrategy):
                 voxels_processed += len(chunk)
 
         return batches
+
+    @contextmanager
+    def _with_logging_to_debug(self):
+        handlers = logging.getLogger('mot').handlers
+        for handler in handlers:
+            handler.setLevel(logging.WARNING)
+        yield
+        for handler in handlers:
+            handler.setLevel(logging.INFO)
 
     def _get_batch_start_message(self, total_nmr_voxels, voxel_indices, voxels_to_process, voxels_processed, start_time,
                                  start_nmr_processed):

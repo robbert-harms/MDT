@@ -1,5 +1,4 @@
 import collections
-import glob
 import logging
 import logging.config as logging_config
 import os
@@ -7,7 +6,6 @@ from inspect import stack
 from contextlib import contextmanager
 import numpy as np
 import shutil
-import six
 from six import string_types
 
 from .__version__ import VERSION, VERSION_STATUS, __version__
