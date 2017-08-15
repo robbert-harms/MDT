@@ -1,6 +1,6 @@
 import copy
 from mdt.gui.maps_visualizer.base import SimpleDataConfigModel
-from mdt.visualization.maps.base import Zoom, Point, SingleMapConfig
+from mdt.visualization.maps.base import Zoom, Point2d, SingleMapConfig
 
 
 class ModelUpdateAction(object):
@@ -312,12 +312,12 @@ class SetFlipud(SimpleConfigAction):
             if new_p1_y >= max_y - 1:
                 new_p1_y = max_y - 1
 
-            new_zoom = Zoom(Point(configuration.zoom.p0.x, new_p0_y),
-                            Point(configuration.zoom.p1.x, new_p1_y))
+            new_zoom = Zoom(Point2d(configuration.zoom.p0.x, new_p0_y),
+                            Point2d(configuration.zoom.p1.x, new_p1_y))
 
             return SetZoom(new_zoom).apply(SimpleDataConfigModel(data, configuration)).get_config()
 
 
-class SetHighlightVoxel(SimpleConfigAction):
+class SetHighlightVoxels(SimpleConfigAction):
 
-    config_attribute = 'highlight_voxel'
+    config_attribute = 'highlight_voxels'

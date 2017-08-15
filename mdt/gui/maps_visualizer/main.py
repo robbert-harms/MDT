@@ -19,8 +19,7 @@ from mdt.gui.maps_visualizer.config_tabs.tab_general import TabGeneral
 from mdt.gui.maps_visualizer.config_tabs.tab_map_specific import TabMapSpecific
 from mdt.gui.maps_visualizer.config_tabs.tab_textual import TabTextual
 from mdt.gui.maps_visualizer.design.ui_save_image_dialog import Ui_SaveImageDialog
-from mdt.nifti import is_nifti_file, load_nifti
-from mdt.utils import split_image_path
+from mdt.nifti import is_nifti_file
 
 matplotlib.use('Qt5Agg')
 
@@ -28,7 +27,7 @@ import mdt
 from mdt.gui.maps_visualizer.base import DataConfigModel, \
     QtController
 from mdt.gui.maps_visualizer.renderers.base import PlottingFrameInfoViewer
-from mdt.visualization.maps.base import DataInfo, SimpleDataInfo, MapPlotConfig, SingleMapInfo, \
+from mdt.visualization.maps.base import DataInfo, SimpleDataInfo, MapPlotConfig, \
     get_shortest_unique_names
 from mdt.gui.maps_visualizer.renderers.matplotlib_renderer import MatplotlibPlotting
 from mdt.gui.model_fit.design.ui_about_dialog import Ui_AboutDialog
@@ -75,12 +74,12 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self.auto_rendering.stateChanged.connect(self._set_auto_rendering)
         self.manual_render.clicked.connect(lambda: self.plotting_frame.redraw())
 
+        self.actionNew_window.triggered.connect(lambda: start_gui(app_exec=False))
         self.actionAbout.triggered.connect(lambda: AboutDialog(self).exec_())
         self.actionAdd_new_files.triggered.connect(self._add_new_files)
         self.action_Clear.triggered.connect(self._remove_files)
         self.actionSaveImage.triggered.connect(lambda: ExportImageDialog(self, self.plotting_frame,
                                                                          self._controller).exec_())
-
         self.actionSave_settings.triggered.connect(lambda: self._save_settings())
         self.actionLoad_settings.triggered.connect(lambda: self._load_settings())
 
@@ -97,7 +96,6 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         self.undo_config.setDisabled(not self._controller.has_undo())
         self.redo_config.setDisabled(not self._controller.has_redo())
         self._set_qdialog_basedir()
-
 
     def _set_qdialog_basedir(self):
         if not self._qdialog_basedir_set:

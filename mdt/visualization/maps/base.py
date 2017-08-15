@@ -1,7 +1,6 @@
 import glob
 from copy import copy, deepcopy
 import os
-import inspect
 import warnings
 
 import nibabel
@@ -10,12 +9,11 @@ import yaml
 import matplotlib.font_manager
 import mdt
 import mdt.visualization.layouts
-from mdt.nifti import yield_nifti_info, load_nifti, nifti_filepath_resolution
+from mdt.nifti import load_nifti, nifti_filepath_resolution
 from mdt.utils import split_image_path
 from mdt.visualization.dict_conversion import StringConversion, \
     SimpleClassConversion, IntConversion, SimpleListConversion, BooleanConversion, \
-    ConvertDictElements, ConvertDynamicFromModule, FloatConversion, WhiteListConversion, SimpleDictConversion, \
-    ConvertListElements
+    ConvertDictElements, ConvertDynamicFromModule, FloatConversion, WhiteListConversion
 from mdt.visualization.layouts import Rectangular
 
 
@@ -86,7 +84,7 @@ class MapPlotConfig(SimpleConvertibleConfig):
     def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=90, colormap='hot', maps_to_show=None,
                  font=None, grid_layout=None, colorbar_nmr_ticks=4, show_axis=False, zoom=None, show_colorbar=True,
                  map_plot_options=None, interpolation='bilinear', flipud=None,
-                 title=None, mask_name=None, highlight_voxel=None):
+                 title=None, mask_name=None, highlight_voxels=None):
         """Container for all plot related settings.
 
         Args:
@@ -108,7 +106,7 @@ class MapPlotConfig(SimpleConvertibleConfig):
             flipud (boolean): if True we flip the image upside down
             title (str): the title to this plot
             mask_name (str): the name of the mask to apply to the maps prior to display
-            highlight_voxel (tuple): the voxel to highlight
+            highlight_voxels (list of tuple): list with voxels to highlight
         """
         super(MapPlotConfig, self).__init__()
         self.dimension = dimension
@@ -132,7 +130,7 @@ class MapPlotConfig(SimpleConvertibleConfig):
         self.map_plot_options = map_plot_options or {}
         self.title = title
         self.mask_name = mask_name
-        self.highlight_voxel = highlight_voxel or ()
+        self.highlight_voxels = highlight_voxels or []
 
         if interpolation not in self.get_available_interpolations():
             raise ValueError('The given interpolation ({}) is not supported.'.format(interpolation))
@@ -186,7 +184,8 @@ class MapPlotConfig(SimpleConvertibleConfig):
                 'title': StringConversion(),
                 'mask_name': StringConversion(),
                 'show_colorbar': BooleanConversion(),
-                'highlight_voxel': SimpleListConversion(desired_type=int, allow_null=False)
+                'highlight_voxels': SimpleListConversion(conversion_func=lambda coords: tuple(map(int, coords)),
+                                                         allow_null=False, set_null_to_value=[])
                 }
 
     @classmethod
@@ -292,12 +291,15 @@ class MapPlotConfig(SimpleConvertibleConfig):
             if value is not None:
                 self.map_plot_options[key] = value.validate(data_info)
 
-    def _validate_highlight_voxel(self, data_info):
-        if self.highlight_voxel:
-            if len(self.highlight_voxel) > 3:
-                raise ValueError('The location of the highlight voxel should consist of (x, y, z) '
-                                 'coordinates, {} given.'.format(self.highlight_voxel))
-            for dim, pos in enumerate(self.highlight_voxel):
+    def _validate_highlight_voxels(self, data_info):
+        if self.highlight_voxels is None:
+            self.highlight_voxels = []
+
+        for highlight_voxel in self.highlight_voxels:
+            if len(highlight_voxel) > 3 or len(highlight_voxel) < 3:
+                raise ValueError('The location of a highlighted voxel should consist of (x, y, z) '
+                                 'coordinates, {} given.'.format(highlight_voxel))
+            for dim, pos in enumerate(highlight_voxel):
                 try:
                     max_pos = data_info.get_max_slice_index(dimension=dim)
                 except ValueError:
@@ -305,11 +307,11 @@ class MapPlotConfig(SimpleConvertibleConfig):
 
                 if max_pos is not None:
                     if pos > max_pos:
-                        raise ValueError('The location of the highlighted in '
+                        raise ValueError('The location of a highlighted voxel in '
                                          'the {} dimension is larger than {}, {} given.'.format(dim, max_pos, pos))
 
                 if pos < 0:
-                    raise ValueError('The location of the highlighted in '
+                    raise ValueError('The location of a highlighted voxel in '
                                      'the {} dimension is negative, {} given.'.format(dim, pos))
 
 
@@ -561,7 +563,7 @@ class DataInfo(object):
             map_names (list of str): if given we will only scan the given list of maps
 
         Returns:
-            tuple of Point: two point designating first the upper left corner and second the lower right corner of the
+            tuple of :class:`Point2d`: two points designating the upper left corner and the lower right corner of the
                 bounding box.
         """
         raise NotImplementedError()
@@ -784,7 +786,7 @@ class SimpleDataInfo(DataInfo):
         p1x = max([bbox[1].x for bbox in bounding_boxes])
         p1y = max([bbox[1].y for bbox in bounding_boxes])
 
-        return Point(p0x, p0y), Point(p1x, p1y)
+        return Point2d(p0x, p0y), Point2d(p1x, p1y)
 
 
 class SingleMapInfo(object):
@@ -1026,7 +1028,7 @@ class SingleMapInfo(object):
             image = np.rot90(image, rotate // 90)
 
         row_min, row_max, column_min, column_max = bbox(image)
-        return Point(column_min, row_min), Point(column_max, row_max)
+        return Point2d(column_min, row_min), Point2d(column_max, row_max)
 
 
 class Zoom(SimpleConvertibleConfig):
@@ -1035,8 +1037,8 @@ class Zoom(SimpleConvertibleConfig):
         """Container for zooming a map between the two given points.
 
         Args:
-            p0 (Point): the lower left corner of the zoomed area
-            p1 (Point): the upper right corner of the zoomed area
+            p0 (Point2d): the lower left corner of the zoomed area
+            p1 (Point2d): the upper right corner of the zoomed area
         """
         self.p0 = p0
         self.p1 = p1
@@ -1054,15 +1056,15 @@ class Zoom(SimpleConvertibleConfig):
 
     @classmethod
     def from_coords(cls, x0, y0, x1, y1):
-        return cls(Point(x0, y0), Point(x1, y1))
+        return cls(Point2d(x0, y0), Point2d(x1, y1))
 
     @classmethod
     def no_zoom(cls):
-        return cls(Point(0, 0), Point(0, 0))
+        return cls(Point2d(0, 0), Point2d(0, 0))
 
     @classmethod
     def _get_attribute_conversions(cls):
-        point_converter = Point.get_conversion_info()
+        point_converter = Point2d.get_conversion_info()
         return {'p0': point_converter,
                 'p1': point_converter}
 
@@ -1088,8 +1090,8 @@ class Zoom(SimpleConvertibleConfig):
         for _ in range(nmr_90_rotations):
             dimensions = np.roll(dimensions, 1)
 
-            new_p0 = Point(np.min([dimensions[0] - p0.y, dimensions[0] - p1.y]), np.min([p0.x, p1.x]))
-            new_p1 = Point(np.max([dimensions[0] - p0.y, dimensions[0] - p1.y]), np.max([p0.x, p1.x]))
+            new_p0 = Point2d(np.min([dimensions[0] - p0.y, dimensions[0] - p1.y]), np.min([p0.x, p1.x]))
+            new_p1 = Point2d(np.max([dimensions[0] - p0.y, dimensions[0] - p1.y]), np.max([p0.x, p1.x]))
 
             p0 = new_p0
             p1 = new_p1
@@ -1122,7 +1124,7 @@ class Zoom(SimpleConvertibleConfig):
         return data
 
 
-class Point(SimpleConvertibleConfig):
+class Point2d(SimpleConvertibleConfig):
 
     def __init__(self, x, y):
         """Container for a single point"""
@@ -1130,17 +1132,17 @@ class Point(SimpleConvertibleConfig):
         self.y = y
 
     def get_updated(self, **kwargs):
-        """Get a new Point object with updated arguments.
+        """Get a new :class:`Point2d` with updated arguments.
 
         Args:
             **kwargs (dict): the new keyword values, when given these take precedence over the current ones.
 
         Returns:
-            Point: a new scale with updated values.
+            Point2d: a new scale with updated values.
         """
         new_values = dict(x=self.x, y=self.y)
         new_values.update(**kwargs)
-        return Point(**new_values)
+        return Point2d(**new_values)
 
     @classmethod
     def _get_attribute_conversions(cls):
@@ -1151,10 +1153,10 @@ class Point(SimpleConvertibleConfig):
         """Rotate this point around a 90 degree angle
 
         Args:
-            nmr_rotations (int): the number of 90 degreee rotations, can be negative
+            nmr_rotations (int): the number of 90 degree rotations, can be negative
 
         Returns:
-            Point: the rotated point
+            Point2d: the rotated point
         """
 
         def rotate_coordinate(x, y, nmr_rotations):
@@ -1165,7 +1167,7 @@ class Point(SimpleConvertibleConfig):
                 rx, ry = rotation_matrix.dot([rx, ry])
             return rx, ry
 
-        return Point(*rotate_coordinate(self.x, self.y, nmr_rotations))
+        return Point2d(*rotate_coordinate(self.x, self.y, nmr_rotations))
 
 
 class Clipping(SimpleConvertibleConfig):

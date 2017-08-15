@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt, patches
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from mdt import get_slice_in_dimension
-from mdt.visualization.maps.base import Clipping, Scale, Point
+from mdt.visualization.maps.base import Clipping, Scale, Point2d
 from mdt.visualization.utils import MyColourBarTickLocator
 
 __author__ = 'Robbert Harms'
@@ -148,7 +148,7 @@ class Renderer(object):
         plot_options['interpolation'] = self._plot_config.interpolation
         vf = axis.imshow(data, **plot_options)
 
-        self._add_highlight(map_name, axis, data.shape)
+        self._add_highlights(map_name, axis, data.shape)
 
         if self._get_map_attr(map_name, 'show_colorbar', self._plot_config.show_colorbar):
             divider = make_axes_locatable(axis)
@@ -179,7 +179,7 @@ class Renderer(object):
         colorbar_axis.yaxis.offsetText.set_fontsize(self._plot_config.font.size - 3)
         colorbar_axis.yaxis.offsetText.set_family(self._plot_config.font.name)
 
-    def _add_highlight(self, map_name, axis, viewport_dims):
+    def _add_highlights(self, map_name, axis, viewport_dims):
         """Add the patches defined in the global config and in the map specific config to this image plot."""
         def format_value(v):
             value_format = '{:.3e}'
@@ -202,45 +202,46 @@ class Renderer(object):
             data = self._data_info.get_map_data(map_name)
             return float(data[index])
 
-        highlight_voxel = self._plot_config.highlight_voxel
-        if highlight_voxel and len(highlight_voxel) == 3:
-            index = get_value_index(highlight_voxel)
-            value = get_value(index)
+        for highlight_voxel in self._plot_config.highlight_voxels:
+            if highlight_voxel and len(highlight_voxel) == 3:
+                index = get_value_index(highlight_voxel)
+                value = get_value(index)
 
-            coordinate = _index_to_coordinates(self._data_info.get_single_map_info(map_name), self._plot_config, index)
-            if coordinate is not None:
-                coordinate = np.array(coordinate)
+                coordinate = _index_to_coordinates(self._data_info.get_single_map_info(map_name),
+                                                   self._plot_config, index)
+                if coordinate is not None:
+                    coordinate = np.array(coordinate)
 
-                xy_arrowhead = np.copy(coordinate)
-                xy_text = np.copy(coordinate)
-                horizontalalignment = 'right'
-                verticalalignment = 'bottom'
-                delta_x = np.clip(0.05 * viewport_dims[0], 1, 10)
-                delta_y = np.clip(0.05 * viewport_dims[1], 1, 10)
+                    xy_arrowhead = np.copy(coordinate)
+                    xy_text = np.copy(coordinate)
+                    horizontalalignment = 'right'
+                    verticalalignment = 'bottom'
+                    delta_x = np.clip(0.05 * viewport_dims[0], 1, 10)
+                    delta_y = np.clip(0.05 * viewport_dims[1], 1, 10)
 
-                if coordinate[0] > viewport_dims[0] // 2:
-                    xy_text[0] += delta_x
-                    horizontalalignment = 'left'
-                else:
-                    xy_text[0] -= delta_x
+                    if coordinate[0] > viewport_dims[0] // 2:
+                        xy_text[0] += delta_x
+                        horizontalalignment = 'left'
+                    else:
+                        xy_text[0] -= delta_x
 
-                if coordinate[1] > viewport_dims[1] // 2:
-                    xy_text[1] += delta_y
-                else:
-                    verticalalignment = 'top'
-                    xy_text[1] -= delta_y
+                    if coordinate[1] > viewport_dims[1] // 2:
+                        xy_text[1] += delta_y
+                    else:
+                        verticalalignment = 'top'
+                        xy_text[1] -= delta_y
 
-                rect = patches.Rectangle(coordinate-0.5, 1, 1, linewidth=1, edgecolor='white', facecolor='#0066ff')
-                axis.add_patch(rect)
+                    rect = patches.Rectangle(coordinate-0.5, 1, 1, linewidth=1, edgecolor='white', facecolor='#0066ff')
+                    axis.add_patch(rect)
 
-                text = "{},\n{}".format(tuple(index), format_value(value))
+                    text = "{},\n{}".format(tuple(index), format_value(value))
 
-                axis.annotate(text, xy=xy_arrowhead, xytext=xy_text,
-                              horizontalalignment=horizontalalignment, verticalalignment=verticalalignment,
-                              multialignment='left',
-                              arrowprops=dict(color='white', arrowstyle="->", connectionstyle="arc3"),
-                              color='black', size=10,
-                              bbox=dict(facecolor='white'))
+                    axis.annotate(text, xy=xy_arrowhead, xytext=xy_text,
+                                  horizontalalignment=horizontalalignment, verticalalignment=verticalalignment,
+                                  multialignment='left',
+                                  arrowprops=dict(color='white', arrowstyle="->", connectionstyle="arc3"),
+                                  color='black', size=10,
+                                  bbox=dict(facecolor='white'))
 
 
     def _add_colorbar(self, map_name, axis, image_figure, colorbar_label):
@@ -390,7 +391,7 @@ def _coordinates_to_index(map_info, plot_config, x, y):
     x, y = y, x
 
     # rotate the point
-    rotated = Point(x, y).rotate90((-1 * plot_config.rotate % 360) // 90)
+    rotated = Point2d(x, y).rotate90((-1 * plot_config.rotate % 360) // 90)
 
     # translate the point back to a new origin
     if plot_config.rotate == 90:

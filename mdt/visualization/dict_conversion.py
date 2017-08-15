@@ -108,28 +108,34 @@ class ConvertDynamicFromModule(ConversionSpecification):
         return cls.get_conversion_info().from_dict(value[1])
 
 
-class IdentityConversion(ConversionSpecification):
+class SimpleFunctionConversion(ConversionSpecification):
 
-    def __init__(self, desired_type=None, allow_null=True):
+    def __init__(self, conversion_func=None, allow_null=True, set_null_to_value=None):
         """Performs identity conversion between simple types.
 
         Args:
-            desired_type (:class:`type`): if not None we cast the from_dict value to the given type
+            conversion_func (Func): if not None we apply the given function before converting to and from the
+                dictionary. Can also be a type like ``int``.
             allow_null (bool): if True we allow None during type casting
+            set_null_to_value (obj): the value to set null entries to. If this is None and allow_null is False we
+                raise an error.
         """
-        super(IdentityConversion, self).__init__()
-        self._desired_type = desired_type
+        super(SimpleFunctionConversion, self).__init__()
+        self._conversion_func = conversion_func
         self._allow_none = allow_null
+        self._set_null_to_value = set_null_to_value
 
     def to_dict(self, obj):
         if obj is None:
             if self._allow_none:
                 return None
             else:
+                if self._set_null_to_value is not None:
+                    return self._set_null_to_value
                 raise ValueError('The object is supposed to be not None.')
         else:
-            if self._desired_type:
-                return self._desired_type(obj)
+            if self._conversion_func:
+                return self._conversion_func(obj)
         return obj
 
     def from_dict(self, value):
@@ -137,52 +143,60 @@ class IdentityConversion(ConversionSpecification):
             if self._allow_none:
                 return None
             else:
+                if self._set_null_to_value is not None:
+                    return self._set_null_to_value
                 raise ValueError('The object is supposed to be not None.')
         else:
-            if self._desired_type:
-                return self._desired_type(value)
+            if self._conversion_func:
+                return self._conversion_func(value)
         return value
 
 
-class SimpleDictConversion(IdentityConversion):
+class SimpleDictConversion(SimpleFunctionConversion):
 
-    def __init__(self, desired_type=None, allow_null=True):
+    def __init__(self, conversion_func=None, allow_null=True, set_null_to_value=None):
         """Converts all the objects in the given dict.
 
         Args:
-            desired_type (:class:`type`): if not None we cast the from_dict value to the given type
+            conversion_func (Func): if not None we cast the from_dict value to the given type
             allow_null (bool): if True we allow None during type casting
+            set_null_to_value (obj): the value to set null entries to. If this is None and allow_null is False we
+                raise an error.
         """
         super(SimpleDictConversion, self).__init__(
-            desired_type=SimpleDictConversion._get_conversion_func(desired_type),
-            allow_null=allow_null)
+            conversion_func=SimpleDictConversion._get_conversion_func(conversion_func),
+            allow_null=allow_null,
+            set_null_to_value=set_null_to_value)
 
     @staticmethod
-    def _get_conversion_func(desired_type):
-        """Wraps the desired type into a dict(desired_type) function."""
-        if desired_type is None:
+    def _get_conversion_func(user_conversion_func):
+        """Wraps the desired type into a Dict[user_conversion_func] function."""
+        if user_conversion_func is None:
             return None
 
         def conversion_wrapper(obj):
             if isinstance(obj, Mapping):
-                return {key: desired_type(v) for key, v in obj.items()}
+                return {key: user_conversion_func(v) for key, v in obj.items()}
             return obj
 
         return conversion_wrapper
 
 
-class SimpleListConversion(IdentityConversion):
+class SimpleListConversion(SimpleFunctionConversion):
 
-    def __init__(self, desired_type=None, allow_null=True):
+    def __init__(self, conversion_func=None, allow_null=True, set_null_to_value=None):
         """Converts all the objects in the given list.
 
         Args:
-            desired_type (:class:`type`): if not None we cast the from_dict value to the given type
+            conversion_func (Func): if not None we cast the from_dict value to the given type
             allow_null (bool): if True we allow None during type casting
+            set_null_to_value (obj): the value to set null entries to. If this is None and allow_null is False we
+                raise an error.
         """
         super(SimpleListConversion, self).__init__(
-            desired_type=SimpleListConversion._get_conversion_func(desired_type),
-            allow_null=allow_null)
+            conversion_func=SimpleListConversion._get_conversion_func(conversion_func),
+            allow_null=allow_null,
+            set_null_to_value=set_null_to_value)
 
     @staticmethod
     def _get_conversion_func(desired_type):
@@ -198,25 +212,25 @@ class SimpleListConversion(IdentityConversion):
         return conversion_wrapper
 
 
-class StringConversion(IdentityConversion):
+class StringConversion(SimpleFunctionConversion):
 
     def __init__(self, allow_null=True):
         super(StringConversion, self).__init__(str, allow_null=allow_null)
 
 
-class IntConversion(IdentityConversion):
+class IntConversion(SimpleFunctionConversion):
 
     def __init__(self, allow_null=True):
         super(IntConversion, self).__init__(int, allow_null=allow_null)
 
 
-class FloatConversion(IdentityConversion):
+class FloatConversion(SimpleFunctionConversion):
 
     def __init__(self, allow_null=True):
         super(FloatConversion, self).__init__(float, allow_null=allow_null)
 
 
-class BooleanConversion(IdentityConversion):
+class BooleanConversion(SimpleFunctionConversion):
 
     def __init__(self, allow_null=True):
         super(BooleanConversion, self).__init__(bool, allow_null=allow_null)

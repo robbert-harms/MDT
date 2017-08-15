@@ -1,7 +1,7 @@
 import matplotlib
 import numpy as np
-
-from mdt.gui.maps_visualizer.actions import SetZoom, SetHighlightVoxel
+import copy
+from mdt.gui.maps_visualizer.actions import SetZoom, SetHighlightVoxels
 
 matplotlib.use('Qt5Agg')
 
@@ -36,6 +36,8 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
 
         self.canvas = FigureCanvas(self.figure)
         self.canvas.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.canvas.setFocusPolicy(QtCore.Qt.ClickFocus)
+        self.canvas.setFocus()
         self.canvas.updateGeometry()
 
         layout = QVBoxLayout()
@@ -118,6 +120,11 @@ class _MouseInteraction(object):
         self.figure.canvas.mpl_connect('button_release_event', self._button_released)
         self.figure.canvas.mpl_connect('motion_notify_event', self._mouse_motion)
         self.figure.canvas.mpl_connect('scroll_event', self._scroll_event)
+        self.figure.canvas.mpl_connect('key_press_event', self._on_key_press)
+        self.figure.canvas.mpl_connect('key_release_event', self._on_key_release)
+
+        self._in_drag = False
+        self._control_is_held = False
 
         self._scrolling_manager = _ScrollingManager(controller)
         self._dragging_manager = _DraggingManager(controller)
@@ -134,13 +141,35 @@ class _MouseInteraction(object):
         self._dragging_manager.set_starting_point(event.xdata, event.ydata)
 
     def _button_released(self, event):
-        axis_data = self._get_matching_axis_data(event.inaxes)
-        if axis_data:
-            x, y = int(np.round(event.xdata)), int(np.round(event.ydata))
-            index = axis_data.coordinates_to_index(x, y)
-            self.controller.apply_action(SetHighlightVoxel(index[:3]))
-        else:
-            self.controller.apply_action(SetHighlightVoxel([]))
+        if self._in_drag:
+            self._in_drag = False
+            return
+
+        current_highlights = copy.copy(self.controller.get_model().get_config().highlight_voxels)
+
+        if event.button == 1:
+            axis_data = self._get_matching_axis_data(event.inaxes)
+            if axis_data:
+                x, y = int(np.round(event.xdata)), int(np.round(event.ydata))
+                index = axis_data.coordinates_to_index(x, y)[:3]
+
+                if index in current_highlights:
+                    del current_highlights[current_highlights.index(index)]
+                elif self._control_is_held:
+                    current_highlights.append(index)
+                else:
+                    if len(current_highlights):
+                        current_highlights.pop()
+                    current_highlights.append(index)
+
+                self.controller.apply_action(SetHighlightVoxels(current_highlights))
+            else:
+                if self._control_is_held:
+                    self.controller.apply_action(SetHighlightVoxels([]))
+                else:
+                    if len(current_highlights):
+                        current_highlights.pop()
+                    self.controller.apply_action(SetHighlightVoxels(current_highlights))
 
     def _scroll_event(self, event):
         if event.inaxes:
@@ -151,9 +180,18 @@ class _MouseInteraction(object):
 
     def _mouse_motion(self, event):
         if event.button == 1:
+            self._in_drag = True
             self._drag_images(event)
         else:
             self._update_info_box(event)
+
+    def _on_key_press(self, event):
+        if event.key == 'control':
+            self._control_is_held = True
+
+    def _on_key_release(self, event):
+        if event.key == 'control':
+            self._control_is_held = False
 
     def _drag_images(self, event):
         self._dragging_manager.mouse_moved(event.xdata, event.ydata)

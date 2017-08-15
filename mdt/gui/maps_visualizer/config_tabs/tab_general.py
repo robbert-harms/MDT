@@ -11,7 +11,7 @@ from mdt.gui.maps_visualizer.actions import SetDimension, SetSliceIndex, SetVolu
 from mdt.gui.maps_visualizer.base import DataConfigModel
 from mdt.gui.maps_visualizer.design.ui_TabGeneral import Ui_TabGeneral
 from mdt.gui.utils import blocked_signals, TimedUpdate, split_long_path_elements
-from mdt.visualization.maps.base import Zoom, Point, DataInfo, Font, MapPlotConfig
+from mdt.visualization.maps.base import Zoom, Point2d, DataInfo, Font, MapPlotConfig
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-09-03"

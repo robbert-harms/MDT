@@ -147,6 +147,8 @@ class Ui_MapsVisualizer(object):
         self.actionAdd_new_files.setObjectName("actionAdd_new_files")
         self.action_Clear = QtWidgets.QAction(MapsVisualizer)
         self.action_Clear.setObjectName("action_Clear")
+        self.actionNew_window = QtWidgets.QAction(MapsVisualizer)
+        self.actionNew_window.setObjectName("actionNew_window")
         self.menuFile.addAction(self.actionAdd_new_files)
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionSave_settings)
@@ -154,6 +156,7 @@ class Ui_MapsVisualizer(object):
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionSaveImage)
         self.menuFile.addSeparator()
+        self.menuFile.addAction(self.actionNew_window)
         self.menuFile.addAction(self.action_Clear)
         self.menuFile.addAction(self.actionQuit)
         self.menuAbout.addAction(self.actionAbout)
@@ -188,5 +191,6 @@ class Ui_MapsVisualizer(object):
         self.actionLoad_settings.setText(_translate("MapsVisualizer", "&Import settings"))
         self.actionAdd_new_files.setText(_translate("MapsVisualizer", "&Add new file(s)"))
         self.action_Clear.setText(_translate("MapsVisualizer", "&Clear"))
+        self.actionNew_window.setText(_translate("MapsVisualizer", "&New window"))
 
 from . import main_rc

@@ -30,7 +30,7 @@ class GridLayout(object):
 
     @classmethod
     def _get_attribute_conversions(cls):
-        return {'spacings': SimpleDictConversion(desired_type=float)}
+        return {'spacings': SimpleDictConversion(conversion_func=float)}
 
     def get_gridspec(self, figure, nmr_plots):
         """Get the grid layout specifier for the given figure using the given number of plots.
