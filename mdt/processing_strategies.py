@@ -16,6 +16,8 @@ import shutil
 import timeit
 import numpy as np
 import time
+
+from mdt import disable_logging_context
 from mot.cl_routines.optimizing.base import SimpleOptimizationResult
 from mot.model_building.model_builders import ParameterTransformedModel
 from mot.utils import results_to_dict
@@ -63,7 +65,7 @@ class ChunksProcessingStrategy(ModelProcessingStrategy):
     def process(self, processor):
         """Compute all the slices using the implemented chunks generator"""
         chunks = self._get_chunks(processor.get_voxels_to_compute())
-        self._run_chunks(processor, chunks)
+        self._process_chunk(processor, chunks)
 
         self._logger.info('Computed all voxels, now creating nifti\'s')
         return_data = processor.combine()
@@ -79,7 +81,7 @@ class ChunksProcessingStrategy(ModelProcessingStrategy):
         """
         raise NotImplementedError()
 
-    def _run_chunks(self, processor, chunks):
+    def _process_chunk(self, processor, chunks):
         """Create the batches.
 
         The batches contain information about the voxels to process and some meta information like log messages when
@@ -95,10 +97,18 @@ class ChunksProcessingStrategy(ModelProcessingStrategy):
             start_time = timeit.default_timer()
             start_nmr_processed = (total_nmr_voxels - len(total_roi_indices))
 
+            mot_logging_enabled = True
             for chunk in chunks:
                 self._logger.info(self._get_batch_start_message(
                         total_nmr_voxels, chunk, total_roi_indices, voxels_processed, start_time, start_nmr_processed))
-                processor.process(chunk)
+
+                if mot_logging_enabled:
+                    processor.process(chunk)
+                    mot_logging_enabled = False
+                else:
+                    with disable_logging_context():
+                        processor.process(chunk)
+
                 gc.collect()
 
                 voxels_processed += len(chunk)
