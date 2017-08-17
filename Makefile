@@ -22,6 +22,7 @@ help:
 	@echo "docs - generate Sphinx HTML documentation, including API docs"
 	@echo "docs-pdf - generate the PDF documentation, including API docs"
 	@echo "docs-man - generate the linux manpages"
+	@echo "docs-changelog - generate the changelog documentation"
 	@echo "release - package and upload a release"
 	@echo "dist - create a pip package"
 	@echo "dist-ubuntu - create an Ubuntu package"
@@ -90,6 +91,8 @@ docs-man:
 	$(MAKE) -C docs man SPHINXBUILD='python3 $(shell which sphinx-build)'
 	@echo "To view results use something like: man docs/_build/man/mdt.1 &"
 
+docs-changelog:
+	gitchangelog > CHANGELOG.rst
 
 # todo: add GitHub Releases API hook here
 release: clean release-ubuntu-ppa release-pip release-github

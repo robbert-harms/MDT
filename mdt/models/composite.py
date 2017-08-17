@@ -441,9 +441,11 @@ class BuildCompositeModel(SampleModelInterface):
             dict: the volume maps with some basic post-sampling output
         """
         volume_maps = self._get_univariate_parameter_statistics(samples)
+
         results_array = self._param_dict_to_array(volume_maps)
 
         volume_maps = self.post_process_optimization_maps(volume_maps, results_array=results_array)
+
         self._add_post_sampling_information_criterion_maps(samples, volume_maps)
 
         errors = ResidualCalculator().calculate(self, results_array)
@@ -622,9 +624,9 @@ class BuildCompositeModel(SampleModelInterface):
         pd_2002 = mean_deviance - deviance_at_mean
         pd_2004 = np.var(ll_per_sample, axis=1) / 2.0
 
-        return {'DIC_2002': mean_deviance + pd_2002,
-                'DIC_2004': mean_deviance + pd_2004,
-                'DIC_Ando_2011': mean_deviance + 2 * pd_2002}
+        return {'DIC_2002': np.nan_to_num(mean_deviance + pd_2002),
+                'DIC_2004': np.nan_to_num(mean_deviance + pd_2004),
+                'DIC_Ando_2011': np.nan_to_num(mean_deviance + 2 * pd_2002)}
 
     def _param_dict_to_array(self, volume_dict):
         params = [volume_dict['{}.{}'.format(m.name, p.name)] for m, p in self._estimable_parameters_list]

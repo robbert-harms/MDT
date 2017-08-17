@@ -89,7 +89,7 @@ In order to run the command ``make docs``, you will need to have a few packages 
     $ sudo apt install python3-pip python3-numpy python3-yaml \
         python3-matplotlib python3-scipy python3-nibabel \
         python3-argcomplete
-    $ sudo pip3 install grako sphinx alabaster sphinx-argparse sphinxcontrib-bibtex
+    $ sudo pip3 install grako sphinx alabaster sphinx-argparse sphinxcontrib-bibtex gitchangelog pystache
 
 Some of these commands are Debian/Ubuntu specific, for other operating systems please lookup the corresponding packages for your system.
 

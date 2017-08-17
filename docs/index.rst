@@ -21,5 +21,6 @@ Introduction
     adding_models
     configuration
     FAQ <faq>
+    changelog
     developers
     cli_index

@@ -4,14 +4,6 @@ mdt\.cl\_routines\.mapping package
 Submodules
 ----------
 
-mdt\.cl\_routines\.mapping\.calculate\_eigenvectors module
-----------------------------------------------------------
-
-.. automodule:: mdt.cl_routines.mapping.calculate_eigenvectors
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 mdt\.cl\_routines\.mapping\.dki\_measures module
 ------------------------------------------------
 
