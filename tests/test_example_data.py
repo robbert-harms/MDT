@@ -41,7 +41,7 @@ class ExampleDataTest(unittest.TestCase):
                                              pjoin('b1k_b2k.prtcl'),
                                              pjoin('b1k_b2k_example_slices_24_38_mask'))
 
-        for model_name in ['BallStick_r1 (Cascade)', 'Tensor (Cascade)', 'NODDI (Cascade)']:
+        for model_name in ['BallStick_r1 (Cascade)', 'Tensor (Cascade)', 'NODDI (Cascade|fixed)']:
             mdt.fit_model(model_name, problem_data, pjoin('output', 'b1k_b2k_example_slices_24_38_mask'))
 
     @classmethod
@@ -55,84 +55,58 @@ class ExampleDataTest(unittest.TestCase):
         for model_name in ['CHARMED_r1 (Cascade|fixed)', 'CHARMED_r2 (Cascade|fixed)', 'CHARMED_r3 (Cascade|fixed)']:
             mdt.fit_model(model_name, problem_data, pjoin('output', 'multishell_b6k_max_example_slices_24_38_mask'))
 
-    def test_b1k_b2k_ballstick(self):
-        pjoin = mdt.make_path_joiner(os.path.join(self._tmp_dir, self._tmp_dir_subdir, 'b1k_b2k'))
+    def test_lls_b1k_b2k(self):
+        known_values = {
+            'BallStick_r1':
+                {'LogLikelihood':
+                     {'mean': -1215.49255, 'std': 924.13623}},
+            'Tensor':
+                {'LogLikelihood':
+                     {'mean': -182.73466, 'std': 20.02019}},
+            'NODDI':
+                {'LogLikelihood':
+                     {'mean': -451.16992, 'std': 37.74805}}}
 
-        known_volumes = mdt.load_volume_maps(pjoin('test_output', 'b1k_b2k_example_slices_24_38_mask', 'BallStick_r1'))
-        user_volumes = mdt.load_volume_maps(pjoin('output', 'b1k_b2k_example_slices_24_38_mask', 'BallStick_r1'))
+        for model_name in ['BallStick_r1', 'Tensor', 'NODDI']:
+            pjoin = mdt.make_path_joiner(os.path.join(self._tmp_dir, self._tmp_dir_subdir, 'b1k_b2k'))
 
-        msg_prefix = 'b1k_b2k - BallStick_r1'
+            user_volumes = mdt.load_volume_maps(pjoin('output', 'b1k_b2k_example_slices_24_38_mask', model_name))
 
-        self._test_map(user_volumes, known_volumes, 'LogLikelihood', msg_prefix)
-        self._test_map(user_volumes, known_volumes, 'w_stick.w', msg_prefix)
-        self._test_weighted_maps(user_volumes, known_volumes, ['Stick.theta', 'Stick.phi'],
-                                 'w_stick.w', msg_prefix)
+            msg_prefix = 'b1k_b2k - {}'.format(model_name)
+            roi = mdt.create_roi(user_volumes['LogLikelihood'], pjoin('b1k_b2k_example_slices_24_38_mask'))
 
-    def test_b1k_b2k_tensor(self):
-        pjoin = mdt.make_path_joiner(os.path.join(self._tmp_dir, self._tmp_dir_subdir, 'b1k_b2k'))
+            for map_name, test_values in known_values[model_name].items():
+                np.testing.assert_allclose(test_values['mean'], np.mean(roi),
+                                           rtol=1e-5, err_msg='{} - {} - mean'.format(msg_prefix, map_name))
+                np.testing.assert_allclose(test_values['std'], np.std(roi),
+                                           rtol=1e-5, err_msg='{} - {} - std'.format(msg_prefix, map_name))
 
-        known_volumes = mdt.load_volume_maps(pjoin('test_output', 'b1k_b2k_example_slices_24_38_mask', 'Tensor'))
-        user_volumes = mdt.load_volume_maps(pjoin('output', 'b1k_b2k_example_slices_24_38_mask', 'Tensor'))
+    def test_lls_multishell_b6k_max(self):
+        known_values = {
+            'CHARMED_r1':
+                {'LogLikelihood':
+                     {'mean': -451.45202, 'std': 38.96596}},
+            'CHARMED_r2':
+                {'LogLikelihood':
+                     {'mean': -437.36288, 'std': 25.97826}},
+            'CHARMED_r3':
+                {'LogLikelihood':
+                     {'mean': -432.93048, 'std': 22.51614}}}
 
-        msg_prefix = 'b1k_b2k - Tensor'
+        for model_name in ['CHARMED_r1', 'CHARMED_r2', 'CHARMED_r3']:
+            pjoin = mdt.make_path_joiner(os.path.join(self._tmp_dir, self._tmp_dir_subdir, 'multishell_b6k_max'))
 
-        for map_name in known_volumes:
-            self._test_map(user_volumes, known_volumes, map_name, msg_prefix)
+            user_volumes = mdt.load_volume_maps(
+                pjoin('output', 'multishell_b6k_max_example_slices_24_38_mask', model_name))
 
-    def test_b6k_charmed_r1(self):
-        pjoin = mdt.make_path_joiner(os.path.join(self._tmp_dir, self._tmp_dir_subdir, 'multishell_b6k_max'))
+            msg_prefix = 'b1k_b2k - {}'.format(model_name)
+            roi = mdt.create_roi(user_volumes['LogLikelihood'], pjoin('multishell_b6k_max_example_slices_24_38_mask'))
 
-        known_volumes = mdt.load_volume_maps(pjoin('test_output', 'multishell_b6k_max_example_slices_24_38_mask',
-                                                   'CHARMED_r1'))
-        user_volumes = mdt.load_volume_maps(pjoin('output', 'multishell_b6k_max_example_slices_24_38_mask',
-                                                  'CHARMED_r1'))
-
-        msg_prefix = 'b6k_max - CHARMED_r1'
-
-        for map_name in known_volumes:
-            self._test_map(user_volumes, known_volumes, map_name, msg_prefix)
-
-    def test_b6k_charmed_r2(self):
-        pjoin = mdt.make_path_joiner(os.path.join(self._tmp_dir, self._tmp_dir_subdir, 'multishell_b6k_max'))
-
-        known_volumes = mdt.load_volume_maps(pjoin('test_output', 'multishell_b6k_max_example_slices_24_38_mask',
-                                                   'CHARMED_r2'))
-        user_volumes = mdt.load_volume_maps(pjoin('output', 'multishell_b6k_max_example_slices_24_38_mask',
-                                                  'CHARMED_r2'))
-
-        msg_prefix = 'b6k_max - CHARMED_r2'
-
-        for map_name in known_volumes:
-            self._test_map(user_volumes, known_volumes, map_name, msg_prefix)
-
-    def test_b6k_charmed_r3(self):
-        pjoin = mdt.make_path_joiner(os.path.join(self._tmp_dir, self._tmp_dir_subdir, 'multishell_b6k_max'))
-
-        known_volumes = mdt.load_volume_maps(pjoin('test_output', 'multishell_b6k_max_example_slices_24_38_mask',
-                                                   'CHARMED_r2'))
-        user_volumes = mdt.load_volume_maps(pjoin('output', 'multishell_b6k_max_example_slices_24_38_mask',
-                                                  'CHARMED_r2'))
-
-        msg_prefix = 'b6k_max - CHARMED_r3'
-
-        for map_name in known_volumes:
-            self._test_map(user_volumes, known_volumes, map_name, msg_prefix)
-
-    def _test_map(self, user_volumes, known_volumes, map_to_test, msg_prefix, rtol=1e-4):
-        np.testing.assert_allclose(np.mean(user_volumes[map_to_test]), np.mean(known_volumes[map_to_test]),
-                                   rtol=rtol, err_msg='{} - {} - mean'.format(map_to_test, msg_prefix))
-        np.testing.assert_allclose(np.std(user_volumes[map_to_test]), np.std(known_volumes[map_to_test]),
-                                   rtol=rtol, err_msg='{} - {} - std'.format(map_to_test, msg_prefix))
-
-    def _test_weighted_maps(self, user_volumes, known_volumes, maps_to_test, map_to_weight_by, msg_prefix, rtol=1e-4):
-        for map_name in maps_to_test:
-            known = known_volumes[map_name] * known_volumes[map_to_weight_by]
-            user = user_volumes[map_name] * user_volumes[map_to_weight_by]
-
-            np.testing.assert_allclose(np.mean(user), np.mean(known),
-                                       rtol=rtol, err_msg='{} - {} - mean'.format(msg_prefix, map_name))
-            np.testing.assert_allclose(np.std(user), np.std(known),
-                                       rtol=rtol, err_msg='{} - {} - std'.format(msg_prefix, map_name))
+            for map_name, test_values in known_values[model_name].items():
+                np.testing.assert_allclose(test_values['mean'], np.mean(roi),
+                                           rtol=1e-5, err_msg='{} - {} - mean'.format(msg_prefix, map_name))
+                np.testing.assert_allclose(test_values['std'], np.std(roi),
+                                           rtol=1e-5, err_msg='{} - {} - std'.format(msg_prefix, map_name))
 
 
 if __name__ == '__main__':
