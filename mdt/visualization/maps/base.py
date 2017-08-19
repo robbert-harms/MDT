@@ -82,7 +82,8 @@ class SimpleConvertibleConfig(object):
 class MapPlotConfig(SimpleConvertibleConfig):
 
     def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=90, colormap='hot', maps_to_show=None,
-                 font=None, grid_layout=None, colorbar_nmr_ticks=4, show_axis=False, zoom=None, show_colorbar=True,
+                 font=None, grid_layout=None, colorbar_nmr_ticks=4, colorbar_location='right',
+                 show_axis=False, show_title=True, show_colorbar=True, zoom=None,
                  map_plot_options=None, interpolation='bilinear', flipud=None,
                  title=None, mask_name=None, highlight_voxels=None):
         """Container for all plot related settings.
@@ -98,9 +99,11 @@ class MapPlotConfig(SimpleConvertibleConfig):
             font (int): the font settings
             grid_layout (GridLayout): the layout of the grid
             colorbar_nmr_ticks (int): the number of ticks on the colorbar
+            colorbar_location (str): the location of the colorbar, one of 'right', 'left', 'top' or 'bottom'
             show_axis (bool): if we show the axis or not
-            zoom (Zoom): the zoom setting for all the plots
             show_colorbar (boolean): the global setting for enabling/disabling the colorbar
+            show_title (boolean): the global setting for enabling/disabling the title
+            zoom (Zoom): the zoom setting for all the plots
             map_plot_options (dict of SingleMapConfig): per map the map specific plot options
             interpolation (str): one of the available interpolations
             flipud (boolean): if True we flip the image upside down
@@ -118,10 +121,10 @@ class MapPlotConfig(SimpleConvertibleConfig):
         self.zoom = zoom or Zoom.no_zoom()
         self.font = font or Font()
         self.colorbar_nmr_ticks = colorbar_nmr_ticks
+        self.colorbar_location = colorbar_location or 'right'
         self.show_colorbar = show_colorbar
         self.show_axis = show_axis
-        if self.show_axis is None:
-            self.show_axis = True
+        self.show_title = show_title
         self.grid_layout = grid_layout or Rectangular()
         self.interpolation = interpolation or 'bilinear'
         self.flipud = flipud
@@ -176,14 +179,16 @@ class MapPlotConfig(SimpleConvertibleConfig):
                 'zoom': Zoom.get_conversion_info(),
                 'font': Font.get_conversion_info(),
                 'colorbar_nmr_ticks': IntConversion(),
+                'colorbar_location': StringConversion(allow_null=False),
                 'show_axis': BooleanConversion(),
+                'show_colorbar': BooleanConversion(),
+                'show_title': BooleanConversion(),
                 'map_plot_options': ConvertDictElements(SingleMapConfig.get_conversion_info()),
                 'grid_layout': ConvertDynamicFromModule(mdt.visualization.layouts),
                 'interpolation': WhiteListConversion(cls.get_available_interpolations(), 'bilinear'),
                 'flipud': BooleanConversion(allow_null=False),
                 'title': StringConversion(),
                 'mask_name': StringConversion(),
-                'show_colorbar': BooleanConversion(),
                 'highlight_voxels': SimpleListConversion(conversion_func=lambda coords: tuple(map(int, coords)),
                                                          allow_null=False, set_null_to_value=[])
                 }
@@ -217,6 +222,9 @@ class MapPlotConfig(SimpleConvertibleConfig):
             bool: if the differences between this configuration and the other would result in visible differences.
         """
         def visible_difference_in_map_plot_options():
+            if not len(self.map_plot_options) and len(old_config.map_plot_options):
+                return True
+
             for key in set(self.map_plot_options.keys()):
                 if key in self.maps_to_show:
                     if key not in old_config.map_plot_options:
@@ -317,8 +325,8 @@ class MapPlotConfig(SimpleConvertibleConfig):
 
 class SingleMapConfig(SimpleConvertibleConfig):
 
-    def __init__(self, title=None, scale=None, clipping=None, colormap=None, colorbar_label=None, show_colorbar=True,
-                 title_spacing=None, mask_name=None):
+    def __init__(self, title=None, scale=None, clipping=None, colormap=None, colorbar_label=None, show_colorbar=None,
+                 colorbar_location='right', show_title=None, title_spacing=None, mask_name=None):
         """Creates the configuration for a single map plot.
 
         Args:
@@ -327,7 +335,9 @@ class SingleMapConfig(SimpleConvertibleConfig):
             clipping (Clipping): the clipping to apply to the values prior to plotting
             colormap (str): the matplotlib colormap to use
             colorbar_label (str): the label for the colorbar
+            colorbar_location (str): the location of the colorbar, one of 'right', 'left', 'top' or 'bottom'
             show_colorbar (boolean): if we want to show the colorbar or not
+            show_title (boolean): if we want to show the title or not
             title_spacing (float): the spacing between the top of the plots and the title
             mask_name (str): the name of the mask used to mask the data prior to visualization
         """
@@ -338,7 +348,9 @@ class SingleMapConfig(SimpleConvertibleConfig):
         self.clipping = clipping or Clipping()
         self.colormap = colormap
         self.colorbar_label = colorbar_label
+        self.colorbar_location = colorbar_location = 'right'
         self.show_colorbar = show_colorbar
+        self.show_title = show_title
         self.mask_name = mask_name
 
         if self.colormap is not None and self.colormap not in self.get_available_colormaps():
@@ -351,9 +363,11 @@ class SingleMapConfig(SimpleConvertibleConfig):
                 'clipping': Clipping.get_conversion_info(),
                 'colormap': StringConversion(),
                 'colorbar_label': StringConversion(),
+                'colorbar_location': StringConversion(allow_null=False),
                 'title_spacing': FloatConversion(),
                 'mask_name': StringConversion(),
-                'show_colorbar': BooleanConversion()}
+                'show_colorbar': BooleanConversion(),
+                'show_title': BooleanConversion()}
 
     @classmethod
     def get_available_colormaps(cls):
@@ -1502,4 +1516,5 @@ def get_shortest_unique_names(paths):
         new_names.append(new_name)
 
     return new_names
+
 

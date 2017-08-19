@@ -258,6 +258,7 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
     @pyqtSlot(str)
     def _update_map_title(self, string):
         if self._current_map:
+            # string = string.strip()
             if string == '':
                 string = None
             self._controller.apply_action(SetMapTitle(self._current_map, string))

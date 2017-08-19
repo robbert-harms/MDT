@@ -132,7 +132,7 @@ class Rectangular(GridLayout):
         return GridLayoutSpecifier(GridSpec(rows, cols, **self.spacings), figure)
 
     def __eq__(self, other):
-        if not isinstance(other, GridLayout):
+        if not isinstance(other, Rectangular):
             return NotImplemented
         return isinstance(other, type(self)) and other.rows == self.rows and other.cols == self.cols \
                and other.spacings == self.spacings
@@ -140,22 +140,55 @@ class Rectangular(GridLayout):
 
 class LowerTriangular(GridLayout):
 
-    def __init__(self, spacings=None):
+    def __init__(self, padding=0, spacings=None):
+        """Create a lower triangular plot layout.
+
+        Args:
+            padding (int): normally we will construct the lower triangle from the top, like::
+
+                    *
+                    * *
+                    * * *
+
+                If padding is enabled, we will pad as many images from the top as specified. For example, a padding of
+                1, with 5 images yields::
+
+                    * *
+                    * * *
+
+                Or a padding of 2 with 4 images::
+
+                      *
+                    * * *
+            spacings (dict): the spacings around each plot
+        """
         super(LowerTriangular, self).__init__(spacings=spacings)
+        self.padding = padding or 0
 
     def get_gridspec(self, figure, nmr_plots):
         size, positions = self._get_size_and_position(nmr_plots)
         return GridLayoutSpecifier(GridSpec(size, size, **self.spacings), figure, positions=positions)
 
+    @classmethod
+    def _get_attribute_conversions(cls):
+        conversions = super(LowerTriangular, cls)._get_attribute_conversions()
+        conversions.update({'padding': IntConversion()})
+        return conversions
+
     def _get_size_and_position(self, nmr_plots):
-        size = self._get_lowest_triangle_length(nmr_plots)
+        size = self._get_lowest_triangle_length(nmr_plots + self.padding)
 
         positions = []
         for x, y in itertools.product(range(size), range(size)):
             if x >= y:
                 positions.append(x * size + y)
 
-        return size, positions
+        return size, positions[self.padding:]
+
+    def __eq__(self, other):
+        if not isinstance(other, LowerTriangular):
+            return NotImplemented
+        return isinstance(other, type(self)) and other.padding == self.padding
 
     @staticmethod
     def _get_lowest_triangle_length(nmr_plots):

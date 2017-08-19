@@ -138,7 +138,10 @@ class Renderer(object):
 
     def _render_map(self, map_name, axis):
         """Render a single map to the given axis"""
-        axis.set_title(self._get_title(map_name), y=self._get_title_spacing(map_name))
+
+        if self._get_map_attr(map_name, 'show_title', self._plot_config.show_title):
+            axis.set_title(self._get_map_attr(map_name, 'title', map_name), y=self._get_title_spacing(map_name))
+
         axis.axis('on' if self._plot_config.show_axis else 'off')
 
         data = self._get_image(map_name)
@@ -151,11 +154,8 @@ class Renderer(object):
         self._add_highlights(map_name, axis, data.shape)
 
         if self._get_map_attr(map_name, 'show_colorbar', self._plot_config.show_colorbar):
-            divider = make_axes_locatable(axis)
-            colorbar_axis = divider.append_axes("right", size="5%", pad=0.05)
-
-            self._add_colorbar(map_name, colorbar_axis, vf, self._get_map_attr(map_name, 'colorbar_label'))
-            self._apply_font(axis, colorbar_axis)
+            self._add_colorbar(axis, map_name, vf, self._get_map_attr(map_name, 'colorbar_label'),
+                               self._get_map_attr(map_name, 'colorbar_location', self._plot_config.colorbar_location))
 
         return AxisData(axis, map_name, self._data_info.get_single_map_info(map_name), self._plot_config)
 
@@ -243,24 +243,40 @@ class Renderer(object):
                                   color='black', size=10,
                                   bbox=dict(facecolor='white'))
 
-
-    def _add_colorbar(self, map_name, axis, image_figure, colorbar_label):
+    def _add_colorbar(self, axis, map_name, image_figure, colorbar_label, colorbar_position):
         """Add a colorbar to the axis
 
         Returns:
-            axis: the colorbar axis
+            axis: the image axis
+            colorbar_position (str): one of 'left', 'right', 'top', 'bottom'
         """
-        kwargs = dict(cax=axis, ticks=self._get_tick_locator(map_name))
+        divider = make_axes_locatable(axis)
+        colorbar_axis = divider.append_axes(colorbar_position, size="5%", pad=0.05)
+
+        kwargs = dict(cax=colorbar_axis, ticks=self._get_tick_locator(map_name))
         if colorbar_label:
             kwargs.update(dict(label=colorbar_label))
+
+        if colorbar_position in ['top', 'bottom']:
+            kwargs['orientation'] = 'horizontal'
 
         cbar = plt.colorbar(image_figure, **kwargs)
         cbar.formatter.set_powerlimits((-3, 4))
         cbar.ax.yaxis.set_offset_position('left')
+
+        if colorbar_position == 'left':
+            cbar.ax.yaxis.set_ticks_position('left')
+
+        if colorbar_position == 'top':
+            cbar.ax.xaxis.set_ticks_position('top')
+
         cbar.update_ticks()
 
         if cbar.ax.get_yticklabels():
             cbar.ax.get_yticklabels()[-1].set_verticalalignment('top')
+
+        self._apply_font(axis, colorbar_axis)
+
         return cbar
 
     def _get_map_attr(self, map_name, option, default=None):
@@ -270,11 +286,11 @@ class Renderer(object):
                 return value
         return default
 
-    def _get_title(self, map_name):
-        return self._get_map_attr(map_name, 'title', map_name)
-
     def _get_title_spacing(self, map_name):
-        return 1 + self._get_map_attr(map_name, 'title_spacing', 0)
+        spacing = 1 + self._get_map_attr(map_name, 'title_spacing', 0)
+        if self._get_map_attr(map_name, 'colorbar_location', self._plot_config.colorbar_location) == 'top':
+            spacing += 0.2
+        return spacing
 
     def _get_map_plot_options(self, map_name):
         output_dict = {'vmin': self._data_info.get_single_map_info(map_name).min(),
