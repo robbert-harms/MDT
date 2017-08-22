@@ -17,10 +17,10 @@ class GridLayout(object):
                                      'top': 0.97, 'bottom': 0.04,
                                      'wspace': 0.5, 'hspace': 0.2}
 
-        if self.spacings['top'] < self.spacings['bottom']:
+        if self.spacings['top'] <= self.spacings['bottom']:
             raise ValueError('The top ({}) can not be smaller than the bottom ({}) in the spacings'.format(
                 self.spacings['top'], self.spacings['bottom']))
-        if self.spacings['left'] > self.spacings['right']:
+        if self.spacings['left'] >= self.spacings['right']:
             raise ValueError('Left ({}) can not be larger than right ({}) in the spacings'.format(
                 self.spacings['left'], self.spacings['right']))
 
