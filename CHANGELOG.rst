@@ -3,33 +3,60 @@ Changelog
 *********
 
 
+v0.10.1 (2017-08-22)
+====================
+
+Changed
+-------
+- Updates to the GUI.
+
+
 v0.10.0 (2017-08-17)
 ====================
 
 Added
 -----
 - Adds automatic changelog generation from the git log.
-- Adds multivariate statistic to sampling output.
+- Adds multivariate statistic to sampling output. Changes the KurtosisExtension to a KurtosisTensor single model.
+- Adds catch for special case.
 - Adds Tensor reorientation as a post processing. This reorients theta, phi and psi to match the sorted eigen vectors / eigen values.
-- Adds compartment model sorting based on weights as a post-processing to composite models.
-- Adds automatic sorting to Ball&Sticks and CHARMED models.
+- Adds compartment model sorting based on weights as a post-processing to composite models. Adds automatic sorting to Ball&Sticks and CHARMED models.
 - Adds small boundary conditions to the Kurtosis model.
 - Adds clickable point information to the map visualization GUI.
+- Adds name collision resolution in the visualization GUI after dragging in images with the same name.
+- Adds a library function for the kurtosis matrix multiplication.
 - Added component construction to the __new__ of a component template. This allows the template to construct itself at object initialization.
-- Adds condensed logging to the model fitting and sampling.
 
 Changed
 -------
+- Changes the way the logging is condensed during optimization.
 - Updates to the GUI.
 - Update to the cartesian to spherical function.
-- Changed the loading of the compartment models, they now no longer need their own files and can be defined in any file in the compartment_models directory.
-- Updates to the documentation.
-- Update to the Tensor compartment model, faster way of calculating the psi rotation
+- Updates to the documentation. Also, the compartment models now no longer need their own files, they can be defined in any file in the compartment_models directory.
+- Updates to the documentation, renamed the Kurtosis compartment to KurtosisExtension and made it require the Tensor in the Composite model.
+- Updates to the documentation. Updates to the Kurtosis model. Sets boundary conditions correct and adds post-processing.
+- Updates to the documentation style.
 
 Fixed
 -----
 - Fixed bug in matplotlib renderer with the highlight voxel.
 - Fixed the small GUI bug with the random maps naming.
+
+Other
+-----
+- Removed calculated example files.
+- Removed redundant logging.
+- Small renaming updates.
+- * Adds some linear algebra methods to the utilities * Changed the way the psi component of the Tensor is used.
+- More work on the post-sampling statistics.
+- Removed redundant model.
+- Moved more relaxometry compartments to the single python file. Slightly increased the number of voxels in sampling.
+- First work on map sorting.
+- Small bugfix in the MRI constants.
+- Small function reshuffling, updates to comments.
+- Small fix with the InitializationData in the fit model.
+- Small bugfix to the GUI.
+- Completely adds the Kurtosis model. Adds some small library functions as well for the Tensor and Kurtosis computations.
 
 
 v0.9.40 (2017-07-27)
@@ -50,6 +77,9 @@ v0.9.39 (2017-07-26)
 
 Changed
 -------
+- Updates in this version:
+  - Updates to the documentation
+- Updates to the documentation.
 - Updates to the documentation.
 
 Other
@@ -63,10 +93,11 @@ v0.9.38 (2017-07-25)
 
 Added
 -----
-- Adds first draft of the Kurtosis model.
+- Adds Kurtosis model.
 - Adds the extra-axonal time dependent CHARMED from (De Santis 2016). Still needs to be tested though.
 - Adds TimeDependentZeppelin for use in the extra-axonal time dependent CHARMED model. Also, the dependency_list in the compartments now also accepts other compartments as strings. Finally, the compartments now no longer need the prefix "cm" in their CL callable function"
 - Adds the ActiveAx model.
+- Adds the ActiveAx model, slight update to what the Neumann cylindrical function calculates.
 
 Changed
 -------
