@@ -375,7 +375,7 @@ class SingleMapConfig(SimpleConvertibleConfig):
                 'clipping': Clipping.get_conversion_info(),
                 'colormap': StringConversion(),
                 'colorbar_label': StringConversion(),
-                'colorbar_location': StringConversion(allow_null=False),
+                'colorbar_location': StringConversion(allow_null=True),
                 'title_spacing': FloatConversion(),
                 'mask_name': StringConversion(),
                 'show_colorbar': BooleanConversion(),
