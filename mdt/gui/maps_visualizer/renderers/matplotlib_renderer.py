@@ -1,3 +1,4 @@
+import logging
 import matplotlib
 import numpy as np
 import copy
@@ -105,7 +106,11 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
         self._axes_data = self.visualizer.render(current_model.get_config())
         self._mouse_interaction.update_axes_data(self._axes_data)
 
-        self.figure.canvas.draw()
+        try:
+            self.figure.canvas.draw()
+        except ValueError as exception:
+            logger = logging.getLogger(__name__)
+            logger.error(exception)
 
 
 class _MouseInteraction(object):

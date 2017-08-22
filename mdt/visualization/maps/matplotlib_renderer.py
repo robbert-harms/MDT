@@ -1,5 +1,7 @@
 import os
 import copy
+
+import matplotlib
 import numpy as np
 from matplotlib import pyplot as plt, patches
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -266,9 +268,11 @@ class Renderer(object):
 
         if colorbar_position == 'left':
             cbar.ax.yaxis.set_ticks_position('left')
+            cbar.ax.yaxis.set_label_position('left')
 
         if colorbar_position == 'top':
             cbar.ax.xaxis.set_ticks_position('top')
+            cbar.ax.xaxis.set_label_position('top')
 
         cbar.update_ticks()
 
@@ -289,7 +293,7 @@ class Renderer(object):
     def _get_title_spacing(self, map_name):
         spacing = 1 + self._get_map_attr(map_name, 'title_spacing', 0)
         if self._get_map_attr(map_name, 'colorbar_location', self._plot_config.colorbar_location) == 'top':
-            spacing += 0.2
+            spacing += 0.15
         return spacing
 
     def _get_map_plot_options(self, map_name):

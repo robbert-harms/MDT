@@ -122,9 +122,9 @@ class MapPlotConfig(SimpleConvertibleConfig):
         self.font = font or Font()
         self.colorbar_nmr_ticks = int(colorbar_nmr_ticks)
         self.colorbar_location = colorbar_location or 'right'
-        self.show_colorbar = show_colorbar
-        self.show_axis = show_axis
-        self.show_title = show_title
+        self.show_colorbar = bool(show_colorbar)
+        self.show_axis = bool(show_axis)
+        self.show_title = bool(show_title)
         self.grid_layout = grid_layout or Rectangular()
         self.interpolation = interpolation or 'bilinear'
         self.flipud = flipud
@@ -881,6 +881,8 @@ class SingleMapInfo(object):
 
         If a mask is provided we get the min and max value within the given mask.
 
+        Infinities and NaN's are ignored by this algorithm.
+
         Args:
             mask (ndarray): the mask, we only include elements for which the mask > 0
 
@@ -889,8 +891,16 @@ class SingleMapInfo(object):
         """
         if mask is not None:
             roi = mdt.create_roi(self.data, mask)
-            return roi.min(), roi.max()
-        return self.data.min(), self.data.max()
+            return np.nanmin(roi), np.nanmax(roi)
+        return np.nanmin(self.data), np.nanmax(self.data)
+
+    def has_nan(self):
+        """Check if this data has any NaNs in it.
+
+        Returns:
+            boolean: True if there are NaN's anywhere in the data, false otherwise.
+        """
+        return np.isnan(self.data).any()
 
     def max_dimension(self):
         """Get the maximum dimension index in this map.

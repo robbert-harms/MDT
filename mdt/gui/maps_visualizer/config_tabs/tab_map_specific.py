@@ -1,6 +1,6 @@
 from PyQt5.QtCore import pyqtSlot, Qt
 from PyQt5.QtWidgets import QWidget
-
+import numpy as np
 from mdt.gui.maps_visualizer.actions import SetMapTitle, SetMapColormap, SetMapScale, SetMapClipping, \
     SetMapColorbarLabel
 from mdt.gui.maps_visualizer.base import DataConfigModel
@@ -245,8 +245,10 @@ class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
         if map_filename:
             self.info_file_location.setText(split_long_path_elements(map_filename, 25))
 
-        self.info_maximum.setText(str(vmax))
         self.info_minimum.setText(str(vmin))
+        self.info_maximum.setText(str(vmax))
+        self.info_has_nan.setText('Yes' if data_info.get_single_map_info(map_name).has_nan() else 'No')
+
         self.info_shape.setText(str(data_info.get_single_map_info(map_name).shape))
 
     def _get_current_map_config(self):
