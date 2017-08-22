@@ -620,28 +620,20 @@ def reset_logging():
 
 
 @contextmanager
-def disable_logging_context():
-    """A context in which the logging is temporarily disabled.
+def with_logging_to_debug():
+    """A context in which the logging is temporarily set to WARNING.
 
     Example of usage::
 
-        with mdt.disable_logging_context():
+        with mdt.with_logging_to_debug():
             your_computations()
 
-    During the function ``your_computations`` no logging will take place from MDT and MOT.
+    During the function ``your_computations`` only WARNING level logging will show up.
     """
-    config = '''
-    logging:
-        info_dict:
-            version: 1
-            loggers:
-                mot:
-                    handlers: []
-
-                mdt:
-                    handlers: []
-    '''
-    with config_context(config):
-        reset_logging()
-        yield
-    reset_logging()
+    handlers = logging.getLogger('mot').handlers
+    previous_levels = [handler.level for handler in handlers]
+    for handler in handlers:
+        handler.setLevel(logging.WARNING)
+    yield
+    for handler, previous_level in zip(handlers, previous_levels):
+        handler.setLevel(previous_level)

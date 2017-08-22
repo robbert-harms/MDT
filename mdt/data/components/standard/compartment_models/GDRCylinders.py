@@ -36,8 +36,8 @@ class GDRCylinders(CompartmentTemplate):
     cl_extra = '''
         //Using Brent root finding to determine cdfs
         mot_float_type findGammaCDFCrossing(mot_float_type startx, mot_float_type stopx,
-                                         const mot_float_type offset, const mot_float_type convergence,
-                                         const mot_float_type gamma_shape, const mot_float_type gamma_scale){
+                                            mot_float_type offset, mot_float_type convergence,
+                                            mot_float_type gamma_shape, mot_float_type gamma_scale){
         
             int max_iter = 1000;
         

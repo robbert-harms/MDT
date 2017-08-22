@@ -66,7 +66,7 @@ class NoiseStdEstimation(BasicShellApplication):
         if args.estimator:
             estimator = mdt.load_component('noise_std_estimators', args.estimator)
 
-        with mdt.disable_logging_context():
+        with mdt.with_logging_to_debug():
             noise_std = mdt.estimate_noise_std(problem_data, estimator=estimator)
             print(noise_std)
 

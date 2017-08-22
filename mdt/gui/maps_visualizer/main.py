@@ -442,7 +442,7 @@ class ExportImageDialog(Ui_SaveImageDialog, QDialog):
 
     def _get_file_paths(self):
         data = self._controller.get_model().get_data()
-        return data.get_file_paths()
+        return list(data.get_file_paths().values())
 
 
 class AboutDialog(Ui_AboutDialog, QDialog):

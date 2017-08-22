@@ -45,7 +45,7 @@ class GridLayout(object):
 
     def __eq__(self, other):
         if not isinstance(other, GridLayout):
-            return NotImplemented
+            return False
         return isinstance(other, type(self)) and other.spacings == self.spacings
 
     def __ne__(self, other):
@@ -61,6 +61,7 @@ class GridLayoutSpecifier(object):
             gridspec (GridSpec): the gridspec to use
             figure (Figure): the figure to generate subplots for
             positions (:class:`list`): if given, a list with grid spec indices for every requested axis
+                can be logical indices or (x, y) coordinate indices (choose one and stick with it).
         """
         self.gridspec = gridspec
         self.figure = figure
@@ -76,10 +77,10 @@ class GridLayoutSpecifier(object):
 class AutoGridLayout(GridLayout):
 
     def get_gridspec(self, figure, nmr_plots):
-        rows, cols = self._get_row_cols_square(nmr_plots)
+        rows, cols = self._get_square_size(nmr_plots)
         return GridLayoutSpecifier(GridSpec(rows, cols, **self.spacings), figure)
 
-    def _get_row_cols_square(self, nmr_plots):
+    def _get_square_size(self, nmr_plots):
         defaults = ((1, 1), (1, 2), (2, 2), (2, 2), (2, 3), (2, 3), (2, 3))
         if nmr_plots < len(defaults):
             return defaults[nmr_plots - 1]
@@ -133,7 +134,7 @@ class Rectangular(GridLayout):
 
     def __eq__(self, other):
         if not isinstance(other, Rectangular):
-            return NotImplemented
+            return False
         return isinstance(other, type(self)) and other.rows == self.rows and other.cols == self.cols \
                and other.spacings == self.spacings
 
@@ -160,14 +161,15 @@ class LowerTriangular(GridLayout):
 
                       *
                     * * *
+
             spacings (dict): the spacings around each plot
         """
         super(LowerTriangular, self).__init__(spacings=spacings)
         self.padding = padding or 0
 
     def get_gridspec(self, figure, nmr_plots):
-        size, positions = self._get_size_and_position(nmr_plots)
-        return GridLayoutSpecifier(GridSpec(size, size, **self.spacings), figure, positions=positions)
+        rows, columns, positions = self._get_size_and_position(nmr_plots)
+        return GridLayoutSpecifier(GridSpec(rows, columns, **self.spacings), figure, positions=positions)
 
     @classmethod
     def _get_attribute_conversions(cls):
@@ -178,24 +180,27 @@ class LowerTriangular(GridLayout):
     def _get_size_and_position(self, nmr_plots):
         size = self._get_lowest_triangle_length(nmr_plots + self.padding)
 
+        row_shift = self._get_biggest_triangle_length(self.padding)
+
         positions = []
         for x, y in itertools.product(range(size), range(size)):
             if x >= y:
-                positions.append(x * size + y)
+                positions.append((x - row_shift, y))
 
-        return size, positions[self.padding:]
+        return size - row_shift, size, positions[self.padding:]
 
     def __eq__(self, other):
         if not isinstance(other, LowerTriangular):
-            return NotImplemented
+            return False
         return isinstance(other, type(self)) and other.padding == self.padding
 
     @staticmethod
     def _get_lowest_triangle_length(nmr_plots):
-        for n in range(1, nmr_plots):
-            if 0.5 * (n ** 2 + n) >= nmr_plots:
-                return n
-        return nmr_plots
+        return int(np.ceil((-1 + np.sqrt(1 + 8 * nmr_plots)) / 2.))
+
+    @staticmethod
+    def _get_biggest_triangle_length(nmr_plots):
+        return int(np.floor((-1 + np.sqrt(1 + 8 * nmr_plots)) / 2.))
 
 
 class SingleColumn(GridLayout):

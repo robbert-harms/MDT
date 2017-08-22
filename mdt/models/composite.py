@@ -684,8 +684,8 @@ class BuildCompositeModel(SampleModelInterface):
     def get_model_eval_function(self):
         return self._wrapped_sample_model.get_model_eval_function()
 
-    def get_observation_return_function(self):
-        return self._wrapped_sample_model.get_observation_return_function()
+    def get_residual_per_observation_function(self):
+        return self._wrapped_sample_model.get_residual_per_observation_function()
 
     def get_objective_per_observation_function(self):
         return self._wrapped_sample_model.get_objective_per_observation_function()
