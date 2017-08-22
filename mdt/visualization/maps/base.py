@@ -120,7 +120,7 @@ class MapPlotConfig(SimpleConvertibleConfig):
         self.maps_to_show = maps_to_show or []
         self.zoom = zoom or Zoom.no_zoom()
         self.font = font or Font()
-        self.colorbar_nmr_ticks = colorbar_nmr_ticks
+        self.colorbar_nmr_ticks = int(colorbar_nmr_ticks)
         self.colorbar_location = colorbar_location or 'right'
         self.show_colorbar = show_colorbar
         self.show_axis = show_axis
@@ -164,8 +164,8 @@ class MapPlotConfig(SimpleConvertibleConfig):
             raise ValueError("The colorbar location is '{}' which is not "
                              "one of 'left', 'bottom', 'right', 'top'.".format(str(self.colorbar_location)))
 
-        if self.colorbar_nmr_ticks is None or self.colorbar_nmr_ticks < 0:
-            raise ValueError("The number of ticks in the colorbar can not be None or negative.")
+        if self.colorbar_nmr_ticks is None or self.colorbar_nmr_ticks <= 0:
+            raise ValueError("The number of ticks in the colorbar needs to be a positive integer.")
 
     @classmethod
     def get_available_interpolations(cls):
