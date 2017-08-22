@@ -164,6 +164,9 @@ class MapPlotConfig(SimpleConvertibleConfig):
             raise ValueError("The colorbar location is '{}' which is not "
                              "one of 'left', 'bottom', 'right', 'top'.".format(str(self.colorbar_location)))
 
+        if self.colorbar_nmr_ticks is None or self.colorbar_nmr_ticks < 0:
+            raise ValueError("The number of ticks in the colorbar can not be None or negative.")
+
     @classmethod
     def get_available_interpolations(cls):
         return get_available_interpolations()
