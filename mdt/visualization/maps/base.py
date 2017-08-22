@@ -160,6 +160,10 @@ class MapPlotConfig(SimpleConvertibleConfig):
         if self.dimension < 0:
             raise ValueError('The dimension can not be smaller than 0, {} given.'.format(self.dimension))
 
+        if self.colorbar_location not in ['left', 'right', 'bottom', 'top']:
+            raise ValueError("The colorbar location is '{}' which is not "
+                             "one of 'left', 'bottom', 'right', 'top'.".format(str(self.colorbar_location)))
+
     @classmethod
     def get_available_interpolations(cls):
         return get_available_interpolations()
