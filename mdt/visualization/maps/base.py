@@ -330,7 +330,7 @@ class MapPlotConfig(SimpleConvertibleConfig):
 class SingleMapConfig(SimpleConvertibleConfig):
 
     def __init__(self, title=None, scale=None, clipping=None, colormap=None, colorbar_label=None, show_colorbar=None,
-                 colorbar_location='right', show_title=None, title_spacing=None, mask_name=None):
+                 colorbar_location=None, show_title=None, title_spacing=None, mask_name=None):
         """Creates the configuration for a single map plot.
 
         Args:
@@ -352,13 +352,18 @@ class SingleMapConfig(SimpleConvertibleConfig):
         self.clipping = clipping or Clipping()
         self.colormap = colormap
         self.colorbar_label = colorbar_label
-        self.colorbar_location = colorbar_location = 'right'
+        self.colorbar_location = colorbar_location
         self.show_colorbar = show_colorbar
         self.show_title = show_title
         self.mask_name = mask_name
 
         if self.colormap is not None and self.colormap not in self.get_available_colormaps():
             raise ValueError('The given colormap ({}) is not supported.'.format(self.colormap))
+
+        if self.colorbar_location is not None:
+            if self.colorbar_location not in ['left', 'right', 'bottom', 'top']:
+                raise ValueError("The colorbar location is '{}' which is not "
+                                 "one of 'left', 'bottom', 'right', 'top'.".format(str(self.colorbar_location)))
 
     @classmethod
     def _get_attribute_conversions(cls):
