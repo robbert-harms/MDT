@@ -19,7 +19,6 @@ from contextlib import contextmanager
 import numpy as np
 import time
 
-from mdt.log_handlers import StdOutHandler
 from mot.cl_routines.optimizing.base import SimpleOptimizationResult
 from mot.model_building.model_builders import ParameterTransformedModel
 from mot.utils import results_to_dict
@@ -100,16 +99,23 @@ class ChunksProcessingStrategy(ModelProcessingStrategy):
             start_nmr_processed = (total_nmr_voxels - len(total_roi_indices))
 
             mot_logging_enabled = True
-            for chunk in chunks:
+            for chunk_ind, chunk in enumerate(chunks):
                 self._logger.info(self._get_batch_start_message(
                         total_nmr_voxels, chunk, total_roi_indices, voxels_processed, start_time, start_nmr_processed))
 
+                next_chunk = None
+                if chunk_ind < len(chunks) - 1:
+                    next_chunk = chunks[chunk_ind + 1]
+
+                def process():
+                    processor.process(chunk, next_indices=next_chunk)
+
                 if mot_logging_enabled:
-                    processor.process(chunk)
+                    process()
                     mot_logging_enabled = False
                 else:
                     with self._with_logging_to_debug():
-                        processor.process(chunk)
+                        process()
 
                 gc.collect()
 
@@ -180,14 +186,16 @@ class VoxelRange(ChunksProcessingStrategy):
 
 class ModelProcessor(object):
 
-    def process(self, roi_indices):
+    def process(self, roi_indices, next_indices=None): #  todo implement
         """Get the worker specific for the given voxel indices.
 
         By adding an additional layer of indirection it is possible for the processing strategy to fine-tune the
         processing of each batch or ROI indices.
 
-        Returns:
-            _ProcessingWorker: the worker doing the processing for these batches
+        Args:
+            roi_indices (ndarray): the list of ROI indices we will use for the current batch
+            next_indices (ndarray): the list of ROI indices we will use for the batch after this one. May be None
+                if there is no next batch.
         """
         raise NotImplementedError()
 
@@ -221,7 +229,7 @@ class ModelProcessor(object):
         raise NotImplementedError()
 
     def finalize(self):
-        """Finalize the processing, this might remove temporary files for example."""
+        """Finalize the processing, added as a convenience function"""
         raise NotImplementedError()
 
 
@@ -258,7 +266,7 @@ class SimpleModelProcessor(ModelProcessor):
         self._volume_indices = self._create_roi_to_volume_index_lookup_table()
         self._total_nmr_voxels = np.count_nonzero(self._problem_data.mask)
 
-    def process(self, roi_indices):
+    def process(self, roi_indices, next_indices=None):
         raise NotImplementedError()
 
     def get_voxels_to_compute(self):
@@ -392,7 +400,7 @@ class FittingProcessor(SimpleModelProcessor):
         self._optimizer = optimizer
         self._write_volumes_gzipped = gzip_optimization_results()
 
-    def process(self, roi_indices):
+    def process(self, roi_indices, next_indices=None):
         model = self._model.build(roi_indices)
         decorated_model = ParameterTransformedModel(model, self._model.get_parameter_codec())
 
@@ -459,7 +467,7 @@ class SamplingProcessor(SimpleModelProcessor):
             del current_results  # force closing memmap
         return roi_list
 
-    def process(self, roi_indices):
+    def process(self, roi_indices, next_indices=None):
         model = self._model.build(roi_indices)
         sampling_output = self._sampler.sample(model)
 
