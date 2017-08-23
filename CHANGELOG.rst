@@ -3,12 +3,32 @@ Changelog
 *********
 
 
+v0.10.2 (2017-08-23)
+====================
+
+Added
+-----
+- Adds chunk indices look-a-head in the processing strategies. This allows the Processor to start pre-loading the next batch.
+
+
 v0.10.1 (2017-08-22)
 ====================
 
 Changed
 -------
 - Updates to the GUI.
+- Updates to the GUI.
+- Updates to the GUI.
+- Updates to fix input in the GUI.
+- Updates to the GUI.
+- Updates to the GUI, fixes spacings bug.
+- Updates to GUI.
+- Updates to the maps visualizer.
+
+Other
+-----
+- Version bump.
+- Another small bugfix.
 
 
 v0.10.0 (2017-08-17)
