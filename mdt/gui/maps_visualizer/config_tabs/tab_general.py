@@ -78,11 +78,12 @@ class TabGeneral(QWidget, Ui_TabGeneral):
 
         self.general_font_family.addItems(Font.font_names())
         self.general_font_family.currentTextChanged.connect(
-            lambda v: self._controller.apply_action(SetFont(current_model.get_config().font.get_updated(family=v))))
+            lambda v: self._controller.apply_action(SetFont(
+                self._controller.get_model().get_config().font.get_updated(family=v))))
 
         self.general_font_size.valueChanged.connect(
-            lambda: self._controller.apply_action(
-                SetFont(current_model.get_config().font.get_updated(size=self.general_font_size.value()))))
+            lambda: self._controller.apply_action(SetFont(
+                self._controller.get_model().get_config().font.get_updated(size=self.general_font_size.value()))))
 
         self.general_interpolation.addItems(current_model.get_config().get_available_interpolations())
         self.general_interpolation.currentTextChanged.connect(
