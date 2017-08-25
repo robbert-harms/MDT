@@ -660,9 +660,6 @@ class BuildCompositeModel(SampleModelInterface):
     def double_precision(self):
         return self._wrapped_sample_model.double_precision
 
-    def get_free_param_names(self):
-        return self._wrapped_sample_model.get_free_param_names()
-
     def get_kernel_data_info(self):
         return self._wrapped_sample_model.get_kernel_data_info()
 

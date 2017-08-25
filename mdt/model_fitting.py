@@ -154,6 +154,7 @@ class _BatchFitRunner(object):
         with self._timer(subject_info.subject_id):
             for model in self._models_to_fit:
                 self._logger.info('Going to fit model {0} on subject {1}'.format(model, subject_info.subject_id))
+
                 try:
                     model_fit = ModelFit(model,
                                          problem_data,
@@ -414,6 +415,7 @@ class SingleModelFit(object):
         """Adds logging information around the processing."""
         minimize_start_time = timeit.default_timer()
         self._logger.info('Fitting {} model'.format(self._model.name))
+        self._logger.info('The parameters we will fit are: {0}'.format(self._model.get_free_param_names()))
 
         yield
 

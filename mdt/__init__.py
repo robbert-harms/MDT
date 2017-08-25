@@ -219,6 +219,7 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
             logger = logging.getLogger(__name__)
             logger.info('Using MDT version {}'.format(__version__))
             logger.info('Preparing for model {0}'.format(model.name))
+            logger.info('The parameters we will sample are: {0}'.format(model.get_free_param_names()))
 
             model.double_precision = double_precision
 
