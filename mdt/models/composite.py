@@ -75,7 +75,8 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
                                    self._get_proposal_state_names(),
                                    self._get_sampling_statistics(),
                                    self._sampling_covar_excludes,
-                                   self._sampling_covar_extras)
+                                   self._sampling_covar_extras,
+                                   self.get_free_param_names())
 
     def set_problem_data(self, problem_data):
         """Overwrites the super implementation by adding a call to _prepare_problem_data()."""
@@ -366,10 +367,10 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
 
 class BuildCompositeModel(SampleModelInterface):
 
-    def __init__(self, wrapped_sample_model, protocol,
-                 estimable_parameters_list, nmr_parameters_for_bic_calculation,
+    def __init__(self, wrapped_sample_model, protocol, estimable_parameters_list, nmr_parameters_for_bic_calculation,
                  post_optimization_modifiers, dependent_map_calculator, fixed_parameter_maps, proposal_state_names,
-                 sampling_statistics, sampling_covar_excludes, sampling_covar_extras):
+                 sampling_statistics, sampling_covar_excludes, sampling_covar_extras,
+                 free_param_names):
         self._protocol = protocol
         self._estimable_parameters_list = estimable_parameters_list
         self.nmr_parameters_for_bic_calculation = nmr_parameters_for_bic_calculation
@@ -381,6 +382,14 @@ class BuildCompositeModel(SampleModelInterface):
         self._sampling_statistics = sampling_statistics
         self._sampling_covar_excludes = sampling_covar_excludes
         self._sampling_covar_extras = sampling_covar_extras
+        self._free_param_names = free_param_names
+
+    def get_free_param_names(self):
+        """Get the free parameter names of this build model.
+
+        This is used by the processing strategies to create the results.
+        """
+        return self._free_param_names
 
     def get_proposal_state_names(self):
         """Get a list of names for the adaptable proposal parameters.

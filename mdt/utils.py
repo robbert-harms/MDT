@@ -74,6 +74,10 @@ class DMRIProblemData(AbstractProblemData):
         self.gradient_deviations = gradient_deviations
         self._noise_std = noise_std
 
+        if protocol.length != 0 and protocol.length != dwi_volume.shape[3]:
+            raise ValueError('Length of the protocol ({}) does not equal the number of volumes ({}).'.format(
+                protocol.length, dwi_volume.shape[3]))
+
     def copy_with_updates(self, *args, **kwargs):
         """Create a copy of this problem data, while setting some of the arguments to new values.
 
@@ -144,7 +148,7 @@ class DMRIProblemData(AbstractProblemData):
         return self.copy_with_updates(new_protocol, new_dwi_volume)
 
     def get_nmr_inst_per_problem(self):
-        return self._protocol.length
+        return self.dwi_volume.shape[3]
 
     @property
     def protocol(self):
