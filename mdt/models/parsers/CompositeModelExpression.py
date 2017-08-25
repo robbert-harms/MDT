@@ -9,26 +9,55 @@
 
 
 from __future__ import print_function, division, absolute_import, unicode_literals
+
+from grako.buffering import Buffer
 from grako.parsing import graken, Parser
 
 
-__version__ = (2015, 12, 12, 11, 11, 12, 5)
+KEYWORDS = {}
 
-__all__ = [
-    'CompositeModelExpressionParser',
-    'CompositeModelExpressionSemantics',
-]
+
+class CompositeModelExpressionBuffer(Buffer):
+    def __init__(
+        self,
+        text,
+        whitespace=None,
+        nameguard=None,
+        comments_re=None,
+        eol_comments_re=None,
+        ignorecase=None,
+        namechars='',
+        **kwargs
+    ):
+        super(CompositeModelExpressionBuffer, self).__init__(
+            text,
+            whitespace=whitespace,
+            nameguard=nameguard,
+            comments_re=comments_re,
+            eol_comments_re=eol_comments_re,
+            ignorecase=ignorecase,
+            namechars=namechars,
+            **kwargs
+        )
 
 
 class CompositeModelExpressionParser(Parser):
-    def __init__(self,
-                 whitespace=None,
-                 nameguard=None,
-                 comments_re=None,
-                 eol_comments_re=None,
-                 ignorecase=None,
-                 left_recursion=True,
-                 **kwargs):
+    def __init__(
+        self,
+        whitespace=None,
+        nameguard=None,
+        comments_re=None,
+        eol_comments_re=None,
+        ignorecase=None,
+        left_recursion=False,
+        parseinfo=True,
+        keywords=None,
+        namechars='',
+        buffer_class=CompositeModelExpressionBuffer,
+        **kwargs
+    ):
+        if keywords is None:
+            keywords = KEYWORDS
         super(CompositeModelExpressionParser, self).__init__(
             whitespace=whitespace,
             nameguard=nameguard,
@@ -36,6 +65,10 @@ class CompositeModelExpressionParser(Parser):
             eol_comments_re=eol_comments_re,
             ignorecase=ignorecase,
             left_recursion=left_recursion,
+            parseinfo=parseinfo,
+            keywords=keywords,
+            namechars=namechars,
+            buffer_class=buffer_class,
             **kwargs
         )
 
