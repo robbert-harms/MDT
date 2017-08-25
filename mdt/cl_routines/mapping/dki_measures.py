@@ -2,8 +2,7 @@ import numpy as np
 import pyopencl as cl
 
 from mot.cl_data_type import SimpleCLDataType
-from mot.model_building.data_adapter import SimpleDataAdapter
-from mot.utils import get_float_type_def
+from mot.utils import get_float_type_def, convert_data_to_dtype
 from mot.cl_routines.base import CLRoutine
 from mot.load_balance_strategies import Worker
 from mdt.components_loader import load_component
@@ -50,9 +49,7 @@ class DKIMeasures(CLRoutine):
                        'W_2220', 'W_2221', 'W_2222']
         parameters = np.require(np.column_stack([parameters_dict[n] for n in param_names]),
                                 np_dtype, requirements=['C', 'A', 'O'])
-        directions = SimpleDataAdapter(self._get_spherical_samples(),
-                                       SimpleCLDataType.from_string('mot_float_type4'),
-                                       mot_float_type).get_opencl_data()
+        directions = convert_data_to_dtype(self._get_spherical_samples(), 'mot_float_type4', mot_float_type)
         return self._calculate(parameters, param_names, directions, double_precision)
 
     def get_output_names(self):

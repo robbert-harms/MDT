@@ -5,21 +5,19 @@ from textwrap import dedent
 import numpy as np
 
 from mot.model_interfaces import SampleModelInterface
-from mot.utils import results_to_dict
+from mot.utils import results_to_dict, convert_data_to_dtype
 from six import string_types
 
 from mdt.model_protocol_problem import MissingColumns, InsufficientShells
 from mdt.models.base import DMRIOptimizable
 from mdt.protocols import VirtualColumnB
-from mdt.utils import create_roi, calculate_point_estimate_information_criterions, is_scalar, spherical_to_cartesian
-from mot.cl_data_type import SimpleCLDataType
+from mdt.utils import create_roi, calculate_point_estimate_information_criterions, is_scalar
 from mot.cl_routines.mapping.calc_dependent_params import CalculateDependentParameters
 from mot.cl_routines.mapping.error_measures import ErrorMeasures
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
 from mot.cl_routines.mapping.residual_calculator import ResidualCalculator
 from mot.cl_routines.mapping.waic_calculator import WAICCalculator
 from mot.mcmc_diagnostics import multivariate_ess, univariate_ess
-from mot.model_building.data_adapter import SimpleDataAdapter
 from mot.model_building.model_builders import SampleModelBuilder
 
 __author__ = 'Robbert Harms'
@@ -113,10 +111,10 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
     def _get_variable_data(self, problems_to_analyze):
         var_data_dict = super(DMRICompositeModel, self)._get_variable_data(problems_to_analyze)
         if self._problem_data.gradient_deviations is not None:
-            var_data_dict['gradient_deviations'] = self._get_gradient_deviation_data_adapter(problems_to_analyze)
+            var_data_dict['gradient_deviations'] = self._get_gradient_deviations(problems_to_analyze)
         return var_data_dict
 
-    def _get_gradient_deviation_data_adapter(self, problems_to_analyze):
+    def _get_gradient_deviations(self, problems_to_analyze):
         """Get the gradient deviation data for use in the kernel.
 
         This already adds the eye(3) matrix to every gradient deviation matrix, so we don't have to do it in the kernel.
@@ -137,8 +135,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
         if problems_to_analyze is not None:
             grad_dev = grad_dev[problems_to_analyze, ...]
 
-        return SimpleDataAdapter(grad_dev, SimpleCLDataType.from_string('mot_float_type*'), self._get_mot_float_type(),
-                                 allow_local_pointer=False)
+        return convert_data_to_dtype(grad_dev, 'mot_float_type*', self._get_mot_float_type())
 
     def is_protocol_sufficient(self, protocol=None):
         """See ProtocolCheckInterface"""
