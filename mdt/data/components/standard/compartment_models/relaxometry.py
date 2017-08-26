@@ -14,6 +14,22 @@ class ExpT1DecGRE(CompartmentTemplate):
     """
 
 
+class ExpT1DecIR(CompartmentTemplate):
+    description = """IR equation.
+
+    IR equation in which TI and TR are considered to estimate T1. Assuming TE << T1, the TE component of the signal
+    is discarded. In cascade, S0 contains T2 and PD weighted information. An efficiency factor is added to the TI
+    parameter.
+    
+    This is made to model the MI-EPI sequence, a multi inversion recovery epi (Renvall et Al. 2016). 
+    The Model is based on Stikov et al.'s three parameter model.
+    """
+    parameter_list = ('TR_static(TR)', 'TI_static(TI)', 'Efficiency(E)', 'T1')
+    cl_code = """
+        return fabs(1 + exp(-TR / (double)T1) - 2 * E * exp(-TI / (double)T1));
+    """
+
+
 class ExpT1DecTM(CompartmentTemplate):
 
     parameter_list = ('SEf', 'TR', 'TM', 'TE', 'flip_angle', 'excitation_b1_map', 'Refoc_fa1', 'refocusing1_b1_map',

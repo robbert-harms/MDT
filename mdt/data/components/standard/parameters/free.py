@@ -283,3 +283,12 @@ class Tensor_D_12(FreeParameterTemplate):
     upper_bound = 1e-9
     parameter_transform = SinSqrClampTransform()
     sampling_proposal = GaussianProposal(1e-10)
+
+
+class Efficiency(FreeParameterTemplate):
+
+    init_value = 0.95
+    lower_bound = 0
+    upper_bound = 1
+    parameter_transform = SinSqrClampTransform()
+    sampling_proposal = GaussianProposal(0.001)

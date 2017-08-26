@@ -476,6 +476,7 @@ class SamplingProcessor(SimpleModelProcessor):
             volume_maps = model.get_post_sampling_maps(samples)
             self._write_volumes(volume_maps, roi_indices,
                                 os.path.join(self._tmp_storage_dir, 'volume_maps'))
+            del volume_maps
 
             multivariate_statistic = model.get_multivariate_sampling_statistic(samples)
             self._write_volumes(multivariate_statistic, roi_indices,

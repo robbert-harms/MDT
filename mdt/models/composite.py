@@ -482,6 +482,7 @@ class BuildCompositeModel(SampleModelInterface):
         """
         params_to_exclude = set(self.get_free_param_names()).intersection(self._sampling_covar_excludes)
         param_names = [name for name in self.get_free_param_names() if name not in params_to_exclude]
+        full_set_of_names = list(self.get_free_param_names())
 
         lti = np.array(np.tril_indices(len(param_names))).transpose()
         result_names = ['Covariance_{}_to_{}'.format(param_names[row], param_names[column]) for row, column in lti]
@@ -495,19 +496,20 @@ class BuildCompositeModel(SampleModelInterface):
 
             if input_indices:
                 param_names.extend(output_params)
+                full_set_of_names.extend(output_params)
                 inputs = [samples[:, ind, :] for ind in input_indices]
                 samples = np.column_stack([samples, func(*inputs)])
 
-        indices_to_remove = tuple(set(self.get_free_param_names().index(p) for p in params_to_exclude))
-        samples = np.delete(samples, indices_to_remove, axis=1)
+        indices_to_use = [ind for ind, p in enumerate(full_set_of_names) if p not in params_to_exclude]
 
         for voxel_ind in range(samples.shape[0]):
-            covar_matrix = np.cov(samples[voxel_ind, :])
+            covar_matrix = np.cov(samples[voxel_ind, indices_to_use, :])
 
             for names_ind, (row, column) in enumerate(lti):
                 result_matrices[result_names[names_ind]][voxel_ind] = covar_matrix[row, column]
 
-        for param_ind, param_name in enumerate(param_names):
+        for param_ind in indices_to_use:
+            param_name = full_set_of_names[param_ind]
             result_matrices['Mean_' + param_name] = np.mean(samples[:, param_ind, :], axis=1)
 
         return result_matrices

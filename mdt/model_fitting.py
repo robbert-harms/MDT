@@ -408,7 +408,8 @@ class SingleModelFit(object):
         return results
 
     def _write_protocol(self, protocol):
-        write_protocol(protocol, os.path.join(self._output_path, 'used_protocol.prtcl'))
+        if len(protocol):
+            write_protocol(protocol, os.path.join(self._output_path, 'used_protocol.prtcl'))
 
     @contextmanager
     def _logging(self):
