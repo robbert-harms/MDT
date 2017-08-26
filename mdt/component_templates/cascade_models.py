@@ -64,8 +64,8 @@ class CascadeTemplate(six.with_metaclass(CascadeTemplateMeta, ComponentTemplate)
             Ball&Stick model and initializes the restricted compartment volume fraction with the Stick fraction.
             You can either provide a string matching the parameter name of the exact previous model, or provide
             callback function that accepts both a dict containing the previous model estimates
-            and a dict containing all previous model estimates by model name and returns a single initialization map
-            or value.
+            and a list of results from all previous model estimates, your callback function then returns a new
+            initialization value (or map) for that parameter.
 
         fixes (dict): per model the fixations from the previous model. Example:
 
@@ -108,13 +108,24 @@ class CascadeTemplate(six.with_metaclass(CascadeTemplateMeta, ComponentTemplate)
     upper_bounds = {}
 
     @bind_function
-    def _prepare_model_cb(self, model, output_previous, output_all_previous):
+    def _prepare_model_cb(self, iteration_position, model, output_previous, output_all_previous):
         """Finalize the preparation of the model in this callback.
 
         This is called at the end of the regular _prepare_model function defined in the SimpleCascadeModel and
         as implemented by the AutoCreatedCascadeModel.
 
         Use this if you want to control more of the initialization of the next model than only the inits and fixes.
+
+        Args:
+            iteration_position (int): the index (in the list of cascades) of the model we are initializing.
+                First model has position 0, then 1 etc.
+            model: The model to prepare
+            output_previous (dict): the output of the (direct) previous model.
+            output_all_previous (list): The output of all the previous models. Every element (indexed by position in the
+                cascade) contains the full set of results from the optimization of that specific model.
+
+        Returns:
+            None, preparing should happen in-place.
         """
 
     @classmethod
@@ -153,8 +164,9 @@ class CascadeBuilder(ComponentBuilder):
                     new_args[ind] = arg
                 super(AutoCreatedCascadeModel, self).__init__(*new_args)
 
-            def _prepare_model(self, model, output_previous, output_all_previous):
-                super(AutoCreatedCascadeModel, self)._prepare_model(model, output_previous, output_all_previous)
+            def _prepare_model(self, iteration_position, model, output_previous, output_all_previous):
+                super(AutoCreatedCascadeModel, self)._prepare_model(iteration_position, model,
+                                                                    output_previous, output_all_previous)
 
                 def parse_value(v):
                     if isinstance(v, six.string_types):
@@ -165,17 +177,25 @@ class CascadeBuilder(ComponentBuilder):
 
                 for item in template.inits.get(model.name, {}):
                     model.init(item[0], parse_value(item[1]))
+                for item in template.inits.get(iteration_position, {}):
+                    model.init(item[0], parse_value(item[1]))
 
                 for item in template.fixes.get(model.name, {}):
+                    model.fix(item[0], parse_value(item[1]))
+                for item in template.fixes.get(iteration_position, {}):
                     model.fix(item[0], parse_value(item[1]))
 
                 for item in template.lower_bounds.get(model.name, {}):
                     model.set_lower_bound(item[0], parse_value(item[1]))
+                for item in template.lower_bounds.get(iteration_position, {}):
+                    model.set_lower_bound(item[0], parse_value(item[1]))
 
                 for item in template.upper_bounds.get(model.name, {}):
                     model.set_upper_bound(item[0], parse_value(item[1]))
+                for item in template.upper_bounds.get(iteration_position, {}):
+                    model.set_upper_bound(item[0], parse_value(item[1]))
 
-                self._prepare_model_cb(model, output_previous, output_all_previous)
+                self._prepare_model_cb(iteration_position, model, output_previous, output_all_previous)
 
         return AutoCreatedCascadeModel
 

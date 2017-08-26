@@ -277,10 +277,10 @@ class ModelFit(object):
         self._model_names_list.append(model.name)
 
         if isinstance(model, DMRICascadeModelInterface):
-            results = {}
+            all_previous_results = []
             last_results = None
             while model.has_next():
-                sub_model = model.get_next(results)
+                sub_model = model.get_next(all_previous_results)
 
                 sub_recalculate = False
                 if recalculate:
@@ -296,7 +296,7 @@ class ModelFit(object):
 
                 new_results_roi, new_results_maps = self._run(sub_model, sub_recalculate, recalculate,
                                                               _in_recursion=new_in_recursion)
-                results.update({sub_model.name: new_results_roi})
+                all_previous_results.append(new_results_roi)
                 last_results = new_results_roi, new_results_maps
                 self._model_names_list.pop()
 

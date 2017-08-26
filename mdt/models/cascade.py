@@ -41,11 +41,11 @@ class DMRICascadeModelInterface(DMRIOptimizable):
         This cascade class is supposed to remember which model is next.
 
         Args:
-            output_previous_models (dict): The output of all the previous models. The first level of the
-                dict is for the models and is indexed by the model name. The second layer contains all the maps.
+            output_previous_models (list): The output of all the previous models. Each element are the results
+                of the optimization run of one of the models in the cascade.
 
         Returns:
-            SampleModelInterface: The sample model used for the next fit_model.
+            DMRIOptimizable: The model used for the next fit
         """
 
     def reset(self):
@@ -102,12 +102,10 @@ class SimpleCascadeModel(DMRICascadeModelInterface):
         next_model = self._model_list[self._iteration_position]
 
         output_previous = {}
-
         if self._iteration_position > 0:
-            previous_model = self._model_list[self._iteration_position - 1]
-            output_previous = output_previous_models[previous_model.name]
+            output_previous = output_previous_models[self._iteration_position - 1]
 
-        self._prepare_model(next_model, output_previous, output_previous_models)
+        self._prepare_model(self._iteration_position, next_model, output_previous, output_previous_models)
         self._iteration_position += 1
         return self._set_model_options(next_model)
 
@@ -157,16 +155,18 @@ class SimpleCascadeModel(DMRICascadeModelInterface):
         model.double_precision = self.double_precision
         return model
 
-    def _prepare_model(self, model, output_previous, output_all_previous):
+    def _prepare_model(self, iteration_position, model, output_previous, output_all_previous):
         """Prepare the next model with the output of the previous model.
 
         By default this model initializes all parameter maps to the output of the previous model.
 
         Args:
+            iteration_position (int): the index (in the list of cascades) of the model we are initializing.
+                First model has position 0, then 1 etc.
             model: The model to prepare
             output_previous (dict): the output of the (direct) previous model.
-            output_all_previous (dict): The output of all the previous models. Indexed first by model name, second
-                by full parameter name.
+            output_all_previous (list): The output of all the previous models. Every element (indexed by position in the
+                cascade) contains the full set of results from the optimization of that specific model.
 
         Returns:
             None, preparing should happen in-place.

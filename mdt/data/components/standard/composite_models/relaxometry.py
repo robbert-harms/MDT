@@ -12,4 +12,5 @@ class S0TIGre(DMRICompositeModelTemplate):
     The Model is based on Stikov et al.'s three parameter model.
     '''
     model_expression = 'S0 * ExpT1DecIR'
+    inits = {'ExpT1DecIR.T1': 3.0}
     upper_bounds = {'ExpT1DecIR.T1': 6.0}
