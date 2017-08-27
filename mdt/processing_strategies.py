@@ -332,7 +332,7 @@ class SimpleModelProcessor(ModelProcessor):
         tmp_mask = open_memmap(mask_path, mode=mode, dtype=np.bool, shape=self._mask_shape)
         tmp_mask[volume_indices[:, 0], volume_indices[:, 1], volume_indices[:, 2]] = True
 
-    def _combine_volumes(self, output_dir, tmp_storage_dir, volume_header, maps_subdir=''):
+    def _combine_volumes(self, output_dir, tmp_storage_dir, nifti_header, maps_subdir=''):
         """Combine volumes found in subdirectories to a final volume.
 
         Args:
@@ -353,7 +353,7 @@ class SimpleModelProcessor(ModelProcessor):
 
         basic_info = (os.path.join(tmp_storage_dir, maps_subdir),
                       os.path.join(output_dir, maps_subdir),
-                      volume_header,
+                      nifti_header,
                       self._write_volumes_gzipped)
         info_list = [(map_name, basic_info) for map_name in map_names]
 
@@ -419,7 +419,7 @@ class FittingProcessor(SimpleModelProcessor):
 
     def combine(self):
         super(FittingProcessor, self).combine()
-        self._combine_volumes(self._output_dir, self._tmp_storage_dir, self._input_data.volume_header)
+        self._combine_volumes(self._output_dir, self._tmp_storage_dir, self._input_data.nifti_header)
         return create_roi(get_all_image_data(self._output_dir), self._input_data.mask)
 
 
@@ -504,11 +504,11 @@ class SamplingProcessor(SimpleModelProcessor):
 
         if self._store_volume_maps:
             self._combine_volumes(self._output_dir, self._tmp_storage_dir,
-                                  self._input_data.volume_header, maps_subdir='volume_maps')
+                                  self._input_data.nifti_header, maps_subdir='volume_maps')
 
         for subdir in ['proposal_state', 'chain_end_point', 'mh_state', 'multivariate_statistic']:
             self._combine_volumes(self._output_dir, self._tmp_storage_dir,
-                                  self._input_data.volume_header, maps_subdir=subdir)
+                                  self._input_data.nifti_header, maps_subdir=subdir)
 
         if self._samples_to_save_method.store_samples():
             return load_samples(self._output_dir)
@@ -662,7 +662,7 @@ def _combine_volumes_write_out(info_pair):
     Needs to be used by ModelProcessor._combine_volumes
     """
     map_name, info_list = info_pair
-    chunks_dir, output_dir, volume_header, write_gzipped = info_list
+    chunks_dir, output_dir, nifti_header, write_gzipped = info_list
 
     data = np.load(os.path.join(chunks_dir, map_name + '.npy'), mmap_mode='r')
-    write_all_as_nifti({map_name: data}, output_dir, volume_header, gzip=write_gzipped)
+    write_all_as_nifti({map_name: data}, output_dir, nifti_header, gzip=write_gzipped)

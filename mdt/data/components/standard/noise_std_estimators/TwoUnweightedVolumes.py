@@ -23,7 +23,7 @@ class TwoUnweightedVolumes(ComplexNoiseStdEstimator):
             float: single value representing the sigma for the given volume
         """
         unweighted_indices = input_data.protocol.get_unweighted_indices()
-        unweighted_volumes = input_data.dwi_volume[..., unweighted_indices]
+        unweighted_volumes = input_data.signal4d[..., unweighted_indices]
 
         if len(unweighted_indices) < 2:
             raise NoiseStdEstimationNotPossible('Not enough unweighted volumes for this estimator.')

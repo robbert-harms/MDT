@@ -43,29 +43,58 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 class InputDataMRI(AbstractInputData):
-    """Adds the mask as a property to the input data interface."""
+    """Adds a few MRI specific properties to the input data interface."""
+
+    @property
+    def signal4d(self):
+        """Return the 4d volume with on the first three axis the voxel coordinates and on the last axis the volumes.
+
+        Returns:
+            ndarray: a 4d numpy array with all the volumes
+        """
+        raise NotImplementedError()
+
+    @property
+    def nifti_header(self):
+        """The header of the nifti file to use for writing the results.
+
+        Returns:
+            nibabel nifti header
+        """
+        raise NotImplementedError()
 
     @property
     def mask(self):
         """Return the mask in use.
 
         Returns:
-            np.array: the numpy mask array
+            ndarray: the numpy mask array
+        """
+        raise NotImplementedError()
+
+    @property
+    def gradient_deviations(self):
+        """Get the gradient deviations matrix to use in model fitting.
+
+        This property may not apply to all MRI modalities. In the case it does not apply, just return None.
+
+        Returns:
+            ndarray: the gradient deviations to use during model fitting
         """
         raise NotImplementedError()
 
 
 class InputDataDMRI(InputDataMRI):
 
-    def __init__(self, protocol, dwi_volume, mask, volume_header, static_maps=None, gradient_deviations=None,
+    def __init__(self, protocol, signal4d, mask, nifti_header, static_maps=None, gradient_deviations=None,
                  noise_std=None):
         """An implementation of the input data for diffusion MRI models.
 
         Args:
             protocol (Protocol): The protocol object used as input data to the model
-            dwi_volume (ndarray): The DWI data (4d matrix)
+            signal4d (ndarray): The DWI data (4d matrix)
             mask (ndarray): The mask used to create the observations list
-            volume_header (nifti header): The header of the nifti file to use for writing the results.
+            nifti_header (nifti header): The header of the nifti file to use for writing the results.
             static_maps (Dict[str, ndarray]): the static maps used as values for the static map parameters
             gradient_deviations (ndarray): the gradient deviations containing per voxel 9 values that constitute the
                 gradient non-linearities. Of the 4d matrix the first 3 dimensions are supposed to be the voxel
@@ -74,28 +103,27 @@ class InputDataDMRI(InputDataMRI):
                 or a scalar, or an 3d matrix with one value per voxel.
 
         Attributes:
-            dwi_volume (ndarray): The DWI volume
-            volume_header (nifti header): The header of the nifti file to use for writing the results.
+            nifti_header (nifti header): The header of the nifti file to use for writing the results.
         """
         self._logger = logging.getLogger(__name__)
-        self.dwi_volume = dwi_volume
-        self.volume_header = volume_header
+        self._signal4d = signal4d
+        self._nifti_header = nifti_header
         self._mask = mask
         self._protocol = protocol
         self._observation_list = None
         self._static_maps = static_maps or {}
-        self.gradient_deviations = gradient_deviations
+        self._gradient_deviations = gradient_deviations
         self._noise_std = noise_std
 
         if protocol.length != 0:
             self._nmr_inst_per_problem = protocol.length
         else:
-            self._nmr_inst_per_problem = dwi_volume.shape[3]
+            self._nmr_inst_per_problem = signal4d.shape[3]
 
-        if protocol.length != 0 and dwi_volume is not None and \
-                dwi_volume.shape[3] != 0 and protocol.length != dwi_volume.shape[3]:
+        if protocol.length != 0 and signal4d is not None and \
+                signal4d.shape[3] != 0 and protocol.length != signal4d.shape[3]:
             raise ValueError('Length of the protocol ({}) does not equal the number of volumes ({}).'.format(
-                protocol.length, dwi_volume.shape[3]))
+                protocol.length, signal4d.shape[3]))
 
     def copy_with_updates(self, *args, **kwargs):
         """Create a copy of this input data, while setting some of the arguments to new values.
@@ -119,7 +147,7 @@ class InputDataDMRI(InputDataMRI):
         Returns:
             tuple: args and kwargs tuple
         """
-        args = [self._protocol, self.dwi_volume, self._mask, self.volume_header]
+        args = [self._protocol, self.signal4d, self._mask, self.nifti_header]
         kwargs = dict(static_maps=self._static_maps, gradient_deviations=self.gradient_deviations,
                       noise_std=self._noise_std)
         return args, kwargs
@@ -160,9 +188,9 @@ class InputDataDMRI(InputDataMRI):
         if self.protocol is not None:
             new_protocol = self.protocol.get_new_protocol_with_indices(volumes_to_keep)
 
-        new_dwi_volume = self.dwi_volume
-        if self.dwi_volume is not None:
-            new_dwi_volume = self.dwi_volume[..., volumes_to_keep]
+        new_dwi_volume = self.signal4d
+        if self.signal4d is not None:
+            new_dwi_volume = self.signal4d[..., volumes_to_keep]
 
         return self.copy_with_updates(new_protocol, new_dwi_volume)
 
@@ -173,13 +201,160 @@ class InputDataDMRI(InputDataMRI):
         return self._nmr_inst_per_problem
 
     @property
+    def signal4d(self):
+        return self._signal4d
+
+    @property
+    def nifti_header(self):
+        return self._nifti_header
+
+    @property
+    def gradient_deviations(self):
+        return self._gradient_deviations
+
+    @property
     def protocol(self):
         return self._protocol
 
     @property
     def observations(self):
         if self._observation_list is None:
-            self._observation_list = create_roi(self.dwi_volume, self._mask)
+            self._observation_list = create_roi(self.signal4d, self._mask)
+        return self._observation_list
+
+    @property
+    def mask(self):
+        """Return the mask in use
+
+        Returns:
+            np.array: the numpy mask array
+        """
+        return self._mask
+
+    @property
+    def static_maps(self):
+        """Get the static maps. They are used as data for the static parameters.
+
+        Returns:
+            Dict[str, val]: per static map the value for the static map. This can either be an one or two dimensional
+                matrix containing the values for each problem instance or it can be a single value we will use
+                for all problem instances.
+        """
+        if self._static_maps is not None:
+            return_items = {}
+
+            for key, val in self._static_maps.items():
+
+                loaded_val = None
+
+                if isinstance(val, six.string_types):
+                    loaded_val = create_roi(load_nifti(val).get_data(), self.mask)
+                elif isinstance(val, np.ndarray):
+                    loaded_val = create_roi(val, self.mask)
+                elif is_scalar(val):
+                    loaded_val = val
+
+                return_items[key] = loaded_val
+
+            return return_items
+
+        return self._static_maps
+
+    @property
+    def noise_std(self):
+        """The noise standard deviation we will use during model evaluation.
+
+        During optimization or sampling the model will be evaluated against the observations using an evaluation
+        model. Most of these evaluation models need to have a standard deviation.
+
+        Returns:
+            number of ndarray: either a scalar or a 2d matrix with one value per problem instance.
+        """
+        try:
+            noise_std = autodetect_noise_std_loader(self._noise_std).get_noise_std(self)
+        except NoiseStdEstimationNotPossible:
+            logger = logging.getLogger(__name__)
+            logger.warning('Failed to obtain a noise std for this subject. We will continue with an std of 1.')
+            noise_std = 1
+
+        self._noise_std = noise_std
+
+        if is_scalar(noise_std):
+            return noise_std
+        else:
+            return create_roi(noise_std, self.mask)
+
+
+class InputData_S0_T1_GRE(object):
+
+    def __init__(self, protocol, signal4d, mask, nifti_header, slab, static_maps=None, noise_std=None):
+        self._logger = logging.getLogger(__name__)
+        self._signal4d = signal4d
+        self._nifti_header = nifti_header
+        self._mask = mask
+        self._protocol = protocol
+        self._observation_list = None
+        self._static_maps = static_maps or {}
+        self._noise_std = noise_std
+
+        self._add_TI_static_data(slab)
+
+        if protocol.length != 0:
+            self._nmr_inst_per_problem = protocol.length
+        else:
+            self._nmr_inst_per_problem = signal4d.shape[3]
+
+        if protocol.length != 0 and signal4d is not None and \
+                signal4d.shape[3] != 0 and protocol.length != signal4d.shape[3]:
+            raise ValueError('Length of the protocol ({}) does not equal the number of volumes ({}).'.format(
+                protocol.length, signal4d.shape[3]))
+
+    def _add_TI_static_data(self, slab):
+        """Generate the TI's for use in the S0-TIGre model.
+
+        Args:
+            slab (int): the amount of T1 rolling every slice
+
+        Returns:
+            ndarray: TIs static data shuffled such that the TI's match the position of the scan from the sequence
+        """
+        TIs = np.zeros(self.signal4d.shape)
+
+        TI_values = np.squeeze(self._protocol['TI'])
+
+        TIs[:, :, :, 0] = TI_values
+        for ind in range(1, TIs.shape[2]):
+            TI_values = np.roll(TI_values, slab)
+            TIs[..., ind] = TI_values
+
+        self._static_maps['TI'] = TIs
+
+    def get_nmr_problems(self):
+        return self.observations.shape[0]
+
+    def get_nmr_inst_per_problem(self):
+        return self._nmr_inst_per_problem
+
+    @property
+    def signal4d(self):
+        return self._signal4d
+
+    @property
+    def nifti_header(self):
+        return self._nifti_header
+
+    @property
+    def protocol(self):
+        return self._protocol
+
+    @property
+    def gradient_deviations(self):
+        return None
+
+    @property
+    def observations(self):
+        if self._observation_list is None:
+            self._observation_list = create_roi(self.signal4d, self._mask)
         return self._observation_list
 
     @property
@@ -247,11 +422,11 @@ class InputDataDMRI(InputDataMRI):
 
 class MockInputDataDMRI(InputDataDMRI):
 
-    def __init__(self, protocol=None, dwi_volume=None, mask=None, volume_header=None,
+    def __init__(self, protocol=None, signal4d=None, mask=None, nifti_header=None,
                  **kwargs):
         """A mock DMRI input data object that returns None for everything unless given.
         """
-        super(MockInputDataDMRI, self).__init__(protocol, dwi_volume, mask, volume_header, **kwargs)
+        super(MockInputDataDMRI, self).__init__(protocol, signal4d, mask, nifti_header, **kwargs)
 
     def _get_constructor_args(self):
         """Get the constructor arguments needed to create a copy of this batch util using a copy constructor.
@@ -259,7 +434,7 @@ class MockInputDataDMRI(InputDataDMRI):
         Returns:
             tuple: args and kwargs tuple
         """
-        args = [self._protocol, self.dwi_volume, self._mask, self.volume_header]
+        args = [self._protocol, self.signal4d, self._mask, self.nifti_header]
         kwargs = {}
         return args, kwargs
 
@@ -273,6 +448,86 @@ class MockInputDataDMRI(InputDataDMRI):
     @property
     def noise_std(self):
         return 1
+
+
+def load_problem_data(*args, **kwargs):
+    # todo: remove in future version
+    import warnings
+    warnings.warn('The function `load_problem_data` is deprecated and has been renamed to `load_dmri_input_data`. '
+                  'Please rename your function call.')
+    return load_dmri_input_data(*args, **kwargs)
+
+
+def load_dmri_input_data(volume_info, protocol, mask, static_maps=None, gradient_deviations=None, noise_std=None):
+    """Load and create the input data object for diffusion MRI modeling.
+
+    Args:
+        volume_info (string or tuple): Either an (ndarray, img_header) tuple or the full path
+            to the volume (4d signal data).
+        protocol (:class:`~mdt.protocols.Protocol` or str): A protocol object with the right protocol for the
+            given data, or a string object with a filename to the given file.
+        mask (ndarray, str): A full path to a mask file or a 3d ndarray containing the mask
+        static_maps (Dict[str, val]): the dictionary with per static map the value to use.
+            The value can either be an 3d or 4d ndarray, a single number or a string. We will convert all to the
+            right format.
+        gradient_deviations (str or ndarray): set of gradient deviations to use. In HCP WUMINN format. Set to None to
+            disable.
+        noise_std (number or ndarray): either None for automatic detection,
+            or a scalar, or an 3d matrix with one value per voxel.
+
+    Returns:
+        InputDataDMRI: the input data object containing all the info needed for diffusion MRI model fitting
+    """
+    protocol = autodetect_protocol_loader(protocol).get_protocol()
+    mask = autodetect_brain_mask_loader(mask).get_data()
+
+    if isinstance(volume_info, string_types):
+        info = load_nifti(volume_info)
+        signal4d = info.get_data()
+        img_header = info.get_header()
+    else:
+        signal4d, img_header = volume_info
+
+    if isinstance(gradient_deviations, six.string_types):
+        gradient_deviations = load_nifti(gradient_deviations).get_data()
+
+    return InputDataDMRI(protocol, signal4d, mask, img_header, static_maps=static_maps, noise_std=noise_std,
+                         gradient_deviations=gradient_deviations)
+
+
+def load_S0_T1_GRE_input_data(volume_info, protocol, mask, slab, static_maps=None, noise_std=None):
+    """Creates the input data object for the S0-T1Gre model for inversion time recovery.
+
+    This will take care of the reshuffling of the input data using ``slab``. Please provide the TI's in the protocol
+    object.
+
+    Args:
+        volume_info (string or tuple): Either an (ndarray, img_header) tuple or the full path
+            to the volume (4d signal data).
+        protocol (:class:`~mdt.protocols.Protocol` or str): A protocol object with the right protocol for the
+            given data, or a string object with a filename to the given file.
+        mask (ndarray, str): A full path to a mask file or a 3d ndarray containing the mask
+        slab (int): the amount of T1 rolling every slice
+        static_maps (Dict[str, val]): the dictionary with per static map the value to use.
+            The value can either be an 3d or 4d ndarray, a single number or a string. We will convert all to the
+            right format.
+        noise_std (number or ndarray): either None for automatic detection,
+            or a scalar, or an 3d matrix with one value per voxel.
+
+    Returns:
+        InputDataDMRI: the input data object containing all the info needed for diffusion MRI model fitting
+    """
+    protocol = autodetect_protocol_loader(protocol).get_protocol()
+    mask = autodetect_brain_mask_loader(mask).get_data()
+
+    if isinstance(volume_info, string_types):
+        info = load_nifti(volume_info)
+        signal4d = info.get_data()
+        img_header = info.get_header()
+    else:
+        signal4d, img_header = volume_info
+
+    return InputData_S0_T1_GRE(protocol, signal4d, mask, img_header, slab, static_maps=static_maps, noise_std=noise_std)
 
 
 class InitializationData(object):
@@ -1191,51 +1446,6 @@ def sort_volumes_per_voxel(input_volumes, sort_matrix):
                 for ind in range(len(input_volumes))]
 
 
-def load_problem_data(*args, **kwargs):
-    # todo: remove in future version
-    import warnings
-    warnings.warn('The function `load_problem_data` is deprecated and has been renamed to `load_dmri_input_data`. '
-                  'Please rename your function call.')
-    return load_dmri_input_data(*args, **kwargs)
-
-
-def load_dmri_input_data(volume_info, protocol, mask, static_maps=None, gradient_deviations=None, noise_std=None):
-    """Load and create the input data object for diffusion MRI modeling.
-
-    Args:
-        volume_info (string or tuple): Either an (ndarray, img_header) tuple or the full path
-            to the volume (4d signal data).
-        protocol (:class:`~mdt.protocols.Protocol` or str): A protocol object with the right protocol for the
-            given data, or a string object with a filename to the given file.
-        mask (ndarray, str): A full path to a mask file or a 3d ndarray containing the mask
-        static_maps (Dict[str, val]): the dictionary with per static map the value to use.
-            The value can either be an 3d or 4d ndarray, a single number or a string. We will convert all to the
-            right format.
-        gradient_deviations (str or ndarray): set of gradient deviations to use. In HCP WUMINN format. Set to None to
-            disable.
-        noise_std (number or ndarray): either None for automatic detection,
-            or a scalar, or an 3d matrix with one value per voxel.
-
-    Returns:
-        InputDataDMRI: the input data object containing all the info needed for diffusion MRI model fitting
-    """
-    protocol = autodetect_protocol_loader(protocol).get_protocol()
-    mask = autodetect_brain_mask_loader(mask).get_data()
-
-    if isinstance(volume_info, string_types):
-        info = load_nifti(volume_info)
-        signal4d = info.get_data()
-        img_header = info.get_header()
-    else:
-        signal4d, img_header = volume_info
-
-    if isinstance(gradient_deviations, six.string_types):
-        gradient_deviations = load_nifti(gradient_deviations).get_data()
-
-    return InputDataDMRI(protocol, signal4d, mask, img_header, static_maps=static_maps, noise_std=noise_std,
-                         gradient_deviations=gradient_deviations)
-
-
 def load_brain_mask(brain_mask_fname):
     """Load the brain mask from the given file.
 
@@ -1796,7 +2006,7 @@ def recalculate_error_measures(model, input_data, data_dir, output_dir=None):
     volumes = restore_volumes(results_maps, input_data.mask)
 
     output_dir = output_dir or data_dir
-    write_all_as_nifti(volumes, output_dir, input_data.volume_header)
+    write_all_as_nifti(volumes, output_dir, input_data.nifti_header)
 
 
 def natural_key_sort_cb(_str):

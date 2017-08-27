@@ -54,7 +54,7 @@ class AverageOfAir_ExtendedMask(ComplexNoiseStdEstimator):
         mask[..., 0:border_offset] = True
         mask[..., -border_offset:] = True
 
-        return create_roi(input_data.dwi_volume, np.invert(mask))
+        return create_roi(input_data.signal4d, np.invert(mask))
 
     def __str__(self):
         return __name__

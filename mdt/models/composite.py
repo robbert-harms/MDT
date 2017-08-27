@@ -290,7 +290,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
         from writing your own _prepare_input_data object.
 
         Args:
-            input_data (mdt.utils.InputDataMRI): the input data set by the user
+            input_data (mot.model_building.input_data.AbstractInputData): the input data set by the user
 
         Returns:
             list: the list of indices we want to use for this model.

@@ -20,7 +20,7 @@ class AllUnweightedVolumes(ComplexNoiseStdEstimator):
         The method is taken from Camino (http://camino.cs.ucl.ac.uk/index.php?n=Man.Estimatesnr).
         """
         unweighted_indices = input_data.protocol.get_unweighted_indices()
-        unweighted_volumes = input_data.dwi_volume[..., unweighted_indices]
+        unweighted_volumes = input_data.signal4d[..., unweighted_indices]
 
         if len(unweighted_indices) < 2:
             raise NoiseStdEstimationNotPossible('Not enough unweighted volumes for this estimator.')
