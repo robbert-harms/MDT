@@ -4,7 +4,7 @@
 Parameters
 **********
 Parameters form the building blocks of the compartment models.
-They define how data is provided to the model and form a bridge between the model and the :ref:`concepts_problem_data_models`.
+They define how data is provided to the model and form a bridge between the model and the :ref:`concepts_input_data_models`.
 
 The type of a parameters determines how the model uses that parameter.
 For example, compare these two parameters::
@@ -85,7 +85,7 @@ are commonly placed in the Python module named ``protocol.py``.
 Static map parameters
 =====================
 The static map parameters are meant to carry additional observational data about a problem.
-When defined, MDT tries to load the appropriate data from the ``static_maps`` in the problem data (see :ref:`concepts_problem_data_models`).
+When defined, MDT tries to load the appropriate data from the ``static_maps`` in the input data (see :ref:`concepts_input_data_models`).
 
 The values in the static maps are meant for values per voxel (and optionally also per volume).
 They can hold, for example, b0 inhomogeneity maps or flip angle maps that have a specific value per voxel and (optionally) per volume.

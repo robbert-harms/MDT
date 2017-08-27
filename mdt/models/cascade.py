@@ -71,8 +71,8 @@ class DMRICascadeModelInterface(DMRIOptimizable):
             list of str: the names of the models in this list
         """
 
-    def set_problem_data(self, problem_data):
-        """Set the problem data in every model in the cascade."""
+    def set_input_data(self, input_data):
+        """Set the input data in every model in the cascade."""
 
 
 class SimpleCascadeModel(DMRICascadeModelInterface):
@@ -136,9 +136,9 @@ class SimpleCascadeModel(DMRICascadeModelInterface):
     def get_model_names(self):
         return [model.name for model in self._model_list]
 
-    def set_problem_data(self, problem_data):
+    def set_input_data(self, input_data):
         for model in self._model_list:
-            model.set_problem_data(problem_data)
+            model.set_input_data(input_data)
 
     def _set_model_options(self, model):
         """The final hook before we return a model from this class.

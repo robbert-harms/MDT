@@ -34,7 +34,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
         self._run_model_worker = RunModelWorker()
         self._tab_content = None
         self._optim_options = OptimOptions()
-        self._problem_data_info = ProblemDataInfo()
+        self._input_data_info = InputDataInfo()
 
     def setupUi(self, tab_content):
         super(FitModelTab, self).setupUi(tab_content)
@@ -63,12 +63,12 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
         self._update_cascade_selection()
         self.cascadeSelection.setCurrentText('Cascade')
 
-        if self._problem_data_info.dwi:
-            self.selectedDWI.setText(self._problem_data_info.dwi)
-        if self._problem_data_info.mask:
-            self.selectedMask.setText(self._problem_data_info.mask)
-        if self._problem_data_info.protocol:
-            self.selectedProtocol.setText(self._problem_data_info.protocol)
+        if self._input_data_info.dwi:
+            self.selectedDWI.setText(self._input_data_info.dwi)
+        if self._input_data_info.mask:
+            self.selectedMask.setText(self._input_data_info.mask)
+        if self._input_data_info.protocol:
+            self.selectedProtocol.setText(self._input_data_info.protocol)
 
         self.update_output_folder_text()
         self._check_enable_action_buttons()
@@ -113,7 +113,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
 
         if os.path.isfile(open_file):
             self.selectedDWI.setText(open_file)
-            self._problem_data_info.dwi = open_file
+            self._input_data_info.dwi = open_file
             self._shared_state.base_dir = os.path.dirname(open_file)
             self.update_output_folder_text()
 
@@ -128,7 +128,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
 
         if os.path.isfile(open_file):
             self.selectedMask.setText(open_file)
-            self._problem_data_info.mask = open_file
+            self._input_data_info.mask = open_file
             self._shared_state.base_dir = os.path.dirname(open_file)
             self.update_output_folder_text()
 
@@ -143,7 +143,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
 
         if os.path.isfile(open_file):
             self.selectedProtocol.setText(open_file)
-            self._problem_data_info.protocol = open_file
+            self._input_data_info.protocol = open_file
             self._shared_state.base_dir = os.path.dirname(open_file)
 
     def _select_output(self):
@@ -178,7 +178,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
             dialog.write_config()
 
     def _extra_data_dialog(self):
-        dialog = ExtraDataDialog(self._shared_state, self._tab_content, self._problem_data_info)
+        dialog = ExtraDataDialog(self._shared_state, self._tab_content, self._input_data_info)
         return_value = dialog.exec_()
 
         if return_value:
@@ -193,7 +193,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
     @pyqtSlot()
     def run_model(self):
         model = mdt.get_model(self._get_current_model_name())
-        protocol = mdt.load_protocol(self._problem_data_info.protocol)
+        protocol = mdt.load_protocol(self._input_data_info.protocol)
 
         if not model.is_protocol_sufficient(protocol):
             msg = ProtocolWarningBox(model.get_protocol_problems(protocol))
@@ -202,7 +202,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
 
         self._run_model_worker.set_args(
             model,
-            self._problem_data_info.get_problem_data(),
+            self._input_data_info.build_input_data(),
             self.selectedOutputFolder.text(),
             recalculate=True,
             double_precision=self._optim_options.double_precision,
@@ -222,7 +222,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
         self._run_model_worker.finished.connect(
             lambda: self._shared_state.set_output_folder(self._get_full_model_output_path()))
 
-        image_path = split_image_path(self._problem_data_info.dwi)
+        image_path = split_image_path(self._input_data_info.dwi)
         script_basename = os.path.join(image_path[0], 'scripts',
                                        'fit_model_{}_{}'.format(self._get_current_model_name().replace('|', '.'),
                                                                 image_path[1]))
@@ -230,7 +230,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
             os.makedirs(os.path.join(image_path[0], 'scripts'))
 
         script_info = dict(optim_options=self._optim_options,
-                           problem_data_info=self._problem_data_info,
+                           input_data_info=self._input_data_info,
                            model=self._get_current_model_name(),
                            output_folder=self.selectedOutputFolder.text(),
                            recalculate=True,
@@ -252,7 +252,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
         return os.path.join(*parts)
 
     def _write_python_script_file(self, output_file, **kwargs):
-        problem_data_info = kwargs['problem_data_info']
+        input_data_info = kwargs['input_data_info']
         optim_options = kwargs['optim_options']
 
         all_cl_devices = CLEnvironmentFactory.smart_device_selection()
@@ -260,12 +260,12 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
 
         format_kwargs = dict(
             header=get_script_file_header_text({'Purpose': 'Fitting a model'}),
-            dwi=problem_data_info.dwi,
-            protocol=problem_data_info.protocol,
-            mask=problem_data_info.mask,
-            noise_std=problem_data_info.noise_std,
-            gradient_deviations=problem_data_info.gradient_deviations,
-            static_maps=problem_data_info.static_maps,
+            dwi=input_data_info.dwi,
+            protocol=input_data_info.protocol,
+            mask=input_data_info.mask,
+            noise_std=input_data_info.noise_std,
+            gradient_deviations=input_data_info.gradient_deviations,
+            static_maps=input_data_info.static_maps,
             model=kwargs['model'],
             output_folder=kwargs['output_folder'],
             recalculate=kwargs['recalculate'],
@@ -282,7 +282,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
 
                     import mdt
 
-                    problem_data = mdt.load_problem_data(
+                    input_data = mdt.load_dmri_input_data(
                         {dwi!r},
                         {protocol!r},
                         {mask!r},
@@ -292,7 +292,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
 
                     mdt.fit_model(
                         {model!r},
-                        problem_data,
+                        input_data,
                         {output_folder!r},
                         recalculate={recalculate!r},
                         only_recalculate_last={only_recalculate_last!r},
@@ -308,7 +308,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
                     import mdt
                     from mdt.configuration import SetGeneralOptimizer
 
-                    problem_data = mdt.load_problem_data(
+                    input_data = mdt.load_dmri_input_data(
                         {dwi!r},
                         {protocol!r},
                         {mask!r},
@@ -319,7 +319,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
                     with mdt.config_context(SetGeneralOptimizer({optimizer!r}, settings={{'patience': {patience!r}}})):
                         mdt.fit_model(
                             {model!r},
-                            problem_data,
+                            input_data,
                             {output_folder!r},
                             recalculate={recalculate!r},
                             only_recalculate_last={only_recalculate_last!r},
@@ -329,7 +329,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
                 ''').format(**format_kwargs))
 
     def _write_bash_script_file(self, output_file, *args, **kwargs):
-        problem_data_info = kwargs['problem_data_info']
+        input_data_info = kwargs['input_data_info']
         optim_options = kwargs['optim_options']
 
         all_cl_devices = CLEnvironmentFactory.smart_device_selection()
@@ -346,20 +346,20 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
                     "{protocol}" \\
                     "{mask}" ''').format(header=get_script_file_header_text({'Purpose': 'Fitting a model'}),
                             model=kwargs['model'],
-                            dwi=problem_data_info.dwi,
-                            protocol=problem_data_info.protocol,
-                            mask=problem_data_info.mask))
+                            dwi=input_data_info.dwi,
+                            protocol=input_data_info.protocol,
+                            mask=input_data_info.mask))
 
             def write_new_line(line):
                 f.write('\\\n' + ' ' * 4 + line + ' ')
 
             write_new_line('-o "{}"'.format(kwargs['output_folder']))
 
-            if problem_data_info.gradient_deviations:
-                write_new_line('--gradient-deviations "{}"'.format(problem_data_info.gradient_deviations))
+            if input_data_info.gradient_deviations:
+                write_new_line('--gradient-deviations "{}"'.format(input_data_info.gradient_deviations))
 
-            if problem_data_info.noise_std:
-                write_new_line('--noise-std {}'.format(problem_data_info.noise_std))
+            if input_data_info.noise_std:
+                write_new_line('--noise-std {}'.format(input_data_info.noise_std))
 
             write_new_line('--cl-device-ind {}'.format(
                 ' '.join(str(ind) for ind, device in enumerate(all_cl_devices) if device in user_selected_devices)))
@@ -368,9 +368,9 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
             write_new_line('--only-recalculate-last' if kwargs['only_recalculate_last'] else '--recalculate-all')
             write_new_line('--double' if kwargs['double_precision'] else '--float')
 
-            if problem_data_info.static_maps:
+            if input_data_info.static_maps:
                 write_new_line('--static-maps {}'.format(
-                    ' '.join('{}="{}"'.format(key, value) for key, value in problem_data_info.static_maps.items())
+                    ' '.join('{}="{}"'.format(key, value) for key, value in input_data_info.static_maps.items())
                 ))
 
             if not optim_options.use_model_default_optimizer:
@@ -482,7 +482,7 @@ class OptimOptions(object):
         return optimizer(patience=self.patience)
 
 
-class ProblemDataInfo(object):
+class InputDataInfo(object):
 
     def __init__(self):
         self.dwi = None
@@ -492,18 +492,18 @@ class ProblemDataInfo(object):
         self.gradient_deviations = None
         self.noise_std = None
 
-    def get_problem_data(self):
-        return mdt.load_problem_data(self.dwi, self.protocol, self.mask,
-                                     noise_std=self.noise_std, gradient_deviations=self.gradient_deviations,
-                                     static_maps=self.static_maps)
+    def build_input_data(self):
+        return mdt.load_dmri_input_data(self.dwi, self.protocol, self.mask,
+                                        noise_std=self.noise_std, gradient_deviations=self.gradient_deviations,
+                                        static_maps=self.static_maps)
 
 
 class ExtraDataDialog(Ui_OptimizationExtraDataDialog, QDialog):
 
-    def __init__(self, shared_state, parent, problem_data_info):
+    def __init__(self, shared_state, parent, input_data_info):
         super(ExtraDataDialog, self).__init__(parent)
         self._shared_state = shared_state
-        self._problem_data_info = problem_data_info
+        self._input_data_info = input_data_info
         self.setupUi(self)
 
         self.noiseStdFileSelect.clicked.connect(lambda: self._select_std_file())
@@ -540,28 +540,28 @@ class ExtraDataDialog(Ui_OptimizationExtraDataDialog, QDialog):
         """Write to the config the user selected options"""
         noise_std_value = self.noiseStd.text()
         if noise_std_value == '':
-            self._problem_data_info.noise_std = None
+            self._input_data_info.noise_std = None
         else:
-            self._problem_data_info.noise_std = noise_std_value
+            self._input_data_info.noise_std = noise_std_value
             try:
-                self._problem_data_info.noise_std = float(noise_std_value)
+                self._input_data_info.noise_std = float(noise_std_value)
             except ValueError:
                 pass
 
         if self.gradientDeviations.text() == '':
-            self._problem_data_info.gradient_deviations = None
+            self._input_data_info.gradient_deviations = None
         else:
-            self._problem_data_info.gradient_deviations = self.gradientDeviations.text()
+            self._input_data_info.gradient_deviations = self.gradientDeviations.text()
 
-        self._problem_data_info.static_maps = copy(self._static_maps)
+        self._input_data_info.static_maps = copy(self._static_maps)
 
     def _load_config(self):
         """Load the settings from the config into the GUI"""
-        if self._problem_data_info.noise_std is not None:
-            self.noiseStd.setText(str(self._problem_data_info.noise_std))
-        if self._problem_data_info.gradient_deviations is not None:
-            self.gradientDeviations.setText(str(self._problem_data_info.gradient_deviations))
-        self._static_maps = copy(self._problem_data_info.static_maps)
+        if self._input_data_info.noise_std is not None:
+            self.noiseStd.setText(str(self._input_data_info.noise_std))
+        if self._input_data_info.gradient_deviations is not None:
+            self.gradientDeviations.setText(str(self._input_data_info.gradient_deviations))
+        self._static_maps = copy(self._input_data_info.static_maps)
         self._update_map_view()
 
     def _select_std_file(self):

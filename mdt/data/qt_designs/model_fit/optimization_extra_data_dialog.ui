@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Additional problem data</string>
+   <string>Additional input data</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
@@ -27,7 +27,7 @@
         </font>
        </property>
        <property name="text">
-        <string>Additional problem data</string>
+        <string>Additional input data</string>
        </property>
       </widget>
      </item>

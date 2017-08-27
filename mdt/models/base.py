@@ -26,7 +26,7 @@ class DMRIOptimizable(object):
 
         Args:
             protocol (Protocol): The protocol object to check for sufficient information. If set the None, the
-                current protocol in the problem data is used.
+                current protocol in the input data is used.
 
         Returns:
             boolean: True if there is enough information in the protocol, false otherwise
@@ -37,7 +37,7 @@ class DMRIOptimizable(object):
 
         Args:
             protocol (Protocol): The protocol object to check for problems. If set the None, the
-                current protocol in the problem data is used.
+                current protocol in the input data is used.
 
         Returns:
             list of ModelProtocolProblem: A list of :class:`~mdt.model_protocol_problem.ModelProtocolProblem` instances

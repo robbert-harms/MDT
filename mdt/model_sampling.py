@@ -17,14 +17,14 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-def sample_composite_model(model, problem_data, output_folder, sampler, tmp_dir,
+def sample_composite_model(model, input_data, output_folder, sampler, tmp_dir,
                            recalculate=False, store_samples=True, store_volume_maps=True,
                            initialization_data=None):
     """Sample a composite model.
 
     Args:
         model (:class:`~mdt.models.composite.DMRICompositeModel`): a composite model to sample
-        problem_data (:class:`~mdt.utils.DMRIProblemData`): The problem data object with which the model
+        input_data (:class:`~mdt.utils.InputDataMRI`): The input data object with which the model
             is initialized before running
         output_folder (string): The full path to the folder where to place the output
         sampler (:class:`mot.cl_routines.sampling.base.AbstractSampler`): The sampling routine to use.
@@ -45,10 +45,10 @@ def sample_composite_model(model, problem_data, output_folder, sampler, tmp_dir,
     else:
         sample_to_save_method = SaveNoSamples()
 
-    if not model.is_protocol_sufficient(problem_data.protocol):
+    if not model.is_protocol_sufficient(input_data.protocol):
         raise InsufficientProtocolError(
             'The provided protocol is insufficient for this model. '
-            'The reported errors where: {}'.format(model.get_protocol_problems(problem_data.protocol)))
+            'The reported errors where: {}'.format(model.get_protocol_problems(input_data.protocol)))
 
     if not sample_to_save_method.store_samples() and not store_volume_maps:
         raise ValueError('Both store_samples and store_volume_maps are set to False, nothing to compute.')
@@ -63,15 +63,15 @@ def sample_composite_model(model, problem_data, output_folder, sampler, tmp_dir,
     if not os.path.isdir(output_folder):
         os.makedirs(output_folder)
 
-    model.set_problem_data(problem_data)
+    model.set_input_data(input_data)
 
     if initialization_data:
         logger.info('Preparing the model with the user provided initialization data.')
-        initialization_data.apply_to_model(model, problem_data)
+        initialization_data.apply_to_model(model, input_data)
 
     with _log_info(logger, model.name):
         worker = SamplingProcessor(
-            sampler, model, problem_data, output_folder,
+            sampler, model, input_data, output_folder,
             get_full_tmp_results_path(output_folder, tmp_dir), True, recalculate,
             samples_to_save_method=sample_to_save_method, store_volume_maps=store_volume_maps)
 

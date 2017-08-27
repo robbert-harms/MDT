@@ -29,7 +29,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
 
-    def __init__(self, model_name, model_tree, evaluation_model, signal_noise_model=None, problem_data=None,
+    def __init__(self, model_name, model_tree, evaluation_model, signal_noise_model=None, input_data=None,
                  enforce_weights_sum_to_one=True):
         """A model builder for a composite dMRI sample and optimization model.
 
@@ -51,10 +51,10 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
                 output maps.
         """
         super(DMRICompositeModel, self).__init__(model_name, model_tree, evaluation_model, signal_noise_model,
-                                                 problem_data=problem_data,
+                                                 input_data=input_data,
                                                  enforce_weights_sum_to_one=enforce_weights_sum_to_one)
         self._logger = logging.getLogger(__name__)
-        self._original_problem_data = None
+        self._original_input_data = None
 
         self._post_optimization_modifiers = []
 
@@ -66,7 +66,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
     def build(self, problems_to_analyze=None):
         sample_model = super(DMRICompositeModel, self).build(problems_to_analyze)
         return BuildCompositeModel(sample_model,
-                                   self._problem_data.protocol,
+                                   self._input_data.protocol,
                                    self._model_functions_info.get_estimable_parameters_list(),
                                    self.nmr_parameters_for_bic_calculation,
                                    self._post_optimization_modifiers,
@@ -78,15 +78,15 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
                                    self._sampling_covar_extras,
                                    self.get_free_param_names())
 
-    def set_problem_data(self, problem_data):
-        """Overwrites the super implementation by adding a call to _prepare_problem_data()."""
-        self._check_data_consistency(problem_data)
-        self._original_problem_data = problem_data
+    def set_input_data(self, input_data):
+        """Overwrites the super implementation by adding a call to _prepare_input_data()."""
+        self._check_data_consistency(input_data)
+        self._original_input_data = input_data
 
-        if problem_data.gradient_deviations is not None:
+        if input_data.gradient_deviations is not None:
             self._logger.info('Using the gradient deviations in the model optimization.')
 
-        return super(DMRICompositeModel, self).set_problem_data(self._prepare_problem_data(problem_data))
+        return super(DMRICompositeModel, self).set_input_data(self._prepare_input_data(input_data))
 
     def get_optimization_output_param_names(self):
         """Get a list with the names of the parameters, this is the list of keys to the titles and results.
@@ -111,7 +111,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
 
     def _get_variable_data(self, problems_to_analyze):
         var_data_dict = super(DMRICompositeModel, self)._get_variable_data(problems_to_analyze)
-        if self._problem_data.gradient_deviations is not None:
+        if self._input_data.gradient_deviations is not None:
             var_data_dict['gradient_deviations'] = self._get_gradient_deviations(problems_to_analyze)
         return var_data_dict
 
@@ -126,10 +126,10 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
             ndarray: the gradient deviations for the voxels being optimized (this function already takes care
                 of the problems_to_analyze setting).
         """
-        if len(self._problem_data.gradient_deviations.shape) > 2:
-            grad_dev = create_roi(self._problem_data.gradient_deviations, self._problem_data.mask)
+        if len(self._input_data.gradient_deviations.shape) > 2:
+            grad_dev = create_roi(self._input_data.gradient_deviations, self._input_data.mask)
         else:
-            grad_dev = np.copy(self._problem_data.gradient_deviations)
+            grad_dev = np.copy(self._input_data.gradient_deviations)
 
         grad_dev += np.eye(3).flatten()
 
@@ -145,7 +145,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
     def get_protocol_problems(self, protocol=None):
         """See ProtocolCheckInterface"""
         if protocol is None:
-            protocol = self._problem_data.protocol
+            protocol = self._input_data.protocol
 
         problems = []
 
@@ -215,46 +215,46 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
             '''.replace('\t', ' '*4))
 
     def _can_use_gradient_deviations(self):
-        return self._problem_data.gradient_deviations is not None \
+        return self._input_data.gradient_deviations is not None \
                and 'g' in list(self._get_protocol_data().keys())
 
-    def _prepare_problem_data(self, problem_data):
-        """Update the problem data to make it suitable for this model.
+    def _prepare_input_data(self, input_data):
+        """Update the input data to make it suitable for this model.
 
         Some of the models in diffusion MRI can only handle a subset of all volumes. For example, the S0 model
         can only work with the unweigthed signals, or the Tensor model that can only handle a b-value up to 1.5e9 s/m^2.
 
-        Overwrite this function to limit the problem data to a suitable range.
+        Overwrite this function to limit the input data to a suitable range.
 
         Args:
-            problem_data (mdt.utils.DMRIProblemData): the problem data set by the user
+            input_data (mdt.utils.InputDataMRI): the input data set by the user
 
         Returns:
-            mdt.utils.DMRIProblemData: either the same problem data or a changed copy.
+            mdt.utils.InputDataMRI: either the same input data or a changed copy.
         """
-        protocol = problem_data.protocol
-        indices = self._get_suitable_volume_indices(problem_data)
+        protocol = input_data.protocol
+        indices = self._get_suitable_volume_indices(input_data)
 
         if len(indices) != protocol.length:
             self._logger.info('For this model, {}, we will use a subset of the protocol and DWI.'.format(self._name))
             self._logger.info('Using {} out of {} volumes, indices: {}'.format(
                 len(indices), protocol.length, str(indices).replace('\n', '').replace('[  ', '[')))
-            return problem_data.get_subset(volumes_to_keep=indices)
+            return input_data.get_subset(volumes_to_keep=indices)
         else:
             self._logger.info('No model protocol options to apply, using original protocol.')
-        return problem_data
+        return input_data
 
-    def _check_data_consistency(self, problem_data):
-        """Check the problem data for any strange anomalies.
+    def _check_data_consistency(self, input_data):
+        """Check the input data for any anomalies.
 
         We do this here so that implementing models can add additional consistency checks, or skip the checks.
         Also, by doing this here instead of in the Protocol class we ensure that the warnings end up in the log file.
         The final argument for putting this here is that I do not want any log output in the protocol tab.
 
         Args:
-            problem_data (DMRIProblemData): the problem data to analyze.
+            input_data (mdt.utils.InputDataMRI): the input data to analyze.
         """
-        protocol = problem_data.protocol
+        protocol = input_data.protocol
 
         def warn(warning):
             self._logger.warning('{}, proceeding with seemingly inconsistent values.'.format(warning))
@@ -283,19 +283,19 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
             if not np.allclose(VirtualColumnB().get_values(protocol), protocol['b']):
                 warn('Estimated b-values (from G, Delta, delta) differ from given b-values')
 
-    def _get_suitable_volume_indices(self, problem_data):
-        """Usable in combination with _prepare_problem_data, return the suitable volume indices.
+    def _get_suitable_volume_indices(self, input_data):
+        """Usable in combination with _prepare_input_data, return the suitable volume indices.
 
         Get a list of volume indices that the model can use. This function is meant to remove common boilerplate code
-        from writing your own _prepare_problem_data object.
+        from writing your own _prepare_input_data object.
 
         Args:
-            problem_data (DMRIProblemData): the problem data set by the user
+            input_data (mdt.utils.InputDataMRI): the input data set by the user
 
         Returns:
             list: the list of indices we want to use for this model.
         """
-        return list(range(problem_data.protocol.length))
+        return list(range(input_data.protocol.length))
 
     def _get_dependent_map_calculator(self):
         """Get the calculation function to compute the maps for the dependent parameters."""

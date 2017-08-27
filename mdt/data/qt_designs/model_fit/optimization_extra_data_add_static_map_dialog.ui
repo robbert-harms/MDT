@@ -39,7 +39,7 @@
         </font>
        </property>
        <property name="text">
-        <string>Add an additional static map to the problem data</string>
+        <string>Add an additional static map to the input data</string>
        </property>
       </widget>
      </item>

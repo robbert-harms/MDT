@@ -149,7 +149,7 @@ class _BatchFitRunner(object):
             return
 
         self._logger.info('Loading the data (DWI, mask and protocol) of subject {0}'.format(subject_info.subject_id))
-        problem_data = subject_info.get_problem_data()
+        input_data = subject_info.get_input_data()
 
         with self._timer(subject_info.subject_id):
             for model in self._models_to_fit:
@@ -157,7 +157,7 @@ class _BatchFitRunner(object):
 
                 try:
                     model_fit = ModelFit(model,
-                                         problem_data,
+                                         input_data,
                                          output_dir,
                                          recalculate=self._recalculate,
                                          only_recalculate_last=True,
@@ -182,7 +182,7 @@ class _BatchFitRunner(object):
 
 class ModelFit(object):
 
-    def __init__(self, model, problem_data, output_folder, optimizer=None,
+    def __init__(self, model, input_data, output_folder, optimizer=None,
                  recalculate=False, only_recalculate_last=False, cascade_subdir=False,
                  cl_device_ind=None, double_precision=False, tmp_results_dir=True, initialization_data=None):
         """Setup model fitting for the given input model and data.
@@ -192,8 +192,8 @@ class ModelFit(object):
         Args:
             model (str or :class:`~mdt.models.composite.DMRICompositeModel` or :class:`~mdt.models.cascade.DMRICascadeModelInterface`):
                     the model we want to optimize.
-            problem_data (:class:`~mdt.utils.DMRIProblemData`): the problem data object which contains the dwi image,
-                the dwi header, the brain_mask and the protocol to use.
+            input_data (:class:`~mdt.utils.InputDataMRI`): the input data object containing
+                all the info needed for the model fitting.
             output_folder (string): The full path to the folder where to place the output
             optimizer (:class:`mot.cl_routines.optimizing.base.AbstractOptimizer`): The optimization routine to use.
                 If None, we create one using the configuration files.
@@ -222,7 +222,7 @@ class ModelFit(object):
         model.double_precision = double_precision
 
         self._model = model
-        self._problem_data = problem_data
+        self._input_data = input_data
         self._output_folder = output_folder
         if cascade_subdir and isinstance(self._model, DMRICascadeModelInterface):
             self._output_folder += '/{}'.format(self._model.name)
@@ -245,11 +245,11 @@ class ModelFit(object):
             self._cl_envs = [all_devices[ind] for ind in self._cl_device_indices]
             self._load_balancer = EvenDistribution()
 
-        if not model.is_protocol_sufficient(self._problem_data.protocol):
+        if not model.is_protocol_sufficient(self._input_data.protocol):
             raise InsufficientProtocolError(
                 'The provided protocol is insufficient for this model. '
                 'The reported errors where: {}'.format(self._model.get_protocol_problems(
-                    self._problem_data.protocol)))
+                    self._input_data.protocol)))
 
     def run(self):
         """Run the model and return the resulting voxel estimates within the ROI.
@@ -324,7 +324,7 @@ class ModelFit(object):
                     optimizer.cl_environments = [all_devices[ind] for ind in self._cl_device_indices]
                     optimizer.load_balancer = EvenDistribution()
 
-                fitter = SingleModelFit(model, self._problem_data, self._output_folder, optimizer,
+                fitter = SingleModelFit(model, self._input_data, self._output_folder, optimizer,
                                         self._tmp_results_dir, recalculate=recalculate)
                 results = fitter.run()
 
@@ -340,12 +340,12 @@ class ModelFit(object):
             model: the composite model we are preparing for fitting. Changes happen in place.
         """
         self._logger.info('Preparing model {0} with the user provided initialization data.'.format(model.name))
-        self._initialization_data.apply_to_model(model, self._problem_data)
+        self._initialization_data.apply_to_model(model, self._input_data)
 
 
 class SingleModelFit(object):
 
-    def __init__(self, model, problem_data, output_folder, optimizer, tmp_results_dir, recalculate=False):
+    def __init__(self, model, input_data, output_folder, optimizer, tmp_results_dir, recalculate=False):
         """Fits a composite model.
 
          This does not accept cascade models. Please use the more general ModelFit class for all models,
@@ -354,7 +354,8 @@ class SingleModelFit(object):
          Args:
              model (:class:`~mdt.models.composite.DMRICompositeModel`): An implementation of an composite model
                 that contains the model we want to optimize.
-             problem_data (:class:`~mdt.utils.DMRIProblemData`): The problem data object for the model
+             input_data (:class:`~mdt.utils.InputDataMRI`): The input data object for the
+                model.
              output_folder (string): The path to the folder where to place the output.
                 The resulting maps are placed in a subdirectory (named after the model name) in this output folder.
              optimizer (:class:`mot.cl_routines.optimizing.base.AbstractOptimizer`): The optimization routine to use.
@@ -364,22 +365,22 @@ class SingleModelFit(object):
         self.recalculate = recalculate
 
         self._model = model
-        self._problem_data = problem_data
+        self._input_data = input_data
         self._output_folder = output_folder
         self._output_path = os.path.join(self._output_folder, self._model.name)
         self._optimizer = optimizer
         self._logger = logging.getLogger(__name__)
         self._tmp_results_dir = tmp_results_dir
 
-        if not self._model.is_protocol_sufficient(problem_data.protocol):
+        if not self._model.is_protocol_sufficient(input_data.protocol):
             raise InsufficientProtocolError(
                 'The given protocol is insufficient for this model. '
-                'The reported errors where: {}'.format(self._model.get_protocol_problems(problem_data.protocol)))
+                'The reported errors where: {}'.format(self._model.get_protocol_problems(input_data.protocol)))
 
     def run(self):
         """Fits the composite model and returns the results as ROI lists per map."""
         with per_model_logging_context(self._output_path):
-            self._model.set_problem_data(self._problem_data)
+            self._model.set_input_data(self._input_data)
 
             if self.recalculate:
                 if os.path.exists(self._output_path):
@@ -388,7 +389,7 @@ class SingleModelFit(object):
                 if model_output_exists(self._model, self._output_folder):
                     maps = get_all_image_data(self._output_path)
                     self._logger.info('Not recalculating {} model'.format(self._model.name))
-                    return create_roi(maps, self._problem_data.mask)
+                    return create_roi(maps, self._input_data.mask)
 
             if not os.path.exists(self._output_path):
                 os.makedirs(self._output_path)
@@ -397,13 +398,13 @@ class SingleModelFit(object):
                 tmp_dir = get_full_tmp_results_path(self._output_path, self._tmp_results_dir)
                 self._logger.info('Saving temporary results in {}.'.format(tmp_dir))
 
-                worker = FittingProcessor(self._optimizer, self._model, self._problem_data, self._output_path,
+                worker = FittingProcessor(self._optimizer, self._model, self._input_data, self._output_path,
                                           tmp_dir, True, self.recalculate)
 
                 processing_strategy = get_processing_strategy('optimization')
                 results = processing_strategy.process(worker)
 
-                self._write_protocol(self._model.get_problem_data().protocol)
+                self._write_protocol(self._model.get_input_data().protocol)
 
         return results
 

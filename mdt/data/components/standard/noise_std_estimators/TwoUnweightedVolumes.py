@@ -11,7 +11,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class TwoUnweightedVolumes(ComplexNoiseStdEstimator):
 
-    def estimate(self, problem_data, **kwargs):
+    def estimate(self, input_data, **kwargs):
         """Calculate the standard deviation of the error using the first two unweighted volumes/
 
         This subtracts the values of the first two unweighted volumes from each other, calculates the std over
@@ -22,14 +22,14 @@ class TwoUnweightedVolumes(ComplexNoiseStdEstimator):
         Returns:
             float: single value representing the sigma for the given volume
         """
-        unweighted_indices = problem_data.protocol.get_unweighted_indices()
-        unweighted_volumes = problem_data.dwi_volume[..., unweighted_indices]
+        unweighted_indices = input_data.protocol.get_unweighted_indices()
+        unweighted_volumes = input_data.dwi_volume[..., unweighted_indices]
 
         if len(unweighted_indices) < 2:
             raise NoiseStdEstimationNotPossible('Not enough unweighted volumes for this estimator.')
 
         diff = unweighted_volumes[..., 0] - unweighted_volumes[..., 1]
-        voxel_values = create_roi(diff, problem_data.mask)
+        voxel_values = create_roi(diff, input_data.mask)
         return np.std(voxel_values) / np.sqrt(2)
 
     def __str__(self):

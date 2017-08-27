@@ -129,7 +129,7 @@ For adding additional data, like static maps, a noise standard deviation or a gr
 
 .. figure:: _static/figures/mdt_additional_problem_data.png
 
-    The dialog for adding additional problem data.
+    The dialog for adding additional input data.
 
 If you are providing the gradient deviations map, please be advised that this uses the standard set by the HCP Wuminn consortium.
 
@@ -358,21 +358,21 @@ this generates a mask in dimension 2 on index 30 (be wary, Numpy and hence MDT u
 Ball&Stick_r1 estimation example
 --------------------------------
 For model fitting you can use the :func:`~mdt.fit_model` command.
-This command allows you to optimize any of the models in MDT given only a model, problem data and output folder.
+This command allows you to optimize any of the models in MDT given only a model, input data and output folder.
 
 The basic usage is to fit for example Ball&Stick_r1 on a dataset:
 
 .. code-block:: python
 
-    problem_data = mdt.load_problem_data(
+    input_data = mdt.load_dmri_input_data(
         '../b1k_b2k/b1k_b2k_example_slices_24_38',
         '../b1k_b2k/b1k_b2k.prtcl',
         '../b1k_b2k/b1k_b2k_example_slices_24_38_mask')
 
-    mdt.fit_model('BallStick_r1 (Cascade)', problem_data, 'output')
+    mdt.fit_model('BallStick_r1 (Cascade)', input_data, 'output')
 
 
-The model fit commands requires you to prepare your problem data up front (see :func:`~mdt.utils.load_problem_data`) such that it can be used in the model fitting.
+The model fit commands requires you to prepare your input data up front (see :func:`~mdt.utils.load_dmri_input_data`) such that it can be used in the model fitting.
 
 When the calculations are done you can use the MDT maps visualizer for viewing the results:
 
@@ -388,4 +388,4 @@ Please be advised though that some models require specific protocol settings and
 For example, the CHARMED models requires that the "TE" is specified in your protocol.
 MDT will help you by warning you if the available data is not suited for the selected model.
 
-To add additional data to your model computations, you can use the additional keyword arguments to the :func:`~mdt.utils.load_problem_data` command.
+To add additional data to your model computations, you can use the additional keyword arguments to the :func:`~mdt.utils.load_dmri_input_data` command.

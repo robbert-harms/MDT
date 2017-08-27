@@ -235,7 +235,7 @@ class ModelProcessor(object):
 
 class SimpleModelProcessor(ModelProcessor):
 
-    def __init__(self, model, problem_data, output_dir, tmp_storage_dir, clean_tmp_dir, recalculate):
+    def __init__(self, model, input_data, output_dir, tmp_storage_dir, clean_tmp_dir, recalculate):
         """A default implementation of a processing worker.
 
         While the processing strategies determine how to split the work in batches, the workers
@@ -244,8 +244,8 @@ class SimpleModelProcessor(ModelProcessor):
 
         Args:
             model (:class:`~mdt.models.composite.DMRICompositeModel`): the model we want to process
-            problem_data (:class:`~mdt.utils.DMRIProblemData`): The problem data object with which
-                the model is initialized before running
+            input_data (:class:`~mdt.utils.InputDataMRI`): The input data object with which the model is
+                initialized before running
             output_dir (str): the location for the final output files
             tmp_storage_dir (str): the location for the temporary output files
             clean_tmp_dir (boolean): if we should clean the tmp dir at the end of processing or we can keep it
@@ -256,15 +256,15 @@ class SimpleModelProcessor(ModelProcessor):
         self._write_volumes_gzipped = True
         self._used_mask_name = 'UsedMask'
         self._model = model
-        self._problem_data = problem_data
-        self._mask_shape = self._problem_data.mask.shape
+        self._input_data = input_data
+        self._mask_shape = self._input_data.mask.shape
         self._output_dir = output_dir
         self._tmp_storage_dir = tmp_storage_dir
         self._prepare_tmp_storage(self._tmp_storage_dir, recalculate)
         self._roi_lookup_path = os.path.join(self._tmp_storage_dir, '_roi_voxel_lookup_table.npy')
         self._clean_tmp_dir = clean_tmp_dir
         self._volume_indices = self._create_roi_to_volume_index_lookup_table()
-        self._total_nmr_voxels = np.count_nonzero(self._problem_data.mask)
+        self._total_nmr_voxels = np.count_nonzero(self._input_data.mask)
 
     def process(self, roi_indices, next_indices=None):
         raise NotImplementedError()
@@ -274,7 +274,7 @@ class SimpleModelProcessor(ModelProcessor):
         mask_path = os.path.join(self._tmp_storage_dir, '{}.npy'.format(self._used_mask_name))
         if os.path.exists(mask_path):
             return roi_list[np.logical_not(np.squeeze(create_roi(np.load(mask_path, mmap_mode='r'),
-                                                                 self._problem_data.mask)[roi_list]))]
+                                                                 self._input_data.mask)[roi_list]))]
         return roi_list
 
     def get_total_nmr_voxels(self):
@@ -381,13 +381,13 @@ class SimpleModelProcessor(ModelProcessor):
         """
         if os.path.isfile(self._roi_lookup_path):
             os.remove(self._roi_lookup_path)
-        np.save(self._roi_lookup_path, np.argwhere(self._problem_data.mask))
+        np.save(self._roi_lookup_path, np.argwhere(self._input_data.mask))
         return np.load(self._roi_lookup_path, mmap_mode='r')
 
 
 class FittingProcessor(SimpleModelProcessor):
 
-    def __init__(self, optimizer, model, problem_data, output_dir, tmp_storage_dir, clean_tmp_dir, recalculate):
+    def __init__(self, optimizer, model, input_data, output_dir, tmp_storage_dir, clean_tmp_dir, recalculate):
         """The processing worker for model fitting.
 
         Use this if you want to use the model processing strategy to do model fitting.
@@ -395,7 +395,7 @@ class FittingProcessor(SimpleModelProcessor):
         Args:
             optimizer: the optimization routine to use
         """
-        super(FittingProcessor, self).__init__(model, problem_data, output_dir, tmp_storage_dir,
+        super(FittingProcessor, self).__init__(model, input_data, output_dir, tmp_storage_dir,
                                                clean_tmp_dir, recalculate)
         self._optimizer = optimizer
         self._write_volumes_gzipped = gzip_optimization_results()
@@ -419,8 +419,8 @@ class FittingProcessor(SimpleModelProcessor):
 
     def combine(self):
         super(FittingProcessor, self).combine()
-        self._combine_volumes(self._output_dir, self._tmp_storage_dir, self._problem_data.volume_header)
-        return create_roi(get_all_image_data(self._output_dir), self._problem_data.mask)
+        self._combine_volumes(self._output_dir, self._tmp_storage_dir, self._input_data.volume_header)
+        return create_roi(get_all_image_data(self._output_dir), self._input_data.mask)
 
 
 class SamplingProcessor(SimpleModelProcessor):
@@ -428,7 +428,7 @@ class SamplingProcessor(SimpleModelProcessor):
     class SampleChainNotStored(object):
         pass
 
-    def __init__(self, sampler, model, problem_data, output_dir, tmp_storage_dir, clean_tmp_dir, recalculate,
+    def __init__(self, sampler, model, input_data, output_dir, tmp_storage_dir, clean_tmp_dir, recalculate,
                  samples_to_save_method=None, store_volume_maps=True):
         """The processing worker for model sampling.
 
@@ -438,7 +438,7 @@ class SamplingProcessor(SimpleModelProcessor):
             store_volume_maps (boolean): if we want to store the elements in the 'volume_maps' directory.
                 This stores the mean and std maps and some other maps based on the samples.
         """
-        super(SamplingProcessor, self).__init__(model, problem_data, output_dir, tmp_storage_dir,
+        super(SamplingProcessor, self).__init__(model, input_data, output_dir, tmp_storage_dir,
                                                 clean_tmp_dir, recalculate)
         self._sampler = sampler
         self._write_volumes_gzipped = gzip_sampling_results()
@@ -463,7 +463,7 @@ class SamplingProcessor(SimpleModelProcessor):
                 mask_path = os.path.join(self._tmp_storage_dir, 'volume_maps', '{}.npy'.format(self._used_mask_name))
                 if os.path.exists(mask_path):
                     return roi_list[np.logical_not(np.squeeze(create_roi(np.load(mask_path, mmap_mode='r'),
-                                                                         self._problem_data.mask)[roi_list]))]
+                                                                         self._input_data.mask)[roi_list]))]
             del current_results  # force closing memmap
         return roi_list
 
@@ -504,11 +504,11 @@ class SamplingProcessor(SimpleModelProcessor):
 
         if self._store_volume_maps:
             self._combine_volumes(self._output_dir, self._tmp_storage_dir,
-                                  self._problem_data.volume_header, maps_subdir='volume_maps')
+                                  self._input_data.volume_header, maps_subdir='volume_maps')
 
         for subdir in ['proposal_state', 'chain_end_point', 'mh_state', 'multivariate_statistic']:
             self._combine_volumes(self._output_dir, self._tmp_storage_dir,
-                                  self._problem_data.volume_header, maps_subdir=subdir)
+                                  self._input_data.volume_header, maps_subdir=subdir)
 
         if self._samples_to_save_method.store_samples():
             return load_samples(self._output_dir)

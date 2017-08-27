@@ -25,7 +25,7 @@ from textwrap import dedent
 
 
 mock_as_class = ['SampleModelBuilder', 'QWidget', 'QMainWindow', 'QDialog', 'QObject',
-                 'CLRoutine', 'AbstractProblemData']
+                 'CLRoutine', 'AbstractInputData']
 mock_as_decorator = ['pyqtSlot']
 mock_modules = ['mot', 'pyopencl', 'PyQt5', 'matplotlib', 'mpl_toolkits']
 

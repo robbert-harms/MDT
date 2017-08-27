@@ -136,8 +136,8 @@ class Ui_OptimizationExtraDataDialog(object):
 
     def retranslateUi(self, OptimizationExtraDataDialog):
         _translate = QtCore.QCoreApplication.translate
-        OptimizationExtraDataDialog.setWindowTitle(_translate("OptimizationExtraDataDialog", "Additional problem data"))
-        self.label_3.setText(_translate("OptimizationExtraDataDialog", "Additional problem data"))
+        OptimizationExtraDataDialog.setWindowTitle(_translate("OptimizationExtraDataDialog", "Additional input data"))
+        self.label_3.setText(_translate("OptimizationExtraDataDialog", "Additional input data"))
         self.label_4.setText(_translate("OptimizationExtraDataDialog", "Extra data that can be used in the model fitting procedure"))
         self.label_15.setText(_translate("OptimizationExtraDataDialog", "(Per voxel 9 values that constitute the gradient non-linearities)"))
         self.label_10.setText(_translate("OptimizationExtraDataDialog", "(Additional maps to be used in the fitting routine)"))

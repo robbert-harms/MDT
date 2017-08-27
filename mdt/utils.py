@@ -33,7 +33,7 @@ from mdt.protocols import load_protocol, write_protocol
 from mot.cl_environments import CLEnvironmentFactory
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
 from mot.model_building.parameter_functions.dependencies import AbstractParameterDependency
-from mot.model_building.problem_data import AbstractProblemData
+from mot.model_building.input_data import AbstractInputData
 
 __author__ = 'Robbert Harms'
 __date__ = "2014-02-05"
@@ -42,11 +42,24 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class DMRIProblemData(AbstractProblemData):
+class InputDataMRI(AbstractInputData):
+    """Adds the mask as a property to the input data interface."""
+
+    @property
+    def mask(self):
+        """Return the mask in use.
+
+        Returns:
+            np.array: the numpy mask array
+        """
+        raise NotImplementedError()
+
+
+class InputDataDMRI(InputDataMRI):
 
     def __init__(self, protocol, dwi_volume, mask, volume_header, static_maps=None, gradient_deviations=None,
                  noise_std=None):
-        """An implementation of the problem data for diffusion MRI models.
+        """An implementation of the input data for diffusion MRI models.
 
         Args:
             protocol (Protocol): The protocol object used as input data to the model
@@ -85,10 +98,10 @@ class DMRIProblemData(AbstractProblemData):
                 protocol.length, dwi_volume.shape[3]))
 
     def copy_with_updates(self, *args, **kwargs):
-        """Create a copy of this problem data, while setting some of the arguments to new values.
+        """Create a copy of this input data, while setting some of the arguments to new values.
 
         You can use any of the arguments (args and kwargs) of the constructor for this call.
-        If given we will use those values instead of the values in this problem data object for the copy.
+        If given we will use those values instead of the values in this input data object for the copy.
         """
         new_args, new_kwargs = self._get_constructor_args()
 
@@ -112,9 +125,9 @@ class DMRIProblemData(AbstractProblemData):
         return args, kwargs
 
     def get_subset(self, volumes_to_keep=None, volumes_to_remove=None):
-        """Create a copy of this problem data where we only keep a subset of the volumes.
+        """Create a copy of this input data where we only keep a subset of the volumes.
 
-        This creates a a new :class:`DMRIProblemData` with a subset of the protocol and the DWI volume, keeping those
+        This creates a a new :class:`InputDataDMRI` with a subset of the protocol and the DWI volume, keeping those
         specified.
 
         One can either specify a list with volumes to keep or a list with volumes to remove (and we will keep the rest).
@@ -125,7 +138,7 @@ class DMRIProblemData(AbstractProblemData):
             volumes_to_remove (list): the list with volumes we would like to remove (keeping the others).
 
         Returns:
-            DMRIProblemData: the new problem data
+            InputDataDMRI: the new input data
         """
         if (volumes_to_keep is not None) and (volumes_to_remove is not None):
             raise ValueError('You can not specify both the list with volumes to keep and volumes to remove. Choose one.')
@@ -177,16 +190,6 @@ class DMRIProblemData(AbstractProblemData):
             np.array: the numpy mask array
         """
         return self._mask
-
-    @mask.setter
-    def mask(self, new_mask):
-        """Set the new mask and update the observations list.
-
-        Args:
-            new_mask (np.array): the new mask
-        """
-        self._mask = new_mask
-        self._observation_list = None
 
     @property
     def static_maps(self):
@@ -242,13 +245,13 @@ class DMRIProblemData(AbstractProblemData):
             return create_roi(noise_std, self.mask)
 
 
-class MockDMRIProblemData(DMRIProblemData):
+class MockInputDataDMRI(InputDataDMRI):
 
     def __init__(self, protocol=None, dwi_volume=None, mask=None, volume_header=None,
                  **kwargs):
-        """A mock DMRI problem data object that returns None for everything unless given.
+        """A mock DMRI input data object that returns None for everything unless given.
         """
-        super(MockDMRIProblemData, self).__init__(protocol, dwi_volume, mask, volume_header, **kwargs)
+        super(MockInputDataDMRI, self).__init__(protocol, dwi_volume, mask, volume_header, **kwargs)
 
     def _get_constructor_args(self):
         """Get the constructor arguments needed to create a copy of this batch util using a copy constructor.
@@ -274,14 +277,14 @@ class MockDMRIProblemData(DMRIProblemData):
 
 class InitializationData(object):
 
-    def apply_to_model(self, model, problem_data):
+    def apply_to_model(self, model, input_data):
         """Apply all information in this initialization data to the given model.
 
         This applies the information in this init data to given model in place.
 
         Args:
             model: the model to apply the initializations on
-            problem_data (DMRIProblemData): the problem data used in the fit
+            input_data (InputDataDMRI): the input data used in the fit
         """
         raise NotImplementedError()
 
@@ -352,7 +355,7 @@ class SimpleInitializationData(InitializationData):
         self._upper_bounds = upper_bounds or {}
         self._unfix = unfix or []
 
-    def apply_to_model(self, model, problem_data):
+    def apply_to_model(self, model, input_data):
         def prepare_value(_, v):
             if is_scalar(v):
                 return v
@@ -363,7 +366,7 @@ class SimpleInitializationData(InitializationData):
             if isinstance(v, AbstractParameterDependency):
                 return v
 
-            return create_roi(v, problem_data.mask)
+            return create_roi(v, input_data.mask)
 
         if len(self._inits):
             model.set_initial_parameters(DeferredActionDict(prepare_value, self.get_inits()))
@@ -1188,8 +1191,16 @@ def sort_volumes_per_voxel(input_volumes, sort_matrix):
                 for ind in range(len(input_volumes))]
 
 
-def load_problem_data(volume_info, protocol, mask, static_maps=None, gradient_deviations=None, noise_std=None):
-    """Load and create the problem data object that can be given to a model
+def load_problem_data(*args, **kwargs):
+    # todo: remove in future version
+    import warnings
+    warnings.warn('The function `load_problem_data` is deprecated and has been renamed to `load_dmri_input_data`. '
+                  'Please rename your function call.')
+    return load_dmri_input_data(*args, **kwargs)
+
+
+def load_dmri_input_data(volume_info, protocol, mask, static_maps=None, gradient_deviations=None, noise_std=None):
+    """Load and create the input data object for diffusion MRI modeling.
 
     Args:
         volume_info (string or tuple): Either an (ndarray, img_header) tuple or the full path
@@ -1206,7 +1217,7 @@ def load_problem_data(volume_info, protocol, mask, static_maps=None, gradient_de
             or a scalar, or an 3d matrix with one value per voxel.
 
     Returns:
-        DMRIProblemData: the problem data object containing all the info needed for diffusion MRI model fitting
+        InputDataDMRI: the input data object containing all the info needed for diffusion MRI model fitting
     """
     protocol = autodetect_protocol_loader(protocol).get_protocol()
     mask = autodetect_brain_mask_loader(mask).get_data()
@@ -1221,8 +1232,8 @@ def load_problem_data(volume_info, protocol, mask, static_maps=None, gradient_de
     if isinstance(gradient_deviations, six.string_types):
         gradient_deviations = load_nifti(gradient_deviations).get_data()
 
-    return DMRIProblemData(protocol, signal4d, mask, img_header, static_maps=static_maps, noise_std=noise_std,
-                           gradient_deviations=gradient_deviations)
+    return InputDataDMRI(protocol, signal4d, mask, img_header, static_maps=static_maps, noise_std=noise_std,
+                         gradient_deviations=gradient_deviations)
 
 
 def load_brain_mask(brain_mask_fname):
@@ -1359,11 +1370,11 @@ def calculate_point_estimate_information_criterions(log_likelihoods, k, n):
 
 class ComplexNoiseStdEstimator(object):
 
-    def estimate(self, problem_data, **kwargs):
+    def estimate(self, input_data, **kwargs):
         """Get a noise std for the entire volume.
 
         Args:
-            problem_data (DMRIProblemData): the problem data for which to find a noise std
+            input_data (InputDataDMRI): the input data for which to find a noise std
 
         Returns:
             float or ndarray: the noise sigma of the Gaussian noise in the original complex image domain
@@ -1451,11 +1462,11 @@ def load_samples(data_folder, mode='r'):
     return data_dict
 
 
-def estimate_noise_std(problem_data, estimator=None):
+def estimate_noise_std(input_data, estimator=None):
     """Estimate the noise standard deviation.
 
     Args:
-        problem_data (DMRIProblemData): the problem data we can use to do the estimation
+        input_data (InputDataDMRI): the input data we can use to do the estimation
         estimator (ComplexNoiseStdEstimator): the estimator to use for the estimation. If not set we use
             the one in the configuration.
 
@@ -1469,7 +1480,7 @@ def estimate_noise_std(problem_data, estimator=None):
     logger.info('Trying to estimate a noise std.')
 
     def estimate(estimation_routine):
-        noise_std = estimator.estimate(problem_data)
+        noise_std = estimator.estimate(input_data)
 
         if isinstance(noise_std, np.ndarray) and not is_scalar(noise_std):
             logger.info('Found voxel-wise noise std using estimator {}.'.format(estimation_routine))
@@ -1750,7 +1761,7 @@ def extract_volumes(input_volume_fname, input_protocol, output_volume_fname, out
     write_nifti(image_data, input_volume.get_header(), output_volume_fname)
 
 
-def recalculate_error_measures(model, problem_data, data_dir, output_dir=None):
+def recalculate_error_measures(model, input_data, data_dir, output_dir=None):
     """Recalculate the information criterion maps.
 
     This will write the results either to the original data directory, or to the given output dir.
@@ -1758,7 +1769,7 @@ def recalculate_error_measures(model, problem_data, data_dir, output_dir=None):
     Args:
         model (str or AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize
             or the name of an model we use with get_model()
-        problem_data (DMRIProblemData): the problem data object
+        input_data (InputDataDMRI): the input data object
         data_dir (str): the directory containing the results for the given model
         output_dir (str): if given, we write the output to this directory instead of the data dir.
     """
@@ -1770,22 +1781,22 @@ def recalculate_error_measures(model, problem_data, data_dir, output_dir=None):
     if isinstance(model, DMRICascadeModelInterface):
         raise ValueError('This function does not accept cascade models.')
 
-    model.set_problem_data(problem_data)
+    model.set_input_data(input_data)
 
-    results_maps = create_roi(get_all_image_data(data_dir), problem_data.mask)
+    results_maps = create_roi(get_all_image_data(data_dir), input_data.mask)
 
     log_likelihood_calc = LogLikelihoodCalculator()
     log_likelihoods = log_likelihood_calc.calculate(model, model.param_dict_to_array(results_maps))
 
     k = model.get_nmr_estimable_parameters()
-    n = problem_data.get_nmr_inst_per_problem()
+    n = input_data.get_nmr_inst_per_problem()
     results_maps.update({'LogLikelihood': log_likelihoods})
     results_maps.update(calculate_point_estimate_information_criterions(log_likelihoods, k, n))
 
-    volumes = restore_volumes(results_maps, problem_data.mask)
+    volumes = restore_volumes(results_maps, input_data.mask)
 
     output_dir = output_dir or data_dir
-    write_all_as_nifti(volumes, output_dir, problem_data.volume_header)
+    write_all_as_nifti(volumes, output_dir, input_data.volume_header)
 
 
 def natural_key_sort_cb(_str):

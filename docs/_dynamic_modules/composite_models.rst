@@ -126,7 +126,7 @@ The second method is to add the bound function ``_get_suitable_volume_indices`` 
         ...
 
         @bind_function
-        def _get_suitable_volume_indices(self, problem_data):
+        def _get_suitable_volume_indices(self, input_data):
             return protocol.get_indices_bval_in_range(start=0, end=1.5e9 + 0.1e9)
 
 
@@ -136,8 +136,8 @@ To use all volumes you can use something like this:
 .. code-block:: python
 
     @bind_function
-    def _get_suitable_volume_indices(self, problem_data):
-        return list(range(problem_data.protocol.length))
+    def _get_suitable_volume_indices(self, input_data):
+        return list(range(input_data.protocol.length))
 
 
 Post optimization modifiers
@@ -212,4 +212,4 @@ For example:
 
 
 Most evaluation functions require a standard deviation :math:`\sigma` of the noise of the images in the complex domain.
-This standard deviation is, during analysis, taken from the :ref:`concepts_problem_data_models`.
+This standard deviation is, during analysis, taken from the :ref:`concepts_input_data_models`.

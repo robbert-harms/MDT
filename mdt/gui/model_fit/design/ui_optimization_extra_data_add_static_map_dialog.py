@@ -94,7 +94,7 @@ class Ui_AddStaticMapDialog(object):
         _translate = QtCore.QCoreApplication.translate
         AddStaticMapDialog.setWindowTitle(_translate("AddStaticMapDialog", "Add map"))
         self.label_3.setText(_translate("AddStaticMapDialog", "Add static map"))
-        self.label_4.setText(_translate("AddStaticMapDialog", "Add an additional static map to the problem data"))
+        self.label_4.setText(_translate("AddStaticMapDialog", "Add an additional static map to the input data"))
         self.label_10.setText(_translate("AddStaticMapDialog", "(The map name matching the static parameters of the model)"))
         self.label.setText(_translate("AddStaticMapDialog", "Map name: "))
         self.fileBrowse.setText(_translate("AddStaticMapDialog", "File browser"))

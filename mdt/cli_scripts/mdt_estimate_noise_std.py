@@ -58,16 +58,16 @@ class NoiseStdEstimation(BasicShellApplication):
         return parser
 
     def run(self, args, extra_args):
-        problem_data = mdt.load_problem_data(os.path.realpath(args.dwi),
-                                             os.path.realpath(args.protocol),
-                                             os.path.realpath(args.mask))
+        input_data = mdt.load_dmri_input_data(os.path.realpath(args.dwi),
+                                              os.path.realpath(args.protocol),
+                                              os.path.realpath(args.mask))
 
         estimator = None
         if args.estimator:
             estimator = mdt.load_component('noise_std_estimators', args.estimator)
 
         with mdt.with_logging_to_debug():
-            noise_std = mdt.estimate_noise_std(problem_data, estimator=estimator)
+            noise_std = mdt.estimate_noise_std(input_data, estimator=estimator)
             print(noise_std)
 
 

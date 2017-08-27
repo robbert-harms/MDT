@@ -19,7 +19,8 @@ except ValueError:
 
 
 from mdt.user_script_info import easy_save_user_script_info
-from mdt.utils import estimate_noise_std, get_cl_devices, load_problem_data, create_blank_mask, create_index_matrix, \
+from mdt.utils import estimate_noise_std, get_cl_devices, load_dmri_input_data, load_problem_data,\
+    create_blank_mask, create_index_matrix, \
     volume_index_to_roi_index, roi_index_to_volume_index, load_brain_mask, init_user_settings, restore_volumes, \
     apply_mask, create_roi, volume_merge, protocol_merge, create_median_otsu_brain_mask, load_samples, \
     load_nifti, write_slice_roi, split_write_dataset, apply_mask_to_file, extract_volumes, recalculate_error_measures, \
@@ -43,7 +44,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-def fit_model(model, problem_data, output_folder, optimizer=None,
+def fit_model(model, input_data, output_folder, optimizer=None,
               recalculate=False, only_recalculate_last=False, cascade_subdir=False,
               cl_device_ind=None, double_precision=False, tmp_results_dir=True, save_user_script_info=True,
               initialization_data=None):
@@ -53,8 +54,8 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
         model (str or :class:`~mdt.models.composite.DMRICompositeModel` or :class:`~mdt.models.cascade.DMRICascadeModelInterface`):
             An implementation of an AbstractModel that contains the model we want to optimize or the name of
             an model.
-        problem_data (:class:`~mdt.utils.DMRIProblemData`): the problem data object containing all the info needed for
-            diffusion MRI model fitting
+        input_data (:class:`~mdt.utils.InputDataMRI`): the input data object containing all
+            the info needed for the model fitting.
         output_folder (string): The path to the folder where to place the output, we will make a subdir with the
             model name in it.
         optimizer (:class:`mot.cl_routines.optimizing.base.AbstractOptimizer`): The optimization routine to use.
@@ -111,7 +112,7 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
         all_devices = get_cl_devices()
         optimizer.cl_environments = [all_devices[ind] for ind in cl_device_ind]
 
-    model_fit = ModelFit(model, problem_data, output_folder, optimizer=optimizer, recalculate=recalculate,
+    model_fit = ModelFit(model, input_data, output_folder, optimizer=optimizer, recalculate=recalculate,
                          only_recalculate_last=only_recalculate_last,
                          cascade_subdir=cascade_subdir,
                          cl_device_ind=cl_device_ind, double_precision=double_precision,
@@ -123,14 +124,15 @@ def fit_model(model, problem_data, output_folder, optimizer=None,
     return results
 
 
-def sample_model(model, problem_data, output_folder, sampler=None, recalculate=False,
+def sample_model(model, input_data, output_folder, sampler=None, recalculate=False,
                  cl_device_ind=None, double_precision=False, store_samples=True,
                  tmp_results_dir=True, save_user_script_info=True, initialization_data=None):
     """Sample a composite model using the given cascading strategy.
 
     Args:
         model (:class:`~mdt.models.composite.DMRICompositeModel` or str): the model to sample
-        problem_data (:class:`~mdt.utils.DMRIProblemData`): the problem data object
+        input_data (:class:`~mdt.utils.InputDataMRI`): the input data object containing all
+            the info needed for the model fitting.
         output_folder (string): The path to the folder where to place the output, we will make a subdir with the
             model name in it (for the optimization results) and then a subdir with the samples output.
         sampler (:class:`mot.cl_routines.sampling.base.AbstractSampler`): the sampler to use.
@@ -182,10 +184,10 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
     if isinstance(model, DMRICascadeModelInterface):
         raise ValueError('The function \'sample_model()\' does not accept cascade models.')
 
-    if not model.is_protocol_sufficient(problem_data.protocol):
+    if not model.is_protocol_sufficient(input_data.protocol):
         raise InsufficientProtocolError(
             'The given protocol is insufficient for this model. '
-            'The reported errors where: {}'.format(model.get_protocol_problems(problem_data.protocol)))
+            'The reported errors where: {}'.format(model.get_protocol_problems(input_data.protocol)))
 
     if cl_device_ind is not None and not isinstance(cl_device_ind, collections.Iterable):
         cl_device_ind = [cl_device_ind]
@@ -223,7 +225,7 @@ def sample_model(model, problem_data, output_folder, sampler=None, recalculate=F
 
             model.double_precision = double_precision
 
-            results = sample_composite_model(model, problem_data, output_folder, sampler,
+            results = sample_composite_model(model, input_data, output_folder, sampler,
                                              get_temporary_results_dir(tmp_results_dir), recalculate=recalculate,
                                              store_samples=store_samples,
                                              initialization_data=initialization_data)

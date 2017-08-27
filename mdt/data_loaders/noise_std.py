@@ -48,11 +48,11 @@ def autodetect_noise_std_loader(data_source):
 class NoiseStdLoader(object):
     """Interface for loading a noise std from different sources."""
 
-    def get_noise_std(self, problem_data):
+    def get_noise_std(self, input_data):
         """The public method for getting the noise std from this loader.
 
         Args:
-            problem_data (:class:`~mdt.utils.DMRIProblemData`): the dmri problem data in use.
+            input_data (:class:`~mdt.utils.InputDataMRI`): the dmri input data in use.
                 Some loaders might need this for loading the noise std.
 
         Returns:
@@ -63,11 +63,11 @@ class NoiseStdLoader(object):
 class NoiseEstimationLoader(NoiseStdLoader):
 
     def __init__(self):
-        """A loader that estimates the noise std from the problem data"""
+        """A loader that estimates the noise std from the input data"""
 
-    def get_noise_std(self, problem_data):
+    def get_noise_std(self, input_data):
         from mdt.utils import estimate_noise_std
-        return estimate_noise_std(problem_data)
+        return estimate_noise_std(input_data)
 
 
 class SingleValueNoiseStd(NoiseStdLoader):
@@ -76,7 +76,7 @@ class SingleValueNoiseStd(NoiseStdLoader):
         """Returns the given noise std"""
         self._noise_std = noise_std
 
-    def get_noise_std(self, problem_data):
+    def get_noise_std(self, input_data):
         return self._noise_std
 
 
@@ -86,7 +86,7 @@ class VoxelWiseNoiseStd(NoiseStdLoader):
         """Returns a noise std map with one value per voxel."""
         self._noise_std_map = noise_std_map
 
-    def get_noise_std(self, problem_data):
+    def get_noise_std(self, input_data):
         return self._noise_std_map
 
 
@@ -100,7 +100,7 @@ class LoadNoiseFromFile(NoiseStdLoader):
         """
         self._file_name = file_name
 
-    def get_noise_std(self, problem_data):
+    def get_noise_std(self, input_data):
         if self._file_name[-4:] == '.txt':
             with open(self._file_name, 'r') as f:
                 return float(f.read())

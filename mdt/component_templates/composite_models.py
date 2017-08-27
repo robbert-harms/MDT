@@ -187,17 +187,17 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                 self._sampling_covar_excludes.extend(_get_model_sampling_covariance_excludes(
                     self._model_functions_info.get_model_list()))
 
-            def _get_suitable_volume_indices(self, problem_data):
+            def _get_suitable_volume_indices(self, input_data):
                 volume_selection = template.volume_selection
 
                 if not volume_selection:
-                    return super(AutoCreatedDMRICompositeModel, self)._get_suitable_volume_indices(problem_data)
+                    return super(AutoCreatedDMRICompositeModel, self)._get_suitable_volume_indices(input_data)
 
                 use_unweighted = volume_selection.get('use_unweighted', True)
                 use_weighted = volume_selection.get('use_weighted', True)
                 unweighted_threshold = volume_selection.get('unweighted_threshold', 25e6)
 
-                protocol = problem_data.protocol
+                protocol = input_data.protocol
 
                 if protocol.has_column('g') and protocol.has_column('b'):
                     if use_weighted:

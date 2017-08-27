@@ -127,12 +127,12 @@ class ModelFit(BasicShellApplication):
 
         def fit_model():
             mdt.fit_model(args.model,
-                          mdt.load_problem_data(os.path.realpath(args.dwi),
-                                                os.path.realpath(args.protocol),
-                                                os.path.realpath(args.mask),
-                                                gradient_deviations=args.gradient_deviations,
-                                                noise_std=noise_std,
-                                                static_maps=get_static_maps(args.static_maps, os.path.realpath(''))),
+                          mdt.load_dmri_input_data(os.path.realpath(args.dwi),
+                                                   os.path.realpath(args.protocol),
+                                                   os.path.realpath(args.mask),
+                                                   gradient_deviations=args.gradient_deviations,
+                                                   noise_std=noise_std,
+                                                   static_maps=get_static_maps(args.static_maps, os.path.realpath(''))),
                           output_folder, recalculate=args.recalculate,
                           only_recalculate_last=args.only_recalculate_last, cl_device_ind=args.cl_device_ind,
                           double_precision=args.double_precision,
