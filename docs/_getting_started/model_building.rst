@@ -48,9 +48,7 @@ If that works without errors your parameter can be found and can be used inside 
 Defining new Compartments
 =========================
 As with the parameters, new compartments can be added by adding small Python script files to the ``user`` folder in your MDT components folder.
-
-In contrast to the parameters, the filenames of the compartment models is important and should match exactly the class name of your implemented model.
-For example, the ``Stick`` compartment model can be found in a file named ``Stick.py`` with a matching class name:
+As an example of the ``Stick`` model:
 
 ``Stick.py``:
 
@@ -60,7 +58,7 @@ For example, the ``Stick`` compartment model can be found in a file named ``Stic
         ...
 
 
-Compartment names in MDT have to be unique, so when adapting an old compartment please rename it to a new unique name (don't forget to rename the filename as well).
+Compartment names in MDT have to be unique, so when adapting an old compartment please rename it to a new unique name.
 
 For an overview of the available options for configuring your compartment model please see :ref:`dynamic_modules_compartments`.
 
@@ -78,7 +76,6 @@ If that works without errors your compartment can be found and can be used insid
 Defining new Composite models
 =============================
 New composite models can be defined in any ``.py`` file in the ``user/composite_models`` folder in the MDT modules folder on your home drive.
-In contrast to the compartment models, the composite models do not need to have their own file and multiple composite models can be defined in the same Python file.
 The same as with the other modules, the composite models need to have unique names else an error will be raised by MDT.
 
 For an overview of the available options for configuring your composite model please see :ref:`dynamic_modules_composite_models`.
@@ -97,7 +94,7 @@ If that works without errors your composite model can be found and can be used f
 Defining new Cascade models
 ===========================
 The same as with the composite models, cascade models can be defined simply by adding a Python text file to your ``user/cascade_models`` folder.
-As with the composite models, the name of the containing Python file does not matter but the cascade models need to be unique.
+As with the composite models, the cascade model name needs to be unique.
 
 The general naming guideline is that the cascade model is named after the last model in the cascade, with the addition of the suffix ``(Cascade)`` to the model.
 So, for example, the cascade for the ``NODDI`` composite model would be named ``NODDI (Cascade)``.
