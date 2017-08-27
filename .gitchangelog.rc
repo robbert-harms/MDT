@@ -83,17 +83,16 @@ ignore_regexps = [
 ##
 section_regexps = [
     ('Added', [
-        r'^[aA]dd[s]?\s*([^\n]*)$',
-        r'^[aA]dd\s*:\s*((dev|use?r|pkg|test|doc)\s*:\s*)?([^\n]*)$',
+        r'^[aA]dd\w+\s*([^\n]*)$',
         r'^[nN]ew\s*:\s*((dev|use?r|pkg|test|doc)\s*:\s*)?([^\n]*)$',
      ]),
     ('Changed', [
-        r'^[cC]hange[s]?\s*([^\n]*)$',
-        r'^[uU]pdate[s]?\s*([^\n]*)$',
+        r'^[cC]hange\w+\s*([^\n]*)$',
+        r'^[uU]pdate\w+\s*([^\n]*)$',
         r'^[cC]hg\s*:\s*((dev|use?r|pkg|test|doc)\s*:\s*)?([^\n]*)$',
      ]),
     ('Fixed', [
-        r'^[fF]ixe[sd]?\s*([^\n]*)$',
+        r'^[fF]ixe\w+\s*([^\n]*)$',
         r'^[fF]ix\s*:\s*((dev|use?r|pkg|test|doc)\s*:\s*)?([^\n]*)$',
      ]),
 

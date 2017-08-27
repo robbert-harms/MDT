@@ -3,12 +3,40 @@ Changelog
 *********
 
 
+v0.10.2 (2017-08-27)
+====================
+
+Added
+-----
+- Added overridden method to the problem data.
+- Adds support for fitting when the protocol is empty.
+- Added parameter name logging to MDT instead of in MOT.
+
+Changed
+-------
+- Updated the ExpT1DecIR model, adds a cascade. Updated the way cascades are updated as such that it allows for multiple copies of the same model in a cascade.
+- Updates to the GUI.
+- Updates the parser to the latest version of Grako.
+
+Fixed
+-----
+- Fixed the issue with the get_free_param_names removal.
+
+Other
+-----
+- Following changes in MOT.
+
+
 v0.10.2 (2017-08-23)
 ====================
 
 Added
 -----
 - Adds chunk indices look-a-head in the processing strategies. This allows the Processor to start pre-loading the next batch.
+
+Other
+-----
+- Version bump.
 
 
 v0.10.1 (2017-08-22)
@@ -51,7 +79,6 @@ Changed
 -------
 - Changes the way the logging is condensed during optimization.
 - Updates to the GUI.
-- Update to the cartesian to spherical function.
 - Updates to the documentation. Also, the compartment models now no longer need their own files, they can be defined in any file in the compartment_models directory.
 - Updates to the documentation, renamed the Kurtosis compartment to KurtosisExtension and made it require the Tensor in the Composite model.
 - Updates to the documentation. Updates to the Kurtosis model. Sets boundary conditions correct and adds post-processing.
@@ -71,6 +98,7 @@ Other
 - More work on the post-sampling statistics.
 - Removed redundant model.
 - Moved more relaxometry compartments to the single python file. Slightly increased the number of voxels in sampling.
+- Update to the cartesian to spherical function.
 - First work on map sorting.
 - Small bugfix in the MRI constants.
 - Small function reshuffling, updates to comments.
@@ -132,8 +160,6 @@ Changed
   - The visualization GUI can now load images from multiple folders
   - The visualization GUI now also supports dragging nifti files into
     the viewer for loading and viewing.
-- Update to Kurtosis.
-- Update to doc about the parameter renaming.
 - Updates to some of the relaxometry models, fixed the simulations to the latest MOT version.
 
 Fixed
@@ -144,6 +170,7 @@ Fixed
 Other
 -----
 - Small documentation update.
+- Update to Kurtosis.
 - Merge branch 'master' of github.com:cbclab/MDT.
 - Merged local copy, fixed small issue in the dragging of files in the visualization GUI.
 - Some initial work on the AxCaliber model. We are not there yet.
@@ -154,6 +181,7 @@ Other
 - Renamed the Silvia 2016 time dependent model from CHARMED to ActiveAx.
 - Made ActiveAx diffusivity dependency more clear.
 - Removed the GDRCylindersFixedRadii compartment model, it was not used anywhere. Simplified the NODDI tortuosity parameter dependency.
+- Update to doc about the parameter renaming.
 - The parameter definitions in the compartment model now support nicknaming to enable swapping a parameter without having to rename that parameter in the model equation or other code.
 - Renamed the component_configs to component templates and moved some base classes to other folders. Also, all components constructed from templates now carry a back reference to that template as a class attribute.
 - Small updates to the processing strategies.
