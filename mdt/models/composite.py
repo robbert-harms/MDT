@@ -435,38 +435,49 @@ class BuildCompositeModel(SampleModelInterface):
         results_dict.update(self._fixed_parameter_maps)
         self._add_post_optimization_modifier_maps(results_dict)
         results_dict.update(self._get_post_optimization_information_criterion_maps(results_array))
+
+        errors = ResidualCalculator().calculate(self, results_array)
+        errors = np.nan_to_num(errors)
+        error_measures = ErrorMeasures(double_precision=self.double_precision).calculate(errors)
+        results_dict.update(error_measures)
+
         return results_dict
 
-    def get_post_sampling_maps(self, samples):
-        """Get all the post sampling maps.
+    def get_sampling_mean_estimate(self, samples):
+        """Get the point estimates for the mean point of all the sample parameters.
+
+        This will use the sampling statistic of each of the parameters to get the mean parameter value. That value is
+        then used for the point estimate for the volume maps.
 
         Args:
             samples (ndarray): an (d, p, n) matrix for d problems, p parameters and n samples.
 
         Returns:
-            dict: the volume maps with some basic post-sampling output
+            dict: the volume maps derived from the mean parameter value
         """
         volume_maps = self._get_univariate_parameter_statistics(samples)
+        volume_maps = self.post_process_optimization_maps(volume_maps)
+        volume_maps.update(self._get_post_sampling_information_criterion_maps(samples, volume_maps['LogLikelihood']))
+        return volume_maps
 
-        results_array = self._param_dict_to_array(volume_maps)
+    def get_sampling_ess_statistics(self, samples):
+        """Get the Effective Sample Size statistics for the given set of samples.
 
-        volume_maps = self.post_process_optimization_maps(volume_maps, results_array=results_array)
+        Args:
+            samples (ndarray): an (d, p, n) matrix for d problems, p parameters and n samples.
 
-        self._add_post_sampling_information_criterion_maps(samples, volume_maps)
-
-        errors = ResidualCalculator().calculate(self, results_array)
-        errors = np.nan_to_num(errors)
-        error_measures = ErrorMeasures(double_precision=self.double_precision).calculate(errors)
-        volume_maps.update(error_measures)
-
+        Returns:
+            dict: the volume maps with the ESS statistics
+        """
+        ess_maps = {}
         mv_ess = np.nan_to_num(multivariate_ess(samples))
-        volume_maps.update({'MultivariateESS': mv_ess})
+        ess_maps.update({'MultivariateESS': mv_ess})
 
         uv_ess = univariate_ess(samples, method='standard_error')
         uv_ess_maps = results_to_dict(uv_ess, [a + '.UnivariateESS' for a in self.get_free_param_names()])
-        volume_maps.update(uv_ess_maps)
+        ess_maps.update(uv_ess_maps)
 
-        return volume_maps
+        return ess_maps
 
     def get_multivariate_sampling_statistic(self, samples):
         """Get the multivariate statistics for the given samples.
@@ -551,11 +562,13 @@ class BuildCompositeModel(SampleModelInterface):
 
         return result
 
-    def _add_post_sampling_information_criterion_maps(self, samples, results_dict):
-        results_dict.update(self._calculate_deviance_information_criterions(samples, results_dict))
-        results_dict.update({'WAIC': np.nan_to_num(WAICCalculator().calculate(self, samples))})
+    def _get_post_sampling_information_criterion_maps(self, samples, log_likelihoods):
+        maps = {}
+        maps.update(self._calculate_deviance_information_criterions(samples, log_likelihoods))
+        maps.update({'WAIC': np.nan_to_num(WAICCalculator().calculate(self, samples))})
+        return maps
 
-    def _calculate_deviance_information_criterions(self, samples, results_dict):
+    def _calculate_deviance_information_criterions(self, samples, log_likelihoods):
         r"""Calculates the Deviance Information Criteria (DIC) using two methods.
 
         This returns a dictionary returning the ``DIC_2002``, the ``DIC_2004`` and the ``DIC_Ando_2011`` method.
@@ -616,8 +629,7 @@ class BuildCompositeModel(SampleModelInterface):
 
         Args:
             samples (ndarray): the samples, a (d, p, n) matrix with d problems, p parameters and n samples.
-            results_dict (dict): the dictionary with the point estimates, should contain the ``LogLikelihood`` map
-                with a point estimate LL.
+            log_likelihoods (ndarray): a 1d matrix containing point estimates for the log likelihood for every voxel
 
         Returns:
             dict: a dictionary containing the ``DIC_2002``, the ``DIC_2004`` and the ``DIC_Ando_2011`` information
@@ -627,7 +639,7 @@ class BuildCompositeModel(SampleModelInterface):
         ll_per_sample = np.nan_to_num(log_likelihood_calc.calculate(self, samples))
 
         mean_deviance = -2 * np.mean(ll_per_sample, axis=1)
-        deviance_at_mean = -2 * results_dict['LogLikelihood']
+        deviance_at_mean = -2 * log_likelihoods
 
         pd_2002 = mean_deviance - deviance_at_mean
         pd_2004 = np.var(ll_per_sample, axis=1) / 2.0

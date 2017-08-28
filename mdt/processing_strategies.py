@@ -413,7 +413,6 @@ class FittingProcessor(SimpleModelProcessor):
         volume_maps = results_to_dict(end_points, model.get_free_param_names())
         volume_maps = model.post_process_optimization_maps(volume_maps, results_array=end_points)
         volume_maps.update({'ReturnCodes': optimization_results.get_return_codes()})
-        volume_maps.update(optimization_results.get_error_measures())
 
         self._write_volumes(volume_maps, roi_indices, self._tmp_storage_dir)
 
@@ -429,21 +428,18 @@ class SamplingProcessor(SimpleModelProcessor):
         pass
 
     def __init__(self, sampler, model, input_data, output_dir, tmp_storage_dir, clean_tmp_dir, recalculate,
-                 samples_to_save_method=None, store_volume_maps=True):
+                 samples_to_save_method=None):
         """The processing worker for model sampling.
 
         Args:
             sampler (AbstractSampler): the optimization sampler to use
             samples_to_save_method (SamplesToSaveMethod): indicates which samples to store
-            store_volume_maps (boolean): if we want to store the elements in the 'volume_maps' directory.
-                This stores the mean and std maps and some other maps based on the samples.
         """
         super(SamplingProcessor, self).__init__(model, input_data, output_dir, tmp_storage_dir,
                                                 clean_tmp_dir, recalculate)
         self._sampler = sampler
         self._write_volumes_gzipped = gzip_sampling_results()
         self._samples_to_save_method = samples_to_save_method or SaveAllSamples()
-        self._store_volume_maps = store_volume_maps
 
     def get_voxels_to_compute(self):
         """Get the ROI indices of the voxels we need to compute.
@@ -470,43 +466,32 @@ class SamplingProcessor(SimpleModelProcessor):
     def process(self, roi_indices, next_indices=None):
         model = self._model.build(roi_indices)
         sampling_output = self._sampler.sample(model)
+        samples = sampling_output.get_samples()
 
-        if self._store_volume_maps:
-            samples = sampling_output.get_samples()
-            volume_maps = model.get_post_sampling_maps(samples)
-            self._write_volumes(volume_maps, roi_indices,
-                                os.path.join(self._tmp_storage_dir, 'volume_maps'))
-            del volume_maps
+        maps_to_save = [
+            ('mean_parameter_estimate', lambda: model.get_sampling_mean_estimate(samples)),
+            ('multivariate_statistic', lambda: model.get_multivariate_sampling_statistic(samples)),
+            ('effective_sample_size', lambda: model.get_sampling_ess_statistics(samples)),
+            ('proposal_state', lambda: results_to_dict(sampling_output.get_proposal_state(),
+                                                       model.get_proposal_state_names())),
+            ('chain_end_point', lambda: results_to_dict(sampling_output.get_current_chain_position(),
+                                                        model.get_free_param_names()))
+        ]
 
-            multivariate_statistic = model.get_multivariate_sampling_statistic(samples)
-            self._write_volumes(multivariate_statistic, roi_indices,
-                                os.path.join(self._tmp_storage_dir, 'multivariate_statistic'))
-
-        self._write_volumes(results_to_dict(sampling_output.get_proposal_state(),
-                                            model.get_proposal_state_names()),
-                            roi_indices,
-                            os.path.join(self._tmp_storage_dir, 'proposal_state'))
+        for map_name, callback in maps_to_save:
+            self._write_volumes(callback(), roi_indices, os.path.join(self._tmp_storage_dir, map_name))
 
         self._tmp_store_mh_state(roi_indices, sampling_output.get_mh_state())
 
-        self._write_volumes(results_to_dict(sampling_output.get_current_chain_position(),
-                                            model.get_free_param_names()),
-                            roi_indices,
-                            os.path.join(self._tmp_storage_dir, 'chain_end_point'))
-
         if self._samples_to_save_method.store_samples():
-            samples = sampling_output.get_samples()
             samples_dict = results_to_dict(samples, model.get_free_param_names())
             self._write_sample_results(samples_dict, roi_indices)
 
     def combine(self):
         super(SamplingProcessor, self).combine()
 
-        if self._store_volume_maps:
-            self._combine_volumes(self._output_dir, self._tmp_storage_dir,
-                                  self._input_data.nifti_header, maps_subdir='volume_maps')
-
-        for subdir in ['proposal_state', 'chain_end_point', 'mh_state', 'multivariate_statistic']:
+        for subdir in ['mean_parameter_estimate', 'multivariate_statistic', 'effective_sample_size',
+                       'proposal_state', 'chain_end_point', 'mh_state']:
             self._combine_volumes(self._output_dir, self._tmp_storage_dir,
                                   self._input_data.nifti_header, maps_subdir=subdir)
 

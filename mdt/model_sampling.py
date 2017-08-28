@@ -18,7 +18,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 def sample_composite_model(model, input_data, output_folder, sampler, tmp_dir,
-                           recalculate=False, store_samples=True, store_volume_maps=True,
+                           recalculate=False, store_samples=True,
                            initialization_data=None):
     """Sample a composite model.
 
@@ -32,7 +32,6 @@ def sample_composite_model(model, input_data, output_folder, sampler, tmp_dir,
         recalculate (boolean): If we want to recalculate the results if they are already present.
         store_samples (boolean or int): if set to False we will store none of the samples. If set to an integer we will
             store only thinned samples with that amount.
-        store_volume_maps (boolean): if set to False we will not store the mean and std. volume maps.
         initialization_data (:class:`~mdt.utils.InitializationData`): provides (extra) initialization data to use
             during model fitting. If we are optimizing a cascade model this data only applies to the last model in the
             cascade.
@@ -49,9 +48,6 @@ def sample_composite_model(model, input_data, output_folder, sampler, tmp_dir,
         raise InsufficientProtocolError(
             'The provided protocol is insufficient for this model. '
             'The reported errors where: {}'.format(model.get_protocol_problems(input_data.protocol)))
-
-    if not sample_to_save_method.store_samples() and not store_volume_maps:
-        raise ValueError('Both store_samples and store_volume_maps are set to False, nothing to compute.')
 
     logger = logging.getLogger(__name__)
 
@@ -73,7 +69,7 @@ def sample_composite_model(model, input_data, output_folder, sampler, tmp_dir,
         worker = SamplingProcessor(
             sampler, model, input_data, output_folder,
             get_full_tmp_results_path(output_folder, tmp_dir), True, recalculate,
-            samples_to_save_method=sample_to_save_method, store_volume_maps=store_volume_maps)
+            samples_to_save_method=sample_to_save_method)
 
         processing_strategy = get_processing_strategy('sampling')
         processing_strategy.process(worker)
