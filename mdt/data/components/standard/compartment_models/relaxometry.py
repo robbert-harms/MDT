@@ -24,7 +24,7 @@ class ExpT1DecIR(CompartmentTemplate):
     This is made to model the MI-EPI sequence, a multi inversion recovery epi (Renvall et Al. 2016). 
     The Model is based on Stikov et al.'s three parameter model.
     """
-    parameter_list = ('TR', 'TI', 'Efficiency', 'T1')
+    parameter_list = ('TR_static(TR)', 'TI_static(TI)', 'Efficiency', 'T1')
     cl_code = """
         return fabs(1 + exp(-TR / (double)T1) - 2 * Efficiency * exp(-TI / (double)T1));
     """
