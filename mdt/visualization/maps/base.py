@@ -332,7 +332,7 @@ class SingleMapConfig(SimpleConvertibleConfig):
 
     def __init__(self, title=None, scale=None, clipping=None, colormap=None, colorbar_label=None,
                  colorbar_nmr_ticks=None, show_colorbar=None, colorbar_location=None, show_title=None,
-                 title_spacing=None, mask_name=None):
+                 title_spacing=None, mask_name=None, interpret_as_colormap=False, colormap_weight_map=None):
         """Creates the configuration for a single map plot.
 
         Args:
@@ -347,6 +347,11 @@ class SingleMapConfig(SimpleConvertibleConfig):
             show_title (boolean): if we want to show the title or not
             title_spacing (float): the spacing between the top of the plots and the title
             mask_name (str): the name of the mask used to mask the data prior to visualization
+            interpret_as_colormap (boolean): if this is set to True and the referring map is a 4d volume with
+                a vector of length 3 on the last dimension, then we can interpret this map as a colormap. This means
+                that the elements of the last dimensions are used as (R, G, B) scalar values.
+            colormap_weight_map (str): the name of another map to use as a scaling factor for this map. This is only
+                used when ``interpret_as_colormap`` is set to True. This scales this map with the specified weight map.
         """
         super(SingleMapConfig, self).__init__()
         self.title = title
@@ -360,6 +365,8 @@ class SingleMapConfig(SimpleConvertibleConfig):
         self.show_colorbar = show_colorbar
         self.show_title = show_title
         self.mask_name = mask_name
+        self.interpret_as_colormap = interpret_as_colormap
+        self.colormap_weight_map = colormap_weight_map
 
         if self.colormap is not None and self.colormap not in self.get_available_colormaps():
             raise ValueError('The given colormap ({}) is not supported.'.format(self.colormap))
@@ -384,7 +391,9 @@ class SingleMapConfig(SimpleConvertibleConfig):
                 'title_spacing': FloatConversion(),
                 'mask_name': StringConversion(),
                 'show_colorbar': BooleanConversion(),
-                'show_title': BooleanConversion()}
+                'show_title': BooleanConversion(),
+                'interpret_as_colormap': BooleanConversion(allow_null=False),
+                'colormap_weight_map': StringConversion()}
 
     @classmethod
     def get_available_colormaps(cls):
@@ -438,6 +447,14 @@ class SingleMapConfig(SimpleConvertibleConfig):
             if hasattr(self, '_validate_' + key):
                 getattr(self, '_validate_' + key)(data_info)
         return self
+
+    def _validate_mask_name(self, data_info):
+        if self.mask_name is not None and self.mask_name not in data_info.get_map_names():
+            raise ValueError('The given mask name "{}" does not exist.'.format(self.mask_name))
+
+    def _validate_colormap_weight_map(self, data_info):
+        if self.colormap_weight_map is not None and self.colormap_weight_map not in data_info.get_map_names():
+            raise ValueError('The given colormap weight map "{}" does not exist.'.format(self.colormap_weight_map))
 
 
 class DataInfo(object):

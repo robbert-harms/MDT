@@ -150,7 +150,7 @@ class Renderer(object):
         plot_options['interpolation'] = self._plot_config.interpolation
         vf = axis.imshow(data, **plot_options)
 
-        self._add_highlights(map_name, axis, data.shape)
+        self._add_highlights(map_name, axis, data.shape[:2])
         self._add_colorbar(axis, map_name, vf, self._get_map_attr(map_name, 'colorbar_label'),
                            self._get_map_attr(map_name, 'colorbar_location', self._plot_config.colorbar_location))
 
@@ -327,7 +327,9 @@ class Renderer(object):
 
             data_slice = get_slice_in_dimension(data, dimension, slice_index)
             if len(data_slice.shape) > 2:
-                if volume_index < data_slice.shape[2]:
+                if data_slice.shape[2] == 3 and self._get_map_attr(map_name, 'interpret_as_colormap'):
+                    data_slice = np.abs(data_slice[:, :, :])
+                elif volume_index < data_slice.shape[2]:
                     data_slice = np.squeeze(data_slice[:, :, volume_index])
                 else:
                     data_slice = np.squeeze(data_slice[:, :, data_slice.shape[2] - 1])
@@ -342,7 +344,10 @@ class Renderer(object):
             data_slice = self._get_map_attr(map_name, 'clipping', Clipping()).apply(data_slice)
             mask_name = self._get_map_attr(map_name, 'mask_name', self._plot_config.mask_name)
             if mask_name:
-                data_slice = data_slice * (get_slice(self._data_info.get_map_data(mask_name)) > 0)
+                mask = (get_slice(self._data_info.get_map_data(mask_name)) > 0)
+                if len(data_slice.shape) != len(mask.shape):
+                    mask = mask[..., None]
+                data_slice = data_slice * mask
             return data_slice
 
         data = self._data_info.get_map_data(map_name)
@@ -353,6 +358,24 @@ class Renderer(object):
 
         data_slice = apply_modifications(data_slice)
         data_slice = _apply_transformations(self._plot_config, data_slice)
+
+        if len(data_slice.shape) == 3:
+            multiplication_map = self._get_map_attr(map_name, 'colormap_weight_map', None)
+            if multiplication_map is not None and map_name != multiplication_map:
+                multiplication_map = self._get_image(multiplication_map)
+                if len(multiplication_map.shape) != 3:
+                    multiplication_map = multiplication_map[..., None]
+
+                scale = self._get_map_attr(map_name, 'scale', Scale())
+                new_vmax = np.min(((scale.vmax if scale.use_max else 1), 1))
+                new_vmin = np.max(((scale.vmin if scale.use_min else 0), 0))
+
+                multiplication_map = multiplication_map + (1 - (new_vmax - new_vmin))
+                data_slice = data_slice * multiplication_map
+
+                if np.max(data_slice) > 1:
+                    data_slice /= np.max(data_slice)
+
         return data_slice
 
     def _get_tick_locator(self, map_name):
