@@ -27,8 +27,8 @@ import mdt
 from mdt.gui.maps_visualizer.base import DataConfigModel, \
     QtController
 from mdt.gui.maps_visualizer.renderers.base import PlottingFrameInfoViewer
-from mdt.visualization.maps.base import DataInfo, SimpleDataInfo, MapPlotConfig, \
-    get_shortest_unique_names
+from mdt.visualization.maps.base import DataInfo, SimpleDataInfo, MapPlotConfig
+from mdt.visualization.maps.utils import get_shortest_unique_names
 from mdt.gui.maps_visualizer.renderers.matplotlib_renderer import MatplotlibPlotting
 from mdt.gui.model_fit.design.ui_about_dialog import Ui_AboutDialog
 from mdt.gui.utils import center_window, QtManager, get_script_file_header_text, image_files_filters
@@ -138,7 +138,7 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
                 if file_path:
                     paths.append(file_path)
                 else:
-                    paths.append('/' + map_name)
+                    paths.append(map_name)
             return paths
 
         def get_changes(old_data_info, new_data_info):

@@ -1,21 +1,19 @@
-import glob
-from copy import copy, deepcopy
-import os
 import warnings
+from copy import copy, deepcopy
 
+import matplotlib.font_manager
 import nibabel
 import numpy as np
 import yaml
-import matplotlib.font_manager
+
 import mdt
 import mdt.visualization.layouts
-from mdt.nifti import load_nifti, nifti_filepath_resolution
-from mdt.utils import split_image_path
+from mdt.nifti import load_nifti
 from mdt.visualization.dict_conversion import StringConversion, \
     SimpleClassConversion, IntConversion, SimpleListConversion, BooleanConversion, \
     ConvertDictElements, ConvertDynamicFromModule, FloatConversion, WhiteListConversion
 from mdt.visualization.layouts import Rectangular
-
+from mdt.visualization.maps.utils import get_shortest_unique_names, find_all_nifti_files
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-09-02"
@@ -169,11 +167,11 @@ class MapPlotConfig(SimpleConvertibleConfig):
 
     @classmethod
     def get_available_interpolations(cls):
-        return get_available_interpolations()
+        return _get_available_interpolations()
 
     @classmethod
     def get_available_colormaps(cls):
-        return get_available_colormaps()
+        return _get_available_colormaps()
 
     @classmethod
     def _get_attribute_conversions(cls):
@@ -390,7 +388,7 @@ class SingleMapConfig(SimpleConvertibleConfig):
 
     @classmethod
     def get_available_colormaps(cls):
-        return get_available_colormaps()
+        return _get_available_colormaps()
 
     @classmethod
     def from_yaml(cls, text):
@@ -626,7 +624,7 @@ class SimpleDataInfo(DataInfo):
             SimpleDataInfo: the simple data info
         """
         nifti_files = find_all_nifti_files(paths)
-        return cls(load_data_info(nifti_files))
+        return cls(_load_data_info(nifti_files))
 
     def get_updated(self, updates=None, removals=None):
         """Get a new simple data info object that includes the given new maps.
@@ -1421,7 +1419,7 @@ class Font(SimpleConvertibleConfig):
                 'size': IntConversion()}
 
 
-def get_available_interpolations():
+def _get_available_interpolations():
     """The available interpolations for either the general map plot config or the map specifics.
 
     Do not call these for outside use, rather, consult the class method of the specific config you want to change.
@@ -1434,7 +1432,7 @@ def get_available_interpolations():
             'catrom', 'gaussian', 'bessel', 'mitchell', 'sinc', 'lanczos']
 
 
-def get_available_colormaps():
+def _get_available_colormaps():
     """The available colormaps for either the general map plot config or the map specifics.
 
     Do not call these for outside use, rather, consult the class method of the specific config you want to change.
@@ -1445,33 +1443,7 @@ def get_available_colormaps():
     return sorted(matplotlib.cm.datad)
 
 
-def find_all_nifti_files(paths):
-    """Find the paths to the nifti files in the given paths.
-
-    For directories we add all the nifti files from that directory, for file we try to resolve them to nifti files.
-
-    Args:
-        paths (list of str): the list of file paths
-
-    Returns:
-        list of str: the list of all nifti files (no more directories)
-    """
-    def find_niftis(paths, recurse=True):
-        niftis = []
-        for path in paths:
-            if os.path.isdir(path):
-                if recurse:
-                    niftis.extend(find_niftis(glob.glob(path + '/*.nii*'), recurse=False))
-            else:
-                try:
-                    niftis.append(nifti_filepath_resolution(path))
-                except ValueError:
-                    pass
-        return niftis
-    return find_niftis(paths)
-
-
-def load_data_info(nifti_files):
+def _load_data_info(nifti_files):
     """Load the data info for all the nifti files.
 
     In the case of conflicting simplified map names we name the maps to the shortest unique names.
@@ -1483,67 +1455,3 @@ def load_data_info(nifti_files):
     for ind, map_name in enumerate(get_shortest_unique_names(nifti_files)):
         data_info[map_name] = SingleMapInfo.from_file(nifti_files[ind])
     return data_info
-
-
-def get_shortest_unique_names(paths):
-    """Get the shortest unique map name between two or more nifti file paths.
-
-    This function is useful when loading multiple maps like for example ``./foo.nii`` and ``./foo.nii.gz`` or
-    ``../directory0/foo.nii`` and ``../directory1/foo.nii``. In all cases the map name (foo) is similar,
-    but we want to be able to show them distinctly. This function tries to find the shortest unique map names
-    for each of the maps.
-
-    Example output:
-    * [``./foo.nii``] -> ``foo``
-    * [``./foo.nii``, ``./foo.nii.gz``] -> [``foo.nii``, ``foo.nii.gz``]
-    * [``../directory0/foo.nii``, ``../directory1/foo.nii``] -> [``directory0/foo``, ``directory1/foo``]
-
-    Args:
-        paths (list of str): the paths to the different nifti files
-
-    Returns:
-        tuple: the map names for the given set of paths (in the same order)
-    """
-    if not len(paths):
-        return []
-
-    dirs, names, exts = zip(*map(split_image_path, paths))
-
-    if len(set(paths)) == 1:
-        return names
-
-    if len(set(names)) == len(names):
-        return names
-
-    new_names = []
-
-    multiple_dirs = len(set(dirs)) > 1
-    shortest_dir = sorted(dirs, key=lambda d: len(d))[0]
-
-    def multiple_maps_in_same_dir(current_ind, current_directory, current_name):
-        for ind, (directory, name, ext, full_path) in enumerate(zip(dirs, names, exts, paths)):
-            if ind != current_ind and directory == current_directory and name == current_name:
-                return True
-        return False
-
-    for ind, (directory, name, ext, full_path) in enumerate(zip(dirs, names, exts, paths)):
-        if multiple_dirs:
-            if directory == shortest_dir:
-                new_name = os.path.basename(directory) + '/' + name
-            else:
-                new_name = os.path.relpath(directory, shortest_dir) + '/' + name
-                if new_name.startswith('../'):
-                    new_name = new_name[3:]
-                if shortest_dir == '/':
-                    new_name = '/' + new_name
-        else:
-            new_name = name
-
-        if multiple_maps_in_same_dir(ind, directory, name):
-            new_name += ext
-
-        new_names.append(new_name)
-
-    return new_names
-
-
