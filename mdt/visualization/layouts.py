@@ -14,8 +14,8 @@ class GridLayout(object):
     def __init__(self, spacings=None):
         super(GridLayout, self).__init__()
         self.spacings = spacings or {'left': 0.10, 'right': 0.86,
-                                     'top': 0.97, 'bottom': 0.04,
-                                     'wspace': 0.5, 'hspace': 0.2}
+                                     'top': 0.97, 'bottom': 0.03,
+                                     'wspace': 0.40, 'hspace': 0.15}
 
         if self.spacings['top'] <= self.spacings['bottom']:
             raise ValueError('The top ({}) can not be smaller than the bottom ({}) in the spacings'.format(

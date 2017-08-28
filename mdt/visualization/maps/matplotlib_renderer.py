@@ -1,11 +1,8 @@
 import os
-import copy
-
-import matplotlib
 import numpy as np
 from matplotlib import pyplot as plt, patches
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-
+from mpl_toolkits.axes_grid1 import SubplotDivider, LocatableAxes, Size
 from mdt import get_slice_in_dimension
 from mdt.visualization.maps.base import Clipping, Scale, Point2d
 from mdt.visualization.utils import MyColourBarTickLocator
@@ -154,10 +151,8 @@ class Renderer(object):
         vf = axis.imshow(data, **plot_options)
 
         self._add_highlights(map_name, axis, data.shape)
-
-        if self._get_map_attr(map_name, 'show_colorbar', self._plot_config.show_colorbar):
-            self._add_colorbar(axis, map_name, vf, self._get_map_attr(map_name, 'colorbar_label'),
-                               self._get_map_attr(map_name, 'colorbar_location', self._plot_config.colorbar_location))
+        self._add_colorbar(axis, map_name, vf, self._get_map_attr(map_name, 'colorbar_label'),
+                           self._get_map_attr(map_name, 'colorbar_location', self._plot_config.colorbar_location))
 
         return AxisData(axis, map_name, self._data_info.get_single_map_info(map_name), self._plot_config)
 
@@ -253,35 +248,48 @@ class Renderer(object):
             colorbar_position (str): one of 'left', 'right', 'top', 'bottom'
         """
         divider = make_axes_locatable(axis)
-        colorbar_axis = divider.append_axes(colorbar_position, size="5%", pad=0.05)
 
-        kwargs = dict(cax=colorbar_axis, ticks=self._get_tick_locator(map_name))
-        if colorbar_label:
-            kwargs.update(dict(label=colorbar_label))
+        show_colorbar = self._get_map_attr(map_name, 'show_colorbar', self._plot_config.show_colorbar)
+        axis_kwargs = dict(size="5%", pad=0.12)
 
-        if colorbar_position in ['top', 'bottom']:
-            kwargs['orientation'] = 'horizontal'
+        if show_colorbar and colorbar_position in ('left', 'right'):
+            colorbar_axis = divider.append_axes(colorbar_position, **axis_kwargs)
+        else:
+            fake_axis = divider.append_axes('right', **axis_kwargs)
+            fake_axis.axis('off')
 
-        cbar = plt.colorbar(image_figure, **kwargs)
-        cbar.formatter.set_powerlimits((-3, 4))
-        cbar.ax.yaxis.set_offset_position('left')
+        if show_colorbar and colorbar_position in ('top', 'bottom'):
+            colorbar_axis = divider.append_axes(colorbar_position, **axis_kwargs)
+        else:
+            fake_axis = divider.append_axes('bottom', **axis_kwargs)
+            fake_axis.axis('off')
 
-        if colorbar_position == 'left':
-            cbar.ax.yaxis.set_ticks_position('left')
-            cbar.ax.yaxis.set_label_position('left')
+        if show_colorbar:
+            kwargs = dict(cax=colorbar_axis, ticks=self._get_tick_locator(map_name))
+            if colorbar_label:
+                kwargs.update(dict(label=colorbar_label))
 
-        if colorbar_position == 'top':
-            cbar.ax.xaxis.set_ticks_position('top')
-            cbar.ax.xaxis.set_label_position('top')
+            if colorbar_position in ['top', 'bottom']:
+                kwargs['orientation'] = 'horizontal'
 
-        cbar.update_ticks()
+            cbar = plt.colorbar(image_figure, **kwargs)
+            cbar.formatter.set_powerlimits((-3, 4))
+            colorbar_axis.yaxis.set_offset_position('left')
 
-        if cbar.ax.get_yticklabels():
-            cbar.ax.get_yticklabels()[-1].set_verticalalignment('top')
+            if colorbar_position == 'left':
+                colorbar_axis.yaxis.set_ticks_position('left')
+                colorbar_axis.yaxis.set_label_position('left')
 
-        self._apply_font(axis, colorbar_axis)
+            if colorbar_position == 'top':
+                colorbar_axis.xaxis.set_ticks_position('top')
+                colorbar_axis.xaxis.set_label_position('top')
 
-        return cbar
+            cbar.update_ticks()
+
+            if cbar.ax.get_yticklabels():
+                cbar.ax.get_yticklabels()[-1].set_verticalalignment('top')
+
+            self._apply_font(axis, colorbar_axis)
 
     def _get_map_attr(self, map_name, option, default=None):
         if map_name in self._plot_config.map_plot_options:
@@ -356,7 +364,9 @@ class Renderer(object):
         if scale.use_min:
             min_val = scale.vmin
 
-        return MyColourBarTickLocator(min_val, max_val, numticks=self._plot_config.colorbar_nmr_ticks)
+        return MyColourBarTickLocator(
+            min_val, max_val, numticks=self._get_map_attr(map_name, 'colorbar_nmr_ticks',
+                                                          self._plot_config.colorbar_nmr_ticks))
 
 
 def _apply_transformations(plot_config, data_slice):

@@ -164,7 +164,7 @@ class MapPlotConfig(SimpleConvertibleConfig):
             raise ValueError("The colorbar location is '{}' which is not "
                              "one of 'left', 'bottom', 'right', 'top'.".format(str(self.colorbar_location)))
 
-        if self.colorbar_nmr_ticks is None or self.colorbar_nmr_ticks <= 0:
+        if self.colorbar_nmr_ticks is not None and self.colorbar_nmr_ticks <= 0:
             raise ValueError("The number of ticks in the colorbar needs to be a positive integer.")
 
     @classmethod
@@ -332,8 +332,9 @@ class MapPlotConfig(SimpleConvertibleConfig):
 
 class SingleMapConfig(SimpleConvertibleConfig):
 
-    def __init__(self, title=None, scale=None, clipping=None, colormap=None, colorbar_label=None, show_colorbar=None,
-                 colorbar_location=None, show_title=None, title_spacing=None, mask_name=None):
+    def __init__(self, title=None, scale=None, clipping=None, colormap=None, colorbar_label=None,
+                 colorbar_nmr_ticks=None, show_colorbar=None, colorbar_location=None, show_title=None,
+                 title_spacing=None, mask_name=None):
         """Creates the configuration for a single map plot.
 
         Args:
@@ -343,6 +344,7 @@ class SingleMapConfig(SimpleConvertibleConfig):
             colormap (str): the matplotlib colormap to use
             colorbar_label (str): the label for the colorbar
             colorbar_location (str): the location of the colorbar, one of 'right', 'left', 'top' or 'bottom'
+            colorbar_nmr_ticks (int): the number of ticks on the colorbar
             show_colorbar (boolean): if we want to show the colorbar or not
             show_title (boolean): if we want to show the title or not
             title_spacing (float): the spacing between the top of the plots and the title
@@ -356,6 +358,7 @@ class SingleMapConfig(SimpleConvertibleConfig):
         self.colormap = colormap
         self.colorbar_label = colorbar_label
         self.colorbar_location = colorbar_location
+        self.colorbar_nmr_ticks = colorbar_nmr_ticks
         self.show_colorbar = show_colorbar
         self.show_title = show_title
         self.mask_name = mask_name
@@ -368,6 +371,9 @@ class SingleMapConfig(SimpleConvertibleConfig):
                 raise ValueError("The colorbar location is '{}' which is not "
                                  "one of 'left', 'bottom', 'right', 'top'.".format(str(self.colorbar_location)))
 
+        if self.colorbar_nmr_ticks is not None and self.colorbar_nmr_ticks <= 0:
+            raise ValueError("The number of ticks in the colorbar needs to be a positive integer.")
+
     @classmethod
     def _get_attribute_conversions(cls):
         return {'title': StringConversion(),
@@ -376,6 +382,7 @@ class SingleMapConfig(SimpleConvertibleConfig):
                 'colormap': StringConversion(),
                 'colorbar_label': StringConversion(),
                 'colorbar_location': StringConversion(allow_null=True),
+                'colorbar_nmr_ticks': IntConversion(),
                 'title_spacing': FloatConversion(),
                 'mask_name': StringConversion(),
                 'show_colorbar': BooleanConversion(),
