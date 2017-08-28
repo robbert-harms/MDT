@@ -192,7 +192,7 @@ class ModelFit(object):
         Args:
             model (str or :class:`~mdt.models.composite.DMRICompositeModel` or :class:`~mdt.models.cascade.DMRICascadeModelInterface`):
                     the model we want to optimize.
-            input_data (:class:`~mdt.utils.InputDataMRI`): the input data object containing
+            input_data (:class:`~mdt.utils.MRIInputData`): the input data object containing
                 all the info needed for the model fitting.
             output_folder (string): The full path to the folder where to place the output
             optimizer (:class:`mot.cl_routines.optimizing.base.AbstractOptimizer`): The optimization routine to use.
@@ -354,7 +354,7 @@ class SingleModelFit(object):
          Args:
              model (:class:`~mdt.models.composite.DMRICompositeModel`): An implementation of an composite model
                 that contains the model we want to optimize.
-             input_data (:class:`~mdt.utils.InputDataMRI`): The input data object for the
+             input_data (:class:`~mdt.utils.MRIInputData`): The input data object for the
                 model.
              output_folder (string): The path to the folder where to place the output.
                 The resulting maps are placed in a subdirectory (named after the model name) in this output folder.

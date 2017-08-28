@@ -43,7 +43,7 @@ class TM(ProtocolParameterTemplate):
     pass
 
 
-class Ti(ProtocolParameterTemplate):
+class TI(ProtocolParameterTemplate):
     pass
 
 

@@ -53,18 +53,6 @@ class T2s_static(StaticMapParameterTemplate):
     data_type = 'mot_float_type'
 
 
-class TR_static(StaticMapParameterTemplate):
-
-    data_type = 'mot_float_type'
-    value = 1
-
-
-class TI_static(StaticMapParameterTemplate):
-
-    data_type = 'mot_float_type'
-    value = 1
-
-
 # For STEAM/TSE sequences, depending on the model in which they are used.
 class Dt_static(StaticMapParameterTemplate):
 

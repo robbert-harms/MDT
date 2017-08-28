@@ -19,7 +19,7 @@ except ValueError:
 
 
 from mdt.user_script_info import easy_save_user_script_info
-from mdt.utils import estimate_noise_std, get_cl_devices, load_dmri_input_data, load_problem_data,\
+from mdt.utils import estimate_noise_std, get_cl_devices, load_input_data, load_problem_data,\
     create_blank_mask, create_index_matrix, \
     volume_index_to_roi_index, roi_index_to_volume_index, load_brain_mask, init_user_settings, restore_volumes, \
     apply_mask, create_roi, volume_merge, protocol_merge, create_median_otsu_brain_mask, load_samples, \
@@ -54,7 +54,7 @@ def fit_model(model, input_data, output_folder, optimizer=None,
         model (str or :class:`~mdt.models.composite.DMRICompositeModel` or :class:`~mdt.models.cascade.DMRICascadeModelInterface`):
             An implementation of an AbstractModel that contains the model we want to optimize or the name of
             an model.
-        input_data (:class:`~mdt.utils.InputDataMRI`): the input data object containing all
+        input_data (:class:`~mdt.utils.MRIInputData`): the input data object containing all
             the info needed for the model fitting.
         output_folder (string): The path to the folder where to place the output, we will make a subdir with the
             model name in it.
@@ -131,7 +131,7 @@ def sample_model(model, input_data, output_folder, sampler=None, recalculate=Fal
 
     Args:
         model (:class:`~mdt.models.composite.DMRICompositeModel` or str): the model to sample
-        input_data (:class:`~mdt.utils.InputDataMRI`): the input data object containing all
+        input_data (:class:`~mdt.utils.MRIInputData`): the input data object containing all
             the info needed for the model fitting.
         output_folder (string): The path to the folder where to place the output, we will make a subdir with the
             model name in it (for the optimization results) and then a subdir with the samples output.

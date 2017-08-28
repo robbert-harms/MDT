@@ -22,7 +22,7 @@ from mdt.data_loaders.protocol import ProtocolLoader
 from mdt.masking import create_write_median_otsu_brain_mask
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.protocols import load_protocol, auto_load_protocol
-from mdt.utils import split_image_path, AutoDict, load_dmri_input_data
+from mdt.utils import split_image_path, AutoDict, load_input_data
 from mdt.nifti import load_nifti
 
 __author__ = 'Robbert Harms'
@@ -295,7 +295,7 @@ class SubjectInfo(object):
         This is the data we will use during model fitting.
 
         Returns:
-            :class:`~mdt.utils.InputDataMRI`: the input data to use during model fitting
+            :class:`~mdt.utils.MRIInputData`: the input data to use during model fitting
         """
         raise NotImplementedError()
 
@@ -350,8 +350,8 @@ class SimpleSubjectInfo(SubjectInfo):
     def get_input_data(self):
         protocol = self._protocol_loader.get_protocol()
         brain_mask_fname = self.get_mask_filename()
-        return load_dmri_input_data(self._dwi_fname, protocol, brain_mask_fname,
-                                    gradient_deviations=self._get_gradient_deviations(), noise_std=self._noise_std)
+        return load_input_data(self._dwi_fname, protocol, brain_mask_fname,
+                               gradient_deviations=self._get_gradient_deviations(), noise_std=self._noise_std)
 
     def get_subject_id(self):
         return self.subject_id

@@ -282,7 +282,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
 
                     import mdt
 
-                    input_data = mdt.load_dmri_input_data(
+                    input_data = mdt.load_input_data(
                         {dwi!r},
                         {protocol!r},
                         {mask!r},
@@ -308,7 +308,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
                     import mdt
                     from mdt.configuration import SetGeneralOptimizer
 
-                    input_data = mdt.load_dmri_input_data(
+                    input_data = mdt.load_input_data(
                         {dwi!r},
                         {protocol!r},
                         {mask!r},
@@ -493,9 +493,9 @@ class InputDataInfo(object):
         self.noise_std = None
 
     def build_input_data(self):
-        return mdt.load_dmri_input_data(self.dwi, self.protocol, self.mask,
-                                        noise_std=self.noise_std, gradient_deviations=self.gradient_deviations,
-                                        static_maps=self.static_maps)
+        return mdt.load_input_data(self.dwi, self.protocol, self.mask,
+                                   noise_std=self.noise_std, gradient_deviations=self.gradient_deviations,
+                                   static_maps=self.static_maps)
 
 
 class ExtraDataDialog(Ui_OptimizationExtraDataDialog, QDialog):

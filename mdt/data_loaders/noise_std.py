@@ -52,7 +52,7 @@ class NoiseStdLoader(object):
         """The public method for getting the noise std from this loader.
 
         Args:
-            input_data (:class:`~mdt.utils.InputDataMRI`): the dmri input data in use.
+            input_data (:class:`~mdt.utils.MRIInputData`): the dmri input data in use.
                 Some loaders might need this for loading the noise std.
 
         Returns:

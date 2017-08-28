@@ -33,7 +33,7 @@ from mdt.protocols import load_protocol, write_protocol
 from mot.cl_environments import CLEnvironmentFactory
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
 from mot.model_building.parameter_functions.dependencies import AbstractParameterDependency
-from mot.model_building.input_data import AbstractInputData
+from mot.model_building.input_data import InputData
 
 __author__ = 'Robbert Harms'
 __date__ = "2014-02-05"
@@ -42,7 +42,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class InputDataMRI(AbstractInputData):
+class MRIInputData(InputData):
     """Adds a few MRI specific properties to the input data interface."""
 
     @property
@@ -84,7 +84,7 @@ class InputDataMRI(AbstractInputData):
         raise NotImplementedError()
 
 
-class InputDataDMRI(InputDataMRI):
+class SimpleMRIInputData(MRIInputData):
 
     def __init__(self, protocol, signal4d, mask, nifti_header, static_maps=None, gradient_deviations=None,
                  noise_std=None):
@@ -155,7 +155,7 @@ class InputDataDMRI(InputDataMRI):
     def get_subset(self, volumes_to_keep=None, volumes_to_remove=None):
         """Create a copy of this input data where we only keep a subset of the volumes.
 
-        This creates a a new :class:`InputDataDMRI` with a subset of the protocol and the DWI volume, keeping those
+        This creates a a new :class:`SimpleMRIInputData` with a subset of the protocol and the DWI volume, keeping those
         specified.
 
         One can either specify a list with volumes to keep or a list with volumes to remove (and we will keep the rest).
@@ -166,7 +166,7 @@ class InputDataDMRI(InputDataMRI):
             volumes_to_remove (list): the list with volumes we would like to remove (keeping the others).
 
         Returns:
-            InputDataDMRI: the new input data
+            SimpleMRIInputData: the new input data
         """
         if (volumes_to_keep is not None) and (volumes_to_remove is not None):
             raise ValueError('You can not specify both the list with volumes to keep and volumes to remove. Choose one.')
@@ -285,148 +285,13 @@ class InputDataDMRI(InputDataMRI):
             return create_roi(noise_std, self.mask)
 
 
-class InputData_S0_T1_GRE(object):
-
-    def __init__(self, protocol, signal4d, mask, nifti_header, slab, static_maps=None, noise_std=None):
-        self._logger = logging.getLogger(__name__)
-        self._signal4d = signal4d
-        self._nifti_header = nifti_header
-        self._mask = mask
-        self._protocol = protocol
-        self._observation_list = None
-        self._static_maps = static_maps or {}
-        self._noise_std = noise_std
-
-        self._add_TI_static_data(slab)
-
-        if protocol.length != 0:
-            self._nmr_inst_per_problem = protocol.length
-        else:
-            self._nmr_inst_per_problem = signal4d.shape[3]
-
-        if protocol.length != 0 and signal4d is not None and \
-                signal4d.shape[3] != 0 and protocol.length != signal4d.shape[3]:
-            raise ValueError('Length of the protocol ({}) does not equal the number of volumes ({}).'.format(
-                protocol.length, signal4d.shape[3]))
-
-    def _add_TI_static_data(self, slab):
-        """Generate the TI's for use in the S0-TIGre model.
-
-        Args:
-            slab (int): the amount of T1 rolling every slice
-
-        Returns:
-            ndarray: TIs static data shuffled such that the TI's match the position of the scan from the sequence
-        """
-        TIs = np.zeros(self.signal4d.shape)
-
-        TI_values = np.squeeze(self._protocol['TI'])
-
-        TIs[:, :, :, 0] = TI_values
-        for ind in range(1, TIs.shape[2]):
-            TI_values = np.roll(TI_values, slab)
-            TIs[..., ind] = TI_values
-
-        self._static_maps['TI'] = TIs
-
-    def get_nmr_problems(self):
-        return self.observations.shape[0]
-
-    def get_nmr_inst_per_problem(self):
-        return self._nmr_inst_per_problem
-
-    @property
-    def signal4d(self):
-        return self._signal4d
-
-    @property
-    def nifti_header(self):
-        return self._nifti_header
-
-    @property
-    def protocol(self):
-        return self._protocol
-
-    @property
-    def gradient_deviations(self):
-        return None
-
-    @property
-    def observations(self):
-        if self._observation_list is None:
-            self._observation_list = create_roi(self.signal4d, self._mask)
-        return self._observation_list
-
-    @property
-    def mask(self):
-        """Return the mask in use
-
-        Returns:
-            np.array: the numpy mask array
-        """
-        return self._mask
-
-    @property
-    def static_maps(self):
-        """Get the static maps. They are used as data for the static parameters.
-
-        Returns:
-            Dict[str, val]: per static map the value for the static map. This can either be an one or two dimensional
-                matrix containing the values for each problem instance or it can be a single value we will use
-                for all problem instances.
-        """
-        if self._static_maps is not None:
-            return_items = {}
-
-            for key, val in self._static_maps.items():
-
-                loaded_val = None
-
-                if isinstance(val, six.string_types):
-                    loaded_val = create_roi(load_nifti(val).get_data(), self.mask)
-                elif isinstance(val, np.ndarray):
-                    loaded_val = create_roi(val, self.mask)
-                elif is_scalar(val):
-                    loaded_val = val
-
-                return_items[key] = loaded_val
-
-            return return_items
-
-        return self._static_maps
-
-    @property
-    def noise_std(self):
-        """The noise standard deviation we will use during model evaluation.
-
-        During optimization or sampling the model will be evaluated against the observations using an evaluation
-        model. Most of these evaluation models need to have a standard deviation.
-
-        Returns:
-            number of ndarray: either a scalar or a 2d matrix with one value per problem instance.
-        """
-        try:
-            noise_std = autodetect_noise_std_loader(self._noise_std).get_noise_std(self)
-        except NoiseStdEstimationNotPossible:
-            logger = logging.getLogger(__name__)
-            logger.warning('Failed to obtain a noise std for this subject. We will continue with an std of 1.')
-            noise_std = 1
-
-        self._noise_std = noise_std
-
-        if is_scalar(noise_std):
-            return noise_std
-        else:
-            return create_roi(noise_std, self.mask)
-
-
-class MockInputDataDMRI(InputDataDMRI):
+class MockMRIInputData(SimpleMRIInputData):
 
     def __init__(self, protocol=None, signal4d=None, mask=None, nifti_header=None,
                  **kwargs):
         """A mock DMRI input data object that returns None for everything unless given.
         """
-        super(MockInputDataDMRI, self).__init__(protocol, signal4d, mask, nifti_header, **kwargs)
+        super(MockMRIInputData, self).__init__(protocol, signal4d, mask, nifti_header, **kwargs)
 
     def _get_constructor_args(self):
         """Get the constructor arguments needed to create a copy of this batch util using a copy constructor.
@@ -453,12 +318,12 @@ class MockInputDataDMRI(InputDataDMRI):
 def load_problem_data(*args, **kwargs):
     # todo: remove in future version
     import warnings
-    warnings.warn('The function `load_problem_data` is deprecated and has been renamed to `load_dmri_input_data`. '
+    warnings.warn('The function `load_problem_data` is deprecated and has been renamed to `load_input_data`. '
                   'Please rename your function call.')
-    return load_dmri_input_data(*args, **kwargs)
+    return load_input_data(*args, **kwargs)
 
 
-def load_dmri_input_data(volume_info, protocol, mask, static_maps=None, gradient_deviations=None, noise_std=None):
+def load_input_data(volume_info, protocol, mask, static_maps=None, gradient_deviations=None, noise_std=None):
     """Load and create the input data object for diffusion MRI modeling.
 
     Args:
@@ -476,7 +341,7 @@ def load_dmri_input_data(volume_info, protocol, mask, static_maps=None, gradient
             or a scalar, or an 3d matrix with one value per voxel.
 
     Returns:
-        InputDataDMRI: the input data object containing all the info needed for diffusion MRI model fitting
+        SimpleMRIInputData: the input data object containing all the info needed for diffusion MRI model fitting
     """
     protocol = autodetect_protocol_loader(protocol).get_protocol()
     mask = autodetect_brain_mask_loader(mask).get_data()
@@ -491,43 +356,8 @@ def load_dmri_input_data(volume_info, protocol, mask, static_maps=None, gradient
     if isinstance(gradient_deviations, six.string_types):
         gradient_deviations = load_nifti(gradient_deviations).get_data()
 
-    return InputDataDMRI(protocol, signal4d, mask, img_header, static_maps=static_maps, noise_std=noise_std,
-                         gradient_deviations=gradient_deviations)
-
-
-def load_S0_T1_GRE_input_data(volume_info, protocol, mask, slab, static_maps=None, noise_std=None):
-    """Creates the input data object for the S0-T1Gre model for inversion time recovery.
-
-    This will take care of the reshuffling of the input data using ``slab``. Please provide the TI's in the protocol
-    object.
-
-    Args:
-        volume_info (string or tuple): Either an (ndarray, img_header) tuple or the full path
-            to the volume (4d signal data).
-        protocol (:class:`~mdt.protocols.Protocol` or str): A protocol object with the right protocol for the
-            given data, or a string object with a filename to the given file.
-        mask (ndarray, str): A full path to a mask file or a 3d ndarray containing the mask
-        slab (int): the amount of T1 rolling every slice
-        static_maps (Dict[str, val]): the dictionary with per static map the value to use.
-            The value can either be an 3d or 4d ndarray, a single number or a string. We will convert all to the
-            right format.
-        noise_std (number or ndarray): either None for automatic detection,
-            or a scalar, or an 3d matrix with one value per voxel.
-
-    Returns:
-        InputDataDMRI: the input data object containing all the info needed for diffusion MRI model fitting
-    """
-    protocol = autodetect_protocol_loader(protocol).get_protocol()
-    mask = autodetect_brain_mask_loader(mask).get_data()
-
-    if isinstance(volume_info, string_types):
-        info = load_nifti(volume_info)
-        signal4d = info.get_data()
-        img_header = info.get_header()
-    else:
-        signal4d, img_header = volume_info
-
-    return InputData_S0_T1_GRE(protocol, signal4d, mask, img_header, slab, static_maps=static_maps, noise_std=noise_std)
+    return SimpleMRIInputData(protocol, signal4d, mask, img_header, static_maps=static_maps, noise_std=noise_std,
+                              gradient_deviations=gradient_deviations)
 
 
 class InitializationData(object):
@@ -539,7 +369,7 @@ class InitializationData(object):
 
         Args:
             model: the model to apply the initializations on
-            input_data (InputDataDMRI): the input data used in the fit
+            input_data (SimpleMRIInputData): the input data used in the fit
         """
         raise NotImplementedError()
 
@@ -1584,7 +1414,7 @@ class ComplexNoiseStdEstimator(object):
         """Get a noise std for the entire volume.
 
         Args:
-            input_data (InputDataDMRI): the input data for which to find a noise std
+            input_data (SimpleMRIInputData): the input data for which to find a noise std
 
         Returns:
             float or ndarray: the noise sigma of the Gaussian noise in the original complex image domain
@@ -1676,7 +1506,7 @@ def estimate_noise_std(input_data, estimator=None):
     """Estimate the noise standard deviation.
 
     Args:
-        input_data (InputDataDMRI): the input data we can use to do the estimation
+        input_data (SimpleMRIInputData): the input data we can use to do the estimation
         estimator (ComplexNoiseStdEstimator): the estimator to use for the estimation. If not set we use
             the one in the configuration.
 
@@ -1979,7 +1809,7 @@ def recalculate_error_measures(model, input_data, data_dir, output_dir=None):
     Args:
         model (str or AbstractModel): An implementation of an AbstractModel that contains the model we want to optimize
             or the name of an model we use with get_model()
-        input_data (InputDataDMRI): the input data object
+        input_data (SimpleMRIInputData): the input data object
         data_dir (str): the directory containing the results for the given model
         output_dir (str): if given, we write the output to this directory instead of the data dir.
     """

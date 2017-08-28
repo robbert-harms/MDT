@@ -227,10 +227,10 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
         Overwrite this function to limit the input data to a suitable range.
 
         Args:
-            input_data (mdt.utils.InputDataMRI): the input data set by the user
+            input_data (mdt.utils.MRIInputData): the input data set by the user
 
         Returns:
-            mdt.utils.InputDataMRI: either the same input data or a changed copy.
+            mdt.utils.MRIInputData: either the same input data or a changed copy.
         """
         protocol = input_data.protocol
         indices = self._get_suitable_volume_indices(input_data)
@@ -252,7 +252,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
         The final argument for putting this here is that I do not want any log output in the protocol tab.
 
         Args:
-            input_data (mdt.utils.InputDataMRI): the input data to analyze.
+            input_data (mdt.utils.MRIInputData): the input data to analyze.
         """
         protocol = input_data.protocol
 
@@ -290,7 +290,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
         from writing your own _prepare_input_data object.
 
         Args:
-            input_data (mot.model_building.input_data.AbstractInputData): the input data set by the user
+            input_data (mot.model_building.input_data.InputData): the input data set by the user
 
         Returns:
             list: the list of indices we want to use for this model.

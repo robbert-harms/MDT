@@ -62,11 +62,11 @@ Please see the relevant sections in :ref:`analysis` for more details on creating
 **********
 Input data
 **********
-In MDT, all data that is needed to fit a model is stored in a :py:class:`~mdt.utils.InputDataDMRI` object.
+In MDT, all data that is needed to fit a model is stored in a :py:class:`~mdt.utils.SimpleMRIInputData` object.
 An instance of this object needs to be created before fitting a model.
 Then, during model fitting, the model loads the relevant data for the computations.
 
-The easiest way to instantiate a input data object is by using the function :func:`~mdt.utils.load_dmri_input_data`.
+The easiest way to instantiate a input data object is by using the function :func:`~mdt.utils.load_input_data`.
 At a bare minimum, this function requires:
 
 * ``volume_info``, a path to the diffusion weighted volume

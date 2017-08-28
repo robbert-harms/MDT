@@ -24,7 +24,7 @@ def sample_composite_model(model, input_data, output_folder, sampler, tmp_dir,
 
     Args:
         model (:class:`~mdt.models.composite.DMRICompositeModel`): a composite model to sample
-        input_data (:class:`~mdt.utils.InputDataMRI`): The input data object with which the model
+        input_data (:class:`~mdt.utils.MRIInputData`): The input data object with which the model
             is initialized before running
         output_folder (string): The full path to the folder where to place the output
         sampler (:class:`mot.cl_routines.sampling.base.AbstractSampler`): The sampling routine to use.

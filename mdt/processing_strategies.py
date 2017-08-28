@@ -244,7 +244,7 @@ class SimpleModelProcessor(ModelProcessor):
 
         Args:
             model (:class:`~mdt.models.composite.DMRICompositeModel`): the model we want to process
-            input_data (:class:`~mdt.utils.InputDataMRI`): The input data object with which the model is
+            input_data (:class:`~mdt.utils.MRIInputData`): The input data object with which the model is
                 initialized before running
             output_dir (str): the location for the final output files
             tmp_storage_dir (str): the location for the temporary output files

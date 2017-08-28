@@ -2,7 +2,7 @@ import numpy as np
 from six import string_types
 from mdt.components_loader import get_model
 from mdt.nifti import get_all_image_data
-from mdt.utils import create_roi, restore_volumes, MockInputDataDMRI
+from mdt.utils import create_roi, restore_volumes, MockMRIInputData
 from mot.cl_routines.mapping.calculate_model_estimates import CalculateModelEstimates
 
 __author__ = 'Robbert Harms'
@@ -20,7 +20,7 @@ def create_signal_estimates(model, input_data, parameters):
 
     Args:
         model (str or model): the model or the name of the model to use for estimating the signals
-        input_data (mdt.utils.InputDataMRI): the input data object, we will set this to the model
+        input_data (mdt.utils.MRIInputData): the input data object, we will set this to the model
         parameters (str or dict): either a directory file name or a dictionary containing optimization results
 
     Returns:
@@ -53,7 +53,7 @@ def simulate_signals(model, protocol, parameters):
     if isinstance(model, string_types):
         model = get_model(model)
 
-    model.set_input_data(MockInputDataDMRI(protocol=protocol))
+    model.set_input_data(MockMRIInputData(protocol=protocol))
     params_array = model.param_dict_to_array(parameters)
 
     calculator = CalculateModelEstimates()
