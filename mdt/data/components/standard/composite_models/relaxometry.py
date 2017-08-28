@@ -3,9 +3,8 @@ from mdt.component_templates.composite_models import DMRICompositeModelTemplate
 __author__ = 'Francisco.Lagos'
 
 
-class S0TIGre(DMRICompositeModelTemplate):
+class S0_T1_GRE(DMRICompositeModelTemplate):
 
-    name = 'S0-TIGre'
     description = '''Inversion recovery model. 
     
     This is made to model the MI-EPI sequence, a multi inversion recovery epi (Renvall et Al. 2016). 
