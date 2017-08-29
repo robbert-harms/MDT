@@ -29,6 +29,7 @@ from mdt.nifti import write_all_as_nifti, get_all_image_data
 from mdt.configuration import gzip_optimization_results, gzip_sampling_results
 from mdt.utils import create_roi, load_samples
 
+
 __author__ = 'Robbert Harms'
 __date__ = "2016-07-29"
 __maintainer__ = "Robbert Harms"
@@ -305,20 +306,32 @@ class SimpleModelProcessor(ModelProcessor):
         volume_indices = self._volume_indices[roi_indices, :]
 
         for param_name, result_array in results.items():
-            storage_path = os.path.join(tmp_dir, param_name + '.npy')
+            filename = os.path.join(tmp_dir, param_name + '.npy')
+            self._write_volume(result_array, volume_indices, filename)
 
-            map_4d_dim_len = 1
-            if len(result_array.shape) > 1:
-                map_4d_dim_len = result_array.shape[1]
-            else:
-                result_array = np.reshape(result_array, (-1, 1))
+    def _write_volume(self, data, volume_indices, filename):
+        """Write the result of one map to the specified file.
 
-            mode = 'w+'
-            if os.path.isfile(storage_path):
-                mode = 'r+'
-            tmp_matrix = open_memmap(storage_path, mode=mode, dtype=result_array.dtype,
-                                     shape=self._mask_shape[0:3] + (map_4d_dim_len,))
-            tmp_matrix[volume_indices[:, 0], volume_indices[:, 1], volume_indices[:, 2]] = result_array
+        This is meant to save map data to a temporary .npy file.
+
+        Args:
+            data (ndarray): the voxel data to store
+            volume_indices (ndarray): the volume indices of the computed data points
+            filename (str): the file to write the results to. This by default will append to the file if it exists.
+        """
+        map_4d_dim_len = 1
+        if len(data.shape) > 1:
+            map_4d_dim_len = data.shape[1]
+        else:
+            data = np.reshape(data, (-1, 1))
+
+        mode = 'w+'
+        if os.path.isfile(filename):
+            mode = 'r+'
+
+        tmp_matrix = open_memmap(filename, mode=mode, dtype=data.dtype,
+                                 shape=self._mask_shape[0:3] + (map_4d_dim_len,))
+        tmp_matrix[volume_indices[:, 0], volume_indices[:, 1], volume_indices[:, 2]] = data
 
     def _combine_volumes(self, output_dir, tmp_storage_dir, nifti_header, maps_subdir=''):
         """Combine volumes found in subdirectories to a final volume.
