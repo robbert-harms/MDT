@@ -186,7 +186,7 @@ class VoxelRange(ChunksProcessingStrategy):
 
 class ModelProcessor(object):
 
-    def process(self, roi_indices, next_indices=None): #  todo implement
+    def process(self, roi_indices, next_indices=None):
         """Get the worker specific for the given voxel indices.
 
         By adding an additional layer of indirection it is possible for the processing strategy to fine-tune the
@@ -270,12 +270,7 @@ class SimpleModelProcessor(ModelProcessor):
         raise NotImplementedError()
 
     def get_voxels_to_compute(self):
-        roi_list = np.arange(0, self._total_nmr_voxels)
-        mask_path = os.path.join(self._tmp_storage_dir, '{}.npy'.format(self._used_mask_name))
-        if os.path.exists(mask_path):
-            return roi_list[np.logical_not(np.squeeze(create_roi(np.load(mask_path, mmap_mode='r'),
-                                                                 self._input_data.mask)[roi_list]))]
-        return roi_list
+        raise NotImplementedError()
 
     def get_total_nmr_voxels(self):
         return self._total_nmr_voxels
@@ -324,13 +319,6 @@ class SimpleModelProcessor(ModelProcessor):
             tmp_matrix = open_memmap(storage_path, mode=mode, dtype=result_array.dtype,
                                      shape=self._mask_shape[0:3] + (map_4d_dim_len,))
             tmp_matrix[volume_indices[:, 0], volume_indices[:, 1], volume_indices[:, 2]] = result_array
-
-        mask_path = os.path.join(tmp_dir, '{}.npy'.format(self._used_mask_name))
-        mode = 'w+'
-        if os.path.isfile(mask_path):
-            mode = 'r+'
-        tmp_mask = open_memmap(mask_path, mode=mode, dtype=np.bool, shape=self._mask_shape)
-        tmp_mask[volume_indices[:, 0], volume_indices[:, 1], volume_indices[:, 2]] = True
 
     def _combine_volumes(self, output_dir, tmp_storage_dir, nifti_header, maps_subdir=''):
         """Combine volumes found in subdirectories to a final volume.
@@ -400,6 +388,14 @@ class FittingProcessor(SimpleModelProcessor):
         self._optimizer = optimizer
         self._write_volumes_gzipped = gzip_optimization_results()
 
+    def get_voxels_to_compute(self):
+        roi_list = np.arange(0, self._total_nmr_voxels)
+        mask_path = os.path.join(self._tmp_storage_dir, '{}.npy'.format(self._used_mask_name))
+        if os.path.exists(mask_path):
+            return roi_list[np.logical_not(np.squeeze(create_roi(np.load(mask_path, mmap_mode='r'),
+                                                                 self._input_data.mask)[roi_list]))]
+        return roi_list
+
     def process(self, roi_indices, next_indices=None):
         model = self._model.build(roi_indices)
         decorated_model = ParameterTransformedModel(model, self._model.get_parameter_codec())
@@ -413,6 +409,8 @@ class FittingProcessor(SimpleModelProcessor):
         volume_maps = results_to_dict(end_points, model.get_free_param_names())
         volume_maps = model.post_process_optimization_maps(volume_maps, results_array=end_points)
         volume_maps.update({'ReturnCodes': optimization_results.get_return_codes()})
+        volume_maps.update({self._used_mask_name: np.ones(volume_maps[list(volume_maps.keys())[0]].shape[0],
+                                                          dtype=np.bool)})
 
         self._write_volumes(volume_maps, roi_indices, self._tmp_storage_dir)
 
@@ -456,7 +454,7 @@ class SamplingProcessor(SimpleModelProcessor):
             samples_file = samples_paths[0]
             current_results = open_memmap(samples_file, mode='r')
             if current_results.shape[0] == self._total_nmr_voxels:
-                mask_path = os.path.join(self._tmp_storage_dir, 'volume_maps', '{}.npy'.format(self._used_mask_name))
+                mask_path = os.path.join(self._tmp_storage_dir, '{}.npy'.format(self._used_mask_name))
                 if os.path.exists(mask_path):
                     return roi_list[np.logical_not(np.squeeze(create_roi(np.load(mask_path, mmap_mode='r'),
                                                                          self._input_data.mask)[roi_list]))]
@@ -469,7 +467,7 @@ class SamplingProcessor(SimpleModelProcessor):
         samples = sampling_output.get_samples()
 
         maps_to_save = [
-            ('maximum_likelihood', lambda: model.get_maximum_likelihood_estimation(samples)),
+            # ('maximum_likelihood', lambda: model.get_maximum_likelihood_estimation(samples)),
             ('univariate_statistics', lambda: model.get_univariate_statistics(samples)),
             ('multivariate_statistic', lambda: model.get_multivariate_sampling_statistic(samples)),
             ('effective_sample_size', lambda: model.get_sampling_ess_statistics(samples)),
@@ -484,6 +482,9 @@ class SamplingProcessor(SimpleModelProcessor):
 
         self._tmp_store_mh_state(roi_indices, sampling_output.get_mh_state())
 
+        mask_dict = {self._used_mask_name: np.ones(samples.shape[0], dtype=np.bool)}
+        self._write_volumes(mask_dict, roi_indices, os.path.join(self._tmp_storage_dir))
+
         if self._samples_to_save_method.store_samples():
             samples_dict = results_to_dict(samples, model.get_free_param_names())
             self._write_sample_results(samples_dict, roi_indices)
@@ -495,6 +496,8 @@ class SamplingProcessor(SimpleModelProcessor):
                        'effective_sample_size', 'proposal_state', 'chain_end_point', 'mh_state']:
             self._combine_volumes(self._output_dir, self._tmp_storage_dir,
                                   self._input_data.nifti_header, maps_subdir=subdir)
+
+        self._combine_volumes(self._output_dir, self._tmp_storage_dir, self._input_data.nifti_header)
 
         if self._samples_to_save_method.store_samples():
             return load_samples(self._output_dir)
