@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QWidget, QAbstractItemView, QMenu, QWidgetAction, QL
 
 from mdt.gui.maps_visualizer.actions import SetDimension, SetSliceIndex, SetVolumeIndex, SetColormap, SetRotate, \
     SetZoom, SetShowAxis, SetColorBarNmrTicks, SetMapsToShow, SetFont, SetInterpolation, SetFlipud, SetPlotTitle, \
-    SetGeneralMask, NewDataAction
+    SetGeneralMask, NewDataAction, SetShowPlotColorbars, SetColorbarLocation, SetShowPlotTitles
 from mdt.gui.maps_visualizer.base import DataConfigModel
 from mdt.gui.maps_visualizer.design.ui_TabGeneral import Ui_TabGeneral
 from mdt.gui.utils import blocked_signals, TimedUpdate, split_long_path_elements
@@ -42,6 +42,7 @@ class TabGeneral(QWidget, Ui_TabGeneral):
         self.general_Miscellaneous.set_collapse(True)
         self.general_Zoom.set_collapse(True)
         self.general_Font.set_collapse(True)
+        self.general_Colorbar.set_collapse(True)
 
         self.general_dimension.valueChanged.connect(lambda v: self._controller.apply_action(SetDimension(v)))
         self.general_slice_index.valueChanged.connect(lambda v: self._controller.apply_action(SetSliceIndex(v)))
@@ -73,8 +74,6 @@ class TabGeneral(QWidget, Ui_TabGeneral):
         self.general_display_order.items_reordered.connect(self._reorder_maps)
         self.general_show_axis.clicked.connect(lambda: self._controller.apply_action(
             SetShowAxis(self.general_show_axis.isChecked())))
-        self.general_colorbar_nmr_ticks.valueChanged.connect(
-            lambda v: self._controller.apply_action(SetColorBarNmrTicks(v)))
 
         self.general_font_family.addItems(Font.font_names())
         self.general_font_family.currentTextChanged.connect(
@@ -92,7 +91,17 @@ class TabGeneral(QWidget, Ui_TabGeneral):
         self.general_flipud.clicked.connect(lambda: self._controller.apply_action(
             SetFlipud(self.general_flipud.isChecked())))
 
+        self.general_show_plot_titles.clicked.connect(lambda: self._controller.apply_action(
+            SetShowPlotTitles(self.general_show_plot_titles.isChecked())))
+
         self.mask_name.currentIndexChanged.connect(self._update_mask_name)
+
+        self.general_colorbar_nmr_ticks.valueChanged.connect(
+            lambda v: self._controller.apply_action(SetColorBarNmrTicks(v)))
+        self.general_show_colorbar.clicked.connect(lambda: self._controller.apply_action(
+            SetShowPlotColorbars(self.general_show_colorbar.isChecked())))
+        self.general_colorbar_location.currentTextChanged.connect(
+            lambda v: self._controller.apply_action(SetColorbarLocation(v.lower())))
 
     @pyqtSlot(DataConfigModel)
     def update_model(self, model):
@@ -358,6 +367,15 @@ class TabGeneral(QWidget, Ui_TabGeneral):
 
         with blocked_signals(self.general_colorbar_nmr_ticks):
             self.general_colorbar_nmr_ticks.setValue(config.colorbar_nmr_ticks)
+
+        with blocked_signals(self.general_show_colorbar):
+            self.general_show_colorbar.setChecked(config.show_colorbars)
+
+        with blocked_signals(self.general_colorbar_location):
+            self.general_colorbar_location.setCurrentText(config.colorbar_location.title())
+
+        with blocked_signals(self.general_show_plot_titles):
+            self.general_show_plot_titles.setChecked(config.show_titles)
 
         with blocked_signals(self.general_font_family):
             self.general_font_family.setCurrentText(config.font.family)

@@ -81,7 +81,7 @@ class MapPlotConfig(SimpleConvertibleConfig):
 
     def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=90, colormap='hot', maps_to_show=None,
                  font=None, grid_layout=None, colorbar_nmr_ticks=4, colorbar_location='right',
-                 show_axis=False, show_title=True, show_colorbar=True, zoom=None,
+                 show_axis=False, show_titles=True, show_colorbars=True, zoom=None,
                  map_plot_options=None, interpolation='bilinear', flipud=None,
                  title=None, mask_name=None, highlight_voxels=None):
         """Container for all plot related settings.
@@ -99,8 +99,8 @@ class MapPlotConfig(SimpleConvertibleConfig):
             colorbar_nmr_ticks (int): the number of ticks on the colorbar
             colorbar_location (str): the location of the colorbar, one of 'right', 'left', 'top' or 'bottom'
             show_axis (bool): if we show the axis or not
-            show_colorbar (boolean): the global setting for enabling/disabling the colorbar
-            show_title (boolean): the global setting for enabling/disabling the title
+            show_colorbars (boolean): the global setting for enabling/disabling the colorbar
+            show_titles (boolean): the global setting for enabling/disabling the plot titles
             zoom (Zoom): the zoom setting for all the plots
             map_plot_options (dict of SingleMapConfig): per map the map specific plot options
             interpolation (str): one of the available interpolations
@@ -120,9 +120,9 @@ class MapPlotConfig(SimpleConvertibleConfig):
         self.font = font or Font()
         self.colorbar_nmr_ticks = int(colorbar_nmr_ticks)
         self.colorbar_location = colorbar_location or 'right'
-        self.show_colorbar = bool(show_colorbar)
+        self.show_colorbars = bool(show_colorbars)
         self.show_axis = bool(show_axis)
-        self.show_title = bool(show_title)
+        self.show_titles = bool(show_titles)
         self.grid_layout = grid_layout or Rectangular()
         self.interpolation = interpolation or 'bilinear'
         self.flipud = flipud
@@ -186,8 +186,8 @@ class MapPlotConfig(SimpleConvertibleConfig):
                 'colorbar_nmr_ticks': IntConversion(),
                 'colorbar_location': StringConversion(allow_null=False),
                 'show_axis': BooleanConversion(),
-                'show_colorbar': BooleanConversion(),
-                'show_title': BooleanConversion(),
+                'show_colorbars': BooleanConversion(),
+                'show_titles': BooleanConversion(),
                 'map_plot_options': ConvertDictElements(SingleMapConfig.get_conversion_info()),
                 'grid_layout': ConvertDynamicFromModule(mdt.visualization.layouts),
                 'interpolation': WhiteListConversion(cls.get_available_interpolations(), 'bilinear'),
@@ -296,13 +296,35 @@ class MapPlotConfig(SimpleConvertibleConfig):
                 raise ValueError('The given global mask is not found in the list of maps.')
 
     def _validate_map_plot_options(self, data_info):
-        for key in list(self.map_plot_options):
-            if key not in data_info.get_map_names():
-                del self.map_plot_options[key]
+        def remove_not_in_data():
+            for key in list(self.map_plot_options):
+                if key not in data_info.get_map_names():
+                    del self.map_plot_options[key]
 
-        for key, value in self.map_plot_options.items():
-            if value is not None:
-                self.map_plot_options[key] = value.validate(data_info)
+        def get_validated():
+            validated = {}
+            for key, value in self.map_plot_options.items():
+                if value is not None:
+                    validated[key] = value.validate(data_info)
+            self.map_plot_options = validated
+
+        def remove_empty():
+            empty_config = SingleMapConfig()
+            empty_removed = {}
+            for key, value in self.map_plot_options.items():
+                if value != empty_config:
+                    empty_removed[key] = value
+            self.map_plot_options = empty_removed
+
+        def create_placeholders():
+            for map_name in self.maps_to_show:
+                if map_name not in self.map_plot_options:
+                    self.map_plot_options[map_name] = SingleMapConfig()
+
+        remove_not_in_data()
+        get_validated()
+        remove_empty()
+        create_placeholders()
 
     def _validate_highlight_voxels(self, data_info):
         if self.highlight_voxels is None:
@@ -326,6 +348,15 @@ class MapPlotConfig(SimpleConvertibleConfig):
                 if pos < 0:
                     raise ValueError('The location of a highlighted voxel in '
                                      'the {} dimension is negative, {} given.'.format(dim, pos))
+
+    def _validate_colorbar_nmr_ticks(self, data_info):
+        if self.colorbar_nmr_ticks is not None and self.colorbar_nmr_ticks <= 0:
+            raise ValueError("The number of ticks in the colorbar needs to be a positive integer.")
+
+    def _validate_colorbar_location(self, data_info):
+        if self.colorbar_location not in ['left', 'right', 'bottom', 'top']:
+            raise ValueError("The colorbar location is '{}' which is not "
+                             "one of 'left', 'bottom', 'right', 'top'.".format(str(self.colorbar_location)))
 
 
 class SingleMapConfig(SimpleConvertibleConfig):
@@ -362,10 +393,10 @@ class SingleMapConfig(SimpleConvertibleConfig):
         self.colorbar_label = colorbar_label
         self.colorbar_location = colorbar_location
         self.colorbar_nmr_ticks = colorbar_nmr_ticks
-        self.show_colorbar = show_colorbar
-        self.show_title = show_title
+        self.show_colorbar = bool(show_colorbar) if show_colorbar is not None else None
+        self.show_title = bool(show_title) if show_title is not None else None
         self.mask_name = mask_name
-        self.interpret_as_colormap = interpret_as_colormap
+        self.interpret_as_colormap = bool(interpret_as_colormap)
         self.colormap_weight_map = colormap_weight_map
 
         if self.colormap is not None and self.colormap not in self.get_available_colormaps():
@@ -455,6 +486,15 @@ class SingleMapConfig(SimpleConvertibleConfig):
     def _validate_colormap_weight_map(self, data_info):
         if self.colormap_weight_map is not None and self.colormap_weight_map not in data_info.get_map_names():
             raise ValueError('The given colormap weight map "{}" does not exist.'.format(self.colormap_weight_map))
+
+    def _validate_colorbar_nmr_ticks(self, data_info):
+        if self.colorbar_nmr_ticks is not None and self.colorbar_nmr_ticks <= 0:
+            raise ValueError("The number of ticks in the colorbar needs to be a positive integer.")
+
+    def _validate_colorbar_location(self, data_info):
+        if self.colorbar_location is not None and self.colorbar_location not in ['left', 'right', 'bottom', 'top']:
+            raise ValueError("The colorbar location is '{}' which is not "
+                             "one of 'left', 'bottom', 'right', 'top'.".format(str(self.colorbar_location)))
 
 
 class DataInfo(object):

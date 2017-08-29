@@ -443,8 +443,10 @@ class BuildCompositeModel(SampleModelInterface):
 
         return results_dict
 
-    def get_sampling_mean_estimate(self, samples):
-        """Get the point estimates for the mean point of all the sample parameters.
+    def get_univariate_statistics(self, samples):
+        """Get the univariate statistics for the samples.
+
+        This typically returns the mean and standard deviation of each of the parameters.
 
         This will use the sampling statistic of each of the parameters to get the mean parameter value. That value is
         then used for the point estimate for the volume maps.
@@ -459,6 +461,22 @@ class BuildCompositeModel(SampleModelInterface):
         volume_maps = self.post_process_optimization_maps(volume_maps)
         volume_maps.update(self._get_post_sampling_information_criterion_maps(samples, volume_maps['LogLikelihood']))
         return volume_maps
+
+    def get_maximum_likelihood_estimation(self, samples):
+        """Get the parameters and likelihood of the sample with the highest likelihood.
+
+        This will compute the likelihood for each set of parameters in the samples and construct a result dictionary
+        with for every voxel the set of parameters corresponding to the maximum likelihood.
+
+        This can return some additional maps like the LogLikelihood, BIC maps and others.
+
+        Args:
+            samples (ndarray): an (d, p, n) matrix for d problems, p parameters and n samples.
+
+        Returns:
+            dict: the volume maps with the ESS statistics
+        """
+        # todo
 
     def get_sampling_ess_statistics(self, samples):
         """Get the Effective Sample Size statistics for the given set of samples.
@@ -563,6 +581,7 @@ class BuildCompositeModel(SampleModelInterface):
         return result
 
     def _get_post_sampling_information_criterion_maps(self, samples, log_likelihoods):
+        """Get the information criterion maps that can be only be calculated after sampling."""
         maps = {}
         maps.update(self._calculate_deviance_information_criterions(samples, log_likelihoods))
         maps.update({'WAIC': np.nan_to_num(WAICCalculator().calculate(self, samples))})

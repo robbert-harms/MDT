@@ -469,7 +469,8 @@ class SamplingProcessor(SimpleModelProcessor):
         samples = sampling_output.get_samples()
 
         maps_to_save = [
-            ('mean_parameter_estimate', lambda: model.get_sampling_mean_estimate(samples)),
+            ('maximum_likelihood', lambda: model.get_maximum_likelihood_estimation(samples)),
+            ('univariate_statistics', lambda: model.get_univariate_statistics(samples)),
             ('multivariate_statistic', lambda: model.get_multivariate_sampling_statistic(samples)),
             ('effective_sample_size', lambda: model.get_sampling_ess_statistics(samples)),
             ('proposal_state', lambda: results_to_dict(sampling_output.get_proposal_state(),
@@ -490,8 +491,8 @@ class SamplingProcessor(SimpleModelProcessor):
     def combine(self):
         super(SamplingProcessor, self).combine()
 
-        for subdir in ['mean_parameter_estimate', 'multivariate_statistic', 'effective_sample_size',
-                       'proposal_state', 'chain_end_point', 'mh_state']:
+        for subdir in ['maximum_likelihood', 'univariate_statistics', 'multivariate_statistic',
+                       'effective_sample_size', 'proposal_state', 'chain_end_point', 'mh_state']:
             self._combine_volumes(self._output_dir, self._tmp_storage_dir,
                                   self._input_data.nifti_header, maps_subdir=subdir)
 

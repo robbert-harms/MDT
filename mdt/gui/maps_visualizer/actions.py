@@ -283,6 +283,21 @@ class SetShowAxis(SimpleConfigAction):
     config_attribute = 'show_axis'
 
 
+class SetShowPlotColorbars(SimpleConfigAction):
+
+    config_attribute = 'show_colorbars'
+
+
+class SetShowPlotTitles(SimpleConfigAction):
+
+    config_attribute = 'show_titles'
+
+
+class SetColorbarLocation(SimpleConfigAction):
+
+    config_attribute = 'colorbar_location'
+
+
 class SetColorBarNmrTicks(SimpleConfigAction):
 
     config_attribute = 'colorbar_nmr_ticks'

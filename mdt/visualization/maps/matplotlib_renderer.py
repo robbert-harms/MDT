@@ -138,7 +138,7 @@ class Renderer(object):
     def _render_map(self, map_name, axis):
         """Render a single map to the given axis"""
 
-        if self._get_map_attr(map_name, 'show_title', self._plot_config.show_title):
+        if self._get_map_attr(map_name, 'show_title', self._plot_config.show_titles):
             axis.set_title(self._get_map_attr(map_name, 'title', map_name), y=self._get_title_spacing(map_name))
 
         axis.axis('on' if self._plot_config.show_axis else 'off')
@@ -154,14 +154,15 @@ class Renderer(object):
         self._add_colorbar(axis, map_name, vf, self._get_map_attr(map_name, 'colorbar_label'),
                            self._get_map_attr(map_name, 'colorbar_location', self._plot_config.colorbar_location))
 
+        self._apply_font_general_axis(axis)
+
         return AxisData(axis, map_name, self._data_info.get_single_map_info(map_name), self._plot_config)
 
-    def _apply_font(self, image_axis, colorbar_axis):
-        """Apply the font from the plot configuration to the image and colorbar axis"""
+    def _apply_font_general_axis(self, image_axis):
+        """Apply the font from the plot configuration to the image axis"""
         items = [image_axis.xaxis.label, image_axis.yaxis.label]
         items.extend(image_axis.get_xticklabels())
         items.extend(image_axis.get_yticklabels())
-        items.extend(colorbar_axis.yaxis.get_ticklabels())
 
         for item in items:
             item.set_fontsize(self._plot_config.font.size - 2)
@@ -169,6 +170,14 @@ class Renderer(object):
 
         image_axis.title.set_fontsize(self._plot_config.font.size)
         image_axis.title.set_family(self._plot_config.font.name)
+
+    def _apply_font_colorbar_axis(self, colorbar_axis):
+        """Apply the font from the plot configuration to the colorbar axis"""
+        items = colorbar_axis.yaxis.get_ticklabels()
+
+        for item in items:
+            item.set_fontsize(self._plot_config.font.size - 2)
+            item.set_family(self._plot_config.font.name)
 
         colorbar_axis.yaxis.label.set_fontsize(self._plot_config.font.size)
         colorbar_axis.yaxis.label.set_family(self._plot_config.font.name)
@@ -249,8 +258,11 @@ class Renderer(object):
         """
         divider = make_axes_locatable(axis)
 
-        show_colorbar = self._get_map_attr(map_name, 'show_colorbar', self._plot_config.show_colorbar)
+        show_colorbar = self._get_map_attr(map_name, 'show_colorbar', self._plot_config.show_colorbars)
         axis_kwargs = dict(size="5%", pad=0.12)
+
+        if self._plot_config.show_axis and colorbar_position in ['bottom', 'left']:
+            axis_kwargs['pad'] = 0.3
 
         if show_colorbar and colorbar_position in ('left', 'right'):
             colorbar_axis = divider.append_axes(colorbar_position, **axis_kwargs)
@@ -289,7 +301,7 @@ class Renderer(object):
             if cbar.ax.get_yticklabels():
                 cbar.ax.get_yticklabels()[-1].set_verticalalignment('top')
 
-            self._apply_font(axis, colorbar_axis)
+            self._apply_font_colorbar_axis(colorbar_axis)
 
     def _get_map_attr(self, map_name, option, default=None):
         if map_name in self._plot_config.map_plot_options:
