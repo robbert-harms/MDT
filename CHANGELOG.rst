@@ -3,27 +3,36 @@ Changelog
 *********
 
 
-v0.10.2 (2017-08-27)
+v0.10.3 (2017-08-29)
 ====================
 
 Added
 -----
-- Added overridden method to the problem data.
-- Adds support for fitting when the protocol is empty.
-- Added parameter name logging to MDT instead of in MOT.
+- Adds some of the new config switches in the maps visualizer to the graphical interface.
+- Adds the possibility of interpreting vector maps as RGB maps. Useful for displaying Tensor FA orientation maps.
+- Added parameter name logging (showing the names of the variables being optimized) to MDT instead of in MOT.
 
 Changed
 -------
-- Updated the ExpT1DecIR model, adds a cascade. Updated the way cascades are updated as such that it allows for multiple copies of the same model in a cascade.
-- Updates to the GUI.
+- Updated the processing strategy with a better mask file placement (technical thing).
+- Updates to the sampling post-processing, changed output folders.
+- Updates to the documentation.
+- Updated the InputDataMRI interface to contain a few more properties.
+- Updated the ExpT1DecIR model, adds a cascade.
+- Updated the way cascades are updated as such that it allows for multiple copies of the same model in a cascade.
 - Updates the parser to the latest version of Grako.
 
 Fixed
 -----
-- Fixed the issue with the get_free_param_names removal.
+- Fixed naming issues when loading new maps in the map viewer.
+- Fixes the image squeezing in the viewer when adding a colorbar.
 
 Other
 -----
+- Small refactoring in the processing strategy.
+- Renamed the S0-TIGre model to S0_TI_GRE.
+- Renamed InputDataMRI to MRIInputData and InputDataDMRI to SimpleMRIInputData.
+- Renamed 'problem_data' to 'input_data', 'DMRIProblemData' to 'InputDataDMRI' and all other possible renamings. This also deprecates the function load_problem_data since it has been renamed to load_input_data.
 - Following changes in MOT.
 
 
@@ -34,29 +43,15 @@ Added
 -----
 - Adds chunk indices look-a-head in the processing strategies. This allows the Processor to start pre-loading the next batch.
 
-Other
------
-- Version bump.
-
 
 v0.10.1 (2017-08-22)
 ====================
 
 Changed
 -------
-- Updates to the GUI.
-- Updates to the GUI.
-- Updates to the GUI.
 - Updates to fix input in the GUI.
-- Updates to the GUI.
 - Updates to the GUI, fixes spacings bug.
-- Updates to GUI.
 - Updates to the maps visualizer.
-
-Other
------
-- Version bump.
-- Another small bugfix.
 
 
 v0.10.0 (2017-08-17)
