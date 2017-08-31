@@ -702,8 +702,8 @@ class BuildCompositeModel(SampleModelInterface):
     def double_precision(self):
         return self._wrapped_sample_model.double_precision
 
-    def get_kernel_data_info(self):
-        return self._wrapped_sample_model.get_kernel_data_info()
+    def get_kernel_data(self):
+        return self._wrapped_sample_model.get_kernel_data()
 
     def get_nmr_problems(self):
         return self._wrapped_sample_model.get_nmr_problems()
