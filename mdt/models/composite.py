@@ -317,7 +317,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
             def calculator(model, results_dict):
                 estimated_parameters = [results_dict[k] for k in estimable_parameter_names]
                 cpd = CalculateDependentParameters(double_precision=self.double_precision)
-                return cpd.calculate(model, estimated_parameters, func, dependent_parameter_names)
+                return cpd.calculate(model.get_kernel_data(), estimated_parameters, func, dependent_parameter_names)
         else:
             def calculator(model, results_dict):
                 return {}

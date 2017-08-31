@@ -37,7 +37,7 @@ To check if a parameter can be found by MDT, you can use the following code in a
 .. code-block:: python
 
     >>> import mdt
-    >>> mdt.load_component('parameters', '<param_name>')
+    >>> mdt.get_parameter('<param_name>')
 
 Where ``<param_name>`` should be substituted by the name of your parameter.
 If that works without errors your parameter can be found and can be used inside compartment models.
@@ -67,10 +67,31 @@ To check if a compartment can be found by MDT, you can use the following code in
 .. code-block:: python
 
     >>> import mdt
-    >>> mdt.load_component('compartment_models', '<compartment_name>')
+    >>> mdt.get_compartment('<compartment_name>')
 
 Where ``<compartment_name>`` should be substituted by the name of your compartment.
 If that works without errors your compartment can be found and can be used inside composite models.
+
+To check if your compartment is working as expected, you can use the method ``evaluate`` that is part of a compartment.
+This method requires as input a list of parameter arrays and will as output contain the evaluations of the model
+for each set of parameters. For example::
+
+
+    compartment = mdt.get_compartment('Stick')
+
+    signal = compartment.evaluate([
+        np.array([[0., 0., 0.],
+                  [0.132723, -0.739879, 0.659517],
+                  [-0.918278, 0.379929, -0.11144 ],
+                  [-0.965426, -0.153303, -0.210835]]),
+        np.array([0, 7e8, 7e8, 7e8]),
+        np.ones(4) * 1e-9,
+        np.ones(4) * 1/2.0 * np.pi,
+        np.ones(4) * 1/2.0 * np.pi
+    ])
+
+
+Here we evaluate the ``Stick`` model at four different data points by giving, for each parameter to the model (g, b, d, theta and phi), an array of input values.
 
 
 Defining new Composite models

@@ -302,7 +302,7 @@ def _construct_cl_function_definition(return_type, cl_function_name, parameters)
         str: the function definition (only the signature).
     """
     def parameter_str(parameter):
-        s = parameter.data_type.cl_type
+        s = parameter.data_type.declaration_type
 
         if parameter.data_type.pre_data_type_type_qualifiers:
             for qualifier in parameter.data_type.pre_data_type_type_qualifiers:

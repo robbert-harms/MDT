@@ -44,6 +44,45 @@ def get_model(model_name, **kwargs):
             raise ValueError('The model with the name "{}" could not be found.'.format(model_name))
 
 
+def get_compartment(compartment_name, **kwargs):
+    """Load one of the available compartments.
+
+    Args:
+        compartment_name (str): the name of the compartment to load
+        **kwargs: Extra keyword arguments used for the initialization of the model
+
+    Returns:
+        the compartment model requested
+    """
+    return CompartmentModelsLoader().load(compartment_name, **kwargs)
+
+
+def get_parameter(parameter_name, **kwargs):
+    """Load one of the available compartments.
+
+    Args:
+        parameter_name (str): the name of the parameter to load
+        **kwargs: Extra keyword arguments used for the initialization of the model
+
+    Returns:
+        the compartment model requested
+    """
+    return ParametersLoader().load(parameter_name, **kwargs)
+
+
+def get_library_function(function_name, **kwargs):
+    """Load one of the available compartments.
+
+    Args:
+        function_name (str): the name of the library function to load
+        **kwargs: Extra keyword arguments used for the initialization of the model
+
+    Returns:
+        the library function requested
+    """
+    return LibraryFunctionsLoader().load(function_name, **kwargs)
+
+
 @contextmanager
 def user_preferred_components(components_dict):
     """Creates a context manager in which the provided components take precedence over existing ones.
@@ -702,7 +741,7 @@ class ParametersSource(AutoUserComponentsSourceMulti):
 
     def __init__(self, user_type):
         """Source for the items in the 'parameters' dir in the components folder."""
-        from mot.model_building.parameters import CLFunctionParameter
+        from mot.cl_parameter import CLFunctionParameter
         from mdt.component_templates.parameters import ParameterBuilder
         super(ParametersSource, self).__init__(user_type, 'parameters', CLFunctionParameter, ParameterBuilder())
 

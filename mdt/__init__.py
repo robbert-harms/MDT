@@ -30,7 +30,8 @@ from mdt.utils import estimate_noise_std, get_cl_devices, load_input_data, load_
 from mdt.simulations import create_signal_estimates, simulate_signals, add_rician_noise
 from mdt.batch_utils import collect_batch_fit_output, collect_batch_fit_single_map, run_function_on_batch_fit_output
 from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, write_protocol, write_bvec_bval
-from mdt.components_loader import load_component, get_model, component_import, get_component_class, get_meta_info
+from mdt.components_loader import load_component, get_model, component_import, get_component_class, get_meta_info, \
+    get_compartment, get_parameter, get_library_function
 from mdt.component_templates.base import construct_component
 from mdt.configuration import config_context, get_processing_strategy
 from mdt.exceptions import InsufficientProtocolError

@@ -20,6 +20,14 @@ mdt\.visualization\.maps\.matplotlib\_renderer module
     :undoc-members:
     :show-inheritance:
 
+mdt\.visualization\.maps\.utils module
+--------------------------------------
+
+.. automodule:: mdt.visualization.maps.utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Module contents
 ---------------

@@ -1,12 +1,8 @@
 import unittest
-
 from scipy.special import jnp_zeros
 import numpy as np
-import pyopencl as cl
 from numpy.testing import assert_allclose
-
 import mdt
-from mot.utils import get_float_type_def
 
 
 class test_NeumannCylindricalRestrictedSignal(unittest.TestCase):
@@ -31,56 +27,9 @@ class test_NeumannCylindricalRestrictedSignal(unittest.TestCase):
         assert_allclose(np.nan_to_num(python_results), np.nan_to_num(cl_results), atol=1e-7)
 
     def _calculate_cl(self, test_params, double_precision=False):
-        if double_precision:
-            test_params = test_params.astype(np.float64)
-        else:
-            test_params = test_params.astype(np.float32)
-
-        src = self._get_kernel_source(double_precision, test_params.shape[0])
-        results = np.zeros(test_params.shape[0])
-        self._run_kernel(src, test_params, results)
-        return results
-
-    def _run_kernel(self, src, input_args, results):
-        ctx = cl.create_some_context()
-        queue = cl.CommandQueue(ctx)
-        prg = cl.Program(ctx, src).build()
-
-        mf = cl.mem_flags
-        input_args_buffer = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=input_args)
-        output_buffer = cl.Buffer(ctx, mf.WRITE_ONLY | mf.USE_HOST_PTR, hostbuf=results)
-        buffers = [input_args_buffer, output_buffer]
-
-        kernel_event = prg.test_ncrs(queue, (input_args.shape[0],), None, *buffers)
-        self._enqueue_readout(queue, output_buffer, results, 0, input_args.shape[0], [kernel_event])
-
-    def _enqueue_readout(self, queue, buffer, host_array, range_start, range_end, wait_for):
-        nmr_problems = range_end - range_start
-        return cl.enqueue_map_buffer(
-            queue, buffer, cl.map_flags.READ, range_start * host_array.strides[0],
-            (nmr_problems, ) + host_array.shape[1:], host_array.dtype, order="C", wait_for=wait_for,
-            is_blocking=False)[1]
-
-    def _get_kernel_source(self, double_precision, nmr_problems):
-        src = ''
-        src += get_float_type_def(double_precision)
-        src += mdt.get_component_class('library_functions', 'NeumannCylindricalRestrictedSignal')().get_cl_code()
-        src += '''
-            __kernel void test_ncrs(global mot_float_type input_args[''' + str(nmr_problems) + '''][5],
-                                    global double output[''' + str(nmr_problems) + ''']){
-
-                uint gid = get_global_id(0);
-                
-                mot_float_type Delta = input_args[gid][0];
-                mot_float_type delta = input_args[gid][1];
-                mot_float_type d = input_args[gid][2];
-                mot_float_type R = input_args[gid][3];
-                mot_float_type G = input_args[gid][4];
-                
-                output[gid] = NeumannCylindricalRestrictedSignal(Delta, delta, d, R, G);
-            }
-        '''
-        return src
+        func = mdt.get_library_function('NeumannCylindricalRestrictedSignal')
+        return func.evaluate([test_params[..., ind] for ind in range(test_params.shape[1])],
+                             double_precision=double_precision)
 
     def _generate_test_params(self):
         """

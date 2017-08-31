@@ -48,14 +48,6 @@ class LibraryFunctionTemplate(ComponentTemplate):
     is_function = True
 
 
-class LibraryFunctionBuildingBase(SimpleCLLibrary):
-    """Use this class in super calls if you want to overwrite methods in the inherited compartment configs.
-
-    In python2 super needs a type to be able to do its work. This is the type you can give it to allow
-    it to do its work.
-    """
-
-
 class LibraryFunctionsBuilder(ComponentBuilder):
 
     def create_class(self, template):
@@ -65,17 +57,19 @@ class LibraryFunctionsBuilder(ComponentBuilder):
             template (LibraryFunctionTemplate): the library config template to use for creating
                 the class with the right init settings.
         """
-        class AutoCreatedLibraryFunction(method_binding_meta(template, LibraryFunctionBuildingBase)):
+        class AutoCreatedLibraryFunction(method_binding_meta(template, SimpleCLLibrary)):
 
             def __init__(self, *args, **kwargs):
-                new_args = [template.name,
+                new_args = [template.return_type,
+                            template.name,
+                            _get_parameters_list(template.parameter_list),
                             _build_source_code(template),
                             ]
 
                 for ind, already_set_arg in enumerate(args):
                     new_args[ind] = already_set_arg
 
-                new_kwargs = dict(dependencies=_resolve_dependencies(template.dependency_list))
+                new_kwargs = dict(dependency_list=_resolve_dependencies(template.dependency_list))
                 new_kwargs.update(kwargs)
 
                 super(AutoCreatedLibraryFunction, self).__init__(*new_args, **new_kwargs)
@@ -163,7 +157,7 @@ def _construct_cl_function_definition(return_type, cl_function_name, parameters)
         str: the function definition (only the signature).
     """
     def parameter_str(parameter):
-        s = parameter.data_type.cl_type
+        s = parameter.data_type.declaration_type
 
         if parameter.data_type.pre_data_type_type_qualifiers:
             for qualifier in parameter.data_type.pre_data_type_type_qualifiers:
