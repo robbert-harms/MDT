@@ -885,15 +885,19 @@ def spherical_to_cartesian(theta, phi):
         ndarray: matrix with same shape as the input (minimal two dimensions though) with on the last axis
             the [x, y, z] coordinates of each vector.
     """
+    return_shape = len(theta.shape)
+    if return_shape == 0:
+        return_shape = 1
+
     def ensure_shape(coordinate):
-        if len(coordinate.shape) < len(theta.shape):
+        if len(coordinate.shape) < return_shape:
             return coordinate[..., None]
         return coordinate
 
     sin_theta = np.sin(theta)
     return np.stack(map(ensure_shape, [sin_theta * np.cos(phi),
                                        sin_theta * np.sin(phi),
-                                       np.cos(theta)]), axis=len(theta.shape))
+                                       np.cos(theta)]), axis=return_shape)
 
 
 def cartesian_to_spherical(vectors):

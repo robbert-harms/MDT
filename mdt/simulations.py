@@ -1,4 +1,5 @@
 import numpy as np
+import collections
 from six import string_types
 from mdt.components_loader import get_model
 from mdt.nifti import get_all_image_data
@@ -54,10 +55,12 @@ def simulate_signals(model, protocol, parameters):
         model = get_model(model)
 
     model.set_input_data(MockMRIInputData(protocol=protocol))
-    params_array = model.param_dict_to_array(parameters)
+
+    if isinstance(parameters, collections.Mapping):
+        parameters = model.param_dict_to_array(parameters)
 
     calculator = CalculateModelEstimates()
-    return calculator.calculate(model.build(), params_array)
+    return calculator.calculate(model.build(), parameters)
 
 
 def add_rician_noise(signals, noise_level, seed=None):

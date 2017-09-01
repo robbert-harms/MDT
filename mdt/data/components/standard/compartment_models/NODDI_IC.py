@@ -26,11 +26,6 @@ class NODDI_IC(CompartmentTemplate):
     cl_code = '''
         const mot_float_type kappa_scaled = kappa * 10;
 
-        mot_float_type cosTheta = dot(g, SphericalToCartesian(theta, phi));
-        if(fabs(cosTheta) > 1){
-            cosTheta = cosTheta / fabs(cosTheta);
-        }
-
         mot_float_type LePerp = NeumannCylindricalRestrictedSignal(Delta, delta, d, R, G);
         mot_float_type ePerp = exp(LePerp);
         mot_float_type Lpmp = LePerp + d * b;
@@ -45,7 +40,11 @@ class NODDI_IC(CompartmentTemplate):
         for(int i = 0; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
             watson_coeff[i] *= lgi[i] * sqrt((i + 0.25)/M_PI_F);
         }
-
+        
+        mot_float_type cosTheta = dot(g, SphericalToCartesian(theta, phi));
+        if(fabs(cosTheta) > 1){
+            cosTheta = cosTheta / fabs(cosTheta);
+        }
         NODDI_IC_create_legendre_terms(cosTheta, lgi);
 
         mot_float_type signal = 0.0;

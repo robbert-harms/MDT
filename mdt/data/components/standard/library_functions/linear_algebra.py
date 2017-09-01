@@ -78,7 +78,7 @@ class SphericalToCartesian(LibraryFunctionTemplate):
         mot_float_type sin_theta = sincos(theta, &cos_theta);
         mot_float_type cos_phi;
         mot_float_type sin_phi = sincos(phi, &cos_phi);
-
+        
         return (mot_float_type4)(cos_phi * sin_theta, sin_phi * sin_theta, cos_theta, 0.0);
     '''
 

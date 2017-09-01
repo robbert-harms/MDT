@@ -6,7 +6,7 @@ from mot.model_building.parameters import StaticMapParameter, ProtocolParameter,
     FreeParameter
 from mot.model_building.parameter_functions.priors import UniformWithinBoundsPrior
 from mot.model_building.parameter_functions.proposals import GaussianProposal
-from mot.model_building.parameter_functions.sample_statistics import GaussianPSS
+from mot.model_building.parameter_functions.sample_statistics import GaussianFit
 from mot.model_building.parameter_functions.transformations import IdentityTransform
 
 __author__ = 'Robbert Harms'
@@ -63,7 +63,7 @@ class FreeParameterTemplate(ParameterTemplate):
     parameter_transform = IdentityTransform()
     sampling_proposal = GaussianProposal(1.0)
     sampling_prior = UniformWithinBoundsPrior()
-    sampling_statistics = GaussianPSS()
+    sampling_statistics = GaussianFit()
 
 
 class ModelDataParameterTemplate(ParameterTemplate):

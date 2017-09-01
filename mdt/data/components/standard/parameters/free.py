@@ -11,7 +11,7 @@ import numpy as np
 from mdt.component_templates.parameters import FreeParameterTemplate
 from mot.model_building.parameter_functions.priors import UniformWithinBoundsPrior
 from mot.model_building.parameter_functions.proposals import GaussianProposal, CircularGaussianProposal
-from mot.model_building.parameter_functions.sample_statistics import CircularGaussianPSS
+from mot.model_building.parameter_functions.sample_statistics import CircularGaussianFit
 from mot.model_building.parameter_functions.transformations import ClampTransform, AbsModPiTransform, \
     SinSqrClampTransform, CosSqrClampTransform
 
@@ -111,7 +111,7 @@ class theta(FreeParameterTemplate):
     parameter_transform = AbsModPiTransform()
     sampling_proposal = CircularGaussianProposal(np.pi, 0.1)
     sampling_prior = UniformWithinBoundsPrior()
-    sampling_statistics = CircularGaussianPSS()
+    sampling_statistics = CircularGaussianFit()
 
 
 class phi(FreeParameterTemplate):
@@ -122,7 +122,7 @@ class phi(FreeParameterTemplate):
     parameter_transform = AbsModPiTransform()
     sampling_proposal = CircularGaussianProposal(np.pi, 0.1)
     sampling_prior = UniformWithinBoundsPrior()
-    sampling_statistics = CircularGaussianPSS()
+    sampling_statistics = CircularGaussianFit()
 
 
 class psi(FreeParameterTemplate):
@@ -133,7 +133,7 @@ class psi(FreeParameterTemplate):
     parameter_transform = AbsModPiTransform()
     sampling_proposal = CircularGaussianProposal(np.pi, 0.5)
     sampling_prior = UniformWithinBoundsPrior()
-    sampling_statistics = CircularGaussianPSS()
+    sampling_statistics = CircularGaussianFit()
 
 
 class d(FreeParameterTemplate):

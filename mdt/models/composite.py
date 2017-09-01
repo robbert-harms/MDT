@@ -3,6 +3,7 @@ import logging
 from textwrap import dedent
 
 import numpy as np
+from mot.cl_routines.mapping.codec_runner import CodecRunner
 
 from mdt.model_interfaces import MRIModelBuilder, MRIModelInterface
 from mot.utils import results_to_dict, convert_data_to_dtype
@@ -76,7 +77,8 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
                                    self._get_sampling_statistics(),
                                    self._sampling_covar_excludes,
                                    self._sampling_covar_extras,
-                                   self.get_free_param_names())
+                                   self.get_free_param_names(),
+                                   self.get_parameter_codec())
 
     def get_free_param_names(self):
         """Get the names of the free parameters"""
@@ -374,7 +376,7 @@ class BuildCompositeModel(MRIModelInterface):
     def __init__(self, wrapped_sample_model, protocol, estimable_parameters_list, nmr_parameters_for_bic_calculation,
                  post_optimization_modifiers, dependent_map_calculator, fixed_parameter_maps, proposal_state_names,
                  sampling_statistics, sampling_covar_excludes, sampling_covar_extras,
-                 free_param_names):
+                 free_param_names, parameter_codec):
         self._protocol = protocol
         self._estimable_parameters_list = estimable_parameters_list
         self.nmr_parameters_for_bic_calculation = nmr_parameters_for_bic_calculation
@@ -387,6 +389,7 @@ class BuildCompositeModel(MRIModelInterface):
         self._sampling_covar_excludes = sampling_covar_excludes
         self._sampling_covar_extras = sampling_covar_extras
         self._free_param_names = free_param_names
+        self._parameter_codec = parameter_codec
 
     def get_post_optimization_volume_maps(self, optimization_results):
         end_points = optimization_results.get_optimization_result()
@@ -524,10 +527,6 @@ class BuildCompositeModel(MRIModelInterface):
         param_names = [name for name in self.get_free_param_names() if name not in params_to_exclude]
         full_set_of_names = list(self.get_free_param_names())
 
-        lti = np.array(np.tril_indices(len(param_names))).transpose()
-        result_names = ['Covariance_{}_to_{}'.format(param_names[row], param_names[column]) for row, column in lti]
-        result_matrices = {result_name: np.zeros((samples.shape[0], 1)) for result_name in result_names}
-
         for input_params, output_params, func in self._sampling_covar_extras:
             input_indices = []
             for p in input_params:
@@ -541,6 +540,9 @@ class BuildCompositeModel(MRIModelInterface):
                 samples = np.column_stack([samples, func(*inputs)])
 
         indices_to_use = [ind for ind, p in enumerate(full_set_of_names) if p not in params_to_exclude]
+        lti = np.array(np.tril_indices(len(param_names))).transpose()
+        result_names = ['Covariance_{}_to_{}'.format(param_names[row], param_names[column]) for row, column in lti]
+        result_matrices = {result_name: np.zeros((samples.shape[0], 1)) for result_name in result_names}
 
         for voxel_ind in range(samples.shape[0]):
             covar_matrix = np.cov(samples[voxel_ind, indices_to_use, :])
@@ -693,17 +695,22 @@ class BuildCompositeModel(MRIModelInterface):
         Returns:
             dict: A dictionary with point estimates and statistical maps (like standard deviation) for each parameter.
         """
-        results = {}
+        expected_values = np.zeros((samples.shape[0], len(self.get_free_param_names())))
+        all_stats = {}
 
         for ind, parameter_name in enumerate(self.get_free_param_names()):
             parameter_samples = samples[:, ind, ...]
 
             statistics = self._sampling_statistics[parameter_name].get_statistics(parameter_samples)
 
-            results[parameter_name] = statistics.get_point_estimate()
-            results.update({'{}.{}'.format(parameter_name, statistic_key): v
-                            for statistic_key, v in statistics.get_additional_statistics().items()})
-        return results
+            expected_values[:, ind] = statistics.get_expected_value()
+            all_stats.update({'{}.{}'.format(parameter_name, statistic_key): v
+                                for statistic_key, v in statistics.get_additional_statistics().items()})
+
+        CodecRunner().encode_decode(expected_values, self.get_kernel_data(), self._parameter_codec,
+                                    double_precision=self.double_precision)
+        all_stats.update(results_to_dict(expected_values, self.get_free_param_names()))
+        return all_stats
 
     @property
     def name(self):
