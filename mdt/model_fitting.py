@@ -398,8 +398,9 @@ class SingleModelFit(object):
                 tmp_dir = get_full_tmp_results_path(self._output_path, self._tmp_results_dir)
                 self._logger.info('Saving temporary results in {}.'.format(tmp_dir))
 
-                worker = FittingProcessor(self._optimizer, self._model, self._input_data, self._output_path,
-                                          tmp_dir, True, self.recalculate)
+                worker = FittingProcessor(self._optimizer, self._model, self._input_data.mask,
+                                          self._input_data.nifti_header, self._output_path,
+                                          tmp_dir, self.recalculate)
 
                 processing_strategy = get_processing_strategy('optimization')
                 results = processing_strategy.process(worker)

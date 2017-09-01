@@ -4,7 +4,7 @@ from textwrap import dedent
 
 import numpy as np
 
-from mot.model_interfaces import SampleModelInterface
+from mdt.model_interfaces import MRIModelBuilder, MRIModelInterface
 from mot.utils import results_to_dict, convert_data_to_dtype
 from six import string_types
 
@@ -27,7 +27,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
+class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
 
     def __init__(self, model_name, model_tree, evaluation_model, signal_noise_model=None, input_data=None,
                  enforce_weights_sum_to_one=True):
@@ -77,6 +77,10 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
                                    self._sampling_covar_excludes,
                                    self._sampling_covar_extras,
                                    self.get_free_param_names())
+
+    def get_free_param_names(self):
+        """Get the names of the free parameters"""
+        return ['{}.{}'.format(m.name, p.name) for m, p in self._model_functions_info.get_estimable_parameters_list()]
 
     def set_input_data(self, input_data):
         """Overwrites the super implementation by adding a call to _prepare_input_data()."""
@@ -365,7 +369,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable):
         return sampling_statistics
 
 
-class BuildCompositeModel(SampleModelInterface):
+class BuildCompositeModel(MRIModelInterface):
 
     def __init__(self, wrapped_sample_model, protocol, estimable_parameters_list, nmr_parameters_for_bic_calculation,
                  post_optimization_modifiers, dependent_map_calculator, fixed_parameter_maps, proposal_state_names,
@@ -383,6 +387,13 @@ class BuildCompositeModel(SampleModelInterface):
         self._sampling_covar_excludes = sampling_covar_excludes
         self._sampling_covar_extras = sampling_covar_extras
         self._free_param_names = free_param_names
+
+    def get_post_optimization_volume_maps(self, optimization_results):
+        end_points = optimization_results.get_optimization_result()
+        volume_maps = results_to_dict(end_points, self.get_free_param_names())
+        volume_maps = self.post_process_optimization_maps(volume_maps, results_array=end_points)
+        volume_maps.update({'ReturnCodes': optimization_results.get_return_codes()})
+        return volume_maps
 
     def get_free_param_names(self):
         """Get the free parameter names of this build model.
@@ -734,6 +745,9 @@ class BuildCompositeModel(SampleModelInterface):
 
     def get_upper_bounds(self):
         return self._wrapped_sample_model.get_upper_bounds()
+
+    def finalize_optimized_parameters(self, parameters):
+        return self._wrapped_sample_model.finalize_optimized_parameters(parameters)
 
     def get_proposal_state(self):
         return self._wrapped_sample_model.get_proposal_state()

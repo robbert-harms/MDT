@@ -19,8 +19,6 @@ from contextlib import contextmanager
 import numpy as np
 import time
 
-from mot.cl_routines.optimizing.base import SimpleOptimizationResult
-from mot.model_building.model_builders import ParameterTransformedModel
 from mot.utils import results_to_dict
 import gc
 from numpy.lib.format import open_memmap
@@ -236,7 +234,7 @@ class ModelProcessor(object):
 
 class SimpleModelProcessor(ModelProcessor):
 
-    def __init__(self, model, input_data, output_dir, tmp_storage_dir, clean_tmp_dir, recalculate):
+    def __init__(self, mask, nifti_header, output_dir, tmp_storage_dir, recalculate):
         """A default implementation of a processing worker.
 
         While the processing strategies determine how to split the work in batches, the workers
@@ -244,45 +242,68 @@ class SimpleModelProcessor(ModelProcessor):
         different processing, while the batch sizes can be determined by a processing strategy.
 
         Args:
-            model (:class:`~mdt.models.composite.DMRICompositeModel`): the model we want to process
-            input_data (:class:`~mdt.utils.MRIInputData`): The input data object with which the model is
-                initialized before running
+            mask (ndarray): the mask to use during processing
+            nifti_header (nibabel nifti header): the nifti header to use for writing the output nifti files
             output_dir (str): the location for the final output files
             tmp_storage_dir (str): the location for the temporary output files
-            clean_tmp_dir (boolean): if we should clean the tmp dir at the end of processing or we can keep it
-                for things like memory mapping.
             recalculate (boolean): if we want to recalculate existing results if present
         """
         super(SimpleModelProcessor, self).__init__()
         self._write_volumes_gzipped = True
         self._used_mask_name = 'UsedMask'
-        self._model = model
-        self._input_data = input_data
-        self._mask_shape = self._input_data.mask.shape
+        self._mask = mask
+        self._nifti_header = nifti_header
         self._output_dir = output_dir
         self._tmp_storage_dir = tmp_storage_dir
         self._prepare_tmp_storage(self._tmp_storage_dir, recalculate)
-        self._roi_lookup_path = os.path.join(self._tmp_storage_dir, '_roi_voxel_lookup_table.npy')
-        self._clean_tmp_dir = clean_tmp_dir
+        self._processing_tmp_dir = os.path.join(self._tmp_storage_dir, 'processing_tmp')
+        self._roi_lookup_path = os.path.join(self._processing_tmp_dir, 'roi_voxel_lookup_table.npy')
         self._volume_indices = self._create_roi_to_volume_index_lookup_table()
-        self._total_nmr_voxels = np.count_nonzero(self._input_data.mask)
-
-    def process(self, roi_indices, next_indices=None):
-        raise NotImplementedError()
-
-    def get_voxels_to_compute(self):
-        raise NotImplementedError()
-
-    def get_total_nmr_voxels(self):
-        return self._total_nmr_voxels
+        self._total_nmr_voxels = np.count_nonzero(self._mask)
 
     def combine(self):
-        del self._volume_indices
-        os.remove(self._roi_lookup_path)
+        pass
+
+    def _process(self, roi_indices, next_indices=None):
+        """This is the function the user needs to implement to process the dataset.
+
+        Args:
+            roi_indices (ndarray): the list of ROI indices we will use for the current batch
+            next_indices (ndarray): the list of ROI indices we will use for the batch after this one. May be None
+                if there is no next batch.
+        """
+        raise NotImplementedError()
+
+    def process(self, roi_indices, next_indices=None):
+        """By default this will store some information about already processed voxels.
+
+        This will call the user implementable function :meth:`_process` to do the processing.
+        """
+        self._process(roi_indices, next_indices=next_indices)
+        self._write_volumes({'processed_voxels': np.ones(roi_indices.shape[0], dtype=np.bool)},
+                            roi_indices, self._processing_tmp_dir)
+
+    def get_voxels_to_compute(self):
+        """By default this will return the indices of all the voxels we have not yet computed.
+
+        In the case that recalculate is set to False and we have some intermediate results lying about, this
+        function will only return the indices of the voxels we have not yet processed.
+        """
+        roi_list = np.arange(0, self._total_nmr_voxels)
+        processed_voxels_path = os.path.join(self._processing_tmp_dir, 'processed_voxels.npy')
+        if os.path.exists(processed_voxels_path):
+            return roi_list[np.logical_not(np.squeeze(create_roi(np.load(processed_voxels_path, mmap_mode='r'),
+                                                                 self._mask)[roi_list]))]
+        return roi_list
+
+    def get_total_nmr_voxels(self):
+        """Returns the number of nonzero elements in the mask."""
+        return self._total_nmr_voxels
 
     def finalize(self):
-        if self._clean_tmp_dir:
-            shutil.rmtree(self._tmp_storage_dir)
+        """Cleans the temporary storage directory."""
+        del self._volume_indices
+        shutil.rmtree(self._tmp_storage_dir)
 
     def _prepare_tmp_storage(self, tmp_storage_dir, recalculate):
         if recalculate:
@@ -330,7 +351,7 @@ class SimpleModelProcessor(ModelProcessor):
             mode = 'r+'
 
         tmp_matrix = open_memmap(filename, mode=mode, dtype=data.dtype,
-                                 shape=self._mask_shape[0:3] + (map_4d_dim_len,))
+                                 shape=self._mask.shape[0:3] + (map_4d_dim_len,))
         tmp_matrix[volume_indices[:, 0], volume_indices[:, 1], volume_indices[:, 2]] = data
 
     def _combine_volumes(self, output_dir, tmp_storage_dir, nifti_header, maps_subdir=''):
@@ -380,15 +401,17 @@ class SimpleModelProcessor(ModelProcessor):
         Returns:
             memmap ndarray: the memory mapped array which
         """
+        if not os.path.exists(os.path.dirname(self._roi_lookup_path)):
+            os.mkdir(os.path.dirname(self._roi_lookup_path))
         if os.path.isfile(self._roi_lookup_path):
             os.remove(self._roi_lookup_path)
-        np.save(self._roi_lookup_path, np.argwhere(self._input_data.mask))
+        np.save(self._roi_lookup_path, np.argwhere(self._mask))
         return np.load(self._roi_lookup_path, mmap_mode='r')
 
 
 class FittingProcessor(SimpleModelProcessor):
 
-    def __init__(self, optimizer, model, input_data, output_dir, tmp_storage_dir, clean_tmp_dir, recalculate):
+    def __init__(self, optimizer, model, mask, nifti_header, output_dir, tmp_storage_dir, recalculate):
         """The processing worker for model fitting.
 
         Use this if you want to use the model processing strategy to do model fitting.
@@ -396,41 +419,24 @@ class FittingProcessor(SimpleModelProcessor):
         Args:
             optimizer: the optimization routine to use
         """
-        super(FittingProcessor, self).__init__(model, input_data, output_dir, tmp_storage_dir,
-                                               clean_tmp_dir, recalculate)
+        super(FittingProcessor, self).__init__(mask, nifti_header, output_dir, tmp_storage_dir, recalculate)
+        self._model = model
         self._optimizer = optimizer
         self._write_volumes_gzipped = gzip_optimization_results()
 
-    def get_voxels_to_compute(self):
-        roi_list = np.arange(0, self._total_nmr_voxels)
-        mask_path = os.path.join(self._tmp_storage_dir, '{}.npy'.format(self._used_mask_name))
-        if os.path.exists(mask_path):
-            return roi_list[np.logical_not(np.squeeze(create_roi(np.load(mask_path, mmap_mode='r'),
-                                                                 self._input_data.mask)[roi_list]))]
-        return roi_list
+    def _process(self, roi_indices, next_indices=None):
+        model = self._model.build_with_codec(roi_indices)
+        optimization_results = self._optimizer.minimize(model)
 
-    def process(self, roi_indices, next_indices=None):
-        model = self._model.build(roi_indices)
-        decorated_model = ParameterTransformedModel(model, self._model.get_parameter_codec())
-
-        optimization_results = self._optimizer.minimize(decorated_model)
-        optimization_results = SimpleOptimizationResult(
-            model, decorated_model.decode_parameters(optimization_results.get_optimization_result()),
-            optimization_results.get_return_codes())
-
-        end_points = optimization_results.get_optimization_result()
-        volume_maps = results_to_dict(end_points, model.get_free_param_names())
-        volume_maps = model.post_process_optimization_maps(volume_maps, results_array=end_points)
-        volume_maps.update({'ReturnCodes': optimization_results.get_return_codes()})
-        volume_maps.update({self._used_mask_name: np.ones(volume_maps[list(volume_maps.keys())[0]].shape[0],
-                                                          dtype=np.bool)})
+        volume_maps = model.get_post_optimization_volume_maps(optimization_results)
+        volume_maps.update({self._used_mask_name: np.ones(roi_indices.shape[0], dtype=np.bool)})
 
         self._write_volumes(volume_maps, roi_indices, self._tmp_storage_dir)
 
     def combine(self):
         super(FittingProcessor, self).combine()
-        self._combine_volumes(self._output_dir, self._tmp_storage_dir, self._input_data.nifti_header)
-        return create_roi(get_all_image_data(self._output_dir), self._input_data.mask)
+        self._combine_volumes(self._output_dir, self._tmp_storage_dir, self._nifti_header)
+        return create_roi(get_all_image_data(self._output_dir), self._mask)
 
 
 class SamplingProcessor(SimpleModelProcessor):
@@ -438,7 +444,7 @@ class SamplingProcessor(SimpleModelProcessor):
     class SampleChainNotStored(object):
         pass
 
-    def __init__(self, sampler, model, input_data, output_dir, tmp_storage_dir, clean_tmp_dir, recalculate,
+    def __init__(self, sampler, model, mask, nifti_header, output_dir, tmp_storage_dir, recalculate,
                  samples_to_save_method=None):
         """The processing worker for model sampling.
 
@@ -446,35 +452,13 @@ class SamplingProcessor(SimpleModelProcessor):
             sampler (AbstractSampler): the optimization sampler to use
             samples_to_save_method (SamplesToSaveMethod): indicates which samples to store
         """
-        super(SamplingProcessor, self).__init__(model, input_data, output_dir, tmp_storage_dir,
-                                                clean_tmp_dir, recalculate)
+        super(SamplingProcessor, self).__init__(mask, nifti_header, output_dir, tmp_storage_dir, recalculate)
         self._sampler = sampler
+        self._model = model
         self._write_volumes_gzipped = gzip_sampling_results()
         self._samples_to_save_method = samples_to_save_method or SaveAllSamples()
 
-    def get_voxels_to_compute(self):
-        """Get the ROI indices of the voxels we need to compute.
-
-        This should either return an entire list with all the ROI indices for the given brain mask, or a list
-        with the specific roi indices we want the strategy to compute.
-
-        Returns:
-            ndarray: the list of ROI indices (indexing the current mask) with the voxels we want to compute.
-        """
-        roi_list = np.arange(0, self._total_nmr_voxels)
-        samples_paths = glob.glob(os.path.join(self._output_dir, '*.samples.npy'))
-        if samples_paths:
-            samples_file = samples_paths[0]
-            current_results = open_memmap(samples_file, mode='r')
-            if current_results.shape[0] == self._total_nmr_voxels:
-                mask_path = os.path.join(self._tmp_storage_dir, '{}.npy'.format(self._used_mask_name))
-                if os.path.exists(mask_path):
-                    return roi_list[np.logical_not(np.squeeze(create_roi(np.load(mask_path, mmap_mode='r'),
-                                                                         self._input_data.mask)[roi_list]))]
-            del current_results  # force closing memmap
-        return roi_list
-
-    def process(self, roi_indices, next_indices=None):
+    def _process(self, roi_indices, next_indices=None):
         model = self._model.build(roi_indices)
         sampling_output = self._sampler.sample(model)
         samples = sampling_output.get_samples()
@@ -508,9 +492,9 @@ class SamplingProcessor(SimpleModelProcessor):
         for subdir in ['maximum_likelihood', 'univariate_statistics', 'multivariate_statistic',
                        'effective_sample_size', 'proposal_state', 'chain_end_point', 'mh_state']:
             self._combine_volumes(self._output_dir, self._tmp_storage_dir,
-                                  self._input_data.nifti_header, maps_subdir=subdir)
+                                  self._nifti_header, maps_subdir=subdir)
 
-        self._combine_volumes(self._output_dir, self._tmp_storage_dir, self._input_data.nifti_header)
+        self._combine_volumes(self._output_dir, self._tmp_storage_dir, self._nifti_header)
 
         if self._samples_to_save_method.store_samples():
             return load_samples(self._output_dir)

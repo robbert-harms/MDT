@@ -1066,11 +1066,17 @@ def init_user_settings(pass_if_exists=True):
 
     @contextmanager
     def tmp_save_latest_version():
-        versions_available = list(reversed(sorted(os.listdir(base_path))))
+        def sort_versions(versions):
+            versions.sort(key=lambda s: list(map(int, s.split('.'))))
+
+        versions = os.listdir(base_path)
+        sort_versions(versions)
+        versions = list(reversed(versions))
+
         tmp_dir = tempfile.mkdtemp()
 
-        if versions_available:
-            previous_version = versions_available[0]
+        if versions:
+            previous_version = versions[0]
 
             if os.path.exists(os.path.join(base_path, previous_version, 'components', 'user')):
                 shutil.copytree(os.path.join(base_path, previous_version, 'components', 'user'),

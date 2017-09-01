@@ -67,8 +67,8 @@ def sample_composite_model(model, input_data, output_folder, sampler, tmp_dir,
 
     with _log_info(logger, model.name):
         worker = SamplingProcessor(
-            sampler, model, input_data, output_folder,
-            get_full_tmp_results_path(output_folder, tmp_dir), True, recalculate,
+            sampler, model, input_data.mask, input_data.nifti_header, output_folder,
+            get_full_tmp_results_path(output_folder, tmp_dir), recalculate,
             samples_to_save_method=sample_to_save_method)
 
         processing_strategy = get_processing_strategy('sampling')
