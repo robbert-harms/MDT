@@ -48,6 +48,7 @@ class KurtosisMultiplication(LibraryFunctionTemplate):
                       ]
     cl_code = '''
         double kurtosis_sum = 0;
+        
         kurtosis_sum += n.x * n.x * n.x * n.x * W_0000;
         kurtosis_sum += n.y * n.y * n.y * n.y * W_1111;
         kurtosis_sum += n.z * n.z * n.z * n.z * W_2222;

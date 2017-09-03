@@ -11,9 +11,10 @@ import numpy as np
 from mdt.component_templates.parameters import FreeParameterTemplate
 from mot.model_building.parameter_functions.priors import UniformWithinBoundsPrior
 from mot.model_building.parameter_functions.proposals import GaussianProposal, CircularGaussianProposal
-from mot.model_building.parameter_functions.sample_statistics import CircularGaussianFit
+from mot.model_building.parameter_functions.sample_statistics import CircularGaussianPIFit, TruncatedGaussianFitModulus
 from mot.model_building.parameter_functions.transformations import ClampTransform, AbsModPiTransform, \
     SinSqrClampTransform, CosSqrClampTransform
+
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-12-12"
@@ -104,36 +105,50 @@ class R2s(FreeParameterTemplate):
 
 
 class theta(FreeParameterTemplate):
-
-    init_value = 1 / 2.0 * np.pi
+    """The inclination/polar angle."""
+    init_value = np.pi / 2.0
     lower_bound = 0
     upper_bound = np.pi
     parameter_transform = AbsModPiTransform()
     sampling_proposal = CircularGaussianProposal(np.pi, 0.1)
     sampling_prior = UniformWithinBoundsPrior()
-    sampling_statistics = CircularGaussianFit()
+    sampling_statistics = CircularGaussianPIFit()
 
 
 class phi(FreeParameterTemplate):
+    """The azimuth angle.
 
-    init_value = 1 / 2.0 * np.pi
+    We limit this parameter between [0, pi] making us only use (together with theta between [0, pi]) only the right
+    hemisphere. This is possible since diffusion is symmetric and works fine during optimization.
+
+    However, during sampling the results can clip to pi since the standard formula for transforming spherical
+    coordinates to cartesian coordinates defines phi to be in the range [0, 2*pi]. This is both a problem and a
+    blessing. The problem is that the samples will not wrap nicely around pi, the blessing is that we prevent a
+    bimodal distribution in phi. Not wrapping around pi is not much of a problem though, as the sampler can easily
+    sample only half of a gaussian if the optimal parameter is around pi. A point estimate can then be obtained using
+    a truncated gaussian.
+    """
+    init_value = np.pi / 2.0
     lower_bound = 0
     upper_bound = np.pi
     parameter_transform = AbsModPiTransform()
-    sampling_proposal = CircularGaussianProposal(np.pi, 0.1)
+    sampling_proposal = GaussianProposal(0.1)
     sampling_prior = UniformWithinBoundsPrior()
-    sampling_statistics = CircularGaussianFit()
+    sampling_statistics = TruncatedGaussianFitModulus(0, np.pi, np.pi)
 
 
 class psi(FreeParameterTemplate):
+    """The rotation angle for use in cylindrical models.
 
-    init_value = 1 / 2.0 * np.pi
+    This parameter can be used to rotate a vector around another vector, as is for example done in the Tensor model.
+    """
+    init_value = np.pi / 2.0
     lower_bound = 0
     upper_bound = np.pi
     parameter_transform = AbsModPiTransform()
     sampling_proposal = CircularGaussianProposal(np.pi, 0.5)
     sampling_prior = UniformWithinBoundsPrior()
-    sampling_statistics = CircularGaussianFit()
+    sampling_statistics = CircularGaussianPIFit()
 
 
 class d(FreeParameterTemplate):

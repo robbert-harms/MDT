@@ -61,5 +61,5 @@ class DMRICompartmentModelFunction(SimpleModelFunction):
             {code}
             #endif // {inclusion_guard_name}
         '''.format(dependencies=indent(self._get_cl_dependency_code(), ' '*4*3),
-                   inclusion_guard_name='DMRI_' + self.cl_function_name + '_CL',
+                   inclusion_guard_name='DMRI_' + self.get_cl_function_name() + '_CL',
                    code=indent('\n' + self._cl_code.strip() + '\n', ' '*4*3)))

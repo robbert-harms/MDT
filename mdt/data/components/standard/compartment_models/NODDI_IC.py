@@ -40,12 +40,8 @@ class NODDI_IC(CompartmentTemplate):
         for(int i = 0; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
             watson_coeff[i] *= lgi[i] * sqrt((i + 0.25)/M_PI_F);
         }
-        
-        mot_float_type cosTheta = dot(g, SphericalToCartesian(theta, phi));
-        if(fabs(cosTheta) > 1){
-            cosTheta = cosTheta / fabs(cosTheta);
-        }
-        NODDI_IC_create_legendre_terms(cosTheta, lgi);
+
+        NODDI_IC_create_legendre_terms(dot(g, SphericalToCartesian(theta, phi)), lgi);
 
         mot_float_type signal = 0.0;
         for(int i = 0; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){

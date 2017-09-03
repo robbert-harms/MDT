@@ -1,9 +1,11 @@
 import glob
+import gzip
 import os
 from contextlib import contextmanager
 
 import nibabel as nib
 import numpy as np
+import shutil
 
 from mdt.deferred_mappings import DeferredActionDict
 
@@ -212,3 +214,21 @@ def is_nifti_file(file_name):
         boolean: true if the file looks like a nifti file, false otherwise
     """
     return file_name.endswith('.nii') or file_name.endswith('.nii.gz')
+
+
+def unzip_nifti(input_filename, output_filename):
+    """Unzips the given nifti file.
+
+    Args:
+        input_filename (str): the nifti file we would like to unzip. Should have the extension ``.gz``.
+        output_filename (str): the location for the output file. Should have the extension ``.nii``.
+
+    Raises:
+        ValueError: if the extensions of either the input or output filename are not correct.
+    """
+    if not input_filename.rstrip().endswith('.gz') or not output_filename.rstrip().endswith('.nii'):
+        raise ValueError('The input filename should have extension ".gz" and the '
+                         'output filename should have extension ".nii".')
+
+    with gzip.open(input_filename, 'rb') as f_in, open(output_filename, 'wb') as f_out:
+        shutil.copyfileobj(f_in, f_out)
