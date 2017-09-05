@@ -73,22 +73,22 @@ Where ``<compartment_name>`` should be substituted by the name of your compartme
 If that works without errors your compartment can be found and can be used inside composite models.
 
 To check if your compartment is working as expected, you can use the method ``evaluate`` that is part of a compartment.
-This method requires as input a list of parameter arrays and will as output contain the evaluations of the model
+This method requires as input a dictionary mapping parameter names to data arrays and as output will contain the evaluations of the model
 for each set of parameters. For example::
 
 
     compartment = mdt.get_compartment('Stick')
 
-    signal = compartment.evaluate([
-        np.array([[0., 0., 0.],
-                  [0.132723, -0.739879, 0.659517],
-                  [-0.918278, 0.379929, -0.11144 ],
-                  [-0.965426, -0.153303, -0.210835]]),
-        np.array([0, 7e8, 7e8, 7e8]),
-        np.ones(4) * 1e-9,
-        np.ones(4) * 1/2.0 * np.pi,
-        np.ones(4) * 1/2.0 * np.pi
-    ])
+    signal = compartment.evaluate({
+        'g': np.array([[0., 0., 0.],
+                       [0.132723, -0.739879, 0.659517],
+                       [-0.918278, 0.379929, -0.11144],
+                       [-0.965426, -0.153303, -0.210835]]),
+        'b': np.array([0.00000000e+00, 7.00000000e+08, 7.00000000e+08, 7.00000000e+08]),
+        'd': np.ones(4) * 1e-9,
+        'theta': np.ones(4) * np.pi,
+        'phi': np.ones(4) * np.pi - 0.01
+    })
 
 
 Here we evaluate the ``Stick`` model at four different data points by giving, for each parameter to the model (g, b, d, theta and phi), an array of input values.

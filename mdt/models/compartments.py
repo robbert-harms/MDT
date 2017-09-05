@@ -1,5 +1,3 @@
-from textwrap import dedent, indent
-
 from mot.model_building.model_functions import SimpleModelFunction
 
 __author__ = 'Robbert Harms'
@@ -45,21 +43,10 @@ class DMRICompartmentModelFunction(SimpleModelFunction):
                     sampling_covar_exclude = ['theta', 'phi']
 
         """
-        super(DMRICompartmentModelFunction, self).__init__(return_type, name, cl_function_name, parameter_list,
+        super(DMRICompartmentModelFunction, self).__init__(return_type, name, cl_function_name,
+                                                           parameter_list, cl_code,
                                                            dependency_list=dependency_list,
                                                            model_function_priors=model_function_priors)
-        self._cl_code = cl_code
         self.post_optimization_modifiers = post_optimization_modifiers or []
         self.sampling_covar_extras = sampling_covar_extras
         self.sampling_covar_exclude = sampling_covar_exclude
-
-    def get_cl_code(self):
-        return dedent('''
-            {dependencies}
-            #ifndef {inclusion_guard_name}
-            #define {inclusion_guard_name}
-            {code}
-            #endif // {inclusion_guard_name}
-        '''.format(dependencies=indent(self._get_cl_dependency_code(), ' '*4*3),
-                   inclusion_guard_name='DMRI_' + self.get_cl_function_name() + '_CL',
-                   code=indent('\n' + self._cl_code.strip() + '\n', ' '*4*3)))

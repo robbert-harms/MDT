@@ -28,8 +28,11 @@ class test_NeumannCylindricalRestrictedSignal(unittest.TestCase):
 
     def _calculate_cl(self, test_params, double_precision=False):
         func = mdt.get_library_function('NeumannCylindricalRestrictedSignal')
-        return func.evaluate([test_params[..., ind] for ind in range(test_params.shape[1])],
-                             double_precision=double_precision)
+
+        names = ['Delta', 'delta', 'd', 'R', 'G']
+        input_data = dict(zip(names, [test_params[..., ind] for ind in range(test_params.shape[1])]))
+
+        return func.evaluate(input_data, double_precision=double_precision)
 
     def _generate_test_params(self):
         """

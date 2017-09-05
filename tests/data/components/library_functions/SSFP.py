@@ -28,8 +28,11 @@ class test_SSFP(unittest.TestCase):
 
     def _calculate_cl(self, test_params, double_precision=False):
         ssfp = mdt.get_library_function('SSFP')
-        return ssfp.evaluate([test_params[..., ind] for ind in range(test_params.shape[1])],
-                             double_precision=double_precision)
+
+        names = ['d', 'delta', 'G', 'TR', 'flip_angle', 'b1', 'T1', 'T2']
+        input_data = dict(zip(names, [test_params[..., ind] for ind in range(test_params.shape[1])]))
+
+        return ssfp.evaluate(input_data, double_precision=double_precision)
 
     def _generate_test_params(self):
         """
