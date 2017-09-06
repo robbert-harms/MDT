@@ -6,10 +6,10 @@ from mdt.components_loader import get_component_class
 from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate, register_builder
 from mdt.models.composite import DMRICompositeModel
 from mdt.models.parsers.CompositeModelExpressionParser import parse
+from mot.cl_function import CLFunction, SimpleCLFunction
+from mot.cl_parameter import CLFunctionParameter
 from mot.model_building.evaluation_models import EvaluationModel
 from mot.model_building.trees import CompartmentModelTree
-from mot.model_building.utils import ModelPrior, SimpleModelPrior
-
 
 __author__ = 'Robbert Harms'
 __date__ = "2017-02-14"
@@ -242,8 +242,7 @@ def _resolve_model_prior(prior, model_parameters):
     """Resolve the model priors.
 
     Args:
-        model_prior (None or str or mot.model_building.utils.ModelPrior): the prior defined in the composite model
-            template.
+        model_prior (None or str or mot.cl_function.CLFunction): the prior defined in the composite model template.
         model_parameters (str): the (model, parameter) tuple for all the parameters in the model
 
     Returns:
@@ -252,7 +251,7 @@ def _resolve_model_prior(prior, model_parameters):
     if prior is None:
         return []
 
-    if isinstance(prior, ModelPrior):
+    if isinstance(prior, CLFunction):
         return [prior]
 
     parameters = []
@@ -262,11 +261,11 @@ def _resolve_model_prior(prior, model_parameters):
 
         if dotted_name in prior:
             prior = prior.replace(dotted_name, bar_name)
-            parameters.append(dotted_name)
+            parameters.append(CLFunctionParameter('mot_float_type', dotted_name))
         elif bar_name in prior:
-            parameters.append(dotted_name)
+            parameters.append(CLFunctionParameter('mot_float_type', dotted_name))
 
-    return [SimpleModelPrior(prior, parameters, 'model_prior')]
+    return [SimpleCLFunction.construct_cl_function('mot_float_type', 'model_prior', parameters, prior)]
 
 
 def _get_map_sorting_modifier(sort_maps, model_list):

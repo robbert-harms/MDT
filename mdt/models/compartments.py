@@ -20,7 +20,7 @@ class DMRICompartmentModelFunction(SimpleModelCLFunction):
             cl_code (str): the code for the function in CL
             dependency_list (list): the list of functions we depend on inside the kernel
             return_type (str): the CL return type
-            model_function_priors (list of mot.model_building.model_function_priors.ModelFunctionPrior): additional
+            model_function_priors (list of mot.cl_function.CLFunction): additional
                 compartment priors on top of the parameter priors.
             post_optimization_modifiers (None or list or tuple): a list of modification callbacks for use after
                 optimization. Examples:

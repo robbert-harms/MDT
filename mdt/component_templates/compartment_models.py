@@ -7,7 +7,8 @@ from mdt.components_loader import ParametersLoader
 from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate, register_builder
 from mdt.models.compartments import DMRICompartmentModelFunction
 from mdt.utils import spherical_to_cartesian
-from mot.model_building.model_function_priors import ModelFunctionPrior, SimpleModelFunctionPrior
+from mot.cl_function import CLFunction, SimpleCLFunction
+from mot.cl_parameter import CLFunctionParameter
 from mot.model_building.parameters import CurrentObservationParam
 
 __author__ = 'Robbert Harms'
@@ -185,7 +186,7 @@ def _resolve_prior(prior, compartment_name, compartment_parameters):
     """Create a proper prior out of the given prior information.
 
     Args:
-        prior (str or mdt.models.compartments.CompartmentPrior or None):
+        prior (str or mot.cl_function.CLFunction or None):
             The prior from which to construct a prior.
         compartment_name (str): the name of the compartment
         compartment_parameters (list of str): the list of parameters of this compartment, used
@@ -197,11 +198,11 @@ def _resolve_prior(prior, compartment_name, compartment_parameters):
     if prior is None:
         return None
 
-    if isinstance(prior, ModelFunctionPrior):
+    if isinstance(prior, CLFunction):
         return prior
 
-    parameters = [p for p in compartment_parameters if p in prior]
-    return SimpleModelFunctionPrior(prior, parameters, 'prior_' + compartment_name)
+    parameters = [CLFunctionParameter('mot_float_type', p) for p in compartment_parameters if p in prior]
+    return SimpleCLFunction.construct_cl_function('mot_float_type', 'prior_' + compartment_name, parameters, prior)
 
 
 def _resolve_covariance_extra_exclude(template, parameter_list):
