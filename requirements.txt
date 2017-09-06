@@ -3,7 +3,7 @@ six
 numpy>=1.9.0
 pyopencl>=2013.1
 scipy>=0.12.1
-mot>=0.3.4
+mot>=0.3.6
 pyyaml
 nibabel
 argcomplete
