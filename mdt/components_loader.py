@@ -15,7 +15,7 @@ from mdt.component_templates.base import ComponentTemplate, construct_component
 from mdt.exceptions import NonUniqueComponent
 from mot.library_functions import SimpleCLLibrary
 from mot.model_building.evaluation_models import EvaluationModel
-from mot.model_building.model_functions import ModelFunction
+from mot.model_building.model_functions import ModelCLFunction
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -827,8 +827,8 @@ class MOTCompartmentModelsSource(MOTSourceSingle):
 
     def list(self):
         module = mot.model_building.model_functions
-        items = inspect.getmembers(module, _get_class_predicate(module, ModelFunction))
-        return [x[0] for x in items if x[0] != 'ModelFunction']
+        items = inspect.getmembers(module, _get_class_predicate(module, ModelCLFunction))
+        return [x[0] for x in items if x[0] != 'ModelCLFunction']
 
 
 class MOTEvaluationModelSource(MOTSourceSingle):

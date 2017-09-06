@@ -1,4 +1,4 @@
-from mot.model_building.model_functions import SimpleModelFunction
+from mot.model_building.model_functions import SimpleModelCLFunction
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-12-13"
@@ -6,7 +6,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class DMRICompartmentModelFunction(SimpleModelFunction):
+class DMRICompartmentModelFunction(SimpleModelCLFunction):
 
     def __init__(self, name, cl_function_name, parameter_list, cl_code, dependency_list, return_type,
                  model_function_priors=None, post_optimization_modifiers=None,
