@@ -7,7 +7,7 @@ from mdt.component_templates.base import ComponentBuilder, method_binding_meta, 
 from mdt.models.composite import DMRICompositeModel
 from mdt.models.parsers.CompositeModelExpressionParser import parse
 from mot.cl_function import CLFunction, SimpleCLFunction
-from mot.cl_parameter import CLFunctionParameter
+from mot.cl_parameter import CLFunctionParameter, SimpleCLFunctionParameter
 from mot.model_building.evaluation_models import EvaluationModel
 from mot.model_building.trees import CompartmentModelTree
 
@@ -261,9 +261,9 @@ def _resolve_model_prior(prior, model_parameters):
 
         if dotted_name in prior:
             prior = prior.replace(dotted_name, bar_name)
-            parameters.append(CLFunctionParameter('mot_float_type', dotted_name))
+            parameters.append(SimpleCLFunctionParameter('mot_float_type', dotted_name))
         elif bar_name in prior:
-            parameters.append(CLFunctionParameter('mot_float_type', dotted_name))
+            parameters.append(SimpleCLFunctionParameter('mot_float_type', dotted_name))
 
     return [SimpleCLFunction.construct_cl_function('mot_float_type', 'model_prior', parameters, prior)]
 

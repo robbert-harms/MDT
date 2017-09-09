@@ -19,6 +19,7 @@ from contextlib import contextmanager
 import numpy as np
 import time
 
+from mdt.deferred_mappings import DeferredFunctionDict
 from mot.utils import results_to_dict
 import gc
 from numpy.lib.format import open_memmap
@@ -457,27 +458,18 @@ class SamplingProcessor(SimpleModelProcessor):
         self._model = model
         self._write_volumes_gzipped = gzip_sampling_results()
         self._samples_to_save_method = samples_to_save_method or SaveAllSamples()
+        self._post_processing_dirs = set()
 
     def _process(self, roi_indices, next_indices=None):
         model = self._model.build(roi_indices)
         sampling_output = self._sampler.sample(model)
         samples = sampling_output.get_samples()
 
-        maps_to_save = [
-            # ('maximum_likelihood', lambda: model.get_maximum_likelihood_estimation(samples)),
-            ('univariate_statistics', lambda: model.get_univariate_statistics(samples)),
-            ('multivariate_statistic', lambda: model.get_multivariate_sampling_statistic(samples)),
-            ('effective_sample_size', lambda: model.get_sampling_ess_statistics(samples)),
-            ('proposal_state', lambda: results_to_dict(sampling_output.get_proposal_state(),
-                                                       model.get_proposal_state_names())),
-            ('chain_end_point', lambda: results_to_dict(sampling_output.get_current_chain_position(),
-                                                        model.get_free_param_names()))
-        ]
+        maps_to_save = model.get_post_sampling_maps(sampling_output)
 
-        for map_name, callback in maps_to_save:
-            self._write_volumes(callback(), roi_indices, os.path.join(self._tmp_storage_dir, map_name))
-
-        self._tmp_store_mh_state(roi_indices, sampling_output.get_mh_state())
+        for map_name, items in maps_to_save.items():
+            self._post_processing_dirs.add(map_name)
+            self._write_volumes(items, roi_indices, os.path.join(self._tmp_storage_dir, map_name))
 
         mask_dict = {self._used_mask_name: np.ones(samples.shape[0], dtype=np.bool)}
         self._write_volumes(mask_dict, roi_indices, os.path.join(self._tmp_storage_dir))
@@ -489,8 +481,7 @@ class SamplingProcessor(SimpleModelProcessor):
     def combine(self):
         super(SamplingProcessor, self).combine()
 
-        for subdir in ['maximum_likelihood', 'univariate_statistics', 'multivariate_statistic',
-                       'effective_sample_size', 'proposal_state', 'chain_end_point', 'mh_state']:
+        for subdir in self._post_processing_dirs:
             self._combine_volumes(self._output_dir, self._tmp_storage_dir,
                                   self._nifti_header, maps_subdir=subdir)
 
@@ -538,21 +529,6 @@ class SamplingProcessor(SimpleModelProcessor):
                                 shape=(self._total_nmr_voxels, len(save_indices)))
             saved[roi_indices, :] = samples[:, save_indices]
             del saved
-
-    def _tmp_store_mh_state(self, roi_indices, mh_state):
-        items = {'proposal_state_sampling_counter': mh_state.get_proposal_state_sampling_counter(),
-                 'proposal_state_acceptance_counter': mh_state.get_proposal_state_acceptance_counter(),
-                 'online_parameter_variance': mh_state.get_online_parameter_variance(),
-                 'online_parameter_variance_update_m2': mh_state.get_online_parameter_variance_update_m2(),
-                 'online_parameter_mean': mh_state.get_online_parameter_mean(),
-                 'rng_state': mh_state.get_rng_state()}
-
-        self._write_volumes(items, roi_indices, os.path.join(self._tmp_storage_dir, 'mh_state'))
-
-        if not os.path.isdir(os.path.join(self._output_dir, 'mh_state')):
-            os.makedirs(os.path.join(self._output_dir, 'mh_state'))
-        with open(os.path.join(self._output_dir, 'mh_state', 'nmr_samples_drawn.txt'), 'w') as f:
-            f.write(str(mh_state.nmr_samples_drawn))
 
 
 class SamplesToSaveMethod(object):

@@ -3,9 +3,12 @@ import logging
 from textwrap import dedent
 
 import numpy as np
+
+from mdt.deferred_mappings import DeferredFunctionDict
 from mot.cl_routines.mapping.codec_runner import CodecRunner
 
 from mdt.model_interfaces import MRIModelBuilder, MRIModelInterface
+from mot.cl_routines.mapping.sampling_mle_map_index import Sampling_MLE_MAP_Index
 from mot.utils import results_to_dict, convert_data_to_dtype
 from six import string_types
 
@@ -457,6 +460,46 @@ class BuildCompositeModel(MRIModelInterface):
 
         return results_dict
 
+    def get_post_sampling_maps(self, sampling_output):
+        """Get the post sampling volume maps.
+
+        This will return a dictionary mapping folder names to dictionaries with volumes to write.
+
+        Args:
+            sampling_output (mot.cl_routines.sampling.metropolis_hastings.MHSampleOutput): the output of the sampler
+
+        Returns:
+            dict: a dictionary with for every subdirectory the maps to save
+        """
+        samples = sampling_output.get_samples()
+
+        mle_maps_cb, map_maps_cb = self._get_mle_map_statistics(samples)
+
+        return DeferredFunctionDict({
+            'maximum_likelihood': mle_maps_cb,
+            'maximum_a_posteriori': map_maps_cb,
+            'mh_state': lambda: self._get_mh_state_write_arrays(sampling_output.get_mh_state()),
+            'univariate_statistics': lambda: self.get_univariate_statistics(samples),
+            'multivariate_statistic': lambda: self.get_multivariate_sampling_statistic(samples),
+            'effective_sample_size': lambda: self.get_sampling_ess_statistics(samples),
+            'proposal_state': lambda: results_to_dict(sampling_output.get_proposal_state(),
+                                                      self.get_proposal_state_names()),
+            'chain_end_point': lambda: results_to_dict(sampling_output.get_current_chain_position(),
+                                                       self.get_free_param_names()),
+        }, cache=False)
+
+    def _get_mh_state_write_arrays(self, mh_state):
+        """Get the state of the Metropolis Hastings sampler to write out such that we can start later at that position.
+        """
+        sampling_counter = mh_state.get_proposal_state_sampling_counter()
+        return {'proposal_state_sampling_counter': mh_state.get_proposal_state_sampling_counter(),
+                 'proposal_state_acceptance_counter': mh_state.get_proposal_state_acceptance_counter(),
+                 'online_parameter_variance': mh_state.get_online_parameter_variance(),
+                 'online_parameter_variance_update_m2': mh_state.get_online_parameter_variance_update_m2(),
+                 'online_parameter_mean': mh_state.get_online_parameter_mean(),
+                 'rng_state': mh_state.get_rng_state(),
+                 'nmr_samples_drawn': np.ones_like(sampling_counter) * mh_state.nmr_samples_drawn}
+
     def get_univariate_statistics(self, samples):
         """Get the univariate statistics for the samples.
 
@@ -476,21 +519,41 @@ class BuildCompositeModel(MRIModelInterface):
         volume_maps.update(self._get_post_sampling_information_criterion_maps(samples, volume_maps['LogLikelihood']))
         return volume_maps
 
-    def get_maximum_likelihood_estimation(self, samples):
-        """Get the parameters and likelihood of the sample with the highest likelihood.
+    def _get_mle_map_statistics(self, samples):
+        """Get the maximum and corresponding volume maps of the MLE and MAP estimators.
 
-        This will compute the likelihood for each set of parameters in the samples and construct a result dictionary
-        with for every voxel the set of parameters corresponding to the maximum likelihood.
-
-        This can return some additional maps like the LogLikelihood, BIC maps and others.
+        This computes the Maximum Likelihood Estimator and the Maximum A Posteriori in one run and computes from that
+        the corresponding parameter and general post-optimization maps.
 
         Args:
             samples (ndarray): an (d, p, n) matrix for d problems, p parameters and n samples.
 
         Returns:
-            dict: the volume maps with the ESS statistics
+            tuple(Func, Func): the function that generates the maps for the MLE and for the MAP estimators.
         """
-        # todo
+        mle_indices, map_indices, mle_values, map_values = Sampling_MLE_MAP_Index().calculate(self, samples)
+
+        mle_samples = np.zeros(samples.shape[:2], dtype=samples.dtype)
+        map_samples = np.zeros(samples.shape[:2], dtype=samples.dtype)
+
+        for problem_ind in range(samples.shape[0]):
+            mle_samples[problem_ind] = samples[problem_ind, :, mle_indices[problem_ind]]
+            map_samples[problem_ind] = samples[problem_ind, :, map_indices[problem_ind]]
+
+        def mle_maps():
+            results = results_to_dict(mle_samples, self._free_param_names)
+            maps = self.post_process_optimization_maps(results, results_array=mle_samples)
+            maps.update({'MaximumLikelihoodEstimator.indices': mle_indices})
+            return maps
+
+        def map_maps():
+            results = results_to_dict(map_samples, self._free_param_names)
+            maps = self.post_process_optimization_maps(results, results_array=map_samples)
+            maps.update({'MaximumAPosteriori': map_values,
+                         'MaximumAPosteriori.indices': map_indices})
+            return maps
+
+        return mle_maps, map_maps
 
     def get_sampling_ess_statistics(self, samples):
         """Get the Effective Sample Size statistics for the given set of samples.

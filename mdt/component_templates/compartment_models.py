@@ -201,7 +201,7 @@ def _resolve_prior(prior, compartment_name, compartment_parameters):
     if isinstance(prior, CLFunction):
         return prior
 
-    parameters = [CLFunctionParameter('mot_float_type', p) for p in compartment_parameters if p in prior]
+    parameters = [('mot_float_type', p) for p in compartment_parameters if p in prior]
     return SimpleCLFunction.construct_cl_function('mot_float_type', 'prior_' + compartment_name, parameters, prior)
 
 
