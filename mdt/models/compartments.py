@@ -8,16 +8,16 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class DMRICompartmentModelFunction(SimpleModelCLFunction):
 
-    def __init__(self, name, cl_function_name, parameter_list, cl_code, dependency_list, return_type,
+    def __init__(self, name, cl_function_name, parameter_list, cl_body, dependency_list, return_type,
                  model_function_priors=None, post_optimization_modifiers=None,
-                 sampling_covar_extras=None, sampling_covar_exclude=None):
+                 sampling_covar_extras=None, sampling_covar_exclude=None, cl_extra=None):
         """Create a new dMRI compartment model function.
 
         Args:
             name (str): the name of this compartment model
             cl_function_name (str): the name of this function in the CL kernel
             parameter_list (list of CLFunctionParameter): the list of the function parameters
-            cl_code (str): the code for the function in CL
+            cl_body (str): the body of the CL code
             dependency_list (list): the list of functions we depend on inside the kernel
             return_type (str): the CL return type
             model_function_priors (list of mot.cl_function.CLFunction): additional
@@ -42,11 +42,13 @@ class DMRICompartmentModelFunction(SimpleModelCLFunction):
 
                     sampling_covar_exclude = ['theta', 'phi']
 
+            cl_extra (str): optional extra CL code outside of the function body
         """
         super(DMRICompartmentModelFunction, self).__init__(return_type, name, cl_function_name,
-                                                           parameter_list, cl_code,
+                                                           parameter_list, cl_body,
                                                            dependency_list=dependency_list,
-                                                           model_function_priors=model_function_priors)
+                                                           model_function_priors=model_function_priors,
+                                                           cl_extra=cl_extra)
         self.post_optimization_modifiers = post_optimization_modifiers or []
         self.sampling_covar_extras = sampling_covar_extras
         self.sampling_covar_exclude = sampling_covar_exclude

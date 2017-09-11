@@ -1,5 +1,4 @@
 from copy import deepcopy
-from textwrap import indent, dedent
 
 import six
 from mdt.component_templates.base import ComponentBuilder, method_binding_meta, \
@@ -63,13 +62,14 @@ class LibraryFunctionsBuilder(ComponentBuilder):
                 new_args = [template.return_type,
                             template.name,
                             _get_parameters_list(template.parameter_list),
-                            _build_source_code(template),
+                            template.cl_code,
                             ]
 
                 for ind, already_set_arg in enumerate(args):
                     new_args[ind] = already_set_arg
 
-                new_kwargs = dict(dependency_list=_resolve_dependencies(template.dependency_list))
+                new_kwargs = dict(dependency_list=_resolve_dependencies(template.dependency_list),
+                                  cl_extra=template.cl_extra)
                 new_kwargs.update(kwargs)
 
                 super(AutoCreatedLibraryFunction, self).__init__(*new_args, **new_kwargs)
@@ -133,67 +133,3 @@ def _get_parameters_list(parameter_list):
         else:
             parameters.append(deepcopy(item))
     return parameters
-
-
-def _construct_cl_function_definition(return_type, cl_function_name, parameters):
-    """Create the CL function definition for a compartment function.
-
-    This will construct something like (for the NeumannCylindricalRestrictedSignal model):
-
-    .. code-block:: c
-
-        double NeumannCylindricalRestrictedSignal(
-                const mot_float_type Delta,
-                const mot_float_type delta,
-                const mot_float_type d,
-                const mot_float_type R)
-
-    Args:
-        return_type (str): the return type
-        cl_function_name (str): the name of the function
-        parameters (list of CLFunctionParameter): the list of function parameters we use for the arguments
-
-    Returns:
-        str: the function definition (only the signature).
-    """
-    def parameter_str(parameter):
-        s = parameter.data_type.declaration_type
-
-        if parameter.data_type.pre_data_type_type_qualifiers:
-            for qualifier in parameter.data_type.pre_data_type_type_qualifiers:
-                s = qualifier + ' ' + s
-
-        if parameter.data_type.address_space_qualifier:
-            s = parameter.data_type.address_space_qualifier + ' ' + s
-
-        if parameter.data_type.post_data_type_type_qualifier:
-            s += ' ' + parameter.data_type.post_data_type_type_qualifier
-
-        s += ' ' + parameter.name
-
-        return s
-
-    parameters_str = indent(',\n'.join(parameter_str(parameter) for parameter in parameters), ' ' * 4 * 2)
-    return '\n{return_type} {cl_function_name}(\n{parameters})'.format(
-        return_type=return_type, cl_function_name=cl_function_name, parameters=parameters_str)
-
-
-def _build_source_code(template):
-    """Build the full model source code for the given compartment template.
-
-    Args:
-        template (CompartmentTemplate): the template for which to construct the CL code
-
-    Returns:
-        str: the model code
-    """
-    s = ''
-    if template.cl_extra:
-        s += template.cl_extra
-    if template.is_function:
-        s += _construct_cl_function_definition(template.return_type, template.name,
-                                               _get_parameters_list(template.parameter_list))
-        s += '{\n\n' + indent(dedent(template.cl_code.strip('\n')), ' ' * 4) + '\n}'
-    else:
-        s += '\n' + dedent(template.cl_code.strip('\n'))
-    return s

@@ -58,7 +58,7 @@ class SSFP(LibraryFunctionTemplate):
                                     / (E2 * A1 * pow(A2, (double)(-4/3.0))
                                           * (1 + cos_b1_corrected_flip_angle) * (1 - E1 * A1));
     
-        const double F1 = K - sqrt(pown(K, 2) - pown(A2, 2));
+        const double F1 = K - hypot((double)K, (double)A2);
     
         return -((1 - E1) * E2 * pow(A2, (double)(-2/3.0))
                           * (F1 - E2 * A1 * pow(A2, (double)(2/3.0)))

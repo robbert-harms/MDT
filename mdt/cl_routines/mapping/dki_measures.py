@@ -359,19 +359,19 @@ class _DKIMeasuresWorker(Worker):
         nmr_problems = range_end - range_start
 
         params_buf = cl.Buffer(self._cl_run_context.context,
-                               cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR,
+                               cl.mem_flags.READ_ONLY | cl.mem_flags.USE_HOST_PTR,
                                hostbuf=self._parameters[range_start:range_end])
         directions_buf = cl.Buffer(self._cl_run_context.context,
-                                   cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR,
+                                   cl.mem_flags.READ_ONLY | cl.mem_flags.USE_HOST_PTR,
                                    hostbuf=self._directions)
         mks_buf = cl.Buffer(self._cl_run_context.context,
-                            cl.mem_flags.WRITE_ONLY | cl.mem_flags.COPY_HOST_PTR,
+                            cl.mem_flags.WRITE_ONLY | cl.mem_flags.USE_HOST_PTR,
                             hostbuf=self._mks_host[range_start:range_end])
         aks_buf = cl.Buffer(self._cl_run_context.context,
-                            cl.mem_flags.WRITE_ONLY | cl.mem_flags.COPY_HOST_PTR,
+                            cl.mem_flags.WRITE_ONLY | cl.mem_flags.USE_HOST_PTR,
                             hostbuf=self._aks_host[range_start:range_end])
         rks_buf = cl.Buffer(self._cl_run_context.context,
-                            cl.mem_flags.WRITE_ONLY | cl.mem_flags.COPY_HOST_PTR,
+                            cl.mem_flags.WRITE_ONLY | cl.mem_flags.USE_HOST_PTR,
                             hostbuf=self._rks_host[range_start:range_end])
 
         buffers = [params_buf, directions_buf, mks_buf, aks_buf, rks_buf]

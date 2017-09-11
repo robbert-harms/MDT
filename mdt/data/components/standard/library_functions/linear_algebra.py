@@ -1,5 +1,4 @@
 from mdt.component_templates.library_functions import LibraryFunctionTemplate
-from mot.model_building.parameters import LibraryParameter
 
 
 class RotateOrthogonalVector(LibraryFunctionTemplate):
@@ -18,9 +17,9 @@ class RotateOrthogonalVector(LibraryFunctionTemplate):
             vector: the rotated vector
     '''
     return_type = 'mot_float_type4'
-    parameter_list = [LibraryParameter('mot_float_type4', 'basis'),
-                      LibraryParameter('mot_float_type4', 'to_rotate'),
-                      LibraryParameter('mot_float_type', 'psi')]
+    parameter_list = [('mot_float_type4', 'basis'),
+                      ('mot_float_type4', 'to_rotate'),
+                      ('mot_float_type', 'psi')]
     cl_code = '''
         mot_float_type cos_psi;
         mot_float_type sin_psi = sincos(psi, &cos_psi);
@@ -43,9 +42,9 @@ class RotateVector(LibraryFunctionTemplate):
             vector: the rotated vector
     '''
     return_type = 'mot_float_type4'
-    parameter_list = [LibraryParameter('mot_float_type4', 'basis'),
-                      LibraryParameter('mot_float_type4', 'to_rotate'),
-                      LibraryParameter('mot_float_type', 'psi')]
+    parameter_list = [('mot_float_type4', 'basis'),
+                      ('mot_float_type4', 'to_rotate'),
+                      ('mot_float_type', 'psi')]
     cl_code = '''
         mot_float_type cos_psi;
         mot_float_type sin_psi = sincos(psi, &cos_psi);
@@ -100,9 +99,9 @@ class TensorSphericalToCartesian(LibraryFunctionTemplate):
     '''
     dependency_list = ['RotateOrthogonalVector', 'SphericalToCartesian']
     parameter_list = ['theta', 'phi', 'psi',
-                      LibraryParameter('mot_float_type4*', 'vec0'),
-                      LibraryParameter('mot_float_type4*', 'vec1'),
-                      LibraryParameter('mot_float_type4*', 'vec2')]
+                      ('mot_float_type4*', 'vec0'),
+                      ('mot_float_type4*', 'vec1'),
+                      ('mot_float_type4*', 'vec2')]
     cl_code = '''
         *vec0 = SphericalToCartesian(theta, phi);
         *vec1 = RotateOrthogonalVector(*vec0, SphericalToCartesian(theta + M_PI_2_F, phi), psi);

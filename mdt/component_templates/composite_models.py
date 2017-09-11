@@ -242,7 +242,7 @@ def _resolve_model_prior(prior, model_parameters):
     """Resolve the model priors.
 
     Args:
-        model_prior (None or str or mot.cl_function.CLFunction): the prior defined in the composite model template.
+        prior (None or str or mot.cl_function.CLFunction): the prior defined in the composite model template.
         model_parameters (str): the (model, parameter) tuple for all the parameters in the model
 
     Returns:
@@ -261,11 +261,11 @@ def _resolve_model_prior(prior, model_parameters):
 
         if dotted_name in prior:
             prior = prior.replace(dotted_name, bar_name)
-            parameters.append(SimpleCLFunctionParameter('mot_float_type', dotted_name))
+            parameters.append(('mot_float_type', dotted_name))
         elif bar_name in prior:
-            parameters.append(SimpleCLFunctionParameter('mot_float_type', dotted_name))
+            parameters.append(('mot_float_type', dotted_name))
 
-    return [SimpleCLFunction.construct_cl_function('mot_float_type', 'model_prior', parameters, prior)]
+    return [SimpleCLFunction('mot_float_type', 'model_prior', parameters, prior)]
 
 
 def _get_map_sorting_modifier(sort_maps, model_list):

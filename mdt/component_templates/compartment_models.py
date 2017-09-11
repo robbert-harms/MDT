@@ -1,5 +1,4 @@
 from copy import deepcopy, copy
-from textwrap import indent, dedent
 import numpy as np
 import six
 
@@ -8,7 +7,6 @@ from mdt.component_templates.base import ComponentBuilder, method_binding_meta, 
 from mdt.models.compartments import DMRICompartmentModelFunction
 from mdt.utils import spherical_to_cartesian
 from mot.cl_function import CLFunction, SimpleCLFunction
-from mot.cl_parameter import CLFunctionParameter
 from mot.model_building.parameters import CurrentObservationParam
 
 __author__ = 'Robbert Harms'
@@ -113,7 +111,7 @@ class CompartmentBuilder(ComponentBuilder):
                 new_args = [template.name,
                             template.name,
                             parameter_list,
-                            _build_source_code(template),
+                            template.cl_code,
                             _resolve_dependencies(template.dependency_list),
                             template.return_type]
 
@@ -127,7 +125,8 @@ class CompartmentBuilder(ComponentBuilder):
                               'post_optimization_modifiers': builder._get_post_optimization_modifiers(template,
                                                                                                       parameter_list),
                               'sampling_covar_extras': covar_extras,
-                              'sampling_covar_exclude': covar_exclude}
+                              'sampling_covar_exclude': covar_exclude,
+                              'cl_extra': template.cl_extra}
                 new_kwargs.update(kwargs)
 
                 super(AutoCreatedDMRICompartmentModel, self).__init__(*new_args, **new_kwargs)
@@ -202,7 +201,7 @@ def _resolve_prior(prior, compartment_name, compartment_parameters):
         return prior
 
     parameters = [('mot_float_type', p) for p in compartment_parameters if p in prior]
-    return SimpleCLFunction.construct_cl_function('mot_float_type', 'prior_' + compartment_name, parameters, prior)
+    return SimpleCLFunction('mot_float_type', 'prior_' + compartment_name, parameters, prior)
 
 
 def _resolve_covariance_extra_exclude(template, parameter_list):
@@ -230,24 +229,6 @@ def _resolve_covariance_extra_exclude(template, parameter_list):
             extras.append((('theta', 'phi'), ('vec0_x', 'vec0_y', 'vec0_z'), conversion_func))
 
     return extras, excludes
-
-
-def _build_source_code(template):
-    """Build the full model source code for the given compartment template.
-
-    Args:
-        template (CompartmentTemplate): the template for which to construct the CL code
-
-    Returns:
-        str: the model code
-    """
-    s = ''
-    if template.cl_extra:
-        s += template.cl_extra
-    s += _construct_cl_function_definition(template.return_type, template.name,
-                                          _get_parameters_list(template.parameter_list))
-    s += '{\n\n' + indent(dedent(template.cl_code.strip('\n')), ' ' * 4) + '\n}'
-    return s
 
 
 def _get_parameters_list(parameter_list):
@@ -279,47 +260,3 @@ def _get_parameters_list(parameter_list):
         else:
             parameters.append(deepcopy(item))
     return parameters
-
-
-def _construct_cl_function_definition(return_type, cl_function_name, parameters):
-    """Create the CL function definition for a compartment function.
-
-    This will construct something like (for the Stick model):
-
-    .. code-block:: c
-
-        double Stick(const mot_float_type4 g,
-                     const mot_float_type b,
-                     const mot_float_type d,
-                     const mot_float_type theta,
-                     const mot_float_type phi)
-
-    Args:
-        return_type (str): the return type
-        cl_function_name (str): the name of the function
-        parameters (list of CLFunctionParameter): the list of function parameters we use for the arguments
-
-    Returns:
-        str: the function definition (only the signature).
-    """
-    def parameter_str(parameter):
-        s = parameter.data_type.declaration_type
-
-        if parameter.data_type.pre_data_type_type_qualifiers:
-            for qualifier in parameter.data_type.pre_data_type_type_qualifiers:
-                s = qualifier + ' ' + s
-
-        if parameter.data_type.address_space_qualifier:
-            s = parameter.data_type.address_space_qualifier + ' ' + s
-
-        if parameter.data_type.post_data_type_type_qualifier:
-            s += ' ' + parameter.data_type.post_data_type_type_qualifier
-
-        s += ' ' + parameter.name
-
-        return s
-
-    parameters_str = indent(',\n'.join(parameter_str(parameter) for parameter in parameters), ' '*4*2)
-    return '\n{return_type} {cl_function_name}(\n{parameters})'.format(
-        return_type=return_type, cl_function_name=cl_function_name, parameters=parameters_str)
-
