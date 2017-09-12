@@ -8,3 +8,4 @@ argcomplete
 grako
 sphinx-argparse
 sphinxcontrib-bibtex
+readthedocs-sphinx-ext==0.5.4

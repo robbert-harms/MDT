@@ -459,12 +459,14 @@ class SamplingProcessor(SimpleModelProcessor):
         self._write_volumes_gzipped = gzip_sampling_results()
         self._samples_to_save_method = samples_to_save_method or SaveAllSamples()
         self._post_processing_dirs = set()
+        self._logger = logging.getLogger(__name__)
 
     def _process(self, roi_indices, next_indices=None):
         model = self._model.build(roi_indices)
         sampling_output = self._sampler.sample(model)
         samples = sampling_output.get_samples()
 
+        self._logger.info('Starting post-processing')
         maps_to_save = model.get_post_sampling_maps(sampling_output)
 
         for map_name, items in maps_to_save.items():
@@ -477,6 +479,7 @@ class SamplingProcessor(SimpleModelProcessor):
         if self._samples_to_save_method.store_samples():
             samples_dict = results_to_dict(samples, model.get_free_param_names())
             self._write_sample_results(samples_dict, roi_indices)
+        self._logger.info('Finished post-processing')
 
     def combine(self):
         super(SamplingProcessor, self).combine()

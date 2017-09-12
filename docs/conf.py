@@ -351,7 +351,7 @@ latex_elements = {
 # [howto/manual]).
 latex_documents = [
     ('index_latex', 'mdt.tex',
-     u'Maastricht Diffusion Toolkit',
+     u'Maastricht Diffusion Toolbox',
      u'Robbert Harms', 'manual'),
 ]
 
