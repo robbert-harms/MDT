@@ -82,6 +82,14 @@ mdt\.model\_fitting module
     :undoc-members:
     :show-inheritance:
 
+mdt\.model\_interfaces module
+-----------------------------
+
+.. automodule:: mdt.model_interfaces
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 mdt\.model\_protocol\_problem module
 ------------------------------------
 

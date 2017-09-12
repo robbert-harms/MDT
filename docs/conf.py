@@ -24,7 +24,7 @@ import re
 from textwrap import dedent
 
 
-mock_as_class = ['SampleModelBuilder', 'QWidget', 'QMainWindow', 'QDialog', 'QObject',
+mock_as_class = ['SampleModelBuilder', 'ModelBuilder', 'QWidget', 'QMainWindow', 'QDialog', 'QObject',
                  'CLRoutine', 'InputData']
 mock_as_decorator = ['pyqtSlot']
 mock_modules = ['mot', 'pyopencl', 'PyQt5', 'matplotlib', 'mpl_toolkits']
@@ -47,6 +47,12 @@ class MockClass(object):
         return MockModule()
 
 
+class MockModelBuilder(object):
+    @classmethod
+    def __getattr__(cls, name):
+        return MockModule()
+
+
 class MockNamedComponent(MagicMock):
     """Some of the loaded components require the __name__ property to be set, this mock class makes that so."""
     @classmethod
@@ -59,6 +65,10 @@ class MockModule(MagicMock):
     @classmethod
     def __getattr__(cls, name):
         if name in mock_as_class:
+            # needs another base class then the default MockClass to prevent MRO issues in the DMRICompositeModel
+            if name == 'ModelBuilder':
+                return MockModelBuilder
+
             return MockClass
         if name in mock_as_decorator:
             return mock_decorator
