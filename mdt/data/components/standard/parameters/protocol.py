@@ -19,6 +19,18 @@ class g(ProtocolParameterTemplate):
     data_type = 'mot_float_type4'
 
 
+class gx(ProtocolParameterTemplate):
+    pass
+
+
+class gy(ProtocolParameterTemplate):
+    pass
+
+
+class gz(ProtocolParameterTemplate):
+    pass
+
+
 class b(ProtocolParameterTemplate):
     pass
 
