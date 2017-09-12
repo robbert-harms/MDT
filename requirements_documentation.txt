@@ -8,4 +8,5 @@ argcomplete
 grako
 sphinx-argparse
 sphinxcontrib-bibtex
-readthedocs-sphinx-ext==0.5.4
+recommonmark==0.4.0
+CommonMark==0.5.4
