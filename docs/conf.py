@@ -119,9 +119,10 @@ def get_cli_doc_items():
             items.append(item)
     return items
 
-with open('auto_gen_cli_index.rst', 'w') as f:
-    for item in get_cli_doc_items():
-        f.write(item[1:] + '\n\n\n')
+# enable again when supported on read the docs
+# with open('auto_gen_cli_index.rst', 'w') as f:
+#     for item in get_cli_doc_items():
+#         f.write(item[1:] + '\n\n\n')
 
 
 # If extensions (or modules to document with autodoc) are in another

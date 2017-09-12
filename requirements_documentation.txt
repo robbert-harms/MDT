@@ -7,5 +7,5 @@ nibabel
 argcomplete
 grako
 commonmark>= 0.5.6
-sphinx-argparse
+#sphinx-argparse # enable again when supported on read the docs
 sphinxcontrib-bibtex
