@@ -181,8 +181,7 @@ class SimpleMRIInputData(MRIInputData):
                 volumes_to_remove = [volumes_to_remove]
 
             volumes_to_keep = list(range(self.get_nmr_inst_per_problem()))
-            for remove_ind in volumes_to_remove:
-                del volumes_to_keep[remove_ind]
+            volumes_to_keep = [ind for ind in volumes_to_keep if ind not in volumes_to_remove]
 
         new_protocol = self.protocol
         if self.protocol is not None:

@@ -8,7 +8,6 @@ from mdt.deferred_mappings import DeferredFunctionDict
 from mot.cl_routines.mapping.codec_runner import CodecRunner
 
 from mdt.model_interfaces import MRIModelBuilder, MRIModelInterface
-from mot.cl_routines.mapping.sampling_mle_map_index import Sampling_MLE_MAP_Index
 from mot.utils import results_to_dict, convert_data_to_dtype
 from six import string_types
 
@@ -473,7 +472,7 @@ class BuildCompositeModel(MRIModelInterface):
         """
         samples = sampling_output.get_samples()
 
-        mle_maps_cb, map_maps_cb = self._get_mle_map_statistics(samples)
+        mle_maps_cb, map_maps_cb = self._get_mle_map_statistics(sampling_output)
 
         return DeferredFunctionDict({
             'maximum_likelihood': mle_maps_cb,
@@ -493,12 +492,12 @@ class BuildCompositeModel(MRIModelInterface):
         """
         sampling_counter = mh_state.get_proposal_state_sampling_counter()
         return {'proposal_state_sampling_counter': mh_state.get_proposal_state_sampling_counter(),
-                 'proposal_state_acceptance_counter': mh_state.get_proposal_state_acceptance_counter(),
-                 'online_parameter_variance': mh_state.get_online_parameter_variance(),
-                 'online_parameter_variance_update_m2': mh_state.get_online_parameter_variance_update_m2(),
-                 'online_parameter_mean': mh_state.get_online_parameter_mean(),
-                 'rng_state': mh_state.get_rng_state(),
-                 'nmr_samples_drawn': np.ones_like(sampling_counter) * mh_state.nmr_samples_drawn}
+                'proposal_state_acceptance_counter': mh_state.get_proposal_state_acceptance_counter(),
+                'online_parameter_variance': mh_state.get_online_parameter_variance(),
+                'online_parameter_variance_update_m2': mh_state.get_online_parameter_variance_update_m2(),
+                'online_parameter_mean': mh_state.get_online_parameter_mean(),
+                'rng_state': mh_state.get_rng_state(),
+                'nmr_samples_drawn': np.ones_like(sampling_counter) * mh_state.nmr_samples_drawn}
 
     def get_univariate_statistics(self, samples):
         """Get the univariate statistics for the samples.
@@ -516,22 +515,33 @@ class BuildCompositeModel(MRIModelInterface):
         """
         volume_maps = self._get_univariate_parameter_statistics(samples)
         volume_maps = self.post_process_optimization_maps(volume_maps)
-        volume_maps.update(self._get_post_sampling_information_criterion_maps(samples, volume_maps['LogLikelihood']))
+
+        volume_maps.update(self._calculate_deviance_information_criterions(samples, volume_maps['LogLikelihood']))
+        volume_maps.update({'WAIC': np.nan_to_num(WAICCalculator().calculate(self, samples))})
+
         return volume_maps
 
-    def _get_mle_map_statistics(self, samples):
+    def _get_mle_map_statistics(self, sampling_output):
         """Get the maximum and corresponding volume maps of the MLE and MAP estimators.
 
         This computes the Maximum Likelihood Estimator and the Maximum A Posteriori in one run and computes from that
         the corresponding parameter and general post-optimization maps.
 
         Args:
-            samples (ndarray): an (d, p, n) matrix for d problems, p parameters and n samples.
+            sampling_output (mot.cl_routines.sampling.metropolis_hastings.MHSampleOutput): the output of the sampler
 
         Returns:
             tuple(Func, Func): the function that generates the maps for the MLE and for the MAP estimators.
         """
-        mle_indices, map_indices, mle_values, map_values = Sampling_MLE_MAP_Index().calculate(self, samples)
+        log_likelihoods = sampling_output.get_log_likelihoods()
+        posteriors = log_likelihoods + sampling_output.get_log_priors()
+
+        mle_indices = np.argmax(log_likelihoods, axis=1)
+        map_indices = np.argmax(posteriors, axis=1)
+
+        map_values = posteriors[range(posteriors.shape[0]), map_indices]
+
+        samples = sampling_output.get_samples()
 
         mle_samples = np.zeros(samples.shape[:2], dtype=samples.dtype)
         map_samples = np.zeros(samples.shape[:2], dtype=samples.dtype)
@@ -655,13 +665,6 @@ class BuildCompositeModel(MRIModelInterface):
         result.update(calculate_point_estimate_information_criterions(log_likelihoods, k, n))
 
         return result
-
-    def _get_post_sampling_information_criterion_maps(self, samples, log_likelihoods):
-        """Get the information criterion maps that can be only be calculated after sampling."""
-        maps = {}
-        maps.update(self._calculate_deviance_information_criterions(samples, log_likelihoods))
-        maps.update({'WAIC': np.nan_to_num(WAICCalculator().calculate(self, samples))})
-        return maps
 
     def _calculate_deviance_information_criterions(self, samples, log_likelihoods):
         r"""Calculates the Deviance Information Criteria (DIC) using two methods.
@@ -822,8 +825,8 @@ class BuildCompositeModel(MRIModelInterface):
     def get_proposal_state(self):
         return self._wrapped_sample_model.get_proposal_state()
 
-    def get_log_likelihood_per_observation_function(self, full_likelihood=True):
-        return self._wrapped_sample_model.get_log_likelihood_per_observation_function(full_likelihood=full_likelihood)
+    def get_log_likelihood_per_observation_function(self):
+        return self._wrapped_sample_model.get_log_likelihood_per_observation_function()
 
     def is_proposal_symmetric(self):
         return self._wrapped_sample_model.is_proposal_symmetric()
