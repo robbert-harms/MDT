@@ -415,7 +415,7 @@ class BuildCompositeModel(MRIModelInterface):
         """
         return self._proposal_state_names
 
-    def post_process_optimization_maps(self, results_dict, results_array=None):
+    def post_process_optimization_maps(self, results_dict, results_array=None, log_likelihoods=None):
         r"""This adds some extra optimization maps to the results dictionary.
 
         This function behaves as a procedure and as a function. The input dict can be updated in place, but it should
@@ -436,9 +436,10 @@ class BuildCompositeModel(MRIModelInterface):
         Args:
             results_dict (dict): A dictionary with as keys the names of the parameters and as values the 1d maps with
                 for each voxel the optimized parameter value. The given dictionary can be altered by this function.
-            problems_to_analyze (ndarray): the subset of voxels we are analyzing
             results_array (ndarray): if available, the results as an array instead of as a dictionary, if not given we
                 will construct it in this function.
+            log_likelihoods (ndarray): for every set of parameters the corresponding log likelihoods.
+                If not provided they will be calculated from the parameters.
 
         Returns:
             dict: The same result dictionary but with updated values or with additional maps.
@@ -450,7 +451,8 @@ class BuildCompositeModel(MRIModelInterface):
         results_dict.update(self._dependent_map_calculator(self, results_dict))
         results_dict.update(self._fixed_parameter_maps)
         self._add_post_optimization_modifier_maps(results_dict)
-        results_dict.update(self._get_post_optimization_information_criterion_maps(results_array))
+        results_dict.update(self._get_post_optimization_information_criterion_maps(
+            results_array, log_likelihoods=log_likelihoods))
 
         errors = ResidualCalculator().calculate(self, results_array)
         errors = np.nan_to_num(errors)
@@ -478,7 +480,7 @@ class BuildCompositeModel(MRIModelInterface):
             'maximum_likelihood': mle_maps_cb,
             'maximum_a_posteriori': map_maps_cb,
             'mh_state': lambda: self._get_mh_state_write_arrays(sampling_output.get_mh_state()),
-            'univariate_statistics': lambda: self.get_univariate_statistics(samples),
+            'univariate_statistics': lambda: self.get_univariate_statistics(sampling_output),
             'multivariate_statistic': lambda: self.get_multivariate_sampling_statistic(samples),
             'effective_sample_size': lambda: self.get_sampling_ess_statistics(samples),
             'proposal_state': lambda: results_to_dict(sampling_output.get_proposal_state(),
@@ -499,7 +501,7 @@ class BuildCompositeModel(MRIModelInterface):
                 'rng_state': mh_state.get_rng_state(),
                 'nmr_samples_drawn': np.ones_like(sampling_counter) * mh_state.nmr_samples_drawn}
 
-    def get_univariate_statistics(self, samples):
+    def get_univariate_statistics(self, sampling_output):
         """Get the univariate statistics for the samples.
 
         This typically returns the mean and standard deviation of each of the parameters.
@@ -508,15 +510,18 @@ class BuildCompositeModel(MRIModelInterface):
         then used for the point estimate for the volume maps.
 
         Args:
-            samples (ndarray): an (d, p, n) matrix for d problems, p parameters and n samples.
+            sampling_output (mot.cl_routines.sampling.metropolis_hastings.MHSampleOutput): the output of the sampler
 
         Returns:
             dict: the volume maps derived from the mean parameter value
         """
+        samples = sampling_output.get_samples()
+
         volume_maps = self._get_univariate_parameter_statistics(samples)
         volume_maps = self.post_process_optimization_maps(volume_maps)
 
-        volume_maps.update(self._calculate_deviance_information_criterions(samples, volume_maps['LogLikelihood']))
+        volume_maps.update(self._calculate_deviance_information_criterions(
+            samples, volume_maps['LogLikelihood'], sampling_output.get_log_likelihoods()))
         volume_maps.update({'WAIC': np.nan_to_num(WAICCalculator().calculate(self, samples))})
 
         return volume_maps
@@ -539,6 +544,7 @@ class BuildCompositeModel(MRIModelInterface):
         mle_indices = np.argmax(log_likelihoods, axis=1)
         map_indices = np.argmax(posteriors, axis=1)
 
+        mle_values = log_likelihoods[range(log_likelihoods.shape[0]), mle_indices]
         map_values = posteriors[range(posteriors.shape[0]), map_indices]
 
         samples = sampling_output.get_samples()
@@ -552,13 +558,13 @@ class BuildCompositeModel(MRIModelInterface):
 
         def mle_maps():
             results = results_to_dict(mle_samples, self._free_param_names)
-            maps = self.post_process_optimization_maps(results, results_array=mle_samples)
+            maps = self.post_process_optimization_maps(results, results_array=mle_samples, log_likelihoods=mle_values)
             maps.update({'MaximumLikelihoodEstimator.indices': mle_indices})
             return maps
 
         def map_maps():
             results = results_to_dict(map_samples, self._free_param_names)
-            maps = self.post_process_optimization_maps(results, results_array=map_samples)
+            maps = self.post_process_optimization_maps(results, results_array=map_samples, log_likelihoods=mle_values)
             maps.update({'MaximumAPosteriori': map_values,
                          'MaximumAPosteriori.indices': map_indices})
             return maps
@@ -644,19 +650,22 @@ class BuildCompositeModel(MRIModelInterface):
             else:
                 results_dict.update(zip(names, callable()))
 
-    def _get_post_optimization_information_criterion_maps(self, results_array):
+    def _get_post_optimization_information_criterion_maps(self, results_array, log_likelihoods=None):
         """Add some final results maps to the results dictionary.
 
         This called by the function post_process_optimization_maps() as last call to add more maps.
 
         Args:
             results_array (ndarray): the results from model optimization.
+            log_likelihoods (ndarray): for every set of parameters the corresponding log likelihoods.
+                If not provided they will be calculated from the parameters.
 
         Returns:
             dict: the calculated information criterion maps
         """
-        log_likelihood_calc = LogLikelihoodCalculator()
-        log_likelihoods = log_likelihood_calc.calculate(self, results_array)
+        if log_likelihoods is None:
+            log_likelihood_calc = LogLikelihoodCalculator()
+            log_likelihoods = log_likelihood_calc.calculate(self, results_array)
 
         k = self.nmr_parameters_for_bic_calculation
         n = self.get_nmr_inst_per_problem()
@@ -666,7 +675,7 @@ class BuildCompositeModel(MRIModelInterface):
 
         return result
 
-    def _calculate_deviance_information_criterions(self, samples, log_likelihoods):
+    def _calculate_deviance_information_criterions(self, samples, mean_posterior_lls, ll_per_sample):
         r"""Calculates the Deviance Information Criteria (DIC) using two methods.
 
         This returns a dictionary returning the ``DIC_2002``, the ``DIC_2004`` and the ``DIC_Ando_2011`` method.
@@ -727,17 +736,16 @@ class BuildCompositeModel(MRIModelInterface):
 
         Args:
             samples (ndarray): the samples, a (d, p, n) matrix with d problems, p parameters and n samples.
-            log_likelihoods (ndarray): a 1d matrix containing point estimates for the log likelihood for every voxel
+            mean_posterior_lls (ndarray): a 1d matrix containing the log likelihood for the average posterior
+                point estimate.
+            ll_per_sample (ndarray): a (d, n) array with for d problems the n log likelihoods.
 
         Returns:
             dict: a dictionary containing the ``DIC_2002``, the ``DIC_2004`` and the ``DIC_Ando_2011`` information
                 criterion maps.
         """
-        log_likelihood_calc = LogLikelihoodCalculator()
-        ll_per_sample = np.nan_to_num(log_likelihood_calc.calculate(self, samples))
-
         mean_deviance = -2 * np.mean(ll_per_sample, axis=1)
-        deviance_at_mean = -2 * log_likelihoods
+        deviance_at_mean = -2 * mean_posterior_lls
 
         pd_2002 = mean_deviance - deviance_at_mean
         pd_2004 = np.var(ll_per_sample, axis=1) / 2.0

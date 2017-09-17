@@ -6,7 +6,7 @@ This is meant to quickly convert/combine one or two maps with a mathematical exp
 The expression can be any valid python expression.
 
 The input list of images are loaded as numpy arrays and stored in the array 'input' and 'i'.
-Next, the expression is evaluated using the input images and the result is stored in the indicated file.
+Next, the expression is evaluated using the input images and the result is stored in the indicated file(s).
 
 In the expression you can either use the arrays 'input' or 'i' with linear indices, or/and you can use alphabetic
 characters for each image. For example, if you have specified 2 input images
@@ -32,12 +32,13 @@ results using 'return'. (Basically it wraps your command in a function, of which
 used as expression value).
 
 If no output file is specified and the output is of dimension 2 or lower we print the output directly
-to the console.
+to the console. If the output is a list or tuple instead of an ndarray we will write every element of that
+sequence as a separate file. This will use the indicated file as basename and append an numerical index to it.
 """
 import argparse
 import glob
 import os
-
+from collections import Sequence
 import numpy as np
 
 import mdt
@@ -66,6 +67,7 @@ class MathImg(BasicShellApplication):
             mdt-math-img FA.nii white_matter_mask.nii 'np.mean(mdt.create_roi(a, b))'
             mdt-math-img images*.nii.gz mask.nii 'list(map(lambda f: np.mean(mdt.create_roi(f, i[-1])), i[0:-1]))'
             mdt-math-img FA.nii.gz
+            mdt-math-img timeseries.nii '[a[..., ind] for ind in range(a.shape[-1])]' -o split.nii
            ''')
         epilog = self._format_examples(doc_parser, examples)
 
@@ -98,9 +100,6 @@ class MathImg(BasicShellApplication):
 
     def run(self, args, extra_args):
         write_output = args.output_file is not None
-
-        if write_output:
-            output_file = os.path.realpath(args.output_file)
 
         file_names = []
         images = []
@@ -165,7 +164,19 @@ class MathImg(BasicShellApplication):
             print('')
 
         if write_output:
-            mdt.write_nifti(output, mdt.load_nifti(file_names[0]).get_header(), output_file)
+            output_file = os.path.realpath(args.output_file)
+            dirname, basename, ext = split_image_path(output_file)
+
+            if not os.path.exists(dirname):
+                os.makedirs(dirname)
+
+            if isinstance(output, Sequence):
+                for ind, element in enumerate(output):
+                    mdt.write_nifti(element,
+                                    mdt.load_nifti(file_names[0]).get_header(),
+                                    dirname + basename + '_' + str(ind) + ext)
+            else:
+                mdt.write_nifti(output, mdt.load_nifti(file_names[0]).get_header(), output_file)
 
     def _images_3d_to_4d(self, images):
         return list([image[..., np.newaxis] if len(image.shape) == 3 else image for image in images])

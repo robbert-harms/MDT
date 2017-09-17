@@ -1383,7 +1383,7 @@ def split_image_path(image_path):
     Returns:
         list of str: the path, the basename and the extension (extension includes the dot)
     """
-    folder = os.path.dirname(image_path)
+    folder = os.path.dirname(image_path) + '/'
     basename = os.path.basename(image_path)
 
     for extension in ['.nii.gz', '.nii']:
