@@ -53,7 +53,7 @@ def get_config_dir():
     return os.path.join(os.path.expanduser("~"), '.mdt', __version__)
 
 
-def config_insert(keys, value):
+def _config_insert(keys, value):
     """Insert the given value in the given key.
 
     This will create all layers of the dictionary if needed.
@@ -118,6 +118,9 @@ def load_specific(file_name):
 
     Please note that the last configuration loaded overwrites the values of the previously loaded config files.
 
+    Also, please note that this will change the global configuration, i.e. this is a persistent change. If you do not
+    want a persistent state change, consider using :func:`~mdt.configuration.config_context` instead.
+
     Args:
         file_name (str): The name of the file to use.
     """
@@ -130,6 +133,9 @@ def load_from_yaml(yaml_str):
 
     This will update the current configuration with the new options.
 
+    Please note that this will change the global configuration, i.e. this is a persistent change. If you do not
+    want a persistent state change, consider using :func:`~mdt.configuration.config_context` instead.
+
     Args:
         yaml_str (str): The string containing the YAML config to parse.
     """
@@ -139,6 +145,9 @@ def load_from_yaml(yaml_str):
 
 def load_from_dict(config_dict):
     """Load configuration options from a given dictionary.
+
+    Please note that this will change the global configuration, i.e. this is a persistent change. If you do not
+    want a persistent state change, consider using :func:`~mdt.configuration.config_context` instead.
 
     Args:
         config_dict (dict): the dictionary from which to use the configurations
@@ -209,7 +218,7 @@ class OutputFormatLoader(ConfigSectionLoader):
             options = value.get(item, {})
 
             if 'gzip' in options:
-                config_insert(['output_format', item, 'gzip'], bool(options['gzip']))
+                _config_insert(['output_format', item, 'gzip'], bool(options['gzip']))
 
 
 class LoggingLoader(ConfigSectionLoader):
@@ -223,7 +232,7 @@ class LoggingLoader(ConfigSectionLoader):
     def _load_info_dict(self, info_dict):
         for item in ['version', 'disable_existing_loggers', 'formatters', 'handlers', 'loggers', 'root']:
             if item in info_dict:
-                config_insert(['logging', 'info_dict', item], info_dict[item])
+                _config_insert(['logging', 'info_dict', item], info_dict[item])
 
 
 class OptimizationSettingsLoader(ConfigSectionLoader):
@@ -234,11 +243,11 @@ class OptimizationSettingsLoader(ConfigSectionLoader):
         ensure_exists(['optimization', 'model_specific'])
 
         if 'general' in value:
-            config_insert(['optimization', 'general'], value['general'])
+            _config_insert(['optimization', 'general'], value['general'])
 
         if 'model_specific' in value:
             for key, sub_value in value['model_specific'].items():
-                config_insert(['optimization', 'model_specific', key], sub_value)
+                _config_insert(['optimization', 'model_specific', key], sub_value)
 
 
 class SampleSettingsLoader(ConfigSectionLoader):
@@ -248,7 +257,7 @@ class SampleSettingsLoader(ConfigSectionLoader):
         ensure_exists(['sampling', 'general'])
 
         if 'general' in value:
-            config_insert(['sampling', 'general'], value['general'])
+            _config_insert(['sampling', 'general'], value['general'])
 
 
 class ProcessingStrategySectionLoader(ConfigSectionLoader):
@@ -256,16 +265,16 @@ class ProcessingStrategySectionLoader(ConfigSectionLoader):
 
     def load(self, value):
         if 'optimization' in value:
-            config_insert(['processing_strategies', 'optimization'], value['optimization'])
+            _config_insert(['processing_strategies', 'optimization'], value['optimization'])
         if 'sampling' in value:
-            config_insert(['processing_strategies', 'sampling'], value['sampling'])
+            _config_insert(['processing_strategies', 'sampling'], value['sampling'])
 
 
 class TmpResultsDirSectionLoader(ConfigSectionLoader):
     """Load the section tmp_results_dir"""
 
     def load(self, value):
-        config_insert(['tmp_results_dir'], value)
+        _config_insert(['tmp_results_dir'], value)
 
 
 class NoiseStdEstimationSectionLoader(ConfigSectionLoader):
@@ -273,7 +282,7 @@ class NoiseStdEstimationSectionLoader(ConfigSectionLoader):
 
     def load(self, value):
         if 'estimators' in value:
-            config_insert(['noise_std_estimating', 'estimators'], value['estimators'])
+            _config_insert(['noise_std_estimating', 'estimators'], value['estimators'])
 
 
 class DefaultProposalUpdateLoader(ConfigSectionLoader):
@@ -293,8 +302,8 @@ class AutomaticCascadeModels(ConfigSectionLoader):
     """Load the automatic cascade model settings."""
 
     def load(self, value):
-        config_insert(['auto_generate_cascade_models', 'enabled'], value.get('enabled', True))
-        config_insert(['auto_generate_cascade_models', 'excluded'], value.get('excluded', []))
+        _config_insert(['auto_generate_cascade_models', 'enabled'], value.get('enabled', True))
+        _config_insert(['auto_generate_cascade_models', 'excluded'], value.get('excluded', []))
 
 
 class RuntimeSettingsLoader(ConfigSectionLoader):
