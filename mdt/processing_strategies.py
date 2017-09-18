@@ -469,11 +469,7 @@ class SamplingProcessor(SimpleModelProcessor):
         self._logger.info('Starting post-processing')
         maps_to_save = model.get_post_sampling_maps(sampling_output)
 
-        # for map_name, items in maps_to_save.items():
-        for map_name in maps_to_save.keys():
-            start = time.time()
-            items = maps_to_save[map_name]
-            self._logger.info(map_name + ": " + str(time.time() - start))
+        for map_name, items in maps_to_save.items():
             self._post_processing_dirs.add(map_name)
             self._write_volumes(items, roi_indices, os.path.join(self._tmp_storage_dir, map_name))
 
@@ -482,6 +478,8 @@ class SamplingProcessor(SimpleModelProcessor):
 
         if self._samples_to_save_method.store_samples():
             samples_dict = results_to_dict(samples, model.get_free_param_names())
+            samples_dict['LogLikelihoods'] = sampling_output.get_log_likelihoods()
+            samples_dict['LogPriors'] = sampling_output.get_log_priors()
             self._write_sample_results(samples_dict, roi_indices)
         self._logger.info('Finished post-processing')
 

@@ -318,7 +318,7 @@ def load_problem_data(*args, **kwargs):
     # todo: remove in future version
     import warnings
     warnings.warn('The function `load_problem_data` is deprecated and has been renamed to `load_input_data`. '
-                  'Please rename your function call.')
+                  'Please rename your function call.', DeprecationWarning)
     return load_input_data(*args, **kwargs)
 
 
