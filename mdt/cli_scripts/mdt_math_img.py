@@ -167,9 +167,6 @@ class MathImg(BasicShellApplication):
             output_file = os.path.realpath(args.output_file)
             dirname, basename, ext = split_image_path(output_file)
 
-            if not os.path.exists(dirname):
-                os.makedirs(dirname)
-
             if isinstance(output, Sequence):
                 for ind, element in enumerate(output):
                     mdt.write_nifti(element,

@@ -112,9 +112,6 @@ def create_write_median_otsu_brain_mask(dwi_info, protocol, output_fname, **kwar
     Returns:
         ndarray: The created brain mask
     """
-    if not os.path.isdir(os.path.dirname(output_fname)):
-        os.makedirs(os.path.dirname(output_fname))
-
     if isinstance(dwi_info, string_types):
         signal_img = load_nifti(dwi_info)
         dwi = signal_img.get_data()

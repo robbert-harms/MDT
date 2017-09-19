@@ -743,9 +743,6 @@ def write_slice_roi(brain_mask_fname, roi_dimension, roi_slice, output_fname, ov
     if os.path.exists(output_fname) and not overwrite_if_exists:
         return load_brain_mask(output_fname)
 
-    if not os.path.isdir(os.path.dirname(output_fname)):
-        os.makedirs(os.path.dirname(output_fname))
-
     brain_mask_img = load_nifti(brain_mask_fname)
     brain_mask = brain_mask_img.get_data()
     img_header = brain_mask_img.get_header()

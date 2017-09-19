@@ -140,9 +140,6 @@ def write_all_as_nifti(volumes, directory, nifti_header=None, overwrite_volumes=
         overwrite_volumes (boolean): defaults to True, if we want to overwrite the volumes if they exists
         gzip (boolean): if True we write the files as .nii.gz, if False we write the files as .nii
     """
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-
     for key, volume in volumes.items():
         extension = '.nii'
         if gzip:
