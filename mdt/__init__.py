@@ -527,7 +527,7 @@ def write_volume_maps(maps, directory, header, overwrite_volumes=True):
         overwrite_volumes (boolean): If we want to overwrite the volumes if they are present.
     """
     from mdt.nifti import write_all_as_nifti
-    write_all_as_nifti(maps, directory, header, overwrite_volumes=overwrite_volumes)
+    write_all_as_nifti(maps, directory, nifti_header=header, overwrite_volumes=overwrite_volumes)
 
 
 def get_list_of_composite_models():

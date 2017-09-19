@@ -632,4 +632,4 @@ def _combine_volumes_write_out(info_pair):
     chunks_dir, output_dir, nifti_header, write_gzipped = info_list
 
     data = np.load(os.path.join(chunks_dir, map_name + '.npy'), mmap_mode='r')
-    write_all_as_nifti({map_name: data}, output_dir, nifti_header, gzip=write_gzipped)
+    write_all_as_nifti({map_name: data}, output_dir, nifti_header=nifti_header, gzip=write_gzipped)

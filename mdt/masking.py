@@ -94,7 +94,7 @@ def generate_simple_wm_mask(fa_fname, brain_mask_fname, out_fname, fa_threshold=
     median_filter = MedianFilter(median_radius)
     fa_data = median_filter.filter(fa_data, mask=mask, nmr_of_times=numpass)
 
-    write_nifti(fa_data, nib_container.get_header(), out_fname)
+    write_nifti(fa_data, out_fname, nib_container.get_header())
     logger.info('Finished calculating a white matter mask.')
 
 
@@ -124,7 +124,7 @@ def create_write_median_otsu_brain_mask(dwi_info, protocol, output_fname, **kwar
         header = dwi_info[1]
 
     mask = create_median_otsu_brain_mask(dwi, protocol, **kwargs)
-    write_nifti(mask, header, output_fname)
+    write_nifti(mask, output_fname, header)
 
     return mask
 

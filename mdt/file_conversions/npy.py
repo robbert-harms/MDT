@@ -25,7 +25,7 @@ def volume_map_npy_to_nifti(npy_fname, nifti_header, nifti_fname=None):
     if nifti_fname is None:
         nifti_fname = os.path.join(os.path.dirname(npy_fname),
                                    os.path.splitext(os.path.basename(npy_fname))[0] + '.nii.gz')
-    write_nifti(data, nifti_header, nifti_fname)
+    write_nifti(data, nifti_fname, nifti_header)
 
 
 def load_all_npy_files(directory):
@@ -75,4 +75,4 @@ def samples_npy_to_nifti(samples_npy_fname, used_mask, nifti_header, nifti_fname
                                    os.path.splitext(os.path.basename(samples_npy_fname))[0] + '.nii.gz')
 
     volume = restore_volumes(samples, used_mask)
-    write_nifti(volume, nifti_header, nifti_fname)
+    write_nifti(volume, nifti_fname, nifti_header)

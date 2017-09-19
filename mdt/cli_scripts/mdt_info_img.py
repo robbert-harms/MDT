@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
 """Print some basic information about an image file."""
+import warnings
 import argparse
 import os
-from mdt.nifti import load_nifti
+from mdt.nifti import load_nifti, nifti_filepath_resolution
 import textwrap
 
 from mdt.shell_utils import BasicShellApplication
@@ -36,13 +37,17 @@ class InfoImg(BasicShellApplication):
     def run(self, args, extra_args):
         for image in args.images:
             image_path = os.path.realpath(image)
-            if os.path.isfile(image_path):
-                if image_path.endswith('.nii') or image_path.endswith('.nii.gz'):
-                    img = load_nifti(image_path)
-                    header = img.get_header()
-                    print('{}'.format(image))
-                    self.print_info(header)
-                    print('')
+
+            try:
+                image_path = nifti_filepath_resolution(image_path)
+                img = load_nifti(image_path)
+                header = img.get_header()
+                print('{}'.format(image))
+                self.print_info(header)
+                print('')
+
+            except ValueError:
+                warnings.warn('Could not load image "{}"'.format(image_path))
 
     def print_info(self, header):
         row_format = "{:<15}{}"

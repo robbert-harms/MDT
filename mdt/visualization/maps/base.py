@@ -883,7 +883,7 @@ class SingleMapInfo(object):
         """Holds information about a single map.
 
         Args:
-            data (ndarray or :class:`nibabel.nifti1.Nifti1Image`): the value of the map or the proxy to it
+            data (ndarray or :class:`nibabel.spatialimages.SpatialImage`): the value of the map or the proxy to it
             file_path (str): optionally, the file path with the location of this map
         """
         self._data = data
@@ -900,7 +900,7 @@ class SingleMapInfo(object):
 
     @property
     def data(self):
-        if isinstance(self._data, nibabel.nifti1.Nifti1Image):
+        if isinstance(self._data, nibabel.spatialimages.SpatialImage):
             return self._data.get_data()
         return self._data
 

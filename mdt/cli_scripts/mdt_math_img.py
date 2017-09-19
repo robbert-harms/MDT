@@ -173,10 +173,10 @@ class MathImg(BasicShellApplication):
             if isinstance(output, Sequence):
                 for ind, element in enumerate(output):
                     mdt.write_nifti(element,
-                                    mdt.load_nifti(file_names[0]).get_header(),
-                                    dirname + basename + '_' + str(ind) + ext)
+                                    dirname + basename + '_' + str(ind) + ext,
+                                    mdt.load_nifti(file_names[0]).get_header())
             else:
-                mdt.write_nifti(output, mdt.load_nifti(file_names[0]).get_header(), output_file)
+                mdt.write_nifti(output, output_file, mdt.load_nifti(file_names[0]).get_header())
 
     def _images_3d_to_4d(self, images):
         return list([image[..., np.newaxis] if len(image.shape) == 3 else image for image in images])

@@ -1,8 +1,7 @@
 import glob
 import gzip
 import os
-from contextlib import contextmanager
-
+import copy
 import nibabel as nib
 import numpy as np
 import shutil
@@ -26,7 +25,7 @@ def load_nifti(nifti_volume):
         nifti_volume (string): The filename of the volume to use.
 
     Returns:
-        :class:`nibabel.nifti1.Nifti1Image`
+        :class:`nibabel.nifti2.Nifti2Image`
     """
     path = nifti_filepath_resolution(nifti_volume)
     return nib.load(path)
@@ -87,51 +86,57 @@ def get_all_image_data(directory, map_names=None, deferred=True):
         return {k: v.get_data() for k, v in proxies.items()}
 
 
-def write_nifti(data, header, output_fname, affine=None, use_data_dtype=True, **kwargs):
+def write_nifti(data, output_fname, header=None, affine=None, use_data_dtype=True, **kwargs):
     """Write data to a nifti file.
 
+    This will write the output directory if it does not exist yet.
+
     Args:
+        data (ndarray): the data to write to that nifti file
         output_fname (str): the name of the resulting nifti file, this function will append .nii.gz if no
             suitable extension is given.
-        data (ndarray): the data to write to that nifti file
-        header (nibabel header): the nibabel header to use as header for the nifti file
+        header (nibabel header): the nibabel header to use as header for the nifti file. If None we will use
+            a default header.
         affine (ndarray): the affine transformation matrix
         use_data_dtype (boolean): if we want to use the dtype from the data instead of that from the header
             when saving the nifti.
-        **kwargs: other arguments to Nifti1Image from NiBabel
+        **kwargs: other arguments to Nifti2Image from NiBabel
     """
-    @contextmanager
-    def header_dtype():
-        old_dtype = header.get_data_dtype()
+    if header is None:
+        header = nib.nifti2.Nifti2Header()
 
-        if use_data_dtype:
-            dtype = data.dtype
-            if data.dtype == np.bool:
-                dtype = np.char
-
-            try:
-                header.set_data_dtype(dtype)
-            except nib.spatialimages.HeaderDataError:
-                pass
-
-        yield header
-        header.set_data_dtype(old_dtype)
+    if use_data_dtype:
+        header = copy.deepcopy(header)
+        dtype = data.dtype
+        if data.dtype == np.bool:
+            dtype = np.char
+        try:
+            header.set_data_dtype(dtype)
+        except nib.spatialimages.HeaderDataError:
+            pass
 
     if not (output_fname.endswith('.nii.gz') or output_fname.endswith('.nii')):
         output_fname += '.nii.gz'
 
-    with header_dtype() as header:
-        nib.Nifti1Image(data, affine, header, **kwargs).to_filename(output_fname)
+    if not os.path.exists(os.path.dirname(output_fname)):
+        os.makedirs(os.path.dirname(output_fname))
+
+    if isinstance(header, nib.nifti2.Nifti2Header):
+        format = nib.Nifti2Image
+    else:
+        format = nib.Nifti1Image
+
+    format(data, affine, header=header, **kwargs).to_filename(output_fname)
 
 
-def write_all_as_nifti(volumes, directory, nifti_header, overwrite_volumes=True, gzip=True):
+def write_all_as_nifti(volumes, directory, nifti_header=None, overwrite_volumes=True, gzip=True):
     """Write a number of volume maps to the specific directory.
 
     Args:
         volumes (dict): the volume maps (in 3d) with the results we want to write.
             The filenames are generated using the keys in the given volumes
         directory (str): the directory to write to
-        nifti_header: the nifti header to use for each of the volumes
+        nifti_header: the nifti header to use for each of the volumes.
         overwrite_volumes (boolean): defaults to True, if we want to overwrite the volumes if they exists
         gzip (boolean): if True we write the files as .nii.gz, if False we write the files as .nii
     """
@@ -149,9 +154,9 @@ def write_all_as_nifti(volumes, directory, nifti_header, overwrite_volumes=True,
         if os.path.exists(full_filename):
             if overwrite_volumes:
                 os.remove(full_filename)
-                write_nifti(volume, nifti_header, full_filename)
+                write_nifti(volume, full_filename, header=nifti_header)
         else:
-            write_nifti(volume, nifti_header, full_filename)
+            write_nifti(volume, full_filename, header=nifti_header)
 
 
 def nifti_filepath_resolution(file_path):
@@ -219,6 +224,8 @@ def is_nifti_file(file_name):
 def unzip_nifti(input_filename, output_filename):
     """Unzips the given nifti file.
 
+    This will create the output directories if they do not yet exist.
+
     Args:
         input_filename (str): the nifti file we would like to unzip. Should have the extension ``.gz``.
         output_filename (str): the location for the output file. Should have the extension ``.nii``.
@@ -226,6 +233,9 @@ def unzip_nifti(input_filename, output_filename):
     Raises:
         ValueError: if the extensions of either the input or output filename are not correct.
     """
+    if not os.path.exists(os.path.dirname(output_filename)):
+        os.makedirs(os.path.dirname(output_filename))
+
     if not input_filename.rstrip().endswith('.gz') or not output_filename.rstrip().endswith('.nii'):
         raise ValueError('The input filename should have extension ".gz" and the '
                          'output filename should have extension ".nii".')

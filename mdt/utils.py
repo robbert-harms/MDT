@@ -695,8 +695,8 @@ def read_split_write_volume(volume_fname, first_output_fname, second_output_fnam
 
     split = split_dataset(signal4d, split_dimension, split_index)
 
-    write_nifti(split[0], img_header, first_output_fname)
-    write_nifti(split[1], img_header, second_output_fname)
+    write_nifti(split[0], first_output_fname, img_header)
+    write_nifti(split[1], second_output_fname, img_header)
 
 
 def create_slice_roi(brain_mask, roi_dimension, roi_slice):
@@ -750,7 +750,7 @@ def write_slice_roi(brain_mask_fname, roi_dimension, roi_slice, output_fname, ov
     brain_mask = brain_mask_img.get_data()
     img_header = brain_mask_img.get_header()
     roi_mask = create_slice_roi(brain_mask, roi_dimension, roi_slice)
-    write_nifti(roi_mask, img_header, output_fname)
+    write_nifti(roi_mask, output_fname, img_header)
     return roi_mask
 
 
@@ -1490,7 +1490,7 @@ def apply_mask_to_file(input_fname, mask, output_fname=None):
     if output_fname is None:
         output_fname = input_fname
 
-    write_nifti(apply_mask(input_fname, mask), load_nifti(input_fname).get_header(), output_fname)
+    write_nifti(apply_mask(input_fname, mask), output_fname, load_nifti(input_fname).get_header())
 
 
 def load_samples(data_folder, mode='r'):
@@ -1678,7 +1678,7 @@ def create_blank_mask(volume4d_path, output_fname):
     """
     volume_info = load_nifti(volume4d_path)
     mask = np.ones(volume_info.shape[:3])
-    write_nifti(mask, volume_info.get_header(), output_fname)
+    write_nifti(mask, output_fname, volume_info.get_header())
 
 
 def volume_merge(volume_paths, output_fname, sort=False):
@@ -1719,7 +1719,7 @@ def volume_merge(volume_paths, output_fname, sort=False):
         images.append(image_data)
 
     combined_image = np.concatenate(images, axis=3)
-    write_nifti(combined_image, header, output_fname)
+    write_nifti(combined_image, output_fname, header)
 
     return volume_paths
 
@@ -1807,7 +1807,7 @@ def extract_volumes(input_volume_fname, input_protocol, output_volume_fname, out
 
     input_volume = load_nifti(input_volume_fname)
     image_data = input_volume.get_data()[..., volume_indices]
-    write_nifti(image_data, input_volume.get_header(), output_volume_fname)
+    write_nifti(image_data, output_volume_fname, input_volume.get_header())
 
 
 def recalculate_error_measures(model, input_data, data_dir, output_dir=None):
