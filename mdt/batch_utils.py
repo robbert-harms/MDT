@@ -93,15 +93,17 @@ class SimpleBatchProfile(BatchProfile):
 
         Args:
             base_directory (str): the base directory from which we will load the subjects information
-            output_base_dir (str): the base dir in which we put the subjects output. Defaults to 'output'.
+            output_base_dir (str): the base dir in which we put the subjects output. If set to None,
+                the base_directory will be used instead.
+
             output_sub_dir (str): an additional subdirectory in the output_base_dir
             auto_append_mask_name_to_output_sub_dir (boolean): if we automatically want to append the mask name
                 at the end of the output dir. This comes after the output_sub_dir (if set).
         """
         super(SimpleBatchProfile, self).__init__()
         self._base_directory = base_directory
-        self._output_base_dir = output_base_dir or 'output'
-        self._output_sub_dir = output_sub_dir
+        self._output_base_dir = output_base_dir
+        self._output_sub_dir = output_sub_dir or 'output'
         self._auto_append_mask_name_to_output_sub_dir = auto_append_mask_name_to_output_sub_dir
 
         self._subjects_found = None
@@ -125,7 +127,7 @@ class SimpleBatchProfile(BatchProfile):
     def with_output_base_dir(self, output_base_dir):
         args, kwargs = self._get_constructor_args()
         kwargs.update(output_base_dir=output_base_dir)
-        return type(self)(args, **kwargs)
+        return type(self)(*args, **kwargs)
 
     @property
     def append_mask_name_to_output_sub_dir(self):
@@ -134,7 +136,7 @@ class SimpleBatchProfile(BatchProfile):
     def with_auto_append_mask_name_to_output_sub_dir(self, auto_append_mask_name_to_output_sub_dir):
         args, kwargs = self._get_constructor_args()
         kwargs.update(auto_append_mask_name_to_output_sub_dir=auto_append_mask_name_to_output_sub_dir)
-        return type(self)(args, **kwargs)
+        return type(self)(*args, **kwargs)
 
     @property
     def output_sub_dir(self):
@@ -143,7 +145,7 @@ class SimpleBatchProfile(BatchProfile):
     def with_output_sub_dir(self, output_sub_dir):
         args, kwargs = self._get_constructor_args()
         kwargs.update(output_sub_dir=output_sub_dir)
-        return type(self)(args, **kwargs)
+        return type(self)(*args, **kwargs)
 
     def get_subjects(self):
         if not self._subjects_found:
@@ -195,19 +197,21 @@ class SimpleBatchProfile(BatchProfile):
         """
         return []
 
-    def _get_subject_output_dir(self, subject_id, mask_fname, subject_base_dir=None):
+    def _get_subject_output_dir(self, subject_id, mask_fname):
         """Helper function for generating the output directory for a subject.
 
         Args:
             subject_id (str): the id of the subject to use
             mask_fname (str): the name of the mask we are using for this subject
-            subject_base_dir (str): the base directory for this subject, defaults to
-                self._base_directory / subject_id / self.output_base_dir
 
         Returns:
             str: the path for the output directory
         """
-        output_dir = subject_base_dir or os.path.join(self._base_directory, subject_id, self.output_base_dir)
+        base_dir = self.output_base_dir
+        if self.output_base_dir is None:
+            base_dir = self._base_directory
+
+        output_dir = os.path.join(base_dir, subject_id)
 
         if self.output_sub_dir:
             output_dir = os.path.join(output_dir, self.output_sub_dir)
@@ -289,6 +293,15 @@ class SubjectInfo(object):
         """
         raise NotImplementedError()
 
+    @property
+    def mask_name(self):
+        """Get the name of the mask used for this subject.
+
+        Returns:
+            str: the name of the mask used for this subject
+        """
+        raise NotImplementedError()
+
     def get_input_data(self):
         """Get the input data for this subject.
 
@@ -346,6 +359,10 @@ class SimpleSubjectInfo(SubjectInfo):
     @property
     def output_dir(self):
         return self._output_dir
+
+    @property
+    def mask_name(self):
+        return self._mask_fname
 
     def get_input_data(self):
         protocol = self._protocol_loader.get_protocol()
@@ -488,7 +505,7 @@ class BatchFitSubjectOutputInfo(object):
 
     @property
     def mask_name(self):
-        return split_image_path(self.subject_info.get_mask_filename())[1]
+        return self.subject_info.mask_name
 
     @property
     def subject_id(self):

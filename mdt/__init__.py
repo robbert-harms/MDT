@@ -144,7 +144,7 @@ def sample_model(model, input_data, output_folder, sampler=None, recalculate=Fal
             utils.get_cl_devices().
         double_precision (boolean): if we would like to do the calculations in double precision
         store_samples (boolean or int): if set to False we will store none of the samples. If set to an integer we will
-            store only thinned samples with that amount.
+            store only samples thinned with the specified integer as a thinning factor.
         tmp_results_dir (str, True or None): The temporary dir for the calculations. Set to a string to use
                 that path directly, set to True to use the config value, set to None to disable.
         save_user_script_info (boolean, str or SaveUserScriptInfo): The info we need to save about the script the
@@ -210,26 +210,23 @@ def sample_model(model, input_data, output_folder, sampler=None, recalculate=Fal
             sampler = configuration.get_sampler()
 
         base_dir = os.path.join(output_folder, model.name, 'samples')
-        output_folder = base_dir
 
-        if not os.path.isdir(output_folder):
-            os.makedirs(output_folder)
+        if not os.path.isdir(base_dir):
+            os.makedirs(base_dir)
 
         if recalculate:
-            shutil.rmtree(output_folder)
+            shutil.rmtree(base_dir)
 
-        with per_model_logging_context(base_dir, overwrite=recalculate):
-            logger = logging.getLogger(__name__)
-            logger.info('Using MDT version {}'.format(__version__))
-            logger.info('Preparing for model {0}'.format(model.name))
-            logger.info('The parameters we will sample are: {0}'.format(model.get_free_param_names()))
+        logger = logging.getLogger(__name__)
+        logger.info('Using MDT version {}'.format(__version__))
+        logger.info('Preparing for model {0}'.format(model.name))
+        logger.info('The parameters we will sample are: {0}'.format(model.get_free_param_names()))
 
-            model.double_precision = double_precision
-
-            results = sample_composite_model(model, input_data, output_folder, sampler,
-                                             get_temporary_results_dir(tmp_results_dir), recalculate=recalculate,
-                                             store_samples=store_samples,
-                                             initialization_data=initialization_data)
+        model.double_precision = double_precision
+        results = sample_composite_model(model, input_data, base_dir, sampler,
+                                         get_temporary_results_dir(tmp_results_dir), recalculate=recalculate,
+                                         store_samples=store_samples,
+                                         initialization_data=initialization_data)
 
         easy_save_user_script_info(save_user_script_info, os.path.join(base_dir, 'used_scripts.py'),
                                    stack()[1][0].f_globals.get('__file__'))

@@ -309,24 +309,19 @@ class ModelFit(object):
     def _run_composite_model(self, model, recalculate, model_names, apply_user_provided_initialization=False):
         with mot.configuration.config_context(RuntimeConfigurationAction(cl_environments=self._cl_envs,
                                                                          load_balancer=self._load_balancer)):
-            with per_model_logging_context(os.path.join(self._output_folder, model.name)):
-                self._logger.info('Using MDT version {}'.format(__version__))
-                self._logger.info('Preparing for model {0}'.format(model.name))
-                self._logger.info('Current cascade: {0}'.format(model_names))
+            if apply_user_provided_initialization:
+                self._apply_user_provided_initialization_data(model)
 
-                if apply_user_provided_initialization:
-                    self._apply_user_provided_initialization_data(model)
+            optimizer = self._optimizer or get_optimizer_for_model(model_names)
 
-                optimizer = self._optimizer or get_optimizer_for_model(model_names)
+            if self._cl_device_indices is not None:
+                all_devices = get_cl_devices()
+                optimizer.cl_environments = [all_devices[ind] for ind in self._cl_device_indices]
+                optimizer.load_balancer = EvenDistribution()
 
-                if self._cl_device_indices is not None:
-                    all_devices = get_cl_devices()
-                    optimizer.cl_environments = [all_devices[ind] for ind in self._cl_device_indices]
-                    optimizer.load_balancer = EvenDistribution()
-
-                fitter = SingleModelFit(model, self._input_data, self._output_folder, optimizer,
-                                        self._tmp_results_dir, recalculate=recalculate)
-                results = fitter.run()
+            fitter = SingleModelFit(model, self._input_data, self._output_folder, optimizer,
+                                    self._tmp_results_dir, recalculate=recalculate, cascade_names=model_names)
+            results = fitter.run()
 
         map_results = get_all_image_data(os.path.join(self._output_folder, model.name))
         return results, map_results
@@ -345,7 +340,8 @@ class ModelFit(object):
 
 class SingleModelFit(object):
 
-    def __init__(self, model, input_data, output_folder, optimizer, tmp_results_dir, recalculate=False):
+    def __init__(self, model, input_data, output_folder, optimizer, tmp_results_dir, recalculate=False,
+                 cascade_names=None):
         """Fits a composite model.
 
          This does not accept cascade models. Please use the more general ModelFit class for all models,
@@ -361,6 +357,7 @@ class SingleModelFit(object):
              optimizer (:class:`mot.cl_routines.optimizing.base.AbstractOptimizer`): The optimization routine to use.
              tmp_results_dir (str): the main directory to use for the temporary results
              recalculate (boolean): If we want to recalculate the results if they are already present.
+             cascade_names (list): the list of cascade names, meant for logging
          """
         self.recalculate = recalculate
 
@@ -371,6 +368,7 @@ class SingleModelFit(object):
         self._optimizer = optimizer
         self._logger = logging.getLogger(__name__)
         self._tmp_results_dir = tmp_results_dir
+        self._cascade_names = cascade_names
 
         if not self._model.is_protocol_sufficient(input_data.protocol):
             raise InsufficientProtocolError(
@@ -379,17 +377,21 @@ class SingleModelFit(object):
 
     def run(self):
         """Fits the composite model and returns the results as ROI lists per map."""
+        if not self.recalculate and model_output_exists(self._model, self._output_folder):
+            maps = get_all_image_data(self._output_path)
+            self._logger.info('Not recalculating {} model'.format(self._model.name))
+            return create_roi(maps, self._input_data.mask)
+
         with per_model_logging_context(self._output_path):
+            self._logger.info('Using MDT version {}'.format(__version__))
+            self._logger.info('Preparing for model {0}'.format(self._model.name))
+            self._logger.info('Current cascade: {0}'.format(self._cascade_names))
+
             self._model.set_input_data(self._input_data)
 
             if self.recalculate:
                 if os.path.exists(self._output_path):
                     list(map(os.remove, glob.glob(os.path.join(self._output_path, '*.nii*'))))
-            else:
-                if model_output_exists(self._model, self._output_folder):
-                    maps = get_all_image_data(self._output_path)
-                    self._logger.info('Not recalculating {} model'.format(self._model.name))
-                    return create_roi(maps, self._input_data.mask)
 
             if not os.path.exists(self._output_path):
                 os.makedirs(self._output_path)

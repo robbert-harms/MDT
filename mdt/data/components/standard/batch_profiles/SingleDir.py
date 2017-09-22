@@ -104,7 +104,7 @@ class SingleDir(SimpleBatchProfile):
                     protocol_fname=prtcl_fname, bvec_fname=bvec_fname, bval_fname=bval_fname,
                     protocol_columns=extra_cols_from_file)
 
-                output_dir = self._get_subject_output_dir(basename, mask_fname, pjoin(self.output_base_dir, basename))
+                output_dir = self._get_subject_output_dir(basename, mask_fname)
 
                 subjects.append(SimpleSubjectInfo(basename, dwi_fname, protocol_loader, mask_fname, output_dir,
                                                   noise_std=noise_std))

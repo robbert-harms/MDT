@@ -66,6 +66,13 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
         self._sampling_covar_excludes = []
         self._sampling_covar_extras = []
 
+        # todo get defaults from config
+        self.post_sampling_options = {
+            'calculate_waic': False,
+            'calculate_univariate_ess': False,
+            'calculate_multivariate_ess': False
+        }
+
     def build(self, problems_to_analyze=None):
         sample_model = super(DMRICompositeModel, self).build(problems_to_analyze)
         return BuildCompositeModel(sample_model,
@@ -80,7 +87,8 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
                                    self._sampling_covar_excludes,
                                    self._sampling_covar_extras,
                                    self.get_free_param_names(),
-                                   self.get_parameter_codec())
+                                   self.get_parameter_codec(),
+                                   dict(self.post_sampling_options))
 
     def get_free_param_names(self):
         """Get the names of the free parameters"""
@@ -378,7 +386,7 @@ class BuildCompositeModel(MRIModelInterface):
     def __init__(self, wrapped_sample_model, protocol, estimable_parameters_list, nmr_parameters_for_bic_calculation,
                  post_optimization_modifiers, dependent_map_calculator, fixed_parameter_maps, proposal_state_names,
                  sampling_statistics, sampling_covar_excludes, sampling_covar_extras,
-                 free_param_names, parameter_codec):
+                 free_param_names, parameter_codec, post_sampling_options):
         self._protocol = protocol
         self._estimable_parameters_list = estimable_parameters_list
         self.nmr_parameters_for_bic_calculation = nmr_parameters_for_bic_calculation
@@ -392,6 +400,7 @@ class BuildCompositeModel(MRIModelInterface):
         self._sampling_covar_extras = sampling_covar_extras
         self._free_param_names = free_param_names
         self._parameter_codec = parameter_codec
+        self._post_sampling_options = post_sampling_options
 
     def get_post_optimization_volume_maps(self, optimization_results):
         end_points = optimization_results.get_optimization_result()
@@ -476,18 +485,23 @@ class BuildCompositeModel(MRIModelInterface):
 
         mle_maps_cb, map_maps_cb = self._get_mle_map_statistics(sampling_output)
 
-        return DeferredFunctionDict({
+        items = {
             'maximum_likelihood': mle_maps_cb,
             'maximum_a_posteriori': map_maps_cb,
             'mh_state': lambda: self._get_mh_state_write_arrays(sampling_output.get_mh_state()),
-            'univariate_statistics': lambda: self.get_univariate_statistics(sampling_output),
-            'multivariate_statistic': lambda: self.get_multivariate_sampling_statistic(samples),
-            'effective_sample_size': lambda: self.get_sampling_ess_statistics(samples),
+            'univariate_statistics': lambda: self._get_univariate_statistics(sampling_output),
+            'multivariate_statistic': lambda: self._get_multivariate_sampling_statistic(samples),
             'proposal_state': lambda: results_to_dict(sampling_output.get_proposal_state(),
                                                       self.get_proposal_state_names()),
             'chain_end_point': lambda: results_to_dict(sampling_output.get_current_chain_position(),
                                                        self.get_free_param_names()),
-        }, cache=False)
+        }
+        if self._post_sampling_options.get('calculate_univariate_ess', True):
+            items.update({'univariate_ess': lambda: self._get_univariate_ess(samples)})
+        if self._post_sampling_options.get('calculate_multivariate_ess', True):
+            items.update({'multivariate_ess': lambda: self._get_multivariate_ess(samples)})
+
+        return DeferredFunctionDict(items, cache=False)
 
     def _get_mh_state_write_arrays(self, mh_state):
         """Get the state of the Metropolis Hastings sampler to write out such that we can start later at that position.
@@ -501,7 +515,7 @@ class BuildCompositeModel(MRIModelInterface):
                 'rng_state': mh_state.get_rng_state(),
                 'nmr_samples_drawn': np.ones_like(sampling_counter) * mh_state.nmr_samples_drawn}
 
-    def get_univariate_statistics(self, sampling_output):
+    def _get_univariate_statistics(self, sampling_output):
         """Get the univariate statistics for the samples.
 
         This typically returns the mean and standard deviation of each of the parameters.
@@ -522,7 +536,9 @@ class BuildCompositeModel(MRIModelInterface):
 
         volume_maps.update(self._calculate_deviance_information_criterions(
             samples, volume_maps['LogLikelihood'], sampling_output.get_log_likelihoods()))
-        volume_maps.update({'WAIC': np.nan_to_num(WAICCalculator().calculate(self, samples))})
+
+        if self._post_sampling_options.get('calculate_waic', True):
+            volume_maps.update({'WAIC': np.nan_to_num(WAICCalculator().calculate(self, samples))})
 
         return volume_maps
 
@@ -571,8 +587,20 @@ class BuildCompositeModel(MRIModelInterface):
 
         return mle_maps, map_maps
 
-    def get_sampling_ess_statistics(self, samples):
-        """Get the Effective Sample Size statistics for the given set of samples.
+    def _get_univariate_ess(self, samples):
+        """Get the univariate Effective Sample Size statistics for the given set of samples.
+
+        Args:
+            samples (ndarray): an (d, p, n) matrix for d problems, p parameters and n samples.
+
+        Returns:
+            dict: the volume maps with the univariate ESS statistics
+        """
+        uv_ess = univariate_ess(samples, method='standard_error')
+        return results_to_dict(uv_ess, [a + '.UnivariateESS' for a in self.get_free_param_names()])
+
+    def _get_multivariate_ess(self, samples):
+        """Get the multivariate Effective Sample Size statistics for the given set of samples.
 
         Args:
             samples (ndarray): an (d, p, n) matrix for d problems, p parameters and n samples.
@@ -580,17 +608,9 @@ class BuildCompositeModel(MRIModelInterface):
         Returns:
             dict: the volume maps with the ESS statistics
         """
-        ess_maps = {}
-        mv_ess = np.nan_to_num(multivariate_ess(samples))
-        ess_maps.update({'MultivariateESS': mv_ess})
+        return {'MultivariateESS': np.nan_to_num(multivariate_ess(samples))}
 
-        uv_ess = univariate_ess(samples, method='standard_error')
-        uv_ess_maps = results_to_dict(uv_ess, [a + '.UnivariateESS' for a in self.get_free_param_names()])
-        ess_maps.update(uv_ess_maps)
-
-        return ess_maps
-
-    def get_multivariate_sampling_statistic(self, samples):
+    def _get_multivariate_sampling_statistic(self, samples):
         """Get the multivariate statistics for the given samples.
 
         Calculates a single multivariate statistic based on the samples. This function might remove some of the

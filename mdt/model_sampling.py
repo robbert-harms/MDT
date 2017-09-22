@@ -5,7 +5,7 @@ import timeit
 import time
 
 from mdt import get_processing_strategy
-from mdt.utils import model_output_exists, load_samples
+from mdt.utils import model_output_exists, load_samples, per_model_logging_context
 from mdt.processing_strategies import SamplingProcessor, SaveAllSamples, \
     SaveNoSamples, SaveThinnedSamples, get_full_tmp_results_path
 from mdt.exceptions import InsufficientProtocolError
@@ -61,18 +61,19 @@ def sample_composite_model(model, input_data, output_folder, sampler, tmp_dir,
 
     model.set_input_data(input_data)
 
-    if initialization_data:
-        logger.info('Preparing the model with the user provided initialization data.')
-        initialization_data.apply_to_model(model, input_data)
+    with per_model_logging_context(output_folder, overwrite=recalculate):
+        if initialization_data:
+            logger.info('Preparing the model with the user provided initialization data.')
+            initialization_data.apply_to_model(model, input_data)
 
-    with _log_info(logger, model.name):
-        worker = SamplingProcessor(
-            sampler, model, input_data.mask, input_data.nifti_header, output_folder,
-            get_full_tmp_results_path(output_folder, tmp_dir), recalculate,
-            samples_to_save_method=sample_to_save_method)
+        with _log_info(logger, model.name):
+            worker = SamplingProcessor(
+                sampler, model, input_data.mask, input_data.nifti_header, output_folder,
+                get_full_tmp_results_path(output_folder, tmp_dir), recalculate,
+                samples_to_save_method=sample_to_save_method)
 
-        processing_strategy = get_processing_strategy('sampling')
-        processing_strategy.process(worker)
+            processing_strategy = get_processing_strategy('sampling')
+            processing_strategy.process(worker)
 
 
 @contextmanager
