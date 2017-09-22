@@ -3,13 +3,41 @@ Changelog
 *********
 
 
+v0.10.5 (2017-09-22)
+====================
+
+Added
+-----
+- Adds support for multiple output files in the mdt-math-img CLI function.
+- Adds post sampling log messages
+- Adds caching to deferred loading collections.
+
+Changed
+-------
+- Changed the signature of write_nifti and moved the header argument to the optional keyword arguments.
+- Updates to the documentation of the configuration.
+- Small improvements in the post-sampling processing.
+- the function ``write_nifti`` now creates the directories if they do not exist yet.
+
+Fixed
+-----
+- Fixed non working documentation build on read the docs. Removed the ``sphinxarg.ext`` since it is not supported yet on read the docs.
+
+Other
+-----
+- Small path updates to the batch profiles.
+- MDT now also saves the log likelihood and log priors after sampling.
+- Made the sampler sample from the complete log likelihood. This allows storing the likelihood and prior values and use them later for maximum posterior and maximum likelihood calculations.
+- Simplified model compartment expressions due to improvements in MOT.
+
+
 v0.10.4 (2017-09-06)
 ====================
 
 Changed
 -------
 - Changes the default sampling settings of the phi parameter. Since it is supposed to wrap around 2*pi, we can not use the circular gaussian approximation if we are constraining it between 0 and pi, instead we use a simple gaussian proposal and a truncated gaussian sampling estimate.
-- Updates to the processing strategies (technicality). Adds an interface for MRIModels to work with the processing strategies.
+- Updates to the processing strategies. Adds an interface for MRIModels to work with the processing strategies.
 
 Other
 -----
@@ -62,10 +90,6 @@ Added
 -----
 - Adds chunk indices look-a-head in the processing strategies. This allows the Processor to start pre-loading the next batch.
 
-Other
------
-- Version bump.
-
 
 v0.10.1 (2017-08-22)
 ====================
@@ -73,18 +97,7 @@ v0.10.1 (2017-08-22)
 Changed
 -------
 - Updates to the GUI.
-- Updates to the GUI.
-- Updates to the GUI.
-- Updates to fix input in the GUI.
-- Updates to the GUI.
-- Updates to the GUI, fixes spacings bug.
-- Updates to GUI.
 - Updates to the maps visualizer.
-
-Other
------
-- Version bump.
-- Another small bugfix.
 
 
 v0.10.0 (2017-08-17)
@@ -153,10 +166,7 @@ v0.9.39 (2017-07-26)
 
 Changed
 -------
-- Updates in this version:
-  - Updates to the documentation
-- Updates to the documentation.
-- Updates to the documentation.
+- Updates to the documentation
 
 Other
 -----
