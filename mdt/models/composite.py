@@ -1,9 +1,10 @@
 import inspect
 import logging
 from textwrap import dedent
-
+import copy
 import numpy as np
 
+from mdt.configuration import get_active_post_processing
 from mdt.deferred_mappings import DeferredFunctionDict
 from mot.cl_routines.mapping.codec_runner import CodecRunner
 
@@ -65,13 +66,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
         self.required_nmr_shells = False
         self._sampling_covar_excludes = []
         self._sampling_covar_extras = []
-
-        # todo get defaults from config
-        self.post_sampling_options = {
-            'calculate_waic': False,
-            'calculate_univariate_ess': False,
-            'calculate_multivariate_ess': False
-        }
+        self.active_post_processing = get_active_post_processing()
 
     def build(self, problems_to_analyze=None):
         sample_model = super(DMRICompositeModel, self).build(problems_to_analyze)
@@ -88,7 +83,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
                                    self._sampling_covar_extras,
                                    self.get_free_param_names(),
                                    self.get_parameter_codec(),
-                                   dict(self.post_sampling_options))
+                                   copy.deepcopy(self.active_post_processing))
 
     def get_free_param_names(self):
         """Get the names of the free parameters"""
@@ -386,7 +381,7 @@ class BuildCompositeModel(MRIModelInterface):
     def __init__(self, wrapped_sample_model, protocol, estimable_parameters_list, nmr_parameters_for_bic_calculation,
                  post_optimization_modifiers, dependent_map_calculator, fixed_parameter_maps, proposal_state_names,
                  sampling_statistics, sampling_covar_excludes, sampling_covar_extras,
-                 free_param_names, parameter_codec, post_sampling_options):
+                 free_param_names, parameter_codec, active_post_processing):
         self._protocol = protocol
         self._estimable_parameters_list = estimable_parameters_list
         self.nmr_parameters_for_bic_calculation = nmr_parameters_for_bic_calculation
@@ -400,7 +395,7 @@ class BuildCompositeModel(MRIModelInterface):
         self._sampling_covar_extras = sampling_covar_extras
         self._free_param_names = free_param_names
         self._parameter_codec = parameter_codec
-        self._post_sampling_options = post_sampling_options
+        self._active_post_processing = active_post_processing
 
     def get_post_optimization_volume_maps(self, optimization_results):
         end_points = optimization_results.get_optimization_result()
@@ -490,15 +485,15 @@ class BuildCompositeModel(MRIModelInterface):
             'maximum_a_posteriori': map_maps_cb,
             'mh_state': lambda: self._get_mh_state_write_arrays(sampling_output.get_mh_state()),
             'univariate_statistics': lambda: self._get_univariate_statistics(sampling_output),
-            'multivariate_statistic': lambda: self._get_multivariate_sampling_statistic(samples),
+            # 'multivariate_statistic': lambda: self._get_multivariate_sampling_statistic(samples),
             'proposal_state': lambda: results_to_dict(sampling_output.get_proposal_state(),
                                                       self.get_proposal_state_names()),
             'chain_end_point': lambda: results_to_dict(sampling_output.get_current_chain_position(),
                                                        self.get_free_param_names()),
         }
-        if self._post_sampling_options.get('calculate_univariate_ess', True):
+        if self._active_post_processing['sampling']['univariate_ess']:
             items.update({'univariate_ess': lambda: self._get_univariate_ess(samples)})
-        if self._post_sampling_options.get('calculate_multivariate_ess', True):
+        if self._active_post_processing['sampling']['multivariate_ess']:
             items.update({'multivariate_ess': lambda: self._get_multivariate_ess(samples)})
 
         return DeferredFunctionDict(items, cache=False)
@@ -537,7 +532,7 @@ class BuildCompositeModel(MRIModelInterface):
         volume_maps.update(self._calculate_deviance_information_criterions(
             samples, volume_maps['LogLikelihood'], sampling_output.get_log_likelihoods()))
 
-        if self._post_sampling_options.get('calculate_waic', True):
+        if self._active_post_processing['sampling']['waic']:
             volume_maps.update({'WAIC': np.nan_to_num(WAICCalculator().calculate(self, samples))})
 
         return volume_maps
@@ -795,7 +790,8 @@ class BuildCompositeModel(MRIModelInterface):
         for ind, parameter_name in enumerate(self.get_free_param_names()):
             parameter_samples = samples[:, ind, ...]
 
-            statistics = self._sampling_statistics[parameter_name].get_statistics(parameter_samples)
+            statistics = self._sampling_statistics[parameter_name].get_statistics(
+                parameter_samples, self.get_lower_bounds()[ind], self.get_upper_bounds()[ind])
 
             expected_values[:, ind] = statistics.get_expected_value()
             all_stats.update({'{}.{}'.format(parameter_name, statistic_key): v

@@ -125,12 +125,14 @@ class ChunksProcessingStrategy(ModelProcessingStrategy):
 
     @contextmanager
     def _with_logging_to_debug(self):
-        handlers = logging.getLogger('mot').handlers
-        for handler in handlers:
-            handler.setLevel(logging.WARNING)
+        package_handlers = [logging.getLogger(package).handlers for package in ['mdt', 'mot']]
+        for handlers in package_handlers:
+            for handler in handlers:
+                handler.setLevel(logging.WARNING)
         yield
-        for handler in handlers:
-            handler.setLevel(logging.INFO)
+        for handlers in package_handlers:
+            for handler in handlers:
+                handler.setLevel(logging.INFO)
 
     def _get_batch_start_message(self, total_nmr_voxels, voxel_indices, voxels_to_process, voxels_processed, start_time,
                                  start_nmr_processed):
@@ -478,8 +480,8 @@ class SamplingProcessor(SimpleModelProcessor):
 
         if self._samples_to_save_method.store_samples():
             samples_dict = results_to_dict(samples, model.get_free_param_names())
-            samples_dict['LogLikelihoods'] = sampling_output.get_log_likelihoods()
-            samples_dict['LogPriors'] = sampling_output.get_log_priors()
+            samples_dict['LogLikelihood'] = sampling_output.get_log_likelihoods()
+            samples_dict['LogPrior'] = sampling_output.get_log_priors()
             self._write_sample_results(samples_dict, roi_indices)
         self._logger.info('Finished post-processing')
 
@@ -604,6 +606,23 @@ class SaveNoSamples(SamplesToSaveMethod):
         return np.array([])
 
 
+class SaveSpecificSamples(SamplesToSaveMethod):
+
+    def __init__(self, sample_indices):
+        """Save all the samples at the specified indices.
+
+        Args:
+            sample_indices (sequence): the list of indices we want to save.
+        """
+        self._sample_indices = list(sample_indices)
+
+    def store_samples(self):
+        return len(self._sample_indices)
+
+    def indices_to_store(self, nmr_samples):
+        return self._sample_indices
+
+
 def get_full_tmp_results_path(output_dir, tmp_dir):
     """Get a temporary results path for processing.
 
@@ -633,3 +652,4 @@ def _combine_volumes_write_out(info_pair):
 
     data = np.load(os.path.join(chunks_dir, map_name + '.npy'), mmap_mode='r')
     write_all_as_nifti({map_name: data}, output_dir, nifti_header=nifti_header, gzip=write_gzipped)
+

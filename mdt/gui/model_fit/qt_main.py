@@ -1,9 +1,9 @@
-import os
 import signal
 import sys
 
+
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtWidgets import QFileDialog, QMessageBox
 
 from mdt.gui.model_fit.design.ui_about_dialog import Ui_AboutDialog
 from mdt.gui.model_fit.design.ui_dialog_get_example_data import Ui_GetExampleDataDialog
@@ -26,11 +26,12 @@ try:
 except ImportError:
     # python 3.4
     from queue import Queue
-from PyQt5 import QtGui
+from PyQt5 import QtGui, QtCore
 from PyQt5.QtCore import QThread, QTimer, pyqtSlot
 from PyQt5.QtWidgets import QMainWindow, QDialog, QDialogButtonBox
 from mdt.gui.model_fit.design.ui_main_gui import Ui_MainWindow
-from mdt.gui.utils import print_welcome_message, ForwardingListener, MessageReceiver, center_window, QtManager
+from mdt.gui.utils import print_welcome_message, ForwardingListener, MessageReceiver, center_window, QtManager, \
+    enable_pyqt_exception_hook
 from mdt.gui.model_fit.utils import SharedState
 from mdt.log_handlers import LogDispatchHandler
 
@@ -62,7 +63,11 @@ class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
         self._message_receiver.moveToThread(self._logging_update_thread)
         self._logging_update_thread.started.connect(self._message_receiver.run)
         self._logging_update_thread.start()
-        self._connect_output_textbox()
+
+        sys.stdout = ForwardingListener(self._logging_update_queue)
+        sys.stderr = ForwardingListener(self._logging_update_queue)
+        LogDispatchHandler.add_listener(ForwardingListener(self._logging_update_queue))
+        print_welcome_message()
 
         self.actionExit.setShortcuts(['Ctrl+q', 'Ctrl+w'])
 
@@ -92,12 +97,6 @@ class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
                      self.generate_protocol_tab, self.view_results_tab]
 
         self.MainTabs.currentChanged.connect(lambda index: self.tabs[index].tab_opened())
-
-    def _connect_output_textbox(self):
-        sys.stdout = ForwardingListener(self._logging_update_queue)
-        sys.stderr = ForwardingListener(self._logging_update_queue)
-        LogDispatchHandler.add_listener(ForwardingListener(self._logging_update_queue))
-        print_welcome_message()
 
     def closeEvent(self, event):
         sys.stdout = self._stdout_old
@@ -185,9 +184,23 @@ class GetExampleDataDialog(Ui_GetExampleDataDialog, QDialog):
         self.setupUi(self)
         self.outputFileSelect.clicked.connect(lambda: self._select_output_folder())
         self.outputFile.textChanged.connect(self._check_enable_ok_button)
-        self.buttonBox.button(QDialogButtonBox.Ok).clicked.connect(
-            lambda: mdt.utils.get_example_data(self.outputFile.text()))
+        self.buttonBox.button(QDialogButtonBox.Ok).clicked.connect(self._write_example_data)
         self._check_enable_ok_button()
+
+    def _write_example_data(self):
+        try:
+            mdt.utils.get_example_data(self.outputFile.text())
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Information)
+            msg.setText('The MDT example data has been written to {}.'.format(self.outputFile.text()))
+            msg.setWindowTitle('Success')
+            msg.exec_()
+        except IOError as e:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText(str(e))
+            msg.setWindowTitle("File writing error")
+            msg.exec_()
 
     def _select_output_folder(self):
         initial_dir = self._shared_state.base_dir
@@ -241,6 +254,8 @@ def start_gui(base_dir=None, app_exec=True):
         mdt.configuration.load_user_gui()
     except IOError:
         pass
+
+    enable_pyqt_exception_hook()
 
     app = QtManager.get_qt_application_instance()
 

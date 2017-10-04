@@ -143,8 +143,11 @@ def sample_model(model, input_data, output_folder, sampler=None, recalculate=Fal
         cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices().
         double_precision (boolean): if we would like to do the calculations in double precision
-        store_samples (boolean or int): if set to False we will store none of the samples. If set to an integer we will
-            store only samples thinned with the specified integer as a thinning factor.
+        store_samples (boolean, sequence or :class:`mdt.processing_strategies.SamplesToSaveMethod`): if set to False we
+            will store none of the samples. If set to True we will save all samples. If set to a sequence we expect a
+            sequence of integer numbers with sample positions to store. Finally, you can also give a subclass instance
+            of :class:`~mdt.processing_strategies.SamplesToSaveMethod` (it is then typically set to
+            a :class:`mdt.processing_strategies.SaveThinnedSamples` instance).
         tmp_results_dir (str, True or None): The temporary dir for the calculations. Set to a string to use
                 that path directly, set to True to use the config value, set to None to disable.
         save_user_script_info (boolean, str or SaveUserScriptInfo): The info we need to save about the script the
@@ -445,6 +448,9 @@ def view_result_samples(data, **kwargs):
 
     if isinstance(data, string_types):
         data = load_samples(data)
+
+    if not data:
+        raise ValueError('No samples provided.')
 
     if kwargs.get('voxel_ind') is None:
         kwargs.update({'voxel_ind': data[list(data.keys())[0]].shape[0] / 2})

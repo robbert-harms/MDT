@@ -441,11 +441,11 @@ class _DKIMeasuresWorker(Worker):
             }
 
             __kernel void calculate_measures(
-                    global mot_float_type* params,
-                    global mot_float_type4* directions,
-                    global mot_float_type* mks,
-                    global mot_float_type* aks,
-                    global mot_float_type* rks
+                    global mot_float_type* restrict params,
+                    global mot_float_type4* restrict directions,
+                    global mot_float_type* restrict mks,
+                    global mot_float_type* restrict aks,
+                    global mot_float_type* restrict rks
                     ){
 
                 ulong gid = get_global_id(0);

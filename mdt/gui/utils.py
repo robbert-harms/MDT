@@ -1,14 +1,18 @@
 import os
 import time
+
+import sys
+import traceback
+
+from PyQt5 import QtCore
 from contextlib import contextmanager
 from functools import wraps
 
-from PyQt5.QtCore import QObject, pyqtSignal, QFileSystemWatcher, pyqtSlot
+from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QApplication
 
 from mdt.__version__ import __version__
-from mdt.nifti import yield_nifti_info
 from mdt.log_handlers import LogListenerInterface
 
 __author__ = 'Robbert Harms'
@@ -288,3 +292,21 @@ def split_long_path_elements(original_path, max_single_element_length=25):
             new_elements.append(el)
 
     return os.path.join(*new_elements)
+
+
+def enable_pyqt_exception_hook():
+    """Enable the PyQt exception handling hook for PyQt versions larger than 5.5.
+
+    If this is not enabled, exceptions will be handled silently and will not be printed to the user. This
+    makes it harder to solve the issue.
+    """
+    if QtCore.QT_VERSION >= 0x50501:
+        old_stdout = sys.stdout
+        old_stderr = sys.stderr
+
+        def excepthook(type_, value, traceback_):
+            sys.stdout = old_stdout
+            sys.stderr = old_stderr
+            traceback.print_exception(type_, value, traceback_)
+            QtCore.qFatal('')
+        sys.excepthook = excepthook

@@ -107,3 +107,36 @@ class TensorSphericalToCartesian(LibraryFunctionTemplate):
         *vec1 = RotateOrthogonalVector(*vec0, SphericalToCartesian(theta + M_PI_2_F, phi), psi);
         *vec2 = cross(*vec0, *vec1);
     '''
+
+
+class CartesianPolarDotProduct(LibraryFunctionTemplate):
+
+    description = '''
+        Calculates the dot product between a cartesian and a polar coordinate vector.
+        
+        Prior to taking the dot product it will convert the polar coordinate vector to cartesian coordinates.
+         
+        Args:
+            v0_x: the x coordinate of the first vector
+            v0_y: the y coordinate of the first vector
+            v0_z: the z coordinate of the first vector
+            v1_theta: the polar angle of the second vector
+            v1_phi: the azimuth angle of the second vector
+            
+        Returns:
+            dot product between the two vectors
+    '''
+    return_type = 'mot_float_type'
+    parameter_list = [('mot_float_type', 'v0_x'),
+                      ('mot_float_type', 'v0_y'),
+                      ('mot_float_type', 'v0_z'),
+                      ('mot_float_type', 'v1_theta'),
+                      ('mot_float_type', 'v1_phi')]
+    cl_code = '''
+        mot_float_type cos_theta;
+        mot_float_type sin_theta = sincos(v1_theta, &cos_theta);
+        mot_float_type cos_phi;
+        mot_float_type sin_phi = sincos(v1_phi, &cos_phi);
+        
+        return (v0_x * (cos_phi * sin_theta)) + (v0_y * (sin_phi * sin_theta)) + (v0_z * cos_theta);
+    '''

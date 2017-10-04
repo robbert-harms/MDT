@@ -31,7 +31,8 @@ from mdt.visualization.maps.base import DataInfo, SimpleDataInfo, MapPlotConfig
 from mdt.visualization.maps.utils import get_shortest_unique_names
 from mdt.gui.maps_visualizer.renderers.matplotlib_renderer import MatplotlibPlotting
 from mdt.gui.model_fit.design.ui_about_dialog import Ui_AboutDialog
-from mdt.gui.utils import center_window, QtManager, get_script_file_header_text, image_files_filters
+from mdt.gui.utils import center_window, QtManager, get_script_file_header_text, image_files_filters, \
+    enable_pyqt_exception_hook
 from mdt.gui.maps_visualizer.design.ui_MainWindow import Ui_MapsVisualizer
 
 
@@ -469,6 +470,7 @@ def start_gui(data=None, config=None, controller=None, app_exec=True, show_maxim
     """
     controller = controller or QtController()
 
+    enable_pyqt_exception_hook()
     app = QtManager.get_qt_application_instance()
 
     # catches the sigint

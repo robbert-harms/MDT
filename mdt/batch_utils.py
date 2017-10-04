@@ -541,7 +541,7 @@ class BatchFitOutputInfo(object):
         model_names = self._get_composite_model_names(self._model_names)
 
         for subject_info in self._subjects:
-            for model_name in sorted(model_names):
+            for model_name in model_names:
                 output_path = os.path.join(subject_info.output_dir, model_name)
                 if os.path.isdir(output_path):
                     yield BatchFitSubjectOutputInfo(subject_info, output_path, model_name)
@@ -550,6 +550,7 @@ class BatchFitOutputInfo(object):
     def _get_composite_model_names(model_names):
         """Resolve the composite model names from the list of (possibly cascade) model names from the BatchProfile"""
         lookup_cache = {}
+        result_list = []
 
         def get_names(current_names):
             composite_model_names = []
@@ -565,9 +566,14 @@ class BatchFitOutputInfo(object):
 
                 composite_model_names.extend(lookup_cache[model_name])
 
+                for name in lookup_cache[model_name]:
+                    if name not in result_list:
+                        result_list.append(name)
+
             return composite_model_names
 
-        return list(set(get_names(model_names)))
+        get_names(model_names)
+        return result_list
 
 
 def run_function_on_batch_fit_output(data_folder, model_names, func, batch_profile=None, subjects_selection=None):

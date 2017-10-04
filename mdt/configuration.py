@@ -298,6 +298,19 @@ class DefaultProposalUpdateLoader(ConfigSectionLoader):
             mot.configuration.set_default_proposal_update(update_class(**kwargs))
 
 
+class ActivePostProcessingLoader(ConfigSectionLoader):
+    """Load the default settings for the post sampling calculations."""
+
+    def load(self, value):
+        sampling = value.get('sampling', {})
+        sampling['waic'] = sampling.get('waic', False)
+        sampling['multivariate_ess'] = sampling.get('multivariate_ess', True)
+        sampling['univariate_ess'] = sampling.get('univariate_ess', False)
+
+        _config_insert(['active_post_processing', 'optimization'], value.get('optimization', {}))
+        _config_insert(['active_post_processing', 'sampling'], sampling)
+
+
 class AutomaticCascadeModels(ConfigSectionLoader):
     """Load the automatic cascade model settings."""
 
@@ -369,6 +382,9 @@ def get_section_loader(section):
     if section == 'auto_generate_cascade_models':
         return AutomaticCascadeModels()
 
+    if section == 'active_post_processing':
+        return ActivePostProcessingLoader()
+
     raise ValueError('Could not find a suitable configuration loader for the section {}.'.format(section))
 
 
@@ -400,6 +416,16 @@ def get_tmp_results_dir():
         str or None: the tmp results dir to use during optimization and sampling
     """
     return _config['tmp_results_dir']
+
+
+def get_active_post_processing():
+    """Get the overview of active post processing switches.
+
+    Returns:
+        dict: a dictionary holding two dictionaries, one called 'optimization' and one called 'sampling'.
+            Both these dictionaries hold keys of elements to add to the respective post processing phase.
+    """
+    return deepcopy(_config['active_post_processing'])
 
 
 def get_processing_strategy(processing_type, *args, **kwargs):
@@ -470,33 +496,6 @@ def get_optimizer_for_model(model_names):
         return _resolve_optimizer(info_dict)
     else:
         return get_general_optimizer()
-
-
-def _resolve_optimizer(optimizer_info):
-    """Resolve the optimization routine from the given information dictionary.
-
-    Args:
-        optimizer_info (dict): the optimization dictionary with at least 'name' for the optimizer and settings
-            for the optimizer settings
-
-    Returns:
-        optimizer: the optimization routine
-    """
-    name = optimizer_info['name']
-    settings = deepcopy(optimizer_info.get('settings', {}) or {})
-    optimizer = get_optimizer_by_name(name)
-
-    if 'optimizers' in settings and settings['optimizers']:
-        settings['optimizers'] = [_resolve_optimizer(info) for info in settings['optimizers']]
-
-    if 'optimizer' in settings and settings['optimizer']:
-        settings['optimizer'] = _resolve_optimizer(settings['optimizer'])
-
-    if 'starting_point_generator' in settings and settings['starting_point_generator']:
-        cls = getattr(mot.cl_routines.optimizing.random_restart, list(settings['starting_point_generator'].keys())[0])
-        settings['starting_point_generator'] = cls(**list(settings['starting_point_generator'].values())[0])
-
-    return optimizer(**settings)
 
 
 def get_general_optimizer_name():
@@ -744,6 +743,33 @@ class SetGeneralOptimizer(SimpleConfigAction):
     def _apply(self):
         OptimizationSettingsLoader().load({'general': {'name': self._optimizer_name,
                                                        'settings': self._settings}})
+
+
+def _resolve_optimizer(optimizer_info):
+    """Resolve the optimization routine from the given information dictionary.
+
+    Args:
+        optimizer_info (dict): the optimization dictionary with at least 'name' for the optimizer and settings
+            for the optimizer settings
+
+    Returns:
+        optimizer: the optimization routine
+    """
+    name = optimizer_info['name']
+    settings = deepcopy(optimizer_info.get('settings', {}) or {})
+    optimizer = get_optimizer_by_name(name)
+
+    if 'optimizers' in settings and settings['optimizers']:
+        settings['optimizers'] = [_resolve_optimizer(info) for info in settings['optimizers']]
+
+    if 'optimizer' in settings and settings['optimizer']:
+        settings['optimizer'] = _resolve_optimizer(settings['optimizer'])
+
+    if 'starting_point_generator' in settings and settings['starting_point_generator']:
+        cls = getattr(mot.cl_routines.optimizing.random_restart, list(settings['starting_point_generator'].keys())[0])
+        settings['starting_point_generator'] = cls(**list(settings['starting_point_generator'].values())[0])
+
+    return optimizer(**settings)
 
 
 """Load the default configuration, and if possible, the users configuration."""

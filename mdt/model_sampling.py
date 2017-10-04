@@ -4,10 +4,12 @@ import os
 import timeit
 import time
 
+import collections
+
 from mdt import get_processing_strategy
 from mdt.utils import model_output_exists, load_samples, per_model_logging_context
 from mdt.processing_strategies import SamplingProcessor, SaveAllSamples, \
-    SaveNoSamples, SaveThinnedSamples, get_full_tmp_results_path
+    SaveNoSamples, get_full_tmp_results_path, SamplesToSaveMethod, SaveSpecificSamples
 from mdt.exceptions import InsufficientProtocolError
 
 
@@ -30,15 +32,20 @@ def sample_composite_model(model, input_data, output_folder, sampler, tmp_dir,
         sampler (:class:`mot.cl_routines.sampling.base.AbstractSampler`): The sampling routine to use.
         tmp_dir (str): the preferred temporary storage dir
         recalculate (boolean): If we want to recalculate the results if they are already present.
-        store_samples (boolean or int): if set to False we will store none of the samples. If set to an integer we will
-            store only thinned samples with that amount.
+        store_samples (boolean, sequence or :class:`mdt.processing_strategies.SamplesToSaveMethod`): if set to False we
+            will store none of the samples. If set to True we will save all samples. If set to a sequence we expect a
+            sequence of integer numbers with sample positions to store. Finally, you can also give a subclass instance
+            of :class:`~mdt.processing_strategies.SamplesToSaveMethod` (it is then typically set to
+            a :class:`mdt.processing_strategies.SaveThinnedSamples` instance).
         initialization_data (:class:`~mdt.utils.InitializationData`): provides (extra) initialization data to use
             during model fitting. If we are optimizing a cascade model this data only applies to the last model in the
             cascade.
     """
     if store_samples:
-        if isinstance(store_samples, int):
-            sample_to_save_method = SaveThinnedSamples(store_samples)
+        if isinstance(store_samples, SamplesToSaveMethod):
+            sample_to_save_method = store_samples
+        elif isinstance(store_samples, collections.Sequence):
+            sample_to_save_method = SaveSpecificSamples(store_samples)
         else:
             sample_to_save_method = SaveAllSamples()
     else:
