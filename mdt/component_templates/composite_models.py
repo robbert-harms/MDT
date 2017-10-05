@@ -7,8 +7,6 @@ from mdt.component_templates.base import ComponentBuilder, method_binding_meta, 
 from mdt.models.composite import DMRICompositeModel
 from mdt.models.parsers.CompositeModelExpressionParser import parse
 from mot.cl_function import CLFunction, SimpleCLFunction
-from mot.cl_parameter import CLFunctionParameter, SimpleCLFunctionParameter
-from mot.model_building.evaluation_models import EvaluationModel
 from mot.model_building.trees import CompartmentModelTree
 
 __author__ = 'Robbert Harms'
@@ -44,8 +42,9 @@ class DMRICompositeModelTemplate(ComponentTemplate):
         model_expression (str): the model expression. For the syntax see:
             mdt.models.parsers.CompositeModelExpression.ebnf
 
-        evaluation_model (EvaluationModel or str): the evaluation model to use during optimization,
-            also a string can be given with one of 'Gaussian', 'OffsetGaussian' or 'Rician'.
+        likelihood_function (:class:`mot.model_building.likelihood_functions.LikelihoodFunction` or str): the
+            likelihood function to use during optimization, can also can be a string with one of
+            'Gaussian', 'OffsetGaussian' or 'Rician'
 
         signal_noise_model (SignalNoiseModel): optional signal noise decorator
 
@@ -119,7 +118,7 @@ class DMRICompositeModelTemplate(ComponentTemplate):
     description = ''
     post_optimization_modifiers = []
     model_expression = ''
-    evaluation_model = 'OffsetGaussian'
+    likelihood_function = 'OffsetGaussian'
     signal_noise_model = None
     inits = {}
     fixes = {}
@@ -153,7 +152,7 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                 super(AutoCreatedDMRICompositeModel, self).__init__(
                     deepcopy(template.name),
                     CompartmentModelTree(parse(template.model_expression)),
-                    deepcopy(_resolve_evaluation_model(template.evaluation_model)),
+                    deepcopy(_resolve_likelihood_function(template.likelihood_function)),
                     signal_noise_model=deepcopy(template.signal_noise_model),
                     enforce_weights_sum_to_one=template.enforce_weights_sum_to_one)
 
@@ -220,22 +219,22 @@ class DMRICompositeModelBuilder(ComponentBuilder):
         return AutoCreatedDMRICompositeModel
 
 
-def _resolve_evaluation_model(evaluation_model):
-    """Resolve the evaluation model from string if necessary.
+def _resolve_likelihood_function(likelihood_function):
+    """Resolve the likelihood function from string if necessary.
 
-    The composite models accept evaluation models from string and evaluation models as object. This function
+    The composite models accept likelihood functions as a string and as a object. This function
     resolves the strings if a string is given, else it returns the object passed.
 
     Args:
-        evaluation_model (str or object): the evaluation model to resolve to an object
+        likelihood_function (str or object): the likelihood function to resolve to an object
 
     Returns:
-        mot.model_building.evaluation_models.EvaluationModel: the evaluation model to use
+        mot.model_building.likelihood_models.LikelihoodFunction: the likelihood function to use
     """
-    if isinstance(evaluation_model, six.string_types):
-        return get_component_class('evaluation_models', evaluation_model + 'EvaluationModel')()
+    if isinstance(likelihood_function, six.string_types):
+        return get_component_class('likelihood_functions', likelihood_function + 'LikelihoodFunction')()
     else:
-        return evaluation_model
+        return likelihood_function
 
 
 def _resolve_model_prior(prior, model_parameters):

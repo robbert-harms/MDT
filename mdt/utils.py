@@ -46,6 +46,15 @@ class MRIInputData(InputData):
     """Adds a few MRI specific properties to the input data interface."""
 
     @property
+    def protocol(self):
+        """Return the protocol data stored in this input data container.
+
+        Returns:
+            mdt.protocol.Protocol: The protocol data information mapping.
+        """
+        raise NotImplementedError()
+
+    @property
     def signal4d(self):
         """Return the 4d volume with on the first three axis the voxel coordinates and on the last axis the volumes.
 

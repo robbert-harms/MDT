@@ -99,11 +99,11 @@ See the part about the :ref:`dynamic_modules_composite_models_protocol_options` 
 Why does the noise standard deviation differ when using another mask?
 =====================================================================
 By default MDT tries to estimate the noise standard deviation of the images in the complex domain.
-This standard deviation is used in the analysis as the standard deviation in the evaluation model (commonly Offset-Gaussian).
+This standard deviation is used in the analysis as the standard deviation in the likelihood function (commonly Offset-Gaussian).
 This standard deviation is commonly estimated using an average of per-voxel estimations.
 When a different mask is used there are different voxels used for the standard deviation estimation and hence the resulting value differs.
 
-To prevent this from happening it is suggested that researchers estimate the noise std. beforehand using a whole brain mask and use that value in all other analysis.
+To prevent this from happening it is suggested that researchers estimate the noise std. beforehand with a whole brain mask and use the obtained std. in all other analysis.
 
 
 .. rubric:: References

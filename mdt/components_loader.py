@@ -14,7 +14,7 @@ import mot.model_building.model_functions
 from mdt.component_templates.base import ComponentTemplate, construct_component
 from mdt.exceptions import NonUniqueComponent
 from mot.library_functions import SimpleCLLibrary
-from mot.model_building.evaluation_models import EvaluationModel
+from mot.model_building.likelihood_functions import LikelihoodFunction
 from mot.model_building.model_functions import ModelCLFunction
 
 __author__ = 'Robbert Harms'
@@ -831,18 +831,18 @@ class MOTCompartmentModelsSource(MOTSourceSingle):
         return [x[0] for x in items if x[0] != 'ModelCLFunction']
 
 
-class MOTEvaluationModelSource(MOTSourceSingle):
+class MOTLikelihoodFunctionSource(MOTSourceSingle):
 
     def get_class(self, name):
         try:
-            return getattr(mot.model_building.evaluation_models, name)
+            return getattr(mot.model_building.likelihood_functions, name)
         except AttributeError:
             raise ImportError
 
     def list(self):
-        module = mot.model_building.evaluation_models
-        items = inspect.getmembers(module, _get_class_predicate(module, EvaluationModel))
-        return [x[0] for x in items if x[0] != 'EvaluationModel']
+        module = mot.model_building.likelihood_functions
+        items = inspect.getmembers(module, _get_class_predicate(module, LikelihoodFunction))
+        return [x[0] for x in items if x[0] != 'LikelihoodFunction']
 
 
 class BatchProfilesLoader(ComponentsLoader):
@@ -883,11 +883,11 @@ class LibraryFunctionsLoader(ComponentsLoader):
              MOTLibraryFunctionSource()])
 
 
-class EvaluationModelsLoader(ComponentsLoader):
+class LikelihoodFunctionsLoader(ComponentsLoader):
 
     def __init__(self):
-        super(EvaluationModelsLoader, self).__init__(
-            [MOTEvaluationModelSource()])
+        super(LikelihoodFunctionsLoader, self).__init__(
+            [MOTLikelihoodFunctionSource()])
 
 
 class CompositeModelsLoader(ComponentsLoader):
@@ -967,8 +967,8 @@ def get_loader(component_type):
         return NoiseSTDCalculatorsLoader()
     if component_type == 'parameters':
         return ParametersLoader()
-    if component_type == 'evaluation_models':
-        return EvaluationModelsLoader()
+    if component_type == 'likelihood_functions':
+        return LikelihoodFunctionsLoader()
     raise ValueError('Could not find a loader for the given component type "{}"'.format(component_type))
 
 

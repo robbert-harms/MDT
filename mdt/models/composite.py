@@ -33,7 +33,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
 
-    def __init__(self, model_name, model_tree, evaluation_model, signal_noise_model=None, input_data=None,
+    def __init__(self, model_name, model_tree, likelihood_function, signal_noise_model=None, input_data=None,
                  enforce_weights_sum_to_one=True):
         """A model builder for a composite dMRI sample and optimization model.
 
@@ -54,7 +54,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
                 output name or a list with output names and the Func is a callback function that returns one or more
                 output maps.
         """
-        super(DMRICompositeModel, self).__init__(model_name, model_tree, evaluation_model, signal_noise_model,
+        super(DMRICompositeModel, self).__init__(model_name, model_tree, likelihood_function, signal_noise_model,
                                                  input_data=input_data,
                                                  enforce_weights_sum_to_one=enforce_weights_sum_to_one)
         self._logger = logging.getLogger(__name__)

@@ -177,39 +177,39 @@ Something like:
 This is useful if the callback function is a more complex function that converts multiple inputs to multiple outputs.
 
 
-.. _dynamic_modules_composite_model_evaluation_function:
+.. _dynamic_modules_composite_model_likelihood_function:
 
-Evaluation function and likelihood
-==================================
-Models are optimized by finding the set of free parameter values :math:`x \in R^{n}` that minimize the evaluation function or objective function of the
+Likelihood functions
+====================
+Models are optimized by finding the set of free parameter values :math:`x \in R^{n}` that minimize the likelihood function of the
 modeling errors :math:`(O - S(x))` with :math:`O` the observed data and :math:`S(x)` the model signal estimate.
 In diffusion MRI the common likelihood models are the *Gaussian*, *Rician* and *OffsetGaussian* models.
 Each has different characteristics and implements the modeling :math:`(O - S(x))` in a slightly different way.
 Following (Harms 2017) we use, by default, the Offset Gaussian likelihood model for all models.
-To change this to another likelihood model for one of your models you can override the ``evaluation_model`` attribute, for example:
+To change this to another likelihood model for one of your models you can override the ``likelihood_function`` attribute, for example:
 
 .. code-block:: python
 
     class MyModel(DMRICompositeModelTemplate)
         ...
-        evaluation_model = 'Rician'
+        likelihood_function = 'Rician'
 
 
-By default the ``evaluation_model`` attribute is set to ``OffsetGaussian``.
-The evaluation model can either be defined as a string or as an object.
+By default the ``likelihood_function`` attribute is set to ``OffsetGaussian``.
+The likelihood function can either be defined as a string or as an object.
 Using a string, the possible options are ``Gaussian``, ``OffsetGaussian`` and ``Rician``.
-Using an object, you must provide an instance of :class:`mot.model_building.evaluation_models.EvaluationModel`.
+Using an object, you must provide an instance of :class:`mot.model_building.likelihood_functions.LikelihoodFunction`.
 For example:
 
 .. code-block:: python
 
     ...
-    from mot.model_building.evaluation_models import RicianEvaluationModel
+    from mot.model_building.likelihood_functions import RicianLikelihoodFunction
 
     class MyModel(DMRICompositeModelTemplate)
         ...
-        evaluation_model = RicianEvaluationModel()
+        likelihood_function = RicianLikelihoodFunction()
 
 
-Most evaluation functions require a standard deviation :math:`\sigma` of the noise of the images in the complex domain.
-This standard deviation is, during analysis, taken from the :ref:`concepts_input_data_models`.
+All listed likelihood functions require a standard deviation :math:`\sigma` representing the noise in the input data.
+This value is typically taken from the noise of the images in the complex domain and is provided in the input data (see :ref:`concepts_input_data_models`).
