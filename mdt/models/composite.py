@@ -10,7 +10,7 @@ from mot.cl_routines.mapping.codec_runner import CodecRunner
 
 from mdt.model_interfaces import MRIModelBuilder, MRIModelInterface
 from mot.model_building.parameters import ProtocolParameter
-from mot.utils import results_to_dict, convert_data_to_dtype, KernelInputBuffer
+from mot.utils import results_to_dict, convert_data_to_dtype, KernelInputBuffer, get_class_that_defined_method
 from six import string_types
 
 from mdt.models.base import MissingProtocolInput, InsufficientShells
@@ -810,70 +810,13 @@ class BuildCompositeModel(MRIModelInterface):
         all_stats.update(results_to_dict(expected_values, self.get_free_param_names()))
         return all_stats
 
-    @property
-    def name(self):
-        return self._wrapped_sample_model.name
-
-    @property
-    def double_precision(self):
-        return self._wrapped_sample_model.double_precision
-
-    def get_kernel_data(self):
-        return self._wrapped_sample_model.get_kernel_data()
-
-    def get_nmr_problems(self):
-        return self._wrapped_sample_model.get_nmr_problems()
-
-    def get_nmr_inst_per_problem(self):
-        return self._wrapped_sample_model.get_nmr_inst_per_problem()
-
-    def get_nmr_estimable_parameters(self):
-        return self._wrapped_sample_model.get_nmr_estimable_parameters()
-
-    def get_pre_eval_parameter_modifier(self):
-        return self._wrapped_sample_model.get_pre_eval_parameter_modifier()
-
-    def get_model_eval_function(self):
-        return self._wrapped_sample_model.get_model_eval_function()
-
-    def get_objective_per_observation_function(self):
-        return self._wrapped_sample_model.get_objective_per_observation_function()
-
-    def get_initial_parameters(self):
-        return self._wrapped_sample_model.get_initial_parameters()
-
-    def get_lower_bounds(self):
-        return self._wrapped_sample_model.get_lower_bounds()
-
-    def get_upper_bounds(self):
-        return self._wrapped_sample_model.get_upper_bounds()
-
-    def finalize_optimized_parameters(self, parameters):
-        return self._wrapped_sample_model.finalize_optimized_parameters(parameters)
-
-    def get_proposal_state(self):
-        return self._wrapped_sample_model.get_proposal_state()
-
-    def get_log_likelihood_per_observation_function(self):
-        return self._wrapped_sample_model.get_log_likelihood_per_observation_function()
-
-    def is_proposal_symmetric(self):
-        return self._wrapped_sample_model.is_proposal_symmetric()
-
-    def get_proposal_logpdf(self, address_space_proposal_state='private'):
-        return self._wrapped_sample_model.get_proposal_logpdf(address_space_proposal_state)
-
-    def get_proposal_function(self, address_space_proposal_state='private'):
-        return self._wrapped_sample_model.get_proposal_function(address_space_proposal_state)
-
-    def get_proposal_state_update_function(self, address_space='private'):
-        return self._wrapped_sample_model.get_proposal_state_update_function(address_space)
-
-    def proposal_state_update_uses_variance(self):
-        return self._wrapped_sample_model.proposal_state_update_uses_variance()
-
-    def get_log_prior_function(self, address_space_parameter_vector='private'):
-        return self._wrapped_sample_model.get_log_prior_function(address_space_parameter_vector)
-
-    def get_metropolis_hastings_state(self):
-        return self._wrapped_sample_model.get_metropolis_hastings_state()
+    def __getattribute__(self, item):
+        try:
+            value = super(BuildCompositeModel, self).__getattribute__(item)
+            if hasattr(MRIModelInterface, item):
+                if inspect.ismethod(value) or inspect.isfunction(value):
+                    if not issubclass(get_class_that_defined_method(value), BuildCompositeModel):
+                        raise NotImplementedError()
+            return value
+        except NotImplementedError:
+            return getattr(super(BuildCompositeModel, self).__getattribute__('_wrapped_sample_model'), item)
