@@ -18,12 +18,10 @@ from mdt.models.base import DMRIOptimizable
 from mdt.protocols import VirtualColumnB
 from mdt.utils import create_roi, calculate_point_estimate_information_criterions, is_scalar
 from mot.cl_routines.mapping.calc_dependent_params import CalculateDependentParameters
-from mot.cl_routines.mapping.error_measures import ErrorMeasures
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
-from mot.cl_routines.mapping.residual_calculator import ResidualCalculator
 from mot.cl_routines.mapping.waic_calculator import WAICCalculator
 from mot.mcmc_diagnostics import multivariate_ess, univariate_ess
-from mot.model_building.model_builders import SampleModelBuilder, ParameterResolutionException
+from mot.model_building.model_builders import SampleModelBuilder
 
 __author__ = 'Robbert Harms'
 __date__ = "2014-10-26"
@@ -473,11 +471,6 @@ class BuildCompositeModel(MRIModelInterface):
         results_dict.update(self._get_post_optimization_information_criterion_maps(
             results_array, log_likelihoods=log_likelihoods))
 
-        errors = ResidualCalculator().calculate(self, results_array)
-        errors = np.nan_to_num(errors)
-        error_measures = ErrorMeasures(double_precision=self.double_precision).calculate(errors)
-        results_dict.update(error_measures)
-
         return results_dict
 
     def get_post_sampling_maps(self, sampling_output):
@@ -842,9 +835,6 @@ class BuildCompositeModel(MRIModelInterface):
 
     def get_model_eval_function(self):
         return self._wrapped_sample_model.get_model_eval_function()
-
-    def get_residual_per_observation_function(self):
-        return self._wrapped_sample_model.get_residual_per_observation_function()
 
     def get_objective_per_observation_function(self):
         return self._wrapped_sample_model.get_objective_per_observation_function()
