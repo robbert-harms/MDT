@@ -1,4 +1,4 @@
-from mdt.model_protocol_problem import NamedProtocolProblem
+from mdt.models.base import NamedProtocolProblem
 from mdt.models.base import DMRIOptimizable
 
 __author__ = 'Robbert Harms'
@@ -112,13 +112,13 @@ class SimpleCascadeModel(DMRICascadeModelInterface):
     def reset(self):
         self._iteration_position = 0
 
-    def is_protocol_sufficient(self, protocol=None):
-        return all(model.is_protocol_sufficient(protocol) for model in self._model_list)
+    def is_input_data_sufficient(self, input_data=None):
+        return all(model.is_input_data_sufficient(input_data) for model in self._model_list)
 
-    def get_protocol_problems(self, protocol=None):
+    def get_input_data_problems(self, input_data=None):
         problems = []
         for model in self._model_list:
-            problems.extend(map(lambda p: NamedProtocolProblem(p, model.name), model.get_protocol_problems(protocol)))
+            problems.extend(map(lambda p: NamedProtocolProblem(p, model.name), model.get_input_data_problems(input_data)))
         return problems
 
     def get_required_protocol_names(self):

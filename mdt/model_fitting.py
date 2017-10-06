@@ -245,11 +245,10 @@ class ModelFit(object):
             self._cl_envs = [all_devices[ind] for ind in self._cl_device_indices]
             self._load_balancer = EvenDistribution()
 
-        if not model.is_protocol_sufficient(self._input_data.protocol):
+        if not model.is_input_data_sufficient(self._input_data):
             raise InsufficientProtocolError(
                 'The provided protocol is insufficient for this model. '
-                'The reported errors where: {}'.format(self._model.get_protocol_problems(
-                    self._input_data.protocol)))
+                'The reported errors where: {}'.format(self._model.get_input_data_problems(self._input_data)))
 
     def run(self):
         """Run the model and return the resulting voxel estimates within the ROI.
@@ -370,10 +369,10 @@ class SingleModelFit(object):
         self._tmp_results_dir = tmp_results_dir
         self._cascade_names = cascade_names
 
-        if not self._model.is_protocol_sufficient(input_data.protocol):
+        if not self._model.is_input_data_sufficient(input_data):
             raise InsufficientProtocolError(
                 'The given protocol is insufficient for this model. '
-                'The reported errors where: {}'.format(self._model.get_protocol_problems(input_data.protocol)))
+                'The reported errors where: {}'.format(self._model.get_input_data_problems(input_data)))
 
     def run(self):
         """Fits the composite model and returns the results as ROI lists per map."""

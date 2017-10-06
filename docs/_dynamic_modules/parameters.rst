@@ -22,7 +22,6 @@ There are four types available:
 
 * :py:class:`~mdt.models.parameters.FreeParameterTemplate`, for :ref:`free_parameters`
 * :py:class:`~mdt.models.parameters.ProtocolParameterTemplate`, for :ref:`protocol_parameters`
-* :py:class:`~mdt.models.parameters.ModelDataParameterTemplate`, for :ref:`model_data_parameters`
 * :py:class:`~mdt.models.parameters.StaticMapParameterTemplate`, for :ref:`static_map_parameters`
 
 See the sections below for more details on each type.
@@ -105,18 +104,3 @@ The better way is to use the ``initialization_data`` argument of the ``mdt.fit_m
 
 A static map parameter is identified by having the super class :py:class:`~mdt.models.parameters.StaticMapParameterTemplate` and
 are commonly placed in the Python module named ``static_maps.py``.
-
-
-.. _model_data_parameters:
-
-Model data parameters
-=====================
-These parameters are meant for model specific data that the model needs to function correctly.
-They are not commonly used and are of a more technical kind than the other parameters.
-
-Some models require arrays of precomputed numbers (such as roots of an equation) to function correctly.
-You can of course inline these variables in the compartment model CL code (which is faster), but then the end-users can not easily change these values.
-By adding them as model data parameters, end-users can change the specifics of the model by changing the data in the model data parameters.
-
-A model data parameter is identified by having the super class :py:class:`~mdt.models.parameters.ModelDataParameterTemplate` and
-are commonly placed in the Python module named ``model_data.py``.

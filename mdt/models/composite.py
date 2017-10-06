@@ -9,10 +9,11 @@ from mdt.deferred_mappings import DeferredFunctionDict
 from mot.cl_routines.mapping.codec_runner import CodecRunner
 
 from mdt.model_interfaces import MRIModelBuilder, MRIModelInterface
-from mot.utils import results_to_dict, convert_data_to_dtype
+from mot.model_building.parameters import ProtocolParameter
+from mot.utils import results_to_dict, convert_data_to_dtype, KernelInputBuffer
 from six import string_types
 
-from mdt.model_protocol_problem import MissingColumns, InsufficientShells
+from mdt.models.base import MissingProtocolInput, InsufficientShells
 from mdt.models.base import DMRIOptimizable
 from mdt.protocols import VirtualColumnB
 from mdt.utils import create_roi, calculate_point_estimate_information_criterions, is_scalar
@@ -22,7 +23,7 @@ from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalcul
 from mot.cl_routines.mapping.residual_calculator import ResidualCalculator
 from mot.cl_routines.mapping.waic_calculator import WAICCalculator
 from mot.mcmc_diagnostics import multivariate_ess, univariate_ess
-from mot.model_building.model_builders import SampleModelBuilder
+from mot.model_building.model_builders import SampleModelBuilder, ParameterResolutionException
 
 __author__ = 'Robbert Harms'
 __date__ = "2014-10-26"
@@ -120,11 +121,11 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
 
         return output_names
 
-    def _get_variable_data(self, problems_to_analyze):
-        var_data_dict = super(DMRICompositeModel, self)._get_variable_data(problems_to_analyze)
+    def _get_kernel_data(self, problems_to_analyze):
+        kernel_data = super(DMRICompositeModel, self)._get_kernel_data(problems_to_analyze)
         if self._input_data.gradient_deviations is not None:
-            var_data_dict['gradient_deviations'] = self._get_gradient_deviations(problems_to_analyze)
-        return var_data_dict
+            kernel_data['gradient_deviations'] = KernelInputBuffer(self._get_gradient_deviations(problems_to_analyze))
+        return kernel_data
 
     def _get_gradient_deviations(self, problems_to_analyze):
         """Get the gradient deviation data for use in the kernel.
@@ -149,23 +150,37 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
 
         return convert_data_to_dtype(grad_dev, 'mot_float_type*', self._get_mot_float_type())
 
-    def is_protocol_sufficient(self, protocol=None):
-        """See ProtocolCheckInterface"""
-        return not self.get_protocol_problems(protocol=protocol)
+    def get_required_protocol_names(self):
+        """Get a list with the constant data names that are needed for this model to work.
 
-    def get_protocol_problems(self, protocol=None):
-        """See ProtocolCheckInterface"""
-        if protocol is None:
-            protocol = self._input_data.protocol
+        For example, an implementing diffusion MRI model might require the presence of the protocol parameter
+        'g' and 'b'. This function should then return ('g', 'b').
+
+        Returns:
+            list: A list of columns names that need to be present in the protocol
+        """
+        return list(set([p.name for m, p in self._model_functions_info.get_model_parameter_list() if
+                         isinstance(p, ProtocolParameter)]))
+
+    def is_input_data_sufficient(self, input_data=None):
+        return not self.get_input_data_problems(input_data=input_data)
+
+    def get_input_data_problems(self, input_data=None):
+        if input_data is None:
+            input_data = self._input_data
 
         problems = []
 
-        missing_columns = [name for name in self.get_required_protocol_names() if not protocol.has_column(name)]
+        missing_columns = []
+        for name in self.get_required_protocol_names():
+            if name not in input_data.protocol and name not in input_data.static_maps:
+                missing_columns.append(name)
+
         if missing_columns:
-            problems.append(MissingColumns(missing_columns))
+            problems.append(MissingProtocolInput(missing_columns))
 
         try:
-            shells = protocol.get_nmr_shells()
+            shells = input_data.protocol.get_nmr_shells()
             if shells < self.required_nmr_shells:
                 problems.append(InsufficientShells(self.required_nmr_shells, shells))
         except KeyError:
@@ -179,25 +194,25 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
         return np.concatenate([np.transpose(np.array([s]))
                                if len(s.shape) < 2 else s for s in params], axis=1)
 
-    def _get_pre_model_expression_eval_code(self):
-        if self._can_use_gradient_deviations():
+    def _get_pre_model_expression_eval_code(self, problems_to_analyze):
+        if self._can_use_gradient_deviations(problems_to_analyze):
             s = '''
-                mot_float_type4 _new_gradient_vector_raw = _get_new_gradient_raw(g, data->var_data_gradient_deviations);
+                mot_float_type4 _new_gradient_vector_raw = _get_new_gradient_raw(g, data->gradient_deviations);
                 mot_float_type _new_gradient_vector_length = length(_new_gradient_vector_raw);
                 g = _new_gradient_vector_raw/_new_gradient_vector_length;
             '''
             s = dedent(s.replace('\t', ' '*4))
 
-            if 'b' in list(self._get_protocol_data().keys()):
+            if 'b' in list(self._get_protocol_data(problems_to_analyze).keys()):
                 s += 'b *= _new_gradient_vector_length * _new_gradient_vector_length;' + "\n"
 
-            if 'G' in list(self._get_protocol_data().keys()):
+            if 'G' in list(self._get_protocol_data(problems_to_analyze).keys()):
                 s += 'G *= _new_gradient_vector_length;' + "\n"
 
             return s
 
-    def _get_pre_model_expression_eval_function(self):
-        if self._can_use_gradient_deviations():
+    def _get_pre_model_expression_eval_function(self, problems_to_analyze):
+        if self._can_use_gradient_deviations(problems_to_analyze):
             return dedent('''
                 #ifndef GET_NEW_GRADIENT_RAW
                 #define GET_NEW_GRADIENT_RAW
@@ -225,9 +240,9 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
                 #endif //GET_NEW_GRADIENT_RAW
             '''.replace('\t', ' '*4))
 
-    def _can_use_gradient_deviations(self):
+    def _can_use_gradient_deviations(self, problems_to_analyze):
         return self._input_data.gradient_deviations is not None \
-               and 'g' in list(self._get_protocol_data().keys())
+               and 'g' in list(self._get_protocol_data(problems_to_analyze).keys())
 
     def _prepare_input_data(self, input_data):
         """Update the input data to make it suitable for this model.

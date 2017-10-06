@@ -188,11 +188,6 @@ def sample_model(model, input_data, output_folder, sampler=None, recalculate=Fal
     if isinstance(model, DMRICascadeModelInterface):
         raise ValueError('The function \'sample_model()\' does not accept cascade models.')
 
-    if not model.is_protocol_sufficient(input_data.protocol):
-        raise InsufficientProtocolError(
-            'The given protocol is insufficient for this model. '
-            'The reported errors where: {}'.format(model.get_protocol_problems(input_data.protocol)))
-
     if cl_device_ind is not None and not isinstance(cl_device_ind, collections.Iterable):
         cl_device_ind = [cl_device_ind]
 

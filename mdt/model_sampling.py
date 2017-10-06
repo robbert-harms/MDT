@@ -51,10 +51,10 @@ def sample_composite_model(model, input_data, output_folder, sampler, tmp_dir,
     else:
         sample_to_save_method = SaveNoSamples()
 
-    if not model.is_protocol_sufficient(input_data.protocol):
+    if not model.is_input_data_sufficient(input_data):
         raise InsufficientProtocolError(
             'The provided protocol is insufficient for this model. '
-            'The reported errors where: {}'.format(model.get_protocol_problems(input_data.protocol)))
+            'The reported errors where: {}'.format(model.get_input_data_problems(input_data)))
 
     logger = logging.getLogger(__name__)
 

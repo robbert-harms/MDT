@@ -92,6 +92,19 @@ class MRIInputData(InputData):
         """
         raise NotImplementedError()
 
+    @property
+    def static_maps(self):
+        """Get a dictionary with the static maps.
+
+        These maps will be loaded by the model builder as the values for the static parameters.
+
+        Returns:
+            dict: per static map the value for the static map. This value can either be a scalar or a one or a two
+                dimensional matrix containing the values for each problem instance. The static maps can be linked
+                to parameters by their full name (<model>.<parameter>) or just by their parameter name (<parameter>).
+        """
+        raise NotImplementedError()
+
 
 class SimpleMRIInputData(MRIInputData):
 
@@ -125,14 +138,25 @@ class SimpleMRIInputData(MRIInputData):
         self._noise_std = noise_std
 
         if protocol.length != 0:
-            self._nmr_inst_per_problem = protocol.length
+            self._nmr_observations = protocol.length
         else:
-            self._nmr_inst_per_problem = signal4d.shape[3]
+            self._nmr_observations = signal4d.shape[3]
 
         if protocol.length != 0 and signal4d is not None and \
                 signal4d.shape[3] != 0 and protocol.length != signal4d.shape[3]:
             raise ValueError('Length of the protocol ({}) does not equal the number of volumes ({}).'.format(
                 protocol.length, signal4d.shape[3]))
+
+    def get_input_data(self, parameter_name):
+        """Get the input data for the given parameter.
+
+        This first checks the static maps for a match, and second the protocol.
+        """
+        if parameter_name in self._static_maps:
+            return self._static_maps[parameter_name]
+        if parameter_name in self._protocol:
+            return self._protocol[parameter_name]
+        return None
 
     def copy_with_updates(self, *args, **kwargs):
         """Create a copy of this input data, while setting some of the arguments to new values.
@@ -189,7 +213,7 @@ class SimpleMRIInputData(MRIInputData):
             if is_scalar(volumes_to_remove):
                 volumes_to_remove = [volumes_to_remove]
 
-            volumes_to_keep = list(range(self.get_nmr_inst_per_problem()))
+            volumes_to_keep = list(range(self.nmr_observations))
             volumes_to_keep = [ind for ind in volumes_to_keep if ind not in volumes_to_remove]
 
         new_protocol = self.protocol
@@ -202,11 +226,13 @@ class SimpleMRIInputData(MRIInputData):
 
         return self.copy_with_updates(new_protocol, new_dwi_volume)
 
-    def get_nmr_problems(self):
+    @property
+    def nmr_problems(self):
         return self.observations.shape[0]
 
-    def get_nmr_inst_per_problem(self):
-        return self._nmr_inst_per_problem
+    @property
+    def nmr_observations(self):
+        return self._nmr_observations
 
     @property
     def signal4d(self):
@@ -311,7 +337,8 @@ class MockMRIInputData(SimpleMRIInputData):
         kwargs = {}
         return args, kwargs
 
-    def get_nmr_problems(self):
+    @property
+    def nmr_problems(self):
         return 0
 
     @property

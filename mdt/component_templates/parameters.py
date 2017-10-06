@@ -2,8 +2,7 @@ import six
 
 from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate, register_builder
 from mot.cl_data_type import SimpleCLDataType
-from mot.model_building.parameters import StaticMapParameter, ProtocolParameter, ModelDataParameter, \
-    FreeParameter
+from mot.model_building.parameters import StaticMapParameter, ProtocolParameter, FreeParameter
 from mot.model_building.parameter_functions.priors import UniformWithinBoundsPrior
 from mot.model_building.parameter_functions.proposals import GaussianProposal
 from mot.model_building.parameter_functions.sample_statistics import GaussianFit
@@ -24,7 +23,6 @@ class ParameterTemplate(ComponentTemplate):
         name (str): the name of the parameter, defaults to the class name
         description (str): the description of this parameter
         data_type (str or DataType): either a string we use as datatype or the actual datatype itself
-        type (str): the type of parameter (free, protocol or model_data)
     """
     name = ''
     description = ''
@@ -64,14 +62,6 @@ class FreeParameterTemplate(ParameterTemplate):
     sampling_proposal = GaussianProposal(1.0)
     sampling_prior = UniformWithinBoundsPrior()
     sampling_statistics = GaussianFit()
-
-
-class ModelDataParameterTemplate(ParameterTemplate):
-    """The default template options for model data parameters.
-
-    This sets the attribute type to model_data.
-    """
-    value = None
 
 
 class StaticMapParameterTemplate(ParameterTemplate):
@@ -116,12 +106,6 @@ class ParameterBuilder(ComponentBuilder):
                         sampling_statistics=template.sampling_statistics
                     )
             return AutoFreeParameter
-
-        elif issubclass(template, ModelDataParameterTemplate):
-            class AutoModelDataParameter(method_binding_meta(template, ModelDataParameter)):
-                def __init__(self, nickname=None):
-                    super(AutoModelDataParameter, self).__init__(data_type, nickname or template.name, template.value)
-            return AutoModelDataParameter
 
         elif issubclass(template, StaticMapParameterTemplate):
             class AutoStaticMapParameter(method_binding_meta(template, StaticMapParameter)):

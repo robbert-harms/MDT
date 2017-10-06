@@ -193,10 +193,9 @@ class FitModelTab(MainTab, Ui_FitModelTabContent):
     @pyqtSlot()
     def run_model(self):
         model = mdt.get_model(self._get_current_model_name())
-        protocol = mdt.load_protocol(self._input_data_info.protocol)
 
-        if not model.is_protocol_sufficient(protocol):
-            msg = ProtocolWarningBox(model.get_protocol_problems(protocol))
+        if not model.is_input_data_sufficient(self._input_data_info.build_input_data()):
+            msg = ProtocolWarningBox(model.get_input_data_problems(self._input_data_info.build_input_data()))
             msg.exec_()
             return
 

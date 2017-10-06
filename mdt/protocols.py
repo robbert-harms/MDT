@@ -173,6 +173,28 @@ class Protocol(collections.Mapping):
 
         return Protocol(columns)
 
+    def with_columns_removed(self, column_names):
+        """Create a copy of this protocol with the given columns removed.
+
+        Args:
+            column_names (list of str): The name of the columns to remove
+
+        Returns:
+            Protocol: the new updated protocol
+        """
+        columns = copy.copy(self._columns)
+
+        for column_name in column_names:
+            if column_name == 'g':
+                del columns['gx']
+                del columns['gy']
+                del columns['gz']
+            else:
+                if column_name in self._columns:
+                    del columns[column_name]
+
+        return Protocol(columns)
+
     def with_rows_removed(self, rows):
         """Create a copy of the protocol with a list of rows removed from all the columns.
 

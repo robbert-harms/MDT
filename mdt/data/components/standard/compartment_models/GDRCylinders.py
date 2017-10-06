@@ -8,10 +8,11 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class GDRCylinders(CompartmentTemplate):
 
-    parameter_list = ('g', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'gamma_shape', 'gamma_scale',
-                      'GDRCylinders_nmr_bins(nmr_bins)')
+    parameter_list = ('g', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'gamma_shape', 'gamma_scale')
     dependency_list = ('CylinderGPD', 'GammaCDF')
     cl_code = '''
+        int nmr_bins = 5;
+    
         mot_float_type lower = findGammaCDFCrossing(0, gamma_scale*gamma_shape, 1.0/nmr_bins, 1e-20, 
                                                     gamma_shape, gamma_scale);
         mot_float_type upper = findGammaCDFCrossing(lower, nmr_bins*gamma_scale*gamma_shape, (1-1.0/nmr_bins), 1e-20,
