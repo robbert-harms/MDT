@@ -118,14 +118,12 @@ class SimpleMRIInputData(MRIInputData):
             mask (ndarray): The mask used to create the observations list
             nifti_header (nifti header): The header of the nifti file to use for writing the results.
             static_maps (Dict[str, ndarray]): the static maps used as values for the static map parameters
-            gradient_deviations (ndarray): the gradient deviations containing per voxel 9 values that constitute the
-                gradient non-linearities. Of the 4d matrix the first 3 dimensions are supposed to be the voxel
-                index and the 4th should contain the grad dev data.
+            gradient_deviations (ndarray): a gradient deviations matrix containing per voxel 9 values that
+                constitute the gradient non-linearities according to the HCP guidelines.
+                (see ``https://www.humanconnectome.org/storage/app/media/documentation/data_release/
+                Q1_Release_Appendix_II.pdf``).
             noise_std (number or ndarray): either None for automatic detection,
                 or a scalar, or an 3d matrix with one value per voxel.
-
-        Attributes:
-            nifti_header (nifti header): The header of the nifti file to use for writing the results.
         """
         self._logger = logging.getLogger(__name__)
         self._signal4d = signal4d
@@ -134,8 +132,8 @@ class SimpleMRIInputData(MRIInputData):
         self._protocol = protocol
         self._observation_list = None
         self._static_maps = static_maps or {}
-        self._gradient_deviations = gradient_deviations
         self._noise_std = noise_std
+        self._gradient_deviations = gradient_deviations
 
         if protocol.length != 0:
             self._nmr_observations = protocol.length

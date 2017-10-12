@@ -102,7 +102,7 @@ class GenerateProtocolTab(MainTab, Ui_GenerateProtocolTabContent):
             shells = self._protocol.get_b_values_shells()
             shells_text = []
             for shell in shells:
-                occurrences = self._protocol.count_occurences('b', shell)
+                occurrences = self._protocol.count_occurrences('b', shell)
                 shells_text.append('{0:0=.3f}e9 s/m^2 ({1} volumes)'.format(shell/1e9, occurrences))
             self.differentShells.setText(', '.join(shells_text))
         except KeyError:

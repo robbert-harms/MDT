@@ -49,7 +49,7 @@ class InfoProtocol(BasicShellApplication):
         shells = protocol.get_b_values_shells()
         shells_text = []
         for shell in shells:
-            occurrences = protocol.count_occurences('b', shell)
+            occurrences = protocol.count_occurrences('b', shell)
             shells_text.append('{0:0=.3f}e9 ({1})'.format(shell / 1e9, occurrences))
         print(row_format.format('shells', ', '.join(shells_text)))
         print(row_format.format('nmr_columns', protocol.number_of_columns))

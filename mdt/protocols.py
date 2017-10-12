@@ -316,7 +316,7 @@ class Protocol(collections.Mapping):
         """
         return np.unique(self.get_column('b')[self.get_weighted_indices()]).tolist()
 
-    def count_occurences(self, column, value):
+    def count_occurrences(self, column, value):
         """Count the occurences of the given value in the given column.
 
         This can for example be used to count the occurences of a single b-value in the protocol.
