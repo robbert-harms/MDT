@@ -2,7 +2,7 @@ import numpy as np
 import collections
 from six import string_types
 from mdt.components_loader import get_model
-from mdt.nifti import get_all_image_data
+from mdt.nifti import get_all_nifti_data
 from mdt.utils import create_roi, restore_volumes, MockMRIInputData
 from mot.cl_routines.mapping.calculate_model_estimates import CalculateModelEstimates
 
@@ -16,13 +16,16 @@ __licence__ = 'LGPL v3'
 def create_signal_estimates(model, input_data, parameters):
     """Create the signals estimates for your estimated model parameters.
 
-    Use this if you have fitted a model to some data and now wish to obtain the corresponding signal estimates.
-    This function is basically a convenience wrapper around :func:`simulate_signals`.
+    This function is typically used to obtain signal estimates from optimization results.
+
+    This function evaluates the model as it is in the model fitting and sampling. That is, this method includes
+    the gradient deviations (if set in the input data) and loads all static and fixed parameters maps.
 
     Args:
         model (str or model): the model or the name of the model to use for estimating the signals
         input_data (mdt.utils.MRIInputData): the input data object, we will set this to the model
         parameters (str or dict): either a directory file name or a dictionary containing optimization results
+            Each element is assumed to be a 4d volume with the voxels we are using for the simulations.
 
     Returns:
         ndarray: the 4d array with the signal estimates per voxel
@@ -30,17 +33,31 @@ def create_signal_estimates(model, input_data, parameters):
     if isinstance(model, string_types):
         model = get_model(model)
 
+    model.set_input_data(input_data)
+
     if isinstance(parameters, string_types):
-        parameters = get_all_image_data(parameters)
+        parameters = get_all_nifti_data(parameters)
 
-    model.set_fixed_parameter_values(input_data.static_maps)
+    parameters = create_roi(parameters, input_data.mask)
+    parameters = model.param_dict_to_array(parameters)
 
-    results = simulate_signals(model, input_data.protocol, create_roi(parameters, input_data.mask))
+    build_model = model.build()
+
+    if parameters.shape[0] != build_model.get_nmr_problems():
+        raise ValueError('The number of voxels in the parameters does not match those in the model.')
+
+    calculator = CalculateModelEstimates()
+    results = calculator.calculate(model.build(), parameters)
+
     return restore_volumes(results, input_data.mask)
 
 
 def simulate_signals(model, protocol, parameters):
     """Estimate the signals of a given model for the given combination of protocol and parameters.
+
+    In contrast to the function :func:`create_signal_estimates`, this function does not incorporate the gradient
+    deviations. Furthermore, this function expects a two dimensional list of parameters and this function will
+    simply evaluate the model for each set of parameters.
 
     Args:
         model (str or model): the model or the name of the model to use for estimating the signals

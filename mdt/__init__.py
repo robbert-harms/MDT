@@ -498,8 +498,8 @@ def load_volume_maps(directory, map_names=None, deferred=True):
         dict: A dictionary with the volumes. The keys of the dictionary are the filenames (without the extension) of the
             files in the given directory.
     """
-    from mdt.nifti import get_all_image_data
-    return get_all_image_data(directory, map_names=map_names, deferred=deferred)
+    from mdt.nifti import get_all_nifti_data
+    return get_all_nifti_data(directory, map_names=map_names, deferred=deferred)
 
 
 def get_volume_names(directory):

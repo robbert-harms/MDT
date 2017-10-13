@@ -3,7 +3,6 @@ import itertools
 
 from mdt.cl_routines.mapping.dki_measures import DKIMeasures
 from mdt.cl_routines.mapping.dti_measures import DTIMeasures
-from mdt.utils import tensor_spherical_to_cartesian
 
 from mot.model_building.parameter_functions.priors import AlwaysOne, UniformWithinBoundsPrior
 from mot.model_building.parameter_functions.proposals import GaussianProposal
@@ -108,10 +107,6 @@ def get_dti_measures_modifier():
     return return_names, modifier_routine
 
 
-def extra_covariance_samples(theta, phi, psi):
-    return np.rollaxis(np.concatenate(tensor_spherical_to_cartesian(theta, phi, psi), axis=2), 2, 1)
-
-
 class KurtosisTensor(CompartmentTemplate):
 
     description = '''
@@ -145,9 +140,3 @@ class KurtosisTensor(CompartmentTemplate):
     auto_add_cartesian_vector = False
     post_optimization_modifiers = [get_dti_measures_modifier(),
                                    get_dki_measures_modifier()]
-
-    auto_sampling_covar_cartesian = False
-    sampling_covar_extras = [(('theta', 'phi', 'psi'), ('vec0_x', 'vec0_y', 'vec0_z',
-                                                        'vec1_x', 'vec1_y', 'vec1_z',
-                                                        'vec2_x', 'vec2_y', 'vec2_z'), extra_covariance_samples)]
-    sampling_covar_exclude = ['theta', 'phi', 'psi']

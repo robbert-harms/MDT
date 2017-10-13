@@ -7,7 +7,7 @@ import timeit
 from contextlib import contextmanager
 from six import string_types
 from mdt.__version__ import __version__
-from mdt.nifti import get_all_image_data
+from mdt.nifti import get_all_nifti_data
 from mdt.batch_utils import batch_profile_factory, AllSubjects
 from mdt.components_loader import get_model
 from mdt.configuration import get_processing_strategy, get_optimizer_for_model
@@ -322,7 +322,7 @@ class ModelFit(object):
                                     self._tmp_results_dir, recalculate=recalculate, cascade_names=model_names)
             results = fitter.run()
 
-        map_results = get_all_image_data(os.path.join(self._output_folder, model.name))
+        map_results = get_all_nifti_data(os.path.join(self._output_folder, model.name))
         return results, map_results
 
     def _apply_user_provided_initialization_data(self, model):
@@ -377,7 +377,7 @@ class SingleModelFit(object):
     def run(self):
         """Fits the composite model and returns the results as ROI lists per map."""
         if not self.recalculate and model_output_exists(self._model, self._output_folder):
-            maps = get_all_image_data(self._output_path)
+            maps = get_all_nifti_data(self._output_path)
             self._logger.info('Not recalculating {} model'.format(self._model.name))
             return create_roi(maps, self._input_data.mask)
 

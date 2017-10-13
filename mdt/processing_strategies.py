@@ -24,7 +24,7 @@ from mot.utils import results_to_dict
 import gc
 from numpy.lib.format import open_memmap
 
-from mdt.nifti import write_all_as_nifti, get_all_image_data
+from mdt.nifti import write_all_as_nifti, get_all_nifti_data
 from mdt.configuration import gzip_optimization_results, gzip_sampling_results
 from mdt.utils import create_roi, load_samples
 
@@ -439,7 +439,7 @@ class FittingProcessor(SimpleModelProcessor):
     def combine(self):
         super(FittingProcessor, self).combine()
         self._combine_volumes(self._output_dir, self._tmp_storage_dir, self._nifti_header)
-        return create_roi(get_all_image_data(self._output_dir), self._mask)
+        return create_roi(get_all_nifti_data(self._output_dir), self._mask)
 
 
 class SamplingProcessor(SimpleModelProcessor):

@@ -59,7 +59,7 @@ def sample_composite_model(model, input_data, output_folder, sampler, tmp_dir,
     logger = logging.getLogger(__name__)
 
     if not recalculate:
-        if model_output_exists(model, output_folder + '/univariate_statistics/', append_model_name_to_path=False):
+        if model_output_exists(model, output_folder + '/maximum_a_posteriori/', append_model_name_to_path=False):
             logger.info('Not recalculating {} model'.format(model.name))
             return load_samples(output_folder)
 

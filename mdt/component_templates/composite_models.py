@@ -181,11 +181,6 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                 self._model_priors.extend(_resolve_model_prior(
                     template.extra_prior, self._model_functions_info.get_model_parameter_list()))
 
-                self._sampling_covar_extras.extend(_get_model_sampling_covariance_extras(
-                    self._model_functions_info.get_model_list()))
-                self._sampling_covar_excludes.extend(_get_model_sampling_covariance_excludes(
-                    self._model_functions_info.get_model_list()))
-
             def _get_suitable_volume_indices(self, input_data):
                 volume_selection = template.volume_selection
 
@@ -369,48 +364,6 @@ def _get_model_post_optimization_modifiers(compartments):
                 modifiers.append(get_wrapped_modifier(compartment.name, map_names, modifier))
 
     return modifiers
-
-
-def _get_model_sampling_covariance_excludes(compartments):
-    """Get a list of the model parameters to remove before calculating the sampling covariance.
-
-    Args:
-        compartments (list): the list of compartment models from which to get the modifiers
-
-    Returns:
-        list: The list of full model names we need to remove
-    """
-    excludes = []
-
-    for compartment in compartments:
-        if hasattr(compartment, 'sampling_covar_exclude') and compartment.sampling_covar_exclude is not None \
-                and len(compartment.sampling_covar_exclude):
-            for param_name in compartment.sampling_covar_exclude:
-                excludes.append('{}.{}'.format(compartment.name, param_name))
-
-    return excludes
-
-def _get_model_sampling_covariance_extras(compartments):
-    """Get a list with the information about the additional maps to include in the covariance calculation.
-
-    Args:
-        compartments (list): the list of compartment models from which to get the modifiers
-
-    Returns:
-        list: list with tuple of (list, list, Func), information about the extra maps to include
-    """
-    extras = []
-
-    for compartment in compartments:
-        if hasattr(compartment, 'sampling_covar_extras') and compartment.sampling_covar_extras is not None \
-                and len(compartment.sampling_covar_extras):
-
-            for input_params, output_params, func in compartment.sampling_covar_extras:
-                input_params = ['{}.{}'.format(compartment.name, p) for p in input_params]
-                output_params = ['{}.{}'.format(compartment.name, p) for p in output_params]
-                extras.append((input_params, output_params, func))
-
-    return extras
 
 
 register_builder(DMRICompositeModelTemplate, DMRICompositeModelBuilder())

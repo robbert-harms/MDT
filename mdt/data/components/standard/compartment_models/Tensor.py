@@ -1,7 +1,5 @@
-import numpy as np
 from mdt.component_templates.compartment_models import CompartmentTemplate
 from mdt.cl_routines.mapping.dti_measures import DTIMeasures
-from mdt.utils import tensor_spherical_to_cartesian
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -20,10 +18,6 @@ def get_dti_measures_modifier():
     return return_names, modifier_routine
 
 
-def extra_covariance_samples(theta, phi, psi):
-    return np.rollaxis(np.concatenate(tensor_spherical_to_cartesian(theta, phi, psi), axis=2), 2, 1)
-
-
 class Tensor(CompartmentTemplate):
 
     parameter_list = ('g', 'b', 'd', 'dperp0', 'dperp1', 'theta', 'phi', 'psi')
@@ -36,9 +30,3 @@ class Tensor(CompartmentTemplate):
 
     auto_add_cartesian_vector = False
     post_optimization_modifiers = [get_dti_measures_modifier()]
-
-    auto_sampling_covar_cartesian = False
-    sampling_covar_extras = [(('theta', 'phi', 'psi'), ('vec0_x', 'vec0_y', 'vec0_z',
-                                                        'vec1_x', 'vec1_y', 'vec1_z',
-                                                        'vec2_x', 'vec2_y', 'vec2_z'), extra_covariance_samples)]
-    sampling_covar_exclude = ['theta', 'phi', 'psi']

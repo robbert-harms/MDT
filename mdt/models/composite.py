@@ -2,6 +2,7 @@ import inspect
 import logging
 from textwrap import dedent
 import copy
+
 import numpy as np
 
 from mdt.configuration import get_active_post_processing
@@ -42,12 +43,6 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
         Attributes:
             required_nmr_shells (int): Define the minimum number of unique shells necessary for this model.
                 The default is false, which means that we don't check for this.
-            _sampling_covar_excludes (list): the list of parameters (by model.param name) to exclude from the
-                covariance calculation after sampling.
-            _sampling_covar_extras (list): list with tuples containing information about additional variables
-                to include in the sampling covariance matrix calculation. Every element of the given list should contain
-                a tuple with three elements (list, list, Func): list of parameters required for the function, names of
-                the resulting maps and the callback function itself.
             _post_optimization_modifiers (list): the list with post optimization modifiers. Every element
                 should contain a tuple with (str, Func) or (tuple, Func): where the first element is a single
                 output name or a list with output names and the Func is a callback function that returns one or more
@@ -63,8 +58,6 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
 
         self.nmr_parameters_for_bic_calculation = self.get_nmr_estimable_parameters()
         self.required_nmr_shells = False
-        self._sampling_covar_excludes = []
-        self._sampling_covar_extras = []
         self.active_post_processing = get_active_post_processing()
 
     def build(self, problems_to_analyze=None):
@@ -78,8 +71,6 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
                                    self._get_fixed_parameter_maps(problems_to_analyze),
                                    self._get_proposal_state_names(),
                                    self._get_sampling_statistics(),
-                                   self._sampling_covar_excludes,
-                                   self._sampling_covar_extras,
                                    self.get_free_param_names(),
                                    self.get_parameter_codec(),
                                    copy.deepcopy(self.active_post_processing))
@@ -393,8 +384,7 @@ class BuildCompositeModel(MRIModelInterface):
 
     def __init__(self, wrapped_sample_model, protocol, estimable_parameters_list, nmr_parameters_for_bic_calculation,
                  post_optimization_modifiers, dependent_map_calculator, fixed_parameter_maps, proposal_state_names,
-                 sampling_statistics, sampling_covar_excludes, sampling_covar_extras,
-                 free_param_names, parameter_codec, active_post_processing):
+                 sampling_statistics, free_param_names, parameter_codec, active_post_processing):
         self._protocol = protocol
         self._estimable_parameters_list = estimable_parameters_list
         self.nmr_parameters_for_bic_calculation = nmr_parameters_for_bic_calculation
@@ -404,8 +394,6 @@ class BuildCompositeModel(MRIModelInterface):
         self._fixed_parameter_maps = fixed_parameter_maps
         self._proposal_state_names = proposal_state_names
         self._sampling_statistics = sampling_statistics
-        self._sampling_covar_excludes = sampling_covar_excludes
-        self._sampling_covar_extras = sampling_covar_extras
         self._free_param_names = free_param_names
         self._parameter_codec = parameter_codec
         self._active_post_processing = active_post_processing
@@ -492,7 +480,7 @@ class BuildCompositeModel(MRIModelInterface):
             'maximum_likelihood': mle_maps_cb,
             'maximum_a_posteriori': map_maps_cb,
             'mh_state': lambda: self._get_mh_state_write_arrays(sampling_output.get_mh_state()),
-            'univariate_statistics': lambda: self._get_univariate_statistics(sampling_output),
+            'sample_statistics': lambda: self._sample_statistics(sampling_output),
             # 'multivariate_statistic': lambda: self._get_multivariate_sampling_statistic(samples),
             'proposal_state': lambda: results_to_dict(sampling_output.get_proposal_state(),
                                                       self.get_proposal_state_names()),
@@ -518,13 +506,10 @@ class BuildCompositeModel(MRIModelInterface):
                 'rng_state': mh_state.get_rng_state(),
                 'nmr_samples_drawn': np.ones_like(sampling_counter) * mh_state.nmr_samples_drawn}
 
-    def _get_univariate_statistics(self, sampling_output):
-        """Get the univariate statistics for the samples.
+    def _sample_statistics(self, sampling_output):
+        """Get some standard statistics about the samples.
 
-        This typically returns the mean and standard deviation of each of the parameters.
-
-        This will use the sampling statistic of each of the parameters to get the mean parameter value. That value is
-        then used for the point estimate for the volume maps.
+        This typically returns the mean, standard deviation and covariances of each of the parameters.
 
         Args:
             sampling_output (mot.cl_routines.sampling.metropolis_hastings.MHSampleOutput): the output of the sampler
@@ -537,6 +522,7 @@ class BuildCompositeModel(MRIModelInterface):
         volume_maps = self._get_univariate_parameter_statistics(samples)
         volume_maps = self.post_process_optimization_maps(volume_maps)
 
+        volume_maps.update(self._compute_covariances_correlations(samples, volume_maps))
         volume_maps.update(self._calculate_deviance_information_criterions(
             samples, volume_maps['LogLikelihood'], sampling_output.get_log_likelihoods()))
 
@@ -612,51 +598,6 @@ class BuildCompositeModel(MRIModelInterface):
             dict: the volume maps with the ESS statistics
         """
         return {'MultivariateESS': np.nan_to_num(multivariate_ess(samples))}
-
-    def _get_multivariate_sampling_statistic(self, samples):
-        """Get the multivariate statistics for the given samples.
-
-        Calculates a single multivariate statistic based on the samples. This function might remove some of the
-        parameters from the samples and might add some additional parameters at its own discretion.
-
-        Args:
-            samples (ndarray): the matrix with the samples
-
-        Returns:
-            dict: the elements forming the multivariate statistic.
-        """
-        params_to_exclude = set(self.get_free_param_names()).intersection(self._sampling_covar_excludes)
-        param_names = [name for name in self.get_free_param_names() if name not in params_to_exclude]
-        full_set_of_names = list(self.get_free_param_names())
-
-        for input_params, output_params, func in self._sampling_covar_extras:
-            input_indices = []
-            for p in input_params:
-                if p in self.get_free_param_names():
-                    input_indices.append(self.get_free_param_names().index(p))
-
-            if input_indices:
-                param_names.extend(output_params)
-                full_set_of_names.extend(output_params)
-                inputs = [samples[:, ind, :] for ind in input_indices]
-                samples = np.column_stack([samples, func(*inputs)])
-
-        indices_to_use = [ind for ind, p in enumerate(full_set_of_names) if p not in params_to_exclude]
-        lti = np.array(np.tril_indices(len(param_names))).transpose()
-        result_names = ['Covariance_{}_to_{}'.format(param_names[row], param_names[column]) for row, column in lti]
-        result_matrices = {result_name: np.zeros((samples.shape[0], 1)) for result_name in result_names}
-
-        for voxel_ind in range(samples.shape[0]):
-            covar_matrix = np.cov(samples[voxel_ind, indices_to_use, :])
-
-            for names_ind, (row, column) in enumerate(lti):
-                result_matrices[result_names[names_ind]][voxel_ind] = covar_matrix[row, column]
-
-        for param_ind in indices_to_use:
-            param_name = full_set_of_names[param_ind]
-            result_matrices['Mean_' + param_name] = np.mean(samples[:, param_ind, :], axis=1)
-
-        return result_matrices
 
     def _add_post_optimization_modifier_maps(self, results_dict):
         """Add the extra maps defined in the post optimization modifiers to the results."""
@@ -803,12 +744,41 @@ class BuildCompositeModel(MRIModelInterface):
 
             expected_values[:, ind] = statistics.get_expected_value()
             all_stats.update({'{}.{}'.format(parameter_name, statistic_key): v
-                                for statistic_key, v in statistics.get_additional_statistics().items()})
+                              for statistic_key, v in statistics.get_additional_statistics().items()})
 
         CodecRunner().encode_decode(expected_values, self.get_kernel_data(), self._parameter_codec,
                                     double_precision=self.double_precision)
         all_stats.update(results_to_dict(expected_values, self.get_free_param_names()))
         return all_stats
+
+    def _compute_covariances_correlations(self, samples, marginal_statistics):
+        """Compute the covariance and correlation between each of the free parameters.
+
+        This uses the distance metric of the sample statistics to compute the covariance between two parameters.
+
+        The covariance is computed using the sum of distances to the expected value for each of the parameters.
+        The correlation is then computed as ``covar(a, b) / sqrt(std_a * std_b)`` for samples of
+        two parameters ``a`` and ``b``.
+        """
+        results = {}
+
+        for ind0 in range(len(self.get_free_param_names())):
+            param_name0 = self.get_free_param_names()[ind0]
+            distances0 = self._sampling_statistics[param_name0].get_distance_from_expected(
+                samples[:, ind0, ...], marginal_statistics[param_name0])
+
+            for ind1 in range(ind0 + 1, len(self.get_free_param_names())):
+                param_name1 = self.get_free_param_names()[ind1]
+                distances1 = self._sampling_statistics[param_name1].get_distance_from_expected(
+                    samples[:, ind1, ...], marginal_statistics[param_name1])
+
+                covar = np.sum(distances0 * distances1, axis=1) / (samples.shape[2] - 1)
+                correlation = covar / (marginal_statistics[param_name0 + '.std']
+                                       * marginal_statistics[param_name1 + '.std'])
+
+                results['Covariance_{}_to_{}'.format(param_name0, param_name1)] = covar
+                results['Correlation_{}_to_{}'.format(param_name0, param_name1)] = correlation
+        return results
 
     def __getattribute__(self, item):
         try:

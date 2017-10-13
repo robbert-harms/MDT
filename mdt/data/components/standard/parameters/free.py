@@ -132,7 +132,7 @@ class phi(FreeParameterTemplate):
     init_value = np.pi / 2.0
     lower_bound = 0
     upper_bound = np.pi
-    parameter_transform = AbsModPiTransform()
+    parameter_transform = CosSqrClampTransform()
     sampling_proposal = GaussianProposal(0.1)
     sampling_prior = UniformWithinBoundsPrior()
     sampling_statistics = TruncatedGaussianFit()

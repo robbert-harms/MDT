@@ -4,7 +4,7 @@ import numpy as np
 import six
 
 from mdt import load_nifti, load_volume_maps
-from mdt.nifti import get_all_image_data
+from mdt.nifti import get_all_nifti_data
 
 __author__ = 'Robbert Harms'
 __date__ = "2017-02-22"
@@ -303,7 +303,7 @@ class _TMCP_BallStick_r1(TrackMarkConversionProfile):
     def get_info(self, input_folder):
         maps_to_convert = ['FS', 'w_ball.w', 'w_stick.w']
 
-        volumes = get_all_image_data(input_folder, map_names=maps_to_convert, deferred=True)
+        volumes = get_all_nifti_data(input_folder, map_names=maps_to_convert, deferred=True)
 
         vector_directions = [load_nifti(os.path.join(input_folder, 'Stick.vec0')).get_data()]
         vector_magnitudes = [load_nifti(os.path.join(input_folder, 'w_stick.w')).get_data() * 1e-3]
@@ -330,7 +330,7 @@ class _TMCP_BallStick_r2(TrackMarkConversionProfile):
         sorted_vecs = mdt.sort_maps([os.path.join(input_folder, 'Stick{}.vec0.nii.gz'.format(i)) for i in range(2)],
                                     sort_index_matrix=sort_index_matrix)
 
-        volumes = get_all_image_data(input_folder, map_names=maps_to_convert, deferred=True)
+        volumes = get_all_nifti_data(input_folder, map_names=maps_to_convert, deferred=True)
         volumes.update(dict(zip(['w_stick{}.w'.format(i) for i in range(2)], sorted_weights)))
 
         vector_directions = sorted_vecs
@@ -358,7 +358,7 @@ class _TMCP_BallStick_r3(TrackMarkConversionProfile):
         sorted_vecs = mdt.sort_maps([os.path.join(input_folder, 'Stick{}.vec0.nii.gz'.format(i)) for i in range(3)],
                                     sort_index_matrix=sort_index_matrix)
 
-        volumes = get_all_image_data(input_folder, map_names=maps_to_convert, deferred=True)
+        volumes = get_all_nifti_data(input_folder, map_names=maps_to_convert, deferred=True)
         volumes.update(dict(zip(['w_stick{}.w'.format(i) for i in range(3)], sorted_weights)))
 
         vector_directions = sorted_vecs
@@ -377,7 +377,7 @@ class _TMCP_CHARMED_r1(TrackMarkConversionProfile):
     def get_info(self, input_folder):
         maps_to_convert = ['FR', 'Tensor.FA', 'w_hin0.w']
 
-        volumes = get_all_image_data(input_folder, map_names=maps_to_convert, deferred=True)
+        volumes = get_all_nifti_data(input_folder, map_names=maps_to_convert, deferred=True)
 
         vector_directions = [load_nifti(os.path.join(input_folder, 'CHARMEDRestricted0.vec0')).get_data()]
         vector_magnitudes = [load_nifti(os.path.join(input_folder, 'w_res0.w')).get_data() * 1e-3]
@@ -404,7 +404,7 @@ class _TMCP_CHARMED_r2(TrackMarkConversionProfile):
         sorted_vecs = mdt.sort_maps([os.path.join(input_folder, 'CHARMEDRestricted{}.vec0.nii.gz'.format(i))
                                      for i in range(2)], sort_index_matrix=sort_index_matrix)
 
-        volumes = get_all_image_data(input_folder, map_names=maps_to_convert, deferred=True)
+        volumes = get_all_nifti_data(input_folder, map_names=maps_to_convert, deferred=True)
         volumes.update(dict(zip(['CHARMEDRestricted{}.w'.format(i) for i in range(2)], sorted_weights)))
 
         vector_directions = sorted_vecs
@@ -432,7 +432,7 @@ class _TMCP_CHARMED_r3(TrackMarkConversionProfile):
         sorted_vecs = mdt.sort_maps([os.path.join(input_folder, 'CHARMEDRestricted{}.vec0.nii.gz'.format(i))
                                      for i in range(3)], sort_index_matrix=sort_index_matrix)
 
-        volumes = get_all_image_data(input_folder, map_names=maps_to_convert, deferred=True)
+        volumes = get_all_nifti_data(input_folder, map_names=maps_to_convert, deferred=True)
         volumes.update(dict(zip(['CHARMEDRestricted{}.w'.format(i) for i in range(3)], sorted_weights)))
 
         vector_directions = sorted_vecs
@@ -451,7 +451,7 @@ class _TMCP_NODDI(TrackMarkConversionProfile):
     def get_info(self, input_folder):
         maps_to_convert = ['NDI', 'NODDI_EC.kappa', 'ODI', 'w_csf.w', 'w_ec.w', 'w_ic.w']
 
-        volumes = get_all_image_data(input_folder, map_names=maps_to_convert, deferred=True)
+        volumes = get_all_nifti_data(input_folder, map_names=maps_to_convert, deferred=True)
 
         vector_directions = [load_nifti(os.path.join(input_folder, 'NODDI_IC.vec0')).get_data()]
         vector_magnitudes = [load_nifti(os.path.join(input_folder, 'w_ic.w')).get_data() * 1e-3]
@@ -470,7 +470,7 @@ class _TMCP_Tensor(TrackMarkConversionProfile):
         maps_to_convert = ['Tensor.FA', 'Tensor.AD', 'Tensor.MD', 'Tensor.RD',
                            'Tensor.sorted_eigval0', 'Tensor.sorted_eigval1', 'Tensor.sorted_eigval2']
 
-        volumes = get_all_image_data(input_folder, map_names=maps_to_convert, deferred=True)
+        volumes = get_all_nifti_data(input_folder, map_names=maps_to_convert, deferred=True)
 
         vector_directions = [load_nifti(os.path.join(input_folder, 'Tensor.sorted_vec{}'.format(i))).get_data()
                              for i in range(3)]

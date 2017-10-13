@@ -28,7 +28,7 @@ from mdt.data_loaders.protocol import autodetect_protocol_loader
 from mdt.deferred_mappings import DeferredActionDict, DeferredActionTuple
 from mdt.exceptions import NoiseStdEstimationNotPossible
 from mdt.log_handlers import ModelOutputLogHandler
-from mdt.nifti import load_nifti, write_nifti, write_all_as_nifti, get_all_image_data
+from mdt.nifti import load_nifti, write_nifti, write_all_as_nifti, get_all_nifti_data
 from mdt.protocols import load_protocol, write_protocol
 from mot.cl_environments import CLEnvironmentFactory
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
@@ -1863,7 +1863,7 @@ def recalculate_error_measures(model, input_data, data_dir, output_dir=None):
 
     model.set_input_data(input_data)
 
-    results_maps = create_roi(get_all_image_data(data_dir), input_data.mask)
+    results_maps = create_roi(get_all_nifti_data(data_dir), input_data.mask)
 
     log_likelihood_calc = LogLikelihoodCalculator()
     log_likelihoods = log_likelihood_calc.calculate(model, model.param_dict_to_array(results_maps))
@@ -1950,7 +1950,7 @@ def sort_orientations(data_input, weight_names, extra_sortable_maps):
         dict: the sorted results in a new dictionary. This returns all input maps with some of them sorted.
     """
     if isinstance(data_input, six.string_types):
-        input_maps = get_all_image_data(data_input)
+        input_maps = get_all_nifti_data(data_input)
         result_maps = input_maps
     else:
         input_maps = data_input
