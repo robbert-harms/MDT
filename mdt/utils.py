@@ -839,13 +839,13 @@ def create_roi(data, brain_mask):
 def restore_volumes(data, brain_mask, with_volume_dim=True):
     """Restore the given data to a whole brain volume
 
-    The data can be a list, tuple or dictionary or directly a two dimensional list of data points
+    The data can be a list, tuple or dictionary with two dimensional arrays, or a 2d array itself.
 
     Args:
         data (ndarray): the data as a x dimensional list of voxels, or, a list, tuple, or dict of those voxel lists
         brain_mask (ndarray): the brain_mask which was used to generate the data list
-        with_volume_dim (boolean): If true we return values with 4 dimensions. The extra dimension is for
-            the volume index. If false we return 3 dimensions.
+        with_volume_dim (boolean): If true we always return values with at least 4 dimensions.
+            The extra dimension is for the volume index. If false we return at least 3 dimensions.
 
     Returns:
         Either a single whole volume, a list, tuple or dict of whole volumes, depending on the given data.
@@ -861,27 +861,13 @@ def restore_volumes(data, brain_mask, with_volume_dim=True):
     def restorer(voxel_list):
         s = voxel_list.shape
 
-        def restore_3d(voxels):
-            return_volume = np.zeros((brain_mask.size,), dtype=voxels.dtype, order='C')
-            return_volume[indices] = voxels
-            return np.reshape(return_volume, shape3d)
+        return_volume = np.zeros((brain_mask.size,) + s[1:], dtype=voxel_list.dtype, order='C')
+        return_volume[indices] = voxel_list
+        vol = np.reshape(return_volume, shape3d + s[1:])
 
-        def restore_4d(voxels):
-            return_volume = np.zeros((brain_mask.size, s[1]), dtype=voxels.dtype, order='C')
-            return_volume[indices] = voxels
-            return np.reshape(return_volume, brain_mask.shape + (s[1], ))
-
-        if len(s) > 1 and s[1] > 1:
-            if with_volume_dim:
-                return restore_4d(voxel_list)
-            else:
-                return restore_3d(voxel_list[:, 0])
-        else:
-            volume = restore_3d(voxel_list)
-
-            if with_volume_dim:
-                return np.expand_dims(volume, axis=3)
-            return volume
+        if with_volume_dim and len(s) < 2:
+            return np.expand_dims(vol, axis=3)
+        return vol
 
     if isinstance(data, collections.Mapping):
         return {key: restorer(value) for key, value in data.items()}
