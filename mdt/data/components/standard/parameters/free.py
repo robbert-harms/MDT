@@ -106,7 +106,11 @@ class R2s(FreeParameterTemplate):
 
 
 class theta(FreeParameterTemplate):
-    """The inclination/polar angle."""
+    """The inclination/polar angle.
+
+    This parameter is limited between [0, pi] but with modulus pi. That is, 0 == pi and this parameter should be
+    allowed to wrap around pi.
+    """
     init_value = np.pi / 2.0
     lower_bound = 0
     upper_bound = np.pi
@@ -114,6 +118,7 @@ class theta(FreeParameterTemplate):
     sampling_proposal = CircularGaussianProposal(np.pi, 0.1)
     sampling_prior = UniformWithinBoundsPrior()
     sampling_statistics = CircularGaussianFit()
+    numdiff_info = {'use_bounds': False}
 
 
 class phi(FreeParameterTemplate):
@@ -150,6 +155,7 @@ class psi(FreeParameterTemplate):
     sampling_proposal = CircularGaussianProposal(np.pi, 0.5)
     sampling_prior = UniformWithinBoundsPrior()
     sampling_statistics = CircularGaussianFit()
+    numdiff_info = {'use_bounds': False}
 
 
 class d(FreeParameterTemplate):
@@ -160,6 +166,7 @@ class d(FreeParameterTemplate):
     parameter_transform = SinSqrClampTransform()
     sampling_proposal = GaussianProposal(1e-10)
     sampling_statistics = TruncatedGaussianFit(1e10)
+    numdiff_info = {'scale_factor': 1e10}
 
 
 class dperp0(FreeParameterTemplate):
@@ -170,6 +177,7 @@ class dperp0(FreeParameterTemplate):
     parameter_transform = SinSqrClampTransform()
     sampling_proposal = GaussianProposal(5e-10)
     sampling_statistics = TruncatedGaussianFit(1e10)
+    numdiff_info = {'scale_factor': 1e10}
 
 
 class dperp1(FreeParameterTemplate):
@@ -180,6 +188,7 @@ class dperp1(FreeParameterTemplate):
     parameter_transform = SinSqrClampTransform()
     sampling_proposal = GaussianProposal(5e-10)
     sampling_statistics = TruncatedGaussianFit(1e10)
+    numdiff_info = {'scale_factor': 1e10}
 
 
 class R(FreeParameterTemplate):
@@ -200,6 +209,7 @@ class kappa(FreeParameterTemplate):
     parameter_transform = CosSqrClampTransform()
     sampling_proposal = GaussianProposal(0.01)
     sampling_statistics = TruncatedGaussianFit()
+    numdiff_info = {'scale_factor': 10}
 
 
 # for use in the GDRCylinder model
@@ -230,6 +240,7 @@ class d_exvivo(FreeParameterTemplate):
     upper_bound = 1.0e-8
     parameter_transform = SinSqrClampTransform()
     sampling_proposal = GaussianProposal(1e-11)
+    numdiff_info = {'scale_factor': 1e10}
 
 
 class time_dependent_characteristic_coefficient(FreeParameterTemplate):
@@ -248,6 +259,7 @@ class d_bulk(FreeParameterTemplate):
     upper_bound = 1.0e-8
     parameter_transform = SinSqrClampTransform()
     sampling_proposal = GaussianProposal(1e-10)
+    numdiff_info = {'scale_factor': 1e10}
 
 
 # the following parameters are part of the non-parametric Tensor
@@ -259,6 +271,7 @@ class Tensor_D_00(FreeParameterTemplate):
     upper_bound = 5e-9
     parameter_transform = SinSqrClampTransform()
     sampling_proposal = GaussianProposal(1e-10)
+    numdiff_info = {'scale_factor': 1e10}
 
 
 class Tensor_D_11(FreeParameterTemplate):
@@ -268,6 +281,7 @@ class Tensor_D_11(FreeParameterTemplate):
     upper_bound = 5e-9
     parameter_transform = SinSqrClampTransform()
     sampling_proposal = GaussianProposal(1e-10)
+    numdiff_info = {'scale_factor': 1e10}
 
 
 class Tensor_D_22(FreeParameterTemplate):
@@ -277,6 +291,7 @@ class Tensor_D_22(FreeParameterTemplate):
     upper_bound = 5e-9
     parameter_transform = SinSqrClampTransform()
     sampling_proposal = GaussianProposal(1e-10)
+    numdiff_info = {'scale_factor': 1e10}
 
 
 class Tensor_D_01(FreeParameterTemplate):
@@ -286,6 +301,7 @@ class Tensor_D_01(FreeParameterTemplate):
     upper_bound = 1e-9
     parameter_transform = SinSqrClampTransform()
     sampling_proposal = GaussianProposal(1e-10)
+    numdiff_info = {'scale_factor': 1e10}
 
 
 class Tensor_D_02(FreeParameterTemplate):
@@ -295,6 +311,7 @@ class Tensor_D_02(FreeParameterTemplate):
     upper_bound = 1e-9
     parameter_transform = SinSqrClampTransform()
     sampling_proposal = GaussianProposal(1e-10)
+    numdiff_info = {'scale_factor': 1e10}
 
 
 class Tensor_D_12(FreeParameterTemplate):
@@ -304,6 +321,7 @@ class Tensor_D_12(FreeParameterTemplate):
     upper_bound = 1e-9
     parameter_transform = SinSqrClampTransform()
     sampling_proposal = GaussianProposal(1e-10)
+    numdiff_info = {'scale_factor': 1e10}
 
 
 class Efficiency(FreeParameterTemplate):

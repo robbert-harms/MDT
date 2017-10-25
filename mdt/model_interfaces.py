@@ -1,5 +1,5 @@
 from mot.model_building.model_builders import ModelBuilder
-from mot.model_interfaces import SampleModelInterface
+from mot.model_interfaces import SampleModelInterface, NumericalDerivativeInterface
 
 __author__ = 'Robbert Harms'
 __date__ = '2017-08-31'
@@ -43,7 +43,7 @@ class MRIModelBuilder(ModelBuilder):
         raise NotImplementedError()
 
 
-class MRIModelInterface(SampleModelInterface):
+class MRIModelInterface(SampleModelInterface, NumericalDerivativeInterface):
     """Extends the :class:`~mot.model_interfaces.SampleModelInterface` for use within MDT."""
 
     def get_post_optimization_volume_maps(self, optimization_results):

@@ -11,7 +11,7 @@ from mot.cl_routines.mapping.codec_runner import CodecRunner
 
 from mdt.model_interfaces import MRIModelBuilder, MRIModelInterface
 from mot.model_building.parameters import ProtocolParameter
-from mot.utils import results_to_dict, convert_data_to_dtype, KernelInputBuffer, get_class_that_defined_method
+from mot.utils import results_to_dict, convert_data_to_dtype, KernelInputArray, get_class_that_defined_method
 from six import string_types
 
 from mdt.models.base import MissingProtocolInput, InsufficientShells
@@ -113,7 +113,8 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
     def _get_kernel_data(self, problems_to_analyze):
         kernel_data = super(DMRICompositeModel, self)._get_kernel_data(problems_to_analyze)
         if self._input_data.gradient_deviations is not None:
-            kernel_data['gradient_deviations'] = KernelInputBuffer(self._get_gradient_deviations(problems_to_analyze))
+            kernel_data['gradient_deviations'] = KernelInputArray(
+                self._get_gradient_deviations(problems_to_analyze), ctype='mot_float_type')
         return kernel_data
 
     def _get_gradient_deviations(self, problems_to_analyze):
@@ -481,7 +482,6 @@ class BuildCompositeModel(MRIModelInterface):
             'maximum_a_posteriori': map_maps_cb,
             'mh_state': lambda: self._get_mh_state_write_arrays(sampling_output.get_mh_state()),
             'sample_statistics': lambda: self._sample_statistics(sampling_output),
-            # 'multivariate_statistic': lambda: self._get_multivariate_sampling_statistic(samples),
             'proposal_state': lambda: results_to_dict(sampling_output.get_proposal_state(),
                                                       self.get_proposal_state_names()),
             'chain_end_point': lambda: results_to_dict(sampling_output.get_current_chain_position(),
@@ -789,4 +789,6 @@ class BuildCompositeModel(MRIModelInterface):
                         raise NotImplementedError()
             return value
         except NotImplementedError:
+            return getattr(super(BuildCompositeModel, self).__getattribute__('_wrapped_sample_model'), item)
+        except AttributeError:
             return getattr(super(BuildCompositeModel, self).__getattribute__('_wrapped_sample_model'), item)

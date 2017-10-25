@@ -2,6 +2,7 @@ import six
 
 from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate, register_builder
 from mot.cl_data_type import SimpleCLDataType
+from mot.model_building.parameter_functions.numdiff_info import NumDiffInfo, SimpleNumDiffInfo
 from mot.model_building.parameters import StaticMapParameter, ProtocolParameter, FreeParameter
 from mot.model_building.parameter_functions.priors import UniformWithinBoundsPrior
 from mot.model_building.parameter_functions.proposals import GaussianProposal
@@ -51,7 +52,13 @@ class FreeParameterTemplate(ParameterTemplate):
         parameter_transform: the parameter transformation
         sampling_proposal: the proposal function
         sampling_prior: the prior function
-        sampling_statistics: the sampling statistic, used after the sampling
+        sampling_statistics: the sampling statistic, used for calculating post sampling statistics
+        numdiff_info (dict or :class:`~mot.model_building.parameter_functions.numdiff_info.NumDiffInfo`):
+            the information necessary to take the numerical derivative of a model with respect to this parameter.
+            Either a dictionary with the keyword arguments to
+            :class:`~mot.model_building.parameter_functions.numdiff_info.SimpleNumDiffInfo` or an information
+            object directly. If None, we use an empty dictionary. Please note that if you override this in a
+            parameter you will have to specify all of the items.
     """
     data_type = 'mot_float_type'
     fixed = False
@@ -62,6 +69,7 @@ class FreeParameterTemplate(ParameterTemplate):
     sampling_proposal = GaussianProposal(1.0)
     sampling_prior = UniformWithinBoundsPrior()
     sampling_statistics = GaussianFit()
+    numdiff_info = {'max_step': 1, 'scale_factor': 1, 'use_bounds': True}
 
 
 class StaticMapParameterTemplate(ParameterTemplate):
@@ -91,6 +99,10 @@ class ParameterBuilder(ComponentBuilder):
             return AutoProtocolParameter
 
         elif issubclass(template, FreeParameterTemplate):
+            numdiff_info = template.numdiff_info
+            if not isinstance(numdiff_info, NumDiffInfo) and numdiff_info is not None:
+                numdiff_info = SimpleNumDiffInfo(**numdiff_info)
+
             class AutoFreeParameter(method_binding_meta(template, FreeParameter)):
                 def __init__(self, nickname=None):
                     super(AutoFreeParameter, self).__init__(
@@ -103,7 +115,8 @@ class ParameterBuilder(ComponentBuilder):
                         parameter_transform=template.parameter_transform,
                         sampling_proposal=template.sampling_proposal,
                         sampling_prior=template.sampling_prior,
-                        sampling_statistics=template.sampling_statistics
+                        sampling_statistics=template.sampling_statistics,
+                        numdiff_info=numdiff_info
                     )
             return AutoFreeParameter
 
