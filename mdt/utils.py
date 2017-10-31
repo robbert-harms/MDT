@@ -11,11 +11,11 @@ from collections import defaultdict
 from contextlib import contextmanager
 from copy import copy
 
+import itertools
 import numpy as np
 import pkg_resources
 import six
 from numpy.lib.format import open_memmap
-from scipy.special import jnp_zeros
 from six import string_types
 
 import mot.utils
@@ -626,15 +626,18 @@ def split_dataset(dataset, split_dimension, split_index):
     """Split the given dataset along the given dimension on the given index.
 
     Args:
-        dataset (ndarray, list, tuple or dict): The single or list of volume which to split in two
+        dataset (ndarray, list, tuple, dict, string): The single volume or list of volumes to split in two
         split_dimension (int): The dimension along which to split the dataset
         split_index (int): The index on the given dimension to split the volume(s)
 
     Returns:
-        If dataset is a single volume return the two volumes that when concatenated give the original volume back.
-        If it is a list, tuple or dict return two of those with exactly the same indices but with each holding one half
-        of the splitted data.
+        ndarray, list, tuple, dict: If dataset is a single volume return a tuple of two volumes which concatenated
+            give the original volume back. If it is a list, tuple or dict we return a tuple containing two lists, tuples
+            or dicts, with the same indices and with each holding half of the splitted data.
     """
+    if isinstance(dataset, string_types):
+        return split_dataset(load_nifti(dataset).get_data(), split_dimension, split_index)
+
     if isinstance(dataset, (tuple, list)):
         output_1 = []
         output_2 = []
@@ -659,78 +662,12 @@ def split_dataset(dataset, split_dimension, split_index):
         return output_1, output_2
 
     ind_1 = [slice(None)] * dataset.ndim
-    ind_1[split_dimension] = range(0, split_index)
+    ind_1[split_dimension] = range(0, int(split_index))
 
     ind_2 = [slice(None)] * dataset.ndim
-    ind_2[split_dimension] = range(split_index, dataset.shape[split_dimension])
+    ind_2[split_dimension] = range(int(split_index), int(dataset.shape[split_dimension]))
 
     return dataset[ind_1], dataset[ind_2]
-
-
-def split_write_dataset(input_fname, split_dimension, split_index, output_folder=None):
-    """Split the given dataset using the function split_dataset and write the output files.
-
-    Args:
-        dataset (str): The filename of a volume to split
-        split_dimension (int): The dimension along which to split the dataset
-        split_index (int): The index on the given dimension to split the volume(s)
-    """
-    if output_folder is None:
-        output_folder = os.path.dirname(input_fname)
-
-    dataset = load_nifti(input_fname)
-    data = dataset.get_data()
-
-    split = split_dataset(data, split_dimension, split_index)
-
-    basename = os.path.basename(input_fname).split('.')[0]
-    length = data.shape[split_dimension]
-    lengths = (repr(0) + 'to' + repr(split_index-1), repr(split_index) + 'to' + repr(length-1))
-
-    volumes = {}
-    for ind, v in enumerate(split):
-        volumes.update({str(basename) + '_split_' + str(split_dimension) + '_' + lengths[ind]: v})
-
-    write_all_as_nifti(volumes, output_folder, dataset.get_header())
-
-
-def get_bessel_roots(number_of_roots=30, np_data_type=np.float64):
-    """These roots are used in some of the compartment models. It are the roots of the equation ``J'_1(x) = 0``.
-
-    That is, where ``J_1`` is the first order Bessel function of the first kind.
-
-    Args:
-        number_of_root (int): The number of roots we want to calculate.
-        np_data_type (np.data_type): the numpy data type
-
-    Returns:
-        ndarray: A vector with the indicated number of bessel roots (of the first order Bessel function
-            of the first kind).
-    """
-    return jnp_zeros(1, number_of_roots).astype(np_data_type, copy=False, order='C')
-
-
-def read_split_write_volume(volume_fname, first_output_fname, second_output_fname, split_dimension, split_index):
-    """Read the given dataset from file, then split it along the given dimension on the given index.
-
-    This writes two files, first_output_fname and second_output_fname
-    with respectively the first and second halves of the split dataset.
-
-    Args:
-        volume_fname (str): The filename of the volume to use and split
-        first_output_fname (str): The filename of the first half of the split
-        second_output_fname (str): The filename of the second half of the split
-        split_dimension (int): The dimension along which to split the dataset
-        split_index (int): The index on the given dimension to split the volume(s)
-    """
-    signal_img = load_nifti(volume_fname)
-    signal4d = signal_img.get_data()
-    img_header = signal_img.get_header()
-
-    split = split_dataset(signal4d, split_dimension, split_index)
-
-    write_nifti(split[0], first_output_fname, img_header)
-    write_nifti(split[1], second_output_fname, img_header)
 
 
 def create_slice_roi(brain_mask, roi_dimension, roi_slice):
@@ -1218,88 +1155,6 @@ def per_model_logging_context(output_path, overwrite=False):
     configure_per_model_logging(output_path, overwrite=overwrite)
     yield
     configure_per_model_logging(None)
-
-
-def create_sort_matrix(input_volumes, reversed_sort=False):
-    """Create an index matrix that sorts the given input on the 4th dimension from small to large values (per element).
-
-    Args:
-        input_volumes (ndarray or list): either a list with 3d volumes (or 4d with a singleton on the fourth dimension),
-            or a 4d volume to use directly.
-        reversed_sort (boolean): if True we reverse the sort and we sort from large to small.
-
-    Returns:
-        ndarray: a 4d matrix with on the 4th dimension the indices of the elements in sorted order.
-    """
-    def load_maps(map_list):
-        tmp = []
-        for data in map_list:
-            if isinstance(data, string_types):
-                data = load_nifti(data).get_data()
-
-            if len(data.shape) < 4:
-                data = data[..., None]
-
-            if data.shape[3] > 1:
-                raise ValueError('Can not sort input volumes where one has more than one items on the 4th dimension.')
-
-            tmp.append(data)
-        return tmp
-
-    if isinstance(input_volumes, collections.Sequence):
-        maps_to_sort_on = load_maps(input_volumes)
-        input_4d_vol = np.concatenate([m for m in maps_to_sort_on], axis=3)
-    else:
-        input_4d_vol = input_volumes
-
-    sort_index = np.argsort(input_4d_vol, axis=3)
-
-    if reversed_sort:
-        return sort_index[..., ::-1]
-
-    return sort_index
-
-
-def sort_volumes_per_voxel(input_volumes, sort_matrix):
-    """Sort the given volumes per voxel using the sort index in the given matrix.
-
-    What this essentially does is to look per voxel from which map we should take the first value. Then we place that
-    value in the first volume and we repeat for the next value and finally for the next voxel.
-
-    If the length of the 4th dimension is > 1 we shift the 4th dimension to the 5th dimension and sort
-    the array as if the 4th dimension values where a single value. This is useful for sorting (eigen)vector matrices.
-
-    Args:
-        input_volumes (:class:`list`): list of 4d ndarray
-        sort_matrix (ndarray): 4d ndarray with for every voxel the sort index
-
-    Returns:
-        :class:`list`: the same input volumes but then with every voxel sorted according to the given sort index.
-    """
-    def load_maps(map_list):
-        tmp = []
-        for data in map_list:
-            if isinstance(data, string_types):
-                data = load_nifti(data).get_data()
-
-            if len(data.shape) < 4:
-                data = data[..., None]
-
-            tmp.append(data)
-        return tmp
-
-    input_volumes = load_maps(input_volumes)
-
-    if input_volumes[0].shape[3] > 1:
-        volume = np.concatenate([np.reshape(m, m.shape[0:3] + (1,) + (m.shape[3],)) for m in input_volumes], axis=3)
-        grid = np.ogrid[[slice(x) for x in volume.shape]]
-        sorted_volume = volume[list(grid[:-2]) + [np.reshape(sort_matrix, sort_matrix.shape + (1,))] + list(grid[-1])]
-        return [sorted_volume[..., ind, :] for ind in range(len(input_volumes))]
-    else:
-        volume = np.concatenate([m for m in input_volumes], axis=3)
-        sorted_volume = volume[list(np.ogrid[[slice(x) for x in volume.shape]][:-1])+[sort_matrix]]
-        return [np.reshape(sorted_volume[..., ind], sorted_volume.shape[0:3] + (1,))
-                for ind in range(len(input_volumes))]
 
 
 def load_brain_mask(brain_mask_fname):
@@ -1954,3 +1809,110 @@ def sort_orientations(data_input, weight_names, extra_sortable_maps):
         result_maps.update(sorted)
 
     return result_maps
+
+
+def create_sort_matrix(input_volumes, reversed_sort=False):
+    """Create an index matrix that sorts the given input on the 4th dimension from small to large values (per element).
+
+    Args:
+        input_volumes (ndarray or list): either a list with 3d volumes (or 4d with a singleton on the fourth dimension),
+            or a 4d volume to use directly.
+        reversed_sort (boolean): if True we reverse the sort and we sort from large to small.
+
+    Returns:
+        ndarray: a 4d matrix with on the 4th dimension the indices of the elements in sorted order.
+    """
+    def load_maps(map_list):
+        tmp = []
+        for data in map_list:
+            if isinstance(data, string_types):
+                data = load_nifti(data).get_data()
+
+            if len(data.shape) < 4:
+                data = data[..., None]
+
+            if data.shape[3] > 1:
+                raise ValueError('Can not sort input volumes where one has more than one items on the 4th dimension.')
+
+            tmp.append(data)
+        return tmp
+
+    if isinstance(input_volumes, collections.Sequence):
+        maps_to_sort_on = load_maps(input_volumes)
+        input_4d_vol = np.concatenate([m for m in maps_to_sort_on], axis=3)
+    else:
+        input_4d_vol = input_volumes
+
+    sort_index = np.argsort(input_4d_vol, axis=3)
+
+    if reversed_sort:
+        return sort_index[..., ::-1]
+
+    return sort_index
+
+
+def sort_volumes_per_voxel(input_volumes, sort_matrix):
+    """Sort the given volumes per voxel using the sort index in the given matrix.
+
+    What this essentially does is to look per voxel from which map we should take the first value. Then we place that
+    value in the first volume and we repeat for the next value and finally for the next voxel.
+
+    If the length of the 4th dimension is > 1 we shift the 4th dimension to the 5th dimension and sort
+    the array as if the 4th dimension values where a single value. This is useful for sorting (eigen)vector matrices.
+
+    Args:
+        input_volumes (:class:`list`): list of 4d ndarray
+        sort_matrix (ndarray): 4d ndarray with for every voxel the sort index
+
+    Returns:
+        :class:`list`: the same input volumes but then with every voxel sorted according to the given sort index.
+    """
+    def load_maps(map_list):
+        tmp = []
+        for data in map_list:
+            if isinstance(data, string_types):
+                data = load_nifti(data).get_data()
+
+            if len(data.shape) < 4:
+                data = data[..., None]
+
+            tmp.append(data)
+        return tmp
+
+    input_volumes = load_maps(input_volumes)
+
+    if input_volumes[0].shape[3] > 1:
+        volume = np.concatenate([np.reshape(m, m.shape[0:3] + (1,) + (m.shape[3],)) for m in input_volumes], axis=3)
+        grid = np.ogrid[[slice(x) for x in volume.shape]]
+        sorted_volume = volume[list(grid[:-2]) + [np.reshape(sort_matrix, sort_matrix.shape + (1,))] + list(grid[-1])]
+        return [sorted_volume[..., ind, :] for ind in range(len(input_volumes))]
+    else:
+        volume = np.concatenate([m for m in input_volumes], axis=3)
+        sorted_volume = volume[list(np.ogrid[[slice(x) for x in volume.shape]][:-1])+[sort_matrix]]
+        return [np.reshape(sorted_volume[..., ind], sorted_volume.shape[0:3] + (1,))
+                for ind in range(len(input_volumes))]
+
+
+def undo_sort_volumes_per_voxel(input_volumes, sort_matrix):
+    """Undo the voxel-wise sorting of volumes based on the original sort matrix.
+
+    This uses the original sort matrix to place the elements back into the original order. For example, suppose we had
+    data [a, b, c] with sort matrix [1, 2, 0] then the new results are [b, c, a]. This function will, given the
+    sort matrix [1, 2, 0] and results [b, c, a] return the original matrix [a, b, c].
+
+    Args:
+        input_volumes (:class:`list`): list of 4d ndarray
+        sort_matrix (ndarray): 4d ndarray with for every voxel the sort index
+
+    Returns:
+        :class:`list`: the same input volumes but then with every voxel anti-sorted according to the given sort index.
+    """
+    results = [np.zeros_like(vol) for vol in input_volumes]
+
+    shape = input_volumes[0].shape
+
+    for x, y, z in itertools.product(range(shape[0]), range(shape[1]), range(shape[2])):
+        for ind, sort_ind in enumerate(list(sort_matrix[x, y, z])):
+            results[sort_ind][x, y, z] = input_volumes[ind][x, y, z]
+
+    return results

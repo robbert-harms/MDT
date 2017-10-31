@@ -23,7 +23,7 @@ from mdt.utils import estimate_noise_std, get_cl_devices, load_input_data, load_
     create_blank_mask, create_index_matrix, \
     volume_index_to_roi_index, roi_index_to_volume_index, load_brain_mask, init_user_settings, restore_volumes, \
     apply_mask, create_roi, volume_merge, protocol_merge, create_median_otsu_brain_mask, load_samples, \
-    load_nifti, write_slice_roi, split_write_dataset, apply_mask_to_file, extract_volumes, recalculate_error_measures, \
+    load_nifti, write_slice_roi, apply_mask_to_file, extract_volumes, recalculate_error_measures, \
     get_slice_in_dimension, per_model_logging_context, \
     get_temporary_results_dir, get_example_data, create_sort_matrix, sort_volumes_per_voxel, \
     sort_orientations, SimpleInitializationData, InitializationData
@@ -297,10 +297,10 @@ def view_maps(data, config=None, figure_options=None,
         window_title (str): the title for the window
         use_qt (boolean): if we want to use the Qt GUI, or show the results directly in matplotlib
     """
+    import matplotlib.pyplot as plt
     from mdt.gui.maps_visualizer.main import start_gui
     from mdt.visualization.maps.base import MapPlotConfig
     from mdt.visualization.maps.matplotlib_renderer import MapsVisualizer
-    import matplotlib.pyplot as plt
     from mdt.visualization.maps.base import SimpleDataInfo
 
     if isinstance(data, string_types):
@@ -308,7 +308,10 @@ def view_maps(data, config=None, figure_options=None,
     elif isinstance(data, collections.MutableMapping):
         data = SimpleDataInfo(data)
     elif isinstance(data, collections.Sequence):
-        data = SimpleDataInfo.from_paths(data)
+        if all(isinstance(el, string_types) for el in data):
+            data = SimpleDataInfo.from_paths(data)
+        else:
+            data = SimpleDataInfo({str(ind): v for ind, v in enumerate(data)})
     elif data is None:
         data = SimpleDataInfo({})
 

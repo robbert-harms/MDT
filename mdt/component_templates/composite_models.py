@@ -311,12 +311,15 @@ def _get_map_sorting_modifier(sort_maps, model_list):
         for pair in other_sort_pairs:
             sort_matrix = np.column_stack([results[map_name] for map_name in pair])
             sorted_maps.extend(sort_matrix[list_index, ranking[:, ind], None] for ind in range(ranking.shape[1]))
+
+        sorted_maps.append(ranking)
         return sorted_maps
 
     names = []
     names.extend(sort_keys)
     for pairs in other_sort_pairs:
         names.extend(pairs)
+    names.append('sort_matrix')
 
     return names, map_sorting
 
