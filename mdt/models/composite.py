@@ -463,8 +463,8 @@ class BuildCompositeModel(MRIModelInterface):
         self._add_post_optimization_modifier_maps(results_dict)
         results_dict.update(self._get_post_optimization_information_criterion_maps(
             results_array, log_likelihoods=log_likelihoods))
-        # if calculate_covariance:
-        #     results_dict.update(self._calculate_hessian_covariance(results_array))
+        if calculate_covariance:
+            results_dict.update(self._calculate_hessian_covariance(results_array))
         return results_dict
 
     def get_post_sampling_maps(self, sampling_output):
@@ -633,8 +633,8 @@ class BuildCompositeModel(MRIModelInterface):
             results_array,
             double_precision=True,
             step_ratio=2,
-            nmr_steps=15,
-            codec=None
+            nmr_steps=10,
+            step_offset=2
         )
         covars = hessian_to_covariance(hessian)
         correlations = covariance_to_correlations(covars)
