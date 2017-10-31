@@ -36,8 +36,10 @@ Optional items (these will take precedence if present):
 class HCP_WUMINN(SimpleBatchProfile):
 
     def __init__(self, base_directory, use_gradient_deviations=False, **kwargs):
-        kwargs['output_sub_dir'] = 'T1w/Diffusion/output'
-        kwargs['auto_append_mask_name_to_output_sub_dir'] = False
+        if kwargs['output_sub_dir'] is None:
+            kwargs['output_sub_dir'] = 'T1w/Diffusion/output'
+        if kwargs['auto_append_mask_name_to_output_sub_dir'] is None:
+            kwargs['auto_append_mask_name_to_output_sub_dir'] = False
         super(HCP_WUMINN, self).__init__(base_directory, **kwargs)
         self.use_gradient_deviations = use_gradient_deviations
         self._constructor_kwargs.update(use_gradient_deviations=self.use_gradient_deviations)

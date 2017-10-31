@@ -1311,7 +1311,10 @@ def load_brain_mask(brain_mask_fname):
     Returns:
         ndarray: The loaded brain mask data
     """
-    return load_nifti(brain_mask_fname).get_data() > 0
+    mask = load_nifti(brain_mask_fname).get_data() > 0
+    if len(mask.shape) > 3:
+        return mask[:, :, :, 0]
+    return mask
 
 
 def flatten(input_it):
@@ -1644,7 +1647,9 @@ def volume_index_to_roi_index(volume_index, brain_mask):
     Returns:
         int: the index of the given voxel in the ROI created by the given mask
     """
-    return create_index_matrix(brain_mask)[volume_index]
+    if isinstance(volume_index, np.ndarray) and len(volume_index.shape) >= 2:
+        return create_index_matrix(brain_mask)[volume_index[:, 0], volume_index[:, 1], volume_index[:, 2]]
+    return create_index_matrix(brain_mask)[volume_index[0], volume_index[1], volume_index[2]]
 
 
 def create_index_matrix(brain_mask):

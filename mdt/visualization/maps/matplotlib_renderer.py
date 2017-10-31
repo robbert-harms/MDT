@@ -33,6 +33,9 @@ class MapsVisualizer(object):
         """Renders the figures to the given filename."""
         Renderer(self._data_info, self._figure, plot_config).render()
 
+        if not os.path.dirname(file_name).strip():
+            return
+
         if not os.path.isdir(os.path.dirname(file_name)):
             os.makedirs(os.path.dirname(file_name))
 

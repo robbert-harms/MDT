@@ -10,8 +10,10 @@ from mdt.deferred_mappings import DeferredFunctionDict
 from mot.cl_routines.mapping.codec_runner import CodecRunner
 
 from mdt.model_interfaces import MRIModelBuilder, MRIModelInterface
+from mot.cl_routines.mapping.numerical_hessian import NumericalHessian
 from mot.model_building.parameters import ProtocolParameter
-from mot.utils import results_to_dict, convert_data_to_dtype, KernelInputArray, get_class_that_defined_method
+from mot.utils import results_to_dict, convert_data_to_dtype, KernelInputArray, get_class_that_defined_method, \
+    hessian_to_covariance, covariance_to_correlations
 from six import string_types
 
 from mdt.models.base import MissingProtocolInput, InsufficientShells
@@ -421,7 +423,8 @@ class BuildCompositeModel(MRIModelInterface):
         """
         return self._proposal_state_names
 
-    def post_process_optimization_maps(self, results_dict, results_array=None, log_likelihoods=None):
+    def post_process_optimization_maps(self, results_dict, results_array=None, log_likelihoods=None,
+                                       calculate_covariance=True):
         r"""This adds some extra optimization maps to the results dictionary.
 
         This function behaves as a procedure and as a function. The input dict can be updated in place, but it should
@@ -446,7 +449,8 @@ class BuildCompositeModel(MRIModelInterface):
                 will construct it in this function.
             log_likelihoods (ndarray): for every set of parameters the corresponding log likelihoods.
                 If not provided they will be calculated from the parameters.
-
+            calculate_covariance (boolean): if we will calculate the covariance matrix using the Hessian at the
+                optimal point.
         Returns:
             dict: The same result dictionary but with updated values or with additional maps.
                 It should at least return the results_dict.
@@ -459,7 +463,8 @@ class BuildCompositeModel(MRIModelInterface):
         self._add_post_optimization_modifier_maps(results_dict)
         results_dict.update(self._get_post_optimization_information_criterion_maps(
             results_array, log_likelihoods=log_likelihoods))
-
+        # if calculate_covariance:
+        #     results_dict.update(self._calculate_hessian_covariance(results_array))
         return results_dict
 
     def get_post_sampling_maps(self, sampling_output):
@@ -520,7 +525,7 @@ class BuildCompositeModel(MRIModelInterface):
         samples = sampling_output.get_samples()
 
         volume_maps = self._get_univariate_parameter_statistics(samples)
-        volume_maps = self.post_process_optimization_maps(volume_maps)
+        volume_maps = self.post_process_optimization_maps(volume_maps, calculate_covariance=False)
 
         volume_maps.update(self._compute_covariances_correlations(samples, volume_maps))
         volume_maps.update(self._calculate_deviance_information_criterions(
@@ -613,6 +618,38 @@ class BuildCompositeModel(MRIModelInterface):
                 results_dict[names] = callable()
             else:
                 results_dict.update(zip(names, callable()))
+
+    def _calculate_hessian_covariance(self, results_array):
+        """Calculate the covariance and correlation matrix by taking the inverse of the Hessian.
+
+        This first calculates/approximates the Hessian at each of the points using numerical differentiation.
+        Afterwards we inverse the Hessian and compute a correlation matrix.
+
+        Args:
+            results_dict (dict): the list with the optimized points for each parameter
+        """
+        hessian = NumericalHessian().calculate(
+            self,
+            results_array,
+            double_precision=True,
+            step_ratio=2,
+            nmr_steps=15,
+            codec=None
+        )
+        covars = hessian_to_covariance(hessian)
+        correlations = covariance_to_correlations(covars)
+
+        param_names = ['{}.{}'.format(m.name, p.name) for m, p in self._estimable_parameters_list]
+
+        results = {}
+        for x_ind in range(len(param_names)):
+            results[param_names[x_ind] + '.std'] = np.nan_to_num(np.sqrt(covars[:, x_ind, x_ind]))
+
+            for y_ind in range(x_ind + 1, len(param_names)):
+                results['Covariance_{}_to_{}'.format(param_names[x_ind], param_names[y_ind])] = covars[:, x_ind, y_ind]
+                results['Correlation_{}_to_{}'.format(param_names[x_ind], param_names[y_ind])] = \
+                    correlations[:, x_ind, y_ind]
+        return results
 
     def _get_post_optimization_information_criterion_maps(self, results_array, log_likelihoods=None):
         """Add some final results maps to the results dictionary.

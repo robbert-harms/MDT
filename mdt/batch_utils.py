@@ -54,6 +54,17 @@ class BatchProfile(object):
         """
         raise NotImplementedError()
 
+    def with_output_base_directory(self, output_directory):
+        """Create a copy of this batch profile where the base output directory is set to the given path.
+
+        Args:
+            output_directory (str): the base output directory for the subjects
+
+        Returns:
+            class: an instance of the derived BatchProfile
+        """
+        raise NotImplementedError()
+
     def get_subjects(self):
         """Get the information about all the subjects in the current folder.
 
@@ -103,8 +114,11 @@ class SimpleBatchProfile(BatchProfile):
         super(SimpleBatchProfile, self).__init__()
         self._base_directory = base_directory
         self._output_base_dir = output_base_dir
-        self._output_sub_dir = output_sub_dir or 'output'
+        self._output_sub_dir = output_sub_dir
         self._auto_append_mask_name_to_output_sub_dir = auto_append_mask_name_to_output_sub_dir
+
+        if self._output_sub_dir is None:
+            self._output_sub_dir = 'output'
 
         self._subjects_found = None
         self._constructor_args = [self._base_directory]
@@ -124,7 +138,7 @@ class SimpleBatchProfile(BatchProfile):
     def output_base_dir(self):
         return self._output_base_dir
 
-    def with_output_base_dir(self, output_base_dir):
+    def with_output_base_directory(self, output_base_dir):
         args, kwargs = self._get_constructor_args()
         kwargs.update(output_base_dir=output_base_dir)
         return type(self)(*args, **kwargs)
@@ -514,7 +528,7 @@ class BatchFitSubjectOutputInfo(object):
 
 class BatchFitOutputInfo(object):
 
-    def __init__(self, data_folder, model_names, batch_profile=None, subjects_selection=None):
+    def __init__(self, data_folder, model_names, batch_profile=None, subjects_selection=None, output_folder=None):
         """Single point of information about batch fitting results.
 
         Args:
@@ -524,10 +538,13 @@ class BatchFitOutputInfo(object):
                 of a batch profile to use. If not given it is auto detected.
             subjects_selection (BatchSubjectSelection): the subjects to use for processing.
                 If None all subjects are processed.
+            output_folder (str): the folder in which the output was placed.
         """
         self._data_folder = data_folder
         self._model_names = model_names
         self._batch_profile = batch_profile_factory(batch_profile, data_folder)
+        if output_folder is not None:
+            self._batch_profile = self._batch_profile.with_output_base_directory(output_folder)
         self._subjects_selection = subjects_selection or AllSubjects()
         self._subjects = self._subjects_selection.get_selection(self._batch_profile.get_subjects())
         self._mask_paths = {}
@@ -576,17 +593,19 @@ class BatchFitOutputInfo(object):
         return result_list
 
 
-def run_function_on_batch_fit_output(data_folder, model_names, func, batch_profile=None, subjects_selection=None):
+def run_function_on_batch_fit_output(data_folder, model_names, func, batch_profile=None, subjects_selection=None,
+                                     output_folder=None):
     """Run a function on the output of a batch fitting routine.
 
     This enables you to run a function on every model output from every subject. The callback python function
     should accept as single argument an instance of the class :class:`mdt.batch_utils.BatchFitSubjectOutputInfo`.
 
     Args:
-        data_folder (str): The data folder with the output files
+        data_folder (str): The data input folder
         model_names (list of str): the names of the models we want to get the output info for.
         func (python function): the python function we should call for every map and model.
             This should accept as single parameter a BatchFitSubjectOutputInfo.
+        output_folder (str): the folder in which the output was placed. If None we use the default of the batch profile.
         batch_profile (BatchProfile class or str): the batch profile to use, can also be the name
             of a batch profile to use. If not given it is auto detected.
         subjects_selection (BatchSubjectSelection): the subjects to use for processing.
@@ -596,7 +615,8 @@ def run_function_on_batch_fit_output(data_folder, model_names, func, batch_profi
     Returns:
         dict: indexed by subject->model_name, values are the return values of the users function
     """
-    output_info = BatchFitOutputInfo(data_folder, model_names, batch_profile, subjects_selection=subjects_selection)
+    output_info = BatchFitOutputInfo(data_folder, model_names, batch_profile, subjects_selection=subjects_selection,
+                                     output_folder=output_folder)
 
     results = AutoDict()
     for subject in output_info.subject_output_info_generator():
@@ -614,8 +634,8 @@ def batch_profile_factory(batch_profile, base_directory):
         base_directory (str): the data folder we want to use the batch profile on.
 
     Returns:
-        If the given batch profile is None we return the output from get_best_batch_profile(). If batch profile is
-        a string we use it from the batch profiles loader. Else we return the input.
+        BatchProfile: If the given batch profile is None we return the output from get_best_batch_profile().
+            If batch profile is a string we use it from the batch profiles loader. Else we return the input.
     """
     if batch_profile is None:
         batch_profile = get_best_batch_profile(base_directory)
