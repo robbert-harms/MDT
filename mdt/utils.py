@@ -151,7 +151,7 @@ class SimpleMRIInputData(MRIInputData):
         This first checks the static maps for a match, and second the protocol.
         """
         if parameter_name in self._static_maps:
-            return self._static_maps[parameter_name]
+            return self.static_maps[parameter_name]
         if parameter_name in self._protocol:
             return self._protocol[parameter_name]
         return None
