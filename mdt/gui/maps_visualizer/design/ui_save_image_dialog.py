@@ -78,7 +78,7 @@ class Ui_SaveImageDialog(object):
         self.dpi_box = QtWidgets.QSpinBox(SaveImageDialog)
         self.dpi_box.setMinimum(10)
         self.dpi_box.setMaximum(1000)
-        self.dpi_box.setProperty("value", 100)
+        self.dpi_box.setProperty("value", 80)
         self.dpi_box.setObjectName("dpi_box")
         self.gridLayout.addWidget(self.dpi_box, 2, 1, 1, 1)
         self.label = QtWidgets.QLabel(SaveImageDialog)

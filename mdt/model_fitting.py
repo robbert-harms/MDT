@@ -29,7 +29,8 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class BatchFitting(object):
 
-    def __init__(self, data_folder, models_to_fit, batch_profile=None, subjects_selection=None, recalculate=False,
+    def __init__(self, data_folder, models_to_fit, output_folder=None,
+                 batch_profile=None, subjects_selection=None, recalculate=False,
                  cascade_subdir=False, cl_device_ind=None, double_precision=False, tmp_results_dir=True):
         """This class is meant to make running computations as simple as possible.
 
@@ -43,6 +44,8 @@ class BatchFitting(object):
         Args:
             data_folder (str): the main directory to look for items to process.
             models_to_fit (list of str): A list of models to fit to the data.
+            output_folder (str): the folder to place the output in, if not given we use the one defined in the
+                batch profile
             batch_profile (:class:`~mdt.batch_utils.BatchProfile` or str): the batch profile to use
                 or the name of a batch profile to use from the users folder.
             subjects_selection (:class:`~mdt.batch_utils.BatchSubjectSelection`): the subjects to use for processing.
@@ -62,6 +65,10 @@ class BatchFitting(object):
         """
         self._logger = logging.getLogger(__name__)
         self._batch_profile = batch_profile_factory(batch_profile, data_folder)
+
+        if output_folder is not None:
+            self._batch_profile = self._batch_profile.with_output_base_directory(output_folder)
+
         self._subjects_selection = subjects_selection or AllSubjects()
         self._tmp_results_dir = tmp_results_dir
         self._models_to_fit = models_to_fit

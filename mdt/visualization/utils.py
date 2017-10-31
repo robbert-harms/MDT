@@ -23,7 +23,7 @@ class MyColourBarTickLocator(LinearLocator):
             if np.absolute(location) < 0.01:
                 new_locations.append(float("{:.1e}".format(location)))
             else:
-                new_locations.append(np.round(location, 2))
+                new_locations.append(np.round(location, 3))
 
         if np.isclose(new_locations[-1], self.max_val) or new_locations[-1] >= self.max_val:
             new_locations[-1] = self.max_val

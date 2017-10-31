@@ -231,7 +231,8 @@ def sample_model(model, input_data, output_folder, sampler=None, recalculate=Fal
         return results
 
 
-def batch_fit(data_folder, models_to_fit, batch_profile=None, subjects_selection=None, recalculate=False,
+def batch_fit(data_folder, models_to_fit, output_folder=None, batch_profile=None,
+              subjects_selection=None, recalculate=False,
               cascade_subdir=False, cl_device_ind=None, dry_run=False,
               double_precision=False, tmp_results_dir=True):
     """Run all the available and applicable models on the data in the given folder.
@@ -239,6 +240,8 @@ def batch_fit(data_folder, models_to_fit, batch_profile=None, subjects_selection
     Args:
         data_folder (str): The data folder to process
         models_to_fit (list of str): A list of models to fit to the data.
+        output_folder (str): the folder in which to place the output, if not given we use the one defined in the
+            batch profile.
         batch_profile (:class:`~mdt.batch_utils.BatchProfile` or str): the batch profile to use,
             or the name of a batch profile to use. If not given it is auto detected.
         subjects_selection (:class:`~mdt.batch_utils.BatchSubjectSelection`): the subjects to use for processing.
@@ -267,6 +270,7 @@ def batch_fit(data_folder, models_to_fit, batch_profile=None, subjects_selection
         init_user_settings(pass_if_exists=True)
 
     batch_fitting = BatchFitting(data_folder, models_to_fit, batch_profile=batch_profile,
+                                 output_folder=output_folder,
                                  subjects_selection=subjects_selection,
                                  recalculate=recalculate, cascade_subdir=cascade_subdir,
                                  cl_device_ind=cl_device_ind, double_precision=double_precision,
