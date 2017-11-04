@@ -31,9 +31,9 @@ class ActiveAx(DMRICompositeModelTemplate):
              'Zeppelin.dperp0': 'Zeppelin.d * (w_ec.w / (w_ec.w + w_ic.w))',
              'Zeppelin.theta': 'CylinderGPD.theta',
              'Zeppelin.phi': 'CylinderGPD.phi'}
-    post_optimization_modifiers = [
-        ('AxonDensityIndex', lambda d: (4 * (d['w_ic.w'] / (d['w_ec.w'] + d['w_ic.w'])))
-                                       / (np.pi * (2 * d['CylinderGPD.R']) ** 2)),
+    extra_optimization_maps = [
+        lambda d: {'AxonDensityIndex': (4 * (d['w_ic.w'] / (d['w_ec.w'] + d['w_ic.w'])))
+                                       / (np.pi * (2 * d['CylinderGPD.R']) ** 2)}
     ]
 
 
@@ -64,9 +64,9 @@ class ActiveAx_ExVivo(DMRICompositeModelTemplate):
         'Zeppelin.theta': 'CylinderGPD.theta',
         'Zeppelin.phi': 'CylinderGPD.phi'
     }
-    post_optimization_modifiers = [
-        ('AxonDensityIndex', lambda d: (4 * (d['w_ic.w'] / (d['w_ec.w'] + d['w_ic.w'])))
-                                        / (np.pi * (2 * d['CylinderGPD.R'])**2)),
+    extra_optimization_maps = [
+        lambda d: {'AxonDensityIndex': (4 * (d['w_ic.w'] / (d['w_ec.w'] + d['w_ic.w'])))
+                                       / (np.pi * (2 * d['CylinderGPD.R']) ** 2)}
     ]
 
 
@@ -82,7 +82,7 @@ class TimeDependentActiveAx(DMRICompositeModelTemplate):
              'TimeDependentZeppelin.theta': 'CylinderGPD.theta',
              'TimeDependentZeppelin.phi': 'CylinderGPD.phi',
              }
-    post_optimization_modifiers = [
-        ('AxonDensityIndex', lambda d: (4 * (d['w_ic.w'] / (d['w_ec.w'] + d['w_ic.w'])))
-                                        / (np.pi * (2 * d['CylinderGPD.R']) ** 2)),
+    extra_optimization_maps = [
+        lambda d: {'AxonDensityIndex': (4 * (d['w_ic.w'] / (d['w_ec.w'] + d['w_ic.w'])))
+                                       / (np.pi * (2 * d['CylinderGPD.R']) ** 2)}
     ]

@@ -3,6 +3,7 @@ import os
 import numpy as np
 import six
 
+import mdt.sorting
 from mdt import load_nifti, load_volume_maps
 from mdt.nifti import get_all_nifti_data
 
@@ -323,8 +324,8 @@ class _TMCP_BallStick_r2(TrackMarkConversionProfile):
 
         maps_to_convert = ['FS', 'w_ball.w']
 
-        sort_index_matrix = mdt.create_sort_matrix([os.path.join(input_folder, 'w_stick{}.w.nii.gz'.format(i))
-                                                 for i in range(2)], reversed_sort=True)
+        sort_index_matrix = mdt.sorting.create_sort_matrix([os.path.join(input_folder, 'w_stick{}.w.nii.gz'.format(i))
+                                                            for i in range(2)], reversed_sort=True)
         sorted_weights = mdt.sort_maps([os.path.join(input_folder, 'w_stick{}.w.nii.gz'.format(i)) for i in range(2)],
                                        sort_index_matrix=sort_index_matrix)
         sorted_vecs = mdt.sort_maps([os.path.join(input_folder, 'Stick{}.vec0.nii.gz'.format(i)) for i in range(2)],
@@ -351,8 +352,8 @@ class _TMCP_BallStick_r3(TrackMarkConversionProfile):
 
         maps_to_convert = ['FS', 'w_ball.w']
 
-        sort_index_matrix = mdt.create_sort_matrix([os.path.join(input_folder, 'w_stick{}.w.nii.gz'.format(i))
-                                                    for i in range(3)], reversed_sort=True)
+        sort_index_matrix = mdt.sorting.create_sort_matrix([os.path.join(input_folder, 'w_stick{}.w.nii.gz'.format(i))
+                                                            for i in range(3)], reversed_sort=True)
         sorted_weights = mdt.sort_maps([os.path.join(input_folder, 'w_stick{}.w.nii.gz'.format(i)) for i in range(3)],
                                        sort_index_matrix=sort_index_matrix)
         sorted_vecs = mdt.sort_maps([os.path.join(input_folder, 'Stick{}.vec0.nii.gz'.format(i)) for i in range(3)],
@@ -397,8 +398,8 @@ class _TMCP_CHARMED_r2(TrackMarkConversionProfile):
 
         maps_to_convert = ['FR', 'Tensor.FA', 'w_hin0.w']
 
-        sort_index_matrix = mdt.create_sort_matrix([os.path.join(input_folder, 'w_res{}.w.nii.gz'.format(i))
-                                                    for i in range(2)], reversed_sort=True)
+        sort_index_matrix = mdt.sorting.create_sort_matrix([os.path.join(input_folder, 'w_res{}.w.nii.gz'.format(i))
+                                                            for i in range(2)], reversed_sort=True)
         sorted_weights = mdt.sort_maps([os.path.join(input_folder, 'w_res{}.w.nii.gz'.format(i)) for i in range(2)],
                                        sort_index_matrix=sort_index_matrix)
         sorted_vecs = mdt.sort_maps([os.path.join(input_folder, 'CHARMEDRestricted{}.vec0.nii.gz'.format(i))
@@ -425,8 +426,8 @@ class _TMCP_CHARMED_r3(TrackMarkConversionProfile):
 
         maps_to_convert = ['FR', 'Tensor.FA', 'w_hin0.w']
 
-        sort_index_matrix = mdt.create_sort_matrix([os.path.join(input_folder, 'w_res{}.w.nii.gz'.format(i))
-                                                    for i in range(3)], reversed_sort=True)
+        sort_index_matrix = mdt.sorting.create_sort_matrix([os.path.join(input_folder, 'w_res{}.w.nii.gz'.format(i))
+                                                            for i in range(3)], reversed_sort=True)
         sorted_weights = mdt.sort_maps([os.path.join(input_folder, 'w_res{}.w.nii.gz'.format(i)) for i in range(3)],
                                        sort_index_matrix=sort_index_matrix)
         sorted_vecs = mdt.sort_maps([os.path.join(input_folder, 'CHARMEDRestricted{}.vec0.nii.gz'.format(i))

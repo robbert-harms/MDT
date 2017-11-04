@@ -84,29 +84,6 @@ def get_parameter_list():
     return tuple(parameter_list)
 
 
-def get_dki_measures_modifier():
-    """Get the DKI post processing modification routine(s)."""
-    dki_calc = DKIMeasures()
-
-    def modifier_routine(results_dict):
-        measures = dki_calc.calculate(results_dict)
-        return [measures[name] for name in dki_calc.get_output_names()]
-
-    return_names = dki_calc.get_output_names()
-    return return_names, modifier_routine
-
-
-def get_dti_measures_modifier():
-    measures_calculator = DTIMeasures()
-    return_names = measures_calculator.get_output_names()
-
-    def modifier_routine(results_dict):
-        measures = measures_calculator.calculate(results_dict)
-        return [measures[name] for name in return_names]
-
-    return return_names, modifier_routine
-
-
 class KurtosisTensor(CompartmentTemplate):
 
     description = '''
@@ -138,5 +115,10 @@ class KurtosisTensor(CompartmentTemplate):
     extra_prior = 'return dperp1 < dperp0 && dperp0 < d;'
 
     auto_add_cartesian_vector = False
-    post_optimization_modifiers = [get_dti_measures_modifier(),
-                                   get_dki_measures_modifier()]
+    post_optimization_modifiers = [
+        DTIMeasures.post_optimization_modifier
+    ]
+    extra_optimization_maps = [
+        DTIMeasures().calculate,
+        DKIMeasures().calculate
+    ]

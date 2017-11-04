@@ -1,4 +1,4 @@
-from copy import deepcopy
+from copy import deepcopy, copy
 import numpy as np
 import six
 
@@ -26,36 +26,61 @@ class CompartmentTemplate(ComponentTemplate):
 
     Attributes:
         name (str): the name of the model, defaults to the class name
+
         description (str): model description
+
         parameter_list (list): the list of parameters to use. If a parameter is a string we will
             use it automatically, if not it is supposed to be a CLFunctionParameter
             instance that we append directly.
+
         cl_code (str): the CL code definition to use, please provide here the body of your CL function.
+
         cl_extra (str): additional CL code for your model. This will be prepended to the body of your CL function.
+
         dependency_list (list): the list of functions this function depends on, can contain string which will be
             resolved as library functions.
+
         return_type (str): the return type of this compartment, defaults to double.
+
         extra_prior (str or None): an extra MCMC sampling prior for this compartment. This is additional to the priors
             defined in the parameters. This should be an instance of :class:`~mdt.models.compartments.CompartmentPrior`
             or a string with a CL function body. If the latter, the :class:`~mdt.models.compartments.CompartmentPrior`
             is automatically constructed based on the content of the string (automatic parameter recognition).
-        post_optimization_modifiers (list): a list of modification callbacks for use after optimization. Examples:
+
+        post_optimization_modifiers (list): a list of modification callbacks to change the estimated
+            optimization points. This should not add new maps, for that use
+            the ``extra_optimization_maps_funcs`` directive. This directive can be used to, for example,
+            sort maps into a similar valued but sorted representation (actually the ``sort_maps`` directive
+            creates a post_optimization_modifier)
+
+            Examples:
 
             .. code-block:: python
 
-                post_optimization_modifiers = [('FS', lambda d: 1 - d['w_ball.w']),
-                                               ('Kurtosis.MK', lambda d, protocol: <...>),
-                                               (['Power2', 'Power3'], lambda d: [d['foo']**2, d['foo']**3]),
+                post_optimization_modifiers = [lambda d: reorient_tensor(d),
+                                               lambda d: sort_maps(d)
                                            ...]
 
-            The last entry in the above example shows that it is possible to include more than one
-            modifier in one modifier expression. In general, the function given should accept as first argument
-            the results dictionary and as optional second argument the protocol used to generate the results.
-            These modifiers are called before the modifiers of the composite model.
+            Each function should accept the results dictionary as input and return a dictionary with new maps.
 
-        auto_add_cartesian_vector (boolean): if set to True we will automatically add a post optimization modifier
-            that constructs a cartesian vector from the ``theta`` and ``phi`` parameter if present. This modifier
-            is run before the other user defined modifiers.
+        extra_optimization_maps (list): a list of functions to return extra information maps based on a point estimate.
+            This is called after the post optimization modifiers and after the model calculated uncertainties based
+            on the Fisher Information Matrix. Therefore, these routines can propagate uncertainties in the estimates.
+            Please note that this is only for adding additional maps. For changing the point estimate of the
+            optimization, please use the ``post_optimization_modifiers`` directive.
+
+            Examples:
+
+            .. code-block:: python
+
+                extra_optimization_maps_funcs = [lambda d: {'FS': 1 - d['w_ball.w']},
+                                                 lambda d: {'Kurtosis.MK': <...>},
+                                                 lambda d: {'Power2': d['foo']**2, 'Power3': d['foo']**3},
+                                                 ...]
+
+        auto_add_cartesian_vector (boolean): if set to True we will automatically add a
+            ``extra_optimization_maps_funcs`` directive that constructs a cartesian vector from the
+            ``theta`` and ``phi`` parameter if present.
     """
     name = ''
     description = ''
@@ -65,7 +90,8 @@ class CompartmentTemplate(ComponentTemplate):
     dependency_list = []
     return_type = 'double'
     extra_prior = None
-    post_optimization_modifiers = None
+    post_optimization_modifiers = []
+    extra_optimization_maps = []
     auto_add_cartesian_vector = True
 
 
@@ -95,11 +121,13 @@ class CompartmentBuilder(ComponentBuilder):
                 for ind, already_set_arg in enumerate(args):
                     new_args[ind] = already_set_arg
 
-                new_kwargs = {'model_function_priors': (_resolve_prior(template.extra_prior, template.name,
-                                                                       [p.name for p in parameter_list],)),
-                              'post_optimization_modifiers': builder._get_post_optimization_modifiers(template,
-                                                                                                      parameter_list),
-                              'cl_extra': template.cl_extra}
+                new_kwargs = {
+                    'model_function_priors': (_resolve_prior(template.extra_prior, template.name,
+                                                             [p.name for p in parameter_list],)),
+                    'post_optimization_modifiers': template.post_optimization_modifiers,
+                    'extra_optimization_maps_funcs': builder._get_extra_optimization_map_funcs(
+                        template, parameter_list),
+                    'cl_extra': template.cl_extra}
                 new_kwargs.update(kwargs)
 
                 super(AutoCreatedDMRICompartmentModel, self).__init__(*new_args, **new_kwargs)
@@ -109,17 +137,14 @@ class CompartmentBuilder(ComponentBuilder):
 
         return AutoCreatedDMRICompartmentModel
 
-    def _get_post_optimization_modifiers(self, template, parameter_list):
-        post_optimization_modifiers = []
+    def _get_extra_optimization_map_funcs(self, template, parameter_list):
+        extra_optimization_maps = copy(template.extra_optimization_maps)
+
         if getattr(template, 'auto_add_cartesian_vector', False):
             if all(map(lambda name: name in [p.name for p in parameter_list], ('theta', 'phi'))):
-                modifier = ('vec0', lambda results: spherical_to_cartesian(np.squeeze(results['theta']),
-                                                                           np.squeeze(results['phi'])))
-                post_optimization_modifiers.append(modifier)
-
-        if template.post_optimization_modifiers:
-            post_optimization_modifiers.extend(template.post_optimization_modifiers)
-        return post_optimization_modifiers
+                extra_optimization_maps.append(lambda results: {
+                    'vec0': spherical_to_cartesian(np.squeeze(results['theta']), np.squeeze(results['phi']))})
+        return extra_optimization_maps
 
 
 register_builder(CompartmentTemplate, CompartmentBuilder())

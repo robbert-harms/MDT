@@ -8,20 +8,24 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-def get_dti_measures_modifier():
+def extra_dti_results(results_dict):
+    output = {}
+
+    matrix = np.array(
+        [[results_dict['D_{}{}'.format(i, j) if 'D_{}{}'.format(i, j) in results_dict else 'D_{}{}'.format(j, i)]
+          for j in range(3)] for i in range(3)]).transpose()
+
+    eigen_values, eigen_vectors = np.linalg.eig(matrix)
+
+    output.update({'vec{}'.format(ind): eigen_vectors[:, ind] for ind in range(3)})
+    output['d'] = eigen_values[:, 0]
+    output['dperp0'] = eigen_values[:, 1]
+    output['dperp1'] = eigen_values[:, 2]
+
     measures_calculator = DTIMeasures()
-    return_names = measures_calculator.get_output_names()
+    output.update(measures_calculator.calculate(output))
 
-    def modifier_routine(results_dict):
-        matrix = np.array(
-            [[results_dict['D_{}{}'.format(i, j) if 'D_{}{}'.format(i, j) in results_dict else 'D_{}{}'.format(j, i)]
-              for j in range(3)] for i in range(3)]).transpose()
-
-        eigen_values, eigen_vectors = np.linalg.eig(matrix)
-        measures = measures_calculator.calculate(eigen_values, eigen_vectors)
-        return [measures[name] for name in return_names]
-
-    return return_names, modifier_routine
+    return output
 
 
 class SymmetricNonParametricTensor(CompartmentTemplate):
@@ -43,4 +47,4 @@ class SymmetricNonParametricTensor(CompartmentTemplate):
                         g.z * g.z * D_22;
         return exp(-b * diff);
     '''
-    post_optimization_modifiers = [get_dti_measures_modifier()]
+    extra_optimization_maps = [extra_dti_results]

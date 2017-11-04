@@ -5,8 +5,7 @@ Globally, this module consists out of two public players, the :class:`ModelProce
 For example, optimization and sampling are two different operations and hence require their own processing
 implementation. Given that the model processor defines how to process the models, the model processing strategy
 encapsulates how to process the processors. For example, a strategy may be to split the model into batches and optimize
-those while saving intermediate results. More advanced strategies may employ multi-threading to overlap disk write-out
-with optimization.
+those while saving intermediate results.
 """
 import glob
 import hashlib
@@ -19,8 +18,7 @@ from contextlib import contextmanager
 import numpy as np
 import time
 
-from mdt.deferred_mappings import DeferredFunctionDict
-from mot.utils import results_to_dict
+from mdt.utils import results_to_dict
 import gc
 from numpy.lib.format import open_memmap
 

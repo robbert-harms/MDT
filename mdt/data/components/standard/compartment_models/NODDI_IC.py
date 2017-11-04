@@ -22,7 +22,6 @@ class NODDI_IC(CompartmentTemplate):
                        'MRIConstants',
                        'NeumannCylindricalRestrictedSignal',
                        'SphericalToCartesian')
-    post_optimization_modifiers = [('odi', lambda results: np.arctan2(1.0, results['kappa'] * 10) * 2 / np.pi)]
     cl_code = '''
         const mot_float_type kappa_scaled = kappa * 10;
 

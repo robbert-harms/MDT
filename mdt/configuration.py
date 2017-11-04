@@ -307,8 +307,8 @@ class ActivePostProcessingLoader(ConfigSectionLoader):
         sampling['multivariate_ess'] = sampling.get('multivariate_ess', True)
         sampling['univariate_ess'] = sampling.get('univariate_ess', False)
 
-        _config_insert(['active_post_processing', 'optimization'], value.get('optimization', {}))
-        _config_insert(['active_post_processing', 'sampling'], sampling)
+        _config_insert(['post_processing', 'optimization'], value.get('optimization', {}))
+        _config_insert(['post_processing', 'sampling'], sampling)
 
 
 class AutomaticCascadeModels(ConfigSectionLoader):
@@ -382,7 +382,7 @@ def get_section_loader(section):
     if section == 'auto_generate_cascade_models':
         return AutomaticCascadeModels()
 
-    if section == 'active_post_processing':
+    if section == 'post_processing':
         return ActivePostProcessingLoader()
 
     raise ValueError('Could not find a suitable configuration loader for the section {}.'.format(section))
@@ -418,14 +418,14 @@ def get_tmp_results_dir():
     return _config['tmp_results_dir']
 
 
-def get_active_post_processing():
+def get_post_processing():
     """Get the overview of active post processing switches.
 
     Returns:
         dict: a dictionary holding two dictionaries, one called 'optimization' and one called 'sampling'.
             Both these dictionaries hold keys of elements to add to the respective post processing phase.
     """
-    return deepcopy(_config['active_post_processing'])
+    return deepcopy(_config['post_processing'])
 
 
 def get_processing_strategy(processing_type, *args, **kwargs):

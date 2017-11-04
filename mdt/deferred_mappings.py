@@ -16,7 +16,8 @@ class DeferredActionDict(collections.MutableMapping):
         and return the result of that function. The advantage of this class is that it defers an expensive operation
         until it is needed.
 
-        Items set to this dictionary are assumed to be final, that is, we won't run the function on them.
+        Items added to this dictionary after creation are assumed to be final, that is, we won't run the
+        function on them.
 
         Args:
             func (Function): the callback function to apply on the given items at request, with signature:

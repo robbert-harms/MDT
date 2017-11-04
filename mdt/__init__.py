@@ -23,10 +23,10 @@ from mdt.utils import estimate_noise_std, get_cl_devices, load_input_data, load_
     create_blank_mask, create_index_matrix, \
     volume_index_to_roi_index, roi_index_to_volume_index, load_brain_mask, init_user_settings, restore_volumes, \
     apply_mask, create_roi, volume_merge, protocol_merge, create_median_otsu_brain_mask, load_samples, \
-    load_nifti, write_slice_roi, apply_mask_to_file, extract_volumes, recalculate_error_measures, \
+    load_nifti, write_slice_roi, apply_mask_to_file, extract_volumes, \
     get_slice_in_dimension, per_model_logging_context, \
-    get_temporary_results_dir, get_example_data, create_sort_matrix, sort_volumes_per_voxel, \
-    sort_orientations, SimpleInitializationData, InitializationData
+    get_temporary_results_dir, get_example_data, SimpleInitializationData, InitializationData
+from mdt.sorting import sort_orientations, create_sort_matrix, sort_volumes_per_voxel
 from mdt.simulations import create_signal_estimates, simulate_signals, add_rician_noise
 from mdt.batch_utils import collect_batch_fit_output, collect_batch_fit_single_map, run_function_on_batch_fit_output
 from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, write_protocol, write_bvec_bval
@@ -127,7 +127,8 @@ def fit_model(model, input_data, output_folder, optimizer=None,
 
 def sample_model(model, input_data, output_folder, sampler=None, recalculate=False,
                  cl_device_ind=None, double_precision=False, store_samples=True,
-                 tmp_results_dir=True, save_user_script_info=True, initialization_data=None):
+                 tmp_results_dir=True, save_user_script_info=True, initialization_data=None,
+                 post_processing=None):
     """Sample a composite model using the given cascading strategy.
 
     Args:
@@ -165,6 +166,10 @@ def sample_model(model, input_data, output_folder, sampler=None, recalculate=Fal
             is transformed into::
 
                 initialization_data = SimpleInitializationData(fixes={...}, inits={...})
+        post_processing (dict): a dictionary with flags for post-processing options to enable or disable.
+            For valid elements, please see the configuration file settings for ``sampling`` under ``post_processing``.
+            Valid input for this parameter is for example: {'sample_statistics': True} to enable automatic calculation
+            of the sampling statistics.
 
     Returns:
         dict: if store_samples is True then we return the samples per parameter as a numpy memmap. If store_samples
@@ -184,6 +189,9 @@ def sample_model(model, input_data, output_folder, sampler=None, recalculate=Fal
 
     if isinstance(model, string_types):
         model = get_model(model)
+
+    if post_processing:
+        model.post_processing['sampling'].update(post_processing)
 
     if isinstance(model, DMRICascadeModelInterface):
         raise ValueError('The function \'sample_model()\' does not accept cascade models.')
@@ -478,9 +486,9 @@ def sort_maps(input_maps, reversed_sort=False, sort_index_matrix=None):
     Args:
         input_maps (:class:`list`): a list of string (filenames) or ndarrays we will sort
         reversed_sort (boolean): if we want to sort from large to small instead of small to large.
-            This is not used if a sort index map is provided.
+            This is not used if a sort index matrix is provided.
         sort_index_matrix (ndarray): if given we use this sort index map instead of generating one by sorting the
-            maps_to_sort_on.
+            maps_to_sort_on. Supposed to be a integer matrix.
 
     Returns:
         list: the list of sorted volumes

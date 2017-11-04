@@ -12,7 +12,9 @@ class SSFP_BallStick_r1_ExVivo(DMRICompositeModelTemplate):
     fixes = {'SSFP_Ball.d': 2.0e-9,
              'SSFP_Stick0.d': 0.6e-9,
              }
-    post_optimization_modifiers = [('FS', lambda results: 1 - results['w_ball.w'])]
+    extra_optimization_maps = [
+        lambda d: {'FS': 1 - d['w_ball.w']}
+    ]
 
 
 class SSFP_Tensor_ExVivo(DMRICompositeModelTemplate):

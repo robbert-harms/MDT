@@ -25,19 +25,52 @@ class DMRICompositeModelTemplate(ComponentTemplate):
 
         description (str): model description
 
-        post_optimization_modifiers (list): a list of modification callbacks for use after optimization. Examples:
+        post_optimization_modifiers (list): a list of modification callbacks to change the estimated
+            optimization points. This should not add new maps, for that use the ``additional_results`` directive.
+            This can be used to, for example, sort maps into a similar valued but sorted representation
+            (actually the ``sort_maps`` directive creates a post_optimization_modifier)
+
+            Examples:
 
             .. code-block:: python
 
-                post_optimization_modifiers = [('FS', lambda d: 1 - d['w_ball.w']),
-                                               ('Kurtosis.MK', lambda d, protocol: <...>),
-                                               (['Power2', 'Power3'], lambda d: [d['foo']**2, d['foo']**3]),
+                post_optimization_modifiers = [lambda d: reorient_tensor(d),
+                                               lambda d: {'w_stick0.w': ..., 'w_stick1.w': ...}
                                            ...]
 
-            The last entry in the above example shows that it is possible to include more than one
-            modifier in one modifier expression. In general, the function given should accept as first argument
-            the results dictionary and as optional second argument the protocol used to generate the results.
-            These modifiers are called after the modifiers of the composite model.
+            This should return a dictionary with updated maps.
+
+        sort_maps (list of tuple): The maps to sort as post-processing before the other post optimization modifiers.
+            This will sort the given maps voxel by voxel based on the given maps as a key. The first
+            tuple needs to be a parameter reference or a ``Weight`` compartment, the other tuples can contain either
+            parameters or compartments.
+            Example input::
+
+                maps_to_sort = [('w0.w', 'w1.w'), ('Stick0', 'Stick1')]
+
+            will sort the weights w0.w and w1.w and sort all the parameters of the Stick0 and Stick1
+            compartment according to the sorting of those weights.
+
+            One can also sort on only one parameter of a compartment using::
+
+                maps_to_sort = [('w0', 'w1'), ('Stick0.theta', 'Stick1.theta')]
+
+            which will again sort the weights but will only sort the theta map of both the Stick compartments.
+
+        extra_optimization_maps (list): a list of functions to return extra information maps based on a point estimate.
+            This is called after the post optimization modifiers and after the model calculated uncertainties based
+            on the Fisher Information Matrix. Therefore, these routines can propagate uncertainties in the estimates.
+            Please note that this is only for adding additional maps. For changing the point estimate of the
+            optimization, please use the ``post_optimization_modifiers`` directive.
+
+            Examples:
+
+            .. code-block:: python
+
+                additional_results = [lambda d: {'FS': 1 - d['w_ball.w']},
+                                      lambda d, protocol: {'Kurtosis.MK': <...>},
+                                      lambda d: {'Power2': d['foo']**2, 'Power3': d['foo']**3},
+                                       ...]
 
         model_expression (str): the model expression. For the syntax see:
             mdt.models.parsers.CompositeModelExpression.ebnf
@@ -96,27 +129,11 @@ class DMRICompositeModelTemplate(ComponentTemplate):
         prior (str, mot.model_building.utils.ModelPrior or None): a model wide prior. This is used in conjunction with
             the compartment priors and the parameter priors. If a string is given we will automatically construct a
             :class:`mot.model_building.utils.ModelPrior` from that string.
-
-        sort_maps (list of tuple): The maps to sort as post-processing before the other post optimization modifiers.
-            This will sort the given maps voxel by voxel based on the given maps as a key. The first
-            tuple needs to be a parameter reference or a ``Weight`` compartment, the other tuples can contain either
-            parameters or compartments.
-            Example input::
-
-                maps_to_sort = [('w0.w', 'w1.w'), ('Stick0', 'Stick1')]
-
-            will sort the weights w0.w and w1.w and sort all the parameters of the Stick0 and Stick1
-            compartment according to the sorting of those weights.
-
-            One can also sort on only one parameter of a compartment using::
-
-                maps_to_sort = [('w0', 'w1'), ('Stick0.theta', 'Stick1.theta')]
-
-            which will again sort the weights but will only sort the theta map of both the Stick compartments.
     """
     name = ''
     description = ''
     post_optimization_modifiers = []
+    extra_optimization_maps = []
     model_expression = ''
     likelihood_function = 'OffsetGaussian'
     signal_noise_model = None
@@ -163,6 +180,10 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                 self._post_optimization_modifiers.extend(_get_model_post_optimization_modifiers(
                     self._model_functions_info.get_model_list()))
                 self._post_optimization_modifiers.extend(deepcopy(template.post_optimization_modifiers))
+
+                self._extra_optimization_maps_funcs.extend(_get_model_extra_optimization_maps_funcs(
+                    self._model_functions_info.get_model_list()))
+                self._extra_optimization_maps_funcs.extend(deepcopy(template.extra_optimization_maps))
 
                 for full_param_name, value in template.inits.items():
                     self.init(full_param_name, deepcopy(value))
@@ -300,6 +321,12 @@ def _get_map_sorting_modifier(sort_maps, model_list):
                     sort_pair.append('{}.{}'.format(model_name, parameter.name))
                 other_sort_pairs.append(sort_pair)
 
+    names = []
+    names.extend(sort_keys)
+    for pairs in other_sort_pairs:
+        names.extend(pairs)
+    names.append('sort_matrix')
+
     def map_sorting(results):
         sort_matrix = np.column_stack([results[map_name] for map_name in sort_keys])
         ranking = np.atleast_2d(np.squeeze(np.argsort(sort_matrix, axis=1)[:, ::-1]))
@@ -313,15 +340,9 @@ def _get_map_sorting_modifier(sort_maps, model_list):
             sorted_maps.extend(sort_matrix[list_index, ranking[:, ind], None] for ind in range(ranking.shape[1]))
 
         sorted_maps.append(ranking)
-        return sorted_maps
+        return dict(zip(names, sorted_maps))
 
-    names = []
-    names.extend(sort_keys)
-    for pairs in other_sort_pairs:
-        names.extend(pairs)
-    names.append('sort_matrix')
-
-    return names, map_sorting
+    return map_sorting
 
 
 def _get_model_post_optimization_modifiers(compartments):
@@ -335,38 +356,63 @@ def _get_model_post_optimization_modifiers(compartments):
         compartments (list): the list of compartment models from which to get the modifiers
 
     Returns:
-        list of tuples: the list of modification names and routines. Example:
-            [('name1', mod1), ('name2', mod2), ...]
+        list: the list of modification routines taken from the compartment models.
     """
     modifiers = []
 
-    def get_wrapped_modifier(compartment_name, original_map_names, original_modifier):
-        single_output = isinstance(original_map_names, six.string_types)
-
-        if single_output:
-            wrapped_names = '{}.{}'.format(compartment_name, original_map_names)
-        else:
-            wrapped_names = ['{}.{}'.format(compartment_name, map_name) for map_name in original_map_names]
-
-        def get_compartment_specific_names(results):
+    def get_wrapped_modifier(compartment_name, original_modifier):
+        def get_compartment_specific_maps(results):
             return {k[len(compartment_name) + 1:]: v for k, v in results.items() if k.startswith(compartment_name)}
 
-        argspec = inspect.getfullargspec(original_modifier)
-        if len(argspec.args) > 1:
-            def wrapped_modifier(results, protocol):
-                return original_modifier(get_compartment_specific_names(results), protocol)
-        else:
-            def wrapped_modifier(results):
-                return original_modifier(get_compartment_specific_names(results))
+        def prepend_compartment_name(results):
+            return {'{}.{}'.format(compartment_name, key): value for key, value in results.items()}
 
-        return wrapped_names, wrapped_modifier
+        def wrapped_modifier(results):
+            return prepend_compartment_name(original_modifier(get_compartment_specific_maps(results)))
+
+        return wrapped_modifier
 
     for compartment in compartments:
         if hasattr(compartment, 'post_optimization_modifiers'):
-            for map_names, modifier in compartment.post_optimization_modifiers:
-                modifiers.append(get_wrapped_modifier(compartment.name, map_names, modifier))
+            for modifier in compartment.post_optimization_modifiers:
+                modifiers.append(get_wrapped_modifier(compartment.name, modifier))
 
     return modifiers
+
+
+def _get_model_extra_optimization_maps_funcs(compartments):
+    """Get a list of all the additional result functions defined in the models.
+
+    This function will add a wrapper around the modification routines to make the input and output maps relative to the
+    model. That it, these functions expect the parameter names without the model name and output map names without
+    the model name, whereas the expected input and output of the modifiers of the model is with the full model.map name.
+
+    Args:
+        compartments (list): the list of compartment models from which to get the modifiers
+
+    Returns:
+        list: the list of modification routines taken from the compartment models.
+    """
+    funcs = []
+
+    def get_wrapped_func(compartment_name, original_func):
+        def get_compartment_specific_maps(results):
+            return {k[len(compartment_name) + 1:]: v for k, v in results.items() if k.startswith(compartment_name)}
+
+        def prepend_compartment_name(results):
+            return {'{}.{}'.format(compartment_name, key): value for key, value in results.items()}
+
+        def wrapped_modifier(results):
+            return prepend_compartment_name(original_func(get_compartment_specific_maps(results)))
+
+        return wrapped_modifier
+
+    for compartment in compartments:
+        if hasattr(compartment, 'extra_optimization_maps_funcs'):
+            for func in compartment.extra_optimization_maps_funcs:
+                funcs.append(get_wrapped_func(compartment.name, func))
+
+    return funcs
 
 
 register_builder(DMRICompositeModelTemplate, DMRICompositeModelBuilder())

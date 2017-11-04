@@ -5,21 +5,21 @@ import copy
 
 import numpy as np
 
-from mdt.configuration import get_active_post_processing
+from mdt.configuration import get_post_processing
 from mdt.deferred_mappings import DeferredFunctionDict
 from mot.cl_routines.mapping.codec_runner import CodecRunner
 
-from mdt.model_interfaces import MRIModelBuilder, MRIModelInterface
+from mdt.models.model_interfaces import MRIModelBuilder, MRIModelInterface
 from mot.cl_routines.mapping.numerical_hessian import NumericalHessian
 from mot.model_building.parameters import ProtocolParameter
-from mot.utils import results_to_dict, convert_data_to_dtype, KernelInputArray, get_class_that_defined_method, \
+from mot.statistics import deviance_information_criterions
+from mot.utils import convert_data_to_dtype, KernelInputArray, get_class_that_defined_method, \
     hessian_to_covariance, covariance_to_correlations
-from six import string_types
 
 from mdt.models.base import MissingProtocolInput, InsufficientShells
 from mdt.models.base import DMRIOptimizable
 from mdt.protocols import VirtualColumnB
-from mdt.utils import create_roi, calculate_point_estimate_information_criterions, is_scalar
+from mdt.utils import create_roi, calculate_point_estimate_information_criterions, is_scalar, results_to_dict
 from mot.cl_routines.mapping.calc_dependent_params import CalculateDependentParameters
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
 from mot.cl_routines.mapping.waic_calculator import WAICCalculator
@@ -57,10 +57,14 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
         self._original_input_data = None
 
         self._post_optimization_modifiers = []
+        self._extra_optimization_maps_funcs = []
+
+        if self._enforce_weights_sum_to_one:
+            self._extra_optimization_maps_funcs.append(self._get_propagate_weights_uncertainty)
 
         self.nmr_parameters_for_bic_calculation = self.get_nmr_estimable_parameters()
         self.required_nmr_shells = False
-        self.active_post_processing = get_active_post_processing()
+        self.post_processing = get_post_processing()
 
     def build(self, problems_to_analyze=None):
         sample_model = super(DMRICompositeModel, self).build(problems_to_analyze)
@@ -69,13 +73,14 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
                                    self._model_functions_info.get_estimable_parameters_list(),
                                    self.nmr_parameters_for_bic_calculation,
                                    self._post_optimization_modifiers,
+                                   self._extra_optimization_maps_funcs,
                                    self._get_dependent_map_calculator(),
                                    self._get_fixed_parameter_maps(problems_to_analyze),
                                    self._get_proposal_state_names(),
                                    self._get_sampling_statistics(),
                                    self.get_free_param_names(),
                                    self.get_parameter_codec(),
-                                   copy.deepcopy(self.active_post_processing))
+                                   copy.deepcopy(self.post_processing))
 
     def get_free_param_names(self):
         """Get the names of the free parameters"""
@@ -91,33 +96,22 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
 
         return super(DMRICompositeModel, self).set_input_data(self._prepare_input_data(input_data))
 
-    def get_optimization_output_param_names(self):
-        """Get a list with the names of the parameters, this is the list of keys to the titles and results.
-
-        See get_free_param_names() for getting the names of the parameters that are actually being optimized.
-
-        This should be a complete overview of all the maps returned from optimizing this model.
-
-        Returns:
-            list of str: a list with the parameter names
-        """
-        output_names = ['{}.{}'.format(m.name, p.name) for m, p in
-                        self._model_functions_info.get_free_parameters_list()]
-
-        for name, _ in self._post_optimization_modifiers:
-            if isinstance(name, string_types):
-                output_names.append(name)
-            else:
-                output_names.extend(name)
-
-        return output_names
-
     def _get_kernel_data(self, problems_to_analyze):
         kernel_data = super(DMRICompositeModel, self)._get_kernel_data(problems_to_analyze)
         if self._input_data.gradient_deviations is not None:
             kernel_data['gradient_deviations'] = KernelInputArray(
                 self._get_gradient_deviations(problems_to_analyze), ctype='mot_float_type')
         return kernel_data
+
+    def _get_propagate_weights_uncertainty(self, results):
+        std_names = ['{}.{}.std'.format(m.name, p.name) for (m, p) in self._model_functions_info.get_weights()]
+        if len(std_names) > 1:
+            if std_names[0] not in results and all(std in results for std in std_names[1:]):
+                total = results[std_names[1]]**2
+                for std in std_names[2:]:
+                    total += results[std]**2
+                return {std_names[0]: np.sqrt(total)}
+        return {}
 
     def _get_gradient_deviations(self, problems_to_analyze):
         """Get the gradient deviation data for use in the kernel.
@@ -335,7 +329,8 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
             def calculator(model, results_dict):
                 estimated_parameters = [results_dict[k] for k in estimable_parameter_names]
                 cpd = CalculateDependentParameters(double_precision=self.double_precision)
-                return cpd.calculate(model.get_kernel_data(), estimated_parameters, func, dependent_parameter_names)
+                vals = cpd.calculate(model.get_kernel_data(), estimated_parameters, func, dependent_parameter_names)
+                return results_to_dict(vals, [n[1] for n in dependent_parameter_names])
         else:
             def calculator(model, results_dict):
                 return {}
@@ -385,9 +380,11 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
 
 class BuildCompositeModel(MRIModelInterface):
 
-    def __init__(self, wrapped_sample_model, protocol, estimable_parameters_list, nmr_parameters_for_bic_calculation,
-                 post_optimization_modifiers, dependent_map_calculator, fixed_parameter_maps, proposal_state_names,
-                 sampling_statistics, free_param_names, parameter_codec, active_post_processing):
+    def __init__(self, wrapped_sample_model, protocol, estimable_parameters_list,
+                 nmr_parameters_for_bic_calculation,
+                 post_optimization_modifiers, extra_optimization_maps,
+                 dependent_map_calculator, fixed_parameter_maps, proposal_state_names,
+                 sampling_statistics, free_param_names, parameter_codec, post_processing):
         self._protocol = protocol
         self._estimable_parameters_list = estimable_parameters_list
         self.nmr_parameters_for_bic_calculation = nmr_parameters_for_bic_calculation
@@ -399,7 +396,8 @@ class BuildCompositeModel(MRIModelInterface):
         self._sampling_statistics = sampling_statistics
         self._free_param_names = free_param_names
         self._parameter_codec = parameter_codec
-        self._active_post_processing = active_post_processing
+        self._post_processing = post_processing
+        self._extra_optimization_maps = extra_optimization_maps
 
     def get_post_optimization_volume_maps(self, optimization_results):
         end_points = optimization_results.get_optimization_result()
@@ -423,9 +421,9 @@ class BuildCompositeModel(MRIModelInterface):
         """
         return self._proposal_state_names
 
-    def post_process_optimization_maps(self, results_dict, results_array=None, log_likelihoods=None,
-                                       calculate_covariance=True):
-        r"""This adds some extra optimization maps to the results dictionary.
+    def post_process_optimization_maps(self, results_dict, results_array=None,
+                                       log_likelihoods=None, calculate_covariance=True):
+        """This adds some extra optimization maps to the results dictionary.
 
         This function behaves as a procedure and as a function. The input dict can be updated in place, but it should
         also return a dict but that is merely for the purpose of chaining.
@@ -436,11 +434,11 @@ class BuildCompositeModel(MRIModelInterface):
         The current steps in this function:
 
             1) Add the maps for the dependent and fixed parameters
-            2) Add the extra maps defined in the models itself
-            3) Apply each of the post_optimization_modifiers callback functions
+            2) Add the fixed maps to the results
+            3) Apply each of the ``post_optimization_modifiers`` functions
             4) Add information criteria maps
-
-        For more documentation see the base method.
+            5) Calculate the covariance matrix according to the Fisher Information Matrix theory
+            6) Add the additional results from the ``additional_result_funcs``
 
         Args:
             results_dict (dict): A dictionary with as keys the names of the parameters and as values the 1d maps with
@@ -460,11 +458,23 @@ class BuildCompositeModel(MRIModelInterface):
 
         results_dict.update(self._dependent_map_calculator(self, results_dict))
         results_dict.update(self._fixed_parameter_maps)
-        self._add_post_optimization_modifier_maps(results_dict)
+
+        for routine in self._post_optimization_modifiers:
+            results_dict.update(routine(results_dict))
+
         results_dict.update(self._get_post_optimization_information_criterion_maps(
             results_array, log_likelihoods=log_likelihoods))
+
         if calculate_covariance:
             results_dict.update(self._calculate_hessian_covariance(results_array))
+
+        for routine in self._extra_optimization_maps:
+            try:
+                results_dict.update(routine(results_dict))
+            except KeyError as exc:
+                logger = logging.getLogger(__name__)
+                logger.error('Failed to execute extra optimization maps function, missing input: {}.'.format(str(exc)))
+
         return results_dict
 
     def get_post_sampling_maps(self, sampling_output):
@@ -486,15 +496,16 @@ class BuildCompositeModel(MRIModelInterface):
             'maximum_likelihood': mle_maps_cb,
             'maximum_a_posteriori': map_maps_cb,
             'mh_state': lambda: self._get_mh_state_write_arrays(sampling_output.get_mh_state()),
-            'sample_statistics': lambda: self._sample_statistics(sampling_output),
             'proposal_state': lambda: results_to_dict(sampling_output.get_proposal_state(),
                                                       self.get_proposal_state_names()),
             'chain_end_point': lambda: results_to_dict(sampling_output.get_current_chain_position(),
                                                        self.get_free_param_names()),
         }
-        if self._active_post_processing['sampling']['univariate_ess']:
+        if self._post_processing['sampling']['sample_statistics']:
+            items.update({'sample_statistics': lambda: self._sample_statistics(sampling_output)})
+        if self._post_processing['sampling']['univariate_ess']:
             items.update({'univariate_ess': lambda: self._get_univariate_ess(samples)})
-        if self._active_post_processing['sampling']['multivariate_ess']:
+        if self._post_processing['sampling']['multivariate_ess']:
             items.update({'multivariate_ess': lambda: self._get_multivariate_ess(samples)})
 
         return DeferredFunctionDict(items, cache=False)
@@ -514,7 +525,7 @@ class BuildCompositeModel(MRIModelInterface):
     def _sample_statistics(self, sampling_output):
         """Get some standard statistics about the samples.
 
-        This typically returns the mean, standard deviation and covariances of each of the parameters.
+        This returns the mean, standard deviation and covariances of the sampled parameters.
 
         Args:
             sampling_output (mot.cl_routines.sampling.metropolis_hastings.MHSampleOutput): the output of the sampler
@@ -525,13 +536,17 @@ class BuildCompositeModel(MRIModelInterface):
         samples = sampling_output.get_samples()
 
         volume_maps = self._get_univariate_parameter_statistics(samples)
-        volume_maps = self.post_process_optimization_maps(volume_maps, calculate_covariance=False)
+
+        volume_maps.update(self._dependent_map_calculator(self, volume_maps))
+        volume_maps.update(self._fixed_parameter_maps)
+        volume_maps.update(self._get_post_optimization_information_criterion_maps(
+            self._param_dict_to_array(volume_maps)))
 
         volume_maps.update(self._compute_covariances_correlations(samples, volume_maps))
-        volume_maps.update(self._calculate_deviance_information_criterions(
-            samples, volume_maps['LogLikelihood'], sampling_output.get_log_likelihoods()))
+        volume_maps.update(deviance_information_criterions(
+            volume_maps['LogLikelihood'], sampling_output.get_log_likelihoods()))
 
-        if self._active_post_processing['sampling']['waic']:
+        if self._post_processing['sampling']['waic']:
             volume_maps.update({'WAIC': np.nan_to_num(WAICCalculator().calculate(self, samples))})
 
         return volume_maps
@@ -540,7 +555,7 @@ class BuildCompositeModel(MRIModelInterface):
         """Get the maximum and corresponding volume maps of the MLE and MAP estimators.
 
         This computes the Maximum Likelihood Estimator and the Maximum A Posteriori in one run and computes from that
-        the corresponding parameter and general post-optimization maps.
+        the corresponding parameter and global post-optimization maps.
 
         Args:
             sampling_output (mot.cl_routines.sampling.metropolis_hastings.MHSampleOutput): the output of the sampler
@@ -604,21 +619,6 @@ class BuildCompositeModel(MRIModelInterface):
         """
         return {'MultivariateESS': np.nan_to_num(multivariate_ess(samples))}
 
-    def _add_post_optimization_modifier_maps(self, results_dict):
-        """Add the extra maps defined in the post optimization modifiers to the results."""
-        for names, routine in self._post_optimization_modifiers:
-            def callable():
-                argspec = inspect.getfullargspec(routine)
-                if len(argspec.args) > 1:
-                    return routine(results_dict, self._protocol)
-                else:
-                    return routine(results_dict)
-
-            if isinstance(names, string_types):
-                results_dict[names] = callable()
-            else:
-                results_dict.update(zip(names, callable()))
-
     def _calculate_hessian_covariance(self, results_array):
         """Calculate the covariance and correlation matrix by taking the inverse of the Hessian.
 
@@ -676,85 +676,6 @@ class BuildCompositeModel(MRIModelInterface):
 
         return result
 
-    def _calculate_deviance_information_criterions(self, samples, mean_posterior_lls, ll_per_sample):
-        r"""Calculates the Deviance Information Criteria (DIC) using two methods.
-
-        This returns a dictionary returning the ``DIC_2002``, the ``DIC_2004`` and the ``DIC_Ando_2011`` method.
-        The first is based on Spiegelhalter et al (2002), the second based on Gelman et al. (2004) and the last on
-        Ando (2011). All cases differ in how they calculate model complexity, i.e. the effective number of parameters
-        in the model. In all cases the model with the smallest DIC is preferred.
-
-        All these DIC methods measure fitness using the deviance, which is, for a likelihood :math:`p(y | \theta)`
-        defined as:
-
-        .. math::
-
-            D(\theta) = -2\log p(y|\theta)
-
-        From this, the posterior mean deviance,
-
-        .. math::
-
-            \bar{D} = \mathbb{E}_{\theta}[D(\theta)]
-
-        is then used as a measure of how well the model fits the data.
-
-        The complexity, or measure of effective number of parameters, can be measured in see ways, see
-        Spiegelhalter et al. (2002), Gelman et al (2004) and Ando (2011). The first method calculated the parameter
-        deviance as:
-
-        .. math::
-            :nowrap:
-
-            \begin{align}
-            p_{D} &= \mathbb{E}_{\theta}[D(\theta)] - D(\mathbb{E}[\theta)]) \\
-                  &= \bar{D} - D(\bar{\theta})
-            \end{align}
-
-        i.e. posterior mean deviance minus the deviance evaluated at the posterior mean of the parameters.
-
-        The second method calculated :math:`p_{D}` as:
-
-        .. math::
-
-            p_{D} = p_{V} = \frac{1}{2}\hat{var}(D(\theta))
-
-        i.e. half the variance of the deviance is used as an estimate of the number of free parameters in the model.
-
-        The third method calculates the parameter deviance as:
-
-        .. math::
-
-            p_{D} = 2 \cdot (\bar{D} - D(\bar{\theta}))
-
-        That is, twice the complexity of that of the first method.
-
-        Finally, the DIC is (for all cases) defined as:
-
-        .. math::
-
-            DIC = \bar{D} + p_{D}
-
-        Args:
-            samples (ndarray): the samples, a (d, p, n) matrix with d problems, p parameters and n samples.
-            mean_posterior_lls (ndarray): a 1d matrix containing the log likelihood for the average posterior
-                point estimate.
-            ll_per_sample (ndarray): a (d, n) array with for d problems the n log likelihoods.
-
-        Returns:
-            dict: a dictionary containing the ``DIC_2002``, the ``DIC_2004`` and the ``DIC_Ando_2011`` information
-                criterion maps.
-        """
-        mean_deviance = -2 * np.mean(ll_per_sample, axis=1)
-        deviance_at_mean = -2 * mean_posterior_lls
-
-        pd_2002 = mean_deviance - deviance_at_mean
-        pd_2004 = np.var(ll_per_sample, axis=1) / 2.0
-
-        return {'DIC_2002': np.nan_to_num(mean_deviance + pd_2002),
-                'DIC_2004': np.nan_to_num(mean_deviance + pd_2004),
-                'DIC_Ando_2011': np.nan_to_num(mean_deviance + 2 * pd_2002)}
-
     def _param_dict_to_array(self, volume_dict):
         params = [volume_dict['{}.{}'.format(m.name, p.name)] for m, p in self._estimable_parameters_list]
         return np.concatenate([np.transpose(np.array([s]))
@@ -779,7 +700,8 @@ class BuildCompositeModel(MRIModelInterface):
             statistics = self._sampling_statistics[parameter_name].get_statistics(
                 parameter_samples, self.get_lower_bounds()[ind], self.get_upper_bounds()[ind])
 
-            expected_values[:, ind] = statistics.get_expected_value()
+            expected_values[:, ind] = statistics.mean
+            all_stats.update({'{}.std'.format(parameter_name): statistics.std})
             all_stats.update({'{}.{}'.format(parameter_name, statistic_key): v
                               for statistic_key, v in statistics.get_additional_statistics().items()})
 
