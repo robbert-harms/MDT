@@ -140,12 +140,10 @@ class Renderer(object):
 
     def _render_map(self, map_name, axis):
         """Render a single map to the given axis"""
-
         if self._get_map_attr(map_name, 'show_title', self._plot_config.show_titles):
             axis.set_title(self._get_map_attr(map_name, 'title', map_name), y=self._get_title_spacing(map_name))
 
         axis.axis('on' if self._plot_config.show_axis else 'off')
-
         data = self._get_image(map_name)
 
         plot_options = self._get_map_plot_options(map_name)
@@ -154,11 +152,11 @@ class Renderer(object):
         vf = axis.imshow(data, **plot_options)
 
         self._add_highlights(map_name, axis, data.shape[:2])
+
         self._add_colorbar(axis, map_name, vf, self._get_map_attr(map_name, 'colorbar_label'),
                            self._get_map_attr(map_name, 'colorbar_location', self._plot_config.colorbar_location))
 
         self._apply_font_general_axis(axis)
-
         return AxisData(axis, map_name, self._data_info.get_single_map_info(map_name), self._plot_config)
 
     def _apply_font_general_axis(self, image_axis):

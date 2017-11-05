@@ -28,7 +28,7 @@ def load_nifti(nifti_volume):
         :class:`nibabel.nifti2.Nifti2Image`
     """
     path = nifti_filepath_resolution(nifti_volume)
-    return nib.load(path)
+    return nifti_info_decorate_nibabel_image(nib.load(path))
 
 
 def load_all_niftis(directory, map_names=None):
@@ -239,3 +239,87 @@ def unzip_nifti(input_filename, output_filename):
 
     with gzip.open(input_filename, 'rb') as f_in, open(output_filename, 'wb') as f_out:
         shutil.copyfileobj(f_in, f_out)
+
+
+class NiftiInfo(object):
+
+    def __init__(self, header=None, filepath=None):
+        """A nifti information object to store meta data alongside an array.
+
+        Args:
+            header: the nibabel nifti header
+            filepath (str): the on-disk filepath of the corresponding nifti file
+        """
+        self.header = header
+        self.filepath = filepath
+
+
+class NiftiInfoDecorated(object):
+    """The additional type of an array after it has been subclassed by :func:`nifti_info_decorate_array`.
+
+    This subclass can be used to check if an array has nifti info attached to it.
+    """
+
+    @property
+    def nifti_info(self):
+        """Get the nifti information attached to the subclass.
+
+        Returns:
+            NiftiInfo: the nifti information object
+        """
+        raise NotImplementedError()
+
+
+def nifti_info_decorate_array(array, nifti_info=None):
+    """Decorate the provided numpy array with nifti information.
+
+    This can be used to ensure that an array is of additional subclass :class:`NiftiInfoDecorated`.
+
+    Args:
+        array (ndarray): the numpy array to decoreate
+        nifti_info (NiftiInfo): the nifti info to attach to the array
+    """
+    class NiftiInfoDecoratedArray(type(array), NiftiInfoDecorated):
+        def __new__(cls, input_array, nifti_info=None):
+            """Decorate an existing input array with some additional about a nifti file.
+
+            This is typically used to store the original nifti header and the filepath as an special attribute of
+            the array. Please note that this metadata does not survive subarrays and views of this array.
+
+            Args:
+                input_array (ndarray): the array we decorate
+                nifti_info (NiftiInfo): a nifti information object
+
+            Returns:
+                ndarray: the decorated array
+            """
+            obj = input_array.view(cls)
+            obj._nifti_info = nifti_info or NiftiInfo()
+            return obj
+
+        @property
+        def nifti_info(self):
+            return self._nifti_info
+
+        def __array_finalize__(self, obj):
+            if obj is None:
+                return
+            self._nifti_info = getattr(obj, '_nifti_info', None)
+
+    return NiftiInfoDecoratedArray(array, nifti_info)
+
+
+def nifti_info_decorate_nibabel_image(nifti_obj):
+    """Decorate the nibabel image container such that the ``get_data`` method returns a NiftiInfoDecorated ndarray.
+
+    Args:
+        nifti_obj: a nibabel nifti object
+    """
+    original_function = nifti_obj.get_data
+
+    def get_data(self, *args, **kwargs):
+        data = original_function(*args, **kwargs)
+        return nifti_info_decorate_array(data, NiftiInfo(header=self.get_header(), filepath=self.get_filename()))
+
+    nifti_obj.get_data = get_data.__get__(nifti_obj, type(nifti_obj))
+    return nifti_obj

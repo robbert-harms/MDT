@@ -40,22 +40,29 @@ class DMRICompositeModelTemplate(ComponentTemplate):
 
             This should return a dictionary with updated maps.
 
-        sort_maps (list of tuple): The maps to sort as post-processing before the other post optimization modifiers.
-            This will sort the given maps voxel by voxel based on the given maps as a key. The first
-            tuple needs to be a parameter reference or a ``Weight`` compartment, the other tuples can contain either
-            parameters or compartments.
+        sort_maps (list of tuple): The maps to sort voxel-by voxel as post-processing.
+            To ensure that the point estimate from optimization can directly be used in MCMC sampling, we sometimes
+            need to rearrange the weights (and therefore the corresponding compartments). For example, some composite
+            models have a prior on the weights of similar compartments to restrict them to a decreasing order, which
+            is typically done to prevent bimodal distributions. This model directive allows you to easily specify
+            which parameters to rearrange as first post-processing of optimization results.
+
+            The first tuple needs to be a parameter reference or a  ``Weight`` compartment, the other tuples can
+            contain either parameters or compartments.
+
             Example input::
 
                 maps_to_sort = [('w0.w', 'w1.w'), ('Stick0', 'Stick1')]
 
-            will sort the weights w0.w and w1.w and sort all the parameters of the Stick0 and Stick1
+            this input sorts the weights w0.w and w1.w and afterwards sorts all the parameters of the Stick0 and Stick1
             compartment according to the sorting of those weights.
 
-            One can also sort on only one parameter of a compartment using::
+            One can also sort just one parameter of a compartment using::
 
                 maps_to_sort = [('w0', 'w1'), ('Stick0.theta', 'Stick1.theta')]
 
-            which will again sort the weights but will only sort the theta map of both the Stick compartments.
+            which will again sort the weights but will only apply the sorting on the theta map of both the Stick
+            compartments.
 
         extra_optimization_maps (list): a list of functions to return extra information maps based on a point estimate.
             This is called after the post optimization modifiers and after the model calculated uncertainties based

@@ -8,7 +8,7 @@ import yaml
 
 import mdt
 import mdt.visualization.layouts
-from mdt.nifti import load_nifti
+from mdt.nifti import load_nifti, NiftiInfoDecorated
 from mdt.visualization.dict_conversion import StringConversion, \
     SimpleClassConversion, IntConversion, SimpleListConversion, BooleanConversion, \
     ConvertDictElements, ConvertDynamicFromModule, FloatConversion, WhiteListConversion
@@ -686,7 +686,7 @@ class SimpleDataInfo(DataInfo):
     def get_updated(self, updates=None, removals=None):
         """Get a new simple data info object that includes the given new maps.
 
-        In the case of double map names are the old maps overwritten.
+        In the case of double map names the old maps are overwritten.
 
         Args:
             updates (dict): the dictionary with the maps to view, these maps can either be arrays with values,
@@ -884,11 +884,17 @@ class SingleMapInfo(object):
 
         Args:
             data (ndarray or :class:`nibabel.spatialimages.SpatialImage`): the value of the map or the proxy to it
-            file_path (str): optionally, the file path with the location of this map
+            file_path (str): optionally, the file path with the location of this map.
+                If not set we try to retreive it from the data if the data is of subclass
+                :class:`mdt.nifti.NiftiInfoDecorated`.
         """
         self._data = data
         self._shape = self._data.shape
         self._file_path = file_path
+
+        if self._file_path is None:
+            if isinstance(data, NiftiInfoDecorated):
+                self._file_path = data.nifti_info.filepath
 
     @classmethod
     def from_file(cls, nifti_path):
@@ -1085,6 +1091,8 @@ class SingleMapInfo(object):
 
     def get_bounding_box(self, dimension, slice_index, volume_index, rotate):
         """Get the bounding box of this map when displayed using the given indicing.
+
+        This only works if the edges of the images are exactly zero, that is, it only works with masked datasets.
 
         Args:
             dimension (int): the dimension to search in

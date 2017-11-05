@@ -17,7 +17,10 @@ class DTIMeasures(CLRoutine):
         """Apply post optimization modification of the Tensor compartment.
 
         This will re-orient the Tensor such that the eigen values are in decreasing order. This is done by
-        permuting the eigen values and eigen vectors and then recreating theta, phi and psi to match the rotated system.
+        permuting the eigen-values and -vectors and then recreating theta, phi and psi to match the rotated system.
+
+        This is done primarily to be able to directly use the Tensor results in MCMC sampling. Since we often put a
+        prior on the diffusivities to be in decreasing order, we need to make sure that the starting point is valid.
 
         Args:
             parameters_dict (dict): the results from optimization
