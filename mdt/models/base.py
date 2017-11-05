@@ -53,6 +53,18 @@ class DMRIOptimizable(object):
             :class:`list`: A list of columns names that are to be taken from the protocol data.
         """
 
+    def update_active_post_processing(self, processing_type, settings):
+        """Update the active post-processing semaphores.
+
+        It is possible to control which post-processing routines get run by overwriting them using this method.
+        For a list of post-processors, please see the default mdt configuration file under ``active_post_processing``.
+
+        Args:
+            processing_type (str): one of ``sampling`` or ``optimization``.
+            settings (dict): the items to set in the post-processing information
+        """
+        raise NotImplementedError()
+
 
 class InputDataProblem(object):
 

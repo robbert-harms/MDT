@@ -34,6 +34,7 @@ class DMRICascadeModelInterface(DMRIOptimizable):
         Returns:
             boolean: True if there is a next model, false otherwise.
         """
+        raise NotImplementedError()
 
     def get_next(self, output_previous_models):
         """Get the next model in the cascade. This is the only function called by the model optimizer.
@@ -47,12 +48,14 @@ class DMRICascadeModelInterface(DMRIOptimizable):
         Returns:
             DMRIOptimizable: The model used for the next fit
         """
+        raise NotImplementedError()
 
     def reset(self):
         """Reset the iteration over the cascade.
 
         The implementing class should now reset the iteration such that get_next gets the first model again.
         """
+        raise NotImplementedError()
 
     def get_model(self, name):
         """Get one of the models in the cascade by name.
@@ -63,6 +66,7 @@ class DMRICascadeModelInterface(DMRIOptimizable):
         Returns:
             the model we want to have or None if no model found
         """
+        raise NotImplementedError()
 
     def get_model_names(self):
         """Get the names of the models in this cascade in order of execution.
@@ -70,9 +74,16 @@ class DMRICascadeModelInterface(DMRIOptimizable):
         Returns:
             list of str: the names of the models in this list
         """
+        raise NotImplementedError()
 
     def set_input_data(self, input_data):
         """Set the input data in every model in the cascade."""
+        raise NotImplementedError()
+
+    def update_active_post_processing(self, processing_type, settings):
+        """Update the active post-processing semaphores for every model.
+        """
+        raise NotImplementedError()
 
 
 class SimpleCascadeModel(DMRICascadeModelInterface):
@@ -139,6 +150,10 @@ class SimpleCascadeModel(DMRICascadeModelInterface):
     def set_input_data(self, input_data):
         for model in self._model_list:
             model.set_input_data(input_data)
+
+    def update_active_post_processing(self, processing_type, settings):
+        for model in self._model_list:
+            model.update_active_post_processing(processing_type, settings)
 
     def _set_model_options(self, model):
         """The final hook before we return a model from this class.

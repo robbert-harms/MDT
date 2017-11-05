@@ -5,7 +5,7 @@ import copy
 
 import numpy as np
 
-from mdt.configuration import get_post_processing
+from mdt.configuration import get_active_post_processing
 from mdt.deferred_mappings import DeferredFunctionDict
 from mot.cl_routines.mapping.codec_runner import CodecRunner
 
@@ -64,7 +64,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
 
         self.nmr_parameters_for_bic_calculation = self.get_nmr_estimable_parameters()
         self.required_nmr_shells = False
-        self.post_processing = get_post_processing()
+        self._post_processing = get_active_post_processing()
 
     def build(self, problems_to_analyze=None):
         sample_model = super(DMRICompositeModel, self).build(problems_to_analyze)
@@ -80,7 +80,30 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
                                    self._get_sampling_statistics(),
                                    self.get_free_param_names(),
                                    self.get_parameter_codec(),
-                                   copy.deepcopy(self.post_processing))
+                                   copy.deepcopy(self._post_processing))
+
+    def update_active_post_processing(self, processing_type, settings):
+        """Update the active post-processing semaphores.
+
+        It is possible to control which post-processing routines get run by overwriting them using this method.
+        For a list of post-processors, please see the default mdt configuration file under ``active_post_processing``.
+
+        Args:
+            processing_type (str): one of ``sampling`` or ``optimization``.
+            settings (dict): the items to set in the post-processing information
+        """
+        self._post_processing[processing_type].update(settings)
+
+    def get_active_post_processing(self):
+        """Get a dictionary with the active post processing.
+
+        This returns a dictionary with as first level the processing type and as second level the post-processing
+        options.
+
+        Returns:
+            dict: the dictionary with the post-processing options for both sampling and optimization.
+        """
+        return copy.deepcopy(self._post_processing)
 
     def get_free_param_names(self):
         """Get the names of the free parameters"""
@@ -421,8 +444,7 @@ class BuildCompositeModel(MRIModelInterface):
         """
         return self._proposal_state_names
 
-    def post_process_optimization_maps(self, results_dict, results_array=None,
-                                       log_likelihoods=None, calculate_covariance=True):
+    def post_process_optimization_maps(self, results_dict, results_array=None, log_likelihoods=None):
         """This adds some extra optimization maps to the results dictionary.
 
         This function behaves as a procedure and as a function. The input dict can be updated in place, but it should
@@ -447,8 +469,7 @@ class BuildCompositeModel(MRIModelInterface):
                 will construct it in this function.
             log_likelihoods (ndarray): for every set of parameters the corresponding log likelihoods.
                 If not provided they will be calculated from the parameters.
-            calculate_covariance (boolean): if we will calculate the covariance matrix using the Hessian at the
-                optimal point.
+
         Returns:
             dict: The same result dictionary but with updated values or with additional maps.
                 It should at least return the results_dict.
@@ -465,7 +486,7 @@ class BuildCompositeModel(MRIModelInterface):
         results_dict.update(self._get_post_optimization_information_criterion_maps(
             results_array, log_likelihoods=log_likelihoods))
 
-        if calculate_covariance:
+        if self._post_processing['optimization']['covariance']:
             results_dict.update(self._calculate_hessian_covariance(results_array))
 
         for routine in self._extra_optimization_maps:

@@ -48,7 +48,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 def fit_model(model, input_data, output_folder, optimizer=None,
               recalculate=False, only_recalculate_last=False, cascade_subdir=False,
               cl_device_ind=None, double_precision=False, tmp_results_dir=True, save_user_script_info=True,
-              initialization_data=None):
+              initialization_data=None, post_processing=None):
     """Run the optimizer on the given model.
 
     Args:
@@ -92,6 +92,10 @@ def fit_model(model, input_data, output_folder, optimizer=None,
             is transformed into::
 
                 initialization_data = SimpleInitializationData(fixes={...}, inits={...})
+        post_processing (dict): a dictionary with flags for post-processing options to enable or disable.
+            For valid elements, please see the configuration file settings for ``optimization``
+            under ``post_processing``. Valid input for this parameter is for example: {'covariance': False}
+            to disable automatic calculation of the covariance from the Hessian.
 
     Returns:
         dict: The result maps for the given composite model or the last model in the cascade.
@@ -117,7 +121,8 @@ def fit_model(model, input_data, output_folder, optimizer=None,
                          only_recalculate_last=only_recalculate_last,
                          cascade_subdir=cascade_subdir,
                          cl_device_ind=cl_device_ind, double_precision=double_precision,
-                         tmp_results_dir=tmp_results_dir, initialization_data=initialization_data)
+                         tmp_results_dir=tmp_results_dir, initialization_data=initialization_data,
+                         post_processing=post_processing)
 
     results = model_fit.run()
     easy_save_user_script_info(save_user_script_info, output_folder + '/used_scripts.py',
@@ -191,7 +196,7 @@ def sample_model(model, input_data, output_folder, sampler=None, recalculate=Fal
         model = get_model(model)
 
     if post_processing:
-        model.post_processing['sampling'].update(post_processing)
+        model.update_active_post_processing('sampling', post_processing)
 
     if isinstance(model, DMRICascadeModelInterface):
         raise ValueError('The function \'sample_model()\' does not accept cascade models.')

@@ -191,7 +191,8 @@ class ModelFit(object):
 
     def __init__(self, model, input_data, output_folder, optimizer=None,
                  recalculate=False, only_recalculate_last=False, cascade_subdir=False,
-                 cl_device_ind=None, double_precision=False, tmp_results_dir=True, initialization_data=None):
+                 cl_device_ind=None, double_precision=False, tmp_results_dir=True, initialization_data=None,
+                 post_processing=None):
         """Setup model fitting for the given input model and data.
 
         To actually fit the model call run().
@@ -222,11 +223,18 @@ class ModelFit(object):
             initialization_data (:class:`~mdt.utils.InitializationData`): extra initialization data to use
                 during model fitting. If we are optimizing a cascade model this data only applies to the last model in the
                 cascade.
+            post_processing (dict): a dictionary with flags for post-processing options to enable or disable.
+                For valid elements, please see the configuration file settings for ``optimization``
+                under ``post_processing``. Valid input for this parameter is for example: {'covariance': False}
+                to disable automatic calculation of the covariance from the Hessian.
+
         """
         if isinstance(model, string_types):
             model = get_model(model)
 
         model.double_precision = double_precision
+        if post_processing:
+            model.update_active_post_processing('optimization', post_processing)
 
         self._model = model
         self._input_data = input_data

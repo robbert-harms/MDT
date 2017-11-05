@@ -32,8 +32,8 @@ class CHARMED_r1(DMRICompositeModelTemplate):
              'CHARMEDRestricted0.d': 1e-9}
 
     extra_optimization_maps = [
-        lambda results: {'FR': 1 - results['w_hin0.w'],
-                         'FR.std': results['w_hin0.w.std']}
+        lambda results: {'FR': 1 - results['w_hin0.w']},
+        lambda results: {'FR.std': results['w_hin0.w.std']}
     ]
 
 
@@ -70,8 +70,8 @@ class CHARMED_r2(DMRICompositeModelTemplate):
     sort_maps = [('w_res0', 'w_res1'), ('CHARMEDRestricted0', 'CHARMEDRestricted1')]
 
     extra_optimization_maps = [
-        lambda results: {'FR': 1 - results['w_hin0.w'],
-                         'FR.std': results['w_hin0.w.std']}
+        lambda results: {'FR': 1 - results['w_hin0.w']},
+        lambda results: {'FR.std': results['w_hin0.w.std']}
     ]
 
     extra_prior = 'return w_res1.w < w_res0.w;'
@@ -115,8 +115,8 @@ class CHARMED_r3(DMRICompositeModelTemplate):
     sort_maps = [('w_res0', 'w_res1', 'w_res2'), ('CHARMEDRestricted0', 'CHARMEDRestricted1', 'CHARMEDRestricted2')]
 
     extra_optimization_maps = [
-        lambda results: {'FR': 1 - results['w_hin0.w'],
-                         'FR.std': results['w_hin0.w.std']}
+        lambda results: {'FR': 1 - results['w_hin0.w']},
+        lambda results: {'FR.std': results['w_hin0.w.std']}
     ]
 
     extra_prior = 'return w_res2.w < w_res1.w && w_res1.w < w_res0.w;'

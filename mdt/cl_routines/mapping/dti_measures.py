@@ -64,23 +64,25 @@ class DTIMeasures(CLRoutine):
                 These maps are per voxel, and optionally per instance per voxel
         """
         md = (results['d'] + results['dperp0'] + results['dperp1']) / 3.
-        md_std = np.sqrt(results['d.std'] + results['dperp0.std'] + results['dperp1.std']) / 3.
 
         fa = DTIMeasures.fractional_anisotropy(results['d'], results['dperp0'], results['dperp1'])
-        fa_std = DTIMeasures.fractional_anisotropy_std(
-            results['d'], results['dperp0'], results['dperp1'],
-            results['d.std'], results['dperp0.std'], results['dperp1.std'])
 
         output = {
             'FA': fa,
-            'FA.std': fa_std,
             'MD': md,
-            'MD.std': md_std,
             'AD': results['d'],
-            'AD.std': results['d.std'],
             'RD': (results['dperp0'] + results['dperp1']) / 2.0,
-            'RD.std': (results['dperp0.std'] + results['dperp1.std']) / 2.0,
         }
+
+        if all('{}.std'.format(el) in results for el in ['d', 'dperp0', 'dperp1']):
+            output.update({
+                'FA.std': DTIMeasures.fractional_anisotropy_std(
+                    results['d'], results['dperp0'], results['dperp1'],
+                    results['d.std'], results['dperp0.std'], results['dperp1.std']),
+                'MD.std': np.sqrt(results['d.std'] + results['dperp0.std'] + results['dperp1.std']) / 3.,
+                'AD.std': results['d.std'],
+                'RD.std': (results['dperp0.std'] + results['dperp1.std']) / 2.0,
+            })
 
         if all(el in results for el in ['theta', 'phi', 'psi']):
             eigenvectors = tensor_spherical_to_cartesian(np.squeeze(results['theta']),

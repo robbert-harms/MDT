@@ -17,8 +17,8 @@ class BallStick_r1(DMRICompositeModelTemplate):
              'Stick0.d': 1.7e-9}
 
     extra_optimization_maps = [
-        lambda results: {'FS': 1 - results['w_ball.w'],
-                         'FS.std': results['w_ball.w.std']}
+        lambda results: {'FS': 1 - results['w_ball.w']},
+        lambda results: {'FS.std': results['w_ball.w.std']}
     ]
 
 
@@ -37,8 +37,8 @@ class BallStick_r2(DMRICompositeModelTemplate):
     sort_maps = [('w_stick0', 'w_stick1'), ('Stick0', 'Stick1')]
 
     extra_optimization_maps = [
-        lambda results: {'FS': 1 - results['w_ball.w'],
-                         'FS.std': results['w_ball.w.std']}
+        lambda results: {'FS': 1 - results['w_ball.w']},
+        lambda results: {'FS.std': results['w_ball.w.std']}
     ]
 
     extra_prior = 'return w_stick1.w < w_stick0.w;'
@@ -62,8 +62,8 @@ class BallStick_r3(DMRICompositeModelTemplate):
     sort_maps = [('w_stick0', 'w_stick1', 'w_stick2'), ('Stick0', 'Stick1', 'Stick2')]
 
     extra_optimization_maps = [
-        lambda results: {'FS': 1 - results['w_ball.w'],
-                         'FS.std': results['w_ball.w.std']}
+        lambda results: {'FS': 1 - results['w_ball.w']},
+        lambda results: {'FS.std': results['w_ball.w.std']}
     ]
 
     extra_prior = 'return w_stick2.w < w_stick1.w && w_stick1.w < w_stick0.w;'
