@@ -35,7 +35,7 @@ Optional items (these will take precedence if present):
 class HCP_MGH(SimpleBatchProfile):
 
     def __init__(self, base_directory, **kwargs):
-        if kwargs['output_sub_dir'] is None:
+        if kwargs.get('output_sub_dir', None) is None:
             kwargs['output_sub_dir'] = 'diff/preproc/output'
         super(HCP_MGH, self).__init__(base_directory, **kwargs)
 

@@ -39,10 +39,10 @@ class BatchFit(BasicShellApplication):
         description = textwrap.dedent(__doc__)
 
         examples = textwrap.dedent('''
-            mdt-batch-fit .
-            mdt-batch-fit /data/mgh --batch-profile 'HCP_MGH'
-            mdt-batch-fit . --subjects-index 0 1 2 --subjects-id 1003 1004
-            mdt-batch-fit . --dry-run --models-to-fit 'BallStick_r1 (Cascade)' 'Tensor (Cascade)'
+            mdt-batch-fit . 'NODDI (Cascade)'
+            mdt-batch-fit /data/mgh 'BallStick_r1' --batch-profile 'HCP_MGH'
+            mdt-batch-fit . CHARMED_r1 --subjects-id 1003 1004 --subjects-index 0 1 2
+            mdt-batch-fit . 'BallStick_r1 (Cascade)' 'Tensor (Cascade)' --dry-run
         ''')
         epilog = self._format_examples(doc_parser, examples)
 
