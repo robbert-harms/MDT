@@ -44,6 +44,49 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 _config = {}
 
 
+def get_config_option(option_name):
+    """Get the current configuration option for the given option name.
+
+    Args:
+        option_name (list of str or str): the name of the option, or a path to the option.
+
+    Returns:
+        object: the raw configuration value defined for that option
+    """
+    if isinstance(option_name, string_types):
+        return _config[option_name]
+    else:
+        config = _config
+        for el in option_name[:-1]:
+            config = config[el]
+        return config[option_name[-1]]
+
+
+def set_config_option(option_name, value):
+    """Set the current configuration option for the given option name.
+
+    This will overwrite the current configuration for that option with the given value. Be careful, this will change
+    the global configuration value.
+
+    Provided values should be objects and not YAML strings. For updating the configuration with YAML strings, please use
+    the function :func:`load_from_yaml`.
+
+    Args:
+        option_name (list of str or str): the name of the option, or a path to the option.
+        value (object): the object to set for that option
+
+    Returns:
+        object: the raw configuration value defined for that option
+    """
+    if isinstance(option_name, string_types):
+        _config[option_name] = value
+    else:
+        config = _config
+        for el in option_name[:-1]:
+            config = config[el]
+        config[option_name[-1]] = value
+
+
 def get_config_dir():
     """Get the location of the components.
 

@@ -25,6 +25,7 @@ from numpy.lib.format import open_memmap
 from mdt.nifti import write_all_as_nifti, get_all_nifti_data
 from mdt.configuration import gzip_optimization_results, gzip_sampling_results
 from mdt.utils import create_roi, load_samples
+import collections
 
 
 __author__ = 'Robbert Harms'
@@ -341,9 +342,11 @@ class SimpleModelProcessor(ModelProcessor):
             volume_indices (ndarray): the volume indices of the computed data points
             filename (str): the file to write the results to. This by default will append to the file if it exists.
         """
-        map_4d_dim_len = 1
-        if len(data.shape) > 1:
-            map_4d_dim_len = data.shape[1]
+        extra_dims = (1,)
+        if len(data.shape) == 2:
+            extra_dims = (data.shape[1],)
+        elif len(data.shape) > 2:
+            extra_dims = data.shape[1:]
         else:
             data = np.reshape(data, (-1, 1))
 
@@ -352,7 +355,7 @@ class SimpleModelProcessor(ModelProcessor):
             mode = 'r+'
 
         tmp_matrix = open_memmap(filename, mode=mode, dtype=data.dtype,
-                                 shape=self._mask.shape[0:3] + (map_4d_dim_len,))
+                                 shape=self._mask.shape[0:3] + extra_dims)
         tmp_matrix[volume_indices[:, 0], volume_indices[:, 1], volume_indices[:, 2]] = data
 
     def _combine_volumes(self, output_dir, tmp_storage_dir, nifti_header, maps_subdir=''):
@@ -368,19 +371,22 @@ class SimpleModelProcessor(ModelProcessor):
         Returns:
             dict: the dictionary with the ROIs for every volume, by parameter name
         """
-        if not os.path.exists(os.path.join(output_dir, maps_subdir)):
-            os.makedirs(os.path.join(output_dir, maps_subdir))
+        full_output_dir = os.path.join(output_dir, maps_subdir)
+        if not os.path.exists(full_output_dir):
+            os.makedirs(full_output_dir)
+
+        for fname in os.listdir(full_output_dir):
+            if fname.endswith('.nii.gz'):
+                os.remove(os.path.join(full_output_dir, fname))
 
         map_names = list(map(lambda p: os.path.splitext(os.path.basename(p))[0],
                              glob.glob(os.path.join(tmp_storage_dir, maps_subdir, '*.npy'))))
 
-        basic_info = (os.path.join(tmp_storage_dir, maps_subdir),
-                      os.path.join(output_dir, maps_subdir),
-                      nifti_header,
-                      self._write_volumes_gzipped)
-        info_list = [(map_name, basic_info) for map_name in map_names]
-
-        list(map(_combine_volumes_write_out, info_list))
+        chunks_dir = os.path.join(tmp_storage_dir, maps_subdir)
+        for map_name in map_names:
+            data = np.load(os.path.join(chunks_dir, map_name + '.npy'), mmap_mode='r')
+            write_all_as_nifti({map_name: data}, full_output_dir, nifti_header=nifti_header,
+                               gzip=self._write_volumes_gzipped)
 
     def _create_roi_to_volume_index_lookup_table(self):
         """Creates and returns a lookup table for roi index -> volume index.
@@ -424,19 +430,35 @@ class FittingProcessor(SimpleModelProcessor):
         self._model = model
         self._optimizer = optimizer
         self._write_volumes_gzipped = gzip_optimization_results()
+        self._subdirs = set()
 
     def _process(self, roi_indices, next_indices=None):
         model = self._model.build_with_codec(roi_indices)
         optimization_results = self._optimizer.minimize(model)
 
-        volume_maps = model.get_post_optimization_volume_maps(optimization_results)
-        volume_maps.update({self._used_mask_name: np.ones(roi_indices.shape[0], dtype=np.bool)})
+        results = model.get_post_optimization_output(optimization_results)
+        results.update({self._used_mask_name: np.ones(roi_indices.shape[0], dtype=np.bool)})
 
-        self._write_volumes(volume_maps, roi_indices, self._tmp_storage_dir)
+        self._write_output_recursive(results, roi_indices)
+
+    def _write_output_recursive(self, results, roi_indices, sub_dir=''):
+        current_output = {}
+        sub_dir = sub_dir
+
+        for key, value in results.items():
+            if isinstance(value, collections.Mapping):
+                self._write_output_recursive(value, roi_indices, os.path.join(sub_dir, key))
+            else:
+                current_output[key] = value
+
+        self._write_volumes(current_output, roi_indices, os.path.join(self._tmp_storage_dir, sub_dir))
+        self._subdirs.add(sub_dir)
 
     def combine(self):
         super(FittingProcessor, self).combine()
-        self._combine_volumes(self._output_dir, self._tmp_storage_dir, self._nifti_header)
+        for subdir in self._subdirs:
+            self._combine_volumes(self._output_dir, self._tmp_storage_dir,
+                                  self._nifti_header, maps_subdir=subdir)
         return create_roi(get_all_nifti_data(self._output_dir), self._mask)
 
 
@@ -458,7 +480,7 @@ class SamplingProcessor(SimpleModelProcessor):
         self._model = model
         self._write_volumes_gzipped = gzip_sampling_results()
         self._samples_to_save_method = samples_to_save_method or SaveAllSamples()
-        self._post_processing_dirs = set()
+        self._subdirs = set()
         self._logger = logging.getLogger(__name__)
 
     def _process(self, roi_indices, next_indices=None):
@@ -468,13 +490,8 @@ class SamplingProcessor(SimpleModelProcessor):
 
         self._logger.info('Starting post-processing')
         maps_to_save = model.get_post_sampling_maps(sampling_output)
-
-        for map_name, items in maps_to_save.items():
-            self._post_processing_dirs.add(map_name)
-            self._write_volumes(items, roi_indices, os.path.join(self._tmp_storage_dir, map_name))
-
-        mask_dict = {self._used_mask_name: np.ones(samples.shape[0], dtype=np.bool)}
-        self._write_volumes(mask_dict, roi_indices, os.path.join(self._tmp_storage_dir))
+        maps_to_save.update({self._used_mask_name: np.ones(samples.shape[0], dtype=np.bool)})
+        self._write_output_recursive(maps_to_save, roi_indices)
 
         if self._samples_to_save_method.store_samples():
             samples_dict = results_to_dict(samples, model.get_free_param_names())
@@ -486,16 +503,27 @@ class SamplingProcessor(SimpleModelProcessor):
     def combine(self):
         super(SamplingProcessor, self).combine()
 
-        for subdir in self._post_processing_dirs:
+        for subdir in self._subdirs:
             self._combine_volumes(self._output_dir, self._tmp_storage_dir,
                                   self._nifti_header, maps_subdir=subdir)
-
-        self._combine_volumes(self._output_dir, self._tmp_storage_dir, self._nifti_header)
 
         if self._samples_to_save_method.store_samples():
             return load_samples(self._output_dir)
 
         return SamplingProcessor.SampleChainNotStored()
+
+    def _write_output_recursive(self, results, roi_indices, sub_dir=''):
+        current_output = {}
+        sub_dir = sub_dir
+
+        for key, value in results.items():
+            if isinstance(value, collections.Mapping):
+                self._write_output_recursive(value, roi_indices, os.path.join(sub_dir, key))
+            else:
+                current_output[key] = value
+
+        self._write_volumes(current_output, roi_indices, os.path.join(self._tmp_storage_dir, sub_dir))
+        self._subdirs.add(sub_dir)
 
     def _write_sample_results(self, results, roi_indices):
         """Write the sample results to a .npy file.

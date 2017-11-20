@@ -46,8 +46,8 @@ class MRIModelBuilder(ModelBuilder):
 class MRIModelInterface(SampleModelInterface, NumericalDerivativeInterface):
     """Extends the :class:`~mot.model_interfaces.SampleModelInterface` for use within MDT."""
 
-    def get_post_optimization_volume_maps(self, optimization_results):
-        """Transform the optimization results object into a dictionary with all maps we would like to save.
+    def get_post_optimization_output(self, optimization_results):
+        """Transform the optimization results into a dictionary with all maps we would like to save.
 
         This is where additional post processing can take place on the optimization results.
 
@@ -56,6 +56,13 @@ class MRIModelInterface(SampleModelInterface, NumericalDerivativeInterface):
                 the optimizer.
 
         Returns:
-            dict: containing all data we would like to store
+            dict: the output dictionary. Every value of this dictionary can be ndarray or a dictionary. If it is a
+                dictionary we create a subfolder with the key of that value and store all items in that sub-dictionary
+                in that subfolder.
+
+                For example, the dictionary ``{'a': ndarray1, 'b': {'c': ndarray2}}`` would write the files:
+
+                    * ./a.nii.gz
+                    * ./b/c.nii.gz
         """
         raise NotImplementedError()

@@ -52,7 +52,7 @@ def get_compartment(compartment_name, **kwargs):
         **kwargs: Extra keyword arguments used for the initialization of the model
 
     Returns:
-        the compartment model requested
+        mdt.models.compartments.DMRICompartmentModelFunction: the compartment model requested
     """
     return CompartmentModelsLoader().load(compartment_name, **kwargs)
 

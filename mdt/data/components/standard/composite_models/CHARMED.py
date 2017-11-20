@@ -1,4 +1,5 @@
 from mdt.component_templates.composite_models import DMRICompositeModelTemplate
+from mdt.models.mcmc_fit_distributions import MultivariateGaussian
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -15,20 +16,25 @@ class CHARMED_r1(DMRICompositeModelTemplate):
                (Weight(w_res0) * CHARMEDRestricted(CHARMEDRestricted0))
                )
     '''
+    #
+    # lower_bounds = {
+        # 'Tensor.d': 1e-9,
+        # 'Tensor.dperp0': 1e-9,
+        # 'Tensor.dperp1': 0.5e-9
+    # }
 
-    lower_bounds = {'Tensor.d': 1e-9,
-                    'Tensor.dperp0': 0.3e-9,
-                    'Tensor.dperp1': 0.3e-9,
-                    'CHARMEDRestricted0.d': 0.3e-9}
+    # upper_bounds = {'CHARMEDRestricted0.d': 3e-9}
 
-    upper_bounds = {'Tensor.d': 5e-9,
-                    'Tensor.dperp0': 5e-9,
-                    'Tensor.dperp1': 3e-9,
-                    'CHARMEDRestricted0.d': 3e-9}
+    upper_bounds = {
+        # 'Tensor.d': 5e-9,
+        # 'Tensor.dperp0': 5e-9,
+        # 'Tensor.dperp1': 3e-9,
+        'CHARMEDRestricted0.d': 3e-9
+    }
 
-    inits = {'Tensor.d': 1.2e-9,
-             'Tensor.dperp0': 0.5e-9,
-             'Tensor.dperp1': 0.5e-9,
+    inits = {'Tensor.d': 2e-9,
+             'Tensor.dperp0': 1e-9,
+             'Tensor.dperp1': 1e-9,
              'CHARMEDRestricted0.d': 1e-9}
 
     extra_optimization_maps = [
@@ -47,23 +53,31 @@ class CHARMED_r2(DMRICompositeModelTemplate):
                (Weight(w_res1) * CHARMEDRestricted(CHARMEDRestricted1)) )
     '''
 
-    lower_bounds = {'Tensor.d': 1e-9,
-                    'Tensor.dperp0': 0.3e-9,
-                    'Tensor.dperp1': 0.3e-9,
-                    'CHARMEDRestricted0.d': 0.3e-9,
-                    'CHARMEDRestricted1.d': 0.3e-9}
+    # lower_bounds = {'Tensor.d': 1e-9,
+    #                 'Tensor.dperp0': 0.3e-9,
+    #                 'Tensor.dperp1': 0.3e-9,
+    #                 'CHARMEDRestricted0.d': 0.3e-9,
+    #                 'CHARMEDRestricted1.d': 0.3e-9}
+    #
+    # upper_bounds = {'Tensor.d': 5e-9,
+    #                 'Tensor.dperp0': 5e-9,
+    #                 'Tensor.dperp1': 3e-9,
+    #                 'CHARMEDRestricted0.d': 3e-9,
+    #                 'CHARMEDRestricted1.d': 3e-9}
+    #
+    # inits = {'Tensor.d': 1.2e-9,
+    #          'Tensor.dperp0': 0.5e-9,
+    #          'Tensor.dperp1': 0.5e-9,
+    #          'CHARMEDRestricted0.d': 1e-9,
+    #          'CHARMEDRestricted1.d': 1e-9,
+    #          'w_res0.w': 0.1,
+    #          'w_res1.w': 0.1}
 
-    upper_bounds = {'Tensor.d': 5e-9,
-                    'Tensor.dperp0': 5e-9,
-                    'Tensor.dperp1': 3e-9,
-                    'CHARMEDRestricted0.d': 3e-9,
-                    'CHARMEDRestricted1.d': 3e-9}
-
-    inits = {'Tensor.d': 1.2e-9,
-             'Tensor.dperp0': 0.5e-9,
-             'Tensor.dperp1': 0.5e-9,
-             'CHARMEDRestricted0.d': 1e-9,
-             'CHARMEDRestricted1.d': 1e-9,
+    inits = {'Tensor.d': 2e-9,
+             'Tensor.dperp0': 1e-9,
+             'Tensor.dperp1': 1e-9,
+             'CHARMEDRestricted0.d': 1.7e-9,
+             'CHARMEDRestricted1.d': 1.7e-9,
              'w_res0.w': 0.1,
              'w_res1.w': 0.1}
 

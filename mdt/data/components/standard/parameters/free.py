@@ -11,11 +11,8 @@ import numpy as np
 from mdt.component_templates.parameters import FreeParameterTemplate
 from mot.model_building.parameter_functions.priors import UniformWithinBoundsPrior
 from mot.model_building.parameter_functions.proposals import GaussianProposal, CircularGaussianProposal
-from mot.model_building.parameter_functions.sample_statistics import CircularGaussianFit, GaussianFit, \
-    TruncatedGaussianFit
 from mot.model_building.parameter_functions.transformations import ClampTransform, AbsModPiTransform, \
-    SinSqrClampTransform, CosSqrClampTransform
-
+    SinSqrClampTransform, CosSqrClampTransform, AbsModTwoPiTransform
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-12-12"
@@ -117,22 +114,27 @@ class theta(FreeParameterTemplate):
     parameter_transform = AbsModPiTransform()
     sampling_proposal = CircularGaussianProposal(np.pi, 0.1)
     sampling_prior = UniformWithinBoundsPrior()
-    sampling_statistics = CircularGaussianFit()
     numdiff_info = {'use_bounds': False, 'modulus': np.pi}
+    samples_fitting_gaussian_type = 'circular'
 
 
 class phi(FreeParameterTemplate):
     """The azimuth angle.
 
     We limit this parameter between [0, pi] making us only use (together with theta between [0, pi]) only the right
-    hemisphere. This is possible since diffusion is symmetric and works fine during optimization.
+    hemisphere. This is possible since diffusion is symmetric and works fine during optimization. For calculating the
+    numerical derivative we can let phi rotate around 2*pi again.
 
-    However, during sampling the results can clip to pi since the standard formula for transforming spherical
-    coordinates to cartesian coordinates defines phi to be in the range [0, 2*pi]. This is both a problem and a
-    blessing. The problem is that the samples will not wrap nicely around pi, the blessing is that we prevent a
-    bimodal distribution in phi. Not wrapping around pi is not much of a problem though, as the sampler can easily
-    sample only half of a gaussian if the optimal parameter is around pi. A point estimate can then be obtained using
-    a truncated gaussian.
+    During sampling the results can clip to pi since the standard formula for transforming spherical coordinates to
+    cartesian coordinates defines phi to be in the range [0, 2*pi]. This is both a problem and a blessing. The problem
+    is that the samples will not wrap nicely around pi, the blessing is that we prevent a bimodal distribution in phi.
+    Not wrapping around pi is not much of a problem though, as the sampler can easily sample only half of a gaussian
+    if the optimal parameter is around zero or pi.
+
+    Still, we by default opted for the standard Gaussian for fitting the samples obtained by MCMC, since there are
+    non-unique configurations of theta and phi possible, even within the domain [0, pi] we use for both parameters.
+    Another possible option for the future is to transform the theta phi vectors into cartesian coordinates and
+    fit a Gaussian to them.
     """
     init_value = np.pi / 2.0
     lower_bound = 0
@@ -140,7 +142,7 @@ class phi(FreeParameterTemplate):
     parameter_transform = CosSqrClampTransform()
     sampling_proposal = GaussianProposal(0.1)
     sampling_prior = UniformWithinBoundsPrior()
-    sampling_statistics = TruncatedGaussianFit()
+    numdiff_info = {'use_bounds': False, 'modulus': 2*np.pi}
 
 
 class psi(FreeParameterTemplate):
@@ -154,8 +156,8 @@ class psi(FreeParameterTemplate):
     parameter_transform = AbsModPiTransform()
     sampling_proposal = CircularGaussianProposal(np.pi, 0.5)
     sampling_prior = UniformWithinBoundsPrior()
-    sampling_statistics = CircularGaussianFit()
     numdiff_info = {'use_bounds': False, 'modulus': np.pi}
+    samples_fitting_gaussian_type = 'circular'
 
 
 class d(FreeParameterTemplate):
@@ -165,7 +167,6 @@ class d(FreeParameterTemplate):
     upper_bound = 1.0e-8
     parameter_transform = SinSqrClampTransform()
     sampling_proposal = GaussianProposal(1e-10)
-    sampling_statistics = TruncatedGaussianFit(1e10)
     numdiff_info = {'scale_factor': 1e10}
 
 
@@ -176,7 +177,6 @@ class dperp0(FreeParameterTemplate):
     upper_bound = 1.0e-8
     parameter_transform = SinSqrClampTransform()
     sampling_proposal = GaussianProposal(5e-10)
-    sampling_statistics = TruncatedGaussianFit(1e10)
     numdiff_info = {'scale_factor': 1e10}
 
 
@@ -187,7 +187,6 @@ class dperp1(FreeParameterTemplate):
     upper_bound = 1.0e-8
     parameter_transform = SinSqrClampTransform()
     sampling_proposal = GaussianProposal(5e-10)
-    sampling_statistics = TruncatedGaussianFit(1e10)
     numdiff_info = {'scale_factor': 1e10}
 
 
@@ -198,7 +197,6 @@ class R(FreeParameterTemplate):
     upper_bound = 20e-6
     parameter_transform = CosSqrClampTransform()
     sampling_proposal = GaussianProposal(1e-7)
-    sampling_statistics = TruncatedGaussianFit(1e6)
 
 
 class kappa(FreeParameterTemplate):
@@ -208,7 +206,6 @@ class kappa(FreeParameterTemplate):
     upper_bound = 2 * np.pi
     parameter_transform = CosSqrClampTransform()
     sampling_proposal = GaussianProposal(0.01)
-    sampling_statistics = TruncatedGaussianFit()
     numdiff_info = {'scale_factor': 10}
 
 

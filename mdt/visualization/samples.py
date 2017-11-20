@@ -3,6 +3,7 @@ from matplotlib.gridspec import GridSpec
 from matplotlib.widgets import Slider
 from scipy.stats import norm
 import matplotlib.mlab as mlab
+import numpy as np
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-09-02"
@@ -26,10 +27,11 @@ class SampleVisualizer(object):
         self._nmr_bins = 30
         self._show_slider = True
         self._fit_gaussian = True
+        self._sample_indices = None
 
     def show(self, voxel_ind=0, names=None, maps_to_show=None, to_file=None, block=True, maximize=False,
              show_trace=True, nmr_bins=20, window_title=None, show_sliders=True, fit_gaussian=True,
-             figure_options=None):
+             figure_options=None, sample_indices=None):
         """Show the samples per voxel.
 
         Args:
@@ -52,6 +54,7 @@ class SampleVisualizer(object):
             fit_gaussian (boolean): if we fit and show a normal distribution (Gaussian) to the histogram or not
             window_title (str): the title of the window. If None, the default title is used
             figure_options (dict) options for the figure
+            sample_indices (list): the list of sample indices to use
         """
         figure_options = figure_options or {'figsize': (18, 16)}
         self._figure = plt.figure(**figure_options)
@@ -65,7 +68,7 @@ class SampleVisualizer(object):
         self._show_trace = show_trace
         self.show_sliders = show_sliders
         self._fit_gaussian = fit_gaussian
-
+        self._sample_indices = sample_indices
         self._setup()
 
         if maximize:
@@ -120,6 +123,9 @@ class SampleVisualizer(object):
         for map_name in self.maps_to_show:
             samples = self._voxels[map_name]
 
+            if self._sample_indices is not None:
+                samples = samples[:, self._sample_indices]
+
             title = map_name
             if map_name in self.names:
                 title = self.names[map_name]
@@ -130,7 +136,7 @@ class SampleVisualizer(object):
                 nmr_bins = self._nmr_bins
 
             hist_plot = plt.subplot(grid[i])
-            n, bins, patches = hist_plot.hist(samples[self.voxel_ind, :], nmr_bins, normed=True)
+            n, bins, patches = hist_plot.hist(np.nan_to_num(samples[self.voxel_ind, :]), nmr_bins, normed=True)
             plt.title(title)
             i += 1
 

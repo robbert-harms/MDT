@@ -33,7 +33,7 @@ from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, wri
 from mdt.components_loader import load_component, get_model, component_import, get_component_class, get_meta_info, \
     get_compartment, get_parameter, get_library_function
 from mdt.component_templates.base import construct_component
-from mdt.configuration import config_context, get_processing_strategy
+from mdt.configuration import config_context, get_processing_strategy, get_config_option, set_config_option
 from mdt.exceptions import InsufficientProtocolError
 from mdt.nifti import write_nifti
 
