@@ -100,7 +100,7 @@ class DTIMeasures(CLRoutine):
         Returns:
             ndarray: the fractional anisotropy for each voxel.
         """
-        d, dperp0, dperp1 = map(lambda el: np.squeeze(el * 1e10), [d, dperp0, dperp1])
+        d, dperp0, dperp1 = map(lambda el: np.squeeze(el).astype(np.float64), [d, dperp0, dperp1])
         return np.sqrt(1/2.) * np.sqrt(((d - dperp0)**2 + (dperp0 - dperp1)**2 + (dperp1 - d)**2)
                                        / (d**2 + dperp0**2 + dperp1**2))
 
@@ -112,7 +112,7 @@ class DTIMeasures(CLRoutine):
             the standard deviation of the fraction anisotropy using error propagation of the diffusivities.
         """
         d, dperp0, dperp1, d_std, dperp0_std, dperp1_std = \
-            map(lambda el: np.squeeze(el * 1e10), [d, dperp0, dperp1, d_std, dperp0_std, dperp1_std])
+            map(lambda el: np.squeeze(el).astype(np.float64), [d, dperp0, dperp1, d_std, dperp0_std, dperp1_std])
 
         return 1/2. * np.sqrt((d + dperp0 + dperp1) ** 2 * (
             d_std ** 2 * (-d * (dperp0 + dperp1) + dperp0 ** 2 + dperp1 ** 2) ** 2 +
