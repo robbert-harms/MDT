@@ -646,8 +646,8 @@ class BuildCompositeModel(MRIModelInterface):
             results_array,
             double_precision=True,
             step_ratio=2,
-            nmr_steps=10,
-            step_offset=2
+            nmr_steps=5,
+            step_offset=1
         )
         covars = hessian_to_covariance(hessian)
 
