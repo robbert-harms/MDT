@@ -57,13 +57,6 @@ class FreeParameterTemplate(ParameterTemplate):
             :class:`~mot.model_building.parameter_functions.numdiff_info.SimpleNumDiffInfo` or an information
             object directly. If None, we use an empty dictionary. Please note that if you override this in a
             parameter you will have to specify all of the items.
-        samples_fitting_gaussian_type (str): the type of (unimodal, univariate) Gaussian we want to use for the
-            marginals of this parameter. This is used by the ``mcmc_fit_distribution`` of a composite model after
-            sampling. Available options are:
-
-            * 'standard': the default Gaussian
-            * 'truncated': a Gaussian truncated between the lower and upper bounds
-            * 'circular': a Gaussian distribution on a circular axis between the lower and upper bounds
     """
     data_type = 'mot_float_type'
     fixed = False
@@ -74,7 +67,6 @@ class FreeParameterTemplate(ParameterTemplate):
     sampling_proposal = GaussianProposal(1.0)
     sampling_prior = UniformWithinBoundsPrior()
     numdiff_info = {'max_step': 1, 'scale_factor': 1, 'use_bounds': True, 'modulus': None}
-    samples_fitting_gaussian_type = 'standard'
 
 
 class StaticMapParameterTemplate(ParameterTemplate):
@@ -122,7 +114,6 @@ class ParameterBuilder(ComponentBuilder):
                         sampling_prior=template.sampling_prior,
                         numdiff_info=numdiff_info
                     )
-                    self.samples_fitting_gaussian_type = template.samples_fitting_gaussian_type
             return AutoFreeParameter
 
         elif issubclass(template, StaticMapParameterTemplate):

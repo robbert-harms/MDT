@@ -115,7 +115,6 @@ class theta(FreeParameterTemplate):
     sampling_proposal = CircularGaussianProposal(np.pi, 0.1)
     sampling_prior = UniformWithinBoundsPrior()
     numdiff_info = {'use_bounds': False, 'modulus': np.pi}
-    samples_fitting_gaussian_type = 'circular'
 
 
 class phi(FreeParameterTemplate):
@@ -157,7 +156,6 @@ class psi(FreeParameterTemplate):
     sampling_proposal = CircularGaussianProposal(np.pi, 0.5)
     sampling_prior = UniformWithinBoundsPrior()
     numdiff_info = {'use_bounds': False, 'modulus': np.pi}
-    samples_fitting_gaussian_type = 'circular'
 
 
 class d(FreeParameterTemplate):

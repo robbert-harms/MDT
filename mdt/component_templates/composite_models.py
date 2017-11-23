@@ -4,7 +4,6 @@ import six
 from mdt.components_loader import get_component_class
 from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate, register_builder
 from mdt.models.composite import DMRICompositeModel
-from mdt.models.mcmc_fit_distributions import MultivariateGaussian
 from mdt.models.parsers.CompositeModelExpressionParser import parse
 from mot.cl_function import CLFunction, SimpleCLFunction
 from mot.model_building.trees import CompartmentModelTree
@@ -136,9 +135,6 @@ class DMRICompositeModelTemplate(ComponentTemplate):
         prior (str, mot.model_building.utils.ModelPrior or None): a model wide prior. This is used in conjunction with
             the compartment priors and the parameter priors. If a string is given we will automatically construct a
             :class:`mot.model_building.utils.ModelPrior` from that string.
-
-        mcmc_fit_distribution (mdt.models.mcmc_fit_distributions.MCMCDistributionFit): the distribution to fit
-            on the samples of this model.
     """
     name = ''
     description = ''
@@ -155,7 +151,6 @@ class DMRICompositeModelTemplate(ComponentTemplate):
     volume_selection = None
     extra_prior = None
     sort_maps = None
-    mcmc_fit_distribution = MultivariateGaussian()
 
     @classmethod
     def meta_info(cls):
@@ -183,14 +178,7 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                     deepcopy(_resolve_likelihood_function(template.likelihood_function)),
                     signal_noise_model=deepcopy(template.signal_noise_model),
                     enforce_weights_sum_to_one=template.enforce_weights_sum_to_one,
-                    mcmc_fit_distribution=deepcopy(template.mcmc_fit_distribution)
                 )
-
-                for m, p in self._model_functions_info.get_model_parameter_list():
-                    if hasattr(p, 'samples_fitting_gaussian_type'):
-                        self._mcmc_fit_distribution.set_parameter_options(
-                            '{}.{}'.format(m.name, p.name), {'distribution_type': p.samples_fitting_gaussian_type},
-                            overwrite=False)
 
                 if template.sort_maps:
                     self._post_optimization_modifiers.append(_get_map_sorting_modifier(

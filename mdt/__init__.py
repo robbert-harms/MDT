@@ -25,7 +25,8 @@ from mdt.utils import estimate_noise_std, get_cl_devices, load_input_data, load_
     apply_mask, create_roi, volume_merge, protocol_merge, create_median_otsu_brain_mask, load_samples, \
     load_nifti, write_slice_roi, apply_mask_to_file, extract_volumes, \
     get_slice_in_dimension, per_model_logging_context, \
-    get_temporary_results_dir, get_example_data, SimpleInitializationData, InitializationData
+    get_temporary_results_dir, get_example_data, SimpleInitializationData, InitializationData, load_volume_maps,\
+    covariance_to_correlation
 from mdt.sorting import sort_orientations, create_sort_matrix, sort_volumes_per_voxel
 from mdt.simulations import create_signal_estimates, simulate_signals, add_rician_noise
 from mdt.batch_utils import collect_batch_fit_output, collect_batch_fit_single_map, run_function_on_batch_fit_output
@@ -503,23 +504,6 @@ def sort_maps(input_maps, reversed_sort=False, sort_index_matrix=None):
     elif isinstance(sort_index_matrix, string_types):
         sort_index_matrix = np.round(load_nifti(sort_index_matrix).get_data()).astype(np.int64)
     return sort_volumes_per_voxel(input_maps, sort_index_matrix)
-
-
-def load_volume_maps(directory, map_names=None, deferred=True):
-    """Read a number of Nifti volume maps from a directory.
-
-    Args:
-        directory (str): the directory from which we want to read a number of maps
-        map_names (list or tuple): the names of the maps we want to use. If given we only use and return these maps.
-        deferred (boolean): if True we return an deferred loading dictionary instead of a dictionary with the values
-            loaded as arrays.
-
-    Returns:
-        dict: A dictionary with the volumes. The keys of the dictionary are the filenames (without the extension) of the
-            files in the given directory.
-    """
-    from mdt.nifti import get_all_nifti_data
-    return get_all_nifti_data(directory, map_names=map_names, deferred=deferred)
 
 
 def get_volume_names(directory):

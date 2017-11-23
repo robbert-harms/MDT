@@ -9,12 +9,10 @@ from mdt.configuration import get_active_post_processing
 from mdt.deferred_mappings import DeferredFunctionDict
 
 from mdt.models.model_interfaces import MRIModelBuilder, MRIModelInterface
-from mot.cl_routines.mapping.codec_runner import CodecRunner
 from mot.cl_routines.mapping.numerical_hessian import NumericalHessian
 from mot.model_building.parameters import ProtocolParameter
-from mot.statistics import deviance_information_criterions
 from mot.utils import convert_data_to_dtype, KernelInputArray, get_class_that_defined_method, \
-    hessian_to_covariance, covariance_to_correlations
+    hessian_to_covariance
 
 from mdt.models.base import MissingProtocolInput, InsufficientShells
 from mdt.models.base import DMRIOptimizable
@@ -35,7 +33,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
 
     def __init__(self, model_name, model_tree, likelihood_function, signal_noise_model=None, input_data=None,
-                 enforce_weights_sum_to_one=True, mcmc_fit_distribution=None):
+                 enforce_weights_sum_to_one=True):
         """A model builder for a composite dMRI sample and optimization model.
 
         It implements some protocol check functions. These are used by the fit_model functions in MDT
@@ -64,7 +62,6 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
         self.nmr_parameters_for_bic_calculation = self.get_nmr_estimable_parameters()
         self.required_nmr_shells = False
         self._post_processing = get_active_post_processing()
-        self._mcmc_fit_distribution = mcmc_fit_distribution
 
     def build(self, problems_to_analyze=None):
         sample_model = super(DMRICompositeModel, self).build(problems_to_analyze)
@@ -77,7 +74,6 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
                                    self._get_dependent_map_calculator(),
                                    self._get_fixed_parameter_maps(problems_to_analyze),
                                    self._get_proposal_state_names(),
-                                   self._mcmc_fit_distribution,
                                    self.get_free_param_names(),
                                    self.get_parameter_codec(),
                                    copy.deepcopy(self._post_processing))
@@ -399,7 +395,6 @@ class BuildCompositeModel(MRIModelInterface):
                  nmr_parameters_for_bic_calculation,
                  post_optimization_modifiers, extra_optimization_maps,
                  dependent_map_calculator, fixed_parameter_maps, proposal_state_names,
-                 mcmc_fit_distribution,
                  free_param_names, parameter_codec, post_processing):
         self._protocol = protocol
         self._estimable_parameters_list = estimable_parameters_list
@@ -409,7 +404,6 @@ class BuildCompositeModel(MRIModelInterface):
         self._dependent_map_calculator = dependent_map_calculator
         self._fixed_parameter_maps = fixed_parameter_maps
         self._proposal_state_names = proposal_state_names
-        self._mcmc_fit_distribution = mcmc_fit_distribution
         self._free_param_names = free_param_names
         self._parameter_codec = parameter_codec
         self._post_processing = post_processing
@@ -518,39 +512,12 @@ class BuildCompositeModel(MRIModelInterface):
             'chain_end_point': lambda: results_to_dict(sampling_output.get_current_chain_position(),
                                                        self.get_free_param_names()),
         }
-
-        if self._mcmc_fit_distribution is not None:
-            items.update({'fit_distribution': lambda: self._fit_mcmc_distribution(sampling_output)})
-
         if self._post_processing['sampling']['univariate_ess']:
             items.update({'univariate_ess': lambda: self._get_univariate_ess(samples)})
         if self._post_processing['sampling']['multivariate_ess']:
             items.update({'multivariate_ess': lambda: self._get_multivariate_ess(samples)})
 
         return DeferredFunctionDict(items, cache=False)
-
-    def _fit_mcmc_distribution(self, sampling_output):
-        """Fit the required distribution to the MCMC samples and try to add a point estimate based on the distribution.
-
-        This fits the mcmc distribution as defined in the model to the data, and afterwards tries to generate
-        a point estimate of those distributions. The point estimate is only added if for every parameter there is a
-        map in the returned distribution with exactly that parameter name. Essentially, the distribution must already
-        return a single point estimate. This method takes that, ensures all parameters are within bounds and adds
-        the standard post-processing maps to it.
-        """
-        samples = sampling_output.get_samples()
-        distribution = self._mcmc_fit_distribution(samples, self._free_param_names,
-                                                   self.get_lower_bounds(), self.get_upper_bounds())
-
-        if all(p in distribution for p in self._free_param_names):
-            distribution.update(self._dependent_map_calculator(self, distribution))
-            distribution.update(self._fixed_parameter_maps)
-            distribution.update(self._get_post_optimization_information_criterion_maps(
-                self._param_dict_to_array(distribution)))
-            distribution.update(deviance_information_criterions(
-                distribution['LogLikelihood'], sampling_output.get_log_likelihoods()))
-
-        return distribution
 
     def _get_mh_state_write_arrays(self, mh_state):
         """Get the state of the Metropolis Hastings sampler to write out such that we can start later at that position.

@@ -1,7 +1,6 @@
 import collections
 import distutils.dir_util
 import glob
-import itertools
 import logging
 import logging.config as logging_config
 import os
@@ -1741,4 +1740,55 @@ def results_to_dict(results, param_names):
         raise ValueError('The number of columns ({}) in the matrix does not match '
                          'the number of dictionary keys provided ({}).'.format(results.shape[1], len(param_names)))
     return {name: results[:, i, ...] for i, name in enumerate(param_names)}
+
+
+def covariance_to_correlation(input_maps):
+    """Transform the covariance maps to correlation maps.
+
+    This function is meant to be used on standard MDT output maps. It will look for maps named
+    ``Covariance_{m0}_to_{m1}`` and ``{m[0-1]}.std`` where m0 and m1 are two map names. It will use the std. maps of m0
+    and m1 to transform the covariance map into a correlation map.
+
+    Typical use case examples (both are equal)::
+
+        covariance_to_correlation('./BallStick_r1/')
+        covariance_to_correlation(mdt.load_volume_maps('./BallStick_r1/'))
+
+    Args:
+        input_maps (dict or str): either a dictionary containing the input maps or a string with a folder name
+
+    Returns:
+        dict: the correlation maps computed from the input maps. The naming scheme is ``Correlation_{m0}_to_{m1}``.
+    """
+    if isinstance(input_maps, string_types):
+        input_maps = load_volume_maps(input_maps)
+
+    correlation_maps = {}
+
+    for map_name in input_maps:
+        match = re.match('Covariance\_(.*)\_to\_(.*)', map_name)
+        if match is not None:
+            m0 = match.group(1)
+            m1 = match.group(2)
+            if all('{}.std'.format(m) in input_maps for m in [m0, m1]):
+                correlation_maps['Correlation_{}_to_{}'.format(m0, m1)] = \
+                    input_maps[map_name] / (input_maps['{}.std'.format(m0)] * input_maps['{}.std'.format(m1)])
+    return correlation_maps
+
+
+def load_volume_maps(directory, map_names=None, deferred=True):
+    """Read a number of Nifti volume maps from a directory.
+
+    Args:
+        directory (str): the directory from which we want to read a number of maps
+        map_names (list or tuple): the names of the maps we want to use. If given we only use and return these maps.
+        deferred (boolean): if True we return an deferred loading dictionary instead of a dictionary with the values
+            loaded as arrays.
+
+    Returns:
+        dict: A dictionary with the volumes. The keys of the dictionary are the filenames (without the extension) of the
+            files in the given directory.
+    """
+    from mdt.nifti import get_all_nifti_data
+    return get_all_nifti_data(directory, map_names=map_names, deferred=deferred)
 
