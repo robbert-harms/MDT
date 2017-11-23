@@ -1307,11 +1307,11 @@ class ComplexNoiseStdEstimator(object):
         raise NotImplementedError()
 
 
-def apply_mask(volume, mask, inplace=True):
+def apply_mask(volumes, mask, inplace=True):
     """Apply a mask to the given input.
 
     Args:
-        volume (str, ndarray, list, tuple or dict): The input file path or the image itself or a list,
+        volumes (str, ndarray, list, tuple or dict): The input file path or the image itself or a list,
             tuple or dict.
         mask (str or ndarray): The filename of the mask or the mask itself
         inplace (boolean): if True we apply the mask in place on the volume image. If false we do not.
@@ -1337,14 +1337,14 @@ def apply_mask(volume, mask, inplace=True):
         _volume[np.logical_not(_mask)] = 0
         return _volume
 
-    if isinstance(volume, tuple):
-        return (apply(v, mask) for v in volume)
-    elif isinstance(volume, list):
-        return [apply(v, mask) for v in volume]
-    elif isinstance(volume, dict):
-        return {k: apply(v, mask) for k, v in volume.items()}
+    if isinstance(volumes, tuple):
+        return (apply(v, mask) for v in volumes)
+    elif isinstance(volumes, list):
+        return [apply(v, mask) for v in volumes]
+    elif isinstance(volumes, dict):
+        return {k: apply(v, mask) for k, v in volumes.items()}
 
-    return apply(volume, mask)
+    return apply(volumes, mask)
 
 
 def apply_mask_to_file(input_fname, mask, output_fname=None):
