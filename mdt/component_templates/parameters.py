@@ -55,8 +55,8 @@ class FreeParameterTemplate(ParameterTemplate):
             the information necessary to take the numerical derivative of a model with respect to this parameter.
             Either a dictionary with the keyword arguments to
             :class:`~mot.model_building.parameter_functions.numdiff_info.SimpleNumDiffInfo` or an information
-            object directly. If None, we use an empty dictionary. Please note that if you override this in a
-            parameter you will have to specify all of the items.
+            object directly. If None, we use an empty dictionary. Please note that if you override this, you will have
+            to specify all of the items (no automatic inheritance of sub-items).
     """
     data_type = 'mot_float_type'
     fixed = False
@@ -66,7 +66,7 @@ class FreeParameterTemplate(ParameterTemplate):
     parameter_transform = IdentityTransform()
     sampling_proposal = GaussianProposal(1.0)
     sampling_prior = UniformWithinBoundsPrior()
-    numdiff_info = {'max_step': 1, 'scale_factor': 1, 'use_bounds': True, 'modulus': None}
+    numdiff_info = {'max_step': 0.1, 'scale_factor': 1, 'use_bounds': True, 'modulus': None}
 
 
 class StaticMapParameterTemplate(ParameterTemplate):

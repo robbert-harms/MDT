@@ -741,7 +741,7 @@ def create_roi(data, brain_mask):
     Args:
         data (string, ndarray or dict): a brain volume with four dimensions (x, y, z, w)
             where w is the length of the protocol, or a list, tuple or dictionary with volumes or a string
-            with a filename of a dataset to use.
+            with a filename of a dataset to use or a directory with the containing maps to load.
         brain_mask (ndarray or str): the mask indicating the region of interest with dimensions: (x, y, z) or the string
             to the brain mask to use
 
@@ -764,6 +764,8 @@ def create_roi(data, brain_mask):
     if isinstance(data, (dict, collections.Mapping)):
         return DeferredActionDict(lambda _, item: create_roi(item, brain_mask), data)
     elif isinstance(data, six.string_types):
+        if os.path.isdir(data):
+            return create_roi(load_volume_maps(data), brain_mask)
         return creator(load_nifti(data).get_data())
     elif isinstance(data, (list, tuple, collections.Sequence)):
         return DeferredActionTuple(lambda _, item: create_roi(item, brain_mask), data)
