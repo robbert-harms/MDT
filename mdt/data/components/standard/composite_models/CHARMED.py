@@ -1,3 +1,4 @@
+import numpy as np
 from mdt.component_templates.composite_models import DMRICompositeModelTemplate
 
 __author__ = 'Robbert Harms'
@@ -26,8 +27,12 @@ class CHARMED_r1(DMRICompositeModelTemplate):
              'CHARMEDRestricted0.d': 1e-9}
 
     extra_optimization_maps = [
-        lambda results: {'FR': 1 - results['w_hin0.w']},
-        lambda results: {'FR.std': results['w_hin0.w.std']}
+        lambda results: {'FR': results['w_res0.w']},
+        lambda results: {'FR.std': results['w_res0.w.std']}
+    ]
+    extra_sampling_maps = [
+        lambda samples: {'FR': np.mean(samples['w_res0.w'], axis=1),
+                         'FR.std': np.std(samples['w_res0.w'], axis=1)}
     ]
 
 

@@ -2,7 +2,7 @@ import inspect
 import logging
 from textwrap import dedent
 import copy
-
+import collections
 import numpy as np
 
 from mdt.configuration import get_active_post_processing
@@ -55,6 +55,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
 
         self._post_optimization_modifiers = []
         self._extra_optimization_maps_funcs = []
+        self._extra_sampling_maps_funcs = []
 
         if self._enforce_weights_sum_to_one:
             self._extra_optimization_maps_funcs.append(self._get_propagate_weights_uncertainty)
@@ -71,6 +72,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
                                    self.nmr_parameters_for_bic_calculation,
                                    self._post_optimization_modifiers,
                                    self._extra_optimization_maps_funcs,
+                                   self._extra_sampling_maps_funcs,
                                    self._get_dependent_map_calculator(),
                                    self._get_fixed_parameter_maps(problems_to_analyze),
                                    self._get_proposal_state_names(),
@@ -393,7 +395,7 @@ class BuildCompositeModel(MRIModelInterface):
 
     def __init__(self, wrapped_sample_model, protocol, estimable_parameters_list,
                  nmr_parameters_for_bic_calculation,
-                 post_optimization_modifiers, extra_optimization_maps,
+                 post_optimization_modifiers, extra_optimization_maps, extra_sampling_maps,
                  dependent_map_calculator, fixed_parameter_maps, proposal_state_names,
                  free_param_names, parameter_codec, post_processing):
         self._protocol = protocol
@@ -408,6 +410,7 @@ class BuildCompositeModel(MRIModelInterface):
         self._parameter_codec = parameter_codec
         self._post_processing = post_processing
         self._extra_optimization_maps = extra_optimization_maps
+        self._extra_sampling_maps = extra_sampling_maps
 
     def get_post_optimization_output(self, optimization_results):
         end_points = optimization_results.get_optimization_result()
@@ -501,21 +504,30 @@ class BuildCompositeModel(MRIModelInterface):
         """
         samples = sampling_output.get_samples()
 
-        mle_maps_cb, map_maps_cb = self._get_mle_map_statistics(sampling_output)
-
         items = {
-            'maximum_likelihood': mle_maps_cb,
-            'maximum_a_posteriori': map_maps_cb,
-            'mh_state': lambda: self._get_mh_state_write_arrays(sampling_output.get_mh_state()),
-            'proposal_state': lambda: results_to_dict(sampling_output.get_proposal_state(),
-                                                      self.get_proposal_state_names()),
-            'chain_end_point': lambda: results_to_dict(sampling_output.get_current_chain_position(),
-                                                       self.get_free_param_names()),
+            'model_defined_maps': lambda: self._post_sampling_extra_model_defined_maps(samples)
         }
+
         if self._post_processing['sampling']['univariate_ess']:
             items.update({'univariate_ess': lambda: self._get_univariate_ess(samples)})
         if self._post_processing['sampling']['multivariate_ess']:
             items.update({'multivariate_ess': lambda: self._get_multivariate_ess(samples)})
+        if self._post_processing['sampling']['chain_end_point']:
+            items.update({'chain_end_point': lambda: results_to_dict(sampling_output.get_current_chain_position(),
+                                                                     self.get_free_param_names())})
+        if self._post_processing['sampling']['proposal_state']:
+            items.update({'proposal_state': lambda: results_to_dict(sampling_output.get_proposal_state(),
+                                                                    self.get_proposal_state_names())})
+        if self._post_processing['sampling']['mh_state']:
+            items.update({'mh_state': lambda: self._get_mh_state_write_arrays(sampling_output.get_mh_state())})
+
+        if self._post_processing['sampling']['maximum_likelihood'] \
+                or self._post_processing['sampling']['maximum_a_posteriori']:
+            mle_maps_cb, map_maps_cb = self._get_mle_map_statistics(sampling_output)
+            if self._post_processing['sampling']['maximum_likelihood']:
+                items.update({'maximum_likelihood': mle_maps_cb})
+            if self._post_processing['sampling']['maximum_a_posteriori']:
+                items.update({'maximum_a_posteriori': map_maps_cb})
 
         return DeferredFunctionDict(items, cache=False)
 
@@ -530,6 +542,27 @@ class BuildCompositeModel(MRIModelInterface):
                 'online_parameter_mean': mh_state.get_online_parameter_mean(),
                 'rng_state': mh_state.get_rng_state(),
                 'nmr_samples_drawn': np.ones_like(sampling_counter) * mh_state.nmr_samples_drawn}
+
+    def _post_sampling_extra_model_defined_maps(self, samples):
+        """Compute the extra post-sampling maps defined in the models.
+
+        Args:
+            samples (ndarray): the array with the samples
+
+        Returns:
+            dict: some additional statistic maps we want to output as part of the samping results
+        """
+        post_processing_data = SamplingPostProcessingData(samples, self.get_free_param_names(),
+                                                          self._fixed_parameter_maps)
+        results_dict = {}
+        for routine in self._extra_sampling_maps:
+            try:
+                results_dict.update(routine(post_processing_data))
+            except KeyError as exc:
+                logger = logging.getLogger(__name__)
+                logger.error(
+                    'Failed to execute extra sampling maps function, missing input: {}.'.format(str(exc)))
+        return results_dict
 
     def _get_mle_map_statistics(self, sampling_output):
         """Get the maximum and corresponding volume maps of the MLE and MAP estimators.
@@ -669,3 +702,65 @@ class BuildCompositeModel(MRIModelInterface):
             return getattr(super(BuildCompositeModel, self).__getattribute__('_wrapped_sample_model'), item)
         except AttributeError:
             return getattr(super(BuildCompositeModel, self).__getattribute__('_wrapped_sample_model'), item)
+
+
+class SamplingPostProcessingData(collections.Mapping):
+
+    def __init__(self, samples, param_names, fixed_parameters):
+        """Stores the sampling output for use in the model defined post-processing routines.
+
+        In general, this class acts as a dictionary with as keys the parameter names (as ``<compartment>.<parameter>``).
+        Each value may be a scalar, a 1d map or a 2d set of samples. Additional object attributes can also be used
+        by the post-processing routines.
+
+        Args:
+            samples (ndarray): a matrix of shape (d, p, n) with d problems, p parameters and n samples
+            param_names (list of str): the list containing the names of the parameters in the samples array
+            fixed_parameters (dict): for every fixed parameter the fixed values (either a scalar or a map).
+        """
+        self._samples = samples
+        self._param_names = param_names
+        self._fixed_parameters = fixed_parameters
+
+    @property
+    def samples(self):
+        """Get the array of samples as returned by the sampling routine.
+
+        For the names of the corresponding parameters, please see :py:attr:`~sampled_parameter_names`.
+
+        Returns:
+            ndarray: a matrix of shape (d, p, n) with d problems, p parameters and n samples.
+        """
+        return self._samples
+
+    @property
+    def sampled_parameter_names(self):
+        """Get the names of the parameters that have been sampled.
+
+        Returns:
+            list of str: the names of the parameters in the samples.
+        """
+        return self._param_names
+
+    @property
+    def fixed_parameters(self):
+        """Get the dictionary with all the fixed parameter values.
+
+        Returns:
+            dict: the names and values of the fixed parameters
+        """
+        return self._fixed_parameters
+
+    def __getitem__(self, key):
+        if key in self._param_names:
+            return self._samples[:, self._param_names.index(key), :]
+        return self._fixed_parameters[key]
+
+    def __iter__(self):
+        for key in self._param_names:
+            yield key
+        for key in self._fixed_parameters:
+            yield key
+
+    def __len__(self):
+        return len(self._param_names) + len(self._fixed_parameters)

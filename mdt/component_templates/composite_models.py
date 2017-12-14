@@ -7,6 +7,7 @@ from mdt.models.composite import DMRICompositeModel
 from mdt.models.parsers.CompositeModelExpressionParser import parse
 from mot.cl_function import CLFunction, SimpleCLFunction
 from mot.model_building.trees import CompartmentModelTree
+import collections
 
 __author__ = 'Robbert Harms'
 __date__ = "2017-02-14"
@@ -35,7 +36,7 @@ class DMRICompositeModelTemplate(ComponentTemplate):
 
                 post_optimization_modifiers = [lambda d: reorient_tensor(d),
                                                lambda d: {'w_stick0.w': ..., 'w_stick1.w': ...}
-                                           ...]
+                                                ...]
 
             This should return a dictionary with updated maps.
 
@@ -51,14 +52,14 @@ class DMRICompositeModelTemplate(ComponentTemplate):
 
             Example input::
 
-                maps_to_sort = [('w0.w', 'w1.w'), ('Stick0', 'Stick1')]
+                sort_maps = [('w0.w', 'w1.w'), ('Stick0', 'Stick1')]
 
             this input sorts the weights w0.w and w1.w and afterwards sorts all the parameters of the Stick0 and Stick1
             compartment according to the sorting of those weights.
 
             One can also sort just one parameter of a compartment using::
 
-                maps_to_sort = [('w0', 'w1'), ('Stick0.theta', 'Stick1.theta')]
+                sort_maps = [('w0', 'w1'), ('Stick0.theta', 'Stick1.theta')]
 
             which will again sort the weights but will only apply the sorting on the theta map of both the Stick
             compartments.
@@ -69,14 +70,22 @@ class DMRICompositeModelTemplate(ComponentTemplate):
             Please note that this is only for adding additional maps. For changing the point estimate of the
             optimization, please use the ``post_optimization_modifiers`` directive.
 
-            Examples:
+            Examples::
 
-            .. code-block:: python
+                extra_optimization_maps = [lambda d: {'FS': 1 - d['w_ball.w']},
+                                           lambda d, protocol: {'Kurtosis.MK': <...>},
+                                           lambda d: {'Power2': d['foo']**2, 'Power3': d['foo']**3},
+                                           ...]
 
-                additional_results = [lambda d: {'FS': 1 - d['w_ball.w']},
-                                      lambda d, protocol: {'Kurtosis.MK': <...>},
-                                      lambda d: {'Power2': d['foo']**2, 'Power3': d['foo']**3},
-                                       ...]
+        extra_sampling_maps (list): a list of functions to return additional maps as results from sampling.
+            This is called after sampling with as argument a dictionary containing the sampling results and
+            the values of the fixed parameters.
+
+            Examples::
+
+                extra_sampling_maps = [lambda d: {'FS': np.mean(d['w_stick0.w'], axis=1),
+                                                  'FS.std': np.std(d['w_stick0.w'], axis=1)}
+                                      ...]
 
         model_expression (str): the model expression. For the syntax see:
             mdt.models.parsers.CompositeModelExpression.ebnf
@@ -140,6 +149,7 @@ class DMRICompositeModelTemplate(ComponentTemplate):
     description = ''
     post_optimization_modifiers = []
     extra_optimization_maps = []
+    extra_sampling_maps = []
     model_expression = ''
     likelihood_function = 'OffsetGaussian'
     signal_noise_model = None
@@ -191,6 +201,10 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                 self._extra_optimization_maps_funcs.extend(_get_model_extra_optimization_maps_funcs(
                     self._model_functions_info.get_model_list()))
                 self._extra_optimization_maps_funcs.extend(deepcopy(template.extra_optimization_maps))
+
+                self._extra_sampling_maps_funcs.extend(_get_model_extra_sampling_maps_funcs(
+                    self._model_functions_info.get_model_list()))
+                self._extra_sampling_maps_funcs.extend(deepcopy(template.extra_sampling_maps))
 
                 for full_param_name, value in template.inits.items():
                     self.init(full_param_name, deepcopy(value))
@@ -386,11 +400,12 @@ def _get_model_post_optimization_modifiers(compartments):
 
 
 def _get_model_extra_optimization_maps_funcs(compartments):
-    """Get a list of all the additional result functions defined in the models.
+    """Get a list of all the additional result functions defined in the compartments.
 
     This function will add a wrapper around the modification routines to make the input and output maps relative to the
-    model. That it, these functions expect the parameter names without the model name and output map names without
-    the model name, whereas the expected input and output of the modifiers of the model is with the full model.map name.
+    model. That it, the functions in the compartments expect the parameter names without the model name and they output
+    maps without the model name, whereas the expected input and output of the modifiers of the model is with the
+    full model.map name.
 
     Args:
         compartments (list): the list of compartment models from which to get the modifiers
@@ -418,6 +433,64 @@ def _get_model_extra_optimization_maps_funcs(compartments):
                 funcs.append(get_wrapped_func(compartment.name, func))
 
     return funcs
+
+
+def _get_model_extra_sampling_maps_funcs(compartments):
+    """Get a list of all the additional post-sampling functions defined in the compartments.
+
+    This function will add a wrapper around the modification routines to make the input and output maps relative to the
+    model. That it, the functions in the compartments expect the parameter names without the model name and they output
+    maps without the model name, whereas the expected input and output of the modifiers of the model is with the
+    full model.map name.
+
+    Args:
+        compartments (list): the list of compartment models from which to get the modifiers
+
+    Returns:
+        list: the list of extra sampling routines taken from the compartment models.
+    """
+    funcs = []
+
+    def get_wrapped_func(compartment_name, original_func):
+        def prepend_compartment_name(results):
+            return {'{}.{}'.format(compartment_name, key): value for key, value in results.items()}
+
+        def wrapped_modifier(results):
+            return prepend_compartment_name(original_func(CompartmentContextResults(compartment_name, results)))
+
+        return wrapped_modifier
+
+    for compartment in compartments:
+        if hasattr(compartment, 'extra_sampling_maps_funcs'):
+            for func in compartment.extra_sampling_maps_funcs:
+                funcs.append(get_wrapped_func(compartment.name, func))
+
+    return funcs
+
+
+class CompartmentContextResults(collections.Mapping):
+
+    def __init__(self, compartment_name, input_results):
+        """Translates the original results to the context of a single compartment.
+
+        This basically adds a wrapper around the input dictionary to make the keys relative to the compartment.
+
+        Args:
+            compartment_name (str): the name of the compartment we are making things relative for
+            input_results (dict): the original input we want to make relative
+        """
+        self._compartment_name = compartment_name
+        self._input_results = input_results
+        self._valid_keys = [key for key in self._input_results if key.startswith(self._compartment_name + '.')]
+
+    def __getitem__(self, key):
+        return self._input_results['{}.{}'.format(self._compartment_name, key)]
+
+    def __len__(self):
+        return len(self._valid_keys)
+
+    def __iter__(self):
+        return self._valid_keys
 
 
 register_builder(DMRICompositeModelTemplate, DMRICompositeModelBuilder())

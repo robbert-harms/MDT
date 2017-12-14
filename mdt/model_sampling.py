@@ -20,8 +20,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 def sample_composite_model(model, input_data, output_folder, sampler, tmp_dir,
-                           recalculate=False, store_samples=True,
-                           initialization_data=None):
+                           recalculate=False, store_samples=True, initialization_data=None):
     """Sample a composite model.
 
     Args:
@@ -59,7 +58,7 @@ def sample_composite_model(model, input_data, output_folder, sampler, tmp_dir,
     logger = logging.getLogger(__name__)
 
     if not recalculate:
-        if model_output_exists(model, output_folder + '/maximum_a_posteriori/', append_model_name_to_path=False):
+        if os.path.exists(os.path.join(output_folder, 'UsedMask.nii.gz')):
             logger.info('Not recalculating {} model'.format(model.name))
             return load_samples(output_folder)
 

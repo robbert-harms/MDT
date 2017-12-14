@@ -2,7 +2,7 @@ import numpy as np
 import itertools
 
 from mdt.cl_routines.mapping.dki_measures import DKIMeasures
-from mdt.cl_routines.mapping.dti_measures import DTIMeasures
+from mdt.post_processing import DTIMeasures
 
 from mot.model_building.parameter_functions.priors import AlwaysOne, UniformWithinBoundsPrior
 from mot.model_building.parameter_functions.proposals import GaussianProposal
@@ -119,6 +119,6 @@ class KurtosisTensor(CompartmentTemplate):
         DTIMeasures.post_optimization_modifier
     ]
     extra_optimization_maps = [
-        DTIMeasures().calculate,
+        DTIMeasures.extra_optimization_maps,
         DKIMeasures().calculate
     ]

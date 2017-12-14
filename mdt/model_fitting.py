@@ -29,9 +29,10 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class BatchFitting(object):
 
-    def __init__(self, data_folder, models_to_fit, output_folder=None,
+    def __init__(self, data_folder, output_folder, models_to_fit,
                  batch_profile=None, subjects_selection=None, recalculate=False,
-                 cascade_subdir=False, cl_device_ind=None, double_precision=False, tmp_results_dir=True):
+                 cascade_subdir=False, cl_device_ind=None, double_precision=False, tmp_results_dir=True,
+                 use_gradient_deviations=False):
         """This class is meant to make running computations as simple as possible.
 
         The idea is that a single folder is enough to fit_model the computations. One can optionally give it the
@@ -43,9 +44,8 @@ class BatchFitting(object):
 
         Args:
             data_folder (str): the main directory to look for items to process.
+            output_folder (str): the folder in which to place the output
             models_to_fit (list of str): A list of models to fit to the data.
-            output_folder (str): the folder to place the output in, if not given we use the one defined in the
-                batch profile
             batch_profile (:class:`~mdt.batch_utils.BatchProfile` or str): the batch profile to use
                 or the name of a batch profile to use from the users folder.
             subjects_selection (:class:`~mdt.batch_utils.BatchSubjectSelection`): the subjects to use for processing.
@@ -62,13 +62,11 @@ class BatchFitting(object):
             double_precision (boolean): if we would like to do the calculations in double precision
             tmp_results_dir (str, True or None): The temporary dir for the calculations. Set to a string to use
                 that path directly, set to True to use the config value, set to None to disable.
+            use_gradient_deviations (boolean): if you want to use the gradient deviations if present
         """
         self._logger = logging.getLogger(__name__)
         self._batch_profile = batch_profile_factory(batch_profile, data_folder)
-
-        if output_folder is not None:
-            self._batch_profile = self._batch_profile.with_output_base_directory(output_folder)
-
+        self._output_folder = output_folder
         self._subjects_selection = subjects_selection or AllSubjects()
         self._tmp_results_dir = tmp_results_dir
         self._models_to_fit = models_to_fit
@@ -76,6 +74,7 @@ class BatchFitting(object):
         self._recalculate = recalculate
         self._double_precision = double_precision
         self._cascade_subdir = cascade_subdir
+        self._use_gradient_deviations = use_gradient_deviations
 
         if self._batch_profile is None:
             raise RuntimeError('No suitable batch profile could be '
@@ -83,7 +82,11 @@ class BatchFitting(object):
 
         self._logger.info('Using MDT version {}'.format(__version__))
         self._logger.info('Using batch profile: {0}'.format(self._batch_profile))
-        self._subjects = self._subjects_selection.get_selection(self._batch_profile.get_subjects())
+
+        selected_subjects = self._subjects_selection.get_selection(
+            [el.subject_id for el in self._batch_profile.get_subjects()])
+        self._subjects = [subject for subject in self._batch_profile.get_subjects()
+                          if subject.subject_id in selected_subjects]
 
         self._logger.info('Subjects found: {0}'.format(self._batch_profile.get_subjects_count()))
         self._logger.info('Subjects to process: {0}'.format(len(self._subjects)))
@@ -120,8 +123,9 @@ class BatchFitting(object):
         """Run the computations on the current dir with all the configured options. """
         self._logger.info('Running computations on {0} subjects'.format(len(self._subjects)))
 
-        run_func = _BatchFitRunner(self._models_to_fit, self._recalculate, self._cascade_subdir,
-                                   self._cl_device_ind, self._double_precision, self._tmp_results_dir)
+        run_func = _BatchFitRunner(self._output_folder, self._models_to_fit, self._recalculate, self._cascade_subdir,
+                                   self._cl_device_ind, self._double_precision, self._tmp_results_dir,
+                                   self._use_gradient_deviations)
         for ind, subject in enumerate(self._subjects):
             self._logger.info('Going to process subject {}, ({} of {}, we are at {:.2%})'.format(
                 subject.subject_id, ind + 1, len(self._subjects), ind / len(self._subjects)))
@@ -132,7 +136,9 @@ class BatchFitting(object):
 
 class _BatchFitRunner(object):
 
-    def __init__(self, models_to_fit, recalculate, cascade_subdir, cl_device_ind, double_precision, tmp_results_dir):
+    def __init__(self, output_folder, models_to_fit, recalculate, cascade_subdir, cl_device_ind,
+                 double_precision, tmp_results_dir, use_gradient_deviations):
+        self._output_folder = output_folder
         self._models_to_fit = models_to_fit
         self._recalculate = recalculate
         self._cascade_subdir = cascade_subdir
@@ -140,6 +146,7 @@ class _BatchFitRunner(object):
         self._double_precision = double_precision
         self._logger = logging.getLogger(__name__)
         self._tmp_results_dir = tmp_results_dir
+        self._use_gradient_deviations = use_gradient_deviations
 
     def __call__(self, subject_info):
         """Run the batch fitting on the given subject.
@@ -149,14 +156,14 @@ class _BatchFitRunner(object):
         Args:
             subject_info (SubjectInfo): the subject information
         """
-        output_dir = subject_info.output_dir
+        output_dir = os.path.join(self._output_folder, subject_info.subject_id)
 
         if all(model_output_exists(model, output_dir) for model in self._models_to_fit) and not self._recalculate:
             self._logger.info('Skipping subject {0}, output exists'.format(subject_info.subject_id))
             return
 
         self._logger.info('Loading the data (DWI, mask and protocol) of subject {0}'.format(subject_info.subject_id))
-        input_data = subject_info.get_input_data()
+        input_data = subject_info.get_input_data(self._use_gradient_deviations)
 
         with self._timer(subject_info.subject_id):
             for model in self._models_to_fit:

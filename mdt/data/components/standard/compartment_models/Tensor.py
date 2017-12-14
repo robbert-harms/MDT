@@ -1,5 +1,5 @@
 from mdt.component_templates.compartment_models import CompartmentTemplate
-from mdt.cl_routines.mapping.dti_measures import DTIMeasures
+from mdt.post_processing import DTIMeasures
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -16,7 +16,6 @@ class Tensor(CompartmentTemplate):
         return exp(-b * adc);
     '''
     extra_prior = 'return dperp1 < dperp0 && dperp0 < d;'
-
-    auto_add_cartesian_vector = False
     post_optimization_modifiers = [DTIMeasures.post_optimization_modifier]
-    extra_optimization_maps = [DTIMeasures().calculate]
+    extra_optimization_maps = [DTIMeasures.extra_optimization_maps]
+    extra_sampling_maps = [DTIMeasures.extra_sampling_maps]

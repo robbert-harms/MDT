@@ -19,7 +19,7 @@ except ValueError:
 
 
 from mdt.user_script_info import easy_save_user_script_info
-from mdt.utils import estimate_noise_std, get_cl_devices, load_input_data, load_problem_data,\
+from mdt.utils import estimate_noise_std, get_cl_devices, load_input_data,\
     create_blank_mask, create_index_matrix, \
     volume_index_to_roi_index, roi_index_to_volume_index, load_brain_mask, init_user_settings, restore_volumes, \
     apply_mask, create_roi, volume_merge, protocol_merge, create_median_otsu_brain_mask, load_samples, \
@@ -29,7 +29,7 @@ from mdt.utils import estimate_noise_std, get_cl_devices, load_input_data, load_
     covariance_to_correlation
 from mdt.sorting import sort_orientations, create_sort_matrix, sort_volumes_per_voxel
 from mdt.simulations import create_signal_estimates, simulate_signals, add_rician_noise
-from mdt.batch_utils import collect_batch_fit_output, collect_batch_fit_single_map, run_function_on_batch_fit_output
+from mdt.batch_utils import collect_batch_fit_single_map, run_function_on_batch_fit_output, batch_apply
 from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, write_protocol, write_bvec_bval
 from mdt.components_loader import load_component, get_model, component_import, get_component_class, get_meta_info, \
     get_compartment, get_parameter, get_library_function
@@ -248,14 +248,15 @@ def sample_model(model, input_data, output_folder, sampler=None, recalculate=Fal
 def batch_fit(data_folder, models_to_fit, output_folder=None, batch_profile=None,
               subjects_selection=None, recalculate=False,
               cascade_subdir=False, cl_device_ind=None, dry_run=False,
-              double_precision=False, tmp_results_dir=True):
+              double_precision=False, tmp_results_dir=True,
+              use_gradient_deviations=False):
     """Run all the available and applicable models on the data in the given folder.
 
     Args:
         data_folder (str): The data folder to process
         models_to_fit (list of str): A list of models to fit to the data.
-        output_folder (str): the folder in which to place the output, if not given we use the one defined in the
-            batch profile.
+        output_folder (str): the folder in which to place the output, if not given we per default put an output folder
+            next to the data_folder.
         batch_profile (:class:`~mdt.batch_utils.BatchProfile` or str): the batch profile to use,
             or the name of a batch profile to use. If not given it is auto detected.
         subjects_selection (:class:`~mdt.batch_utils.BatchSubjectSelection`): the subjects to use for processing.
@@ -263,9 +264,9 @@ def batch_fit(data_folder, models_to_fit, output_folder=None, batch_profile=None
         recalculate (boolean): If we want to recalculate the results if they are already present.
         cascade_subdir (boolean): if we want to create a subdirectory for every cascade model.
             Per default we output the maps of cascaded results in the same directory, this allows reusing cascaded
-            results for other cascades (for example, if you cascade BallStick -> Noddi you can use the BallStick results
-            also for BallStick -> Charmed). This flag disables that behaviour and instead outputs the results of
-            a cascade model to a subdirectory for that cascade. This does not apply recursive.
+            results for other cascades (for example, if you cascade BallStick -> NODDI you can use the BallStick results
+            also for BallStick -> CHARMED). This flag disables that behaviour and instead outputs the results of
+            a cascade model to a subdirectory for that cascade. This does not apply recursively.
         cl_device_ind (int or list of int): the index of the CL device to use.
             The index is from the list from the function get_cl_devices().
         dry_run (boolean): a dry run will do no computations, but will list all the subjects found in the
@@ -273,7 +274,7 @@ def batch_fit(data_folder, models_to_fit, output_folder=None, batch_profile=None
         double_precision (boolean): if we would like to do the calculations in double precision
         tmp_results_dir (str, True or None): The temporary dir for the calculations. Set to a string to use
                 that path directly, set to True to use the config value, set to None to disable.
-
+        use_gradient_deviations (boolean): if you want to use the gradient deviations if present
     Returns:
         The list of subjects we will calculate / have calculated.
     """
@@ -283,12 +284,16 @@ def batch_fit(data_folder, models_to_fit, output_folder=None, batch_profile=None
     if not mdt.utils.check_user_components():
         init_user_settings(pass_if_exists=True)
 
-    batch_fitting = BatchFitting(data_folder, models_to_fit, batch_profile=batch_profile,
-                                 output_folder=output_folder,
+    if output_folder is None:
+        output_folder = os.path.join(data_folder + '/', '..', os.path.dirname(data_folder + '/') + '_output')
+
+    batch_fitting = BatchFitting(data_folder, output_folder, models_to_fit,
+                                 batch_profile=batch_profile,
                                  subjects_selection=subjects_selection,
                                  recalculate=recalculate, cascade_subdir=cascade_subdir,
                                  cl_device_ind=cl_device_ind, double_precision=double_precision,
-                                 tmp_results_dir=tmp_results_dir)
+                                 tmp_results_dir=tmp_results_dir,
+                                 use_gradient_deviations=use_gradient_deviations)
 
     if dry_run:
         return batch_fitting.get_subjects_info()

@@ -46,11 +46,6 @@ They should either contain exactly 1 value (for all protocol lines), or a value 
 
 class DirPerSubject(SimpleBatchProfile):
 
-    def __init__(self, base_directory, use_gradient_deviations=False, **kwargs):
-        super(DirPerSubject, self).__init__(base_directory, **kwargs)
-        self.use_gradient_deviations = use_gradient_deviations
-        self._constructor_kwargs.update(use_gradient_deviations=self.use_gradient_deviations)
-
     def _get_subjects(self):
         subjects = []
         for subject_id in sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._base_directory, '*'))]):
@@ -98,11 +93,8 @@ class DirPerSubject(SimpleBatchProfile):
                     protocol_fname=protocol_fname, bvec_fname=bvec_fname,
                     bval_fname=bval_fname)
 
-                output_dir = self._get_subject_output_dir(subject_id, mask_fname)
-
-                return SimpleSubjectInfo(subject_id, dwi_fname, protocol_loader, mask_fname, output_dir,
+                return SimpleSubjectInfo(subject_id, dwi_fname, protocol_loader, mask_fname,
                                          gradient_deviations=grad_dev,
-                                         use_gradient_deviations=self.use_gradient_deviations,
                                          noise_std=noise_std)
         return None
 

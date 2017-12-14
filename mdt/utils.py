@@ -345,14 +345,6 @@ class MockMRIInputData(SimpleMRIInputData):
         return 1
 
 
-def load_problem_data(*args, **kwargs):
-    # todo: remove in future version
-    import warnings
-    warnings.warn('The function `load_problem_data` is deprecated and has been renamed to `load_input_data`. '
-                  'Please rename your function call.', DeprecationWarning)
-    return load_input_data(*args, **kwargs)
-
-
 def load_input_data(volume_info, protocol, mask, static_maps=None, gradient_deviations=None, noise_std=None):
     """Load and create the input data object for diffusion MRI modeling.
 
@@ -852,15 +844,16 @@ def spherical_to_cartesian(theta, phi):
                                        np.cos(theta)]), axis=return_shape)
 
 
-def cartesian_to_spherical(vectors):
+def cartesian_to_spherical(vectors, ensure_right_hemisphere=True):
     """Create spherical coordinates (theta and phi) from the given cartesian coordinates.
 
     This expects a n-dimensional matrix with on the last axis a set of cartesian coordinates as (x, y, z). From that,
     this function will calculate two n-dimensional matrices for the inclinations ``theta`` and the azimuths ``phi``.
 
-    Please note that the range of the output is [0, pi] for both theta and phi, meaning that the y-coordinate must
-    be positive. If not, this function will transform the coordinate to the antipodal point on the sphere and return
-    the angles for that point.
+    By default the range of the output is [0, pi] for both theta and phi, meaning that the y-coordinate must
+    be positive and all points are on the right hemisphere. For points with negative y-coordinate, this function will
+    transform the coordinate to the antipodal point on the sphere and return the angles for that point. This behaviour
+    can be disabled by setting ``ensure_right_hemisphere`` to false.
 
     Also note that this will consider the input to be unit vectors. If not, it will normalize the vectors beforehand.
 
@@ -870,14 +863,15 @@ def cartesian_to_spherical(vectors):
     Returns:
         tuple: the matrices for theta and phi.
     """
-    right_hemisphere_vectors = np.copy(vectors)
-    right_hemisphere_vectors[vectors[..., 1] < 0] *= -1
+    if ensure_right_hemisphere:
+        vectors = np.copy(vectors)
+        vectors[vectors[..., 1] < 0] *= -1
 
-    right_hemisphere_vectors /= np.sqrt(np.sum(vectors**2, axis=-1))[..., None]
-    right_hemisphere_vectors = np.nan_to_num(right_hemisphere_vectors)
+    vectors /= np.sqrt(np.sum(vectors**2, axis=-1))[..., None]
+    vectors = np.nan_to_num(vectors)
 
-    theta = np.arccos(right_hemisphere_vectors[..., 2])
-    phi = np.arctan2(right_hemisphere_vectors[..., 1], right_hemisphere_vectors[..., 0])
+    theta = np.arccos(vectors[..., 2])
+    phi = np.arctan2(vectors[..., 1], vectors[..., 0])
 
     return theta, phi
 
@@ -1336,7 +1330,7 @@ def apply_mask(volumes, mask, inplace=True):
         if not inplace:
             _volume = np.copy(_volume)
 
-        _volume[np.logical_not(_mask)] = 0
+        _volume[np.where(np.logical_not(_mask))] = 0
         return _volume
 
     if isinstance(volumes, tuple):

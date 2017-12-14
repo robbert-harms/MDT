@@ -56,6 +56,10 @@ class BatchFit(BasicShellApplication):
         parser.add_argument('models_to_fit', type=str, nargs='*',
                             help="The models to fit, allows cascade models.")
 
+        parser.add_argument('-o', '--output_folder',
+                            help='the directory for the output, defaults to an output dir next to the input dir.')\
+            .completer = FilesCompleter()
+
         parser.add_argument('-b', '--batch_profile', default=None, choices=batch_profiles,
                             help='The batch profile (by name) to use during fitting. If not given a'
                                  'batch profile is auto-detected.')
@@ -109,9 +113,6 @@ class BatchFit(BasicShellApplication):
     def run(self, args, extra_args):
         batch_profile = batch_profile_factory(args.batch_profile, os.path.realpath(args.data_folder))
 
-        if args.use_gradient_deviations is not None:
-            batch_profile.use_gradient_deviations = args.use_gradient_deviations
-
         subjects_selection = None
         if args.subjects_index or args.subjects_id:
             indices = args.subjects_index if args.subjects_index else []
@@ -127,6 +128,7 @@ class BatchFit(BasicShellApplication):
 
         mdt.batch_fit(os.path.realpath(args.data_folder),
                       args.models_to_fit,
+                      output_folder=args.output_folder,
                       subjects_selection=subjects_selection,
                       batch_profile=batch_profile,
                       recalculate=args.recalculate,
@@ -134,7 +136,8 @@ class BatchFit(BasicShellApplication):
                       double_precision=args.double_precision,
                       dry_run=args.dry_run,
                       cascade_subdir=args.cascade_subdir,
-                      tmp_results_dir=tmp_results_dir)
+                      tmp_results_dir=tmp_results_dir,
+                      use_gradient_deviations=args.use_gradient_deviations)
 
 
 def get_doc_arg_parser():

@@ -1,6 +1,6 @@
 import numpy as np
 from mdt.component_templates.compartment_models import CompartmentTemplate
-from mdt.cl_routines.mapping.dti_measures import DTIMeasures
+from mdt.post_processing import DTIMeasures
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -22,8 +22,7 @@ def extra_dti_results(results_dict):
     output['dperp0'] = eigen_values[:, 1]
     output['dperp1'] = eigen_values[:, 2]
 
-    measures_calculator = DTIMeasures()
-    output.update(measures_calculator.calculate(output))
+    output.update(DTIMeasures.extra_optimization_maps(output))
 
     return output
 

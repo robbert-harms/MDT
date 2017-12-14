@@ -1,16 +1,78 @@
+"""This module contains various standard post-processing routines for use after optimization or sampling."""
 import numpy as np
 from mdt.utils import tensor_spherical_to_cartesian, tensor_cartesian_to_spherical
-from mot.cl_routines.base import CLRoutine
-
 
 __author__ = 'Robbert Harms'
-__date__ = "2015-04-16"
-__license__ = "LGPL v3"
-__maintainer__ = "Robbert Harms"
-__email__ = "robbert.harms@maastrichtuniversity.nl"
+__date__ = '2017-12-10'
+__maintainer__ = 'Robbert Harms'
+__email__ = 'robbert.harms@maastrichtuniversity.nl'
+__licence__ = 'LGPL v3'
 
 
-class DTIMeasures(CLRoutine):
+class DTIMeasures(object):
+
+    @staticmethod
+    def extra_optimization_maps(results):
+        """Return some interesting measures like FA, MD, RD and AD.
+
+        Args:
+            results (dict): Dictionary containing at least theta, phi, psi, d, dperp0 and dperp1
+                We will use this to generate some standard measures from the diffusion Tensor.
+
+        Returns:
+            dict: as keys typical elements like 'FA and 'MD' as interesting output and as per values the maps.
+                These maps are per voxel, and optionally per instance per voxel
+        """
+        output = {
+            'FA': DTIMeasures.fractional_anisotropy(results['d'], results['dperp0'], results['dperp1']),
+            'MD': (results['d'] + results['dperp0'] + results['dperp1']) / 3.,
+            'AD': results['d'],
+            'RD': (results['dperp0'] + results['dperp1']) / 2.0,
+        }
+
+        if all('{}.std'.format(el) in results for el in ['d', 'dperp0', 'dperp1']):
+            output.update({
+                'FA.std': DTIMeasures.fractional_anisotropy_std(
+                    results['d'], results['dperp0'], results['dperp1'],
+                    results['d.std'], results['dperp0.std'], results['dperp1.std']),
+                'MD.std': np.sqrt(results['d.std'] + results['dperp0.std'] + results['dperp1.std']) / 3.,
+                'AD.std': results['d.std'],
+                'RD.std': (results['dperp0.std'] + results['dperp1.std']) / 2.0,
+            })
+
+        if all(el in results for el in ['theta', 'phi', 'psi']):
+            eigenvectors = tensor_spherical_to_cartesian(np.squeeze(results['theta']),
+                                                         np.squeeze(results['phi']),
+                                                         np.squeeze(results['psi']))
+            for ind in range(3):
+                output.update({'vec{}'.format(ind): eigenvectors[ind]})
+
+        return output
+
+    @staticmethod
+    def extra_sampling_maps(results):
+        """Return some interesting measures derived from the samples.
+
+        Args:
+            results (dict[str: ndarray]): a dictionary containing the samples for each of the parameters.
+
+        Returns:
+            dict: a set of additional maps with one value per voxel.
+        """
+        mds = (results['d'] + results['dperp0'] + results['dperp1']) / 3.
+        fas = DTIMeasures.fractional_anisotropy(results['d'], results['dperp0'], results['dperp1'])
+        rds = (results['dperp0'] + results['dperp1']) / 2.0
+
+        return {
+            'MD': np.mean(mds, axis=1),
+            'MD.std': np.std(mds, axis=1),
+            'FA': np.mean(fas, axis=1),
+            'FA.std': np.std(fas, axis=1),
+            'AD': np.mean(results['d'], axis=1),
+            'AD.std': np.std(results['d'], axis=1),
+            'RD': np.mean(rds, axis=1),
+            'RD.std': np.std(rds, axis=1)
+        }
 
     @staticmethod
     def post_optimization_modifier(parameters_dict):
@@ -51,47 +113,6 @@ class DTIMeasures(CLRoutine):
                                         for ind in range(ranking.shape[1])])
 
         return sorted_eigenvalues, sorted_eigenvectors, ranking
-
-    def calculate(self, results):
-        """Return some interesting measures like FA, MD, RD and AD.
-
-        Args:
-            results (dict): Dictionary containing at least theta, phi, psi, d, dperp0 and dperp1
-                We will use this to generate some standard measures from the diffusion Tensor.
-
-        Returns:
-            dict: as keys typical elements like 'FA and 'MD' as interesting output and as per values the maps.
-                These maps are per voxel, and optionally per instance per voxel
-        """
-        md = (results['d'] + results['dperp0'] + results['dperp1']) / 3.
-
-        fa = DTIMeasures.fractional_anisotropy(results['d'], results['dperp0'], results['dperp1'])
-
-        output = {
-            'FA': fa,
-            'MD': md,
-            'AD': results['d'],
-            'RD': (results['dperp0'] + results['dperp1']) / 2.0,
-        }
-
-        if all('{}.std'.format(el) in results for el in ['d', 'dperp0', 'dperp1']):
-            output.update({
-                'FA.std': DTIMeasures.fractional_anisotropy_std(
-                    results['d'], results['dperp0'], results['dperp1'],
-                    results['d.std'], results['dperp0.std'], results['dperp1.std']),
-                'MD.std': np.sqrt(results['d.std'] + results['dperp0.std'] + results['dperp1.std']) / 3.,
-                'AD.std': results['d.std'],
-                'RD.std': (results['dperp0.std'] + results['dperp1.std']) / 2.0,
-            })
-
-        if all(el in results for el in ['theta', 'phi', 'psi']):
-            eigenvectors = tensor_spherical_to_cartesian(np.squeeze(results['theta']),
-                                                         np.squeeze(results['phi']),
-                                                         np.squeeze(results['psi']))
-            for ind in range(3):
-                output.update({'vec{}'.format(ind): eigenvectors[ind]})
-
-        return output
 
     @staticmethod
     def fractional_anisotropy(d, dperp0, dperp1):

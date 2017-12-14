@@ -12,7 +12,7 @@ from mdt.component_templates.parameters import FreeParameterTemplate
 from mot.model_building.parameter_functions.priors import UniformWithinBoundsPrior
 from mot.model_building.parameter_functions.proposals import GaussianProposal, CircularGaussianProposal
 from mot.model_building.parameter_functions.transformations import ClampTransform, AbsModPiTransform, \
-    SinSqrClampTransform, CosSqrClampTransform, AbsModTwoPiTransform
+    SinSqrClampTransform, CosSqrClampTransform
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-12-12"

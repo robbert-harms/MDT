@@ -66,7 +66,8 @@ class FreeParameterTemplate(ParameterTemplate):
     parameter_transform = IdentityTransform()
     sampling_proposal = GaussianProposal(1.0)
     sampling_prior = UniformWithinBoundsPrior()
-    numdiff_info = {'max_step': 0.1, 'scale_factor': 1, 'use_bounds': True, 'modulus': None}
+    numdiff_info = {'max_step': 0.1, 'scale_factor': 1, 'use_bounds': True, 'modulus': None,
+                    'use_upper_bound': True, 'use_lower_bound': True}
 
 
 class StaticMapParameterTemplate(ParameterTemplate):

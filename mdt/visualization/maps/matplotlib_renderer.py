@@ -260,22 +260,25 @@ class Renderer(object):
         divider = make_axes_locatable(axis)
 
         show_colorbar = self._get_map_attr(map_name, 'show_colorbar', self._plot_config.show_colorbars)
-        axis_kwargs = dict(size="5%", pad=0.12)
+        show_colorbar_global = self._plot_config.show_colorbars
 
-        if self._plot_config.show_axis and colorbar_position in ['bottom', 'left']:
-            axis_kwargs['pad'] = 0.3
+        if show_colorbar_global:
+            axis_kwargs = dict(size="5%", pad=0.1)
 
-        if show_colorbar and colorbar_position in ('left', 'right'):
-            colorbar_axis = divider.append_axes(colorbar_position, **axis_kwargs)
-        else:
-            fake_axis = divider.append_axes('right', **axis_kwargs)
-            fake_axis.axis('off')
+            if self._plot_config.show_axis and colorbar_position in ['bottom', 'left']:
+                axis_kwargs['pad'] = 0.3
 
-        if show_colorbar and colorbar_position in ('top', 'bottom'):
-            colorbar_axis = divider.append_axes(colorbar_position, **axis_kwargs)
-        else:
-            fake_axis = divider.append_axes('bottom', **axis_kwargs)
-            fake_axis.axis('off')
+            if show_colorbar and colorbar_position in ('left', 'right'):
+                colorbar_axis = divider.append_axes(colorbar_position, **axis_kwargs)
+            else:
+                fake_axis = divider.append_axes('right', **axis_kwargs)
+                fake_axis.axis('off')
+
+            if show_colorbar and colorbar_position in ('top', 'bottom'):
+                colorbar_axis = divider.append_axes(colorbar_position, **axis_kwargs)
+            else:
+                fake_axis = divider.append_axes('bottom', **axis_kwargs)
+                fake_axis.axis('off')
 
         if show_colorbar:
             kwargs = dict(cax=colorbar_axis, ticks=self._get_tick_locator(map_name))

@@ -31,3 +31,10 @@ class NODDI(DMRICompositeModelTemplate):
         lambda d: {'NDI': d['w_ic.w'] / (d['w_ic.w'] + d['w_ec.w']),
                    'ODI': np.arctan2(1.0, d['NODDI_IC.kappa'] * 10) * 2 / np.pi}
     ]
+    extra_sampling_maps = [
+        lambda samples: {'w_ic.w': np.mean(samples['w_ic.w'], axis=1),
+                         'w_ic.w.std': np.std(samples['w_ic.w'], axis=1),
+                         'NDI': np.mean(samples['w_ic.w'] / (samples['w_ic.w'] + samples['w_ec.w']), axis=1),
+                         'NDI.std': np.std(samples['w_ic.w'] / (samples['w_ic.w'] + samples['w_ec.w']), axis=1),
+                         }
+    ]

@@ -78,9 +78,14 @@ class CompartmentTemplate(ComponentTemplate):
                                                  lambda d: {'Power2': d['foo']**2, 'Power3': d['foo']**3},
                                                  ...]
 
-        auto_add_cartesian_vector (boolean): if set to True we will automatically add a
-            ``extra_optimization_maps_funcs`` directive that constructs a cartesian vector from the
-            ``theta`` and ``phi`` parameter if present.
+        extra_sampling_maps (list): a list of functions to return additional maps as results from sampling.
+            This is called after sampling with as argument a dictionary containing the sampling results and
+            the values of the fixed parameters.
+
+            Examples::
+
+                extra_sampling_maps = [lambda s: {'MD': np.mean((s['d'] + s['dperp0'] + s['dperp1'])/3., axis=1)}
+                                      ...]
     """
     name = ''
     description = ''
@@ -92,7 +97,7 @@ class CompartmentTemplate(ComponentTemplate):
     extra_prior = None
     post_optimization_modifiers = []
     extra_optimization_maps = []
-    auto_add_cartesian_vector = True
+    extra_sampling_maps = []
 
 
 class CompartmentBuilder(ComponentBuilder):
@@ -127,6 +132,7 @@ class CompartmentBuilder(ComponentBuilder):
                     'post_optimization_modifiers': template.post_optimization_modifiers,
                     'extra_optimization_maps_funcs': builder._get_extra_optimization_map_funcs(
                         template, parameter_list),
+                    'extra_sampling_maps_funcs': copy(template.extra_sampling_maps),
                     'cl_extra': template.cl_extra}
                 new_kwargs.update(kwargs)
 
@@ -139,11 +145,9 @@ class CompartmentBuilder(ComponentBuilder):
 
     def _get_extra_optimization_map_funcs(self, template, parameter_list):
         extra_optimization_maps = copy(template.extra_optimization_maps)
-
-        if getattr(template, 'auto_add_cartesian_vector', False):
-            if all(map(lambda name: name in [p.name for p in parameter_list], ('theta', 'phi'))):
-                extra_optimization_maps.append(lambda results: {
-                    'vec0': spherical_to_cartesian(np.squeeze(results['theta']), np.squeeze(results['phi']))})
+        if all(map(lambda name: name in [p.name for p in parameter_list], ('theta', 'phi'))):
+            extra_optimization_maps.append(lambda results: {
+                'vec0': spherical_to_cartesian(np.squeeze(results['theta']), np.squeeze(results['phi']))})
         return extra_optimization_maps
 
 

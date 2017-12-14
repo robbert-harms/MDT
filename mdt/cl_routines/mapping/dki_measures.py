@@ -52,14 +52,6 @@ class DKIMeasures(CLRoutine):
         directions = convert_data_to_dtype(self._get_spherical_samples(), 'mot_float_type4', mot_float_type)
         return self._calculate(parameters, param_names, directions, double_precision)
 
-    def get_output_names(self):
-        """Get a list of the map names calculated by this class.
-
-        Returns:
-            list of str: the list of map names this calculator returns
-        """
-        return ['MK', 'AK', 'RK']
-
     def _calculate(self, parameters, param_names, directions, double_precision):
         nmr_voxels = parameters.shape[0]
         mks_host = np.zeros((nmr_voxels, 1), dtype=parameters.dtype)

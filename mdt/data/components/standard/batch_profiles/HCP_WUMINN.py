@@ -35,15 +35,6 @@ Optional items (these will take precedence if present):
 
 class HCP_WUMINN(SimpleBatchProfile):
 
-    def __init__(self, base_directory, use_gradient_deviations=False, **kwargs):
-        if kwargs.get('output_sub_dir', None) is None:
-            kwargs['output_sub_dir'] = 'T1w/Diffusion/output'
-        if kwargs.get('auto_append_mask_name_to_output_sub_dir', None) is None:
-            kwargs['auto_append_mask_name_to_output_sub_dir'] = False
-        super(HCP_WUMINN, self).__init__(base_directory, **kwargs)
-        self.use_gradient_deviations = use_gradient_deviations
-        self._constructor_kwargs.update(use_gradient_deviations=self.use_gradient_deviations)
-
     def _get_subjects(self):
         subjects = []
         for subject_id in sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._base_directory, '*'))]):
@@ -75,11 +66,8 @@ class HCP_WUMINN(SimpleBatchProfile):
 
         mask_fname = self._get_first_existing_nifti(['data_mask', 'nodif_brain_mask'], prepend_path=pjoin())
 
-        output_dir = self._get_subject_output_dir(subject_id, mask_fname)
-
         return SimpleSubjectInfo(subject_id, pjoin('data'), protocol_loader, mask_fname,
-                                 output_dir, gradient_deviations=pjoin('grad_dev'),
-                                 use_gradient_deviations=self.use_gradient_deviations, noise_std=noise_std)
+                                 gradient_deviations=pjoin('grad_dev'), noise_std=noise_std)
 
     def __str__(self):
         return meta_info['title']
