@@ -42,6 +42,8 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
         Attributes:
             required_nmr_shells (int): Define the minimum number of unique shells necessary for this model.
                 The default is false, which means that we don't check for this.
+            volume_selection (boolean): if we should do volume selection or not, set this before
+                calling ``set_input_data``.
             _post_optimization_modifiers (list): the list with post optimization modifiers. Every element
                 should contain a tuple with (str, Func) or (tuple, Func): where the first element is a single
                 output name or a list with output names and the Func is a callback function that returns one or more
@@ -62,6 +64,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
 
         self.nmr_parameters_for_bic_calculation = self.get_nmr_estimable_parameters()
         self.required_nmr_shells = False
+        self.volume_selection = True
         self._post_processing = get_active_post_processing()
 
     def build(self, problems_to_analyze=None):
@@ -265,6 +268,10 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
         Returns:
             mdt.utils.MRIInputData: either the same input data or a changed copy.
         """
+        if not self.volume_selection:
+            self._logger.info('Disabled volume selection, using original protocol.')
+            return input_data
+
         protocol = input_data.protocol
         indices = self._get_suitable_volume_indices(input_data)
 

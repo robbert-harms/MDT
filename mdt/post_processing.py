@@ -53,6 +53,9 @@ class DTIMeasures(object):
     def extra_sampling_maps(results):
         """Return some interesting measures derived from the samples.
 
+        Please note that this function expects the result dictionary only with the parameter names, that is,
+        it expects the elements ``d``, ``dperp0`` and ``dperp1`` to be present.
+
         Args:
             results (dict[str: ndarray]): a dictionary containing the samples for each of the parameters.
 

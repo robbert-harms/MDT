@@ -760,13 +760,13 @@ def load_protocol(protocol_fname):
     Returns:
         :class:`Protocol`: An protocol object with all the columns loaded.
     """
-    if os.path.isdir(protocol_fname):
-        return auto_load_protocol(protocol_fname)
-
-    if not os.path.exists(protocol_fname):
-        protocol_fname += '.prtcl'
-    if not os.path.exists(protocol_fname):
+    if not os.path.isfile(protocol_fname) and not os.path.isfile(protocol_fname + '.prtcl'):
+        if os.path.isdir(protocol_fname):
+            return auto_load_protocol(protocol_fname)
         raise FileNotFoundError(protocol_fname)
+
+    if not os.path.isfile(protocol_fname):
+        protocol_fname += '.prtcl'
 
     with open(protocol_fname) as f:
         protocol = f.readlines()

@@ -582,9 +582,18 @@ class PathJoiner(object):
         self._initial_path = os.path.abspath(os.path.join('', *args))
         self._path = os.path.abspath(os.path.join('', *args))
 
-    def create_extended(self, *args):
-        """Create and return a new PathJoiner instance with the path extended by the given arguments."""
-        return PathJoiner(os.path.join(self._path, *args))
+    def create_extended(self, *args, make_dirs=False, make_dirs_mode=None):
+        """Create and return a new PathJoiner instance with the path extended by the given arguments.
+
+        Args:
+            make_dirs (boolean): if set to True we will automatically create the directory this path is pointing to.
+                Similar to calling :meth:`make_dirs` on the resulting object.
+            make_dirs_mode (int): the mode for the call to :meth:`make_dirs`.
+        """
+        pj = PathJoiner(os.path.join(self._path, *args))
+        if make_dirs:
+            pj.make_dirs(mode=make_dirs_mode)
+        return pj
 
     def append(self, *args):
         """Extend the stored path with the given elements"""
@@ -596,14 +605,16 @@ class PathJoiner(object):
         self._path = self._initial_path
         return self
 
-    def make_dirs(self, mode=0o777):
+    def make_dirs(self, mode=None):
         """Create the directories if they do not exists.
 
         This uses os.makedirs to make the directories. The given argument mode is handed to os.makedirs.
 
         Args:
-            mode: the mode parameter for os.makedirs
+            mode (int): the mode parameter for os.makedirs, defaults to 0o777
         """
+        if mode is None:
+            mode = 0o777
         if not os.path.exists(self._path):
             os.makedirs(self._path, mode)
 
