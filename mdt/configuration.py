@@ -346,9 +346,13 @@ class ActivePostProcessingLoader(ConfigSectionLoader):
 
     def load(self, value):
         sampling = value.get('sampling', {})
-        sampling['waic'] = sampling.get('waic', False)
-        sampling['multivariate_ess'] = sampling.get('multivariate_ess', False)
         sampling['univariate_ess'] = sampling.get('univariate_ess', False)
+        sampling['multivariate_ess'] = sampling.get('multivariate_ess', False)
+        sampling['chain_end_point'] = sampling.get('chain_end_point', False)
+        sampling['proposal_state'] = sampling.get('proposal_state', False)
+        sampling['mh_state'] = sampling.get('mh_state', False)
+        sampling['maximum_likelihood'] = sampling.get('maximum_likelihood', False)
+        sampling['maximum_a_posteriori'] = sampling.get('maximum_a_posteriori', False)
 
         optimization = value.get('optimization', {})
         optimization['covariance'] = optimization.get('covariance', True)
