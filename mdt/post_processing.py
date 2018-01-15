@@ -1,6 +1,7 @@
 """This module contains various standard post-processing routines for use after optimization or sampling."""
 import numpy as np
 from mdt.utils import tensor_spherical_to_cartesian, tensor_cartesian_to_spherical
+from mot.utils import split_in_batches
 
 __author__ = 'Robbert Harms'
 __date__ = '2017-12-10'
@@ -124,9 +125,23 @@ class DTIMeasures(object):
         Returns:
             ndarray: the fractional anisotropy for each voxel.
         """
-        d, dperp0, dperp1 = map(lambda el: np.squeeze(el).astype(np.float64), [d, dperp0, dperp1])
-        return np.sqrt(1/2.) * np.sqrt(((d - dperp0)**2 + (dperp0 - dperp1)**2 + (dperp1 - d)**2)
-                                       / (d**2 + dperp0**2 + dperp1**2))
+        def compute(d, dperp0, dperp1):
+            d, dperp0, dperp1 = map(lambda el: np.squeeze(el).astype(np.float64), [d, dperp0, dperp1])
+            return np.sqrt(1 / 2.) * np.sqrt(((d - dperp0) ** 2 + (dperp0 - dperp1) ** 2 + (dperp1 - d) ** 2)
+                                             / (d ** 2 + dperp0 ** 2 + dperp1 ** 2))
+
+        if len(d.shape) > 1 and d.shape[1] > 1:
+            fa = np.zeros_like(d)
+            for batch_start, batch_end in split_in_batches(d.shape[1], 1000):
+                fa[:, batch_start:batch_end] = compute(
+                    d[:, batch_start:batch_end],
+                    dperp0[:, batch_start:batch_end],
+                    dperp1[:, batch_start:batch_end])
+            return fa
+        else:
+            return compute(d, dperp0, dperp1)
+
+
 
     @staticmethod
     def fractional_anisotropy_std(d, dperp0, dperp1, d_std, dperp0_std, dperp1_std):

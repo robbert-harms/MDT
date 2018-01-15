@@ -1390,6 +1390,27 @@ def load_samples(data_folder, mode='r'):
     return data_dict
 
 
+def load_sample(fname, mode='r'):
+    """Load an matrix of samples from a ``.samples.npy`` file.
+
+    This will open the samples as a numpy memory mapped array.
+
+    Args:
+        fname (str): the name of the file to load, suffix of ``.samples.npy`` is not required.
+        mode (str): the mode in which to open the memory mapped sample files (see numpy mode parameter)
+
+    Returns:
+        ndarray: a memory mapped array with the results
+    """
+    if not os.path.isfile(fname) and not os.path.isfile(fname + '.samples.npy'):
+        raise ValueError('Could not find sampling results at the location "{}"'.format(fname))
+
+    if not os.path.isfile(fname):
+        fname += '.samples.npy'
+
+    return open_memmap(fname, mode=mode)
+
+
 def estimate_noise_std(input_data, estimator=None):
     """Estimate the noise standard deviation.
 

@@ -511,10 +511,10 @@ class BuildCompositeModel(MRIModelInterface):
         """
         samples = sampling_output.get_samples()
 
-        items = {
-            'model_defined_maps': lambda: self._post_sampling_extra_model_defined_maps(samples)
-        }
+        items = {}
 
+        if self._post_processing['sampling']['model_defined_maps']:
+            items.update({'model_defined_maps': lambda: self._post_sampling_extra_model_defined_maps(samples)})
         if self._post_processing['sampling']['univariate_ess']:
             items.update({'univariate_ess': lambda: self._get_univariate_ess(samples)})
         if self._post_processing['sampling']['multivariate_ess']:

@@ -353,6 +353,7 @@ class ActivePostProcessingLoader(ConfigSectionLoader):
         sampling['mh_state'] = sampling.get('mh_state', False)
         sampling['maximum_likelihood'] = sampling.get('maximum_likelihood', False)
         sampling['maximum_a_posteriori'] = sampling.get('maximum_a_posteriori', False)
+        sampling['model_defined_maps'] = sampling.get('model_defined_maps', False)
 
         optimization = value.get('optimization', {})
         optimization['covariance'] = optimization.get('covariance', True)
@@ -689,7 +690,16 @@ def config_context(config_action):
         with mdt.config_context(mdt.configuration.YamlStringAction(config)):
             mdt.fit_model(...)
 
-        This loads the configuration from a YAML string and uses that configuration as the context.
+
+    or, equivalently::
+
+        config = '''
+            ...
+        '''
+        with mdt.config_context(config):
+            ...
+
+    This loads the configuration from a YAML string and uses that configuration as the context.
 
     Args:
         config_action (ConfigAction or str): the configuration action to apply. If a string is given we will
