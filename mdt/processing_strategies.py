@@ -468,20 +468,21 @@ class SamplingProcessor(SimpleModelProcessor):
         pass
 
     def __init__(self, sampler, model, mask, nifti_header, output_dir, tmp_storage_dir, recalculate,
-                 samples_to_save_method=None):
+                 samples_storage_strategy=None):
         """The processing worker for model sampling.
 
         Args:
             sampler (AbstractSampler): the optimization sampler to use
-            samples_to_save_method (SamplesToSaveMethod): indicates which samples to store
+            samples_storage_strategy (SamplesStorageStrategy): indicates which samples to store
         """
         super(SamplingProcessor, self).__init__(mask, nifti_header, output_dir, tmp_storage_dir, recalculate)
         self._sampler = sampler
         self._model = model
         self._write_volumes_gzipped = gzip_sampling_results()
-        self._samples_to_save_method = samples_to_save_method or SaveAllSamples()
+        self._samples_to_save_method = samples_storage_strategy or SaveAllSamples()
         self._subdirs = set()
         self._logger = logging.getLogger(__name__)
+        self._samples_output_stored = []
 
     def _process(self, roi_indices, next_indices=None):
         model = self._model.build(roi_indices)
@@ -493,11 +494,19 @@ class SamplingProcessor(SimpleModelProcessor):
         maps_to_save.update({self._used_mask_name: np.ones(samples.shape[0], dtype=np.bool)})
         self._write_output_recursive(maps_to_save, roi_indices)
 
-        if self._samples_to_save_method.store_samples():
-            samples_dict = results_to_dict(samples, model.get_free_param_names())
-            samples_dict['LogLikelihood'] = sampling_output.get_log_likelihoods()
-            samples_dict['LogPrior'] = sampling_output.get_log_priors()
-            self._write_sample_results(samples_dict, roi_indices)
+        def get_output(output_name):
+            if output_name in model.get_free_param_names():
+                return samples[:, ind, ...]
+            elif output_name == 'LogLikelihood':
+                return sampling_output.get_log_likelihoods()
+            elif output_name == 'LogPrior':
+                return sampling_output.get_log_priors()
+
+        for ind, name in enumerate(list(model.get_free_param_names()) + ['LogLikelihood', 'LogPrior']):
+            if self._samples_to_save_method.store_samples(name):
+                self._samples_output_stored.append(name)
+                self._write_sample_results({name: get_output(name)}, roi_indices)
+
         self._logger.info('Finished post-processing')
 
     def combine(self):
@@ -507,7 +516,7 @@ class SamplingProcessor(SimpleModelProcessor):
             self._combine_volumes(self._output_dir, self._tmp_storage_dir,
                                   self._nifti_header, maps_subdir=subdir)
 
-        if self._samples_to_save_method.store_samples():
+        if self._samples_output_stored:
             return load_samples(self._output_dir)
 
         return SamplingProcessor.SampleChainNotStored()
@@ -545,10 +554,9 @@ class SamplingProcessor(SimpleModelProcessor):
                 if chain_name not in results:
                     os.remove(os.path.join(self._output_dir, fname))
 
-        save_indices = self._samples_to_save_method.indices_to_store(results[list(results.keys())[0]].shape[1])
-
-        for map_name, samples in results.items():
-            samples_path = os.path.join(self._output_dir, map_name + '.samples.npy')
+        for output_name, samples in results.items():
+            save_indices = self._samples_to_save_method.indices_to_store(output_name, samples.shape[1])
+            samples_path = os.path.join(self._output_dir, output_name + '.samples.npy')
             mode = 'w+'
 
             if os.path.isfile(samples_path):
@@ -564,27 +572,35 @@ class SamplingProcessor(SimpleModelProcessor):
             del saved
 
 
-class SamplesToSaveMethod(object):
-    """Defines if and how many samples are being stored.
+class SamplesStorageStrategy(object):
+    """Defines if and how many samples are being stored, per output item.
 
     This can be used to only save a subset of the calculated samples, while still using the entire chain for
-    the point estimates. This is the ideal combination of high estimate accuracy and storage.
+    the point estimates. This is the ideal combination of high accuracy estimation and storage.
+
+    Additionally, this can be used to store only specific output items instead of all.
     """
 
-    def store_samples(self):
-        """If we should store the samples at all
+    def store_samples(self, output_name):
+        """If we should store the samples of this output.
+
+        The outputs are model parameters and additional maps like log-likelihoods.
+
+        Args:
+            output_name (str): the name of the output item we want to store the samples of
 
         Returns:
-            boolean: if we should store the samples
+            boolean: if we should store the samples of this output element.
         """
         raise NotImplementedError()
 
-    def indices_to_store(self, nmr_samples):
-        """Return indices that indicate how many and which samples to store.
+    def indices_to_store(self, output_name, nmr_samples):
+        """Return the indices of the samples to store for this map.
 
         The return indices should be between 0 and nmr_samples
 
         Args:
+            output_name (str): the name of the output item we want to store the samples of
             nmr_samples (int): the maximum number of samples
 
         Returns:
@@ -593,17 +609,46 @@ class SamplesToSaveMethod(object):
         raise NotImplementedError()
 
 
-class SaveAllSamples(SamplesToSaveMethod):
-    """Indicates that all the samples should be saved."""
+class SaveSpecificMaps(SamplesStorageStrategy):
 
-    def store_samples(self):
-        return True
+    def __init__(self, included=None, excluded=None):
+        """A saving strategy that will only store the output items specified.
 
-    def indices_to_store(self, nmr_samples):
+        If a list of included items is given, we will only store the items that are included in that list. If a list
+        of excluded items are given we will store every item that is not in that list. These two options are mutually
+        exclusive, i.e. use only one of the two.
+
+        Args:
+            included (list): store only the items in this list
+            excluded (list): store all items not in this list
+        """
+        self._included = included
+        self._excluded = excluded
+
+        if self._included and self._excluded:
+            raise ValueError('Can not specify both inclusion and exclusion items.')
+
+    def store_samples(self, output_name):
+        if self._included:
+            return output_name in self._included
+        if self._excluded:
+            return output_name not in self._excluded
+
+    def indices_to_store(self, output_name, nmr_samples):
         return np.arange(nmr_samples)
 
 
-class SaveThinnedSamples(SamplesToSaveMethod):
+class SaveAllSamples(SamplesStorageStrategy):
+    """Indicates that all the samples should be saved."""
+
+    def store_samples(self, output_name):
+        return True
+
+    def indices_to_store(self, output_name, nmr_samples):
+        return np.arange(nmr_samples)
+
+
+class SaveThinnedSamples(SamplesStorageStrategy):
 
     def __init__(self, thinning):
         """Indicates that only every n sample should be saved.
@@ -615,24 +660,24 @@ class SaveThinnedSamples(SamplesToSaveMethod):
         """
         self._thinning = thinning
 
-    def store_samples(self):
+    def store_samples(self, output_name):
         return True
 
-    def indices_to_store(self, nmr_samples):
+    def indices_to_store(self, output_name, nmr_samples):
         return np.arange(0, nmr_samples, self._thinning)
 
 
-class SaveNoSamples(SamplesToSaveMethod):
+class SaveNoSamples(SamplesStorageStrategy):
     """Indicates that no samples should be saved."""
 
-    def store_samples(self):
+    def store_samples(self, output_name):
         return False
 
-    def indices_to_store(self, nmr_samples):
+    def indices_to_store(self, output_name, nmr_samples):
         return np.array([])
 
 
-class SaveSpecificSamples(SamplesToSaveMethod):
+class SaveSpecificSamples(SamplesStorageStrategy):
 
     def __init__(self, sample_indices):
         """Save all the samples at the specified indices.
@@ -642,10 +687,10 @@ class SaveSpecificSamples(SamplesToSaveMethod):
         """
         self._sample_indices = list(sample_indices)
 
-    def store_samples(self):
+    def store_samples(self, output_name):
         return len(self._sample_indices)
 
-    def indices_to_store(self, nmr_samples):
+    def indices_to_store(self, output_name, nmr_samples):
         return self._sample_indices
 
 
