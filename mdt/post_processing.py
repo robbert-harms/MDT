@@ -132,7 +132,7 @@ class DTIMeasures(object):
 
         if len(d.shape) > 1 and d.shape[1] > 1:
             fa = np.zeros_like(d)
-            for batch_start, batch_end in split_in_batches(d.shape[1], 1000):
+            for batch_start, batch_end in split_in_batches(d.shape[1], 100):
                 fa[:, batch_start:batch_end] = compute(
                     d[:, batch_start:batch_end],
                     dperp0[:, batch_start:batch_end],
