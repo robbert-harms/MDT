@@ -7,9 +7,9 @@ import time
 import collections
 
 from mdt import get_processing_strategy
-from mdt.utils import model_output_exists, load_samples, per_model_logging_context
+from mdt.utils import load_samples, per_model_logging_context
 from mdt.processing_strategies import SamplingProcessor, SaveAllSamples, \
-    SaveNoSamples, get_full_tmp_results_path, SamplesToSaveMethod, SaveSpecificSamples
+    SaveNoSamples, get_full_tmp_results_path, SamplesStorageStrategy, SaveSpecificSamples, SaveSpecificMaps
 from mdt.exceptions import InsufficientProtocolError
 
 
@@ -20,7 +20,8 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 def sample_composite_model(model, input_data, output_folder, sampler, tmp_dir,
-                           recalculate=False, store_samples=True, initialization_data=None):
+                           recalculate=False, store_samples=True, sample_items_to_save=None,
+                           initialization_data=None):
     """Sample a composite model.
 
     Args:
@@ -31,24 +32,24 @@ def sample_composite_model(model, input_data, output_folder, sampler, tmp_dir,
         sampler (:class:`mot.cl_routines.sampling.base.AbstractSampler`): The sampling routine to use.
         tmp_dir (str): the preferred temporary storage dir
         recalculate (boolean): If we want to recalculate the results if they are already present.
-        store_samples (boolean, sequence or :class:`mdt.processing_strategies.SamplesToSaveMethod`): if set to False we
+        store_samples (boolean, sequence or :class:`mdt.processing_strategies.SamplesStorageStrategy`): if set to False we
             will store none of the samples. If set to True we will save all samples. If set to a sequence we expect a
             sequence of integer numbers with sample positions to store. Finally, you can also give a subclass instance
-            of :class:`~mdt.processing_strategies.SamplesToSaveMethod` (it is then typically set to
+            of :class:`~mdt.processing_strategies.SamplesStorageStrategy` (it is then typically set to
             a :class:`mdt.processing_strategies.SaveThinnedSamples` instance).
+        sample_items_to_save (list): list of output names we want to store the samples of. If given, we only
+            store the items specified in this list. Valid items are the free parameter names of the model and the
+            items 'LogLikelihood' and 'LogPrior'.
         initialization_data (:class:`~mdt.utils.InitializationData`): provides (extra) initialization data to use
             during model fitting. If we are optimizing a cascade model this data only applies to the last model in the
             cascade.
     """
+    samples_storage_strategy = SaveAllSamples()
     if store_samples:
-        if isinstance(store_samples, SamplesToSaveMethod):
-            sample_to_save_method = store_samples
-        elif isinstance(store_samples, collections.Sequence):
-            sample_to_save_method = SaveSpecificSamples(store_samples)
-        else:
-            sample_to_save_method = SaveAllSamples()
+        if sample_items_to_save:
+            samples_storage_strategy = SaveSpecificMaps(included=sample_items_to_save)
     else:
-        sample_to_save_method = SaveNoSamples()
+        samples_storage_strategy = SaveNoSamples()
 
     if not model.is_input_data_sufficient(input_data):
         raise InsufficientProtocolError(
@@ -76,7 +77,7 @@ def sample_composite_model(model, input_data, output_folder, sampler, tmp_dir,
             worker = SamplingProcessor(
                 sampler, model, input_data.mask, input_data.nifti_header, output_folder,
                 get_full_tmp_results_path(output_folder, tmp_dir), recalculate,
-                samples_to_save_method=sample_to_save_method)
+                samples_storage_strategy=samples_storage_strategy)
 
             processing_strategy = get_processing_strategy('sampling')
             processing_strategy.process(worker)

@@ -133,8 +133,8 @@ def fit_model(model, input_data, output_folder, optimizer=None,
 
 def sample_model(model, input_data, output_folder, sampler=None, recalculate=False,
                  cl_device_ind=None, double_precision=False, store_samples=True,
-                 tmp_results_dir=True, save_user_script_info=True, initialization_data=None,
-                 post_processing=None):
+                 sample_items_to_save=None, tmp_results_dir=True,
+                 save_user_script_info=True, initialization_data=None, post_processing=None):
     """Sample a composite model using the given cascading strategy.
 
     Args:
@@ -150,11 +150,11 @@ def sample_model(model, input_data, output_folder, sampler=None, recalculate=Fal
         cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices().
         double_precision (boolean): if we would like to do the calculations in double precision
-        store_samples (boolean, sequence or :class:`mdt.processing_strategies.SamplesToSaveMethod`): if set to False we
-            will store none of the samples. If set to True we will save all samples. If set to a sequence we expect a
-            sequence of integer numbers with sample positions to store. Finally, you can also give a subclass instance
-            of :class:`~mdt.processing_strategies.SamplesToSaveMethod` (it is then typically set to
-            a :class:`mdt.processing_strategies.SaveThinnedSamples` instance).
+        store_samples (boolean): determines if we store any of the samples. If set to False we will store none
+            of the samples.
+        sample_items_to_save (list): list of output names we want to store the samples of. If given, we only
+            store the items specified in this list. Valid items are the free parameter names of the model and the
+            items 'LogLikelihood' and 'LogPrior'.
         tmp_results_dir (str, True or None): The temporary dir for the calculations. Set to a string to use
                 that path directly, set to True to use the config value, set to None to disable.
         save_user_script_info (boolean, str or SaveUserScriptInfo): The info we need to save about the script the
@@ -238,6 +238,7 @@ def sample_model(model, input_data, output_folder, sampler=None, recalculate=Fal
         results = sample_composite_model(model, input_data, base_dir, sampler,
                                          get_temporary_results_dir(tmp_results_dir), recalculate=recalculate,
                                          store_samples=store_samples,
+                                         sample_items_to_save=sample_items_to_save,
                                          initialization_data=initialization_data)
 
         easy_save_user_script_info(save_user_script_info, os.path.join(base_dir, 'used_scripts.py'),
