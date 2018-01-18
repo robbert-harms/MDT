@@ -345,6 +345,11 @@ class Renderer(object):
             if len(data_slice.shape) > 2:
                 if data_slice.shape[2] == 3 and self._get_map_attr(map_name, 'interpret_as_colormap'):
                     data_slice = np.abs(data_slice[:, :, :])
+
+                    if self._get_map_attr(map_name, 'colormap_order'):
+                        order = self._get_map_attr(map_name, 'colormap_order')
+                        data_slice[..., :] = data_slice[..., [order.index(color) for color in 'rbg']]
+
                 elif volume_index < data_slice.shape[2]:
                     data_slice = np.squeeze(data_slice[:, :, volume_index])
                 else:
@@ -483,6 +488,13 @@ def _coordinates_to_index(map_info, plot_config, x, y):
             index.append(plot_config.volume_index)
         else:
             index.append(map_info.data.shape[3] - 1)
+
+    # fixes issue with off-by-one errors
+    for ind in range(len(index)):
+        if index[ind] >= map_info.shape[ind]:
+            index[ind] = map_info.shape[ind] - 1
+        if index[ind] < 0:
+            index[ind] = 0
 
     return index
 

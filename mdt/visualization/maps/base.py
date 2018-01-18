@@ -363,7 +363,8 @@ class SingleMapConfig(SimpleConvertibleConfig):
 
     def __init__(self, title=None, scale=None, clipping=None, colormap=None, colorbar_label=None,
                  colorbar_nmr_ticks=None, show_colorbar=None, colorbar_location=None, show_title=None,
-                 title_spacing=None, mask_name=None, interpret_as_colormap=False, colormap_weight_map=None):
+                 title_spacing=None, mask_name=None, interpret_as_colormap=False, colormap_weight_map=None,
+                 colormap_order=None):
         """Creates the configuration for a single map plot.
 
         Args:
@@ -383,6 +384,8 @@ class SingleMapConfig(SimpleConvertibleConfig):
                 that the elements of the last dimensions are used as (R, G, B) scalar values.
             colormap_weight_map (str): the name of another map to use as a scaling factor for this map. This is only
                 used when ``interpret_as_colormap`` is set to True. This scales this map with the specified weight map.
+            colormap_order (str): only used if ``interpret_as_colormap`` is used. This defines the order of the RGB
+                components of the data. Valid strings are permutations of the letters RGB.
         """
         super(SingleMapConfig, self).__init__()
         self.title = title
@@ -398,6 +401,7 @@ class SingleMapConfig(SimpleConvertibleConfig):
         self.mask_name = mask_name
         self.interpret_as_colormap = bool(interpret_as_colormap)
         self.colormap_weight_map = colormap_weight_map
+        self.colormap_order = colormap_order
 
         if self.colormap is not None and self.colormap not in self.get_available_colormaps():
             raise ValueError('The given colormap ({}) is not supported.'.format(self.colormap))
@@ -409,6 +413,10 @@ class SingleMapConfig(SimpleConvertibleConfig):
 
         if self.colorbar_nmr_ticks is not None and self.colorbar_nmr_ticks <= 0:
             raise ValueError("The number of ticks in the colorbar needs to be a positive integer.")
+
+        if colormap_order:
+            if len(colormap_order) > 3 or not all(color in colormap_order.lower() for color in 'rgb'):
+                raise ValueError('Incorrect colormap order specification, "{}" given.'.format(colormap_order))
 
     @classmethod
     def _get_attribute_conversions(cls):
@@ -424,7 +432,8 @@ class SingleMapConfig(SimpleConvertibleConfig):
                 'show_colorbar': BooleanConversion(),
                 'show_title': BooleanConversion(),
                 'interpret_as_colormap': BooleanConversion(allow_null=False),
-                'colormap_weight_map': StringConversion()}
+                'colormap_weight_map': StringConversion(),
+                'colormap_order': StringConversion()}
 
     @classmethod
     def get_available_colormaps(cls):
