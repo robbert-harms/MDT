@@ -34,40 +34,25 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class BatchProfile(object):
 
-    def get_base_directory(self):
-        """The base directory used by this batch profile.
-
-        This is the directory from which the profile loads its subjects.
-
-        Returns:
-            str: the base directory
-        """
-        raise NotImplementedError()
-
-    def with_base_directory(self, base_directory):
-        """Create a copy of this batch profile using this new base directory as the base dir
+    def get_subjects(self, data_folder):
+        """Get the information about all the subjects in the current folder.
 
         Args:
-            base_directory(str): the new base directory
-
-        Returns:
-            class: an instance of the derived BatchProfile class
-        """
-        raise NotImplementedError()
-
-    def get_subjects(self):
-        """Get the information about all the subjects in the current folder.
+            data_folder (str): the data folder from which to load the subjects
 
         Returns:
             list of :class:`SubjectInfo`: the information about the found subjects
         """
         raise NotImplementedError()
 
-    def profile_suitable(self):
+    def is_suitable(self, data_folder):
         """Check if this directory can be used to use subjects from using this batch fitting profile.
 
         This is used for auto detecting the best batch fitting profile to use for loading
         subjects from the given base dir.
+
+        Args:
+            data_folder (str): the data folder from which to load the subjects
 
         Returns:
             boolean: true if this batch fitting profile can use the subjects in the current base directory,
@@ -75,8 +60,11 @@ class BatchProfile(object):
         """
         raise NotImplementedError()
 
-    def get_subjects_count(self):
+    def get_subjects_count(self, data_folder):
         """Get the number of subjects this batch fitting profile can use from the current base directory.
+
+        Args:
+            data_folder (str): the data folder from which to load the subjects
 
         Returns:
             int: the number of subjects this batch fitting profile can use from the current base directory.
@@ -86,7 +74,7 @@ class BatchProfile(object):
 
 class SimpleBatchProfile(BatchProfile):
 
-    def __init__(self, base_directory):
+    def __init__(self, *args, **kwargs):
         """A base class for quickly implementing a batch profile.
 
         Implementing classes need only implement the method :meth:`_get_subjects`, then this class will handle the rest.
@@ -95,49 +83,41 @@ class SimpleBatchProfile(BatchProfile):
             base_directory (str): the base directory from which we will load the subjects information
         """
         super(SimpleBatchProfile, self).__init__()
-        self._base_directory = base_directory
-        self._subjects_found = None
 
-    def get_base_directory(self):
-        return self._base_directory
+    def get_subjects(self, data_folder):
+        return self._get_subjects(data_folder)
 
-    def with_base_directory(self, base_directory):
-        return type(self)(base_directory)
+    def is_suitable(self, data_folder):
+        return self.get_subjects_count(data_folder) > 0
 
-    def get_subjects(self):
-        if not self._subjects_found:
-            self._subjects_found = self._get_subjects()
-        return self._subjects_found
+    def get_subjects_count(self, data_folder):
+        return len(self.get_subjects(data_folder))
 
-    def profile_suitable(self):
-        return self.get_subjects_count() > 0
-
-    def get_subjects_count(self):
-        if not self._subjects_found:
-            self._subjects_found = self._get_subjects()
-        return len(self._subjects_found)
-
-    def _autoload_noise_std(self, subject_id, file_path=None):
+    def _autoload_noise_std(self, data_folder, subject_id, file_path=None):
         """Try to autoload the noise standard deviation from a noise_std file.
 
         Args:
+            data_folder (str): the data base folder
             subject_id (str): the subject for which to use the noise std.
             file_path (str): optionally provide the exact file to use.
 
         Returns:
             float or None: a float if a float could be loaded from a file noise_std, else nothing.
         """
-        file_path = file_path or os.path.join(self._base_directory, subject_id, 'noise_std')
+        file_path = file_path or os.path.join(data_folder, subject_id, 'noise_std')
         noise_std_files = glob.glob(file_path + '*')
         if len(noise_std_files):
             with open(noise_std_files[0], 'r') as f:
                 return float(f.read())
         return None
 
-    def _get_subjects(self):
+    def _get_subjects(self, data_folder):
         """Get the matching subjects from the given base dir.
 
         This is the only function that should be implemented to get up and running.
+
+        Args:
+            data_folder (str): the data folder from which to load the subjects
 
         Returns:
             list of SubjectInfo: the information about the found subjects
@@ -207,6 +187,15 @@ class SubjectInfo(object):
         """
         raise NotImplementedError()
 
+    @property
+    def subject_base_folder(self):
+        """Get the data base folder of this subject.
+
+        Returns:
+            str: the folder with the main data of this subject, this subject's home folder.
+        """
+        raise NotImplementedError()
+
     def get_input_data(self, use_gradient_deviations=False):
         """Get the input data for this subject.
 
@@ -223,12 +212,14 @@ class SubjectInfo(object):
 
 class SimpleSubjectInfo(SubjectInfo):
 
-    def __init__(self, subject_id, dwi_fname, protocol_loader, mask_fname, gradient_deviations=None, noise_std=None):
+    def __init__(self, subject_base_folder, subject_id, dwi_fname, protocol_loader,
+                 mask_fname, gradient_deviations=None, noise_std=None):
         """This class contains all the information about found subjects during batch fitting.
 
         It is returned by the method get_subjects() from the class BatchProfile.
 
         Args:
+            subject_base_folder (str): the base folder of this subject
             subject_id (str): the subject id
             dwi_fname (str): the filename with path to the dwi image
             protocol_loader (ProtocolLoader): the protocol loader that can use us the protocol
@@ -237,6 +228,7 @@ class SimpleSubjectInfo(SubjectInfo):
             noise_std (float, ndarray, str): either None for automatic noise detection or a float with the noise STD
                 to use during fitting or an ndarray with one value per voxel.
         """
+        self._subject_base_folder = subject_base_folder
         self._subject_id = subject_id
         self._dwi_fname = dwi_fname
         self._protocol_loader = protocol_loader
@@ -247,6 +239,10 @@ class SimpleSubjectInfo(SubjectInfo):
     @property
     def subject_id(self):
         return self._subject_id
+
+    @property
+    def subject_base_folder(self):
+        return self._subject_base_folder
 
     def get_input_data(self, use_gradient_deviations=False):
         if use_gradient_deviations:
@@ -391,12 +387,9 @@ def batch_profile_factory(batch_profile, base_directory):
             If batch profile is a string we use it from the batch profiles loader. Else we return the input.
     """
     if batch_profile is None:
-        batch_profile = get_best_batch_profile(base_directory)
+        return get_best_batch_profile(base_directory)
     elif isinstance(batch_profile, string_types):
-        batch_profile = BatchProfilesLoader().load(batch_profile, base_directory)
-    else:
-        batch_profile = batch_profile.with_base_directory(base_directory)
-
+        return BatchProfilesLoader().load(batch_profile)
     return batch_profile
 
 
@@ -410,15 +403,15 @@ def get_best_batch_profile(data_folder):
         BatchProfile: the best matching batch profile.
     """
     profile_loader = BatchProfilesLoader()
-    crawlers = [profile_loader.load(c, data_folder) for c in profile_loader.list_all()]
+    profiles = [profile_loader.load(profile) for profile in profile_loader.list_all()]
 
     best_crawler = None
     best_subjects_count = 0
-    for crawler in crawlers:
-        if crawler.profile_suitable():
-            tmp_count = crawler.get_subjects_count()
+    for profile in profiles:
+        if profile.is_suitable(data_folder):
+            tmp_count = profile.get_subjects_count(data_folder)
             if tmp_count > best_subjects_count:
-                best_crawler = crawler
+                best_crawler = profile
                 best_subjects_count = tmp_count
 
     return best_crawler
@@ -448,8 +441,10 @@ def batch_apply(func, data_folder, batch_profile=None, subjects_selection=None, 
         raise RuntimeError('No suitable batch profile could be '
                            'found for the directory {0}'.format(os.path.abspath(data_folder)))
 
-    selected_subjects = subjects_selection.get_selection([el.subject_id for el in batch_profile.get_subjects()])
-    subjects = [subject for subject in batch_profile.get_subjects() if subject.subject_id in selected_subjects]
+    selected_subjects = subjects_selection.get_selection(
+        [el.subject_id for el in batch_profile.get_subjects(data_folder)])
+    subjects = [subject for subject in batch_profile.get_subjects(data_folder)
+                if subject.subject_id in selected_subjects]
 
     results = {}
     for subject in subjects:

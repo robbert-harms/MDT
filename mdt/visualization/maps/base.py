@@ -416,7 +416,8 @@ class SingleMapConfig(SimpleConvertibleConfig):
 
         if colormap_order:
             if len(colormap_order) > 3 or not all(color in colormap_order.lower() for color in 'rgb'):
-                raise ValueError('Incorrect colormap order specification, "{}" given.'.format(colormap_order))
+                raise ValueError('Incorrect colormap order specification, '
+                                 'only permutations of "rgb" are allowed.'.format(colormap_order))
 
     @classmethod
     def _get_attribute_conversions(cls):

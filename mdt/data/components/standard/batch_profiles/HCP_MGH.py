@@ -34,14 +34,14 @@ Optional items (these will take precedence if present):
 
 class HCP_MGH(SimpleBatchProfile):
 
-    def _get_subjects(self):
-        dirs = sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._base_directory, '*'))])
+    def _get_subjects(self, data_folder):
+        dirs = sorted([os.path.basename(f) for f in glob.glob(os.path.join(data_folder, '*'))])
         subjects = []
         for subject_id in dirs:
-            pjoin = mdt.make_path_joiner(self._base_directory, subject_id, 'diff', 'preproc')
+            pjoin = mdt.make_path_joiner(data_folder, subject_id, 'diff', 'preproc')
             if os.path.isdir(pjoin()):
                 dwi_fname = list(glob.glob(pjoin('mri', 'diff_preproc.nii*')))[0]
-                noise_std = self._autoload_noise_std(subject_id, file_path=pjoin('noise_std'))
+                noise_std = self._autoload_noise_std(data_folder, subject_id, file_path=pjoin('noise_std'))
 
                 bval_fname = pjoin('bvals.txt')
                 if os.path.isfile(pjoin('diff_preproc.bval')):
@@ -68,7 +68,7 @@ class HCP_MGH(SimpleBatchProfile):
                     protocol_fname=prtcl_fname, bvec_fname=bvec_fname, bval_fname=bval_fname,
                     protocol_columns={'Delta': 21.8e-3, 'delta': 12.9e-3, 'TR': 8800e-3, 'TE': 57e-3})
 
-                subjects.append(SimpleSubjectInfo(subject_id, dwi_fname, protocol_loader, mask_fname,
+                subjects.append(SimpleSubjectInfo(pjoin(), subject_id, dwi_fname, protocol_loader, mask_fname,
                                                   noise_std=noise_std))
         return subjects
 

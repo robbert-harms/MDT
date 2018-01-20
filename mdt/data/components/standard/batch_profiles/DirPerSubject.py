@@ -46,16 +46,16 @@ They should either contain exactly 1 value (for all protocol lines), or a value 
 
 class DirPerSubject(SimpleBatchProfile):
 
-    def _get_subjects(self):
+    def _get_subjects(self, data_folder):
         subjects = []
-        for subject_id in sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._base_directory, '*'))]):
-            pjoin = mdt.make_path_joiner(self._base_directory, subject_id)
-            subject_info = self._get_subject_in_directory(subject_id, pjoin)
+        for subject_id in sorted([os.path.basename(f) for f in glob.glob(os.path.join(data_folder, '*'))]):
+            pjoin = mdt.make_path_joiner(data_folder, subject_id)
+            subject_info = self._get_subject_in_directory(data_folder, subject_id, pjoin)
             if subject_info:
                 subjects.append(subject_info)
         return subjects
 
-    def _get_subject_in_directory(self, subject_id, pjoin):
+    def _get_subject_in_directory(self, data_folder, subject_id, pjoin):
         """Get the information about the given subject in the given directory.
 
         Args:
@@ -72,7 +72,7 @@ class DirPerSubject(SimpleBatchProfile):
         protocols = glob.glob(pjoin('*prtcl'))
         bvals = glob.glob(pjoin('*bval*'))
         bvecs = glob.glob(pjoin('*bvec*'))
-        noise_std = self._autoload_noise_std(subject_id)
+        noise_std = self._autoload_noise_std(data_folder, subject_id)
 
         if dwis:
             dwi_fname = dwis[0]
@@ -89,11 +89,12 @@ class DirPerSubject(SimpleBatchProfile):
 
             if dwi_fname and (protocol_fname or (bval_fname and bvec_fname)):
                 protocol_loader = BatchFitProtocolLoader(
-                    os.path.join(self._base_directory, subject_id),
+                    os.path.join(data_folder, subject_id),
                     protocol_fname=protocol_fname, bvec_fname=bvec_fname,
                     bval_fname=bval_fname)
 
-                return SimpleSubjectInfo(subject_id, dwi_fname, protocol_loader, mask_fname,
+                return SimpleSubjectInfo(os.path.join(data_folder, subject_id),
+                                         subject_id, dwi_fname, protocol_loader, mask_fname,
                                          gradient_deviations=grad_dev,
                                          noise_std=noise_std)
         return None

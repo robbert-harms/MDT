@@ -35,17 +35,17 @@ Optional items (these will take precedence if present):
 
 class HCP_WUMINN(SimpleBatchProfile):
 
-    def _get_subjects(self):
+    def _get_subjects(self, data_folder):
         subjects = []
-        for subject_id in sorted([os.path.basename(f) for f in glob.glob(os.path.join(self._base_directory, '*'))]):
-            pjoin = mdt.make_path_joiner(self._base_directory, subject_id, 'T1w', 'Diffusion')
+        for subject_id in sorted([os.path.basename(f) for f in glob.glob(os.path.join(data_folder, '*'))]):
+            pjoin = mdt.make_path_joiner(data_folder, subject_id, 'T1w', 'Diffusion')
             if os.path.isdir(pjoin()):
-                subject_info = self._get_subject_in_directory(subject_id, pjoin)
+                subject_info = self._get_subject_in_directory(data_folder, subject_id, pjoin)
                 if subject_info:
                     subjects.append(subject_info)
         return subjects
 
-    def _get_subject_in_directory(self, subject_id, pjoin):
+    def _get_subject_in_directory(self, data_folder, subject_id, pjoin):
         """Get the information about the given subject in the given directory.
 
         Args:
@@ -55,7 +55,7 @@ class HCP_WUMINN(SimpleBatchProfile):
         Returns:
             SimpleSubjectInfo or None: the subject info for this particular subject
         """
-        noise_std = self._autoload_noise_std(subject_id, file_path=pjoin('noise_std'))
+        noise_std = self._autoload_noise_std(data_folder, subject_id, file_path=pjoin('noise_std'))
 
         protocol_loader = self._autoload_protocol(
             pjoin(),
@@ -66,7 +66,7 @@ class HCP_WUMINN(SimpleBatchProfile):
 
         mask_fname = self._get_first_existing_nifti(['data_mask', 'nodif_brain_mask'], prepend_path=pjoin())
 
-        return SimpleSubjectInfo(subject_id, pjoin('data'), protocol_loader, mask_fname,
+        return SimpleSubjectInfo(pjoin(), subject_id, pjoin('data'), protocol_loader, mask_fname,
                                  gradient_deviations=pjoin('grad_dev'), noise_std=noise_std)
 
     def __str__(self):
