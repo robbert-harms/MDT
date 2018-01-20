@@ -502,10 +502,12 @@ class SamplingProcessor(SimpleModelProcessor):
             elif output_name == 'LogPrior':
                 return sampling_output.get_log_priors()
 
+        items_to_save = {}
         for ind, name in enumerate(list(model.get_free_param_names()) + ['LogLikelihood', 'LogPrior']):
             if self._samples_to_save_method.store_samples(name):
                 self._samples_output_stored.append(name)
-                self._write_sample_results({name: get_output(name)}, roi_indices)
+                items_to_save.update({name: get_output(name)})
+        self._write_sample_results(items_to_save, roi_indices)
 
         self._logger.info('Finished post-processing')
 

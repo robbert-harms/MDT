@@ -4,12 +4,10 @@ import os
 import timeit
 import time
 
-import collections
-
 from mdt import get_processing_strategy
 from mdt.utils import load_samples, per_model_logging_context
 from mdt.processing_strategies import SamplingProcessor, SaveAllSamples, \
-    SaveNoSamples, get_full_tmp_results_path, SamplesStorageStrategy, SaveSpecificSamples, SaveSpecificMaps
+    SaveNoSamples, get_full_tmp_results_path, SaveSpecificMaps
 from mdt.exceptions import InsufficientProtocolError
 
 

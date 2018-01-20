@@ -9,7 +9,6 @@ its data are handled during model construction.
 
 import numpy as np
 from mdt.component_templates.parameters import FreeParameterTemplate
-from mot.model_building.parameter_functions.priors import UniformWithinBoundsPrior
 from mot.model_building.parameter_functions.proposals import GaussianProposal, CircularGaussianProposal
 from mot.model_building.parameter_functions.transformations import ClampTransform, AbsModPiTransform, \
     SinSqrClampTransform, CosSqrClampTransform
@@ -113,7 +112,6 @@ class theta(FreeParameterTemplate):
     upper_bound = np.pi
     parameter_transform = AbsModPiTransform()
     sampling_proposal = CircularGaussianProposal(np.pi, 0.1)
-    sampling_prior = UniformWithinBoundsPrior()
     numdiff_info = {'max_step': 0.1, 'use_bounds': False, 'modulus': np.pi}
 
 
@@ -140,7 +138,6 @@ class phi(FreeParameterTemplate):
     upper_bound = np.pi
     parameter_transform = CosSqrClampTransform()
     sampling_proposal = GaussianProposal(0.1)
-    sampling_prior = UniformWithinBoundsPrior()
     numdiff_info = {'max_step': 0.1, 'use_bounds': False, 'modulus': 2*np.pi}
 
 
@@ -154,7 +151,6 @@ class psi(FreeParameterTemplate):
     upper_bound = np.pi
     parameter_transform = AbsModPiTransform()
     sampling_proposal = CircularGaussianProposal(np.pi, 0.5)
-    sampling_prior = UniformWithinBoundsPrior()
     numdiff_info = {'max_step': 0.1, 'use_bounds': False, 'modulus': np.pi}
 
 
