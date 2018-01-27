@@ -150,7 +150,7 @@ class psi(FreeParameterTemplate):
     lower_bound = 0
     upper_bound = np.pi
     parameter_transform = AbsModPiTransform()
-    sampling_proposal = CircularGaussianProposal(np.pi, 0.5)
+    sampling_proposal = CircularGaussianProposal(np.pi, 0.1)
     numdiff_info = {'max_step': 0.1, 'use_bounds': False, 'modulus': np.pi}
 
 
@@ -170,7 +170,7 @@ class dperp0(FreeParameterTemplate):
     lower_bound = 0
     upper_bound = 1.0e-8
     parameter_transform = SinSqrClampTransform()
-    sampling_proposal = GaussianProposal(5e-10)
+    sampling_proposal = GaussianProposal(1e-10)
     numdiff_info = {'max_step': 0.1, 'scale_factor': 1e10}
 
 
@@ -180,7 +180,7 @@ class dperp1(FreeParameterTemplate):
     lower_bound = 0
     upper_bound = 1.0e-8
     parameter_transform = SinSqrClampTransform()
-    sampling_proposal = GaussianProposal(5e-10)
+    sampling_proposal = GaussianProposal(1e-10)
     numdiff_info = {'max_step': 0.1, 'scale_factor': 1e10}
 
 
@@ -199,7 +199,7 @@ class kappa(FreeParameterTemplate):
     lower_bound = 1e-5
     upper_bound = 2 * np.pi
     parameter_transform = CosSqrClampTransform()
-    sampling_proposal = GaussianProposal(0.01)
+    sampling_proposal = GaussianProposal(0.1)
     numdiff_info = {'max_step': 0.1, 'scale_factor': 10}
 
 

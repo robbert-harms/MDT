@@ -64,6 +64,7 @@ class BatchFitting(object):
                 that path directly, set to True to use the config value, set to None to disable.
             use_gradient_deviations (boolean): if you want to use the gradient deviations if present
         """
+        self._data_folder = data_folder
         self._logger = logging.getLogger(__name__)
         self._batch_profile = batch_profile_factory(batch_profile, data_folder)
         self._output_folder = output_folder
@@ -84,11 +85,11 @@ class BatchFitting(object):
         self._logger.info('Using batch profile: {0}'.format(self._batch_profile))
 
         selected_subjects = self._subjects_selection.get_selection(
-            [el.subject_id for el in self._batch_profile.get_subjects()])
-        self._subjects = [subject for subject in self._batch_profile.get_subjects()
+            [el.subject_id for el in self._batch_profile.get_subjects(data_folder)])
+        self._subjects = [subject for subject in self._batch_profile.get_subjects(data_folder)
                           if subject.subject_id in selected_subjects]
 
-        self._logger.info('Subjects found: {0}'.format(self._batch_profile.get_subjects_count()))
+        self._logger.info('Subjects found: {0}'.format(self._batch_profile.get_subjects_count(data_folder)))
         self._logger.info('Subjects to process: {0}'.format(len(self._subjects)))
         self._logger.info('Going to fit these models to all data: {}'.format(self._models_to_fit))
 
@@ -107,7 +108,7 @@ class BatchFitting(object):
         Returns:
             list of :class:`~mdt.batch_utils.SubjectInfo`: information about all available subjects
         """
-        return self._batch_profile.get_subjects()
+        return self._batch_profile.get_subjects(self._data_folder)
 
     def get_subjects_info(self):
         """Get a dictionary with the info of the subject we will run computations on.

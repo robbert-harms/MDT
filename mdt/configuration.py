@@ -340,6 +340,9 @@ class DefaultProposalUpdateLoader(ConfigSectionLoader):
             update_class = get_proposal_update_by_name(value['name'])
             mot.configuration.set_default_proposal_update(update_class(**kwargs))
 
+            from mdt.components_loader import ParametersLoader
+            ParametersLoader().reload()
+
 
 class ActivePostProcessingLoader(ConfigSectionLoader):
     """Load the default settings for the post sampling calculations."""

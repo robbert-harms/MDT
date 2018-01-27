@@ -625,8 +625,10 @@ class BuildCompositeModel(MRIModelInterface):
         Returns:
             dict: the volume maps with the univariate ESS statistics
         """
-        uv_ess = univariate_ess(samples, method='standard_error')
-        return results_to_dict(uv_ess, [a + '.UnivariateESS' for a in self.get_free_param_names()])
+        ess = univariate_ess(samples, method='standard_error')
+        ess[np.isinf(ess)] = 0
+        ess = np.nan_to_num(ess)
+        return results_to_dict(ess, [a + '.UnivariateESS' for a in self.get_free_param_names()])
 
     def _get_multivariate_ess(self, samples):
         """Get the multivariate Effective Sample Size statistics for the given set of samples.
@@ -637,7 +639,10 @@ class BuildCompositeModel(MRIModelInterface):
         Returns:
             dict: the volume maps with the ESS statistics
         """
-        return {'MultivariateESS': np.nan_to_num(multivariate_ess(samples))}
+        ess = multivariate_ess(samples)
+        ess[np.isinf(ess)] = 0
+        ess = np.nan_to_num(ess)
+        return {'MultivariateESS': ess}
 
     def _calculate_hessian_covariance(self, results_array):
         """Calculate the covariance and correlation matrix by taking the inverse of the Hessian.

@@ -48,8 +48,8 @@ Optional items (all case sensitive):
 
 class SingleDir(SimpleBatchProfile):
 
-    def _get_subjects(self):
-        pjoin = mdt.make_path_joiner(self._base_directory)
+    def _get_subjects(self, data_folder):
+        pjoin = mdt.make_path_joiner(data_folder)
 
         files = [os.path.basename(f) for f in glob.glob(pjoin('*'))]
         basenames = sorted(list({split_image_path(f)[1] for f in files}))
@@ -70,7 +70,7 @@ class SingleDir(SimpleBatchProfile):
             elif basename + '.hdr' in files and basename + '.img' in files:
                 dwi_fname = pjoin(basename + '.hdr')
 
-            noise_std = self._autoload_noise_std(basename, file_path=pjoin(basename + '.noise_std'))
+            noise_std = self._autoload_noise_std(data_folder, basename, file_path=pjoin(basename + '.noise_std'))
 
             prtcl_fname = None
             if basename + '.prtcl' in files:
@@ -104,7 +104,7 @@ class SingleDir(SimpleBatchProfile):
                     protocol_fname=prtcl_fname, bvec_fname=bvec_fname, bval_fname=bval_fname,
                     protocol_columns=extra_cols_from_file)
 
-                subjects.append(SimpleSubjectInfo(basename, dwi_fname, protocol_loader, mask_fname,
+                subjects.append(SimpleSubjectInfo(pjoin(), basename, dwi_fname, protocol_loader, mask_fname,
                                                   noise_std=noise_std))
         return subjects
 
