@@ -36,5 +36,7 @@ class NODDI(DMRICompositeModelTemplate):
                          'w_ic.w.std': np.std(samples['w_ic.w'], axis=1),
                          'NDI': np.mean(samples['w_ic.w'] / (samples['w_ic.w'] + samples['w_ec.w']), axis=1),
                          'NDI.std': np.std(samples['w_ic.w'] / (samples['w_ic.w'] + samples['w_ec.w']), axis=1),
+                         'ODI': np.mean(np.arctan2(1.0, samples['NODDI_IC.kappa'] * 10) * 2 / np.pi, axis=1),
+                         'ODI.std': np.std(np.arctan2(1.0, samples['NODDI_IC.kappa'] * 10) * 2 / np.pi, axis=1)
                          }
     ]
