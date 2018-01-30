@@ -101,7 +101,7 @@ docs-man:
 
 .PHONY: docs-changelog
 docs-changelog:
-	gitchangelog > CHANGELOG.rst
+	gitchangelog
 
 .PHONY: prepare-release
 prepare-release: clean
