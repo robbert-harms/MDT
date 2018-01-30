@@ -623,6 +623,9 @@ class PathJoiner(object):
             os.makedirs(self._path, mode)
 
     def __call__(self, *args):
+        if len(args) and args[0].startswith('/'):
+            args = list(args)
+            args[0] = args[0][1:]
         return os.path.abspath(os.path.join(self._path, *args))
 
 
