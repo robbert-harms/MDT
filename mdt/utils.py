@@ -512,7 +512,7 @@ class SimpleInitializationData(InitializationData):
 
 class PathJoiner(object):
 
-    def __init__(self, *args):
+    def __init__(self, *args, make_dirs=False):
         """The path joining class.
 
         To construct use something like:
@@ -578,9 +578,13 @@ class PathJoiner(object):
 
         Args:
             *args: the initial path element(s).
+            make_dirs (boolean): make_dirs (boolean): if set to True we will automatically create the directory
+                this path is pointing to. Similar to calling :meth:`make_dirs` on the resulting object.
         """
         self._initial_path = os.path.abspath(os.path.join('', *args))
         self._path = os.path.abspath(os.path.join('', *args))
+        if make_dirs:
+            self.make_dirs()
 
     def create_extended(self, *args, make_dirs=False, make_dirs_mode=None):
         """Create and return a new PathJoiner instance with the path extended by the given arguments.

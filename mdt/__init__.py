@@ -479,14 +479,18 @@ def view_result_samples(data, **kwargs):
     SampleVisualizer(data).show(**kwargs)
 
 
-def make_path_joiner(*folder):
+def make_path_joiner(*args, make_dirs=False):
     """Generates and returns an instance of utils.PathJoiner to quickly join path names.
+
+    Args:
+        *args: the initial directory or list of directories to concatenate
+        make_dirs (boolean): if we should make the referenced directory if it does not yet exist
 
     Returns:
          mdt.utils.PathJoiner: easy path manipulation path joiner
     """
     from mdt.utils import PathJoiner
-    return PathJoiner(*folder)
+    return PathJoiner(*args, make_dirs=make_dirs)
 
 
 def sort_maps(input_maps, reversed_sort=False, sort_index_matrix=None):
