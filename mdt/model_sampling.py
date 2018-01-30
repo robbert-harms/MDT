@@ -57,7 +57,8 @@ def sample_composite_model(model, input_data, output_folder, sampler, tmp_dir,
     logger = logging.getLogger(__name__)
 
     if not recalculate:
-        if os.path.exists(os.path.join(output_folder, 'UsedMask.nii.gz')):
+        if os.path.exists(os.path.join(output_folder, 'UsedMask.nii.gz')) \
+            or os.path.exists(os.path.join(output_folder, 'UsedMask.nii')):
             logger.info('Not recalculating {} model'.format(model.name))
             return load_samples(output_folder)
 
