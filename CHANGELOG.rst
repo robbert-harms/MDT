@@ -11,56 +11,20 @@ Added
 - Adds relaxometry models.
 - Adds sampling output selection to the sampler.
 - Adds another post-processing switch to the sampling post-processing.
-- Added a small oversight in the default configuration.
-- Adds control switches for the post-processing to the model fitting and sampling routines. Renamed the configuration switch back to active_post_processing.
-- Adds nibabel and numpy array decoration to store nifti info alongside the niftis loaded with mdt.load_nifti().
-- Adds Hessian and covariance computation as post-processing to the models. Changed the signature of post_optimization_modifiers and changed its purpose to only update the results, for adding extra optimization maps it is possible to use the extra_optimization_maps directive.
-- Adds sort_matrix to output with parameter sorting.
-- Adds directory detection to load protocol.
+- Adds nibabel and numpy array decoration to store path info alongside the niftis when loaded with mdt.load_nifti().
+- Adds Hessian and covariance computation as post-processing to the models.
 
 Changed
 -------
-- Updates to the path joiner.
 - Updates to the batch profiles.
-- Updates to the batch profile and batch processing routines. Small update to the model post-processing, adds post-processing after sampling and adds more switches to the configuration.
-- Changed default step size of the numerical differentiation.
-- Changed the default Hessian computation strategy.
-- Changed the way the final statistic over the samples is calculated from a per parameter method to a per composite model method. Updates to CHARMED boundary conditions.
-- Updates to the batch profiles.
-- Updates to the restore_volumes, made it accept more dimensions.
-
-Fixed
------
-- Fixed sampling recalculation check.
-- Fixes small bug with the static maps.
+- Updates to CHARMED boundary conditions.
 
 Other
 -----
-- Merge branch 'master' of github.com:cbclab/MDT.
-- Merge branch 'master' of github.com:cbclab/MDT.
-- Small bug fix in the path joiner.
-- Small updates to the initial proposal standard deviation of some of the parameters.
-- Small fix to the sampling saving routine.
-- Merge branch 'master' of github.com:cbclab/MDT.
-- Merge branch 'master' of github.com:cbclab/MDT.
-- Small update to the FA post-processing computations.
-- Small updates.
-- Small variable renaming.
-- Removed the sampling statistics calculation from the post-processing, it did not work out theoretically. Updates to the bounds of the CHARMED_r1 model. Adds an utility function for computing the correlations from the covariances.
-- Small update to the FA std calculation.
-- More work on the numerical differentiation.
-- Merge branch 'master' of github.com:cbclab/MDT.
-- Merge branch 'master' of github.com:cbclab/MDT.
-- Small updates to the batch routines.
+- Removed the sampling statistics calculation from the post-processing, it did not work out theoretically.
+- Adds an utility function for computing the correlations from the covariances.
 - Small update to the scientific scrollers in the gui. Interchanged the position of max and min in the gui.
-- Following changes in MOT, adds numdiff_info option to the free parameters. This adds information about the parameters needed for taking numerical differentiation.
-- Calculates covariance matrix from the samples using the sample covariance technique.
-- Small documentation updates.
-- Made the method wrapping in the wrapped model easier.
-- Removed the residuals from the optimization output. We have already the log likelihood instead.
-- Removed the model data parameters. Small updates to the input data following MOT.
 - Renamed evaluation_model to likelihood_function in the composite models. This covers the usage better.
-- Uses the TruncatedGaussian for diffusivities and weights as post sampling statistic.
 
 
 v0.10.5 (2017-09-22)
