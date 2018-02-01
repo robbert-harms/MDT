@@ -79,7 +79,7 @@ def sample_composite_model(model, input_data, output_folder, sampler, tmp_dir,
                 samples_storage_strategy=samples_storage_strategy)
 
             processing_strategy = get_processing_strategy('sampling')
-            processing_strategy.process(worker)
+            return processing_strategy.process(worker)
 
 
 @contextmanager
