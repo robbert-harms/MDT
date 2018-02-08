@@ -529,7 +529,7 @@ def get_volume_names(directory):
     return list(sorted(el[1] for el in yield_nifti_info(directory)))
 
 
-def write_volume_maps(maps, directory, header, overwrite_volumes=True):
+def write_volume_maps(maps, directory, header=None, overwrite_volumes=True, gzip=True):
     """Write a dictionary with maps to the given directory using the given header.
 
     Args:
@@ -537,9 +537,10 @@ def write_volume_maps(maps, directory, header, overwrite_volumes=True):
         directory (str): The dir to write to
         header: The Nibabel Image Header
         overwrite_volumes (boolean): If we want to overwrite the volumes if they are present.
+        gzip (boolean): if we want to write the results gzipped
     """
     from mdt.nifti import write_all_as_nifti
-    write_all_as_nifti(maps, directory, nifti_header=header, overwrite_volumes=overwrite_volumes)
+    write_all_as_nifti(maps, directory, nifti_header=header, overwrite_volumes=overwrite_volumes, gzip=gzip)
 
 
 def get_list_of_composite_models():

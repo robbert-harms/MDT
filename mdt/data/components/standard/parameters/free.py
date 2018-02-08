@@ -127,17 +127,12 @@ class phi(FreeParameterTemplate):
     is that the samples will not wrap nicely around pi, the blessing is that we prevent a bimodal distribution in phi.
     Not wrapping around pi is not much of a problem though, as the sampler can easily sample only half of a gaussian
     if the optimal parameter is around zero or pi.
-
-    Still, we by default opted for the standard Gaussian for fitting the samples obtained by MCMC, since there are
-    non-unique configurations of theta and phi possible, even within the domain [0, pi] we use for both parameters.
-    Another possible option for the future is to transform the theta phi vectors into cartesian coordinates and
-    fit a Gaussian to them.
     """
     init_value = np.pi / 2.0
     lower_bound = 0
     upper_bound = np.pi
-    parameter_transform = CosSqrClampTransform()
-    sampling_proposal = GaussianProposal(0.1)
+    parameter_transform = AbsModPiTransform()
+    sampling_proposal = CircularGaussianProposal(np.pi, 0.1)
     numdiff_info = {'max_step': 0.1, 'use_bounds': False, 'modulus': 2*np.pi}
 
 
