@@ -2,6 +2,18 @@
 Changelog
 *********
 
+v0.10.7 (2018-02-14)
+====================
+
+Changed
+-------
+- Changed the parameter proposal and transform function of the PHI parameter.
+
+Fixed
+-----
+- Fixes issue #4, the MDT gui crashed on startup with Qt version 5.9.1.
+
+
 v0.10.6 (2018-01-30)
 ====================
 
