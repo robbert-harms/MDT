@@ -2,7 +2,7 @@ import os
 from collections import OrderedDict
 
 from PyQt5 import QtCore
-from PyQt5.QtCore import pyqtSlot, Qt
+from PyQt5.QtCore import pyqtSlot, Qt, QObject
 from PyQt5.QtGui import QBrush
 from PyQt5.QtWidgets import QFileDialog, QTableWidgetItem, QAbstractItemView, QMenu, QMessageBox, \
     QDialog, QDialogButtonBox
@@ -20,9 +20,10 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class GenerateProtocolTab(MainTab, Ui_GenerateProtocolTabContent):
+class GenerateProtocolTab(MainTab, Ui_GenerateProtocolTabContent, QObject):
 
     def __init__(self, shared_state, computations_thread):
+        super(GenerateProtocolTab, self).__init__()
         self._shared_state = shared_state
         self._protocol = Protocol()
         self._opened_file = self._shared_state.base_dir

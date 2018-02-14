@@ -26,9 +26,10 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class FitModelTab(MainTab, Ui_FitModelTabContent):
+class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
 
     def __init__(self, shared_state, computations_thread):
+        super(FitModelTab, self).__init__()
         self._shared_state = shared_state
         self._computations_thread = computations_thread
         self._run_model_worker = RunModelWorker()

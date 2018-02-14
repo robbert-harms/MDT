@@ -20,9 +20,10 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class GenerateBrainMaskTab(MainTab, Ui_GenerateBrainMaskTabContent):
+class GenerateBrainMaskTab(MainTab, Ui_GenerateBrainMaskTabContent, QObject):
 
     def __init__(self, shared_state, computations_thread):
+        super(GenerateBrainMaskTab, self).__init__()
         self._shared_state = shared_state
         self._computations_thread = computations_thread
         self._generate_mask_worker = GenerateMaskWorker()

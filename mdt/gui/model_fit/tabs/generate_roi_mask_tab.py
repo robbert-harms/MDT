@@ -17,9 +17,10 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class GenerateROIMaskTab(MainTab, Ui_GenerateROIMaskTabContent):
+class GenerateROIMaskTab(MainTab, Ui_GenerateROIMaskTabContent, QObject):
 
     def __init__(self, shared_state, computations_thread):
+        super(GenerateROIMaskTab, self).__init__()
         self._shared_state = shared_state
         self._computations_thread = computations_thread
         self._generate_mask_worker = GenerateROIMaskWorker()

@@ -1,7 +1,7 @@
 import glob
 import os
 
-from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtCore import pyqtSlot, QObject
 from PyQt5.QtWidgets import QFileDialog
 
 from mdt.gui.model_fit.utils import results_preselection_names
@@ -18,9 +18,10 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class ViewResultsTab(MainTab, Ui_ViewResultsTabContent):
+class ViewResultsTab(MainTab, Ui_ViewResultsTabContent, QObject):
 
     def __init__(self, shared_state, computations_thread):
+        super(ViewResultsTab, self).__init__()
         self._shared_state = shared_state
         self._parameter_files = {}
         self._folder = None
@@ -95,6 +96,9 @@ class ViewResultsTab(MainTab, Ui_ViewResultsTabContent):
             item.setSelected(False)
 
     def view_maps(self):
+        if self._folder is None:
+            return
+
         maps_to_show = []
         for item in [self.selectMaps.item(index) for index in range(self.selectMaps.count())]:
             if item.isSelected():
