@@ -120,12 +120,22 @@ class SimpleConfigAction(ConfigAction):
     config_attribute = None
 
     def __init__(self, new_value):
-        """A simple configuration action this sets the given value to the config attribute of the configuration."""
+        """A simple configuration action this sets the given value to the config attribute of the configuration.
+
+        The config_attribute can be a list, if so, we iteratively look up the corresponding attributes and change
+        the last attribute element.
+        """
         super(SimpleConfigAction, self).__init__()
         self.new_value = new_value
 
     def _apply(self, configuration):
-        setattr(configuration, self.config_attribute, self.new_value)
+        if isinstance(self.config_attribute, (list, tuple)):
+            obj = None
+            for element in self.config_attribute[:-1]:
+                obj = getattr(configuration, element)
+            setattr(obj, self.config_attribute[-1], self.new_value)
+        else:
+            setattr(configuration, self.config_attribute, self.new_value)
         return self._extra_actions(configuration)
 
     def _extra_actions(self, configuration):
@@ -285,7 +295,7 @@ class SetShowAxis(SimpleConfigAction):
 
 class SetShowPlotColorbars(SimpleConfigAction):
 
-    config_attribute = 'show_colorbars'
+    config_attribute = ['colorbar_settings', 'visible']
 
 
 class SetShowPlotTitles(SimpleConfigAction):
@@ -295,12 +305,12 @@ class SetShowPlotTitles(SimpleConfigAction):
 
 class SetColorbarLocation(SimpleConfigAction):
 
-    config_attribute = 'colorbar_location'
+    config_attribute = ['colorbar_settings', 'location']
 
 
 class SetColorBarNmrTicks(SimpleConfigAction):
 
-    config_attribute = 'colorbar_nmr_ticks'
+    config_attribute = ['colorbar_settings', 'nmr_ticks']
 
 
 class SetInterpolation(SimpleConfigAction):

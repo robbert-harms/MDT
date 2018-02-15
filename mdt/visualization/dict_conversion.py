@@ -32,6 +32,34 @@ class ConversionSpecification(object):
         """
 
 
+class OptionalConversionDecorator(ConversionSpecification):
+
+    def __init__(self, conversion_specification):
+        """Makes the conversion optional by testing against None.
+
+        If the element to convert is None, we will return None as a conversion. If the element to convert is not None
+        we will convert it according to the conversion specified.
+
+        This holds for both to- and from- dict.
+
+        Args:
+            conversion_specification (ConversionSpecification): the conversion specification to use if the element
+                to convert is not None.
+        """
+        super(OptionalConversionDecorator, self).__init__()
+        self._conversion_specification = conversion_specification
+
+    def to_dict(self, obj):
+        if obj is None:
+            return None
+        return self._conversion_specification.to_dict(obj)
+
+    def from_dict(self, value):
+        if value is None:
+            return None
+        return self._conversion_specification.from_dict(value)
+
+
 class SimpleClassConversion(ConversionSpecification):
 
     def __init__(self, class_type, attribute_conversions):

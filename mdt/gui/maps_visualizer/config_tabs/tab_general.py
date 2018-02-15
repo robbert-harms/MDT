@@ -366,13 +366,13 @@ class TabGeneral(QWidget, Ui_TabGeneral):
             self.general_show_axis.setChecked(config.show_axis)
 
         with blocked_signals(self.general_colorbar_nmr_ticks):
-            self.general_colorbar_nmr_ticks.setValue(config.colorbar_nmr_ticks)
+            self.general_colorbar_nmr_ticks.setValue(config.colorbar_settings.get_preferred('nmr_ticks'))
 
         with blocked_signals(self.general_show_colorbar):
-            self.general_show_colorbar.setChecked(config.show_colorbars)
+            self.general_show_colorbar.setChecked(config.colorbar_settings.get_preferred('visible'))
 
         with blocked_signals(self.general_colorbar_location):
-            self.general_colorbar_location.setCurrentText(config.colorbar_location.title())
+            self.general_colorbar_location.setCurrentText(config.colorbar_settings.get_preferred('location').title())
 
         with blocked_signals(self.general_show_plot_titles):
             self.general_show_plot_titles.setChecked(config.show_titles)
