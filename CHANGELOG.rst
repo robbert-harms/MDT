@@ -2,6 +2,16 @@
 Changelog
 *********
 
+v0.10.8 (2018-02-16)
+====================
+
+Changed
+-------
+- Updated the map view config syntax for the voxel highlights (now called annotations).
+- Updates following MOT in DKI measures.
+- Changed the config layout of the maps visualizer with regards to the colorbar settings.
+
+
 v0.10.7 (2018-02-14)
 ====================
 
