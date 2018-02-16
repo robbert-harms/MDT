@@ -1,6 +1,6 @@
 import warnings
 from copy import copy, deepcopy
-
+import numbers
 import matplotlib.font_manager
 import nibabel
 import numpy as np
@@ -1217,6 +1217,10 @@ class ColorbarSettings(SimpleConvertibleConfig):
             if len(self.power_limits) != 2:
                 raise ValueError('The power limits should hold '
                                  'exactly two elements, {} given.'.format(len(self.power_limits)))
+            if not all(isinstance(el, numbers.Integral) for el in self.power_limits):
+                raise ValueError('The power limits should be integers.')
+            if self.power_limits[0] > self.power_limits[1]:
+                raise ValueError('The lower power limit should be lower than the upper power limit.')
 
         if self.round_precision is not None:
             self.round_precision = int(self.round_precision)

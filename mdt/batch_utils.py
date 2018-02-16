@@ -13,11 +13,11 @@ to auto-recognize the batch profile to use based on the profile that is suitable
 """
 import glob
 import logging
+import numbers
 import os
 import shutil
 from textwrap import dedent
 
-import six
 from six import string_types
 from mdt.components_loader import BatchProfilesLoader
 from mdt.data_loaders.protocol import ProtocolLoader
@@ -60,17 +60,6 @@ class BatchProfile(object):
         """
         raise NotImplementedError()
 
-    def get_subjects_count(self, data_folder):
-        """Get the number of subjects this batch fitting profile can use from the current base directory.
-
-        Args:
-            data_folder (str): the data folder from which to load the subjects
-
-        Returns:
-            int: the number of subjects this batch fitting profile can use from the current base directory.
-        """
-        raise NotImplementedError()
-
 
 class SimpleBatchProfile(BatchProfile):
 
@@ -88,10 +77,7 @@ class SimpleBatchProfile(BatchProfile):
         return self._get_subjects(data_folder)
 
     def is_suitable(self, data_folder):
-        return self.get_subjects_count(data_folder) > 0
-
-    def get_subjects_count(self, data_folder):
-        return len(self.get_subjects(data_folder))
+        return len(self.get_subjects(data_folder)) > 0
 
     def _autoload_noise_std(self, data_folder, subject_id, file_path=None):
         """Try to autoload the noise standard deviation from a noise_std file.
@@ -209,6 +195,14 @@ class SubjectInfo(object):
         """
         raise NotImplementedError()
 
+    def __str__(self):
+        return dedent('''
+            {class_name}
+                subject_id: {subject_id}
+                subject_base_folder: {subject_base_folder}
+                get_input_data(): <MRIInputData object>
+        '''.format(class_name=self.__class__, subject_id=self.subject_id, subject_base_folder=self.subject_base_folder))
+
 
 class SimpleSubjectInfo(SubjectInfo):
 
@@ -284,6 +278,17 @@ class BatchSubjectSelection(object):
         """
         raise NotImplementedError()
 
+    def get_subjects(self, subjects):
+        """
+
+        Args:
+            subjects (list of :class:`SubjectInfo`): the subjects loaded from the batch profile
+
+        Returns:
+            list of :class:`SubjectInfo`: the (sub)set of subjects we will actually use during the computations
+        """
+        raise NotImplementedError()
+
 
 class AllSubjects(BatchSubjectSelection):
 
@@ -294,10 +299,13 @@ class AllSubjects(BatchSubjectSelection):
     def get_selection(self, subject_ids):
         return subject_ids
 
+    def get_subjects(self, subjects):
+        return subjects
+
 
 class SelectedSubjects(BatchSubjectSelection):
 
-    def __init__(self, subject_ids=None, indices=None, start_from=None):
+    def __init__(self, subject_ids=None, indices=None):
         """Only process the selected subjects.
 
         This method allows either a selection by index (unsafe for the order may change) or by subject name/ID (more
@@ -312,22 +320,17 @@ class SelectedSubjects(BatchSubjectSelection):
         Args:
             subject_ids (list of str): the list of names of subjects to process
             indices (list/tuple of int): the list of indices of subjects we wish to process
-            start_from (list or int): the index of the name of the subject from which we want to start processing.
         """
         self.subject_ids = subject_ids
         self.indices = indices
-        self.start_from = start_from
 
     def get_selection(self, subject_ids):
-        starting_pos = self._get_starting_pos(subject_ids)
-
         if self.indices is None and self.subject_ids is None:
-            return subject_ids[starting_pos:]
+            return subject_ids
 
         return_ids_ind = []
         if self.indices:
-            return_ids_ind = [subject for ind, subject in enumerate(subject_ids)
-                              if ind in self.indices and ind >= starting_pos]
+            return_ids_ind = [subject for ind, subject in enumerate(subject_ids) if ind in self.indices]
 
         return_ids_id = []
         if self.subject_ids:
@@ -335,18 +338,39 @@ class SelectedSubjects(BatchSubjectSelection):
 
         return list(set(return_ids_id + return_ids_ind))
 
-    def _get_starting_pos(self, subject_ids):
-        if self.start_from is None:
-            return 0
+    def get_subjects(self, subjects):
+        selected_subjects = self.get_selection([el.subject_id for el in subjects])
+        return [subject for subject in subjects if subject.subject_id in selected_subjects]
 
-        if isinstance(self.start_from, six.string_types):
-            for ind, subject_id in enumerate(subject_ids):
-                if subject_id == self.start_from:
-                    return ind
 
-        for ind, subject_id in enumerate(subject_ids):
-            if ind == int(self.start_from):
-                return ind
+def get_subject_selection(subjects_selection):
+    """Load a subject selection object from the polymorphic input.
+
+    Args:
+        subjects_selection (:class:`~mdt.batch_utils.BatchSubjectSelection` or iterable): the subjects to \
+            use for processing. If None, all subjects are processed. If a list is given instead of a
+            :class:`~mdt.batch_utils.BatchSubjectSelection` instance, we apply the following. If the elements in that
+            list are string we use it as subject ids, if they are integers we use it as subject indices.
+
+    Returns:
+        mdt.batch_utils.BatchSubjectSelection: a subject selection object.
+
+    Raises:
+        ValueError: if a list is given with mixed strings and integers.
+    """
+    if subjects_selection is None:
+        return AllSubjects()
+
+    if isinstance(subjects_selection, BatchSubjectSelection):
+        return subjects_selection
+
+    subjects_selection = list(subjects_selection)
+    if all(isinstance(el, str) for el in subjects_selection):
+        return SelectedSubjects(subject_ids=subjects_selection)
+    elif all(isinstance(el, numbers.Integral) for el in subjects_selection):
+        return SelectedSubjects(indices=subjects_selection)
+    else:
+        raise ValueError('Subjects selection should contain either all strings or all integers.')
 
 
 class BatchFitProtocolLoader(ProtocolLoader):
@@ -409,7 +433,7 @@ def get_best_batch_profile(data_folder):
     best_subjects_count = 0
     for profile in profiles:
         if profile.is_suitable(data_folder):
-            tmp_count = profile.get_subjects_count(data_folder)
+            tmp_count = len(profile.get_subjects(data_folder))
             if tmp_count > best_subjects_count:
                 best_crawler = profile
                 best_subjects_count = tmp_count
@@ -426,8 +450,10 @@ def batch_apply(func, data_folder, batch_profile=None, subjects_selection=None, 
         data_folder (str): The data folder to process
         batch_profile (:class:`~mdt.batch_utils.BatchProfile` or str): the batch profile to use,
             or the name of a batch profile to use. If not given it is auto detected.
-        subjects_selection (:class:`~mdt.batch_utils.BatchSubjectSelection`): the subjects to use for processing.
-            If None all subjects are processed.
+        subjects_selection (:class:`~mdt.batch_utils.BatchSubjectSelection` or iterable): the subjects to \
+            use for processing. If None, all subjects are processed. If a list is given instead of a
+            :class:`~mdt.batch_utils.BatchSubjectSelection` instance, we apply the following. If the elements in that
+            list are string we use it as subject ids, if they are integers we use it as subject indices.
         extra_args (list): a list of additional arguments that are passed to the function. If this is set,
             the callback function must accept these additional args.
 
@@ -435,16 +461,13 @@ def batch_apply(func, data_folder, batch_profile=None, subjects_selection=None, 
         dict: per subject id the output from the function
     """
     batch_profile = batch_profile_factory(batch_profile, data_folder)
-    subjects_selection = subjects_selection or AllSubjects()
+    subjects_selection = get_subject_selection(subjects_selection)
 
     if batch_profile is None:
         raise RuntimeError('No suitable batch profile could be '
                            'found for the directory {0}'.format(os.path.abspath(data_folder)))
 
-    selected_subjects = subjects_selection.get_selection(
-        [el.subject_id for el in batch_profile.get_subjects(data_folder)])
-    subjects = [subject for subject in batch_profile.get_subjects(data_folder)
-                if subject.subject_id in selected_subjects]
+    subjects = subjects_selection.get_subjects(batch_profile.get_subjects(data_folder))
 
     results = {}
     for subject in subjects:

@@ -8,6 +8,7 @@ import numpy as np
 import shutil
 from six import string_types
 
+from mdt.model_fitting import get_batch_fitting_function
 from .__version__ import VERSION, VERSION_STATUS, __version__
 
 
@@ -26,10 +27,11 @@ from mdt.utils import estimate_noise_std, get_cl_devices, load_input_data,\
     load_nifti, write_slice_roi, apply_mask_to_file, extract_volumes, \
     get_slice_in_dimension, per_model_logging_context, \
     get_temporary_results_dir, get_example_data, SimpleInitializationData, InitializationData, load_volume_maps,\
-    covariance_to_correlation
+    covariance_to_correlation, check_user_components
 from mdt.sorting import sort_orientations, create_sort_matrix, sort_volumes_per_voxel
 from mdt.simulations import create_signal_estimates, simulate_signals, add_rician_noise
-from mdt.batch_utils import collect_batch_fit_single_map, run_function_on_batch_fit_output, batch_apply
+from mdt.batch_utils import collect_batch_fit_single_map, run_function_on_batch_fit_output, batch_apply, \
+    batch_profile_factory, get_subject_selection
 from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, write_protocol, write_bvec_bval
 from mdt.components_loader import load_component, get_model, component_import, get_component_class, get_meta_info, \
     get_compartment, get_parameter, get_library_function
@@ -253,6 +255,10 @@ def batch_fit(data_folder, models_to_fit, output_folder=None, batch_profile=None
               use_gradient_deviations=False):
     """Run all the available and applicable models on the data in the given folder.
 
+    The idea is that a single folder is enough to fit_model the computations. One can optionally give it the
+    batch_profile to use for the fitting. If not given, this class will attempt to use the
+    batch_profile that fits the data folder best.
+
     Args:
         data_folder (str): The data folder to process
         models_to_fit (list of str): A list of models to fit to the data.
@@ -279,27 +285,42 @@ def batch_fit(data_folder, models_to_fit, output_folder=None, batch_profile=None
     Returns:
         The list of subjects we will calculate / have calculated.
     """
-    import mdt.utils
-    from mdt.model_fitting import BatchFitting
+    logger = logging.getLogger(__name__)
 
-    if not mdt.utils.check_user_components():
+    if not check_user_components():
         init_user_settings(pass_if_exists=True)
 
     if output_folder is None:
         output_folder = os.path.join(data_folder + '/', '..', os.path.dirname(data_folder + '/') + '_output')
 
-    batch_fitting = BatchFitting(data_folder, output_folder, models_to_fit,
-                                 batch_profile=batch_profile,
-                                 subjects_selection=subjects_selection,
-                                 recalculate=recalculate, cascade_subdir=cascade_subdir,
-                                 cl_device_ind=cl_device_ind, double_precision=double_precision,
-                                 tmp_results_dir=tmp_results_dir,
-                                 use_gradient_deviations=use_gradient_deviations)
+    batch_profile = batch_profile_factory(batch_profile, data_folder)
+    if batch_profile is None:
+        raise RuntimeError('No suitable batch profile could be '
+                           'found for the directory {0}'.format(os.path.abspath(data_folder)))
+    subjects_selection = get_subject_selection(subjects_selection)
+
+    logger.info('Using MDT version {}'.format(__version__))
+    logger.info('Using batch profile: {0}'.format(batch_profile))
 
     if dry_run:
-        return batch_fitting.get_subjects_info()
+        logger.info('Dry run enabled')
 
-    return batch_fitting.run()
+    all_subjects = batch_profile.get_subjects(data_folder)
+    subjects = subjects_selection.get_subjects(batch_profile.get_subjects(data_folder))
+    logger.info('Fitting models: {}'.format(models_to_fit))
+    logger.info('Subjects found: {0}'.format(len(all_subjects)))
+    logger.info('Subjects to process: {0}'.format(len(subjects)))
+
+    if dry_run:
+        logger.info('Subjects found: {0}'.format(list(subject.subject_id for subject in subjects)))
+        return
+
+    batch_fit_func = get_batch_fitting_function(
+        len(subjects), models_to_fit, output_folder, recalculate=recalculate, cascade_subdir=cascade_subdir,
+        cl_device_ind=cl_device_ind, double_precision=double_precision,
+        tmp_results_dir=tmp_results_dir, use_gradient_deviations=use_gradient_deviations)
+
+    return batch_apply(batch_fit_func, data_folder, batch_profile=batch_profile, subjects_selection=subjects_selection)
 
 
 def view_maps(data, config=None, figure_options=None,
