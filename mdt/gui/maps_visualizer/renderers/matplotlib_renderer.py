@@ -2,7 +2,7 @@ import logging
 import matplotlib
 import numpy as np
 import copy
-from mdt.gui.maps_visualizer.actions import SetZoom, SetHighlightVoxels
+from mdt.gui.maps_visualizer.actions import SetZoom, SetAnnotations
 
 matplotlib.use('Qt5Agg')
 
@@ -17,7 +17,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 from mdt.gui.maps_visualizer.base import DataConfigModel
 from mdt.gui.maps_visualizer.renderers.base import PlottingFrame
-from mdt.visualization.maps.base import Zoom
+from mdt.visualization.maps.base import Zoom, VoxelAnnotation
 
 
 class MatplotlibPlotting(PlottingFrame, QWidget):
@@ -150,7 +150,19 @@ class _MouseInteraction(object):
             self._in_drag = False
             return
 
-        current_highlights = copy.copy(self.controller.get_model().get_config().highlight_voxels)
+        current_annotations = copy.copy(self.controller.get_model().get_config().annotations)
+
+        def voxel_index_in_locations(voxel_index):
+            for annotation in current_annotations:
+                if annotation.voxel_index == voxel_index:
+                    return True
+            return False
+
+        def get_existing_matching_annotation_index(voxel_index):
+            for ind, annotation in enumerate(current_annotations):
+                if annotation.voxel_index == voxel_index:
+                    return ind
+            raise ValueError('Matching annotation not found')
 
         if event.button == 1:
             axis_data = self._get_matching_axis_data(event.inaxes)
@@ -158,23 +170,23 @@ class _MouseInteraction(object):
                 x, y = int(np.round(event.xdata)), int(np.round(event.ydata))
                 index = axis_data.coordinates_to_index(x, y)[:3]
 
-                if index in current_highlights:
-                    del current_highlights[current_highlights.index(index)]
+                if voxel_index_in_locations(index):
+                    del current_annotations[get_existing_matching_annotation_index(index)]
                 elif self._control_is_held:
-                    current_highlights.append(index)
+                    current_annotations.append(VoxelAnnotation(index))
                 else:
-                    if len(current_highlights):
-                        current_highlights.pop()
-                    current_highlights.append(index)
+                    if len(current_annotations):
+                        current_annotations.pop()
+                    current_annotations.append(VoxelAnnotation(index))
 
-                self.controller.apply_action(SetHighlightVoxels(current_highlights))
+                self.controller.apply_action(SetAnnotations(current_annotations))
             else:
                 if self._control_is_held:
-                    self.controller.apply_action(SetHighlightVoxels([]))
+                    self.controller.apply_action(SetAnnotations([]))
                 else:
-                    if len(current_highlights):
-                        current_highlights.pop()
-                    self.controller.apply_action(SetHighlightVoxels(current_highlights))
+                    if len(current_annotations):
+                        current_annotations.pop()
+                    self.controller.apply_action(SetAnnotations(current_annotations))
 
     def _scroll_event(self, event):
         if event.inaxes:

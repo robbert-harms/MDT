@@ -187,12 +187,6 @@ class Renderer(object):
 
     def _add_highlights(self, map_name, axis, viewport_dims):
         """Add the patches defined in the global config and in the map specific config to this image plot."""
-        def format_value(v):
-            value_format = '{:.3e}'
-            if 1e-3 < v < 1e3:
-                value_format = '{:.3f}'
-            return value_format.format(v)
-
         def get_value_index(location):
             data = self._data_info.get_map_data(map_name)
             index = tuple(location)
@@ -204,14 +198,11 @@ class Renderer(object):
             else:
                 return index[:3]
 
-        def get_value(index):
-            data = self._data_info.get_map_data(map_name)
-            return float(data[index])
-
-        for highlight_voxel in self._plot_config.highlight_voxels:
+        for annotation in self._plot_config.annotations:
+            highlight_voxel = annotation.voxel_index
             if highlight_voxel and len(highlight_voxel) == 3:
                 index = get_value_index(highlight_voxel)
-                value = get_value(index)
+                value = float(self._data_info.get_map_data(map_name)[index])
 
                 coordinate = _index_to_coordinates(self._data_info.get_single_map_info(map_name),
                                                    self._plot_config, index)
@@ -240,13 +231,20 @@ class Renderer(object):
                     rect = patches.Rectangle(coordinate-0.5, 1, 1, linewidth=1, edgecolor='white', facecolor='#0066ff')
                     axis.add_patch(rect)
 
-                    text = "{},\n{}".format(tuple(index), format_value(value))
+                    text = annotation.text_template.format(voxel_index=tuple(index), value=value)
+
+                    font_size = self._plot_config.font.size - 3
+                    if annotation.font_size is not None:
+                        font_size = annotation.font_size
+
+                    font_family = self._plot_config.font.name
 
                     axis.annotate(text, xy=xy_arrowhead, xytext=xy_text,
                                   horizontalalignment=horizontalalignment, verticalalignment=verticalalignment,
                                   multialignment='left',
                                   arrowprops=dict(color='white', arrowstyle="->", connectionstyle="arc3"),
-                                  color='black', size=10,
+                                  color='black', size=font_size,
+                                  family=font_family,
                                   bbox=dict(facecolor='white'))
 
     def _get_colorbar_setting(self, map_name, attr_name):
@@ -503,7 +501,7 @@ def _coordinates_to_index(map_info, plot_config, x, y):
         if index[ind] < 0:
             index[ind] = 0
 
-    return index
+    return [int(el) for el in index]
 
 
 def _index_to_coordinates(map_info, plot_config, index):

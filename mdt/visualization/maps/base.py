@@ -11,7 +11,8 @@ import mdt.visualization.layouts
 from mdt.nifti import load_nifti, NiftiInfoDecorated
 from mdt.visualization.dict_conversion import StringConversion, \
     SimpleClassConversion, IntConversion, SimpleListConversion, BooleanConversion, \
-    ConvertDictElements, ConvertDynamicFromModule, FloatConversion, WhiteListConversion, OptionalConversionDecorator
+    ConvertDictElements, ConvertDynamicFromModule, FloatConversion, WhiteListConversion, OptionalConversionDecorator, \
+    ConvertListElements
 from mdt.visualization.layouts import Rectangular
 from mdt.visualization.maps.utils import get_shortest_unique_names, find_all_nifti_files
 
@@ -83,7 +84,8 @@ class MapPlotConfig(SimpleConvertibleConfig):
     def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=90, colormap='hot', maps_to_show=None,
                  font=None, grid_layout=None, show_axis=False, show_titles=True, zoom=None,
                  map_plot_options=None, interpolation='bilinear', flipud=None,
-                 title=None, mask_name=None, highlight_voxels=None, colorbar_settings=None):
+                 title=None, mask_name=None, highlight_voxels=None, colorbar_settings=None,
+                 annotations=None):
         """Container for all plot related settings.
 
         Args:
@@ -104,7 +106,7 @@ class MapPlotConfig(SimpleConvertibleConfig):
             flipud (boolean): if True we flip the image upside down
             title (str): the title to this plot
             mask_name (str): the name of the mask to apply to the maps prior to display
-            highlight_voxels (list of tuple): list with voxels to highlight
+            annotations (list of VoxelAnnotation): the voxel annotations
             colorbar_settings (ColorbarSettings): all colorbar related settings
         """
         super(MapPlotConfig, self).__init__()
@@ -126,7 +128,7 @@ class MapPlotConfig(SimpleConvertibleConfig):
         self.map_plot_options = map_plot_options or {}
         self.title = title
         self.mask_name = mask_name
-        self.highlight_voxels = highlight_voxels or []
+        self.annotations = annotations or []
         self.colorbar_settings = colorbar_settings or ColorbarSettings.get_default()
 
         if interpolation not in self.get_available_interpolations():
@@ -180,8 +182,7 @@ class MapPlotConfig(SimpleConvertibleConfig):
                 'flipud': BooleanConversion(allow_null=False),
                 'title': StringConversion(),
                 'mask_name': StringConversion(),
-                'highlight_voxels': SimpleListConversion(conversion_func=lambda coords: tuple(map(int, coords)),
-                                                         allow_null=False, set_null_to_value=[]),
+                'annotations': ConvertListElements(VoxelAnnotation.get_conversion_info()),
                 'colorbar_settings': ColorbarSettings.get_conversion_info()
                 }
 
@@ -313,28 +314,12 @@ class MapPlotConfig(SimpleConvertibleConfig):
         remove_empty()
         create_placeholders()
 
-    def _validate_highlight_voxels(self, data_info):
-        if self.highlight_voxels is None:
-            self.highlight_voxels = []
+    def _validate_annotations(self, data_info):
+        if self.annotations is None:
+            self.annotations = []
 
-        for highlight_voxel in self.highlight_voxels:
-            if len(highlight_voxel) > 3 or len(highlight_voxel) < 3:
-                raise ValueError('The location of a highlighted voxel should consist of (x, y, z) '
-                                 'coordinates, {} given.'.format(highlight_voxel))
-            for dim, pos in enumerate(highlight_voxel):
-                try:
-                    max_pos = data_info.get_max_slice_index(dimension=dim)
-                except ValueError:
-                    max_pos = None
-
-                if max_pos is not None:
-                    if pos > max_pos:
-                        raise ValueError('The location of a highlighted voxel in '
-                                         'the {} dimension is larger than {}, {} given.'.format(dim, max_pos, pos))
-
-                if pos < 0:
-                    raise ValueError('The location of a highlighted voxel in '
-                                     'the {} dimension is negative, {} given.'.format(dim, pos))
+        for annotation in self.annotations:
+            annotation.validate(data_info)
 
 
 class SingleMapConfig(SimpleConvertibleConfig):
@@ -1273,6 +1258,50 @@ class ColorbarSettings(SimpleConvertibleConfig):
             return getattr(self.get_default(), attr)
         for other_setting in other_settings:
             return other_setting.get_preferred(attr, other_settings[1:])
+
+
+class VoxelAnnotation(SimpleConvertibleConfig):
+
+    def __init__(self, voxel_index, font_size=None, text_template=None):
+        """Container for all voxel highlighting settings.
+
+        Args:
+            voxel_index (tuple): a tuple with the voxel index location
+            font_size (int): the size of the annotation text
+            text_template (str): the text template, can use the placeholders ``{voxel_index}`` and ``{value}``.
+        """
+        self.voxel_index = voxel_index
+        self.font_size = font_size
+        self.text_template = text_template or "{voxel_index}\n{value:.3g}"
+
+    @classmethod
+    def _get_attribute_conversions(cls):
+        return {
+            'voxel_index': SimpleListConversion(),
+            'font_size': IntConversion(),
+            'text_template': StringConversion(allow_null=False)
+        }
+
+    def validate(self, data_info):
+        self.text_template.format(voxel_index=(0, 0, 0), value=0)
+
+        if len(self.voxel_index) > 3 or len(self.voxel_index) < 3:
+            raise ValueError('The location of the annotation should consist of (x, y, z) '
+                             'coordinates, {} given.'.format(self.voxel_index))
+        for dim, pos in enumerate(self.voxel_index):
+            try:
+                max_pos = data_info.get_max_slice_index(dimension=dim)
+            except ValueError:
+                max_pos = None
+
+            if max_pos is not None:
+                if pos > max_pos:
+                    raise ValueError('The location of a highlighted voxel in '
+                                     'the {} dimension is larger than {}, {} given.'.format(dim, max_pos, pos))
+
+            if pos < 0:
+                raise ValueError('The location of a highlighted voxel in '
+                                 'the {} dimension is negative, {} given.'.format(dim, pos))
 
 
 class Point2d(SimpleConvertibleConfig):
