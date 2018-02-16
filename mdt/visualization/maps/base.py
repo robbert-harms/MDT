@@ -1266,30 +1266,67 @@ class ColorbarSettings(SimpleConvertibleConfig):
 
 class VoxelAnnotation(SimpleConvertibleConfig):
 
-    def __init__(self, voxel_index, font_size=None, text_template=None):
+    valid_text_locations = ['upper left', 'top left', 'upper right',
+                            'top right', 'bottom right', 'lower right',
+                            'bottom left', 'lower left', 'north', 'south',
+                            'east', 'west', 'top', 'bottom', 'left', 'right']
+
+    def __init__(self, voxel_index, font_size=None, text_template=None, marker_size=1, text_location='upper left',
+                 text_distance=0.05, arrow_width=1):
         """Container for all voxel highlighting settings.
 
         Args:
             voxel_index (tuple): a tuple with the voxel index location
             font_size (int): the size of the annotation text
             text_template (str): the text template, can use the placeholders ``{voxel_index}`` and ``{value}``.
+            marker_size (float): the rectangular size of the voxel marker
+            text_location (str): the location of the text. Valid items are:
+                ``upper left``, ``top left``, ``upper right``, ``top right``, ``bottom right``, ``lower right``,
+                ``bottom left``, ``lower left``, ``north``, ``south``, ``east``, ``west``, ``top``, ``bottom``, ``left``
+                , ``right``.
+            text_distance (float): the distance of the textbox to the marker in relative coordinates (0, 1).
+            arrow_width (float): the width of the arrow
         """
         self.voxel_index = voxel_index
         self.font_size = font_size
         self.text_template = text_template or "{voxel_index}\n{value:.3g}"
+        self.marker_size = marker_size
+        self.text_location = text_location
+        self.text_distance = text_distance
+        self.arrow_width = arrow_width
+
+        if text_location not in self.valid_text_locations:
+            raise ValueError('The given text location "{}" is not '
+                             'in the list of valid text locations: {}'.format(self.text_location,
+                                                                              self.valid_text_locations))
+
+        if not isinstance(self.marker_size, numbers.Real):
+            raise ValueError('The marker size should be a real number, {} given.'.format(self.marker_size))
+
+        if not isinstance(self.text_distance, numbers.Real):
+            raise ValueError('The text distance should be a real number, {} given.'.format(self.text_distance))
+
+        if not isinstance(self.arrow_width, numbers.Real):
+            raise ValueError('The arrow width should be a real number, {} given.'.format(self.arrow_width))
+
+        self.text_template.format(voxel_index=(0, 0, 0), value=0)  # validates the template
 
     @classmethod
     def _get_attribute_conversions(cls):
         return {
             'voxel_index': SimpleListConversion(),
             'font_size': IntConversion(),
-            'text_template': StringConversion(allow_null=False)
+            'text_template': StringConversion(allow_null=False),
+            'marker_size': FloatConversion(),
+            'text_location': StringConversion(allow_null=False),
+            'text_distance': FloatConversion(allow_null=False),
+            'arrow_width': FloatConversion(allow_null=False)
         }
 
     def validate(self, data_info):
         self.text_template.format(voxel_index=(0, 0, 0), value=0)
 
-        if len(self.voxel_index) > 3 or len(self.voxel_index) < 3:
+        if len(self.voxel_index) != 3:
             raise ValueError('The location of the annotation should consist of (x, y, z) '
                              'coordinates, {} given.'.format(self.voxel_index))
         for dim, pos in enumerate(self.voxel_index):

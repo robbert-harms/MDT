@@ -266,8 +266,10 @@ def batch_fit(data_folder, models_to_fit, output_folder=None, batch_profile=None
             next to the data_folder.
         batch_profile (:class:`~mdt.batch_utils.BatchProfile` or str): the batch profile to use,
             or the name of a batch profile to use. If not given it is auto detected.
-        subjects_selection (:class:`~mdt.batch_utils.BatchSubjectSelection`): the subjects to use for processing.
-            If None all subjects are processed.
+        subjects_selection (:class:`~mdt.batch_utils.BatchSubjectSelection` or iterable): the subjects to \
+            use for processing. If None, all subjects are processed. If a list is given instead of a
+            :class:`~mdt.batch_utils.BatchSubjectSelection` instance, we apply the following. If the elements in that
+            list are string we use it as subject ids, if they are integers we use it as subject indices.
         recalculate (boolean): If we want to recalculate the results if they are already present.
         cascade_subdir (boolean): if we want to create a subdirectory for every cascade model.
             Per default we output the maps of cascaded results in the same directory, this allows reusing cascaded
@@ -342,11 +344,11 @@ def view_maps(data, config=None, figure_options=None,
         window_title (str): the title for the window
         use_qt (boolean): if we want to use the Qt GUI, or show the results directly in matplotlib
     """
-    import matplotlib.pyplot as plt
     from mdt.gui.maps_visualizer.main import start_gui
     from mdt.visualization.maps.base import MapPlotConfig
     from mdt.visualization.maps.matplotlib_renderer import MapsVisualizer
     from mdt.visualization.maps.base import SimpleDataInfo
+    import matplotlib.pyplot as plt
 
     if isinstance(data, string_types):
         data = SimpleDataInfo.from_paths([data])

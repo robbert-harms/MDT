@@ -4,6 +4,8 @@ import signal
 from textwrap import dedent
 
 import matplotlib
+matplotlib.use('Qt5Agg')
+
 import yaml
 from PyQt5.QtCore import QTimer
 from PyQt5.QtCore import pyqtSlot
@@ -20,8 +22,6 @@ from mdt.gui.maps_visualizer.config_tabs.tab_map_specific import TabMapSpecific
 from mdt.gui.maps_visualizer.config_tabs.tab_textual import TabTextual
 from mdt.gui.maps_visualizer.design.ui_save_image_dialog import Ui_SaveImageDialog
 from mdt.nifti import is_nifti_file
-
-matplotlib.use('Qt5Agg')
 
 import mdt
 from mdt.gui.maps_visualizer.base import DataConfigModel, \

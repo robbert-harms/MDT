@@ -2,9 +2,8 @@ import os
 import numpy as np
 from matplotlib import pyplot as plt, patches
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from mpl_toolkits.axes_grid1 import SubplotDivider, LocatableAxes, Size
 from mdt import get_slice_in_dimension
-from mdt.visualization.maps.base import Clipping, Scale, Point2d, ColorbarSettings
+from mdt.visualization.maps.base import Clipping, Scale, Point2d
 from mdt.visualization.utils import MyColourBarTickLocator
 
 __author__ = 'Robbert Harms'
@@ -151,7 +150,7 @@ class Renderer(object):
         plot_options['interpolation'] = self._plot_config.interpolation
         vf = axis.imshow(data, **plot_options)
 
-        self._add_highlights(map_name, axis, data.shape[:2])
+        self._add_annotations(map_name, axis)
 
         self._add_colorbar(axis, map_name, vf, self._get_map_attr(map_name, 'colorbar_label'))
 
@@ -185,67 +184,120 @@ class Renderer(object):
         colorbar_axis.yaxis.offsetText.set_fontsize(self._plot_config.font.size - 3)
         colorbar_axis.yaxis.offsetText.set_family(self._plot_config.font.name)
 
-    def _add_highlights(self, map_name, axis, viewport_dims):
-        """Add the patches defined in the global config and in the map specific config to this image plot."""
-        def get_value_index(location):
+    def _add_annotations(self, map_name, axis):
+        def get_value(annotation):
             data = self._data_info.get_map_data(map_name)
-            index = tuple(location)
+            index = tuple(annotation.voxel_index)
 
             if len(data.shape) > 3 and data.shape[3] > 1:
                 if len(index) < 4:
                     index = index + (self._plot_config.volume_index,)
-                return index
-            else:
-                return index[:3]
+                return float(data[index])
+            return float(data[index[:3]])
+
+        def get_font_size(annotation):
+            font_size = self._plot_config.font.size - 3
+            if annotation.font_size is not None:
+                font_size = annotation.font_size
+            return font_size
+
+        def get_coordinate(annotation):
+            coordinate = _index_to_coordinates(self._data_info.get_single_map_info(map_name),
+                                               self._plot_config, annotation.voxel_index)
+            if coordinate is None:
+                return None
+            return np.array(coordinate)
+
+        def get_text_box_location(annotation):
+            axis_to_data = axis.transData + axis.transAxes.inverted()
+
+            coordinate_normalized = axis_to_data.transform(get_coordinate(annotation))
+
+            delta = annotation.text_distance + axis_to_data.transform([annotation.marker_size] * 2)[0]
+
+            definitions = {
+                'upper left': [(-delta, +delta), 'right', 'bottom'],
+                'top left': [(-delta, +delta), 'right', 'bottom'],
+                'upper right': [(+delta, +delta), 'left', 'bottom'],
+                'top right': [(+delta, +delta), 'left', 'bottom'],
+
+                'lower left': [(-delta, -delta), 'right', 'top'],
+                'bottom left': [(-delta, -delta), 'right', 'top'],
+                'lower right': [(+delta, -delta), 'left', 'top'],
+                'bottom right': [(+delta, -delta), 'left', 'top'],
+
+                'top': [(0, +np.sqrt(2) * delta), 'center', 'bottom'],
+                'north': [(0, +np.sqrt(2) * delta), 'center', 'bottom'],
+
+                'bottom': [(0, -np.sqrt(2) * delta), 'center', 'top'],
+                'south': [(0, -np.sqrt(2) * delta), 'center', 'top'],
+
+                'left': [(-np.sqrt(2) * delta, 0), 'right', 'center'],
+                'west': [(-np.sqrt(2) * delta, 0), 'right', 'center'],
+
+                'right': [(+np.sqrt(2) * delta, 0), 'left', 'center'],
+                'east': [(+np.sqrt(2) * delta, 0), 'left', 'center'],
+            }
+
+            transform, halign, valign = definitions[annotation.text_location]
+            return axis_to_data.inverted().transform(coordinate_normalized + transform), \
+                   halign, valign
+
+        def get_arrow_head_location(annotation):
+            coordinate = get_coordinate(annotation)
+            delta = annotation.marker_size / 2.
+            definitions = {
+                'upper left': (-delta, +delta),
+                'top left': (-delta, +delta),
+                'upper right': (+delta, +delta),
+                'top right': (+delta, +delta),
+
+                'lower left': (-delta, -delta),
+                'bottom left': (-delta, -delta),
+                'lower right': (+delta, -delta),
+                'bottom right': (+delta, -delta),
+
+                'top': (0, delta),
+                'north': (0, delta),
+
+                'bottom': (0, -delta),
+                'south': (0, -delta),
+
+                'left': (-delta, 0),
+                'west': (-delta, 0),
+
+                'right': (delta, 0),
+                'east': (delta, 0),
+            }
+
+            return coordinate + definitions[annotation.text_location]
+
+        def draw_annotation(annotation):
+            coordinate = get_coordinate(annotation)
+            if coordinate is None:
+                return
+
+            axis.add_patch(patches.Rectangle(coordinate - (annotation.marker_size / 2.),
+                                             annotation.marker_size, annotation.marker_size,
+                                             linewidth=1, edgecolor='white', facecolor='#0066ff'))
+
+            xy_text, horizontal_alignment, vertical_alignment = get_text_box_location(annotation)
+
+            axis.annotate(
+                annotation.text_template.format(voxel_index=tuple(annotation.voxel_index), value=get_value(annotation)),
+                xy=get_arrow_head_location(annotation),
+                xytext=xy_text,
+                horizontalalignment=horizontal_alignment, verticalalignment=vertical_alignment,
+                multialignment='left',
+                arrowprops=dict(color='white', connectionstyle="arc3",
+                                width=annotation.arrow_width, headwidth=8 + annotation.arrow_width, headlength=10),
+                color='black',
+                size=get_font_size(annotation),
+                family=self._plot_config.font.name,
+                bbox=dict(facecolor='white'))
 
         for annotation in self._plot_config.annotations:
-            highlight_voxel = annotation.voxel_index
-            if highlight_voxel and len(highlight_voxel) == 3:
-                index = get_value_index(highlight_voxel)
-                value = float(self._data_info.get_map_data(map_name)[index])
-
-                coordinate = _index_to_coordinates(self._data_info.get_single_map_info(map_name),
-                                                   self._plot_config, index)
-                if coordinate is not None:
-                    coordinate = np.array(coordinate)
-
-                    xy_arrowhead = np.copy(coordinate)
-                    xy_text = np.copy(coordinate)
-                    horizontalalignment = 'right'
-                    verticalalignment = 'bottom'
-                    delta_x = np.clip(0.05 * viewport_dims[0], 1, 10)
-                    delta_y = np.clip(0.05 * viewport_dims[1], 1, 10)
-
-                    if coordinate[0] > viewport_dims[0] // 2:
-                        xy_text[0] += delta_x
-                        horizontalalignment = 'left'
-                    else:
-                        xy_text[0] -= delta_x
-
-                    if coordinate[1] > viewport_dims[1] // 2:
-                        xy_text[1] += delta_y
-                    else:
-                        verticalalignment = 'top'
-                        xy_text[1] -= delta_y
-
-                    rect = patches.Rectangle(coordinate-0.5, 1, 1, linewidth=1, edgecolor='white', facecolor='#0066ff')
-                    axis.add_patch(rect)
-
-                    text = annotation.text_template.format(voxel_index=tuple(index), value=value)
-
-                    font_size = self._plot_config.font.size - 3
-                    if annotation.font_size is not None:
-                        font_size = annotation.font_size
-
-                    font_family = self._plot_config.font.name
-
-                    axis.annotate(text, xy=xy_arrowhead, xytext=xy_text,
-                                  horizontalalignment=horizontalalignment, verticalalignment=verticalalignment,
-                                  multialignment='left',
-                                  arrowprops=dict(color='white', arrowstyle="->", connectionstyle="arc3"),
-                                  color='black', size=font_size,
-                                  family=font_family,
-                                  bbox=dict(facecolor='white'))
+            draw_annotation(annotation)
 
     def _get_colorbar_setting(self, map_name, attr_name):
         map_specific_colorbar_settings = self._get_map_attr(map_name, 'colorbar_settings')
