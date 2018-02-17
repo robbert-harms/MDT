@@ -61,8 +61,11 @@ def get_batch_fitting_function(total_nmr_subjects, models_to_fit, output_folder,
             subject_id, time.strftime('%H:%M:%S', time.gmtime(timeit.default_timer() - start_time))))
 
     def fitting_func(subject_info):
+        global index_counter
+
         logger.info('Going to process subject {}, ({} of {}, we are at {:.2%})'.format(
             subject_info.subject_id, index_counter + 1, total_nmr_subjects, index_counter / total_nmr_subjects))
+        index_counter += 1
 
         output_dir = os.path.join(output_folder, subject_info.subject_id)
 

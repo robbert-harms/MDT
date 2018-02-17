@@ -30,7 +30,7 @@ from mdt.utils import estimate_noise_std, get_cl_devices, load_input_data,\
     covariance_to_correlation, check_user_components
 from mdt.sorting import sort_orientations, create_sort_matrix, sort_volumes_per_voxel
 from mdt.simulations import create_signal_estimates, simulate_signals, add_rician_noise
-from mdt.batch_utils import collect_batch_fit_single_map, run_function_on_batch_fit_output, batch_apply, \
+from mdt.batch_utils import run_function_on_batch_fit_output, batch_apply, \
     batch_profile_factory, get_subject_selection
 from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, write_protocol, write_bvec_bval
 from mdt.components_loader import load_component, get_model, component_import, get_component_class, get_meta_info, \
