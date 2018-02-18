@@ -50,7 +50,6 @@ def get_batch_fitting_function(total_nmr_subjects, models_to_fit, output_folder,
             that path directly, set to True to use the config value, set to None to disable.
         use_gradient_deviations (boolean): if you want to use the gradient deviations if present
     """
-    index_counter = 0
     logger = logging.getLogger(__name__)
 
     @contextmanager
@@ -60,44 +59,48 @@ def get_batch_fitting_function(total_nmr_subjects, models_to_fit, output_folder,
         logger.info('Fitted all models on subject {0} in time {1} (h:m:s)'.format(
             subject_id, time.strftime('%H:%M:%S', time.gmtime(timeit.default_timer() - start_time))))
 
-    def fitting_func(subject_info):
-        global index_counter
+    class FitFunc(object):
 
-        logger.info('Going to process subject {}, ({} of {}, we are at {:.2%})'.format(
-            subject_info.subject_id, index_counter + 1, total_nmr_subjects, index_counter / total_nmr_subjects))
-        index_counter += 1
+        def __init__(self):
+            self._index_counter = 0
 
-        output_dir = os.path.join(output_folder, subject_info.subject_id)
+        def __call__(self, subject_info):
+            logger.info('Going to process subject {}, ({} of {}, we are at {:.2%})'.format(
+                subject_info.subject_id, self._index_counter + 1, total_nmr_subjects,
+                self._index_counter / total_nmr_subjects))
+            self._index_counter += 1
 
-        if all(model_output_exists(model, output_dir) for model in models_to_fit) and not recalculate:
-            logger.info('Skipping subject {0}, output exists'.format(subject_info.subject_id))
-            return
+            output_dir = os.path.join(output_folder, subject_info.subject_id)
 
-        logger.info('Loading the data (DWI, mask and protocol) of subject {0}'.format(subject_info.subject_id))
-        input_data = subject_info.get_input_data(use_gradient_deviations)
+            if all(model_output_exists(model, output_dir) for model in models_to_fit) and not recalculate:
+                logger.info('Skipping subject {0}, output exists'.format(subject_info.subject_id))
+                return
 
-        with timer(subject_info.subject_id):
-            for model in models_to_fit:
-                logger.info('Going to fit model {0} on subject {1}'.format(model, subject_info.subject_id))
+            logger.info('Loading the data (DWI, mask and protocol) of subject {0}'.format(subject_info.subject_id))
+            input_data = subject_info.get_input_data(use_gradient_deviations)
 
-                try:
-                    model_fit = ModelFit(model,
-                                         input_data,
-                                         output_dir,
-                                         recalculate=recalculate,
-                                         only_recalculate_last=True,
-                                         cascade_subdir=cascade_subdir,
-                                         cl_device_ind=cl_device_ind,
-                                         double_precision=double_precision,
-                                         tmp_results_dir=tmp_results_dir)
-                    model_fit.run()
-                except InsufficientProtocolError as ex:
-                    logger.info('Could not fit model {0} on subject {1} '
-                                'due to protocol problems. {2}'.format(model, subject_info.subject_id, ex))
-                else:
-                    logger.info('Done fitting model {0} on subject {1}'.format(model, subject_info.subject_id))
+            with timer(subject_info.subject_id):
+                for model in models_to_fit:
+                    logger.info('Going to fit model {0} on subject {1}'.format(model, subject_info.subject_id))
 
-    return fitting_func
+                    try:
+                        model_fit = ModelFit(model,
+                                             input_data,
+                                             output_dir,
+                                             recalculate=recalculate,
+                                             only_recalculate_last=True,
+                                             cascade_subdir=cascade_subdir,
+                                             cl_device_ind=cl_device_ind,
+                                             double_precision=double_precision,
+                                             tmp_results_dir=tmp_results_dir)
+                        model_fit.run()
+                    except InsufficientProtocolError as ex:
+                        logger.info('Could not fit model {0} on subject {1} '
+                                    'due to protocol problems. {2}'.format(model, subject_info.subject_id, ex))
+                    else:
+                        logger.info('Done fitting model {0} on subject {1}'.format(model, subject_info.subject_id))
+
+    return FitFunc()
 
 
 class ModelFit(object):
