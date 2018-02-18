@@ -111,7 +111,7 @@ class theta(FreeParameterTemplate):
     lower_bound = 0
     upper_bound = np.pi
     parameter_transform = AbsModPiTransform()
-    sampling_proposal = CircularGaussianProposal(np.pi, 0.1)
+    sampling_proposal = CircularGaussianProposal(np.pi, 0.5)
     numdiff_info = {'max_step': 0.1, 'use_bounds': False, 'modulus': np.pi}
 
 
@@ -132,7 +132,7 @@ class phi(FreeParameterTemplate):
     lower_bound = 0
     upper_bound = np.pi
     parameter_transform = AbsModPiTransform()
-    sampling_proposal = CircularGaussianProposal(np.pi, 0.1)
+    sampling_proposal = CircularGaussianProposal(np.pi, 0.5)
     numdiff_info = {'max_step': 0.1, 'use_bounds': False, 'modulus': 2*np.pi}
 
 
@@ -145,7 +145,7 @@ class psi(FreeParameterTemplate):
     lower_bound = 0
     upper_bound = np.pi
     parameter_transform = AbsModPiTransform()
-    sampling_proposal = CircularGaussianProposal(np.pi, 0.1)
+    sampling_proposal = CircularGaussianProposal(np.pi, 0.5)
     numdiff_info = {'max_step': 0.1, 'use_bounds': False, 'modulus': np.pi}
 
 
