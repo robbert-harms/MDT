@@ -661,11 +661,11 @@ class BuildCompositeModel(MRIModelInterface):
             nmr_steps=5,
             step_offset=0
         )
-        covars = hessian_to_covariance(hessian)
+        covars, is_singular = hessian_to_covariance(hessian, output_singularity=True)
 
         param_names = ['{}.{}'.format(m.name, p.name) for m, p in self._estimable_parameters_list]
 
-        results = {}
+        results = {'Covariance.is_singular': is_singular}
         for x_ind in range(len(param_names)):
             results[param_names[x_ind] + '.std'] = np.nan_to_num(np.sqrt(covars[:, x_ind, x_ind]))
             for y_ind in range(x_ind + 1, len(param_names)):
