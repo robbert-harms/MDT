@@ -172,17 +172,18 @@ class Renderer(object):
 
     def _apply_font_colorbar_axis(self, colorbar_axis):
         """Apply the font from the plot configuration to the colorbar axis"""
-        items = colorbar_axis.yaxis.get_ticklabels()
+        for axes in [colorbar_axis.xaxis, colorbar_axis.yaxis]:
+            items = axes.get_ticklabels()
 
-        for item in items:
-            item.set_fontsize(self._plot_config.font.size - 2)
-            item.set_family(self._plot_config.font.name)
+            for item in items:
+                item.set_fontsize(self._plot_config.font.size - 2)
+                item.set_family(self._plot_config.font.name)
 
-        colorbar_axis.yaxis.label.set_fontsize(self._plot_config.font.size)
-        colorbar_axis.yaxis.label.set_family(self._plot_config.font.name)
+            axes.label.set_fontsize(self._plot_config.font.size)
+            axes.label.set_family(self._plot_config.font.name)
 
-        colorbar_axis.yaxis.offsetText.set_fontsize(self._plot_config.font.size - 3)
-        colorbar_axis.yaxis.offsetText.set_family(self._plot_config.font.name)
+            axes.offsetText.set_fontsize(self._plot_config.font.size - 3)
+            axes.offsetText.set_family(self._plot_config.font.name)
 
     def _add_annotations(self, map_name, axis):
         def get_value(annotation):
@@ -360,6 +361,9 @@ class Renderer(object):
 
             if cbar.ax.get_yticklabels():
                 cbar.ax.get_yticklabels()[-1].set_verticalalignment('top')
+            elif cbar.ax.get_xticklabels():
+                cbar.ax.get_xticklabels()[0].set_horizontalalignment('left')
+                cbar.ax.get_xticklabels()[-1].set_horizontalalignment('right')
 
             self._apply_font_colorbar_axis(colorbar_axis)
 

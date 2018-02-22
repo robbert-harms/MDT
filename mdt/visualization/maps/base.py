@@ -1258,7 +1258,7 @@ class ColorbarSettings(SimpleConvertibleConfig):
         """
         if getattr(self, attr) is not None:
             return getattr(self, attr)
-        if other_settings is None:
+        if not other_settings:
             return getattr(self.get_default(), attr)
         for other_setting in other_settings:
             return other_setting.get_preferred(attr, other_settings[1:])
