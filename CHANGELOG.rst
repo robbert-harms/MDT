@@ -2,6 +2,18 @@
 Changelog
 *********
 
+v0.10.9 (2018-02-22)
+====================
+
+Added
+-----
+- Adds covariance singularity boolean matrix to the output results.
+
+Fixed
+-----
+- Fixed small bug in the mdt maps visualizer. Refactored the batch fitting function to use the batch apply function.
+
+
 v0.10.8 (2018-02-16)
 ====================
 
