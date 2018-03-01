@@ -133,11 +133,13 @@ def fit_model(model, input_data, output_folder, optimizer=None,
     return results
 
 
-def sample_model(model, input_data, output_folder, sampler=None, recalculate=False,
+def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None, sample_intervals=None,
+                 recalculate=False,
                  cl_device_ind=None, double_precision=False, store_samples=True,
                  sample_items_to_save=None, tmp_results_dir=True,
-                 save_user_script_info=True, initialization_data=None, post_processing=None):
-    """Sample a composite model using the given cascading strategy.
+                 save_user_script_info=True, initialization_data=None, post_processing=None
+                 ):
+    """Sample a composite model using the Adaptive Metropolis-Within-Gibbs (AMWG) MCMC algorithm [1].
 
     Args:
         model (:class:`~mdt.models.composite.DMRICompositeModel` or str): the model to sample
@@ -145,9 +147,12 @@ def sample_model(model, input_data, output_folder, sampler=None, recalculate=Fal
             the info needed for the model fitting.
         output_folder (string): The path to the folder where to place the output, we will make a subdir with the
             model name in it (for the optimization results) and then a subdir with the samples output.
-        sampler (:class:`mot.cl_routines.sampling.base.AbstractSampler`): the sampler to use.
-            If the sampler is specified and the cl_device_ind is specified, we will overwrite the cl environments
-            in the sampler with the devices specified by the cl_device_ind.
+        nmr_samples (int): the number of samples we would like to return.
+        burnin (int): the number of samples to burn-in, that is, to discard before returning the desired
+            number of samples
+        sample_intervals (int): the sampling interval. Can be interpreted as thinning - 1. That is, the default
+            is 0 which means we return every sample (corresponding to a thinning of 1). A sampling interval of 1 means
+            we return every other sample.
         recalculate (boolean): If we want to recalculate the results if they are already present.
         cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices().
@@ -182,12 +187,25 @@ def sample_model(model, input_data, output_folder, sampler=None, recalculate=Fal
     Returns:
         dict: if store_samples is True then we return the samples per parameter as a numpy memmap. If store_samples
             is False we return None
+
+    References:
+        1. Roberts GO, Rosenthal JS. Examples of adaptive MCMC. J Comput Graph Stat. 2009;18(2):349-367.
+           doi:10.1198/jcgs.2009.06134.
     """
     import mdt.utils
     from mot.load_balance_strategies import EvenDistribution
     from mdt.model_sampling import sample_composite_model
     from mdt.models.cascade import DMRICascadeModelInterface
     import mot.configuration
+    from mot import MetropolisHastings
+
+    settings = mdt.configuration.get_general_sampling_settings()
+    if nmr_samples is None:
+        nmr_samples = settings['nmr_samples']
+    if burnin is None:
+        burnin = settings['burnin']
+    if sample_intervals is None:
+        sample_intervals = settings['sample_intervals']
 
     if not isinstance(initialization_data, InitializationData) and initialization_data is not None:
         initialization_data = SimpleInitializationData(**initialization_data)
@@ -211,17 +229,12 @@ def sample_model(model, input_data, output_folder, sampler=None, recalculate=Fal
         cl_context_action = mot.configuration.VoidConfigurationAction()
     else:
         cl_envs = [get_cl_devices()[ind] for ind in cl_device_ind]
-
-        if sampler is not None:
-            sampler.cl_environments = cl_envs
-
         cl_context_action = mot.configuration.RuntimeConfigurationAction(
             cl_environments=cl_envs,
             load_balancer=EvenDistribution())
 
     with mot.configuration.config_context(cl_context_action):
-        if sampler is None:
-            sampler = configuration.get_sampler()
+        sampler = MetropolisHastings(nmr_samples, burnin=burnin, sample_intervals=sample_intervals)
 
         base_dir = os.path.join(output_folder, model.name, 'samples')
 

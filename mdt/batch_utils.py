@@ -450,7 +450,7 @@ def batch_apply(func, data_folder, batch_profile=None, subjects_selection=None, 
         data_folder (str): The data folder to process
         batch_profile (:class:`~mdt.batch_utils.BatchProfile` or str): the batch profile to use,
             or the name of a batch profile to use. If not given it is auto detected.
-        subjects_selection (:class:`~mdt.batch_utils.BatchSubjectSelection` or iterable): the subjects to \
+        subjects_selection (:class:`~mdt.batch_utils.BatchSubjectSelection` or iterable): the subjects to
             use for processing. If None, all subjects are processed. If a list is given instead of a
             :class:`~mdt.batch_utils.BatchSubjectSelection` instance, we apply the following. If the elements in that
             list are string we use it as subject ids, if they are integers we use it as subject indices.

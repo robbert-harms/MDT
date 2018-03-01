@@ -299,8 +299,11 @@ class SampleSettingsLoader(ConfigSectionLoader):
     def load(self, value):
         ensure_exists(['sampling', 'general'])
 
-        if 'general' in value:
-            _config_insert(['sampling', 'general'], value['general'])
+        settings = value.get('settings', {})
+        settings['nmr_samples'] = settings.get('nmr_samples', 10000)
+        settings['burnin'] = settings.get('burnin', 0)
+        settings['sample_intervals'] = settings.get('sample_intervals', 0)
+        _config_insert(['sampling', 'general', 'settings'], settings)
 
 
 class ProcessingStrategySectionLoader(ConfigSectionLoader):
@@ -570,14 +573,13 @@ def get_general_optimizer_settings():
     return _config['optimization']['general']['settings']
 
 
-def get_sampler():
-    """Load the sampler from the configuration.
+def get_general_sampling_settings():
+    """Get the general sampling settings.
 
     Returns:
         Sampler: the configured sampler for use in MDT
     """
-    sampler = get_sampler_by_name(_config['sampling']['general']['name'])
-    return sampler(**_config['sampling']['general']['settings'])
+    return _config['sampling']['general']['settings']
 
 
 def use_automatic_generated_cascades():
