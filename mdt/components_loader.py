@@ -854,15 +854,6 @@ class BatchProfilesLoader(ComponentsLoader):
              UserComponentsSourceSingle('user', 'batch_profiles')])
 
 
-class NoiseSTDCalculatorsLoader(ComponentsLoader):
-
-    def __init__(self):
-        super(NoiseSTDCalculatorsLoader, self).__init__(
-            [UserPreferredSource('noise_std_estimators'),
-             UserComponentsSourceSingle('standard', 'noise_std_estimators'),
-             UserComponentsSourceSingle('user', 'noise_std_estimators')])
-
-
 class CompartmentModelsLoader(ComponentsLoader):
 
     def __init__(self):
@@ -963,8 +954,6 @@ def get_loader(component_type):
         return CompartmentModelsLoader()
     if component_type == 'library_functions':
         return LibraryFunctionsLoader()
-    if component_type == 'noise_std_estimators':
-        return NoiseSTDCalculatorsLoader()
     if component_type == 'parameters':
         return ParametersLoader()
     if component_type == 'likelihood_functions':
