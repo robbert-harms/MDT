@@ -15,15 +15,13 @@ import glob
 import logging
 import numbers
 import os
-import shutil
 from textwrap import dedent
 
 from six import string_types
 from mdt.components_loader import BatchProfilesLoader
-from mdt.data_loaders.protocol import ProtocolLoader
 from mdt.masking import create_median_otsu_brain_mask
 from mdt.protocols import load_protocol, auto_load_protocol
-from mdt.utils import split_image_path, AutoDict, load_input_data
+from mdt.utils import AutoDict, load_input_data
 from mdt.nifti import load_nifti
 
 __author__ = 'Robbert Harms'
@@ -373,7 +371,7 @@ def get_subject_selection(subjects_selection):
         raise ValueError('Subjects selection should contain either all strings or all integers.')
 
 
-class BatchFitProtocolLoader(ProtocolLoader):
+class BatchFitProtocolLoader(object):
 
     def __init__(self, base_dir, protocol_fname=None, protocol_columns=None, bvec_fname=None, bval_fname=None):
         """A simple protocol loader for loading a protocol from a protocol file or bvec/bval files.
@@ -389,8 +387,6 @@ class BatchFitProtocolLoader(ProtocolLoader):
         self._protocol_columns = protocol_columns
 
     def get_protocol(self):
-        super(BatchFitProtocolLoader, self).get_protocol()
-
         if self._protocol_fname and os.path.isfile(self._protocol_fname):
             return load_protocol(self._protocol_fname)
 

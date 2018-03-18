@@ -73,10 +73,10 @@ At a bare minimum, this function requires:
 * ``protocol``, an Protocol instance containing the protocol information
 * ``mask``, the mask (3d) specifying which voxels to use for the computations
 
-Additionally you can provide a *dictionary of static maps*, a *gradient deviations* file and a *standard deviation* for the noise.
+Additionally you can provide *dictionary of static maps*, a *gradient deviations* file and a *noise standard deviation*.
 For the *noise standard deviation* you have the choice to either provide a single value, an ndarray with a value per voxel, or the string 'auto'.
-If 'auto' is given, MDT will use one or more of the :ref:`dynamic_modules_noise_std_estimators` to estimate the standard deviation of the
-noise of the unweighted diffusion MRI in the complex plain.
+If 'auto' is given, MDT will try to estimate the noise standard deviation from the unweighted volumes.
+While this typically works, it is advised to estimate the noise std. manually from air or from noise lines in your k-space.
 The *gradient deviations* is a map specifying how the g vector differs in different areas in the scan.
 This should be stored in the format described by the HCP Wu-Minn project.
 With the *static maps* the user can optionally provide a dictionary of maps to use in the model fitting.

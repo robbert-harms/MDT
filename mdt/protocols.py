@@ -749,26 +749,33 @@ def write_bvec_bval(protocol, bvec_fname, bval_fname, column_based=True, bval_sc
     np.savetxt(bval_fname, b)
 
 
-def load_protocol(protocol_fname):
+def load_protocol(data_source):
     """Load an protocol from the given protocol file, with as column names the given list of names.
 
     If the given file could not be found it tries once more by appending .prtcl to the end of the file.
 
     Args:
-        protocol_fname (string): The filename of the protocol file to use.
+        data_source (string, Protocol): Either a filename, a directory path or a Protocol object to load.
+            If a filename is given we load the protocol from file, if a directory is given we try to load a protocol
+            from that directory. If an Protocol object is given we return it directly.
 
     Returns:
         :class:`Protocol`: An protocol object with all the columns loaded.
     """
-    if not os.path.isfile(protocol_fname) and not os.path.isfile(protocol_fname + '.prtcl'):
-        if os.path.isdir(protocol_fname):
-            return auto_load_protocol(protocol_fname)
-        raise FileNotFoundError(protocol_fname)
+    if isinstance(data_source, six.string_types) and os.path.isdir(data_source):
+        return auto_load_protocol(data_source)
+    if isinstance(data_source, Protocol):
+        return data_source
 
-    if not os.path.isfile(protocol_fname):
-        protocol_fname += '.prtcl'
+    if not os.path.isfile(data_source) and not os.path.isfile(data_source + '.prtcl'):
+        if os.path.isdir(data_source):
+            return auto_load_protocol(data_source)
+        raise FileNotFoundError(data_source)
 
-    with open(protocol_fname) as f:
+    if not os.path.isfile(data_source):
+        data_source += '.prtcl'
+
+    with open(data_source) as f:
         protocol = f.readlines()
 
     if protocol[0][0] != '#':
@@ -776,7 +783,7 @@ def load_protocol(protocol_fname):
 
     column_names = [c.strip() for c in protocol[0][1:-1].split(',')]
 
-    data = np.genfromtxt(protocol_fname)
+    data = np.genfromtxt(data_source)
     s = data.shape
     d = {}
 

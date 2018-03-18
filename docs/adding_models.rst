@@ -45,5 +45,4 @@ The rest of this chapter explains the various components in more detail.
 .. include:: _dynamic_modules/composite_models.rst
 .. include:: _dynamic_modules/cascade_models.rst
 .. include:: _dynamic_modules/library_functions.rst
-.. include:: _dynamic_modules/noise_std_estimators.rst
 .. include:: _dynamic_modules/batch_profiles.rst

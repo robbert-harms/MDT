@@ -28,8 +28,7 @@ from contextlib import contextmanager
 from pkg_resources import resource_stream
 from six import string_types
 
-from mot.factory import get_optimizer_by_name, get_sampler_by_name, get_proposal_update_by_name
-from mdt.components_loader import NoiseSTDCalculatorsLoader
+from mot.factory import get_optimizer_by_name, get_proposal_update_by_name
 import mot.configuration
 from mot.load_balance_strategies import EvenDistribution
 
@@ -323,14 +322,6 @@ class TmpResultsDirSectionLoader(ConfigSectionLoader):
         _config_insert(['tmp_results_dir'], value)
 
 
-class NoiseStdEstimationSectionLoader(ConfigSectionLoader):
-    """Load the section noise_std_estimating"""
-
-    def load(self, value):
-        if 'estimators' in value:
-            _config_insert(['noise_std_estimating', 'estimators'], value['estimators'])
-
-
 class DefaultProposalUpdateLoader(ConfigSectionLoader):
     """Load the default proposal update function."""
 
@@ -427,9 +418,6 @@ def get_section_loader(section):
     if section == 'tmp_results_dir':
         return TmpResultsDirSectionLoader()
 
-    if section == 'noise_std_estimating':
-        return NoiseStdEstimationSectionLoader()
-
     if section == 'runtime_settings':
         return RuntimeSettingsLoader()
 
@@ -501,16 +489,6 @@ def get_processing_strategy(processing_type, *args, **kwargs):
     options = _config['processing_strategies'].get(processing_type, {}) or {}
     options.update(kwargs)
     return VoxelRange(*args, **options)
-
-
-def get_noise_std_estimators():
-    """Get the noise std estimators for finding the std of the noise.
-
-    Returns:
-        list of ComplexNoiseStdEstimator: the noise estimators to use for finding the complex noise
-    """
-    loader = NoiseSTDCalculatorsLoader()
-    return [loader.load(c) for c in _config['noise_std_estimating']['estimators']]
 
 
 def get_logging_configuration_dict():

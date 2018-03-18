@@ -1,4 +1,5 @@
 import collections
+import numbers
 import distutils.dir_util
 import glob
 import logging
@@ -9,20 +10,15 @@ import shutil
 import tempfile
 from collections import defaultdict
 from contextlib import contextmanager
-
 import numpy as np
 import pkg_resources
 import six
 from numpy.lib.format import open_memmap
 from six import string_types
-
 import mot.utils
 from mdt.components_loader import get_model
 from mdt.configuration import get_config_dir
-from mdt.configuration import get_logging_configuration_dict, get_noise_std_estimators, get_tmp_results_dir
-from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
-from mdt.data_loaders.noise_std import autodetect_noise_std_loader
-from mdt.data_loaders.protocol import autodetect_protocol_loader
+from mdt.configuration import get_logging_configuration_dict, get_tmp_results_dir
 from mdt.deferred_mappings import DeferredActionDict, DeferredActionTuple
 from mdt.exceptions import NoiseStdEstimationNotPossible
 from mdt.log_handlers import ModelOutputLogHandler
@@ -299,19 +295,35 @@ class SimpleMRIInputData(MRIInputData):
         Returns:
             number of ndarray: either a scalar or a 2d matrix with one value per problem instance.
         """
-        try:
-            noise_std = autodetect_noise_std_loader(self._noise_std).get_noise_std(self)
-        except NoiseStdEstimationNotPossible:
-            logger = logging.getLogger(__name__)
+        logger = logging.getLogger(__name__)
+
+        def _compute_noise_std():
+            if self._noise_std is None:
+                try:
+                    return estimate_noise_std(self)
+                except NoiseStdEstimationNotPossible:
+                    logger.warning('Failed to obtain a noise std for this subject. We will continue with an std of 1.')
+                    return 1
+
+            if isinstance(self._noise_std, (numbers.Number, np.ndarray)):
+                return self._noise_std
+
+            if isinstance(self._noise_std, six.string_types):
+                filename = str(self._noise_std)
+                if filename[-4:] == '.txt':
+                    with open(filename, 'r') as f:
+                        return float(f.read())
+                return load_nifti(filename).get_data()
+
             logger.warning('Failed to obtain a noise std for this subject. We will continue with an std of 1.')
-            noise_std = 1
+            return 1
 
-        self._noise_std = noise_std
+        self._noise_std = _compute_noise_std()
 
-        if is_scalar(noise_std):
-            return noise_std
+        if is_scalar(self._noise_std):
+            return self._noise_std
         else:
-            return create_roi(noise_std, self.mask)
+            return create_roi(self._noise_std, self.mask)
 
 
 class MockMRIInputData(SimpleMRIInputData):
@@ -365,8 +377,8 @@ def load_input_data(volume_info, protocol, mask, static_maps=None, gradient_devi
     Returns:
         SimpleMRIInputData: the input data object containing all the info needed for diffusion MRI model fitting
     """
-    protocol = autodetect_protocol_loader(protocol).get_protocol()
-    mask = autodetect_brain_mask_loader(mask).get_data()
+    protocol = load_protocol(protocol)
+    mask = load_brain_mask(mask)
 
     if isinstance(volume_info, string_types):
         info = load_nifti(volume_info)
@@ -760,10 +772,7 @@ def create_roi(data, brain_mask):
             an iterable is given we will return a tuple. If a dict is given we return a dict.
             For each result the axis are: (voxels, protocol)
     """
-    brain_mask = autodetect_brain_mask_loader(brain_mask).get_data()
-
-    if len(brain_mask.shape) > 3:
-        brain_mask = brain_mask[..., 0]
+    brain_mask = load_brain_mask(brain_mask)
 
     def creator(v):
         return_val = v[brain_mask]
@@ -798,8 +807,7 @@ def restore_volumes(data, brain_mask, with_volume_dim=True):
         If with_volume_ind_dim is set we return values with 4 dimensions. (x, y, z, 1). If not set we return only
         three dimensions.
     """
-    from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
-    brain_mask = autodetect_brain_mask_loader(brain_mask).get_data()
+    brain_mask = load_brain_mask(brain_mask)
 
     shape3d = brain_mask.shape[:3]
     indices = np.ravel_multi_index(np.nonzero(brain_mask)[:3], shape3d, order='C')
@@ -1168,18 +1176,30 @@ def per_model_logging_context(output_path, overwrite=False):
     configure_per_model_logging(None)
 
 
-def load_brain_mask(brain_mask_fname):
-    """Load the brain mask from the given file.
+def load_brain_mask(data_source):
+    """Load a brain mask from the given data.
 
     Args:
-        brain_mask_fname (string): The path of the brain mask to use.
+        data_source (string, ndarray, tuple, nifti): Either a filename, a ndarray, a tuple as (ndarray, nifti header) or
+            finally a nifti object having the method 'get_data()'.
 
     Returns:
-        ndarray: The loaded brain mask data
+        ndarray: boolean array with every voxel with a value higher than 0 set to 1 and all other values set to 0.
     """
-    mask = load_nifti(brain_mask_fname).get_data() > 0
+    def _load_data():
+        if isinstance(data_source, six.string_types):
+            return load_nifti(data_source).get_data()
+        if isinstance(data_source, np.ndarray):
+            return data_source
+        if isinstance(data_source, (list, tuple)):
+            return np.array(data_source[0])
+        if hasattr(data_source, 'get_data'):
+            return data_source.get_data()
+        raise ValueError('The given data source could not be recognized.')
+
+    mask = _load_data() > 0
     if len(mask.shape) > 3:
-        return mask[:, :, :, 0]
+        return mask[..., 0]
     return mask
 
 
@@ -1303,24 +1323,6 @@ def calculate_point_estimate_information_criterions(log_likelihoods, k, n):
     return criteria
 
 
-class ComplexNoiseStdEstimator(object):
-
-    def estimate(self, input_data, **kwargs):
-        """Get a noise std for the entire volume.
-
-        Args:
-            input_data (SimpleMRIInputData): the input data for which to find a noise std
-
-        Returns:
-            float or ndarray: the noise sigma of the Gaussian noise in the original complex image domain
-
-        Raises:
-            :class:`~mdt.exceptions.NoiseStdEstimationNotPossible`: if we can not estimate the
-                sigma using this estimator
-        """
-        raise NotImplementedError()
-
-
 def apply_mask(volumes, mask, inplace=True):
     """Apply a mask to the given input.
 
@@ -1334,10 +1336,7 @@ def apply_mask(volumes, mask, inplace=True):
         Depending on the input either a single image of the same size as the input image, or a list, tuple or dict.
         This will set for all the output images the the values to zero where the mask is zero.
     """
-    from six import string_types
-    from mdt.data_loaders.brain_mask import autodetect_brain_mask_loader
-
-    mask = autodetect_brain_mask_loader(mask).get_data()
+    mask = load_brain_mask(mask)
 
     def apply(_volume, _mask):
         if isinstance(_volume, string_types):
@@ -1371,7 +1370,7 @@ def apply_mask_to_file(input_fname, mask, output_fname=None):
         mask (str or ndarray): The mask to use
         output_fname (str): The filename for the output file (the masked input file).
     """
-    mask = autodetect_brain_mask_loader(mask).get_data()
+    mask = load_brain_mask(mask)
 
     if output_fname is None:
         output_fname = input_fname
@@ -1418,13 +1417,16 @@ def load_sample(fname, mode='r'):
     return open_memmap(fname, mode=mode)
 
 
-def estimate_noise_std(input_data, estimator=None):
+def estimate_noise_std(input_data):
     """Estimate the noise standard deviation.
+
+    This calculates per voxel (in the brain mas) the std over all unweighted volumes
+    and takes the mean of those estimates as the standard deviation of the noise.
+
+    The method is taken from Camino (http://camino.cs.ucl.ac.uk/index.php?n=Man.Estimatesnr).
 
     Args:
         input_data (SimpleMRIInputData): the input data we can use to do the estimation
-        estimator (ComplexNoiseStdEstimator): the estimator to use for the estimation. If not set we use
-            the one in the configuration.
 
     Returns:
         the noise std estimated from the data. This can either be a single float, or an ndarray.
@@ -1435,34 +1437,27 @@ def estimate_noise_std(input_data, estimator=None):
     logger = logging.getLogger(__name__)
     logger.info('Trying to estimate a noise std.')
 
-    def estimate(estimation_routine):
-        noise_std = estimator.estimate(input_data)
+    def all_unweighted_volumes(input_data):
+        unweighted_indices = input_data.protocol.get_unweighted_indices()
+        unweighted_volumes = input_data.signal4d[..., unweighted_indices]
 
-        if isinstance(noise_std, np.ndarray) and not is_scalar(noise_std):
-            logger.info('Found voxel-wise noise std using estimator {}.'.format(estimation_routine))
-            return noise_std
+        if len(unweighted_indices) < 2:
+            raise NoiseStdEstimationNotPossible('Not enough unweighted volumes for this estimator.')
 
-        if np.isfinite(noise_std) and noise_std > 0:
-            logger.info('Found global noise std {} using estimator {}.'.format(noise_std, estimation_routine))
-            return noise_std
+        voxel_list = create_roi(unweighted_volumes, input_data.mask)
+        return np.mean(np.std(voxel_list, axis=1))
 
-        raise NoiseStdEstimationNotPossible('Could not estimate a noise from this dataset.')
+    noise_std = all_unweighted_volumes(input_data)
 
-    if estimator:
-        estimators = [estimator]
-    else:
-        estimators = get_noise_std_estimators()
+    if isinstance(noise_std, np.ndarray) and not is_scalar(noise_std):
+        logger.info('Estimated voxel-wise noise std.')
+        return noise_std
 
-    if len(estimators) == 1:
-        return estimate(estimators[0])
-    else:
-        for estimator in estimators:
-            try:
-                return estimate(estimator)
-            except NoiseStdEstimationNotPossible:
-                pass
+    if np.isfinite(noise_std) and noise_std > 0:
+        logger.info('Estimated global noise std {}.'.format(noise_std))
+        return noise_std
 
-    raise NoiseStdEstimationNotPossible('Estimating the noise was not possible.')
+    raise NoiseStdEstimationNotPossible('Could not estimate a noise standard deviation from this dataset.')
 
 
 class AutoDict(defaultdict):
@@ -1516,7 +1511,7 @@ def roi_index_to_volume_index(roi_indices, brain_mask):
     Returns:
         ndarray: the 3d voxel location(s) of the indicated voxel(s)
     """
-    mask = autodetect_brain_mask_loader(brain_mask).get_data()
+    mask = load_brain_mask(brain_mask)
     return np.argwhere(mask)[roi_indices, :]
 
 
@@ -1551,7 +1546,7 @@ def create_index_matrix(brain_mask):
         3d ndarray: a 3d volume of the same size as the given mask and with as every non-zero element the position
             of that voxel in the linear ROI list.
     """
-    mask = autodetect_brain_mask_loader(brain_mask).get_data()
+    mask = load_brain_mask(brain_mask)
     roi = np.arange(0, np.count_nonzero(mask))
     return restore_volumes(roi, mask, with_volume_dim=False)
 
@@ -1709,7 +1704,7 @@ def extract_volumes(input_volume_fname, input_protocol, output_volume_fname, out
         output_protocol (str): the output protocol for the selected volumes
         volume_indices (:class:`list`): the desired indices, indexing the input_volume
     """
-    input_protocol = autodetect_protocol_loader(input_protocol).get_protocol()
+    input_protocol = load_protocol(input_protocol)
 
     new_protocol = input_protocol.get_new_protocol_with_indices(volume_indices)
     write_protocol(new_protocol, output_protocol)
