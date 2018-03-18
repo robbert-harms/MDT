@@ -455,94 +455,6 @@ class AutomaticCascadeSource(ComponentsSource):
         raise ImportError
 
 
-class UserComponentsSourceSingle(ComponentsSource):
-
-    loaded_modules_cache = {}
-
-    def __init__(self, user_type, component_type):
-        """Load the user components of the type *single*.
-
-        This expects that the available python files contain a class with the same name as the file in which the class
-        resides. For example, if we have a python file named "MySingleComponent.py" we should at least have the class
-        named "MySingleComponent" in that python file. Additionally, the file can contain a dictionary named
-        'meta_info' which contains meta information about that module.
-
-        Args:
-            user_type (str): either 'standard' or 'user'
-            component_type (str): the type of component we wish to use. This should be named exactly to one of the
-                directories available in mdt/data/components/
-        """
-        super(UserComponentsSourceSingle, self).__init__()
-        self.path = _get_components_path(user_type, component_type)
-        self._class_filenames = {}
-
-    def list(self):
-        items = []
-        if os.path.isdir(self.path):
-            for dir_name, sub_dirs, files in os.walk(self.path):
-                for file in files:
-                    if file.endswith('.py') and not file.startswith('__'):
-                        items.append(file[0:-3])
-                        self._class_filenames[file[0:-3]] = os.path.join(dir_name, file)
-        return items
-
-    def get_class(self, name):
-        if name in self._class_filenames:
-            if name not in self.loaded_modules_cache:
-                module = imp.load_source(name, self._class_filenames[name])
-                self.loaded_modules_cache[name] = (module, getattr(module, name))
-            return self.loaded_modules_cache[name][1]
-        raise ImportError
-
-    def get_meta_info(self, name):
-        if name in self._class_filenames:
-            if name not in self.loaded_modules_cache:
-                module = imp.load_source(name, self._class_filenames[name])
-                self.loaded_modules_cache[name] = (module, getattr(module, name))
-            try:
-                return getattr(self.loaded_modules_cache[name][-1], 'meta_info')()
-            except AttributeError:
-                try:
-                    cls = self.get_class(name)
-                    return cls.meta_info()
-                except AttributeError:
-                    return {}
-        return {}
-
-    def reload(self):
-        self.__class__.loaded_modules_cache = {}
-        self._class_filenames = {}
-
-    def use_in_uniqueness_check(self):
-        return True
-
-
-class AutoUserComponentsSourceSingle(UserComponentsSourceSingle):
-
-    def __init__(self, user_type, component_type, component_builder):
-        """
-
-        This class extends the default single components source loader by also being able to use components defined
-        using the ComponentTemplate method. This means that the components are defined as subclasses of ComponentTemplate
-        and we need a ComponentBuilder to actually create the components.
-
-        Args:
-            user_type (str): either 'standard' or 'user'
-            component_type (str): the type of component we wish to use. This should be named exactly to one of the
-                directories available in mdt/data/components/
-            component_builder (mdt.component_templates.base.ComponentBuilder): the component creator that can create components using
-                ComponentTemplate classes
-        """
-        self.component_builder = component_builder
-        super(AutoUserComponentsSourceSingle, self).__init__(user_type, component_type)
-
-    def get_class(self, name):
-        cls = super(AutoUserComponentsSourceSingle, self).get_class(name)
-        if issubclass(cls, ComponentTemplate):
-            return self.component_builder.create_class(cls)
-        return cls
-
-
 class ComponentInfo(object):
 
     def get_name(self):
@@ -737,6 +649,16 @@ class AutoUserComponentsSourceMulti(UserComponentsSourceMulti):
         return loaded_items
 
 
+class BatchProfilesSource(AutoUserComponentsSourceMulti):
+
+    def __init__(self, user_type):
+        """Source for the items in the 'parameters' dir in the components folder."""
+        from mdt.batch_utils import SimpleBatchProfile
+        from mdt.component_templates.batch_profiles import BatchProfileBuilder
+        super(BatchProfilesSource, self).__init__(user_type, 'batch_profiles',
+                                                  SimpleBatchProfile, BatchProfileBuilder())
+
+
 class ParametersSource(AutoUserComponentsSourceMulti):
 
     def __init__(self, user_type):
@@ -850,8 +772,8 @@ class BatchProfilesLoader(ComponentsLoader):
     def __init__(self):
         super(BatchProfilesLoader, self).__init__(
             [UserPreferredSource('batch_profiles'),
-             UserComponentsSourceSingle('standard', 'batch_profiles'),
-             UserComponentsSourceSingle('user', 'batch_profiles')])
+             BatchProfilesSource('standard'),
+             BatchProfilesSource('user')])
 
 
 class CompartmentModelsLoader(ComponentsLoader):

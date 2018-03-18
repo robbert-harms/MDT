@@ -77,19 +77,21 @@ class SimpleBatchProfile(BatchProfile):
     def is_suitable(self, data_folder):
         return len(self.get_subjects(data_folder)) > 0
 
-    def _autoload_noise_std(self, data_folder, subject_id, file_path=None):
+    def _autoload_noise_std(self, data_folder, subject_id, file_pattern=None):
         """Try to autoload the noise standard deviation from a noise_std file.
 
         Args:
             data_folder (str): the data base folder
             subject_id (str): the subject for which to use the noise std.
-            file_path (str): optionally provide the exact file to use.
+            file_pattern (str): optionally provide a file pattern to use (uses glob)
 
         Returns:
             float or None: a float if a float could be loaded from a file noise_std, else nothing.
         """
-        file_path = file_path or os.path.join(data_folder, subject_id, 'noise_std')
-        noise_std_files = glob.glob(file_path + '*')
+        if file_pattern:
+            noise_std_files = glob.glob(file_pattern)
+        else:
+            noise_std_files = glob.glob(os.path.join(data_folder, subject_id, 'noise_std*'))
         if len(noise_std_files):
             with open(noise_std_files[0], 'r') as f:
                 return float(f.read())
@@ -125,29 +127,6 @@ class SimpleBatchProfile(BatchProfile):
                     fname = os.path.join(prepend_path, fname)
                 if os.path.isfile(fname):
                     return fname
-        return default
-
-    def _get_first_existing_nifti(self, filenames, default=None, prepend_path=None):
-        """Tries a list of filenames and returns the first filename in the list that exists.
-
-        Additional to the method :meth:`_get_first_existing_file`, this additionally tries to see for every filename
-        if a file with extension '.nii' or with '.nii.gz' exists (in that order) for that filename. If so,
-        the path with the added extension is returned.
-
-        Args:
-            filenames (iterator): the list of filenames to search for existence, does additional extension lookup
-                per filename
-            default (str): the default value returned if none of the filenames existed
-            prepend_path (str): the path to optionally prepend to every file before checking existence
-
-        Returns:
-            str: the filename of the first existing file, can contain an extra extension for the returned filename.
-        """
-        for fname in filenames:
-            resolve_extension = self._get_first_existing_file([fname, fname + '.nii', fname + '.nii.gz'],
-                                                              prepend_path=prepend_path)
-            if resolve_extension:
-                return resolve_extension
         return default
 
     def _autoload_protocol(self, path, protocols_to_try=(), bvecs_to_try=(), bvals_to_try=(), protocol_columns=None):

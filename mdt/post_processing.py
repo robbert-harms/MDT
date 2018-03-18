@@ -63,20 +63,21 @@ class DTIMeasures(object):
         Returns:
             dict: a set of additional maps with one value per voxel.
         """
-        mds = (results['d'] + results['dperp0'] + results['dperp1']) / 3.
-        fas = DTIMeasures.fractional_anisotropy(results['d'], results['dperp0'], results['dperp1'])
-        rds = (results['dperp0'] + results['dperp1']) / 2.0
+        items = [
+            ('MD', (results['d'] + results['dperp0'] + results['dperp1']) / 3.),
+            ('FA', DTIMeasures.fractional_anisotropy(results['d'], results['dperp0'], results['dperp1'])),
+            ('RD', (results['dperp0'] + results['dperp1']) / 2.0),
+            ('AD', results['d']),
+            ('Tensor.d', results['d']),
+            ('Tensor.dperp0', results['dperp0']),
+            ('Tensor.dperp1', results['dperp1']),
+        ]
 
-        return {
-            'MD': np.mean(mds, axis=1),
-            'MD.std': np.std(mds, axis=1),
-            'FA': np.mean(fas, axis=1),
-            'FA.std': np.std(fas, axis=1),
-            'AD': np.mean(results['d'], axis=1),
-            'AD.std': np.std(results['d'], axis=1),
-            'RD': np.mean(rds, axis=1),
-            'RD.std': np.std(rds, axis=1)
-        }
+        results = {}
+        for name, data in items:
+            results.update({name: np.mean(data, axis=1),
+                            name + '.std': np.std(data, axis=1)})
+        return results
 
     @staticmethod
     def post_optimization_modifier(parameters_dict):
