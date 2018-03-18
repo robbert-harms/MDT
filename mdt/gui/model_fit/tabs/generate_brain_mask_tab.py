@@ -3,7 +3,7 @@ from textwrap import dedent
 
 from mdt.nifti import load_nifti
 import numpy as np
-from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QFileDialog
 
 from mdt import load_brain_mask, create_median_otsu_brain_mask
@@ -112,11 +112,9 @@ class GenerateBrainMaskTab(MainTab, Ui_GenerateBrainMaskTabContent, QObject):
         self._generate_mask_worker.set_args(*args, **kwargs)
         self._computations_thread.start()
         self._generate_mask_worker.moveToThread(self._computations_thread)
-
         self._generate_mask_worker.starting.connect(self._computations_thread.starting)
-        self._generate_mask_worker.finished.connect(self._computations_thread.finished)
-
         self._generate_mask_worker.starting.connect(lambda: self.generateButton.setEnabled(False))
+        self._generate_mask_worker.finished.connect(self._computations_thread.finished)
         self._generate_mask_worker.finished.connect(lambda: self.generateButton.setEnabled(True))
         self._generate_mask_worker.finished.connect(lambda: self.viewButton.setEnabled(True))
 
@@ -179,6 +177,7 @@ class GenerateMaskWorker(QObject):
         self._kwargs = kwargs
 
     @function_message_decorator('Started creating a mask.', 'Finished creating a mask.')
+    @pyqtSlot()
     def run(self):
         create_median_otsu_brain_mask(*self._args, **self._kwargs)
         self.finished.emit()
