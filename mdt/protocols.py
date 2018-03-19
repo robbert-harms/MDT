@@ -762,8 +762,6 @@ def load_protocol(data_source):
     Returns:
         :class:`Protocol`: An protocol object with all the columns loaded.
     """
-    if isinstance(data_source, six.string_types) and os.path.isdir(data_source):
-        return auto_load_protocol(data_source)
     if isinstance(data_source, Protocol):
         return data_source
 

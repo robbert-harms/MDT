@@ -39,11 +39,11 @@ class SymmetricNonParametricTensor(CompartmentTemplate):
                                                                 'Tensor_D_22(D_22)')
     cl_code = '''
         double diff = g.x * g.x * D_00 +
-                        g.y * g.x * D_01 * 2 +
-                        g.y * g.y * D_11 +
-                        g.z * g.x * D_02 * 2 +
-                        g.z * g.y * D_12 * 2 +
-                        g.z * g.z * D_22;
+                      g.y * g.x * D_01 * 2 +
+                      g.y * g.y * D_11 +
+                      g.z * g.x * D_02 * 2 +
+                      g.z * g.y * D_12 * 2 +
+                      g.z * g.z * D_22;
         return exp(-b * diff);
     '''
     extra_optimization_maps = [extra_dti_results]
