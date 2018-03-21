@@ -58,17 +58,17 @@ class ExpT1DecTR(CompartmentTemplate):
 
 class ExpT1ExpT2GRE(CompartmentTemplate):
 
-    parameter_list = ('TR', 'TE', 'flip_angle', 'T1', 'T2')
+    parameter_list = ('TR', 'TE', 'excitation_b1_map', 'flip_angle', 'T1', 'T2')
     cl_code = """
-        return sin(flip_angle) * (1 - exp(-TR / T1)) / (1 - cos(flip_angle) * exp(-TR / T1)) * exp(-TE / T2);
+        return sin(flip_angle * excitation_b1_map) * (1 - exp(-TR / T1)) / (1 - cos(flip_angle * excitation_b1_map) * exp(-TR / T1)) * exp(-TE / T2);
     """
 
 
 class ExpT1ExpT2sGRE(CompartmentTemplate):
 
-    parameter_list = ('TR', 'TE', 'flip_angle', 'T1', 'T2s')
+    parameter_list = ('TR', 'TE', 'excitation_b1_map', 'flip_angle', 'T1', 'T2s')
     cl_code = """
-        return sin(flip_angle) * (1 - exp(-TR / T1)) / (1 - cos(flip_angle) * exp(-TR / T1)) * exp(-TE / T2s);
+        return sin(flip_angle * excitation_b1_map) * (1 - exp(-TR / T1)) / (1 - cos(flip_angle * excitation_b1_map) * exp(-TR / T1)) * exp(-TE / T2s);
     """
 
 

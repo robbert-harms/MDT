@@ -14,3 +14,10 @@ class S0_T1_GRE(CascadeTemplate):
               'S0_T1_GRE',
               'S0_T1_GRE')
     fixes = {1: [('ExpT1DecIR.Efficiency', 1)]}
+
+
+class S0_T2(CascadeTemplate):
+
+    description = 'Cascade for S0-T2 model.'
+    models = ('S0',
+              'S0-T2')
