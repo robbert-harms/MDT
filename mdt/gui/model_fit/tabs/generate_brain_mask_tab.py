@@ -95,12 +95,12 @@ class GenerateBrainMaskTab(MainTab, Ui_GenerateBrainMaskTabContent, QObject):
         image_data = load_nifti(self.selectedImageText.text()).get_data()
         masked_image = image_data * mask
 
-        data = SimpleDataInfo({'Masked': masked_image, 'DWI': image_data})
+        data = SimpleDataInfo({'Masked': masked_image, 'DWI': image_data, 'Mask': mask})
 
         config = MapPlotConfig()
         config.dimension = 2
         config.slice_index = image_data.shape[2] // 2
-        config.maps_to_show = ['DWI', 'Masked']
+        config.maps_to_show = ['DWI', 'Masked', 'Mask']
 
         start_gui(data=data, config=config, app_exec=False)
 

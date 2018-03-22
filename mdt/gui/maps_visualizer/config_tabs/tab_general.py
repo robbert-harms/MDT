@@ -184,7 +184,8 @@ class TabGeneral(QWidget, Ui_TabGeneral):
     def _invert_map_selection(self):
         current_model = self._controller.get_model()
         self._controller.apply_action(SetMapsToShow(
-            set(current_model.get_data().get_map_names()).difference(set(current_model.get_config().maps_to_show))))
+            list(set(current_model.get_data().get_map_names()).difference(
+                set(current_model.get_config().maps_to_show)))))
 
     @pyqtSlot()
     def _zoom_fit(self):

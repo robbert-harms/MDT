@@ -1,7 +1,6 @@
 import logging
-import os
 import numpy as np
-from scipy.ndimage import binary_dilation, generate_binary_structure
+from scipy.ndimage import binary_dilation, generate_binary_structure, binary_fill_holes
 from six import string_types
 from mdt.utils import load_brain_mask
 from mdt.protocols import load_protocol
@@ -15,7 +14,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-def create_median_otsu_brain_mask(dwi_info, protocol, mask_threshold=0, **kwargs):
+def create_median_otsu_brain_mask(dwi_info, protocol, mask_threshold=0, fill_holes=True, **kwargs):
     """Create a brain mask using the given volume.
 
     Args:
@@ -26,6 +25,7 @@ def create_median_otsu_brain_mask(dwi_info, protocol, mask_threshold=0, **kwargs
             - or only the image as an ndarray
         protocol (string or :class:`~mdt.protocols.Protocol`): The filename of the protocol file or a Protocol object
         mask_threshold (float): everything below this b-value threshold is masked away (value in s/m^2)
+        fill_holes (boolean): if we will fill holes after the median otsu algorithm and before the thresholding
         **kwargs: the additional arguments for median_otsu.
 
     Returns:
@@ -56,6 +56,9 @@ def create_median_otsu_brain_mask(dwi_info, protocol, mask_threshold=0, **kwargs
 
     brain_mask = median_otsu(unweighted, **kwargs)
     brain_mask = brain_mask > 0
+
+    if fill_holes:
+        brain_mask = binary_fill_holes(brain_mask)
 
     if mask_threshold:
         brain_mask = np.mean(dwi[..., protocol.get_weighted_indices()], axis=3) * brain_mask > mask_threshold
