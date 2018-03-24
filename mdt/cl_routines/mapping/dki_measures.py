@@ -5,7 +5,7 @@ from mot.cl_data_type import SimpleCLDataType
 from mot.utils import get_float_type_def, convert_data_to_dtype
 from mot.cl_routines.base import CLRoutine
 from mot.load_balance_strategies import Worker
-from mdt.components_loader import load_component
+from mdt.components import get_component
 
 __author__ = 'Robbert Harms'
 __date__ = "2017-08-16"
@@ -382,9 +382,9 @@ class _DKIMeasuresWorker(Worker):
 
         kernel_source = ''
         kernel_source += get_float_type_def(self._double_precision)
-        kernel_source += load_component('library_functions', 'TensorApparentDiffusion').get_cl_code()
-        kernel_source += load_component('library_functions', 'RotateOrthogonalVector').get_cl_code()
-        kernel_source += load_component('library_functions', 'KurtosisMultiplication').get_cl_code()
+        kernel_source += get_component('library_functions', 'TensorApparentDiffusion')().get_cl_code()
+        kernel_source += get_component('library_functions', 'RotateOrthogonalVector')().get_cl_code()
+        kernel_source += get_component('library_functions', 'KurtosisMultiplication')().get_cl_code()
         kernel_source += '''
             double apparent_kurtosis(
                     global mot_float_type* params,

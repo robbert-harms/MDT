@@ -1,15 +1,12 @@
 from copy import deepcopy
 from six import with_metaclass
 
+
 __author__ = 'Robbert Harms'
 __date__ = '2017-07-20'
 __maintainer__ = 'Robbert Harms'
 __email__ = 'robbert.harms@maastrichtuniversity.nl'
 __licence__ = 'LGPL v3'
-
-
-"""Contains a lookup table that links template types to builders."""
-_builder_lookup = {}
 
 
 class ComponentBuilder(object):
@@ -67,13 +64,21 @@ def bind_function(func):
 
 
 def method_binding_meta(template, *bases):
-    """Adds all bound functions from the ComponentTemplate to the class being constructed.
+    """Adds all bound functions from the ComponentTemplate to the constructed component class.
 
-     This returns a metaclass similar to the with_metaclass of the six library.
+    Template methods are not automatically bound as methods to the constructed class. To bind them, decorate them
+    with :func:`bind_function`. In the template meta class they are then listed under the ``bound_methods`` attribute,
+    to be used here to bind them as methods to the component class.
 
-     Args:
-         template (ComponentTemplate): the component config with the bound_methods attribute which we will all add
+    This returns a metaclass similar to the with_metaclass of the six library.
+
+    Args:
+        template (ComponentTemplate): the component config with the bound_methods attribute which we will all add
             to the attributes of the to creating class.
+        *bases (type): the list of base classes
+
+    Returns:
+        type: a metaclass that will bind the methods that were listed such in the meta class
      """
     class ApplyMethodBinding(type):
         def __new__(mcs, name, bases, attributes):
@@ -89,29 +94,50 @@ class ComponentTemplateMeta(type):
         """A pre-processor for the components.
 
         On the moment this meta class does two things, first it adds all functions with the '_bind' property
-        to the bound_methods list for binding them later to the constructed class. Second, it sets the 'name' attribute
-        of the component to the class name if there is no name attribute defined.
+        to the ``bound_methods`` dictionary for binding them later to the constructed class. Second, it sets the
+        ``name`` attribute to the template class name if there is no ``name`` attribute defined.
         """
         result = super(ComponentTemplateMeta, mcs).__new__(mcs, name, bases, attributes)
+
+        result.bound_methods = mcs._get_bound_methods(bases, attributes)
+
+        if 'name' not in attributes:
+            result.name = name
+            attributes['name'] = name
+
+        try:
+            component_type = mcs._resolve_attribute(bases, attributes, '_component_type')
+            if component_type is not None:
+                from mdt.components import add_template_component
+                add_template_component(component_type, attributes['name'], result)
+        except ValueError:
+            pass
+
+        return result
+
+    @staticmethod
+    def _get_bound_methods(bases, attributes):
+        """Get all methods in the template that have the ``_bind`` attribute.
+
+        This collects all methods that have the ``_bind`` attribute to a dictionary.
+
+        Returns:
+            dict: all the methods that need to be bound.
+        """
         bound_methods = {value.__name__: value for value in attributes.values() if hasattr(value, '_bind')}
         for base in bases:
             if hasattr(base, 'bound_methods'):
                 for key, value in base.bound_methods.items():
                     if key not in bound_methods:
                         bound_methods.update({key: value})
-        result.bound_methods = bound_methods
-
-        if 'name' not in attributes:
-            result.name = name
-
-        return result
+        return bound_methods
 
     @staticmethod
     def _resolve_attribute(bases, attributes, attribute_name, base_predicate=None):
         """Search for the given attribute in the given attributes or in the attributes of the bases.
 
         Args:
-            base_predicate (func): if given a predicate that runs on the attribute of one of the bases to determine
+            base_predicate (func): if given, a predicate that runs on the attribute of one of the bases to determine
                 if we will return that one.
 
         Returns:
@@ -134,8 +160,16 @@ class ComponentTemplate(with_metaclass(ComponentTemplateMeta, object)):
     """The component configuration.
 
     By overriding the class attributes you can define complex configurations. The actual class distilled from these
-    configurations are loaded by the ComponentBuilder
+    configurations are loaded by the builder referenced by ``_builder``.
+
+    Attributes:
+        _component_type (str): the component type of this template. Set to one of the valid template types.
+        _builder (ComponentBuilder): the builder to use for constructing an object of the given template
+        name (str): the name of the template
+        description (str): a description of the object / template
     """
+    _component_type = None
+    _builder = None
     name = ''
     description = ''
 
@@ -149,38 +183,10 @@ class ComponentTemplate(with_metaclass(ComponentTemplateMeta, object)):
             a = construct_component(template)
             b = template()
         """
-        return construct_component(cls)()
+        return cls._builder.create_class(cls)
 
     @classmethod
     def meta_info(cls):
         return {'name': cls.name,
                 'description': cls.description,
                 'template': deepcopy(cls)}
-
-
-def construct_component(template):
-    """Construct the component from configuration to derived class.
-
-    This function will perform the lookup from config type to builder class and will subsequently build the
-    component class from the config.
-
-    Args:
-        template (Type[mdt.component_templates.base.ComponentTemplate]): the template we wish to construct into a class.
-
-    Returns:
-        class: the constructed class from the given component
-    """
-    for template_type, builder in _builder_lookup.items():
-        if issubclass(template, template_type):
-            return builder.create_class(template)
-    raise ValueError("No suitable builder for the given component could be found.")
-
-
-def register_builder(template_type, builder):
-    """Register the use of the given builder for creating components from the given template.
-
-    Args:
-        template_type (Type[ComponentTemplate]): the template we are assigning
-        builder (ComponentBuilder): the builder that can build the given template
-    """
-    _builder_lookup[template_type] = builder

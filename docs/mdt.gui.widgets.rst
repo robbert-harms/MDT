@@ -1,5 +1,5 @@
-mdt\.gui\.widgets package
-=========================
+mdt.gui.widgets package
+=======================
 
 Subpackages
 -----------
@@ -11,16 +11,16 @@ Subpackages
 Submodules
 ----------
 
-mdt\.gui\.widgets\.composite\_widgets module
---------------------------------------------
+mdt.gui.widgets.composite_widgets module
+----------------------------------------
 
 .. automodule:: mdt.gui.widgets.composite_widgets
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt\.gui\.widgets\.decorator\_widgets module
---------------------------------------------
+mdt.gui.widgets.decorator_widgets module
+----------------------------------------
 
 .. automodule:: mdt.gui.widgets.decorator_widgets
     :members:

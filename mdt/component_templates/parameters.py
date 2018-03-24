@@ -1,81 +1,18 @@
 import six
 
-from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate, register_builder
+from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate
+from mdt.components import has_component, get_component
 from mot.cl_data_type import SimpleCLDataType
 from mot.model_building.parameter_functions.numdiff_info import NumDiffInfo, SimpleNumDiffInfo
 from mot.model_building.parameters import StaticMapParameter, ProtocolParameter, FreeParameter
 from mot.model_building.parameter_functions.priors import UniformWithinBoundsPrior
 from mot.model_building.parameter_functions.proposals import GaussianProposal
-from mot.model_building.parameter_functions.transformations import IdentityTransform
+
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-12-12"
 __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
-
-
-class ParameterTemplate(ComponentTemplate):
-    """The cascade template to inherit from.
-
-    These templates are loaded on the fly by the ParametersBuilder
-
-    template options:
-        name (str): the name of the parameter, defaults to the class name
-        description (str): the description of this parameter
-        data_type (str or DataType): either a string we use as datatype or the actual datatype itself
-    """
-    name = ''
-    description = ''
-    data_type = 'mot_float_type'
-
-
-class ProtocolParameterTemplate(ParameterTemplate):
-    """The default template options for protocol parameters.
-
-    This sets the attribute type to protocol.
-    """
-    data_type = 'mot_float_type'
-
-
-class FreeParameterTemplate(ParameterTemplate):
-    """The default template options for free parameters.
-
-    This sets the attribute type to free.
-
-    Attributes:
-        init_value (float): the initial value
-        fixed (boolean or ndarray of float): if this parameter is fixed or not. If not fixed this should
-            hold a reference to a value or a matrix
-        lower_bound (float): the lower bounds
-        upper_bound (float): the upper bounds
-        parameter_transform: the parameter transformation
-        sampling_proposal: the proposal function
-        sampling_prior: the prior function
-        numdiff_info (dict or :class:`~mot.model_building.parameter_functions.numdiff_info.NumDiffInfo`):
-            the information necessary to take the numerical derivative of a model with respect to this parameter.
-            Either a dictionary with the keyword arguments to
-            :class:`~mot.model_building.parameter_functions.numdiff_info.SimpleNumDiffInfo` or an information
-            object directly. If None, we use an empty dictionary. Please note that if you override this, you will have
-            to specify all of the items (no automatic inheritance of sub-items).
-    """
-    data_type = 'mot_float_type'
-    fixed = False
-    init_value = 0.03
-    lower_bound = 0.0
-    upper_bound = 4.0
-    parameter_transform = IdentityTransform()
-    sampling_proposal = GaussianProposal(1.0)
-    sampling_prior = UniformWithinBoundsPrior()
-    numdiff_info = {'max_step': 0.1, 'scale_factor': 1, 'use_bounds': True, 'modulus': None,
-                    'use_upper_bound': True, 'use_lower_bound': True}
-
-
-class StaticMapParameterTemplate(ParameterTemplate):
-    """The default template options for static data parameters.
-
-    This sets the attribute type to static_map.
-    """
-    value = None
 
 
 class ParameterBuilder(ComponentBuilder):
@@ -110,7 +47,7 @@ class ParameterBuilder(ComponentBuilder):
                         template.init_value,
                         template.lower_bound,
                         template.upper_bound,
-                        parameter_transform=template.parameter_transform,
+                        parameter_transform=_resolve_parameter_transform(template.parameter_transform),
                         sampling_proposal=template.sampling_proposal,
                         sampling_prior=template.sampling_prior,
                         numdiff_info=numdiff_info
@@ -124,4 +61,104 @@ class ParameterBuilder(ComponentBuilder):
             return AutoStaticMapParameter
 
 
-register_builder(ParameterTemplate, ParameterBuilder())
+class ParameterTemplate(ComponentTemplate):
+    """The cascade template to inherit from.
+
+    These templates are loaded on the fly by the ParametersBuilder
+
+    template options:
+        name (str): the name of the parameter, defaults to the class name
+        description (str): the description of this parameter
+        data_type (str or DataType): either a string we use as datatype or the actual datatype itself
+    """
+    _component_type = 'parameters'
+    _builder = ParameterBuilder()
+
+    name = ''
+    description = ''
+    data_type = 'mot_float_type'
+
+
+class ProtocolParameterTemplate(ParameterTemplate):
+    """The default template options for protocol parameters.
+    """
+    data_type = 'mot_float_type'
+
+
+class FreeParameterTemplate(ParameterTemplate):
+    """The default template options for free parameters.
+
+    Attributes:
+        init_value (float): the initial value
+        fixed (boolean or ndarray of float): if this parameter is fixed or not. If not fixed this should
+            hold a reference to a value or a matrix
+        lower_bound (float): the lower bounds
+        upper_bound (float): the upper bounds
+        parameter_transform
+            (str or :class:`~mot.model_building.parameter_functions.transformations.AbstractTransformation`): the
+            parameter transformation, this is used for automatic range transformation of the parameters during
+            optimization. See Harms 2017 NeuroImage for details. Typical elements are:
+
+            * ``Identity``: no transformation
+            * ``Positivity``: ensures the parameters are positive
+            * ``Clamp``: limits the parameter between its lower and upper bounds
+            * ``CosSqrClamp``: changes the range of the optimized parameters to [0, 1] and ensures boundary constraints
+            * ``SinSqrClamp``: same as ``CosSqrClamp``
+            * ``SqrClamp``: same as clamp but with an additional square root to change the magnitude of the range
+            * ``AbsModPi``: ensures absolute modulus of the input parameters between zero and pi.
+            * ``AbsModTwoPi``: ensures absolute modulus of the input parameters between zero and two pi.
+
+        sampling_proposal: the proposal function
+        sampling_prior: the prior function
+        numdiff_info (dict or :class:`~mot.model_building.parameter_functions.numdiff_info.NumDiffInfo`):
+            the information necessary to take the numerical derivative of a model with respect to this parameter.
+            Either a dictionary with the keyword arguments to
+            :class:`~mot.model_building.parameter_functions.numdiff_info.SimpleNumDiffInfo` or an information
+            object directly. If None, we use an empty dictionary. Please note that if you override this, you will have
+            to specify all of the items (no automatic inheritance of sub-items).
+    """
+    data_type = 'mot_float_type'
+    fixed = False
+    init_value = 0.03
+    lower_bound = 0.0
+    upper_bound = 4.0
+    parameter_transform = 'Identity'
+    sampling_proposal = GaussianProposal(1.0)
+    sampling_prior = UniformWithinBoundsPrior()
+    numdiff_info = {'max_step': 0.1, 'scale_factor': 1, 'use_bounds': True, 'modulus': None,
+                    'use_upper_bound': True, 'use_lower_bound': True}
+
+
+class StaticMapParameterTemplate(ParameterTemplate):
+    """The default template options for static data parameters.
+    """
+    value = None
+
+
+def _resolve_parameter_transform(parameter_transform):
+    """Resolves input parameter transforms to actual objects.
+
+    Args:
+        parameter_transform
+            (str or :class:`~mot.model_building.parameter_functions.transformations.AbstractTransformation`):
+            a parameter transformation name (with or without the postfix ``Transform``) or an actual object we
+            just return.
+
+    Returns:
+        mot.model_building.parameter_functions.transformations.AbstractTransformation: an actual transformation object
+
+    Raises:
+        ValueError: if the parameter transformation could not be resolved.
+    """
+    from mot.model_building.parameter_functions.transformations import AbstractTransformation
+
+    if isinstance(parameter_transform, AbstractTransformation):
+        return parameter_transform
+
+    if has_component('parameter_transforms', parameter_transform):
+        return get_component('parameter_transforms', parameter_transform)()
+
+    if has_component('parameter_transforms', parameter_transform + 'Transform'):
+        return get_component('parameter_transforms', parameter_transform + 'Transform')()
+
+    raise ValueError('Could not resolve the parameter transformation "{}"'.format(parameter_transform))

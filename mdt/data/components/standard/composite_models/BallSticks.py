@@ -45,6 +45,11 @@ class BallStick_r2(DMRICompositeModelTemplate):
         lambda results: {'FS': 1 - results['w_ball.w']},
         lambda results: {'FS.std': results['w_ball.w.std']}
     ]
+    extra_sampling_maps = [
+        lambda samples: {
+            'FS': np.mean(samples['w_stick0.w'] + samples['w_stick1.w'], axis=1),
+            'FS.std': np.std(samples['w_stick0.w'] + samples['w_stick1.w'], axis=1)}
+    ]
 
     extra_prior = 'return w_stick1.w < w_stick0.w;'
 
@@ -69,6 +74,11 @@ class BallStick_r3(DMRICompositeModelTemplate):
     extra_optimization_maps = [
         lambda results: {'FS': 1 - results['w_ball.w']},
         lambda results: {'FS.std': results['w_ball.w.std']}
+    ]
+    extra_sampling_maps = [
+        lambda samples: {
+            'FS': np.mean(samples['w_stick0.w'] + samples['w_stick1.w'] + samples['w_stick2.w'], axis=1),
+            'FS.std': np.std(samples['w_stick0.w'] + samples['w_stick1.w'] + samples['w_stick2.w'], axis=1)}
     ]
 
     extra_prior = 'return w_stick2.w < w_stick1.w && w_stick1.w < w_stick0.w;'

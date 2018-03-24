@@ -8,7 +8,7 @@ from mot.model_building.parameter_functions.priors import AlwaysOne, UniformWith
 from mot.model_building.parameter_functions.proposals import GaussianProposal
 from mdt.component_templates.parameters import FreeParameterTemplate, ParameterBuilder
 from mdt.component_templates.compartment_models import CompartmentTemplate
-from mot.model_building.parameter_functions.transformations import IdentityTransform, PositiveTransform
+from mot.model_building.parameter_functions.transformations import IdentityTransform, PositivityTransform
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -55,7 +55,7 @@ def build_param(index):
     _sampling_prior = AlwaysOne()
     if len(set(index)) == 1:
         _lower_bound = 0
-        _parameter_transform = PositiveTransform()
+        _parameter_transform = PositivityTransform()
         _sampling_prior = UniformWithinBoundsPrior()
 
     class matrix_element_param(FreeParameterTemplate):

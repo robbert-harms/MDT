@@ -18,7 +18,8 @@ import os
 from textwrap import dedent
 
 from six import string_types
-from mdt.components_loader import BatchProfilesLoader
+
+from mdt.components import get_batch_profile, get_component_list
 from mdt.masking import create_median_otsu_brain_mask
 from mdt.protocols import load_protocol, auto_load_protocol
 from mdt.utils import AutoDict, load_input_data
@@ -388,7 +389,7 @@ def batch_profile_factory(batch_profile, base_directory):
     if batch_profile is None:
         return get_best_batch_profile(base_directory)
     elif isinstance(batch_profile, string_types):
-        return BatchProfilesLoader().load(batch_profile)
+        return get_batch_profile(batch_profile)()
     return batch_profile
 
 
@@ -401,8 +402,7 @@ def get_best_batch_profile(data_folder):
     Returns:
         BatchProfile: the best matching batch profile.
     """
-    profile_loader = BatchProfilesLoader()
-    profiles = [profile_loader.load(profile) for profile in profile_loader.list_all()]
+    profiles = [get_batch_profile(name) for name in get_component_list('batch_profiles')]
 
     best_crawler = None
     best_subjects_count = 0

@@ -16,7 +16,7 @@ import six
 from numpy.lib.format import open_memmap
 from six import string_types
 import mot.utils
-from mdt.components_loader import get_model
+from mdt.components import get_model
 from mdt.configuration import get_config_dir
 from mdt.configuration import get_logging_configuration_dict, get_tmp_results_dir
 from mdt.deferred_mappings import DeferredActionDict, DeferredActionTuple
@@ -1105,6 +1105,9 @@ def init_user_settings(pass_if_exists=True):
         make_sure_user_components_exists()
         copy_old_configs(tmp_dir)
 
+    from mdt.components import reload
+    reload()
+
     return path
 
 
@@ -1256,7 +1259,7 @@ def model_output_exists(model, output_folder, append_model_name_to_path=True):
             For a cascade model it returns true if the maps of all the models exist.
     """
     if isinstance(model, string_types):
-        model = get_model(model)
+        model = get_model(model)()
 
     from mdt.models.cascade import DMRICascadeModelInterface
     if isinstance(model, DMRICascadeModelInterface):

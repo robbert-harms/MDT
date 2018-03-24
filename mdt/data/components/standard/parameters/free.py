@@ -9,9 +9,9 @@ its data are handled during model construction.
 
 import numpy as np
 from mdt.component_templates.parameters import FreeParameterTemplate
+from mot.model_building.parameter_functions.priors import UniformWithinBoundsPrior, ARDBeta, ARDGaussian
 from mot.model_building.parameter_functions.proposals import GaussianProposal, CircularGaussianProposal
-from mot.model_building.parameter_functions.transformations import ClampTransform, AbsModPiTransform, \
-    SinSqrClampTransform, CosSqrClampTransform
+
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-12-12"
@@ -24,8 +24,29 @@ class s0(FreeParameterTemplate):
     init_value = 1e4
     lower_bound = 0
     upper_bound = 1e10
-    parameter_transform = ClampTransform()
+    parameter_transform = 'Clamp'
     sampling_proposal = GaussianProposal(std=10.0)
+
+
+class w(FreeParameterTemplate):
+
+    init_value = 0.5
+    lower_bound = 0
+    upper_bound = 1
+    parameter_transform = 'CosSqrClamp'
+    sampling_proposal = GaussianProposal(std=0.01)
+    sampling_prior = UniformWithinBoundsPrior()
+    numdiff_info = {'scale_factor': 10}
+
+
+class w_ard_beta(w):
+    """Subclasses the weight to add a Beta prior for in use with Automatic Relevance Detection during sampling."""
+    sampling_prior = ARDBeta()
+
+
+class w_ard_gaussian(w):
+    """Subclasses the weight to add a Gaussian prior for in use with Automatic Relevance Detection during sampling."""
+    sampling_prior = ARDGaussian()
 
 
 class T1(FreeParameterTemplate):
@@ -33,7 +54,7 @@ class T1(FreeParameterTemplate):
     init_value = 0.02
     lower_bound = 1e-5
     upper_bound = 4.0
-    parameter_transform = ClampTransform()
+    parameter_transform = 'Clamp'
     sampling_proposal = GaussianProposal(0.0001)
 
 
@@ -42,7 +63,7 @@ class T2(FreeParameterTemplate):
     init_value = 0.01
     lower_bound = 1e-5
     upper_bound = 2.0
-    parameter_transform = ClampTransform()
+    parameter_transform = 'Clamp'
     sampling_proposal = GaussianProposal(0.0001)
 
 
@@ -51,7 +72,7 @@ class T2_star(FreeParameterTemplate):
     init_value = 0.01
     lower_bound = 0.0
     upper_bound = 1.0
-    parameter_transform = ClampTransform()
+    parameter_transform = 'Clamp'
     sampling_proposal = GaussianProposal(0.0001)
 
 
@@ -67,7 +88,7 @@ class E1(FreeParameterTemplate):
     init_value = 0.37
     lower_bound = 0.0
     upper_bound = 1.0
-    parameter_transform = ClampTransform()
+    parameter_transform = 'Clamp'
     sampling_proposal = GaussianProposal(0.0001)
 
 
@@ -77,7 +98,7 @@ class R1(FreeParameterTemplate):
     init_value = 2
     lower_bound = 0.25
     upper_bound = 100.0
-    parameter_transform = ClampTransform()
+    parameter_transform = 'Clamp'
     sampling_proposal = GaussianProposal(0.0001)
 
 
@@ -87,7 +108,7 @@ class R2(FreeParameterTemplate):
     init_value = 5
     lower_bound = 0.5
     upper_bound = 500.0
-    parameter_transform = ClampTransform()
+    parameter_transform = 'Clamp'
     sampling_proposal = GaussianProposal(0.0001)
 
 
@@ -97,7 +118,7 @@ class R2s(FreeParameterTemplate):
     init_value = 10
     lower_bound = 1
     upper_bound = 50.0
-    parameter_transform = ClampTransform()
+    parameter_transform = 'Clamp'
     sampling_proposal = GaussianProposal(0.0001)
 
 
@@ -110,7 +131,7 @@ class theta(FreeParameterTemplate):
     init_value = np.pi / 2.0
     lower_bound = 0
     upper_bound = np.pi
-    parameter_transform = AbsModPiTransform()
+    parameter_transform = 'AbsModPi'
     sampling_proposal = CircularGaussianProposal(np.pi, 0.1)
     numdiff_info = {'max_step': 0.1, 'use_bounds': False, 'modulus': np.pi}
 
@@ -131,7 +152,7 @@ class phi(FreeParameterTemplate):
     init_value = np.pi / 2.0
     lower_bound = 0
     upper_bound = np.pi
-    parameter_transform = AbsModPiTransform()
+    parameter_transform = 'AbsModPi'
     sampling_proposal = CircularGaussianProposal(np.pi, 0.1)
     numdiff_info = {'max_step': 0.1, 'use_bounds': False, 'modulus': 2*np.pi}
 
@@ -144,7 +165,7 @@ class psi(FreeParameterTemplate):
     init_value = np.pi / 2.0
     lower_bound = 0
     upper_bound = np.pi
-    parameter_transform = AbsModPiTransform()
+    parameter_transform = 'AbsModPi'
     sampling_proposal = CircularGaussianProposal(np.pi, 0.1)
     numdiff_info = {'max_step': 0.1, 'use_bounds': False, 'modulus': np.pi}
 
@@ -154,7 +175,7 @@ class d(FreeParameterTemplate):
     init_value = 1.7e-9
     lower_bound = 1e-11
     upper_bound = 1.0e-8
-    parameter_transform = SinSqrClampTransform()
+    parameter_transform = 'SinSqrClamp'
     sampling_proposal = GaussianProposal(1e-10)
     numdiff_info = {'max_step': 0.1, 'scale_factor': 1e10}
 
@@ -164,7 +185,7 @@ class dperp0(FreeParameterTemplate):
     init_value = 1.7e-10
     lower_bound = 0
     upper_bound = 1.0e-8
-    parameter_transform = SinSqrClampTransform()
+    parameter_transform = 'SinSqrClamp'
     sampling_proposal = GaussianProposal(1e-10)
     numdiff_info = {'max_step': 0.1, 'scale_factor': 1e10}
 
@@ -174,7 +195,7 @@ class dperp1(FreeParameterTemplate):
     init_value = 1.7e-11
     lower_bound = 0
     upper_bound = 1.0e-8
-    parameter_transform = SinSqrClampTransform()
+    parameter_transform = 'SinSqrClamp'
     sampling_proposal = GaussianProposal(1e-10)
     numdiff_info = {'max_step': 0.1, 'scale_factor': 1e10}
 
@@ -184,7 +205,7 @@ class R(FreeParameterTemplate):
     init_value = 1.0e-6
     lower_bound = 1e-7
     upper_bound = 20e-6
-    parameter_transform = CosSqrClampTransform()
+    parameter_transform = 'CosSqrClamp'
     sampling_proposal = GaussianProposal(1e-7)
 
 
@@ -193,7 +214,7 @@ class kappa(FreeParameterTemplate):
     init_value = 1
     lower_bound = 1e-5
     upper_bound = 2 * np.pi
-    parameter_transform = CosSqrClampTransform()
+    parameter_transform = 'CosSqrClamp'
     sampling_proposal = GaussianProposal(0.1)
     numdiff_info = {'max_step': 0.1, 'scale_factor': 10}
 
@@ -204,7 +225,7 @@ class gamma_shape(FreeParameterTemplate):
     init_value = 1
     lower_bound = 0.1e-3
     upper_bound = 20
-    parameter_transform = CosSqrClampTransform()
+    parameter_transform = 'CosSqrClamp'
     sampling_proposal = GaussianProposal(1.0e-2)
 
 
@@ -214,7 +235,7 @@ class gamma_scale(FreeParameterTemplate):
     init_value = 1e-6
     lower_bound = 0.1e-9
     upper_bound = 20e-6
-    parameter_transform = CosSqrClampTransform()
+    parameter_transform = 'CosSqrClamp'
     sampling_proposal = GaussianProposal(1e-9)
 
 
@@ -224,7 +245,7 @@ class d_exvivo(FreeParameterTemplate):
     init_value = 5.0e-10
     lower_bound = 0.0
     upper_bound = 1.0e-8
-    parameter_transform = SinSqrClampTransform()
+    parameter_transform = 'SinSqrClamp'
     sampling_proposal = GaussianProposal(1e-11)
     numdiff_info = {'max_step': 0.1, 'scale_factor': 1e10}
 
@@ -234,7 +255,7 @@ class time_dependent_characteristic_coefficient(FreeParameterTemplate):
     init_value = 1e-6
     lower_bound = 1e-7
     upper_bound = 1e-5
-    parameter_transform = CosSqrClampTransform()
+    parameter_transform = 'CosSqrClamp'
     sampling_proposal = GaussianProposal(1e-7)
 
 
@@ -243,7 +264,7 @@ class d_bulk(FreeParameterTemplate):
     init_value = 0.e-9
     lower_bound = 0
     upper_bound = 1.0e-8
-    parameter_transform = SinSqrClampTransform()
+    parameter_transform = 'SinSqrClamp'
     sampling_proposal = GaussianProposal(1e-10)
     numdiff_info = {'max_step': 0.1, 'scale_factor': 1e10}
 
@@ -255,7 +276,7 @@ class Tensor_D_00(FreeParameterTemplate):
     init_value = 0.3e-9
     lower_bound = 0
     upper_bound = 5e-9
-    parameter_transform = SinSqrClampTransform()
+    parameter_transform = 'SinSqrClamp'
     sampling_proposal = GaussianProposal(1e-10)
     numdiff_info = {'max_step': 0.1, 'scale_factor': 1e10}
 
@@ -265,7 +286,7 @@ class Tensor_D_11(FreeParameterTemplate):
     init_value = 0.3e-9
     lower_bound = 0
     upper_bound = 5e-9
-    parameter_transform = SinSqrClampTransform()
+    parameter_transform = 'SinSqrClamp'
     sampling_proposal = GaussianProposal(1e-10)
     numdiff_info = {'max_step': 0.1, 'scale_factor': 1e10}
 
@@ -275,7 +296,7 @@ class Tensor_D_22(FreeParameterTemplate):
     init_value = 1.2e-9
     lower_bound = 0
     upper_bound = 5e-9
-    parameter_transform = SinSqrClampTransform()
+    parameter_transform = 'SinSqrClamp'
     sampling_proposal = GaussianProposal(1e-10)
     numdiff_info = {'max_step': 0.1, 'scale_factor': 1e10}
 
@@ -285,7 +306,7 @@ class Tensor_D_01(FreeParameterTemplate):
     init_value = 0
     lower_bound = -1e-9
     upper_bound = 1e-9
-    parameter_transform = SinSqrClampTransform()
+    parameter_transform = 'SinSqrClamp'
     sampling_proposal = GaussianProposal(1e-10)
     numdiff_info = {'max_step': 0.1, 'scale_factor': 1e10}
 
@@ -295,7 +316,7 @@ class Tensor_D_02(FreeParameterTemplate):
     init_value = 0
     lower_bound = -1e-9
     upper_bound = 1e-9
-    parameter_transform = SinSqrClampTransform()
+    parameter_transform = 'SinSqrClamp'
     sampling_proposal = GaussianProposal(1e-10)
     numdiff_info = {'max_step': 0.1, 'scale_factor': 1e10}
 
@@ -305,7 +326,7 @@ class Tensor_D_12(FreeParameterTemplate):
     init_value = 0
     lower_bound = -1e-9
     upper_bound = 1e-9
-    parameter_transform = SinSqrClampTransform()
+    parameter_transform = 'SinSqrClamp'
     sampling_proposal = GaussianProposal(1e-10)
     numdiff_info = {'max_step': 0.1, 'scale_factor': 1e10}
 
@@ -315,5 +336,5 @@ class Efficiency(FreeParameterTemplate):
     init_value = 0.95
     lower_bound = 0
     upper_bound = 1
-    parameter_transform = SinSqrClampTransform()
+    parameter_transform = 'SinSqrClamp'
     sampling_proposal = GaussianProposal(0.001)

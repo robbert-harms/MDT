@@ -1,5 +1,6 @@
 import six
-from mdt.components_loader import CompartmentModelsLoader
+
+from mdt.components import get_component
 from .CompositeModelExpression import CompositeModelExpressionSemantics, CompositeModelExpressionParser
 
 
@@ -7,7 +8,6 @@ class Semantics(CompositeModelExpressionSemantics):
 
     def __init__(self):
         super(Semantics, self).__init__()
-        self._compartments_loader = CompartmentModelsLoader()
 
     def expr(self, ast):
         if not isinstance(ast, list):
@@ -30,9 +30,9 @@ class Semantics(CompositeModelExpressionSemantics):
 
     def model(self, ast):
         if isinstance(ast, six.string_types):
-            return self._compartments_loader.load(ast)
+            return get_component('compartment_models', ast)()
         else:
-            return self._compartments_loader.load(ast[0], ast[2])
+            return get_component('compartment_models', ast[0])(ast[2])
 
 
 def parse(model_expression):

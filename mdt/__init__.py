@@ -18,7 +18,6 @@ try:
 except ValueError:
     print('Logging disabled')
 
-
 from mdt.user_script_info import easy_save_user_script_info
 from mdt.utils import estimate_noise_std, get_cl_devices, load_input_data,\
     create_blank_mask, create_index_matrix, \
@@ -33,12 +32,10 @@ from mdt.simulations import create_signal_estimates, simulate_signals, add_ricia
 from mdt.batch_utils import run_function_on_batch_fit_output, batch_apply, \
     batch_profile_factory, get_subject_selection
 from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, write_protocol, write_bvec_bval
-from mdt.components_loader import load_component, get_model, component_import, get_component_class, get_meta_info, \
-    get_compartment, get_parameter, get_library_function
-from mdt.component_templates.base import construct_component
 from mdt.configuration import config_context, get_processing_strategy, get_config_option, set_config_option
 from mdt.exceptions import InsufficientProtocolError
 from mdt.nifti import write_nifti
+from mdt.components import get_model, get_batch_profile
 
 
 __author__ = 'Robbert Harms'
@@ -214,7 +211,7 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
         init_user_settings(pass_if_exists=True)
 
     if isinstance(model, string_types):
-        model = get_model(model)
+        model = get_model(model)()
 
     if post_processing:
         model.update_active_post_processing('sampling', post_processing)
@@ -579,42 +576,15 @@ def write_volume_maps(maps, directory, header=None, overwrite_volumes=True, gzip
     write_all_as_nifti(maps, directory, nifti_header=header, overwrite_volumes=overwrite_volumes, gzip=gzip)
 
 
-def get_list_of_composite_models():
-    """Get a list of all available composite models
-
-    Returns:
-        list of str: A list of all available composite model names
-    """
-    from mdt.components_loader import CompositeModelsLoader
-    return CompositeModelsLoader().list_all()
-
-
-def get_list_of_cascade_models(target_model_name=None):
-    """Get a list of all available cascade models
-
-    Args:
-        target_model_name (str): if given we will only return the list of cascades that end with this composite model.
-
-    Returns:
-        list of str: A list of available cascade models
-    """
-    from mdt.components_loader import CascadeModelsLoader
-
-    if target_model_name:
-        meta_infos = CascadeModelsLoader().get_all_meta_info()
-        return [k for k, m in meta_infos.items() if m['target_model'] == target_model_name]
-
-    return CascadeModelsLoader().list_all()
-
-
 def get_models_list():
     """Get a list of all available models, composite and cascade.
 
     Returns:
         list of str: A list of available model names.
     """
-    l = get_list_of_cascade_models()
-    l.extend(get_list_of_composite_models())
+    from mdt.components import list_composite_models, list_cascade_models
+    l = list(list_cascade_models())
+    l.extend(list_composite_models())
     return list(sorted(l))
 
 
@@ -625,30 +595,13 @@ def get_models_meta_info():
         dict of dict: The first dictionary indexes the model names to the meta tags, the second holds the meta
             information.
     """
-    from mdt.components_loader import CompositeModelsLoader, CascadeModelsLoader
-    sml = CompositeModelsLoader()
-    cml = CascadeModelsLoader()
-
+    from mdt.components import list_cascade_models, list_composite_models, get_meta_info, get_component_list
     meta_info = {}
-    for model_loader in (sml, cml):
-        models = model_loader.list_all()
-        for model in models:
-            meta_info.update({model: model_loader.get_meta_info(model)})
+    for model_type in ('composite_models', 'cascade_models'):
+        model_list = get_component_list(model_type)
+        for model in model_list:
+            meta_info.update({model: get_meta_info(model_type, model)})
     return meta_info
-
-
-def get_batch_profile(batch_profile_name):
-    """Load the class reference to one of the batch profiles.
-
-    This is short for mdt.components_loader.get_component_class('batch_profiles', batch_profile_name)
-
-    Args:
-        batch_profile_name (str): the name of the batch profile to use
-
-    Returns:
-        class: a reference to a :class:`mdt.batch_utils.BatchProfile`.
-    """
-    return get_component_class('batch_profiles', batch_profile_name)
 
 
 def start_gui(base_dir=None, app_exec=True):

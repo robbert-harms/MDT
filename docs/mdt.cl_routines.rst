@@ -1,5 +1,5 @@
-mdt\.cl\_routines package
-=========================
+mdt.cl_routines package
+=======================
 
 Subpackages
 -----------

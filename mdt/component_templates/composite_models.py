@@ -1,8 +1,8 @@
 from copy import deepcopy
 import numpy as np
 import six
-from mdt.components_loader import get_component_class
-from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate, register_builder
+from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate
+from mdt.components import get_component
 from mdt.models.composite import DMRICompositeModel
 from mdt.models.parsers.CompositeModelExpressionParser import parse
 from mot.cl_function import CLFunction, SimpleCLFunction
@@ -13,6 +13,92 @@ __author__ = 'Robbert Harms'
 __date__ = "2017-02-14"
 __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
+
+
+class DMRICompositeModelBuilder(ComponentBuilder):
+
+    def create_class(self, template):
+        """Creates classes with as base class DMRICompositeModel
+
+        Args:
+            template (DMRICompositeModelTemplate): the composite model config template
+                to use for creating the class with the right init settings.
+        """
+        class AutoCreatedDMRICompositeModel(method_binding_meta(template, DMRICompositeModel)):
+
+            def __init__(self):
+                super(AutoCreatedDMRICompositeModel, self).__init__(
+                    deepcopy(template.name),
+                    CompartmentModelTree(parse(template.model_expression)),
+                    deepcopy(_resolve_likelihood_function(template.likelihood_function)),
+                    signal_noise_model=deepcopy(template.signal_noise_model),
+                    enforce_weights_sum_to_one=template.enforce_weights_sum_to_one,
+                )
+
+                if template.sort_maps:
+                    self._post_optimization_modifiers.append(_get_map_sorting_modifier(
+                        template.sort_maps, self._model_functions_info.get_model_parameter_list()))
+
+                self._post_optimization_modifiers.extend(_get_model_post_optimization_modifiers(
+                    self._model_functions_info.get_model_list()))
+                self._post_optimization_modifiers.extend(deepcopy(template.post_optimization_modifiers))
+
+                self._extra_optimization_maps_funcs.extend(_get_model_extra_optimization_maps_funcs(
+                    self._model_functions_info.get_model_list()))
+                self._extra_optimization_maps_funcs.extend(deepcopy(template.extra_optimization_maps))
+
+                self._extra_sampling_maps_funcs.extend(_get_model_extra_sampling_maps_funcs(
+                    self._model_functions_info.get_model_list()))
+                self._extra_sampling_maps_funcs.extend(deepcopy(template.extra_sampling_maps))
+
+                for full_param_name, value in template.inits.items():
+                    self.init(full_param_name, deepcopy(value))
+
+                for full_param_name, value in template.fixes.items():
+                    self.fix(full_param_name, deepcopy(value))
+
+                for full_param_name, value in template.lower_bounds.items():
+                    self.set_lower_bound(full_param_name, deepcopy(value))
+
+                for full_param_name, value in template.upper_bounds.items():
+                    self.set_upper_bound(full_param_name, deepcopy(value))
+
+                self.nmr_parameters_for_bic_calculation = self.get_nmr_estimable_parameters()
+
+                self._model_priors.extend(_resolve_model_prior(
+                    template.extra_prior, self._model_functions_info.get_model_parameter_list()))
+
+            def _get_suitable_volume_indices(self, input_data):
+                volume_selection = template.volume_selection
+
+                if not volume_selection:
+                    return super(AutoCreatedDMRICompositeModel, self)._get_suitable_volume_indices(input_data)
+
+                use_unweighted = volume_selection.get('use_unweighted', True)
+                use_weighted = volume_selection.get('use_weighted', True)
+                unweighted_threshold = volume_selection.get('unweighted_threshold', 25e6)
+
+                protocol = input_data.protocol
+
+                if protocol.has_column('g') and protocol.has_column('b'):
+                    if use_weighted:
+                        if 'min_bval' in volume_selection and 'max_bval' in volume_selection:
+                            protocol_indices = protocol.get_indices_bval_in_range(start=volume_selection['min_bval'],
+                                                                                  end=volume_selection['max_bval'])
+                        else:
+                            protocol_indices = protocol.get_weighted_indices(unweighted_threshold)
+                    else:
+                        protocol_indices = []
+
+                    if use_unweighted:
+                        protocol_indices = list(protocol_indices) + \
+                                           list(protocol.get_unweighted_indices(unweighted_threshold))
+                else:
+                    return list(range(protocol.length))
+
+                return np.unique(protocol_indices)
+
+        return AutoCreatedDMRICompositeModel
 
 
 class DMRICompositeModelTemplate(ComponentTemplate):
@@ -145,6 +231,9 @@ class DMRICompositeModelTemplate(ComponentTemplate):
             the compartment priors and the parameter priors. If a string is given we will automatically construct a
             :class:`mot.model_building.utils.ModelPrior` from that string.
     """
+    _component_type = 'composite_models'
+    _builder = DMRICompositeModelBuilder()
+
     name = ''
     description = ''
     post_optimization_modifiers = []
@@ -170,92 +259,6 @@ class DMRICompositeModelTemplate(ComponentTemplate):
         return meta_info
 
 
-class DMRICompositeModelBuilder(ComponentBuilder):
-
-    def create_class(self, template):
-        """Creates classes with as base class DMRICompositeModel
-
-        Args:
-            template (DMRICompositeModelTemplate): the composite model config template
-                to use for creating the class with the right init settings.
-        """
-        class AutoCreatedDMRICompositeModel(method_binding_meta(template, DMRICompositeModel)):
-
-            def __init__(self):
-                super(AutoCreatedDMRICompositeModel, self).__init__(
-                    deepcopy(template.name),
-                    CompartmentModelTree(parse(template.model_expression)),
-                    deepcopy(_resolve_likelihood_function(template.likelihood_function)),
-                    signal_noise_model=deepcopy(template.signal_noise_model),
-                    enforce_weights_sum_to_one=template.enforce_weights_sum_to_one,
-                )
-
-                if template.sort_maps:
-                    self._post_optimization_modifiers.append(_get_map_sorting_modifier(
-                        template.sort_maps, self._model_functions_info.get_model_parameter_list()))
-
-                self._post_optimization_modifiers.extend(_get_model_post_optimization_modifiers(
-                    self._model_functions_info.get_model_list()))
-                self._post_optimization_modifiers.extend(deepcopy(template.post_optimization_modifiers))
-
-                self._extra_optimization_maps_funcs.extend(_get_model_extra_optimization_maps_funcs(
-                    self._model_functions_info.get_model_list()))
-                self._extra_optimization_maps_funcs.extend(deepcopy(template.extra_optimization_maps))
-
-                self._extra_sampling_maps_funcs.extend(_get_model_extra_sampling_maps_funcs(
-                    self._model_functions_info.get_model_list()))
-                self._extra_sampling_maps_funcs.extend(deepcopy(template.extra_sampling_maps))
-
-                for full_param_name, value in template.inits.items():
-                    self.init(full_param_name, deepcopy(value))
-
-                for full_param_name, value in template.fixes.items():
-                    self.fix(full_param_name, deepcopy(value))
-
-                for full_param_name, value in template.lower_bounds.items():
-                    self.set_lower_bound(full_param_name, deepcopy(value))
-
-                for full_param_name, value in template.upper_bounds.items():
-                    self.set_upper_bound(full_param_name, deepcopy(value))
-
-                self.nmr_parameters_for_bic_calculation = self.get_nmr_estimable_parameters()
-
-                self._model_priors.extend(_resolve_model_prior(
-                    template.extra_prior, self._model_functions_info.get_model_parameter_list()))
-
-            def _get_suitable_volume_indices(self, input_data):
-                volume_selection = template.volume_selection
-
-                if not volume_selection:
-                    return super(AutoCreatedDMRICompositeModel, self)._get_suitable_volume_indices(input_data)
-
-                use_unweighted = volume_selection.get('use_unweighted', True)
-                use_weighted = volume_selection.get('use_weighted', True)
-                unweighted_threshold = volume_selection.get('unweighted_threshold', 25e6)
-
-                protocol = input_data.protocol
-
-                if protocol.has_column('g') and protocol.has_column('b'):
-                    if use_weighted:
-                        if 'min_bval' in volume_selection and 'max_bval' in volume_selection:
-                            protocol_indices = protocol.get_indices_bval_in_range(start=volume_selection['min_bval'],
-                                                                                  end=volume_selection['max_bval'])
-                        else:
-                            protocol_indices = protocol.get_weighted_indices(unweighted_threshold)
-                    else:
-                        protocol_indices = []
-
-                    if use_unweighted:
-                        protocol_indices = list(protocol_indices) + \
-                                           list(protocol.get_unweighted_indices(unweighted_threshold))
-                else:
-                    return list(range(protocol.length))
-
-                return np.unique(protocol_indices)
-
-        return AutoCreatedDMRICompositeModel
-
-
 def _resolve_likelihood_function(likelihood_function):
     """Resolve the likelihood function from string if necessary.
 
@@ -269,7 +272,7 @@ def _resolve_likelihood_function(likelihood_function):
         mot.model_building.likelihood_models.LikelihoodFunction: the likelihood function to use
     """
     if isinstance(likelihood_function, six.string_types):
-        return get_component_class('likelihood_functions', likelihood_function + 'LikelihoodFunction')()
+        return get_component('likelihood_functions', likelihood_function + 'LikelihoodFunction')()
     else:
         return likelihood_function
 
@@ -491,6 +494,3 @@ class CompartmentContextResults(collections.Mapping):
 
     def __iter__(self):
         return self._valid_keys
-
-
-register_builder(DMRICompositeModelTemplate, DMRICompositeModelBuilder())

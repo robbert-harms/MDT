@@ -1,5 +1,5 @@
 from mdt.component_templates.compartment_models import CompartmentTemplate
-from mdt.components_loader import component_import
+from mdt.post_processing import DTIMeasures
 
 __author__ = 'Robbert Harms'
 __date__ = '2017-08-03'
@@ -29,7 +29,7 @@ class SSFP_Stick(CompartmentTemplate):
     '''
 
 
-class SSFP_Tensor(component_import('standard.compartment_models.Tensor', 'Tensor')):
+class SSFP_Tensor(CompartmentTemplate):
 
     parameter_list = ('g', 'd', 'dperp0', 'dperp1', 'theta', 'phi', 'psi', 'delta',
                       'G', 'TR', 'flip_angle', 'b1_static', 'T1_static', 'T2_static')
@@ -38,6 +38,10 @@ class SSFP_Tensor(component_import('standard.compartment_models.Tensor', 'Tensor
         mot_float_type adc = TensorApparentDiffusion(theta, phi, psi, d, dperp0, dperp1, g);
         return SSFP(adc, delta, G, TR, flip_angle, b1_static, T1_static, T2_static);
     '''
+    extra_prior = 'return dperp1 < dperp0 && dperp0 < d;'
+    post_optimization_modifiers = [DTIMeasures.post_optimization_modifier]
+    extra_optimization_maps = [DTIMeasures.extra_optimization_maps]
+    extra_sampling_maps = [DTIMeasures.extra_sampling_maps]
 
 
 class SSFP_Zeppelin(CompartmentTemplate):

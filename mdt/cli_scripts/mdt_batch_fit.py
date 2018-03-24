@@ -16,7 +16,7 @@ import os
 import mdt
 from argcomplete.completers import FilesCompleter
 from mdt.batch_utils import batch_profile_factory, SelectedSubjects
-from mdt.components_loader import BatchProfilesLoader
+from mdt.components import get_component_list
 
 from mdt.shell_utils import BasicShellApplication
 from mot import cl_environments
@@ -46,7 +46,7 @@ class BatchFit(BasicShellApplication):
         ''')
         epilog = self._format_examples(doc_parser, examples)
 
-        batch_profiles = BatchProfilesLoader().list_all()
+        batch_profiles = get_component_list('batch_profiles')
 
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
                                          formatter_class=argparse.RawTextHelpFormatter)

@@ -9,11 +9,11 @@ using :py:func:`config_context`. Example:
     from mdt.configuration import YamlStringAction, config_context
 
     config = '''
-    optimization:
-        general:
-            optimizers:
-                -   name: 'NMSimplex'
-                    patience: 10
+        optimization:
+            general:
+                name: 'Powell'
+                settings:
+                    patience: 2
     '''
     with mdt.config_context(YamlStringAction(config)):
         mdt.fit_model(...)
@@ -333,9 +333,6 @@ class DefaultProposalUpdateLoader(ConfigSectionLoader):
 
             update_class = get_proposal_update_by_name(value['name'])
             mot.configuration.set_default_proposal_update(update_class(**kwargs))
-
-            from mdt.components_loader import ParametersLoader
-            ParametersLoader().reload()
 
 
 class ActivePostProcessingLoader(ConfigSectionLoader):

@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import QFileDialog, QMessageBox, QDialog, QDialogButtonBox
 
 import mdt
 import mot
+from mdt.components import get_meta_info, list_composite_models, list_cascade_models
 from mdt.gui.model_fit.design.ui_fit_model_tab import Ui_FitModelTabContent
 from mdt.gui.model_fit.design.ui_optimization_extra_data_add_static_map_dialog import Ui_AddStaticMapDialog
 from mdt.gui.model_fit.design.ui_optimization_extra_data_dialog import Ui_OptimizationExtraDataDialog
@@ -17,7 +18,6 @@ from mdt.gui.utils import function_message_decorator, image_files_filters, proto
 from mdt.utils import split_image_path
 from mot.cl_environments import CLEnvironmentFactory
 from mot.factory import get_optimizer_by_name
-from mdt.components_loader import CascadeModelsLoader
 
 
 __author__ = 'Robbert Harms'
@@ -56,7 +56,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
 
         self.cascadedFitButtonGroup.buttonClicked.connect(self._update_cascade_selection_possible)
 
-        self.modelSelection.addItems(list(sorted(mdt.get_list_of_composite_models())))
+        self.modelSelection.addItems(list(sorted(list_composite_models())))
         self.modelSelection.currentIndexChanged.connect(self._update_cascade_selection)
         initial_model = 'BallStick_r1'
 
@@ -79,12 +79,11 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
 
     def _update_cascade_selection(self):
         composite_model_name = self.modelSelection.currentText()
-        loader = CascadeModelsLoader()
-        cascade_models = mdt.get_list_of_cascade_models(composite_model_name)
+        cascade_models = list_cascade_models(composite_model_name)
 
         previous_cascade_selection = self.cascadeSelection.currentText()
 
-        cascade_type_names = [loader.get_meta_info(model)['cascade_type_name'] for model in cascade_models]
+        cascade_type_names = [get_meta_info('cascade_models', model)['cascade_type_name'] for model in cascade_models]
 
         self.cascadeSelection.clear()
         self.cascadeSelection.addItems(cascade_type_names)
@@ -193,7 +192,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
 
     @pyqtSlot()
     def run_model(self):
-        model = mdt.get_model(self._get_current_model_name())
+        model = mdt.get_model(self._get_current_model_name())()
 
         if not model.is_input_data_sufficient(self._input_data_info.build_input_data()):
             msg = ProtocolWarningBox(model.get_input_data_problems(self._input_data_info.build_input_data()))

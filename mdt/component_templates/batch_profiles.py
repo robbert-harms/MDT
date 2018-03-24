@@ -3,61 +3,12 @@ import os
 from itertools import filterfalse
 
 from mdt.batch_utils import SimpleBatchProfile, BatchFitProtocolLoader, SimpleSubjectInfo
-from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate, \
-    register_builder
-
+from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate, bind_function
 
 __author__ = 'Robbert Harms'
 __date__ = "2017-02-14"
 __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
-
-
-class BatchProfileTemplate(ComponentTemplate):
-    """The batch profile template to inherit.
-
-    Attributes:
-        name (str): the name of this batch profile
-        description (str): the description
-        subject_base_folder (str): the base folder for this subject. Allows expansion of ``{subject_id}``.
-        data_fname (str): the filename of the data volumes file. Allows expansion of ``{subject_id}``
-            and ``{subject_base_folder}``, and supports globbing. Results are afterwards filtered to exclude matches
-            of the mask and gradient deviations files.
-        mask_fname (str): the filename of the mask. Allows expansion of ``{subject_id}`` and ``{subject_base_folder}``,
-            and supports globbing.
-        noise_std_fname (str): the filename of the noise standard deviation file. Can be textfile or a nifti file.
-            Allows expansion of ``{subject_id}`` and ``{subject_base_folder}``, and supports globbing.
-        gradient_deviations_fname (str): the filename of the gradient deviations. Allows expansion of
-            ``{subject_id}`` and ``{subject_base_folder}``, and supports globbing.
-        protocol_auto_dir (str): the directory from which MDT will try to autoload a directory.
-            Supports ``{subject_id}`` and ``{subject_base_folder}``, and supports globbing.
-        protocol_fname (str): the filename of the protocol file to use. Supports ``{subject_id}``
-            and ``{subject_base_folder}``, and supports globbing. If provided, we use it instead of the automatically
-            searched default.
-        bvec_fname (str): the filename of the bvec file to use. Supports ``{subject_id}``
-            and ``{subject_base_folder}``, and supports globbing. If provided, we use it instead of the automatically
-            searched default.
-        bval_fname (str): the filename of the bval file to use. Supports ``{subject_id}``
-            and ``{subject_base_folder}``, and supports globbing. If provided, we use it instead of the automatically
-            searched default.
-        protocol_columns (dict): a dictionary with additional columns to add to the protocol file. Use this for
-            default values for all subjects in your study.
-    """
-    name = None
-    description = ''
-
-    subject_base_folder = '{subject_id}'
-
-    data_fname = '{subject_base_folder}/*.nii*'
-    mask_fname = '{subject_base_folder}/*mask.nii*'
-    noise_std_fname = '{subject_base_folder}/noise_std*'
-    gradient_deviations_fname = '{subject_base_folder}/grad_dev.nii*'
-
-    protocol_auto_dir = '{subject_base_folder}'
-    protocol_fname = None
-    bvec_fname = None
-    bval_fname = None
-    protocol_columns = {}
 
 
 class BatchProfileBuilder(ComponentBuilder):
@@ -67,6 +18,9 @@ class BatchProfileBuilder(ComponentBuilder):
 
         Args:
             template (BatchProfileTemplate): the batch profile config template
+
+        Returns:
+            SimpleBatchProfile: an subclass of a batch profile
         """
         class AutoCreatedBatchProfile(method_binding_meta(template, SimpleBatchProfile)):
             def _get_subjects(self, data_folder):
@@ -117,4 +71,51 @@ class BatchProfileBuilder(ComponentBuilder):
         return AutoCreatedBatchProfile
 
 
-register_builder(BatchProfileTemplate, BatchProfileBuilder())
+class BatchProfileTemplate(ComponentTemplate):
+    """The batch profile template to inherit.
+
+    Attributes:
+        name (str): the name of this batch profile
+        description (str): the description
+        subject_base_folder (str): the base folder for this subject. Allows expansion of ``{subject_id}``.
+        data_fname (str): the filename of the data volumes file. Allows expansion of ``{subject_id}``
+            and ``{subject_base_folder}``, and supports globbing. Results are afterwards filtered to exclude matches
+            of the mask and gradient deviations files.
+        mask_fname (str): the filename of the mask. Allows expansion of ``{subject_id}`` and ``{subject_base_folder}``,
+            and supports globbing.
+        noise_std_fname (str): the filename of the noise standard deviation file. Can be textfile or a nifti file.
+            Allows expansion of ``{subject_id}`` and ``{subject_base_folder}``, and supports globbing.
+        gradient_deviations_fname (str): the filename of the gradient deviations. Allows expansion of
+            ``{subject_id}`` and ``{subject_base_folder}``, and supports globbing.
+        protocol_auto_dir (str): the directory from which MDT will try to autoload a directory.
+            Supports ``{subject_id}`` and ``{subject_base_folder}``, and supports globbing.
+        protocol_fname (str): the filename of the protocol file to use. Supports ``{subject_id}``
+            and ``{subject_base_folder}``, and supports globbing. If provided, we use it instead of the automatically
+            searched default.
+        bvec_fname (str): the filename of the bvec file to use. Supports ``{subject_id}``
+            and ``{subject_base_folder}``, and supports globbing. If provided, we use it instead of the automatically
+            searched default.
+        bval_fname (str): the filename of the bval file to use. Supports ``{subject_id}``
+            and ``{subject_base_folder}``, and supports globbing. If provided, we use it instead of the automatically
+            searched default.
+        protocol_columns (dict): a dictionary with additional columns to add to the protocol file. Use this for
+            default values for all subjects in your study.
+    """
+    _component_type = 'batch_profiles'
+    _builder = BatchProfileBuilder()
+
+    name = None
+    description = ''
+
+    subject_base_folder = '{subject_id}'
+
+    data_fname = '{subject_base_folder}/*.nii*'
+    mask_fname = '{subject_base_folder}/*mask.nii*'
+    noise_std_fname = '{subject_base_folder}/noise_std*'
+    gradient_deviations_fname = '{subject_base_folder}/grad_dev.nii*'
+
+    protocol_auto_dir = '{subject_base_folder}'
+    protocol_fname = None
+    bvec_fname = None
+    bval_fname = None
+    protocol_columns = {}

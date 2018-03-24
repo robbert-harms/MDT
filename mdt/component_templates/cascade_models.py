@@ -2,7 +2,7 @@ from copy import deepcopy
 import six
 import mdt
 from mdt.component_templates.base import ComponentBuilder, bind_function, method_binding_meta, ComponentTemplate, \
-    register_builder, ComponentTemplateMeta
+    ComponentTemplateMeta
 from mdt.models.cascade import SimpleCascadeModel
 
 __author__ = 'Robbert Harms'
@@ -11,12 +11,64 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
+class CascadeBuilder(ComponentBuilder):
+
+    def create_class(self, template):
+        """Creates classes with as base class SimpleCascadeModel
+
+        Args:
+            template (CascadeTemplate): the cascade config template to use for creating the class with the right init
+                settings.
+        """
+        class AutoCreatedCascadeModel(method_binding_meta(template, SimpleCascadeModel)):
+
+            def __init__(self, *args):
+                new_args = [deepcopy(template.name),
+                            tuple(mdt.get_model(name)() for name in template.models)]
+                for ind, arg in args:
+                    new_args[ind] = arg
+                super(AutoCreatedCascadeModel, self).__init__(*new_args)
+
+            def _prepare_model(self, iteration_position, model, output_previous, output_all_previous):
+                super(AutoCreatedCascadeModel, self)._prepare_model(iteration_position, model,
+                                                                    output_previous, output_all_previous)
+
+                def parse_value(v):
+                    if isinstance(v, six.string_types):
+                        return output_previous[v]
+                    elif hasattr(v, '__call__'):
+                        return v(output_previous, output_all_previous)
+                    return v
+
+                for item in template.inits.get(model.name, {}):
+                    model.init(item[0], parse_value(item[1]))
+                for item in template.inits.get(iteration_position, {}):
+                    model.init(item[0], parse_value(item[1]))
+
+                for item in template.fixes.get(model.name, {}):
+                    model.fix(item[0], parse_value(item[1]))
+                for item in template.fixes.get(iteration_position, {}):
+                    model.fix(item[0], parse_value(item[1]))
+
+                for item in template.lower_bounds.get(model.name, {}):
+                    model.set_lower_bound(item[0], parse_value(item[1]))
+                for item in template.lower_bounds.get(iteration_position, {}):
+                    model.set_lower_bound(item[0], parse_value(item[1]))
+
+                for item in template.upper_bounds.get(model.name, {}):
+                    model.set_upper_bound(item[0], parse_value(item[1]))
+                for item in template.upper_bounds.get(iteration_position, {}):
+                    model.set_upper_bound(item[0], parse_value(item[1]))
+
+                self._prepare_model_cb(iteration_position, model, output_previous, output_all_previous)
+
+        return AutoCreatedCascadeModel
+
+
 class CascadeTemplateMeta(ComponentTemplateMeta):
 
     def __new__(mcs, name, bases, attributes):
         name_attribute = ComponentTemplateMeta._resolve_attribute(bases, attributes, 'name')
-
-        result = super(CascadeTemplateMeta, mcs).__new__(mcs, name, bases, attributes)
 
         if name != 'CascadeTemplate':
             if name_attribute is None:
@@ -25,10 +77,12 @@ class CascadeTemplateMeta(ComponentTemplateMeta):
 
                 name_modifier = ComponentTemplateMeta._resolve_attribute(bases, attributes, 'cascade_name_modifier')
                 if name_modifier:
-                    result.name = '{} (Cascade|{})'.format(name_attribute, name_modifier)
+                    name_attribute = '{} (Cascade|{})'.format(name_attribute, name_modifier)
                 else:
-                    result.name = '{} (Cascade)'.format(name_attribute)
-        return result
+                    name_attribute = '{} (Cascade)'.format(name_attribute)
+
+        attributes['name'] = name_attribute
+        return super(CascadeTemplateMeta, mcs).__new__(mcs, name, bases, attributes)
 
 
 class CascadeTemplate(six.with_metaclass(CascadeTemplateMeta, ComponentTemplate)):
@@ -98,6 +152,9 @@ class CascadeTemplate(six.with_metaclass(CascadeTemplateMeta, ComponentTemplate)
 
             The syntax is similar to that of the inits attribute.
     """
+    _component_type = 'cascade_models'
+    _builder = CascadeBuilder()
+
     name = None
     cascade_name_modifier = ''
     description = ''
@@ -144,60 +201,3 @@ class CascadeTemplate(six.with_metaclass(CascadeTemplateMeta, ComponentTemplate)
                           'target_model': target_model,
                           'cascade_type_name': cascade_type_name})
         return meta_info
-
-
-class CascadeBuilder(ComponentBuilder):
-
-    def create_class(self, template):
-        """Creates classes with as base class SimpleCascadeModel
-
-        Args:
-            template (CascadeTemplate): the cascade config template to use for creating the class with the right init
-                settings.
-        """
-        class AutoCreatedCascadeModel(method_binding_meta(template, SimpleCascadeModel)):
-
-            def __init__(self, *args):
-                new_args = [deepcopy(template.name),
-                            list(map(mdt.get_model, template.models))]
-                for ind, arg in args:
-                    new_args[ind] = arg
-                super(AutoCreatedCascadeModel, self).__init__(*new_args)
-
-            def _prepare_model(self, iteration_position, model, output_previous, output_all_previous):
-                super(AutoCreatedCascadeModel, self)._prepare_model(iteration_position, model,
-                                                                    output_previous, output_all_previous)
-
-                def parse_value(v):
-                    if isinstance(v, six.string_types):
-                        return output_previous[v]
-                    elif hasattr(v, '__call__'):
-                        return v(output_previous, output_all_previous)
-                    return v
-
-                for item in template.inits.get(model.name, {}):
-                    model.init(item[0], parse_value(item[1]))
-                for item in template.inits.get(iteration_position, {}):
-                    model.init(item[0], parse_value(item[1]))
-
-                for item in template.fixes.get(model.name, {}):
-                    model.fix(item[0], parse_value(item[1]))
-                for item in template.fixes.get(iteration_position, {}):
-                    model.fix(item[0], parse_value(item[1]))
-
-                for item in template.lower_bounds.get(model.name, {}):
-                    model.set_lower_bound(item[0], parse_value(item[1]))
-                for item in template.lower_bounds.get(iteration_position, {}):
-                    model.set_lower_bound(item[0], parse_value(item[1]))
-
-                for item in template.upper_bounds.get(model.name, {}):
-                    model.set_upper_bound(item[0], parse_value(item[1]))
-                for item in template.upper_bounds.get(iteration_position, {}):
-                    model.set_upper_bound(item[0], parse_value(item[1]))
-
-                self._prepare_model_cb(iteration_position, model, output_previous, output_all_previous)
-
-        return AutoCreatedCascadeModel
-
-
-register_builder(CascadeTemplate, CascadeBuilder())

@@ -1,18 +1,99 @@
 from copy import deepcopy, copy
 import numpy as np
 import six
-
-from mdt.components_loader import ParametersLoader
-from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate, register_builder
+from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate
+from mdt.components import get_component, has_component
 from mdt.models.compartments import DMRICompartmentModelFunction
 from mdt.utils import spherical_to_cartesian
 from mot.cl_function import CLFunction, SimpleCLFunction
+from mot.model_building.model_functions import WeightType
 from mot.model_building.parameters import CurrentObservationParam
 
 __author__ = 'Robbert Harms'
 __date__ = "2017-02-14"
 __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
+
+
+class CompartmentBuilder(ComponentBuilder):
+
+    def create_class(self, template):
+        """Creates classes with as base class CompartmentBuildingBase
+
+        Args:
+            template (CompartmentTemplate): the compartment config template to use for
+                creating the class with the right init settings.
+        """
+        builder = self
+
+        class AutoCreatedDMRICompartmentModel(method_binding_meta(template, DMRICompartmentModelFunction)):
+
+            def __init__(self, *args, **kwargs):
+                parameter_list = _get_parameters_list(template.parameter_list)
+
+                new_args = [template.name,
+                            template.name,
+                            parameter_list,
+                            template.cl_code,
+                            _resolve_dependencies(template.dependency_list),
+                            template.return_type]
+
+                for ind, already_set_arg in enumerate(args):
+                    new_args[ind] = already_set_arg
+
+                new_kwargs = {
+                    'model_function_priors': (_resolve_prior(template.extra_prior, template.name,
+                                                             [p.name for p in parameter_list],)),
+                    'post_optimization_modifiers': template.post_optimization_modifiers,
+                    'extra_optimization_maps_funcs': builder._get_extra_optimization_map_funcs(
+                        template, parameter_list),
+                    'extra_sampling_maps_funcs': copy(template.extra_sampling_maps),
+                    'cl_extra': template.cl_extra}
+                new_kwargs.update(kwargs)
+
+                super(AutoCreatedDMRICompartmentModel, self).__init__(*new_args, **new_kwargs)
+
+                if hasattr(template, 'init'):
+                    template.init(self)
+
+        return AutoCreatedDMRICompartmentModel
+
+    def _get_extra_optimization_map_funcs(self, template, parameter_list):
+        extra_optimization_maps = copy(template.extra_optimization_maps)
+        if all(map(lambda name: name in [p.name for p in parameter_list], ('theta', 'phi'))):
+            extra_optimization_maps.append(lambda results: {
+                'vec0': spherical_to_cartesian(np.squeeze(results['theta']), np.squeeze(results['phi']))})
+        return extra_optimization_maps
+
+
+class WeightBuilder(ComponentBuilder):
+    def create_class(self, template):
+
+        class AutoCreatedWeightModel(method_binding_meta(template, WeightType)):
+
+            def __init__(self, *args, **kwargs):
+                parameter_list = _get_parameters_list(template.parameter_list)
+
+                new_args = [template.name,
+                            template.name,
+                            parameter_list,
+                            template.cl_code,
+                            ]
+
+                for ind, already_set_arg in enumerate(args):
+                    new_args[ind] = already_set_arg
+
+                new_kwargs = {
+                    'dependency_list': _resolve_dependencies(template.dependency_list),
+                    'cl_extra': template.cl_extra}
+                new_kwargs.update(kwargs)
+
+                super(AutoCreatedWeightModel, self).__init__(template.return_type, *new_args, **new_kwargs)
+
+                if hasattr(template, 'init'):
+                    template.init(self)
+
+        return AutoCreatedWeightModel
 
 
 class CompartmentTemplate(ComponentTemplate):
@@ -87,6 +168,9 @@ class CompartmentTemplate(ComponentTemplate):
                 extra_sampling_maps = [lambda s: {'MD': np.mean((s['d'] + s['dperp0'] + s['dperp1'])/3., axis=1)}
                                       ...]
     """
+    _component_type = 'compartment_models'
+    _builder = CompartmentBuilder()
+
     name = ''
     description = ''
     parameter_list = []
@@ -100,58 +184,22 @@ class CompartmentTemplate(ComponentTemplate):
     extra_sampling_maps = []
 
 
-class CompartmentBuilder(ComponentBuilder):
+class WeightCompartmentTemplate(ComponentTemplate):
+    """Special compartment template for representing a Weight.
 
-    def create_class(self, template):
-        """Creates classes with as base class CompartmentBuildingBase
+    Defining a compartment as a Weight enables automatic volume fraction weighting, and ensures that all weights sum
+    to one during optimization and sampling.
+    """
+    _component_type = 'compartment_models'
+    _builder = WeightBuilder()
 
-        Args:
-            template (CompartmentTemplate): the compartment config template to use for
-                creating the class with the right init settings.
-        """
-        builder = self
-
-        class AutoCreatedDMRICompartmentModel(method_binding_meta(template, DMRICompartmentModelFunction)):
-
-            def __init__(self, *args, **kwargs):
-                parameter_list = _get_parameters_list(template.parameter_list)
-
-                new_args = [template.name,
-                            template.name,
-                            parameter_list,
-                            template.cl_code,
-                            _resolve_dependencies(template.dependency_list),
-                            template.return_type]
-
-                for ind, already_set_arg in enumerate(args):
-                    new_args[ind] = already_set_arg
-
-                new_kwargs = {
-                    'model_function_priors': (_resolve_prior(template.extra_prior, template.name,
-                                                             [p.name for p in parameter_list],)),
-                    'post_optimization_modifiers': template.post_optimization_modifiers,
-                    'extra_optimization_maps_funcs': builder._get_extra_optimization_map_funcs(
-                        template, parameter_list),
-                    'extra_sampling_maps_funcs': copy(template.extra_sampling_maps),
-                    'cl_extra': template.cl_extra}
-                new_kwargs.update(kwargs)
-
-                super(AutoCreatedDMRICompartmentModel, self).__init__(*new_args, **new_kwargs)
-
-                if hasattr(template, 'init'):
-                    template.init(self)
-
-        return AutoCreatedDMRICompartmentModel
-
-    def _get_extra_optimization_map_funcs(self, template, parameter_list):
-        extra_optimization_maps = copy(template.extra_optimization_maps)
-        if all(map(lambda name: name in [p.name for p in parameter_list], ('theta', 'phi'))):
-            extra_optimization_maps.append(lambda results: {
-                'vec0': spherical_to_cartesian(np.squeeze(results['theta']), np.squeeze(results['phi']))})
-        return extra_optimization_maps
-
-
-register_builder(CompartmentTemplate, CompartmentBuilder())
+    name = ''
+    description = ''
+    parameter_list = []
+    cl_code = None
+    cl_extra = None
+    dependency_list = []
+    return_type = 'double'
 
 
 def _resolve_dependencies(dependency_list):
@@ -165,18 +213,13 @@ def _resolve_dependencies(dependency_list):
     Returns:
         list: a new list with the string elements resolved as :class:`~mot.library_functions.CLLibrary`.
     """
-    from mdt.components_loader import LibraryFunctionsLoader, CompartmentModelsLoader
-
-    lib_loader = LibraryFunctionsLoader()
-    compartment_loader = CompartmentModelsLoader()
-
     result = []
     for dependency in dependency_list:
         if isinstance(dependency, six.string_types):
-            if lib_loader.has_component(dependency):
-                result.append(lib_loader.load(dependency))
+            if has_component('library_functions', dependency):
+                result.append(get_component('library_functions', dependency)())
             else:
-                result.append(compartment_loader.load(dependency))
+                result.append(get_component('compartment_models', dependency)())
         else:
             result.append(dependency)
 
@@ -217,8 +260,6 @@ def _get_parameters_list(parameter_list):
     Returns:
         list: the list of actual parameter objects
     """
-    parameters_loader = ParametersLoader()
-
     parameters = []
     for item in parameter_list:
         if isinstance(item, six.string_types):
@@ -231,7 +272,7 @@ def _get_parameters_list(parameter_list):
                 else:
                     param_name = item
                     nickname = None
-                parameters.append(parameters_loader.load(param_name, nickname=nickname))
+                parameters.append(get_component('parameters', param_name)(nickname=nickname))
         else:
             parameters.append(deepcopy(item))
     return parameters

@@ -1,5 +1,5 @@
-mdt\.gui package
-================
+mdt.gui package
+===============
 
 Subpackages
 -----------
@@ -13,8 +13,8 @@ Subpackages
 Submodules
 ----------
 
-mdt\.gui\.utils module
-----------------------
+mdt.gui.utils module
+--------------------
 
 .. automodule:: mdt.gui.utils
     :members:

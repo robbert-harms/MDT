@@ -8,8 +8,7 @@ from contextlib import contextmanager
 from six import string_types
 from mdt.__version__ import __version__
 from mdt.nifti import get_all_nifti_data
-from mdt.batch_utils import batch_profile_factory, AllSubjects
-from mdt.components_loader import get_model
+from mdt.components import get_model
 from mdt.configuration import get_processing_strategy, get_optimizer_for_model
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.protocols import write_protocol
@@ -146,7 +145,7 @@ class ModelFit(object):
 
         """
         if isinstance(model, string_types):
-            model = get_model(model)
+            model = get_model(model)()
 
         model.double_precision = double_precision
         if post_processing:

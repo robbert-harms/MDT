@@ -25,7 +25,8 @@ from textwrap import dedent
 
 
 mock_as_class = ['SampleModelBuilder', 'ModelBuilder', 'QWidget', 'QMainWindow', 'QDialog', 'QObject',
-                 'CLRoutine', 'InputData']
+                 'CLRoutine', 'InputData', 'NumDiffInfo', 'FreeParameter', 'SampleModelInterface',
+                 'NumericalDerivativeInterface']
 mock_as_decorator = ['pyqtSlot']
 mock_modules = ['mot', 'pyopencl', 'PyQt5', 'matplotlib', 'mpl_toolkits']
 
@@ -38,13 +39,6 @@ def mock_decorator(*args, **kwargs):
             return dec_func()
         return _decorator
     return _called_decorator
-
-
-class MockClass(object):
-    """Mocked class needed in the case we need to mock a class type"""
-    @classmethod
-    def __getattr__(cls, name):
-        return MockModule()
 
 
 class MockModelBuilder(object):
@@ -68,6 +62,16 @@ class MockModule(MagicMock):
             # needs another base class then the default MockClass to prevent MRO issues in the DMRICompositeModel
             if name == 'ModelBuilder':
                 return MockModelBuilder
+
+            class MockClass(object):
+                """Mocked class needed in the case we need to mock a class type"""
+
+                def __init__(self, *args, **kwargs):
+                    super(MockClass, self).__init__()
+
+                @classmethod
+                def __getattr__(cls, name):
+                    return MockModule()
 
             return MockClass
         if name in mock_as_decorator:
