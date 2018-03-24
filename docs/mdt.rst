@@ -33,14 +33,6 @@ mdt.components module
     :undoc-members:
     :show-inheritance:
 
-mdt.components_loader module
-----------------------------
-
-.. automodule:: mdt.components_loader
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 mdt.configuration module
 ------------------------
 

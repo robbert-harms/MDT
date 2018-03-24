@@ -7,6 +7,7 @@ from mot.model_building.parameter_functions.numdiff_info import NumDiffInfo, Sim
 from mot.model_building.parameters import StaticMapParameter, ProtocolParameter, FreeParameter
 from mot.model_building.parameter_functions.priors import UniformWithinBoundsPrior
 from mot.model_building.parameter_functions.proposals import GaussianProposal
+from mot.model_building.parameter_functions.transformations import AbstractTransformation
 
 
 __author__ = 'Robbert Harms'
@@ -150,8 +151,6 @@ def _resolve_parameter_transform(parameter_transform):
     Raises:
         ValueError: if the parameter transformation could not be resolved.
     """
-    from mot.model_building.parameter_functions.transformations import AbstractTransformation
-
     if isinstance(parameter_transform, AbstractTransformation):
         return parameter_transform
 

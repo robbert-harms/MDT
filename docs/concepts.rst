@@ -91,7 +91,7 @@ Dynamic modules
 Extending and adapting MDT with new models is made easy using dynamically loadable modules placed in your home folder.
 These modules are Python files placed in the ``.mdt`` folder in your home drive and are reloaded every time MDT is started.
 Users are free to add, remove and modify components in this folder and MDT will pickup the changes automatically.
-See :ref:`dynamic_modules` for more information.
+See :ref:`adding_models` for more information.
 
 
 .. _concepts_composite_and_cascade_models:

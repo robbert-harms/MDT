@@ -7,7 +7,7 @@ The compartment models are the building blocks of the composite models.
 They consists in basis of two parts, a list of parameters (see :ref:`dynamic_modules_parameters`) and the model code in OpenCL C (see :ref:`concepts_cl_code`).
 At runtime, MDT loads the C/CL code of the compartment model and combines it with the other compartments to form the composite model.
 
-The compartment models must be defined in a ``.py`` file in the ``compartment_models`` directory.
+Compartment models can be defined using the templating mechanism by inheriting from :class:`~mdt.component_templates.compartment_models.CompartmentTemplate`.
 For example, the Stick model can be defined as::
 
     from mdt.component_templates.compartment_models import CompartmentTemplate
@@ -30,7 +30,7 @@ This ``Stick`` example contains all the basic definitions required for a compart
 
 Defining parameters
 ===================
-The elements of the parameter list can either be string referencing one of the parameters defined in the dynamically loadable parameters (like shown in the example above),
+The elements of the parameter list can either be string referencing one of the parameters in the library (like shown in the example above),
 or it can be a direct instance of a parameter. For example, this is also a valid parameter list::
 
     class special_param(FreeParameterTemplate):
@@ -38,7 +38,7 @@ or it can be a direct instance of a parameter. For example, this is also a valid
 
     class MyModel(CompartmentTemplate):
 
-        parameter_list = ('g', 'b', special_param())
+        parameter_list = ('g', 'b', special_param()())
         ...
 
 
@@ -49,7 +49,6 @@ It is also possible to provide a nickname for a parameter by stating something l
 
 Here, the parameter ``my_theta`` is loaded with the nickname ``theta``.
 This allows you to use simpler names for the parameters of a compartment and allows you to swap a parameter for a different type while still using the same (external) name.
-Without it, the name of the parameter should be updated in all referenced locations, like for example inside the model equation, inside the composite model, inside cascade models, etc.
 
 
 Dependency list
@@ -91,6 +90,7 @@ These can be added to the compartment model using the ``cl_extra`` attribute. Fo
 
 
 .. _dynamic_modules_compartments_extra_result_maps:
+
 
 Extra result maps
 =================

@@ -41,12 +41,6 @@ def mock_decorator(*args, **kwargs):
     return _called_decorator
 
 
-class MockModelBuilder(object):
-    @classmethod
-    def __getattr__(cls, name):
-        return MockModule()
-
-
 class MockNamedComponent(MagicMock):
     """Some of the loaded components require the __name__ property to be set, this mock class makes that so."""
     @classmethod
@@ -59,20 +53,10 @@ class MockModule(MagicMock):
     @classmethod
     def __getattr__(cls, name):
         if name in mock_as_class:
-            # needs another base class then the default MockClass to prevent MRO issues in the DMRICompositeModel
-            if name == 'ModelBuilder':
-                return MockModelBuilder
-
-            class MockClass(object):
-                """Mocked class needed in the case we need to mock a class type"""
-
-                def __init__(self, *args, **kwargs):
-                    super(MockClass, self).__init__()
-
+            class MockClass(MagicMock):
                 @classmethod
                 def __getattr__(cls, name):
                     return MockModule()
-
             return MockClass
         if name in mock_as_decorator:
             return mock_decorator
@@ -139,6 +123,8 @@ def get_cli_doc_items():
 if os.path.basename(os.getcwd()) == 'docs':
     sys.path.insert(1, os.path.abspath(os.path.join('..')))
 
+
+os.environ["MDT.LOAD_COMPONENTS"] = "0"
 import mdt
 
 # -- General configuration ---------------------------------------------

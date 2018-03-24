@@ -104,7 +104,7 @@ In contrast, on Apple / OSX the recommendation is to use the CPU since the OpenC
 Having chosen the device(s) to run on, please open the tab "Fit model" and fill in the fields using the "b1k_b2k" dataset as an example.
 The drop down menu shows the models MDT can use.
 All models that MDT can find are in this list, both single composite models and cascaded models, and both standard supplied models and your own (user) models.
-See :ref:`dynamic_modules` on how to add models to this list, see :ref:`concepts_composite_and_cascade_models` for more information on the types of models (composite and cascade).
+See :ref:`adding_models` on how to add models to this list, see :ref:`concepts_composite_and_cascade_models` for more information on the types of models (composite and cascade).
 
 Having filled in all the required fields, select the "Ball&Stick_r1 (Cascade|S0)" model, and press "Run".
 MDT will now compute your selected model on the data.

@@ -14,15 +14,19 @@ The parallelized accelerated computations allow for tens to hundred times faster
 Summary
 *******
 * HCP pipelines
-* Comes with ActiveAx, CHARMED, NODDI, Ball&Sticks and Tensor models.
+* Comes with ActiveAx, CHARMED, NODDI, Ball&Sticks, Kurtosis and Tensor models.
 * GUI, command line and python interface
 * Easy modeling language
 * Free Open Source Software: LGPL v3 license
 * Python and OpenCL based
+* Tags: diffusion, dMRI, MRI, optimization, parallel, opencl, python
+
+
+*****
+Links
+*****
 * Full documentation: http://maastrichtdiffusiontoolbox.readthedocs.io
 * Project home: https://github.com/cbclab/MDT
-* Uses the `GitLab workflow <https://docs.gitlab.com/ee/workflow/gitlab_flow.html>`_
-* Tags: diffusion, dMRI, MRI, optimization, parallel, opencl, python
 
 
 ************
@@ -69,14 +73,14 @@ Note that ``python3-nibabel`` may need NeuroDebian to be available on your machi
 The installation on Windows is a little bit more complex and the following is only a quick reference guide.
 For complete instructions please view the `complete documentation <https://maastrichtdiffusiontoolbox.readthedocs.org>`_.
 
-* Install Anaconda Python 3.5
+* Install Anaconda Python 3.*
 * Install MOT using the guide at https://mot.readthedocs.io
 * Open an Anaconda shell and type: ``pip install mdt``
 
 
 **Mac**
 
-* Install Anaconda Python 3.5
+* Install Anaconda Python 3.*
 * Open a terminal and type: ``pip install mdt``
 
 Please note that Mac support is experimental due to the unstable nature of the OpenCL drivers in Mac, that is, users running MDT with the GPU as selected device may experience crashes.

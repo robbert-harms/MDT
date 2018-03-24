@@ -37,7 +37,9 @@ During optimization, parameters of this type can be fixed to a specific value, w
 but that their values (per voxel) are provided by a scalar or a map.
 When fixed, these parameters are still classified as free parameters (you can consider them as fixed free parameters).
 
-To fix these parameters you can either define so in a composite model, a cascade model or using the Python API before model optimization::
+To fix these parameters you can either define so in a composite model, a cascade model or using the Python API before model optimization
+
+.. code-block:: python
 
     mdt.fit_model('CHARMED_r1',
                   ...,
@@ -47,8 +49,7 @@ To fix these parameters you can either define so in a composite model, a cascade
                   ))
 
 
-A free parameter is identified by having the super class :py:class:`~mdt.models.parameters.FreeParameterTemplate` and
-are commonly placed in the Python module named ``free.py``.
+A free parameter is identified by having the super class :py:class:`~mdt.component_templates.parameters.FreeParameterTemplate`.
 
 Hereunder we list some details that are important when adding a new free parameter to MDT.
 
@@ -76,8 +77,8 @@ These parameters are meant to be fulfilled by the values in the Protocol (see :r
 During model optimization, MDT checks the model for protocol parameters and tries to match the names of the protocol parameters with the names of the columns in the Protocol.
 This name matching allows the user to add their own column definitions to the protocol file, only by ensuring a common name between the protocol parameter and the protocol column name.
 
-A protocol parameter is identified by having the super class :py:class:`~mdt.models.parameters.ProtocolParameterTemplate` and
-are commonly placed in the Python module named ``protocol.py``.
+A protocol parameter is identified by having the super class :py:class:`~mdt.component_templates.parameters.ProtocolParameterTemplate`.
+
 
 .. _static_map_parameters:
 
@@ -102,5 +103,4 @@ The better way is to use the ``initialization_data`` argument of the ``mdt.fit_m
                   ))
 
 
-A static map parameter is identified by having the super class :py:class:`~mdt.models.parameters.StaticMapParameterTemplate` and
-are commonly placed in the Python module named ``static_maps.py``.
+A static map parameter is identified by having the super class :py:class:`~mdt.component_templates.parameters.ParameterTemplate`.

@@ -472,10 +472,13 @@ def _load_automatic_cascades():
 
 initialized = False
 if not initialized:
-    try:
-        reload()
-    except ImportError:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error('Failed to load the default components. Try removing your MDT home folder and reload.')
+    if 'MDT.LOAD_COMPONENTS' in os.environ and os.environ['MDT.LOAD_COMPONENTS'] != '1':
+        pass
+    else:
+        try:
+            reload()
+        except ImportError:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error('Failed to load the default components. Try removing your MDT home folder and reload.')
     initialized = True
