@@ -1,4 +1,4 @@
-from mdt.component_templates.composite_models import DMRICompositeModelTemplate
+from mdt.component_templates.composite_models import CompositeModelTemplate
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -6,7 +6,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class Tensor(DMRICompositeModelTemplate):
+class Tensor(CompositeModelTemplate):
 
     description = 'The standard Tensor model with in vivo defaults.'
     model_expression = '''
@@ -22,7 +22,7 @@ class Tensor(DMRICompositeModelTemplate):
                         'max_bval': 1.5e9 + 0.1e9}
 
 
-class NonParametricTensor(DMRICompositeModelTemplate):
+class NonParametricTensor(CompositeModelTemplate):
 
     description = 'The Tensor non-parameterized.'
     model_expression = '''

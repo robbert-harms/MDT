@@ -1,4 +1,4 @@
-from mdt.component_templates.composite_models import DMRICompositeModelTemplate
+from mdt.component_templates.composite_models import CompositeModelTemplate
 import numpy as np
 
 __author__ = 'Robbert Harms'
@@ -7,7 +7,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class NODDI(DMRICompositeModelTemplate):
+class NODDI(CompositeModelTemplate):
 
     description = 'The standard NODDI model'
 

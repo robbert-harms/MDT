@@ -21,7 +21,7 @@ class DMRICompositeModelBuilder(ComponentBuilder):
         """Creates classes with as base class DMRICompositeModel
 
         Args:
-            template (DMRICompositeModelTemplate): the composite model config template
+            template (CompositeModelTemplate): the composite model config template
                 to use for creating the class with the right init settings.
         """
         class AutoCreatedDMRICompositeModel(method_binding_meta(template, DMRICompositeModel)):
@@ -101,7 +101,7 @@ class DMRICompositeModelBuilder(ComponentBuilder):
         return AutoCreatedDMRICompositeModel
 
 
-class DMRICompositeModelTemplate(ComponentTemplate):
+class CompositeModelTemplate(ComponentTemplate):
     """The cascade config to inherit from.
 
     These configs are loaded on the fly by the DMRICompositeModelBuilder
@@ -257,6 +257,13 @@ class DMRICompositeModelTemplate(ComponentTemplate):
         meta_info.update({'name': cls.name,
                           'description': cls.description})
         return meta_info
+
+
+class DMRICompositeModelTemplate(CompositeModelTemplate):
+    def __new__(cls, *args, **kwargs):
+        import warnings
+        warnings.warn('"DMRICompositeModelTemplate" is deprecated, please replace with "CompositeModelTemplate".')
+        return CompositeModelTemplate.__new__(cls, *args, **kwargs)
 
 
 def _resolve_likelihood_function(likelihood_function):

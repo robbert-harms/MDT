@@ -1,4 +1,4 @@
-from mdt.component_templates.composite_models import DMRICompositeModelTemplate
+from mdt.component_templates.composite_models import CompositeModelTemplate
 import numpy as np
 
 __author__ = 'Robbert Harms'
@@ -7,7 +7,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class BallStick_r1(DMRICompositeModelTemplate):
+class BallStick_r1(CompositeModelTemplate):
 
     description = 'The default Ball & Stick model'
     model_expression = '''
@@ -27,7 +27,7 @@ class BallStick_r1(DMRICompositeModelTemplate):
     ]
 
 
-class BallStick_r2(DMRICompositeModelTemplate):
+class BallStick_r2(CompositeModelTemplate):
 
     description = 'The Ball & 2x Stick model'
     model_expression = '''
@@ -54,7 +54,7 @@ class BallStick_r2(DMRICompositeModelTemplate):
     extra_prior = 'return w_stick1.w < w_stick0.w;'
 
 
-class BallStick_r3(DMRICompositeModelTemplate):
+class BallStick_r3(CompositeModelTemplate):
 
     description = 'The Ball & 3x Stick model'
     model_expression = '''

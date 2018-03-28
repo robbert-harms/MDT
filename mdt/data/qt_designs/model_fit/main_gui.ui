@@ -17,7 +17,7 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>Maastricht Diffusion Toolbox</string>
+   <string>Microstructure Diffusion Toolbox</string>
   </property>
   <property name="windowIcon">
    <iconset resource="main_gui.qrc">

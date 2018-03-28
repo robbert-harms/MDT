@@ -28,7 +28,7 @@ requirements_tests = load_requirements('requirements_tests.txt')
 long_description = readme
 if sys.argv and len(sys.argv) > 3 and sys.argv[2] == 'debianize':
     long_description = dedent("""
-        The Maastricht Diffusion Toolbox is a parallized neuro-imaging model recovery toolbox.
+        The Microstructure Diffusion Toolbox is a parallized neuro-imaging model recovery toolbox.
         Being GPU accelerated, it allows for high-performance computing in MRI imaging analysis.
     """).lstrip()
 
@@ -57,7 +57,7 @@ def load_entry_points():
 info_dict = dict(
     name='mdt',
     version=ver_dic["VERSION"],
-    description='Maastricht Diffusion Toolbox',
+    description='Microstructure Diffusion Toolbox',
     long_description=long_description,
     author='Robbert Harms',
     author_email='robbert.harms@maastrichtuniversity.nl',

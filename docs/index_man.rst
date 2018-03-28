@@ -1,5 +1,5 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Maastricht Optimization Toolbox
+Microstructure Optimization Toolbox
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 .. toctree::

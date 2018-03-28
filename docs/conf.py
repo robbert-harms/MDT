@@ -219,7 +219,7 @@ html_theme = 'alabaster'
 # documentation.
 html_theme_options = {
     'show_powered_by': False,
-    'description': "Maastricht Diffusion Toolbox",
+    'description': "Microstructure Diffusion Toolbox",
     'logo_name': True,
     'sidebar_collapse': True,
     'fixed_sidebar': False,
@@ -352,7 +352,7 @@ latex_elements = {
 # [howto/manual]).
 latex_documents = [
     ('index_latex', 'mdt.tex',
-     u'Maastricht Diffusion Toolbox',
+     u'Microstructure Diffusion Toolbox',
      u'Robbert Harms', 'manual'),
 ]
 
@@ -383,7 +383,7 @@ latex_logo = '../mdt/data/logo_docs.png'
 # (source start file, name, description, authors, manual section).
 man_pages = [
     ('index_man', 'mdt',
-     u'Maastricht Diffusion Toolkit',
+     u'Microstructure Diffusion Toolkit',
      [u'Robbert Harms'], 1)
 ]
 
@@ -398,7 +398,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     ('index_latexz', 'mdt',
-     u'Maastricht Diffusion Toolbox',
+     u'Microstructure Diffusion Toolbox',
      u'Robbert Harms',
      'mdt',
      'One line description of project.',

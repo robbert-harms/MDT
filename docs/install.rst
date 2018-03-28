@@ -46,7 +46,7 @@ After installation please continue with the section `Initialization`_ below.
 *******
 Windows
 *******
-MDT uses the Maastricht Optimization Toolbox (MOT) for all analysis computations.
+MDT uses the Microstructure Optimization Toolbox (MOT) for all analysis computations.
 Please install MOT first (https://mot.readthedocs.io/en/latest/install.html#windows). Afterwards this installation should be fairly straightforward.
 
 Note that MDT depends on PyQt5 so make sure you do not attempt to run it in an environment with PyQt4 or earlier.

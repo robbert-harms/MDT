@@ -1,5 +1,5 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Maastricht Diffusion Toolbox
+Microstructure Diffusion Toolbox
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 ############

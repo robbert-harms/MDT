@@ -1,4 +1,4 @@
-from mdt.component_templates.composite_models import DMRICompositeModelTemplate
+from mdt.component_templates.composite_models import CompositeModelTemplate
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -6,7 +6,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class Kurtosis(DMRICompositeModelTemplate):
+class Kurtosis(CompositeModelTemplate):
 
     description = 'The standard Kurtosis model with in vivo defaults.'
     model_expression = '''

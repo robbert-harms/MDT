@@ -15,7 +15,7 @@ For example, adding a new compartment model or overriding an existing one can be
 
 .. code-block:: python
 
-    class BallStick_r1(DMRICompositeModelTemplate):
+    class BallStick_r1(CompositeModelTemplate):
         model_expression = '''
             S0 * ( (Weight(w_ball) * Ball) +
                    (Weight(w_stick0) * Stick(Stick0)) )
@@ -23,7 +23,7 @@ For example, adding a new compartment model or overriding an existing one can be
 
 
 In this example we overwrite the existing ``BallStick_r1`` model with a completely new model.
-Here, ``DMRICompositeModelTemplate`` tells MDT that this class should be interpreted as a template for a dMRI composite model.
+Here, ``CompositeModelTemplate`` tells MDT that this class should be interpreted as a template for a dMRI composite model.
 By virtue of meta-classes, this template will automatically be added to the MDT component library for future use.
 
 Using Object Oriented inheritance it is possible to partially rewrite existing models with updated definitions.

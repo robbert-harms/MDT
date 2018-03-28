@@ -1,9 +1,9 @@
-from mdt.component_templates.composite_models import DMRICompositeModelTemplate
+from mdt.component_templates.composite_models import CompositeModelTemplate
 
 __author__ = 'Francisco.Lagos'
 
 
-class S0_T1_GRE(DMRICompositeModelTemplate):
+class S0_T1_GRE(CompositeModelTemplate):
 
     description = '''Inversion recovery model. 
     
@@ -15,7 +15,7 @@ class S0_T1_GRE(DMRICompositeModelTemplate):
     upper_bounds = {'ExpT1DecIR.T1': 6.0}
 
 
-class S0T2_exvivo(DMRICompositeModelTemplate):
+class S0T2_exvivo(CompositeModelTemplate):
 
     name = 'S0-T2-ExVivo'
     description = 'Models the unweighted signal (aka. b0) with an extra T2.'
@@ -23,7 +23,7 @@ class S0T2_exvivo(DMRICompositeModelTemplate):
     upper_bounds = {'ExpT2Dec.T2': 0.5}
 
 
-class S0T2(DMRICompositeModelTemplate):
+class S0T2(CompositeModelTemplate):
 
     name = 'S0-T2'
     description = 'Models the unweighted signal (aka. b0) with an extra T2.'

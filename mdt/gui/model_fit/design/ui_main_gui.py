@@ -121,7 +121,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "Maastricht Diffusion Toolbox"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Microstructure Diffusion Toolbox"))
         self.MainTabs.setTabText(self.MainTabs.indexOf(self.fitModelTab), _translate("MainWindow", "Fit model"))
         self.MainTabs.setTabText(self.MainTabs.indexOf(self.generateBrainMaskTab), _translate("MainWindow", "Generate brain mask"))
         self.MainTabs.setTabText(self.MainTabs.indexOf(self.generateROIMaskTab), _translate("MainWindow", "Generate ROI mask"))

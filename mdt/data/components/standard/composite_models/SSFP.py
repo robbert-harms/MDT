@@ -1,7 +1,7 @@
-from mdt.component_templates.composite_models import DMRICompositeModelTemplate
+from mdt.component_templates.composite_models import CompositeModelTemplate
 
 
-class SSFP_BallStick_r1_ExVivo(DMRICompositeModelTemplate):
+class SSFP_BallStick_r1_ExVivo(CompositeModelTemplate):
 
     name = 'SSFP_BallStick_r1-ExVivo'
     description = 'The SSFP Ball & Stick model'
@@ -17,7 +17,7 @@ class SSFP_BallStick_r1_ExVivo(DMRICompositeModelTemplate):
     ]
 
 
-class SSFP_Tensor_ExVivo(DMRICompositeModelTemplate):
+class SSFP_Tensor_ExVivo(CompositeModelTemplate):
 
     name = 'SSFP_Tensor-ExVivo'
     description = 'The SSFP Tensor model with ex vivo defaults.'
