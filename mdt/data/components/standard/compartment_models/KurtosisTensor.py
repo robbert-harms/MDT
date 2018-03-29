@@ -70,18 +70,18 @@ def build_param(index):
     return ParameterBuilder().create_class(matrix_element_param)()
 
 
-def get_parameter_list():
+def get_parameters():
     """Get the list of parameters for the Kurtosis model.
 
     Returns:
         list: a list of parameters, some as a string some as actual parameters.
     """
-    parameter_list = ['g', 'b', 'd', 'dperp0', 'dperp1', 'theta', 'phi', 'psi']
+    parameters = ['g', 'b', 'd', 'dperp0', 'dperp1', 'theta', 'phi', 'psi']
 
     for index in get_symmetric_indices(3, 4):
-        parameter_list.append(build_param(index))
+        parameters.append(build_param(index))
 
-    return tuple(parameter_list)
+    return tuple(parameters)
 
 
 class KurtosisTensor(CompartmentTemplate):
@@ -89,7 +89,7 @@ class KurtosisTensor(CompartmentTemplate):
     description = '''
         The Kurtosis Tensor model.
     '''
-    parameter_list = get_parameter_list()
+    parameters = get_parameters()
     dependency_list = ['TensorApparentDiffusion', 'KurtosisMultiplication']
     cl_code = '''
         mot_float_type adc = TensorApparentDiffusion(theta, phi, psi, d, dperp0, dperp1, g);

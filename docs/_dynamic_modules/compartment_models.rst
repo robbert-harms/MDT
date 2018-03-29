@@ -14,7 +14,7 @@ For example, the Stick model can be defined as::
 
     class Stick(CompartmentTemplate):
 
-        parameter_list = ('g', 'b', 'd', 'theta', 'phi')
+        parameters = ('g', 'b', 'd', 'theta', 'phi')
         cl_code = '''
             mot_float_type4 n = (mot_float_type4)(cos(phi) * sin(theta),
                                                   sin(phi) * sin(theta),
@@ -38,14 +38,14 @@ or it can be a direct instance of a parameter. For example, this is also a valid
 
     class MyModel(CompartmentTemplate):
 
-        parameter_list = ('g', 'b', special_param()())
+        parameters = ('g', 'b', special_param()())
         ...
 
 
 where the parameters ``g`` and ``b`` are loaded from the dynamically loadable parameters while the ``special_param`` is given as a parameter instance.
 It is also possible to provide a nickname for a parameter by stating something like::
 
-    parameter_list = ('my_theta(theta)', ...)
+    parameters = ('my_theta(theta)', ...)
 
 Here, the parameter ``my_theta`` is loaded with the nickname ``theta``.
 This allows you to use simpler names for the parameters of a compartment and allows you to swap a parameter for a different type while still using the same (external) name.
@@ -76,7 +76,7 @@ These can be added to the compartment model using the ``cl_extra`` attribute. Fo
 
     class MyCompartment(CompartmentTemplate):
 
-        parameter_list = ('g', 'b', 'd')
+        parameters = ('g', 'b', 'd')
         cl_code = 'return other_function(g, b, d);'
         cl_extra = '''
             double other_function(

@@ -1,4 +1,5 @@
 from copy import deepcopy, copy
+import warnings
 import numpy as np
 import six
 from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate
@@ -29,11 +30,17 @@ class CompartmentBuilder(ComponentBuilder):
         class AutoCreatedDMRICompartmentModel(method_binding_meta(template, DMRICompartmentModelFunction)):
 
             def __init__(self, *args, **kwargs):
-                parameter_list = _get_parameters_list(template.parameter_list)
+                if len(template.parameters):
+                    parameters = _resolve_parameters(template.parameters)
+                else:
+                    # todo remove the parameter_list attribute in future versions
+                    warnings.warn('"parameter_list" is deprecated and will be removed in future versions, '
+                                  'please replace with "parameters".')
+                    parameters = _resolve_parameters(template.parameter_list)
 
                 new_args = [template.name,
                             template.name,
-                            parameter_list,
+                            parameters,
                             template.cl_code,
                             _resolve_dependencies(template.dependency_list),
                             template.return_type]
@@ -43,10 +50,10 @@ class CompartmentBuilder(ComponentBuilder):
 
                 new_kwargs = {
                     'model_function_priors': (_resolve_prior(template.extra_prior, template.name,
-                                                             [p.name for p in parameter_list],)),
+                                                             [p.name for p in parameters],)),
                     'post_optimization_modifiers': template.post_optimization_modifiers,
                     'extra_optimization_maps_funcs': builder._get_extra_optimization_map_funcs(
-                        template, parameter_list),
+                        template, parameters),
                     'extra_sampling_maps_funcs': copy(template.extra_sampling_maps),
                     'cl_extra': template.cl_extra}
                 new_kwargs.update(kwargs)
@@ -72,11 +79,17 @@ class WeightBuilder(ComponentBuilder):
         class AutoCreatedWeightModel(method_binding_meta(template, WeightType)):
 
             def __init__(self, *args, **kwargs):
-                parameter_list = _get_parameters_list(template.parameter_list)
+                if len(template.parameters):
+                    parameters = _resolve_parameters(template.parameters)
+                else:
+                    # todo remove the parameter_list attribute in future versions
+                    warnings.warn('"parameter_list" is deprecated and will be removed in future versions, '
+                                  'please replace with "parameters".')
+                    parameters = _resolve_parameters(template.parameter_list)
 
                 new_args = [template.name,
                             template.name,
-                            parameter_list,
+                            parameters,
                             template.cl_code,
                             ]
 
@@ -110,7 +123,7 @@ class CompartmentTemplate(ComponentTemplate):
 
         description (str): model description
 
-        parameter_list (list): the list of parameters to use. If a parameter is a string we will
+        parameters (list): the list of parameters to use. If a parameter is a string we will
             use it automatically, if not it is supposed to be a CLFunctionParameter
             instance that we append directly.
 
@@ -173,7 +186,8 @@ class CompartmentTemplate(ComponentTemplate):
 
     name = ''
     description = ''
-    parameter_list = []
+    parameter_list = [] # todo deprecated removal
+    parameters = []
     cl_code = None
     cl_extra = None
     dependency_list = []
@@ -195,7 +209,8 @@ class WeightCompartmentTemplate(ComponentTemplate):
 
     name = ''
     description = ''
-    parameter_list = []
+    parameter_list = []  # todo deprecated removal
+    parameters = []
     cl_code = None
     cl_extra = None
     dependency_list = []
@@ -249,7 +264,7 @@ def _resolve_prior(prior, compartment_name, compartment_parameters):
     return SimpleCLFunction('mot_float_type', 'prior_' + compartment_name, parameters, prior)
 
 
-def _get_parameters_list(parameter_list):
+def _resolve_parameters(parameter_list):
     """Convert all the parameters in the given parameter list to actual parameter objects.
 
     Args:

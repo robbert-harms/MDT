@@ -259,10 +259,12 @@ class CompositeModelTemplate(ComponentTemplate):
         return meta_info
 
 
+# todo: Remove in future versions.
 class DMRICompositeModelTemplate(CompositeModelTemplate):
     def __new__(cls, *args, **kwargs):
         import warnings
-        warnings.warn('"DMRICompositeModelTemplate" is deprecated, please replace with "CompositeModelTemplate".')
+        warnings.warn('"DMRICompositeModelTemplate" is deprecated and will be removed in future versions, '
+                      'please replace with "CompositeModelTemplate".')
         return CompositeModelTemplate.__new__(cls, *args, **kwargs)
 
 

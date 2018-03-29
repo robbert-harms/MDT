@@ -21,7 +21,7 @@ class TensorApparentDiffusion(LibraryFunctionTemplate):
     '''
     return_type = 'mot_float_type'
     dependency_list = ['TensorSphericalToCartesian']
-    parameter_list = ['theta', 'phi', 'psi', 'd', 'dperp0', 'dperp1', 'g']
+    parameters = ['theta', 'phi', 'psi', 'd', 'dperp0', 'dperp1', 'g']
     cl_code = '''
         mot_float_type4 vec0, vec1, vec2;
         TensorSphericalToCartesian(theta, phi, psi, &vec0, &vec1, &vec2);

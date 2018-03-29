@@ -8,5 +8,5 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class S0(CompartmentTemplate):
 
-    parameter_list = ('s0',)
+    parameters = ('s0',)
     cl_code = 'return s0;'

@@ -25,7 +25,7 @@ Summary
 *****
 Links
 *****
-* Full documentation: http://maastrichtdiffusiontoolbox.readthedocs.io
+* Full documentation: http://mdt_toolbox.readthedocs.io
 * Project home: https://github.com/cbclab/MDT
 
 
@@ -71,7 +71,7 @@ Note that ``python3-nibabel`` may need NeuroDebian to be available on your machi
 **Windows**
 
 The installation on Windows is a little bit more complex and the following is only a quick reference guide.
-For complete instructions please view the `complete documentation <https://maastrichtdiffusiontoolbox.readthedocs.org>`_.
+For complete instructions please view the `complete documentation <https://mdt_toolbox.readthedocs.org>`_.
 
 * Install Anaconda Python 3.*
 * Install MOT using the guide at https://mot.readthedocs.io
@@ -87,4 +87,4 @@ Please note that Mac support is experimental due to the unstable nature of the O
 Running MDT in the CPU seems to work though.
 
 
-For more information and full installation instructions see https://maastrichtdiffusiontoolbox.readthedocs.org
+For more information and full installation instructions see https://mdt_toolbox.readthedocs.org

@@ -17,7 +17,7 @@ class NODDI_IC(CompartmentTemplate):
     It may seem redundant to have both G/Delta/delta and b as arguments. But that is for speed reasons. b is most
     of the time available anyway, and G/Delta/delta is only needed if R is not fixed (still it must be provided for).
     """
-    parameter_list = ('g', 'b', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'kappa', 'R')
+    parameters = ('g', 'b', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'kappa', 'R')
     dependency_list = ('CerfErfi',
                        'MRIConstants',
                        'NeumannCylindricalRestrictedSignal',

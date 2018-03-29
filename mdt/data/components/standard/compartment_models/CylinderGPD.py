@@ -8,7 +8,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class CylinderGPD(CompartmentTemplate):
 
-    parameter_list = ('g', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'R')
+    parameters = ('g', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'R')
     dependency_list = ('MRIConstants',
                        'NeumannCylindricalRestrictedSignal',
                        'SphericalToCartesian')

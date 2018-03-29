@@ -8,7 +8,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class Stick(CompartmentTemplate):
 
-    parameter_list = ('g', 'b', 'd', 'theta', 'phi')
+    parameters = ('g', 'b', 'd', 'theta', 'phi')
     dependency_list = ['SphericalToCartesian']
     cl_code = '''
         return exp(-b * d * pown(dot(g, SphericalToCartesian(theta, phi)), 2));

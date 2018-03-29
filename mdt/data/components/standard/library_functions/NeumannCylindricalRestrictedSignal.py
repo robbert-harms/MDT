@@ -16,7 +16,7 @@ class NeumannCylindricalRestrictedSignal(LibraryFunctionTemplate):
         This includes a summation over the Bessel roots up to a accuracy of 1e-8.
     '''
     return_type = 'double'
-    parameter_list = ['Delta', 'delta', 'd', 'R', 'G']
+    parameters = ['Delta', 'delta', 'd', 'R', 'G']
     dependency_list = ['MRIConstants']
     cl_code = '''
         if(R == 0.0 || R < MOT_EPSILON){

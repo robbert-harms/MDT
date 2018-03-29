@@ -17,9 +17,9 @@ class RotateOrthogonalVector(LibraryFunctionTemplate):
             vector: the rotated vector
     '''
     return_type = 'mot_float_type4'
-    parameter_list = [('mot_float_type4', 'basis'),
-                      ('mot_float_type4', 'to_rotate'),
-                      ('mot_float_type', 'psi')]
+    parameters = [('mot_float_type4', 'basis'),
+                  ('mot_float_type4', 'to_rotate'),
+                  ('mot_float_type', 'psi')]
     cl_code = '''
         mot_float_type cos_psi;
         mot_float_type sin_psi = sincos(psi, &cos_psi);
@@ -42,9 +42,9 @@ class RotateVector(LibraryFunctionTemplate):
             vector: the rotated vector
     '''
     return_type = 'mot_float_type4'
-    parameter_list = [('mot_float_type4', 'basis'),
-                      ('mot_float_type4', 'to_rotate'),
-                      ('mot_float_type', 'psi')]
+    parameters = [('mot_float_type4', 'basis'),
+                  ('mot_float_type4', 'to_rotate'),
+                  ('mot_float_type', 'psi')]
     cl_code = '''
         mot_float_type cos_psi;
         mot_float_type sin_psi = sincos(psi, &cos_psi);
@@ -71,7 +71,7 @@ class SphericalToCartesian(LibraryFunctionTemplate):
             phi: azimuth angle of the first vector
     '''
     return_type = 'mot_float_type4'
-    parameter_list = ['theta', 'phi']
+    parameters = ['theta', 'phi']
     cl_code = '''
         mot_float_type cos_theta;
         mot_float_type sin_theta = sincos(theta, &cos_theta);
@@ -98,10 +98,10 @@ class TensorSphericalToCartesian(LibraryFunctionTemplate):
             psi: rotation around the first vector, used to generate the perpendicular vectors.
     '''
     dependency_list = ['RotateOrthogonalVector', 'SphericalToCartesian']
-    parameter_list = ['theta', 'phi', 'psi',
-                      ('mot_float_type4*', 'vec0'),
-                      ('mot_float_type4*', 'vec1'),
-                      ('mot_float_type4*', 'vec2')]
+    parameters = ['theta', 'phi', 'psi',
+                  ('mot_float_type4*', 'vec0'),
+                  ('mot_float_type4*', 'vec1'),
+                  ('mot_float_type4*', 'vec2')]
     cl_code = '''
         *vec0 = SphericalToCartesian(theta, phi);
         *vec1 = RotateOrthogonalVector(*vec0, SphericalToCartesian(theta + M_PI_2_F, phi), psi);
@@ -127,11 +127,11 @@ class CartesianPolarDotProduct(LibraryFunctionTemplate):
             dot product between the two vectors
     '''
     return_type = 'mot_float_type'
-    parameter_list = [('mot_float_type', 'v0_x'),
-                      ('mot_float_type', 'v0_y'),
-                      ('mot_float_type', 'v0_z'),
-                      ('mot_float_type', 'v1_theta'),
-                      ('mot_float_type', 'v1_phi')]
+    parameters = [('mot_float_type', 'v0_x'),
+                  ('mot_float_type', 'v0_y'),
+                  ('mot_float_type', 'v0_z'),
+                  ('mot_float_type', 'v1_theta'),
+                  ('mot_float_type', 'v1_phi')]
     cl_code = '''
         mot_float_type cos_theta;
         mot_float_type sin_theta = sincos(v1_theta, &cos_theta);

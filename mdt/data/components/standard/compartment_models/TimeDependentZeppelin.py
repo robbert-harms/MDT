@@ -23,7 +23,7 @@ class TimeDependentZeppelin(CompartmentTemplate):
             De Santis, S., Jones D., Roebroeck A., 2016. Including diffusion time dependence in the extra-axonal space
             improves in vivo estimates of axonal diameter and density in human white matter, NeuroImage 2016.
     '''
-    parameter_list = ('g', 'b', 'd', 'd_bulk', 'theta', 'phi', 'time_dependent_characteristic_coefficient(A)',
+    parameters = ('g', 'b', 'd', 'd_bulk', 'theta', 'phi', 'time_dependent_characteristic_coefficient(A)',
                       'Delta', 'delta')
     dependency_list = ('Zeppelin',)
     cl_code = '''

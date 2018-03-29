@@ -9,7 +9,7 @@ __licence__ = 'LGPL v3'
 
 class Weight(WeightCompartmentTemplate):
 
-    parameter_list = ('w',)
+    parameters = ('w',)
     cl_code = 'return w;'
 
 
@@ -18,7 +18,7 @@ class ARD_Beta_Weight(Weight):
 
     Meant for use in Automatic Relevance Detection.
     """
-    parameter_list = ('w_ard_beta(w)',)
+    parameters = ('w_ard_beta(w)',)
 
 
 class ARD_Gaussian_Weight(Weight):
@@ -26,4 +26,4 @@ class ARD_Gaussian_Weight(Weight):
 
     Meant for use in Automatic Relevance Detection.
     """
-    parameter_list = ('w_ard_gaussian(w)',)
+    parameters = ('w_ard_gaussian(w)',)

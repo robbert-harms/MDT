@@ -8,5 +8,5 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class Dot(CompartmentTemplate):
 
-    parameter_list = ()
+    parameters = ()
     cl_code = 'return 1.0;'

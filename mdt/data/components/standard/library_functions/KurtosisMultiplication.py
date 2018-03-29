@@ -24,27 +24,27 @@ class KurtosisMultiplication(LibraryFunctionTemplate):
             double: the evaluated scalar.
     '''
     return_type = 'double'
-    parameter_list = [('mot_float_type', 'W_0000'),
-                      ('mot_float_type', 'W_1111'),
-                      ('mot_float_type', 'W_2222'),
+    parameters = [('mot_float_type', 'W_0000'),
+                  ('mot_float_type', 'W_1111'),
+                  ('mot_float_type', 'W_2222'),
 
-                      ('mot_float_type', 'W_1000'),
-                      ('mot_float_type', 'W_2000'),
-                      ('mot_float_type', 'W_1110'),
-                      ('mot_float_type', 'W_2220'),
-                      ('mot_float_type', 'W_2111'),
-                      ('mot_float_type', 'W_2221'),
+                  ('mot_float_type', 'W_1000'),
+                  ('mot_float_type', 'W_2000'),
+                  ('mot_float_type', 'W_1110'),
+                  ('mot_float_type', 'W_2220'),
+                  ('mot_float_type', 'W_2111'),
+                  ('mot_float_type', 'W_2221'),
 
-                      ('mot_float_type', 'W_1100'),
-                      ('mot_float_type', 'W_2200'),
-                      ('mot_float_type', 'W_2211'),
+                  ('mot_float_type', 'W_1100'),
+                  ('mot_float_type', 'W_2200'),
+                  ('mot_float_type', 'W_2211'),
 
-                      ('mot_float_type', 'W_2100'),
-                      ('mot_float_type', 'W_2110'),
-                      ('mot_float_type', 'W_2210'),
+                  ('mot_float_type', 'W_2100'),
+                  ('mot_float_type', 'W_2110'),
+                  ('mot_float_type', 'W_2210'),
 
-                      ('mot_float_type4', 'n'),
-                      ]
+                  ('mot_float_type4', 'n'),
+                  ]
     cl_code = '''
         double kurtosis_sum = 0;
         

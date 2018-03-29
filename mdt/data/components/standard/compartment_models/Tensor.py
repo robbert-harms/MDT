@@ -9,7 +9,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class Tensor(CompartmentTemplate):
 
-    parameter_list = ('g', 'b', 'd', 'dperp0', 'dperp1', 'theta', 'phi', 'psi')
+    parameters = ('g', 'b', 'd', 'dperp0', 'dperp1', 'theta', 'phi', 'psi')
     dependency_list = ['TensorApparentDiffusion']
     cl_code = '''
         mot_float_type adc = TensorApparentDiffusion(theta, phi, psi, d, dperp0, dperp1, g);

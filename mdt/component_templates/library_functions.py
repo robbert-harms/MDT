@@ -28,7 +28,7 @@ class LibraryFunctionsBuilder(ComponentBuilder):
             def __init__(self, *args, **kwargs):
                 new_args = [template.return_type,
                             template.name,
-                            _get_parameters_list(template.parameter_list),
+                            _resolve_parameters(template.parameters),
                             template.cl_code,
                             ]
 
@@ -60,7 +60,7 @@ class LibraryFunctionTemplate(ComponentTemplate):
         name (str): the name of the model, defaults to the class name
         description (str): model description
         return_type (str): the return type of the function, defaults to ``void``
-        parameter_list (list): the list of parameters to use. If a parameter is a string we will
+        parameters (list): the list of parameters to use. If a parameter is a string we will
             use it automatically, if not it is supposed to be a LibraryParameter
             instance that we append directly.
         cl_code (str): the CL code definition to use.
@@ -76,7 +76,7 @@ class LibraryFunctionTemplate(ComponentTemplate):
     name = ''
     description = ''
     return_type = 'void'
-    parameter_list = []
+    parameters = []
     cl_code = None
     cl_extra = None
     dependency_list = []
@@ -105,7 +105,7 @@ def _resolve_dependencies(dependency_list):
     return result
 
 
-def _get_parameters_list(parameter_list):
+def _resolve_parameters(parameter_list):
     """Convert all the parameters in the given parameter list to actual parameter objects.
 
     This will load all the parameters as :class:`~mot.model_building.parameters.LibraryParameter`.

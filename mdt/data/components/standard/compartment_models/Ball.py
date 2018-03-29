@@ -8,5 +8,5 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class Ball(CompartmentTemplate):
 
-    parameter_list = ('b', 'd')
+    parameters = ('b', 'd')
     cl_code = 'return exp(-d * b);'
