@@ -25,7 +25,7 @@ class TimeDependentZeppelin(CompartmentTemplate):
     '''
     parameters = ('g', 'b', 'd', 'd_bulk', 'theta', 'phi', 'time_dependent_characteristic_coefficient(A)',
                       'Delta', 'delta')
-    dependency_list = ('Zeppelin',)
+    dependencies = ('Zeppelin',)
     cl_code = '''
         mot_float_type dperp0 = d_bulk + A * (log(Delta/delta) + 3/2.0)/(Delta - delta/3.0);
         return Zeppelin(g, b, d, dperp0, theta, phi);

@@ -9,9 +9,9 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class CylinderGPD(CompartmentTemplate):
 
     parameters = ('g', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'R')
-    dependency_list = ('MRIConstants',
-                       'NeumannCylindricalRestrictedSignal',
-                       'SphericalToCartesian')
+    dependencies = ('MRIConstants',
+                    'NeumannCylindricalRestrictedSignal',
+                    'SphericalToCartesian')
     cl_code = '''
         mot_float_type b = pown(GAMMA_H * delta * G, 2) * (Delta - (delta/3.0));
 

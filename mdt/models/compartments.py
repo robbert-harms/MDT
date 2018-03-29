@@ -8,7 +8,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class DMRICompartmentModelFunction(SimpleModelCLFunction):
 
-    def __init__(self, name, cl_function_name, parameters, cl_body, dependency_list, return_type,
+    def __init__(self, name, cl_function_name, parameters, cl_body, dependencies, return_type,
                  model_function_priors=None, post_optimization_modifiers=None, extra_optimization_maps_funcs=None,
                  extra_sampling_maps_funcs=None,
                  cl_extra=None):
@@ -19,7 +19,7 @@ class DMRICompartmentModelFunction(SimpleModelCLFunction):
             cl_function_name (str): the name of this function in the CL kernel
             parameters (list of CLFunctionParameter): the list of the function parameters
             cl_body (str): the body of the CL code
-            dependency_list (list): the list of functions we depend on inside the kernel
+            dependencies (list): the list of functions we depend on inside the kernel
             return_type (str): the CL return type
             model_function_priors (list of mot.cl_function.CLFunction): additional
                 compartment priors on top of the parameter priors.
@@ -34,7 +34,7 @@ class DMRICompartmentModelFunction(SimpleModelCLFunction):
         """
         super(DMRICompartmentModelFunction, self).__init__(return_type, name, cl_function_name,
                                                            parameters, cl_body,
-                                                           dependency_list=dependency_list,
+                                                           dependencies=dependencies,
                                                            model_function_priors=model_function_priors,
                                                            cl_extra=cl_extra)
         self.post_optimization_modifiers = post_optimization_modifiers or []

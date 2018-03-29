@@ -30,19 +30,29 @@ class CompartmentBuilder(ComponentBuilder):
         class AutoCreatedDMRICompartmentModel(method_binding_meta(template, DMRICompartmentModelFunction)):
 
             def __init__(self, *args, **kwargs):
+                parameters = []
                 if len(template.parameters):
                     parameters = _resolve_parameters(template.parameters)
-                else:
+                elif len(template.parameter_list):
                     # todo remove the parameter_list attribute in future versions
                     warnings.warn('"parameter_list" is deprecated and will be removed in future versions, '
                                   'please replace with "parameters".')
                     parameters = _resolve_parameters(template.parameter_list)
 
+                dependencies = []
+                if len(template.dependencies):
+                    dependencies = _resolve_dependencies(template.dependencies)
+                elif len(template.dependency_list):
+                    # todo remove the dependency_list attribute in future versions
+                    warnings.warn('"dependency_list" is deprecated and will be removed in future versions, '
+                                  'please replace with "dependencies".')
+                    dependencies = _resolve_dependencies(template.dependency_list)
+
                 new_args = [template.name,
                             template.name,
                             parameters,
                             template.cl_code,
-                            _resolve_dependencies(template.dependency_list),
+                            dependencies,
                             template.return_type]
 
                 for ind, already_set_arg in enumerate(args):
@@ -79,13 +89,23 @@ class WeightBuilder(ComponentBuilder):
         class AutoCreatedWeightModel(method_binding_meta(template, WeightType)):
 
             def __init__(self, *args, **kwargs):
+                parameters = []
                 if len(template.parameters):
                     parameters = _resolve_parameters(template.parameters)
-                else:
+                elif len(template.parameter_list):
                     # todo remove the parameter_list attribute in future versions
                     warnings.warn('"parameter_list" is deprecated and will be removed in future versions, '
                                   'please replace with "parameters".')
                     parameters = _resolve_parameters(template.parameter_list)
+
+                dependencies = []
+                if len(template.dependencies):
+                    dependencies = _resolve_dependencies(template.dependencies)
+                elif len(template.dependency_list):
+                    # todo remove the dependency_list attribute in future versions
+                    warnings.warn('"dependency_list" is deprecated and will be removed in future versions, '
+                                  'please replace with "dependencies".')
+                    dependencies = _resolve_dependencies(template.dependency_list)
 
                 new_args = [template.name,
                             template.name,
@@ -97,7 +117,7 @@ class WeightBuilder(ComponentBuilder):
                     new_args[ind] = already_set_arg
 
                 new_kwargs = {
-                    'dependency_list': _resolve_dependencies(template.dependency_list),
+                    'dependencies': dependencies,
                     'cl_extra': template.cl_extra}
                 new_kwargs.update(kwargs)
 
@@ -131,7 +151,7 @@ class CompartmentTemplate(ComponentTemplate):
 
         cl_extra (str): additional CL code for your model. This will be prepended to the body of your CL function.
 
-        dependency_list (list): the list of functions this function depends on, can contain string which will be
+        dependencies (list): the list of functions this function depends on, can contain string which will be
             resolved as library functions.
 
         return_type (str): the return type of this compartment, defaults to double.
@@ -186,11 +206,12 @@ class CompartmentTemplate(ComponentTemplate):
 
     name = ''
     description = ''
-    parameter_list = [] # todo deprecated removal
+    parameter_list = []  # todo deprecated removal
     parameters = []
     cl_code = None
     cl_extra = None
-    dependency_list = []
+    dependency_list = []  # todo deprecated removal
+    dependencies = []
     return_type = 'double'
     extra_prior = None
     post_optimization_modifiers = []
@@ -213,15 +234,16 @@ class WeightCompartmentTemplate(ComponentTemplate):
     parameters = []
     cl_code = None
     cl_extra = None
-    dependency_list = []
+    dependency_list = []  # todo deprecated removal
+    dependencies = []
     return_type = 'double'
 
 
-def _resolve_dependencies(dependency_list):
+def _resolve_dependencies(dependencies):
     """Resolve the dependency list such that the result contains all functions.
 
     Args:
-        dependency_list (list): the list of dependencies as given by the user. Elements can either include actual
+        dependencies (list): the list of dependencies as given by the user. Elements can either include actual
             instances of :class:`~mot.library_functions.CLLibrary` or strings with the name of libraries or
             other compartments to load.
 
@@ -229,7 +251,7 @@ def _resolve_dependencies(dependency_list):
         list: a new list with the string elements resolved as :class:`~mot.library_functions.CLLibrary`.
     """
     result = []
-    for dependency in dependency_list:
+    for dependency in dependencies:
         if isinstance(dependency, six.string_types):
             if has_component('library_functions', dependency):
                 result.append(get_component('library_functions', dependency)())

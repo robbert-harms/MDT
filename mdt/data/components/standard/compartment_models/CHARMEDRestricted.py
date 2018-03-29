@@ -9,7 +9,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class CHARMEDRestricted(CompartmentTemplate):
 
     parameters = ('g', 'b', 'G', 'Delta', 'delta', 'TE', 'd', 'theta', 'phi')
-    dependency_list = ('MRIConstants', 'SphericalToCartesian')
+    dependencies = ('MRIConstants', 'SphericalToCartesian')
     cl_code = '''
         const mot_float_type q_magnitude_2 = GAMMA_H_HZ_SQ * (G * G) * (delta * delta);
         const mot_float_type direction_2 = pown(dot(g, SphericalToCartesian(theta, phi)), 2);

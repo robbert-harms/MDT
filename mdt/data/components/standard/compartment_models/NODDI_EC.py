@@ -9,7 +9,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class NODDI_EC(CompartmentTemplate):
 
     parameters = ('g', 'b', 'd', 'dperp0', 'theta', 'phi', 'kappa')
-    dependency_list = ('CerfDawson', 'Zeppelin')
+    dependencies = ('CerfDawson', 'Zeppelin')
     cl_code = '''
         const mot_float_type kappa_scaled = kappa * 10;
         mot_float_type tmp;

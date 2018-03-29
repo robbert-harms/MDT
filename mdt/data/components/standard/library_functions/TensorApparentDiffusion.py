@@ -20,7 +20,7 @@ class TensorApparentDiffusion(LibraryFunctionTemplate):
             dperp1: third eigenvalue
     '''
     return_type = 'mot_float_type'
-    dependency_list = ['TensorSphericalToCartesian']
+    dependencies = ['TensorSphericalToCartesian']
     parameters = ['theta', 'phi', 'psi', 'd', 'dperp0', 'dperp1', 'g']
     cl_code = '''
         mot_float_type4 vec0, vec1, vec2;

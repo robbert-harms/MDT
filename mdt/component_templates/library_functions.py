@@ -35,7 +35,7 @@ class LibraryFunctionsBuilder(ComponentBuilder):
                 for ind, already_set_arg in enumerate(args):
                     new_args[ind] = already_set_arg
 
-                new_kwargs = dict(dependency_list=_resolve_dependencies(template.dependency_list),
+                new_kwargs = dict(dependencies=_resolve_dependencies(template.dependencies),
                                   cl_extra=template.cl_extra)
                 new_kwargs.update(kwargs)
 
@@ -65,7 +65,7 @@ class LibraryFunctionTemplate(ComponentTemplate):
             instance that we append directly.
         cl_code (str): the CL code definition to use.
         cl_extra (str): auxiliary functions for the library, prepended to the generated CL function.
-        dependency_list (list): the list of functions this function depends on, can contain string which will be
+        dependencies (list): the list of functions this function depends on, can contain string which will be
             resolved as library functions.
         is_function (boolean): set to False to disable the automatic generation of a function signature.
             Use this for C macro only libraries.
@@ -79,15 +79,15 @@ class LibraryFunctionTemplate(ComponentTemplate):
     parameters = []
     cl_code = None
     cl_extra = None
-    dependency_list = []
+    dependencies = []
     is_function = True
 
 
-def _resolve_dependencies(dependency_list):
+def _resolve_dependencies(dependencies):
     """Resolve the dependency list such that the result contains all functions.
 
     Args:
-        dependency_list (list): the list of dependencies as given by the user. Elements can either include actual
+        dependencies (list): the list of dependencies as given by the user. Elements can either include actual
             instances of :class:`~mot.library_functions.CLLibrary` or strings with the name of the
             component to auto-load.
 
@@ -96,7 +96,7 @@ def _resolve_dependencies(dependency_list):
             as :class:`~mot.library_functions.CLLibrary`.
     """
     result = []
-    for dependency in dependency_list:
+    for dependency in dependencies:
         if isinstance(dependency, six.string_types):
             result.append(get_component('library_functions', dependency)())
         else:

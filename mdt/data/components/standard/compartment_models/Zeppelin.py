@@ -9,7 +9,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class Zeppelin(CompartmentTemplate):
 
     parameters = ('g', 'b', 'd', 'dperp0', 'theta', 'phi')
-    dependency_list = ['SphericalToCartesian']
+    dependencies = ['SphericalToCartesian']
     cl_code = '''
         return exp(-b * (((d - dperp0) * pown(dot(g, SphericalToCartesian(theta, phi)), 2)) + dperp0));
     '''

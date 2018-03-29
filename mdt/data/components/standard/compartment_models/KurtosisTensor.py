@@ -90,7 +90,7 @@ class KurtosisTensor(CompartmentTemplate):
         The Kurtosis Tensor model.
     '''
     parameters = get_parameters()
-    dependency_list = ['TensorApparentDiffusion', 'KurtosisMultiplication']
+    dependencies = ['TensorApparentDiffusion', 'KurtosisMultiplication']
     cl_code = '''
         mot_float_type adc = TensorApparentDiffusion(theta, phi, psi, d, dperp0, dperp1, g);
 

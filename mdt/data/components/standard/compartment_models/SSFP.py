@@ -11,7 +11,7 @@ __licence__ = 'LGPL v3'
 class SSFP_Ball(CompartmentTemplate):
 
     parameters = ('d', 'delta', 'G', 'TR', 'flip_angle', 'b1_static', 'T1_static', 'T2_static')
-    dependency_list = ('SSFP',)
+    dependencies = ('SSFP',)
     cl_code = '''
         return SSFP(d, delta, G, TR, flip_angle, b1_static, T1_static, T2_static);
     '''
@@ -20,7 +20,7 @@ class SSFP_Ball(CompartmentTemplate):
 class SSFP_Stick(CompartmentTemplate):
 
     parameters = ('g', 'd', 'theta', 'phi', 'delta', 'G', 'TR', 'flip_angle', 'b1_static', 'T1_static', 'T2_static')
-    dependency_list = ('SSFP',)
+    dependencies = ('SSFP',)
     cl_code = '''
         mot_float_type adc = d * pown(dot(g, (mot_float_type4)(cos(phi) * sin(theta), sin(phi) * sin(theta),
                                                                cos(theta), 0.0)), 2);
@@ -33,7 +33,7 @@ class SSFP_Tensor(CompartmentTemplate):
 
     parameters = ('g', 'd', 'dperp0', 'dperp1', 'theta', 'phi', 'psi', 'delta',
                       'G', 'TR', 'flip_angle', 'b1_static', 'T1_static', 'T2_static')
-    dependency_list = ('SSFP', 'TensorApparentDiffusion')
+    dependencies = ('SSFP', 'TensorApparentDiffusion')
     cl_code = '''
         mot_float_type adc = TensorApparentDiffusion(theta, phi, psi, d, dperp0, dperp1, g);
         return SSFP(adc, delta, G, TR, flip_angle, b1_static, T1_static, T2_static);
@@ -47,7 +47,7 @@ class SSFP_Tensor(CompartmentTemplate):
 class SSFP_Zeppelin(CompartmentTemplate):
 
     parameters = ('g', 'd', 'dperp0', 'theta', 'phi', 'delta', 'G', 'TR', 'flip_angle', 'b1_static', 'T1', 'T2')
-    dependency_list = ('SSFP',)
+    dependencies = ('SSFP',)
     cl_code = '''
         mot_float_type adc = dperp0 + ((d - dperp0) * pown(dot(g, (mot_float_type4)(cos(phi) * sin(theta),
                                                                    sin(phi) * sin(theta), cos(theta), 0.0)), 2);

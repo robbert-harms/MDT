@@ -27,7 +27,7 @@ class SSFP(LibraryFunctionTemplate):
     '''
     return_type = 'double'
     parameters = ['d', 'delta', 'G', 'TR', 'flip_angle', 'b1', 'T1', 'T2']
-    dependency_list = ('MRIConstants',)
+    dependencies = ('MRIConstants',)
     cl_code = '''
         double cos_b1_corrected_flip_angle;
         const double sin_b1_corrected_flip_angle = sincos(flip_angle * b1, &cos_b1_corrected_flip_angle);

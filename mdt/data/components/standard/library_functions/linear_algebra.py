@@ -97,7 +97,7 @@ class TensorSphericalToCartesian(LibraryFunctionTemplate):
             phi: azimuth angle of the first vector
             psi: rotation around the first vector, used to generate the perpendicular vectors.
     '''
-    dependency_list = ['RotateOrthogonalVector', 'SphericalToCartesian']
+    dependencies = ['RotateOrthogonalVector', 'SphericalToCartesian']
     parameters = ['theta', 'phi', 'psi',
                   ('mot_float_type4*', 'vec0'),
                   ('mot_float_type4*', 'vec1'),

@@ -54,10 +54,10 @@ This allows you to use simpler names for the parameters of a compartment and all
 Dependency list
 ===============
 Some models may depend on other compartment models or on library functions.
-These dependencies can be specified using the ``dependency_list`` attribute of the compartment model definition.
+These dependencies can be specified using the ``dependencies`` attribute of the compartment model definition.
 As an example::
 
-    dependency_list = ('CerfErfi', 'MRIConstants', 'CylinderGPD')
+    dependencies = ('CerfErfi', 'MRIConstants', 'CylinderGPD')
 
 This list should contain strings with references to either library functions or other compartment models.
 In this example the ``CerfErfi`` library function is loaded from MOT, ``MRIConstants`` from MDT and ``CylinderGPD`` is another compartment model which our example depends on.

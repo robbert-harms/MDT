@@ -18,10 +18,10 @@ class NODDI_IC(CompartmentTemplate):
     of the time available anyway, and G/Delta/delta is only needed if R is not fixed (still it must be provided for).
     """
     parameters = ('g', 'b', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'kappa', 'R')
-    dependency_list = ('CerfErfi',
-                       'MRIConstants',
-                       'NeumannCylindricalRestrictedSignal',
-                       'SphericalToCartesian')
+    dependencies = ('CerfErfi',
+                    'MRIConstants',
+                    'NeumannCylindricalRestrictedSignal',
+                    'SphericalToCartesian')
     cl_code = '''
         const mot_float_type kappa_scaled = kappa * 10;
 

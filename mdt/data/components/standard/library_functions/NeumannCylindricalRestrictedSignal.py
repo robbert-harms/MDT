@@ -17,7 +17,7 @@ class NeumannCylindricalRestrictedSignal(LibraryFunctionTemplate):
     '''
     return_type = 'double'
     parameters = ['Delta', 'delta', 'd', 'R', 'G']
-    dependency_list = ['MRIConstants']
+    dependencies = ['MRIConstants']
     cl_code = '''
         if(R == 0.0 || R < MOT_EPSILON){
             return 0;
