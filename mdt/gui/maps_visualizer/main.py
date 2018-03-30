@@ -259,7 +259,10 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
                     pass
 
     def set_window_title(self, title):
-        self.setWindowTitle('MDT Maps Visualizer - {}'.format(title))
+        if title is None:
+            self.setWindowTitle('MDT Maps Visualizer')
+        else:
+            self.setWindowTitle('MDT Maps Visualizer - {}'.format(title))
 
 
 class PlottingFrameInfoToStatusBar(PlottingFrameInfoViewer):
