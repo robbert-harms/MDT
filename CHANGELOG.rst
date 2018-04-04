@@ -193,7 +193,7 @@ Other
 - Removed calculated example files.
 - Removed redundant logging.
 - Small renaming updates.
-- * Adds some linear algebra methods to the utilities * Changed the way the psi component of the Tensor is used.
+- Adds some linear algebra methods to the utilities, Changed the way the psi component of the Tensor is used.
 - More work on the post-sampling statistics.
 - Removed redundant model.
 - Moved more relaxometry compartments to the single python file. Slightly increased the number of voxels in sampling.

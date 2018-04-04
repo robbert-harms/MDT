@@ -67,6 +67,8 @@ For Debian users and Ubuntu < 16 users, install MDT with:
 
 Note that ``python3-nibabel`` may need NeuroDebian to be available on your machine. An alternative is to use ``pip3 install nibabel`` instead.
 
+Users of `Singularity <http://singularity.lbl.gov/>`_ can use the recipe at https://github.com/akhanf/mdt-singularity , kindly made available by a user of MDT.
+
 
 **Windows**
 

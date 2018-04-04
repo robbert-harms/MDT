@@ -18,7 +18,6 @@ from contextlib import contextmanager
 import numpy as np
 import time
 
-from mdt.utils import results_to_dict
 import gc
 from numpy.lib.format import open_memmap
 
@@ -27,6 +26,8 @@ from mdt.configuration import gzip_optimization_results, gzip_sampling_results
 from mdt.utils import create_roi, load_samples
 import collections
 
+from mot.cl_routines.sampling.amwg import AdaptiveMetropolisWithinGibbs
+from mot.model_building.model_builders import ParameterTransformedModel
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-07-29"
@@ -433,10 +434,14 @@ class FittingProcessor(SimpleModelProcessor):
         self._subdirs = set()
 
     def _process(self, roi_indices, next_indices=None):
-        model = self._model.build_with_codec(roi_indices)
-        optimization_results = self._optimizer.minimize(model)
+        build_model = self._model.build(roi_indices)
 
-        results = model.get_post_optimization_output(optimization_results)
+        codec_model = ParameterTransformedModel(build_model, self._model.get_parameter_codec())
+        starting_positions = codec_model.encode_parameters(build_model.get_initial_parameters())
+
+        optimization_results = self._optimizer.minimize(codec_model, starting_positions)
+
+        results = codec_model.get_post_optimization_output(optimization_results)
         results.update({self._used_mask_name: np.ones(roi_indices.shape[0], dtype=np.bool)})
 
         self._write_output_recursive(results, roi_indices)
@@ -467,16 +472,24 @@ class SamplingProcessor(SimpleModelProcessor):
     class SampleChainNotStored(object):
         pass
 
-    def __init__(self, sampler, model, mask, nifti_header, output_dir, tmp_storage_dir, recalculate,
-                 samples_storage_strategy=None):
+    def __init__(self, nmr_samples, thinning, burnin, model, mask, nifti_header, output_dir, tmp_storage_dir,
+                 recalculate, samples_storage_strategy=None):
         """The processing worker for model sampling.
 
         Args:
+            nmr_samples (int): the number of samples we would like to return.
+            burnin (int): the number of samples to burn-in, that is, to discard before returning the desired
+                number of samples
+            thinning (int): how many sample we wait before storing a new one. This will draw extra samples such that
+                    the total number of samples generated is ``nmr_samples * (thinning)`` and the number of samples
+                    stored is ``nmr_samples``. If set to one or lower we store every sample after the burn in.
             sampler (AbstractSampler): the optimization sampler to use
             samples_storage_strategy (SamplesStorageStrategy): indicates which samples to store
         """
         super(SamplingProcessor, self).__init__(mask, nifti_header, output_dir, tmp_storage_dir, recalculate)
-        self._sampler = sampler
+        self._nmr_samples = nmr_samples
+        self._thinning = thinning
+        self._burnin = burnin
         self._model = model
         self._write_volumes_gzipped = gzip_sampling_results()
         self._samples_to_save_method = samples_storage_strategy or SaveAllSamples()
@@ -486,7 +499,10 @@ class SamplingProcessor(SimpleModelProcessor):
 
     def _process(self, roi_indices, next_indices=None):
         model = self._model.build(roi_indices)
-        sampling_output = self._sampler.sample(model)
+
+        sampler = AdaptiveMetropolisWithinGibbs(model, model.get_initial_parameters(), model.get_rwm_proposal_stds())
+
+        sampling_output = sampler.sample(self._nmr_samples, burnin=self._burnin, thinning=self._thinning)
         samples = sampling_output.get_samples()
 
         self._logger.info('Starting post-processing')

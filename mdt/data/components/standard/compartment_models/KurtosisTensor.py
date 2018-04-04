@@ -5,7 +5,6 @@ from mdt.cl_routines.mapping.dki_measures import DKIMeasures
 from mdt.post_processing import DTIMeasures
 
 from mot.model_building.parameter_functions.priors import AlwaysOne, UniformWithinBoundsPrior
-from mot.model_building.parameter_functions.proposals import GaussianProposal
 from mdt.component_templates.parameters import FreeParameterTemplate, ParameterBuilder
 from mdt.component_templates.compartment_models import CompartmentTemplate
 from mot.model_building.parameter_functions.transformations import IdentityTransform, PositivityTransform
@@ -65,7 +64,7 @@ def build_param(index):
         upper_bound = np.inf
         parameter_transform = _parameter_transform
         sampling_prior = _sampling_prior
-        sampling_proposal = GaussianProposal(0.01)
+        sampling_proposal_std = 0.01
 
     return ParameterBuilder().create_class(matrix_element_param)()
 

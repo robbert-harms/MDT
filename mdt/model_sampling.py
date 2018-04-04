@@ -17,7 +17,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-def sample_composite_model(model, input_data, output_folder, sampler, tmp_dir,
+def sample_composite_model(model, input_data, output_folder, nmr_samples, thinning, burnin, tmp_dir,
                            recalculate=False, store_samples=True, sample_items_to_save=None,
                            initialization_data=None):
     """Sample a composite model.
@@ -27,11 +27,16 @@ def sample_composite_model(model, input_data, output_folder, sampler, tmp_dir,
         input_data (:class:`~mdt.utils.MRIInputData`): The input data object with which the model
             is initialized before running
         output_folder (string): The full path to the folder where to place the output
-        sampler (:class:`mot.cl_routines.sampling.base.AbstractSampler`): The sampling routine to use.
+        nmr_samples (int): the number of samples we would like to return.
+        burnin (int): the number of samples to burn-in, that is, to discard before returning the desired
+            number of samples
+        thinning (int): how many sample we wait before storing a new one. This will draw extra samples such that
+                the total number of samples generated is ``nmr_samples * (thinning)`` and the number of samples stored
+                is ``nmr_samples``. If set to one or lower we store every sample after the burn in.
         tmp_dir (str): the preferred temporary storage dir
         recalculate (boolean): If we want to recalculate the results if they are already present.
-        store_samples (boolean, sequence or :class:`mdt.processing_strategies.SamplesStorageStrategy`): if set to False we
-            will store none of the samples. If set to True we will save all samples. If set to a sequence we expect a
+        store_samples (boolean, sequence or :class:`mdt.processing_strategies.SamplesStorageStrategy`): if set to False
+            we will store none of the samples. If set to True we will save all samples. If set to a sequence we expect a
             sequence of integer numbers with sample positions to store. Finally, you can also give a subclass instance
             of :class:`~mdt.processing_strategies.SamplesStorageStrategy` (it is then typically set to
             a :class:`mdt.processing_strategies.SaveThinnedSamples` instance).
@@ -74,7 +79,8 @@ def sample_composite_model(model, input_data, output_folder, sampler, tmp_dir,
 
         with _log_info(logger, model.name):
             worker = SamplingProcessor(
-                sampler, model, input_data.mask, input_data.nifti_header, output_folder,
+                nmr_samples, thinning, burnin,
+                model, input_data.mask, input_data.nifti_header, output_folder,
                 get_full_tmp_results_path(output_folder, tmp_dir), recalculate,
                 samples_storage_strategy=samples_storage_strategy)
 

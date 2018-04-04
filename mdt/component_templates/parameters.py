@@ -6,7 +6,6 @@ from mot.cl_data_type import SimpleCLDataType
 from mot.model_building.parameter_functions.numdiff_info import NumDiffInfo, SimpleNumDiffInfo
 from mot.model_building.parameters import StaticMapParameter, ProtocolParameter, FreeParameter
 from mot.model_building.parameter_functions.priors import UniformWithinBoundsPrior
-from mot.model_building.parameter_functions.proposals import GaussianProposal
 from mot.model_building.parameter_functions.transformations import AbstractTransformation
 
 
@@ -49,10 +48,11 @@ class ParameterBuilder(ComponentBuilder):
                         template.lower_bound,
                         template.upper_bound,
                         parameter_transform=_resolve_parameter_transform(template.parameter_transform),
-                        sampling_proposal=template.sampling_proposal,
+                        sampling_proposal_std=template.sampling_proposal_std,
                         sampling_prior=template.sampling_prior,
                         numdiff_info=numdiff_info
                     )
+                    self.sampling_proposal_modulus = template.sampling_proposal_modulus
             return AutoFreeParameter
 
         elif issubclass(template, StaticMapParameterTemplate):
@@ -109,7 +109,11 @@ class FreeParameterTemplate(ParameterTemplate):
             * ``AbsModPi``: ensures absolute modulus of the input parameters between zero and pi.
             * ``AbsModTwoPi``: ensures absolute modulus of the input parameters between zero and two pi.
 
-        sampling_proposal: the proposal function
+        sampling_proposal_std (float): the default proposal standard deviation for this parameter. This is used
+            in some MCMC sampling routines.
+        sampling_proposal_modulus (float or None): if given, a modulus we will use when finalizing the proposal
+            distributions. That is, when we are finalizing the proposals we will take, if set, the absolute
+            modulus of that parameter to ensure the parameter is within [0, <modulus>].
         sampling_prior: the prior function
         numdiff_info (dict or :class:`~mot.model_building.parameter_functions.numdiff_info.NumDiffInfo`):
             the information necessary to take the numerical derivative of a model with respect to this parameter.
@@ -124,7 +128,8 @@ class FreeParameterTemplate(ParameterTemplate):
     lower_bound = 0.0
     upper_bound = 4.0
     parameter_transform = 'Identity'
-    sampling_proposal = GaussianProposal(1.0)
+    sampling_proposal_std = 1
+    sampling_proposal_modulus = None
     sampling_prior = UniformWithinBoundsPrior()
     numdiff_info = {'max_step': 0.1, 'scale_factor': 1, 'use_bounds': True, 'modulus': None,
                     'use_upper_bound': True, 'use_lower_bound': True}

@@ -12,7 +12,7 @@ from mdt.models.model_interfaces import MRIModelBuilder, MRIModelInterface
 from mot.cl_routines.mapping.numerical_hessian import NumericalHessian
 from mot.model_building.parameters import ProtocolParameter
 from mot.utils import convert_data_to_dtype, KernelInputArray, get_class_that_defined_method, \
-    hessian_to_covariance
+    hessian_to_covariance, SimpleNamedCLFunction
 
 from mdt.models.base import MissingProtocolInput, InsufficientShells
 from mdt.models.base import DMRIOptimizable
@@ -78,10 +78,10 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
                                    self._extra_sampling_maps_funcs,
                                    self._get_dependent_map_calculator(),
                                    self._get_fixed_parameter_maps(problems_to_analyze),
-                                   self._get_proposal_state_names(),
                                    self.get_free_param_names(),
                                    self.get_parameter_codec(),
-                                   copy.deepcopy(self._post_processing))
+                                   copy.deepcopy(self._post_processing),
+                                   self._get_rwm_proposal_stds(problems_to_analyze))
 
     def update_active_post_processing(self, processing_type, settings):
         """Update the active post-processing semaphores.
@@ -384,18 +384,59 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
 
         return result
 
-    def _get_proposal_state_names(self):
-        """Get a list of names for the adaptable proposal parameters.
+    def _get_rwm_proposal_stds(self, problems_to_analyze):
+        np_dtype = np.float32
+        if self.double_precision:
+            np_dtype = np.float64
 
-        Returns:
-            list: list of str with the name for each of the adaptable proposal parameters.
-        """
-        return_list = []
+        proposal_stds = []
         for m, p in self._model_functions_info.get_estimable_parameters_list():
-            for param in p.sampling_proposal.get_parameters():
-                if param.adaptable:
-                    return_list.append('{}.{}.proposal.{}'.format(m.name, p.name, param.name))
-        return return_list
+            proposal_std = p.sampling_proposal_std
+
+            if is_scalar(proposal_std):
+                if self._get_nmr_problems(problems_to_analyze) == 0:
+                    proposal_stds.append(np.full((1, 1), proposal_std, dtype=np_dtype))
+                else:
+                    proposal_stds.append(np.full((self._get_nmr_problems(problems_to_analyze), 1),
+                                                  proposal_std, dtype=np_dtype))
+            else:
+                if len(proposal_std.shape) < 2:
+                    proposal_std = np.transpose(np.asarray([proposal_std]))
+                elif proposal_std.shape[1] > proposal_std.shape[0]:
+                    proposal_std = np.transpose(proposal_std)
+
+                if problems_to_analyze is None:
+                    proposal_stds.append(proposal_std)
+                else:
+                    proposal_stds.append(proposal_std[problems_to_analyze, ...])
+
+        return np.concatenate([np.transpose(np.array([s])) if len(s.shape) < 2 else s for s in proposal_stds], axis=1)
+
+    def _get_finalize_proposal_function_builder(self):
+        """Get the building function used to finalize the proposal"""
+        transformations = []
+
+        for (m, p) in self._model_functions_info.get_estimable_parameters_list():
+            index = self._model_functions_info.get_parameter_estimable_index(m, p)
+
+            if hasattr(p, 'sampling_proposal_modulus') and p.sampling_proposal_modulus is not None:
+                transformations.append('x[{0}] = x[{0}] - floor(x[{0}] / {1}) * {1};'.format(
+                    index, p.sampling_proposal_modulus))
+
+        def builder(address_space_parameter_vector):
+            func_name = 'finalizeProposal'
+            prior = '''
+                {preliminary}
+
+                mot_float_type {func_name}(mot_data_struct* data,
+                                           {address_space_parameter_vector} mot_float_type* x){{
+                    {body}
+                }}
+                '''.format(func_name=func_name, address_space_parameter_vector=address_space_parameter_vector,
+                           preliminary='', body='\n'.join(transformations))
+            return SimpleNamedCLFunction(prior, func_name)
+
+        return builder
 
 
 class BuildCompositeModel(MRIModelInterface):
@@ -403,8 +444,8 @@ class BuildCompositeModel(MRIModelInterface):
     def __init__(self, wrapped_sample_model, protocol, estimable_parameters_list,
                  nmr_parameters_for_bic_calculation,
                  post_optimization_modifiers, extra_optimization_maps, extra_sampling_maps,
-                 dependent_map_calculator, fixed_parameter_maps, proposal_state_names,
-                 free_param_names, parameter_codec, post_processing):
+                 dependent_map_calculator, fixed_parameter_maps,
+                 free_param_names, parameter_codec, post_processing, rwm_proposal_stds):
         self._protocol = protocol
         self._estimable_parameters_list = estimable_parameters_list
         self.nmr_parameters_for_bic_calculation = nmr_parameters_for_bic_calculation
@@ -412,12 +453,12 @@ class BuildCompositeModel(MRIModelInterface):
         self._wrapped_sample_model = wrapped_sample_model
         self._dependent_map_calculator = dependent_map_calculator
         self._fixed_parameter_maps = fixed_parameter_maps
-        self._proposal_state_names = proposal_state_names
         self._free_param_names = free_param_names
         self._parameter_codec = parameter_codec
         self._post_processing = post_processing
         self._extra_optimization_maps = extra_optimization_maps
         self._extra_sampling_maps = extra_sampling_maps
+        self._rwm_proposal_stds = rwm_proposal_stds
 
     def get_post_optimization_output(self, optimization_results):
         end_points = optimization_results.get_optimization_result()
@@ -433,13 +474,15 @@ class BuildCompositeModel(MRIModelInterface):
         """
         return self._free_param_names
 
-    def get_proposal_state_names(self):
-        """Get a list of names for the adaptable proposal parameters.
+    def get_rwm_proposal_stds(self):
+        """Get the Random Walk Metropolis proposal standard deviations for every parameter and every problem instance.
+
+        These proposal standard deviations are used in Random Walk Metropolis MCMC sampling.
 
         Returns:
-            list: list of str with the name for each of the adaptable proposal parameters.
+            ndarray: the proposal standard deviations of each free parameter, for each problem instance
         """
-        return self._proposal_state_names
+        return self._rwm_proposal_stds
 
     def post_process_optimization_maps(self, results_dict, results_array=None, log_likelihoods=None):
         """This adds some extra optimization maps to the results dictionary.
@@ -504,7 +547,7 @@ class BuildCompositeModel(MRIModelInterface):
         This will return a dictionary mapping folder names to dictionaries with volumes to write.
 
         Args:
-            sampling_output (mot.cl_routines.sampling.metropolis_hastings.MHSampleOutput): the output of the sampler
+            sampling_output (mot.cl_routines.sampling.base.SimpleSampleOutput): the output of the sampler
 
         Returns:
             dict: a dictionary with for every subdirectory the maps to save
@@ -519,15 +562,6 @@ class BuildCompositeModel(MRIModelInterface):
             items.update({'univariate_ess': lambda: self._get_univariate_ess(samples)})
         if self._post_processing['sampling']['multivariate_ess']:
             items.update({'multivariate_ess': lambda: self._get_multivariate_ess(samples)})
-        if self._post_processing['sampling']['chain_end_point']:
-            items.update({'chain_end_point': lambda: results_to_dict(sampling_output.get_current_chain_position(),
-                                                                     self.get_free_param_names())})
-        if self._post_processing['sampling']['proposal_state']:
-            items.update({'proposal_state': lambda: results_to_dict(sampling_output.get_proposal_state(),
-                                                                    self.get_proposal_state_names())})
-        if self._post_processing['sampling']['mh_state']:
-            items.update({'mh_state': lambda: self._get_mh_state_write_arrays(sampling_output.get_mh_state())})
-
         if self._post_processing['sampling']['maximum_likelihood'] \
                 or self._post_processing['sampling']['maximum_a_posteriori']:
             mle_maps_cb, map_maps_cb = self._get_mle_map_statistics(sampling_output)
@@ -537,18 +571,6 @@ class BuildCompositeModel(MRIModelInterface):
                 items.update({'maximum_a_posteriori': map_maps_cb})
 
         return DeferredFunctionDict(items, cache=False)
-
-    def _get_mh_state_write_arrays(self, mh_state):
-        """Get the state of the Metropolis Hastings sampler to write out such that we can start later at that position.
-        """
-        sampling_counter = mh_state.get_proposal_state_sampling_counter()
-        return {'proposal_state_sampling_counter': mh_state.get_proposal_state_sampling_counter(),
-                'proposal_state_acceptance_counter': mh_state.get_proposal_state_acceptance_counter(),
-                'online_parameter_variance': mh_state.get_online_parameter_variance(),
-                'online_parameter_variance_update_m2': mh_state.get_online_parameter_variance_update_m2(),
-                'online_parameter_mean': mh_state.get_online_parameter_mean(),
-                'rng_state': mh_state.get_rng_state(),
-                'nmr_samples_drawn': np.ones_like(sampling_counter) * mh_state.nmr_samples_drawn}
 
     def _post_sampling_extra_model_defined_maps(self, samples):
         """Compute the extra post-sampling maps defined in the models.
@@ -578,7 +600,7 @@ class BuildCompositeModel(MRIModelInterface):
         the corresponding parameter and global post-optimization maps.
 
         Args:
-            sampling_output (mot.cl_routines.sampling.metropolis_hastings.MHSampleOutput): the output of the sampler
+            sampling_output (mot.cl_routines.sampling.base.SimpleSampleOutput): the output of the sampler
 
         Returns:
             tuple(Func, Func): the function that generates the maps for the MLE and for the MAP estimators.

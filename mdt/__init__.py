@@ -9,6 +9,7 @@ import shutil
 from six import string_types
 
 from mdt.model_fitting import get_batch_fitting_function
+from mot.cl_routines.sampling.amwg import AdaptiveMetropolisWithinGibbs
 from .__version__ import VERSION, VERSION_STATUS, __version__
 
 
@@ -136,9 +137,8 @@ def fit_model(model, input_data, output_folder, optimizer=None,
     return results
 
 
-def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None, sample_intervals=None,
-                 recalculate=False,
-                 cl_device_ind=None, double_precision=False, store_samples=True,
+def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None, thinning=None,
+                 recalculate=False, cl_device_ind=None, double_precision=False, store_samples=True,
                  sample_items_to_save=None, tmp_results_dir=True,
                  save_user_script_info=True, initialization_data=None, post_processing=None
                  ):
@@ -153,9 +153,9 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
         nmr_samples (int): the number of samples we would like to return.
         burnin (int): the number of samples to burn-in, that is, to discard before returning the desired
             number of samples
-        sample_intervals (int): the sampling interval. Can be interpreted as thinning - 1. That is, the default
-            is 0 which means we return every sample (corresponding to a thinning of 1). A sampling interval of 1 means
-            we return every other sample.
+        thinning (int): how many sample we wait before storing a new one. This will draw extra samples such that
+                the total number of samples generated is ``nmr_samples * (thinning)`` and the number of samples stored
+                is ``nmr_samples``. If set to one or lower we store every sample after the burn in.
         recalculate (boolean): If we want to recalculate the results if they are already present.
         cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices().
@@ -200,15 +200,14 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
     from mdt.model_sampling import sample_composite_model
     from mdt.models.cascade import DMRICascadeModelInterface
     import mot.configuration
-    from mot import MetropolisHastings
 
     settings = mdt.configuration.get_general_sampling_settings()
     if nmr_samples is None:
         nmr_samples = settings['nmr_samples']
     if burnin is None:
         burnin = settings['burnin']
-    if sample_intervals is None:
-        sample_intervals = settings['sample_intervals']
+    if thinning is None:
+        thinning = settings['thinning']
 
     if not isinstance(initialization_data, InitializationData) and initialization_data is not None:
         initialization_data = SimpleInitializationData(**initialization_data)
@@ -237,8 +236,6 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
             load_balancer=EvenDistribution())
 
     with mot.configuration.config_context(cl_context_action):
-        sampler = MetropolisHastings(nmr_samples, burnin=burnin, sample_intervals=sample_intervals)
-
         base_dir = os.path.join(output_folder, model.name, 'samples')
 
         if not os.path.isdir(base_dir):
@@ -253,7 +250,7 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
         logger.info('The parameters we will sample are: {0}'.format(model.get_free_param_names()))
 
         model.double_precision = double_precision
-        results = sample_composite_model(model, input_data, base_dir, sampler,
+        results = sample_composite_model(model, input_data, base_dir, nmr_samples, thinning, burnin,
                                          get_temporary_results_dir(tmp_results_dir), recalculate=recalculate,
                                          store_samples=store_samples,
                                          sample_items_to_save=sample_items_to_save,

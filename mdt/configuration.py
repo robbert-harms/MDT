@@ -28,7 +28,7 @@ from contextlib import contextmanager
 from pkg_resources import resource_stream
 from six import string_types
 
-from mot.factory import get_optimizer_by_name, get_proposal_update_by_name
+from mot.factory import get_optimizer_by_name
 import mot.configuration
 from mot.load_balance_strategies import EvenDistribution
 
@@ -301,7 +301,7 @@ class SampleSettingsLoader(ConfigSectionLoader):
         settings = value.get('settings', {})
         settings['nmr_samples'] = settings.get('nmr_samples', 10000)
         settings['burnin'] = settings.get('burnin', 0)
-        settings['sample_intervals'] = settings.get('sample_intervals', 0)
+        settings['thinning'] = settings.get('thinning', 1)
         _config_insert(['sampling', 'general', 'settings'], settings)
 
 
@@ -322,19 +322,6 @@ class TmpResultsDirSectionLoader(ConfigSectionLoader):
         _config_insert(['tmp_results_dir'], value)
 
 
-class DefaultProposalUpdateLoader(ConfigSectionLoader):
-    """Load the default proposal update function."""
-
-    def load(self, value):
-        if 'name' in value:
-            kwargs = {}
-            if 'settings' in value:
-                kwargs = value['settings']
-
-            update_class = get_proposal_update_by_name(value['name'])
-            mot.configuration.set_default_proposal_update(update_class(**kwargs))
-
-
 class ActivePostProcessingLoader(ConfigSectionLoader):
     """Load the default settings for the post sampling calculations."""
 
@@ -342,9 +329,6 @@ class ActivePostProcessingLoader(ConfigSectionLoader):
         sampling = value.get('sampling', {})
         sampling['univariate_ess'] = sampling.get('univariate_ess', False)
         sampling['multivariate_ess'] = sampling.get('multivariate_ess', False)
-        sampling['chain_end_point'] = sampling.get('chain_end_point', False)
-        sampling['proposal_state'] = sampling.get('proposal_state', False)
-        sampling['mh_state'] = sampling.get('mh_state', False)
         sampling['maximum_likelihood'] = sampling.get('maximum_likelihood', False)
         sampling['maximum_a_posteriori'] = sampling.get('maximum_a_posteriori', False)
         sampling['model_defined_maps'] = sampling.get('model_defined_maps', False)
@@ -417,9 +401,6 @@ def get_section_loader(section):
 
     if section == 'runtime_settings':
         return RuntimeSettingsLoader()
-
-    if section == 'default_proposal_update':
-        return DefaultProposalUpdateLoader()
 
     if section == 'auto_generate_cascade_models':
         return AutomaticCascadeModels()
