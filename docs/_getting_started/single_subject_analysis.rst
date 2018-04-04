@@ -389,3 +389,30 @@ For example, the CHARMED models requires that the "TE" is specified in your prot
 MDT will help you by warning you if the available data is not suited for the selected model.
 
 To add additional data to your model computations, you can use the additional keyword arguments to the :func:`~mdt.utils.load_input_data` command.
+
+
+Fixing parameters
+-----------------
+To fix parameters, as for example fibre orientation parameters, one can use the ``initialization_data`` keyword of the :func:`~mdt.fit_model` command.
+This keyword allows fixing and initializing parameters just before model optimization and sampling.
+The following example shows how to fix the fibre orientation parameters of the NODDI model during optimization:
+
+.. code-block:: python
+
+    theta, phi = ...
+
+    mdt.fit_model('NODDI',
+        ...
+        initialization_data={
+            'inits': {'w_ic.w': 0.5},
+            'fixes': {'NODDI_IC.theta': theta, 'NODDI_IC.phi': phi}
+        })
+
+
+The syntax of the ``initialization_data`` is::
+
+    initialization_data = {'fixes': {...}, 'inits': {...}}
+
+where both ``fixes`` and ``inits`` are dictionaries with model parameter names mapping to either scalars or 3d/4d volumes.
+The ``fixes`` indicates parameters that will be fixed to those values, which will actively exclude those parameters from optimization.
+The ``inits`` indicate initial values (starting position) for the parameters.
