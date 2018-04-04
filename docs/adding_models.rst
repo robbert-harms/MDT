@@ -33,11 +33,17 @@ we just call ``mdt.fit_model`` with as model ``Tensor (Cascade)``.
 MDT will then load the cascade and its models by taking the last known definitions.
 As such, the new ``Tensor`` model with the updated likelihood function will be used in the model fitting.
 
+To remove an entry, you can use, for example:
+
+.. code-block:: python
+
+    mdt.components.remove_last_entry('composite_models', 'Tensor')
+
 
 ************************
 Global model definitions
 ************************
-For global model definitions you can use the ``.mdt`` folder in your home folder.
+For persistent model definitions you can use the ``.mdt`` folder in your home folder.
 This folder contains diffusion MRI models and other functionality that you can extend without needing to reinstall or recompile MDT.
 
 The ``.mdt`` folder contains, for every version of MDT that existed on your machine, a directory containing the configuration files and a
@@ -66,7 +72,7 @@ The components folder consists of two sub-folders, *standard* and *user*, with a
         * ...
 
 
-By editing the contents of these folders, the user can add, extend and/or remove functionality globally.
+By editing the contents of these folders, the user can add, extend and/or remove functionality globally and persistently.
 The folder named *standard* contains modules that come pre-supplied with MDT.
 These modules can change from version to version and any change you make in in this folder will be lost after an update.
 To make persistent changes you can add your modules to the *user* folder.

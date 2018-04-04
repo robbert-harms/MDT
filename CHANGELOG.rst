@@ -2,6 +2,77 @@
 Changelog
 *********
 
+v0.11.0 (2018-04-04)
+====================
+This version contains a completely new (backwards compatible) component loading mechanism.
+Templates now add themselves to a library module, such that you can define models and components everywhere, and have MDT use it automatically.
+Furthermore, components can now overwrite existing components, and you can reuse previously defined component templates.
+As an example of defining a new model in your script:
+
+.. code-block:: python
+
+    import mdt
+
+    class NewModel(mdt.CompositeModelTemplate):
+        ...
+
+    mdt.fit_model('NewModel', ...)
+
+
+Here, we are defining a new composite model ``NewModel`` using the ``CompositeModelTemplate``.
+Due to using this template, the model is automatically added to the MDT library.
+It is also possible to overwrite existing models, as for example:
+
+.. code-block:: python
+
+    import mdt
+
+    class Tensor(mdt.components.get_template('composite_models', 'Tensor')):
+        likelihood_function = 'Rician'
+
+    mdt.fit_model('Tensor (Cascade)', ...)
+
+
+Here, we are loading the current definition of the ``Tensor`` composite model and overwrite it with an updated likelihood function.
+Overwriting, since we name this class Tensor again.
+The updated Tensor model will now be used everywhere, also in cascade models that use that Tensor.
+
+To remove an entry, you can use, for example:
+
+.. code-block:: python
+
+    mdt.components.remove_last_entry('composite_models', 'Tensor')
+
+
+See the section :ref:`adding_models` for more details on this modeling.
+
+
+Added
+-----
+- Adds S0-T2 cascade model.
+- New module loading mechanism that allows loading models from everywhere.
+- Template mechanism for the batch profiles.
+
+Changed
+-------
+- Updated the documentation to follow the new model loading mechanism.
+- By default, now runs Powell with a patience 5 for the S0-T2 model (updated the config).
+- Renamed dependency_list to dependencies in the models and library functions.
+- Renamed parameter_list to parameters in the compartment models and in the library functions.
+
+Fixed
+-----
+- Adds hole filling to the mask generation.
+- Fixed delayed brain mask logging info in the GUI.
+
+Other
+-----
+- Following changes in the MOT samplers.
+- Renamed DMRICompositeModelTemplate to CompositeModelTemplate.
+- Renamed Maastricht to Microstructure (Diffusion Toolbox).
+- Removed noise component loader items.
+
+
 v0.10.9 (2018-02-22)
 ====================
 
