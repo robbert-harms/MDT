@@ -2,6 +2,14 @@
 Changelog
 *********
 
+v0.11.1 (2018-04-04)
+====================
+
+Changed
+-------
+- Updated the MOT version requirements.
+
+
 v0.11.0 (2018-04-04)
 ====================
 This version contains a completely new (backwards compatible) component loading mechanism.
