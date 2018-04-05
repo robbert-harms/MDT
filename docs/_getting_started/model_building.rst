@@ -38,5 +38,6 @@ For example, instead of defining a completely new ``BallStick_r1`` model, we can
 Here, we inherit from the existing template and overwrite the likelihood function with Rician.
 All other definitions will be taken from the previous template.
 
-
 See the section :ref:`adding_models` for all details on adding models.
+
+If you have added an interesting model to MDT which you wish to share, please do not hesitate to contact the developers to have it added to MDT.

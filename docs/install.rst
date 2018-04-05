@@ -40,6 +40,8 @@ Next, install MDT with:
 
 This might recompile a few packages to use the latest versions.
 
+Alternatively, for users of **Ubuntu 14** can use the Singularity recipe at https://github.com/akhanf/mdt-singularity , kindly made available by a user of MDT.
+
 After installation please continue with the section `Initialization`_ below.
 
 
