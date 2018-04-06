@@ -4,7 +4,7 @@ from six import string_types
 from mdt.components import get_model
 from mdt.nifti import get_all_nifti_data
 from mdt.utils import create_roi, restore_volumes, MockMRIInputData
-from mot.cl_routines.mapping.calculate_model_estimates import CalculateModelEstimates
+from mdt.cl_routines.mapping.calculate_model_estimates import CalculateModelEstimates
 
 __author__ = 'Robbert Harms'
 __date__ = '2017-05-29'

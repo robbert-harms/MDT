@@ -1,6 +1,6 @@
 import inspect
 import logging
-from textwrap import dedent
+from textwrap import dedent, indent
 import copy
 import collections
 import numpy as np
@@ -81,7 +81,8 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
                                    self.get_free_param_names(),
                                    self.get_parameter_codec(),
                                    copy.deepcopy(self._post_processing),
-                                   self._get_rwm_proposal_stds(problems_to_analyze))
+                                   self._get_rwm_proposal_stds(problems_to_analyze),
+                                   self._get_model_eval_function(problems_to_analyze))
 
     def update_active_post_processing(self, processing_type, settings):
         """Update the active post-processing semaphores.
@@ -445,7 +446,8 @@ class BuildCompositeModel(MRIModelInterface):
                  nmr_parameters_for_bic_calculation,
                  post_optimization_modifiers, extra_optimization_maps, extra_sampling_maps,
                  dependent_map_calculator, fixed_parameter_maps,
-                 free_param_names, parameter_codec, post_processing, rwm_proposal_stds):
+                 free_param_names, parameter_codec, post_processing,
+                 rwm_proposal_stds, eval_function):
         self._protocol = protocol
         self._estimable_parameters_list = estimable_parameters_list
         self.nmr_parameters_for_bic_calculation = nmr_parameters_for_bic_calculation
@@ -459,6 +461,7 @@ class BuildCompositeModel(MRIModelInterface):
         self._extra_optimization_maps = extra_optimization_maps
         self._extra_sampling_maps = extra_sampling_maps
         self._rwm_proposal_stds = rwm_proposal_stds
+        self._eval_function = eval_function
 
     def get_post_optimization_output(self, optimization_results):
         end_points = optimization_results.get_optimization_result()
@@ -571,6 +574,9 @@ class BuildCompositeModel(MRIModelInterface):
                 items.update({'maximum_a_posteriori': map_maps_cb})
 
         return DeferredFunctionDict(items, cache=False)
+
+    def get_model_eval_function(self):
+        return self._eval_function
 
     def _post_sampling_extra_model_defined_maps(self, samples):
         """Compute the extra post-sampling maps defined in the models.
