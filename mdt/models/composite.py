@@ -11,7 +11,7 @@ from mdt.deferred_mappings import DeferredFunctionDict
 from mdt.models.model_interfaces import MRIModelBuilder, MRIModelInterface
 from mot.cl_data_type import SimpleCLDataType
 from mot.cl_routines.mapping.numerical_hessian import NumericalHessian
-from mot.model_building.parameters import ProtocolParameter
+from mdt.model_building.parameters import ProtocolParameter
 from mot.utils import convert_data_to_dtype, KernelInputArray, get_class_that_defined_method, \
     hessian_to_covariance, SimpleNamedCLFunction
 
@@ -22,7 +22,7 @@ from mdt.utils import create_roi, calculate_point_estimate_information_criterion
 from mot.cl_routines.mapping.calc_dependent_params import CalculateDependentParameters
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
 from mot.mcmc_diagnostics import multivariate_ess, univariate_ess
-from mot.model_building.model_builders import SampleModelBuilder
+from mdt.model_building.model_builders import SampleModelBuilder
 
 __author__ = 'Robbert Harms'
 __date__ = "2014-10-26"
@@ -332,7 +332,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
         from writing your own _prepare_input_data object.
 
         Args:
-            input_data (mot.model_building.input_data.InputData): the input data set by the user
+            input_data (mdt.model_building.input_data.InputData): the input data set by the user
 
         Returns:
             list: the list of indices we want to use for this model.

@@ -7,8 +7,8 @@ from mdt.components import get_component, has_component
 from mdt.models.compartments import DMRICompartmentModelFunction
 from mdt.utils import spherical_to_cartesian
 from mot.cl_function import CLFunction, SimpleCLFunction
-from mot.model_building.model_functions import WeightType
-from mot.model_building.parameters import CurrentObservationParam
+from mdt.model_building.model_functions import WeightType
+from mdt.model_building.parameters import CurrentObservationParam
 
 __author__ = 'Robbert Harms'
 __date__ = "2017-02-14"

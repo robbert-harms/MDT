@@ -1,4 +1,4 @@
-from mot.model_building.model_functions import SimpleModelCLFunction
+from mdt.model_building.model_functions import SimpleModelCLFunction
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-12-13"

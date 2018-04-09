@@ -4,10 +4,10 @@ import itertools
 from mdt.cl_routines.mapping.dki_measures import DKIMeasures
 from mdt.post_processing import DTIMeasures
 
-from mot.model_building.parameter_functions.priors import AlwaysOne, UniformWithinBoundsPrior
+from mdt.model_building.parameter_functions.priors import AlwaysOne, UniformWithinBoundsPrior
 from mdt.component_templates.parameters import FreeParameterTemplate, ParameterBuilder
 from mdt.component_templates.compartment_models import CompartmentTemplate
-from mot.model_building.parameter_functions.transformations import IdentityTransform, PositivityTransform
+from mdt.model_building.parameter_functions.transformations import IdentityTransform, PositivityTransform
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"

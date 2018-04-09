@@ -25,8 +25,8 @@ from mdt.log_handlers import ModelOutputLogHandler
 from mdt.nifti import load_nifti, write_nifti
 from mdt.protocols import load_protocol, write_protocol
 from mot.cl_environments import CLEnvironmentFactory
-from mot.model_building.input_data import InputData
-from mot.model_building.parameter_functions.dependencies import AbstractParameterDependency
+from mdt.model_building.input_data import InputData
+from mdt.model_building.parameter_functions.dependencies import AbstractParameterDependency
 
 __author__ = 'Robbert Harms'
 __date__ = "2014-02-05"

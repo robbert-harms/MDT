@@ -3,10 +3,10 @@ import six
 from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate
 from mdt.components import has_component, get_component
 from mot.cl_data_type import SimpleCLDataType
-from mot.model_building.parameter_functions.numdiff_info import NumDiffInfo, SimpleNumDiffInfo
-from mot.model_building.parameters import StaticMapParameter, ProtocolParameter, FreeParameter
-from mot.model_building.parameter_functions.priors import UniformWithinBoundsPrior
-from mot.model_building.parameter_functions.transformations import AbstractTransformation
+from mdt.model_building.parameter_functions.numdiff_info import NumDiffInfo, SimpleNumDiffInfo
+from mdt.model_building.parameters import StaticMapParameter, ProtocolParameter, FreeParameter
+from mdt.model_building.parameter_functions.priors import UniformWithinBoundsPrior
+from mdt.model_building.parameter_functions.transformations import AbstractTransformation
 
 
 __author__ = 'Robbert Harms'
@@ -96,7 +96,7 @@ class FreeParameterTemplate(ParameterTemplate):
         lower_bound (float): the lower bounds
         upper_bound (float): the upper bounds
         parameter_transform
-            (str or :class:`~mot.model_building.parameter_functions.transformations.AbstractTransformation`): the
+            (str or :class:`~mdt.model_building.parameter_functions.transformations.AbstractTransformation`): the
             parameter transformation, this is used for automatic range transformation of the parameters during
             optimization. See Harms 2017 NeuroImage for details. Typical elements are:
 
@@ -115,10 +115,10 @@ class FreeParameterTemplate(ParameterTemplate):
             distributions. That is, when we are finalizing the proposals we will take, if set, the absolute
             modulus of that parameter to ensure the parameter is within [0, <modulus>].
         sampling_prior: the prior function
-        numdiff_info (dict or :class:`~mot.model_building.parameter_functions.numdiff_info.NumDiffInfo`):
+        numdiff_info (dict or :class:`~mdt.model_building.parameter_functions.numdiff_info.NumDiffInfo`):
             the information necessary to take the numerical derivative of a model with respect to this parameter.
             Either a dictionary with the keyword arguments to
-            :class:`~mot.model_building.parameter_functions.numdiff_info.SimpleNumDiffInfo` or an information
+            :class:`~mdt.model_building.parameter_functions.numdiff_info.SimpleNumDiffInfo` or an information
             object directly. If None, we use an empty dictionary. Please note that if you override this, you will have
             to specify all of the items (no automatic inheritance of sub-items).
     """
@@ -146,12 +146,12 @@ def _resolve_parameter_transform(parameter_transform):
 
     Args:
         parameter_transform
-            (str or :class:`~mot.model_building.parameter_functions.transformations.AbstractTransformation`):
+            (str or :class:`~mdt.model_building.parameter_functions.transformations.AbstractTransformation`):
             a parameter transformation name (with or without the postfix ``Transform``) or an actual object we
             just return.
 
     Returns:
-        mot.model_building.parameter_functions.transformations.AbstractTransformation: an actual transformation object
+        mdt.model_building.parameter_functions.transformations.AbstractTransformation: an actual transformation object
 
     Raises:
         ValueError: if the parameter transformation could not be resolved.

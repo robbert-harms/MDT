@@ -9,7 +9,7 @@ its data are handled during model construction.
 
 import numpy as np
 from mdt.component_templates.parameters import FreeParameterTemplate
-from mot.model_building.parameter_functions.priors import UniformWithinBoundsPrior, ARDBeta, ARDGaussian
+from mdt.model_building.parameter_functions.priors import UniformWithinBoundsPrior, ARDBeta, ARDGaussian
 
 
 __author__ = 'Robbert Harms'

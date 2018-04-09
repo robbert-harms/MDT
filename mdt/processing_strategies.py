@@ -27,7 +27,7 @@ from mdt.utils import create_roi, load_samples
 import collections
 
 from mot.cl_routines.sampling.amwg import AdaptiveMetropolisWithinGibbs
-from mot.model_building.model_builders import ParameterTransformedModel
+from mdt.model_building.model_builders import ParameterTransformedModel
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-07-29"

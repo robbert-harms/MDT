@@ -198,13 +198,13 @@ To change this to another likelihood model for one of your models you can overri
 By default the ``likelihood_function`` attribute is set to ``OffsetGaussian``.
 The likelihood function can either be defined as a string or as an object.
 Using a string, the possible options are ``Gaussian``, ``OffsetGaussian`` and ``Rician``.
-Using an object, you must provide an instance of :class:`mot.model_building.likelihood_functions.LikelihoodFunction`.
+Using an object, you must provide an instance of :class:`mdt.model_building.likelihood_functions.LikelihoodFunction`.
 For example:
 
 .. code-block:: python
 
     ...
-    from mot.model_building.likelihood_functions import RicianLikelihoodFunction
+    from mdt.model_building.likelihood_functions import RicianLikelihoodFunction
 
     class MyModel(CompositeModelTemplate)
         ...

@@ -60,7 +60,7 @@ to biophysical meaningful values and to scale the parameters to a range better s
 They work by injecting a parameter transformation before model evaluation that limits the parameters between bounds.
 See (Harms 2017) for more details on which transformations are used in MDT.
 You can define the transformation function used by setting the ``parameter_transform`` attribute.
-For an overview of the available parameter transformations, see :mod:`~mot.model_building.parameter_functions.transformations` in MOT.
+For an overview of the available parameter transformations, see :mod:`~mdt.model_building.parameter_functions.transformations` in MOT.
 
 Sampling
 --------

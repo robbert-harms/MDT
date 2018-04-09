@@ -6,7 +6,7 @@ from mdt.components import get_component
 from mdt.models.composite import DMRICompositeModel
 from mdt.models.parsers.CompositeModelExpressionParser import parse
 from mot.cl_function import CLFunction, SimpleCLFunction
-from mot.model_building.trees import CompartmentModelTree
+from mdt.model_building.trees import CompartmentModelTree
 import collections
 
 __author__ = 'Robbert Harms'
@@ -176,7 +176,7 @@ class CompositeModelTemplate(ComponentTemplate):
         model_expression (str): the model expression. For the syntax see:
             mdt.models.parsers.CompositeModelExpression.ebnf
 
-        likelihood_function (:class:`mot.model_building.likelihood_functions.LikelihoodFunction` or str): the
+        likelihood_function (:class:`mdt.model_building.likelihood_functions.LikelihoodFunction` or str): the
             likelihood function to use during optimization, can also can be a string with one of
             'Gaussian', 'OffsetGaussian' or 'Rician'
 
@@ -227,9 +227,9 @@ class CompositeModelTemplate(ComponentTemplate):
 
             If the method ``_get_suitable_volume_indices`` is overwritten, this does nothing.
 
-        prior (str, mot.model_building.utils.ModelPrior or None): a model wide prior. This is used in conjunction with
+        prior (str, mdt.model_building.utils.ModelPrior or None): a model wide prior. This is used in conjunction with
             the compartment priors and the parameter priors. If a string is given we will automatically construct a
-            :class:`mot.model_building.utils.ModelPrior` from that string.
+            :class:`mdt.model_building.utils.ModelPrior` from that string.
     """
     _component_type = 'composite_models'
     _builder = DMRICompositeModelBuilder()
@@ -278,7 +278,7 @@ def _resolve_likelihood_function(likelihood_function):
         likelihood_function (str or object): the likelihood function to resolve to an object
 
     Returns:
-        mot.model_building.likelihood_models.LikelihoodFunction: the likelihood function to use
+        mdt.model_building.likelihood_models.LikelihoodFunction: the likelihood function to use
     """
     if isinstance(likelihood_function, six.string_types):
         return get_component('likelihood_functions', likelihood_function + 'LikelihoodFunction')()
@@ -294,7 +294,7 @@ def _resolve_model_prior(prior, model_parameters):
         model_parameters (str): the (model, parameter) tuple for all the parameters in the model
 
     Returns:
-        list of mot.model_building.utils.ModelPrior: list of model priors
+        list of mdt.model_building.utils.ModelPrior: list of model priors
     """
     if prior is None:
         return []

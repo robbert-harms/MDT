@@ -3,12 +3,12 @@ import inspect
 import os
 from collections import defaultdict
 from contextlib import contextmanager
-
+import mdt
 import mot
 from mdt.configuration import get_config_dir
 from mot.library_functions import SimpleCLLibrary
-from mot.model_building.likelihood_functions import LikelihoodFunction
-from mot.model_building.parameter_functions.transformations import AbstractTransformation
+from mdt.model_building.likelihood_functions import LikelihoodFunction
+from mdt.model_building.parameter_functions.transformations import AbstractTransformation
 
 __author__ = 'Robbert Harms'
 __date__ = '2018-03-22'
@@ -405,8 +405,8 @@ def _load_mot_components():
 
     items = [
         (mot.library_functions, SimpleCLLibrary, 'library_functions'),
-        (mot.model_building.likelihood_functions, LikelihoodFunction, 'likelihood_functions'),
-        (mot.model_building.parameter_functions.transformations, AbstractTransformation, 'parameter_transforms'),
+        (mdt.model_building.likelihood_functions, LikelihoodFunction, 'likelihood_functions'),
+        (mdt.model_building.parameter_functions.transformations, AbstractTransformation, 'parameter_transforms'),
     ]
 
     for module_obj, class_type, component_type in items:

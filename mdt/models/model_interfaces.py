@@ -1,4 +1,4 @@
-from mot.model_building.model_builders import ModelBuilder
+from mdt.model_building.model_builders import ModelBuilder
 from mot.model_interfaces import SampleModelInterface, NumericalDerivativeInterface
 
 __author__ = 'Robbert Harms'
@@ -9,7 +9,7 @@ __licence__ = 'LGPL v3'
 
 
 class MRIModelBuilder(ModelBuilder):
-    """This extends the :class:`~mot.model_building.model_builders.ModelBuilder` interface with some extra functions.
+    """This extends the :class:`~mdt.model_building.model_builders.ModelBuilder` interface with some extra functions.
 
     The model fitting in MDT requires some extra functions, both of the model builder as of the build model.
     """

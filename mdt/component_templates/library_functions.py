@@ -5,7 +5,7 @@ from mdt.component_templates.base import ComponentBuilder, method_binding_meta, 
     ComponentTemplate
 from mot.cl_data_type import SimpleCLDataType
 from mot.library_functions import SimpleCLLibrary
-from mot.model_building.parameters import LibraryParameter
+from mdt.model_building.parameters import LibraryParameter
 from mdt.components import get_component, has_component
 
 __author__ = 'Robbert Harms'
@@ -108,7 +108,7 @@ def _resolve_dependencies(dependencies):
 def _resolve_parameters(parameter_list):
     """Convert all the parameters in the given parameter list to actual parameter objects.
 
-    This will load all the parameters as :class:`~mot.model_building.parameters.LibraryParameter`.
+    This will load all the parameters as :class:`~mdt.model_building.parameters.LibraryParameter`.
 
     Args:
         parameter_list (list): a list containing a mix of either parameter objects or strings. If it is a parameter
