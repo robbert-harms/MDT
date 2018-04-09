@@ -2,6 +2,18 @@
 Changelog
 *********
 
+v0.11.2 (2018-04-09)
+====================
+
+Fixed
+-----
+- Fixed small regression in mdt-batch-fit.
+
+Other
+-----
+- Moved the model building modules from MOT to here.
+
+
 v0.11.1 (2018-04-04)
 ====================
 
