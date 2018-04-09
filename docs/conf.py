@@ -24,9 +24,9 @@ import re
 from textwrap import dedent
 
 
-mock_as_class = ['SampleModelBuilder', 'ModelBuilder', 'QWidget', 'QMainWindow', 'QDialog', 'QObject',
-                 'CLRoutine', 'InputData', 'NumDiffInfo', 'FreeParameter', 'SampleModelInterface',
-                 'NumericalDerivativeInterface']
+mock_as_class = ['SampleModelBuilder', 'QWidget', 'QMainWindow', 'QDialog', 'QObject',
+                 'CLRoutine', 'InputData', 'NumDiffInfo', 'SampleModelInterface',
+                 'NumericalDerivativeInterface', 'CLFunction', 'SimpleCLFunction']
 mock_as_decorator = ['pyqtSlot']
 mock_modules = ['mot', 'pyopencl', 'PyQt5', 'matplotlib', 'mpl_toolkits']
 
@@ -245,7 +245,7 @@ html_theme_options = {
 # The name of an image file (within the static path) to use as favicon
 # of the docs.  This file should be a Windows icon file (.ico) being
 # 16x16 or 32x32 pixels large.
-html_favicon = 'html_favicon.ico'
+html_favicon = '_static/html_favicon.ico'
 
 # Add any paths that contain custom static files (such as style sheets)
 # here, relative to this directory. They are copied after the builtin

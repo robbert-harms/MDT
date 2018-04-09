@@ -11,14 +11,15 @@ Subpackages
     mdt.component_templates
     mdt.file_conversions
     mdt.gui
+    mdt.model_building
     mdt.models
     mdt.visualization
 
 Submodules
 ----------
 
-mdt.batch_utils module
-----------------------
+mdt.batch\_utils module
+-----------------------
 
 .. automodule:: mdt.batch_utils
     :members:
@@ -41,8 +42,8 @@ mdt.configuration module
     :undoc-members:
     :show-inheritance:
 
-mdt.deferred_mappings module
-----------------------------
+mdt.deferred\_mappings module
+-----------------------------
 
 .. automodule:: mdt.deferred_mappings
     :members:
@@ -57,8 +58,8 @@ mdt.exceptions module
     :undoc-members:
     :show-inheritance:
 
-mdt.log_handlers module
------------------------
+mdt.log\_handlers module
+------------------------
 
 .. automodule:: mdt.log_handlers
     :members:
@@ -73,16 +74,16 @@ mdt.masking module
     :undoc-members:
     :show-inheritance:
 
-mdt.model_fitting module
-------------------------
+mdt.model\_fitting module
+-------------------------
 
 .. automodule:: mdt.model_fitting
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.model_sampling module
--------------------------
+mdt.model\_sampling module
+--------------------------
 
 .. automodule:: mdt.model_sampling
     :members:
@@ -97,16 +98,16 @@ mdt.nifti module
     :undoc-members:
     :show-inheritance:
 
-mdt.post_processing module
---------------------------
+mdt.post\_processing module
+---------------------------
 
 .. automodule:: mdt.post_processing
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.processing_strategies module
---------------------------------
+mdt.processing\_strategies module
+---------------------------------
 
 .. automodule:: mdt.processing_strategies
     :members:
@@ -121,8 +122,8 @@ mdt.protocols module
     :undoc-members:
     :show-inheritance:
 
-mdt.shell_utils module
-----------------------
+mdt.shell\_utils module
+-----------------------
 
 .. automodule:: mdt.shell_utils
     :members:
@@ -145,8 +146,8 @@ mdt.sorting module
     :undoc-members:
     :show-inheritance:
 
-mdt.user_script_info module
----------------------------
+mdt.user\_script\_info module
+-----------------------------
 
 .. automodule:: mdt.user_script_info
     :members:

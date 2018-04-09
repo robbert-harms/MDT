@@ -12,8 +12,8 @@ mdt.visualization.maps.base module
     :undoc-members:
     :show-inheritance:
 
-mdt.visualization.maps.matplotlib_renderer module
--------------------------------------------------
+mdt.visualization.maps.matplotlib\_renderer module
+--------------------------------------------------
 
 .. automodule:: mdt.visualization.maps.matplotlib_renderer
     :members:

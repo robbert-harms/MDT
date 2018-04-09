@@ -11,8 +11,8 @@ Subpackages
 Submodules
 ----------
 
-mdt.visualization.dict_conversion module
-----------------------------------------
+mdt.visualization.dict\_conversion module
+-----------------------------------------
 
 .. automodule:: mdt.visualization.dict_conversion
     :members:

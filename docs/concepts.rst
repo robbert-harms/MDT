@@ -149,11 +149,6 @@ See this figure for the general compilation flow in MDT:
 .. image:: _static/figures/mdt_compilation_flow.png
 
 
-When creating a compartment model in MDT, please make sure to follow the compartment modeling guidelines in :ref:`model_building_defining_compartments` to prevent naming conflicts.
-Since OpenCL kernels have a single global function namespace and a lot of functions are combined into one kernel
-(e.g. compartment models, optimization routines, library routines etc.) it is possible to have naming conflicts.
-If you follow the modeling guidelines you are generally fine.
-
 To support both single and double floating point precision, MDT uses the ``mot_float_type`` instead of ``float`` and ``double`` for most of the variables and function definitions.
 During optimization and sampling, ``mot_float_type`` is type-defined to be either a float or a double, depending on the desired precision.
 Of course this does not limit you to use ``double`` and ``float`` as well in your code.
