@@ -26,20 +26,16 @@ class CalculateModelEstimates(CLRoutine):
         Returns:
             ndarray: Return per problem instance the evaluation per data point.
         """
-        mot_float_dtype = np.float32
-        if model.double_precision:
-            mot_float_dtype = np.float64
-
         nmr_inst_per_problem = model.get_nmr_inst_per_problem()
 
-        parameters = np.require(parameters, mot_float_dtype, requirements=['C', 'A', 'O'])
+        parameters = np.require(parameters, self._mot_float_dtype, requirements=['C', 'A', 'O'])
 
         nmr_problems = parameters.shape[0]
-        evaluations = np.zeros((nmr_problems, nmr_inst_per_problem), dtype=mot_float_dtype, order='C')
+        evaluations = np.zeros((nmr_problems, nmr_inst_per_problem), dtype=self._mot_float_dtype, order='C')
 
         workers = self._create_workers(lambda cl_environment: _EvaluateModelWorker(
-            cl_environment, self.get_compile_flags_list(model.double_precision), model, parameters, evaluations,
-            mot_float_dtype))
+            cl_environment, self.get_compile_flags_list(), model, parameters, evaluations,
+            self._mot_float_dtype, self._double_precision))
         self.load_balancer.process(workers, nmr_problems)
 
         return evaluations
@@ -47,13 +43,14 @@ class CalculateModelEstimates(CLRoutine):
 
 class _EvaluateModelWorker(Worker):
 
-    def __init__(self, cl_environment, compile_flags, model, parameters, evaluations, mot_float_dtype):
+    def __init__(self, cl_environment, compile_flags, model, parameters, evaluations, mot_float_dtype,
+                 double_precision):
         super(_EvaluateModelWorker, self).__init__(cl_environment)
 
         self._model = model
         self._data_info = self._model.get_kernel_data()
         self._data_struct_manager = KernelInputDataManager(self._data_info, mot_float_dtype)
-        self._double_precision = model.double_precision
+        self._double_precision = double_precision
         self._evaluations = evaluations
         self._parameters = parameters
 
@@ -98,7 +95,7 @@ class _EvaluateModelWorker(Worker):
         kernel_source = '''
             #define NMR_INST_PER_PROBLEM ''' + str(self._model.get_nmr_inst_per_problem()) + '''
         '''
-        kernel_source += get_float_type_def(self._model.double_precision)
+        kernel_source += get_float_type_def(self._double_precision)
         kernel_source += self._data_struct_manager.get_struct_definition()
         kernel_source += eval_function_info.get_cl_code()
         kernel_source += param_modifier.get_cl_code()

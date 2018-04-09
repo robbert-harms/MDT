@@ -121,3 +121,4 @@ class KurtosisTensor(CompartmentTemplate):
         DTIMeasures.extra_optimization_maps,
         DKIMeasures().calculate
     ]
+    extra_sampling_maps = [DTIMeasures.extra_sampling_maps]

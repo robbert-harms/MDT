@@ -147,7 +147,6 @@ class ModelFit(object):
         if isinstance(model, string_types):
             model = get_model(model)()
 
-        model.double_precision = double_precision
         if post_processing:
             model.update_active_post_processing('optimization', post_processing)
 
@@ -157,6 +156,7 @@ class ModelFit(object):
         if cascade_subdir and isinstance(self._model, DMRICascadeModelInterface):
             self._output_folder += '/{}'.format(self._model.name)
         self._optimizer = optimizer
+        self._double_precision = double_precision
         self._recalculate = recalculate
         self._only_recalculate_last = only_recalculate_last
         self._logger = logging.getLogger(__name__)
@@ -242,6 +242,7 @@ class ModelFit(object):
                 self._apply_user_provided_initialization_data(model)
 
             optimizer = self._optimizer or get_optimizer_for_model(model_names)
+            optimizer.double_precision = self._double_precision
 
             if self._cl_device_indices is not None:
                 all_devices = get_cl_devices()

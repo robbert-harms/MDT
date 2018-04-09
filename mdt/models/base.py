@@ -14,12 +14,8 @@ class DMRIOptimizable(object):
 
         The methods in this interface have little to do with modelling, but unify some extra required methods
         in the cascades and composite models.
-
-        Attributes:
-            double_precision (boolean): if we do the computations in double or float precision
         """
         super(DMRIOptimizable, self).__init__()
-        self.double_precision = False
 
     def is_input_data_sufficient(self, input_data=None):
         """Check if the input data has enough information for this model to work.

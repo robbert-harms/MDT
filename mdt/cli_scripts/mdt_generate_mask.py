@@ -67,12 +67,6 @@ class GenerateMask(BasicShellApplication):
                             help="The index of the device we would like to use. This follows the indices "
                                  "in mdt-list-devices and defaults to the first GPU.")
 
-        parser.add_argument('--double', dest='double_precision', action='store_true',
-                            help="Calculate in double precision.")
-        parser.add_argument('--float', dest='double_precision', action='store_false',
-                            help="Calculate in single precision. Default.")
-        parser.set_defaults(double_precision=False)
-
         return parser
 
     def run(self, args, extra_args):

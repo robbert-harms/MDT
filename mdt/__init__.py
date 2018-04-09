@@ -249,12 +249,12 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
         logger.info('Preparing for model {0}'.format(model.name))
         logger.info('The parameters we will sample are: {0}'.format(model.get_free_param_names()))
 
-        model.double_precision = double_precision
         results = sample_composite_model(model, input_data, base_dir, nmr_samples, thinning, burnin,
                                          get_temporary_results_dir(tmp_results_dir), recalculate=recalculate,
                                          store_samples=store_samples,
                                          sample_items_to_save=sample_items_to_save,
-                                         initialization_data=initialization_data)
+                                         initialization_data=initialization_data,
+                                         double_precision=double_precision)
 
         easy_save_user_script_info(save_user_script_info, os.path.join(base_dir, 'used_scripts.py'),
                                    stack()[1][0].f_globals.get('__file__'))

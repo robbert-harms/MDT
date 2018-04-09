@@ -9,6 +9,7 @@ from mdt.configuration import get_active_post_processing
 from mdt.deferred_mappings import DeferredFunctionDict
 
 from mdt.models.model_interfaces import MRIModelBuilder, MRIModelInterface
+from mot.cl_data_type import SimpleCLDataType
 from mot.cl_routines.mapping.numerical_hessian import NumericalHessian
 from mot.model_building.parameters import ProtocolParameter
 from mot.utils import convert_data_to_dtype, KernelInputArray, get_class_that_defined_method, \
@@ -159,7 +160,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
         if problems_to_analyze is not None:
             grad_dev = grad_dev[problems_to_analyze, ...]
 
-        return convert_data_to_dtype(grad_dev, 'mot_float_type*', self._get_mot_float_type())
+        return convert_data_to_dtype(grad_dev, 'mot_float_type*', SimpleCLDataType.from_string('float'))
 
     def get_required_protocol_names(self):
         """Get a list with the constant data names that are needed for this model to work.
@@ -357,7 +358,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
 
             def calculator(model, results_dict):
                 estimated_parameters = [results_dict[k] for k in estimable_parameter_names]
-                cpd = CalculateDependentParameters(double_precision=self.double_precision)
+                cpd = CalculateDependentParameters()
                 vals = cpd.calculate(model.get_kernel_data(), estimated_parameters, func, dependent_parameter_names)
                 return results_to_dict(vals, [n[1] for n in dependent_parameter_names])
         else:
@@ -386,20 +387,15 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
         return result
 
     def _get_rwm_proposal_stds(self, problems_to_analyze):
-        np_dtype = np.float32
-        if self.double_precision:
-            np_dtype = np.float64
-
         proposal_stds = []
         for m, p in self._model_functions_info.get_estimable_parameters_list():
             proposal_std = p.sampling_proposal_std
 
             if is_scalar(proposal_std):
                 if self._get_nmr_problems(problems_to_analyze) == 0:
-                    proposal_stds.append(np.full((1, 1), proposal_std, dtype=np_dtype))
+                    proposal_stds.append(np.full((1, 1), proposal_std))
                 else:
-                    proposal_stds.append(np.full((self._get_nmr_problems(problems_to_analyze), 1),
-                                                  proposal_std, dtype=np_dtype))
+                    proposal_stds.append(np.full((self._get_nmr_problems(problems_to_analyze), 1), proposal_std))
             else:
                 if len(proposal_std.shape) < 2:
                     proposal_std = np.transpose(np.asarray([proposal_std]))
@@ -681,10 +677,9 @@ class BuildCompositeModel(MRIModelInterface):
         Args:
             results_dict (dict): the list with the optimized points for each parameter
         """
-        hessian = NumericalHessian().calculate(
+        hessian = NumericalHessian(double_precision=True).calculate(
             self,
             results_array,
-            double_precision=True,
             step_ratio=2,
             nmr_steps=5,
             step_offset=0

@@ -85,13 +85,13 @@ class ExampleDataTest(unittest.TestCase):
         known_values = {
             'CHARMED_r1':
                 {'LogLikelihood':
-                     {'mean': -447.95446, 'std': 36.05978}},
+                     {'mean': -447.95446, 'std': 36.09088}},
             'CHARMED_r2':
                 {'LogLikelihood':
-                     {'mean': -436.13861, 'std': 25.09301}},
+                     {'mean': -436.13861, 'std': 25.13305}},
             'CHARMED_r3':
                 {'LogLikelihood':
-                     {'mean': -432.15878, 'std': 21.92248}}}
+                     {'mean': -432.15878, 'std': 21.87481}}}
 
         for model_name in ['CHARMED_r1', 'CHARMED_r2', 'CHARMED_r3']:
             pjoin = mdt.make_path_joiner(os.path.join(self._tmp_dir, self._tmp_dir_subdir, 'multishell_b6k_max'))

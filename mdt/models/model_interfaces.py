@@ -26,22 +26,6 @@ class MRIModelBuilder(ModelBuilder):
         """
         raise NotImplementedError()
 
-    def build_with_codec(self, problems_to_analyze):
-        """Construct the model and decorate it with ``ParameterTransformedModel`` using a parameter codec
-
-        This will build the model such that it uses the parameter codec which transforms the parameters
-        to and from optimization and model space. This can be used to enforce boundary conditions for the optimization
-        routine and present the optimization routine with a smoother set of parameters.
-
-        This is typically only used during optimization and not during sampling since during sampling we already
-        have priors for the boundary conditions and second, we want to sample the parameters directly to get the
-        correct parameter density.
-
-        Returns:
-            MRIModelInterface: the MRI build model
-        """
-        raise NotImplementedError()
-
 
 class MRIModelInterface(SampleModelInterface, NumericalDerivativeInterface):
     """Extends the :class:`~mot.model_interfaces.SampleModelInterface` for use within MDT."""

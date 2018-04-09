@@ -17,7 +17,6 @@ class DMRICascadeModelInterface(DMRIOptimizable):
         the previous fit used to initialize the next model.
         """
         super(DMRICascadeModelInterface, self).__init__(*args, **kwargs)
-        self.double_precision = False
 
     @property
     def name(self):
@@ -167,7 +166,6 @@ class SimpleCascadeModel(DMRICascadeModelInterface):
         Returns:
             model: the same model with all extra's set.
         """
-        model.double_precision = self.double_precision
         return model
 
     def _prepare_model(self, iteration_position, model, output_previous, output_all_previous):
