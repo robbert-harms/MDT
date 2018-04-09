@@ -63,7 +63,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
         if self._enforce_weights_sum_to_one:
             self._extra_optimization_maps_funcs.append(self._get_propagate_weights_uncertainty)
 
-        self.nmr_parameters_for_bic_calculation = self.get_nmr_estimable_parameters()
+        self.nmr_parameters_for_bic_calculation = self.get_nmr_parameters()
         self.required_nmr_shells = False
         self.volume_selection = True
         self._post_processing = get_active_post_processing()

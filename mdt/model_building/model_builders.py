@@ -135,7 +135,7 @@ class OptimizeModelBuilder(ModelBuilder):
                                    self._get_kernel_data(problems_to_analyze),
                                    self._get_nmr_problems(problems_to_analyze),
                                    self.get_nmr_inst_per_problem(),
-                                   self.get_nmr_estimable_parameters(),
+                                   self.get_nmr_parameters(),
                                    self._get_initial_parameters(problems_to_analyze),
                                    self._get_pre_eval_parameter_modifier(),
                                    self._get_objective_per_observation_function(problems_to_analyze),
@@ -357,7 +357,7 @@ class OptimizeModelBuilder(ModelBuilder):
         """See super class for details"""
         return self._input_data.nmr_observations
 
-    def get_nmr_estimable_parameters(self):
+    def get_nmr_parameters(self):
         """See super class for details"""
         return len(self._model_functions_info.get_estimable_parameters_list())
 
@@ -1801,8 +1801,8 @@ class ParameterTransformedModel(OptimizeModelInterface):
     def get_nmr_inst_per_problem(self):
         return self._model.get_nmr_inst_per_problem()
 
-    def get_nmr_estimable_parameters(self):
-        return self._model.get_nmr_estimable_parameters()
+    def get_nmr_parameters(self):
+        return self._model.get_nmr_parameters()
 
     def get_pre_eval_parameter_modifier(self):
         old_modifier = self._model.get_pre_eval_parameter_modifier()
@@ -1902,7 +1902,7 @@ class SimpleOptimizeModel(NumericalDerivativeInterface):
     def get_nmr_inst_per_problem(self):
         return self._nmr_inst_per_problem
 
-    def get_nmr_estimable_parameters(self):
+    def get_nmr_parameters(self):
         return self._nmr_estimable_parameters
 
     def get_pre_eval_parameter_modifier(self):

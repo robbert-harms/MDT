@@ -402,7 +402,7 @@ def get_best_batch_profile(data_folder):
     Returns:
         BatchProfile: the best matching batch profile.
     """
-    profiles = [get_batch_profile(name) for name in get_component_list('batch_profiles')]
+    profiles = [get_batch_profile(name)() for name in get_component_list('batch_profiles')]
 
     best_crawler = None
     best_subjects_count = 0
