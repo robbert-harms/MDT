@@ -1,5 +1,5 @@
 from mdt.model_building.model_builders import ModelBuilder
-from mot.model_interfaces import SampleModelInterface, NumericalDerivativeInterface
+from mot.model_interfaces import SampleModelInterface, NumericalDerivativeInterface, OptimizeModelInterface
 
 __author__ = 'Robbert Harms'
 __date__ = '2017-08-31'

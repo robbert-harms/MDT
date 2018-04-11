@@ -12,8 +12,9 @@ from mdt.models.model_interfaces import MRIModelBuilder, MRIModelInterface
 from mot.cl_data_type import SimpleCLDataType
 from mot.cl_routines.mapping.numerical_hessian import NumericalHessian
 from mdt.model_building.parameters import ProtocolParameter
-from mot.utils import convert_data_to_dtype, KernelInputArray, get_class_that_defined_method, \
-    hessian_to_covariance, SimpleNamedCLFunction
+from mot.utils import convert_data_to_dtype, get_class_that_defined_method, \
+    hessian_to_covariance, NameFunctionTuple
+from mot.kernel_input_data import KernelInputArray
 
 from mdt.models.base import MissingProtocolInput, InsufficientShells
 from mdt.models.base import DMRIOptimizable
@@ -431,7 +432,7 @@ class DMRICompositeModel(SampleModelBuilder, DMRIOptimizable, MRIModelBuilder):
                 }}
                 '''.format(func_name=func_name, address_space_parameter_vector=address_space_parameter_vector,
                            preliminary='', body='\n'.join(transformations))
-            return SimpleNamedCLFunction(prior, func_name)
+            return NameFunctionTuple(func_name, prior)
 
         return builder
 

@@ -13,8 +13,9 @@ from .parameters import CurrentObservationParam, StaticMapParameter, ProtocolPar
 from .parameter_functions.dependencies import SimpleAssignment, AbstractParameterDependency
 from .utils import ParameterCodec
 from mot.model_interfaces import OptimizeModelInterface, SampleModelInterface, NumericalDerivativeInterface
-from mot.utils import is_scalar, all_elements_equal, get_single_value, SimpleNamedCLFunction, convert_data_to_dtype, \
-    KernelInputArray, get_class_that_defined_method
+from mot.utils import is_scalar, all_elements_equal, get_single_value, NameFunctionTuple, convert_data_to_dtype, \
+    get_class_that_defined_method
+from mot.kernel_input_data import KernelInputArray
 
 __author__ = 'Robbert Harms'
 __date__ = "2014-03-14"
@@ -433,7 +434,7 @@ class OptimizeModelBuilder(ModelBuilder):
             void ''' + func_name + '''(mot_data_struct* data, mot_float_type* x){
             }
         '''
-        return SimpleNamedCLFunction(func, func_name)
+        return NameFunctionTuple(func_name, func)
 
     def _get_objective_per_observation_function(self, problems_to_analyze):
         eval_function_info = self._get_model_eval_function(problems_to_analyze)
@@ -461,7 +462,7 @@ class OptimizeModelBuilder(ModelBuilder):
                 return -''' + eval_model_func.get_cl_function_name() + '''(''' + ','.join(eval_call_args) + ''');
             }
         '''
-        return SimpleNamedCLFunction(func, func_name)
+        return NameFunctionTuple(func_name, func)
 
     def _get_model_eval_function(self, problems_to_analyze):
         """Get the evaluation function that evaluates the model at the given parameters.
@@ -470,7 +471,7 @@ class OptimizeModelBuilder(ModelBuilder):
         it should merely return the result of evaluating the model for the given parameters.
 
         Returns:
-            mot.utils.NamedCLFunction: a named CL function with the following signature:
+            mot.utils.NameFunctionTuple: a named CL function with the following signature:
 
                 .. code-block:: c
 
@@ -513,7 +514,7 @@ class OptimizeModelBuilder(ModelBuilder):
         cl_function = dedent(cl_function.replace('\t', ' ' * 4))
 
         return_str = get_preliminary() + cl_function
-        return SimpleNamedCLFunction(return_str, function_name)
+        return NameFunctionTuple(function_name, return_str)
 
     def _get_parameter_transformations(self):
         dec_func_list = []
@@ -612,7 +613,7 @@ class OptimizeModelBuilder(ModelBuilder):
         """Get the parameter transformation for use in the numerical differentiation algorithm.
 
         Returns:
-            mot.utils.NamedCLFunction: A function with the signature:
+            mot.utils.NameFunctionTuple: A function with the signature:
                 .. code-block:: c
 
                     void <func_name>(mot_data_struct* data, mot_float_type* params);
@@ -634,7 +635,7 @@ class OptimizeModelBuilder(ModelBuilder):
                 {transforms}
             }}
         '''.format(func_name=func_name, transforms='\n'.join(transforms))
-        return SimpleNamedCLFunction(func, func_name)
+        return NameFunctionTuple(func_name, func)
 
 
     def _transform_observations(self, observations):
@@ -1186,7 +1187,7 @@ class SampleModelBuilder(OptimizeModelBuilder):
                 }}
                 '''.format(func_name=func_name, address_space_parameter_vector=address_space_parameter_vector,
                            preliminary=preliminary, body=body)
-            return SimpleNamedCLFunction(prior, func_name)
+            return NameFunctionTuple(func_name, prior)
         return builder
 
     def _get_log_likelihood_per_observation_function(self, problems_to_analyze):
@@ -1218,7 +1219,7 @@ class SampleModelBuilder(OptimizeModelBuilder):
                return ''' + eval_model_func.get_cl_function_name() + '''(''' + ','.join(eval_call_args) + ''');
            }
        '''
-        return SimpleNamedCLFunction(func, func_name)
+        return NameFunctionTuple(func_name, func)
 
     def _get_weight_prior(self):
         """Get the prior limiting the weights between 0 and 1"""
@@ -1245,7 +1246,7 @@ class SampleModelBuilder(OptimizeModelBuilder):
                 }}
                 '''.format(func_name=func_name, address_space_parameter_vector=address_space_parameter_vector,
                            preliminary='', body='')
-            return SimpleNamedCLFunction(prior, func_name)
+            return NameFunctionTuple(func_name, prior)
         return builder
 
 
@@ -1816,7 +1817,7 @@ class ParameterTransformedModel(OptimizeModelInterface):
                 ''' + old_modifier.get_cl_function_name() + '''(data, x);
             }
         '''
-        return SimpleNamedCLFunction(code, new_fname)
+        return NameFunctionTuple(new_fname, code)
 
     def get_objective_per_observation_function(self):
         return self._model.get_objective_per_observation_function()
@@ -1942,7 +1943,7 @@ class SimpleOptimizeModel(NumericalDerivativeInterface):
         return self._numdiff_use_lower_bounds
 
 
-class SimpleSampleModel(SampleModelInterface):
+class SimpleSampleModel(OptimizeModelInterface, SampleModelInterface):
 
     def __init__(self, wrapped_optimize_model, ll_per_obs_func, log_prior_function_builder,
                  finalize_proposal_function_builder):
@@ -1954,7 +1955,7 @@ class SimpleSampleModel(SampleModelInterface):
     def __getattribute__(self, item):
         try:
             value = super(SimpleSampleModel, self).__getattribute__(item)
-            if hasattr(SampleModelInterface, item):
+            if hasattr(SampleModelInterface, item) or hasattr(OptimizeModelInterface, item):
                 if inspect.ismethod(value) or inspect.isfunction(value):
                     if not issubclass(get_class_that_defined_method(value), SimpleSampleModel):
                         raise NotImplementedError()

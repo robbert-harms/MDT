@@ -35,7 +35,7 @@ def easy_save_user_script_info(save_user_script_info, output_file, file_path_fro
             SaveFromScript saver. If False or None, we do not write any information. If a SaveUserScriptInfo is
             given we use that directly.
         output_file (str): the output folder for the output file
-        file_path_from_stack (str): the file path from the stack inspection
+        file_path_from_stack (str or None): the file path from the stack inspection
     """
     if save_user_script_info:
         if isinstance(save_user_script_info, SaveUserScriptInfo):
@@ -44,7 +44,7 @@ def easy_save_user_script_info(save_user_script_info, output_file, file_path_fro
         elif isinstance(save_user_script_info, string_types):
             SaveFromScript(save_user_script_info).write(output_file)
 
-        elif save_user_script_info is True:
+        elif save_user_script_info is True and file_path_from_stack is not None:
             SaveFromScript(file_path_from_stack).write(output_file)
 
 
