@@ -2,6 +2,15 @@
 Changelog
 *********
 
+v0.11.3 (2018-04-11)
+====================
+
+Changed
+-------
+- Updates to the docs.
+- Following changes in MOT.
+
+
 v0.11.2 (2018-04-09)
 ====================
 
