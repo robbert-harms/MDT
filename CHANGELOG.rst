@@ -2,6 +2,14 @@
 Changelog
 *********
 
+v0.11.4 (2018-04-12)
+====================
+
+Fixed
+-----
+- Fixed a bug which made the mdt-model-fit no longer work.
+
+
 v0.11.3 (2018-04-11)
 ====================
 
