@@ -107,7 +107,7 @@ class ComponentTemplateMeta(type):
 
         try:
             component_type = mcs._resolve_attribute(bases, attributes, '_component_type')
-            if component_type is not None:
+            if component_type is not None and attributes['name']:
                 from mdt.components import add_template_component
                 add_template_component(component_type, attributes['name'], result)
         except ValueError:
