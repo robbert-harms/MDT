@@ -68,6 +68,9 @@ class BatchProfileBuilder(ComponentBuilder):
 
                 return subjects
 
+            def __str__(self):
+                return template.name
+
         return AutoCreatedBatchProfile
 
 
