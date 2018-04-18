@@ -88,9 +88,8 @@ This is useful for for example static T1 maps for use in complex models.
 ***************
 Dynamic modules
 ***************
-Extending and adapting MDT with new models is made easy using dynamically loadable modules placed in your home folder.
-These modules are Python files placed in the ``.mdt`` folder in your home drive and are reloaded every time MDT is started.
-Users are free to add, remove and modify components in this folder and MDT will pickup the changes automatically.
+Extending and adapting MDT with new models is made easy using the dynamic library system allowing you to (re)define models anywhere.
+Users are free to add, remove and modify components and MDT will pickup the changes automatically.
 See :ref:`adding_models` for more information.
 
 
