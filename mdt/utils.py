@@ -25,7 +25,6 @@ from mdt.log_handlers import ModelOutputLogHandler
 from mdt.nifti import load_nifti, write_nifti
 from mdt.protocols import load_protocol, write_protocol
 from mot.cl_environments import CLEnvironmentFactory
-from mdt.model_building.input_data import InputData
 from mdt.model_building.parameter_functions.dependencies import AbstractParameterDependency
 
 __author__ = 'Robbert Harms'
@@ -35,8 +34,76 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class MRIInputData(InputData):
-    """Adds a few MRI specific properties to the input data interface."""
+class MRIInputData(object):
+    """A simple container for the input data for optimization/sampling models."""
+
+    def has_input_data(self, parameter_name):
+        """Check if input data for the given parameter is defined in the model.
+
+        Args:
+             parameter_name (str): the name of the parameter for which we want to get input data
+
+        Returns:
+            boolean: true if there is input data defined for the given parameter, false otherwise
+        """
+        raise NotImplementedError()
+
+    def get_input_data(self, parameter_name):
+        """Get the input data for the given parameter.
+
+        Args:
+             parameter_name (str): the name of the parameter for which we want to get input data
+
+        Returns:
+            float, ndarray or None: either a scalar, a vector or a matrix with values for the given parameter.
+
+        Raises:
+            ValueError: if no suitable value can be found.
+        """
+        raise NotImplementedError()
+
+    @property
+    def nmr_problems(self):
+        """Get the number of problems present in this input data.
+
+        Returns:
+            int: the number of problem instances
+        """
+        raise NotImplementedError()
+
+    @property
+    def nmr_observations(self):
+        """Get the number of observations/data points per problem.
+
+        The minimum is one observation per problem.
+
+        Returns:
+            int: the number of instances per problem (aka data points)
+        """
+        raise NotImplementedError()
+
+    @property
+    def observations(self):
+        """Return the observations stored in this input data container.
+
+        Returns:
+            ndarray: The list of observed instances per problem. Should be a 2d matrix of type float with as
+                columns the observations and as rows the problems.
+        """
+        raise NotImplementedError()
+
+    @property
+    def noise_std(self):
+        """The noise standard deviation we will use during model evaluation.
+
+        During optimization or sampling the model will be evaluated against the observations using a
+        likelihood function. Most of these likelihood functions need a standard deviation representing the noise
+        in the data.
+
+        Returns:
+            number of ndarray: either a scalar or a 2d matrix with one value per problem instance.
+        """
+        raise NotImplementedError()
 
     @property
     def protocol(self):
@@ -98,6 +165,24 @@ class MRIInputData(InputData):
         """
         raise NotImplementedError()
 
+    def get_subset(self, volumes_to_keep=None, volumes_to_remove=None):
+        """Create a copy of this input data where we only keep a subset of the volumes.
+
+        This creates a a new input data object with a subset of the protocol and the DWI volume, keeping only
+        those specified.
+
+        One can either specify a list with volumes to keep or a list with volumes to remove (and we will keep the rest).
+        At least one and at most one list must be specified.
+
+        Args:
+            volumes_to_keep (list): the list with volumes we would like to keep.
+            volumes_to_remove (list): the list with volumes we would like to remove (keeping the others).
+
+        Returns:
+            MRIInputData: the new input data
+        """
+        raise NotImplementedError()
+
 
 class SimpleMRIInputData(MRIInputData):
 
@@ -138,6 +223,13 @@ class SimpleMRIInputData(MRIInputData):
             raise ValueError('Length of the protocol ({}) does not equal the number of volumes ({}).'.format(
                 protocol.length, signal4d.shape[3]))
 
+    def has_input_data(self, parameter_name):
+        try:
+            self.get_input_data(parameter_name)
+            return True
+        except ValueError:
+            return False
+
     def get_input_data(self, parameter_name):
         """Get the input data for the given parameter.
 
@@ -147,7 +239,7 @@ class SimpleMRIInputData(MRIInputData):
             return self.static_maps[parameter_name]
         if parameter_name in self._protocol:
             return self._protocol[parameter_name]
-        return None
+        raise ValueError('No input data could be find for the parameter "{}".'.format(parameter_name))
 
     def copy_with_updates(self, *args, **kwargs):
         """Create a copy of this input data, while setting some of the arguments to new values.
@@ -177,21 +269,6 @@ class SimpleMRIInputData(MRIInputData):
         return args, kwargs
 
     def get_subset(self, volumes_to_keep=None, volumes_to_remove=None):
-        """Create a copy of this input data where we only keep a subset of the volumes.
-
-        This creates a a new :class:`SimpleMRIInputData` with a subset of the protocol and the DWI volume, keeping those
-        specified.
-
-        One can either specify a list with volumes to keep or a list with volumes to remove (and we will keep the rest).
-        At least one and at most one list must be specified.
-
-        Args:
-            volumes_to_keep (list): the list with volumes we would like to keep.
-            volumes_to_remove (list): the list with volumes we would like to remove (keeping the others).
-
-        Returns:
-            SimpleMRIInputData: the new input data
-        """
         if (volumes_to_keep is not None) and (volumes_to_remove is not None):
             raise ValueError('You can not specify both the list with volumes to keep and volumes to remove. Choose one.')
         if (volumes_to_keep is None) and (volumes_to_remove is None):
@@ -287,22 +364,13 @@ class SimpleMRIInputData(MRIInputData):
 
     @property
     def noise_std(self):
-        """The noise standard deviation we will use during model evaluation.
-
-        During optimization or sampling the model will be evaluated against the observations using an evaluation
-        model. Most of these evaluation models need to have a standard deviation.
-
-        Returns:
-            number of ndarray: either a scalar or a 2d matrix with one value per problem instance.
-        """
-        logger = logging.getLogger(__name__)
-
         def _compute_noise_std():
             if self._noise_std is None:
                 try:
                     return estimate_noise_std(self)
                 except NoiseStdEstimationNotPossible:
-                    logger.warning('Failed to obtain a noise std for this subject. We will continue with an std of 1.')
+                    self._logger.warning('Failed to obtain a noise std for this subject. '
+                                         'We will continue with an std of 1.')
                     return 1
 
             if isinstance(self._noise_std, (numbers.Number, np.ndarray)):
@@ -315,7 +383,7 @@ class SimpleMRIInputData(MRIInputData):
                         return float(f.read())
                 return load_nifti(filename).get_data()
 
-            logger.warning('Failed to obtain a noise std for this subject. We will continue with an std of 1.')
+            self._logger.warning('Failed to obtain a noise std for this subject. We will continue with an std of 1.')
             return 1
 
         self._noise_std = _compute_noise_std()
@@ -1824,4 +1892,3 @@ def load_volume_maps(directory, map_names=None, deferred=True):
     """
     from mdt.nifti import get_all_nifti_data
     return get_all_nifti_data(directory, map_names=map_names, deferred=deferred)
-

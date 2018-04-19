@@ -31,3 +31,7 @@ class NonUniqueComponent(Exception):
 
     If this is raised, please double check your components for items with non-unique names.
     """
+
+
+class DoubleModelNameException(Exception):
+    """Thrown when there are two models with the same name."""
