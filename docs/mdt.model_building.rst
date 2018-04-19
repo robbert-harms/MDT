@@ -11,26 +11,10 @@ Subpackages
 Submodules
 ----------
 
-mdt.model\_building.input\_data module
---------------------------------------
-
-.. automodule:: mdt.model_building.input_data
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 mdt.model\_building.likelihood\_functions module
 ------------------------------------------------
 
 .. automodule:: mdt.model_building.likelihood_functions
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-mdt.model\_building.model\_builders module
-------------------------------------------
-
-.. automodule:: mdt.model_building.model_builders
     :members:
     :undoc-members:
     :show-inheritance:

@@ -15,13 +15,13 @@ from mdt.model_building.utils import ParameterCodec
 from mot.cl_data_type import SimpleCLDataType
 from mot.cl_function import SimpleCLFunction, SimpleCLFunctionParameter
 from mot.cl_routines.mapping.numerical_hessian import NumericalHessian
-from mdt.model_building.parameters import ProtocolParameter, FreeParameter, StaticMapParameter, CurrentObservationParam
+from mdt.model_building.parameters import ProtocolParameter, FreeParameter, CurrentObservationParam
 from mot.model_interfaces import SampleModelInterface, NumericalDerivativeInterface
 from mot.utils import convert_data_to_dtype, \
     hessian_to_covariance, NameFunctionTuple, all_elements_equal, get_single_value
 from mot.kernel_input_data import KernelInputArray
 
-from mdt.models.base import MissingProtocolInput, InsufficientShells
+from mdt.models.base import MissingProtocolInput
 from mdt.models.base import DMRIOptimizable
 from mdt.utils import create_roi, calculate_point_estimate_information_criterions, is_scalar, results_to_dict
 from mot.cl_routines.mapping.calc_dependent_params import CalculateDependentParameters
@@ -57,7 +57,6 @@ class DMRICompositeModel(DMRIOptimizable):
                 that ensures that those other weights sum to at most one.
 
         Attributes:
-            required_nmr_shells (int): Define the minimum number of unique shells necessary for this model.
                 The default is false, which means that we don't check for this.
             volume_selection (boolean): if we should do volume selection or not, set this before
                 calling ``set_input_data``.
@@ -117,7 +116,6 @@ class DMRICompositeModel(DMRIOptimizable):
             self._extra_optimization_maps_funcs.append(self._get_propagate_weights_uncertainty)
 
         self.nmr_parameters_for_bic_calculation = self.get_nmr_parameters()
-        self.required_nmr_shells = False
         self.volume_selection = True
         self._post_processing = get_active_post_processing()
 
@@ -397,21 +395,6 @@ class DMRICompositeModel(DMRIOptimizable):
         """
         return self._input_data
 
-    def set_fixed_parameter_values(self, fixed_values):
-        """Given a dictionary with static maps, initialize the values of the static parameters with these values.
-
-        Make sure that if vectors are given, the length of the vector should match the length of the number of problems
-        (in the input data).
-
-        Args:
-            fixed_values (dict): the dictionary with the static maps.
-        """
-        static_params = self._model_functions_info.get_static_parameters_list()
-        for m, p in static_params:
-            if p.name in fixed_values:
-                self._model_functions_info.set_parameter_value('{}.{}'.format(m.name, p.name), fixed_values[p.name])
-        return self
-
     def get_nmr_inst_per_problem(self):
         """See super class for details"""
         return self._input_data.nmr_observations
@@ -440,6 +423,45 @@ class DMRICompositeModel(DMRIOptimizable):
     def get_free_param_names(self):
         """Get the names of the free parameters"""
         return ['{}.{}'.format(m.name, p.name) for m, p in self._model_functions_info.get_estimable_parameters_list()]
+
+    def get_required_protocol_names(self):
+        """Get a list with the constant data names that are needed for this model to work.
+
+        For example, an implementing diffusion MRI model might require the presence of the protocol parameter
+        'g' and 'b'. This function should then return ('g', 'b').
+
+        Returns:
+            list: A list of columns names that need to be present in the protocol
+        """
+        return list(set([p.name for m, p in self._model_functions_info.get_model_parameter_list() if
+                         isinstance(p, ProtocolParameter)]))
+
+    def is_input_data_sufficient(self, input_data=None):
+        return not self.get_input_data_problems(input_data=input_data)
+
+    def get_input_data_problems(self, input_data=None):
+        if input_data is None:
+            input_data = self._input_data
+
+        problems = []
+
+        missing_columns = []
+        for name in self.get_required_protocol_names():
+            if not input_data.has_input_data(name):
+                for m, p in self._model_functions_info.get_protocol_parameters_list():
+                    if p.name == name and p.value is None:
+                        missing_columns.append(name)
+
+        if missing_columns:
+            problems.append(MissingProtocolInput(missing_columns))
+
+        return problems
+
+    def param_dict_to_array(self, volume_dict):
+        params = [volume_dict['{}.{}'.format(m.name, p.name)] for m, p
+                  in self._model_functions_info.get_estimable_parameters_list()]
+        return np.concatenate([np.transpose(np.array([s]))
+                               if len(s.shape) < 2 else s for s in params], axis=1)
 
     def _get_propagate_weights_uncertainty(self, results):
         std_names = ['{}.{}.std'.format(m.name, p.name) for (m, p) in self._model_functions_info.get_weights()]
@@ -474,50 +496,6 @@ class DMRICompositeModel(DMRIOptimizable):
 
         return convert_data_to_dtype(grad_dev, 'mot_float_type*', SimpleCLDataType.from_string('float'))
 
-    def get_required_protocol_names(self):
-        """Get a list with the constant data names that are needed for this model to work.
-
-        For example, an implementing diffusion MRI model might require the presence of the protocol parameter
-        'g' and 'b'. This function should then return ('g', 'b').
-
-        Returns:
-            list: A list of columns names that need to be present in the protocol
-        """
-        return list(set([p.name for m, p in self._model_functions_info.get_model_parameter_list() if
-                         isinstance(p, ProtocolParameter)]))
-
-    def is_input_data_sufficient(self, input_data=None):
-        return not self.get_input_data_problems(input_data=input_data)
-
-    def get_input_data_problems(self, input_data=None):
-        if input_data is None:
-            input_data = self._input_data
-
-        problems = []
-
-        missing_columns = []
-        for name in self.get_required_protocol_names():
-            if name not in input_data.protocol and name not in input_data.static_maps:
-                missing_columns.append(name)
-
-        if missing_columns:
-            problems.append(MissingProtocolInput(missing_columns))
-
-        try:
-            shells = input_data.protocol.get_nmr_shells()
-            if shells < self.required_nmr_shells:
-                problems.append(InsufficientShells(self.required_nmr_shells, shells))
-        except KeyError:
-            pass
-
-        return problems
-
-    def param_dict_to_array(self, volume_dict):
-        params = [volume_dict['{}.{}'.format(m.name, p.name)] for m, p
-                  in self._model_functions_info.get_estimable_parameters_list()]
-        return np.concatenate([np.transpose(np.array([s]))
-                               if len(s.shape) < 2 else s for s in params], axis=1)
-
     def _get_pre_model_expression_eval_code(self, problems_to_analyze):
         """The code called in the evaluation function.
 
@@ -535,10 +513,10 @@ class DMRICompositeModel(DMRIOptimizable):
             '''
             s = dedent(s.replace('\t', ' '*4))
 
-            if 'b' in list(self._get_protocol_data(problems_to_analyze).keys()):
+            if 'b' in list(self._get_protocol_data_as_var_data(problems_to_analyze).keys()):
                 s += 'b *= _new_gradient_vector_length * _new_gradient_vector_length;' + "\n"
 
-            if 'G' in list(self._get_protocol_data(problems_to_analyze).keys()):
+            if 'G' in list(self._get_protocol_data_as_var_data(problems_to_analyze).keys()):
                 s += 'G *= _new_gradient_vector_length;' + "\n"
 
             return s
@@ -584,7 +562,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
     def _can_use_gradient_deviations(self, problems_to_analyze):
         return self._input_data.gradient_deviations is not None \
-               and 'g' in list(self._get_protocol_data(problems_to_analyze).keys())
+               and 'g' in list(self._get_protocol_data_as_var_data(problems_to_analyze).keys())
 
     def _prepare_input_data(self, input_data):
         """Update the input data to make it suitable for this model.
@@ -628,24 +606,36 @@ class DMRICompositeModel(DMRIOptimizable):
         def warn(warning):
             self._logger.warning('{}, proceeding with seemingly inconsistent values.'.format(warning))
 
+        def convert_to_total_map(value):
+            if is_scalar(value):
+                return np.ones((input_data.nmr_problems, input_data.nmr_observations)) * value
+            if value.shape[0] == input_data.nmr_observations:
+                return np.tile(np.squeeze(value)[None, :], (input_data.nmr_problems, 1))
+            if value.shape[0] == input_data.nmr_problems and value.shape[1] != input_data.nmr_observations:
+                return np.tile(np.squeeze(value)[:, None], (1, input_data.nmr_observations))
+            return value
+
+        def any_greater(a, b):
+            return np.any(np.greater(convert_to_total_map(a), convert_to_total_map(b)))
+
         if input_data.has_input_data('TE') and input_data.has_input_data('TR'):
-            if np.any(np.greater(input_data.get_input_data('TE'), input_data.get_input_data('TR'))):
+            if any_greater(input_data.get_input_data('TE'), input_data.get_input_data('TR')):
                 warn('Volumes detected where TE > TR')
 
         if input_data.has_input_data('TE'):
-            if np.any(np.greater_equal(input_data.get_input_data('TE'), 1)):
+            if any_greater(input_data.get_input_data('TE'), 1):
                 warn('Volumes detected where TE >= 1 second')
 
         if input_data.has_input_data('TR'):
-            if np.any(np.greater_equal(input_data.get_input_data('TR'), 50)):
+            if any_greater(input_data.get_input_data('TR'), 50):
                 warn('Volumes detected where TR >= 50 seconds')
 
         if input_data.has_input_data('delta') and input_data.has_input_data('Delta'):
-            if np.any(np.greater_equal(input_data.get_input_data('delta'), input_data.get_input_data('Delta'))):
+            if any_greater(input_data.get_input_data('delta'), input_data.get_input_data('Delta')):
                 warn('Volumes detected where (small) delta >= (big) Delta')
 
         if input_data.has_input_data('Delta') and input_data.has_input_data('TE'):
-            if np.any(np.greater_equal(input_data.get_input_data('Delta'), input_data.get_input_data('TE'))):
+            if any_greater(input_data.get_input_data('Delta'), input_data.get_input_data('TE')):
                 warn('Volumes detected where (big) Delta >= TE')
 
     def _get_suitable_volume_indices(self, input_data):
@@ -785,12 +775,33 @@ class DMRICompositeModel(DMRIOptimizable):
             if len(names) > 1:
                 self.fix(names[0], SimpleAssignment('max((double)1 - ({}), (double)0)'.format(' + '.join(names[1:]))))
 
-    def _get_protocol_data(self, problems_to_analyze):
+    def _get_protocol_data_as_var_data(self, problems_to_analyze):
+        """Get the value for the given protocol parameter.
+
+        The resolution order is as follows, with a latter stage taking preference over an earlier stage
+
+        1. the value defined in the parameter definition
+        2. the <param_name> in the input data
+        2. the <model_name>.<param_name> in the input data
+
+        For protocol maps, this only returns the problems for which problems_to_analyze is set.
+
+        Args:
+            problems_to_analyze (ndarray): the problems we are interested in
+
+        Returns:
+            dict: the value for the given parameter.
+        """
         return_data = {}
 
         for m, p in self._model_functions_info.get_model_parameter_list():
             if isinstance(p, ProtocolParameter):
-                value = self._input_data.get_input_data(p.name)
+                value = self._get_protocol_value(m, p)
+
+                if value is None:
+                    raise ValueError('Could not find a suitable value for the '
+                                     'protocol parameter "{}" of compartment "{}".'.format(p.name, m.name))
+
                 if not all_elements_equal(value):
                     if value.shape[0] == self._input_data.nmr_problems:
                         if problems_to_analyze is not None:
@@ -800,6 +811,14 @@ class DMRICompositeModel(DMRIOptimizable):
                         const_d = {p.name: KernelInputArray(value, ctype=p.data_type.declaration_type, offset_str='0')}
                     return_data.update(const_d)
         return return_data
+
+    def _get_protocol_value(self, model, parameter):
+        if isinstance(parameter, ProtocolParameter):
+            value = parameter.value
+
+            if self._input_data.has_input_data(parameter.name):
+                value = self._input_data.get_input_data(parameter.name)
+            return value
 
     def _get_observations_data(self, problems_to_analyze):
         """Get the observations to use in the kernel.
@@ -887,54 +906,6 @@ class DMRICompositeModel(DMRIOptimizable):
 
         return data_type + ' ' + name + ' = ' + assignment + ';' + "\n"
 
-    def _get_static_map_value(self, model, parameter, problems_to_analyze):
-        """Get the map value for the given parameter of the given model.
-
-        The resolution order is as follows, with a latter stage taking preference over an earlier stage
-
-        1. the value defined in the parameter definition
-        2. the <param_name> in the input data
-        3. the <model_name>.<param_name> in the input data
-        4. the <param_name> in the provided initial values
-        5. the <model_name>.<param_name> in the provided initial values
-        6. the <param_name> in the provided fixed values
-        7. the <model_name>.<param_name> in the provided fixed values
-
-        This only returns the problems for which problems_to_analyze is set.
-
-        Args:
-            model (ModelCLFunction): the model function
-            parameter (CLParameter): the parameter for which we want to get the value
-            problems_to_analyze (ndarray): the problems we are interested in
-
-        Returns:
-            ndarray or number: the value for the given parameter.
-        """
-        def resolve_value():
-            value = self._model_functions_info.get_parameter_value('{}.{}'.format(model.name, parameter.name))
-
-            if self._input_data.get_input_data(parameter.name) is not None:
-                value = self._input_data.get_input_data(parameter.name)
-
-            if self._input_data.get_input_data('{}.{}'.format(model.name, parameter.name)) is not None:
-                value = self._input_data.get_input_data('{}.{}'.format(model.name, parameter.name))
-
-            return np.squeeze(value)
-
-        param_data = resolve_value()
-
-        if param_data is None:
-            raise ValueError('No suitable data could be found for the static parameter {}.'.format(parameter.name))
-
-        if is_scalar(param_data):
-            return get_single_value(param_data)
-
-        if param_data.shape[0] == self._input_data.nmr_problems:
-            if problems_to_analyze is not None:
-                return param_data[problems_to_analyze, ...]
-
-        return param_data
-
     def _get_parameters_listing(self, exclude_list=()):
         """Get the CL code for the parameter listing, this goes on top of the evaluate function.
 
@@ -983,19 +954,22 @@ class DMRICompositeModel(DMRIOptimizable):
         for m, p in param_list:
             if ('{}.{}'.format(m.name, p.name).replace('.', '_')) not in exclude_list:
 
-                param_value = self._input_data.get_input_data(p.name)
+                value = self._get_protocol_value(m, p)
                 data_type = p.data_type.declaration_type
 
                 if p.name not in const_params_seen:
-                    if all_elements_equal(param_value):
+                    if all_elements_equal(value):
                         if p.data_type.is_vector_type:
                             vector_length = p.data_type.vector_length
-                            values = [str(val) for val in param_value[0]]
+                            values = [str(val) for val in value[0]]
                             if len(values) < vector_length:
                                 values.append(str(0))
                             assignment = '(' + data_type + ')(' + ', '.join(values) + ')'
                         else:
-                            assignment = str(float(get_single_value(param_value)))
+                            assignment = str(float(get_single_value(value)))
+                    elif len(value.shape) > 1 and value.shape[0] == self._input_data.nmr_problems and \
+                            value.shape[1] != self._input_data.nmr_observations:
+                        assignment = 'data->' + p.name + '[0]'
                     else:
                         assignment = 'data->' + p.name + '[observation_index]'
                     func += "\t"*4 + data_type + ' ' + p.name + ' = ' + assignment + ';' + "\n"
@@ -1064,18 +1038,6 @@ class DMRICompositeModel(DMRIOptimizable):
                 var_data_dict[param_name] = KernelInputArray(value, ctype=p.data_type.declaration_type)
         return var_data_dict
 
-    def _get_static_parameters_as_var_data(self, problems_to_analyze):
-        static_data_dict = {}
-
-        for m, p in self._model_functions_info.get_static_parameters_list():
-            value = self._get_static_map_value(m, p, problems_to_analyze)
-            param_name = '{}.{}'.format(m.name, p.name).replace('.', '_')
-
-            if not all_elements_equal(value):
-                static_data_dict.update({param_name: KernelInputArray(value, ctype=p.data_type.declaration_type)})
-
-        return static_data_dict
-
     def _get_bounds_as_var_data(self, problems_to_analyze):
         bounds_dict = {}
 
@@ -1112,12 +1074,11 @@ class DMRICompositeModel(DMRIOptimizable):
         """
         return observations
 
-    def _get_composite_model_function_signature(self, composite_model, problems_to_analyze):
+    def _get_composite_model_function_signature(self, composite_model):
         """Create the parameter call code for the composite model.
 
         Args:
             composite_model (CompositeModelFunction): the composite model function
-            problems_to_analyze (list): the problems we are analyzing in this round
         """
         param_list = []
         for model, param in composite_model.get_model_parameter_list():
@@ -1125,17 +1086,6 @@ class DMRICompositeModel(DMRIOptimizable):
 
             if isinstance(param, ProtocolParameter):
                 param_list.append(param.name)
-            elif isinstance(param, StaticMapParameter):
-                static_map_value = self._get_static_map_value(model, param, problems_to_analyze)
-
-                if all_elements_equal(static_map_value):
-                    param_list.append(str(get_single_value(static_map_value)))
-                else:
-                    pointer_index = '0'
-                    if len(static_map_value.shape) > 1 and static_map_value.shape[1] != 1 \
-                        and static_map_value.shape[1] == self.get_nmr_inst_per_problem():
-                            pointer_index = 'observation_index'
-                    param_list.append('data->{}[{}]'.format(param_name, pointer_index))
             elif isinstance(param, CurrentObservationParam):
                 param_list.append('data->observations[observation_index]')
             else:
@@ -1308,8 +1258,7 @@ class DMRICompositeModel(DMRIOptimizable):
             body += dedent(param_listing.replace('\t', ' ' * 4))
             body += self._get_pre_model_expression_eval_code(problems_to_analyze) or ''
             body += '\n'
-            body += 'return ' + self._get_composite_model_function_signature(composite_model_function,
-                                                                             problems_to_analyze) + ';'
+            body += 'return ' + self._get_composite_model_function_signature(composite_model_function) + ';'
             return body
 
         function_name = '_evaluateModel'
@@ -1364,9 +1313,8 @@ class DMRICompositeModel(DMRIOptimizable):
         data_items = {}
         data_items.update(self._get_observations_data(problems_to_analyze))
         data_items.update(self._get_fixed_parameters_as_var_data(problems_to_analyze))
-        data_items.update(self._get_static_parameters_as_var_data(problems_to_analyze))
         data_items.update(self._get_bounds_as_var_data(problems_to_analyze))
-        data_items.update(self._get_protocol_data(problems_to_analyze))
+        data_items.update(self._get_protocol_data_as_var_data(problems_to_analyze))
 
         if self._input_data.gradient_deviations is not None:
             data_items['gradient_deviations'] = KernelInputArray(
@@ -2284,21 +2232,8 @@ class ModelFunctionsInformation(object):
                 dependency_fixed_parameters.append((m, p))
         return dependency_fixed_parameters
 
-    def get_static_parameters_list(self):
-        """Gets the static parameters (as model, parameter tuples) from the model listing."""
-        static_params = list((m, p) for m, p in self.get_model_parameter_list() if isinstance(p, StaticMapParameter))
-
-        if self._enable_prior_parameters:
-            prior_params = []
-            for m, p in self.get_estimable_parameters_list():
-                prior_params.extend((m, prior_p) for prior_p in m.get_prior_parameters(p)
-                                    if isinstance(prior_p, FreeParameter))
-            static_params.extend(prior_params)
-
-        return static_params
-
     def get_protocol_parameters_list(self):
-        """Gets the static parameters (as model, parameter tuples) from the model listing."""
+        """Gets the protocol parameters (as model, parameter tuples) from the model listing."""
         return list((m, p) for m, p in self.get_model_parameter_list() if isinstance(p, ProtocolParameter))
 
     def get_model_parameter_by_name(self, parameter_name):

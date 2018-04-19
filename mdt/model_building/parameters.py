@@ -43,37 +43,21 @@ class InputDataParameter(SimpleCLFunctionParameter):
         self.value = value
 
 
-class StaticMapParameter(InputDataParameter):
+class ProtocolParameter(InputDataParameter):
 
-    def __init__(self, data_type, name, value):
-        """This parameter is meant for static data that is different per problem.
+    def __init__(self, data_type, name, value=None):
+        """Caries data per observation.
 
-        These parameters are in usage similar to fixed free parameters. They are defined as static data parameters to
-        make clear that they are meant to provide additional observational data.
-
-        Values for this parameter type are typically loaded from the input data. A default is provided in the case
+        Values for this parameter type are typically loaded from the input data. A default can be provided in the case
         that there is no suitable value in the input data.
 
         Args:
             data_type (mot.cl_data_type.SimpleCLDataType): the data type expected by this parameter
             name (str): The name of this parameter
-            value (double or ndarray): The value used if no value is given in the input data.
-        """
-        super(StaticMapParameter, self).__init__(data_type, name, value)
-        self.value = value
-
-
-class ProtocolParameter(InputDataParameter):
-
-    def __init__(self, data_type, name):
-        """A protocol data parameter indicates that similar named parameters may be linked together.
-
-        When multiple functions in a composite model share a protocol parameter with the same name, the model
-        builder will only load the data once and link the identical named parameters to the same value.
-
-        The value for a protocol parameter is loaded from the input data.
+            value (None or float or ndarray): The value used if no value is given in the input data.
         """
         super(ProtocolParameter, self).__init__(data_type, name, None)
+        self.value = value
 
 
 class FreeParameter(SimpleCLFunctionParameter):

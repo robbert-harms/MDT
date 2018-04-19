@@ -74,7 +74,8 @@
         </font>
        </property>
        <property name="text">
-        <string>(Additional maps to be used in the fitting routine)</string>
+        <string>(Provide voxel-based maps for the protocol parameters. 
+If given, these override the values from the protocol file.)</string>
        </property>
       </widget>
      </item>
@@ -145,7 +146,7 @@
         <number>0</number>
        </property>
        <item>
-        <widget class="QListWidget" name="staticMaps">
+        <widget class="QListWidget" name="protocolMaps">
          <property name="selectionMode">
           <enum>QAbstractItemView::MultiSelection</enum>
          </property>
@@ -154,14 +155,14 @@
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_8">
          <item>
-          <widget class="QPushButton" name="addStaticMap">
+          <widget class="QPushButton" name="addProtocolMap">
            <property name="text">
             <string>Add map</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="removeStaticMap">
+             <widget class="QPushButton" name="removeProtocolMap">
            <property name="text">
             <string>Remove selected</string>
            </property>
@@ -181,7 +182,7 @@
      <item row="4" column="0">
       <widget class="QLabel" name="label_2">
        <property name="text">
-        <string>Static maps:</string>
+        <string>Protocol maps:</string>
        </property>
       </widget>
      </item>
@@ -224,9 +225,9 @@
   <tabstop>noiseStdFileSelect</tabstop>
   <tabstop>gradientDeviations</tabstop>
   <tabstop>gradDevFileSelect</tabstop>
-  <tabstop>staticMaps</tabstop>
-  <tabstop>addStaticMap</tabstop>
-  <tabstop>removeStaticMap</tabstop>
+  <tabstop>protocolMaps</tabstop>
+  <tabstop>addProtocolMap</tabstop>
+  <tabstop>removeProtocolMap</tabstop>
  </tabstops>
  <resources/>
  <connections>

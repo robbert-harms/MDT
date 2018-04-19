@@ -43,14 +43,6 @@ mdt.models.composite module
     :undoc-members:
     :show-inheritance:
 
-mdt.models.model\_interfaces module
------------------------------------
-
-.. automodule:: mdt.models.model_interfaces
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 
 Module contents
 ---------------

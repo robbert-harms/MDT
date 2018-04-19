@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>AddStaticMapDialog</class>
- <widget class="QDialog" name="AddStaticMapDialog">
+ <class>AddProtocolMapDialog</class>
+ <widget class="QDialog" name="AddProtocolMapDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
     <width>719</width>
-    <height>187</height>
+    <height>190</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -27,7 +27,7 @@
         </font>
        </property>
        <property name="text">
-        <string>Add static map</string>
+        <string>Add protocol map</string>
        </property>
       </widget>
      </item>
@@ -39,7 +39,7 @@
         </font>
        </property>
        <property name="text">
-        <string>Add an additional static map to the input data</string>
+        <string>Add a protocol map to the input data</string>
        </property>
       </widget>
      </item>
@@ -62,7 +62,7 @@
         </font>
        </property>
        <property name="text">
-        <string>(The map name matching the static parameters of the model)</string>
+        <string>(The map name matching a protocol parameter of the model)</string>
        </property>
       </widget>
      </item>
@@ -160,7 +160,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>AddStaticMapDialog</receiver>
+   <receiver>AddProtocolMapDialog</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -176,7 +176,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>AddStaticMapDialog</receiver>
+   <receiver>AddProtocolMapDialog</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">

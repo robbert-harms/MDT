@@ -37,8 +37,7 @@ from mdt.configuration import config_context, get_processing_strategy, get_confi
 from mdt.exceptions import InsufficientProtocolError
 from mdt.nifti import write_nifti
 from mdt.components import get_model, get_batch_profile
-from mdt.component_templates.parameters import FreeParameterTemplate, ProtocolParameterTemplate, \
-    StaticMapParameterTemplate
+from mdt.component_templates.parameters import FreeParameterTemplate, ProtocolParameterTemplate
 from mdt.component_templates.cascade_models import CascadeTemplate
 from mdt.component_templates.batch_profiles import BatchProfileTemplate
 from mdt.component_templates.compartment_models import CompartmentTemplate, WeightCompartmentTemplate

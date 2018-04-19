@@ -10,7 +10,7 @@ import mdt
 import mot
 from mdt.components import get_meta_info, list_composite_models, list_cascade_models
 from mdt.gui.model_fit.design.ui_fit_model_tab import Ui_FitModelTabContent
-from mdt.gui.model_fit.design.ui_optimization_extra_data_add_static_map_dialog import Ui_AddStaticMapDialog
+from mdt.gui.model_fit.design.ui_optimization_extra_data_add_protocol_map_dialog import Ui_AddProtocolMapDialog
 from mdt.gui.model_fit.design.ui_optimization_extra_data_dialog import Ui_OptimizationExtraDataDialog
 from mdt.gui.model_fit.design.ui_optimization_options_dialog import Ui_OptimizationOptionsDialog
 from mdt.gui.utils import function_message_decorator, image_files_filters, protocol_files_filters, MainTab, \
@@ -264,7 +264,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
             mask=input_data_info.mask,
             noise_std=input_data_info.noise_std,
             gradient_deviations=input_data_info.gradient_deviations,
-            static_maps=input_data_info.static_maps,
+            protocol_maps=input_data_info.protocol_maps,
             model=kwargs['model'],
             output_folder=kwargs['output_folder'],
             recalculate=kwargs['recalculate'],
@@ -287,7 +287,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
                         {mask!r},
                         noise_std={noise_std!r},
                         gradient_deviations={gradient_deviations!r},
-                        static_maps={static_maps!r})
+                        protocol_maps={protocol_maps!r})
 
                     mdt.fit_model(
                         {model!r},
@@ -313,7 +313,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
                         {mask!r},
                         noise_std={noise_std!r},
                         gradient_deviations={gradient_deviations!r},
-                        static_maps={static_maps!r})
+                        protocol_maps={protocol_maps!r})
 
                     with mdt.config_context(SetGeneralOptimizer({optimizer!r}, settings={{'patience': {patience!r}}})):
                         mdt.fit_model(
@@ -367,9 +367,9 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
             write_new_line('--only-recalculate-last' if kwargs['only_recalculate_last'] else '--recalculate-all')
             write_new_line('--double' if kwargs['double_precision'] else '--float')
 
-            if input_data_info.static_maps:
-                write_new_line('--static-maps {}'.format(
-                    ' '.join('{}="{}"'.format(key, value) for key, value in input_data_info.static_maps.items())
+            if input_data_info.protocol_maps:
+                write_new_line('--protocol-maps {}'.format(
+                    ' '.join('{}="{}"'.format(key, value) for key, value in input_data_info.protocol_maps.items())
                 ))
 
             if not optim_options.use_model_default_optimizer:
@@ -487,14 +487,14 @@ class InputDataInfo(object):
         self.dwi = None
         self.mask = None
         self.protocol = None
-        self.static_maps = {}
+        self.protocol_maps = {}
         self.gradient_deviations = None
         self.noise_std = None
 
     def build_input_data(self):
         return mdt.load_input_data(self.dwi, self.protocol, self.mask,
                                    noise_std=self.noise_std, gradient_deviations=self.gradient_deviations,
-                                   static_maps=self.static_maps)
+                                   protocol_maps=self.protocol_maps)
 
 
 class ExtraDataDialog(Ui_OptimizationExtraDataDialog, QDialog):
@@ -511,28 +511,28 @@ class ExtraDataDialog(Ui_OptimizationExtraDataDialog, QDialog):
         self.gradDevFileSelect.clicked.connect(lambda: self._select_grad_dev_file())
         self.gradientDeviations.textChanged.connect(self._check_enable_ok_button)
 
-        self.addStaticMap.clicked.connect(lambda: self._add_map_dialog())
-        self.removeStaticMap.clicked.connect(lambda: self._remove_selected_static_maps())
+        self.addProtocolMap.clicked.connect(lambda: self._add_map_dialog())
+        self.removeProtocolMap.clicked.connect(lambda: self._remove_selected_protocol_maps())
 
-        self._static_maps = {}
+        self._protocol_maps = {}
 
         self._load_config()
 
     def _add_map_dialog(self):
-        dialog = AddStaticMapDialog(self._shared_state, self, self._static_maps)
+        dialog = AddProtocolMapDialog(self._shared_state, self, self._protocol_maps)
         return_value = dialog.exec_()
 
         if return_value:
             dialog.write_config()
             self._update_map_view()
 
-    def _remove_selected_static_maps(self):
-        to_remove = [el.text() for el in self.staticMaps.selectedItems()]
-        static_maps = {}
-        for key, value in self._static_maps.items():
+    def _remove_selected_protocol_maps(self):
+        to_remove = [el.text() for el in self.protocolMaps.selectedItems()]
+        protocol_maps = {}
+        for key, value in self._protocol_maps.items():
             if '{}: {}'.format(key, value) not in to_remove:
-                static_maps.update({key: value})
-        self._static_maps = static_maps
+                protocol_maps.update({key: value})
+        self._protocol_maps = protocol_maps
         self._update_map_view()
 
     def write_config(self):
@@ -552,7 +552,7 @@ class ExtraDataDialog(Ui_OptimizationExtraDataDialog, QDialog):
         else:
             self._input_data_info.gradient_deviations = self.gradientDeviations.text()
 
-        self._input_data_info.static_maps = copy(self._static_maps)
+        self._input_data_info.protocol_maps = copy(self._protocol_maps)
 
     def _load_config(self):
         """Load the settings from the config into the GUI"""
@@ -560,7 +560,7 @@ class ExtraDataDialog(Ui_OptimizationExtraDataDialog, QDialog):
             self.noiseStd.setText(str(self._input_data_info.noise_std))
         if self._input_data_info.gradient_deviations is not None:
             self.gradientDeviations.setText(str(self._input_data_info.gradient_deviations))
-        self._static_maps = copy(self._input_data_info.static_maps)
+        self._protocol_maps = copy(self._input_data_info.protocol_maps)
         self._update_map_view()
 
     def _select_std_file(self):
@@ -598,16 +598,17 @@ class ExtraDataDialog(Ui_OptimizationExtraDataDialog, QDialog):
         self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(enabled)
 
     def _update_map_view(self):
-        self.staticMaps.clear()
-        self.staticMaps.addItems('{}: {}'.format(key, self._static_maps[key]) for key in sorted(self._static_maps))
+        self.protocolMaps.clear()
+        self.protocolMaps.addItems('{}: {}'.format(key, self._protocol_maps[key])
+                                   for key in sorted(self._protocol_maps))
 
 
-class AddStaticMapDialog(Ui_AddStaticMapDialog, QDialog):
+class AddProtocolMapDialog(Ui_AddProtocolMapDialog, QDialog):
 
-    def __init__(self, shared_state, parent, static_maps):
-        super(AddStaticMapDialog, self).__init__(parent)
+    def __init__(self, shared_state, parent, protocol_maps):
+        super(AddProtocolMapDialog, self).__init__(parent)
         self._shared_state = shared_state
-        self._static_maps = static_maps
+        self._protocol_maps = protocol_maps
         self.setupUi(self)
 
         self.mapNameInput.textChanged.connect(self._check_enable_ok_button)
@@ -625,7 +626,7 @@ class AddStaticMapDialog(Ui_AddStaticMapDialog, QDialog):
         except ValueError:
             pass
 
-        self._static_maps.update({self.mapNameInput.text(): value})
+        self._protocol_maps.update({self.mapNameInput.text(): value})
 
     def _select_value_file(self):
         open_file, used_filter = QFileDialog().getOpenFileName(

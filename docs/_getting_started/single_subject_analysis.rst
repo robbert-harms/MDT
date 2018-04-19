@@ -121,11 +121,11 @@ These script files allow you to reproduce the model fitting using a Python scrip
 Estimating any model
 --------------------
 In general, using the GUI, estimating any model is just a matter of selecting the right model and clicking the run button.
-Please be advised though that some models require specific protocol settings and/or require specific static maps to be present.
-For example, the CHARMED models requires that the "TE" is specified in your protocol.
+Please be advised though that some models require specific protocol values to be present.
+For example, the CHARMED models requires that the "TE" is specified in the protocol or as a protocol map.
 MDT will help you by warning you if the available data is not suited for the selected model.
 
-For adding additional data, like static maps, a noise standard deviation or a gradient deviations map you can use the button "Additional data".
+For adding additional data, like protocol maps, a noise standard deviation or a gradient deviations map you can use the button "Additional data".
 
 .. figure:: _static/figures/mdt_additional_problem_data.png
 
@@ -264,11 +264,11 @@ For more details on the MDT maps visualizer, please see the chapter :ref:`view_m
 Estimating any model
 --------------------
 In principle every model in MDT can be fitted using the :ref:`cli_index_mdt-model-fit`.
-Please be advised though that some models require specific protocol settings and/or require specific static maps to be present.
+Please be advised though that some models require specific protocol values to be present.
 For example, the CHARMED models requires that the "TE" is specified in your protocol.
 MDT will warn you if the available data is not suited for the selected model.
 
-Just as in the GUI, it is possible to add additional data like static maps, a noise standard deviation or a gradient deviations map to the model fit command.
+Just as in the GUI, it is possible to add additional data like protocol maps, a noise standard deviation or a gradient deviations map to the model fit command.
 Please see the available switches of the :ref:`cli_index_mdt-model-fit` command.
 
 
@@ -384,7 +384,7 @@ When the calculations are done you can use the MDT maps visualizer for viewing t
 Estimating any model
 --------------------
 In principle every model in MDT can be fitted using the model fitting routines.
-Please be advised though that some models require specific protocol settings and/or require specific static maps to be present.
+Please be advised though that some models require specific protocol values to be present.
 For example, the CHARMED models requires that the "TE" is specified in your protocol.
 MDT will help you by warning you if the available data is not suited for the selected model.
 

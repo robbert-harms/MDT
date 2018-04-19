@@ -2,9 +2,6 @@
 
 The free parameters are meant to be used for parameters that one wants to optimize. They can be fixed to a certain
 value to disable them from being optimized in a given situation, but they remain classified as 'optimizable' parameters.
-
-Please choose the parameter type for a model and parameter carefully since the type signifies how the parameter and
-its data are handled during model construction.
 """
 
 import numpy as np

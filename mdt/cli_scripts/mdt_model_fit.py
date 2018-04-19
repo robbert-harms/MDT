@@ -36,7 +36,7 @@ class ModelFit(BasicShellApplication):
             mdt-model-fit "BallStick_r1 (Cascade)" data.nii.gz data.prtcl data_mask.nii.gz --no-recalculate
             mdt-model-fit ... --cl-device-ind 1
             mdt-model-fit ... --cl-device-ind {0, 1}
-            mdt-model-fit ... --static-maps b1_static=b1_static.nii.gz fa_map=fa_map.nii.gz
+            mdt-model-fit ... --protocol-maps T1=T1_map.nii.gz T2=T2_map.nii.gz
            ''')
         epilog = self._format_examples(doc_parser, examples)
 
@@ -104,8 +104,8 @@ class ModelFit(BasicShellApplication):
                             help='The configuration context to use during fitting the model. '
                                  'Same syntax as config files')
 
-        parser.add_argument('--static-maps', dest='static_maps', type=str, nargs='+',
-                            help='The static maps, provide as <key>=<value> pairs')
+        parser.add_argument('--protocol-maps', dest='protocol_maps', type=str, nargs='+',
+                            help='The protocol maps, provide as <key>=<value> pairs')
 
         return parser
 
@@ -132,7 +132,7 @@ class ModelFit(BasicShellApplication):
                                               os.path.realpath(args.mask),
                                               gradient_deviations=args.gradient_deviations,
                                               noise_std=noise_std,
-                                              static_maps=get_static_maps(args.static_maps, os.path.realpath(''))),
+                                              protocol_maps=get_protocol_maps(args.protocol_maps, os.path.realpath(''))),
                           output_folder, recalculate=args.recalculate,
                           only_recalculate_last=args.only_recalculate_last, cl_device_ind=args.cl_device_ind,
                           double_precision=args.double_precision,
@@ -147,21 +147,21 @@ class ModelFit(BasicShellApplication):
             fit_model()
 
 
-def get_static_maps(static_maps_listing, base_dir):
-    static_maps = {}
+def get_protocol_maps(protocol_maps_listing, base_dir):
+    protocol_maps = {}
 
-    if static_maps_listing:
-        for argument in static_maps_listing:
+    if protocol_maps_listing:
+        for argument in protocol_maps_listing:
             key, value = argument.split('=')
 
             if os.path.isfile(value):
-                static_maps[key] = value
+                protocol_maps[key] = value
             elif os.path.isfile(base_dir + '/' + value):
-                static_maps[key] = base_dir + '/' + value
+                protocol_maps[key] = base_dir + '/' + value
             else:
-                static_maps[key] = float(value)
+                protocol_maps[key] = float(value)
 
-    return static_maps
+    return protocol_maps
 
 
 def get_doc_arg_parser():

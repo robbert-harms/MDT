@@ -1,10 +1,12 @@
+import warnings
+
 import six
 
 from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate
 from mdt.components import has_component, get_component
 from mot.cl_data_type import SimpleCLDataType
 from mdt.model_building.parameter_functions.numdiff_info import NumDiffInfo, SimpleNumDiffInfo
-from mdt.model_building.parameters import StaticMapParameter, ProtocolParameter, FreeParameter
+from mdt.model_building.parameters import ProtocolParameter, FreeParameter
 from mdt.model_building.parameter_functions.priors import UniformWithinBoundsPrior
 from mdt.model_building.parameter_functions.transformations import AbstractTransformation
 
@@ -27,10 +29,16 @@ class ParameterBuilder(ComponentBuilder):
         if isinstance(data_type, six.string_types):
             data_type = SimpleCLDataType.from_string(data_type)
 
+        # todo remove in future versions
+        if issubclass(template, StaticMapParameterTemplate):
+            warnings.warn('"StaticMapParameterTemplate" are deprecated in favor of "ProtocolParameterTemplate" '
+                          'and will be removed in future versions.')
+
         if issubclass(template, ProtocolParameterTemplate):
             class AutoProtocolParameter(method_binding_meta(template, ProtocolParameter)):
                 def __init__(self, nickname=None):
-                    super(AutoProtocolParameter, self).__init__(data_type, nickname or template.name)
+                    super(AutoProtocolParameter, self).__init__(data_type, nickname or template.name,
+                                                                value=template.value)
             return AutoProtocolParameter
 
         elif issubclass(template, FreeParameterTemplate):
@@ -55,12 +63,6 @@ class ParameterBuilder(ComponentBuilder):
                     self.sampling_proposal_modulus = template.sampling_proposal_modulus
             return AutoFreeParameter
 
-        elif issubclass(template, StaticMapParameterTemplate):
-            class AutoStaticMapParameter(method_binding_meta(template, StaticMapParameter)):
-                def __init__(self, nickname=None):
-                    super(AutoStaticMapParameter, self).__init__(data_type, nickname or template.name, template.value)
-            return AutoStaticMapParameter
-
 
 class ParameterTemplate(ComponentTemplate):
     """The cascade template to inherit from.
@@ -84,6 +86,12 @@ class ProtocolParameterTemplate(ParameterTemplate):
     """The default template options for protocol parameters.
     """
     data_type = 'mot_float_type'
+    value = None
+
+
+# Todo: deprecate and remove in future versions
+class StaticMapParameterTemplate(ProtocolParameterTemplate):
+    pass
 
 
 class FreeParameterTemplate(ParameterTemplate):
@@ -133,12 +141,6 @@ class FreeParameterTemplate(ParameterTemplate):
     sampling_prior = UniformWithinBoundsPrior()
     numdiff_info = {'max_step': 0.1, 'scale_factor': 1, 'use_bounds': True, 'modulus': None,
                     'use_upper_bound': True, 'use_lower_bound': True}
-
-
-class StaticMapParameterTemplate(ParameterTemplate):
-    """The default template options for static data parameters.
-    """
-    value = None
 
 
 def _resolve_parameter_transform(parameter_transform):

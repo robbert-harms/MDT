@@ -153,15 +153,14 @@ class MRIInputData(object):
         raise NotImplementedError()
 
     @property
-    def static_maps(self):
-        """Get a dictionary with the static maps.
+    def protocol_maps(self):
+        """Get a dictionary with the protocol maps.
 
-        These maps will be loaded by the model builder as the values for the static parameters.
+        These maps will be loaded by the model builder as map values for the protocol parameters.
 
         Returns:
-            dict: per static map the value for the static map. This value can either be a scalar or a one or a two
-                dimensional matrix containing the values for each problem instance. The static maps can be linked
-                to parameters by their full name (<model>.<parameter>) or just by their parameter name (<parameter>).
+            dict: per protocol maps we use instead of the values in the protocol file. This value can either be a
+                scalar or a one or a two dimensional matrix containing the values for each problem instance.
         """
         raise NotImplementedError()
 
@@ -186,7 +185,7 @@ class MRIInputData(object):
 
 class SimpleMRIInputData(MRIInputData):
 
-    def __init__(self, protocol, signal4d, mask, nifti_header, static_maps=None, gradient_deviations=None,
+    def __init__(self, protocol, signal4d, mask, nifti_header, protocol_maps=None, gradient_deviations=None,
                  noise_std=None):
         """An implementation of the input data for diffusion MRI models.
 
@@ -195,7 +194,7 @@ class SimpleMRIInputData(MRIInputData):
             signal4d (ndarray): The DWI data (4d matrix)
             mask (ndarray): The mask used to create the observations list
             nifti_header (nifti header): The header of the nifti file to use for writing the results.
-            static_maps (Dict[str, ndarray]): the static maps used as values for the static map parameters
+            protocol_maps (Dict[str, ndarray]): the protocol maps to use for voxel-based protocol values
             gradient_deviations (ndarray): a gradient deviations matrix containing per voxel 9 values that
                 constitute the gradient non-linearities according to the HCP guidelines.
                 (see ``https://www.humanconnectome.org/storage/app/media/documentation/data_release/
@@ -209,7 +208,7 @@ class SimpleMRIInputData(MRIInputData):
         self._mask = mask
         self._protocol = protocol
         self._observation_list = None
-        self._static_maps = static_maps or {}
+        self._protocol_maps = protocol_maps or {}
         self._noise_std = noise_std
         self._gradient_deviations = gradient_deviations
 
@@ -230,13 +229,9 @@ class SimpleMRIInputData(MRIInputData):
         except ValueError:
             return False
 
-    def get_input_data(self, parameter_name):
-        """Get the input data for the given parameter.
-
-        This first checks the static maps for a match, and second the protocol.
-        """
-        if parameter_name in self._static_maps:
-            return self.static_maps[parameter_name]
+    def get_input_data(self, parameter_name, compartment_name=None):
+        if parameter_name in self._protocol_maps:
+            return self.protocol_maps[parameter_name]
         if parameter_name in self._protocol:
             return self._protocol[parameter_name]
         raise ValueError('No input data could be find for the parameter "{}".'.format(parameter_name))
@@ -264,7 +259,7 @@ class SimpleMRIInputData(MRIInputData):
             tuple: args and kwargs tuple
         """
         args = [self._protocol, self.signal4d, self._mask, self.nifti_header]
-        kwargs = dict(static_maps=self._static_maps, gradient_deviations=self.gradient_deviations,
+        kwargs = dict(protocol_maps=self._protocol_maps, gradient_deviations=self.gradient_deviations,
                       noise_std=self._noise_std)
         return args, kwargs
 
@@ -334,18 +329,11 @@ class SimpleMRIInputData(MRIInputData):
         return self._mask
 
     @property
-    def static_maps(self):
-        """Get the static maps. They are used as data for the static parameters.
-
-        Returns:
-            Dict[str, val]: per static map the value for the static map. This can either be an one or two dimensional
-                matrix containing the values for each problem instance or it can be a single value we will use
-                for all problem instances.
-        """
-        if self._static_maps is not None:
+    def protocol_maps(self):
+        if self._protocol_maps is not None:
             return_items = {}
 
-            for key, val in self._static_maps.items():
+            for key, val in self._protocol_maps.items():
 
                 loaded_val = None
 
@@ -360,7 +348,7 @@ class SimpleMRIInputData(MRIInputData):
 
             return return_items
 
-        return self._static_maps
+        return self._protocol_maps
 
     @property
     def noise_std(self):
@@ -425,7 +413,7 @@ class MockMRIInputData(SimpleMRIInputData):
         return 1
 
 
-def load_input_data(volume_info, protocol, mask, static_maps=None, gradient_deviations=None, noise_std=None):
+def load_input_data(volume_info, protocol, mask, protocol_maps=None, gradient_deviations=None, noise_std=None):
     """Load and create the input data object for diffusion MRI modeling.
 
     Args:
@@ -434,9 +422,9 @@ def load_input_data(volume_info, protocol, mask, static_maps=None, gradient_devi
         protocol (:class:`~mdt.protocols.Protocol` or str): A protocol object with the right protocol for the
             given data, or a string object with a filename to the given file.
         mask (ndarray, str): A full path to a mask file or a 3d ndarray containing the mask
-        static_maps (Dict[str, val]): the dictionary with per static map the value to use.
-            The value can either be an 3d or 4d ndarray, a single number or a string. We will convert all to the
-            right format.
+        protocol_maps (Dict[str, val]): the dictionary with per protocol parameter a map to use instead of
+            the values from the protocol file. The value can either be an 3d or 4d ndarray, a single number or a string.
+            We will convert all to the right format.
         gradient_deviations (str or ndarray): set of gradient deviations to use. In HCP WUMINN format. Set to None to
             disable.
         noise_std (number or ndarray): either None for automatic detection,
@@ -458,7 +446,7 @@ def load_input_data(volume_info, protocol, mask, static_maps=None, gradient_devi
     if isinstance(gradient_deviations, six.string_types):
         gradient_deviations = load_nifti(gradient_deviations).get_data()
 
-    return SimpleMRIInputData(protocol, signal4d, mask, img_header, static_maps=static_maps, noise_std=noise_std,
+    return SimpleMRIInputData(protocol, signal4d, mask, img_header, protocol_maps=protocol_maps, noise_std=noise_std,
                               gradient_deviations=gradient_deviations)
 
 

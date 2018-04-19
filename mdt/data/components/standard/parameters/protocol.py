@@ -1,11 +1,7 @@
-"""Definitions of the protocol parameters
+"""Definitions of the protocol parameters.
 
-The type of these parameters signifies that the data for this parameter should come from the protocol defined in the
-model data. These will never be optimized and are always set to the data defined in the protocol.
-
-Please choose the parameter type for a model and parameter carefully since the type signifies how the parameter and
-its data are handled during model construction.
-
+The type of these parameters signifies that the data for this parameter should come from the protocol file or from
+the protocol maps. These parameters are never optimized and are always set to the given input data.
 """
 from mdt.component_templates.parameters import ProtocolParameterTemplate
 
@@ -64,7 +60,7 @@ class TR(ProtocolParameterTemplate):
 
 
 class flip_angle(ProtocolParameterTemplate):
-    pass
+    value = 1
 
 
 # For STEAM/TSE sequences, depending on the model in which they are used.
@@ -79,4 +75,49 @@ class Refoc_fa2(ProtocolParameterTemplate):
 
 # For STEAM/TSE sequences, depending on the model in which they are used.
 class SEf(ProtocolParameterTemplate):
+    pass
+
+
+class b1(ProtocolParameterTemplate):
+    value = 1
+
+
+class Sw(ProtocolParameterTemplate):
+    """This parameter is created only for linear T1 decay fitting of GRE data with variable flip angle.
+
+    S_weighted is defined as the input data divided by the
+        :math:`tan(flip_angle) ->  S_weighted = data / tan (flip_angle * B1_map)`
+    """
+    value = 1
+
+
+class T1(ProtocolParameterTemplate):
+    pass
+
+
+class T2(ProtocolParameterTemplate):
+    pass
+
+
+class T2s(ProtocolParameterTemplate):
+    pass
+
+
+# For STEAM/TSE sequences, depending on the model in which they are used.
+class Dt(ProtocolParameterTemplate):
+    pass
+
+
+# For STEAM/TSE sequences, depending on the model in which they are used.
+class excitation_b1(ProtocolParameterTemplate):
+    pass
+
+
+# For STEAM/TSE sequences, depending on the model in which they are used.
+class refocusing1_b1(ProtocolParameterTemplate):
+    pass
+
+
+# For STEAM/TSE sequences, depending on the model in which they are used.
+class refocusing2_b1(ProtocolParameterTemplate):
     pass

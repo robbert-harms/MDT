@@ -86,18 +86,6 @@ class MissingProtocolInput(InputDataProblem):
         return 'Missing columns: ' + ', '.join(self.missing_columns)
 
 
-class InsufficientShells(InputDataProblem):
-
-    def __init__(self, required_nmr_shells, nmr_shells):
-        super(InsufficientShells, self).__init__()
-        self.required_nmr_shells = required_nmr_shells
-        self.nmr_shells = nmr_shells
-
-    def __str__(self):
-        return 'Required number of shells is {}, this protocol has {}.'.format(
-            self.required_nmr_shells, self.nmr_shells)
-
-
 class NamedProtocolProblem(InputDataProblem):
 
     def __init__(self, model_protocol_problem, model_name):

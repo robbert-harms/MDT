@@ -84,10 +84,10 @@ mdt.gui.model\_fit.design.ui\_main\_gui module
     :undoc-members:
     :show-inheritance:
 
-mdt.gui.model\_fit.design.ui\_optimization\_extra\_data\_add\_static\_map\_dialog module
-----------------------------------------------------------------------------------------
+mdt.gui.model\_fit.design.ui\_optimization\_extra\_data\_add\_protocol\_map\_dialog module
+------------------------------------------------------------------------------------------
 
-.. automodule:: mdt.gui.model_fit.design.ui_optimization_extra_data_add_static_map_dialog
+.. automodule:: mdt.gui.model_fit.design.ui_optimization_extra_data_add_protocol_map_dialog
     :members:
     :undoc-members:
     :show-inheritance:
