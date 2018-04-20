@@ -6,11 +6,11 @@ __licence__ = 'LGPL v3'
 
 class ExpT1DecGRE(CompartmentTemplate):
 
-    parameters = ('TR', 'flip_angle', 'excitation_b1_map', 'T1')
+    parameters = ('TR', 'flip_angle', 'excitation_b1', 'T1')
     cl_code = """
-        return sin((double)flip_angle * excitation_b1_map) *
+        return sin((double)flip_angle * excitation_b1) *
               (1 - exp(-TR / (double)T1)) /
-              (1 - cos((double)flip_angle * excitation_b1_map) * exp(-TR / (double)T1) );
+              (1 - cos((double)flip_angle * excitation_b1) * exp(-TR / (double)T1) );
     """
 
 
@@ -32,13 +32,13 @@ class ExpT1DecIR(CompartmentTemplate):
 
 class ExpT1DecTM(CompartmentTemplate):
 
-    parameters = ('SEf', 'TR', 'TM', 'TE', 'flip_angle', 'excitation_b1_map', 'Refoc_fa1', 'refocusing1_b1_map',
-                      'Refoc_fa2', 'refocusing2_b1_map', 'b', 'T1', 'd_exvivo')
+    parameters = ('SEf', 'TR', 'TM', 'TE', 'T1', 'flip_angle', 'excitation_b1', 'Refoc_fa1',
+                  'refocusing1_b1', 'Refoc_fa2', 'refocusing2_b1', 'b', 'd_exvivo')
     cl_code = """
         return powr((double)0.5, (double)SEf)
-            * sin((double)flip_angle * excitation_b1_map)
-            * sin((double)Refoc_fa1 * refocusing1_b1_map)
-            * sin((double)Refoc_fa2 * (refocusing2_b1_map * SEf + refocusing1_b1_map * (1 - SEf)))
+            * sin((double)flip_angle * excitation_b1)
+            * sin((double)Refoc_fa1 * refocusing1_b1)
+            * sin((double)Refoc_fa2 * (refocusing2_b1 * SEf + refocusing1_b1 * (1 - SEf)))
             * (1 - exp(-(TR - TM) / (double)T1))
             * exp(- ((TM * SEf) / (double)T1) - (double)(b * d_exvivo));
     """
@@ -58,17 +58,19 @@ class ExpT1DecTR(CompartmentTemplate):
 
 class ExpT1ExpT2GRE(CompartmentTemplate):
 
-    parameters = ('TR', 'TE', 'excitation_b1_map', 'flip_angle', 'T1', 'T2')
+    parameters = ('TR', 'TE', 'excitation_b1', 'flip_angle', 'T1', 'T2')
     cl_code = """
-        return sin(flip_angle * excitation_b1_map) * (1 - exp(-TR / T1)) / (1 - cos(flip_angle * excitation_b1_map) * exp(-TR / T1)) * exp(-TE / T2);
+        return sin(flip_angle * excitation_b1) * (1 - exp(-TR / T1)) 
+                / (1 - cos(flip_angle * excitation_b1) * exp(-TR / T1)) * exp(-TE / T2);
     """
 
 
 class ExpT1ExpT2sGRE(CompartmentTemplate):
 
-    parameters = ('TR', 'TE', 'excitation_b1_map', 'flip_angle', 'T1', 'T2s')
+    parameters = ('TR', 'TE', 'excitation_b1', 'flip_angle', 'T1', 'T2s')
     cl_code = """
-        return sin(flip_angle * excitation_b1_map) * (1 - exp(-TR / T1)) / (1 - cos(flip_angle * excitation_b1_map) * exp(-TR / T1)) * exp(-TE / T2s);
+        return sin(flip_angle * excitation_b1) * (1 - exp(-TR / T1)) 
+                / (1 - cos(flip_angle * excitation_b1) * exp(-TR / T1)) * exp(-TE / T2s);
     """
 
 
@@ -89,12 +91,12 @@ class ExpT1ExpT2STEAM(CompartmentTemplate):
 
     //UPDATE (24.03.17): This sequence is valid for STE SIGNAL ONLY! Don't mix with SE volumes.
     """
-    parameters = ('SEf', 'TR', 'TE', 'TM', 'b', 'flip_angle', 'excitation_b1_map', 'Refoc_fa1',
-                      'refocusing1_b1_map', 'Refoc_fa2', 'refocusing2_b1_map', 'T2', 'T1', 'd_exvivo')
+    parameters = ('SEf', 'TR', 'TE', 'TM', 'b', 'flip_angle', 'excitation_b1', 'Refoc_fa1',
+                  'refocusing1_b1', 'Refoc_fa2', 'refocusing2_b1', 'T2', 'T1', 'd_exvivo')
     cl_code = """
-        return sin((double)flip_angle * (double)excitation_b1_map)
-            *   sin((double)Refoc_fa1 * (double)refocusing1_b1_map)
-            *   sin((double)Refoc_fa2 * (double)refocusing2_b1_map)
+        return sin((double)flip_angle * (double)excitation_b1)
+            *   sin((double)Refoc_fa1 * (double)refocusing1_b1)
+            *   sin((double)Refoc_fa2 * (double)refocusing2_b1)
             *   (exp(- (double)TM / (double) T1) - exp(- (double)TR / (double)T1))
             *   exp(- (double)TE / (double)T2)
             *   exp(- (double)b * (double)d_exvivo);
@@ -109,14 +111,14 @@ class ExpT2Dec(CompartmentTemplate):
 
 class ExpT2DecSTEAM(CompartmentTemplate):
 
-    parameters = ('SEf', 'TE', 'TM', 'b', 'flip_angle', 'excitation_b1_map', 'Refoc_fa1',
-                      'refocusing1_b1_map', 'Refoc_fa2', 'refocusing2_b1_map', 'T2', 'T1', 'd_exvivo')
+    parameters = ('SEf', 'TE', 'TM', 'b', 'flip_angle', 'excitation_b1', 'Refoc_fa1',
+                      'refocusing1_b1', 'Refoc_fa2', 'refocusing2_b1', 'T2', 'T1', 'd_exvivo')
     cl_code = """
         return powr((double)0.5, (double)SEf)
-            *   sin((double)flip_angle * (double)excitation_b1_map)
-            *   sin((double)Refoc_fa1 * (double)refocusing1_b1_map)
-            *   sin((double)Refoc_fa2 * ((double)refocusing2_b1_map * (double)SEf + 
-                                         (double)refocusing1_b1_map * (double)(1 - SEf)))
+            *   sin((double)flip_angle * (double)excitation_b1)
+            *   sin((double)Refoc_fa1 * (double)refocusing1_b1)
+            *   sin((double)Refoc_fa2 * ((double)refocusing2_b1 * (double)SEf + 
+                                         (double)refocusing1_b1 * (double)(1 - SEf)))
             *   exp(- (double)TE / (double)T2)
             *   exp(- (double)TM * SEf / (double) T1)
             *   exp(- (double)b * (double)d_exvivo);
@@ -131,9 +133,9 @@ class MPM_Fit(CompartmentTemplate):
     This function is still an approximation and only if the assumptions of the approximations hold for ex-vivo tissue, 
     then can be used for ex-vivo data.
     """
-    parameters = ('TR', 'flip_angle', 'excitation_b1_map', 'T1')
-    cl_code = 'return (flip_angle * excitation_b1_map) * ( (TR / T1) ' \
-              '     / ( pown(flip_angle * excitation_b1_map, 2) / 2 + ( TR / T1 ) ) );'
+    parameters = ('TR', 'flip_angle', 'excitation_b1', 'T1')
+    cl_code = 'return (flip_angle * excitation_b1) * ( (TR / T1) ' \
+              '     / ( pown(flip_angle * excitation_b1, 2) / 2 + ( TR / T1 ) ) );'
 
 
 class LinMPM_Fit(CompartmentTemplate):
@@ -144,9 +146,9 @@ class LinMPM_Fit(CompartmentTemplate):
     This function is still an approximation and only if the assumptions of the approximations hold for ex-vivo tissue, 
     then can be used for ex-vivo data.
     """
-    parameters = ('TR', 'flip_angle', 'b1_static', 'T1')
-    cl_code = 'return log(flip_angle * b1_static) + log(TR / T1)' \
-              '       - log( pown(flip_angle * b1_static, 2) / 2 + ( TR / T1 ) ) ;'
+    parameters = ('TR', 'flip_angle', 'b1', 'T1')
+    cl_code = 'return log(flip_angle * b1) + log(TR / T1)' \
+              '       - log( pown(flip_angle * b1, 2) / 2 + ( TR / T1 ) ) ;'
 
 
 class LinT1GRE(CompartmentTemplate):
@@ -162,9 +164,9 @@ class LinT1GRE(CompartmentTemplate):
     
     Also, DATA HAS TO BE PROCESSED BEFORE TO USE THIS EQUATION. Please apply log() on the data.
     """
-    parameters = ('Sw_static', 'E1')
+    parameters = ('Sw', 'E1')
     cl_code = """
-        return Sw_static * E1;
+        return Sw * E1;
     """
 
 
