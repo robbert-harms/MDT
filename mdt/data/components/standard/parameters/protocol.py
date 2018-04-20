@@ -91,18 +91,6 @@ class Sw(ProtocolParameterTemplate):
     value = 1
 
 
-class T1(ProtocolParameterTemplate):
-    pass
-
-
-class T2(ProtocolParameterTemplate):
-    pass
-
-
-class T2s(ProtocolParameterTemplate):
-    pass
-
-
 # For STEAM/TSE sequences, depending on the model in which they are used.
 class Dt(ProtocolParameterTemplate):
     pass
