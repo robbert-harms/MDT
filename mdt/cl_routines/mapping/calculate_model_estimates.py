@@ -1,6 +1,6 @@
 import pyopencl as cl
 import numpy as np
-from mot.utils import get_float_type_def, KernelInputDataManager
+from mot.utils import get_float_type_def, KernelDataManager
 from mot.cl_routines.base import CLRoutine
 from mot.load_balance_strategies import Worker
 
@@ -28,15 +28,16 @@ class CalculateModelEstimates(CLRoutine):
         """
         nmr_inst_per_problem = model.get_nmr_inst_per_problem()
 
-        parameters = np.require(parameters, self._mot_float_dtype, requirements=['C', 'A', 'O'])
+        parameters = np.require(parameters, self._cl_runtime_info.mot_float_dtype, requirements=['C', 'A', 'O'])
 
         nmr_problems = parameters.shape[0]
-        evaluations = np.zeros((nmr_problems, nmr_inst_per_problem), dtype=self._mot_float_dtype, order='C')
+        evaluations = np.zeros((nmr_problems, nmr_inst_per_problem),
+                               dtype=self._cl_runtime_info.mot_float_dtype, order='C')
 
         workers = self._create_workers(lambda cl_environment: _EvaluateModelWorker(
-            cl_environment, self.get_compile_flags_list(), model, parameters, evaluations,
-            self._mot_float_dtype, self._double_precision))
-        self.load_balancer.process(workers, nmr_problems)
+            cl_environment, self._cl_runtime_info.get_compile_flags(), model, parameters, evaluations,
+            self._cl_runtime_info.mot_float_dtype, self._cl_runtime_info.double_precision))
+        self._cl_runtime_info.load_balancer.process(workers, nmr_problems)
 
         return evaluations
 
@@ -49,7 +50,7 @@ class _EvaluateModelWorker(Worker):
 
         self._model = model
         self._data_info = self._model.get_kernel_data()
-        self._data_struct_manager = KernelInputDataManager(self._data_info, mot_float_dtype)
+        self._data_struct_manager = KernelDataManager(self._data_info, mot_float_dtype)
         self._double_precision = double_precision
         self._evaluations = evaluations
         self._parameters = parameters

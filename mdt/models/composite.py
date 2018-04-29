@@ -16,10 +16,11 @@ from mot.cl_data_type import SimpleCLDataType
 from mot.cl_function import SimpleCLFunction, SimpleCLFunctionParameter
 from mot.cl_routines.mapping.numerical_hessian import NumericalHessian
 from mdt.model_building.parameters import ProtocolParameter, FreeParameter, CurrentObservationParam
+from mot.cl_runtime_info import CLRuntimeInfo
 from mot.model_interfaces import SampleModelInterface, NumericalDerivativeInterface
 from mot.utils import convert_data_to_dtype, \
     hessian_to_covariance, NameFunctionTuple, all_elements_equal, get_single_value
-from mot.kernel_input_data import KernelInputArray
+from mot.kernel_data import KernelArray
 
 from mdt.models.base import MissingProtocolInput
 from mdt.models.base import DMRIOptimizable
@@ -806,9 +807,9 @@ class DMRICompositeModel(DMRIOptimizable):
                     if value.shape[0] == self._input_data.nmr_problems:
                         if problems_to_analyze is not None:
                             value = value[problems_to_analyze, ...]
-                        const_d = {p.name: KernelInputArray(value, ctype=p.data_type.declaration_type)}
+                        const_d = {p.name: KernelArray(value, ctype=p.data_type.declaration_type)}
                     else:
-                        const_d = {p.name: KernelInputArray(value, ctype=p.data_type.declaration_type, offset_str='0')}
+                        const_d = {p.name: KernelArray(value, ctype=p.data_type.declaration_type, offset_str='0')}
                     return_data.update(const_d)
         return return_data
 
@@ -830,7 +831,7 @@ class DMRICompositeModel(DMRIOptimizable):
             if problems_to_analyze is not None:
                 observations = observations[problems_to_analyze, ...]
             observations = self._transform_observations(observations)
-            return {'observations': KernelInputArray(observations)}
+            return {'observations': KernelArray(observations)}
         return {}
 
     def _convert_parameters_dot_to_bar(self, string):
@@ -1035,7 +1036,7 @@ class DMRICompositeModel(DMRIOptimizable):
             if not all_elements_equal(value):
                 if problems_to_analyze is not None:
                     value = value[problems_to_analyze, ...]
-                var_data_dict[param_name] = KernelInputArray(value, ctype=p.data_type.declaration_type)
+                var_data_dict[param_name] = KernelArray(value, ctype=p.data_type.declaration_type)
         return var_data_dict
 
     def _get_bounds_as_var_data(self, problems_to_analyze):
@@ -1052,7 +1053,7 @@ class DMRICompositeModel(DMRIOptimizable):
                 if not all_elements_equal(value):
                     if problems_to_analyze is not None:
                         data = data[problems_to_analyze, ...]
-                    bounds_dict.update({name: KernelInputArray(data, ctype=p.data_type.declaration_type)})
+                    bounds_dict.update({name: KernelArray(data, ctype=p.data_type.declaration_type)})
 
         return bounds_dict
 
@@ -1317,7 +1318,7 @@ class DMRICompositeModel(DMRIOptimizable):
         data_items.update(self._get_protocol_data_as_var_data(problems_to_analyze))
 
         if self._input_data.gradient_deviations is not None:
-            data_items['gradient_deviations'] = KernelInputArray(
+            data_items['gradient_deviations'] = KernelArray(
                 self._get_gradient_deviations(problems_to_analyze), ctype='mot_float_type')
 
         return data_items
@@ -1809,7 +1810,7 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
         Args:
             results_dict (dict): the list with the optimized points for each parameter
         """
-        hessian = NumericalHessian(double_precision=True).calculate(
+        hessian = NumericalHessian(CLRuntimeInfo(double_precision=True)).calculate(
             self,
             results_array,
             step_ratio=2,

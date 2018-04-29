@@ -9,7 +9,6 @@ import shutil
 from six import string_types
 
 from mdt.model_fitting import get_batch_fitting_function
-from mot.cl_routines.sampling.amwg import AdaptiveMetropolisWithinGibbs
 from .__version__ import VERSION, VERSION_STATUS, __version__
 
 
@@ -118,10 +117,6 @@ def fit_model(model, input_data, output_folder, optimizer=None,
 
     if cl_device_ind is not None and not isinstance(cl_device_ind, collections.Iterable):
         cl_device_ind = [cl_device_ind]
-
-    if optimizer is not None and cl_device_ind is not None:
-        all_devices = get_cl_devices()
-        optimizer.cl_environments = [all_devices[ind] for ind in cl_device_ind]
 
     model_fit = ModelFit(model, input_data, output_folder, optimizer=optimizer, recalculate=recalculate,
                          only_recalculate_last=only_recalculate_last,
@@ -232,7 +227,8 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
         cl_envs = [get_cl_devices()[ind] for ind in cl_device_ind]
         cl_context_action = mot.configuration.RuntimeConfigurationAction(
             cl_environments=cl_envs,
-            load_balancer=EvenDistribution())
+            load_balancer=EvenDistribution(),
+            double_precision=double_precision)
 
     with mot.configuration.config_context(cl_context_action):
         base_dir = os.path.join(output_folder, model.name, 'samples')
@@ -252,8 +248,7 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
                                          get_temporary_results_dir(tmp_results_dir), recalculate=recalculate,
                                          store_samples=store_samples,
                                          sample_items_to_save=sample_items_to_save,
-                                         initialization_data=initialization_data,
-                                         double_precision=double_precision)
+                                         initialization_data=initialization_data)
 
         easy_save_user_script_info(save_user_script_info, os.path.join(base_dir, 'used_scripts.py'),
                                    stack()[1][0].f_globals.get('__file__'))

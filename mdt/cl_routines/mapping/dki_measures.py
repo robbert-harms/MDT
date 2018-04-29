@@ -35,7 +35,7 @@ class DKIMeasures(CLRoutine):
         Returns:
             dict: maps for the Mean Kurtosis (MK), Axial Kurtosis (AK) and Radial Kurtosis (RK).
         """
-        if self._double_precision:
+        if self._cl_runtime_info.double_precision:
             mot_float_type = SimpleCLDataType.from_string('float')
         else:
             mot_float_type = SimpleCLDataType.from_string('double')
@@ -44,9 +44,9 @@ class DKIMeasures(CLRoutine):
                        'W_1111', 'W_2000', 'W_2100', 'W_2110', 'W_2111', 'W_2200', 'W_2210', 'W_2211',
                        'W_2220', 'W_2221', 'W_2222']
         parameters = np.require(np.column_stack([parameters_dict[n] for n in param_names]),
-                                self._mot_float_dtype, requirements=['C', 'A', 'O'])
+                                self._cl_runtime_info.mot_float_dtype, requirements=['C', 'A', 'O'])
         directions = convert_data_to_dtype(self._get_spherical_samples(), 'mot_float_type4', mot_float_type)
-        return self._calculate(parameters, param_names, directions, self._double_precision)
+        return self._calculate(parameters, param_names, directions, self._cl_runtime_info.double_precision)
 
     def _calculate(self, parameters, param_names, directions, double_precision):
         nmr_voxels = parameters.shape[0]
@@ -55,9 +55,9 @@ class DKIMeasures(CLRoutine):
         rks_host = np.zeros((nmr_voxels, 1), dtype=parameters.dtype)
 
         workers = self._create_workers(lambda cl_environment: _DKIMeasuresWorker(
-            cl_environment, self.get_compile_flags_list(),
+            cl_environment, self._cl_runtime_info.get_compile_flags(),
             parameters, param_names, directions, mks_host, aks_host, rks_host, double_precision))
-        self.load_balancer.process(workers, nmr_voxels)
+        self._cl_runtime_info.load_balancer.process(workers, nmr_voxels)
 
         return {'MK': mks_host, 'AK': aks_host, 'RK': rks_host}
 

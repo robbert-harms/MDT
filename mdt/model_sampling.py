@@ -19,7 +19,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 def sample_composite_model(model, input_data, output_folder, nmr_samples, thinning, burnin, tmp_dir,
                            recalculate=False, store_samples=True, sample_items_to_save=None,
-                           initialization_data=None, double_precision=False):
+                           initialization_data=None):
     """Sample a composite model.
 
     Args:
@@ -82,7 +82,7 @@ def sample_composite_model(model, input_data, output_folder, nmr_samples, thinni
                 nmr_samples, thinning, burnin,
                 model, input_data.mask, input_data.nifti_header, output_folder,
                 get_full_tmp_results_path(output_folder, tmp_dir), recalculate,
-                samples_storage_strategy=samples_storage_strategy, double_precision=double_precision)
+                samples_storage_strategy=samples_storage_strategy)
 
             processing_strategy = get_processing_strategy('sampling')
             return processing_strategy.process(worker)

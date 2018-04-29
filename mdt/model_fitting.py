@@ -16,6 +16,7 @@ from mdt.utils import create_roi, get_cl_devices, model_output_exists, \
     per_model_logging_context, get_temporary_results_dir, SimpleInitializationData
 from mdt.processing_strategies import FittingProcessor, get_full_tmp_results_path
 from mdt.exceptions import InsufficientProtocolError
+from mot.cl_runtime_info import CLRuntimeInfo
 from mot.load_balance_strategies import EvenDistribution
 import mot.configuration
 from mot.configuration import RuntimeConfigurationAction
@@ -156,24 +157,21 @@ class ModelFit(object):
         if cascade_subdir and isinstance(self._model, DMRICascadeModelInterface):
             self._output_folder += '/{}'.format(self._model.name)
         self._optimizer = optimizer
-        self._double_precision = double_precision
         self._recalculate = recalculate
         self._only_recalculate_last = only_recalculate_last
         self._logger = logging.getLogger(__name__)
-        self._cl_device_indices = cl_device_ind
+
         self._model_names_list = []
         self._tmp_results_dir = get_temporary_results_dir(tmp_results_dir)
         self._initialization_data = initialization_data or SimpleInitializationData()
 
-        if self._cl_device_indices is not None and not isinstance(self._cl_device_indices, collections.Iterable):
-            self._cl_device_indices = [self._cl_device_indices]
+        if cl_device_ind is not None and not isinstance(cl_device_ind, collections.Iterable):
+            cl_device_ind = [cl_device_ind]
 
-        self._cl_envs = None
-        self._load_balancer = None
-        if self._cl_device_indices is not None:
-            all_devices = get_cl_devices()
-            self._cl_envs = [all_devices[ind] for ind in self._cl_device_indices]
-            self._load_balancer = EvenDistribution()
+        cl_environments = [get_cl_devices()[ind] for ind in cl_device_ind]
+        self._cl_runtime_info = CLRuntimeInfo(cl_environments=[get_cl_devices()[ind] for ind in cl_device_ind],
+                                              load_balancer=EvenDistribution(),
+                                              double_precision=double_precision)
 
         if not model.is_input_data_sufficient(self._input_data):
             raise InsufficientProtocolError(
@@ -236,18 +234,14 @@ class ModelFit(object):
                                          apply_user_provided_initialization=not _in_recursion)
 
     def _run_composite_model(self, model, recalculate, model_names, apply_user_provided_initialization=False):
-        with mot.configuration.config_context(RuntimeConfigurationAction(cl_environments=self._cl_envs,
-                                                                         load_balancer=self._load_balancer)):
+        with mot.configuration.config_context(RuntimeConfigurationAction(
+                cl_environments=self._cl_runtime_info.cl_environments,
+                load_balancer=self._cl_runtime_info.load_balancer)):
             if apply_user_provided_initialization:
                 self._apply_user_provided_initialization_data(model)
 
             optimizer = self._optimizer or get_optimizer_for_model(model_names)
-            optimizer.double_precision = self._double_precision
-
-            if self._cl_device_indices is not None:
-                all_devices = get_cl_devices()
-                optimizer.cl_environments = [all_devices[ind] for ind in self._cl_device_indices]
-                optimizer.load_balancer = EvenDistribution()
+            optimizer.set_cl_runtime_info(self._cl_runtime_info)
 
             fitter = SingleModelFit(model, self._input_data, self._output_folder, optimizer,
                                     self._tmp_results_dir, recalculate=recalculate, cascade_names=model_names)

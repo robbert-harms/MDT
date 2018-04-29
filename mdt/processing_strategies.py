@@ -473,7 +473,7 @@ class SamplingProcessor(SimpleModelProcessor):
         pass
 
     def __init__(self, nmr_samples, thinning, burnin, model, mask, nifti_header, output_dir, tmp_storage_dir,
-                 recalculate, samples_storage_strategy=None, double_precision=False):
+                 recalculate, samples_storage_strategy=None):
         """The processing worker for model sampling.
 
         Args:
@@ -485,7 +485,6 @@ class SamplingProcessor(SimpleModelProcessor):
                     stored is ``nmr_samples``. If set to one or lower we store every sample after the burn in.
             sampler (AbstractSampler): the optimization sampler to use
             samples_storage_strategy (SamplesStorageStrategy): indicates which samples to store
-            double_precision (boolean): If we are running the sampler in double precision or in single float precision.
         """
         super(SamplingProcessor, self).__init__(mask, nifti_header, output_dir, tmp_storage_dir, recalculate)
         self._nmr_samples = nmr_samples
@@ -497,13 +496,11 @@ class SamplingProcessor(SimpleModelProcessor):
         self._subdirs = set()
         self._logger = logging.getLogger(__name__)
         self._samples_output_stored = []
-        self._double_precision = double_precision
 
     def _process(self, roi_indices, next_indices=None):
         model = self._model.build(roi_indices)
 
-        sampler = AdaptiveMetropolisWithinGibbs(model, model.get_initial_parameters(), model.get_rwm_proposal_stds(),
-                                                double_precision=self._double_precision)
+        sampler = AdaptiveMetropolisWithinGibbs(model, model.get_initial_parameters(), model.get_rwm_proposal_stds())
 
         sampling_output = sampler.sample(self._nmr_samples, burnin=self._burnin, thinning=self._thinning)
         samples = sampling_output.get_samples()
