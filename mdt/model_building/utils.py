@@ -88,8 +88,8 @@ class ParameterTransformedModel(OptimizeModelInterface):
     def get_nmr_problems(self):
         return self._model.get_nmr_problems()
 
-    def get_nmr_inst_per_problem(self):
-        return self._model.get_nmr_inst_per_problem()
+    def get_nmr_observations(self):
+        return self._model.get_nmr_observations()
 
     def get_nmr_parameters(self):
         return self._model.get_nmr_parameters()

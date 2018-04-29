@@ -26,12 +26,12 @@ class CalculateModelEstimates(CLRoutine):
         Returns:
             ndarray: Return per problem instance the evaluation per data point.
         """
-        nmr_inst_per_problem = model.get_nmr_inst_per_problem()
+        nmr_observations = model.get_nmr_observations()
 
         parameters = np.require(parameters, self._cl_runtime_info.mot_float_dtype, requirements=['C', 'A', 'O'])
 
         nmr_problems = parameters.shape[0]
-        evaluations = np.zeros((nmr_problems, nmr_inst_per_problem),
+        evaluations = np.zeros((nmr_problems, nmr_observations),
                                dtype=self._cl_runtime_info.mot_float_dtype, order='C')
 
         workers = self._create_workers(lambda cl_environment: _EvaluateModelWorker(
@@ -94,7 +94,7 @@ class _EvaluateModelWorker(Worker):
         kernel_param_names.extend(self._data_struct_manager.get_kernel_arguments())
 
         kernel_source = '''
-            #define NMR_INST_PER_PROBLEM ''' + str(self._model.get_nmr_inst_per_problem()) + '''
+            #define NMR_OBSERVATIONS ''' + str(self._model.get_nmr_observations()) + '''
         '''
         kernel_source += get_float_type_def(self._double_precision)
         kernel_source += self._data_struct_manager.get_struct_definition()
@@ -112,11 +112,11 @@ class _EvaluateModelWorker(Worker):
                         x[i] = params[gid * ''' + str(nmr_params) + ''' + i];
                     }
 
-                    global mot_float_type* result = estimates + gid * NMR_INST_PER_PROBLEM;
+                    global mot_float_type* result = estimates + gid * NMR_OBSERVATIONS;
                     
                     ''' + param_modifier.get_cl_function_name() + '''(&data, x);
                     
-                    for(uint i = 0; i < NMR_INST_PER_PROBLEM; i++){
+                    for(uint i = 0; i < NMR_OBSERVATIONS; i++){
                         result[i] = ''' + eval_function_info.get_cl_function_name() + '''(&data, x, i);
                     }
             }

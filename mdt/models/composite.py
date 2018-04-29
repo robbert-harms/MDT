@@ -146,7 +146,7 @@ class DMRICompositeModel(DMRIOptimizable):
                                    self.name,
                                    self._get_kernel_data(problems_to_analyze),
                                    self._get_nmr_problems(problems_to_analyze),
-                                   self.get_nmr_inst_per_problem(),
+                                   self.get_nmr_observations(),
                                    self.get_nmr_parameters(),
                                    self._get_initial_parameters(problems_to_analyze),
                                    self._get_pre_eval_parameter_modifier(),
@@ -396,7 +396,7 @@ class DMRICompositeModel(DMRIOptimizable):
         """
         return self._input_data
 
-    def get_nmr_inst_per_problem(self):
+    def get_nmr_observations(self):
         """See super class for details"""
         return self._input_data.nmr_observations
 
@@ -1490,7 +1490,7 @@ class DMRICompositeModel(DMRIOptimizable):
 class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
 
     def __init__(self, used_problem_indices,
-                 name, kernel_data_info, nmr_problems, nmr_inst_per_problem,
+                 name, kernel_data_info, nmr_problems, nmr_observations,
                  nmr_estimable_parameters, initial_parameters, pre_eval_parameter_modifier,
                  objective_per_observation_function, lower_bounds, upper_bounds, numdiff_step,
                  numdiff_scaling_factors, numdiff_use_bounds, numdiff_use_lower_bounds,
@@ -1506,7 +1506,7 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
         self.name = name
         self._kernel_data_info = kernel_data_info
         self._nmr_problems = nmr_problems
-        self._nmr_inst_per_problem = nmr_inst_per_problem
+        self._nmr_observations = nmr_observations
         self._nmr_estimable_parameters = nmr_estimable_parameters
         self._initial_parameters = initial_parameters
         self._pre_eval_parameter_modifier = pre_eval_parameter_modifier
@@ -1541,8 +1541,8 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
     def get_nmr_problems(self):
         return self._nmr_problems
 
-    def get_nmr_inst_per_problem(self):
-        return self._nmr_inst_per_problem
+    def get_nmr_observations(self):
+        return self._nmr_observations
 
     def get_nmr_parameters(self):
         return self._nmr_estimable_parameters
@@ -1846,7 +1846,7 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
             log_likelihoods = log_likelihood_calc.calculate(self, results_array)
 
         k = self.nmr_parameters_for_bic_calculation
-        n = self.get_nmr_inst_per_problem()
+        n = self.get_nmr_observations()
 
         result = {'LogLikelihood': log_likelihoods}
         result.update(calculate_point_estimate_information_criterions(log_likelihoods, k, n))
