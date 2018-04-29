@@ -1,5 +1,4 @@
 from mdt.component_templates.compartment_models import CompartmentTemplate
-import numpy as np
 
 
 __author__ = 'Robbert Harms'
@@ -20,12 +19,12 @@ class NODDI_IC(CompartmentTemplate):
     parameters = ('g', 'b', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'kappa', 'R')
     dependencies = ('CerfErfi',
                     'MRIConstants',
-                    'NeumannCylindricalRestrictedSignal',
+                    'VanGelderenCylindricalRestrictedSignal',
                     'SphericalToCartesian')
     cl_code = '''
         const mot_float_type kappa_scaled = kappa * 10;
 
-        mot_float_type LePerp = NeumannCylindricalRestrictedSignal(Delta, delta, d, R, G);
+        mot_float_type LePerp = VanGelderenCylindricalRestrictedSignal(Delta, delta, d, R, G);
         mot_float_type ePerp = exp(LePerp);
         mot_float_type Lpmp = LePerp + d * b;
 

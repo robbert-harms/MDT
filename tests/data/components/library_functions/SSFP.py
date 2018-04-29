@@ -3,6 +3,7 @@ import numpy as np
 from numpy import cos, exp, sin
 from numpy.testing import assert_allclose
 import mdt
+from mot.cl_runtime_info import CLRuntimeInfo
 
 
 class test_SSFP(unittest.TestCase):
@@ -32,7 +33,7 @@ class test_SSFP(unittest.TestCase):
         names = ['d', 'delta', 'G', 'TR', 'flip_angle', 'b1', 'T1', 'T2']
         input_data = dict(zip(names, [test_params[..., ind] for ind in range(test_params.shape[1])]))
 
-        return ssfp.evaluate(input_data, double_precision=double_precision)
+        return ssfp.evaluate(input_data, cl_runtime_info=CLRuntimeInfo(double_precision=double_precision))
 
     def _generate_test_params(self):
         """

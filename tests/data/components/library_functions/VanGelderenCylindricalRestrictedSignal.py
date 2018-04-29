@@ -3,12 +3,13 @@ from scipy.special import jnp_zeros
 import numpy as np
 from numpy.testing import assert_allclose
 import mdt
+from mot.cl_runtime_info import CLRuntimeInfo
 
 
-class test_NeumannCylindricalRestrictedSignal(unittest.TestCase):
+class test_VanGelderenCylindricalRestrictedSignal(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
-        super(test_NeumannCylindricalRestrictedSignal, self).__init__(*args, **kwargs)
+        super(test_VanGelderenCylindricalRestrictedSignal, self).__init__(*args, **kwargs)
 
     def test_ncrs_float(self):
         test_params = self._generate_test_params().astype(dtype=np.float32)
@@ -27,12 +28,12 @@ class test_NeumannCylindricalRestrictedSignal(unittest.TestCase):
         assert_allclose(np.nan_to_num(python_results), np.nan_to_num(cl_results), atol=1e-7)
 
     def _calculate_cl(self, test_params, double_precision=False):
-        func = mdt.components.get_component('library_functions', 'NeumannCylindricalRestrictedSignal')()
+        func = mdt.components.get_component('library_functions', 'VanGelderenCylindricalRestrictedSignal')()
 
         names = ['Delta', 'delta', 'd', 'R', 'G']
         input_data = dict(zip(names, [test_params[..., ind] for ind in range(test_params.shape[1])]))
 
-        return func.evaluate(input_data, double_precision=double_precision)
+        return func.evaluate(input_data, cl_runtime_info=CLRuntimeInfo(double_precision=double_precision))
 
     def _generate_test_params(self):
         """
@@ -40,7 +41,6 @@ class test_NeumannCylindricalRestrictedSignal(unittest.TestCase):
         [Delta (s), delta (s), d (m/s^2), R (m), G (T/m)]
 
         """
-
         test_param_sets = [
             {'default': [0.5, 1e-2, 1e-9, 1e-6, 0.05],
              'lower_bounds': [0.1, 1e-3, 1e-10, 1e-7, 1e-4],

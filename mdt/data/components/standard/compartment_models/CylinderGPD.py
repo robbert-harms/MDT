@@ -10,14 +10,14 @@ class CylinderGPD(CompartmentTemplate):
 
     parameters = ('g', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'R')
     dependencies = ('MRIConstants',
-                    'NeumannCylindricalRestrictedSignal',
+                    'VanGelderenCylindricalRestrictedSignal',
                     'SphericalToCartesian')
     cl_code = '''
         mot_float_type b = pown(GAMMA_H * delta * G, 2) * (Delta - (delta/3.0));
 
-        mot_float_type lperp = NeumannCylindricalRestrictedSignal(Delta, delta, d, R, G);
+        mot_float_type lperp = VanGelderenCylindricalRestrictedSignal(Delta, delta, d, R, G) / (G*G);
 
         mot_float_type gn2 = pown(dot(g, SphericalToCartesian(theta, phi)), 2);
 
-        return exp( ((1 - gn2) * lperp) + (-b * d * gn2));
+        return exp( (lperp * (G*G - gn2)) + (-b * d * gn2));
     '''

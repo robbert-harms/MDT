@@ -7,16 +7,16 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class NeumannCylindricalRestrictedSignal(LibraryFunctionTemplate):
+class VanGelderenCylindricalRestrictedSignal(LibraryFunctionTemplate):
 
     description = '''
         This function returns the displacement in the restricted signal attenuation for Radius R 
-        according to the Neuman model.
+        according to the Neumann model.
 
         This includes a summation over the Bessel roots up to a accuracy of 1e-8.
     '''
     return_type = 'double'
-    parameters = ['Delta', 'delta', 'd', 'R', 'G']
+    parameters = ['G', 'Delta', 'delta', 'd', 'R']
     dependencies = ['MRIConstants']
     cl_code = '''
         if(R == 0.0 || R < MOT_EPSILON){
@@ -41,12 +41,12 @@ class NeumannCylindricalRestrictedSignal(LibraryFunctionTemplate):
             dam = d * amrdiv * amrdiv;
 
             sum += (2 * dam * delta
-                        -  2
-                        + (2 * exp(-dam * delta))
-                        + (2 * exp(-dam * Delta))
-                        - exp(-dam * (Delta - delta))
-                        - exp(-dam * (Delta + delta)))
-                    / ((dam * amrdiv * dam * amrdiv) * (cl_jnp_zeros[i] * cl_jnp_zeros[i] - 1));
+                    -  2
+                    + (2 * exp(-dam * delta))
+                    + (2 * exp(-dam * Delta))
+                    - exp(-dam * (Delta - delta))
+                    - exp(-dam * (Delta + delta)))
+                        / ((dam * amrdiv * dam * amrdiv) * (cl_jnp_zeros[i] * cl_jnp_zeros[i] - 1));
         }
         return -2 * GAMMA_H_SQ * (G*G) * sum;
     '''

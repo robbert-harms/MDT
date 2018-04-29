@@ -1,11 +1,9 @@
 import numpy as np
-import pyopencl as cl
-
-from mot.cl_data_type import SimpleCLDataType
-from mot.utils import get_float_type_def, convert_data_to_dtype
+from mot.cl_routines.mapping.run_procedure import RunProcedure
+from mot.kernel_data import KernelArray, KernelAllocatedArray, KernelScalar
 from mot.cl_routines.base import CLRoutine
-from mot.load_balance_strategies import Worker
 from mdt.components import get_component
+from mot.utils import NameFunctionTuple
 
 __author__ = 'Robbert Harms'
 __date__ = "2017-08-16"
@@ -35,31 +33,134 @@ class DKIMeasures(CLRoutine):
         Returns:
             dict: maps for the Mean Kurtosis (MK), Axial Kurtosis (AK) and Radial Kurtosis (RK).
         """
-        if self._cl_runtime_info.double_precision:
-            mot_float_type = SimpleCLDataType.from_string('float')
-        else:
-            mot_float_type = SimpleCLDataType.from_string('double')
-
         param_names = ['d', 'dperp0', 'dperp1', 'theta', 'phi', 'psi', 'W_0000', 'W_1000', 'W_1100', 'W_1110',
                        'W_1111', 'W_2000', 'W_2100', 'W_2110', 'W_2111', 'W_2200', 'W_2210', 'W_2211',
                        'W_2220', 'W_2221', 'W_2222']
+
         parameters = np.require(np.column_stack([parameters_dict[n] for n in param_names]),
                                 self._cl_runtime_info.mot_float_dtype, requirements=['C', 'A', 'O'])
-        directions = convert_data_to_dtype(self._get_spherical_samples(), 'mot_float_type4', mot_float_type)
-        return self._calculate(parameters, param_names, directions, self._cl_runtime_info.double_precision)
 
-    def _calculate(self, parameters, param_names, directions, double_precision):
         nmr_voxels = parameters.shape[0]
-        mks_host = np.zeros((nmr_voxels, 1), dtype=parameters.dtype)
-        aks_host = np.zeros((nmr_voxels, 1), dtype=parameters.dtype)
-        rks_host = np.zeros((nmr_voxels, 1), dtype=parameters.dtype)
+        kernel_data = {'parameters': KernelArray(parameters, ctype='mot_float_type',
+                                                 is_readable=True, is_writable=False),
+                       'directions': KernelArray(self._get_spherical_samples(), ctype='mot_float_type4',
+                                                 is_readable=True, is_writable=False, offset_str='0'),
+                       'nmr_directions': KernelScalar(self._get_spherical_samples().shape[0]),
+                       'nmr_radial_directions': KernelScalar(256),
+                       'mks': KernelAllocatedArray((nmr_voxels, 1), ctype='mot_float_type'),
+                       'aks': KernelAllocatedArray((nmr_voxels, 1), ctype='mot_float_type'),
+                       'rks': KernelAllocatedArray((nmr_voxels, 1), ctype='mot_float_type')}
 
-        workers = self._create_workers(lambda cl_environment: _DKIMeasuresWorker(
-            cl_environment, self._cl_runtime_info.get_compile_flags(),
-            parameters, param_names, directions, mks_host, aks_host, rks_host, double_precision))
-        self._cl_runtime_info.load_balancer.process(workers, nmr_voxels)
+        runner = RunProcedure(self._cl_runtime_info)
+        runner.run_procedure(self._get_compute_function(param_names), kernel_data, nmr_voxels)
 
-        return {'MK': mks_host, 'AK': aks_host, 'RK': rks_host}
+        return {'MK': kernel_data['mks'].get_data(),
+                'AK': kernel_data['aks'].get_data(),
+                'RK': kernel_data['rks'].get_data()}
+
+    def _get_compute_function(self, param_names):
+        def get_param_cl_ref(param_name):
+            return 'data->parameters[{}]'.format(param_names.index(param_name))
+
+        param_expansions = ['mot_float_type {} = params[{}];'.format(name, ind) for ind, name in enumerate(param_names)]
+
+        kernel_source = ''
+        kernel_source += get_component('library_functions', 'TensorApparentDiffusion')().get_cl_code()
+        kernel_source += get_component('library_functions', 'RotateOrthogonalVector')().get_cl_code()
+        kernel_source += get_component('library_functions', 'KurtosisMultiplication')().get_cl_code()
+        kernel_source += '''
+            double apparent_kurtosis(
+                    global mot_float_type* params,
+                    mot_float_type4 direction,
+                    mot_float_type4 vec0,
+                    mot_float_type4 vec1,
+                    mot_float_type4 vec2){
+
+                ''' + '\n'.join(param_expansions) + '''
+
+                mot_float_type adc = d *      pown(dot(vec0, direction), 2) +
+                                     dperp0 * pown(dot(vec1, direction), 2) +
+                                     dperp1 * pown(dot(vec2, direction), 2);
+
+                mot_float_type tensor_md = (d + dperp0 + dperp1) / 3.0;
+
+                double kurtosis_sum = KurtosisMultiplication(
+                    W_0000, W_1111, W_2222, W_1000, W_2000, W_1110,
+                    W_2220, W_2111, W_2221, W_1100, W_2200, W_2211,
+                    W_2100, W_2110, W_2210, direction);
+
+                return pown(tensor_md / adc, 2) * kurtosis_sum;
+            }
+
+            void get_principal_and_perpendicular_eigenvector(
+                    mot_float_type d,
+                    mot_float_type dperp0,
+                    mot_float_type dperp1,
+                    mot_float_type4* vec0,
+                    mot_float_type4* vec1,
+                    mot_float_type4* vec2,
+                    mot_float_type4** principal_vec,
+                    mot_float_type4** perpendicular_vec){
+
+                if(d >= dperp0 && d >= dperp1){
+                    *principal_vec = vec0;
+                    *perpendicular_vec = vec1;
+                }
+                if(dperp0 >= d && dperp0 >= dperp1){
+                    *principal_vec = vec1;
+                    *perpendicular_vec = vec0;
+                }
+                *principal_vec = vec2;
+                *perpendicular_vec = vec0;
+            }
+
+            void calculate_measures(mot_data_struct* data){
+                int i, j;
+
+                mot_float_type4 vec0, vec1, vec2;
+                TensorSphericalToCartesian(
+                    ''' + get_param_cl_ref('theta') + ''',
+                    ''' + get_param_cl_ref('phi') + ''',
+                    ''' + get_param_cl_ref('psi') + ''',
+                    &vec0, &vec1, &vec2);
+
+                mot_float_type4* principal_vec;
+                mot_float_type4* perpendicular_vec;
+                get_principal_and_perpendicular_eigenvector(
+                    ''' + get_param_cl_ref('d') + ''',
+                    ''' + get_param_cl_ref('dperp0') + ''',
+                    ''' + get_param_cl_ref('dperp1') + ''',
+                    &vec0, &vec1, &vec2,
+                    &principal_vec, &perpendicular_vec);
+
+
+                // Mean Kurtosis integrated over a set of directions
+                double mean = 0;
+                for(i = 0; i < data->nmr_directions; i++){
+                    mean += (apparent_kurtosis(data->parameters, data->directions[i], vec0, vec1, vec2) - mean) 
+                                / (i + 1);
+                }
+                *(data->mks) = clamp(mean, (double)0, (double)3);
+
+
+                // Axial Kurtosis over the principal direction of diffusion
+                *(data->aks) = clamp(apparent_kurtosis(data->parameters, *principal_vec, vec0, vec1, vec2), 
+                                   (double)0, (double)10);
+
+
+                // Radial Kurtosis integrated over a unit circle around the principal eigenvector.
+                mean = 0;
+                mot_float_type4 rotated_vec;
+                for(i = 0; i < data->nmr_radial_directions; i++){
+                    rotated_vec = RotateOrthogonalVector(*principal_vec, *perpendicular_vec,
+                                                         i * (2 * M_PI_F) / data->nmr_radial_directions);
+
+                    mean += (apparent_kurtosis(data->parameters, rotated_vec, vec0, vec1, vec2) - mean) / (i + 1);
+                }
+                *(data->rks) = max(mean, (double)0);
+            }
+        '''
+        return NameFunctionTuple('calculate_measures', kernel_source)
 
     def _get_spherical_samples(self):
         """Get a number of 3d coordinates mapping an unit sphere.
@@ -326,158 +427,3 @@ class DKIMeasures(CLRoutine):
                          [-0.0166, -0.8421, -0.5391],
                          [0.7741, -0.2931, 0.5610],
                          [-0.9636, 0.0579, 0.2611]])
-
-
-class _DKIMeasuresWorker(Worker):
-
-    def __init__(self, cl_environment, compile_flags, parameters, param_names, directions,
-                 mks_host, aks_host, rks_host, double_precision):
-        super(_DKIMeasuresWorker, self).__init__(cl_environment)
-        self._parameters = parameters
-        self._param_names = param_names
-        self._directions = directions
-        self._mks_host = mks_host
-        self._aks_host = aks_host
-        self._rks_host = rks_host
-        self._double_precision = double_precision
-        self._nmr_radial_directions = 256
-        self._kernel = self._build_kernel(self._get_kernel_source(), compile_flags)
-
-    def calculate(self, range_start, range_end):
-        nmr_problems = range_end - range_start
-
-        params_buf = cl.Buffer(self._cl_context,
-                               cl.mem_flags.READ_ONLY | cl.mem_flags.USE_HOST_PTR,
-                               hostbuf=self._parameters[range_start:range_end])
-        directions_buf = cl.Buffer(self._cl_context,
-                                   cl.mem_flags.READ_ONLY | cl.mem_flags.USE_HOST_PTR,
-                                   hostbuf=self._directions)
-        mks_buf = cl.Buffer(self._cl_context,
-                            cl.mem_flags.WRITE_ONLY | cl.mem_flags.USE_HOST_PTR,
-                            hostbuf=self._mks_host[range_start:range_end])
-        aks_buf = cl.Buffer(self._cl_context,
-                            cl.mem_flags.WRITE_ONLY | cl.mem_flags.USE_HOST_PTR,
-                            hostbuf=self._aks_host[range_start:range_end])
-        rks_buf = cl.Buffer(self._cl_context,
-                            cl.mem_flags.WRITE_ONLY | cl.mem_flags.USE_HOST_PTR,
-                            hostbuf=self._rks_host[range_start:range_end])
-
-        buffers = [params_buf, directions_buf, mks_buf, aks_buf, rks_buf]
-
-        self._kernel.calculate_measures(self._cl_queue, (int(nmr_problems), ), None, *buffers)
-        cl.enqueue_copy(self._cl_queue, self._mks_host[range_start:range_end], mks_buf, is_blocking=False)
-        cl.enqueue_copy(self._cl_queue, self._aks_host[range_start:range_end], aks_buf, is_blocking=False)
-        cl.enqueue_copy(self._cl_queue, self._rks_host[range_start:range_end], rks_buf, is_blocking=False)
-
-    def _get_kernel_source(self):
-        def get_param_cl_ref(param_name):
-            return 'params[gid * {} + {}]'.format(len(self._param_names), self._param_names.index(param_name))
-
-        param_expansions = ['mot_float_type {} = params[gid * {} + {}];'.format(name, len(self._param_names), ind)
-                            for ind, name in enumerate(self._param_names)]
-
-        kernel_source = ''
-        kernel_source += get_float_type_def(self._double_precision)
-        kernel_source += get_component('library_functions', 'TensorApparentDiffusion')().get_cl_code()
-        kernel_source += get_component('library_functions', 'RotateOrthogonalVector')().get_cl_code()
-        kernel_source += get_component('library_functions', 'KurtosisMultiplication')().get_cl_code()
-        kernel_source += '''
-            double apparent_kurtosis(
-                    global mot_float_type* params,
-                    mot_float_type4 direction,
-                    mot_float_type4 vec0,
-                    mot_float_type4 vec1,
-                    mot_float_type4 vec2){
-
-                ulong gid = get_global_id(0);
-                ''' + '\n'.join(param_expansions) + '''
-
-                mot_float_type adc = d *      pown(dot(vec0, direction), 2) +
-                                     dperp0 * pown(dot(vec1, direction), 2) +
-                                     dperp1 * pown(dot(vec2, direction), 2);
-
-                mot_float_type tensor_md = (d + dperp0 + dperp1) / 3.0;
-
-                double kurtosis_sum = KurtosisMultiplication(
-                    W_0000, W_1111, W_2222, W_1000, W_2000, W_1110,
-                    W_2220, W_2111, W_2221, W_1100, W_2200, W_2211,
-                    W_2100, W_2110, W_2210, direction);
-
-                return pown(tensor_md / adc, 2) * kurtosis_sum;
-            }
-
-            void get_principal_and_perpendicular_eigenvector(
-                    mot_float_type d,
-                    mot_float_type dperp0,
-                    mot_float_type dperp1,
-                    mot_float_type4* vec0,
-                    mot_float_type4* vec1,
-                    mot_float_type4* vec2,
-                    mot_float_type4** principal_vec,
-                    mot_float_type4** perpendicular_vec){
-
-                if(d >= dperp0 && d >= dperp1){
-                    *principal_vec = vec0;
-                    *perpendicular_vec = vec1;
-                }
-                if(dperp0 >= d && dperp0 >= dperp1){
-                    *principal_vec = vec1;
-                    *perpendicular_vec = vec0;
-                }
-                *principal_vec = vec2;
-                *perpendicular_vec = vec0;
-            }
-
-            __kernel void calculate_measures(
-                    global mot_float_type* restrict params,
-                    global mot_float_type4* restrict directions,
-                    global mot_float_type* restrict mks,
-                    global mot_float_type* restrict aks,
-                    global mot_float_type* restrict rks
-                    ){
-
-                ulong gid = get_global_id(0);
-                int i, j;
-
-                mot_float_type4 vec0, vec1, vec2;
-                TensorSphericalToCartesian(
-                    ''' + get_param_cl_ref('theta') + ''',
-                    ''' + get_param_cl_ref('phi') + ''',
-                    ''' + get_param_cl_ref('psi') + ''',
-                    &vec0, &vec1, &vec2);
-
-                mot_float_type4* principal_vec;
-                mot_float_type4* perpendicular_vec;
-                get_principal_and_perpendicular_eigenvector(
-                    ''' + get_param_cl_ref('d') + ''',
-                    ''' + get_param_cl_ref('dperp0') + ''',
-                    ''' + get_param_cl_ref('dperp1') + ''',
-                    &vec0, &vec1, &vec2,
-                    &principal_vec, &perpendicular_vec);
-
-                // Mean Kurtosis integrated over a set of directions
-                double mean = 0;
-                for(i = 0; i < ''' + str(self._directions.shape[0]) + '''; i++){
-                    mean += (apparent_kurtosis(params, directions[i], vec0, vec1, vec2) - mean) / (i + 1);
-                }
-                mks[gid] = clamp(mean, (double)0, (double)3);
-
-
-                // Axial Kurtosis over the principal direction of diffusion
-                aks[gid] = clamp(apparent_kurtosis(params, *principal_vec, vec0, vec1, vec2), (double)0, (double)10);
-
-
-                // Radial Kurtosis integrated over a unit circle around the principal eigenvector.
-                mean = 0;
-                mot_float_type4 rotated_vec;
-                for(i = 0; i < ''' + str(self._nmr_radial_directions) + '''; i++){
-                    rotated_vec = RotateOrthogonalVector(
-                        *principal_vec, *perpendicular_vec,
-                        i * (2 * M_PI_F) / ''' + str(self._nmr_radial_directions) + ''');
-
-                    mean += (apparent_kurtosis(params, rotated_vec, vec0, vec1, vec2) - mean) / (i + 1);
-                }
-                rks[gid] = max(mean, (double)0);
-            }
-        '''
-        return kernel_source
