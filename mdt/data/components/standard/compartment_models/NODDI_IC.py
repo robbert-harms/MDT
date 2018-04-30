@@ -22,14 +22,12 @@ class NODDI_IC(CompartmentTemplate):
                     'VanGelderenCylindricalRestrictedSignal',
                     'SphericalToCartesian')
     cl_code = '''
-        const mot_float_type kappa_scaled = kappa * 10;
-
-        mot_float_type LePerp = VanGelderenCylindricalRestrictedSignal(Delta, delta, d, R, G);
+        mot_float_type LePerp = VanGelderenCylindricalRestrictedSignal(G, Delta, delta, d, R);
         mot_float_type ePerp = exp(LePerp);
         mot_float_type Lpmp = LePerp + d * b;
 
         mot_float_type watson_coeff[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
-        NODDI_IC_WatsonSHCoeff(kappa_scaled, watson_coeff);
+        NODDI_IC_WatsonSHCoeff(kappa, watson_coeff);
 
         mot_float_type lgi[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
         NODDI_IC_LegendreGaussianIntegral(Lpmp, lgi);
@@ -157,8 +155,7 @@ class NODDI_IC(CompartmentTemplate):
         /**
             function [C, D] = WatsonSHCoeff(k)
             Computes the spherical harmonic (SH) coefficients of the Watson's
-            distribution with the concentration parameter k (kappa) up to the 12th order
-            and the derivatives if requested.
+            distribution with the concentration parameter k (kappa) up to the 12th order.
 
             Truncating at the 12th order gives good approximation for kappa up to 64.
 

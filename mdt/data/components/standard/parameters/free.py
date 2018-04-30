@@ -209,13 +209,20 @@ class R(FreeParameterTemplate):
 
 
 class kappa(FreeParameterTemplate):
+    """The kappa parameter of the Watson distribution in the NODDI model.
 
+    The NODDI model computes the spherical harmonic (SH) coefficients of the Watson distribution with the
+    concentration parameter k (kappa) up to the 12th order.
+
+    Truncating at the 12th order gives good approximation for kappa up to 64, as such we define kappa to be between
+    zero and 64.
+    """
     init_value = 1
-    lower_bound = 1e-5
-    upper_bound = 2 * np.pi
+    lower_bound = 0
+    upper_bound = 64
     parameter_transform = 'CosSqrClamp'
     sampling_proposal_std = 0.1
-    numdiff_info = {'max_step': 0.1, 'scale_factor': 10}
+    numdiff_info = {'max_step': 0.1}
 
 
 # for use in the GDRCylinder model
