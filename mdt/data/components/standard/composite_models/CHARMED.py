@@ -17,10 +17,6 @@ class CHARMED_r1(CompositeModelTemplate):
                )
     '''
 
-    upper_bounds = {
-        'CHARMEDRestricted0.d': 3e-9
-    }
-
     inits = {'Tensor.d': 2e-9,
              'Tensor.dperp0': 1e-9,
              'Tensor.dperp1': 1e-9,
@@ -45,9 +41,6 @@ class CHARMED_r2(CompositeModelTemplate):
                (Weight(w_res0) * CHARMEDRestricted(CHARMEDRestricted0)) +
                (Weight(w_res1) * CHARMEDRestricted(CHARMEDRestricted1)) )
     '''
-
-    upper_bounds = {'CHARMEDRestricted0.d': 3e-9,
-                    'CHARMEDRestricted1.d': 3e-9}
 
     inits = {'Tensor.d': 2e-9,
              'Tensor.dperp0': 1e-9,
@@ -77,10 +70,6 @@ class CHARMED_r3(CompositeModelTemplate):
                (Weight(w_res1) * CHARMEDRestricted(CHARMEDRestricted1)) +
                (Weight(w_res2) * CHARMEDRestricted(CHARMEDRestricted2)) )
     '''
-
-    upper_bounds = {'CHARMEDRestricted0.d': 3e-9,
-                    'CHARMEDRestricted1.d': 3e-9,
-                    'CHARMEDRestricted2.d': 3e-9}
 
     inits = {'Tensor.d': 2e-9,
              'Tensor.dperp0': 1e-9,

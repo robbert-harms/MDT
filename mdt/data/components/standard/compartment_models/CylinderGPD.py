@@ -8,16 +8,15 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class CylinderGPD(CompartmentTemplate):
 
-    parameters = ('g', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'R')
+    parameters = ('g', 'b', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'R')
     dependencies = ('MRIConstants',
-                    'VanGelderenCylindricalRestrictedSignal',
+                    'VanGelderenCylinderRestricted',
                     'SphericalToCartesian')
     cl_code = '''
-        mot_float_type b = pown(GAMMA_H * delta * G, 2) * (Delta - (delta/3.0));
+        const mot_float_type direction_2 = pown(dot(g, SphericalToCartesian(theta, phi)), 2);
 
-        mot_float_type lperp = VanGelderenCylindricalRestrictedSignal(G, Delta, delta, d, R);
-
-        mot_float_type gn2 = pown(dot(g, SphericalToCartesian(theta, phi)), 2);
-
-        return exp( (lperp * (1 - gn2)) + (-b * d * gn2));
+        const mot_float_type signal_par = -b * d * direction_2;
+        const mot_float_type signal_perp = (1 - direction_2) * VanGelderenCylinderRestricted(G, Delta, delta, d, R);
+        
+        return exp(signal_perp + signal_par);
     '''

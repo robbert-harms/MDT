@@ -7,10 +7,10 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class VanGelderenCylindricalRestrictedSignal(LibraryFunctionTemplate):
+class VanGelderenCylinderRestricted(LibraryFunctionTemplate):
 
     description = '''
-        This function returns the displacement in the restricted signal attenuation for Radius R 
+        This function returns the displacement in the restricted signal attenuation for radius R 
         according to the Van Gelderen model [1].
 
         This includes a summation over the Bessel roots up to a accuracy of 1e-8.
@@ -37,20 +37,20 @@ class VanGelderenCylindricalRestrictedSignal(LibraryFunctionTemplate):
         const int cl_jnp_zeros_length = 20;
 
         double sum = 0;
-        mot_float_type dam;
-        mot_float_type amrdiv;
+        mot_float_type alpha;
+        mot_float_type alpha2_d;
+        
+        for(uint i = 0; i < cl_jnp_zeros_length; i++){
+            alpha = cl_jnp_zeros[i] / R;
+            alpha2_d = d * alpha * alpha;
 
-        for(int i = 0; i < cl_jnp_zeros_length; i++){
-            amrdiv = cl_jnp_zeros[i] / R;
-            dam = d * amrdiv * amrdiv;
-
-            sum += (2 * dam * delta
+            sum += (2 * alpha2_d * delta
                     -  2
-                    + (2 * exp(-dam * delta))
-                    + (2 * exp(-dam * Delta))
-                    - exp(-dam * (Delta - delta))
-                    - exp(-dam * (Delta + delta)))
-                        / ((dam * amrdiv * dam * amrdiv) * (cl_jnp_zeros[i] * cl_jnp_zeros[i] - 1));
+                    + (2 * exp(-alpha2_d * delta))
+                    + (2 * exp(-alpha2_d * Delta))
+                    - exp(-alpha2_d * (Delta - delta))
+                    - exp(-alpha2_d * (Delta + delta)))
+                        / ((alpha2_d * alpha * alpha2_d * alpha) * (cl_jnp_zeros[i] * cl_jnp_zeros[i] - 1));
         }
         return -2 * GAMMA_H_SQ * (G*G) * sum;
     '''

@@ -19,10 +19,10 @@ class NODDI_IC(CompartmentTemplate):
     parameters = ('g', 'b', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'kappa', 'R')
     dependencies = ('CerfErfi',
                     'MRIConstants',
-                    'VanGelderenCylindricalRestrictedSignal',
+                    'VanGelderenCylinderRestricted',
                     'SphericalToCartesian')
     cl_code = '''
-        mot_float_type LePerp = VanGelderenCylindricalRestrictedSignal(G, Delta, delta, d, R);
+        mot_float_type LePerp = VanGelderenCylinderRestricted(G, Delta, delta, d, R);
         mot_float_type ePerp = exp(LePerp);
         mot_float_type Lpmp = LePerp + d * b;
 
