@@ -7,13 +7,13 @@ __email__ = 'robbert.harms@maastrichtuniversity.nl'
 __licence__ = 'LGPL v3'
 
 
-class S0_T1_GRE(CascadeTemplate):
+class S0T1_MI_EPI(CascadeTemplate):
 
-    description = 'Cascade for S0_T1_GRE model.'
+    description = 'Cascade for S0T1_MI_EPI model.'
     models = ('S0',
-              ('S0_T1_GRE', 'S0_T1_GRE_fixed_eff'),
-              'S0_T1_GRE')
-    fixes = {'S0_T1_GRE_fixed_eff': {'ExpT1DecIR.Efficiency': 1}}
+              ('S0T1_MI_EPI', 'S0T1_MI_EPI_fixed_eff'),
+              'S0T1_MI_EPI')
+    fixes = {'S0T1_MI_EPI_fixed_eff': {'ExpT1DecIR.Efficiency': 1}}
 
 
 class S0_T2(CascadeTemplate):
