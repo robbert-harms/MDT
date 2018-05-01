@@ -6,38 +6,19 @@ Adding models
 MDT features a dynamic library that keeps track of all model definitions.
 This dynamic library enables defining new models anywhere you like, enabling, for example::
 
-    import mdt
-    from mdt.components import get_template
+    from mdt import CompositeModelTemplate
 
-    class Tensor(get_template('composite_models', 'Tensor')):
-        likelihood_function = 'Rician'
+    class BallStick_r1(CompositeModelTemplate):
 
-    mdt.fit_model('Tensor (Cascade)', ...)
-
-
-Breaking this up, in the first part::
-
-    class Tensor(get_template('composite_models', 'Tensor')):
-            likelihood_function = 'Rician'
+        model_expression = '''
+            S0 * ( (Weight(w_ball) * Ball) +
+                   (Weight(w_stick0) * Stick(Stick0)) )
+        '''
 
 
-we load the last available Tensor model template from MDT (using ``get_template('composite_models', 'Tensor')``) and use it as a basis for an updated template.
-Then, since this class is also named Tensor (by saying ``class Tensor(...)``) this new template will override the previous Tensor.
-The body of this template then updates the previous Tensor, in this case by changing the likelihood function.
+Just by defining the model like that, it gets automatically registered inside MDT, allowing you to directly use it for model fitting, as in::
 
-In the second part::
-
-    mdt.fit_model('Tensor (Cascade)', ...)
-
-we just call ``mdt.fit_model`` with as model ``Tensor (Cascade)``.
-MDT will then load the cascade and its models by taking the last known definitions.
-As such, the new ``Tensor`` model with the updated likelihood function will be used in the model fitting.
-
-To remove an entry, you can use, for example:
-
-.. code-block:: python
-
-    mdt.components.remove_last_entry('composite_models', 'Tensor')
+    mdt.fit_model('BallStick_r1', ...)
 
 
 ************************
@@ -79,9 +60,49 @@ To make persistent changes you can add your modules to the *user* folder.
 The content of this folder is automatically copied to a new version.
 
 
-.. include:: _dynamic_modules/parameters.rst
-.. include:: _dynamic_modules/compartment_models.rst
+*********************************
+Dynamically redefining components
+*********************************
+Alternatively, it is also possible to overwrite existing models on the fly, for example::
+
+    import mdt
+    from mdt.components import get_template
+
+    class Tensor(get_template('composite_models', 'Tensor')):
+        likelihood_function = 'Rician'
+
+    mdt.fit_model('Tensor (Cascade)', ...)
+
+
+Breaking this up, in the first part::
+
+    class Tensor(get_template('composite_models', 'Tensor')):
+            likelihood_function = 'Rician'
+
+
+we load the last available Tensor model template from MDT (using ``get_template('composite_models', 'Tensor')``) and use it as a basis for an updated template.
+Then, since this class is also named Tensor (by saying ``class Tensor(...)``) this new template will override the previous Tensor.
+The body of this template then updates the previous Tensor, in this case by changing the likelihood function.
+
+In the second part::
+
+    mdt.fit_model('Tensor (Cascade)', ...)
+
+we just call ``mdt.fit_model`` with as model ``Tensor (Cascade)``.
+MDT will then load the cascade and its models by taking the last known definitions.
+As such, the new ``Tensor`` model with the updated likelihood function will be used in the model fitting.
+
+To remove an entry, you can use, for example::
+
+    mdt.components.remove_last_entry('composite_models', 'Tensor')
+
+
+This functionality allows you to overwrite and add models without adding them to your home folder.
+
+
 .. include:: _dynamic_modules/composite_models.rst
+.. include:: _dynamic_modules/compartment_models.rst
+.. include:: _dynamic_modules/parameters.rst
 .. include:: _dynamic_modules/cascade_models.rst
 .. include:: _dynamic_modules/library_functions.rst
 .. include:: _dynamic_modules/batch_profiles.rst

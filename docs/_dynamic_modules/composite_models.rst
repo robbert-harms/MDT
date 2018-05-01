@@ -12,7 +12,7 @@ combines it with a likelihood function (Rician, OffsetGaussian, Gaussian).
 Composite models are defined by inheriting from :class:`~mdt.component_templates.composite_models.CompositeModelTemplate`.
 The following is an minimal example of a composite (multi-compartment) model in MDT::
 
-    class BallStickStick(CompositeModelTemplate):
+    class BallStick_r2(CompositeModelTemplate):
 
         model_expression = '''
             S0 * ( (Weight(w_ball) * Ball) +

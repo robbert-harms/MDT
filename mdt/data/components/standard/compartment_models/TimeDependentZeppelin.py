@@ -24,7 +24,7 @@ class TimeDependentZeppelin(CompartmentTemplate):
             improves in vivo estimates of axonal diameter and density in human white matter, NeuroImage 2016.
     '''
     parameters = ('g', 'b', 'd', 'd_bulk', 'theta', 'phi', 'time_dependent_characteristic_coefficient(A)',
-                      'Delta', 'delta')
+                  'Delta', 'delta')
     dependencies = ('Zeppelin',)
     cl_code = '''
         mot_float_type dperp0 = d_bulk + A * (log(Delta/delta) + 3/2.0)/(Delta - delta/3.0);

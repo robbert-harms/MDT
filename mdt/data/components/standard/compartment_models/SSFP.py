@@ -32,7 +32,7 @@ class SSFP_Stick(CompartmentTemplate):
 class SSFP_Tensor(CompartmentTemplate):
 
     parameters = ('g', 'd', 'dperp0', 'dperp1', 'theta', 'phi', 'psi', 'delta',
-                      'G', 'TR', 'flip_angle', 'b1_static', 'T1_static', 'T2_static')
+                  'G', 'TR', 'flip_angle', 'b1_static', 'T1_static', 'T2_static')
     dependencies = ('SSFP', 'TensorApparentDiffusion')
     cl_code = '''
         mot_float_type adc = TensorApparentDiffusion(theta, phi, psi, d, dperp0, dperp1, g);

@@ -34,9 +34,9 @@ class SymmetricNonParametricTensor(CompartmentTemplate):
         without vector/diffusivity parameterization.
     '''
     parameters = ('g', 'b',
-                      'Tensor_D_00(D_00)', 'Tensor_D_01(D_01)', 'Tensor_D_02(D_02)',
-                                           'Tensor_D_11(D_11)', 'Tensor_D_12(D_12)',
-                                                                'Tensor_D_22(D_22)')
+                  'Tensor_D_00(D_00)', 'Tensor_D_01(D_01)', 'Tensor_D_02(D_02)',
+                                       'Tensor_D_11(D_11)', 'Tensor_D_12(D_12)',
+                                                            'Tensor_D_22(D_22)')
     cl_code = '''
         double diff = g.x * g.x * D_00 +
                       g.y * g.x * D_01 * 2 +
