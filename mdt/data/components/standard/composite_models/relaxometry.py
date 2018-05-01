@@ -15,6 +15,18 @@ class S0_T1_GRE(CompositeModelTemplate):
     upper_bounds = {'ExpT1DecIR.T1': 6.0}
 
 
+class S0T1GRE(CompositeModelTemplate):
+
+    description = '''Gradient echo model.
+
+    This is the classical GRE T1-weighted equation, in which the signal is dependent of TR and flip angle.
+    '''
+
+    name = 'S0-T1GRE'
+    description = 'Models the unweighted signal (aka. b0) with an extra T1.'
+    model_expression = 'S0 * ExpT1DecGRE'
+
+
 class S0T2_exvivo(CompositeModelTemplate):
 
     name = 'S0-T2-ExVivo'

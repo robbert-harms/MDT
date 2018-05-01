@@ -11,9 +11,9 @@ class S0_T1_GRE(CascadeTemplate):
 
     description = 'Cascade for S0_T1_GRE model.'
     models = ('S0',
-              'S0_T1_GRE',
+              ('S0_T1_GRE', 'S0_T1_GRE_fixed_eff'),
               'S0_T1_GRE')
-    fixes = {1: [('ExpT1DecIR.Efficiency', 1)]}
+    fixes = {'S0_T1_GRE_fixed_eff': {'ExpT1DecIR.Efficiency': 1}}
 
 
 class S0_T2(CascadeTemplate):
