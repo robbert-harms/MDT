@@ -149,7 +149,13 @@ class _ComponentLibrary(object):
 
         Returns:
             mdt.component_templates.base.ComponentTemplateMeta: a template class if possible.
+
+        Raises:
+            ValueError: if no component of the given name could be found.
         """
+        if not self.has_component(component_type, name):
+            raise ValueError('The component with the name "{}" '
+                             'of type "{}" could be found.'.format(name, component_type))
         return self._library[component_type][name][-1].get_template()
 
     def remove_last_entry(self, component_type, name):
