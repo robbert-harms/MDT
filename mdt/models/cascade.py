@@ -101,6 +101,11 @@ class SimpleCascadeModel(DMRICascadeModelInterface):
         self._model_list = model_list
         self._iteration_position = 0
 
+        model_names = [model.name for model in model_list]
+        if len(model_names) > len(set(model_names)):
+            raise ValueError('Non-unique model names detected in the cascade. '
+                             'Please ensure all models are uniquely named.')
+
     @property
     def name(self):
         return self._name

@@ -26,9 +26,11 @@ class DMRICompositeModelBuilder(ComponentBuilder):
         """
         class AutoCreatedDMRICompositeModel(method_binding_meta(template, DMRICompositeModel)):
 
-            def __init__(self):
+            def __init__(self, model_name=None):
+                model_name = model_name or deepcopy(template.name)
+
                 super(AutoCreatedDMRICompositeModel, self).__init__(
-                    deepcopy(template.name),
+                    model_name,
                     CompartmentModelTree(parse(template.model_expression)),
                     deepcopy(_resolve_likelihood_function(template.likelihood_function)),
                     signal_noise_model=deepcopy(template.signal_noise_model),

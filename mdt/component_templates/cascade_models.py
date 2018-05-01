@@ -23,8 +23,15 @@ class CascadeBuilder(ComponentBuilder):
         class AutoCreatedCascadeModel(method_binding_meta(template, SimpleCascadeModel)):
 
             def __init__(self, *args):
+                models = []
+                for model_def in template.models:
+                    if isinstance(model_def, six.string_types):
+                        models.append(mdt.get_model(model_def)())
+                    else:
+                        models.append(mdt.get_model(model_def[0])(model_def[1]))
+
                 new_args = [deepcopy(template.name),
-                            tuple(mdt.get_model(name)() for name in template.models)]
+                            models]
                 for ind, arg in args:
                     new_args[ind] = arg
                 super(AutoCreatedCascadeModel, self).__init__(*new_args)
@@ -40,25 +47,17 @@ class CascadeBuilder(ComponentBuilder):
                         return v(output_previous, output_all_previous)
                     return v
 
-                for item in template.inits.get(model.name, {}):
-                    model.init(item[0], parse_value(item[1]))
-                for item in template.inits.get(iteration_position, {}):
-                    model.init(item[0], parse_value(item[1]))
+                def apply_func(template_element, cb):
+                    items_to_apply = dict(template_element.get(model.name, {}))
+                    items_to_apply.update(dict(template_element.get(iteration_position, {})))
 
-                for item in template.fixes.get(model.name, {}):
-                    model.fix(item[0], parse_value(item[1]))
-                for item in template.fixes.get(iteration_position, {}):
-                    model.fix(item[0], parse_value(item[1]))
+                    for key, value in items_to_apply.items():
+                        cb(key, parse_value(value))
 
-                for item in template.lower_bounds.get(model.name, {}):
-                    model.set_lower_bound(item[0], parse_value(item[1]))
-                for item in template.lower_bounds.get(iteration_position, {}):
-                    model.set_lower_bound(item[0], parse_value(item[1]))
-
-                for item in template.upper_bounds.get(model.name, {}):
-                    model.set_upper_bound(item[0], parse_value(item[1]))
-                for item in template.upper_bounds.get(iteration_position, {}):
-                    model.set_upper_bound(item[0], parse_value(item[1]))
+                apply_func(template.inits, lambda name, value: model.init(name, value))
+                apply_func(template.fixes, lambda name, value: model.fix(name, value))
+                apply_func(template.lower_bounds, lambda name, value: model.set_lower_bound(name, value))
+                apply_func(template.upper_bounds, lambda name, value: model.set_upper_bound(name, value))
 
                 self._prepare_model_cb(iteration_position, model, output_previous, output_all_previous)
 
@@ -73,7 +72,10 @@ class CascadeTemplateMeta(ComponentTemplateMeta):
         if name != 'CascadeTemplate':
             if name_attribute is None:
                 if attributes['models']:
-                    name_attribute = attributes['models'][-1]
+                    if isinstance(attributes['models'][-1], six.string_types):
+                        name_attribute = attributes['models'][-1]
+                    else:
+                        name_attribute = attributes['models'][-1][1]
 
                 name_modifier = ComponentTemplateMeta._resolve_attribute(bases, attributes, 'cascade_name_modifier')
                 if name_modifier:
@@ -101,20 +103,28 @@ class CascadeTemplate(six.with_metaclass(CascadeTemplateMeta, ComponentTemplate)
 
             .. code-block:: python
 
-                models = ('BallStick (Cascade)', 'Charmed_r1')
+                models = ('BallStick_r1 (Cascade)', 'CHARMED_r1')
+
+            It is also possible to rename models, to do so, add a tuple instead of a string. For example:
+
+            .. code-block:: python
+
+                models = (...,
+                          ('CHARMED_r1', 'CHARMED_r1_nickname'),
+                          ...)
 
         inits (dict): per model the initializations from the previous model. Example:
 
             .. code-block:: python
 
-                inits = {'Charmed_r1': [
-                            ('Tensor.theta', 'Stick.theta'),
-                            ('Tensor.phi', 'Stick.phi'),
-                            ('w_res0.w', lambda output_previous, output_all_previous: output_previous['w_stick.w'])
-                            ]
+                inits = {'CHARMED_r1': {
+                            'Tensor.theta': 'Stick.theta',
+                            'Tensor.phi': 'Stick.phi',
+                            'w_res0.w': lambda output_previous, output_all_previous: output_previous['w_stick.w']
+                            }
                         }
 
-            In this example the Charmed_r1 model in the cascade initializes its Tensor compartment with a previous
+            In this example the CHARMED_r1 model in the cascade initializes its Tensor compartment with a previous
             Ball&Stick model and initializes the restricted compartment volume fraction with the Stick fraction.
             You can either provide a string matching the parameter name of the exact previous model, or provide
             callback function that accepts both a dict containing the previous model estimates
@@ -125,8 +135,8 @@ class CascadeTemplate(six.with_metaclass(CascadeTemplateMeta, ComponentTemplate)
 
             .. code-block:: python
 
-                fixes = {'Charmed_r1': [('CharmedRestricted0.theta', 'Stick.theta'),
-                                        ('CharmedRestricted0.phi', 'Stick.phi')]}
+                fixes = {'CHARMED_r1': {'CharmedRestricted0.theta': 'Stick.theta',
+                                        'CharmedRestricted0.phi': 'Stick.phi'}}
 
             The syntax is similar to that of the inits attribute.
 
@@ -135,9 +145,10 @@ class CascadeTemplate(six.with_metaclass(CascadeTemplateMeta, ComponentTemplate)
 
             .. code-block:: python
 
-                lower_bounds = {'Charmed_r1': [
-                    ('S0.s0', lambda output_previous, output_all_previous: 2 * np.min(output_previous['S0.s0']))
-                ]}
+                lower_bounds = {'CHARMED_r1': {
+                    'S0.s0': lambda output_previous, output_all_previous: 2 * np.min(output_previous['S0.s0'])
+                    }
+                }
 
             The syntax is similar to that of the inits attribute.
 
@@ -146,9 +157,10 @@ class CascadeTemplate(six.with_metaclass(CascadeTemplateMeta, ComponentTemplate)
 
             .. code-block:: python
 
-                upper_bounds = {'Charmed_r1': [
-                    ('S0.s0', lambda output_previous, output_all_previous: 2 * np.max(output_previous['S0.s0']))
-                ]}
+                upper_bounds = {'CHARMED_r1': {
+                    'S0.s0': lambda output_previous, output_all_previous: 2 * np.max(output_previous['S0.s0'])
+                    }
+                }
 
             The syntax is similar to that of the inits attribute.
     """
