@@ -11,11 +11,11 @@ class CHARMED1(CascadeTemplate):
     description = 'Initializes the directions to Ball & Stick.'
     models = ('BallStick_r1 (Cascade)',
               'CHARMED_r1')
-    inits = {'CHARMED_r1': [('CHARMEDRestricted0.theta', 'Stick0.theta'),
-                            ('CHARMEDRestricted0.phi', 'Stick0.phi'),
-                            ('Tensor.theta', 'Stick0.theta'),
-                            ('Tensor.phi', 'Stick0.phi'),
-                            ('w_res0.w', 'w_stick0.w')]}
+    inits = {'CHARMED_r1': {'CHARMEDRestricted0.theta': 'Stick0.theta',
+                            'CHARMEDRestricted0.phi': 'Stick0.phi',
+                            'Tensor.theta': 'Stick0.theta',
+                            'Tensor.phi': 'Stick0.phi',
+                            'w_res0.w': 'w_stick0.w'}}
 
 
 class CHARMEDR1Fixed(CascadeTemplate):
@@ -24,11 +24,11 @@ class CHARMEDR1Fixed(CascadeTemplate):
     description = 'Fixes the directions to Ball & Stick.'
     models = ('BallStick_r1 (Cascade)',
               'CHARMED_r1')
-    inits = {'CHARMED_r1': [('Tensor.theta', 'Stick0.theta'),
-                            ('Tensor.phi', 'Stick0.phi'),
-                            ('w_res0.w', 'w_stick0.w')]}
-    fixes = {'CHARMED_r1': [('CHARMEDRestricted0.theta', 'Stick0.theta'),
-                            ('CHARMEDRestricted0.phi', 'Stick0.phi')]}
+    inits = {'CHARMED_r1': {'Tensor.theta': 'Stick0.theta',
+                            'Tensor.phi': 'Stick0.phi',
+                            'w_res0.w': 'w_stick0.w'}}
+    fixes = {'CHARMED_r1': {'CHARMEDRestricted0.theta': 'Stick0.theta',
+                            'CHARMEDRestricted0.phi': 'Stick0.phi'}}
 
 
 class CHARMEDR2(CascadeTemplate):

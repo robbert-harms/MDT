@@ -13,11 +13,11 @@ class Kurtosis(CascadeTemplate):
     models = ('Tensor (Cascade)',
               'Kurtosis')
 
-    inits = {'Kurtosis': [
-        ('KurtosisTensor.theta', 'Tensor.theta'),
-        ('KurtosisTensor.phi', 'Tensor.phi'),
-        ('KurtosisTensor.psi', 'Tensor.psi'),
-        ('KurtosisTensor.d', 'Tensor.d'),
-        ('KurtosisTensor.dperp0', 'Tensor.dperp0'),
-        ('KurtosisTensor.dperp1', 'Tensor.dperp1')]
+    inits = {'Kurtosis': {
+        'KurtosisTensor.theta': 'Tensor.theta',
+        'KurtosisTensor.phi': 'Tensor.phi',
+        'KurtosisTensor.psi': 'Tensor.psi',
+        'KurtosisTensor.d': 'Tensor.d',
+        'KurtosisTensor.dperp0': 'Tensor.dperp0',
+        'KurtosisTensor.dperp1': 'Tensor.dperp1'}
     }
