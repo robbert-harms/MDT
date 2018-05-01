@@ -13,8 +13,6 @@ class VanGelderenCylinderRestricted(LibraryFunctionTemplate):
         This function returns the displacement in the restricted signal attenuation for radius R 
         according to the Van Gelderen model [1].
 
-        This includes a summation over the Bessel roots up to a accuracy of 1e-8.
-        
         References:
         1) Gelderen V, D D, PC van Z, CT M. Evaluation of Restricted Diffusion in Cylinders. 
             Phosphocreatine in Rabbit Leg Muscle. 1994. doi:10.1006/jmrb.1994.1038.
