@@ -1,4 +1,4 @@
-from mdt.component_templates.compartment_models import CompartmentTemplate
+from mdt import CompartmentTemplate
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -9,7 +9,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class CHARMEDRestricted(CompartmentTemplate):
 
     parameters = ('g', 'b', 'G', 'Delta', 'delta', 'TE', 'd', 'theta', 'phi')
-    dependencies = ('SphericalToCartesian', 'NeumannCylinderRestrictedLongApprox')
+    dependencies = ('SphericalToCartesian', 'NeumanCylinderLongApprox')
     cl_code = '''
         const double weights[] = {0.021184720085574, 0.107169623942214, 0.194400551313197,
                                   0.266676876170322, 0.214921653661151, 0.195646574827541};
@@ -24,7 +24,7 @@ class CHARMEDRestricted(CompartmentTemplate):
         
         #pragma unroll
         for(uint i = 0; i < 6; i++){
-            signal_perp = (delta * delta * (1 - direction_2)) * NeumannCylinderRestrictedLongApprox(G, TE/2.0, d, radii[i]);
+            signal_perp = (delta * delta * (1 - direction_2)) * NeumanCylinderLongApprox(G, TE/2.0, d, radii[i]);
             sum += weights[i] * exp(signal_par + signal_perp);
         }
         

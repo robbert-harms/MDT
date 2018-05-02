@@ -1,4 +1,4 @@
-from mdt.component_templates.batch_profiles import BatchProfileTemplate
+from mdt import BatchProfileTemplate
 
 __author__ = 'Robbert Harms'
 __date__ = '2018-03-18'

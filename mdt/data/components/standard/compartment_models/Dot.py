@@ -1,4 +1,4 @@
-from mdt.component_templates.compartment_models import CompartmentTemplate
+from mdt import CompartmentTemplate
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"

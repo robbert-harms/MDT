@@ -1,5 +1,5 @@
 import numpy as np
-from mdt.component_templates.composite_models import CompositeModelTemplate
+from mdt import CompositeModelTemplate
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"

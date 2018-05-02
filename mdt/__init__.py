@@ -7,10 +7,7 @@ from contextlib import contextmanager
 import numpy as np
 import shutil
 from six import string_types
-
-from mdt.model_fitting import get_batch_fitting_function
 from .__version__ import VERSION, VERSION_STATUS, __version__
-
 
 from mdt.configuration import get_logging_configuration_dict
 try:
@@ -18,6 +15,14 @@ try:
 except ValueError:
     print('Logging disabled')
 
+from mdt.component_templates.parameters import FreeParameterTemplate, ProtocolParameterTemplate
+from mdt.component_templates.cascade_models import CascadeTemplate
+from mdt.component_templates.batch_profiles import BatchProfileTemplate
+from mdt.component_templates.compartment_models import CompartmentTemplate, WeightCompartmentTemplate
+from mdt.component_templates.composite_models import CompositeModelTemplate
+from mdt.component_templates.library_functions import LibraryFunctionTemplate
+
+from mdt.model_fitting import get_batch_fitting_function
 from mdt.user_script_info import easy_save_user_script_info
 from mdt.utils import estimate_noise_std, get_cl_devices, load_input_data,\
     create_blank_mask, create_index_matrix, \
@@ -35,12 +40,8 @@ from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, wri
 from mdt.configuration import config_context, get_processing_strategy, get_config_option, set_config_option
 from mdt.exceptions import InsufficientProtocolError
 from mdt.nifti import write_nifti
-from mdt.components import get_model, get_batch_profile
-from mdt.component_templates.parameters import FreeParameterTemplate, ProtocolParameterTemplate
-from mdt.component_templates.cascade_models import CascadeTemplate
-from mdt.component_templates.batch_profiles import BatchProfileTemplate
-from mdt.component_templates.compartment_models import CompartmentTemplate, WeightCompartmentTemplate
-from mdt.component_templates.composite_models import CompositeModelTemplate
+from mdt.components import get_model, get_batch_profile, get_component
+
 
 
 __author__ = 'Robbert Harms'
@@ -640,3 +641,17 @@ def with_logging_to_debug():
     yield
     for handler, previous_level in zip(handlers, previous_levels):
         handler.setLevel(previous_level)
+
+
+if 'MDT.LOAD_COMPONENTS' in os.environ and os.environ['MDT.LOAD_COMPONENTS'] != '1':
+    pass
+else:
+    def _reload_components():
+        from mdt.components import reload
+        try:
+            reload()
+        except Exception as exc:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error('Failed to load the default components. Try removing your MDT home folder and reload.')
+    _reload_components()

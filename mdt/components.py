@@ -73,18 +73,16 @@ class _ComponentLibrary(object):
         self._library[component_type][name].append(adapter)
         self._mutation_history.append(_LibraryHistoryDelta('add', component_type, name, adapter))
 
-    def add_template_component(self, component_type, name, template):
+    def add_template_component(self, template):
         """Adds a component template to the library.
 
         Args:
-            component_type (str): the type of the component, see ``supported_component_types``.
-            name (str): the name of the component
             template (mdt.component_templates.base.ComponentTemplateMeta): the template for constructing the component
                 class.
         """
         adapter = _ComponentFromTemplate(template)
-        self._library[component_type][name].append(adapter)
-        self._mutation_history.append(_LibraryHistoryDelta('add', component_type, name, adapter))
+        self._library[template.component_type][template.name].append(adapter)
+        self._mutation_history.append(_LibraryHistoryDelta('add', template.component_type, template.name, adapter))
 
     def get_component(self, component_type, name):
         """Get the component class for the component of the given type and name.
@@ -223,7 +221,18 @@ class _ComponentFromTemplate(_ComponentAdapter):
         self.template = template
 
     def get_component(self):
-        return self.template()
+        if self.template.subcomponents:
+            subcomponents = self.template.subcomponents
+
+            class SubComponentConstruct(self.template()):
+                def __init__(self, *args, **kwargs):
+                    with temporary_component_updates():
+                        for component in subcomponents:
+                            add_template_component(component)
+                        super(SubComponentConstruct, self).__init__(*args, **kwargs)
+            return SubComponentConstruct
+        else:
+            return self.template()
 
     def get_meta_info(self):
         return self.template.meta_info()
@@ -266,8 +275,8 @@ def add_component(component_type, name, cls, meta_info=None):
 
 
 @_add_doc(_ComponentLibrary.add_template_component.__doc__)
-def add_template_component(component_type, name, template):
-    return component_library.add_template_component(component_type, name, template)
+def add_template_component(template):
+    return component_library.add_template_component(template)
 
 
 @_add_doc(_ComponentLibrary.get_template.__doc__)
@@ -474,17 +483,3 @@ def _load_automatic_cascades():
 
         for cascade in get_missing_s0_cascades(models_list, list_cascade_models()):
             generate_cascade(cascade)
-
-
-initialized = False
-if not initialized:
-    if 'MDT.LOAD_COMPONENTS' in os.environ and os.environ['MDT.LOAD_COMPONENTS'] != '1':
-        pass
-    else:
-        try:
-            reload()
-        except ImportError:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error('Failed to load the default components. Try removing your MDT home folder and reload.')
-    initialized = True

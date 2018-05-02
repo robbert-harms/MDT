@@ -1,4 +1,4 @@
-from mdt.component_templates.composite_models import CompositeModelTemplate
+from mdt import CompositeModelTemplate
 import numpy as np
 
 __author__ = 'Robbert Harms'

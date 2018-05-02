@@ -1,5 +1,5 @@
 import numpy as np
-from mdt.component_templates.compartment_models import CompartmentTemplate
+from mdt import CompartmentTemplate
 from mdt.post_processing import DTIMeasures
 
 __author__ = 'Robbert Harms'

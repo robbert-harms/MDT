@@ -9,6 +9,10 @@ __email__ = 'robbert.harms@maastrichtuniversity.nl'
 __licence__ = 'LGPL v3'
 
 
+# The list of components we are loading at the moment. This allows keeping track of nested components.
+_component_loading = []
+
+
 class ComponentBuilder(object):
     """The base class for component builders.
 
@@ -99,21 +103,29 @@ class ComponentTemplateMeta(type):
         """
         result = super(ComponentTemplateMeta, mcs).__new__(mcs, name, bases, attributes)
 
+        result.component_type = mcs._resolve_attribute(bases, attributes, '_component_type')
         result.bound_methods = mcs._get_bound_methods(bases, attributes)
+        result.subcomponents = mcs._get_subcomponents(attributes)
 
-        if 'name' not in attributes:
-            result.name = name
-            attributes['name'] = name
+        result.name = name
+        if 'name' in attributes:
+            result.name = attributes['name']
 
-        try:
-            component_type = mcs._resolve_attribute(bases, attributes, '_component_type')
-            if component_type is not None and attributes['name']:
-                from mdt.components import add_template_component
-                add_template_component(component_type, attributes['name'], result)
-        except ValueError:
-            pass
+        if len(_component_loading) == 1:
+            try:
+                if result.component_type is not None and result.name:
+                    from mdt.components import add_template_component
+                    add_template_component(result)
+            except ValueError:
+                pass
 
+        _component_loading.pop()
         return result
+
+    @classmethod
+    def __prepare__(mcs, name, bases, **kwargs):
+        _component_loading.append(name)
+        return dict()
 
     @staticmethod
     def _get_bound_methods(bases, attributes):
@@ -131,6 +143,15 @@ class ComponentTemplateMeta(type):
                     if key not in bound_methods:
                         bound_methods.update({key: value})
         return bound_methods
+
+    @staticmethod
+    def _get_subcomponents(attributes):
+        """Get all the sub-components defined in this template.
+
+        Returns:
+            list: the defined sub-components.
+        """
+        return [value for value in attributes.values() if isinstance(value, ComponentTemplateMeta)]
 
     @staticmethod
     def _resolve_attribute(bases, attributes, attribute_name, base_predicate=None):

@@ -1,4 +1,4 @@
-from mdt.component_templates.compartment_models import CompartmentTemplate
+from mdt import CompartmentTemplate
 
 
 __author__ = 'Robbert Harms'
@@ -19,10 +19,10 @@ class NODDI_IC(CompartmentTemplate):
     parameters = ('g', 'b', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'kappa', 'R')
     dependencies = ('CerfErfi',
                     'MRIConstants',
-                    'VanGelderenCylinderRestricted',
+                    'VanGelderenCylinder',
                     'SphericalToCartesian')
     cl_code = '''
-        mot_float_type LePerp = VanGelderenCylinderRestricted(G, Delta, delta, d, R);
+        mot_float_type LePerp = VanGelderenCylinder(G, Delta, delta, d, R);
         mot_float_type ePerp = exp(LePerp);
         mot_float_type Lpmp = LePerp + d * b;
 

@@ -1,4 +1,4 @@
-from mdt.component_templates.library_functions import LibraryFunctionTemplate
+from mdt import LibraryFunctionTemplate
 
 
 class RotateOrthogonalVector(LibraryFunctionTemplate):

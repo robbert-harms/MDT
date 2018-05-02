@@ -1,6 +1,6 @@
-from mdt.component_templates.compartment_models import CompartmentTemplate
+from mdt import CompartmentTemplate, FreeParameterTemplate
 
-__author__ = 'Francisco.Lagos'
+__author__ = 'Francisco Fritz'
 __licence__ = 'LGPL v3'
 
 
@@ -28,6 +28,13 @@ class ExpT1DecIR(CompartmentTemplate):
     cl_code = """
         return fabs(1 + exp(-TR / (double)T1) - 2 * Efficiency * exp(-TI / (double)T1));
     """
+
+    class Efficiency(FreeParameterTemplate):
+        init_value = 0.95
+        lower_bound = 0
+        upper_bound = 1
+        parameter_transform = 'SinSqrClamp'
+        sampling_proposal_std = 0.001
 
 
 class ExpT1DecTM(CompartmentTemplate):

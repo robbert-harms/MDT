@@ -5,7 +5,7 @@ value to disable them from being optimized in a given situation, but they remain
 """
 
 import numpy as np
-from mdt.component_templates.parameters import FreeParameterTemplate
+from mdt import FreeParameterTemplate
 from mdt.model_building.parameter_functions.priors import UniformWithinBoundsPrior, ARDBeta, ARDGaussian
 
 
@@ -335,12 +335,3 @@ class Tensor_D_12(FreeParameterTemplate):
     parameter_transform = 'SinSqrClamp'
     sampling_proposal_std = 1e-10
     numdiff_info = {'max_step': 0.1, 'scale_factor': 1e10}
-
-
-class Efficiency(FreeParameterTemplate):
-
-    init_value = 0.95
-    lower_bound = 0
-    upper_bound = 1
-    parameter_transform = 'SinSqrClamp'
-    sampling_proposal_std = 0.001

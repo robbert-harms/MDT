@@ -3,7 +3,7 @@
 The type of these parameters signifies that the data for this parameter should come from the protocol file or from
 the protocol maps. These parameters are never optimized and are always set to the given input data.
 """
-from mdt.component_templates.parameters import ProtocolParameterTemplate
+from mdt import ProtocolParameterTemplate
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-12-12"

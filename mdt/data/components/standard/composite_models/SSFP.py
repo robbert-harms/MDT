@@ -1,4 +1,4 @@
-from mdt.component_templates.composite_models import CompositeModelTemplate
+from mdt import CompositeModelTemplate
 
 
 class SSFP_BallStick_r1_ExVivo(CompositeModelTemplate):
