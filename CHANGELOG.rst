@@ -2,6 +2,29 @@
 Changelog
 *********
 
+v0.12.0 (2018-05-03)
+====================
+The most important update is a bugfix in the CHARMED models. Unfortunately the CHARMED reference paper (Assaf, 2004) contains
+a small omission in the formula for the Neuman cylindrical diffusion model (a ``2`` is missing).
+Correcting this mistake slightly changes the CHARMED results.
+
+Furthermore, the static maps and static parameters have been merged with the protocol parameters.
+This allows, or will allow in the future, overloading protocol parameters with 3d/4d volumes.
+
+Added
+-----
+- Added functionality for nesting templates. This allows adding components that can only be used in the context of another component.
+- Adds EPI relaxometry models.
+- Adds functionality for unique names in a cascade.
+- Adds the Van Gelderen cylinder model and renamed the Von Neumann cylinder model. Corrected the CHARMEDRestricted equation.
+
+Other
+-----
+- Redefined the kappa parameter of the NODDI model to be between 0 and 64.
+- Removed the static map parameters and merged these with the protocol parameters.
+- Merged the model builder with the composite model.
+
+
 v0.11.4 (2018-04-12)
 ====================
 
