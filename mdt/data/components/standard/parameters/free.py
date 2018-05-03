@@ -225,26 +225,6 @@ class kappa(FreeParameterTemplate):
     numdiff_info = {'max_step': 0.1}
 
 
-# for use in the GDRCylinder model
-class gamma_shape(FreeParameterTemplate):
-
-    init_value = 1
-    lower_bound = 0.1e-3
-    upper_bound = 20
-    parameter_transform = 'CosSqrClamp'
-    sampling_proposal_std = 1.0e-2
-
-
-# for use in the GDRCylinder model
-class gamma_scale(FreeParameterTemplate):
-
-    init_value = 1e-6
-    lower_bound = 0.1e-9
-    upper_bound = 20e-6
-    parameter_transform = 'CosSqrClamp'
-    sampling_proposal_std = 1e-9
-
-
 # for use in ExpT1DecSTEAM model. It is assumed for ex-vivo values. For in-vivo use d instead.
 class d_exvivo(FreeParameterTemplate):
 

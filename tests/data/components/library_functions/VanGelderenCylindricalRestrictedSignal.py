@@ -84,7 +84,7 @@ class test_VanGelderenCylindricalRestrictedSignal(unittest.TestCase):
             return 0
 
         GAMMA = 267.5987E6
-        alpha_roots = jnp_zeros(1, 20) / R
+        alpha_roots = jnp_zeros(1, 16) / R
 
         sum = 0
         for i in range(20):
