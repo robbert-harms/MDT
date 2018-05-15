@@ -16,18 +16,18 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class GenerateBvecBval(BasicShellApplication):
+class CreateBvecBval(BasicShellApplication):
 
     def __init__(self):
-        super(GenerateBvecBval, self).__init__()
+        super(CreateBvecBval, self).__init__()
         mdt.init_user_settings(pass_if_exists=True)
 
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
 
         examples = textwrap.dedent('''
-            mdt-generate-bvec-bval my_protocol.prtcl
-            mdt-generate-bvec-bval my_protocol.prtcl bvec_name.bvec bval_name.bval
+            mdt-create-bvec-bval my_protocol.prtcl
+            mdt-create-bvec-bval my_protocol.prtcl bvec_name.bvec bval_name.bval
         ''')
         epilog = self._format_examples(doc_parser, examples)
 
@@ -58,8 +58,8 @@ class GenerateBvecBval(BasicShellApplication):
 
 
 def get_doc_arg_parser():
-    return GenerateBvecBval().get_documentation_arg_parser()
+    return CreateBvecBval().get_documentation_arg_parser()
 
 
 if __name__ == '__main__':
-    GenerateBvecBval().start()
+    CreateBvecBval().start()

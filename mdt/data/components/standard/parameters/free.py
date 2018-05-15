@@ -200,7 +200,6 @@ class dperp1(FreeParameterTemplate):
 
 
 class R(FreeParameterTemplate):
-
     init_value = 1.0e-6
     lower_bound = 1e-7
     upper_bound = 20e-6

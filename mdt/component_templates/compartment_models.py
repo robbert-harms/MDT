@@ -187,7 +187,7 @@ class CompartmentTemplate(ComponentTemplate):
 
             .. code-block:: python
 
-                extra_optimization_maps_funcs = [lambda d: {'FS': 1 - d['w_ball.w']},
+                extra_optimization_maps_funcs = [lambda d: {'FS': 1 - d['w']},
                                                  lambda d: {'Kurtosis.MK': <...>},
                                                  lambda d: {'Power2': d['foo']**2, 'Power3': d['foo']**3},
                                                  ...]

@@ -57,10 +57,10 @@ Some models may depend on other compartment models or on library functions.
 These dependencies can be specified using the ``dependencies`` attribute of the compartment model definition.
 As an example::
 
-    dependencies = ('CerfErfi', 'MRIConstants', 'CylinderGPD')
+    dependencies = ('erfi', 'MRIConstants', 'CylinderGPD')
 
 This list should contain strings with references to either library functions or other compartment models.
-In this example the ``CerfErfi`` library function is loaded from MOT, ``MRIConstants`` from MDT and ``CylinderGPD`` is another compartment model which our example depends on.
+In this example the ``erfi`` library function is loaded from MOT, ``MRIConstants`` from MDT and ``CylinderGPD`` is another compartment model which our example depends on.
 
 Adding items to this list means that the corresponding CL functions of these components are included into the optimized OpenCL kernel and allows you to use the corresponding CL code in your compartment model.
 

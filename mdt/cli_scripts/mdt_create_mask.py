@@ -19,10 +19,10 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class GenerateMask(BasicShellApplication):
+class CreateMask(BasicShellApplication):
 
     def __init__(self):
-        super(GenerateMask, self).__init__()
+        super(CreateMask, self).__init__()
         self.available_devices = {ind: env for ind, env in
                                   enumerate(cl_environments.CLEnvironmentFactory.smart_device_selection())}
 
@@ -30,9 +30,9 @@ class GenerateMask(BasicShellApplication):
         description = textwrap.dedent(__doc__)
 
         examples = textwrap.dedent('''
-            mdt-generate-mask data.nii.gz data.prtcl
-            mdt-generate-mask data.nii.gz data.prtcl -o data_mask.nii.gz
-            mdt-generate-mask data.nii.gz data.prtcl -o data_mask.nii.gz --median-radius 2
+            mdt-create-mask data.nii.gz data.prtcl
+            mdt-create-mask data.nii.gz data.prtcl -o data_mask.nii.gz
+            mdt-create-mask data.nii.gz data.prtcl -o data_mask.nii.gz --median-radius 2
         ''')
         epilog = self._format_examples(doc_parser, examples)
 
@@ -44,7 +44,7 @@ class GenerateMask(BasicShellApplication):
                                                                                             directories=False)
         parser.add_argument('protocol',
                             action=mdt.shell_utils.get_argparse_extension_checker(['.prtcl']),
-                            help='the protocol file, see mdt-generate-protocol').\
+                            help='the protocol file, see mdt-create-protocol').\
             completer = FilesCompleter(['prtcl'], directories=False)
         parser.add_argument('-o', '--output-name',
                             action=mdt.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
@@ -96,8 +96,8 @@ class GenerateMask(BasicShellApplication):
 
 
 def get_doc_arg_parser():
-    return GenerateMask().get_documentation_arg_parser()
+    return CreateMask().get_documentation_arg_parser()
 
 
 if __name__ == '__main__':
-    GenerateMask().start()
+    CreateMask().start()

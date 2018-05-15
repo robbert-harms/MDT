@@ -16,15 +16,15 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class GenerateRoiSlice(BasicShellApplication):
+class CreateRoiSlice(BasicShellApplication):
 
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
 
         examples = textwrap.dedent('''
-            mdt-generate-roi-slice mask.nii.gz
-            mdt-generate-roi-slice mask.nii.gz -d 1 -s 50
-            mdt-generate-roi-slice mask.nii.gz -d 1 -s 50 -o my_roi_1_50.nii.gz
+            mdt-create-roi-slice mask.nii.gz
+            mdt-create-roi-slice mask.nii.gz -d 1 -s 50
+            mdt-create-roi-slice mask.nii.gz -d 1 -s 50 -o my_roi_1_50.nii.gz
            ''')
         epilog = self._format_examples(doc_parser, examples)
 
@@ -71,8 +71,8 @@ class GenerateRoiSlice(BasicShellApplication):
 
 
 def get_doc_arg_parser():
-    return GenerateRoiSlice().get_documentation_arg_parser()
+    return CreateRoiSlice().get_documentation_arg_parser()
 
 
 if __name__ == '__main__':
-    GenerateRoiSlice().start()
+    CreateRoiSlice().start()

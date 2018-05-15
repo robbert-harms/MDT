@@ -1,4 +1,5 @@
 import collections
+import gzip
 import numbers
 import distutils.dir_util
 import glob
@@ -1880,3 +1881,43 @@ def load_volume_maps(directory, map_names=None, deferred=True):
     """
     from mdt.nifti import get_all_nifti_data
     return get_all_nifti_data(directory, map_names=map_names, deferred=deferred)
+
+
+def unzip_nifti(in_file, out_file=None, remove_old=False):
+    """Unzip a gzipped nifti file.
+
+    Args:
+        in_file (str): the nifti file to unzip
+        out_file (str): if given, the name of the output file. If not given, we will use the input filename without
+            the ``.gz``.
+        remove_old (boolean): if we want to remove the old (zipped) file or not
+    """
+    if out_file is None:
+        out_file = in_file[:-3]
+
+    with gzip.open(in_file, 'rb') as f_in:
+        with open(out_file, 'wb') as f_out:
+            f_out.writelines(f_in)
+
+    if remove_old:
+        os.remove(in_file)
+
+
+def zip_nifti(in_file, out_file=None, remove_old=False):
+    """Zip a nifti file.
+
+    Args:
+        in_file (str): the nifti file to zip
+        out_file (str): if given, the name of the output file. If not given, we will use the input filename with
+            ``.gz`` appended at the end.
+        remove_old (boolean): if we want to remove the old (non-zipped) file or not
+    """
+    if out_file is None:
+        out_file = in_file + '.gz'
+
+    with open(in_file, 'rb') as f_in:
+        with gzip.open(out_file, 'wb') as f_out:
+            f_out.writelines(f_in)
+
+    if remove_old:
+        os.remove(in_file)

@@ -132,7 +132,7 @@ class CompositeModelTemplate(ComponentTemplate):
             To ensure that the point estimate from optimization can directly be used in MCMC sampling, we sometimes
             need to rearrange the weights (and therefore the corresponding compartments). For example, some composite
             models have a prior on the weights of similar compartments to restrict them to a decreasing order, which
-            is typically done to prevent bimodal distributions. This model directive allows you to easily specify
+            is typically done to prevent bimodal continuous_distributions. This model directive allows you to easily specify
             which parameters to rearrange as first post-processing of optimization results.
 
             The first tuple needs to be a parameter reference or a  ``Weight`` compartment, the other tuples can

@@ -658,9 +658,9 @@ def load_bvec_bval(bvec, bval, column_based='auto', bval_scale='auto'):
             and is space or tab seperated and that the bval file (the b values) are one one single line with space or
             tab separated b values. If false, the vectors and b values are each one a different line.
             If 'auto' it is autodetected, this is the default.
-        bval_scale (float): The amount by which we want to scale (multiply) the b-values. The default is auto,
-            this checks if the b-val is lower then 1e4 and if so multiplies it by 1e6.
-            (sets bval_scale to 1e6 and multiplies), else multiplies by 1.
+        bval_scale (float): The amount by which we want to scale (multiply) the b-values. Typically bval files are
+            in units of s/mm², while MDT uses s/m² in computations. To rescale, this function checks if the b-val is
+            lower then 1e4 and if so multiplies it by 1e6.
 
     Returns:
         Protocol the loaded protocol.
@@ -831,7 +831,7 @@ def write_protocol(protocol, fname, columns_list=None):
     return protocol.column_names
 
 
-def auto_load_protocol(directory, protocol_columns=None, bvec_fname=None, bval_fname=None, bval_scale='auto'):
+def auto_load_protocol(directory, bvec_fname=None, bval_fname=None, bval_scale='auto', protocol_columns=None):
     """Load a protocol from the given directory.
 
     This function will only auto-search files in the top directory and not in the sub-directories.
@@ -866,12 +866,12 @@ def auto_load_protocol(directory, protocol_columns=None, bvec_fname=None, bval_f
 
     Args:
         directory (str): the directory to use the protocol from
-        protocol_columns (dict): mapping protocol items to filenames (as a subpath of the given directory)
-            or mapping them to values (one value or one value per bvec line)
         bvec_fname (str): if given, the filename of the bvec file (as a subpath of the given directory)
         bval_fname (str): if given, the filename of the bvec file (as a subpath of the given directory)
         bval_scale (double): The scale by which to scale the values in the bval file.
             If we use from bvec and bval we will use this scale. If 'auto' we try to guess the units/scale.
+        protocol_columns (dict): mapping protocol items to filenames (as a subpath of the given directory)
+            or mapping them to values (one value or one value per bvec line)
 
     Returns:
         Protocol: a loaded protocol file.
@@ -927,3 +927,32 @@ def auto_load_protocol(directory, protocol_columns=None, bvec_fname=None, bval_f
             protocol = protocol.with_added_column_from_file('Delta', os.path.join(directory, 'big_delta'))
 
     return protocol
+
+
+def create_protocol(out_file=None, bvecs=None, bvals=None, **kwargs):
+    """Create and write a protocol from the given keywords.
+
+    Please note that all given columns should be in **SI units**.
+
+    Args:
+        out_file (str): the output filename, if not given we will not write the protocol.
+        bvecs (str or ndarray): either an [n, 3] array or a string to a bvec file
+        bvals (str or ndarray): either an [n, 1] array or a string to a bval file. This expects a typical bval file
+            with units in s/mm².
+        kwargs: other protocol columns, for example ``Delta=30e-3``
+
+    Returns:
+        Protocol: the created protocol
+    """
+    if bvecs is not None and bvals is not None:
+        protocol = load_bvec_bval(bvecs, bvals)
+    else:
+        protocol = Protocol()
+
+    if kwargs:
+        protocol = protocol.with_updates(kwargs)
+
+    if out_file:
+        write_protocol(protocol, out_file)
+    return protocol
+

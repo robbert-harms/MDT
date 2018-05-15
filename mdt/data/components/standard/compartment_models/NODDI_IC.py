@@ -17,7 +17,7 @@ class NODDI_IC(CompartmentTemplate):
     of the time available anyway, and G/Delta/delta is only needed if R is not fixed (still it must be provided for).
     """
     parameters = ('g', 'b', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'kappa', 'R')
-    dependencies = ('CerfErfi',
+    dependencies = ('erfi',
                     'MRIConstants',
                     'VanGelderenCylinder',
                     'SphericalToCartesian')
@@ -184,7 +184,7 @@ class NODDI_IC(CompartmentTemplate):
                     sks[4] = sks[3] * kappa;
                     sks[5] = sks[4] * kappa;
 
-                    mot_float_type erfik = ferfi(sks[0]);
+                    mot_float_type erfik = erfi(sks[0]);
                     mot_float_type ierfik = 1/erfik;
                     mot_float_type ek = exp(kappa);
                     mot_float_type dawsonk = M_SQRTPI_2_F * erfik/ek;

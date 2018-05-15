@@ -172,7 +172,7 @@ class GenerateROIMaskTab(MainTab, Ui_GenerateROIMaskTabContent, QObject):
 
                 {header}
 
-                mdt-generate-roi-slice "{mask}" -d {dimension} -s {slice} -o "{output}"
+                mdt-create-roi-slice "{mask}" -d {dimension} -s {slice} -o "{output}"
             ''').format(header=get_script_file_header_text({'Purpose': 'Generated a slice ROI mask'}),
                         **kwargs))
 

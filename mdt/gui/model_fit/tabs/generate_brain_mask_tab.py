@@ -155,7 +155,7 @@ class GenerateBrainMaskTab(MainTab, Ui_GenerateBrainMaskTabContent, QObject):
 
                 {header}
 
-                mdt-generate-mask "{data}" "{prtcl}" -o "{output}" {kwargs}
+                mdt-create-mask "{data}" "{prtcl}" -o "{output}" {kwargs}
             ''').format(header=get_script_file_header_text({'Purpose': 'Generated a brain mask'}),
                         data=args[0], prtcl=args[1], output=args[2],
                         kwargs=' '.join('--{} {!r}'.format(el[0].replace('_', '-'), el[1]) for el in kwargs.items())))

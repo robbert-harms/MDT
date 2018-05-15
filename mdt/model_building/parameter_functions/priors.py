@@ -103,8 +103,8 @@ class VagueGammaPrior(SimplePrior):
             The invariant prior on precision lambda corresponds to a uniform distribution on log sigma,
             that is, rho(sigma^2) prop. to. 1/sigma^2, or a Gamma(a -> 0, b -> 0) distribution.
             This invariant prior distribution, however, is improper (i.e., the area under the curve is unbounded),
-            which means it is not really a distribution, but the limit of a sequence of distributions
-            (see Jaynes, 2003). WinBUGS requires the use of proper distributions,
+            which means it is not really a distribution, but the limit of a sequence of continuous_distributions
+            (see Jaynes, 2003). WinBUGS requires the use of proper continuous_distributions,
             and the Gamma(0.001, 0.001) prior is intended as a proper approximation to the theoretically
             motivated improper prior. This raises the issue of whether inference is sensitive to the essentially
             arbitrary value 0.001, and it is sometimes the case that using other small values such as 0.01 or 0.1
@@ -165,7 +165,7 @@ class AxialNormalPDF(SimplePrior):
             \end{align*}
 
         References:
-            Barry C. Arnold, Ashis SenGupta (2006). Probability distributions and statistical inference for axial data.
+            Barry C. Arnold, Ashis SenGupta (2006). Probability continuous_distributions and statistical inference for axial data.
             Environmental and Ecological Statistics, volume 13, issue 3, pages 271-285.
         """
         from mdt.model_building.parameters import FreeParameter

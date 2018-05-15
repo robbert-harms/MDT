@@ -31,12 +31,13 @@ from mdt.utils import estimate_noise_std, get_cl_devices, load_input_data,\
     load_nifti, write_slice_roi, apply_mask_to_file, extract_volumes, \
     get_slice_in_dimension, per_model_logging_context, \
     get_temporary_results_dir, get_example_data, SimpleInitializationData, InitializationData, load_volume_maps,\
-    covariance_to_correlation, check_user_components
+    covariance_to_correlation, check_user_components, unzip_nifti, zip_nifti
 from mdt.sorting import sort_orientations, create_sort_matrix, sort_volumes_per_voxel
 from mdt.simulations import create_signal_estimates, simulate_signals, add_rician_noise
 from mdt.batch_utils import run_function_on_batch_fit_output, batch_apply, \
     batch_profile_factory, get_subject_selection
-from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, write_protocol, write_bvec_bval
+from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, write_protocol, write_bvec_bval, \
+    create_protocol
 from mdt.configuration import config_context, get_processing_strategy, get_config_option, set_config_option
 from mdt.exceptions import InsufficientProtocolError
 from mdt.nifti import write_nifti

@@ -50,7 +50,7 @@ class ModelFit(BasicShellApplication):
                                                                                             directories=False)
         parser.add_argument(
             'protocol', action=mdt.shell_utils.get_argparse_extension_checker(['.prtcl']),
-            help='the protocol file, see mdt-generate-protocol').completer = FilesCompleter(['prtcl'],
+            help='the protocol file, see mdt-create-protocol').completer = FilesCompleter(['prtcl'],
                                                                                             directories=False)
         parser.add_argument('mask',
                             action=mdt.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),

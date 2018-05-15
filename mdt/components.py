@@ -394,30 +394,7 @@ def get_batch_profile(batch_profile):
 
 
 def _load_mot_components():
-    """Load all the components from MOT.
-    """
-
-    def _get_class_predicate(desired_module, class_type):
-        """A predicate to be used in the function inspect.getmembers
-
-        This predicate checks if the module of the item we inspect matches the given module and checks if the class type
-        is of the given class type.
-
-        Args:
-            desired_module (module): the module to check against the module of the item
-            class_type (Type): the module to check against the class_type of the item
-
-        Returns:
-            function: a function to be used as a predicate in inspect.getmembers
-        """
-        def defined_in_module(item):
-            return item.__module__ == desired_module.__name__
-
-        def complete_predicate(item):
-            return inspect.isclass(item) and defined_in_module(item) and issubclass(item, class_type)
-
-        return complete_predicate
-
+    """Load all the components from MOT."""
     items = [
         (mot.library_functions, SimpleCLLibrary, 'library_functions'),
         (mdt.model_building.likelihood_functions, LikelihoodFunction, 'likelihood_functions'),
@@ -425,7 +402,7 @@ def _load_mot_components():
     ]
 
     for module_obj, class_type, component_type in items:
-        module_items = inspect.getmembers(module_obj, _get_class_predicate(module_obj, class_type))
+        module_items = inspect.getmembers(module_obj, lambda cls: inspect.isclass(cls) and issubclass(cls, class_type))
         for item in [x[0] for x in module_items if x[0] != class_type.__name__]:
             add_component(component_type, item, getattr(module_obj, item))
 

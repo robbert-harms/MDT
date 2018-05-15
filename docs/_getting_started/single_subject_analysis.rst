@@ -153,12 +153,12 @@ For an overview of the available commands, please see: :ref:`cli_index`.
 Creating a protocol file
 ------------------------
 As explained in :ref:`concepts_protocol`, MDT stores all the acquisition settings relevant for the analysis in a Protocol file.
-To create one using the command line, you can use the command :ref:`cli_index_mdt-generate-protocol`.
+To create one using the command line, you can use the command :ref:`cli_index_mdt-create-protocol`.
 The most basic usage is to create a protocol file from a b-vec and b-val file:
 
 .. code-block:: console
 
-    $ mdt-generate-protocol data.bvec data.bval
+    $ mdt-create-protocol data.bvec data.bval
 
 which will generate a protocol file named "data.prtcl".
 For a more sophisticated protocol, one can add additional columns using the ``--<column_name> <value>`` syntax.
@@ -166,7 +166,7 @@ For example:
 
 .. code-block:: console
 
-    $ mdt-generate-protocol d.bvec d.bval --Delta 26.5 --delta delta.txt
+    $ mdt-create-protocol d.bvec d.bval --Delta 26.5 --delta delta.txt
 
 which will add both the column ``Delta`` to your protocol file (with a static value of 26.5 ms) and the column ``delta``
 which is read from a file. If a file is given it can either contain a column, row or scalar.
@@ -185,7 +185,7 @@ An example usage in the case of the MDT example data would be the command:
 .. code-block:: console
 
     $ cd b1k_b2k
-    $ mdt-generate-protocol b1k_b2k.bvec b1k_b2k.bval \
+    $ mdt-create-protocol b1k_b2k.bvec b1k_b2k.bval \
         --Delta 26.5 \
         --delta 16.2 \
         --TE 60 \
@@ -195,17 +195,16 @@ note that by default the sequence timings are in ``ms`` for this function
 and the elements ``Delta``, ``delta``, ``TE`` and ``TR`` will automatically be scaled and stored as seconds.
 
 
-Generating a brain mask
------------------------
+Creating a brain mask
+---------------------
 MDT has some rough functionality for creating a brain mask, similar to the ``median_otsu`` algorithm in Dipy.
-This algorithm is not as sophisticated as for example BET in FSL and therefore we will not go in to much detail here.
-The mask generating functionality in MDT is merely meant for quickly creating a mask within MDT.
+This algorithm is only meant for generating a rough brain mask and is not as sophisticated as for example BET from FSL.
 
-Nevertheless, creating a mask is made easy using the command :ref:`cli_index_mdt-generate-mask`:
+Creating a mask is possible with the command :ref:`cli_index_mdt-create-mask`:
 
 .. code-block:: console
 
-    $ mdt-generate-mask data.nii.gz data.prtcl
+    $ mdt-create-mask data.nii.gz data.prtcl
 
 which generates a mask named ``data_mask.nii.gz``.
 
@@ -215,12 +214,12 @@ Generating a ROI mask
 It is sometimes convenient to run analysis on a single slice (Region Of Interest) before running it whole brain.
 For the example data we do not need this step since that dataset is already compressed to two slices.
 
-To create a ROI mask for your own data you can either use the :ref:`cli_index_mdt-generate-roi-slice` command or the :ref:`cli_index_mdt-math-img` command.
-An example with the :ref:`cli_index_mdt-generate-roi-slice` would be:
+To create a ROI mask for your own data you can either use the :ref:`cli_index_mdt-create-roi-slice` command or the :ref:`cli_index_mdt-math-img` command.
+An example with the :ref:`cli_index_mdt-create-roi-slice` would be:
 
 .. code-block:: console
 
-    $ mdt-generate-roi-slice mask.nii.gz -d 2 -s 30
+    $ mdt-create-roi-slice mask.nii.gz -d 2 -s 30
 
 here we generate a mask in dimension 2 on index 30 (0-based).
 
@@ -298,16 +297,16 @@ about the MDT functions. For example:
 Creating a protocol file
 ------------------------
 As explained in :ref:`concepts_protocol`, MDT stores all the acquisition settings relevant for the analysis in a Protocol file.
-To create one within Python you can use one of the command :func:`~mdt.protocols.load_bvec_bval` to create a new Protocol object from a bvec and bval file.
-Afterwards, new columns can be added using the :meth:`~mdt.protocols.Protocol.copy_with_update` method of the :class:`~mdt.protocols.Protocol` class.
+The simplest way of creating a Protocol is by using the function :func:`~mdt.protocols.create_protocol` to create a Protocol file and object.
 
-To (re-)create the protocol file for the b1k_b2k dataset you can use the following commands:
+To (re-)create the protocol file for the b1k_b2k dataset you can use the following command:
 
 .. code-block:: python
 
-    protocol = mdt.load_bvec_bval('b1k_b2k.bvec', 'b1k_b2k.bval')
-    protocol = protocol.copy_with_updates(
-        {'Delta': 26.5e-3, 'delta': 16.2-3, 'TE': 60e-3, 'TR': 7.1})
+    protocol = mdt.create_protocol(
+        out_file='b1k_b2k.prtcl',
+        bvecs='b1k_b2k.bvec', bvals='b1k_b2k.bval',
+        Delta=26.5e-3, delta=16.2-3, TE=60e-3, TR=7.1)
 
 
 Please note that the Protocol class is a singleton and adding or removing columns involves a copy operation.

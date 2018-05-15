@@ -9,7 +9,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class NODDI_EC(CompartmentTemplate):
 
     parameters = ('g', 'b', 'd', 'dperp0', 'theta', 'phi', 'kappa')
-    dependencies = ('CerfDawson', 'Zeppelin')
+    dependencies = ('dawson', 'Zeppelin')
     cl_code = '''
         mot_float_type tmp;
         mot_float_type dw_0, dw_1;

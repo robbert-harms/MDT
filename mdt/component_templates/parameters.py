@@ -120,7 +120,7 @@ class FreeParameterTemplate(ParameterTemplate):
         sampling_proposal_std (float): the default proposal standard deviation for this parameter. This is used
             in some MCMC sampling routines.
         sampling_proposal_modulus (float or None): if given, a modulus we will use when finalizing the proposal
-            distributions. That is, when we are finalizing the proposals we will take, if set, the absolute
+            continuous_distributions. That is, when we are finalizing the proposals we will take, if set, the absolute
             modulus of that parameter to ensure the parameter is within [0, <modulus>].
         sampling_prior: the prior function
         numdiff_info (dict or :class:`~mdt.model_building.parameter_functions.numdiff_info.NumDiffInfo`):

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
-"""Generate a protocol from a bvec and bval file.
+"""Create a protocol from a bvec and bval file.
 
 MDT uses a protocol file (with extension .prtcl) to store all the acquisition related values.
 This is a column based file which can hold, next to the b-values and gradient directions,
@@ -8,7 +8,6 @@ the big Delta, small delta, gradient amplitude G and more of these extra acquisi
 """
 import argparse
 import os
-import shlex
 
 from argcomplete.completers import FilesCompleter
 import textwrap
@@ -22,10 +21,10 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class GenerateProtocol(BasicShellApplication):
+class CreateProtocol(BasicShellApplication):
 
     def __init__(self):
-        super(GenerateProtocol, self).__init__()
+        super(CreateProtocol, self).__init__()
         mdt.init_user_settings(pass_if_exists=True)
         self.parse_unknown_args = True
 
@@ -33,12 +32,12 @@ class GenerateProtocol(BasicShellApplication):
         description = textwrap.dedent(__doc__)
 
         examples = textwrap.dedent('''
-            mdt-generate-protocol data.bvec data.bval
-            mdt-generate-protocol data.bvec data.bval -o my_protocol.prtcl
-            mdt-generate-protocol data.bvec data.bval
-            mdt-generate-protocol data.bvec data.bval --Delta 30 --delta 20
-            mdt-generate-protocol data.bvec data.bval --sequence-timing-units 's' --Delta 0.03
-            mdt-generate-protocol data.bvec data.bval --TE ../my_TE_file.txt
+            mdt-create-protocol data.bvec data.bval
+            mdt-create-protocol data.bvec data.bval -o my_protocol.prtcl
+            mdt-create-protocol data.bvec data.bval
+            mdt-create-protocol data.bvec data.bval --Delta 30 --delta 20
+            mdt-create-protocol data.bvec data.bval --sequence-timing-units 's' --Delta 0.03
+            mdt-create-protocol data.bvec data.bval --TE ../my_TE_file.txt
            ''')
         epilog = self._format_examples(doc_parser, examples)
         epilog += textwrap.dedent("""
@@ -154,8 +153,8 @@ def add_sequence_timing_column_to_protocol(protocol, column, value, units):
 
 
 def get_doc_arg_parser():
-    return GenerateProtocol().get_documentation_arg_parser()
+    return CreateProtocol().get_documentation_arg_parser()
 
 
 if __name__ == '__main__':
-    GenerateProtocol().start()
+    CreateProtocol().start()
