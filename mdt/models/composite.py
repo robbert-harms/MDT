@@ -136,8 +136,7 @@ class DMRICompositeModel(DMRIOptimizable):
         Returns:
             CompositeModelFunction: the model function for the composite model
         """
-        a =  CompositeModelFunction(self._model_tree, signal_noise_model=self._signal_noise_model)
-        return a
+        return CompositeModelFunction(self._model_tree, signal_noise_model=self._signal_noise_model)
 
     def build(self, problems_to_analyze=None):
         if self._input_data is None:
