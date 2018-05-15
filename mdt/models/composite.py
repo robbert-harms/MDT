@@ -136,7 +136,8 @@ class DMRICompositeModel(DMRIOptimizable):
         Returns:
             CompositeModelFunction: the model function for the composite model
         """
-        return CompositeModelFunction(self._model_tree, signal_noise_model=self._signal_noise_model)
+        a =  CompositeModelFunction(self._model_tree, signal_noise_model=self._signal_noise_model)
+        return a
 
     def build(self, problems_to_analyze=None):
         if self._input_data is None:
@@ -1089,7 +1090,7 @@ class DMRICompositeModel(DMRIOptimizable):
                 param_list.append(param.name)
             elif isinstance(param, CurrentObservationParam):
                 param_list.append('data->observations[observation_index]')
-            else:
+            elif isinstance(param, FreeParameter):
                 param_list.append(param_name)
 
         return composite_model.get_cl_function_name() + '(' + ', '.join(param_list) + ')'
@@ -1977,7 +1978,7 @@ class CompositeModelFunction(SimpleCLFunction):
                 if p.name not in seen_shared_params:
                     shared_params.append((m, p, p.name, p.name))
                     seen_shared_params.append(p.name)
-            else:
+            elif isinstance(p, FreeParameter):
                 other_params.append((m, p, '{}_{}'.format(m.name, p.name), '{}.{}'.format(m.name, p.name)))
         return shared_params + other_params
 
@@ -2252,9 +2253,9 @@ class ModelFunctionsInformation(object):
         raise ValueError('The parameter with the name "{}" could not be found in this model.'.format(parameter_name))
 
     def get_non_model_eval_param_listing(self):
-        """Get the model, parameter tuples for all parameters that are not used in the likelihood function.
+        """Get the model, parameter tuples for all parameters that are not used model function itself.
 
-        Basically this returns the parameters of the likelihood function.
+        Basically this returns the parameters of the likelihood function and the signal noise model.
 
         Returns:
             tuple: the (model, parameter) tuple for all non model evaluation parameters
