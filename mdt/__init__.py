@@ -27,8 +27,8 @@ from mdt.user_script_info import easy_save_user_script_info
 from mdt.utils import estimate_noise_std, get_cl_devices, load_input_data,\
     create_blank_mask, create_index_matrix, \
     volume_index_to_roi_index, roi_index_to_volume_index, load_brain_mask, init_user_settings, restore_volumes, \
-    apply_mask, create_roi, volume_merge, protocol_merge, create_median_otsu_brain_mask, load_samples, load_sample, \
-    load_nifti, write_slice_roi, apply_mask_to_file, extract_volumes, \
+    apply_mask, create_roi, volume_merge, protocol_merge, create_median_otsu_brain_mask, create_brain_mask, \
+    load_samples, load_sample, load_nifti, write_slice_roi, apply_mask_to_file, extract_volumes, \
     get_slice_in_dimension, per_model_logging_context, \
     get_temporary_results_dir, get_example_data, SimpleInitializationData, InitializationData, load_volume_maps,\
     covariance_to_correlation, check_user_components, unzip_nifti, zip_nifti

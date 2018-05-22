@@ -1751,6 +1751,30 @@ def create_median_otsu_brain_mask(dwi_info, protocol, output_fname=None, **kwarg
     return create_median_otsu_brain_mask(dwi_info, protocol, **kwargs)
 
 
+def create_brain_mask(dwi_info, protocol, output_fname=None, **kwargs):
+    """Create a brain mask.
+
+    At the moment this uses the median-otsu algorithm, in future versions this might support better masking
+    algorithms.
+
+    Args:
+        dwi_info (string or tuple or image): the dwi info, either:
+
+            - the filename of the input file;
+            - or a tuple with as first index a ndarray with the DWI and as second index the header;
+            - or only the image as an ndarray
+
+        protocol (string or :class:`~mdt.protocols.Protocol`): The filename of the protocol file or a Protocol object
+        output_fname (string): the filename of the output file. If None, no output is written.
+            If dwi_info is only an image also no file is written.
+        **kwargs: the additional arguments for the function median_otsu.
+
+    Returns:
+        ndarray: The created brain mask
+    """
+    return create_median_otsu_brain_mask(dwi_info, protocol, output_fname=output_fname, **kwargs)
+
+
 def extract_volumes(input_volume_fname, input_protocol, output_volume_fname, output_protocol, volume_indices):
     """Extract volumes from the given volume and save them to separate files.
 
