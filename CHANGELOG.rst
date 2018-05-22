@@ -2,6 +2,18 @@
 Changelog
 *********
 
+v0.12.1 (2018-05-15)
+====================
+
+Fixed
+-----
+- Fixes issue with the JohnsonNoise model in the model builder.
+
+Other
+-----
+- Renamed some of the command line commands from generate to create.
+
+
 v0.12.0 (2018-05-03)
 ====================
 The most important update is a bugfix in the CHARMED models. Unfortunately the CHARMED reference paper (Assaf, 2004) contains
