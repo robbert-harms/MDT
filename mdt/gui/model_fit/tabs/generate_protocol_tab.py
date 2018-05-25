@@ -62,6 +62,9 @@ class GenerateProtocolTab(MainTab, Ui_GenerateProtocolTabContent, QObject):
             caption='Save the protocol as', directory=self._opened_file,
             filter=';;'.join(protocol_files_filters))
 
+        if not output_file_name.endswith('.prtcl'):
+            output_file_name = output_file_name + '.prtcl'
+
         if os.path.isdir(os.path.dirname(output_file_name)) and self._protocol.length:
             mdt.write_protocol(self._protocol, output_file_name)
             print('Saved protocol as: {}'.format(output_file_name))
