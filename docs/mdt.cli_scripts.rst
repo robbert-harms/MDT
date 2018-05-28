@@ -1,163 +1,163 @@
-mdt.cli\_scripts package
-========================
+mdt.cli_scripts package
+=======================
 
 Submodules
 ----------
 
-mdt.cli\_scripts.MDT module
----------------------------
+mdt.cli_scripts.MDT module
+--------------------------
 
 .. automodule:: mdt.cli_scripts.MDT
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.cli\_scripts.mdt\_apply\_mask module
-----------------------------------------
+mdt.cli_scripts.mdt_apply_mask module
+-------------------------------------
 
 .. automodule:: mdt.cli_scripts.mdt_apply_mask
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.cli\_scripts.mdt\_batch\_fit module
----------------------------------------
+mdt.cli_scripts.mdt_batch_fit module
+------------------------------------
 
 .. automodule:: mdt.cli_scripts.mdt_batch_fit
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.cli\_scripts.mdt\_estimate\_noise\_std module
--------------------------------------------------
+mdt.cli_scripts.mdt_create_bvec_bval module
+-------------------------------------------
+
+.. automodule:: mdt.cli_scripts.mdt_create_bvec_bval
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+mdt.cli_scripts.mdt_create_mask module
+--------------------------------------
+
+.. automodule:: mdt.cli_scripts.mdt_create_mask
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+mdt.cli_scripts.mdt_create_protocol module
+------------------------------------------
+
+.. automodule:: mdt.cli_scripts.mdt_create_protocol
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+mdt.cli_scripts.mdt_create_roi_slice module
+-------------------------------------------
+
+.. automodule:: mdt.cli_scripts.mdt_create_roi_slice
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+mdt.cli_scripts.mdt_estimate_noise_std module
+---------------------------------------------
 
 .. automodule:: mdt.cli_scripts.mdt_estimate_noise_std
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.cli\_scripts.mdt\_generate\_bvec\_bval module
--------------------------------------------------
-
-.. automodule:: mdt.cli_scripts.mdt_generate_bvec_bval
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-mdt.cli\_scripts.mdt\_generate\_mask module
+mdt.cli_scripts.mdt_get_example_data module
 -------------------------------------------
-
-.. automodule:: mdt.cli_scripts.mdt_generate_mask
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-mdt.cli\_scripts.mdt\_generate\_protocol module
------------------------------------------------
-
-.. automodule:: mdt.cli_scripts.mdt_generate_protocol
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-mdt.cli\_scripts.mdt\_generate\_roi\_slice module
--------------------------------------------------
-
-.. automodule:: mdt.cli_scripts.mdt_generate_roi_slice
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-mdt.cli\_scripts.mdt\_get\_example\_data module
------------------------------------------------
 
 .. automodule:: mdt.cli_scripts.mdt_get_example_data
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.cli\_scripts.mdt\_gui module
---------------------------------
+mdt.cli_scripts.mdt_gui module
+------------------------------
 
 .. automodule:: mdt.cli_scripts.mdt_gui
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.cli\_scripts.mdt\_info\_img module
---------------------------------------
+mdt.cli_scripts.mdt_info_img module
+-----------------------------------
 
 .. automodule:: mdt.cli_scripts.mdt_info_img
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.cli\_scripts.mdt\_info\_protocol module
--------------------------------------------
+mdt.cli_scripts.mdt_info_protocol module
+----------------------------------------
 
 .. automodule:: mdt.cli_scripts.mdt_info_protocol
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.cli\_scripts.mdt\_init\_user\_settings module
--------------------------------------------------
+mdt.cli_scripts.mdt_init_user_settings module
+---------------------------------------------
 
 .. automodule:: mdt.cli_scripts.mdt_init_user_settings
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.cli\_scripts.mdt\_list\_devices module
-------------------------------------------
+mdt.cli_scripts.mdt_list_devices module
+---------------------------------------
 
 .. automodule:: mdt.cli_scripts.mdt_list_devices
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.cli\_scripts.mdt\_list\_models module
------------------------------------------
+mdt.cli_scripts.mdt_list_models module
+--------------------------------------
 
 .. automodule:: mdt.cli_scripts.mdt_list_models
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.cli\_scripts.mdt\_math\_img module
---------------------------------------
+mdt.cli_scripts.mdt_math_img module
+-----------------------------------
 
 .. automodule:: mdt.cli_scripts.mdt_math_img
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.cli\_scripts.mdt\_math\_protocol module
--------------------------------------------
+mdt.cli_scripts.mdt_math_protocol module
+----------------------------------------
 
 .. automodule:: mdt.cli_scripts.mdt_math_protocol
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.cli\_scripts.mdt\_model\_fit module
----------------------------------------
+mdt.cli_scripts.mdt_model_fit module
+------------------------------------
 
 .. automodule:: mdt.cli_scripts.mdt_model_fit
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.cli\_scripts.mdt\_view\_maps module
----------------------------------------
+mdt.cli_scripts.mdt_view_maps module
+------------------------------------
 
 .. automodule:: mdt.cli_scripts.mdt_view_maps
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.cli\_scripts.mdt\_volume\_merge module
-------------------------------------------
+mdt.cli_scripts.mdt_volume_merge module
+---------------------------------------
 
 .. automodule:: mdt.cli_scripts.mdt_volume_merge
     :members:

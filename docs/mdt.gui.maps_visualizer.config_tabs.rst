@@ -1,27 +1,27 @@
-mdt.gui.maps\_visualizer.config\_tabs package
-=============================================
+mdt.gui.maps_visualizer.config_tabs package
+===========================================
 
 Submodules
 ----------
 
-mdt.gui.maps\_visualizer.config\_tabs.tab\_general module
----------------------------------------------------------
+mdt.gui.maps_visualizer.config_tabs.tab_general module
+------------------------------------------------------
 
 .. automodule:: mdt.gui.maps_visualizer.config_tabs.tab_general
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.gui.maps\_visualizer.config\_tabs.tab\_map\_specific module
----------------------------------------------------------------
+mdt.gui.maps_visualizer.config_tabs.tab_map_specific module
+-----------------------------------------------------------
 
 .. automodule:: mdt.gui.maps_visualizer.config_tabs.tab_map_specific
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.gui.maps\_visualizer.config\_tabs.tab\_textual module
----------------------------------------------------------
+mdt.gui.maps_visualizer.config_tabs.tab_textual module
+------------------------------------------------------
 
 .. automodule:: mdt.gui.maps_visualizer.config_tabs.tab_textual
     :members:

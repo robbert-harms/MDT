@@ -151,8 +151,10 @@ During optimization and sampling, ``mot_float_type`` is type-defined to be eithe
 Of course this does not limit you to use ``double`` and ``float`` as well in your code.
 
 
-.. rubric:: References
+.. only:: html
+
+    .. rubric:: References
 
 .. bibliography:: references.bib
-    :cited:
     :style: plain
+    :filter: {"concepts"} & docnames

@@ -1,35 +1,35 @@
-mdt.model\_building.parameter\_functions package
-================================================
+mdt.model_building.parameter_functions package
+==============================================
 
 Submodules
 ----------
 
-mdt.model\_building.parameter\_functions.dependencies module
-------------------------------------------------------------
+mdt.model_building.parameter_functions.dependencies module
+----------------------------------------------------------
 
 .. automodule:: mdt.model_building.parameter_functions.dependencies
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.model\_building.parameter\_functions.numdiff\_info module
--------------------------------------------------------------
+mdt.model_building.parameter_functions.numdiff_info module
+----------------------------------------------------------
 
 .. automodule:: mdt.model_building.parameter_functions.numdiff_info
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.model\_building.parameter\_functions.priors module
-------------------------------------------------------
+mdt.model_building.parameter_functions.priors module
+----------------------------------------------------
 
 .. automodule:: mdt.model_building.parameter_functions.priors
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.model\_building.parameter\_functions.transformations module
----------------------------------------------------------------
+mdt.model_building.parameter_functions.transformations module
+-------------------------------------------------------------
 
 .. automodule:: mdt.model_building.parameter_functions.transformations
     :members:

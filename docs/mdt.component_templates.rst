@@ -1,67 +1,67 @@
-mdt.component\_templates package
-================================
+mdt.component_templates package
+===============================
 
 Submodules
 ----------
 
-mdt.component\_templates.base module
-------------------------------------
+mdt.component_templates.base module
+-----------------------------------
 
 .. automodule:: mdt.component_templates.base
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.component\_templates.batch\_profiles module
------------------------------------------------
+mdt.component_templates.batch_profiles module
+---------------------------------------------
 
 .. automodule:: mdt.component_templates.batch_profiles
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.component\_templates.cascade\_models module
------------------------------------------------
+mdt.component_templates.cascade_models module
+---------------------------------------------
 
 .. automodule:: mdt.component_templates.cascade_models
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.component\_templates.compartment\_models module
----------------------------------------------------
+mdt.component_templates.compartment_models module
+-------------------------------------------------
 
 .. automodule:: mdt.component_templates.compartment_models
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.component\_templates.composite\_models module
--------------------------------------------------
+mdt.component_templates.composite_models module
+-----------------------------------------------
 
 .. automodule:: mdt.component_templates.composite_models
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.component\_templates.library\_functions module
---------------------------------------------------
+mdt.component_templates.library_functions module
+------------------------------------------------
 
 .. automodule:: mdt.component_templates.library_functions
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.component\_templates.parameters module
-------------------------------------------
+mdt.component_templates.parameters module
+-----------------------------------------
 
 .. automodule:: mdt.component_templates.parameters
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.component\_templates.utils module
--------------------------------------
+mdt.component_templates.utils module
+------------------------------------
 
 .. automodule:: mdt.component_templates.utils
     :members:

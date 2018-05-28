@@ -106,9 +106,10 @@ When a different mask is used there are different voxels used for the standard d
 To prevent this from happening it is suggested that researchers estimate the noise std. beforehand with a whole brain mask and use the obtained std. in all other analysis.
 
 
-.. rubric:: References
+.. only:: html
+
+    .. rubric:: References
 
 .. bibliography:: references.bib
-    :cited:
     :style: plain
-    :filter: author % "Jelescu"
+    :filter: {"faq"} & docnames

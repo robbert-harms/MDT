@@ -1,5 +1,5 @@
-mdt.gui.maps\_visualizer package
-================================
+mdt.gui.maps_visualizer package
+===============================
 
 Subpackages
 -----------
@@ -13,32 +13,32 @@ Subpackages
 Submodules
 ----------
 
-mdt.gui.maps\_visualizer.actions module
----------------------------------------
+mdt.gui.maps_visualizer.actions module
+--------------------------------------
 
 .. automodule:: mdt.gui.maps_visualizer.actions
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.gui.maps\_visualizer.base module
-------------------------------------
+mdt.gui.maps_visualizer.base module
+-----------------------------------
 
 .. automodule:: mdt.gui.maps_visualizer.base
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.gui.maps\_visualizer.main module
-------------------------------------
+mdt.gui.maps_visualizer.main module
+-----------------------------------
 
 .. automodule:: mdt.gui.maps_visualizer.main
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.gui.maps\_visualizer.widgets module
----------------------------------------
+mdt.gui.maps_visualizer.widgets module
+--------------------------------------
 
 .. automodule:: mdt.gui.maps_visualizer.widgets
     :members:

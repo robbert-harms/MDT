@@ -24,3 +24,4 @@ Introduction
     changelog
     developers
     cli_index
+    scientific_articles

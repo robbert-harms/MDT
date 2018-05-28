@@ -14,4 +14,3 @@ Microstructure Diffusion Toolbox
     FAQ <faq>
     changelog
     developers
-    cli_index

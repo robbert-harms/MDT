@@ -18,8 +18,8 @@ Subpackages
 Submodules
 ----------
 
-mdt.batch\_utils module
------------------------
+mdt.batch_utils module
+----------------------
 
 .. automodule:: mdt.batch_utils
     :members:
@@ -42,8 +42,8 @@ mdt.configuration module
     :undoc-members:
     :show-inheritance:
 
-mdt.deferred\_mappings module
------------------------------
+mdt.deferred_mappings module
+----------------------------
 
 .. automodule:: mdt.deferred_mappings
     :members:
@@ -58,8 +58,8 @@ mdt.exceptions module
     :undoc-members:
     :show-inheritance:
 
-mdt.log\_handlers module
-------------------------
+mdt.log_handlers module
+-----------------------
 
 .. automodule:: mdt.log_handlers
     :members:
@@ -74,16 +74,16 @@ mdt.masking module
     :undoc-members:
     :show-inheritance:
 
-mdt.model\_fitting module
--------------------------
+mdt.model_fitting module
+------------------------
 
 .. automodule:: mdt.model_fitting
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.model\_sampling module
---------------------------
+mdt.model_sampling module
+-------------------------
 
 .. automodule:: mdt.model_sampling
     :members:
@@ -98,16 +98,16 @@ mdt.nifti module
     :undoc-members:
     :show-inheritance:
 
-mdt.post\_processing module
----------------------------
+mdt.post_processing module
+--------------------------
 
 .. automodule:: mdt.post_processing
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.processing\_strategies module
----------------------------------
+mdt.processing_strategies module
+--------------------------------
 
 .. automodule:: mdt.processing_strategies
     :members:
@@ -122,8 +122,8 @@ mdt.protocols module
     :undoc-members:
     :show-inheritance:
 
-mdt.shell\_utils module
------------------------
+mdt.shell_utils module
+----------------------
 
 .. automodule:: mdt.shell_utils
     :members:
@@ -146,8 +146,8 @@ mdt.sorting module
     :undoc-members:
     :show-inheritance:
 
-mdt.user\_script\_info module
------------------------------
+mdt.user_script_info module
+---------------------------
 
 .. automodule:: mdt.user_script_info
     :members:

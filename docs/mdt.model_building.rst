@@ -1,5 +1,5 @@
-mdt.model\_building package
-===========================
+mdt.model_building package
+==========================
 
 Subpackages
 -----------
@@ -11,48 +11,48 @@ Subpackages
 Submodules
 ----------
 
-mdt.model\_building.likelihood\_functions module
-------------------------------------------------
+mdt.model_building.likelihood_functions module
+----------------------------------------------
 
 .. automodule:: mdt.model_building.likelihood_functions
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.model\_building.model\_functions module
--------------------------------------------
+mdt.model_building.model_functions module
+-----------------------------------------
 
 .. automodule:: mdt.model_building.model_functions
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.model\_building.parameters module
--------------------------------------
+mdt.model_building.parameters module
+------------------------------------
 
 .. automodule:: mdt.model_building.parameters
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.model\_building.signal\_noise\_models module
-------------------------------------------------
+mdt.model_building.signal_noise_models module
+---------------------------------------------
 
 .. automodule:: mdt.model_building.signal_noise_models
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.model\_building.trees module
---------------------------------
+mdt.model_building.trees module
+-------------------------------
 
 .. automodule:: mdt.model_building.trees
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.model\_building.utils module
---------------------------------
+mdt.model_building.utils module
+-------------------------------
 
 .. automodule:: mdt.model_building.utils
     :members:
