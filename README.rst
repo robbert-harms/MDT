@@ -47,7 +47,7 @@ Quick installation guide
 ************************
 The basic requirements for MDT are:
 
-* Python 3.x (recommended) or Python 2.7
+* Python 3.x
 * OpenCL 1.2 (or higher) support in GPU driver or CPU runtime
 
 

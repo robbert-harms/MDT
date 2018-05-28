@@ -81,8 +81,6 @@ info_dict = dict(
         'Operating System :: POSIX :: Linux',
         'Operating System :: MacOS :: MacOS X',
         'Operating System :: Microsoft :: Windows',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
@@ -116,7 +114,7 @@ class PrepareDebianDist(Command):
             copyright_info = file.read()
 
         copyright_info = copyright_info.replace('{{source}}', info_dict['url'])
-        copyright_info = copyright_info.replace('{{years}}', '2016-2017')
+        copyright_info = copyright_info.replace('{{years}}', '2015-2018')
         copyright_info = copyright_info.replace('{{author}}', info_dict['author'])
         copyright_info = copyright_info.replace('{{email}}', info_dict['author_email'])
 

@@ -1,4 +1,4 @@
-import imp  # todo in P3.4 replace imp calls with importlib.SourceFileLoader(name, path).load_module(name)
+from importlib.machinery import SourceFileLoader
 import inspect
 import os
 from collections import defaultdict
@@ -423,7 +423,7 @@ def _load_home_folder():
 
                         module_name = os.path.join(user_type, component_type, dir_name[len(path) + 1:],
                                                    os.path.splitext(os.path.basename(path))[0])
-                        imp.load_source(module_name, path)
+                        SourceFileLoader(module_name, path).load_module()
 
 
 def _load_automatic_cascades():
