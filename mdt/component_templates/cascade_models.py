@@ -66,25 +66,24 @@ class CascadeBuilder(ComponentBuilder):
 
 class CascadeTemplateMeta(ComponentTemplateMeta):
 
-    def __new__(mcs, name, bases, attributes):
+    @staticmethod
+    def _get_component_name_attribute(name, bases, attributes):
         name_attribute = ComponentTemplateMeta._resolve_attribute(bases, attributes, 'name')
 
         if name != 'CascadeTemplate':
-            if name_attribute is None:
-                if attributes['models']:
-                    if isinstance(attributes['models'][-1], six.string_types):
-                        name_attribute = attributes['models'][-1]
-                    else:
-                        name_attribute = attributes['models'][-1][1]
-
-                name_modifier = ComponentTemplateMeta._resolve_attribute(bases, attributes, 'cascade_name_modifier')
-                if name_modifier:
-                    name_attribute = '{} (Cascade|{})'.format(name_attribute, name_modifier)
+            if attributes['models']:
+                if isinstance(attributes['models'][-1], six.string_types):
+                    name_attribute = attributes['models'][-1]
                 else:
-                    name_attribute = '{} (Cascade)'.format(name_attribute)
+                    name_attribute = attributes['models'][-1][1]
 
-        attributes['name'] = name_attribute
-        return super(CascadeTemplateMeta, mcs).__new__(mcs, name, bases, attributes)
+            name_modifier = ComponentTemplateMeta._resolve_attribute(bases, attributes, 'cascade_name_modifier')
+            if name_modifier:
+                name_attribute = '{} (Cascade|{})'.format(name_attribute, name_modifier)
+            else:
+                name_attribute = '{} (Cascade)'.format(name_attribute)
+
+        return name_attribute
 
 
 class CascadeTemplate(six.with_metaclass(CascadeTemplateMeta, ComponentTemplate)):

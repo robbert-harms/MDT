@@ -106,10 +106,7 @@ class ComponentTemplateMeta(type):
         result.component_type = mcs._resolve_attribute(bases, attributes, '_component_type')
         result.bound_methods = mcs._get_bound_methods(bases, attributes)
         result.subcomponents = mcs._get_subcomponents(attributes)
-
-        result.name = name
-        if 'name' in attributes:
-            result.name = attributes['name']
+        result.name = mcs._get_component_name_attribute(name, bases, attributes)
 
         if len(_component_loading) == 1:
             try:
@@ -126,6 +123,12 @@ class ComponentTemplateMeta(type):
     def __prepare__(mcs, name, bases, **kwargs):
         _component_loading.append(name)
         return dict()
+
+    @staticmethod
+    def _get_component_name_attribute(name, bases, attributes):
+        if 'name' in attributes:
+            return attributes['name']
+        return name
 
     @staticmethod
     def _get_bound_methods(bases, attributes):

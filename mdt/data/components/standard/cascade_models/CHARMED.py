@@ -18,6 +18,11 @@ class CHARMED1(CascadeTemplate):
                             'w_res0.w': 'w_stick0.w'}}
 
 
+class CHARMED1Gelderen(CHARMED1):
+    models = ('BallStick_r1 (Cascade)',
+              'CHARMED_r1_Gelderen')
+
+
 class CHARMEDR1Fixed(CascadeTemplate):
 
     cascade_name_modifier = 'fixed'

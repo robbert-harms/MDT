@@ -32,6 +32,16 @@ class CHARMED_r1(CompositeModelTemplate):
     ]
 
 
+class CHARMED_r1_Gelderen(CHARMED_r1):
+
+    description = 'The CHARMED model using the van Gelderen cylindrical diffusion model.'
+    model_expression = '''
+        S0 * ( (Weight(w_hin0) * Tensor) +
+               (Weight(w_res0) * CHARMEDRestrictedGelderen(CHARMEDRestricted0))
+               )
+    '''
+
+
 class CHARMED_r2(CompositeModelTemplate):
 
     description = 'The CHARMED model with 2 restricted compartments'
