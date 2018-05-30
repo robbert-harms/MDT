@@ -71,7 +71,7 @@ class CascadeTemplateMeta(ComponentTemplateMeta):
         name_attribute = ComponentTemplateMeta._resolve_attribute(bases, attributes, 'name')
 
         if name != 'CascadeTemplate':
-            if attributes['models']:
+            if attributes.get('models', []):
                 if isinstance(attributes['models'][-1], six.string_types):
                     name_attribute = attributes['models'][-1]
                 else:
