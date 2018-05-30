@@ -5,8 +5,8 @@ from six import string_types
 from mdt.utils import load_brain_mask
 from mdt.protocols import load_protocol
 from mdt.nifti import load_nifti, write_nifti
-from mot.cl_routines.filters.median import MedianFilter
 import mot.configuration
+from scipy.ndimage.filters import median_filter
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-07-20"
@@ -92,12 +92,22 @@ def generate_simple_wm_mask(fa_fname, brain_mask_fname, out_fname, fa_threshold=
     fa_data[fa_data < fa_threshold] = 0
     fa_data[fa_data > 0] = 1
 
+    if len(fa_data.shape) > 3:
+        fa_data = fa_data[:, :, :, 0]
+
+    filter_footprint = np.zeros((1 + 2 * median_radius,) * 3)
+    filter_footprint[median_radius, median_radius, median_radius] = 1
+    filter_footprint[:, median_radius, median_radius] = 1
+    filter_footprint[median_radius, :, median_radius] = 1
+    filter_footprint[median_radius, median_radius, :] = 1
+
     mask = load_brain_mask(brain_mask_fname)
 
-    median_filter = MedianFilter(median_radius)
-    fa_data = median_filter.filter(fa_data, mask=mask, nmr_of_times=numpass)
+    fa_data_masked = np.ma.masked_array(fa_data, mask=mask)
+    for ind in range(numpass):
+        fa_data_masked = median_filter(fa_data_masked, footprint=filter_footprint, mode='constant')
 
-    write_nifti(fa_data, out_fname, nib_container.get_header())
+    write_nifti(fa_data_masked, out_fname, nib_container.get_header())
     logger.info('Finished calculating a white matter mask.')
 
 
@@ -160,8 +170,8 @@ def median_otsu(unweighted_volume, median_radius=4, numpass=4, dilate=1):
     for env in mot.configuration.get_load_balancer().get_used_cl_environments(mot.configuration.get_cl_environments()):
         logger.info('Using device \'{}\'.'.format(str(env)))
 
-    m = MedianFilter(median_radius)
-    b0vol = m.filter(b0vol, nmr_of_times=numpass)
+    for ind in range(numpass):
+        b0vol = median_filter(b0vol, size=median_radius, mode='mirror')
 
     thresh = _otsu(b0vol)
     mask = b0vol > thresh
