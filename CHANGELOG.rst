@@ -2,6 +2,28 @@
 Changelog
 *********
 
+v0.13.0 (2018-06-01)
+====================
+This version removes support for Python version <= 2.7. Now only Python > 3 is supported.
+
+Added
+-----
+- Adds the CHARMED_r1 model using the van Gelderen model of diffusion.
+- Adds scientific articles section to the docs.
+- Adds Ubuntu 18.04 release target.
+- Adds a convenience function for generating a brain mask.
+
+Changed
+-------
+- Updates default protocol save name.
+- Removed Python2.7 support.
+
+Other
+-----
+- Mac compatibility change.
+- Slightly changed the masking algorithms with a different median filter.
+
+
 v0.12.1 (2018-05-15)
 ====================
 
