@@ -140,9 +140,9 @@ class ForwardingListener(LogListenerInterface):
         self._queue.put(string)
 
 
-image_files_filters = ['Nifti (*.nii *.nii.gz)',
-                       'IMG, HDR (*.img)',
-                       'All files (*)']
+image_files_filters = ['All files (*)',
+                       'Nifti (*.nii *.nii.gz)',
+                       'IMG, HDR (*.img)']
 protocol_files_filters = ['MDT protocol (*.prtcl)',
                           'Text files (*.txt)',
                           'All files (*)']
