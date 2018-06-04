@@ -2,6 +2,14 @@
 Changelog
 *********
 
+v0.13.1 (2018-06-04)
+====================
+
+Fixed
+-----
+- Fixed small issue found by Dr. Luke Edwards. The legendre polynomial in the NODDI_IC compartment was not computed correctly. This only subtly changes the results.
+
+
 v0.13.0 (2018-06-01)
 ====================
 This version removes support for Python version <= 2.7. Now only Python > 3 is supported.
