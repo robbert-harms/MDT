@@ -63,19 +63,20 @@ class NODDI_IC(CompartmentTemplate):
          *
          * This is a specialized version of the function of the function firstLegendreTerm in the MOT library.
          *
-         * That is, this will fill the given array legendre_terms with the values:
+         * This function will fill the given array legendre_terms with the values:
          * [0] = firstLegendreTerm(x, 0)
-         * [1] = firstLegendreTerm(x, 2 * 1)
-         * [2] = firstLegendreTerm(x, 2 * 2)
-         * [3] = firstLegendreTerm(x, 2 * 3)
+         * [1] = firstLegendreTerm(x, 2)
+         * [2] = firstLegendreTerm(x, 4)
+         * [3] = firstLegendreTerm(x, 8)
          * ...
          */
         void NODDI_IC_create_legendre_terms(const mot_float_type x, mot_float_type* const legendre_terms){
-            // this is the default if fabs(x) == 1.0
-            // to eliminate the branch I added this to the front, this saves an if/else.
-            // also, since we are after the legendre terms with a list with n = [0, 2*1, 2*2, 2*3, 2*4, ...]
-            // the legendre terms collaps to this loop if fabs(x) == 1.0
             if(fabs(x) == 1.0){
+                // this is the default if fabs(x) == 1.0
+                // to eliminate the branch I added this to the front, this saves an if/else.
+                // also, since we are after the legendre terms with a list with n = [0, 2, 4, 6, 8, ...]
+                // the legendre terms collaps to this loop if fabs(x) == 1.0
+                
                 for(int i = 0; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
                     legendre_terms[i] = 1.0;
                 }
@@ -89,13 +90,13 @@ class NODDI_IC(CompartmentTemplate):
             mot_float_type Pn;
 
             for(int k = 1; k < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; k++){
-                Pn = ((2 * k + 1) * x * P1 - (k * P0)) / (k + 1);
+                Pn = ((2 * (2*k-1) + 1) * x * P1 - ((2*k-1) * P0)) / ((2*k-1) + 1);
                 P0 = P1;
                 P1 = Pn;
 
                 legendre_terms[k] = Pn;
 
-                Pn = ((2 * (k+1) + 1) * x * P1 - ((k+1) * P0)) / ((k+1) + 1);
+                Pn = ((2 * ((2*k-1)+1) + 1) * x * P1 - (((2*k-1)+1) * P0)) / (((2*k-1)+1) + 1);
                 P0 = P1;
                 P1 = Pn;
             }
