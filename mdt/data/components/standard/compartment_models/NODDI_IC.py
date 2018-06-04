@@ -69,6 +69,9 @@ class NODDI_IC(CompartmentTemplate):
          * [2] = firstLegendreTerm(x, 4)
          * [3] = firstLegendreTerm(x, 8)
          * ...
+         *
+         * Changes:
+         *  - 2018-06-04, Dr. Luke Edwards: corrected the indices to correctly account for a step size of two.
          */
         void NODDI_IC_create_legendre_terms(const mot_float_type x, mot_float_type* const legendre_terms){
             if(fabs(x) == 1.0){
