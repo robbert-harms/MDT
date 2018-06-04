@@ -1,10 +1,10 @@
-"""Contains the processing strategies (and workers) that define how to process a model.
+"""Contains the processing strategies (and workers) that define how to process a model (fitting and sampling).
 
 Globally, this module consists out of two public players, the :class:`ModelProcessingStrategy` and the
 :class:`ModelProcessor`. The latter, the model processor contains information on how the model needs to be processed.
 For example, optimization and sampling are two different operations and hence require their own processing
 implementation. Given that the model processor defines how to process the models, the model processing strategy
-encapsulates how to process the processors. For example, a strategy may be to split the model into batches and optimize
+encapsulates how to process the processors. For example, a strategy may be to split all voxels into batches and optimize
 those while saving intermediate results.
 """
 import glob
