@@ -65,7 +65,8 @@ class CompartmentBuilder(ComponentBuilder):
                     'extra_optimization_maps_funcs': builder._get_extra_optimization_map_funcs(
                         template, parameters),
                     'extra_sampling_maps_funcs': copy(template.extra_sampling_maps),
-                    'cl_extra': template.cl_extra}
+                    'cl_extra': template.cl_extra,
+                    'proposal_callbacks': builder._get_proposal_callbacks(template, parameters)}
                 new_kwargs.update(kwargs)
 
                 super(AutoCreatedDMRICompartmentModel, self).__init__(*new_args, **new_kwargs)
@@ -81,6 +82,59 @@ class CompartmentBuilder(ComponentBuilder):
             extra_optimization_maps.append(lambda results: {
                 'vec0': spherical_to_cartesian(np.squeeze(results['theta']), np.squeeze(results['phi']))})
         return extra_optimization_maps
+
+    def _get_proposal_callbacks(self, template, parameter_list):
+        """Get a list of proposal callback functions.
+
+        These functions are (indirectly) called by a MCMC sampling routine to finalize the new proposal vector.
+
+        Returns:
+            List[(Tuple, mot.cl_function.CLFunction)]: a list of proposal callback functions coupled with
+                references to the compartment parameters used in the function.
+        """
+        callbacks = []
+
+        def existing_parameters(param_list):
+            param_names = [p.name for p in parameter_list]
+            return all(p in param_names for p in param_list)
+
+        def get_corresponding_param(param_name):
+            for p in parameter_list:
+                if p.name == param_name:
+                    return p
+
+        if template.spherical_proposal_params is not None and existing_parameters(template.spherical_proposal_params):
+            corresponding_params = [get_corresponding_param(p) for p in template.spherical_proposal_params]
+
+            func = SimpleCLFunction(
+                'void',
+                'proposal_callback_spherical_{}'.format(template.name),
+                [('mot_float_type*', 'theta'), ('mot_float_type*', 'phi')],
+                '''
+                    mot_float_type sin_theta = sin(*theta);
+                    mot_float_type cos_phi;
+                    mot_float_type sin_phi = sincos(*phi, &cos_phi);
+
+                    if(sin_phi * sin_theta < 0){
+                        *theta = M_PI - *theta;
+                        *phi = atan2(sin_phi * sin_theta * -1, cos_phi * sin_theta * -1);
+                    }
+
+                    *theta = *theta - floor(*theta / M_PI_F) * M_PI_F;
+            ''')
+            callbacks.append((corresponding_params, func))
+
+        for p in parameter_list:
+            if hasattr(p, 'sampling_proposal_modulus') and p.sampling_proposal_modulus is not None:
+                func = SimpleCLFunction(
+                    'void',
+                    'proposal_callback_{}_{}'.format(template.name, p.name),
+                    [('mot_float_type*', p.name)],
+                    '*{0} = *{0} - floor(*{0} / {1}) * {1};'.format(p.name, p.sampling_proposal_modulus))
+
+                callbacks.append(([p], func))
+
+        return callbacks
 
 
 class WeightBuilder(ComponentBuilder):
@@ -200,6 +254,13 @@ class CompartmentTemplate(ComponentTemplate):
 
                 extra_sampling_maps = [lambda s: {'MD': np.mean((s['d'] + s['dperp0'] + s['dperp1'])/3., axis=1)}
                                       ...]
+
+        spherical_proposal_params (tuple or None): if None, this feature is disabled. If set, it should be a tuple
+            with two elements for the name of the inclination and the azimuth parameters in the compartment model
+            (defaults to 'theta' and 'phi'). If set to such a tuple, the compartment model will automatically add a
+            proposal callback function that ensures that the these spherical coordinates are sampled correctly for
+            values near theta == PI.
+
     """
     _component_type = 'compartment_models'
     _builder = CompartmentBuilder()
@@ -217,6 +278,7 @@ class CompartmentTemplate(ComponentTemplate):
     post_optimization_modifiers = []
     extra_optimization_maps = []
     extra_sampling_maps = []
+    spherical_proposal_params = ('theta', 'phi')
 
 
 class WeightCompartmentTemplate(ComponentTemplate):

@@ -123,6 +123,7 @@ class theta(FreeParameterTemplate):
 
     This parameter is limited between [0, pi] but with modulus pi. That is, 0 == pi and this parameter should be
     allowed to wrap around pi.
+
     """
     init_value = np.pi / 2.0
     lower_bound = 0
@@ -150,8 +151,8 @@ class phi(FreeParameterTemplate):
     lower_bound = 0
     upper_bound = np.pi
     parameter_transform = 'AbsModPi'
-    sampling_proposal_modulus = np.pi
     sampling_proposal_std = 0.1
+    sampling_proposal_modulus = np.pi
     numdiff_info = {'max_step': 0.1, 'use_bounds': False, 'modulus': 2*np.pi}
 
 

@@ -37,6 +37,20 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                     enforce_weights_sum_to_one=template.enforce_weights_sum_to_one,
                 )
 
+                for full_param_name, value in template.inits.items():
+                    self.init(full_param_name, deepcopy(value))
+
+                for full_param_name, value in template.fixes.items():
+                    self.fix(full_param_name, deepcopy(value))
+
+                for full_param_name, value in template.lower_bounds.items():
+                    self.set_lower_bound(full_param_name, deepcopy(value))
+
+                for full_param_name, value in template.upper_bounds.items():
+                    self.set_upper_bound(full_param_name, deepcopy(value))
+
+                self.nmr_parameters_for_bic_calculation = self.get_nmr_parameters()
+
                 if template.sort_maps:
                     self._post_optimization_modifiers.append(_get_map_sorting_modifier(
                         template.sort_maps, self._model_functions_info.get_model_parameter_list()))
@@ -53,19 +67,8 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                     self._model_functions_info.get_model_list()))
                 self._extra_sampling_maps_funcs.extend(deepcopy(template.extra_sampling_maps))
 
-                for full_param_name, value in template.inits.items():
-                    self.init(full_param_name, deepcopy(value))
-
-                for full_param_name, value in template.fixes.items():
-                    self.fix(full_param_name, deepcopy(value))
-
-                for full_param_name, value in template.lower_bounds.items():
-                    self.set_lower_bound(full_param_name, deepcopy(value))
-
-                for full_param_name, value in template.upper_bounds.items():
-                    self.set_upper_bound(full_param_name, deepcopy(value))
-
-                self.nmr_parameters_for_bic_calculation = self.get_nmr_parameters()
+                self._proposal_callbacks.extend(_get_model_proposal_callbacks(
+                    self._model_functions_info.get_model_list()))
 
                 self._model_priors.extend(_resolve_model_prior(
                     template.extra_prior, self._model_functions_info.get_model_parameter_list()))
@@ -479,6 +482,27 @@ def _get_model_extra_sampling_maps_funcs(compartments):
             for func in compartment.extra_sampling_maps_funcs:
                 funcs.append(get_wrapped_func(compartment.name, func))
 
+    return funcs
+
+
+def _get_model_proposal_callbacks(compartments):
+    """Get a list of all the additional proposal callback functions defined in the compartments.
+
+    This function will add a wrapper around the proposal callback to make the input and output maps relative to the
+    model.
+
+    Args:
+        compartments (list): the list of compartment models from which to get the modifiers
+
+    Returns:
+        list: the list of proposal callbacks taken from the compartment models.
+    """
+    funcs = []
+    for compartment in compartments:
+        if hasattr(compartment, 'proposal_callbacks'):
+            for params, func in compartment.proposal_callbacks:
+                compartment_params = [(compartment, p) for p in params]
+                funcs.append((compartment_params, func))
     return funcs
 
 

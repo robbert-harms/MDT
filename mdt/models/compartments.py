@@ -11,7 +11,7 @@ class DMRICompartmentModelFunction(SimpleModelCLFunction):
     def __init__(self, name, cl_function_name, parameters, cl_body, dependencies, return_type,
                  model_function_priors=None, post_optimization_modifiers=None, extra_optimization_maps_funcs=None,
                  extra_sampling_maps_funcs=None,
-                 cl_extra=None):
+                 cl_extra=None, proposal_callbacks=None):
         """Create a new dMRI compartment model function.
 
         Args:
@@ -31,6 +31,9 @@ class DMRICompartmentModelFunction(SimpleModelCLFunction):
             extra_sampling_maps_funcs (None or list or tuple): a list of functions that can return additional maps
                 after sampling.
             cl_extra (str): optional extra CL code outside of the function body
+            proposal_callbacks (List[Tuple(Tuple(CLFunctionParameter), mot.cl_function.CLFunction)]): additional
+                proposal callback functions. These are (indirectly) called by the MCMC sampler to finalize every
+                proposal.
         """
         super(DMRICompartmentModelFunction, self).__init__(return_type, name, cl_function_name,
                                                            parameters, cl_body,
@@ -40,3 +43,4 @@ class DMRICompartmentModelFunction(SimpleModelCLFunction):
         self.post_optimization_modifiers = post_optimization_modifiers or []
         self.extra_optimization_maps_funcs = extra_optimization_maps_funcs or []
         self.extra_sampling_maps_funcs = extra_sampling_maps_funcs or []
+        self.proposal_callbacks = proposal_callbacks or []

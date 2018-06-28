@@ -934,14 +934,14 @@ def cartesian_to_spherical(vectors, ensure_right_hemisphere=True):
     this function will calculate two n-dimensional matrices for the inclinations ``theta`` and the azimuths ``phi``.
 
     By default the range of the output is [0, pi] for both theta and phi, meaning that the y-coordinate must
-    be positive and all points are on the right hemisphere. For points with negative y-coordinate, this function will
-    transform the coordinate to the antipodal point on the sphere and return the angles for that point. This behaviour
-    can be disabled by setting ``ensure_right_hemisphere`` to false.
+    be positive (such that all points are on the right hemisphere). For points with negative y-coordinate, this function
+    will transform the coordinate to the antipodal point on the sphere and return the angles for that point. This
+    behaviour can be disabled by setting ``ensure_right_hemisphere`` to false.
 
     Also note that this will consider the input to be unit vectors. If not, it will normalize the vectors beforehand.
 
     Args:
-        vectors (ndarray): the n-dimensional set of cartesian coordinates
+        vectors (ndarray): the n-dimensional set of cartesian coordinates (last axis should have 3 items).
 
     Returns:
         tuple: the matrices for theta and phi.

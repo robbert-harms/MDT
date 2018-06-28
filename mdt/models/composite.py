@@ -67,6 +67,10 @@ class DMRICompositeModel(DMRIOptimizable):
                 output maps.
             model_priors (list[mot.cl_function.CLFunction]): the list of model priors this class
                 will also use (next to the priors defined in the parameters).
+            _proposal_callbacks (List[Tuple(Tuple(CompartmentFunction, CLFunctionParameter), CLFunction)]):
+                the list of proposal callbacks. Each element in the list consists of a tuple with two elements,
+                first a reference to the used compartments, second the CL function to call (using those parameters).
+                The parameters reference uses a list of (compartment, parameter) tuples.
         """
         super(DMRICompositeModel, self).__init__(model_name, model_tree, likelihood_function, signal_noise_model,
                                                  input_data=input_data,
@@ -112,6 +116,7 @@ class DMRICompositeModel(DMRIOptimizable):
         self._post_optimization_modifiers = []
         self._extra_optimization_maps_funcs = []
         self._extra_sampling_maps_funcs = []
+        self._proposal_callbacks = []
 
         if self._enforce_weights_sum_to_one:
             self._extra_optimization_maps_funcs.append(self._get_propagate_weights_uncertainty)
@@ -725,28 +730,47 @@ class DMRICompositeModel(DMRIOptimizable):
 
     def _get_finalize_proposal_function_builder(self):
         """Get the building function used to finalize the proposal"""
-        transformations = []
+        def get_function_call_strings():
+            func_call_strings = []
+            for compartment_parameters, func in self._proposal_callbacks:
+                full_param_names = []
+                for compartment, parameter in compartment_parameters:
+                    full_param_names.append('{}.{}'.format(compartment.name, parameter.name).replace('.', '_'))
 
-        for (m, p) in self._model_functions_info.get_estimable_parameters_list():
-            index = self._model_functions_info.get_parameter_estimable_index(m, p)
+                func_call_strings.append(func.get_cl_function_name() + '(' + ', '.join(
+                    '&' + name for name in full_param_names) + '); \n')
+            return func_call_strings
 
-            if hasattr(p, 'sampling_proposal_modulus') and p.sampling_proposal_modulus is not None:
-                transformations.append('x[{0}] = x[{0}] - floor(x[{0}] / {1}) * {1};'.format(
-                    index, p.sampling_proposal_modulus))
+        def get_parameter_names_indices():
+            param_names = []
+            param_indices = []
+
+            for compartment_parameters, func in self._proposal_callbacks:
+                for compartment, parameter in compartment_parameters:
+                    param_ind = self._model_functions_info.get_parameter_estimable_index(compartment, parameter)
+                    full_param_name = '{}.{}'.format(compartment.name, parameter.name).replace('.', '_')
+
+                    if full_param_name not in param_names:
+                        param_names.append(full_param_name)
+                        param_indices.append(param_ind)
+
+            return param_names, param_indices
 
         def builder(address_space_parameter_vector):
-            func_name = 'finalizeProposal'
-            prior = '''
-                {preliminary}
+            body = ''
 
-                mot_float_type {func_name}(mot_data_struct* data,
-                                           {address_space_parameter_vector} mot_float_type* x){{
-                    {body}
-                }}
-                '''.format(func_name=func_name, address_space_parameter_vector=address_space_parameter_vector,
-                           preliminary='', body='\n'.join(transformations))
-            return NameFunctionTuple(func_name, prior)
+            for name, ind in zip(*get_parameter_names_indices()):
+                body += 'mot_float_type {} = x[{}]; \n'.format(name, str(ind))
 
+            body += '\n'.join(get_function_call_strings())
+
+            for name, ind in zip(*get_parameter_names_indices()):
+                body += 'x[{}] = {}; \n'.format(str(ind), name)
+
+            return SimpleCLFunction('void', 'finalizeProposal',
+                                    [('mot_data_struct*', 'data'),
+                                     (address_space_parameter_vector + ' mot_float_type*', 'x')],
+                                    body, dependencies=[func for _, func in self._proposal_callbacks])
         return builder
 
     def _get_weight_sum_to_one_transformation(self):
