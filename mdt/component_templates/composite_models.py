@@ -264,15 +264,6 @@ class CompositeModelTemplate(ComponentTemplate):
         return meta_info
 
 
-# todo: Remove in future versions.
-class DMRICompositeModelTemplate(CompositeModelTemplate):
-    def __new__(cls, *args, **kwargs):
-        import warnings
-        warnings.warn('"DMRICompositeModelTemplate" is deprecated and will be removed in future versions, '
-                      'please replace with "CompositeModelTemplate".')
-        return CompositeModelTemplate.__new__(cls, *args, **kwargs)
-
-
 def _resolve_likelihood_function(likelihood_function):
     """Resolve the likelihood function from string if necessary.
 
