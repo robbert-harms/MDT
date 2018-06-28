@@ -423,7 +423,10 @@ def _load_home_folder():
 
                         module_name = os.path.join(user_type, component_type, dir_name[len(path) + 1:],
                                                    os.path.splitext(os.path.basename(path))[0])
-                        SourceFileLoader(module_name, path).load_module()
+                        try:
+                            SourceFileLoader(module_name, path).load_module()
+                        except ImportError:
+                            pass
 
 
 def _load_automatic_cascades():

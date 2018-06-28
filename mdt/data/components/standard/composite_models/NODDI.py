@@ -19,7 +19,6 @@ class NODDI(CompositeModelTemplate):
     '''
 
     fixes = {'NODDI_IC.d': 1.7e-9,
-             'NODDI_IC.R': 0.0,
              'NODDI_EC.d': 1.7e-9,
              'Ball.d': 3.0e-9,
              'NODDI_EC.dperp0': 'NODDI_EC.d * (isnan(w_ec.w / (w_ec.w + w_ic.w)) ? 0 : (w_ec.w / (w_ec.w + w_ic.w)))',

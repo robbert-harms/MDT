@@ -10,19 +10,15 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class NODDI_IC(CompartmentTemplate):
     """Generate the compartment model signal for the NODDI Intra Cellular (Stick with dispersion) compartment.
 
-    If Radius is fixed to 0 the model behaves as a stick (with dispersion), if non-fixed the model behaves as a
-    cylinder (with dispersion).
-
-    It may seem redundant to have both G/Delta/delta and b as arguments. But that is for speed reasons. b is most
-    of the time available anyway, and G/Delta/delta is only needed if R is not fixed (still it must be provided for).
+    This is a transcription from the NODDI matlab toolbox, but with a few changes. Most notably, support for the
+    cylindrical model has been removed to simplify the code.
     """
-    parameters = ('g', 'b', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'kappa', 'R')
+    parameters = ('g', 'b', 'd', 'theta', 'phi', 'kappa')
     dependencies = ('erfi',
                     'MRIConstants',
-                    'VanGelderenCylinder',
                     'SphericalToCartesian')
     cl_code = '''
-        mot_float_type LePerp = VanGelderenCylinder(G, Delta, delta, d, R);
+        mot_float_type LePerp = 0; // used to be "VanGelderenCylinder(G, Delta, delta, d, R)" with R fixed to 0.
         mot_float_type ePerp = exp(LePerp);
         mot_float_type Lpmp = LePerp + d * b;
 
