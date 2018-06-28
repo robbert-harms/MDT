@@ -140,8 +140,6 @@ class SampleVisualizer(object):
             plt.title(title)
             i += 1
 
-            hist_plot.set_xlim(0, np.pi)
-
             if self._fit_gaussian:
                 mu, sigma = norm.fit(samples[self.voxel_ind, :])
                 bincenters = 0.5*(bins[1:] + bins[:-1])
