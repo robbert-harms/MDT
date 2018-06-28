@@ -1,5 +1,4 @@
 from copy import deepcopy, copy
-import warnings
 import numpy as np
 import six
 from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate
@@ -33,20 +32,10 @@ class CompartmentBuilder(ComponentBuilder):
                 parameters = []
                 if len(template.parameters):
                     parameters = _resolve_parameters(template.parameters)
-                elif len(template.parameter_list):
-                    # todo remove the parameter_list attribute in future versions
-                    warnings.warn('"parameter_list" is deprecated and will be removed in future versions, '
-                                  'please replace with "parameters".')
-                    parameters = _resolve_parameters(template.parameter_list)
 
                 dependencies = []
                 if len(template.dependencies):
                     dependencies = _resolve_dependencies(template.dependencies)
-                elif len(template.dependency_list):
-                    # todo remove the dependency_list attribute in future versions
-                    warnings.warn('"dependency_list" is deprecated and will be removed in future versions, '
-                                  'please replace with "dependencies".')
-                    dependencies = _resolve_dependencies(template.dependency_list)
 
                 new_args = [template.name,
                             template.name,
@@ -146,20 +135,10 @@ class WeightBuilder(ComponentBuilder):
                 parameters = []
                 if len(template.parameters):
                     parameters = _resolve_parameters(template.parameters)
-                elif len(template.parameter_list):
-                    # todo remove the parameter_list attribute in future versions
-                    warnings.warn('"parameter_list" is deprecated and will be removed in future versions, '
-                                  'please replace with "parameters".')
-                    parameters = _resolve_parameters(template.parameter_list)
 
                 dependencies = []
                 if len(template.dependencies):
                     dependencies = _resolve_dependencies(template.dependencies)
-                elif len(template.dependency_list):
-                    # todo remove the dependency_list attribute in future versions
-                    warnings.warn('"dependency_list" is deprecated and will be removed in future versions, '
-                                  'please replace with "dependencies".')
-                    dependencies = _resolve_dependencies(template.dependency_list)
 
                 new_args = [template.name,
                             template.name,
@@ -267,11 +246,9 @@ class CompartmentTemplate(ComponentTemplate):
 
     name = ''
     description = ''
-    parameter_list = []  # todo deprecated removal
     parameters = []
     cl_code = None
     cl_extra = None
-    dependency_list = []  # todo deprecated removal
     dependencies = []
     return_type = 'double'
     extra_prior = None
@@ -292,11 +269,9 @@ class WeightCompartmentTemplate(ComponentTemplate):
 
     name = ''
     description = ''
-    parameter_list = []  # todo deprecated removal
     parameters = []
     cl_code = None
     cl_extra = None
-    dependency_list = []  # todo deprecated removal
     dependencies = []
     return_type = 'double'
 
