@@ -1,7 +1,4 @@
-import warnings
-
 import six
-
 from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate
 from mdt.components import has_component, get_component
 from mot.cl_data_type import SimpleCLDataType
@@ -28,11 +25,6 @@ class ParameterBuilder(ComponentBuilder):
         data_type = template.data_type
         if isinstance(data_type, six.string_types):
             data_type = SimpleCLDataType.from_string(data_type)
-
-        # todo remove in future versions
-        if issubclass(template, StaticMapParameterTemplate):
-            warnings.warn('"StaticMapParameterTemplate" are deprecated in favor of "ProtocolParameterTemplate" '
-                          'and will be removed in future versions.')
 
         if issubclass(template, ProtocolParameterTemplate):
             class AutoProtocolParameter(method_binding_meta(template, ProtocolParameter)):
@@ -87,11 +79,6 @@ class ProtocolParameterTemplate(ParameterTemplate):
     """
     data_type = 'mot_float_type'
     value = None
-
-
-# Todo: deprecate and remove in future versions
-class StaticMapParameterTemplate(ProtocolParameterTemplate):
-    pass
 
 
 class FreeParameterTemplate(ParameterTemplate):
