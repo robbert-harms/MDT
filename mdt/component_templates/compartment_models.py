@@ -108,8 +108,6 @@ class CompartmentBuilder(ComponentBuilder):
                         *theta = M_PI - *theta;
                         *phi = atan2(sin_phi * sin_theta * -1, cos_phi * sin_theta * -1);
                     }
-
-                    *theta = *theta - floor(*theta / M_PI_F) * M_PI_F;
             ''')
             callbacks.append((corresponding_params, func))
 
