@@ -144,26 +144,15 @@ class MRIInputData(object):
 
     @property
     def gradient_deviations(self):
-        """Get the gradient deviations matrix to use in model fitting.
+        """Get the gradient deviations for each voxel.
 
-        This property may not apply to all MRI modalities. In the case it does not apply, just return None.
-
-        Returns:
-            ndarray: the gradient deviations to use during model fitting
-        """
-        raise NotImplementedError()
-
-    @property
-    def protocol_maps(self):
-        """Get a dictionary with the protocol maps.
-
-        These maps will be loaded by the model builder as map values for the protocol parameters.
+        This should either return a (n, 3, 3) matrix or a (n, m, 3, 3) matrix, where n is the number of voxels and m is
+        the number of volumes.
 
         Returns:
-            dict: per protocol maps we use instead of the values in the protocol file. This value can either be a
-                scalar or a one or a two dimensional matrix containing the values for each problem instance.
+            None or ndarray: the gradient deviations to use during model fitting. If not applicable, return None.
         """
-        raise NotImplementedError()
+        return None
 
     def get_subset(self, volumes_to_keep=None, volumes_to_remove=None):
         """Create a copy of this input data where we only keep a subset of the volumes.
@@ -186,7 +175,7 @@ class MRIInputData(object):
 
 class SimpleMRIInputData(MRIInputData):
 
-    def __init__(self, protocol, signal4d, mask, nifti_header, protocol_maps=None, gradient_deviations=None,
+    def __init__(self, protocol, signal4d, mask, nifti_header, extra_protocol=None, gradient_deviations=None,
                  noise_std=None):
         """An implementation of the input data for diffusion MRI models.
 
@@ -195,11 +184,27 @@ class SimpleMRIInputData(MRIInputData):
             signal4d (ndarray): The DWI data (4d matrix)
             mask (ndarray): The mask used to create the observations list
             nifti_header (nifti header): The header of the nifti file to use for writing the results.
-            protocol_maps (Dict[str, ndarray]): the protocol maps to use for voxel-based protocol values
-            gradient_deviations (ndarray): a gradient deviations matrix containing per voxel 9 values that
-                constitute the gradient non-linearities according to the HCP guidelines.
-                (see ``https://www.humanconnectome.org/storage/app/media/documentation/data_release/
-                Q1_Release_Appendix_II.pdf``).
+            extra_protocol (Dict[str, val]): additional protocol items. Here one may additionally specify values to be
+                used for the protocol parameters. These additional values can be scalars, vectors and/or volumes.
+                This in contrast to the ``protocol`` which only contains scalars and vectors. Items specified here will
+                overwrite items from the protocol in the case of duplicated names. This parameter can for example be
+                used to specify gradient volumes, instead of a gradient in the protocol, for example by specifying::
+
+                    extra_protocol = {'g': np.array(...)}
+
+                Per element, the input can be a scalar, a vector, an array, or a filename. If a filename is given
+                we will try to interpret it again as a scalar, vector or array.
+            gradient_deviations (ndarray): a gradient deviations matrix. This can be provided in multiple formats:
+
+                - an (x, y, z, 9) matrix with per voxel 9 values that constitute the gradient non-linearities
+                    according to the HCP guidelines. (see ``https://www.humanconnectome.org/storage/app/media/
+                                                            documentation/data_release/Q1_Release_Appendix_II.pdf``).
+                    If given in this format, we will automatically add the identity matrix to it, as specified by the
+                    HCP guidelines.
+                - an (x, y, z, 3, 3) matrix with per voxel the deformation matrix. This will be used as given.
+                - an (x, y, z, m, 3, 3) matrix with per voxel and per volume a deformation matrix. This will be used as
+                    given.
+
             noise_std (number or ndarray): either None for automatic detection,
                 or a scalar, or an 3d matrix with one value per voxel.
         """
@@ -209,7 +214,7 @@ class SimpleMRIInputData(MRIInputData):
         self._mask = mask
         self._protocol = protocol
         self._observation_list = None
-        self._protocol_maps = protocol_maps or {}
+        self._extra_protocol = self._preload_extra_protocol_items(extra_protocol)
         self._noise_std = noise_std
         self._gradient_deviations = gradient_deviations
 
@@ -230,9 +235,12 @@ class SimpleMRIInputData(MRIInputData):
         except ValueError:
             return False
 
-    def get_input_data(self, parameter_name, compartment_name=None):
-        if parameter_name in self._protocol_maps:
-            return self.protocol_maps[parameter_name]
+    def get_input_data(self, parameter_name):
+        if parameter_name in self._extra_protocol:
+            value = np.array(self._extra_protocol[parameter_name], copy=False)
+            if len(value.shape) < 3:
+                return value
+            return create_roi(value, self.mask)
         if parameter_name in self._protocol:
             return self._protocol[parameter_name]
         raise ValueError('No input data could be find for the parameter "{}".'.format(parameter_name))
@@ -260,7 +268,7 @@ class SimpleMRIInputData(MRIInputData):
             tuple: args and kwargs tuple
         """
         args = [self._protocol, self.signal4d, self._mask, self.nifti_header]
-        kwargs = dict(protocol_maps=self._protocol_maps, gradient_deviations=self.gradient_deviations,
+        kwargs = dict(extra_protocol=self._extra_protocol, gradient_deviations=self._gradient_deviations,
                       noise_std=self._noise_std)
         return args, kwargs
 
@@ -288,7 +296,14 @@ class SimpleMRIInputData(MRIInputData):
         if self.signal4d is not None:
             new_dwi_volume = self.signal4d[..., volumes_to_keep]
 
-        return self.copy_with_updates(new_protocol, new_dwi_volume)
+        new_gradient_deviations = self._gradient_deviations
+        if self._gradient_deviations.ndim > 4 and self._gradient_deviations[3] == self.protocol.length:
+            if self._gradient_deviations.ndim == 5:
+                new_gradient_deviations = self._gradient_deviations[..., volumes_to_keep, :]
+            else:
+                new_gradient_deviations = self._gradient_deviations[..., volumes_to_keep, :, :]
+
+        return self.copy_with_updates(new_protocol, new_dwi_volume, gradient_deviations=new_gradient_deviations)
 
     @property
     def nmr_problems(self):
@@ -308,7 +323,15 @@ class SimpleMRIInputData(MRIInputData):
 
     @property
     def gradient_deviations(self):
-        return self._gradient_deviations
+        if self._gradient_deviations is None:
+            return None
+
+        grad_dev = create_roi(self._gradient_deviations, self.mask)
+
+        if grad_dev.shape[-1] == 9:  # HCP WUMINN format, Fortran major. Also adds the identity matrix as specified.
+            grad_dev = np.reshape(grad_dev, (-1, 3, 3), order='F') + np.eye(3)
+
+        return grad_dev
 
     @property
     def protocol(self):
@@ -328,28 +351,6 @@ class SimpleMRIInputData(MRIInputData):
             np.array: the numpy mask array
         """
         return self._mask
-
-    @property
-    def protocol_maps(self):
-        if self._protocol_maps is not None:
-            return_items = {}
-
-            for key, val in self._protocol_maps.items():
-
-                loaded_val = None
-
-                if isinstance(val, six.string_types):
-                    loaded_val = create_roi(load_nifti(val).get_data(), self.mask)
-                elif isinstance(val, np.ndarray):
-                    loaded_val = create_roi(val, self.mask)
-                elif is_scalar(val):
-                    loaded_val = val
-
-                return_items[key] = loaded_val
-
-            return return_items
-
-        return self._protocol_maps
 
     @property
     def noise_std(self):
@@ -381,6 +382,23 @@ class SimpleMRIInputData(MRIInputData):
             return self._noise_std
         else:
             return create_roi(self._noise_std, self.mask)
+
+    def _preload_extra_protocol_items(self, extra_protocol):
+        """Load all the extra protocol items that were defined by a filename."""
+        if extra_protocol is None:
+            return {}
+
+        return_items = {}
+        for key, value in extra_protocol.items():
+            if isinstance(value, six.string_types):
+                if value.endswith('.nii') or value.endswith('.nii.gz'):
+                    loaded_val = load_nifti(value).get_data()
+                else:
+                    loaded_val = np.genfromtxt(value)
+            else:
+                loaded_val = value
+            return_items[key] = loaded_val
+        return return_items
 
 
 class MockMRIInputData(SimpleMRIInputData):
@@ -414,7 +432,7 @@ class MockMRIInputData(SimpleMRIInputData):
         return 1
 
 
-def load_input_data(volume_info, protocol, mask, protocol_maps=None, gradient_deviations=None, noise_std=None):
+def load_input_data(volume_info, protocol, mask, extra_protocol=None, gradient_deviations=None, noise_std=None):
     """Load and create the input data object for diffusion MRI modeling.
 
     Args:
@@ -423,11 +441,29 @@ def load_input_data(volume_info, protocol, mask, protocol_maps=None, gradient_de
         protocol (:class:`~mdt.protocols.Protocol` or str): A protocol object with the right protocol for the
             given data, or a string object with a filename to the given file.
         mask (ndarray, str): A full path to a mask file or a 3d ndarray containing the mask
-        protocol_maps (Dict[str, val]): the dictionary with per protocol parameter a map to use instead of
-            the values from the protocol file. The value can either be an 3d or 4d ndarray, a single number or a string.
-            We will convert all to the right format.
-        gradient_deviations (str or ndarray): set of gradient deviations to use. In HCP WUMINN format. Set to None to
-            disable.
+        extra_protocol (Dict[str, val]): additional protocol items. Here one may additionally specify values to be
+            used for the protocol parameters. These additional values can be scalars, vectors and/or volumes. This in
+            contrast to the ``protocol`` which only contains scalars and vectors. Items specified here will overwrite
+            items from the protocol in the case of duplicated names. This parameter can for example be used to specify
+            gradient volumes, instead of a gradient in the protocol, for example by specifying::
+
+                extra_protocol = {'g': np.array(...)}
+
+            Per element, the input can be a scalar, a vector, an array, or a filename. If a filename is given
+            we will try to interpret it again as a scalar, vector or array.
+
+        gradient_deviations (str or ndarray): a gradient deviations matrix. If a string is given we will interpret
+            as a Nifti file. The matrix can be provided in multiple formats:
+
+            - an (x, y, z, 9) matrix with per voxel 9 values that constitute the gradient non-linearities
+                according to the HCP guidelines. (see ``https://www.humanconnectome.org/storage/app/media/
+                                                        documentation/data_release/Q1_Release_Appendix_II.pdf``).
+                If given in this format, we will automatically add the identity matrix to it, as specified by the
+                HCP guidelines.
+            - an (x, y, z, 3, 3) matrix with per voxel the deformation matrix. This will be used as given.
+            - an (x, y, z, m, 3, 3) matrix with per voxel and per volume a deformation matrix. This will be used as
+                given.
+
         noise_std (number or ndarray): either None for automatic detection,
             or a scalar, or an 3d matrix with one value per voxel.
 
@@ -447,7 +483,7 @@ def load_input_data(volume_info, protocol, mask, protocol_maps=None, gradient_de
     if isinstance(gradient_deviations, six.string_types):
         gradient_deviations = load_nifti(gradient_deviations).get_data()
 
-    return SimpleMRIInputData(protocol, signal4d, mask, img_header, protocol_maps=protocol_maps, noise_std=noise_std,
+    return SimpleMRIInputData(protocol, signal4d, mask, img_header, extra_protocol=extra_protocol, noise_std=noise_std,
                               gradient_deviations=gradient_deviations)
 
 

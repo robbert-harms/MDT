@@ -27,7 +27,7 @@ class Protocol(collections.Mapping):
 
         * G (gradient amplitude) in T/m (Tesla per meter)
         * Delta (time interval) in seconds
-        * delta (duration) in seconds
+        * delta (gradient duration) in seconds
 
         Args:
             columns (dict): The initial list of columns used by this protocol, the keys should be the name of the
@@ -883,18 +883,22 @@ def auto_load_protocol(directory, bvec_fname=None, bval_fname=None, bval_scale='
     if protocol_files:
         return load_protocol(protocol_files[0])
 
+    def filter_nifti_files(file_names):
+        return list(filter(lambda s: not s.endswith('.nii') and not s.endswith('.nii.gz'), file_names))
+
     if not bval_fname:
-        bval_files = list(glob.glob(os.path.join(directory, '*bval*')))
+        bval_files = filter_nifti_files(glob.glob(os.path.join(directory, '*bval*')))
+
         if not bval_files:
-            bval_files = glob.glob(os.path.join(directory, '*b-val*'))
+            bval_files = filter_nifti_files(glob.glob(os.path.join(directory, '*b-val*')))
             if not bval_files:
                 raise ValueError('Could not find a suitable bval file')
         bval_fname = bval_files[0]
 
     if not bvec_fname:
-        bvec_files = list(glob.glob(os.path.join(directory, '*bvec*')))
+        bvec_files = filter_nifti_files(glob.glob(os.path.join(directory, '*bvec*')))
         if not bvec_files:
-            bvec_files = glob.glob(os.path.join(directory, '*b-vec*'))
+            bvec_files = filter_nifti_files(glob.glob(os.path.join(directory, '*b-vec*')))
             if not bvec_files:
                 raise ValueError('Could not find a suitable bvec file')
 
@@ -922,7 +926,7 @@ def auto_load_protocol(directory, bvec_fname=None, bval_fname=None, bval_scale='
             if os.path.isfile(os.path.join(directory, col)):
                 protocol = protocol.with_added_column_from_file(col, os.path.join(directory, col))
 
-        # special case for Delta named as big_delta
+        # special case for Delta named as big_delta (Windows has a case-insensitive directory layout)
         if os.path.isfile(os.path.join(directory, 'big_delta')):
             protocol = protocol.with_added_column_from_file('Delta', os.path.join(directory, 'big_delta'))
 

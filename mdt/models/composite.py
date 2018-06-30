@@ -1,5 +1,5 @@
 import logging
-from textwrap import dedent, indent
+from textwrap import dedent
 import copy
 import collections
 import numpy as np
@@ -24,7 +24,7 @@ from mot.kernel_data import KernelArray
 
 from mdt.models.base import MissingProtocolInput
 from mdt.models.base import DMRIOptimizable
-from mdt.utils import create_roi, calculate_point_estimate_information_criterions, is_scalar, results_to_dict
+from mdt.utils import calculate_point_estimate_information_criterions, is_scalar, results_to_dict
 from mot.cl_routines.mapping.calc_dependent_params import CalculateDependentParameters
 from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
 from mot.mcmc_diagnostics import multivariate_ess, univariate_ess
@@ -61,16 +61,23 @@ class DMRICompositeModel(DMRIOptimizable):
                 The default is false, which means that we don't check for this.
             volume_selection (boolean): if we should do volume selection or not, set this before
                 calling ``set_input_data``.
+
             _post_optimization_modifiers (list): the list with post optimization modifiers. Every element
                 should contain a tuple with (str, Func) or (tuple, Func): where the first element is a single
                 output name or a list with output names and the Func is a callback function that returns one or more
                 output maps.
-            model_priors (list[mot.cl_function.CLFunction]): the list of model priors this class
+
+            model_priors (List[mot.cl_function.CLFunction]): the list of model priors this class
                 will also use (next to the priors defined in the parameters).
-            _proposal_callbacks (List[Tuple(Tuple(CompartmentFunction, CLFunctionParameter), CLFunction)]):
+
+            _proposal_callbacks (Iterable[Tuple[Tuple[CompartmentFunction, CLFunctionParameter], CLFunction]]):
                 the list of proposal callbacks. Each element in the list consists of a tuple with two elements,
-                first a reference to the used compartments, second the CL function to call (using those parameters).
-                The parameters reference uses a list of (compartment, parameter) tuples.
+                first a reference to the used compartments (as a list of (compartment, parameter) tuples),
+                second the CL function to call (using those parameters).
+
+                Proposals generated during sampling may sometimes require transformations to transform the proposal
+                vector. For example, in the case of sampling a spherical coordinate system, this callback can be used
+                to transform both the inclination and the azimuth at the same time to an antipodal point.
         """
         super(DMRICompositeModel, self).__init__(model_name, model_tree, likelihood_function, signal_noise_model,
                                                  input_data=input_data,
@@ -143,19 +150,19 @@ class DMRICompositeModel(DMRIOptimizable):
         """
         return CompositeModelFunction(self._model_tree, signal_noise_model=self._signal_noise_model)
 
-    def build(self, problems_to_analyze=None):
+    def build(self, voxels_to_analyze=None):
         if self._input_data is None:
             raise RuntimeError('Input data is not set, can not build the model.')
 
-        return BuildCompositeModel(problems_to_analyze,
+        return BuildCompositeModel(voxels_to_analyze,
                                    self.name,
-                                   self._get_kernel_data(problems_to_analyze),
-                                   self._get_nmr_problems(problems_to_analyze),
+                                   self._get_kernel_data(voxels_to_analyze),
+                                   self._get_nmr_problems(voxels_to_analyze),
                                    self.get_nmr_observations(),
                                    self.get_nmr_parameters(),
-                                   self._get_initial_parameters(problems_to_analyze),
+                                   self._get_initial_parameters(voxels_to_analyze),
                                    self._get_pre_eval_parameter_modifier(),
-                                   self._get_objective_per_observation_function(problems_to_analyze),
+                                   self._get_objective_per_observation_function(),
                                    self.get_lower_bounds(),
                                    self.get_upper_bounds(),
                                    self._get_max_numdiff_step(),
@@ -170,13 +177,13 @@ class DMRICompositeModel(DMRIOptimizable):
                                    self._extra_optimization_maps_funcs,
                                    self._extra_sampling_maps_funcs,
                                    self._get_dependent_map_calculator(),
-                                   self._get_fixed_parameter_maps(problems_to_analyze),
+                                   self._get_fixed_parameter_maps(voxels_to_analyze),
                                    self.get_free_param_names(),
                                    self.get_parameter_codec(),
                                    copy.deepcopy(self._post_processing),
-                                   self._get_rwm_proposal_stds(problems_to_analyze),
-                                   self._get_model_eval_function(problems_to_analyze),
-                                   self._get_log_likelihood_per_observation_function(problems_to_analyze),
+                                   self._get_rwm_proposal_stds(voxels_to_analyze),
+                                   self._get_model_eval_function(),
+                                   self._get_log_likelihood_per_observation_function(),
                                    self._get_log_prior_function_builder(),
                                    self._get_finalize_proposal_function_builder())
 
@@ -381,10 +388,10 @@ class DMRICompositeModel(DMRIOptimizable):
         self._check_data_consistency(input_data)
         self._original_input_data = input_data
 
-        if input_data.gradient_deviations is not None:
-            self._logger.info('Using the gradient deviations in the model optimization.')
-
         input_data = self._prepare_input_data(input_data)
+
+        if input_data.gradient_deviations is not None and self._model_functions_info.has_protocol_parameter('g'):
+            self._logger.info('Using the gradient deviations in the model optimization.')
 
         self._input_data = input_data
         if self._input_data.noise_std is not None:
@@ -454,7 +461,7 @@ class DMRICompositeModel(DMRIOptimizable):
         missing_columns = []
         for name in self.get_required_protocol_names():
             if not input_data.has_input_data(name):
-                for m, p in self._model_functions_info.get_protocol_parameters_list():
+                for p in self._model_functions_info.get_unique_protocol_parameters():
                     if p.name == name and p.value is None:
                         missing_columns.append(name)
 
@@ -479,96 +486,71 @@ class DMRICompositeModel(DMRIOptimizable):
                 return {std_names[0]: np.sqrt(total)}
         return {}
 
-    def _get_gradient_deviations(self, problems_to_analyze):
-        """Get the gradient deviation data for use in the kernel.
-
-        This already adds the eye(3) matrix to every gradient deviation matrix, so we don't have to do it in the kernel.
-
-        Please note that the gradient deviations matrix is in Fortran (column-major) order (per voxel).
+    def _get_gradient_deviation_proposal_callback(self):
+        """Get the proposal callback for the gradient deformations.
 
         Returns:
-            ndarray: the gradient deviations for the voxels being optimized (this function already takes care
-                of the problems_to_analyze setting).
+            ProtocolAdaptionCallbacks: the proposal adaption callback for the gradient deformations.
         """
-        if len(self._input_data.gradient_deviations.shape) > 2:
-            grad_dev = create_roi(self._input_data.gradient_deviations, self._input_data.mask)
-        else:
-            grad_dev = np.copy(self._input_data.gradient_deviations)
+        if self._input_data.gradient_deviations is None:
+            return None
 
-        grad_dev += np.eye(3).flatten()
+        if not self._model_functions_info.has_protocol_parameter('g'):
+            return None
 
-        if problems_to_analyze is not None:
-            grad_dev = grad_dev[problems_to_analyze, ...]
+        gradient_deviations = self._input_data.gradient_deviations
 
-        return convert_data_to_dtype(grad_dev, 'mot_float_type*', SimpleCLDataType.from_string('float'))
+        observation_multiplier = 0
+        if len(gradient_deviations.shape) > 3:
+            observation_multiplier = 9
 
-    def _get_pre_model_expression_eval_code(self, problems_to_analyze):
-        """The code called in the evaluation function.
+        parameters_needed = [p for p in ['g', 'b', 'G'] if self._model_functions_info.has_protocol_parameter(p)]
 
-        This is called after the parameters are initialized and before the model signal expression. It can call
-        functions defined in _get_pre_model_expression_eval_function()
+        function_arguments = [(self._model_functions_info.get_protocol_parameter_by_name(p).data_type.ctype + '*', p)
+                              for p in parameters_needed]
+        function_arguments.append(('global float*', 'gradient_deviations'))
+        function_arguments.append(('uint', 'observation_index'))
 
-        Returns:
-            str: cl code containing evaluation changes,
-        """
-        if self._can_use_gradient_deviations(problems_to_analyze):
-            s = '''
-                mot_float_type4 _new_gradient_vector_raw = _get_new_gradient_raw(g, data->gradient_deviations);
-                mot_float_type _new_gradient_vector_length = length(_new_gradient_vector_raw);
-                g = _new_gradient_vector_raw/_new_gradient_vector_length;
-            '''
-            s = dedent(s.replace('\t', ' '*4))
+        body = '''
+            const uint matrix_index = ''' + str(observation_multiplier) + ''' * observation_index;
+            
+            mot_float_type4 new_g_non_normalized = (mot_float_type4)(
+                gradient_deviations[0 + matrix_index] * (*g).x + 
+                gradient_deviations[1 + matrix_index] * (*g).y + 
+                gradient_deviations[2 + matrix_index] * (*g).z,
+                
+                gradient_deviations[3 + matrix_index] * (*g).x + 
+                gradient_deviations[4 + matrix_index] * (*g).y + 
+                gradient_deviations[5 + matrix_index] * (*g).z,
+                
+                gradient_deviations[6 + matrix_index] * (*g).x + 
+                gradient_deviations[7 + matrix_index] * (*g).y + 
+                gradient_deviations[8 + matrix_index] * (*g).z,
+                0);
+            
+            mot_float_type new_g_length = length(new_g_non_normalized);
+            *g = new_g_non_normalized / new_g_length;
+        '''
+        if 'b' in parameters_needed:
+            body += '*b *= new_g_length * new_g_length;' + "\n"
+        if 'G' in parameters_needed:
+            body += '*G *= new_g_length;' + "\n"
 
-            if 'b' in list(self._get_protocol_data_as_var_data(problems_to_analyze).keys()):
-                s += 'b *= _new_gradient_vector_length * _new_gradient_vector_length;' + "\n"
+        class GradientDeviationProtocolUpdate(ProtocolAdaptionCallbacks):
 
-            if 'G' in list(self._get_protocol_data_as_var_data(problems_to_analyze).keys()):
-                s += 'G *= _new_gradient_vector_length;' + "\n"
+            def get_protocol_parameter_names(self):
+                return parameters_needed
 
-            return s
+            def get_callback_function(self):
+                return SimpleCLFunction('void', 'gradient_deformations_protocol_callback', function_arguments, body)
 
-    def _get_pre_model_expression_eval_function(self, problems_to_analyze):
-        """Function used in the model evaluation generation function.
+            def get_kernel_input_data(self, voxels_to_analyze=None):
+                grad_dev = gradient_deviations
+                if voxels_to_analyze is not None:
+                    grad_dev = grad_dev[voxels_to_analyze, ...]
+                return {'gradient_deviations': KernelArray(grad_dev, ctype='float')}
 
-        This function can change some of the protocol or fixed parameters before they are handed over to the signal
-        expression function. This function is called by the get_model_eval_function function during model evaluation
-        function construction.
-
-        Returns:
-            str: cl function to be used in conjunction with the output of the function
-                _get_pre_model_expression_eval_model()
-        """
-        if self._can_use_gradient_deviations(problems_to_analyze):
-            return dedent('''
-                #ifndef GET_NEW_GRADIENT_RAW
-                #define GET_NEW_GRADIENT_RAW
-                mot_float_type4 _get_new_gradient_raw(
-                        mot_float_type4 g,
-                        global const mot_float_type* const gradient_deviations){
-
-                    const mot_float_type4 il_0 = (mot_float_type4)(gradient_deviations[0],
-                                                                   gradient_deviations[3],
-                                                                   gradient_deviations[6],
-                                                                   0.0);
-
-                    const mot_float_type4 il_1 = (mot_float_type4)(gradient_deviations[1],
-                                                                   gradient_deviations[4],
-                                                                   gradient_deviations[7],
-                                                                   0.0);
-
-                    const mot_float_type4 il_2 = (mot_float_type4)(gradient_deviations[2],
-                                                                   gradient_deviations[5],
-                                                                   gradient_deviations[8],
-                                                                   0.0);
-
-                    return (mot_float_type4)(dot(il_0, g), dot(il_1, g), dot(il_2, g), 0.0);
-                }
-                #endif //GET_NEW_GRADIENT_RAW
-            '''.replace('\t', ' '*4))
-
-    def _can_use_gradient_deviations(self, problems_to_analyze):
-        return self._input_data.gradient_deviations is not None \
-               and 'g' in list(self._get_protocol_data_as_var_data(problems_to_analyze).keys())
+        return GradientDeviationProtocolUpdate()
 
     def _prepare_input_data(self, input_data):
         """Update the input data to make it suitable for this model.
@@ -686,7 +668,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
         return calculator
 
-    def _get_fixed_parameter_maps(self, problems_to_analyze):
+    def _get_fixed_parameter_maps(self, voxels_to_analyze):
         """In place add complete maps for the fixed parameters."""
         fixed_params = self._model_functions_info.get_value_fixed_parameters_list(exclude_priors=True)
 
@@ -697,34 +679,34 @@ class DMRICompositeModel(DMRIOptimizable):
             value = self._model_functions_info.get_parameter_value(name)
 
             if is_scalar(value):
-                result.update({name: np.tile(np.array([value]), (self._get_nmr_problems(problems_to_analyze),))})
+                result.update({name: np.tile(np.array([value]), (self._get_nmr_problems(voxels_to_analyze),))})
             else:
-                if problems_to_analyze is not None:
-                    value = value[problems_to_analyze, ...]
+                if voxels_to_analyze is not None:
+                    value = value[voxels_to_analyze, ...]
                 result.update({name: value})
 
         return result
 
-    def _get_rwm_proposal_stds(self, problems_to_analyze):
+    def _get_rwm_proposal_stds(self, voxels_to_analyze):
         proposal_stds = []
         for m, p in self._model_functions_info.get_estimable_parameters_list():
             proposal_std = p.sampling_proposal_std
 
             if is_scalar(proposal_std):
-                if self._get_nmr_problems(problems_to_analyze) == 0:
+                if self._get_nmr_problems(voxels_to_analyze) == 0:
                     proposal_stds.append(np.full((1, 1), proposal_std))
                 else:
-                    proposal_stds.append(np.full((self._get_nmr_problems(problems_to_analyze), 1), proposal_std))
+                    proposal_stds.append(np.full((self._get_nmr_problems(voxels_to_analyze), 1), proposal_std))
             else:
                 if len(proposal_std.shape) < 2:
                     proposal_std = np.transpose(np.asarray([proposal_std]))
                 elif proposal_std.shape[1] > proposal_std.shape[0]:
                     proposal_std = np.transpose(proposal_std)
 
-                if problems_to_analyze is None:
+                if voxels_to_analyze is None:
                     proposal_stds.append(proposal_std)
                 else:
-                    proposal_stds.append(proposal_std[problems_to_analyze, ...])
+                    proposal_stds.append(proposal_std[voxels_to_analyze, ...])
 
         return np.concatenate([np.transpose(np.array([s])) if len(s.shape) < 2 else s for s in proposal_stds], axis=1)
 
@@ -800,44 +782,41 @@ class DMRICompositeModel(DMRIOptimizable):
             if len(names) > 1:
                 self.fix(names[0], SimpleAssignment('max((double)1 - ({}), (double)0)'.format(' + '.join(names[1:]))))
 
-    def _get_protocol_data_as_var_data(self, problems_to_analyze):
+    def _get_protocol_data_as_var_data(self, voxels_to_analyze):
         """Get the value for the given protocol parameter.
 
         The resolution order is as follows, with a latter stage taking preference over an earlier stage
 
         1. the value defined in the parameter definition
         2. the <param_name> in the input data
-        2. the <model_name>.<param_name> in the input data
 
-        For protocol maps, this only returns the problems for which problems_to_analyze is set.
+        For protocol maps, this only returns the problems for which voxels_to_analyze is set.
 
         Args:
-            problems_to_analyze (ndarray): the problems we are interested in
+            voxels_to_analyze (ndarray): the problems we are interested in
 
         Returns:
             dict: the value for the given parameter.
         """
         return_data = {}
 
-        for m, p in self._model_functions_info.get_model_parameter_list():
-            if isinstance(p, ProtocolParameter):
-                value = self._get_protocol_value(m, p)
+        for p in self._model_functions_info.get_unique_protocol_parameters():
+            value = self._get_protocol_value(p)
 
-                if value is None:
-                    raise ValueError('Could not find a suitable value for the '
-                                     'protocol parameter "{}" of compartment "{}".'.format(p.name, m.name))
+            if value is None:
+                raise ValueError('Could not find a suitable value for the protocol parameter "{}".'.format(p.name))
 
-                if not all_elements_equal(value):
-                    if value.shape[0] == self._input_data.nmr_problems:
-                        if problems_to_analyze is not None:
-                            value = value[problems_to_analyze, ...]
-                        const_d = {p.name: KernelArray(value, ctype=p.data_type.declaration_type)}
-                    else:
-                        const_d = {p.name: KernelArray(value, ctype=p.data_type.declaration_type, offset_str='0')}
-                    return_data.update(const_d)
+            if not all_elements_equal(value):
+                if value.shape[0] == self._input_data.nmr_problems:
+                    if voxels_to_analyze is not None:
+                        value = value[voxels_to_analyze, ...]
+                    const_d = {p.name: KernelArray(value, ctype=p.data_type.declaration_type)}
+                else:
+                    const_d = {p.name: KernelArray(value, ctype=p.data_type.declaration_type, offset_str='0')}
+                return_data.update(const_d)
         return return_data
 
-    def _get_protocol_value(self, model, parameter):
+    def _get_protocol_value(self, parameter):
         if isinstance(parameter, ProtocolParameter):
             value = parameter.value
 
@@ -845,15 +824,15 @@ class DMRICompositeModel(DMRIOptimizable):
                 value = self._input_data.get_input_data(parameter.name)
             return value
 
-    def _get_observations_data(self, problems_to_analyze):
+    def _get_observations_data(self, voxels_to_analyze):
         """Get the observations to use in the kernel.
 
         Can return None if there are no observations.
         """
         observations = self._input_data.observations
         if observations is not None:
-            if problems_to_analyze is not None:
-                observations = observations[problems_to_analyze, ...]
+            if voxels_to_analyze is not None:
+                observations = observations[voxels_to_analyze, ...]
             observations = self._transform_observations(observations)
             return {'observations': KernelArray(observations)}
         return {}
@@ -973,16 +952,16 @@ class DMRICompositeModel(DMRIOptimizable):
         Args:
             exclude_list: a list of parameters to exclude from this listing
         """
-        param_list = self._model_functions_info.get_protocol_parameters_list()
-        const_params_seen = []
+        param_list = self._model_functions_info.get_all_protocol_parameters()
+        protocol_params_seen = []
         func = ''
         for m, p in param_list:
             if ('{}.{}'.format(m.name, p.name).replace('.', '_')) not in exclude_list:
 
-                value = self._get_protocol_value(m, p)
+                value = self._get_protocol_value(p)
                 data_type = p.data_type.declaration_type
 
-                if p.name not in const_params_seen:
+                if p.name not in protocol_params_seen:
                     if all_elements_equal(value):
                         if p.data_type.is_vector_type:
                             vector_length = p.data_type.vector_length
@@ -994,11 +973,11 @@ class DMRICompositeModel(DMRIOptimizable):
                             assignment = str(float(get_single_value(value)))
                     elif len(value.shape) > 1 and value.shape[0] == self._input_data.nmr_problems and \
                             value.shape[1] != self._input_data.nmr_observations:
-                        assignment = 'data->' + p.name + '[0]'
+                        assignment = 'data->protocol.' + p.name + '[0]'
                     else:
-                        assignment = 'data->' + p.name + '[observation_index]'
+                        assignment = 'data->protocol.' + p.name + '[observation_index]'
                     func += "\t"*4 + data_type + ' ' + p.name + ' = ' + assignment + ';' + "\n"
-                    const_params_seen.append(p.name)
+                    protocol_params_seen.append(p.name)
         return func
 
     def _get_fixed_parameters_listing(self, exclude_list=()):
@@ -1051,19 +1030,19 @@ class DMRICompositeModel(DMRIOptimizable):
                 func += "\t"*4 + data_type + ' ' + name + ' = ' + assignment + ';' + "\n"
         return func
 
-    def _get_fixed_parameters_as_var_data(self, problems_to_analyze):
+    def _get_fixed_parameters_as_var_data(self, voxels_to_analyze):
         var_data_dict = {}
         for m, p in self._model_functions_info.get_value_fixed_parameters_list():
             value = self._model_functions_info.get_parameter_value('{}.{}'.format(m.name, p.name))
             param_name = '{}.{}'.format(m.name, p.name).replace('.', '_')
 
             if not all_elements_equal(value):
-                if problems_to_analyze is not None:
-                    value = value[problems_to_analyze, ...]
+                if voxels_to_analyze is not None:
+                    value = value[voxels_to_analyze, ...]
                 var_data_dict[param_name] = KernelArray(value, ctype=p.data_type.declaration_type)
         return var_data_dict
 
-    def _get_bounds_as_var_data(self, problems_to_analyze):
+    def _get_bounds_as_var_data(self, voxels_to_analyze):
         bounds_dict = {}
 
         for m, p in self._model_functions_info.get_free_parameters_list():
@@ -1075,8 +1054,8 @@ class DMRICompositeModel(DMRIOptimizable):
                 data = value
 
                 if not all_elements_equal(value):
-                    if problems_to_analyze is not None:
-                        data = data[problems_to_analyze, ...]
+                    if voxels_to_analyze is not None:
+                        data = data[voxels_to_analyze, ...]
                     bounds_dict.update({name: KernelArray(data, ctype=p.data_type.declaration_type)})
 
         return bounds_dict
@@ -1092,7 +1071,7 @@ class DMRICompositeModel(DMRIOptimizable):
         Args:
             observations (ndarray): the 2d matrix with the observations. This is the list of
                 observations used to build the model (that is, *after* the list has been optionally
-                limited with problems_to_analyze).
+                limited with voxels_to_analyze).
 
         Returns:
             observations (ndarray): a 2d matrix of the same shape as the input. This should hold the transformed data.
@@ -1133,14 +1112,20 @@ class DMRICompositeModel(DMRIOptimizable):
         """
         if bound_type == 'lower':
             if all_elements_equal(self._lower_bounds[parameter_name]):
-                return str(get_single_value(self._lower_bounds[parameter_name]))
+                if np.isneginf(get_single_value(self._lower_bounds[parameter_name])):
+                    return '-INFINITY'
+                else:
+                    return str(get_single_value(self._lower_bounds[parameter_name]))
             else:
-                return 'data->lb_{}[0]'.format(parameter_name.replace('.', '_'))
+                return 'data->bounds.lb_{}[0]'.format(parameter_name.replace('.', '_'))
         else:
             if all_elements_equal(self._upper_bounds[parameter_name]):
-                return str(get_single_value(self._upper_bounds[parameter_name]))
+                if np.isposinf(get_single_value(self._upper_bounds[parameter_name])):
+                    return 'INFINITY'
+                else:
+                    return str(get_single_value(self._upper_bounds[parameter_name]))
             else:
-                return 'data->ub_{}[0]'.format(parameter_name.replace('.', '_'))
+                return 'data->bounds.ub_{}[0]'.format(parameter_name.replace('.', '_'))
 
     def _get_max_numdiff_step(self):
         """Get the numerical differentiation step for each parameter.
@@ -1223,8 +1208,8 @@ class DMRICompositeModel(DMRIOptimizable):
         '''
         return NameFunctionTuple(func_name, func)
 
-    def _get_objective_per_observation_function(self, problems_to_analyze):
-        eval_function_info = self._get_model_eval_function(problems_to_analyze)
+    def _get_objective_per_observation_function(self):
+        eval_function_info = self._get_model_eval_function()
         eval_model_func = self._likelihood_function.get_log_likelihood_function(include_constant_terms=False)
 
         eval_call_args = ['observation', 'model_evaluation']
@@ -1251,28 +1236,34 @@ class DMRICompositeModel(DMRIOptimizable):
         '''
         return NameFunctionTuple(func_name, func)
 
-    def _get_model_eval_function(self, problems_to_analyze):
+    def _get_model_eval_function(self):
         """Get the evaluation function that evaluates the model at the given parameters.
 
-        The returned function should not do any error calculations,
-        it should merely return the result of evaluating the model for the given parameters.
+        The returned function should not do any error calculations, it should merely return the result of
+        evaluating the model for the given parameters.
 
         Returns:
-            mot.utils.NameFunctionTuple: a named CL function with the following signature:
+            SimpleCLFunction: a named CL function with the following signature:
 
                 .. code-block:: c
 
                     double <func_name>(mot_data_struct* data, const mot_float_type* const x, uint observation_index);
         """
+        protocol_cbs = self._get_protocol_update_callbacks()
         composite_model_function = self.get_composite_model_function()
 
-        def get_preliminary():
-            cl_preliminary = ''
-            cl_preliminary += composite_model_function.get_cl_code()
-            pre_model_function = self._get_pre_model_expression_eval_function(problems_to_analyze)
-            if pre_model_function:
-                cl_preliminary += pre_model_function
-            return cl_preliminary
+        def get_protocol_cb_call(callback, callback_index):
+            call_args = []
+            for protocol_parameter_name in callback.get_protocol_parameter_names():
+                call_args.append('&{}'.format(protocol_parameter_name))
+
+            for key, value in callback.get_kernel_input_data().items():
+                call_args.append('data->protocol_update_cbs.cb{}_{}'.format(str(callback_index), key))
+
+            call_args.append('observation_index')
+
+            func_name = callback.get_callback_function().get_cl_function_name()
+            return '{}({});'.format(func_name, ', '.join(call_args))
 
         def get_function_body():
             param_listing = self._get_parameters_listing(
@@ -1280,27 +1271,44 @@ class DMRICompositeModel(DMRIOptimizable):
                               self._model_functions_info.get_non_model_eval_param_listing()])
 
             body = ''
-            body += dedent(param_listing.replace('\t', ' ' * 4))
-            body += self._get_pre_model_expression_eval_code(problems_to_analyze) or ''
+            body += dedent(param_listing.replace('\t', ' ' * 4)) + '\n'
+
+            for ind, cb in enumerate(protocol_cbs):
+                body += get_protocol_cb_call(cb, ind) + '\n'
+
             body += '\n'
             body += 'return ' + self._get_composite_model_function_signature(composite_model_function) + ';'
             return body
 
-        function_name = '_evaluateModel'
+        return SimpleCLFunction(
+            'double', '_evaluateModel',
+            [('mot_data_struct*', 'data'),
+             ('const mot_float_type* const', 'x'),
+             ('uint', 'observation_index')],
+            get_function_body(),
+            dependencies=[composite_model_function] + [cb.get_callback_function() for cb in protocol_cbs])
 
-        cl_function = '''
-            double {function_name}(
-                    mot_data_struct* data,
-                    const mot_float_type* const x,
-                    uint observation_index){{
+    def _get_protocol_update_callbacks(self):
+        """Get a list of all protocol update callbacks"""
+        protocol_update_callbacks = []
 
-                {body}
-            }}
-        '''.format(function_name=function_name, body=indent(get_function_body(), ' ' * 4 * 4)[4 * 4:])
-        cl_function = dedent(cl_function.replace('\t', ' ' * 4))
+        grad_dev_cb = self._get_gradient_deviation_proposal_callback()
+        if grad_dev_cb is not None:
+            protocol_update_callbacks.append(grad_dev_cb)
 
-        return_str = get_preliminary() + cl_function
-        return NameFunctionTuple(function_name, return_str)
+        return protocol_update_callbacks
+
+    def _get_protocol_update_callbacks_kernel_inputs(self, voxels_to_analyze):
+        """Get the kernel input data needed by the proposal update methods.
+
+        Returns:
+            Dict[str, KernelData]: the kernel data elements to load for the protocol callback functions.
+        """
+        return_items = {}
+        for ind, cb in enumerate(self._get_protocol_update_callbacks()):
+            for key, value in cb.get_kernel_input_data(voxels_to_analyze).items():
+                return_items['cb{}_{}'.format(str(ind), key)] = value
+        return return_items
 
     def _get_parameter_transformations(self):
         dec_func_list = []
@@ -1326,28 +1334,24 @@ class DMRICompositeModel(DMRIOptimizable):
 
         return tuple(reversed(enc_func_list)), dec_func_list
 
-    def _get_nmr_problems(self, problems_to_analyze):
+    def _get_nmr_problems(self, voxels_to_analyze):
         """See super class for details"""
-        if problems_to_analyze is None:
+        if voxels_to_analyze is None:
             if self._input_data:
                 return self._input_data.nmr_problems
             return 0
-        return len(problems_to_analyze)
+        return len(voxels_to_analyze)
 
-    def _get_kernel_data(self, problems_to_analyze):
+    def _get_kernel_data(self, voxels_to_analyze):
         data_items = {}
-        data_items.update(self._get_observations_data(problems_to_analyze))
-        data_items.update(self._get_fixed_parameters_as_var_data(problems_to_analyze))
-        data_items.update(self._get_bounds_as_var_data(problems_to_analyze))
-        data_items.update(self._get_protocol_data_as_var_data(problems_to_analyze))
-
-        if self._input_data.gradient_deviations is not None:
-            data_items['gradient_deviations'] = KernelArray(
-                self._get_gradient_deviations(problems_to_analyze), ctype='mot_float_type')
-
+        data_items.update(self._get_observations_data(voxels_to_analyze))
+        data_items.update(self._get_fixed_parameters_as_var_data(voxels_to_analyze))
+        data_items.update({'bounds': self._get_bounds_as_var_data(voxels_to_analyze)})
+        data_items.update({'protocol': self._get_protocol_data_as_var_data(voxels_to_analyze)})
+        data_items.update({'protocol_update_cbs': self._get_protocol_update_callbacks_kernel_inputs(voxels_to_analyze)})
         return data_items
 
-    def _get_initial_parameters(self, problems_to_analyze):
+    def _get_initial_parameters(self, voxels_to_analyze):
         np_dtype = np.float32
 
         starting_points = []
@@ -1356,10 +1360,10 @@ class DMRICompositeModel(DMRIOptimizable):
             value = self._model_functions_info.get_parameter_value(param_name)
 
             if is_scalar(value):
-                if self._get_nmr_problems(problems_to_analyze) == 0:
+                if self._get_nmr_problems(voxels_to_analyze) == 0:
                     starting_points.append(np.full((1, 1), value, dtype=np_dtype))
                 else:
-                    starting_points.append(np.full((self._get_nmr_problems(problems_to_analyze), 1), value,
+                    starting_points.append(np.full((self._get_nmr_problems(voxels_to_analyze), 1), value,
                                                    dtype=np_dtype))
             else:
                 if len(value.shape) < 2:
@@ -1369,10 +1373,10 @@ class DMRICompositeModel(DMRIOptimizable):
                 else:
                     value = value
 
-                if problems_to_analyze is None:
+                if voxels_to_analyze is None:
                     starting_points.append(value)
                 else:
-                    starting_points.append(value[problems_to_analyze, ...])
+                    starting_points.append(value[voxels_to_analyze, ...])
 
         starting_points = np.concatenate([np.transpose(np.array([s]))
                                           if len(s.shape) < 2 else s for s in starting_points], axis=1)
@@ -1394,21 +1398,8 @@ class DMRICompositeModel(DMRIOptimizable):
             for i, (m, p) in enumerate(self._model_functions_info.get_estimable_parameters_list()):
                 name = '{}.{}'.format(m.name, p.name)
 
-                if all_elements_equal(self._lower_bounds[name]):
-                    if np.isneginf(get_single_value(self._lower_bounds[name])):
-                        lower_bound = '-INFINITY'
-                    else:
-                        lower_bound = str(get_single_value(self._lower_bounds[name]))
-                else:
-                    lower_bound = 'data->lb_' + name.replace('.', '_') + '[0]'
-
-                if all_elements_equal(self._upper_bounds[name]):
-                    if np.isposinf(get_single_value(self._upper_bounds[name])):
-                        upper_bound = 'INFINITY'
-                    else:
-                        upper_bound = str(get_single_value(self._upper_bounds[name]))
-                else:
-                    upper_bound = 'data->ub_' + name.replace('.', '_') + '[0]'
+                lower_bound = self._get_bound_definition(name, 'lower')
+                upper_bound = self._get_bound_definition(name, 'upper')
 
                 function_name = p.sampling_prior.get_cl_function_name()
 
@@ -1467,8 +1458,8 @@ class DMRICompositeModel(DMRIOptimizable):
 
         return builder
 
-    def _get_log_likelihood_per_observation_function(self, problems_to_analyze):
-        eval_function_info = self._get_model_eval_function(problems_to_analyze)
+    def _get_log_likelihood_per_observation_function(self):
+        eval_function_info = self._get_model_eval_function()
         eval_function_signature = self._likelihood_function.get_log_likelihood_function()
 
         eval_call_args = ['observation', 'model_evaluation']
@@ -2227,6 +2218,20 @@ class ModelFunctionsInformation(object):
 
         return estimable_parameters
 
+    def get_all_protocol_parameters(self):
+        """Gets the protocol parameters (as model, parameter tuples) from the model listing."""
+        return list((m, p) for m, p in self.get_model_parameter_list() if isinstance(p, ProtocolParameter))
+
+    def get_unique_protocol_parameters(self):
+        """Gets the unique protocol parameters from the model listing.
+
+        This does not return the corresponding compartment model, only the parameters.
+
+        Returns:
+            List[ProtocolParameter]: the list of protocol parameters
+        """
+        return list(set(p for _, p in self.get_model_parameter_list() if isinstance(p, ProtocolParameter)))
+
     def get_value_fixed_parameters_list(self, exclude_priors=False):
         """Gets a list (as model, parameter tuples) of all parameters that are fixed to a value.
 
@@ -2257,9 +2262,19 @@ class ModelFunctionsInformation(object):
                 dependency_fixed_parameters.append((m, p))
         return dependency_fixed_parameters
 
-    def get_protocol_parameters_list(self):
-        """Gets the protocol parameters (as model, parameter tuples) from the model listing."""
-        return list((m, p) for m, p in self.get_model_parameter_list() if isinstance(p, ProtocolParameter))
+    def get_protocol_parameter_by_name(self, protocol_name):
+        """Get the first instance of a protocol parameter that matches the given name.
+
+        Args:
+            protocol_name (str): the protocol parameter name for which we want the corresponding parameter object.
+
+        Returns:
+            ProtocolParameter: the parameter matching the protocol name
+        """
+        for p in self.get_unique_protocol_parameters():
+            if p.name == protocol_name:
+                return p
+        raise ValueError('Could not find a protocol parameter with the name "{}".'.format(protocol_name))
 
     def get_model_parameter_by_name(self, parameter_name):
         """Get the parameter object of the given full parameter name in dot format.
@@ -2362,28 +2377,6 @@ class ModelFunctionsInformation(object):
         """
         return [(m, p) for m, p in self.get_weights() if self.is_parameter_estimable(m, p)]
 
-    def _get_model_parameter_list(self):
-        """Get a list of all model, parameter tuples.
-
-        Returns:
-            list of tuple: the list of tuples containing (model, parameters)
-        """
-        return list((m, p) for m in self._model_list for p in m.get_parameters())
-
-    def _get_prior_parameters_info(self):
-        """Get a dictionary with the prior parameters for each of the model parameters.
-
-        Returns:
-            dict: lookup dictionary matching model names to parameter lists
-        """
-        prior_lookup_dict = {}
-        for model in self._model_list:
-            for param in model.get_free_parameters():
-                prior_lookup_dict.update({
-                    '{}.{}'.format(model.name, param.name): list((model, p) for p in model.get_prior_parameters(param))
-                })
-        return prior_lookup_dict
-
     def get_parameter_estimable_index(self, model, param):
         """Get the index of this parameter in the parameters list
 
@@ -2442,6 +2435,39 @@ class ModelFunctionsInformation(object):
                 return True
         return False
 
+    def has_protocol_parameter(self, parameter_name):
+        """Check if the model has the given protocol parameter defined.
+
+        Args:
+            parameter_name (str): the protocol parameter name.
+
+        Returns:
+            boolean: true if the given protocol parameter is defined in the model.
+        """
+        return parameter_name in list(p.name for p in self.get_unique_protocol_parameters())
+
+    def _get_model_parameter_list(self):
+        """Get a list of all model, parameter tuples.
+
+        Returns:
+            list of tuple: the list of tuples containing (model, parameters)
+        """
+        return list((m, p) for m in self._model_list for p in m.get_parameters())
+
+    def _get_prior_parameters_info(self):
+        """Get a dictionary with the prior parameters for each of the model parameters.
+
+        Returns:
+            dict: lookup dictionary matching model names to parameter lists
+        """
+        prior_lookup_dict = {}
+        for model in self._model_list:
+            for param in model.get_free_parameters():
+                prior_lookup_dict.update({
+                    '{}.{}'.format(model.name, param.name): list((model, p) for p in model.get_prior_parameters(param))
+                })
+        return prior_lookup_dict
+
     def _get_model_list(self):
         """Get the list of all the applicable model functions"""
         models = list(self._model_tree.get_compartment_models())
@@ -2458,3 +2484,43 @@ class ModelFunctionsInformation(object):
                 raise DoubleModelNameException("Double model name detected in the model tree.", m.name)
             model_names.append(m.name)
 
+
+class ProtocolAdaptionCallbacks(object):
+    """Information container for the protocol adaption callbacks.
+
+    During model evaluation, it may be necessary to apply a transformation on some or all of the protocol
+    inputs. For example, this allows loading the gradient deviations as a matrix that transforms the gradient
+    vector just prior to model evaluation. The alternative would be to load the transformed protocol
+    parameters directly as protocol values, which can be costly, hence these callback functions.
+    """
+
+    def get_protocol_parameter_names(self):
+        """Get the names of the protocol parameters need for this proposal adaption callback.
+
+        Returns:
+            List[str]: the list of protocol parameters needed
+        """
+        raise NotImplementedError()
+
+    def get_callback_function(self):
+        """Get the CL callback function we will execute just prior model evaluation.
+
+        The parameters of this callback function should be as follows. First the list of protocol parameter names,
+        second the list of kernel input data elements and finally an uint for the current observation index.
+
+        Returns:
+            CLFunction: the CL function we will use
+        """
+        raise NotImplementedError()
+
+    def get_kernel_input_data(self, voxels_to_analyze=None):
+        """Get the additional kernel input data needed for this proposal callback to work.
+
+        Args:
+            voxels_to_analyze (ndarray): if provided, we should limit the returned additional data to only these
+                voxels.
+
+        Returns:
+            Dict[str, KernelData]: additional kernel input data
+        """
+        raise NotImplementedError()

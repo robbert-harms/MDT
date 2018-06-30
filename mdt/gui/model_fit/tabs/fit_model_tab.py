@@ -264,7 +264,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
             mask=input_data_info.mask,
             noise_std=input_data_info.noise_std,
             gradient_deviations=input_data_info.gradient_deviations,
-            protocol_maps=input_data_info.protocol_maps,
+            extra_protocol=input_data_info.extra_protocol,
             model=kwargs['model'],
             output_folder=kwargs['output_folder'],
             recalculate=kwargs['recalculate'],
@@ -287,7 +287,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
                         {mask!r},
                         noise_std={noise_std!r},
                         gradient_deviations={gradient_deviations!r},
-                        protocol_maps={protocol_maps!r})
+                        extra_protocol={extra_protocol!r})
 
                     mdt.fit_model(
                         {model!r},
@@ -313,7 +313,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
                         {mask!r},
                         noise_std={noise_std!r},
                         gradient_deviations={gradient_deviations!r},
-                        protocol_maps={protocol_maps!r})
+                        extra_protocol={extra_protocol!r})
 
                     with mdt.config_context(SetGeneralOptimizer({optimizer!r}, settings={{'patience': {patience!r}}})):
                         mdt.fit_model(
@@ -367,9 +367,9 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
             write_new_line('--only-recalculate-last' if kwargs['only_recalculate_last'] else '--recalculate-all')
             write_new_line('--double' if kwargs['double_precision'] else '--float')
 
-            if input_data_info.protocol_maps:
-                write_new_line('--protocol-maps {}'.format(
-                    ' '.join('{}="{}"'.format(key, value) for key, value in input_data_info.protocol_maps.items())
+            if input_data_info.extra_protocol:
+                write_new_line('--extra-protocol {}'.format(
+                    ' '.join('{}="{}"'.format(key, value) for key, value in input_data_info.extra_protocol.items())
                 ))
 
             if not optim_options.use_model_default_optimizer:
@@ -487,14 +487,14 @@ class InputDataInfo(object):
         self.dwi = None
         self.mask = None
         self.protocol = None
-        self.protocol_maps = {}
+        self.extra_protocol = {}
         self.gradient_deviations = None
         self.noise_std = None
 
     def build_input_data(self):
         return mdt.load_input_data(self.dwi, self.protocol, self.mask,
                                    noise_std=self.noise_std, gradient_deviations=self.gradient_deviations,
-                                   protocol_maps=self.protocol_maps)
+                                   extra_protocol=self.extra_protocol)
 
 
 class ExtraDataDialog(Ui_OptimizationExtraDataDialog, QDialog):
@@ -512,27 +512,27 @@ class ExtraDataDialog(Ui_OptimizationExtraDataDialog, QDialog):
         self.gradientDeviations.textChanged.connect(self._check_enable_ok_button)
 
         self.addProtocolMap.clicked.connect(lambda: self._add_map_dialog())
-        self.removeProtocolMap.clicked.connect(lambda: self._remove_selected_protocol_maps())
+        self.removeProtocolMap.clicked.connect(lambda: self._remove_selected_extra_protocol())
 
-        self._protocol_maps = {}
+        self._extra_protocol = {}
 
         self._load_config()
 
     def _add_map_dialog(self):
-        dialog = AddProtocolMapDialog(self._shared_state, self, self._protocol_maps)
+        dialog = AddProtocolMapDialog(self._shared_state, self, self._extra_protocol)
         return_value = dialog.exec_()
 
         if return_value:
             dialog.write_config()
             self._update_map_view()
 
-    def _remove_selected_protocol_maps(self):
+    def _remove_selected_extra_protocol(self):
         to_remove = [el.text() for el in self.protocolMaps.selectedItems()]
-        protocol_maps = {}
-        for key, value in self._protocol_maps.items():
+        extra_protocol = {}
+        for key, value in self._extra_protocol.items():
             if '{}: {}'.format(key, value) not in to_remove:
-                protocol_maps.update({key: value})
-        self._protocol_maps = protocol_maps
+                extra_protocol.update({key: value})
+        self._extra_protocol = extra_protocol
         self._update_map_view()
 
     def write_config(self):
@@ -552,7 +552,7 @@ class ExtraDataDialog(Ui_OptimizationExtraDataDialog, QDialog):
         else:
             self._input_data_info.gradient_deviations = self.gradientDeviations.text()
 
-        self._input_data_info.protocol_maps = copy(self._protocol_maps)
+        self._input_data_info.extra_protocol = copy(self._extra_protocol)
 
     def _load_config(self):
         """Load the settings from the config into the GUI"""
@@ -560,7 +560,7 @@ class ExtraDataDialog(Ui_OptimizationExtraDataDialog, QDialog):
             self.noiseStd.setText(str(self._input_data_info.noise_std))
         if self._input_data_info.gradient_deviations is not None:
             self.gradientDeviations.setText(str(self._input_data_info.gradient_deviations))
-        self._protocol_maps = copy(self._input_data_info.protocol_maps)
+        self._extra_protocol = copy(self._input_data_info.extra_protocol)
         self._update_map_view()
 
     def _select_std_file(self):
@@ -599,16 +599,16 @@ class ExtraDataDialog(Ui_OptimizationExtraDataDialog, QDialog):
 
     def _update_map_view(self):
         self.protocolMaps.clear()
-        self.protocolMaps.addItems('{}: {}'.format(key, self._protocol_maps[key])
-                                   for key in sorted(self._protocol_maps))
+        self.protocolMaps.addItems('{}: {}'.format(key, self._extra_protocol[key])
+                                   for key in sorted(self._extra_protocol))
 
 
 class AddProtocolMapDialog(Ui_AddProtocolMapDialog, QDialog):
 
-    def __init__(self, shared_state, parent, protocol_maps):
+    def __init__(self, shared_state, parent, extra_protocol):
         super(AddProtocolMapDialog, self).__init__(parent)
         self._shared_state = shared_state
-        self._protocol_maps = protocol_maps
+        self._extra_protocol = extra_protocol
         self.setupUi(self)
 
         self.mapNameInput.textChanged.connect(self._check_enable_ok_button)
@@ -626,7 +626,7 @@ class AddProtocolMapDialog(Ui_AddProtocolMapDialog, QDialog):
         except ValueError:
             pass
 
-        self._protocol_maps.update({self.mapNameInput.text(): value})
+        self._extra_protocol.update({self.mapNameInput.text(): value})
 
     def _select_value_file(self):
         open_file, used_filter = QFileDialog().getOpenFileName(
