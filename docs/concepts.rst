@@ -73,13 +73,13 @@ At a bare minimum, this function requires:
 * ``protocol``, an Protocol instance containing the protocol information
 * ``mask``, the mask (3d) specifying which voxels to use for the computations
 
-Additionally you can provide *noise standard deviation*, a *gradient deviations* file and a *dictionary of protocol maps*.
+Additionally you can provide *noise standard deviation*, a *gradient deviations* file and a *dictionary of extra protocol values*.
 For the *noise standard deviation* you have the choice to either provide a single value, an ndarray with a value per voxel, or the string 'auto'.
 If 'auto' is given, MDT will try to estimate the noise standard deviation from the unweighted volumes.
 While this typically works, it is advised to estimate the noise std. manually from air or from noise lines in your k-space.
 The *gradient deviations* is a map specifying how the g vector differs in different areas in the scan.
-This should be stored in the format described by the HCP Wu-Minn project.
-With the *protocol maps* the user can provide voxel-specific protocol parameters.
+This can be provided in HCP Wu-Minn format, as a 3x3 matrix per voxel, or as a 3x3 matrix per voxel per volume (i.e. as a ``(x, y, z, n, 3, 3)`` matrix for a dataset with ``n`` volumes).
+With the *extra protocol values* the user can provide additional protocol values, these can be scalars, vectors, and/or volumes.
 If given, these values take precedence over the values in the protocol file.
 
 
