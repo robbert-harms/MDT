@@ -87,7 +87,7 @@ class test_VanGelderenCylindricalRestrictedSignal(unittest.TestCase):
         alpha_roots = jnp_zeros(1, 16) / R
 
         sum = 0
-        for i in range(20):
+        for i in range(alpha_roots.shape[0]):
             alpha = alpha_roots[i]
 
             num = (2 * d * alpha**2 * delta

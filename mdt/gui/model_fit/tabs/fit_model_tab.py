@@ -206,8 +206,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
             recalculate=True,
             double_precision=self._optim_options.double_precision,
             only_recalculate_last=not self._optim_options.recalculate_all,
-            optimizer=self._optim_options.get_optimizer(),
-            save_user_script_info=False)
+            optimizer=self._optim_options.get_optimizer())
 
         self._computations_thread.start()
         self._run_model_worker.moveToThread(self._computations_thread)
@@ -234,8 +233,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
                            output_folder=self.selectedOutputFolder.text(),
                            recalculate=True,
                            double_precision=self._optim_options.double_precision,
-                           only_recalculate_last=not self._optim_options.recalculate_all,
-                           save_user_script_info=False)
+                           only_recalculate_last=not self._optim_options.recalculate_all)
 
         self._run_model_worker.finished.connect(
             lambda: self._write_python_script_file(script_basename + '.py', **script_info))

@@ -2,7 +2,6 @@ import collections
 import logging
 import logging.config as logging_config
 import os
-from inspect import stack
 from contextlib import contextmanager
 import numpy as np
 import shutil
@@ -23,7 +22,6 @@ from mdt.component_templates.composite_models import CompositeModelTemplate
 from mdt.component_templates.library_functions import LibraryFunctionTemplate
 
 from mdt.model_fitting import get_batch_fitting_function
-from mdt.user_script_info import easy_save_user_script_info
 from mdt.utils import estimate_noise_std, get_cl_devices, load_input_data,\
     create_blank_mask, create_index_matrix, \
     volume_index_to_roi_index, roi_index_to_volume_index, load_brain_mask, init_user_settings, restore_volumes, \
@@ -44,7 +42,6 @@ from mdt.nifti import write_nifti
 from mdt.components import get_model, get_batch_profile, get_component
 
 
-
 __author__ = 'Robbert Harms'
 __date__ = "2015-03-10"
 __license__ = "LGPL v3"
@@ -54,7 +51,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 def fit_model(model, input_data, output_folder, optimizer=None,
               recalculate=False, only_recalculate_last=False, cascade_subdir=False,
-              cl_device_ind=None, double_precision=False, tmp_results_dir=True, save_user_script_info=True,
+              cl_device_ind=None, double_precision=False, tmp_results_dir=True,
               initialization_data=None, post_processing=None):
     """Run the optimizer on the given model.
 
@@ -84,11 +81,6 @@ def fit_model(model, input_data, output_folder, optimizer=None,
         double_precision (boolean): if we would like to do the calculations in double precision
         tmp_results_dir (str, True or None): The temporary dir for the calculations. Set to a string to use
             that path directly, set to True to use the config value, set to None to disable.
-        save_user_script_info (boolean, str or SaveUserScriptInfo): The info we need to save about the script the
-            user is currently executing. If True (default) we use the stack to lookup the script the user is executing
-            and save that using a SaveFromScript saver. If a string is given we use that filename again for the
-            SaveFromScript saver. If False or None, we do not write any information. If a SaveUserScriptInfo is
-            given we use that directly.
         initialization_data (:class:`~mdt.utils.InitializationData` or dict): provides (extra) initialization data to
             use during model fitting. If we are optimizing a cascade model this data only applies to the last model
             in the cascade. If a dictionary is given we will load the elements as arguments to the
@@ -126,17 +118,13 @@ def fit_model(model, input_data, output_folder, optimizer=None,
                          cl_device_ind=cl_device_ind, double_precision=double_precision,
                          tmp_results_dir=tmp_results_dir, initialization_data=initialization_data,
                          post_processing=post_processing)
-
-    results = model_fit.run()
-    easy_save_user_script_info(save_user_script_info, output_folder + '/used_scripts.py',
-                               stack()[1][0].f_globals.get('__file__'))
-    return results
+    return model_fit.run()
 
 
 def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None, thinning=None,
                  recalculate=False, cl_device_ind=None, double_precision=False, store_samples=True,
                  sample_items_to_save=None, tmp_results_dir=True,
-                 save_user_script_info=True, initialization_data=None, post_processing=None
+                 initialization_data=None, post_processing=None
                  ):
     """Sample a composite model using the Adaptive Metropolis-Within-Gibbs (AMWG) MCMC algorithm [1].
 
@@ -163,11 +151,6 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
             items 'LogLikelihood' and 'LogPrior'.
         tmp_results_dir (str, True or None): The temporary dir for the calculations. Set to a string to use
                 that path directly, set to True to use the config value, set to None to disable.
-        save_user_script_info (boolean, str or SaveUserScriptInfo): The info we need to save about the script the
-            user is currently executing. If True (default) we use the stack to lookup the script the user is executing
-            and save that using a SaveFromScript saver. If a string is given we use that filename again for the
-            SaveFromScript saver. If False or None, we do not write any information. If a SaveUserScriptInfo is
-            given we use that directly.
         initialization_data (:class:`~mdt.utils.InitializationData` or dict): provides (extra) initialization data to
             use during model fitting. If we are optimizing a cascade model this data only applies to the last model
             in the cascade. If a dictionary is given we will load the elements as arguments to the
@@ -246,15 +229,11 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
         logger.info('Preparing for model {0}'.format(model.name))
         logger.info('The parameters we will sample are: {0}'.format(model.get_free_param_names()))
 
-        results = sample_composite_model(model, input_data, base_dir, nmr_samples, thinning, burnin,
-                                         get_temporary_results_dir(tmp_results_dir), recalculate=recalculate,
-                                         store_samples=store_samples,
-                                         sample_items_to_save=sample_items_to_save,
-                                         initialization_data=initialization_data)
-
-        easy_save_user_script_info(save_user_script_info, os.path.join(base_dir, 'used_scripts.py'),
-                                   stack()[1][0].f_globals.get('__file__'))
-        return results
+        return sample_composite_model(model, input_data, base_dir, nmr_samples, thinning, burnin,
+                                      get_temporary_results_dir(tmp_results_dir), recalculate=recalculate,
+                                      store_samples=store_samples,
+                                      sample_items_to_save=sample_items_to_save,
+                                      initialization_data=initialization_data)
 
 
 def batch_fit(data_folder, models_to_fit, output_folder=None, batch_profile=None,

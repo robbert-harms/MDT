@@ -134,12 +134,13 @@ class ModelFit(BasicShellApplication):
                                               noise_std=noise_std,
                                               extra_protocol=get_extra_protocol(args.extra_protocol,
                                                                                 os.path.realpath(''))),
-                          output_folder, recalculate=args.recalculate,
-                          only_recalculate_last=args.only_recalculate_last, cl_device_ind=args.cl_device_ind,
+                          output_folder,
+                          recalculate=args.recalculate,
+                          only_recalculate_last=args.only_recalculate_last,
+                          cl_device_ind=args.cl_device_ind,
                           double_precision=args.double_precision,
                           cascade_subdir=args.cascade_subdir,
-                          tmp_results_dir=tmp_results_dir,
-                          save_user_script_info=None)
+                          tmp_results_dir=tmp_results_dir)
 
         if args.config_context:
             with mdt.config_context(args.config_context):

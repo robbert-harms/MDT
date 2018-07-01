@@ -453,7 +453,7 @@ def load_input_data(volume_info, protocol, mask, extra_protocol=None, gradient_d
             Per element, the input can be a scalar, a vector, an array, or a filename. If a filename is given
             we will try to interpret it again as a scalar, vector or array.
 
-        gradient_deviations (str or ndarray): a gradient deviations matrix. If a string is given we will interpret
+        gradient_deviations (str or ndarray): a gradient deviations matrix. If a string is given we will interpret it
             as a Nifti file. The matrix can be provided in multiple formats:
 
             - an (x, y, z, 9) matrix with per voxel 9 values that constitute the gradient non-linearities
