@@ -99,11 +99,6 @@ class BatchFit(BasicShellApplication):
                             help="Shows what it will do without the dry run argument.")
         parser.set_defaults(dry_run=False)
 
-        parser.add_argument('--use-cascade-subdir', dest='cascade_subdir', action='store_true',
-                            help="Set if you want to create a subdirectory for the given cascade model"
-                                 ", default is False.")
-        parser.set_defaults(cascade_subdir=False)
-
         parser.add_argument('--tmp-results-dir', dest='tmp_results_dir', default='True', type=str,
                             help='The directory for the temporary results. The default ("True") uses the config file '
                                  'setting. Set to the literal "None" to disable.').completer = FilesCompleter()
@@ -135,7 +130,6 @@ class BatchFit(BasicShellApplication):
                       cl_device_ind=args.cl_device_ind,
                       double_precision=args.double_precision,
                       dry_run=args.dry_run,
-                      cascade_subdir=args.cascade_subdir,
                       tmp_results_dir=tmp_results_dir,
                       use_gradient_deviations=args.use_gradient_deviations)
 

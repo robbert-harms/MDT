@@ -49,8 +49,8 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-def fit_model(model, input_data, output_folder, optimizer=None,
-              recalculate=False, only_recalculate_last=False, cascade_subdir=False,
+def fit_model(model, input_data, output_folder,
+              optimizer=None, recalculate=False, only_recalculate_last=False,
               cl_device_ind=None, double_precision=False, tmp_results_dir=True,
               initialization_data=None, post_processing=None):
     """Run the optimizer on the given model.
@@ -71,11 +71,6 @@ def fit_model(model, input_data, output_folder, optimizer=None,
             This is only of importance when dealing with CascadeModels.
             If set to true we only recalculate the last element in the chain (if recalculate is set to True, that is).
             If set to false, we recalculate everything. This only holds for the first level of the cascade.
-        cascade_subdir (boolean): if we want to create a subdirectory for the given model if it is a cascade model.
-            Per default we output the maps of cascaded results in the same directory, this allows reusing cascaded
-            results for other cascades (for example, if you cascade BallStick -> Noddi you can use the BallStick results
-            also for BallStick -> Charmed). This flag disables that behaviour and instead outputs the results of
-            a cascade model to a subdirectory for that cascade. This does not apply recursive.
         cl_device_ind (int or list): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices(). This can also be a list of device indices.
         double_precision (boolean): if we would like to do the calculations in double precision
@@ -114,7 +109,6 @@ def fit_model(model, input_data, output_folder, optimizer=None,
 
     model_fit = ModelFit(model, input_data, output_folder, optimizer=optimizer, recalculate=recalculate,
                          only_recalculate_last=only_recalculate_last,
-                         cascade_subdir=cascade_subdir,
                          cl_device_ind=cl_device_ind, double_precision=double_precision,
                          tmp_results_dir=tmp_results_dir, initialization_data=initialization_data,
                          post_processing=post_processing)
@@ -238,7 +232,7 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
 
 def batch_fit(data_folder, models_to_fit, output_folder=None, batch_profile=None,
               subjects_selection=None, recalculate=False,
-              cascade_subdir=False, cl_device_ind=None, dry_run=False,
+              cl_device_ind=None, dry_run=False,
               double_precision=False, tmp_results_dir=True,
               use_gradient_deviations=False):
     """Run all the available and applicable models on the data in the given folder.
@@ -259,11 +253,6 @@ def batch_fit(data_folder, models_to_fit, output_folder=None, batch_profile=None
             :class:`~mdt.batch_utils.BatchSubjectSelection` instance, we apply the following. If the elements in that
             list are string we use it as subject ids, if they are integers we use it as subject indices.
         recalculate (boolean): If we want to recalculate the results if they are already present.
-        cascade_subdir (boolean): if we want to create a subdirectory for every cascade model.
-            Per default we output the maps of cascaded results in the same directory, this allows reusing cascaded
-            results for other cascades (for example, if you cascade BallStick -> NODDI you can use the BallStick results
-            also for BallStick -> CHARMED). This flag disables that behaviour and instead outputs the results of
-            a cascade model to a subdirectory for that cascade. This does not apply recursively.
         cl_device_ind (int or list of int): the index of the CL device to use.
             The index is from the list from the function get_cl_devices().
         dry_run (boolean): a dry run will do no computations, but will list all the subjects found in the
@@ -306,7 +295,7 @@ def batch_fit(data_folder, models_to_fit, output_folder=None, batch_profile=None
         return
 
     batch_fit_func = get_batch_fitting_function(
-        len(subjects), models_to_fit, output_folder, recalculate=recalculate, cascade_subdir=cascade_subdir,
+        len(subjects), models_to_fit, output_folder, recalculate=recalculate,
         cl_device_ind=cl_device_ind, double_precision=double_precision,
         tmp_results_dir=tmp_results_dir, use_gradient_deviations=use_gradient_deviations)
 

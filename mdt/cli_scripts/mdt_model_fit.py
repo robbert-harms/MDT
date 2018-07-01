@@ -91,11 +91,6 @@ class ModelFit(BasicShellApplication):
                             help="Calculate in single precision. (default)")
         parser.set_defaults(double_precision=False)
 
-        parser.add_argument('--use-cascade-subdir', dest='cascade_subdir', action='store_true',
-                            help="Set if you want to create a subdirectory for the given cascade model"
-                                 ", default is False.")
-        parser.set_defaults(cascade_subdir=False)
-
         parser.add_argument('--tmp-results-dir', dest='tmp_results_dir', default='True', type=str,
                             help='The directory for the temporary results. The default ("True") uses the config file '
                                  'setting. Set to the literal "None" to disable.').completer = FilesCompleter()
@@ -139,7 +134,6 @@ class ModelFit(BasicShellApplication):
                           only_recalculate_last=args.only_recalculate_last,
                           cl_device_ind=args.cl_device_ind,
                           double_precision=args.double_precision,
-                          cascade_subdir=args.cascade_subdir,
                           tmp_results_dir=tmp_results_dir)
 
         if args.config_context:

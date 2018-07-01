@@ -27,8 +27,8 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-def get_batch_fitting_function(total_nmr_subjects, models_to_fit, output_folder, recalculate=False,
-                               cascade_subdir=False, cl_device_ind=None, double_precision=False,
+def get_batch_fitting_function(total_nmr_subjects, models_to_fit, output_folder,
+                               recalculate=False, cl_device_ind=None, double_precision=False,
                                tmp_results_dir=True, use_gradient_deviations=False):
     """Get the batch fitting function that can fit all desired models on a subject.
 
@@ -37,12 +37,6 @@ def get_batch_fitting_function(total_nmr_subjects, models_to_fit, output_folder,
         models_to_fit (list of str): A list of models to fit to the data.
         output_folder (str): the folder in which to place the output
         recalculate (boolean): If we want to recalculate the results if they are already present.
-        cascade_subdir (boolean): if we want to create a subdirectory for every cascade model.
-            Per default we output the maps of cascaded results in the same directory, this allows reusing cascaded
-            results for other cascades (for example, if you cascade BallStick -> Noddi you can use
-            the BallStick results also for BallStick -> Charmed). This flag disables that behaviour and instead
-            outputs the results of a cascade model to a subdirectory for that cascade.
-            This does not apply recursive.
         cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
             get_cl_devices().
         double_precision (boolean): if we would like to do the calculations in double precision
@@ -89,7 +83,6 @@ def get_batch_fitting_function(total_nmr_subjects, models_to_fit, output_folder,
                                              output_dir,
                                              recalculate=recalculate,
                                              only_recalculate_last=True,
-                                             cascade_subdir=cascade_subdir,
                                              cl_device_ind=cl_device_ind,
                                              double_precision=double_precision,
                                              tmp_results_dir=tmp_results_dir)
@@ -105,8 +98,8 @@ def get_batch_fitting_function(total_nmr_subjects, models_to_fit, output_folder,
 
 class ModelFit(object):
 
-    def __init__(self, model, input_data, output_folder, optimizer=None,
-                 recalculate=False, only_recalculate_last=False, cascade_subdir=False,
+    def __init__(self, model, input_data, output_folder,
+                 optimizer=None, recalculate=False, only_recalculate_last=False,
                  cl_device_ind=None, double_precision=False, tmp_results_dir=True, initialization_data=None,
                  post_processing=None):
         """Setup model fitting for the given input model and data.
@@ -126,11 +119,6 @@ class ModelFit(object):
                 This is only of importance when dealing with CascadeModels. If set to true we only recalculate
                 the last element in the chain (if recalculate is set to True, that is). If set to false,
                 we recalculate everything. This only holds for the first level of the cascade.
-            cascade_subdir (boolean): if we want to create a subdirectory for the given model if it is a cascade model.
-                Per default we output the maps of cascaded results in the same directory, this allows reusing cascaded
-                results for other cascades (for example, if you cascade BallStick -> Noddi you can use the BallStick
-                results also for BallStick -> Charmed). This flag disables that behaviour and instead outputs the
-                results of a cascade model to a subdirectory for that cascade. This does not apply recursive.
             cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
                 get_cl_devices(). This can also be a list of device indices.
             double_precision (boolean): if we would like to do the calculations in double precision
@@ -154,8 +142,6 @@ class ModelFit(object):
         self._model = model
         self._input_data = input_data
         self._output_folder = output_folder
-        if cascade_subdir and isinstance(self._model, DMRICascadeModelInterface):
-            self._output_folder += '/{}'.format(self._model.name)
         self._optimizer = optimizer
         self._recalculate = recalculate
         self._only_recalculate_last = only_recalculate_last
