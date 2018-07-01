@@ -1676,8 +1676,8 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
         results_dict.update(self._get_post_optimization_information_criterion_maps(
             results_array, log_likelihoods=log_likelihoods))
 
-        if self._post_processing['optimization']['covariance']:
-            results_dict.update(self._calculate_hessian_covariance(results_array))
+        if self._post_processing['optimization']['variances'] or self._post_processing['optimization']['covariances']:
+            results_dict.update(self._compute_fisher_information_matrix(results_array))
 
         for routine in self._extra_optimization_maps:
             try:
@@ -1816,7 +1816,7 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
         ess = np.nan_to_num(ess)
         return {'MultivariateESS': ess}
 
-    def _calculate_hessian_covariance(self, results_array):
+    def _compute_fisher_information_matrix(self, results_array):
         """Calculate the covariance and correlation matrix by taking the inverse of the Hessian.
 
         This first calculates/approximates the Hessian at each of the points using numerical differentiation.
@@ -1836,11 +1836,29 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
 
         param_names = ['{}.{}'.format(m.name, p.name) for m, p in self._estimable_parameters_list]
 
-        results = {'Covariance.is_singular': is_singular}
+        variances = {}
+        covariances = {}
+
+        output_covariances = self._post_processing['optimization']['covariances']
+        output_variances = self._post_processing['optimization']['variances']
+
         for x_ind in range(len(param_names)):
-            results[param_names[x_ind] + '.std'] = np.nan_to_num(np.sqrt(covars[:, x_ind, x_ind]))
-            for y_ind in range(x_ind + 1, len(param_names)):
-                results['Covariance_{}_to_{}'.format(param_names[x_ind], param_names[y_ind])] = covars[:, x_ind, y_ind]
+            if output_variances:
+                variances[param_names[x_ind] + '.std'] = np.nan_to_num(np.sqrt(covars[:, x_ind, x_ind]))
+
+            if output_covariances:
+                for y_ind in range(x_ind + 1, len(param_names)):
+                    covariances['Covariance.{}_to_{}'.format(param_names[x_ind], param_names[y_ind])] = \
+                        covars[:, x_ind, y_ind]
+
+        results = {}
+        if output_variances:
+            results.update(variances)
+
+        if output_covariances:
+            covariances = {'Covariance.is_singular': is_singular}
+            results['covariances'] = covariances
+
         return results
 
     def _get_post_optimization_information_criterion_maps(self, results_array, log_likelihoods=None):

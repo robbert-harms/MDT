@@ -334,7 +334,8 @@ class ActivePostProcessingLoader(ConfigSectionLoader):
         sampling['model_defined_maps'] = sampling.get('model_defined_maps', False)
 
         optimization = value.get('optimization', {})
-        optimization['covariance'] = optimization.get('covariance', True)
+        optimization['variances'] = optimization.get('variances', True)
+        optimization['covariances'] = optimization.get('covariances', True)
 
         _config_insert(['active_post_processing', 'optimization'], optimization)
         _config_insert(['active_post_processing', 'sampling'], sampling)
