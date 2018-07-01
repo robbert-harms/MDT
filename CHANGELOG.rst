@@ -2,6 +2,18 @@
 Changelog
 *********
 
+v0.13.3 (2018-07-01)
+====================
+A small maintenance release for cleaning up some unused or outdated features.
+
+Changed
+-------
+- Removed the used_protocol.prtcl from the output folder. Since with the extra_protocol the input has become more convoluted, the used protocol no longer reflects the actual used inputs.
+- Removed the cascade_subdir from the model fit arguments. This behaviour was easily replicated by providing another output directory.
+- Removed the save_user_script_info from the fit model parameters. It was hardly used and not a primary function of MDT.
+- Renamed the post-processing switch covariance to covariances and added the switch for variances. Both must be set to False to disable computation of the FIM. If only one of them is False, the FIM will be computed and only the elements desired will be returned.
+
+
 v0.13.2 (2018-07-01)
 ====================
 
