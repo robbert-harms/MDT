@@ -142,8 +142,6 @@ class DTIMeasures(object):
         else:
             return compute(d, dperp0, dperp1)
 
-
-
     @staticmethod
     def fractional_anisotropy_std(d, dperp0, dperp1, d_std, dperp0_std, dperp1_std):
         """Calculate the standard deviation of the fractional anisotropy (FA) using error propagation.

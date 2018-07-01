@@ -11,7 +11,6 @@ from mdt.nifti import get_all_nifti_data
 from mdt.components import get_model
 from mdt.configuration import get_processing_strategy, get_optimizer_for_model
 from mdt.models.cascade import DMRICascadeModelInterface
-from mdt.protocols import write_protocol
 from mdt.utils import create_roi, get_cl_devices, model_output_exists, \
     per_model_logging_context, get_temporary_results_dir, SimpleInitializationData
 from mdt.processing_strategies import FittingProcessor, get_full_tmp_results_path
@@ -232,9 +231,8 @@ class ModelFit(object):
             optimizer = self._optimizer or get_optimizer_for_model(model_names)
             optimizer.set_cl_runtime_info(self._cl_runtime_info)
 
-            fitter = SingleModelFit(model, self._input_data, self._output_folder, optimizer,
-                                    self._tmp_results_dir, recalculate=recalculate, cascade_names=model_names)
-            results = fitter.run()
+            results = fit_composite_model(model, self._input_data, self._output_folder, optimizer,
+                                          self._tmp_results_dir, recalculate=recalculate, cascade_names=model_names)
 
         map_results = get_all_nifti_data(os.path.join(self._output_folder, model.name))
         return results, map_results
@@ -251,92 +249,67 @@ class ModelFit(object):
         self._initialization_data.apply_to_model(model, self._input_data)
 
 
-class SingleModelFit(object):
+def fit_composite_model(model, input_data, output_folder, optimizer, tmp_results_dir,
+                        recalculate=False, cascade_names=None):
+    """Fits the composite model and returns the results as ROI lists per map.
 
-    def __init__(self, model, input_data, output_folder, optimizer, tmp_results_dir, recalculate=False,
-                 cascade_names=None):
-        """Fits a composite model.
+     Args:
+        model (:class:`~mdt.models.composite.DMRICompositeModel`): An implementation of an composite model
+            that contains the model we want to optimize.
+        input_data (:class:`~mdt.utils.MRIInputData`): The input data object for the model.
+        output_folder (string): The path to the folder where to place the output.
+            The resulting maps are placed in a subdirectory (named after the model name) in this output folder.
+        optimizer (:class:`mot.cl_routines.optimizing.base.AbstractOptimizer`): The optimization routine to use.
+        tmp_results_dir (str): the main directory to use for the temporary results
+        recalculate (boolean): If we want to recalculate the results if they are already present.
+        cascade_names (list): the list of cascade names, meant for logging
+    """
+    logger = logging.getLogger(__name__)
+    output_path = os.path.join(output_folder, model.name)
 
-         This does not accept cascade models. Please use the more general ModelFit class for all models,
-         composite and cascade.
+    if not model.is_input_data_sufficient(input_data):
+        raise InsufficientProtocolError(
+            'The given protocol is insufficient for this model. '
+            'The reported errors where: {}'.format(model.get_input_data_problems(input_data)))
 
-         Args:
-             model (:class:`~mdt.models.composite.DMRICompositeModel`): An implementation of an composite model
-                that contains the model we want to optimize.
-             input_data (:class:`~mdt.utils.MRIInputData`): The input data object for the
-                model.
-             output_folder (string): The path to the folder where to place the output.
-                The resulting maps are placed in a subdirectory (named after the model name) in this output folder.
-             optimizer (:class:`mot.cl_routines.optimizing.base.AbstractOptimizer`): The optimization routine to use.
-             tmp_results_dir (str): the main directory to use for the temporary results
-             recalculate (boolean): If we want to recalculate the results if they are already present.
-             cascade_names (list): the list of cascade names, meant for logging
-         """
-        self.recalculate = recalculate
+    if not recalculate and model_output_exists(model, output_folder):
+        maps = get_all_nifti_data(output_path)
+        logger.info('Not recalculating {} model'.format(model.name))
+        return create_roi(maps, input_data.mask)
 
-        self._model = model
-        self._input_data = input_data
-        self._output_folder = output_folder
-        self._output_path = os.path.join(self._output_folder, self._model.name)
-        self._optimizer = optimizer
-        self._logger = logging.getLogger(__name__)
-        self._tmp_results_dir = tmp_results_dir
-        self._cascade_names = cascade_names
+    with per_model_logging_context(output_path):
+        logger.info('Using MDT version {}'.format(__version__))
+        logger.info('Preparing for model {0}'.format(model.name))
+        logger.info('Current cascade: {0}'.format(cascade_names))
 
-        if not self._model.is_input_data_sufficient(input_data):
-            raise InsufficientProtocolError(
-                'The given protocol is insufficient for this model. '
-                'The reported errors where: {}'.format(self._model.get_input_data_problems(input_data)))
+        model.set_input_data(input_data)
 
-    def run(self):
-        """Fits the composite model and returns the results as ROI lists per map."""
-        if not self.recalculate and model_output_exists(self._model, self._output_folder):
-            maps = get_all_nifti_data(self._output_path)
-            self._logger.info('Not recalculating {} model'.format(self._model.name))
-            return create_roi(maps, self._input_data.mask)
+        if recalculate:
+            if os.path.exists(output_path):
+                list(map(os.remove, glob.glob(os.path.join(output_path, '*.nii*'))))
 
-        with per_model_logging_context(self._output_path):
-            self._logger.info('Using MDT version {}'.format(__version__))
-            self._logger.info('Preparing for model {0}'.format(self._model.name))
-            self._logger.info('Current cascade: {0}'.format(self._cascade_names))
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
 
-            self._model.set_input_data(self._input_data)
+        with _model_fit_logging(logger, model.name, model.get_free_param_names()):
+            tmp_dir = get_full_tmp_results_path(output_path, tmp_results_dir)
+            logger.info('Saving temporary results in {}.'.format(tmp_dir))
 
-            if self.recalculate:
-                if os.path.exists(self._output_path):
-                    list(map(os.remove, glob.glob(os.path.join(self._output_path, '*.nii*'))))
+            worker = FittingProcessor(optimizer, model, input_data.mask,
+                                      input_data.nifti_header, output_path,
+                                      tmp_dir, recalculate)
 
-            if not os.path.exists(self._output_path):
-                os.makedirs(self._output_path)
+            processing_strategy = get_processing_strategy('optimization')
+            return processing_strategy.process(worker)
 
-            with self._logging():
-                tmp_dir = get_full_tmp_results_path(self._output_path, self._tmp_results_dir)
-                self._logger.info('Saving temporary results in {}.'.format(tmp_dir))
 
-                worker = FittingProcessor(self._optimizer, self._model, self._input_data.mask,
-                                          self._input_data.nifti_header, self._output_path,
-                                          tmp_dir, self.recalculate)
-
-                processing_strategy = get_processing_strategy('optimization')
-                results = processing_strategy.process(worker)
-
-                self._write_protocol(self._model.get_input_data().protocol)
-
-        return results
-
-    def _write_protocol(self, protocol):
-        if len(protocol):
-            write_protocol(protocol, os.path.join(self._output_path, 'used_protocol.prtcl'))
-
-    @contextmanager
-    def _logging(self):
-        """Adds logging information around the processing."""
-        minimize_start_time = timeit.default_timer()
-        self._logger.info('Fitting {} model'.format(self._model.name))
-        self._logger.info('The parameters we will fit are: {0}'.format(self._model.get_free_param_names()))
-
-        yield
-
-        run_time = timeit.default_timer() - minimize_start_time
-        run_time_str = time.strftime('%H:%M:%S', time.gmtime(run_time))
-        self._logger.info('Fitted {0} model with runtime {1} (h:m:s).'.format(self._model.name, run_time_str))
+@contextmanager
+def _model_fit_logging(logger, model_name, free_param_names):
+    """Adds logging information around the processing."""
+    minimize_start_time = timeit.default_timer()
+    logger.info('Fitting {} model'.format(model_name))
+    logger.info('The parameters we will fit are: {0}'.format(free_param_names))
+    yield
+    run_time = timeit.default_timer() - minimize_start_time
+    run_time_str = time.strftime('%H:%M:%S', time.gmtime(run_time))
+    logger.info('Fitted {0} model with runtime {1} (h:m:s).'.format(model_name, run_time_str))

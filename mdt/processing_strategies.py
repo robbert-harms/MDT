@@ -166,7 +166,7 @@ class ChunksProcessingStrategy(ModelProcessingStrategy):
 
 class VoxelRange(ChunksProcessingStrategy):
 
-    def __init__(self, max_nmr_voxels=40000, **kwargs):
+    def __init__(self, max_nmr_voxels=10000, **kwargs):
         """Optimize a given dataset in batches of the given number of voxels
 
         Args:
