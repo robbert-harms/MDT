@@ -2,6 +2,27 @@
 Changelog
 *********
 
+v0.13.2 (2018-07-01)
+====================
+
+Added
+-----
+- Adds support for gradient deviations per volume.
+- Adds spherical proposal transformations to the theta and phi parameters. This ensures valid proposals around the [0, pi] range for both theta and phi.
+
+Changed
+-------
+- Simplified the implementation of the NODDI_IC compartment model by removing support for cylindrical diffusion.
+  This simplifies the requirements of the model by removing the need to supply 'delta', 'Delta' and 'G'.
+  NODDI results are unaltered since the cylindrical diffusion was not used anyway.
+
+Other
+-----
+- Removed the (previously) deprecated static map parameters.
+- Renamed the DMRICompositeModelTemplate to CompositeModelTemplate.
+- Removed some deprecated attributes from the compartment models.
+
+
 v0.13.1 (2018-06-04)
 ====================
 

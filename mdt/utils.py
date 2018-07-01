@@ -297,11 +297,12 @@ class SimpleMRIInputData(MRIInputData):
             new_dwi_volume = self.signal4d[..., volumes_to_keep]
 
         new_gradient_deviations = self._gradient_deviations
-        if self._gradient_deviations.ndim > 4 and self._gradient_deviations[3] == self.protocol.length:
-            if self._gradient_deviations.ndim == 5:
-                new_gradient_deviations = self._gradient_deviations[..., volumes_to_keep, :]
-            else:
-                new_gradient_deviations = self._gradient_deviations[..., volumes_to_keep, :, :]
+        if self._gradient_deviations is not None:
+            if self._gradient_deviations.ndim > 4 and self._gradient_deviations[3] == self.protocol.length:
+                if self._gradient_deviations.ndim == 5:
+                    new_gradient_deviations = self._gradient_deviations[..., volumes_to_keep, :]
+                else:
+                    new_gradient_deviations = self._gradient_deviations[..., volumes_to_keep, :, :]
 
         return self.copy_with_updates(new_protocol, new_dwi_volume, gradient_deviations=new_gradient_deviations)
 
