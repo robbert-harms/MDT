@@ -100,13 +100,16 @@ class CompartmentBuilder(ComponentBuilder):
                 'proposal_callback_spherical_{}'.format(template.name),
                 [('mot_float_type*', 'theta'), ('mot_float_type*', 'phi')],
                 '''
-                    mot_float_type sin_theta = sin(*theta);
-                    mot_float_type cos_phi;
-                    mot_float_type sin_phi = sincos(*phi, &cos_phi);
-
-                    if(sin_phi * sin_theta < 0){
-                        *theta = M_PI - *theta;
-                        *phi = atan2(sin_phi * sin_theta * -1, cos_phi * sin_theta * -1);
+                    mot_float_type oldtheta = *theta;
+                    mot_float_type oldphi = *phi;
+                
+                    if(*phi > M_PI_F){
+                        *phi -= M_PI_F;
+                        *theta = M_PI_F - *theta;
+                    }
+                    else if(*phi < 0){
+                        *phi += M_PI_F;
+                        *theta = M_PI_F - *theta;
                     }
             ''')
             callbacks.append((corresponding_params, func))

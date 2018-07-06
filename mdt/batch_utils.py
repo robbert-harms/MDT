@@ -296,9 +296,15 @@ class SelectedSubjects(BatchSubjectSelection):
         Set any one of the options to None to ignore that option.
 
         Args:
-            subject_ids (list of str): the list of names of subjects to process
-            indices (list/tuple of int): the list of indices of subjects we wish to process
+            subject_ids (str or list of str): the list of names of subjects to process
+            indices (int or list of int): the list of indices of subjects we wish to process
         """
+        if isinstance(subject_ids, string_types):
+            subject_ids = [subject_ids]
+
+        if isinstance(indices, int):
+            indices = [indices]
+
         self.subject_ids = subject_ids
         self.indices = indices
 
@@ -414,6 +420,35 @@ def get_best_batch_profile(data_folder):
                 best_subjects_count = tmp_count
 
     return best_crawler
+
+
+def get_subject_information(data_folder, subject_ids, batch_profile=None):
+    """Loads a batch profile and finds the subject with the given subject id.
+
+    Args:
+        data_folder (str): The data folder from which to load the subjects
+        subject_ids (str or list of str): the subject we would like to retrieve, or a list of subject ids.
+        batch_profile (:class:`~mdt.batch_utils.BatchProfile` or str): the batch profile to use,
+            or the name of a batch profile to use. If not given it is auto detected.
+
+    Returns:
+        Optional[mdt.batch_utils.SubjectInfo, List[mdt.batch_utils.SubjectInfo]]: the subject info or list of
+            subject info's of the requested subjects.
+
+    Raises:
+        ValueError: if one of the subjects could not be found.
+    """
+    subjects = []
+
+    def get_subjects(subject_info):
+        subjects.append(subject_info)
+
+    batch_apply(get_subjects, data_folder, batch_profile=batch_profile,
+                subjects_selection=SelectedSubjects(subject_ids))
+
+    if isinstance(subject_ids, string_types):
+        return subjects[0]
+    return subjects
 
 
 def batch_apply(func, data_folder, batch_profile=None, subjects_selection=None, extra_args=None):

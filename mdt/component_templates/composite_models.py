@@ -1,3 +1,4 @@
+import re
 from copy import deepcopy
 import numpy as np
 import six
@@ -425,7 +426,13 @@ def _get_model_extra_optimization_maps_funcs(compartments):
 
     def get_wrapped_func(compartment_name, original_func):
         def get_compartment_specific_maps(results):
-            return {k[len(compartment_name) + 1:]: v for k, v in results.items() if k.startswith(compartment_name)}
+            maps = {k[len(compartment_name) + 1:]: v for k, v in results.items() if k.startswith(compartment_name)}
+
+            if results['covariances']:
+                p = re.compile(compartment_name + r'\.\w+\_to\_' + compartment_name + r'\.\w+')
+                maps['covariances'] = {k.replace(compartment_name + '.', ''): v
+                                       for k, v in results['covariances'].items() if p.match(k)}
+            return maps
 
         def prepend_compartment_name(results):
             return {'{}.{}'.format(compartment_name, key): value for key, value in results.items()}

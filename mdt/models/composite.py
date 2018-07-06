@@ -712,9 +712,18 @@ class DMRICompositeModel(DMRIOptimizable):
 
     def _get_finalize_proposal_function_builder(self):
         """Get the building function used to finalize the proposal"""
+        def get_applicable_proposal_callbacks():
+            """Since some of the model parameters may be fixed, not all callbacks are applicable."""
+            applicable_callbacks = []
+
+            for callback_info in self._proposal_callbacks:
+                if all(self._model_functions_info.is_parameter_estimable(m, p) for m, p in callback_info[0]):
+                    applicable_callbacks.append(callback_info)
+            return applicable_callbacks
+
         def get_function_call_strings():
             func_call_strings = []
-            for compartment_parameters, func in self._proposal_callbacks:
+            for compartment_parameters, func in get_applicable_proposal_callbacks():
                 full_param_names = []
                 for compartment, parameter in compartment_parameters:
                     full_param_names.append('{}.{}'.format(compartment.name, parameter.name).replace('.', '_'))
@@ -727,7 +736,7 @@ class DMRICompositeModel(DMRIOptimizable):
             param_names = []
             param_indices = []
 
-            for compartment_parameters, func in self._proposal_callbacks:
+            for compartment_parameters, func in get_applicable_proposal_callbacks():
                 for compartment, parameter in compartment_parameters:
                     param_ind = self._model_functions_info.get_parameter_estimable_index(compartment, parameter)
                     full_param_name = '{}.{}'.format(compartment.name, parameter.name).replace('.', '_')
@@ -1676,8 +1685,10 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
         results_dict.update(self._get_post_optimization_information_criterion_maps(
             results_array, log_likelihoods=log_likelihoods))
 
-        if self._post_processing['optimization']['variances'] or self._post_processing['optimization']['covariances']:
-            results_dict.update(self._compute_fisher_information_matrix(results_array))
+        if self._post_processing['optimization']['uncertainties']:
+            fim = self._compute_fisher_information_matrix(results_array)
+            results_dict.update(fim['stds'])
+            results_dict['covariances'] = fim['covariances']
 
         for routine in self._extra_optimization_maps:
             try:
@@ -1685,6 +1696,9 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
             except KeyError as exc:
                 logger = logging.getLogger(__name__)
                 logger.error('Failed to execute extra optimization maps function, missing input: {}.'.format(str(exc)))
+
+        if not self._post_processing['optimization']['store_covariances']:
+            del results_dict['covariances']
 
         return results_dict
 
@@ -1836,30 +1850,16 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
 
         param_names = ['{}.{}'.format(m.name, p.name) for m, p in self._estimable_parameters_list]
 
-        variances = {}
-        covariances = {}
-
-        output_covariances = self._post_processing['optimization']['covariances']
-        output_variances = self._post_processing['optimization']['variances']
+        stds = {}
+        covariances = {'Covariance.is_singular': is_singular}
 
         for x_ind in range(len(param_names)):
-            if output_variances:
-                variances[param_names[x_ind] + '.std'] = np.nan_to_num(np.sqrt(covars[:, x_ind, x_ind]))
+            stds[param_names[x_ind] + '.std'] = np.nan_to_num(np.sqrt(covars[:, x_ind, x_ind]))
 
-            if output_covariances:
-                for y_ind in range(x_ind + 1, len(param_names)):
-                    covariances['Covariance.{}_to_{}'.format(param_names[x_ind], param_names[y_ind])] = \
-                        covars[:, x_ind, y_ind]
+            for y_ind in range(x_ind + 1, len(param_names)):
+                covariances['{}_to_{}'.format(param_names[x_ind], param_names[y_ind])] = covars[:, x_ind, y_ind]
 
-        results = {}
-        if output_variances:
-            results.update(variances)
-
-        if output_covariances:
-            covariances = {'Covariance.is_singular': is_singular}
-            results['covariances'] = covariances
-
-        return results
+        return {'stds': stds, 'covariances': covariances}
 
     def _get_post_optimization_information_criterion_maps(self, results_array, log_likelihoods=None):
         """Add some final results maps to the results dictionary.

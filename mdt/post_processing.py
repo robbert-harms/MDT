@@ -35,7 +35,9 @@ class DTIMeasures(object):
             output.update({
                 'FA.std': DTIMeasures.fractional_anisotropy_std(
                     results['d'], results['dperp0'], results['dperp1'],
-                    results['d.std'], results['dperp0.std'], results['dperp1.std']),
+                    results['d.std'], results['dperp0.std'], results['dperp1.std'],
+                    covariances=results.get('covariances', None)
+                ),
                 'MD.std': np.sqrt(results['d.std'] + results['dperp0.std'] + results['dperp1.std']) / 3.,
                 'AD.std': results['d.std'],
                 'RD.std': (results['dperp0.std'] + results['dperp1.std']) / 2.0,
@@ -143,18 +145,89 @@ class DTIMeasures(object):
             return compute(d, dperp0, dperp1)
 
     @staticmethod
-    def fractional_anisotropy_std(d, dperp0, dperp1, d_std, dperp0_std, dperp1_std):
+    def fractional_anisotropy_std(d, dperp0, dperp1, d_std, dperp0_std, dperp1_std, covariances=None):
         """Calculate the standard deviation of the fractional anisotropy (FA) using error propagation.
 
-        Returns:
-            the standard deviation of the fraction anisotropy using error propagation of the diffusivities.
-        """
-        d, dperp0, dperp1, d_std, dperp0_std, dperp1_std = \
-            map(lambda el: np.squeeze(el).astype(np.float64), [d, dperp0, dperp1, d_std, dperp0_std, dperp1_std])
+        Args:
+            d (ndarray): an 1d array
+            dperp0 (ndarray): an 1d array
+            dperp1 (ndarray): an 1d array
+            d_std (ndarray): an 1d array
+            dperp0_std (ndarray): an 1d array
+            dperp1_std (ndarray): an 1d array
+            covariances (dict): optionally, a matrix holding the covariances. This expects the keys to be like:
+                '<param_0>_to_<param_1>'. The order of the parameter names does not matter.
 
-        return 1/2. * np.sqrt((d + dperp0 + dperp1) ** 2 * (
-            d_std ** 2 * (-d * (dperp0 + dperp1) + dperp0 ** 2 + dperp1 ** 2) ** 2 +
-            dperp0_std ** 2 * (d ** 2 - d * dperp0 + dperp1 * (dperp1 - dperp0)) ** 2 +
-            dperp1_std ** 2 * (d ** 2 - d * dperp1 + dperp0 * (dperp0 - dperp1)) ** 2
-        ) / ((d ** 2 + dperp0 ** 2 + dperp1 ** 2) ** 3 *
-             (d ** 2 - d * (dperp0 + dperp1) + dperp0 ** 2 - dperp0 * dperp1 + dperp1 ** 2)))
+        Returns:
+            ndarray: the standard deviation of the fraction anisotropy using error propagation of the diffusivities.
+        """
+        gradient = DTIMeasures._get_fractional_anisotropy_gradient(d, dperp0, dperp1)
+        covars = DTIMeasures._get_diffusivities_covariance_matrix(d_std, dperp0_std, dperp1_std,
+                                                                  covariances=covariances)
+
+        fa_std = np.zeros((gradient.shape[0]))
+        for ind in range(gradient.shape[0]):
+            fa_std[ind] = np.sqrt(np.dot(np.dot(gradient[ind], covars[ind]), gradient[ind]))
+        return np.nan_to_num(fa_std)
+
+    @staticmethod
+    def _get_fractional_anisotropy_gradient(d, dperp0, dperp1):
+        """Get the gradient of the Fractional Anisotropy function.
+
+        This returns the gradient of the Fractional Anisotropy (FA) function, evaluated at the given diffusivities.
+        This is required for error propagating the uncertainties of the diffusivities into FA. The gradient is given
+        by the partial derivative of:
+
+        .. math::
+
+            \text{FA} = \sqrt{\frac{1}{2}} \frac{\sqrt{(d - d_{\perp_0})^2 + (d_{\perp_0} - d_{\perp_1})^2
+                        + (d_{\perp_1} - d)^2}}{\sqrt{d^2 + d_{\perp_0}^2 + d_{\perp_1}^2}}
+
+        Args:
+            d (ndarray): an 1d vector with the principal diffusivity per voxel
+            dperp0 (ndarray): an 1d vector with the first perpendicular diffusivity per voxel
+            dperp1 (ndarray): an 1d vector with the second perpendicular diffusivity per voxel
+
+        Returns:
+            ndarray: a 2d vector with the gradient per voxel.
+        """
+        np.warnings.simplefilter("ignore")
+
+        d, dperp0, dperp1 = (np.squeeze(el).astype(np.float64) for el in [d, dperp0, dperp1])
+
+        return np.stack([
+            (d ** 2 * (dperp0 + dperp1) + 2 * d * dperp0 * dperp1 - dperp0 ** 3
+             - dperp0 ** 2 * dperp1 - dperp0 * dperp1 ** 2 - dperp1 ** 3)
+            / (2 * (d ** 2 + dperp0 ** 2 + dperp1 ** 2) ** (3 / 2.)
+               * np.sqrt(d ** 2 - d * (dperp0 + dperp1) + dperp0 ** 2 - dperp0 * dperp1 + dperp1 ** 2)),
+            (-d ** 3 - d ** 2 * dperp1 + d * (dperp0 ** 2 + 2 * dperp0 * dperp1 - dperp1 ** 2) + dperp1 * (
+            dperp0 ** 2 - dperp1 ** 2))
+            / (2 * (d ** 2 + dperp0 ** 2 + dperp1 ** 2) ** (3 / 2.)
+               * np.sqrt(d ** 2 - d * (dperp0 + dperp1) + dperp0 ** 2 - dperp0 * dperp1 + dperp1 ** 2)),
+            (-d ** 3 - d ** 2 * dperp0 + d * (
+            -dperp0 ** 2 + 2 * dperp0 * dperp1 + dperp1 ** 2) - dperp0 ** 3 + dperp0 * dperp1 ** 2)
+            / (2 * (d ** 2 + dperp0 ** 2 + dperp1 ** 2) ** (3 / 2.)
+               * np.sqrt(d ** 2 - d * (dperp0 + dperp1) + dperp0 ** 2 - dperp0 * dperp1 + dperp1 ** 2))
+        ], axis=-1)
+
+    @staticmethod
+    def _get_diffusivities_covariance_matrix(d_std, dperp0_std, dperp1_std, covariances=None):
+        """Get the covariance matrix of the diffusivities.
+
+        This is required for the error propagation of the Fractional Anisotropy.
+        """
+        d_std, dperp0_std, dperp1_std = (np.squeeze(el) for el in [d_std, dperp0_std, dperp1_std])
+
+        covars = np.zeros((d_std.shape[0], 3, 3)).astype(np.float64)
+        covars[:, 0, 0] = d_std
+        covars[:, 1, 1] = dperp0_std
+        covars[:, 2, 2] = dperp1_std
+
+        covars **= 2
+
+        if covariances is not None:
+            covars[:, 0, 1] = covars[:, 1, 0] = covariances.get('d_to_dperp0', covariances.get('dperp0_to_d', 0))
+            covars[:, 0, 2] = covars[:, 2, 0] = covariances.get('d_to_dperp1', covariances.get('dperp1_to_d', 0))
+            covars[:, 1, 2] = covars[:, 2, 1] = covariances.get('dperp0_to_dperp1',
+                                                                covariances.get('dperp1_to_dperp0', 0))
+        return covars

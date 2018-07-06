@@ -388,7 +388,7 @@ def get_batch_profile(batch_profile):
         batch_profile (str): The name of the batch profile class to load
 
     Returns:
-        class: the batch profile class
+        cls: the batch profile class
     """
     return component_library.get_component('batch_profiles', batch_profile)
 
