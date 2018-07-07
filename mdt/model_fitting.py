@@ -2,6 +2,7 @@ import collections
 import glob
 import logging
 import os
+import shutil
 import time
 import timeit
 from contextlib import contextmanager
@@ -287,6 +288,8 @@ def fit_composite_model(model, input_data, output_folder, optimizer, tmp_results
         if recalculate:
             if os.path.exists(output_path):
                 list(map(os.remove, glob.glob(os.path.join(output_path, '*.nii*'))))
+                if os.path.exists(os.path.join(output_path + 'covariances')):
+                    shutil.rmtree(os.path.join(output_path + 'covariances'))
 
         if not os.path.exists(output_path):
             os.makedirs(output_path)

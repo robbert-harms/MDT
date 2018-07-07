@@ -481,6 +481,12 @@ def load_input_data(volume_info, protocol, mask, extra_protocol=None, gradient_d
     else:
         signal4d, img_header = volume_info
 
+    signal_max = np.max(signal4d)
+    if signal_max < 10:
+        logger = logging.getLogger(__name__)
+        logger.warning('Maximum signal intensity is quite low ({}), analysis results are sometimes improved with '
+                       'a higher signal intensity (for example, scale input data by 1e5).'.format(signal_max))
+
     if isinstance(gradient_deviations, six.string_types):
         gradient_deviations = load_nifti(gradient_deviations).get_data()
 

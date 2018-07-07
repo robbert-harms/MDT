@@ -115,7 +115,7 @@ class MapPlotConfig(SimpleConvertibleConfig):
         self.volume_index = volume_index
         self.rotate = rotate
         self.colormap = colormap
-        self.maps_to_show = maps_to_show or []
+        self._maps_to_show = maps_to_show or []
         self.zoom = zoom or Zoom.no_zoom()
         self.font = font or Font()
         self.show_axis = bool(show_axis)
@@ -130,6 +130,10 @@ class MapPlotConfig(SimpleConvertibleConfig):
         self.mask_name = mask_name
         self.annotations = annotations or []
         self.colorbar_settings = colorbar_settings or ColorbarSettings.get_default()
+
+        for name in self.maps_to_show:
+            if name not in self.map_plot_options:
+                self.map_plot_options[name] = SingleMapConfig()
 
         if interpolation not in self.get_available_interpolations():
             raise ValueError('The given interpolation ({}) is not supported.'.format(interpolation))
@@ -155,6 +159,22 @@ class MapPlotConfig(SimpleConvertibleConfig):
 
         if self.dimension < 0:
             raise ValueError('The dimension can not be smaller than 0, {} given.'.format(self.dimension))
+
+    @property
+    def maps_to_show(self):
+        return self._maps_to_show
+
+    @maps_to_show.setter
+    def maps_to_show(self, maps_to_show):
+        self._maps_to_show = maps_to_show
+
+        for name in maps_to_show:
+            if name not in self.map_plot_options:
+                self.map_plot_options[name] = SingleMapConfig()
+
+        for name in list(self.map_plot_options):
+            if name not in maps_to_show:
+                del self.map_plot_options[name]
 
     @classmethod
     def get_available_interpolations(cls):
@@ -232,7 +252,36 @@ class MapPlotConfig(SimpleConvertibleConfig):
 
         return visible_difference_in_map_plot_options()
 
+    def create_valid(self, data_info):
+        """Creates a new configuration object with valid values.
+
+        Args:
+            data_info (mdt.visualization.maps.base.DataInfo): the data information
+
+        Returns:
+            MapPlotConfig: a valid map plot configuration
+        """
+        config = deepcopy(self)
+
+        if data_info.get_map_names():
+            max_dim = data_info.get_max_dimension()
+            if max_dim < config.dimension:
+                config.dimension = max_dim
+
+        config.maps_to_show = list(filter(lambda k: k in data_info.get_map_names(), config.maps_to_show))
+        if config.mask_name not in data_info.get_map_names():
+            config.mask_name = None
+        return config
+
     def validate(self, data_info):
+        """Check if this configuration is valid given the provided data.
+
+        Args:
+            data_info (mdt.visualization.maps.base.DataInfo): the data information
+
+        Raises:
+            Exception: can raise multiple sorts of exceptions if this config is not valid given the data.
+        """
         if data_info.get_map_names():
             self._validate_maps_to_show(data_info)
             self._validate_dimension(data_info)

@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import QDialogButtonBox
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QLabel
 from PyQt5.QtWidgets import QMainWindow
-from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QMessageBox, QLayout
 
 from mdt.gui.maps_visualizer.actions import NewConfigAction, SetMapsToShow, NewDataAction
 from mdt.gui.maps_visualizer.config_tabs.tab_general import TabGeneral

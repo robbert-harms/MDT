@@ -45,10 +45,15 @@ class Protocol(collections.Mapping):
                                  SimpleVirtualColumn('G', lambda protocol: get_sequence_timings(protocol)['G'])]
 
         if columns:
+            if 'g' in columns:
+                columns.update({'gx': columns['g'][:, 0], 'gy': columns['g'][:, 1], 'gz': columns['g'][:, 2]})
+                del columns['g']
+
             self._columns = columns
 
             for k, v in columns.items():
                 s = v.shape
+
                 if len(s) > 2 or (len(s) == 2 and s[1] > 1):
                     raise ValueError("All columns should be of width one.")
 
@@ -369,11 +374,7 @@ class Protocol(collections.Mapping):
         try:
             b = self.get_column('b')
             g = self.get_column('g')
-
-            g_limit = np.sqrt(g[:, 0]**2 + g[:, 1]**2 + g[:, 2]**2) < 0.99
-            b_limit = b[:, 0] < unweighted_threshold
-
-            return np.where(g_limit + b_limit)[0]
+            return np.where(np.sqrt(g[:, 0] ** 2 + g[:, 1] ** 2 + g[:, 2] ** 2) * b[:, 0] < unweighted_threshold)[0]
         except KeyError:
             return range(self.length)
 

@@ -47,19 +47,11 @@ class NewDataAction(ModelUpdateAction):
             mdt.gui.maps_visualizer.base.DataConfigModel: the updated/new model
         """
         self._previous_model = data_config_model
-        config = self._new_config or self._previous_model.get_config()
-        config = copy.deepcopy(config)
 
-        if self._new_data.get_map_names():
-            max_dim = self._new_data.get_max_dimension()
-            if max_dim < config.dimension:
-                config.dimension = max_dim
+        old_config = self._new_config or self._previous_model.get_config()
+        valid_config = old_config.create_valid(self._new_data)
 
-        config.maps_to_show = list(filter(lambda k: k in self._new_data.get_map_names(), config.maps_to_show))
-        if config.mask_name not in self._new_data.get_map_names():
-            config.mask_name = None
-
-        return SimpleDataConfigModel(self._new_data, config)
+        return SimpleDataConfigModel(self._new_data, valid_config)
 
     def unapply(self):
         """Return the configuration as it was before the application of this function.

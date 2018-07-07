@@ -304,7 +304,7 @@ def batch_fit(data_folder, models_to_fit, output_folder=None, batch_profile=None
 
 def view_maps(data, config=None, figure_options=None,
               block=True, show_maximized=False, use_qt=True,
-              window_title=None):
+              window_title=None, save_filename=None):
     """View a number of maps using the MDT Maps Visualizer.
 
     Args:
@@ -313,19 +313,23 @@ def view_maps(data, config=None, figure_options=None,
             with filenames and/or directories.
         config (str, dict, :class:`~mdt.visualization.maps.base import MapPlotConfig`): either a Yaml string or a
             dictionary with configuration settings or a ValidatedMapPlotConfig object to use directly
-        figure_options (dict): figure options for the matplotlib Figure, if figsizes is not given you can also specify
-            two ints, width and height, to indicate the pixel size of the resulting figure, together with the dpi they
-            are used to calculate the figsize. Only used if use_qt=False.
+        figure_options (dict): Used when ``use_qt`` is False or when ``write_figure`` is used.
+            Sets the figure options for the matplotlib Figure.
+            If figsizes is not given you can also specify two ints, width and height, to indicate the pixel size of
+            the resulting figure, together with the dpi they are used to calculate the figsize.
         block (boolean): if we block the plots or not
         show_maximized (boolean): if we show the window maximized or not
         window_title (str): the title for the window
         use_qt (boolean): if we want to use the Qt GUI, or show the results directly in matplotlib
+        save_filename (str): save the figure to file. If set, we will not display the viewer.
     """
     from mdt.gui.maps_visualizer.main import start_gui
     from mdt.visualization.maps.base import MapPlotConfig
     from mdt.visualization.maps.matplotlib_renderer import MapsVisualizer
     from mdt.visualization.maps.base import SimpleDataInfo
     import matplotlib.pyplot as plt
+    from mdt.gui.maps_visualizer.actions import NewDataAction
+    from mdt.gui.maps_visualizer.base import SimpleDataConfigModel
 
     if isinstance(data, string_types):
         data = SimpleDataInfo.from_paths([data])
@@ -349,98 +353,30 @@ def view_maps(data, config=None, figure_options=None,
     elif isinstance(config, dict):
         config = MapPlotConfig.from_dict(config)
 
-    if use_qt:
-        start_gui(data, config, app_exec=block, show_maximized=show_maximized, window_title=window_title)
-    else:
-        figure_options = figure_options or {}
-        figure_options['dpi'] = figure_options.get('dpi', 100)
-        if 'figsize' not in figure_options:
-            figure_options['figsize'] = (figure_options.pop('width', 1800) / figure_options['dpi'],
-                                         figure_options.pop('height', 1600) / figure_options['dpi'])
+    config = config.create_valid(data)
 
-        figure = plt.figure(**figure_options)
+    if not use_qt or save_filename:
+        settings = {'dpi': 100, 'width': 1800, 'height': 1600}
+        if save_filename:
+            settings = {'dpi': 80, 'width': 800, 'height': 600}
+
+        settings.update(figure_options or {})
+        if 'figsize' not in settings:
+            settings['figsize'] = (settings['width'] / settings['dpi'],
+                                   settings['height'] / settings['dpi'])
+
+        del settings['width']
+        del settings['height']
+
+        figure = plt.figure(**settings)
         viz = MapsVisualizer(data, figure)
-        viz.show(config, block=block, maximize=show_maximized)
 
-
-def write_view_maps_figure(data, output_filename, config=None, width=None, height=None, dpi=None,
-                           figure_options=None, savefig_settings=None):
-    """Saves the view maps figure to a file.
-
-    Args:
-        data (str, dict, :class:`~mdt.visualization.maps.base.DataInfo`, list, tuple): the data we are showing,
-            either a dictionary with result maps, a string with a path name, a DataInfo object or a list
-            with filenames and or directories.
-        config (str, dict, :class:`~mdt.visualization.maps.base import MapPlotConfig`): either a Yaml string or a
-            dictionary with configuration settings or a ValidatedMapPlotConfig object to use directly
-        output_filename (str): the output filename
-        width (int): the width of the figure, if set it takes precedence over the value in figure_options
-        height (int): the height of the figure, if set it takes precedence over the value in figure_options
-        dpi (int): the dpi of the figure, if set it takes precedence over the value in figure_options
-        figure_options (dict): additional figure options for the matplotlib Figure, supports the
-            same settings as :func:`view_maps`, that is, if the arguments 'width' and 'height' are not set directly
-            in this function we can also use those in the figure_options
-        savefig_settings (dict): extra output options for the savefig command from matplotlib, if dpi is not given, we
-            use the dpi from the figure_options.
-    """
-    from mdt.gui.maps_visualizer.main import start_gui
-    from mdt.visualization.maps.base import MapPlotConfig
-    from mdt.visualization.maps.matplotlib_renderer import MapsVisualizer
-    import matplotlib.pyplot as plt
-    from mdt.visualization.maps.base import SimpleDataInfo
-
-    if isinstance(data, string_types):
-        data = SimpleDataInfo.from_paths([data])
-    elif isinstance(data, dict):
-        data = SimpleDataInfo(data)
-    elif isinstance(data, collections.Sequence):
-        data = SimpleDataInfo.from_paths(data)
-    elif data is None:
-        data = SimpleDataInfo({})
-
-    if config is None:
-        config = MapPlotConfig()
-    elif isinstance(config, string_types):
-        if config.strip():
-            config = MapPlotConfig.from_yaml(config)
+        if save_filename:
+            viz.to_file(save_filename, config)
         else:
-            config = MapPlotConfig()
-    elif isinstance(config, dict):
-        config = MapPlotConfig.from_dict(config)
-
-    figure_options = figure_options or {}
-
-    if dpi is not None:
-        figure_options['dpi'] = dpi
+            viz.show(config, block=block, maximize=show_maximized)
     else:
-        figure_options['dpi'] = figure_options.get('dpi', 80)
-
-    if height is not None and width is not None:
-        figure_options['figsize'] = (width / figure_options['dpi'], height / figure_options['dpi'])
-    elif height is not None and width is None:
-        width = figure_options.get('width', 800)
-        figure_options['figsize'] = (width / figure_options['dpi'], height / figure_options['dpi'])
-    elif width is not None and height is None:
-        height = figure_options.get('height', 640)
-        figure_options['figsize'] = (width / figure_options['dpi'], height / figure_options['dpi'])
-    elif 'figsize' in figure_options:
-        pass
-    else:
-        width = figure_options.get('width', 800)
-        height = figure_options.get('height', 640)
-        figure_options['figsize'] = (width / figure_options['dpi'], height / figure_options['dpi'])
-
-    if 'width' in figure_options:
-        del figure_options['width']
-    if 'height' in figure_options:
-        del figure_options['height']
-
-    figure = plt.figure(**figure_options)
-    viz = MapsVisualizer(data, figure)
-
-    savefig_settings = savefig_settings or {}
-    savefig_settings['dpi'] = savefig_settings.get('dpi', figure_options['dpi'])
-    viz.to_file(output_filename, config, **savefig_settings)
+        start_gui(data, config, app_exec=block, show_maximized=show_maximized, window_title=window_title)
 
 
 def block_plots(use_qt=True):
