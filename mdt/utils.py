@@ -194,14 +194,16 @@ class SimpleMRIInputData(MRIInputData):
 
                 Per element, the input can be a scalar, a vector, an array, or a filename. If a filename is given
                 we will try to interpret it again as a scalar, vector or array.
-            gradient_deviations (ndarray): a gradient deviations matrix. This can be provided in multiple formats:
+            gradient_deviations (str or ndarray): a gradient deviations matrix. If a string is given we will interpret it
+                as a Nifti file. The matrix can be provided in multiple formats:
 
                 - an (x, y, z, 9) matrix with per voxel 9 values that constitute the gradient non-linearities
                     according to the HCP guidelines. (see ``https://www.humanconnectome.org/storage/app/media/
                                                             documentation/data_release/Q1_Release_Appendix_II.pdf``).
                     If given in this format, we will automatically add the identity matrix to it, as specified by the
                     HCP guidelines.
-                - an (x, y, z, 3, 3) matrix with per voxel the deformation matrix. This will be used as given.
+                - an (x, y, z, 3, 3) matrix with per voxel the deformation matrix. This will be used as given (i.e. no
+                    identity matrix will be added to it like in the HCP format).
                 - an (x, y, z, m, 3, 3) matrix with per voxel and per volume a deformation matrix. This will be used as
                     given.
 
@@ -454,14 +456,15 @@ def load_input_data(volume_info, protocol, mask, extra_protocol=None, gradient_d
             we will try to interpret it again as a scalar, vector or array.
 
         gradient_deviations (str or ndarray): a gradient deviations matrix. If a string is given we will interpret it
-            as a Nifti file. The matrix can be provided in multiple formats:
+                as a Nifti file. The matrix can be provided in multiple formats:
 
             - an (x, y, z, 9) matrix with per voxel 9 values that constitute the gradient non-linearities
                 according to the HCP guidelines. (see ``https://www.humanconnectome.org/storage/app/media/
                                                         documentation/data_release/Q1_Release_Appendix_II.pdf``).
                 If given in this format, we will automatically add the identity matrix to it, as specified by the
                 HCP guidelines.
-            - an (x, y, z, 3, 3) matrix with per voxel the deformation matrix. This will be used as given.
+            - an (x, y, z, 3, 3) matrix with per voxel the deformation matrix. This will be used as given (i.e. no
+                identity matrix will be added to it like in the HCP format).
             - an (x, y, z, m, 3, 3) matrix with per voxel and per volume a deformation matrix. This will be used as
                 given.
 

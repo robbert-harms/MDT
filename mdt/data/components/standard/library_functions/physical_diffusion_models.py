@@ -20,28 +20,20 @@ class NeumanCylinder(LibraryFunctionTemplate):
     '''
     return_type = 'double'
     parameters = ['G', 'tau', 'd', 'R']
-    dependencies = ['MRIConstants']
+    dependencies = ['MRIConstants', 'BesselRoots']
     cl_code = '''
         if(R == 0.0 || R < MOT_EPSILON){
             return 0;
         }
 
-        const mot_float_type cl_jnp_zeros[] = {
-            1.8411837813406593, 5.3314427735250325, 8.536316366346286,  11.706004902592063, 
-            14.863588633909032, 18.015527862681804, 21.16436985918879,  24.311326857210776, 
-            27.457050571059245, 30.601922972669094, 33.746182898667385, 36.88998740923681, 
-            40.03344405335068,  43.17662896544882,  46.319597561173914, 49.46239113970275
-        };
-        const int cl_jnp_zeros_length = 16;
-
         double sum = 0;
         mot_float_type alpha;
         
         #pragma unroll
-        for(uint i = 0; i < cl_jnp_zeros_length; i++){
-            alpha = cl_jnp_zeros[i] / R;
+        for(uint i = 0; i < bessel_roots_jnp_length; i++){
+            alpha = bessel_roots_jnp[i] / R;
 
-            sum += (pown(alpha, -4) / (cl_jnp_zeros[i] * cl_jnp_zeros[i] - 1)) * 
+            sum += (pown(alpha, -4) / (bessel_roots_jnp[i] * bessel_roots_jnp[i] - 1)) * 
                     (2 * tau - 
                         (3 - 4 * exp(-alpha * alpha * d * tau) + exp(- alpha * alpha * d * 2 * tau)) 
                          / (alpha * alpha * d)
@@ -84,27 +76,19 @@ class VanGelderenCylinder(LibraryFunctionTemplate):
     '''
     return_type = 'double'
     parameters = ['G', 'Delta', 'delta', 'd', 'R']
-    dependencies = ['MRIConstants']
+    dependencies = ['MRIConstants', 'BesselRoots']
     cl_code = '''
         if(R == 0.0 || R < MOT_EPSILON){
             return 0;
         }
-
-        const mot_float_type cl_jnp_zeros[] = {
-            1.8411837813406593, 5.3314427735250325, 8.536316366346286,  11.706004902592063, 
-            14.863588633909032, 18.015527862681804, 21.16436985918879,  24.311326857210776, 
-            27.457050571059245, 30.601922972669094, 33.746182898667385, 36.88998740923681, 
-            40.03344405335068,  43.17662896544882,  46.319597561173914, 49.46239113970275
-        };
-        const int cl_jnp_zeros_length = 16;
 
         double sum = 0;
         mot_float_type alpha;
         mot_float_type alpha2_d;
         
         #pragma unroll
-        for(uint i = 0; i < cl_jnp_zeros_length; i++){
-            alpha = cl_jnp_zeros[i] / R;
+        for(uint i = 0; i < bessel_roots_jnp_length; i++){
+            alpha = bessel_roots_jnp[i] / R;
             alpha2_d = d * alpha * alpha;
 
             sum += (2 * alpha2_d * delta
@@ -113,7 +97,7 @@ class VanGelderenCylinder(LibraryFunctionTemplate):
                     + (2 * exp(-alpha2_d * Delta))
                     - exp(-alpha2_d * (Delta - delta))
                     - exp(-alpha2_d * (Delta + delta)))
-                        / ((alpha2_d * alpha * alpha2_d * alpha) * (cl_jnp_zeros[i] * cl_jnp_zeros[i] - 1));
+                        / ((alpha2_d * alpha * alpha2_d * alpha) * (bessel_roots_jnp[i] * bessel_roots_jnp[i] - 1));
         }
         return -2 * GAMMA_H_SQ * (G*G) * sum;
     '''

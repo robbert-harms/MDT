@@ -35,7 +35,7 @@
    <item row="0" column="0">
     <widget class="TextConfigEditor" name="textConfigEdit"/>
    </item>
-   <item row="1" column="0">
+   <item row="3" column="0">
     <widget class="QLabel" name="correctness_label">
      <property name="text">
       <string>TextLabel</string>
@@ -45,6 +45,23 @@
      </property>
      <property name="wordWrap">
       <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="0">
+    <widget class="QCheckBox" name="viewSelectedOptions">
+     <property name="text">
+      <string>Only show selected options</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="0">
+    <widget class="Line" name="line">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
      </property>
     </widget>
    </item>

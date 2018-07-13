@@ -22,7 +22,7 @@ from six import string_types
 from mdt.components import get_batch_profile, get_component_list
 from mdt.masking import create_median_otsu_brain_mask
 from mdt.protocols import load_protocol, auto_load_protocol
-from mdt.utils import AutoDict, load_input_data
+from mdt.utils import AutoDict, load_input_data, natural_key_sort_cb
 from mdt.nifti import load_nifti
 
 __author__ = 'Robbert Harms'
@@ -519,16 +519,19 @@ def run_function_on_batch_fit_output(func, output_folder, subjects_selection=Non
     to contain directories and files like <subject_id>/<model_name>/<map_name>.nii.gz
 
     Args:
-        func (python function): the python function we should call for every map and model.
+        func (Callable[[BatchFitSubjectOutputInfo], any]): the python function we should call for every map and model.
             This should accept as single parameter a :class:`BatchFitSubjectOutputInfo`.
         output_folder (str): The data input folder
-        subjects_selection (BatchSubjectSelection): the subjects to use for processing.
+        subjects_selection (BatchSubjectSelection or iterable): the subjects to use for processing.
             If None all subjects are processed.
 
     Returns:
         dict: indexed by subject->model_name, values are the return values of the users function
     """
     subject_ids = list(os.listdir(output_folder))
+    subject_ids.sort(key=natural_key_sort_cb)
+
+    subjects_selection = get_subject_selection(subjects_selection)
     if subjects_selection:
         subject_ids = subjects_selection.get_selection(subject_ids)
 

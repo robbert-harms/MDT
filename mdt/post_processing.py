@@ -16,6 +16,8 @@ class DTIMeasures(object):
     def extra_optimization_maps(results):
         """Return some interesting measures like FA, MD, RD and AD.
 
+        This function is meant to be used as a post processing routine in Tensor-like compartment models.
+
         Args:
             results (dict): Dictionary containing at least theta, phi, psi, d, dperp0 and dperp1
                 We will use this to generate some standard measures from the diffusion Tensor.
@@ -85,41 +87,23 @@ class DTIMeasures(object):
     def post_optimization_modifier(parameters_dict):
         """Apply post optimization modification of the Tensor compartment.
 
-        This will re-orient the Tensor such that the eigen values are in decreasing order. This is done by
+        This will re-orient the Tensor such that the eigenvalues are in decreasing order. This is done by
         permuting the eigen-values and -vectors and then recreating theta, phi and psi to match the rotated system.
 
         This is done primarily to be able to directly use the Tensor results in MCMC sampling. Since we often put a
         prior on the diffusivities to be in decreasing order, we need to make sure that the starting point is valid.
 
         Args:
-            parameters_dict (dict): the results from optimization
+            parameters_dict (dict): the results from optimization. This expects each value to be a (n, ...) array with
+                for each voxel either a scalar or a vector.
 
         Returns:
             dict: same set of parameters but then possibly updated with a rotation.
         """
-        sorted_eigenvalues, sorted_eigenvectors, ranking = DTIMeasures.sort_eigensystem(parameters_dict)
+        sorted_eigenvalues, sorted_eigenvectors, ranking = DTIMeasures._sort_eigensystem(parameters_dict)
         theta, phi, psi = tensor_cartesian_to_spherical(sorted_eigenvectors[0], sorted_eigenvectors[1])
         return {'d': sorted_eigenvalues[:, 0], 'dperp0': sorted_eigenvalues[:, 1], 'dperp1': sorted_eigenvalues[:, 2],
                 'theta': theta, 'phi': phi, 'psi': psi}
-
-    @staticmethod
-    def sort_eigensystem(parameters_dict):
-        eigenvectors = np.stack(tensor_spherical_to_cartesian(np.squeeze(parameters_dict['theta']),
-                                                              np.squeeze(parameters_dict['phi']),
-                                                              np.squeeze(parameters_dict['psi'])), axis=0)
-
-        eigenvalues = np.atleast_2d(np.squeeze(np.dstack([parameters_dict['d'],
-                                                          parameters_dict['dperp0'],
-                                                          parameters_dict['dperp1']])))
-
-        ranking = np.atleast_2d(np.squeeze(np.argsort(eigenvalues, axis=1, kind='mergesort')[:, ::-1]))
-        voxels_range = np.arange(ranking.shape[0])
-        sorted_eigenvalues = np.concatenate([eigenvalues[voxels_range, ranking[:, ind], None]
-                                             for ind in range(ranking.shape[1])], axis=1)
-        sorted_eigenvectors = np.stack([eigenvectors[ranking[:, ind], voxels_range, :]
-                                        for ind in range(ranking.shape[1])])
-
-        return sorted_eigenvalues, sorted_eigenvectors, ranking
 
     @staticmethod
     def fractional_anisotropy(d, dperp0, dperp1):
@@ -226,8 +210,38 @@ class DTIMeasures(object):
         covars **= 2
 
         if covariances is not None:
-            covars[:, 0, 1] = covars[:, 1, 0] = covariances.get('d_to_dperp0', covariances.get('dperp0_to_d', 0))
-            covars[:, 0, 2] = covars[:, 2, 0] = covariances.get('d_to_dperp1', covariances.get('dperp1_to_d', 0))
-            covars[:, 1, 2] = covars[:, 2, 1] = covariances.get('dperp0_to_dperp1',
-                                                                covariances.get('dperp1_to_dperp0', 0))
+            covars[:, 0, 1] = covars[:, 1, 0] = np.squeeze(
+                covariances.get('d_to_dperp0', covariances.get('dperp0_to_d', 0)))
+            covars[:, 0, 2] = covars[:, 2, 0] = np.squeeze(
+                covariances.get('d_to_dperp1', covariances.get('dperp1_to_d', 0)))
+            covars[:, 1, 2] = covars[:, 2, 1] = np.squeeze(
+                covariances.get('dperp0_to_dperp1', covariances.get('dperp1_to_dperp0', 0)))
         return covars
+
+    @staticmethod
+    def _sort_eigensystem(parameters_dict):
+        """Sort the eigensystem of the Tensor parameterized by eigen values and vectors.
+
+        Args:
+            parameters_dict (dict): the results from optimization. This expects each value to be a (n, ...) array with
+                for each voxel either a scalar or a vector.
+
+        Returns:
+            tuple: the sorted eigenvalues,
+        """
+        eigenvectors = np.stack(tensor_spherical_to_cartesian(np.squeeze(parameters_dict['theta']),
+                                                              np.squeeze(parameters_dict['phi']),
+                                                              np.squeeze(parameters_dict['psi'])), axis=0)
+
+        eigenvalues = np.atleast_2d(np.squeeze(np.dstack([parameters_dict['d'],
+                                                          parameters_dict['dperp0'],
+                                                          parameters_dict['dperp1']])))
+
+        ranking = np.atleast_2d(np.squeeze(np.argsort(eigenvalues, axis=1, kind='mergesort')[:, ::-1]))
+        voxels_range = np.arange(ranking.shape[0])
+        sorted_eigenvalues = np.concatenate([eigenvalues[voxels_range, ranking[:, ind], None]
+                                             for ind in range(ranking.shape[1])], axis=1)
+        sorted_eigenvectors = np.stack([eigenvectors[ranking[:, ind], voxels_range, :]
+                                        for ind in range(ranking.shape[1])])
+
+        return sorted_eigenvalues, sorted_eigenvectors, ranking

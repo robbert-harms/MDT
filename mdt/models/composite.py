@@ -498,11 +498,84 @@ class DMRICompositeModel(DMRIOptimizable):
         if not self._model_functions_info.has_protocol_parameter('g'):
             return None
 
-        gradient_deviations = self._input_data.gradient_deviations
+        def flatten_deviations_matrix(deviations):
+            """Converts a deviation matrix of shape (n, 3, 3) into (n, 9) and (n, m, 3, 3) into (n, m, 9)."""
+            if len(deviations.shape) > 3:
+                return deviations.reshape(-1, deviations.shape[1], 9)
+            else:
+                return deviations.reshape(-1, 9)
 
-        observation_multiplier = 0
-        if len(gradient_deviations.shape) > 3:
-            observation_multiplier = 9
+        def compress_zeros(deviations):
+            """Find array indices that hold zeros throughout.
+
+            In some cases, the user only knows the diagonal of the deviations matrix, but still had to provide the
+            full matrix. In those cases we are wasting 2/3th of the memory on zeros. This method reduces the size
+            by removing the all-zero components from the deviations matrix.
+
+            Args:
+                deviations (ndarray): either an (n, 9) of an (n, m, 9) matrix
+
+            Returns:
+                 tuple: the compressed deviations matrix and a tuple of length 9 indicating the positions of the
+                    zero elements.
+            """
+            zero_locations = [np.all(gradient_deviations[..., ind] == 0) for ind in range(9)]
+
+            if any(zero_locations):
+                compressed_deviations = np.delete(deviations, [ind for ind in range(9) if zero_locations[ind]], axis=-1)
+                return compressed_deviations, zero_locations
+
+            return deviations, zero_locations
+
+        def get_observation_multiplier(deviations):
+            """Get the multiplier for correctly indexing the matrix in the case of per volume deformation matrices.
+
+            If the user provide a deviation matrix per volume, we have to correctly index the matrices by
+            multiplying the number of non-compressed deviations with the observation index.
+
+            Args:
+                deviations (ndarray): either an (n, X) or an (n, m, X) matrix.
+
+            Returns:
+                int: if an (n, X) matrix is provided we will return 0 because we don't need to index based on
+                    volumes. If an (n, m, X) matrix is provided, we will return X.
+            """
+            if len(deviations.shape) > 2:
+                return deviations.shape[-1]
+            return 0
+
+        def get_cl_deviations_computation_code(zero_locations):
+            """Get the CL computation code for the new non-normalized gradient vector.
+
+            This method takes into account the locations of the removed elements.
+            """
+            index_counter = 0
+            elements = []
+            for ind in range(9):
+                if zero_locations[ind]:
+                    elements.append('0')
+                else:
+                    elements.append('gradient_deviations[{} + matrix_index]'.format(index_counter))
+                    index_counter += 1
+
+            return '''
+                mot_float_type4 new_g_non_normalized = (mot_float_type4)(
+                ''' + elements[0] + ''' * (*g).x + 
+                ''' + elements[1] + ''' * (*g).y + 
+                ''' + elements[2] + ''' * (*g).z,
+                
+                ''' + elements[3] + ''' * (*g).x + 
+                ''' + elements[4] + ''' * (*g).y + 
+                ''' + elements[5] + ''' * (*g).z,
+                
+                ''' + elements[6] + ''' * (*g).x + 
+                ''' + elements[7] + ''' * (*g).y + 
+                ''' + elements[8] + ''' * (*g).z,
+                0);
+            '''
+
+        gradient_deviations = flatten_deviations_matrix(self._input_data.gradient_deviations)
+        gradient_deviations, zero_locations = compress_zeros(gradient_deviations)
 
         parameters_needed = [p for p in ['g', 'b', 'G'] if self._model_functions_info.has_protocol_parameter(p)]
 
@@ -512,21 +585,10 @@ class DMRICompositeModel(DMRIOptimizable):
         function_arguments.append(('uint', 'observation_index'))
 
         body = '''
-            const uint matrix_index = ''' + str(observation_multiplier) + ''' * observation_index;
+            const uint matrix_index = ''' + str(get_observation_multiplier(gradient_deviations)) + ''' 
+                                        * observation_index;
             
-            mot_float_type4 new_g_non_normalized = (mot_float_type4)(
-                gradient_deviations[0 + matrix_index] * (*g).x + 
-                gradient_deviations[1 + matrix_index] * (*g).y + 
-                gradient_deviations[2 + matrix_index] * (*g).z,
-                
-                gradient_deviations[3 + matrix_index] * (*g).x + 
-                gradient_deviations[4 + matrix_index] * (*g).y + 
-                gradient_deviations[5 + matrix_index] * (*g).z,
-                
-                gradient_deviations[6 + matrix_index] * (*g).x + 
-                gradient_deviations[7 + matrix_index] * (*g).y + 
-                gradient_deviations[8 + matrix_index] * (*g).z,
-                0);
+            ''' + get_cl_deviations_computation_code(zero_locations) + '''
             
             mot_float_type new_g_length = length(new_g_non_normalized);
             *g = new_g_non_normalized / new_g_length;

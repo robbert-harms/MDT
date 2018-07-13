@@ -26,17 +26,23 @@ class LibraryFunctionsBuilder(ComponentBuilder):
         class AutoCreatedLibraryFunction(method_binding_meta(template, SimpleCLLibrary)):
 
             def __init__(self, *args, **kwargs):
+                cl_code = template.cl_code or ''
+                cl_extra = template.cl_extra or ''
+                if not template.is_function:
+                    cl_code = ''
+                    cl_extra += '\n' + template.cl_code
+
                 new_args = [template.return_type,
                             template.name,
                             _resolve_parameters(template.parameters),
-                            template.cl_code,
+                            cl_code,
                             ]
 
                 for ind, already_set_arg in enumerate(args):
                     new_args[ind] = already_set_arg
 
                 new_kwargs = dict(dependencies=_resolve_dependencies(template.dependencies),
-                                  cl_extra=template.cl_extra)
+                                  cl_extra=cl_extra)
                 new_kwargs.update(kwargs)
 
                 super(AutoCreatedLibraryFunction, self).__init__(*new_args, **new_kwargs)

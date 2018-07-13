@@ -24,7 +24,16 @@ class Ui_TabTextual(object):
         self.correctness_label.setAlignment(QtCore.Qt.AlignCenter)
         self.correctness_label.setWordWrap(True)
         self.correctness_label.setObjectName("correctness_label")
-        self.gridLayout.addWidget(self.correctness_label, 1, 0, 1, 1)
+        self.gridLayout.addWidget(self.correctness_label, 3, 0, 1, 1)
+        self.viewSelectedOptions = QtWidgets.QCheckBox(TabTextual)
+        self.viewSelectedOptions.setChecked(True)
+        self.viewSelectedOptions.setObjectName("viewSelectedOptions")
+        self.gridLayout.addWidget(self.viewSelectedOptions, 1, 0, 1, 1)
+        self.line = QtWidgets.QFrame(TabTextual)
+        self.line.setFrameShape(QtWidgets.QFrame.HLine)
+        self.line.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.line.setObjectName("line")
+        self.gridLayout.addWidget(self.line, 2, 0, 1, 1)
 
         self.retranslateUi(TabTextual)
         QtCore.QMetaObject.connectSlotsByName(TabTextual)
@@ -33,5 +42,6 @@ class Ui_TabTextual(object):
         _translate = QtCore.QCoreApplication.translate
         TabTextual.setWindowTitle(_translate("TabTextual", "Form"))
         self.correctness_label.setText(_translate("TabTextual", "TextLabel"))
+        self.viewSelectedOptions.setText(_translate("TabTextual", "Only show selected options"))
 
 from ..widgets import TextConfigEditor

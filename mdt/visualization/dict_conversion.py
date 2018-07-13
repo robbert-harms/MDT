@@ -63,6 +63,13 @@ class OptionalConversionDecorator(ConversionSpecification):
 class SimpleClassConversion(ConversionSpecification):
 
     def __init__(self, class_type, attribute_conversions):
+        """Converts a dictionary to and from the specified class.
+
+        Args:
+            class_type (type): the type of class to convert to
+            attribute_conversions (List[ConversionSpecification]) the list of conversion specification for the
+                attributes
+        """
         super(SimpleClassConversion, self).__init__()
         self._class_type = class_type
         self._attribute_conversions = attribute_conversions
