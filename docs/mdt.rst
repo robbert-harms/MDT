@@ -146,14 +146,6 @@ mdt.sorting module
     :undoc-members:
     :show-inheritance:
 
-mdt.user_script_info module
----------------------------
-
-.. automodule:: mdt.user_script_info
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 mdt.utils module
 ----------------
 

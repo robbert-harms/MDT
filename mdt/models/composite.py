@@ -150,6 +150,29 @@ class DMRICompositeModel(DMRIOptimizable):
         """
         return CompositeModelFunction(self._model_tree, signal_noise_model=self._signal_noise_model)
 
+    def evaluate(self, inputs, return_inputs=False, cl_runtime_info=None):
+        """Evaluate this model for each set of given parameters.
+
+        This is a shortcut for evaluating the composite model build by this builder. This gets the composite
+        model using :meth:`get_composite_model_function` and evaluates that.
+
+        Args:
+            inputs (dict[str: Union(ndarray, mot.utils.KernelData)]): for each parameter of the function
+                the input data. Each of these input datasets must either be a scalar or be of equal length in the
+                first dimension. The user can either input raw ndarrays or input KernelData objects.
+                If an ndarray is given we will load it read/write by default.
+            return_inputs (boolean): if we are interested in the values of the input arrays after evaluation.
+            cl_runtime_info (mot.cl_runtime_info.CLRuntimeInfo): the runtime information for execution
+
+        Returns:
+            ndarray or tuple(ndarray, dict[str: ndarray]): we always return at least the return values of the function,
+                which can be None if this function has a void return type. If ``return_inputs`` is set to True then
+                we return a tuple with as first element the return value and as second element a dictionary mapping
+                the output state of the parameters.
+        """
+        return self.get_composite_model_function().evaluate(inputs, return_inputs=return_inputs,
+                                                            cl_runtime_info=cl_runtime_info)
+
     def build(self, voxels_to_analyze=None):
         if self._input_data is None:
             raise RuntimeError('Input data is not set, can not build the model.')

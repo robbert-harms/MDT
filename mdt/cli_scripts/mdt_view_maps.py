@@ -6,7 +6,7 @@ import os
 import textwrap
 from argcomplete.completers import FilesCompleter
 from mdt.utils import init_user_settings
-from mdt import view_maps, write_view_maps_figure
+from mdt import view_maps
 from mdt.visualization.maps.base import SimpleDataInfo
 from mdt.shell_utils import BasicShellApplication
 
@@ -71,8 +71,7 @@ class GUI(BasicShellApplication):
             if args.dpi:
                 figure_options.update({'dpi': args.dpi})
 
-            write_view_maps_figure(data, to_file, config, figure_options=figure_options)
-
+            view_maps(data, config, figure_options=figure_options, save_filename=to_file)
         else:
             view_maps(data, config, show_maximized=args.maximize)
 

@@ -1,16 +1,119 @@
 ##########
 Developers
 ##########
-All contributions are welcome to MDT, be it Python code, documentation updates or bug reports.
-As with any software project, there are a few guidelines for developing for MDT.
-These guidelines are meant to ensure that the code and documentation of MDT stays coherent over time.
+This chapter first contains some helping information on debugging your CL code, with afterwards some coding guidelines for MDT (core-)developers.
 
 
-***************
-Code guidelines
-***************
-MDT is written in two languages, Python and OpenCL.
-We have a general naming guideline for both and a syntax style guideline for both languages separately.
+.. _debugging_opencl:
+
+****************
+Debugging opencl
+****************
+
+Evaluating models
+=================
+To aid debugging of MDT compartment models, composite models and library functions, MDT allows you to evaluate your CL model based on some simple inputs.
+For example::
+
+    stick = mdt.get_component('compartment_models', 'Stick')()
+    result = stick.evaluate({'g':     [1, 0, 0],
+                             'b':     1e9,
+                             'd':     1e-9,
+                             'theta': 1,
+                             'phi':   1
+                             })
+
+In this example we loaded the ``Stick`` compartment from the MDT repository, instantiated it and evalauted it based on a dictionary of input elements.
+This :meth:`~mot.cl_function.CLFunction.evaluate` method allows takes as input a dictionary of values (one for each function parameter) and executes the CL code based on those inputs.
+If more than one value is given per parameter, the code will be evaluated multiple times, once for each set of parameters.
+For example::
+
+    stick = mdt.get_component('compartment_models', 'Stick')()
+    result = stick.evaluate({'g':     [1, 0, 0],
+                             'b':     1e9,
+                             'd':     [1e-9, 2e-9],
+                             'theta': [1, 2],
+                             'phi':   1
+                             })
+
+In this example, the Stick model will be evaluated twice, first on the set of parameters::
+
+    {'g':     [1, 0, 0],
+     'b':     1e9,
+     'd':     1e-9,
+     'theta': 1,
+     'phi':   1
+     }
+
+
+and second, on the set of parameters::
+
+    {'g':     [1, 0, 0],
+     'b':     1e9,
+     'd':     2e-9,
+     'theta': 2,
+     'phi':   1
+     }
+
+
+Using the evaluate function, you can also evaluate library functions::
+
+    model = mdt.get_component('library_functions', 'SphericalToCartesian')()
+    result = model.evaluate({'theta': 0.5, 'phi': 0.5})
+
+
+and composite models::
+
+    model = mdt.get_model('BallStick_r1')()
+    retval = model.evaluate({'g': [1, 0, 0],
+                             'b': 2e9,
+                             'S0.s0': 1000,
+                             'w_ball.w': 0.5,
+                             'w_stick0.w': 0.5,
+                             'Ball.d': 1e-9,
+                             'Stick0.d': 1e-9,
+                             'Stick0.theta': 0.5,
+                             'Stick0.phi': 0.5
+                             })
+
+
+Using the printf function
+=========================
+In addition to the above, it is also possible to get information from inside the CL kernel, during execution, using the ``printf`` command.
+The ``printf`` command is part of the OpenCL language and allows you to print some variables during kernel execution.
+
+As an example, suppose we want to print the output of the Stick compartment during model execution.
+The original Stick cl code is::
+
+    cl_code = '''
+        return exp(-b * d * pown(
+            dot(g, SphericalToCartesian(theta, phi)), 2));
+    '''
+
+and we want to include printing of the dot product. We then change the code to read::
+
+    cl_code = '''
+        printf("%f", dot(g, SphericalToCartesian(theta, phi)));
+
+        return exp(-b * d * pown(
+            dot(g, SphericalToCartesian(theta, phi)), 2));
+    '''
+
+now, the value of the dot product will be printed during kernel execution.
+
+Please be aware that this may print A LOT of output.
+That is, including the above print statement and running the BallStick model on a diffusion dataset will print a value for every voxel, for every volume and for every iteration of the optimization routine.
+This can slightly be prevented by providing a mask in which only a single voxel is selected.
+
+For the reference guide on ``printf``, please see: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/printfFunction.html
+
+
+
+********************
+Developer guidelines
+********************
+MDT has a few small guidelines to make future collaboration as easy as possible by maintaining code consistency.
+Since MDT is written in two languages, Python and OpenCL we have guidelines for both languages.
 
 
 Variable naming

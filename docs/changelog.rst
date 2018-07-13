@@ -1,6 +1,6 @@
 :tocdepth: 1
 
-.. _cli_index:
+.. _changelog:
 
 #########
 Changelog
