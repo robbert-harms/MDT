@@ -1,3 +1,4 @@
+import inspect
 import re
 from copy import deepcopy
 import numpy as np
@@ -437,8 +438,12 @@ def _get_model_extra_optimization_maps_funcs(compartments):
         def prepend_compartment_name(results):
             return {'{}.{}'.format(compartment_name, key): value for key, value in results.items()}
 
-        def wrapped_modifier(results):
-            return prepend_compartment_name(original_func(get_compartment_specific_maps(results)))
+        if 'input_data' in inspect.signature(original_func).parameters:
+            def wrapped_modifier(results, input_data):
+                return prepend_compartment_name(original_func(get_compartment_specific_maps(results), input_data))
+        else:
+            def wrapped_modifier(results):
+                return prepend_compartment_name(original_func(get_compartment_specific_maps(results)))
 
         return wrapped_modifier
 

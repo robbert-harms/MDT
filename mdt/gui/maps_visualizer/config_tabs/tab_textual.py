@@ -27,7 +27,8 @@ class TabTextual(QWidget, Ui_TabTextual):
 
         self.viewSelectedOptions.clicked.connect(self._toggle_viewed_options)
 
-        self._flags = {'updating_config_from_string': False}
+        self._flags = {'updating_config_from_string': False,
+                       'toggling_view_selection': False}
 
     @pyqtSlot(DataConfigModel)
     def set_new_model(self, model):

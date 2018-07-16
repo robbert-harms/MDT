@@ -1286,7 +1286,7 @@ class MapPlotConfig(SimpleConvertibleConfig):
         self.volume_index = volume_index
         self.rotate = rotate
         self.colormap = colormap
-        self._maps_to_show = maps_to_show or self.default_values['maps_to_show']
+        self.maps_to_show = maps_to_show or self.default_values['maps_to_show']
         self.zoom = zoom or self.default_values['zoom']
         self.font = font or self.default_values['font']
         self.show_axis = bool(show_axis)
@@ -1301,10 +1301,6 @@ class MapPlotConfig(SimpleConvertibleConfig):
         self.mask_name = mask_name
         self.annotations = annotations or []
         self.colorbar_settings = colorbar_settings or self.default_values['colorbar_settings']
-
-        for name in self.maps_to_show:
-            if name not in self.map_plot_options:
-                self.map_plot_options[name] = SingleMapConfig()
 
         if interpolation not in self.get_available_interpolations():
             raise ValueError('The given interpolation ({}) is not supported.'.format(interpolation))
@@ -1330,22 +1326,6 @@ class MapPlotConfig(SimpleConvertibleConfig):
 
         if self.dimension < 0:
             raise ValueError('The dimension can not be smaller than 0, {} given.'.format(self.dimension))
-
-    @property
-    def maps_to_show(self):
-        return self._maps_to_show
-
-    @maps_to_show.setter
-    def maps_to_show(self, maps_to_show):
-        self._maps_to_show = maps_to_show
-
-        for name in maps_to_show:
-            if name not in self.map_plot_options:
-                self.map_plot_options[name] = SingleMapConfig()
-
-        for name in list(self.map_plot_options):
-            if name not in maps_to_show:
-                del self.map_plot_options[name]
 
     @classmethod
     def get_available_interpolations(cls):
@@ -1474,6 +1454,15 @@ class MapPlotConfig(SimpleConvertibleConfig):
         config.maps_to_show = list(filter(lambda k: k in data_info.get_map_names(), config.maps_to_show))
         if config.mask_name not in data_info.get_map_names():
             config.mask_name = None
+
+        for name in config.maps_to_show:
+            if name not in config.map_plot_options:
+                config.map_plot_options[name] = SingleMapConfig()
+
+        for name in list(config.map_plot_options):
+            if name not in config.maps_to_show:
+                del config.map_plot_options[name]
+
         return config
 
     def validate(self, data_info):

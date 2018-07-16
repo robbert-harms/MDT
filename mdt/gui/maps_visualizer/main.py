@@ -411,13 +411,11 @@ class ExportImageDialog(Ui_SaveImageDialog, QDialog):
                 with open({config!r}, 'r') as f:
                     config = f.read()
 
-                mdt.write_view_maps_figure(
+                mdt.view_maps(
                     {paths},
-                    {output_name!r},
                     config=config,
-                    width={width},
-                    height={height},
-                    dpi={dpi})
+                    save_filename={output_name!r},
+                    figure_options={{'width': {width}, 'height': {height}, 'dpi': {dpi}}})
 
             ''').format(header=get_script_file_header_text({'Purpose': 'Generate a results figure'}),
                         paths='[' + ', '.join(['{el!r}'.format(el=el) for el in self._get_file_paths()]) + ']',

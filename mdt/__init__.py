@@ -372,7 +372,7 @@ def view_maps(data, config=None, figure_options=None,
         viz = MapsVisualizer(data, figure)
 
         if save_filename:
-            viz.to_file(save_filename, config)
+            viz.to_file(save_filename, config, dpi=settings['dpi'])
         else:
             viz.show(config, block=block, maximize=show_maximized)
     else:

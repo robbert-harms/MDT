@@ -122,8 +122,8 @@ release: clean release-ubuntu-ppa release-pip release-github
 
 .PHONY: release-pip
 release-pip:
-	$(PYTHON) setup.py sdist upload
-	$(PYTHON) setup.py bdist_wheel upload
+	$(PYTHON) setup.py sdist bdist_wheel
+	twine upload dist/*.{whl,tar.gz}
 
 .PHONY: release-ubuntu-ppa
 release-ubuntu-ppa: dist-ubuntu

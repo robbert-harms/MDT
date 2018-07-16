@@ -1,3 +1,4 @@
+import inspect
 import logging
 from textwrap import dedent
 import copy
@@ -179,6 +180,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
         return BuildCompositeModel(voxels_to_analyze,
                                    self.name,
+                                   self._input_data,
                                    self._get_kernel_data(voxels_to_analyze),
                                    self._get_nmr_problems(voxels_to_analyze),
                                    self.get_nmr_observations(),
@@ -1598,8 +1600,8 @@ class DMRICompositeModel(DMRIOptimizable):
 
 class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
 
-    def __init__(self, used_problem_indices,
-                 name, kernel_data_info, nmr_problems, nmr_observations,
+    def __init__(self, used_problem_indices, name, input_data,
+                 kernel_data_info, nmr_problems, nmr_observations,
                  nmr_estimable_parameters, initial_parameters, pre_eval_parameter_modifier,
                  objective_per_observation_function, lower_bounds, upper_bounds, numdiff_step,
                  numdiff_scaling_factors, numdiff_use_bounds, numdiff_use_lower_bounds,
@@ -1613,6 +1615,7 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
                  finalize_proposal_function_builder):
         self.used_problem_indices = used_problem_indices
         self.name = name
+        self._input_data = input_data
         self._kernel_data_info = kernel_data_info
         self._nmr_problems = nmr_problems
         self._nmr_observations = nmr_observations
@@ -1777,7 +1780,10 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
 
         for routine in self._extra_optimization_maps:
             try:
-                results_dict.update(routine(results_dict))
+                if 'input_data' in inspect.signature(routine).parameters:
+                    results_dict.update(routine(results_dict, self._input_data))
+                else:
+                    results_dict.update(routine(results_dict))
             except KeyError as exc:
                 logger = logging.getLogger(__name__)
                 logger.error('Failed to execute extra optimization maps function, missing input: {}.'.format(str(exc)))
