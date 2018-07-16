@@ -2,6 +2,22 @@
 Changelog
 *********
 
+v0.13.4 (2018-07-16)
+====================
+
+Added
+-----
+- Adds documentation on debugging OpenCL elements.
+- Adds a button to the maps visualizer to only show the set options in the textual frame.
+- Adds simple data compression to the gradient deviation computations in the case of zeros off the diagonal.
+- Added the covariance terms to the error propagation of Tensor FA.
+
+Changed
+-------
+- Changed method signature of saving view map plots.
+- Small update to the unweighted volume computation in the Protocol, it now multiplies the gradient vector with the diffusivities to account for non-normalized gradients.
+
+
 v0.13.3 (2018-07-01)
 ====================
 A small maintenance release for cleaning up some unused or outdated features.
