@@ -2,6 +2,17 @@
 Changelog
 *********
 
+v0.13.5 (2018-07-17)
+====================
+
+Changed
+-------
+- Updated makefile to use twine for uploading to PyPi.
+- Replaced Grako for Tatsu, as Grako was no longer supported.
+- Removed the Tatsu debian package and added it as a Pip requirement.
+- Removed six as compatibility layer.
+
+
 v0.13.4 (2018-07-16)
 ====================
 
