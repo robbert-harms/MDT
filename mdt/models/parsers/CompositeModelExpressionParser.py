@@ -1,3 +1,16 @@
+"""The semantics for the parser.
+
+First generate the Python parser using:
+
+.. code-block:: bash
+
+    tatsu --generate-parser \
+        --name CompositeModelExpression \
+        --outfile CompositeModelExpression.py \
+        CompositeModelExpression.ebnf
+
+Afterwards, this module adds the semantics to it.
+"""
 from mdt.components import get_component
 from .CompositeModelExpression import CompositeModelExpressionSemantics, CompositeModelExpressionParser
 
