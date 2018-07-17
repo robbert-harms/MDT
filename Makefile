@@ -3,9 +3,7 @@ PIP=$$(which pip3)
 PROJECT_NAME=mdt
 PROJECT_VERSION=$$($(PYTHON) setup.py --version)
 GPG_SIGN_KEY=0E1AA560
-UBUNTU_MAIN_TARGET_DISTRIBUTIONS=xenial
-UBUNTU_OTHER_TARGET_DISTRIBUTIONS=bionic
-
+UBUNTU_DISTRIBUTIONS=xenial bionic
 
 .PHONY: help
 help:
@@ -116,7 +114,6 @@ prepare-release: clean
 	$(MAKE) docs-changelog
 	@echo "Consider manually inspecting CHANGELOG.rst for possible improvements."
 
-# todo: add GitHub Releases API hook here
 .PHONY: release
 release: clean release-ubuntu-ppa release-pip release-github
 
@@ -127,9 +124,8 @@ release-pip:
 
 .PHONY: release-ubuntu-ppa
 release-ubuntu-ppa: dist-ubuntu
-	dput ppa:robbert-harms/cbclab dist/$(PROJECT_NAME)_$(PROJECT_VERSION)-1_source.changes
-	for ubuntu_version in $(UBUNTU_OTHER_TARGET_DISTRIBUTIONS) ; do \
-		dput ppa:robbert-harms/cbclab dist/$(PROJECT_NAME)_$(PROJECT_VERSION)-1~$${ubuntu_version}1_source.changes ; \
+	for ubuntu_distro in $(UBUNTU_DISTRIBUTIONS) ; do \
+		dput ppa:robbert-harms/cbclab dist/$(PROJECT_NAME)_$(PROJECT_VERSION)-1~$${ubuntu_distro}1_source.changes ; \
 	done
 
 .PHONY: release-github
@@ -150,10 +146,11 @@ dist-ubuntu: clean
 	$(PYTHON) setup.py sdist
 	cp dist/$(PROJECT_NAME)-$(PROJECT_VERSION).tar.gz dist/$(PROJECT_NAME)_$(PROJECT_VERSION).orig.tar.gz
 	tar -xzf dist/$(PROJECT_NAME)-$(PROJECT_VERSION).tar.gz -C dist/
-	$(MAKE) _package-ubuntu suite=$(UBUNTU_MAIN_TARGET_DISTRIBUTIONS) debian-version=1 build-flag=-sa
 
-	for ubuntu_version in $(UBUNTU_OTHER_TARGET_DISTRIBUTIONS) ; do \
-		$(MAKE) _package-ubuntu suite=$$ubuntu_version debian-version=1~$${ubuntu_version}1 build-flag=-sd ; \
+	build_flag=-sa;\
+	for ubuntu_distro in $(UBUNTU_DISTRIBUTIONS) ; do \
+		$(MAKE) _package-ubuntu suite=$$ubuntu_distro debian-version=1~$${ubuntu_distro}1 build-flag=$$build_flag ; \
+		build_flag=-sd;\
 	done
 
 .PHONY: _package-ubuntu

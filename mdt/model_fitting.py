@@ -119,7 +119,7 @@ class ModelFit(object):
                 This is only of importance when dealing with CascadeModels. If set to true we only recalculate
                 the last element in the chain (if recalculate is set to True, that is). If set to false,
                 we recalculate everything. This only holds for the first level of the cascade.
-            cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
+            cl_device_ind (int or list): the index of the CL device to use. The index is from the list from the function
                 get_cl_devices(). This can also be a list of device indices.
             double_precision (boolean): if we would like to do the calculations in double precision
             tmp_results_dir (str, True or None): The temporary dir for the calculations. Set to a string to use
