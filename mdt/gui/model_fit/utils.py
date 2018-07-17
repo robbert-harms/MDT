@@ -1,7 +1,5 @@
 import glob
 import os
-
-import six
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from mdt.gui.utils import UpdateDescriptor
@@ -54,7 +52,7 @@ def results_preselection_names(data):
         list of str: the list of useful/filtered map names.
     """
     keys = []
-    if isinstance(data, six.string_types):
+    if isinstance(data, str):
         for extension in ('.nii', '.nii.gz'):
             for f in glob.glob(os.path.join(data, '*' + extension)):
                 keys.append(os.path.basename(f)[0:-len(extension)])

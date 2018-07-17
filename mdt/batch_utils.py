@@ -16,9 +16,6 @@ import logging
 import numbers
 import os
 from textwrap import dedent
-
-from six import string_types
-
 from mdt.components import get_batch_profile, get_component_list
 from mdt.masking import create_median_otsu_brain_mask
 from mdt.protocols import load_protocol, auto_load_protocol
@@ -299,7 +296,7 @@ class SelectedSubjects(BatchSubjectSelection):
             subject_ids (str or list of str): the list of names of subjects to process
             indices (int or list of int): the list of indices of subjects we wish to process
         """
-        if isinstance(subject_ids, string_types):
+        if isinstance(subject_ids, str):
             subject_ids = [subject_ids]
 
         if isinstance(indices, int):
@@ -394,7 +391,7 @@ def batch_profile_factory(batch_profile, base_directory):
     """
     if batch_profile is None:
         return get_best_batch_profile(base_directory)
-    elif isinstance(batch_profile, string_types):
+    elif isinstance(batch_profile, str):
         return get_batch_profile(batch_profile)()
     return batch_profile
 
@@ -446,7 +443,7 @@ def get_subject_information(data_folder, subject_ids, batch_profile=None):
     batch_apply(get_subjects, data_folder, batch_profile=batch_profile,
                 subjects_selection=SelectedSubjects(subject_ids))
 
-    if isinstance(subject_ids, string_types):
+    if isinstance(subject_ids, str):
         return subjects[0]
     return subjects
 

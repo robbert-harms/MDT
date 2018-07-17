@@ -2,7 +2,6 @@ import inspect
 import re
 from copy import deepcopy
 import numpy as np
-import six
 from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate
 from mdt.components import get_component
 from mdt.models.composite import DMRICompositeModel
@@ -278,7 +277,7 @@ def _resolve_likelihood_function(likelihood_function):
     Returns:
         mdt.model_building.likelihood_models.LikelihoodFunction: the likelihood function to use
     """
-    if isinstance(likelihood_function, six.string_types):
+    if isinstance(likelihood_function, str):
         return get_component('likelihood_functions', likelihood_function + 'LikelihoodFunction')()
     else:
         return likelihood_function

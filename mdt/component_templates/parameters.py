@@ -1,4 +1,3 @@
-import six
 from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate
 from mdt.components import has_component, get_component
 from mot.cl_data_type import SimpleCLDataType
@@ -23,7 +22,7 @@ class ParameterBuilder(ComponentBuilder):
             template (Type[ParameterTemplate]): the configuration for the parameter.
         """
         data_type = template.data_type
-        if isinstance(data_type, six.string_types):
+        if isinstance(data_type, str):
             data_type = SimpleCLDataType.from_string(data_type)
 
         if issubclass(template, ProtocolParameterTemplate):

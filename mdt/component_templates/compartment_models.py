@@ -1,6 +1,5 @@
 from copy import deepcopy, copy
 import numpy as np
-import six
 from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate
 from mdt.components import get_component, has_component
 from mdt.models.compartments import DMRICompartmentModelFunction
@@ -290,7 +289,7 @@ def _resolve_dependencies(dependencies):
     """
     result = []
     for dependency in dependencies:
-        if isinstance(dependency, six.string_types):
+        if isinstance(dependency, str):
             if has_component('library_functions', dependency):
                 result.append(get_component('library_functions', dependency)())
             else:
@@ -337,7 +336,7 @@ def _resolve_parameters(parameter_list):
     """
     parameters = []
     for item in parameter_list:
-        if isinstance(item, six.string_types):
+        if isinstance(item, str):
             if item == '_observation':
                 parameters.append(CurrentObservationParam())
             else:

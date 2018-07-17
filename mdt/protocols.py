@@ -6,7 +6,6 @@ from warnings import warn
 
 import numpy as np
 import copy
-import six
 from mdt.exceptions import ProtocolIOError
 
 __author__ = 'Robbert Harms'
@@ -109,7 +108,7 @@ class Protocol(collections.Mapping):
         """
         columns = copy.copy(self._columns)
 
-        if isinstance(data, six.string_types):
+        if isinstance(data, str):
             data = float(data)
 
         if isinstance(data, numbers.Number) or not data.shape:
@@ -917,7 +916,7 @@ def auto_load_protocol(directory, bvec_fname=None, bval_fname=None, bval_scale='
     if protocol_columns:
         for col in protocol_extra_cols:
             if col in protocol_columns:
-                if isinstance(protocol_columns[col], six.string_types):
+                if isinstance(protocol_columns[col], str):
                     protocol = protocol.with_added_column_from_file(
                         col, os.path.join(directory, protocol_columns[col]))
                 else:

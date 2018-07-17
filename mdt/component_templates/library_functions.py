@@ -1,6 +1,4 @@
 from copy import deepcopy
-
-import six
 from mdt.component_templates.base import ComponentBuilder, method_binding_meta, \
     ComponentTemplate
 from mot.cl_data_type import SimpleCLDataType
@@ -103,7 +101,7 @@ def _resolve_dependencies(dependencies):
     """
     result = []
     for dependency in dependencies:
-        if isinstance(dependency, six.string_types):
+        if isinstance(dependency, str):
             result.append(get_component('library_functions', dependency)())
         else:
             result.append(dependency)
@@ -125,7 +123,7 @@ def _resolve_parameters(parameter_list):
     """
     parameters = []
     for item in parameter_list:
-        if isinstance(item, six.string_types):
+        if isinstance(item, str):
             if has_component('parameters', item):
                 param = get_component('parameters', item)()
                 parameters.append(LibraryParameter(param.data_type, item))

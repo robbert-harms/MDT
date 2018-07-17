@@ -4,7 +4,6 @@ from textwrap import dedent
 import copy
 import collections
 import numpy as np
-from six import string_types
 
 from mdt.configuration import get_active_post_processing
 from mdt.deferred_mappings import DeferredFunctionDict
@@ -287,7 +286,7 @@ class DMRICompositeModel(DMRIOptimizable):
         Returns:
             Returns self for chainability
         """
-        if isinstance(value, string_types):
+        if isinstance(value, str):
             value = SimpleAssignment(value)
         self._model_functions_info.fix_parameter(model_param_name, value)
         return self

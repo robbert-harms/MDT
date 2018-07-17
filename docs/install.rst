@@ -25,8 +25,8 @@ Please install the dependencies first:
 
     $ sudo apt install python3 python3-pip python3-pyopencl \
         python3-numpy python3-nibabel python3-pyqt5 \
-        python3-matplotlib python3-six python3-yaml \
-        python3-argcomplete libpng-dev libfreetype6-dev libxft-dev
+        python3-matplotlib python3-yaml python3-argcomplete \
+        libpng-dev libfreetype6-dev libxft-dev
 
 
 Note that ``python3-nibabel`` may need NeuroDebian to be available on your machine.

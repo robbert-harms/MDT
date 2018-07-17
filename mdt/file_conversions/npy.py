@@ -1,7 +1,6 @@
 import glob
 import os
 import numpy as np
-import six
 from mdt.utils import restore_volumes
 from mdt.nifti import write_nifti, load_nifti
 
@@ -62,7 +61,7 @@ def samples_npy_to_nifti(samples_npy_fname, used_mask, nifti_header, nifti_fname
     """
     samples = np.load(samples_npy_fname, mmap_mode='r')
 
-    if isinstance(used_mask, six.string_types):
+    if isinstance(used_mask, str):
         used_mask = load_nifti(used_mask).get_data()
 
     if np.count_nonzero(used_mask) != samples.shape[0]:

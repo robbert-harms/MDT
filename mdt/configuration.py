@@ -26,7 +26,6 @@ import collections
 import yaml
 from contextlib import contextmanager
 from pkg_resources import resource_stream
-from six import string_types
 
 from mot.factory import get_optimizer_by_name
 import mot.configuration
@@ -52,7 +51,7 @@ def get_config_option(option_name):
     Returns:
         object: the raw configuration value defined for that option
     """
-    if isinstance(option_name, string_types):
+    if isinstance(option_name, str):
         return _config[option_name]
     else:
         config = _config
@@ -77,7 +76,7 @@ def set_config_option(option_name, value):
     Returns:
         object: the raw configuration value defined for that option
     """
-    if isinstance(option_name, string_types):
+    if isinstance(option_name, str):
         _config[option_name] = value
     else:
         config = _config
@@ -593,7 +592,7 @@ def get_model_config(model_names, config):
         return 1
 
     def is_match(model_names, config_key):
-        if isinstance(model_names, string_types):
+        if isinstance(model_names, str):
             model_names = [model_names]
 
         if len(model_names) != get_key_length(config_key):
@@ -667,7 +666,7 @@ def config_context(config_action):
         config_action (ConfigAction or str): the configuration action to apply. If a string is given we will
             use it using the YamlStringAction config action.
     """
-    if isinstance(config_action, string_types):
+    if isinstance(config_action, str):
         config_action = YamlStringAction(config_action)
 
     config_action.apply()

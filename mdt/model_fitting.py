@@ -6,7 +6,6 @@ import shutil
 import time
 import timeit
 from contextlib import contextmanager
-from six import string_types
 from mdt.__version__ import __version__
 from mdt.nifti import get_all_nifti_data
 from mdt.components import get_model
@@ -133,7 +132,7 @@ class ModelFit(object):
                 to disable automatic calculation of the covariance from the Hessian.
 
         """
-        if isinstance(model, string_types):
+        if isinstance(model, str):
             model = get_model(model)()
 
         if post_processing:

@@ -1,7 +1,6 @@
 import logging
 import numpy as np
 from scipy.ndimage import binary_dilation, generate_binary_structure, binary_fill_holes
-from six import string_types
 from mdt.utils import load_brain_mask
 from mdt.protocols import load_protocol
 from mdt.nifti import load_nifti, write_nifti
@@ -34,7 +33,7 @@ def create_median_otsu_brain_mask(dwi_info, protocol, mask_threshold=0, fill_hol
     logger = logging.getLogger(__name__)
     logger.info('Starting calculating a brain mask')
 
-    if isinstance(dwi_info, string_types):
+    if isinstance(dwi_info, str):
         signal_img = load_nifti(dwi_info)
         dwi = signal_img.get_data()
     elif isinstance(dwi_info, (tuple, list)):
@@ -42,7 +41,7 @@ def create_median_otsu_brain_mask(dwi_info, protocol, mask_threshold=0, fill_hol
     else:
         dwi = dwi_info
 
-    if isinstance(protocol, string_types):
+    if isinstance(protocol, str):
         protocol = load_protocol(protocol)
 
     if len(dwi.shape) == 4:
@@ -125,7 +124,7 @@ def create_write_median_otsu_brain_mask(dwi_info, protocol, output_fname, **kwar
     Returns:
         ndarray: The created brain mask
     """
-    if isinstance(dwi_info, string_types):
+    if isinstance(dwi_info, str):
         signal_img = load_nifti(dwi_info)
         dwi = signal_img.get_data()
         header = signal_img.get_header()

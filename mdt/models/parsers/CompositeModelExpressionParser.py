@@ -1,5 +1,3 @@
-import six
-
 from mdt.components import get_component
 from .CompositeModelExpression import CompositeModelExpressionSemantics, CompositeModelExpressionParser
 
@@ -29,7 +27,7 @@ class Semantics(CompositeModelExpressionSemantics):
         return ast
 
     def model(self, ast):
-        if isinstance(ast, six.string_types):
+        if isinstance(ast, str):
             return get_component('compartment_models', ast)()
         else:
             return get_component('compartment_models', ast[0])(ast[2])

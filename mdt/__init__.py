@@ -5,7 +5,6 @@ import os
 from contextlib import contextmanager
 import numpy as np
 import shutil
-from six import string_types
 from .__version__ import VERSION, VERSION_STATUS, __version__
 
 from mdt.configuration import get_logging_configuration_dict
@@ -188,7 +187,7 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
     if not mdt.utils.check_user_components():
         init_user_settings(pass_if_exists=True)
 
-    if isinstance(model, string_types):
+    if isinstance(model, str):
         model = get_model(model)()
 
     if post_processing:
@@ -331,12 +330,12 @@ def view_maps(data, config=None, figure_options=None,
     from mdt.gui.maps_visualizer.actions import NewDataAction
     from mdt.gui.maps_visualizer.base import SimpleDataConfigModel
 
-    if isinstance(data, string_types):
+    if isinstance(data, str):
         data = SimpleDataInfo.from_paths([data])
     elif isinstance(data, collections.MutableMapping):
         data = SimpleDataInfo(data)
     elif isinstance(data, collections.Sequence):
-        if all(isinstance(el, string_types) for el in data):
+        if all(isinstance(el, str) for el in data):
             data = SimpleDataInfo.from_paths(data)
         else:
             data = SimpleDataInfo({str(ind): v for ind, v in enumerate(data)})
@@ -345,7 +344,7 @@ def view_maps(data, config=None, figure_options=None,
 
     if config is None:
         config = MapPlotConfig()
-    elif isinstance(config, string_types):
+    elif isinstance(config, str):
         if config.strip():
             config = MapPlotConfig.from_yaml(config)
         else:
@@ -404,7 +403,7 @@ def view_result_samples(data, **kwargs):
     """
     from mdt.visualization.samples import SampleVisualizer
 
-    if isinstance(data, string_types):
+    if isinstance(data, str):
         data = load_samples(data)
 
     if not data:
@@ -447,7 +446,7 @@ def sort_maps(input_maps, reversed_sort=False, sort_index_matrix=None):
     """
     if sort_index_matrix is None:
         sort_index_matrix = create_sort_matrix(input_maps, reversed_sort=reversed_sort)
-    elif isinstance(sort_index_matrix, string_types):
+    elif isinstance(sort_index_matrix, str):
         sort_index_matrix = np.round(load_nifti(sort_index_matrix).get_data()).astype(np.int64)
     return sort_volumes_per_voxel(input_maps, sort_index_matrix)
 

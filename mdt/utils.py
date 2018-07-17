@@ -13,9 +13,7 @@ from collections import defaultdict
 from contextlib import contextmanager
 import numpy as np
 import pkg_resources
-import six
 from numpy.lib.format import open_memmap
-from six import string_types
 import mot.utils
 from mdt.components import get_model
 from mdt.configuration import get_config_dir
@@ -377,7 +375,7 @@ class SimpleMRIInputData(MRIInputData):
             if isinstance(self._noise_std, (numbers.Number, np.ndarray)):
                 return self._noise_std
 
-            if isinstance(self._noise_std, six.string_types):
+            if isinstance(self._noise_std, str):
                 filename = str(self._noise_std)
                 if filename[-4:] == '.txt':
                     with open(filename, 'r') as f:
@@ -401,7 +399,7 @@ class SimpleMRIInputData(MRIInputData):
 
         return_items = {}
         for key, value in extra_protocol.items():
-            if isinstance(value, six.string_types):
+            if isinstance(value, str):
                 if value.endswith('.nii') or value.endswith('.nii.gz'):
                     loaded_val = load_nifti(value).get_data()
                 else:
@@ -485,14 +483,14 @@ def load_input_data(volume_info, protocol, mask, extra_protocol=None, gradient_d
     protocol = load_protocol(protocol)
     mask = load_brain_mask(mask)
 
-    if isinstance(volume_info, string_types):
+    if isinstance(volume_info, str):
         info = load_nifti(volume_info)
         signal4d = info.get_data()
         img_header = info.get_header()
     else:
         signal4d, img_header = volume_info
 
-    if isinstance(gradient_deviations, six.string_types):
+    if isinstance(gradient_deviations, str):
         gradient_deviations = load_nifti(gradient_deviations).get_data()
 
     return SimpleMRIInputData(protocol, signal4d, mask, img_header, extra_protocol=extra_protocol, noise_std=noise_std,
@@ -584,7 +582,7 @@ class SimpleInitializationData(InitializationData):
             if is_scalar(v):
                 return v
 
-            if isinstance(v, six.string_types):
+            if isinstance(v, str):
                 return v
 
             if isinstance(v, AbstractParameterDependency):
@@ -622,7 +620,7 @@ class SimpleInitializationData(InitializationData):
         return DeferredActionDict(self._resolve_value, self._upper_bounds)
 
     def _resolve_value(self, key, value):
-        if isinstance(value, six.string_types):
+        if isinstance(value, str):
             return load_nifti(value).get_data()
         return value
 
@@ -759,7 +757,7 @@ def split_dataset(dataset, split_dimension, split_index):
             give the original volume back. If it is a list, tuple or dict we return a tuple containing two lists, tuples
             or dicts, with the same indices and with each holding half of the splitted data.
     """
-    if isinstance(dataset, string_types):
+    if isinstance(dataset, str):
         return split_dataset(load_nifti(dataset).get_data(), split_dimension, split_index)
 
     if isinstance(dataset, (tuple, list)):
@@ -887,7 +885,7 @@ def create_roi(data, brain_mask):
 
     if isinstance(data, (dict, collections.Mapping)):
         return DeferredActionDict(lambda _, item: create_roi(item, brain_mask), data)
-    elif isinstance(data, six.string_types):
+    elif isinstance(data, str):
         if os.path.isdir(data):
             return create_roi(load_volume_maps(data), brain_mask)
         return creator(load_nifti(data).get_data())
@@ -1295,7 +1293,7 @@ def load_brain_mask(data_source):
         ndarray: boolean array with every voxel with a value higher than 0 set to 1 and all other values set to 0.
     """
     def _load_data():
-        if isinstance(data_source, six.string_types):
+        if isinstance(data_source, str):
             return load_nifti(data_source).get_data()
         if isinstance(data_source, np.ndarray):
             return data_source
@@ -1363,7 +1361,7 @@ def model_output_exists(model, output_folder, append_model_name_to_path=True):
         boolean: true if the output folder exists and contains files for all the parameters of the model.
             For a cascade model it returns true if the maps of all the models exist.
     """
-    if isinstance(model, string_types):
+    if isinstance(model, str):
         model = get_model(model)()
 
     from mdt.models.cascade import DMRICascadeModelInterface
@@ -1447,7 +1445,7 @@ def apply_mask(volumes, mask, inplace=True):
     mask = load_brain_mask(mask)
 
     def apply(_volume, _mask):
-        if isinstance(_volume, string_types):
+        if isinstance(_volume, str):
             _volume = load_nifti(_volume).get_data()
 
         _mask = _mask.reshape(_mask.shape + (_volume.ndim - _mask.ndim) * (1,))
@@ -1670,7 +1668,7 @@ def get_temporary_results_dir(user_value):
     Returns:
         str or None: either the temporary results dir or None
     """
-    if isinstance(user_value, string_types):
+    if isinstance(user_value, str):
         return user_value
     if user_value is True:
         return get_tmp_results_dir()
@@ -1793,7 +1791,7 @@ def create_median_otsu_brain_mask(dwi_info, protocol, output_fname=None, **kwarg
     from mdt.masking import create_median_otsu_brain_mask, create_write_median_otsu_brain_mask
 
     if output_fname:
-        if not isinstance(dwi_info, (string_types, tuple, list)):
+        if not isinstance(dwi_info, (str, tuple, list)):
             raise ValueError('No header obtainable, can not write the brain mask.')
         return create_write_median_otsu_brain_mask(dwi_info, protocol, output_fname, **kwargs)
     return create_median_otsu_brain_mask(dwi_info, protocol, **kwargs)
@@ -1922,7 +1920,7 @@ def covariance_to_correlation(input_maps):
     Returns:
         dict: the correlation maps computed from the input maps. The naming scheme is ``Correlation_{m0}_to_{m1}``.
     """
-    if isinstance(input_maps, string_types):
+    if isinstance(input_maps, str):
         input_maps = load_volume_maps(input_maps)
 
     correlation_maps = {}

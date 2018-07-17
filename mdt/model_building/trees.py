@@ -1,4 +1,3 @@
-from six import string_types
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-03-26"
@@ -106,7 +105,7 @@ class CompartmentModelTree(Tree):
             else:
                 operator = None
                 for node in listing:
-                    if isinstance(node, string_types):
+                    if isinstance(node, str):
                         if operator is not None:
                             raise ValueError('Double operator in model listing.')
                         operator = node
@@ -125,7 +124,7 @@ class CompartmentModelTree(Tree):
             self.tag = listing.name
 
     def __str__(self, level=0):
-        if isinstance(self.data, string_types):
+        if isinstance(self.data, str):
             operator = ' ' + self.data + ' '
             return '(' + "\n" + "\t" * (level + 1) + \
                    operator.join([child.__str__(level + 1) for child in self.children]) + \

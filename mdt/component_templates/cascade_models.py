@@ -1,5 +1,4 @@
 from copy import deepcopy
-import six
 import mdt
 from mdt.component_templates.base import ComponentBuilder, bind_function, method_binding_meta, ComponentTemplate, \
     ComponentTemplateMeta
@@ -25,7 +24,7 @@ class CascadeBuilder(ComponentBuilder):
             def __init__(self, *args):
                 models = []
                 for model_def in template.models:
-                    if isinstance(model_def, six.string_types):
+                    if isinstance(model_def, str):
                         models.append(mdt.get_model(model_def)())
                     else:
                         models.append(mdt.get_model(model_def[0])(model_def[1]))
@@ -41,7 +40,7 @@ class CascadeBuilder(ComponentBuilder):
                                                                     output_previous, output_all_previous)
 
                 def parse_value(v):
-                    if isinstance(v, six.string_types):
+                    if isinstance(v, str):
                         return output_previous[v]
                     elif hasattr(v, '__call__'):
                         return v(output_previous, output_all_previous)
@@ -72,7 +71,7 @@ class CascadeTemplateMeta(ComponentTemplateMeta):
 
         if name != 'CascadeTemplate':
             if attributes.get('models', []):
-                if isinstance(attributes['models'][-1], six.string_types):
+                if isinstance(attributes['models'][-1], str):
                     name_attribute = attributes['models'][-1]
                 else:
                     name_attribute = attributes['models'][-1][1]
@@ -86,7 +85,7 @@ class CascadeTemplateMeta(ComponentTemplateMeta):
         return name_attribute
 
 
-class CascadeTemplate(six.with_metaclass(CascadeTemplateMeta, ComponentTemplate)):
+class CascadeTemplate(ComponentTemplate, metaclass=CascadeTemplateMeta):
     """The cascade config to inherit from.
 
     These configs are loaded on the fly by the CascadeBuilder.

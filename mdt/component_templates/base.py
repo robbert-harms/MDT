@@ -1,5 +1,4 @@
 from copy import deepcopy
-from six import with_metaclass
 
 
 __author__ = 'Robbert Harms'
@@ -89,7 +88,10 @@ def method_binding_meta(template, *bases):
             attributes.update(template.bound_methods)
             return super(ApplyMethodBinding, mcs).__new__(mcs, name, bases, attributes)
 
-    return with_metaclass(ApplyMethodBinding, *bases)
+    class ReturnClass(*bases, metaclass=ApplyMethodBinding):
+        pass
+
+    return ReturnClass
 
 
 class ComponentTemplateMeta(type):
@@ -180,7 +182,7 @@ class ComponentTemplateMeta(type):
         raise ValueError('Attribute not found in this component config or its superclasses.')
 
 
-class ComponentTemplate(with_metaclass(ComponentTemplateMeta, object)):
+class ComponentTemplate(object, metaclass=ComponentTemplateMeta):
     """The component configuration.
 
     By overriding the class attributes you can define complex configurations. The actual class distilled from these

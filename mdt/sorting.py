@@ -8,7 +8,6 @@ import collections
 from copy import copy
 import itertools
 import numpy as np
-from six import string_types
 from mdt.nifti import get_all_nifti_data, load_nifti
 
 
@@ -52,7 +51,7 @@ def sort_orientations(data_input, weight_names, extra_sortable_maps):
     Returns:
         dict: the sorted results in a new dictionary. This returns all input maps with some of them sorted.
     """
-    if isinstance(data_input, string_types):
+    if isinstance(data_input, str):
         input_maps = get_all_nifti_data(data_input)
         result_maps = input_maps
     else:
@@ -87,7 +86,7 @@ def create_sort_matrix(input_volumes, reversed_sort=False):
     def load_maps(map_list):
         tmp = []
         for data in map_list:
-            if isinstance(data, string_types):
+            if isinstance(data, str):
                 data = load_nifti(data).get_data()
 
             if len(data.shape) < 4:
@@ -132,7 +131,7 @@ def sort_volumes_per_voxel(input_volumes, sort_matrix):
     def load_maps(map_list):
         tmp = []
         for data in map_list:
-            if isinstance(data, string_types):
+            if isinstance(data, str):
                 data = load_nifti(data).get_data()
 
             if len(data.shape) < 4:

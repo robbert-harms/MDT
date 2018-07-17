@@ -1,6 +1,5 @@
 import numpy as np
 import collections
-from six import string_types
 from mdt.components import get_model
 from mdt.nifti import get_all_nifti_data
 from mdt.utils import create_roi, restore_volumes, MockMRIInputData
@@ -30,12 +29,12 @@ def create_signal_estimates(model, input_data, parameters):
     Returns:
         ndarray: the 4d array with the signal estimates per voxel
     """
-    if isinstance(model, string_types):
+    if isinstance(model, str):
         model = get_model(model)()
 
     model.set_input_data(input_data)
 
-    if isinstance(parameters, string_types):
+    if isinstance(parameters, str):
         parameters = get_all_nifti_data(parameters)
 
     parameters = create_roi(parameters, input_data.mask)
@@ -68,7 +67,7 @@ def simulate_signals(model, protocol, parameters):
     Returns:
         ndarray: a 2d array with for every parameter combination the simulated model signal
     """
-    if isinstance(model, string_types):
+    if isinstance(model, str):
         model = get_model(model)()
 
     model.set_input_data(MockMRIInputData(protocol=protocol))
