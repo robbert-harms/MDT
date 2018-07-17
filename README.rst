@@ -57,8 +57,8 @@ For Ubuntu >= 16 you can use:
 
 * ``sudo add-apt-repository ppa:robbert-harms/cbclab``
 * ``sudo apt-get update``
-* ``sudo apt-get install python3-mdt``
-
+* ``sudo apt-get install python3-mdt python3-pip``
+* ``sudo pip3 install tatsu``
 
 For Debian users and Ubuntu < 16 users, install MDT with:
 

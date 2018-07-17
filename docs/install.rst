@@ -14,9 +14,11 @@ For **Ubuntu >= 16** the MOT package can be installed from our Personal Package 
 
     $ sudo add-apt-repository ppa:robbert-harms/cbclab
     $ sudo apt-get update
-    $ sudo apt-get install python3-mdt
+    $ sudo apt-get install python3-mdt python3-pip
+    $ sudo pip3 install tatsu
 
 By using a PPA your Ubuntu system can update MDT automatically whenever a new version is out.
+Unfortunately there is no debian package for the Tatsu requirement yet, as such, we need to install it manually.
 
 For **Debian**, and **Ubuntu < 16**, using a PPA is not possible (because of missing dependent packages) and we need a more manual installation.
 Please install the dependencies first:
