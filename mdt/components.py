@@ -6,7 +6,7 @@ from contextlib import contextmanager
 import mdt
 import mot
 from mdt.configuration import get_config_dir
-from mot.library_functions import SimpleCLLibrary
+from mot.library_functions import CLLibrary
 from mdt.model_building.likelihood_functions import LikelihoodFunction
 from mdt.model_building.parameter_functions.transformations import AbstractTransformation
 
@@ -396,7 +396,7 @@ def get_batch_profile(batch_profile):
 def _load_mot_components():
     """Load all the components from MOT."""
     items = [
-        (mot.library_functions, SimpleCLLibrary, 'library_functions'),
+        (mot.library_functions, CLLibrary, 'library_functions'),
         (mdt.model_building.likelihood_functions, LikelihoodFunction, 'likelihood_functions'),
         (mdt.model_building.parameter_functions.transformations, AbstractTransformation, 'parameter_transforms'),
     ]

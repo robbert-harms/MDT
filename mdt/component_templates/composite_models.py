@@ -2,10 +2,11 @@ import inspect
 import re
 from copy import deepcopy
 import numpy as np
+import tatsu
+
 from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate
 from mdt.components import get_component
 from mdt.models.composite import DMRICompositeModel
-from mdt.models.parsers.CompositeModelExpressionParser import parse
 from mot.cl_function import CLFunction, SimpleCLFunction
 from mdt.model_building.trees import CompartmentModelTree
 import collections
@@ -14,6 +15,17 @@ __author__ = 'Robbert Harms'
 __date__ = "2017-02-14"
 __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
+
+
+_composite_model_expression_parser = tatsu.compile('''
+    result = expr;
+    expr = term ('+'|'-') expr | term;
+    term = factor ('*'|'/') term | factor;
+    factor = '(' expr ')' | model;
+    model = model_name ['(' nickname ')'];
+    model_name = /[a-zA-Z_]\w*/;
+    nickname = /[a-zA-Z_]\w*/;
+''')
 
 
 class DMRICompositeModelBuilder(ComponentBuilder):
@@ -32,7 +44,7 @@ class DMRICompositeModelBuilder(ComponentBuilder):
 
                 super(AutoCreatedDMRICompositeModel, self).__init__(
                     model_name,
-                    CompartmentModelTree(parse(template.model_expression)),
+                    CompartmentModelTree(parse_composite_model_expression(template.model_expression)),
                     deepcopy(_resolve_likelihood_function(template.likelihood_function)),
                     signal_noise_model=deepcopy(template.signal_noise_model),
                     enforce_weights_sum_to_one=template.enforce_weights_sum_to_one,
@@ -531,3 +543,49 @@ class CompartmentContextResults(collections.Mapping):
 
     def __iter__(self):
         return self._valid_keys
+
+
+def parse_composite_model_expression(model_expression):
+    """Parse the given model expression into a suitable model tree.
+
+    Args:
+        model_expression (str): the model expression string. Example:
+
+        .. code-block:: none
+
+            S0 * ( (Weight(Wball) * Ball) +
+                   (Weight(Wstick) * Stick ) )
+
+        If the model name is followed by parenthesis the string in parenthesis will represent the model's nickname.
+
+    Returns:
+        :class:`list`: the compartment model tree for use in composite models.
+    """
+    class Semantics(object):
+
+        def expr(self, ast):
+            if not isinstance(ast, list):
+                return ast
+            if isinstance(ast, list):
+                return ast[0], ast[2], ast[1]
+            return ast
+
+        def term(self, ast):
+            if not isinstance(ast, list):
+                return ast
+            if isinstance(ast, list):
+                return ast[0], ast[2], ast[1]
+            return ast
+
+        def factor(self, ast):
+            if isinstance(ast, list):
+                return ast[1]
+            return ast
+
+        def model(self, ast):
+            if isinstance(ast, str):
+                return get_component('compartment_models', ast)()
+            else:
+                return get_component('compartment_models', ast[0])(ast[2])
+
+    return _composite_model_expression_parser.parse(model_expression, semantics=Semantics())

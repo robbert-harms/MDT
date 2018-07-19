@@ -1,6 +1,7 @@
-from mot.cl_routines.mapping.codec_runner import CodecRunner
+from mot.cl_function import SimpleCLFunction
+from mot.cl_routines.base import RunProcedure
+from mot.kernel_data import KernelArray
 from mot.model_interfaces import OptimizeModelInterface
-from mot.utils import NameFunctionTuple
 
 
 __author__ = 'Robbert Harms'
@@ -48,6 +49,89 @@ class ParameterCodec(object):
         """
         raise NotImplementedError()
 
+    def decode(self, parameters, kernel_data, cl_runtime_info=None):
+        """Decode the given parameters using the given model.
+
+        This transforms the data from optimization space to model space.
+
+        Args:
+            parameters (ndarray): The parameters to transform
+            kernel_data (dict[str: mot.utils.KernelData]): the additional data to load
+            cl_runtime_info (mot.cl_runtime_info.CLRuntimeInfo): the runtime information
+
+        Returns:
+            ndarray: The array with the transformed parameters.
+        """
+        return self._transform_parameters(self.get_parameter_decode_function('decodeParameters'),
+                                          'decodeParameters', parameters, kernel_data, cl_runtime_info=cl_runtime_info)
+
+    def encode(self, parameters, kernel_data, cl_runtime_info=None):
+        """Encode the given parameters using the given model.
+
+        This transforms the data from model space to optimization space.
+
+        Args:
+            parameters (ndarray): The parameters to transform
+            kernel_data (dict[str: mot.utils.KernelData]): the additional data to load
+            cl_runtime_info (mot.cl_runtime_info.CLRuntimeInfo): the runtime information
+
+        Returns:
+            ndarray: The array with the transformed parameters.
+        """
+        return self._transform_parameters(self.get_parameter_encode_function('encodeParameters'),
+                                          'encodeParameters', parameters, kernel_data, cl_runtime_info=cl_runtime_info)
+
+    def encode_decode(self, parameters, kernel_data, codec, cl_runtime_info=None):
+        """First apply an encoding operation and then apply a decoding operation again.
+
+        This can be used to enforce boundary conditions in the parameters.
+
+        Args:
+            parameters (ndarray): The parameters to transform
+            kernel_data (dict[str: mot.utils.KernelData]): the additional data to load
+            cl_runtime_info (mot.cl_runtime_info.CLRuntimeInfo): the runtime information
+
+        Returns:
+            ndarray: The array with the transformed parameters.
+        """
+        func_name = 'encode_decode'
+        func = ''
+        func += codec.get_parameter_encode_function('encodeParameters')
+        func += codec.get_parameter_decode_function('decodeParameters')
+        func += '''
+            void ''' + func_name + '''(mot_data_struct* data, mot_float_type* x){
+                encodeParameters(data, x);
+                decodeParameters(data, x);
+            }
+        '''
+        return self._transform_parameters(func, func_name, parameters, kernel_data, cl_runtime_info=cl_runtime_info)
+
+    def _transform_parameters(self, cl_func, cl_func_name, parameters, kernel_data, cl_runtime_info=None):
+        cl_named_func = self._get_codec_function_wrapper(cl_func, cl_func_name, parameters.shape[1])
+
+        all_kernel_data = dict(kernel_data)
+        all_kernel_data['x'] = KernelArray(parameters, ctype='mot_float_type', is_writable=True)
+
+        runner = RunProcedure(cl_runtime_info)
+        runner.run_procedure(cl_named_func, all_kernel_data, parameters.shape[0])
+        return all_kernel_data['x'].get_data()
+
+    def _get_codec_function_wrapper(self, cl_func, cl_func_name, nmr_params):
+        cl_body = '''
+            mot_float_type x[''' + str(nmr_params) + '''];
+            for(uint i = 0; i < ''' + str(nmr_params) + '''; i++){
+                x[i] = data->x[i];
+            }
+
+            ''' + cl_func_name + '''(data, x);
+
+            for(uint i = 0; i < ''' + str(nmr_params) + '''; i++){
+                data->x[i] = x[i];
+            }
+        '''
+        return SimpleCLFunction('void', 'transformParameterSpace', [('mot_data_struct*', 'data')], cl_body,
+                                cl_extra=cl_func)
+
 
 class ParameterTransformedModel(OptimizeModelInterface):
 
@@ -70,8 +154,7 @@ class ParameterTransformedModel(OptimizeModelInterface):
         Args:
             parameters (ndarray): the parameters to transform back to model space
         """
-        space_transformer = CodecRunner()
-        return space_transformer.decode(parameters, self.get_kernel_data(), self._parameter_codec)
+        return self._parameter_codec.decode(parameters, self.get_kernel_data())
 
     def encode_parameters(self, parameters):
         """Decode the given parameters into optimization space
@@ -79,8 +162,7 @@ class ParameterTransformedModel(OptimizeModelInterface):
         Args:
             parameters (ndarray): the parameters to transform into optimization space
         """
-        space_transformer = CodecRunner()
-        return space_transformer.encode(parameters, self.get_kernel_data(), self._parameter_codec)
+        return self._parameter_codec.encode(parameters, self.get_kernel_data())
 
     def get_kernel_data(self):
         return self._model.get_kernel_data()
@@ -96,17 +178,15 @@ class ParameterTransformedModel(OptimizeModelInterface):
 
     def get_pre_eval_parameter_modifier(self):
         old_modifier = self._model.get_pre_eval_parameter_modifier()
-        new_fname = 'wrapped_' + old_modifier.get_cl_function_name()
-
-        code = old_modifier.get_cl_code()
-        code += self._parameter_codec.get_parameter_decode_function('_decodeParameters')
-        code += '''
-            void ''' + new_fname + '''(mot_data_struct* data, mot_float_type* x){
-                _decodeParameters(data, x);
-                ''' + old_modifier.get_cl_function_name() + '''(data, x);
-            }
+        body = '''
+            _decodeParameters(data, x);
+            ''' + old_modifier.get_cl_function_name() + '''(data, x);
         '''
-        return NameFunctionTuple(new_fname, code)
+        return SimpleCLFunction(
+            'void', 'wrapped_' + old_modifier.get_cl_function_name(),
+            [('mot_data_struct*', 'data'), ('mot_float_type*', 'x')], body,
+            dependencies=[old_modifier],
+            cl_extra=self._parameter_codec.get_parameter_decode_function('_decodeParameters'))
 
     def get_objective_per_observation_function(self):
         return self._model.get_objective_per_observation_function()

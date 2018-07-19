@@ -101,4 +101,3 @@ class test_VanGelderenCylindricalRestrictedSignal(unittest.TestCase):
             sum += (num / dem)
 
         return -2 * GAMMA**2 * G**2 * sum
-

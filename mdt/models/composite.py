@@ -14,19 +14,18 @@ from mdt.model_building.utils import ParameterCodec
 
 from mot.cl_data_type import SimpleCLDataType
 from mot.cl_function import SimpleCLFunction, SimpleCLFunctionParameter
+from mot.cl_routines.mapping import calculate_dependent_parameters, compute_log_likelihood
 from mot.cl_routines.mapping.numerical_hessian import NumericalHessian
 from mdt.model_building.parameters import ProtocolParameter, FreeParameter, CurrentObservationParam
 from mot.cl_runtime_info import CLRuntimeInfo
 from mot.model_interfaces import SampleModelInterface, NumericalDerivativeInterface
 from mot.utils import convert_data_to_dtype, \
-    hessian_to_covariance, NameFunctionTuple, all_elements_equal, get_single_value
+    hessian_to_covariance, all_elements_equal, get_single_value
 from mot.kernel_data import KernelArray
 
 from mdt.models.base import MissingProtocolInput
 from mdt.models.base import DMRIOptimizable
 from mdt.utils import calculate_point_estimate_information_criterions, is_scalar, results_to_dict
-from mot.cl_routines.mapping.calc_dependent_params import CalculateDependentParameters
-from mot.cl_routines.mapping.loglikelihood_calculator import LogLikelihoodCalculator
 from mot.mcmc_diagnostics import multivariate_ess, univariate_ess
 
 __author__ = 'Robbert Harms'
@@ -745,8 +744,9 @@ class DMRICompositeModel(DMRIOptimizable):
 
             def calculator(model, results_dict):
                 estimated_parameters = [results_dict[k] for k in estimable_parameter_names]
-                cpd = CalculateDependentParameters()
-                vals = cpd.calculate(model.get_kernel_data(), estimated_parameters, func, dependent_parameter_names)
+
+                vals = calculate_dependent_parameters(model.get_kernel_data(), estimated_parameters,
+                                                      func, dependent_parameter_names)
                 return results_to_dict(vals, [n[1] for n in dependent_parameter_names])
         else:
             def calculator(model, results_dict):
@@ -1271,7 +1271,7 @@ class DMRICompositeModel(DMRIOptimizable):
         """Get the parameter transformation for use in the numerical differentiation algorithm.
 
         Returns:
-            mot.utils.NameFunctionTuple: A function with the signature:
+            mot.cl_function.CLFunction: A function with the signature:
                 .. code-block:: c
 
                     void <func_name>(mot_data_struct* data, mot_float_type* params);
@@ -1288,20 +1288,12 @@ class DMRICompositeModel(DMRIOptimizable):
                     '({div} * floor(params[{ind}] / {div})));'.format(ind=ind, div=p.numdiff_info.modulus))
 
         func_name = 'param_transform'
-        func = '''
-            void {func_name}(mot_data_struct* data, mot_float_type* params){{
-                {transforms}
-            }}
-        '''.format(func_name=func_name, transforms='\n'.join(transforms))
-        return NameFunctionTuple(func_name, func)
+        return SimpleCLFunction('void', func_name, [('mot_data_struct*', 'data'), ('mot_float_type*', 'params')],
+                                '\n'.join(transforms))
 
     def _get_pre_eval_parameter_modifier(self):
-        func_name = '_modifyParameters'
-        func = '''
-            void ''' + func_name + '''(mot_data_struct* data, mot_float_type* x){
-            }
-        '''
-        return NameFunctionTuple(func_name, func)
+        return SimpleCLFunction('void', '_modifyParameters',
+                                [('mot_data_struct*', 'data'), ('mot_float_type*', 'x')], '')
 
     def _get_objective_per_observation_function(self):
         eval_function_info = self._get_model_eval_function()
@@ -1313,23 +1305,21 @@ class DMRICompositeModel(DMRIOptimizable):
             param_listing += self._get_param_listing_for_param(eval_model_func, p)
             eval_call_args.append('{}.{}'.format(eval_model_func.name, p.name).replace('.', '_'))
 
-        preliminary = ''
-        preliminary += eval_function_info.get_cl_code()
-        preliminary += eval_model_func.get_cl_code()
-
         func_name = 'getObjectiveInstanceValue'
-        func = str(preliminary) + '''
-            double ''' + func_name + '''(mot_data_struct* data, const mot_float_type* const x, uint observation_index){
-                double observation = data->observations[observation_index];
-                double model_evaluation = ''' + eval_function_info.get_cl_function_name() + '''(
-                    data, x, observation_index);
+        cl_body = '''
+            double observation = data->observations[observation_index];
+            double model_evaluation = ''' + eval_function_info.get_cl_function_name() + '''(
+                data, x, observation_index);
 
-                ''' + param_listing + '''
+            ''' + param_listing + '''
 
-                return -''' + eval_model_func.get_cl_function_name() + '''(''' + ','.join(eval_call_args) + ''');
-            }
+            return -''' + eval_model_func.get_cl_function_name() + '''(''' + ','.join(eval_call_args) + ''');            
         '''
-        return NameFunctionTuple(func_name, func)
+        return SimpleCLFunction(
+            'double', func_name, [('mot_data_struct*', 'data'),
+                                  ('const mot_float_type* const', 'x'),
+                                  ('uint', 'observation_index')], cl_body,
+            dependencies=[eval_function_info, eval_model_func])
 
     def _get_model_eval_function(self):
         """Get the evaluation function that evaluates the model at the given parameters.
@@ -1338,7 +1328,7 @@ class DMRICompositeModel(DMRIOptimizable):
         evaluating the model for the given parameters.
 
         Returns:
-            SimpleCLFunction: a named CL function with the following signature:
+            mot.cl_function.CLFunction: a named CL function with the following signature:
 
                 .. code-block:: c
 
@@ -1489,7 +1479,7 @@ class DMRICompositeModel(DMRIOptimizable):
             return cl_str
 
         def get_body():
-            cl_str = ''
+            cl_str = 'mot_float_type prior = 1.0;\n'
             for i, (m, p) in enumerate(self._model_functions_info.get_estimable_parameters_list()):
                 name = '{}.{}'.format(m.name, p.name)
 
@@ -1532,25 +1522,11 @@ class DMRICompositeModel(DMRIOptimizable):
             cl_str += '\n\treturn log(prior);'
             return cl_str
 
-        preliminary = get_preliminary()
-        body = get_body()
-
         def builder(address_space_parameter_vector):
-            func_name = 'getLogPrior'
-            prior = '''
-                {preliminary}
-
-                mot_float_type {func_name}(mot_data_struct* data,
-                                           {address_space_parameter_vector} const mot_float_type* const x){{
-
-                    mot_float_type prior = 1.0;
-
-                    {body}
-                }}
-                '''.format(func_name=func_name, address_space_parameter_vector=address_space_parameter_vector,
-                           preliminary=preliminary, body=body)
-            return NameFunctionTuple(func_name, prior)
-
+            return SimpleCLFunction(
+                'mot_float_type', 'getLogPrior',
+                [('mot_data_struct*', 'data'), (address_space_parameter_vector + ' const mot_float_type* const', 'x')],
+                get_body(), cl_extra=get_preliminary())
         return builder
 
     def _get_log_likelihood_per_observation_function(self):
@@ -1563,26 +1539,21 @@ class DMRICompositeModel(DMRIOptimizable):
             param_listing += self._get_param_listing_for_param(eval_function_signature, p)
             eval_call_args.append('{}.{}'.format(eval_function_signature.name, p.name).replace('.', '_'))
 
-        preliminary = ''
-        preliminary += eval_function_info.get_cl_code()
-
         eval_model_func = self._likelihood_function.get_log_likelihood_function()
 
-        func_name = 'getLogLikelihoodPerObservation'
-        func = str(preliminary) + eval_model_func.get_cl_code() + '''
-           double ''' + func_name + '''(mot_data_struct* data, const mot_float_type* const x,
-                                        uint observation_index){
+        body = '''
+            double observation = data->observations[observation_index];
+            double model_evaluation = ''' + eval_function_info.get_cl_function_name() + '''(
+                data, x, observation_index);
 
-               double observation = data->observations[observation_index];
-               double model_evaluation = ''' + eval_function_info.get_cl_function_name() + '''(
-                   data, x, observation_index);
+            ''' + param_listing + '''
 
-               ''' + param_listing + '''
-
-               return ''' + eval_model_func.get_cl_function_name() + '''(''' + ','.join(eval_call_args) + ''');
-           }
-       '''
-        return NameFunctionTuple(func_name, func)
+            return ''' + eval_model_func.get_cl_function_name() + '''(''' + ','.join(eval_call_args) + ''');
+        '''
+        return SimpleCLFunction(
+            'double', 'getLogLikelihoodPerObservation',
+            [('mot_data_struct*', 'data'), ('const mot_float_type* const', 'x'), ('uint', 'observation_index')],
+            body, dependencies=[eval_function_info, eval_model_func])
 
     def _get_weight_prior(self):
         """Get the prior limiting the weights between 0 and 1"""
@@ -1965,8 +1936,7 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
             dict: the calculated information criterion maps
         """
         if log_likelihoods is None:
-            log_likelihood_calc = LogLikelihoodCalculator()
-            log_likelihoods = log_likelihood_calc.calculate(self, results_array)
+            log_likelihoods = compute_log_likelihood(self, results_array)
 
         k = self.nmr_parameters_for_bic_calculation
         n = self.get_nmr_observations()

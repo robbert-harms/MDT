@@ -3,8 +3,9 @@ import itertools
 
 import numpy as np
 from mdt.utils import tensor_spherical_to_cartesian, tensor_cartesian_to_spherical
-from mot.utils import split_in_batches, NameFunctionTuple
-from mot.cl_routines.mapping.run_procedure import RunProcedure
+from mot.cl_function import SimpleCLFunction
+from mot.utils import split_in_batches
+from mot.cl_routines.base import RunProcedure
 from mot.kernel_data import KernelArray, KernelAllocatedArray, KernelScalar
 from mdt.components import get_component
 
@@ -365,11 +366,7 @@ class DKIMeasures(object):
 
         param_expansions = ['mot_float_type {} = params[{}];'.format(name, ind) for ind, name in enumerate(param_names)]
 
-        kernel_source = ''
-        kernel_source += get_component('library_functions', 'TensorApparentDiffusion')().get_cl_code()
-        kernel_source += get_component('library_functions', 'RotateOrthogonalVector')().get_cl_code()
-        kernel_source += get_component('library_functions', 'KurtosisMultiplication')().get_cl_code()
-        kernel_source += '''
+        cl_extra = '''
             double apparent_kurtosis(
                     global mot_float_type* params,
                     mot_float_type4 direction,
@@ -414,54 +411,58 @@ class DKIMeasures(object):
                 *principal_vec = vec2;
                 *perpendicular_vec = vec0;
             }
-
-            void calculate_measures(mot_data_struct* data){
-                int i, j;
-
-                mot_float_type4 vec0, vec1, vec2;
-                TensorSphericalToCartesian(
-                    ''' + get_param_cl_ref('theta') + ''',
-                    ''' + get_param_cl_ref('phi') + ''',
-                    ''' + get_param_cl_ref('psi') + ''',
-                    &vec0, &vec1, &vec2);
-
-                mot_float_type4* principal_vec;
-                mot_float_type4* perpendicular_vec;
-                get_principal_and_perpendicular_eigenvector(
-                    ''' + get_param_cl_ref('d') + ''',
-                    ''' + get_param_cl_ref('dperp0') + ''',
-                    ''' + get_param_cl_ref('dperp1') + ''',
-                    &vec0, &vec1, &vec2,
-                    &principal_vec, &perpendicular_vec);
-
-
-                // Mean Kurtosis integrated over a set of directions
-                double mean = 0;
-                for(i = 0; i < data->nmr_directions; i++){
-                    mean += (apparent_kurtosis(data->parameters, data->directions[i], vec0, vec1, vec2) - mean) 
-                                / (i + 1);
-                }
-                *(data->mks) = clamp(mean, (double)0, (double)3);
-
-
-                // Axial Kurtosis over the principal direction of diffusion
-                *(data->aks) = clamp(apparent_kurtosis(data->parameters, *principal_vec, vec0, vec1, vec2), 
-                                   (double)0, (double)10);
-
-
-                // Radial Kurtosis integrated over a unit circle around the principal eigenvector.
-                mean = 0;
-                mot_float_type4 rotated_vec;
-                for(i = 0; i < data->nmr_radial_directions; i++){
-                    rotated_vec = RotateOrthogonalVector(*principal_vec, *perpendicular_vec,
-                                                         i * (2 * M_PI_F) / data->nmr_radial_directions);
-
-                    mean += (apparent_kurtosis(data->parameters, rotated_vec, vec0, vec1, vec2) - mean) / (i + 1);
-                }
-                *(data->rks) = max(mean, (double)0);
-            }
         '''
-        return NameFunctionTuple('calculate_measures', kernel_source)
+
+        cl_body = '''
+            int i, j;
+
+            mot_float_type4 vec0, vec1, vec2;
+            TensorSphericalToCartesian(
+                ''' + get_param_cl_ref('theta') + ''',
+                ''' + get_param_cl_ref('phi') + ''',
+                ''' + get_param_cl_ref('psi') + ''',
+                &vec0, &vec1, &vec2);
+
+            mot_float_type4* principal_vec;
+            mot_float_type4* perpendicular_vec;
+            get_principal_and_perpendicular_eigenvector(
+                ''' + get_param_cl_ref('d') + ''',
+                ''' + get_param_cl_ref('dperp0') + ''',
+                ''' + get_param_cl_ref('dperp1') + ''',
+                &vec0, &vec1, &vec2,
+                &principal_vec, &perpendicular_vec);
+
+
+            // Mean Kurtosis integrated over a set of directions
+            double mean = 0;
+            for(i = 0; i < data->nmr_directions; i++){
+                mean += (apparent_kurtosis(data->parameters, data->directions[i], vec0, vec1, vec2) - mean) 
+                            / (i + 1);
+            }
+            *(data->mks) = clamp(mean, (double)0, (double)3);
+
+
+            // Axial Kurtosis over the principal direction of diffusion
+            *(data->aks) = clamp(apparent_kurtosis(data->parameters, *principal_vec, vec0, vec1, vec2), 
+                               (double)0, (double)10);
+
+
+            // Radial Kurtosis integrated over a unit circle around the principal eigenvector.
+            mean = 0;
+            mot_float_type4 rotated_vec;
+            for(i = 0; i < data->nmr_radial_directions; i++){
+                rotated_vec = RotateOrthogonalVector(*principal_vec, *perpendicular_vec,
+                                                     i * (2 * M_PI_F) / data->nmr_radial_directions);
+
+                mean += (apparent_kurtosis(data->parameters, rotated_vec, vec0, vec1, vec2) - mean) / (i + 1);
+            }
+            *(data->rks) = max(mean, (double)0);
+        '''
+        return SimpleCLFunction(
+            'void', 'calculate_measures', [('mot_data_struct*', 'data')], cl_body,
+            cl_extra=cl_extra,
+            dependencies=[get_component('library_functions', name)() for name in
+                          ('TensorApparentDiffusion', 'RotateOrthogonalVector', 'KurtosisMultiplication')])
 
     @staticmethod
     def _get_spherical_samples():

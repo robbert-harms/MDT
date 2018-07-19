@@ -41,6 +41,17 @@ class CalculateModelEstimates(CLRoutine):
 
         return evaluations
 
+    def _create_workers(self, worker_generating_cb):
+        """Create workers for all the CL environments in current use.
+
+        Args:
+            worker_generating_cb (python function): the callback function that we use to generate the
+                worker for a specific CL environment. This should accept as single argument a CL environment and
+                should return a Worker instance for use in CL computations.
+        """
+        cl_environments = self._cl_runtime_info.get_cl_environments()
+        return [worker_generating_cb(env) for env in cl_environments]
+
 
 class _EvaluateModelWorker(Worker):
 
