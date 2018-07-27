@@ -3,7 +3,8 @@ import collections
 from mdt.components import get_model
 from mdt.nifti import get_all_nifti_data
 from mdt.utils import create_roi, restore_volumes, MockMRIInputData
-from mdt.cl_routines.mapping.calculate_model_estimates import CalculateModelEstimates
+from mot.cl_function import SimpleCLFunction
+from mot.kernel_data import KernelArray, KernelAllocatedArray
 
 __author__ = 'Robbert Harms'
 __date__ = '2017-05-29'
@@ -33,6 +34,7 @@ def create_signal_estimates(model, input_data, parameters):
         model = get_model(model)()
 
     model.set_input_data(input_data)
+    build_model = model.build()
 
     if isinstance(parameters, str):
         parameters = get_all_nifti_data(parameters)
@@ -40,13 +42,17 @@ def create_signal_estimates(model, input_data, parameters):
     parameters = create_roi(parameters, input_data.mask)
     parameters = model.param_dict_to_array(parameters)
 
-    build_model = model.build()
-
     if parameters.shape[0] != build_model.get_nmr_problems():
         raise ValueError('The number of voxels in the parameters does not match those in the model.')
 
-    calculator = CalculateModelEstimates()
-    results = calculator.calculate(model.build(), parameters)
+    kernel_data = {'data': build_model.get_kernel_data(),
+                   'parameters': KernelArray(parameters, ctype='mot_float_type'),
+                   'estimates': KernelAllocatedArray(
+                       (build_model.get_nmr_problems(), build_model.get_nmr_observations()), 'mot_float_type')
+                   }
+
+    _get_simulate_function(build_model).evaluate(kernel_data, nmr_instances=build_model.get_nmr_problems())
+    results = kernel_data['estimates'].get_data()
 
     return restore_volumes(results, input_data.mask)
 
@@ -71,12 +77,20 @@ def simulate_signals(model, protocol, parameters):
         model = get_model(model)()
 
     model.set_input_data(MockMRIInputData(protocol=protocol))
+    build_model = model.build()
 
     if isinstance(parameters, collections.Mapping):
         parameters = model.param_dict_to_array(parameters)
 
-    calculator = CalculateModelEstimates()
-    return calculator.calculate(model.build(), parameters)
+    nmr_problems = parameters.shape[0]
+
+    kernel_data = {'data': build_model.get_kernel_data(),
+                   'parameters': KernelArray(parameters, ctype='mot_float_type'),
+                   'estimates': KernelAllocatedArray((nmr_problems, build_model.get_nmr_observations()), 'mot_float_type')
+                   }
+
+    _get_simulate_function(build_model).evaluate(kernel_data, nmr_instances=nmr_problems)
+    return kernel_data['estimates'].get_data()
 
 
 def add_rician_noise(signals, noise_level, seed=None):
@@ -98,3 +112,25 @@ def add_rician_noise(signals, noise_level, seed=None):
     x = noise_level * random_state.normal(size=signals.shape) + signals
     y = noise_level * random_state.normal(size=signals.shape)
     return np.sqrt(np.power(x, 2), np.power(y, 2)).astype(signals.dtype)
+
+
+def _get_simulate_function(model):
+    """Get the simulation function.
+
+    This is a wrapper around the model evaluation function. As such, it includes all things like the
+    pre-evaluation parameter modifiers, the protocol adaptation callbacks, etc. It creates the model signal just
+    as used by the log-likelihood function during model optimization.
+    """
+    eval_function_info = model.get_model_eval_function()
+    param_modifier = model.get_pre_eval_parameter_modifier()
+
+    return SimpleCLFunction.from_string('''
+        void simulate(mot_data_struct* data, mot_float_type* parameters, global mot_float_type* estimates){
+            ''' + param_modifier.get_cl_function_name() + '''(data, parameters);
+
+            for(uint i = 0; i < ''' + str(model.get_nmr_observations()) + '''; i++){
+                estimates[i] = ''' + eval_function_info.get_cl_function_name() + '''(data, parameters, i);
+            }
+        }
+    ''', dependencies=[eval_function_info, param_modifier])
+

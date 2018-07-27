@@ -97,20 +97,18 @@ class GenerateProtocolTab(MainTab, Ui_GenerateProtocolTabContent, QObject):
             self.nmrWeighted.setText('0')
 
         try:
-            self.nmrShells.setText(str(len(self._protocol.get_b_values_shells())))
-        except KeyError:
-            self.nmrShells.setText('0')
-        self.nmrColumns.setText(str(self._protocol.number_of_columns))
-
-        try:
             shells = self._protocol.get_b_values_shells()
+            self.nmrShells.setText(str(len(shells)))
             shells_text = []
             for shell in shells:
-                occurrences = self._protocol.count_occurrences('b', shell)
-                shells_text.append('{0:0=.3f}e9 s/m^2 ({1} volumes)'.format(shell/1e9, occurrences))
+                shells_text.append('{0:0=.3f}e9 s/m^2 ({1} volumes)'.format(shell['b_value'] / 1e9,
+                                                                            shell['nmr_volumes']))
             self.differentShells.setText(', '.join(shells_text))
         except KeyError:
+            self.nmrShells.setText('0')
             self.differentShells.setText('-')
+
+        self.nmrColumns.setText(str(self._protocol.number_of_columns))
 
     def _update_table_view(self):
         all_column_names, real_column_names, estimated_column_names, system_column_names = self._get_column_names()

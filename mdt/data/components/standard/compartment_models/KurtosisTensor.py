@@ -1,7 +1,7 @@
 import numpy as np
 import itertools
 
-from mdt.post_processing import DTIMeasures, DKIMeasures
+from mdt.post_processing import DTIMeasures, DKIMeasures, noddi_dti_maps
 
 from mdt.model_building.parameter_functions.priors import AlwaysOne, UniformWithinBoundsPrior
 from mdt.component_templates.parameters import FreeParameterTemplate, ParameterBuilder
@@ -118,6 +118,7 @@ class KurtosisTensor(CompartmentTemplate):
     ]
     extra_optimization_maps = [
         DTIMeasures.extra_optimization_maps,
-        DKIMeasures.extra_optimization_maps
+        DKIMeasures.extra_optimization_maps,
+        noddi_dti_maps
     ]
     extra_sampling_maps = [DTIMeasures.extra_sampling_maps]

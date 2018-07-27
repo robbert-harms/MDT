@@ -1,11 +1,8 @@
 """This module contains various standard post-processing routines for use after optimization or sampling."""
-import itertools
-
 import numpy as np
 from mdt.utils import tensor_spherical_to_cartesian, tensor_cartesian_to_spherical
 from mot.cl_function import SimpleCLFunction
 from mot.utils import split_in_batches
-from mot.cl_routines.base import RunProcedure
 from mot.kernel_data import KernelArray, KernelAllocatedArray, KernelScalar
 from mdt.components import get_component
 
@@ -15,6 +12,72 @@ __date__ = '2017-12-10'
 __maintainer__ = 'Robbert Harms'
 __email__ = 'robbert.harms@maastrichtuniversity.nl'
 __licence__ = 'LGPL v3'
+
+
+def noddi_dti_maps(results, input_data=None):
+    """Compute NODDI-like statistics from Tensor/Kurtosis parameter fits.
+
+    Several authors noted correspondence between NODDI parameters and DTI parameters [1, 2]. This function computes
+    the neurite density index (NDI) and NODDI's measure of neurite dispersion using Tensor parameters.
+
+    The corresponding theory assumes that the intrinsic diffusivity of the intra-neurite compartment of NODDI
+    is fixed to d = 1.7 x 10−9 m^2 s^−1. As such, we fix it here to that value as well and compute the corresponding
+    NODDI-DTI results.
+
+    Args:
+        results (dict): the result dictionary, should contain at least:
+
+            - d (ndarray): principal diffusivity
+            - dperp0 (ndarray): primary perpendicular diffusion
+            - dperp1 (ndarray): primary perpendicular diffusion
+
+            And, if present, we also use these:
+
+            - FA (ndarray): if computed already, the Fractional Anisotropy of the given diffusivities
+            - MD (ndarray): if computed already, the Mean Diffusivity of the given diffusivities
+            - MK (ndarray): if computing for Kurtosis, the computed Mean Kurtosis. If not given, we assume unity.
+
+        input_data (mdt.utils.MRIInputData): optionally, the input data used during the model fitting.
+                If set, we apply the heuristic correction for Diffusional Kurtosis to the MD [1].
+
+    Returns:
+        tuple: the NODDI-DTI, NDI and ODI measures.
+
+    References:
+        1. Edwards LJ, Pine KJ, Ellerbrock I, Weiskopf N, Mohammadi S. NODDI-DTI: Estimating neurite orientation and
+            dispersion parameters from a diffusion tensor in healthy white matter.
+            Front Neurosci. 2017;11(DEC):1-15. doi:10.3389/fnins.2017.00720.
+        2. Lampinen B, Szczepankiewicz F, Mårtensson J, van Westen D, Sundgren PC, Nilsson M. Neurite density
+            imaging versus imaging of microscopic anisotropy in diffusion MRI: A model comparison using spherical
+            tensor encoding. Neuroimage. 2017;147(July 2016):517-531. doi:10.1016/j.neuroimage.2016.11.053.
+    """
+    noddi_d = 1.7e-9
+
+    d = results['d']
+    dperp0 = results['dperp0']
+    dperp1 = results['dperp1']
+
+    FA = results.get('FA', DTIMeasures.fractional_anisotropy(d, dperp0, dperp1))
+    MD = results.get('MD', (d + dperp0 + dperp1) / 3.)
+
+    tau = 1 / 3. * (1 + (4 / np.fabs(noddi_d - MD)) * (MD * FA / np.sqrt(3 - 2 * FA ** 2)))
+    tau = np.nan_to_num(tau)
+
+    if input_data is not None:
+        shells = input_data.protocol.get_b_values_shells()
+
+        b = shells[0]['b_value']
+        if len(shells) > 1:
+            b = shells[1]['b_value'] - shells[0]['b_value']
+
+        sum = (d ** 2 + dperp0 ** 2 + dperp1 ** 2) / 5 + 2 * (d * dperp0 + d * dperp1 + dperp0 * dperp1) / 15
+
+        MD += ((b / 6) * sum) * results.get('MK', 1)
+
+    ndi = 1 - np.sqrt(0.5 * ((3 * MD) / noddi_d - 1))
+    ndi = np.clip(np.nan_to_num(ndi), 0, 1)
+
+    return {'NODDI_DTI_NDI': ndi, 'NODDI_DTI_TAU': tau}
 
 
 class DTIMeasures(object):
@@ -34,17 +97,11 @@ class DTIMeasures(object):
             dict: as keys typical elements like 'FA and 'MD' as interesting output and as per values the maps.
                 These maps are per voxel, and optionally per instance per voxel
         """
-        # todo add after verification
-        # ndi, odi = DTIMeasures.tensor_to_noddi_dti(results['d'], results['dperp0'], results['dperp1'],
-        #                                            input_data=input_data)
-
         output = {
             'FA': DTIMeasures.fractional_anisotropy(results['d'], results['dperp0'], results['dperp1']),
             'MD': (results['d'] + results['dperp0'] + results['dperp1']) / 3.,
             'AD': results['d'],
             'RD': (results['dperp0'] + results['dperp1']) / 2.0,
-            # 'NODDI_DTI_NDI': ndi,
-            # 'NODDI_DTI_ODI': odi
         }
 
         if all('{}.std'.format(el) in results for el in ['d', 'dperp0', 'dperp1']):
@@ -118,58 +175,6 @@ class DTIMeasures(object):
         theta, phi, psi = tensor_cartesian_to_spherical(sorted_eigenvectors[0], sorted_eigenvectors[1])
         return {'d': sorted_eigenvalues[:, 0], 'dperp0': sorted_eigenvalues[:, 1], 'dperp1': sorted_eigenvalues[:, 2],
                 'theta': theta, 'phi': phi, 'psi': psi}
-
-    @staticmethod
-    def tensor_to_noddi_dti(d, dperp0, dperp1, input_data=None):
-        """Compute NODDI-like statistics from Tensor parameter fits.
-
-        Several authors noted correspondence between NODDI parameters and DTI parameters [1, 2]. This function computes
-        the neurite density index (NDI) and NODDI's measure of neurite dispersion using Tensor parameters.
-
-        The corresponding theory assumes that the intrinsic diffusivity of the intra-neurite compartment of NODDI
-        is fixed to d = 1.7 x 10−9 m^2 s^−1. As such, we fix it here to that value as well and compute the corresponding
-        NODDI-DTI results.
-
-        Args:
-            d (ndarray): principal diffusivity
-            dperp0 (ndarray): primary perpendicular diffusion
-            dperp1 (ndarray): primary perpendicular diffusion
-            input_data (mdt.utils.MRIInputData): optionally, the input data used during the model fitting.
-                If set, we apply the heuristic correction for Diffusional Kurtosis to the MD [1].
-
-        Returns:
-            tuple: the NODDI-DTI, NDI and ODI measures.
-
-        References:
-            1. Edwards LJ, Pine KJ, Ellerbrock I, Weiskopf N, Mohammadi S. NODDI-DTI: Estimating neurite orientation and
-                dispersion parameters from a diffusion tensor in healthy white matter.
-                Front Neurosci. 2017;11(DEC):1-15. doi:10.3389/fnins.2017.00720.
-            2. Lampinen B, Szczepankiewicz F, Mårtensson J, van Westen D, Sundgren PC, Nilsson M. Neurite density
-                imaging versus imaging of microscopic anisotropy in diffusion MRI: A model comparison using spherical
-                tensor encoding. Neuroimage. 2017;147(July 2016):517-531. doi:10.1016/j.neuroimage.2016.11.053.
-        """
-        noddi_d = 1.7e-9
-
-        FA = DTIMeasures.fractional_anisotropy(d, dperp0, dperp1)
-        MD = (d + dperp0 + dperp1) / 3.
-
-        odi = 1 / 3. * (1 + (4 / np.fabs(noddi_d - MD)) * (MD * FA / np.sqrt(3 - 2 * FA ** 2)))
-        odi = np.nan_to_num(odi)
-
-        if input_data is not None:
-            b = np.mean(input_data.protocol['b'][input_data.protocol.get_weighted_indices()])
-            ds = [d, dperp0, dperp1]
-
-            sum = 0
-            for i, j in itertools.product(range(3), repeat=2):
-                sum += ((1 + 2 * (i == j)) / 15) * ds[i] * ds[j]
-
-            MD += (b / 6) * sum
-
-        ndi = 1 - np.sqrt(0.5 * ((3 * MD) / noddi_d - 1))
-        ndi = np.clip(np.nan_to_num(ndi), 0, 1)
-
-        return ndi, odi
 
     @staticmethod
     def fractional_anisotropy(d, dperp0, dperp1):
@@ -348,12 +353,11 @@ class DKIMeasures(object):
                                                  is_readable=True, is_writable=False, offset_str='0'),
                        'nmr_directions': KernelScalar(DKIMeasures._get_spherical_samples().shape[0]),
                        'nmr_radial_directions': KernelScalar(256),
-                       'mks': KernelAllocatedArray((nmr_voxels, 1), ctype='mot_float_type'),
-                       'aks': KernelAllocatedArray((nmr_voxels, 1), ctype='mot_float_type'),
-                       'rks': KernelAllocatedArray((nmr_voxels, 1), ctype='mot_float_type')}
+                       'mks': KernelAllocatedArray((nmr_voxels,), ctype='mot_float_type'),
+                       'aks': KernelAllocatedArray((nmr_voxels,), ctype='mot_float_type'),
+                       'rks': KernelAllocatedArray((nmr_voxels,), ctype='mot_float_type')}
 
-        runner = RunProcedure()
-        runner.run_procedure(DKIMeasures._get_compute_function(param_names), kernel_data, nmr_voxels)
+        DKIMeasures._get_compute_function(param_names).evaluate({'data': kernel_data}, nmr_instances=nmr_voxels)
 
         return {'MK': kernel_data['mks'].get_data(),
                 'AK': kernel_data['aks'].get_data(),
@@ -366,7 +370,7 @@ class DKIMeasures(object):
 
         param_expansions = ['mot_float_type {} = params[{}];'.format(name, ind) for ind, name in enumerate(param_names)]
 
-        cl_extra = '''
+        apparent_kurtosis = SimpleCLFunction.from_string('''
             double apparent_kurtosis(
                     global mot_float_type* params,
                     mot_float_type4 direction,
@@ -389,7 +393,9 @@ class DKIMeasures(object):
 
                 return pown(tensor_md / adc, 2) * kurtosis_sum;
             }
+        ''', dependencies=[get_component('library_functions', 'KurtosisMultiplication')()])
 
+        eigenvectors = SimpleCLFunction.from_string('''
             void get_principal_and_perpendicular_eigenvector(
                     mot_float_type d,
                     mot_float_type dperp0,
@@ -411,58 +417,57 @@ class DKIMeasures(object):
                 *principal_vec = vec2;
                 *perpendicular_vec = vec0;
             }
-        '''
+        ''')
 
-        cl_body = '''
-            int i, j;
+        func = SimpleCLFunction.from_string('''
+            void calculate_measures(mot_data_struct* data){
+                int i, j;
 
-            mot_float_type4 vec0, vec1, vec2;
-            TensorSphericalToCartesian(
-                ''' + get_param_cl_ref('theta') + ''',
-                ''' + get_param_cl_ref('phi') + ''',
-                ''' + get_param_cl_ref('psi') + ''',
-                &vec0, &vec1, &vec2);
+                mot_float_type4 vec0, vec1, vec2;
+                TensorSphericalToCartesian(
+                    ''' + get_param_cl_ref('theta') + ''',
+                    ''' + get_param_cl_ref('phi') + ''',
+                    ''' + get_param_cl_ref('psi') + ''',
+                    &vec0, &vec1, &vec2);
 
-            mot_float_type4* principal_vec;
-            mot_float_type4* perpendicular_vec;
-            get_principal_and_perpendicular_eigenvector(
-                ''' + get_param_cl_ref('d') + ''',
-                ''' + get_param_cl_ref('dperp0') + ''',
-                ''' + get_param_cl_ref('dperp1') + ''',
-                &vec0, &vec1, &vec2,
-                &principal_vec, &perpendicular_vec);
+                mot_float_type4* principal_vec;
+                mot_float_type4* perpendicular_vec;
+                get_principal_and_perpendicular_eigenvector(
+                    ''' + get_param_cl_ref('d') + ''',
+                    ''' + get_param_cl_ref('dperp0') + ''',
+                    ''' + get_param_cl_ref('dperp1') + ''',
+                    &vec0, &vec1, &vec2,
+                    &principal_vec, &perpendicular_vec);
+
+                // Mean Kurtosis integrated over a set of directions
+                double mean = 0;
+                for(i = 0; i < data->nmr_directions; i++){
+                    mean += (apparent_kurtosis(data->parameters, data->directions[i], vec0, vec1, vec2) - mean)
+                                / (i + 1);
+                }
+                *(data->mks) = clamp(mean, (double)0, (double)3);
 
 
-            // Mean Kurtosis integrated over a set of directions
-            double mean = 0;
-            for(i = 0; i < data->nmr_directions; i++){
-                mean += (apparent_kurtosis(data->parameters, data->directions[i], vec0, vec1, vec2) - mean) 
-                            / (i + 1);
+                // Axial Kurtosis over the principal direction of diffusion
+                *(data->aks) = clamp(apparent_kurtosis(data->parameters, *principal_vec, vec0, vec1, vec2),
+                                   (double)0, (double)10);
+
+
+                // Radial Kurtosis integrated over a unit circle around the principal eigenvector.
+                mean = 0;
+                mot_float_type4 rotated_vec;
+                for(i = 0; i < data->nmr_radial_directions; i++){
+                    rotated_vec = RotateOrthogonalVector(*principal_vec, *perpendicular_vec,
+                                                         i * (2 * M_PI_F) / data->nmr_radial_directions);
+
+                    mean += (apparent_kurtosis(data->parameters, rotated_vec, vec0, vec1, vec2) - mean) / (i + 1);
+                }
+                *(data->rks) = max(mean, (double)0);
             }
-            *(data->mks) = clamp(mean, (double)0, (double)3);
-
-
-            // Axial Kurtosis over the principal direction of diffusion
-            *(data->aks) = clamp(apparent_kurtosis(data->parameters, *principal_vec, vec0, vec1, vec2), 
-                               (double)0, (double)10);
-
-
-            // Radial Kurtosis integrated over a unit circle around the principal eigenvector.
-            mean = 0;
-            mot_float_type4 rotated_vec;
-            for(i = 0; i < data->nmr_radial_directions; i++){
-                rotated_vec = RotateOrthogonalVector(*principal_vec, *perpendicular_vec,
-                                                     i * (2 * M_PI_F) / data->nmr_radial_directions);
-
-                mean += (apparent_kurtosis(data->parameters, rotated_vec, vec0, vec1, vec2) - mean) / (i + 1);
-            }
-            *(data->rks) = max(mean, (double)0);
-        '''
-        return SimpleCLFunction(
-            'void', 'calculate_measures', [('mot_data_struct*', 'data')], cl_body,
-            cl_extra=cl_extra,
-            dependencies=[get_component('library_functions', name)() for name in
-                          ('TensorApparentDiffusion', 'RotateOrthogonalVector', 'KurtosisMultiplication')])
+        ''', dependencies=[get_component('library_functions', 'RotateOrthogonalVector')(),
+                           get_component('library_functions', 'TensorSphericalToCartesian')(),
+                           apparent_kurtosis, eigenvectors])
+        return func
 
     @staticmethod
     def _get_spherical_samples():

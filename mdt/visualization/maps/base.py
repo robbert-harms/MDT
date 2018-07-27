@@ -1232,31 +1232,10 @@ class Font(SimpleConvertibleConfig):
 
 class MapPlotConfig(SimpleConvertibleConfig):
 
-    default_values = {
-        'dimension': 2,
-        'slice_index': 0,
-        'volume_index': 0,
-        'rotate': 90,
-        'colormap': 'hot',
-        'maps_to_show': '',
-        'zoom': Zoom.no_zoom(),
-        'font': Font(),
-        'show_axis': False,
-        'show_titles': True,
-        'grid_layout': Rectangular(),
-        'interpolation': 'bilinear',
-        'flipud': False,
-        'map_plot_options': {},
-        'title': None,
-        'mask_name': None,
-        'annotations': [],
-        'colorbar_settings': ColorbarSettings.get_default()
-    }
-
     def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=90, colormap='hot', maps_to_show=None,
                  font=None, grid_layout=None, show_axis=False, show_titles=True, zoom=None,
-                 map_plot_options=None, interpolation='bilinear', flipud=None,
-                 title=None, mask_name=None, colorbar_settings=None, annotations=None):
+                 map_plot_options=None, interpolation='bilinear', flipud=None, title=None,
+                 title_spacing=None, mask_name=None, colorbar_settings=None, annotations=None):
         """Container for all plot related settings.
 
         Args:
@@ -1276,31 +1255,36 @@ class MapPlotConfig(SimpleConvertibleConfig):
             interpolation (str): one of the available interpolations
             flipud (boolean): if True we flip the image upside down
             title (str): the title to this plot
+            title_spacing (float): the spacing between the top of the plots and the title
             mask_name (str): the name of the mask to apply to the maps prior to display
             annotations (list of VoxelAnnotation): the voxel annotations
             colorbar_settings (ColorbarSettings): all colorbar related settings
         """
-        super(MapPlotConfig, self).__init__()
+        super().__init__()
+
+        default_values = self.get_default_values()
+
         self.dimension = dimension
         self.slice_index = slice_index
         self.volume_index = volume_index
         self.rotate = rotate
         self.colormap = colormap
-        self.maps_to_show = maps_to_show or self.default_values['maps_to_show']
-        self.zoom = zoom or self.default_values['zoom']
-        self.font = font or self.default_values['font']
+        self.maps_to_show = maps_to_show or default_values['maps_to_show']
+        self.zoom = zoom or default_values['zoom']
+        self.font = font or default_values['font']
         self.show_axis = bool(show_axis)
         self.show_titles = bool(show_titles)
-        self.grid_layout = grid_layout or self.default_values['grid_layout']
-        self.interpolation = interpolation or self.default_values['bilinear']
+        self.grid_layout = grid_layout or default_values['grid_layout']
+        self.interpolation = interpolation or default_values['bilinear']
         self.flipud = flipud
         if self.flipud is None:
-            self.flipud = self.default_values['flipud']
+            self.flipud = default_values['flipud']
         self.map_plot_options = map_plot_options or {}
         self.title = title
+        self.title_spacing = title_spacing
         self.mask_name = mask_name
         self.annotations = annotations or []
-        self.colorbar_settings = colorbar_settings or self.default_values['colorbar_settings']
+        self.colorbar_settings = colorbar_settings or default_values['colorbar_settings']
 
         if interpolation not in self.get_available_interpolations():
             raise ValueError('The given interpolation ({}) is not supported.'.format(interpolation))
@@ -1335,6 +1319,30 @@ class MapPlotConfig(SimpleConvertibleConfig):
     def get_available_colormaps(cls):
         return _get_available_colormaps()
 
+    @staticmethod
+    def get_default_values():
+        return {
+            'dimension': 2,
+            'slice_index': 0,
+            'volume_index': 0,
+            'rotate': 90,
+            'colormap': 'hot',
+            'maps_to_show': '',
+            'zoom': Zoom.no_zoom(),
+            'font': Font(),
+            'show_axis': False,
+            'show_titles': True,
+            'grid_layout': Rectangular(),
+            'interpolation': 'bilinear',
+            'flipud': False,
+            'map_plot_options': {},
+            'title': None,
+            'title_spacing': None,
+            'mask_name': None,
+            'annotations': [],
+            'colorbar_settings': ColorbarSettings.get_default()
+        }
+
     @classmethod
     def _get_attribute_conversions(cls):
         return {'dimension': IntConversion(),
@@ -1352,6 +1360,7 @@ class MapPlotConfig(SimpleConvertibleConfig):
                 'interpolation': WhiteListConversion(cls.get_available_interpolations(), 'bilinear'),
                 'flipud': BooleanConversion(allow_null=False),
                 'title': StringConversion(),
+                'title_spacing': FloatConversion(),
                 'mask_name': StringConversion(),
                 'annotations': ConvertListElements(VoxelAnnotation.get_conversion_info()),
                 'colorbar_settings': ColorbarSettings.get_conversion_info()
@@ -1375,6 +1384,7 @@ class MapPlotConfig(SimpleConvertibleConfig):
             dict: dict representation of the data
         """
         data = self.get_conversion_info().to_dict(self)
+        default_values = self.get_default_values()
 
         if non_default_only:
             for key, value in list(data['map_plot_options'].items()):
@@ -1385,7 +1395,7 @@ class MapPlotConfig(SimpleConvertibleConfig):
                 else:
                     data['map_plot_options'][key] = map_config.to_dict(non_default_only=non_default_only)
 
-            for key, default in self.default_values.items():
+            for key, default in default_values.items():
                 data_value = self._get_attribute_conversions()[key].from_dict(data[key])
                 if data_value == default:
                     del data[key]
@@ -1565,21 +1575,6 @@ class MapPlotConfig(SimpleConvertibleConfig):
 
 class SingleMapConfig(SimpleConvertibleConfig):
 
-    default_values = {
-        'title': None,
-        'title_spacing': None,
-        'scale': Scale(),
-        'clipping': Clipping(),
-        'colormap': None,
-        'colorbar_label': None,
-        'show_title': None,
-        'mask_name': None,
-        'interpret_as_colormap': False,
-        'colormap_weight_map': None,
-        'colormap_order': None,
-        'colorbar_settings': ColorbarSettings()
-    }
-
     def __init__(self, title=None, scale=None, clipping=None, colormap=None, colorbar_label=None,
                  show_title=None, title_spacing=None, mask_name=None, interpret_as_colormap=False,
                  colormap_weight_map=None,
@@ -1604,19 +1599,22 @@ class SingleMapConfig(SimpleConvertibleConfig):
                 components of the data. Valid strings are permutations of the letters RGB.
             colorbar_settings (ColorbarSettings): all colorbar related settings
         """
-        super(SingleMapConfig, self).__init__()
+        super().__init__()
+
+        default_values = self.get_default_values()
+
         self.title = title
         self.title_spacing = title_spacing
-        self.scale = scale or self.default_values['scale']
-        self.clipping = clipping or self.default_values['clipping']
+        self.scale = scale or default_values['scale']
+        self.clipping = clipping or default_values['clipping']
         self.colormap = colormap
         self.colorbar_label = colorbar_label
-        self.show_title = bool(show_title) if show_title is not None else self.default_values['show_title']
+        self.show_title = bool(show_title) if show_title is not None else default_values['show_title']
         self.mask_name = mask_name
         self.interpret_as_colormap = bool(interpret_as_colormap)
         self.colormap_weight_map = colormap_weight_map
         self.colormap_order = colormap_order
-        self.colorbar_settings = colorbar_settings or self.default_values['colorbar_settings']
+        self.colorbar_settings = colorbar_settings or default_values['colorbar_settings']
 
         if self.colormap is not None and self.colormap not in self.get_available_colormaps():
             raise ValueError('The given colormap ({}) is not supported.'.format(self.colormap))
@@ -1625,6 +1623,23 @@ class SingleMapConfig(SimpleConvertibleConfig):
             if len(colormap_order) > 3 or not all(color in colormap_order.lower() for color in 'rgb'):
                 raise ValueError('Incorrect colormap order specification, '
                                  'only permutations of "rgb" are allowed.'.format(colormap_order))
+
+    @staticmethod
+    def get_default_values():
+        return {
+            'title': None,
+            'title_spacing': None,
+            'scale': Scale(),
+            'clipping': Clipping(),
+            'colormap': None,
+            'colorbar_label': None,
+            'show_title': None,
+            'mask_name': None,
+            'interpret_as_colormap': False,
+            'colormap_weight_map': None,
+            'colormap_order': None,
+            'colorbar_settings': ColorbarSettings()
+        }
 
     @classmethod
     def _get_attribute_conversions(cls):
@@ -1653,7 +1668,6 @@ class SingleMapConfig(SimpleConvertibleConfig):
     def from_dict(cls, config_dict):
         return cls.get_conversion_info().from_dict(config_dict)
 
-
     def to_dict(self, non_default_only=False):
         """Export this configuration to a dictionary
 
@@ -1664,9 +1678,10 @@ class SingleMapConfig(SimpleConvertibleConfig):
             dict: dict representation of the data
         """
         data = self.get_conversion_info().to_dict(self)
+        default_values = self.get_default_values()
 
         if non_default_only:
-            for key, default in self.default_values.items():
+            for key, default in default_values.items():
                 data_value = self._get_attribute_conversions()[key].from_dict(data[key])
                 if data_value == default:
                     del data[key]

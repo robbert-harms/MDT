@@ -375,7 +375,7 @@ class Renderer(object):
         return default
 
     def _get_title_spacing(self, map_name):
-        spacing = 1 + self._get_map_attr(map_name, 'title_spacing', 0)
+        spacing = 1 + self._get_map_attr(map_name, 'title_spacing', self._plot_config.title_spacing or 0)
         if self._get_colorbar_setting(map_name, 'location') == 'top':
             spacing += 0.15
         return spacing

@@ -1,5 +1,4 @@
 from mot.cl_function import SimpleCLFunction
-from mot.cl_routines.base import RunProcedure
 from mot.kernel_data import KernelArray
 from mot.model_interfaces import OptimizeModelInterface
 
@@ -109,28 +108,30 @@ class ParameterCodec(object):
     def _transform_parameters(self, cl_func, cl_func_name, parameters, kernel_data, cl_runtime_info=None):
         cl_named_func = self._get_codec_function_wrapper(cl_func, cl_func_name, parameters.shape[1])
 
-        all_kernel_data = dict(kernel_data)
-        all_kernel_data['x'] = KernelArray(parameters, ctype='mot_float_type', is_writable=True)
+        data_struct = dict(kernel_data)
+        data_struct['x'] = KernelArray(parameters, ctype='mot_float_type', is_writable=True)
 
-        runner = RunProcedure(cl_runtime_info)
-        runner.run_procedure(cl_named_func, all_kernel_data, parameters.shape[0])
-        return all_kernel_data['x'].get_data()
+        cl_named_func.evaluate({'data': data_struct}, nmr_instances=parameters.shape[0],
+                               cl_runtime_info=cl_runtime_info)
 
-    def _get_codec_function_wrapper(self, cl_func, cl_func_name, nmr_params):
-        cl_body = '''
-            mot_float_type x[''' + str(nmr_params) + '''];
-            for(uint i = 0; i < ''' + str(nmr_params) + '''; i++){
-                x[i] = data->x[i];
+        return data_struct['x'].get_data()
+
+    @staticmethod
+    def _get_codec_function_wrapper(cl_func, cl_func_name, nmr_params):
+        return SimpleCLFunction.from_string('''
+            void transformParameterSpace(mot_data_struct* data){
+                mot_float_type x[''' + str(nmr_params) + '''];
+                for(uint i = 0; i < ''' + str(nmr_params) + '''; i++){
+                    x[i] = data->x[i];
+                }
+    
+                ''' + cl_func_name + '''(data, x);
+    
+                for(uint i = 0; i < ''' + str(nmr_params) + '''; i++){
+                    data->x[i] = x[i];
+                }
             }
-
-            ''' + cl_func_name + '''(data, x);
-
-            for(uint i = 0; i < ''' + str(nmr_params) + '''; i++){
-                data->x[i] = x[i];
-            }
-        '''
-        return SimpleCLFunction('void', 'transformParameterSpace', [('mot_data_struct*', 'data')], cl_body,
-                                cl_extra=cl_func)
+        ''', cl_extra=cl_func)
 
 
 class ParameterTransformedModel(OptimizeModelInterface):

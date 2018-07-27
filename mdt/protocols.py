@@ -6,6 +6,9 @@ from warnings import warn
 
 import numpy as np
 import copy
+
+from scipy.stats import gaussian_kde
+
 from mdt.exceptions import ProtocolIOError
 
 __author__ = 'Robbert Harms'
@@ -309,27 +312,40 @@ class Protocol(collections.Mapping):
         """
         return len(self.get_b_values_shells())
 
-    def get_b_values_shells(self):
+    def get_b_values_shells(self, width=0.1e9):
         """Get the b-values of the unique shells in this protocol.
 
+        Args:
+            width (float): assume a certain bandwidth of b-values around each shell. This will group b-values together
+                if they are not more than
+
         Returns:
-            :class:`list`: a list with the unique weighted bvals in this protocol.
+            list: per b-value the information about that shell as a dictionary. Each of these dicts contains the
+                ``b_value`` and the ``nmr_volumes`` keys.
 
         Raises:
             KeyError: This function may throw a key error if the 'b' column in the protocol could not be loaded.
         """
-        return np.unique(self.get_column('b')[self.get_weighted_indices()]).tolist()
+        def cluster_b_values(b_values):
+            clustered_shells = []
+            new_shell = []
+            for ind in range(len(b_values) - 1):
+                new_shell.append(b_values[ind])
+                if b_values[ind + 1] - b_values[ind] > width:
+                    clustered_shells.append(new_shell)
+                    new_shell = []
 
-    def count_occurrences(self, column, value):
-        """Count the occurences of the given value in the given column.
+            if new_shell:
+                clustered_shells.append(new_shell)
+            return clustered_shells
 
-        This can for example be used to count the occurences of a single b-value in the protocol.
+        clusters = cluster_b_values(np.sort(self.get_column('b')[self.get_weighted_indices()]))
 
-        Args:
-            column (str): the name of the column
-            value (float): the value to count for occurences
-        """
-        return sum(1 for v in self[column] if v == value)
+        cluster_info = []
+        for cluster in clusters:
+            cluster_info.append({'b_value': np.mean(cluster), 'nmr_volumes': len(cluster)})
+
+        return cluster_info
 
     def has_column(self, column_name):
         """Check if this protocol has a column with the given name.
@@ -633,8 +649,9 @@ def get_sequence_timings(protocol):
         maxG = np.reshape(np.ones((protocol.length,)) * 0.04, (-1, 1))
 
     bvals = protocol['b']
-    if protocol.get_b_values_shells():
-        bmax = max(protocol.get_b_values_shells())
+    shells = [shell['b_value'] for shell in protocol.get_b_values_shells()]
+    if shells:
+        bmax = max(shells)
     else:
         bmax = 1
 
