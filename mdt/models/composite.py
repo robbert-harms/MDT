@@ -21,7 +21,7 @@ from mot.cl_runtime_info import CLRuntimeInfo
 from mot.model_interfaces import SampleModelInterface, NumericalDerivativeInterface
 from mot.utils import convert_data_to_dtype, \
     hessian_to_covariance, all_elements_equal, get_single_value
-from mot.kernel_data import Array, Zeros
+from mot.kernel_data import Array, Zeros, Scalar
 
 from mdt.models.base import MissingProtocolInput
 from mdt.models.base import DMRIOptimizable
@@ -896,14 +896,16 @@ class DMRICompositeModel(DMRIOptimizable):
             if value is None:
                 raise ValueError('Could not find a suitable value for the protocol parameter "{}".'.format(p.name))
 
-            if not all_elements_equal(value):
+            if all_elements_equal(value):
+                const_d = {p.name: Scalar(get_single_value(value), ctype=p.data_type.declaration_type)}
+            else:
                 if value.shape[0] == self._input_data.nmr_problems:
                     if voxels_to_analyze is not None:
                         value = value[voxels_to_analyze, ...]
                     const_d = {p.name: Array(value, ctype=p.data_type.declaration_type)}
                 else:
                     const_d = {p.name: Array(value, ctype=p.data_type.declaration_type, offset_str='0')}
-                return_data.update(const_d)
+            return_data.update(const_d)
         return return_data
 
     def _get_protocol_value(self, parameter):
@@ -968,23 +970,15 @@ class DMRICompositeModel(DMRIOptimizable):
             p: parameter
         """
         data_type = p.data_type.raw_data_type
-        value = self._model_functions_info.get_parameter_value('{}.{}'.format(m.name, p.name))
-
-        assignment = ''
 
         if self._model_functions_info.is_fixed_to_value('{}.{}'.format(m.name, p.name)):
             param_name = '{}.{}'.format(m.name, p.name).replace('.', '_')
-            if all_elements_equal(value):
-                assignment = '(' + data_type + ')' + str(float(get_single_value(value)))
-            else:
-                assignment = '(' + data_type + ') data->{}[0]'.format(param_name)
+            return '(' + data_type + ') data->{}'.format(param_name)
         elif self._model_functions_info.is_fixed_to_dependency(m, p):
             return self._get_dependent_parameters_listing(((m, p),))
-        else:
-            ind = self._model_functions_info.get_parameter_estimable_index(m, p)
-            assignment += 'x[' + str(ind) + ']'
 
-        return assignment
+        ind = self._model_functions_info.get_parameter_estimable_index(m, p)
+        return 'x[' + str(ind) + ']'
 
     def _get_param_listing_for_param(self, m, p):
         """Get the param listing for one specific parameter. This can be used for example for the noise model params.
@@ -1053,14 +1047,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
                 if p.name not in protocol_params_seen:
                     if all_elements_equal(value):
-                        if p.data_type.is_vector_type:
-                            vector_length = p.data_type.vector_length
-                            values = [str(val) for val in value[0]]
-                            if len(values) < vector_length:
-                                values.append(str(0))
-                            assignment = '(' + data_type + ')(' + ', '.join(values) + ')'
-                        else:
-                            assignment = str(float(get_single_value(value)))
+                        assignment = 'data->protocol.' + p.name
                     elif len(value.shape) > 1 and value.shape[0] == self._input_data.nmr_problems and \
                             value.shape[1] != self._input_data.nmr_observations:
                         assignment = 'data->protocol.' + p.name + '[0]'
@@ -1083,14 +1070,8 @@ class DMRICompositeModel(DMRIOptimizable):
             name = '{}.{}'.format(m.name, p.name).replace('.', '_')
             if name not in exclude_list:
                 data_type = p.data_type.raw_data_type
-                value = self._model_functions_info.get_parameter_value('{}.{}'.format(m.name, p.name))
                 param_name = '{}.{}'.format(m.name, p.name).replace('.', '_')
-
-                if all_elements_equal(value):
-                    assignment = '(' + data_type + ')' + str(float(get_single_value(value)))
-                else:
-                    assignment = '(' + data_type + ') data->{}[0]'.format(param_name)
-
+                assignment = 'data->{}'.format(param_name)
                 func += "\t"*4 + data_type + ' ' + name + ' = ' + assignment + ';' + "\n"
         return func
 
@@ -1126,10 +1107,12 @@ class DMRICompositeModel(DMRIOptimizable):
             value = self._model_functions_info.get_parameter_value('{}.{}'.format(m.name, p.name))
             param_name = '{}.{}'.format(m.name, p.name).replace('.', '_')
 
-            if not all_elements_equal(value):
+            if all_elements_equal(value):
+                var_data_dict[param_name] = Scalar(get_single_value(value), ctype=p.data_type.declaration_type)
+            else:
                 if voxels_to_analyze is not None:
                     value = value[voxels_to_analyze, ...]
-                var_data_dict[param_name] = Array(value, ctype=p.data_type.declaration_type)
+                var_data_dict[param_name] = Array(value, ctype=p.data_type.declaration_type, as_scalar=True)
         return var_data_dict
 
     def _get_bounds_as_var_data(self, voxels_to_analyze):
@@ -1143,10 +1126,12 @@ class DMRICompositeModel(DMRIOptimizable):
                 name = bound_type + '_' + '{}.{}'.format(m.name, p.name).replace('.', '_')
                 data = value
 
-                if not all_elements_equal(value):
+                if all_elements_equal(value):
+                    bounds_dict.update({name: Scalar(get_single_value(data), ctype=p.data_type.declaration_type)})
+                else:
                     if voxels_to_analyze is not None:
                         data = data[voxels_to_analyze, ...]
-                    bounds_dict.update({name: Array(data, ctype=p.data_type.declaration_type)})
+                    bounds_dict.update({name: Array(data, ctype=p.data_type.declaration_type, as_scalar=True)})
 
         return bounds_dict
 
@@ -1207,7 +1192,7 @@ class DMRICompositeModel(DMRIOptimizable):
                 else:
                     return str(get_single_value(self._lower_bounds[parameter_name]))
             else:
-                return 'data->bounds.lb_{}[0]'.format(parameter_name.replace('.', '_'))
+                return 'data->bounds.lb_{}'.format(parameter_name.replace('.', '_'))
         else:
             if all_elements_equal(self._upper_bounds[parameter_name]):
                 if np.isposinf(get_single_value(self._upper_bounds[parameter_name])):
@@ -1215,7 +1200,7 @@ class DMRICompositeModel(DMRIOptimizable):
                 else:
                     return str(get_single_value(self._upper_bounds[parameter_name]))
             else:
-                return 'data->bounds.ub_{}[0]'.format(parameter_name.replace('.', '_'))
+                return 'data->bounds.ub_{}'.format(parameter_name.replace('.', '_'))
 
     def _get_max_numdiff_step(self):
         """Get the numerical differentiation step for each parameter.
@@ -1548,13 +1533,7 @@ class DMRICompositeModel(DMRIOptimizable):
                             estimable_index = self._model_functions_info.get_parameter_estimable_index(m, prior_param)
                             prior_params.append('x[{}]'.format(estimable_index))
                         else:
-                            value = self._model_functions_info.get_parameter_value(
-                                '{}.{}'.format(m.name, prior_param.name))
-                            if all_elements_equal(value):
-                                prior_params.append(str(get_single_value(value)))
-                            else:
-                                prior_params.append('data->' +
-                                                    '{}.{}'.format(m.name, prior_param.name).replace('.', '_')) + '[0]'
+                            prior_params.append('data->{}.{}'.format(m.name, prior_param.name).replace('.', '_'))
 
                     cl_str += 'prior *= {}(x[{}], {}, {}, {});\n'.format(function_name, i, lower_bound, upper_bound,
                                                                          ', '.join(prior_params))
