@@ -19,7 +19,7 @@ class ParameterCodec(object):
 
         .. code-block:: c
 
-            void <fname>(mot_data_struct* data, mot_float_type* x);
+            void <fname>(mot_data_struct* data, local mot_float_type* x);
 
         Args:
             fname (str): The CL function name to use
@@ -37,7 +37,7 @@ class ParameterCodec(object):
 
         .. code-block:: c
 
-            void <fname>(mot_data_struct* data, mot_float_type* x);
+            void <fname>(mot_data_struct* data, local mot_float_type* x);
 
         Args:
             fname (str): The CL function name to use
@@ -98,7 +98,7 @@ class ParameterCodec(object):
         func += codec.get_parameter_encode_function('encodeParameters')
         func += codec.get_parameter_decode_function('decodeParameters')
         func += '''
-            void ''' + func_name + '''(mot_data_struct* data, mot_float_type* x){
+            void ''' + func_name + '''(mot_data_struct* data, local mot_float_type* x){
                 encodeParameters(data, x);
                 decodeParameters(data, x);
             }
@@ -120,7 +120,7 @@ class ParameterCodec(object):
     def _get_codec_function_wrapper(cl_func, cl_func_name, nmr_params):
         return SimpleCLFunction.from_string('''
             void transformParameterSpace(mot_data_struct* data){
-                mot_float_type x[''' + str(nmr_params) + '''];
+                local mot_float_type x[''' + str(nmr_params) + '''];
                 for(uint i = 0; i < ''' + str(nmr_params) + '''; i++){
                     x[i] = data->x[i];
                 }
@@ -177,19 +177,24 @@ class ParameterTransformedModel(OptimizeModelInterface):
         objective_function = self._model.get_objective_function()
         return SimpleCLFunction.from_string('''
             double wrapped_''' + objective_function.get_cl_function_name() + '''(
-                    mot_data_struct* data, const mot_float_type* const x,
-                    global mot_float_type* g_objective_list, mot_float_type* p_objective_list,
+                    mot_data_struct* data, 
+                    local const mot_float_type* const x,
+                    local mot_float_type* objective_list,
                     local double* objective_value_tmp){
                 
-                mot_float_type x_model[''' + str(self._nmr_parameters) + '''];
-                for(uint i = 0; i < ''' + str(self._nmr_parameters) + '''; i++){
-                    x_model[i] = x[i];
+                local mot_float_type x_model[''' + str(self._nmr_parameters) + '''];
+                
+                if(get_local_id(0) == 0){
+                    for(uint i = 0; i < ''' + str(self._nmr_parameters) + '''; i++){
+                        x_model[i] = x[i];
+                    }
                 }
+                mem_fence(CLK_LOCAL_MEM_FENCE);
                 
                 _decodeParameters(data, x_model);
                 
                 return ''' + objective_function.get_cl_function_name() + '''(
-                    data, x_model, g_objective_list, p_objective_list, objective_value_tmp);    
+                    data, x_model, objective_list, objective_value_tmp);    
             }
         ''', dependencies=[objective_function], cl_extra=self._parameter_codec.get_parameter_decode_function(
             '_decodeParameters'))

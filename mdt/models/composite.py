@@ -200,10 +200,10 @@ class DMRICompositeModel(DMRIOptimizable):
                                    copy.deepcopy(self._post_processing),
                                    self._get_rwm_proposal_stds(voxels_to_analyze),
                                    self._get_model_eval_function(),
-                                   self._get_objective_function(),
-                                   self._get_log_likelihood_per_observation_function(),
-                                   self._get_log_prior_function_builder(),
-                                   self._get_finalize_proposal_function_builder())
+                                   self._get_log_likelihood_function(False, True, True),
+                                   self._get_log_likelihood_function(True, False, False),
+                                   self._get_log_prior_function(),
+                                   self._get_finalize_proposal_function())
 
     def update_active_post_processing(self, processing_type, settings):
         """Update the active post-processing semaphores.
@@ -241,7 +241,7 @@ class DMRICompositeModel(DMRIOptimizable):
         class Codec(ParameterCodec):
             def get_parameter_decode_function(self, function_name='decodeParameters'):
                 func = '''
-                    void ''' + function_name + '''(mot_data_struct* data, mot_float_type* x){
+                    void ''' + function_name + '''(mot_data_struct* data, local mot_float_type* x){
                 '''
                 for d in model_builder._get_parameter_transformations()[1]:
                     func += "\n" + "\t" * 4 + d.format('x')
@@ -255,7 +255,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
             def get_parameter_encode_function(self, function_name='encodeParameters'):
                 func = '''
-                    void ''' + function_name + '''(mot_data_struct* data, mot_float_type* x){
+                    void ''' + function_name + '''(mot_data_struct* data, local mot_float_type* x){
                 '''
 
                 if model_builder._enforce_weights_sum_to_one:
@@ -791,7 +791,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
         return np.concatenate([np.transpose(np.array([s])) if len(s.shape) < 2 else s for s in proposal_stds], axis=1)
 
-    def _get_finalize_proposal_function_builder(self):
+    def _get_finalize_proposal_function(self):
         """Get the building function used to finalize the proposal"""
         def get_applicable_proposal_callbacks():
             """Since some of the model parameters may be fixed, not all callbacks are applicable."""
@@ -828,22 +828,20 @@ class DMRICompositeModel(DMRIOptimizable):
 
             return param_names, param_indices
 
-        def builder(address_space_parameter_vector):
-            body = ''
+        body = ''
 
-            for name, ind in zip(*get_parameter_names_indices()):
-                body += 'mot_float_type {} = x[{}]; \n'.format(name, str(ind))
+        for name, ind in zip(*get_parameter_names_indices()):
+            body += 'mot_float_type {} = x[{}]; \n'.format(name, str(ind))
 
-            body += '\n'.join(get_function_call_strings())
+        body += '\n'.join(get_function_call_strings())
 
-            for name, ind in zip(*get_parameter_names_indices()):
-                body += 'x[{}] = {}; \n'.format(str(ind), name)
+        for name, ind in zip(*get_parameter_names_indices()):
+            body += 'x[{}] = {}; \n'.format(str(ind), name)
 
-            return SimpleCLFunction('void', 'finalizeProposal',
-                                    [('mot_data_struct*', 'data'),
-                                     (address_space_parameter_vector + ' mot_float_type*', 'x')],
-                                    body, dependencies=[func for _, func in self._proposal_callbacks])
-        return builder
+        return SimpleCLFunction('void', 'finalizeProposal',
+                                [('mot_data_struct*', 'data'),
+                                 ('local mot_float_type*', 'x')],
+                                body, dependencies=[func for _, func in self._proposal_callbacks])
 
     def _get_weight_sum_to_one_transformation(self):
         """Returns a snippet of CL for the encode and decode functions to force the sum of the weights to 1"""
@@ -1268,14 +1266,15 @@ class DMRICompositeModel(DMRIOptimizable):
                     '({div} * floor(params[{ind}] / {div})));'.format(ind=ind, div=p.numdiff_info.modulus))
 
         func_name = 'param_transform'
-        return SimpleCLFunction('void', func_name, [('mot_data_struct*', 'data'), ('mot_float_type*', 'params')],
+        return SimpleCLFunction('void', func_name, [('mot_data_struct*', 'data'), ('local mot_float_type*', 'params')],
                                 '\n'.join(transforms))
 
-    def _get_objective_function(self):
+    def _get_log_likelihood_function(self, include_constant_terms, support_for_objective_list, negative_ll):
         eval_function_info = self._get_model_eval_function()
-        eval_model_func = self._likelihood_function.get_log_likelihood_function(include_constant_terms=False)
+        eval_model_func = self._likelihood_function.get_log_likelihood_function(
+            include_constant_terms=include_constant_terms)
 
-        eval_call_args = ['observation', 'model_evaluation']
+        eval_call_args = []
         param_listing = ''
         for p in eval_model_func.get_free_parameters():
             param_listing += self._get_param_listing_for_param(eval_model_func, p)
@@ -1284,76 +1283,47 @@ class DMRICompositeModel(DMRIOptimizable):
         cl_body = '''
             double getObjectiveInstanceValue(
                     mot_data_struct* data, 
-                    const mot_float_type* const x,
-                    global mot_float_type* g_objective_list, 
-                    mot_float_type* p_objective_list,
+                    local const mot_float_type* const x,
+                    ''' + ('local mot_float_type* objective_list,' if support_for_objective_list else '') + ''' 
                     local double* objective_value_tmp){
 
                 ''' + param_listing + '''
                 
-                double observation;
-                double model_evaluation;
+                uint local_id = get_local_id(0);
+                uint workgroup_size = get_local_size(0);
+                
+                objective_value_tmp[local_id] = 0;
+                
+                uint elements_for_workitem = ceil(''' + str(self.get_nmr_observations()) + ''' 
+                                                  / (mot_float_type)workgroup_size);
+
+                if(workgroup_size * (elements_for_workitem - 1) + local_id 
+                        >= ''' + str(self.get_nmr_observations()) + '''){
+                    elements_for_workitem -= 1;
+                }
+                
                 double sum = 0;
                 double eval;
+                uint observation_ind;
+                for(uint i = 0; i < elements_for_workitem; i++){
+                    observation_ind = i * workgroup_size + local_id;
+                                
+                    eval = ''' + ('-' if negative_ll else '') + ''' ''' + eval_model_func.get_cl_function_name() + '''(
+                                data->observations[observation_ind], 
+                                ''' + eval_function_info.get_cl_function_name() + '''(data, x, observation_ind),'''\
+                                + ','.join(eval_call_args) + ''');
+                                
+                    objective_value_tmp[local_id] += eval;
+                    
+                    ''' + ('''if(objective_list){
+                        objective_list[observation_ind] = eval;
+                    }''' if support_for_objective_list else '') + '''
+                }
+                mem_fence(CLK_LOCAL_MEM_FENCE);
                 
-                if(objective_value_tmp){ // local reduction
-                    uint local_id = get_local_id(0);
-                    uint workgroup_size = get_local_size(0);
-                    
-                    objective_value_tmp[local_id] = 0;
-                    
-                    uint elements_for_workitem = ceil(''' + str(self.get_nmr_observations()) + ''' 
-                                                      / (mot_float_type)workgroup_size);
-    
-                    if(workgroup_size * (elements_for_workitem - 1) + local_id 
-                            >= ''' + str(self.get_nmr_observations()) + '''){
-                        elements_for_workitem -= 1;
-                    }
-                    
-                    uint observation_ind;
-                    for(uint i = 0; i < elements_for_workitem; i++){
-                        observation_ind = i * workgroup_size + local_id;
-                        
-                        observation = data->observations[observation_ind];
-                        model_evaluation = ''' + eval_function_info.get_cl_function_name() \
-                                    + '''(data, x, observation_ind);
-                                    
-                        eval = -''' + eval_model_func.get_cl_function_name() + '''('''\
-                                    + ','.join(eval_call_args) + ''');
-                                    
-                        objective_value_tmp[local_id] += eval;
-                        
-                        if(g_objective_list){
-                            g_objective_list[observation_ind] = eval;
-                        }
-                        if(p_objective_list){
-                            p_objective_list[observation_ind] = eval;
-                        }
-                    }
-                    barrier(CLK_LOCAL_MEM_FENCE);
-                    
-                    for(uint i = 0; i < workgroup_size; i++){
-                        sum += objective_value_tmp[i];
-                    }   
-                }
-                else{            
-                    for(uint i = 0; i < ''' + str(self.get_nmr_observations()) + '''; i++){
-                        observation = data->observations[i];
-                        model_evaluation = ''' + eval_function_info.get_cl_function_name() + '''(data, x, i);
-                        
-                        eval = -''' + eval_model_func.get_cl_function_name() + '''(''' \
-                                    + ','.join(eval_call_args) + ''');
-                        
-                        sum += eval;
-                        
-                        if(g_objective_list){
-                            g_objective_list[i] = eval;
-                        }
-                        if(p_objective_list){
-                            p_objective_list[i] = eval;
-                        }
-                    }
-                }
+                for(uint i = 0; i < workgroup_size; i++){
+                    sum += objective_value_tmp[i];
+                }   
                 return sum;
             }
         '''
@@ -1406,7 +1376,7 @@ class DMRICompositeModel(DMRIOptimizable):
         return SimpleCLFunction(
             'double', '_evaluateModel',
             [('mot_data_struct*', 'data'),
-             ('const mot_float_type* const', 'x'),
+             ('local const mot_float_type* const', 'x'),
              ('uint', 'observation_index')],
             get_function_body(),
             dependencies=[composite_model_function] + [cb.get_callback_function() for cb in protocol_cbs])
@@ -1506,7 +1476,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
         return convert_data_to_dtype(starting_points, 'mot_float_type', SimpleCLDataType.from_string('float'))
 
-    def _get_log_prior_function_builder(self):
+    def _get_log_prior_function(self):
         def get_preliminary():
             cl_str = ''
             for i, (m, p) in enumerate(self._model_functions_info.get_estimable_parameters_list()):
@@ -1554,38 +1524,10 @@ class DMRICompositeModel(DMRIOptimizable):
             cl_str += '\n\treturn log(prior);'
             return cl_str
 
-        def builder(address_space_parameter_vector):
-            return SimpleCLFunction(
-                'mot_float_type', 'getLogPrior',
-                [('mot_data_struct*', 'data'), (address_space_parameter_vector + ' const mot_float_type* const', 'x')],
-                get_body(), cl_extra=get_preliminary())
-        return builder
-
-    def _get_log_likelihood_per_observation_function(self):
-        eval_function_info = self._get_model_eval_function()
-        eval_function_signature = self._likelihood_function.get_log_likelihood_function()
-
-        eval_call_args = ['observation', 'model_evaluation']
-        param_listing = ''
-        for p in eval_function_signature.get_free_parameters():
-            param_listing += self._get_param_listing_for_param(eval_function_signature, p)
-            eval_call_args.append('{}.{}'.format(eval_function_signature.name, p.name).replace('.', '_'))
-
-        eval_model_func = self._likelihood_function.get_log_likelihood_function()
-
-        body = '''
-            double observation = data->observations[observation_index];
-            double model_evaluation = ''' + eval_function_info.get_cl_function_name() + '''(
-                data, x, observation_index);
-
-            ''' + param_listing + '''
-
-            return ''' + eval_model_func.get_cl_function_name() + '''(''' + ','.join(eval_call_args) + ''');
-        '''
         return SimpleCLFunction(
-            'double', 'getLogLikelihoodPerObservation',
-            [('mot_data_struct*', 'data'), ('const mot_float_type* const', 'x'), ('uint', 'observation_index')],
-            body, dependencies=[eval_function_info, eval_model_func])
+            'mot_float_type', 'getLogPrior',
+            [('mot_data_struct*', 'data'), ('local const mot_float_type* const', 'x')],
+            get_body(), cl_extra=get_preliminary())
 
     def _get_weight_prior(self):
         """Get the prior limiting the weights between 0 and 1"""
@@ -1613,8 +1555,8 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
                  dependent_map_calculator, fixed_parameter_maps,
                  free_param_names, parameter_codec, post_processing,
                  rwm_proposal_stds, eval_function, objective_function,
-                 ll_per_obs_func, log_prior_function_builder,
-                 finalize_proposal_function_builder):
+                 ll_function, log_prior_function,
+                 finalize_proposal_function):
         self.used_problem_indices = used_problem_indices
         self.name = name
         self._input_data = input_data
@@ -1642,9 +1584,9 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
         self._rwm_proposal_stds = rwm_proposal_stds
         self._eval_function = eval_function
         self._objective_function = objective_function
-        self._ll_per_obs_func = ll_per_obs_func
-        self._log_prior_function_builder = log_prior_function_builder
-        self._finalize_proposal_function_builder = finalize_proposal_function_builder
+        self._ll_function = ll_function
+        self._log_prior_function = log_prior_function
+        self._finalize_proposal_function = finalize_proposal_function
 
     def get_kernel_data(self):
         return self._kernel_data_info
@@ -1682,14 +1624,14 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
     def numdiff_use_lower_bounds(self):
         return self._numdiff_use_lower_bounds
 
-    def get_log_likelihood_per_observation_function(self):
-        return self._ll_per_obs_func
+    def get_log_likelihood_function(self):
+        return self._ll_function
 
-    def get_log_prior_function(self, address_space_parameter_vector='private'):
-        return self._log_prior_function_builder(address_space_parameter_vector)
+    def get_log_prior_function(self):
+        return self._log_prior_function
 
-    def get_finalize_proposal_function(self, address_space_parameter_vector='private'):
-        return self._finalize_proposal_function_builder(address_space_parameter_vector)
+    def get_finalize_proposal_function(self):
+        return self._finalize_proposal_function
 
     def get_post_optimization_output(self, optimized_parameters, return_codes):
         volume_maps = results_to_dict(optimized_parameters, self.get_free_param_names())
