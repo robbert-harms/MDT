@@ -3,7 +3,7 @@ import numpy as np
 from mdt.utils import tensor_spherical_to_cartesian, tensor_cartesian_to_spherical
 from mot.cl_function import SimpleCLFunction
 from mot.utils import split_in_batches, parse_cl_function
-from mot.kernel_data import KernelArray, KernelAllocatedArray, KernelScalar
+from mot.kernel_data import Array, Zeros, Scalar
 from mdt.components import get_component
 
 
@@ -347,15 +347,14 @@ class DKIMeasures(object):
         parameters = np.column_stack([parameters_dict[n] for n in param_names])
 
         nmr_voxels = parameters.shape[0]
-        kernel_data = {'parameters': KernelArray(parameters, ctype='mot_float_type',
-                                                 is_readable=True, is_writable=False),
-                       'directions': KernelArray(DKIMeasures._get_spherical_samples(), ctype='mot_float_type4',
-                                                 is_readable=True, is_writable=False, offset_str='0'),
-                       'nmr_directions': KernelScalar(DKIMeasures._get_spherical_samples().shape[0]),
-                       'nmr_radial_directions': KernelScalar(256),
-                       'mks': KernelAllocatedArray((nmr_voxels,), ctype='mot_float_type'),
-                       'aks': KernelAllocatedArray((nmr_voxels,), ctype='mot_float_type'),
-                       'rks': KernelAllocatedArray((nmr_voxels,), ctype='mot_float_type')}
+        kernel_data = {'parameters': Array(parameters, ctype='mot_float_type', is_readable=True, is_writable=False),
+                       'directions': Array(DKIMeasures._get_spherical_samples(), ctype='mot_float_type4',
+                                           is_readable=True, is_writable=False, offset_str='0'),
+                       'nmr_directions': Scalar(DKIMeasures._get_spherical_samples().shape[0]),
+                       'nmr_radial_directions': Scalar(256),
+                       'mks': Zeros((nmr_voxels,), ctype='mot_float_type'),
+                       'aks': Zeros((nmr_voxels,), ctype='mot_float_type'),
+                       'rks': Zeros((nmr_voxels,), ctype='mot_float_type')}
 
         DKIMeasures._get_compute_function(param_names).evaluate({'data': kernel_data}, nmr_instances=nmr_voxels)
 

@@ -436,7 +436,10 @@ class FittingProcessor(SimpleModelProcessor):
     def _process(self, roi_indices, next_indices=None):
         build_model = self._model.build(roi_indices)
 
-        codec_model = ParameterTransformedModel(build_model, self._model.get_parameter_codec())
+        starting_positions = build_model.get_initial_parameters()
+
+        codec_model = ParameterTransformedModel(build_model, self._model.get_parameter_codec(),
+                                                starting_positions.shape[1])
         starting_positions = codec_model.encode_parameters(build_model.get_initial_parameters())
 
         optimization_results = self._optimizer.minimize(codec_model, starting_positions)

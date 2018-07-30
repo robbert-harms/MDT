@@ -4,7 +4,7 @@ from mdt.components import get_model
 from mdt.nifti import get_all_nifti_data
 from mdt.utils import create_roi, restore_volumes, MockMRIInputData
 from mot.cl_function import SimpleCLFunction
-from mot.kernel_data import KernelArray, KernelAllocatedArray
+from mot.kernel_data import Array, Zeros
 
 __author__ = 'Robbert Harms'
 __date__ = '2017-05-29'
@@ -42,16 +42,13 @@ def create_signal_estimates(model, input_data, parameters):
     parameters = create_roi(parameters, input_data.mask)
     parameters = model.param_dict_to_array(parameters)
 
-    if parameters.shape[0] != build_model.get_nmr_problems():
-        raise ValueError('The number of voxels in the parameters does not match those in the model.')
-
     kernel_data = {'data': build_model.get_kernel_data(),
-                   'parameters': KernelArray(parameters, ctype='mot_float_type'),
-                   'estimates': KernelAllocatedArray(
-                       (build_model.get_nmr_problems(), build_model.get_nmr_observations()), 'mot_float_type')
+                   'parameters': Array(parameters, ctype='mot_float_type'),
+                   'estimates': Zeros(
+                       (parameters.shape[0], build_model.get_nmr_observations()), 'mot_float_type')
                    }
 
-    _get_simulate_function(build_model).evaluate(kernel_data, nmr_instances=build_model.get_nmr_problems())
+    _get_simulate_function(build_model).evaluate(kernel_data, nmr_instances=parameters.shape[0])
     results = kernel_data['estimates'].get_data()
 
     return restore_volumes(results, input_data.mask)
@@ -85,8 +82,8 @@ def simulate_signals(model, protocol, parameters):
     nmr_problems = parameters.shape[0]
 
     kernel_data = {'data': build_model.get_kernel_data(),
-                   'parameters': KernelArray(parameters, ctype='mot_float_type'),
-                   'estimates': KernelAllocatedArray((nmr_problems, build_model.get_nmr_observations()), 'mot_float_type')
+                   'parameters': Array(parameters, ctype='mot_float_type'),
+                   'estimates': Zeros((nmr_problems, build_model.get_nmr_observations()), 'mot_float_type')
                    }
 
     _get_simulate_function(build_model).evaluate(kernel_data, nmr_instances=nmr_problems)

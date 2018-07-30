@@ -21,7 +21,7 @@ from mot.cl_runtime_info import CLRuntimeInfo
 from mot.model_interfaces import SampleModelInterface, NumericalDerivativeInterface
 from mot.utils import convert_data_to_dtype, \
     hessian_to_covariance, all_elements_equal, get_single_value
-from mot.kernel_data import KernelArray, KernelAllocatedArray
+from mot.kernel_data import Array, Zeros
 
 from mdt.models.base import MissingProtocolInput
 from mdt.models.base import DMRIOptimizable
@@ -178,9 +178,7 @@ class DMRICompositeModel(DMRIOptimizable):
                                    self.name,
                                    self._input_data,
                                    self._get_kernel_data(voxels_to_analyze),
-                                   self._get_nmr_problems(voxels_to_analyze),
                                    self.get_nmr_observations(),
-                                   self.get_nmr_parameters(),
                                    self._get_initial_parameters(voxels_to_analyze),
                                    self.get_lower_bounds(),
                                    self.get_upper_bounds(),
@@ -630,7 +628,7 @@ class DMRICompositeModel(DMRIOptimizable):
                 grad_dev = gradient_deviations
                 if voxels_to_analyze is not None:
                     grad_dev = grad_dev[voxels_to_analyze, ...]
-                return {'gradient_deviations': KernelArray(grad_dev, ctype='float')}
+                return {'gradient_deviations': Array(grad_dev, ctype='float')}
 
         return GradientDeviationProtocolUpdate()
 
@@ -902,9 +900,9 @@ class DMRICompositeModel(DMRIOptimizable):
                 if value.shape[0] == self._input_data.nmr_problems:
                     if voxels_to_analyze is not None:
                         value = value[voxels_to_analyze, ...]
-                    const_d = {p.name: KernelArray(value, ctype=p.data_type.declaration_type)}
+                    const_d = {p.name: Array(value, ctype=p.data_type.declaration_type)}
                 else:
-                    const_d = {p.name: KernelArray(value, ctype=p.data_type.declaration_type, offset_str='0')}
+                    const_d = {p.name: Array(value, ctype=p.data_type.declaration_type, offset_str='0')}
                 return_data.update(const_d)
         return return_data
 
@@ -926,7 +924,7 @@ class DMRICompositeModel(DMRIOptimizable):
             if voxels_to_analyze is not None:
                 observations = observations[voxels_to_analyze, ...]
             observations = self._transform_observations(observations)
-            return {'observations': KernelArray(observations)}
+            return {'observations': Array(observations)}
         return {}
 
     def _convert_parameters_dot_to_bar(self, string):
@@ -1131,7 +1129,7 @@ class DMRICompositeModel(DMRIOptimizable):
             if not all_elements_equal(value):
                 if voxels_to_analyze is not None:
                     value = value[voxels_to_analyze, ...]
-                var_data_dict[param_name] = KernelArray(value, ctype=p.data_type.declaration_type)
+                var_data_dict[param_name] = Array(value, ctype=p.data_type.declaration_type)
         return var_data_dict
 
     def _get_bounds_as_var_data(self, voxels_to_analyze):
@@ -1148,7 +1146,7 @@ class DMRICompositeModel(DMRIOptimizable):
                 if not all_elements_equal(value):
                     if voxels_to_analyze is not None:
                         data = data[voxels_to_analyze, ...]
-                    bounds_dict.update({name: KernelArray(data, ctype=p.data_type.declaration_type)})
+                    bounds_dict.update({name: Array(data, ctype=p.data_type.declaration_type)})
 
         return bounds_dict
 
@@ -1626,8 +1624,8 @@ class DMRICompositeModel(DMRIOptimizable):
 class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
 
     def __init__(self, used_problem_indices, name, input_data,
-                 kernel_data_info, nmr_problems, nmr_observations,
-                 nmr_estimable_parameters, initial_parameters,
+                 kernel_data_info, nmr_observations,
+                 initial_parameters,
                  lower_bounds, upper_bounds, numdiff_step,
                  numdiff_scaling_factors, numdiff_use_bounds, numdiff_use_lower_bounds,
                  numdiff_use_upper_bounds, numdiff_param_transform, estimable_parameters_list,
@@ -1642,9 +1640,7 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
         self.name = name
         self._input_data = input_data
         self._kernel_data_info = kernel_data_info
-        self._nmr_problems = nmr_problems
         self._nmr_observations = nmr_observations
-        self._nmr_estimable_parameters = nmr_estimable_parameters
         self._initial_parameters = initial_parameters
         self._lower_bounds = lower_bounds
         self._upper_bounds = upper_bounds
@@ -1674,14 +1670,8 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
     def get_kernel_data(self):
         return self._kernel_data_info
 
-    def get_nmr_problems(self):
-        return self._nmr_problems
-
     def get_nmr_observations(self):
         return self._nmr_observations
-
-    def get_nmr_parameters(self):
-        return self._nmr_estimable_parameters
 
     def get_objective_function(self):
         return self._objective_function
@@ -2693,8 +2683,8 @@ def calculate_dependent_parameters(kernel_data, estimated_parameters_list,
         ''')
 
     data_strut = dict(kernel_data)
-    data_strut['x'] = KernelArray(np.dstack(estimated_parameters_list)[0, ...], ctype='mot_float_type')
-    data_strut['_results'] = KernelAllocatedArray(
+    data_strut['x'] = Array(np.dstack(estimated_parameters_list)[0, ...], ctype='mot_float_type')
+    data_strut['_results'] = Zeros(
         (estimated_parameters_list[0].shape[0], len(dependent_parameter_names)), 'mot_float_type')
 
     get_cl_function().evaluate({'data': data_strut}, nmr_instances=estimated_parameters_list[0].shape[0],

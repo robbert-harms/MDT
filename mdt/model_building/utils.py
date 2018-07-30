@@ -1,5 +1,5 @@
 from mot.cl_function import SimpleCLFunction
-from mot.kernel_data import KernelArray
+from mot.kernel_data import Array
 from mot.model_interfaces import OptimizeModelInterface
 
 
@@ -109,7 +109,7 @@ class ParameterCodec(object):
         cl_named_func = self._get_codec_function_wrapper(cl_func, cl_func_name, parameters.shape[1])
 
         data_struct = dict(kernel_data)
-        data_struct['x'] = KernelArray(parameters, ctype='mot_float_type', is_writable=True)
+        data_struct['x'] = Array(parameters, ctype='mot_float_type', is_writable=True)
 
         cl_named_func.evaluate({'data': data_struct}, nmr_instances=parameters.shape[0],
                                cl_runtime_info=cl_runtime_info)
@@ -136,7 +136,7 @@ class ParameterCodec(object):
 
 class ParameterTransformedModel(OptimizeModelInterface):
 
-    def __init__(self, model, parameter_codec):
+    def __init__(self, model, parameter_codec, nmr_parameters):
         """Decorates the given model with parameter encoding and decoding transformations.
 
         This decorates a few of the given function calls with the right parameter encoding and decoding transformations
@@ -145,9 +145,11 @@ class ParameterTransformedModel(OptimizeModelInterface):
         Args:
             model (OptimizeModelInterface): the model to decorate
             parameter_codec (mdt.model_building.utils.ParameterCodec): the parameter codec to use
+            nmr_parameters (int): the number of parameters in the model
         """
         self._model = model
         self._parameter_codec = parameter_codec
+        self._nmr_parameters = nmr_parameters
 
     def decode_parameters(self, parameters):
         """Decode the given parameters back to model space.
@@ -168,14 +170,8 @@ class ParameterTransformedModel(OptimizeModelInterface):
     def get_kernel_data(self):
         return self._model.get_kernel_data()
 
-    def get_nmr_problems(self):
-        return self._model.get_nmr_problems()
-
     def get_nmr_observations(self):
         return self._model.get_nmr_observations()
-
-    def get_nmr_parameters(self):
-        return self._model.get_nmr_parameters()
 
     def get_objective_function(self):
         objective_function = self._model.get_objective_function()
@@ -185,8 +181,8 @@ class ParameterTransformedModel(OptimizeModelInterface):
                     global mot_float_type* g_objective_list, mot_float_type* p_objective_list,
                     local double* objective_value_tmp){
                 
-                mot_float_type x_model[''' + str(self.get_nmr_parameters()) + '''];
-                for(uint i = 0; i < ''' + str(self.get_nmr_parameters()) + '''; i++){
+                mot_float_type x_model[''' + str(self._nmr_parameters) + '''];
+                for(uint i = 0; i < ''' + str(self._nmr_parameters) + '''; i++){
                     x_model[i] = x[i];
                 }
                 
