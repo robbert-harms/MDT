@@ -2,7 +2,7 @@
 import numpy as np
 from mdt.utils import tensor_spherical_to_cartesian, tensor_cartesian_to_spherical
 from mot.cl_function import SimpleCLFunction
-from mot.utils import split_in_batches
+from mot.utils import split_in_batches, parse_cl_function
 from mot.kernel_data import KernelArray, KernelAllocatedArray, KernelScalar
 from mdt.components import get_component
 
@@ -370,7 +370,7 @@ class DKIMeasures(object):
 
         param_expansions = ['mot_float_type {} = params[{}];'.format(name, ind) for ind, name in enumerate(param_names)]
 
-        apparent_kurtosis = SimpleCLFunction.from_string('''
+        return parse_cl_function('''
             double apparent_kurtosis(
                     global mot_float_type* params,
                     mot_float_type4 direction,
@@ -393,9 +393,7 @@ class DKIMeasures(object):
 
                 return pown(tensor_md / adc, 2) * kurtosis_sum;
             }
-        ''', dependencies=[get_component('library_functions', 'KurtosisMultiplication')()])
-
-        eigenvectors = SimpleCLFunction.from_string('''
+        
             void get_principal_and_perpendicular_eigenvector(
                     mot_float_type d,
                     mot_float_type dperp0,
@@ -417,9 +415,7 @@ class DKIMeasures(object):
                 *principal_vec = vec2;
                 *perpendicular_vec = vec0;
             }
-        ''')
-
-        func = SimpleCLFunction.from_string('''
+        
             void calculate_measures(mot_data_struct* data){
                 int i, j;
 
@@ -466,8 +462,7 @@ class DKIMeasures(object):
             }
         ''', dependencies=[get_component('library_functions', 'RotateOrthogonalVector')(),
                            get_component('library_functions', 'TensorSphericalToCartesian')(),
-                           apparent_kurtosis, eigenvectors])
-        return func
+                           get_component('library_functions', 'KurtosisMultiplication')()])
 
     @staticmethod
     def _get_spherical_samples():

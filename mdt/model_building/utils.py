@@ -177,20 +177,26 @@ class ParameterTransformedModel(OptimizeModelInterface):
     def get_nmr_parameters(self):
         return self._model.get_nmr_parameters()
 
-    def get_pre_eval_parameter_modifier(self):
-        old_modifier = self._model.get_pre_eval_parameter_modifier()
-        body = '''
-            _decodeParameters(data, x);
-            ''' + old_modifier.get_cl_function_name() + '''(data, x);
-        '''
-        return SimpleCLFunction(
-            'void', 'wrapped_' + old_modifier.get_cl_function_name(),
-            [('mot_data_struct*', 'data'), ('mot_float_type*', 'x')], body,
-            dependencies=[old_modifier],
-            cl_extra=self._parameter_codec.get_parameter_decode_function('_decodeParameters'))
-
-    def get_objective_per_observation_function(self):
-        return self._model.get_objective_per_observation_function()
+    def get_objective_function(self):
+        objective_function = self._model.get_objective_function()
+        return SimpleCLFunction.from_string('''
+            double wrapped_''' + objective_function.get_cl_function_name() + '''(
+                    mot_data_struct* data, const mot_float_type* const x,
+                    global mot_float_type* g_objective_list, mot_float_type* p_objective_list,
+                    local double* objective_value_tmp){
+                
+                mot_float_type x_model[''' + str(self.get_nmr_parameters()) + '''];
+                for(uint i = 0; i < ''' + str(self.get_nmr_parameters()) + '''; i++){
+                    x_model[i] = x[i];
+                }
+                
+                _decodeParameters(data, x_model);
+                
+                return ''' + objective_function.get_cl_function_name() + '''(
+                    data, x_model, g_objective_list, p_objective_list, objective_value_tmp);    
+            }
+        ''', dependencies=[objective_function], cl_extra=self._parameter_codec.get_parameter_decode_function(
+            '_decodeParameters'))
 
     def get_lower_bounds(self):
         # todo add codec transform here
@@ -199,9 +205,6 @@ class ParameterTransformedModel(OptimizeModelInterface):
     def get_upper_bounds(self):
         # todo add codec transform here
         return self._model.get_upper_bounds()
-
-    def finalize_optimized_parameters(self, parameters):
-        return self._model.finalize_optimized_parameters(self.decode_parameters(parameters))
 
     def __getattr__(self, item):
         return getattr(self._model, item)

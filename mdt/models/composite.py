@@ -14,14 +14,14 @@ from mdt.model_building.utils import ParameterCodec
 
 from mot.cl_data_type import SimpleCLDataType
 from mot.cl_function import SimpleCLFunction, SimpleCLFunctionParameter
-from mot.cl_routines.mapping import calculate_dependent_parameters, compute_log_likelihood
+from mot.cl_routines.mapping import compute_log_likelihood
 from mot.cl_routines.mapping.numerical_hessian import NumericalHessian
 from mdt.model_building.parameters import ProtocolParameter, FreeParameter, CurrentObservationParam
 from mot.cl_runtime_info import CLRuntimeInfo
 from mot.model_interfaces import SampleModelInterface, NumericalDerivativeInterface
 from mot.utils import convert_data_to_dtype, \
     hessian_to_covariance, all_elements_equal, get_single_value
-from mot.kernel_data import KernelArray
+from mot.kernel_data import KernelArray, KernelAllocatedArray
 
 from mdt.models.base import MissingProtocolInput
 from mdt.models.base import DMRIOptimizable
@@ -149,7 +149,7 @@ class DMRICompositeModel(DMRIOptimizable):
         """
         return CompositeModelFunction(self._model_tree, signal_noise_model=self._signal_noise_model)
 
-    def evaluate(self, inputs, return_inputs=False, cl_runtime_info=None):
+    def evaluate(self, inputs, cl_runtime_info=None):
         """Evaluate this model for each set of given parameters.
 
         This is a shortcut for evaluating the composite model build by this builder. This gets the composite
@@ -160,7 +160,6 @@ class DMRICompositeModel(DMRIOptimizable):
                 the input data. Each of these input datasets must either be a scalar or be of equal length in the
                 first dimension. The user can either input raw ndarrays or input KernelData objects.
                 If an ndarray is given we will load it read/write by default.
-            return_inputs (boolean): if we are interested in the values of the input arrays after evaluation.
             cl_runtime_info (mot.cl_runtime_info.CLRuntimeInfo): the runtime information for execution
 
         Returns:
@@ -169,8 +168,7 @@ class DMRICompositeModel(DMRIOptimizable):
                 we return a tuple with as first element the return value and as second element a dictionary mapping
                 the output state of the parameters.
         """
-        return self.get_composite_model_function().evaluate(inputs, return_inputs=return_inputs,
-                                                            cl_runtime_info=cl_runtime_info)
+        return self.get_composite_model_function().evaluate(inputs, cl_runtime_info=cl_runtime_info)
 
     def build(self, voxels_to_analyze=None):
         if self._input_data is None:
@@ -184,8 +182,6 @@ class DMRICompositeModel(DMRIOptimizable):
                                    self.get_nmr_observations(),
                                    self.get_nmr_parameters(),
                                    self._get_initial_parameters(voxels_to_analyze),
-                                   self._get_pre_eval_parameter_modifier(),
-                                   self._get_objective_per_observation_function(),
                                    self.get_lower_bounds(),
                                    self.get_upper_bounds(),
                                    self._get_max_numdiff_step(),
@@ -206,6 +202,7 @@ class DMRICompositeModel(DMRIOptimizable):
                                    copy.deepcopy(self._post_processing),
                                    self._get_rwm_proposal_stds(voxels_to_analyze),
                                    self._get_model_eval_function(),
+                                   self._get_objective_function(),
                                    self._get_log_likelihood_per_observation_function(),
                                    self._get_log_prior_function_builder(),
                                    self._get_finalize_proposal_function_builder())
@@ -1291,11 +1288,7 @@ class DMRICompositeModel(DMRIOptimizable):
         return SimpleCLFunction('void', func_name, [('mot_data_struct*', 'data'), ('mot_float_type*', 'params')],
                                 '\n'.join(transforms))
 
-    def _get_pre_eval_parameter_modifier(self):
-        return SimpleCLFunction('void', '_modifyParameters',
-                                [('mot_data_struct*', 'data'), ('mot_float_type*', 'x')], '')
-
-    def _get_objective_per_observation_function(self):
+    def _get_objective_function(self):
         eval_function_info = self._get_model_eval_function()
         eval_model_func = self._likelihood_function.get_log_likelihood_function(include_constant_terms=False)
 
@@ -1305,21 +1298,83 @@ class DMRICompositeModel(DMRIOptimizable):
             param_listing += self._get_param_listing_for_param(eval_model_func, p)
             eval_call_args.append('{}.{}'.format(eval_model_func.name, p.name).replace('.', '_'))
 
-        func_name = 'getObjectiveInstanceValue'
         cl_body = '''
-            double observation = data->observations[observation_index];
-            double model_evaluation = ''' + eval_function_info.get_cl_function_name() + '''(
-                data, x, observation_index);
+            double getObjectiveInstanceValue(
+                    mot_data_struct* data, 
+                    const mot_float_type* const x,
+                    global mot_float_type* g_objective_list, 
+                    mot_float_type* p_objective_list,
+                    local double* objective_value_tmp){
 
-            ''' + param_listing + '''
-
-            return -''' + eval_model_func.get_cl_function_name() + '''(''' + ','.join(eval_call_args) + ''');            
+                ''' + param_listing + '''
+                
+                double observation;
+                double model_evaluation;
+                double sum = 0;
+                double eval;
+                
+                if(objective_value_tmp){ // local reduction
+                    uint local_id = get_local_id(0);
+                    uint workgroup_size = get_local_size(0);
+                    
+                    objective_value_tmp[local_id] = 0;
+                    
+                    uint elements_for_workitem = ceil(''' + str(self.get_nmr_observations()) + ''' 
+                                                      / (mot_float_type)workgroup_size);
+    
+                    if(workgroup_size * (elements_for_workitem - 1) + local_id 
+                            >= ''' + str(self.get_nmr_observations()) + '''){
+                        elements_for_workitem -= 1;
+                    }
+                    
+                    uint observation_ind;
+                    for(uint i = 0; i < elements_for_workitem; i++){
+                        observation_ind = i * workgroup_size + local_id;
+                        
+                        observation = data->observations[observation_ind];
+                        model_evaluation = ''' + eval_function_info.get_cl_function_name() \
+                                    + '''(data, x, observation_ind);
+                                    
+                        eval = -''' + eval_model_func.get_cl_function_name() + '''('''\
+                                    + ','.join(eval_call_args) + ''');
+                                    
+                        objective_value_tmp[local_id] += eval;
+                        
+                        if(g_objective_list){
+                            g_objective_list[observation_ind] = eval;
+                        }
+                        if(p_objective_list){
+                            p_objective_list[observation_ind] = eval;
+                        }
+                    }
+                    barrier(CLK_LOCAL_MEM_FENCE);
+                    
+                    for(uint i = 0; i < workgroup_size; i++){
+                        sum += objective_value_tmp[i];
+                    }   
+                }
+                else{            
+                    for(uint i = 0; i < ''' + str(self.get_nmr_observations()) + '''; i++){
+                        observation = data->observations[i];
+                        model_evaluation = ''' + eval_function_info.get_cl_function_name() + '''(data, x, i);
+                        
+                        eval = -''' + eval_model_func.get_cl_function_name() + '''(''' \
+                                    + ','.join(eval_call_args) + ''');
+                        
+                        sum += eval;
+                        
+                        if(g_objective_list){
+                            g_objective_list[i] = eval;
+                        }
+                        if(p_objective_list){
+                            p_objective_list[i] = eval;
+                        }
+                    }
+                }
+                return sum;
+            }
         '''
-        return SimpleCLFunction(
-            'double', func_name, [('mot_data_struct*', 'data'),
-                                  ('const mot_float_type* const', 'x'),
-                                  ('uint', 'observation_index')], cl_body,
-            dependencies=[eval_function_info, eval_model_func])
+        return SimpleCLFunction.from_string(cl_body, dependencies=[eval_function_info, eval_model_func])
 
     def _get_model_eval_function(self):
         """Get the evaluation function that evaluates the model at the given parameters.
@@ -1572,15 +1627,15 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
 
     def __init__(self, used_problem_indices, name, input_data,
                  kernel_data_info, nmr_problems, nmr_observations,
-                 nmr_estimable_parameters, initial_parameters, pre_eval_parameter_modifier,
-                 objective_per_observation_function, lower_bounds, upper_bounds, numdiff_step,
+                 nmr_estimable_parameters, initial_parameters,
+                 lower_bounds, upper_bounds, numdiff_step,
                  numdiff_scaling_factors, numdiff_use_bounds, numdiff_use_lower_bounds,
                  numdiff_use_upper_bounds, numdiff_param_transform, estimable_parameters_list,
                  nmr_parameters_for_bic_calculation,
                  post_optimization_modifiers, extra_optimization_maps, extra_sampling_maps,
                  dependent_map_calculator, fixed_parameter_maps,
                  free_param_names, parameter_codec, post_processing,
-                 rwm_proposal_stds, eval_function,
+                 rwm_proposal_stds, eval_function, objective_function,
                  ll_per_obs_func, log_prior_function_builder,
                  finalize_proposal_function_builder):
         self.used_problem_indices = used_problem_indices
@@ -1591,8 +1646,6 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
         self._nmr_observations = nmr_observations
         self._nmr_estimable_parameters = nmr_estimable_parameters
         self._initial_parameters = initial_parameters
-        self._pre_eval_parameter_modifier = pre_eval_parameter_modifier
-        self._objective_per_observation_function = objective_per_observation_function
         self._lower_bounds = lower_bounds
         self._upper_bounds = upper_bounds
         self._numdiff_step = numdiff_step
@@ -1613,6 +1666,7 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
         self._extra_sampling_maps = extra_sampling_maps
         self._rwm_proposal_stds = rwm_proposal_stds
         self._eval_function = eval_function
+        self._objective_function = objective_function
         self._ll_per_obs_func = ll_per_obs_func
         self._log_prior_function_builder = log_prior_function_builder
         self._finalize_proposal_function_builder = finalize_proposal_function_builder
@@ -1629,11 +1683,8 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
     def get_nmr_parameters(self):
         return self._nmr_estimable_parameters
 
-    def get_pre_eval_parameter_modifier(self):
-        return self._pre_eval_parameter_modifier
-
-    def get_objective_per_observation_function(self):
-        return self._objective_per_observation_function
+    def get_objective_function(self):
+        return self._objective_function
 
     def get_initial_parameters(self):
         return self._initial_parameters
@@ -1643,9 +1694,6 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
 
     def get_upper_bounds(self):
         return self._upper_bounds
-
-    def finalize_optimized_parameters(self, parameters):
-        return parameters
 
     def numdiff_get_max_step(self):
         return self._numdiff_step
@@ -1674,11 +1722,10 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
     def get_finalize_proposal_function(self, address_space_parameter_vector='private'):
         return self._finalize_proposal_function_builder(address_space_parameter_vector)
 
-    def get_post_optimization_output(self, optimization_results):
-        end_points = optimization_results.get_optimization_result()
-        volume_maps = results_to_dict(end_points, self.get_free_param_names())
-        volume_maps = self.post_process_optimization_maps(volume_maps, results_array=end_points)
-        volume_maps.update({'ReturnCodes': optimization_results.get_return_codes()})
+    def get_post_optimization_output(self, optimized_parameters, return_codes):
+        volume_maps = results_to_dict(optimized_parameters, self.get_free_param_names())
+        volume_maps = self.post_process_optimization_maps(volume_maps, results_array=optimized_parameters)
+        volume_maps.update({'ReturnCodes': return_codes})
         return volume_maps
 
     def get_free_param_names(self):
@@ -2602,3 +2649,55 @@ class ProtocolAdaptionCallbacks(object):
             Dict[str, KernelData]: additional kernel input data
         """
         raise NotImplementedError()
+
+
+def calculate_dependent_parameters(kernel_data, estimated_parameters_list,
+                                   parameters_listing, dependent_parameter_names, cl_runtime_info=None):
+    """Calculate the dependent parameters
+
+    Some of the models may contain parameter dependencies. We would like to return the maps for these parameters
+    as well as all the other maps. Since the dependencies are specified in CL, we have to recourse to CL to
+    calculate these maps.
+
+    This uses the calculated parameters in the results dictionary to run the parameters_listing in CL to obtain
+    the maps for the dependent parameters.
+
+    Args:
+        kernel_data (dict[str: mot.utils.KernelData]): the list of additional data to load
+        estimated_parameters_list (list of ndarray): The list with the one-dimensional
+            ndarray of estimated parameters
+        parameters_listing (str): The parameters listing in CL
+        dependent_parameter_names (list of list of str): Per parameter we would like to obtain the CL name and the
+            result map name. For example: (('Wball_w', 'Wball.w'),)
+        cl_runtime_info (mot.cl_runtime_info.CLRuntimeInfo): the runtime information
+
+    Returns:
+        dict: A dictionary with the calculated maps for the dependent parameters.
+    """
+
+    def get_cl_function():
+        parameter_write_out = ''
+        for i, p in enumerate([el[0] for el in dependent_parameter_names]):
+            parameter_write_out += 'data->_results[' + str(i) + '] = ' + p + ";\n"
+
+        return SimpleCLFunction.from_string('''
+            void transform(mot_data_struct* data){
+                mot_float_type x[''' + str(len(estimated_parameters_list)) + '''];
+
+                for(uint i = 0; i < ''' + str(len(estimated_parameters_list)) + '''; i++){
+                    x[i] = data->x[i];
+                }
+                ''' + parameters_listing + '''
+                ''' + parameter_write_out + '''
+            }
+        ''')
+
+    data_strut = dict(kernel_data)
+    data_strut['x'] = KernelArray(np.dstack(estimated_parameters_list)[0, ...], ctype='mot_float_type')
+    data_strut['_results'] = KernelAllocatedArray(
+        (estimated_parameters_list[0].shape[0], len(dependent_parameter_names)), 'mot_float_type')
+
+    get_cl_function().evaluate({'data': data_strut}, nmr_instances=estimated_parameters_list[0].shape[0],
+                               cl_runtime_info=cl_runtime_info)
+
+    return data_strut['_results'].get_data()

@@ -441,7 +441,10 @@ class FittingProcessor(SimpleModelProcessor):
 
         optimization_results = self._optimizer.minimize(codec_model, starting_positions)
 
-        results = codec_model.get_post_optimization_output(optimization_results)
+        optimized_parameters = codec_model.decode_parameters(optimization_results.get_optimization_result())
+
+        results = codec_model.get_post_optimization_output(optimized_parameters,
+                                                           optimization_results.get_return_codes())
         results.update({self._used_mask_name: np.ones(roi_indices.shape[0], dtype=np.bool)})
 
         self._write_output_recursive(results, roi_indices)

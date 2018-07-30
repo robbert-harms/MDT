@@ -117,20 +117,17 @@ def add_rician_noise(signals, noise_level, seed=None):
 def _get_simulate_function(model):
     """Get the simulation function.
 
-    This is a wrapper around the model evaluation function. As such, it includes all things like the
-    pre-evaluation parameter modifiers, the protocol adaptation callbacks, etc. It creates the model signal just
-    as used by the log-likelihood function during model optimization.
+    This is a wrapper around the model evaluation function. As such, it includes the protocol adaptation callbacks.
+    It creates the model signal just as used by the log-likelihood function during model optimization.
+
+    Please note that this function does not include the
     """
     eval_function_info = model.get_model_eval_function()
-    param_modifier = model.get_pre_eval_parameter_modifier()
-
     return SimpleCLFunction.from_string('''
         void simulate(mot_data_struct* data, mot_float_type* parameters, global mot_float_type* estimates){
-            ''' + param_modifier.get_cl_function_name() + '''(data, parameters);
-
             for(uint i = 0; i < ''' + str(model.get_nmr_observations()) + '''; i++){
                 estimates[i] = ''' + eval_function_info.get_cl_function_name() + '''(data, parameters, i);
             }
         }
-    ''', dependencies=[eval_function_info, param_modifier])
+    ''')
 
