@@ -239,9 +239,25 @@ class DMRICompositeModel(DMRIOptimizable):
         model_builder = self
 
         class Codec(ParameterCodec):
-            def get_parameter_decode_function(self, function_name='decodeParameters'):
+
+            def get_parameter_encode_function(self):
                 func = '''
-                    void ''' + function_name + '''(mot_data_struct* data, local mot_float_type* x){
+                    void parameter_encode(mot_data_struct* data, local mot_float_type* x){
+                '''
+                if model_builder._enforce_weights_sum_to_one:
+                    func += model_builder._get_weight_sum_to_one_transformation()
+
+                for d in model_builder._get_parameter_transformations()[0]:
+                    func += "\n" + "\t" * 4 + d.format('x')
+
+                func += '''
+                    }
+                '''
+                return SimpleCLFunction.from_string(func)
+
+            def get_parameter_decode_function(self):
+                func = '''
+                    void parameter_decode(mot_data_struct* data, local mot_float_type* x){
                 '''
                 for d in model_builder._get_parameter_transformations()[1]:
                     func += "\n" + "\t" * 4 + d.format('x')
@@ -249,24 +265,11 @@ class DMRICompositeModel(DMRIOptimizable):
                 if model_builder._enforce_weights_sum_to_one:
                     func += model_builder._get_weight_sum_to_one_transformation()
 
-                return func + '''
+                func += '''
                     }
                 '''
+                return SimpleCLFunction.from_string(func)
 
-            def get_parameter_encode_function(self, function_name='encodeParameters'):
-                func = '''
-                    void ''' + function_name + '''(mot_data_struct* data, local mot_float_type* x){
-                '''
-
-                if model_builder._enforce_weights_sum_to_one:
-                    func += model_builder._get_weight_sum_to_one_transformation()
-
-                for d in model_builder._get_parameter_transformations()[0]:
-                    func += "\n" + "\t" * 4 + d.format('x')
-
-                return func + '''
-                    }
-                '''
         return Codec()
 
     def fix(self, model_param_name, value):
@@ -1291,20 +1294,16 @@ class DMRICompositeModel(DMRIOptimizable):
                 
                 uint local_id = get_local_id(0);
                 uint workgroup_size = get_local_size(0);
-                
-                objective_value_tmp[local_id] = 0;
-                
                 uint elements_for_workitem = ceil(''' + str(self.get_nmr_observations()) + ''' 
-                                                  / (mot_float_type)workgroup_size);
-
+                                                  / (mot_float_type)workgroup_size);                
                 if(workgroup_size * (elements_for_workitem - 1) + local_id 
                         >= ''' + str(self.get_nmr_observations()) + '''){
                     elements_for_workitem -= 1;
                 }
                 
-                double sum = 0;
                 double eval;
                 uint observation_ind;
+                objective_value_tmp[local_id] = 0;
                 for(uint i = 0; i < elements_for_workitem; i++){
                     observation_ind = i * workgroup_size + local_id;
                                 
@@ -1319,11 +1318,16 @@ class DMRICompositeModel(DMRIOptimizable):
                         objective_list[observation_ind] = eval;
                     }''' if support_for_objective_list else '') + '''
                 }
-                mem_fence(CLK_LOCAL_MEM_FENCE);
+                barrier(CLK_LOCAL_MEM_FENCE);
                 
-                for(uint i = 0; i < workgroup_size; i++){
-                    sum += objective_value_tmp[i];
-                }   
+                local double sum;                
+                if(local_id == 0){
+                    sum = 0;
+                    for(uint i = 0; i < workgroup_size; i++){
+                        sum += objective_value_tmp[i];
+                    }   
+                }
+                barrier(CLK_LOCAL_MEM_FENCE);
                 return sum;
             }
         '''
