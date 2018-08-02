@@ -1,5 +1,5 @@
-from mot.cl_data_type import SimpleCLDataType
-from mot.cl_function import SimpleCLFunctionParameter
+from mot.lib.cl_data_type import SimpleCLDataType
+from mot.lib.cl_function import SimpleCLFunctionParameter
 from .parameter_functions.numdiff_info import SimpleNumDiffInfo
 from .parameter_functions.priors import UniformWithinBoundsPrior
 from .parameter_functions.transformations import IdentityTransform
@@ -35,7 +35,7 @@ class InputDataParameter(SimpleCLFunctionParameter):
         to use for each problem instance and each data point.
 
         Args:
-            data_type (mot.cl_data_type.SimpleCLDataType): the data type expected by this parameter
+            data_type (mot.lib.cl_data_type.SimpleCLDataType): the data type expected by this parameter
             name (str): The name of this parameter
             value (double or ndarray): The value used if no value is given in the input data.
         """
@@ -52,7 +52,7 @@ class ProtocolParameter(InputDataParameter):
         that there is no suitable value in the input data.
 
         Args:
-            data_type (mot.cl_data_type.SimpleCLDataType): the data type expected by this parameter
+            data_type (mot.lib.cl_data_type.SimpleCLDataType): the data type expected by this parameter
             name (str): The name of this parameter
             value (None or float or ndarray): The value used if no value is given in the input data.
         """
@@ -70,15 +70,15 @@ class FreeParameter(SimpleCLFunctionParameter):
         These parameters may optionally be fixed to a value or list of values for all problems.
 
         Args:
-            data_type (str or mot.cl_data_type.SimpleCLDataType): the data type expected by this parameter
+            data_type (str or mot.lib.cl_data_type.SimpleCLDataType): the data type expected by this parameter
             name (str): The name of this parameter
             fixed (boolean): If this parameter is fixed to the value given
             value (double or ndarray): A single value for all problems or a list of values for each problem.
             lower_bound (double): The lower bound of this parameter
             upper_bound (double): The upper bound of this parameter
             parameter_transform (AbstractTransformation): The parameter transformation function
-            sampling_proposal_std (float): The proposal standard deviation, used in some MCMC sampling routines
-            sampling_prior (ParameterPrior): The prior function for use in model sampling
+            sampling_proposal_std (float): The proposal standard deviation, used in some MCMC sample routines
+            sampling_prior (ParameterPrior): The prior function for use in model sample
             numdiff_info (mdt.model_building.parameter_functions.numdiff_info.NumDiffInfo): the information
                 for taking the numerical derivative with respect to this parameter.
         """

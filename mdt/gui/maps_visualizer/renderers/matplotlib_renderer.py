@@ -231,7 +231,7 @@ class _MouseInteraction(object):
         """Get the axis data matching the given axis.
 
         Args:
-            Axis: the matplotlib axis to match
+            axis: the matplotlib axis to match
 
         Returns:
             AxisData: our data container for that axis

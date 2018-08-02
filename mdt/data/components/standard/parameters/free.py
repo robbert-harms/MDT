@@ -36,12 +36,12 @@ class w(FreeParameterTemplate):
 
 
 class w_ard_beta(w):
-    """Subclasses the weight to add a Beta prior for in use with Automatic Relevance Detection during sampling."""
+    """Subclasses the weight to add a Beta prior for in use with Automatic Relevance Detection during sample."""
     sampling_prior = ARDBeta()
 
 
 class w_ard_gaussian(w):
-    """Subclasses the weight to add a Gaussian prior for in use with Automatic Relevance Detection during sampling."""
+    """Subclasses the weight to add a Gaussian prior for in use with Automatic Relevance Detection during sample."""
     sampling_prior = ARDGaussian()
 
 
@@ -141,7 +141,7 @@ class phi(FreeParameterTemplate):
     hemisphere. This is possible since diffusion is symmetric and works fine during optimization. For calculating the
     numerical derivative we can let phi rotate around 2*pi again.
 
-    During sampling the results can clip to pi since the standard formula for transforming spherical coordinates to
+    During sample the results can clip to pi since the standard formula for transforming spherical coordinates to
     cartesian coordinates defines phi to be in the range [0, 2*pi]. This is both a problem and a blessing. The problem
     is that the samples will not wrap nicely around pi, the blessing is that we prevent a bimodal distribution in phi.
     Not wrapping around pi is not much of a problem though, as the sampler can easily sample only half of a gaussian

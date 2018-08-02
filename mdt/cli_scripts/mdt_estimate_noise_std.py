@@ -13,7 +13,7 @@ import os
 import mdt
 from argcomplete.completers import FilesCompleter
 from mdt.shell_utils import BasicShellApplication
-from mot import cl_environments
+from mot.lib import cl_environments
 import textwrap
 
 

@@ -56,7 +56,7 @@ class DMRIOptimizable(object):
         For a list of post-processors, please see the default mdt configuration file under ``active_post_processing``.
 
         Args:
-            processing_type (str): one of ``sampling`` or ``optimization``.
+            processing_type (str): one of ``sample`` or ``optimization``.
             settings (dict): the items to set in the post-processing information
         """
         raise NotImplementedError()

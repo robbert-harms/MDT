@@ -27,9 +27,8 @@ import yaml
 from contextlib import contextmanager
 from pkg_resources import resource_stream
 
-from mot.factory import get_optimizer_by_name
 import mot.configuration
-from mot.load_balance_strategies import EvenDistribution
+from mot.lib.load_balance_strategies import EvenDistribution
 
 from mdt.__version__ import __version__
 
@@ -292,7 +291,7 @@ class OptimizationSettingsLoader(ConfigSectionLoader):
 
 
 class SampleSettingsLoader(ConfigSectionLoader):
-    """Loads the sampling section"""
+    """Loads the sample section"""
 
     def load(self, value):
         ensure_exists(['sampling', 'general'])
@@ -322,7 +321,7 @@ class TmpResultsDirSectionLoader(ConfigSectionLoader):
 
 
 class ActivePostProcessingLoader(ConfigSectionLoader):
-    """Load the default settings for the post sampling calculations."""
+    """Load the default settings for the post sample calculations."""
 
     def load(self, value):
         sampling = value.get('sampling', {})
@@ -421,10 +420,10 @@ def gzip_optimization_results():
 
 
 def gzip_sampling_results():
-    """Check if we should write the volume maps from the sampling gzipped or not.
+    """Check if we should write the volume maps from the sample gzipped or not.
 
     Returns:
-        boolean: True if the results of sampling computations should be gzipped, False otherwise.
+        boolean: True if the results of sample computations should be gzipped, False otherwise.
     """
     return _config['output_format']['sampling']['gzip']
 
@@ -436,7 +435,7 @@ def get_tmp_results_dir():
     use the model directory.
 
     Returns:
-        str or None: the tmp results dir to use during optimization and sampling
+        str or None: the tmp results dir to use during optimization and sample
     """
     return _config['tmp_results_dir']
 
@@ -487,7 +486,7 @@ def get_general_optimizer():
     Returns:
         Optimizer: the configured optimizer for use in MDT
     """
-    return _resolve_optimizer(_config['optimization']['general'])
+    return _config['optimization']['general']['name']
 
 
 def get_optimizer_for_model(model_names):
@@ -506,7 +505,7 @@ def get_optimizer_for_model(model_names):
     info_dict = get_model_config(model_names, _config['optimization']['model_specific'])
 
     if info_dict:
-        return _resolve_optimizer(info_dict)
+        return info_dict['name']
     else:
         return get_general_optimizer()
 
@@ -520,17 +519,17 @@ def get_general_optimizer_name():
     return _config['optimization']['general']['name']
 
 
-def get_general_optimizer_settings():
+def get_general_optimizer_options():
     """Get the settings of the currently configured general optimizer
 
     Returns:
         dict: the settings of the currently configured optimizer
     """
-    return _config['optimization']['general']['settings']
+    return _config['optimization']['general']['options']
 
 
 def get_general_sampling_settings():
-    """Get the general sampling settings.
+    """Get the general sample settings.
 
     Returns:
         Sampler: the configured sampler for use in MDT
@@ -644,8 +643,8 @@ def config_context(config_action):
         config = '''
             optimization:
                 general:
-                    name: 'NMSimplex'
-                    settings:
+                    name: 'Nelder-Mead'
+                    options:
                         patience: 10
         '''
         with mdt.config_context(mdt.configuration.YamlStringAction(config)):
@@ -764,33 +763,6 @@ class SetGeneralOptimizer(SimpleConfigAction):
     def _apply(self):
         OptimizationSettingsLoader().load({'general': {'name': self._optimizer_name,
                                                        'settings': self._settings}})
-
-
-def _resolve_optimizer(optimizer_info):
-    """Resolve the optimization routine from the given information dictionary.
-
-    Args:
-        optimizer_info (dict): the optimization dictionary with at least 'name' for the optimizer and settings
-            for the optimizer settings
-
-    Returns:
-        optimizer: the optimization routine
-    """
-    name = optimizer_info['name']
-    settings = deepcopy(optimizer_info.get('settings', {}) or {})
-    optimizer = get_optimizer_by_name(name)
-
-    if 'optimizers' in settings and settings['optimizers']:
-        settings['optimizers'] = [_resolve_optimizer(info) for info in settings['optimizers']]
-
-    if 'optimizer' in settings and settings['optimizer']:
-        settings['optimizer'] = _resolve_optimizer(settings['optimizer'])
-
-    if 'starting_point_generator' in settings and settings['starting_point_generator']:
-        cls = getattr(mot.cl_routines.optimizing.random_restart, list(settings['starting_point_generator'].keys())[0])
-        settings['starting_point_generator'] = cls(**list(settings['starting_point_generator'].values())[0])
-
-    return optimizer(**settings)
 
 
 """Load the default configuration, and if possible, the users configuration."""

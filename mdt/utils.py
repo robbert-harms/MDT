@@ -14,7 +14,7 @@ from contextlib import contextmanager
 import numpy as np
 import pkg_resources
 from numpy.lib.format import open_memmap
-import mot.utils
+import mot.lib.utils
 from mdt.components import get_model
 from mdt.configuration import get_config_dir
 from mdt.configuration import get_logging_configuration_dict, get_tmp_results_dir
@@ -23,7 +23,7 @@ from mdt.exceptions import NoiseStdEstimationNotPossible
 from mdt.log_handlers import ModelOutputLogHandler
 from mdt.nifti import load_nifti, write_nifti
 from mdt.protocols import load_protocol, write_protocol
-from mot.cl_environments import CLEnvironmentFactory
+from mot.lib.cl_environments import CLEnvironmentFactory
 from mdt.model_building.parameter_functions.dependencies import AbstractParameterDependency
 
 __author__ = 'Robbert Harms'
@@ -34,7 +34,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 class MRIInputData(object):
-    """A simple container for the input data for optimization/sampling models."""
+    """A simple container for the input data for optimization/sample models."""
 
     def has_input_data(self, parameter_name):
         """Check if input data for the given parameter is defined in the model.
@@ -95,7 +95,7 @@ class MRIInputData(object):
     def noise_std(self):
         """The noise standard deviation we will use during model evaluation.
 
-        During optimization or sampling the model will be evaluated against the observations using a
+        During optimization or sample the model will be evaluated against the observations using a
         likelihood function. Most of these likelihood functions need a standard deviation representing the noise
         in the data.
 
@@ -546,7 +546,7 @@ class InitializationData(object):
 class SimpleInitializationData(InitializationData):
 
     def __init__(self, inits=None, fixes=None, lower_bounds=None, upper_bounds=None, unfix=None):
-        """A storage class for initialization data during model fitting and sampling.
+        """A storage class for initialization data during model fitting and sample.
 
         Every element is supposed to be a dictionary with as keys the name of a parameter and as value a scalar value
         or a 3d/4d volume.
@@ -1331,7 +1331,7 @@ def flatten(input_it):
 def get_cl_devices():
     """Get a list of all CL devices in the system.
 
-    The indices of the devices can be used in the model fitting/sampling functions for 'cl_device_ind'.
+    The indices of the devices can be used in the model fitting/sample functions for 'cl_device_ind'.
 
     Returns:
         A list of CLEnvironments, one for each device in the system.
@@ -1515,7 +1515,7 @@ def load_sample(fname, mode='r'):
         ndarray: a memory mapped array with the results
     """
     if not os.path.isfile(fname) and not os.path.isfile(fname + '.samples.npy'):
-        raise ValueError('Could not find sampling results at the location "{}"'.format(fname))
+        raise ValueError('Could not find sample results at the location "{}"'.format(fname))
 
     if not os.path.isfile(fname):
         fname += '.samples.npy'
@@ -1597,7 +1597,7 @@ def is_scalar(value):
     Returns:
         boolean: true if the value is a scalar, false otherwise.
     """
-    return mot.utils.is_scalar(value)
+    return mot.lib.utils.is_scalar(value)
 
 
 def roi_index_to_volume_index(roi_indices, brain_mask):
@@ -1605,7 +1605,7 @@ def roi_index_to_volume_index(roi_indices, brain_mask):
 
     This is the inverse function of :func:`volume_index_to_roi_index`.
 
-    This function is useful if you, for example, have sampling results of a specific voxel
+    This function is useful if you, for example, have sample results of a specific voxel
     and you want to locate that voxel in the brain maps.
 
     Please note that this function can be memory intensive for a large list of roi_indices

@@ -1,8 +1,8 @@
 from copy import deepcopy
 from mdt.component_templates.base import ComponentBuilder, method_binding_meta, \
     ComponentTemplate
-from mot.cl_data_type import SimpleCLDataType
-from mot.cl_function import SimpleCLFunction
+from mot.lib.cl_data_type import SimpleCLDataType
+from mot.lib.cl_function import SimpleCLFunction
 from mdt.model_building.parameters import LibraryParameter
 from mdt.components import get_component, has_component
 from mot.library_functions.base import CLLibrary

@@ -1,5 +1,5 @@
-from mot.cl_data_type import SimpleCLDataType
-from mot.cl_function import CLFunction, SimpleCLFunction
+from mot.lib.cl_data_type import SimpleCLDataType
+from mot.lib.cl_function import CLFunction, SimpleCLFunction
 from .parameter_functions.numdiff_info import SimpleNumDiffInfo
 from .parameters import FreeParameter
 from .parameter_functions.priors import UniformWithinBoundsPrior
@@ -35,7 +35,7 @@ class ModelCLFunction(CLFunction):
 
 
 class SampleModelCLFunction(ModelCLFunction):
-    """Extended version of a model function for use in sampling.
+    """Extended version of a model function for use in sample.
 
     This adds functions to retrieve priors about this function.
     """
@@ -55,7 +55,7 @@ class SampleModelCLFunction(ModelCLFunction):
         """Get all the model function priors.
 
         Returns:
-            list[mot.cl_function.CLFunction]: the priors for this model function,
+            list[mot.lib.cl_function.CLFunction]: the priors for this model function,
                 these are supposed to be used in conjunction to the parameter priors.
         """
         raise NotImplementedError()
@@ -74,7 +74,7 @@ class SimpleModelCLFunction(SampleModelCLFunction, SimpleCLFunction):
             parameters (list or tuple of CLFunctionParameter): The list of parameters required for this function
             cl_body (str): the cl body of this function
             dependencies (list or tuple of CLFunction): The list of CL libraries this function depends on
-            model_function_priors (list of mot.cl_function.CLFunction): list of priors concerning this whole model
+            model_function_priors (list of mot.lib.cl_function.CLFunction): list of priors concerning this whole model
                 function. The parameter names of the given functions must match those of this function.
         """
         super(SimpleModelCLFunction, self).__init__(return_type, cl_function_name, parameters,
@@ -98,7 +98,7 @@ class SimpleModelCLFunction(SampleModelCLFunction, SimpleCLFunction):
         """Get all the model function priors.
 
         Returns:
-            list[mot.cl_function.CLFunction]: the priors for this model function, these are supposed to be used in
+            list[mot.lib.cl_function.CLFunction]: the priors for this model function, these are supposed to be used in
                 conjunction to the parameter priors.
         """
         return self._model_function_priors

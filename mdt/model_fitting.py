@@ -15,8 +15,8 @@ from mdt.utils import create_roi, get_cl_devices, model_output_exists, \
     per_model_logging_context, get_temporary_results_dir, SimpleInitializationData
 from mdt.processing_strategies import FittingProcessor, get_full_tmp_results_path
 from mdt.exceptions import InsufficientProtocolError
-from mot.cl_runtime_info import CLRuntimeInfo
-from mot.load_balance_strategies import EvenDistribution
+from mot.lib.cl_runtime_info import CLRuntimeInfo
+from mot.lib.load_balance_strategies import EvenDistribution
 import mot.configuration
 from mot.configuration import RuntimeConfigurationAction
 
@@ -98,7 +98,7 @@ def get_batch_fitting_function(total_nmr_subjects, models_to_fit, output_folder,
 class ModelFit(object):
 
     def __init__(self, model, input_data, output_folder,
-                 optimizer=None, recalculate=False, only_recalculate_last=False,
+                 method=None, optimizer_options=None, recalculate=False, only_recalculate_last=False,
                  cl_device_ind=None, double_precision=False, tmp_results_dir=True, initialization_data=None,
                  post_processing=None):
         """Setup model fitting for the given input model and data.
@@ -111,8 +111,14 @@ class ModelFit(object):
             input_data (:class:`~mdt.utils.MRIInputData`): the input data object containing
                 all the info needed for the model fitting.
             output_folder (string): The full path to the folder where to place the output
-            optimizer (:class:`mot.cl_routines.optimizing.base.AbstractOptimizer`): The optimization routine to use.
-                If None, we create one using the configuration files.
+            method (str): The optimization method to use, one of:
+                - 'Levenberg-Marquardt'
+                - 'Nelder-Mead'
+                - 'Powell'
+                - 'Subplex'
+
+                If not given, defaults to 'Powell'.
+            optimizer_options (dict): extra options passed to the optimization routines.
             recalculate (boolean): If we want to recalculate the results if they are already present.
             only_recalculate_last (boolean): If we want to recalculate all the models.
                 This is only of importance when dealing with CascadeModels. If set to true we only recalculate
@@ -141,7 +147,8 @@ class ModelFit(object):
         self._model = model
         self._input_data = input_data
         self._output_folder = output_folder
-        self._optimizer = optimizer
+        self._method = method
+        self._optimizer_options = optimizer_options
         self._recalculate = recalculate
         self._only_recalculate_last = only_recalculate_last
         self._logger = logging.getLogger(__name__)
@@ -228,11 +235,11 @@ class ModelFit(object):
             if apply_user_provided_initialization:
                 self._apply_user_provided_initialization_data(model)
 
-            optimizer = self._optimizer or get_optimizer_for_model(model_names)
-            optimizer.set_cl_runtime_info(self._cl_runtime_info)
+            method = self._method or get_optimizer_for_model(model_names)
 
-            results = fit_composite_model(model, self._input_data, self._output_folder, optimizer,
-                                          self._tmp_results_dir, recalculate=recalculate, cascade_names=model_names)
+            results = fit_composite_model(model, self._input_data, self._output_folder, method,
+                                          self._tmp_results_dir, recalculate=recalculate, cascade_names=model_names,
+                                          optimizer_options=self._optimizer_options)
 
         map_results = get_all_nifti_data(os.path.join(self._output_folder, model.name))
         return results, map_results
@@ -249,8 +256,8 @@ class ModelFit(object):
         self._initialization_data.apply_to_model(model, self._input_data)
 
 
-def fit_composite_model(model, input_data, output_folder, optimizer, tmp_results_dir,
-                        recalculate=False, cascade_names=None):
+def fit_composite_model(model, input_data, output_folder, method, tmp_results_dir,
+                        recalculate=False, cascade_names=None, optimizer_options=None):
     """Fits the composite model and returns the results as ROI lists per map.
 
      Args:
@@ -259,10 +266,11 @@ def fit_composite_model(model, input_data, output_folder, optimizer, tmp_results
         input_data (:class:`~mdt.utils.MRIInputData`): The input data object for the model.
         output_folder (string): The path to the folder where to place the output.
             The resulting maps are placed in a subdirectory (named after the model name) in this output folder.
-        optimizer (:class:`mot.cl_routines.optimizing.base.AbstractOptimizer`): The optimization routine to use.
+        method (str): The optimization routine to use.
         tmp_results_dir (str): the main directory to use for the temporary results
         recalculate (boolean): If we want to recalculate the results if they are already present.
         cascade_names (list): the list of cascade names, meant for logging
+        optimizer_options (dict): the additional optimization options
     """
     logger = logging.getLogger(__name__)
     output_path = os.path.join(output_folder, model.name)
@@ -297,9 +305,9 @@ def fit_composite_model(model, input_data, output_folder, optimizer, tmp_results
             tmp_dir = get_full_tmp_results_path(output_path, tmp_results_dir)
             logger.info('Saving temporary results in {}.'.format(tmp_dir))
 
-            worker = FittingProcessor(optimizer, model, input_data.mask,
+            worker = FittingProcessor(method, model, input_data.mask,
                                       input_data.nifti_header, output_path,
-                                      tmp_dir, recalculate)
+                                      tmp_dir, recalculate, optimizer_options=optimizer_options)
 
             processing_strategy = get_processing_strategy('optimization')
             return processing_strategy.process(worker)

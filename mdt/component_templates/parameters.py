@@ -1,6 +1,6 @@
 from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate
 from mdt.components import has_component, get_component
-from mot.cl_data_type import SimpleCLDataType
+from mot.lib.cl_data_type import SimpleCLDataType
 from mdt.model_building.parameter_functions.numdiff_info import NumDiffInfo, SimpleNumDiffInfo
 from mdt.model_building.parameters import ProtocolParameter, FreeParameter
 from mdt.model_building.parameter_functions.priors import UniformWithinBoundsPrior
@@ -104,7 +104,7 @@ class FreeParameterTemplate(ParameterTemplate):
             * ``AbsModTwoPi``: ensures absolute modulus of the input parameters between zero and two pi.
 
         sampling_proposal_std (float): the default proposal standard deviation for this parameter. This is used
-            in some MCMC sampling routines.
+            in some MCMC sample routines.
         sampling_proposal_modulus (float or None): if given, a modulus we will use when finalizing the proposal
             continuous_distributions. That is, when we are finalizing the proposals we will take, if set, the absolute
             modulus of that parameter to ensure the parameter is within [0, <modulus>].

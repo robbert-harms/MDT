@@ -22,7 +22,7 @@ import textwrap
 
 from mdt.protocols import Protocol
 from mdt.shell_utils import BasicShellApplication
-from mot.utils import is_scalar
+from mot.lib.utils import is_scalar
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"

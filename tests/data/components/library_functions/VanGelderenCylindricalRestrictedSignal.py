@@ -3,7 +3,7 @@ from scipy.special import jnp_zeros
 import numpy as np
 from numpy.testing import assert_allclose
 import mdt
-from mot.cl_runtime_info import CLRuntimeInfo
+from mot.lib.cl_runtime_info import CLRuntimeInfo
 
 
 class test_VanGelderenCylindricalRestrictedSignal(unittest.TestCase):

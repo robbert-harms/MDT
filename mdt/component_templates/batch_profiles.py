@@ -3,7 +3,7 @@ import os
 from itertools import filterfalse
 
 from mdt.batch_utils import SimpleBatchProfile, BatchFitProtocolLoader, SimpleSubjectInfo
-from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate, bind_function
+from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate
 
 __author__ = 'Robbert Harms'
 __date__ = "2017-02-14"

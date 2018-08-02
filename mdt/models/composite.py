@@ -12,16 +12,16 @@ from mdt.model_building.model_functions import WeightType
 from mdt.model_building.parameter_functions.dependencies import SimpleAssignment, AbstractParameterDependency
 from mdt.model_building.utils import ParameterCodec
 
-from mot.cl_data_type import SimpleCLDataType
-from mot.cl_function import SimpleCLFunction, SimpleCLFunctionParameter
-from mot.cl_routines.mapping import compute_log_likelihood
-from mot.cl_routines.mapping.numerical_hessian import NumericalHessian
+from mot.lib.cl_data_type import SimpleCLDataType
+from mot.lib.cl_function import SimpleCLFunction, SimpleCLFunctionParameter
+from mot.cl_routines import compute_log_likelihood
+from mot.cl_routines.numerical_hessian import NumericalHessian
 from mdt.model_building.parameters import ProtocolParameter, FreeParameter, CurrentObservationParam
-from mot.cl_runtime_info import CLRuntimeInfo
-from mot.model_interfaces import SampleModelInterface, NumericalDerivativeInterface
-from mot.utils import convert_data_to_dtype, \
+from mot.lib.cl_runtime_info import CLRuntimeInfo
+from mot.lib.model_interfaces import SampleModelInterface, NumericalDerivativeInterface
+from mot.lib.utils import convert_data_to_dtype, \
     hessian_to_covariance, all_elements_equal, get_single_value
-from mot.kernel_data import Array, Zeros, Scalar
+from mot.lib.kernel_data import Array, Zeros, Scalar
 
 from mdt.models.base import MissingProtocolInput
 from mdt.models.base import DMRIOptimizable
@@ -66,7 +66,7 @@ class DMRICompositeModel(DMRIOptimizable):
                 output name or a list with output names and the Func is a callback function that returns one or more
                 output maps.
 
-            model_priors (List[mot.cl_function.CLFunction]): the list of model priors this class
+            model_priors (List[mot.lib.cl_function.CLFunction]): the list of model priors this class
                 will also use (next to the priors defined in the parameters).
 
             _proposal_callbacks (Iterable[Tuple[Tuple[CompartmentFunction, CLFunctionParameter], CLFunction]]):
@@ -74,8 +74,8 @@ class DMRICompositeModel(DMRIOptimizable):
                 first a reference to the used compartments (as a list of (compartment, parameter) tuples),
                 second the CL function to call (using those parameters).
 
-                Proposals generated during sampling may sometimes require transformations to transform the proposal
-                vector. For example, in the case of sampling a spherical coordinate system, this callback can be used
+                Proposals generated during sample may sometimes require transformations to transform the proposal
+                vector. For example, in the case of sample a spherical coordinate system, this callback can be used
                 to transform both the inclination and the azimuth at the same time to an antipodal point.
         """
         super(DMRICompositeModel, self).__init__(model_name, model_tree, likelihood_function, signal_noise_model,
@@ -138,7 +138,7 @@ class DMRICompositeModel(DMRIOptimizable):
     def get_composite_model_function(self):
         """Get the composite model function for the current model tree.
 
-        The output model function of this class is a subclass of :class:`~mot.cl_function.CLFunction` meaning it can
+        The output model function of this class is a subclass of :class:`~mot.lib.cl_function.CLFunction` meaning it can
         be used to evaluate the model given some input parameters.
 
         This function does not incorporate the likelihood function (Gaussian, Rician, etc.), but does incorporate the
@@ -156,11 +156,11 @@ class DMRICompositeModel(DMRIOptimizable):
         model using :meth:`get_composite_model_function` and evaluates that.
 
         Args:
-            inputs (dict[str: Union(ndarray, mot.utils.KernelData)]): for each parameter of the function
+            inputs (dict[str: Union(ndarray, mot.lib.utils.KernelData)]): for each parameter of the function
                 the input data. Each of these input datasets must either be a scalar or be of equal length in the
                 first dimension. The user can either input raw ndarrays or input KernelData objects.
                 If an ndarray is given we will load it read/write by default.
-            cl_runtime_info (mot.cl_runtime_info.CLRuntimeInfo): the runtime information for execution
+            cl_runtime_info (mot.lib.cl_runtime_info.CLRuntimeInfo): the runtime information for execution
 
         Returns:
             ndarray or tuple(ndarray, dict[str: ndarray]): we always return at least the return values of the function,
@@ -212,7 +212,7 @@ class DMRICompositeModel(DMRIOptimizable):
         For a list of post-processors, please see the default mdt configuration file under ``active_post_processing``.
 
         Args:
-            processing_type (str): one of ``sampling`` or ``optimization``.
+            processing_type (str): one of ``sample`` or ``optimization``.
             settings (dict): the items to set in the post-processing information
         """
         self._post_processing[processing_type].update(settings)
@@ -224,7 +224,7 @@ class DMRICompositeModel(DMRIOptimizable):
         options.
 
         Returns:
-            dict: the dictionary with the post-processing options for both sampling and optimization.
+            dict: the dictionary with the post-processing options for both sample and optimization.
         """
         return copy.deepcopy(self._post_processing)
 
@@ -1252,7 +1252,7 @@ class DMRICompositeModel(DMRIOptimizable):
         """Get the parameter transformation for use in the numerical differentiation algorithm.
 
         Returns:
-            mot.cl_function.CLFunction: A function with the signature:
+            mot.lib.cl_function.CLFunction: A function with the signature:
                 .. code-block:: c
 
                     void <func_name>(mot_data_struct* data, mot_float_type* params);
@@ -1340,7 +1340,7 @@ class DMRICompositeModel(DMRIOptimizable):
         evaluating the model for the given parameters.
 
         Returns:
-            mot.cl_function.CLFunction: a named CL function with the following signature:
+            mot.lib.cl_function.CLFunction: a named CL function with the following signature:
 
                 .. code-block:: c
 
@@ -1653,7 +1653,7 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
     def get_rwm_proposal_stds(self):
         """Get the Random Walk Metropolis proposal standard deviations for every parameter and every problem instance.
 
-        These proposal standard deviations are used in Random Walk Metropolis MCMC sampling.
+        These proposal standard deviations are used in Random Walk Metropolis MCMC sample.
 
         Returns:
             ndarray: the proposal standard deviations of each free parameter, for each problem instance
@@ -1726,12 +1726,12 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
         return results_dict
 
     def get_post_sampling_maps(self, sampling_output):
-        """Get the post sampling volume maps.
+        """Get the post sample volume maps.
 
         This will return a dictionary mapping folder names to dictionaries with volumes to write.
 
         Args:
-            sampling_output (mot.cl_routines.sampling.base.SimpleSampleOutput): the output of the sampler
+            sampling_output (mot.cl_routines.sample.base.SimpleSampleOutput): the output of the sampler
 
         Returns:
             dict: a dictionary with for every subdirectory the maps to save
@@ -1760,7 +1760,7 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
         return self._eval_function
 
     def _post_sampling_extra_model_defined_maps(self, samples):
-        """Compute the extra post-sampling maps defined in the models.
+        """Compute the extra post-sample maps defined in the models.
 
         Args:
             samples (ndarray): the array with the samples
@@ -1777,7 +1777,7 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
             except KeyError as exc:
                 logger = logging.getLogger(__name__)
                 logger.error(
-                    'Failed to execute extra sampling maps function, missing input: {}.'.format(str(exc)))
+                    'Failed to execute extra sample maps function, missing input: {}.'.format(str(exc)))
         return results_dict
 
     def _get_mle_map_statistics(self, sampling_output):
@@ -1787,7 +1787,7 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
         the corresponding parameter and global post-optimization maps.
 
         Args:
-            sampling_output (mot.cl_routines.sampling.base.SimpleSampleOutput): the output of the sampler
+            sampling_output (mot.cl_routines.sample.base.SimpleSampleOutput): the output of the sampler
 
         Returns:
             tuple(Func, Func): the function that generates the maps for the MLE and for the MAP estimators.
@@ -1917,7 +1917,7 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
 class SamplingPostProcessingData(collections.Mapping):
 
     def __init__(self, samples, param_names, fixed_parameters):
-        """Stores the sampling output for use in the model defined post-processing routines.
+        """Stores the sample output for use in the model defined post-processing routines.
 
         In general, this class acts as a dictionary with as keys the parameter names (as ``<compartment>.<parameter>``).
         Each value may be a scalar, a 1d map or a 2d set of samples. Additional object attributes can also be used
@@ -1934,7 +1934,7 @@ class SamplingPostProcessingData(collections.Mapping):
 
     @property
     def samples(self):
-        """Get the array of samples as returned by the sampling routine.
+        """Get the array of samples as returned by the sample routine.
 
         For the names of the corresponding parameters, please see :py:attr:`~sampled_parameter_names`.
 
@@ -2578,13 +2578,13 @@ def calculate_dependent_parameters(kernel_data, estimated_parameters_list,
     the maps for the dependent parameters.
 
     Args:
-        kernel_data (dict[str: mot.utils.KernelData]): the list of additional data to load
+        kernel_data (dict[str: mot.lib.utils.KernelData]): the list of additional data to load
         estimated_parameters_list (list of ndarray): The list with the one-dimensional
             ndarray of estimated parameters
         parameters_listing (str): The parameters listing in CL
         dependent_parameter_names (list of list of str): Per parameter we would like to obtain the CL name and the
             result map name. For example: (('Wball_w', 'Wball.w'),)
-        cl_runtime_info (mot.cl_runtime_info.CLRuntimeInfo): the runtime information
+        cl_runtime_info (mot.lib.cl_runtime_info.CLRuntimeInfo): the runtime information
 
     Returns:
         dict: A dictionary with the calculated maps for the dependent parameters.

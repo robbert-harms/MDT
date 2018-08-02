@@ -1,8 +1,8 @@
-"""Contains the processing strategies (and workers) that define how to process a model (fitting and sampling).
+"""Contains the processing strategies (and workers) that define how to process a model (fitting and sample).
 
 Globally, this module consists out of two public players, the :class:`ModelProcessingStrategy` and the
 :class:`ModelProcessor`. The latter, the model processor contains information on how the model needs to be processed.
-For example, optimization and sampling are two different operations and hence require their own processing
+For example, optimization and sample are two different operations and hence require their own processing
 implementation. Given that the model processor defines how to process the models, the model processing strategy
 encapsulates how to process the processors. For example, a strategy may be to split all voxels into batches and optimize
 those while saving intermediate results.
@@ -21,13 +21,16 @@ import time
 import gc
 from numpy.lib.format import open_memmap
 
+import mot
 from mdt.nifti import write_all_as_nifti, get_all_nifti_data
 from mdt.configuration import gzip_optimization_results, gzip_sampling_results
 from mdt.utils import create_roi, load_samples
 import collections
 
-from mot.cl_routines.sampling.amwg import AdaptiveMetropolisWithinGibbs
+from mot.sample import AdaptiveMetropolisWithinGibbs
 from mdt.model_building.utils import ParameterTransformedModel
+from mot.lib.cl_runtime_info import CLRuntimeInfo
+from mot.optimize import minimize
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-07-29"
@@ -120,6 +123,8 @@ class ChunksProcessingStrategy(ModelProcessingStrategy):
                 gc.collect()
 
                 voxels_processed += len(chunk)
+
+            self._logger.info('Computations are at 100%')
 
         return batches
 
@@ -241,7 +246,7 @@ class SimpleModelProcessor(ModelProcessor):
         """A default implementation of a processing worker.
 
         While the processing strategies determine how to split the work in batches, the workers
-        implement the logic on how to process the model. For example, optimization and sampling both require
+        implement the logic on how to process the model. For example, optimization and sample both require
         different processing, while the batch sizes can be determined by a processing strategy.
 
         Args:
@@ -419,35 +424,51 @@ class SimpleModelProcessor(ModelProcessor):
 
 class FittingProcessor(SimpleModelProcessor):
 
-    def __init__(self, optimizer, model, mask, nifti_header, output_dir, tmp_storage_dir, recalculate):
+    def __init__(self, method, model, mask, nifti_header, output_dir, tmp_storage_dir, recalculate,
+                 optimizer_options=None):
         """The processing worker for model fitting.
 
         Use this if you want to use the model processing strategy to do model fitting.
 
         Args:
-            optimizer: the optimization routine to use
+            method: the optimization routine to use
         """
         super(FittingProcessor, self).__init__(mask, nifti_header, output_dir, tmp_storage_dir, recalculate)
         self._model = model
-        self._optimizer = optimizer
+        self._method = method
+        self._optimizer_options = optimizer_options
         self._write_volumes_gzipped = gzip_optimization_results()
         self._subdirs = set()
+        self._logger=logging.getLogger(__name__)
 
     def _process(self, roi_indices, next_indices=None):
         build_model = self._model.build(roi_indices)
 
-        starting_positions = build_model.get_initial_parameters()
+        x0 = build_model.get_initial_parameters()
 
-        codec_model = ParameterTransformedModel(build_model, self._model.get_parameter_codec(),
-                                                starting_positions.shape[1])
-        starting_positions = codec_model.encode_parameters(build_model.get_initial_parameters())
+        codec_model = ParameterTransformedModel(build_model, self._model.get_parameter_codec(), x0.shape[1])
+        x0 = codec_model.encode_parameters(build_model.get_initial_parameters())
 
-        optimization_results = self._optimizer.minimize(codec_model, starting_positions)
+        cl_runtime_info = CLRuntimeInfo()
 
-        optimized_parameters = codec_model.decode_parameters(optimization_results.get_optimization_result())
+        self._logger.info('Starting minimization')
+        self._logger.info('Using MOT version {}'.format(mot.__version__))
+        self._logger.info('We will use a {} precision float type for the calculations.'.format(
+            'double' if cl_runtime_info.double_precision else 'single'))
+        for env in cl_runtime_info.get_cl_environments():
+            self._logger.info('Using device \'{}\'.'.format(str(env)))
+        self._logger.info('Using compile flags: {}'.format(cl_runtime_info.get_compile_flags()))
+        self._logger.info('We will use the optimizer {} '
+                          'with optimizer settings {}'.format(self._method, self._optimizer_options))
 
-        results = codec_model.get_post_optimization_output(optimized_parameters,
-                                                           optimization_results.get_return_codes())
+        results = minimize(codec_model, x0, method=self._method, cl_runtime_info=cl_runtime_info,
+                           options=self._optimizer_options)
+
+        self._logger.info('Finished optimization')
+
+        optimized_parameters = codec_model.decode_parameters(results['x'])
+
+        results = codec_model.get_post_optimization_output(optimized_parameters, results['status'])
         results.update({self._used_mask_name: np.ones(roi_indices.shape[0], dtype=np.bool)})
 
         self._write_output_recursive(results, roi_indices)
@@ -480,7 +501,7 @@ class SamplingProcessor(SimpleModelProcessor):
 
     def __init__(self, nmr_samples, thinning, burnin, model, mask, nifti_header, output_dir, tmp_storage_dir,
                  recalculate, samples_storage_strategy=None):
-        """The processing worker for model sampling.
+        """The processing worker for model sample.
 
         Args:
             nmr_samples (int): the number of samples we would like to return.

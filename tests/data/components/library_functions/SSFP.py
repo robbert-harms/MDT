@@ -3,7 +3,7 @@ import numpy as np
 from numpy import cos, exp, sin
 from numpy.testing import assert_allclose
 import mdt
-from mot.cl_runtime_info import CLRuntimeInfo
+from mot.lib.cl_runtime_info import CLRuntimeInfo
 
 
 class test_SSFP(unittest.TestCase):

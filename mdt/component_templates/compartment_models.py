@@ -4,7 +4,7 @@ from mdt.component_templates.base import ComponentBuilder, method_binding_meta, 
 from mdt.components import get_component, has_component
 from mdt.models.compartments import DMRICompartmentModelFunction
 from mdt.utils import spherical_to_cartesian
-from mot.cl_function import CLFunction, SimpleCLFunction
+from mot.lib.cl_function import CLFunction, SimpleCLFunction
 from mdt.model_building.model_functions import WeightType
 from mdt.model_building.parameters import CurrentObservationParam
 
@@ -74,10 +74,10 @@ class CompartmentBuilder(ComponentBuilder):
     def _get_proposal_callbacks(self, template, parameter_list):
         """Get a list of proposal callback functions.
 
-        These functions are (indirectly) called by a MCMC sampling routine to finalize the new proposal vector.
+        These functions are (indirectly) called by a MCMC sample routine to finalize the new proposal vector.
 
         Returns:
-            List[(Tuple, mot.cl_function.CLFunction)]: a list of proposal callback functions coupled with
+            List[(Tuple, mot.lib.cl_function.CLFunction)]: a list of proposal callback functions coupled with
                 references to the compartment parameters used in the function.
         """
         callbacks = []
@@ -189,7 +189,7 @@ class CompartmentTemplate(ComponentTemplate):
 
         return_type (str): the return type of this compartment, defaults to double.
 
-        extra_prior (str or None): an extra MCMC sampling prior for this compartment. This is additional to the priors
+        extra_prior (str or None): an extra MCMC sample prior for this compartment. This is additional to the priors
             defined in the parameters. This should be an instance of :class:`~mdt.models.compartments.CompartmentPrior`
             or a string with a CL function body. If the latter, the :class:`~mdt.models.compartments.CompartmentPrior`
             is automatically constructed based on the content of the string (automatic parameter recognition).
@@ -225,8 +225,8 @@ class CompartmentTemplate(ComponentTemplate):
                                                  lambda d: {'Power2': d['foo']**2, 'Power3': d['foo']**3},
                                                  ...]
 
-        extra_sampling_maps (list): a list of functions to return additional maps as results from sampling.
-            This is called after sampling with as argument a dictionary containing the sampling results and
+        extra_sampling_maps (list): a list of functions to return additional maps as results from sample.
+            This is called after sample with as argument a dictionary containing the sample results and
             the values of the fixed parameters.
 
             Examples::
@@ -262,7 +262,7 @@ class WeightCompartmentTemplate(ComponentTemplate):
     """Special compartment template for representing a Weight.
 
     Defining a compartment as a Weight enables automatic volume fraction weighting, and ensures that all weights sum
-    to one during optimization and sampling.
+    to one during optimization and sample.
     """
     _component_type = 'compartment_models'
     _builder = WeightBuilder()
@@ -304,7 +304,7 @@ def _resolve_prior(prior, compartment_name, compartment_parameters):
     """Create a proper prior out of the given prior information.
 
     Args:
-        prior (str or mot.cl_function.CLFunction or None):
+        prior (str or mot.lib.cl_function.CLFunction or None):
             The prior from which to construct a prior.
         compartment_name (str): the name of the compartment
         compartment_parameters (list of str): the list of parameters of this compartment, used

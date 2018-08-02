@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import QDialogButtonBox
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QLabel
 from PyQt5.QtWidgets import QMainWindow
-from PyQt5.QtWidgets import QMessageBox, QLayout
+from PyQt5.QtWidgets import QMessageBox
 
 from mdt.gui.maps_visualizer.actions import NewConfigAction, SetMapsToShow, NewDataAction
 from mdt.gui.maps_visualizer.config_tabs.tab_general import TabGeneral
@@ -230,9 +230,6 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
 
     def _save_settings(self):
         """Save the current settings as a text file.
-
-        Args:
-            file_name: the filename to write to
         """
         current_model = self._controller.get_model()
 

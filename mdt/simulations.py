@@ -3,8 +3,8 @@ import collections
 from mdt.components import get_model
 from mdt.nifti import get_all_nifti_data
 from mdt.utils import create_roi, restore_volumes, MockMRIInputData
-from mot.cl_function import SimpleCLFunction
-from mot.kernel_data import Array, Zeros
+from mot.lib.cl_function import SimpleCLFunction
+from mot.lib.kernel_data import Array, Zeros
 
 __author__ = 'Robbert Harms'
 __date__ = '2017-05-29'
@@ -18,7 +18,7 @@ def create_signal_estimates(model, input_data, parameters):
 
     This function is typically used to obtain signal estimates from optimization results.
 
-    This function evaluates the model as it is in the model fitting and sampling. That is, this method includes
+    This function evaluates the model as it is in the model fitting and sample. That is, this method includes
     the gradient deviations (if set in the input data) and loads all static and fixed parameters maps.
 
     Args:

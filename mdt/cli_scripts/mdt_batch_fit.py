@@ -19,7 +19,7 @@ from mdt.batch_utils import batch_profile_factory, SelectedSubjects
 from mdt.components import get_component_list
 
 from mdt.shell_utils import BasicShellApplication
-from mot import cl_environments
+from mot.lib import cl_environments
 import textwrap
 
 __author__ = 'Robbert Harms'

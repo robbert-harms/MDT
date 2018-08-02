@@ -17,8 +17,8 @@ import mdt.utils
 import mot.configuration
 from mdt.configuration import update_gui_config
 from mdt.gui.model_fit.tabs.generate_protocol_tab import GenerateProtocolTab
-from mot.cl_environments import CLEnvironmentFactory
-from mot.load_balance_strategies import EvenDistribution
+from mot.lib.cl_environments import CLEnvironmentFactory
+from mot.lib.load_balance_strategies import EvenDistribution
 
 try:
     #python 2.7

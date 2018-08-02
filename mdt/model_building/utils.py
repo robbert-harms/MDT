@@ -1,6 +1,6 @@
-from mot.cl_function import SimpleCLFunction
-from mot.kernel_data import Array
-from mot.model_interfaces import OptimizeModelInterface
+from mot.lib.cl_function import SimpleCLFunction
+from mot.lib.kernel_data import Array
+from mot.lib.model_interfaces import OptimizeModelInterface
 
 
 __author__ = 'Robbert Harms'
@@ -16,7 +16,7 @@ class ParameterCodec(object):
         """Get a CL function that can transform the model parameters from model space to an encoded space.
 
         Returns:
-            mot.cl_function.CLFunction: An OpenCL function that is used in the CL kernel to transform the parameters
+            mot.lib.cl_function.CLFunction: An OpenCL function that is used in the CL kernel to transform the parameters
                 from model space to encoded space so they can be used as input to an CL routine.
                 The signature of the CL function is:
 
@@ -30,7 +30,7 @@ class ParameterCodec(object):
         """Get a CL function that can transform the model parameters from encoded space to model space.
 
         Returns:
-            mot.cl_function.CLFunction: An OpenCL function that is used in the CL kernel to transform the parameters
+            mot.lib.cl_function.CLFunction: An OpenCL function that is used in the CL kernel to transform the parameters
                 from encoded space to model space so they can be used as input to the model.
                 The signature of the CL function is:
 
@@ -47,8 +47,8 @@ class ParameterCodec(object):
 
         Args:
             parameters (ndarray): The parameters to transform
-            kernel_data (dict[str: mot.utils.KernelData]): the additional data to load
-            cl_runtime_info (mot.cl_runtime_info.CLRuntimeInfo): the runtime information
+            kernel_data (dict[str: mot.lib.utils.KernelData]): the additional data to load
+            cl_runtime_info (mot.lib.cl_runtime_info.CLRuntimeInfo): the runtime information
 
         Returns:
             ndarray: The array with the transformed parameters.
@@ -63,8 +63,8 @@ class ParameterCodec(object):
 
         Args:
             parameters (ndarray): The parameters to transform
-            kernel_data (dict[str: mot.utils.KernelData]): the additional data to load
-            cl_runtime_info (mot.cl_runtime_info.CLRuntimeInfo): the runtime information
+            kernel_data (dict[str: mot.lib.utils.KernelData]): the additional data to load
+            cl_runtime_info (mot.lib.cl_runtime_info.CLRuntimeInfo): the runtime information
 
         Returns:
             ndarray: The array with the transformed parameters.
@@ -79,8 +79,8 @@ class ParameterCodec(object):
 
         Args:
             parameters (ndarray): The parameters to transform
-            kernel_data (dict[str: mot.utils.KernelData]): the additional data to load
-            cl_runtime_info (mot.cl_runtime_info.CLRuntimeInfo): the runtime information
+            kernel_data (dict[str: mot.lib.utils.KernelData]): the additional data to load
+            cl_runtime_info (mot.lib.cl_runtime_info.CLRuntimeInfo): the runtime information
 
         Returns:
             ndarray: The array with the transformed parameters.

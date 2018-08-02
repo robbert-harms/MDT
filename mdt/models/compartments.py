@@ -21,7 +21,7 @@ class DMRICompartmentModelFunction(SimpleModelCLFunction):
             cl_body (str): the body of the CL code
             dependencies (list): the list of functions we depend on inside the kernel
             return_type (str): the CL return type
-            model_function_priors (list of mot.cl_function.CLFunction): additional
+            model_function_priors (list of mot.lib.cl_function.CLFunction): additional
                 compartment priors on top of the parameter priors.
             post_optimization_modifiers (None or list or tuple): a list of modification callbacks to alter the
                 optimized point. These modifiers are supposed to be called before the post optimization modifiers
@@ -29,9 +29,9 @@ class DMRICompartmentModelFunction(SimpleModelCLFunction):
             extra_optimization_maps_funcs (None or list or tuple): a list of modification callbacks to add new maps
                 after optimization.
             extra_sampling_maps_funcs (None or list or tuple): a list of functions that can return additional maps
-                after sampling.
+                after sample.
             cl_extra (str): optional extra CL code outside of the function body
-            proposal_callbacks (List[Tuple(Tuple(CLFunctionParameter), mot.cl_function.CLFunction)]): additional
+            proposal_callbacks (List[Tuple(Tuple(CLFunctionParameter), mot.lib.cl_function.CLFunction)]): additional
                 proposal callback functions. These are (indirectly) called by the MCMC sampler to finalize every
                 proposal.
         """

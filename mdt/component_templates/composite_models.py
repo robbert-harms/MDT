@@ -7,7 +7,7 @@ import tatsu
 from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate
 from mdt.components import get_component
 from mdt.models.composite import DMRICompositeModel
-from mot.cl_function import CLFunction, SimpleCLFunction
+from mot.lib.cl_function import CLFunction, SimpleCLFunction
 from mdt.model_building.trees import CompartmentModelTree
 import collections
 
@@ -145,7 +145,7 @@ class CompositeModelTemplate(ComponentTemplate):
             This should return a dictionary with updated maps.
 
         sort_maps (list of tuple): The maps to sort voxel-by voxel as post-processing.
-            To ensure that the point estimate from optimization can directly be used in MCMC sampling, we sometimes
+            To ensure that the point estimate from optimization can directly be used in MCMC sample, we sometimes
             need to rearrange the weights (and therefore the corresponding compartments). For example, some composite
             models have a prior on the weights of similar compartments to restrict them to a decreasing order, which
             is typically done to prevent bimodal continuous_distributions. This model directive allows you to easily specify
@@ -181,8 +181,8 @@ class CompositeModelTemplate(ComponentTemplate):
                                            lambda d: {'Power2': d['foo']**2, 'Power3': d['foo']**3},
                                            ...]
 
-        extra_sampling_maps (list): a list of functions to return additional maps as results from sampling.
-            This is called after sampling with as argument a dictionary containing the sampling results and
+        extra_sampling_maps (list): a list of functions to return additional maps as results from sample.
+            This is called after sample with as argument a dictionary containing the sample results and
             the values of the fixed parameters.
 
             Examples::
@@ -299,7 +299,7 @@ def _resolve_model_prior(prior, model_parameters):
     """Resolve the model priors.
 
     Args:
-        prior (None or str or mot.cl_function.CLFunction): the prior defined in the composite model template.
+        prior (None or str or mot.lib.cl_function.CLFunction): the prior defined in the composite model template.
         model_parameters (str): the (model, parameter) tuple for all the parameters in the model
 
     Returns:
@@ -467,7 +467,7 @@ def _get_model_extra_optimization_maps_funcs(compartments):
 
 
 def _get_model_extra_sampling_maps_funcs(compartments):
-    """Get a list of all the additional post-sampling functions defined in the compartments.
+    """Get a list of all the additional post-sample functions defined in the compartments.
 
     This function will add a wrapper around the modification routines to make the input and output maps relative to the
     model. That it, the functions in the compartments expect the parameter names without the model name and they output
@@ -478,7 +478,7 @@ def _get_model_extra_sampling_maps_funcs(compartments):
         compartments (list): the list of compartment models from which to get the modifiers
 
     Returns:
-        list: the list of extra sampling routines taken from the compartment models.
+        list: the list of extra sample routines taken from the compartment models.
     """
     funcs = []
 

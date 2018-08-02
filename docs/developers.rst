@@ -24,7 +24,7 @@ For example::
                              })
 
 In this example we loaded the ``Stick`` compartment from the MDT repository, instantiated it and evalauted it based on a dictionary of input elements.
-This :meth:`~mot.cl_function.CLFunction.evaluate` method allows takes as input a dictionary of values (one for each function parameter) and executes the CL code based on those inputs.
+This :meth:`~mot.lib.cl_function.CLFunction.evaluate` method allows takes as input a dictionary of values (one for each function parameter) and executes the CL code based on those inputs.
 If more than one value is given per parameter, the code will be evaluated multiple times, once for each set of parameters.
 For example::
 

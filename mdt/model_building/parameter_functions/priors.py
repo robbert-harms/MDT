@@ -1,6 +1,6 @@
 import numpy as np
-from mot.cl_data_type import SimpleCLDataType
-from mot.cl_function import CLFunction, SimpleCLFunction
+from mot.lib.cl_data_type import SimpleCLDataType
+from mot.lib.cl_function import CLFunction, SimpleCLFunction
 
 
 __author__ = 'Robbert Harms'
@@ -11,7 +11,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 class ParameterPrior(CLFunction):
-    """The priors are used during model sampling, indicating the a priori information one has about a parameter.
+    """The priors are used during model sample, indicating the a priori information one has about a parameter.
 
     These priors are not in log space, we take the log in the model builder.
 
@@ -108,7 +108,7 @@ class VagueGammaPrior(SimplePrior):
             and the Gamma(0.001, 0.001) prior is intended as a proper approximation to the theoretically
             motivated improper prior. This raises the issue of whether inference is sensitive to the essentially
             arbitrary value 0.001, and it is sometimes the case that using other small values such as 0.01 or 0.1
-            leads to more stable sampling
+            leads to more stable sample
             in WinBUGS.
 
             -- Lee & Wagenmakers, Bayesian Cognitive Modeling, 2014, Chapter 4, Box 4.1
@@ -194,7 +194,7 @@ class AxialNormalPDF(SimplePrior):
 class ARDBeta(SimplePrior):
 
     def __init__(self):
-        r"""This is a collapsed form of the Beta PDF meant for use in Automatic Relevance Detection sampling.
+        r"""This is a collapsed form of the Beta PDF meant for use in Automatic Relevance Detection sample.
 
         In this prior the ``alpha`` parameter of the Beta prior is set to 1 which simplifies the equation.
         The parameter ``beta`` is still free and can be changed as desired.
@@ -223,7 +223,7 @@ class ARDBeta(SimplePrior):
 class ARDGaussian(SimplePrior):
 
     def __init__(self):
-        """This is a Gaussian prior meant for use in Automatic Relevance Detection sampling.
+        """This is a Gaussian prior meant for use in Automatic Relevance Detection sample.
 
         This uses a Gaussian prior with mean at zero and a standard deviation determined by the ``alpha`` parameter
         with the relationship :math:`\sigma = 1/\\sqrt(\\alpha)`.

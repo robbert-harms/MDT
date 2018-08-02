@@ -16,9 +16,8 @@ from mdt.gui.model_fit.design.ui_optimization_options_dialog import Ui_Optimizat
 from mdt.gui.utils import function_message_decorator, image_files_filters, protocol_files_filters, MainTab, \
     get_script_file_header_text
 from mdt.utils import split_image_path
-from mot.cl_environments import CLEnvironmentFactory
-from mot.factory import get_optimizer_by_name
-
+from mot.lib.cl_environments import CLEnvironmentFactory
+from mot.optimize import get_minimizer_options
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-06-27"
@@ -206,7 +205,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
             recalculate=True,
             double_precision=self._optim_options.double_precision,
             only_recalculate_last=not self._optim_options.recalculate_all,
-            optimizer=self._optim_options.get_optimizer())
+            method=self._optim_options.method)
 
         self._computations_thread.start()
         self._run_model_worker.moveToThread(self._computations_thread)
@@ -298,7 +297,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
 
                 ''').format(**format_kwargs))
             else:
-                format_kwargs.update({'optimizer': optim_options.optimizer, 'patience': optim_options.patience})
+                format_kwargs.update({'method': optim_options.method, 'patience': optim_options.patience})
                 f.write(dedent('''
                     {header}
 
@@ -313,7 +312,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
                         gradient_deviations={gradient_deviations!r},
                         extra_protocol={extra_protocol!r})
 
-                    with mdt.config_context(SetGeneralOptimizer({optimizer!r}, settings={{'patience': {patience!r}}})):
+                    with mdt.config_context(SetGeneralOptimizer({method!r}, settings={{'patience': {patience!r}}})):
                         mdt.fit_model(
                             {model!r},
                             input_data,
@@ -377,7 +376,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
                             name: {}
                             settings:
                                 patience: {}
-                '''.format(optim_options.optimizer, optim_options.patience)
+                '''.format(optim_options.method, optim_options.patience)
                 config_context = yaml.safe_dump(yaml.safe_load(config), default_flow_style=True).rstrip()
                 write_new_line('--config-context "{}"'.format(config_context))
 
@@ -420,7 +419,7 @@ class OptimizationOptionsDialog(Ui_OptimizationOptionsDialog, QDialog):
         self._config.double_precision = self.doublePrecision.isChecked()
         self._config.recalculate_all = self.recalculateAll_True.isChecked()
         self._config.use_model_default_optimizer = self.defaultOptimizer_True.isChecked()
-        self._config.optimizer = OptimOptions.optim_routines[self.optimizationRoutine.currentText()]
+        self._config.method = OptimOptions.optim_routines[self.optimizationRoutine.currentText()]
         self._config.patience = int(self.patience.text())
 
     def _load_config(self):
@@ -431,7 +430,7 @@ class OptimizationOptionsDialog(Ui_OptimizationOptionsDialog, QDialog):
         self._update_optimization_routine_selection()
 
         self.optimizationRoutine.setCurrentText({v: k for k, v in
-                                                 OptimOptions.optim_routines.items()}[self._config.optimizer])
+                                                 OptimOptions.optim_routines.items()}[self._config.method])
         self.patience.setText(str(self._config.patience))
 
     def _check_enable_ok_button(self):
@@ -449,34 +448,28 @@ class OptimizationOptionsDialog(Ui_OptimizationOptionsDialog, QDialog):
         self.patience.setDisabled(self.defaultOptimizer_True.isChecked())
 
     def _update_default_patience(self):
-        optimizer = get_optimizer_by_name(OptimOptions.optim_routines[self.optimizationRoutine.currentText()])
-        self.patience.setText(str(optimizer.default_patience))
+        method = OptimOptions.optim_routines[self.optimizationRoutine.currentText()]
+        self.patience.setText(str(get_minimizer_options(method)['patience']))
 
 
 class OptimOptions(object):
 
     optim_routines = {'Powell\'s method': 'Powell',
-                      'Nelder-Mead Simplex': 'NMSimplex',
-                      'Levenberg Marquardt': 'LevenbergMarquardt'}
+                      'Nelder-Mead Simplex': 'Nelder-Mead',
+                      'Levenberg Marquardt': 'Levenberg-Marquardt'}
 
     def __init__(self):
         """Storage class for communication between the options dialog and the main frame"""
         self.use_model_default_optimizer = True
         self.double_precision = False
 
-        self.optimizer = mdt.configuration.get_general_optimizer_name()
-        self.patience = mdt.configuration.get_general_optimizer_settings()['patience']
+        self.method = mdt.configuration.get_general_optimizer_name()
+        self.patience = mdt.configuration.get_general_optimizer_options()['patience']
 
         if self.patience is None:
-            self.patience = get_optimizer_by_name(self.optimizer).default_patience
+            self.patience = get_minimizer_options(self.method)['patience']
 
         self.recalculate_all = False
-
-    def get_optimizer(self):
-        if self.use_model_default_optimizer:
-            return None
-        optimizer = get_optimizer_by_name(self.optimizer)
-        return optimizer(patience=self.patience)
 
 
 class InputDataInfo(object):

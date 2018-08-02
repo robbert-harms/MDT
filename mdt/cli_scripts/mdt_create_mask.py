@@ -9,8 +9,8 @@ from argcomplete.completers import FilesCompleter
 
 import mot.configuration
 from mdt.shell_utils import BasicShellApplication
-from mot import cl_environments
-from mot.load_balance_strategies import EvenDistribution
+from mot.lib import cl_environments
+from mot.lib.load_balance_strategies import EvenDistribution
 import textwrap
 
 __author__ = 'Robbert Harms'

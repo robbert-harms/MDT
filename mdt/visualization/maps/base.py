@@ -1176,7 +1176,7 @@ class Font(SimpleConvertibleConfig):
         """Information about the font to use
 
         Args:
-            name: the name of the font to use
+            family: the name of the font to use
             size: the size of the font (> 0).
         """
         self.family = family

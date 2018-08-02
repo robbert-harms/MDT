@@ -1,9 +1,8 @@
-"""This module contains various standard post-processing routines for use after optimization or sampling."""
+"""This module contains various standard post-processing routines for use after optimization or sample."""
 import numpy as np
 from mdt.utils import tensor_spherical_to_cartesian, tensor_cartesian_to_spherical
-from mot.cl_function import SimpleCLFunction
-from mot.utils import split_in_batches, parse_cl_function
-from mot.kernel_data import Array, Zeros, Scalar
+from mot.lib.utils import split_in_batches, parse_cl_function
+from mot.lib.kernel_data import Array, Zeros, Scalar
 from mdt.components import get_component
 
 
@@ -161,7 +160,7 @@ class DTIMeasures(object):
         This will re-orient the Tensor such that the eigenvalues are in decreasing order. This is done by
         permuting the eigen-values and -vectors and then recreating theta, phi and psi to match the rotated system.
 
-        This is done primarily to be able to directly use the Tensor results in MCMC sampling. Since we often put a
+        This is done primarily to be able to directly use the Tensor results in MCMC sample. Since we often put a
         prior on the diffusivities to be in decreasing order, we need to make sure that the starting point is valid.
 
         Args:

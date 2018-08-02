@@ -49,9 +49,9 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 def fit_model(model, input_data, output_folder,
-              optimizer=None, recalculate=False, only_recalculate_last=False,
+              method=None, recalculate=False, only_recalculate_last=False,
               cl_device_ind=None, double_precision=False, tmp_results_dir=True,
-              initialization_data=None, post_processing=None):
+              initialization_data=None, post_processing=None, optimizer_options=None):
     """Run the optimizer on the given model.
 
     Args:
@@ -62,9 +62,14 @@ def fit_model(model, input_data, output_folder,
             the info needed for the model fitting.
         output_folder (string): The path to the folder where to place the output, we will make a subdir with the
             model name in it.
-        optimizer (:class:`mot.cl_routines.optimizing.base.AbstractOptimizer`): The optimization routine to use.
-            If the optimizer is specified and the cl_device_ind is specified, we will overwrite the cl environments
-            in the optimizer with the devices specified by the cl_device_ind.
+        method (str): The optimization method to use, one of:
+            - 'Levenberg-Marquardt'
+            - 'Nelder-Mead'
+            - 'Powell'
+            - 'Subplex'
+
+            If not given, defaults to 'Powell'.
+
         recalculate (boolean): If we want to recalculate the results if they are already present.
         only_recalculate_last (boolean):
             This is only of importance when dealing with CascadeModels.
@@ -89,6 +94,7 @@ def fit_model(model, input_data, output_folder,
             For valid elements, please see the configuration file settings for ``optimization``
             under ``post_processing``. Valid input for this parameter is for example: {'covariance': False}
             to disable automatic calculation of the covariance from the Hessian.
+        optimizer_options (dict): extra options passed to the optimization routines.
 
     Returns:
         dict: The result maps for the given composite model or the last model in the cascade.
@@ -106,7 +112,8 @@ def fit_model(model, input_data, output_folder,
     if cl_device_ind is not None and not isinstance(cl_device_ind, collections.Iterable):
         cl_device_ind = [cl_device_ind]
 
-    model_fit = ModelFit(model, input_data, output_folder, optimizer=optimizer, recalculate=recalculate,
+    model_fit = ModelFit(model, input_data, output_folder, method=method, optimizer_options=optimizer_options,
+                         recalculate=recalculate,
                          only_recalculate_last=only_recalculate_last,
                          cl_device_ind=cl_device_ind, double_precision=double_precision,
                          tmp_results_dir=tmp_results_dir, initialization_data=initialization_data,
@@ -155,9 +162,9 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
 
                 initialization_data = SimpleInitializationData(fixes={...}, inits={...})
         post_processing (dict): a dictionary with flags for post-processing options to enable or disable.
-            For valid elements, please see the configuration file settings for ``sampling`` under ``post_processing``.
+            For valid elements, please see the configuration file settings for ``sample`` under ``post_processing``.
             Valid input for this parameter is for example: {'sample_statistics': True} to enable automatic calculation
-            of the sampling statistics.
+            of the sample statistics.
 
     Returns:
         dict: if store_samples is True then we return the samples per parameter as a numpy memmap. If store_samples
@@ -168,7 +175,7 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
            doi:10.1198/jcgs.2009.06134.
     """
     import mdt.utils
-    from mot.load_balance_strategies import EvenDistribution
+    from mot.lib.load_balance_strategies import EvenDistribution
     from mdt.model_sampling import sample_composite_model
     from mdt.models.cascade import DMRICascadeModelInterface
     import mot.configuration

@@ -47,7 +47,7 @@ def load_all_npy_files(directory):
 
 
 def samples_npy_to_nifti(samples_npy_fname, used_mask, nifti_header, nifti_fname=None):
-    """Convert a npy file containing sampling results to a nifti file.
+    """Convert a npy file containing sample results to a nifti file.
 
     Since the sample npy files are stored as a two dimensional matrix (with on the first axis the ROI index number
     and on the second the samples), we need to have the lookup table for the spatial information about the samples.

@@ -5,7 +5,7 @@ import argparse
 import textwrap
 import mdt
 from mdt.shell_utils import BasicShellApplication
-from mot import cl_environments
+from mot.lib import cl_environments
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"
