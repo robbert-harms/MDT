@@ -2,6 +2,11 @@
 Changelog
 *********
 
+v0.14.1 (2018-08-02)
+====================
+- Removed some non-ascii characters for compatibility.
+
+
 v0.14.0 (2018-08-02)
 ====================
 - Following changes in MOT, in particular how the optimization routines are called.
