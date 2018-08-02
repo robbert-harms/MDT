@@ -2,6 +2,11 @@
 Changelog
 *********
 
+v0.14.0 (2018-08-02)
+====================
+- Following changes in MOT, in particular how the optimization routines are called.
+
+
 v0.13.5 (2018-07-17)
 ====================
 
