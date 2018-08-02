@@ -20,7 +20,7 @@ def noddi_dti_maps(results, input_data=None):
     the neurite density index (NDI) and NODDI's measure of neurite dispersion using Tensor parameters.
 
     The corresponding theory assumes that the intrinsic diffusivity of the intra-neurite compartment of NODDI
-    is fixed to d = 1.7 x 10−9 m^2 s^−1. As such, we fix it here to that value as well and compute the corresponding
+    is fixed to d = 1.7 x 10^-9 m^2 s^-1. As such, we fix it here to that value as well and compute the corresponding
     NODDI-DTI results.
 
     Args:
@@ -46,7 +46,7 @@ def noddi_dti_maps(results, input_data=None):
         1. Edwards LJ, Pine KJ, Ellerbrock I, Weiskopf N, Mohammadi S. NODDI-DTI: Estimating neurite orientation and
             dispersion parameters from a diffusion tensor in healthy white matter.
             Front Neurosci. 2017;11(DEC):1-15. doi:10.3389/fnins.2017.00720.
-        2. Lampinen B, Szczepankiewicz F, Mårtensson J, van Westen D, Sundgren PC, Nilsson M. Neurite density
+        2. Lampinen B, Szczepankiewicz F, Martensson J, van Westen D, Sundgren PC, Nilsson M. Neurite density
             imaging versus imaging of microscopic anisotropy in diffusion MRI: A model comparison using spherical
             tensor encoding. Neuroimage. 2017;147(July 2016):517-531. doi:10.1016/j.neuroimage.2016.11.053.
     """

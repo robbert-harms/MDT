@@ -676,7 +676,7 @@ def load_bvec_bval(bvec, bval, column_based='auto', bval_scale='auto'):
             tab separated b values. If false, the vectors and b values are each one a different line.
             If 'auto' it is autodetected, this is the default.
         bval_scale (float): The amount by which we want to scale (multiply) the b-values. Typically bval files are
-            in units of s/mm², while MDT uses s/m² in computations. To rescale, this function checks if the b-val is
+            in units of s/mm^2, while MDT uses s/m^2 in computations. To rescale, this function checks if the b-val is
             lower then 1e4 and if so multiplies it by 1e6.
 
     Returns:
@@ -959,7 +959,7 @@ def create_protocol(out_file=None, bvecs=None, bvals=None, **kwargs):
         out_file (str): the output filename, if not given we will not write the protocol.
         bvecs (str or ndarray): either an [n, 3] array or a string to a bvec file
         bvals (str or ndarray): either an [n, 1] array or a string to a bval file. This expects a typical bval file
-            with units in s/mm².
+            with units in s/mm^2.
         kwargs: other protocol columns, for example ``Delta=30e-3``
 
     Returns:

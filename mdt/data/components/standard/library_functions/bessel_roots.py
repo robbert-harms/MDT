@@ -14,7 +14,7 @@ class BesselRoots(LibraryFunctionTemplate):
     is_function = False
     cl_code = '''
         /** 
-         * Zeros of integer-order Bessel function derivative Jn’(x).
+         * Zeros of integer-order Bessel function derivative Jn'(x).
          */
         __constant int bessel_roots_jnp_length = 16;
         

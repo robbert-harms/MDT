@@ -2598,21 +2598,22 @@ def calculate_dependent_parameters(kernel_data, estimated_parameters_list,
         return SimpleCLFunction.from_string('''
             void transform(mot_data_struct* data){
                 mot_float_type x[''' + str(len(estimated_parameters_list)) + '''];
-
+                
                 for(uint i = 0; i < ''' + str(len(estimated_parameters_list)) + '''; i++){
                     x[i] = data->x[i];
                 }
+                
                 ''' + parameters_listing + '''
                 ''' + parameter_write_out + '''
             }
         ''')
 
-    data_strut = dict(kernel_data)
-    data_strut['x'] = Array(np.dstack(estimated_parameters_list)[0, ...], ctype='mot_float_type')
-    data_strut['_results'] = Zeros(
+    data_struct = dict(kernel_data)
+    data_struct['x'] = Array(np.dstack(estimated_parameters_list)[0, ...], ctype='mot_float_type')
+    data_struct['_results'] = Zeros(
         (estimated_parameters_list[0].shape[0], len(dependent_parameter_names)), 'mot_float_type')
 
-    get_cl_function().evaluate({'data': data_strut}, nmr_instances=estimated_parameters_list[0].shape[0],
+    get_cl_function().evaluate({'data': data_struct}, nmr_instances=estimated_parameters_list[0].shape[0],
                                cl_runtime_info=cl_runtime_info)
 
-    return data_strut['_results'].get_data()
+    return data_struct['_results'].get_data()
