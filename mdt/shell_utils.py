@@ -4,6 +4,8 @@ import textwrap
 import argcomplete
 import sys
 
+import mdt
+
 __author__ = 'Robbert Harms'
 __date__ = "2015-10-16"
 __maintainer__ = "Robbert Harms"
@@ -37,6 +39,7 @@ class BasicShellApplication(object):
 
     def __init__(self):
         self.parse_unknown_args = False
+        mdt.init_user_settings(pass_if_exists=True)
 
     @classmethod
     def console_script(cls):

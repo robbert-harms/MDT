@@ -5,7 +5,6 @@ import argparse
 import os
 import textwrap
 from argcomplete.completers import FilesCompleter
-from mdt.utils import init_user_settings
 from mdt import view_maps
 from mdt.visualization.maps.base import SimpleDataInfo
 from mdt.shell_utils import BasicShellApplication
@@ -17,10 +16,6 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 class GUI(BasicShellApplication):
-
-    def __init__(self):
-        super(GUI, self).__init__()
-        init_user_settings(pass_if_exists=True)
 
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)

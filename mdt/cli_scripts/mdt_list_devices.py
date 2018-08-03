@@ -3,7 +3,6 @@
 """This script prints information about the available devices on your computer."""
 import argparse
 import textwrap
-import mdt
 from mdt.shell_utils import BasicShellApplication
 from mot.lib import cl_environments
 
@@ -23,8 +22,6 @@ class ListDevices(BasicShellApplication):
         return parser
 
     def run(self, args, extra_args):
-        mdt.init_user_settings(pass_if_exists=True)
-
         for ind, env in enumerate(cl_environments.CLEnvironmentFactory.smart_device_selection()):
             print('Device {}:'.format(ind))
             if args.long:

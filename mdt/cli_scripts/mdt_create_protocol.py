@@ -24,8 +24,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class CreateProtocol(BasicShellApplication):
 
     def __init__(self):
-        super(CreateProtocol, self).__init__()
-        mdt.init_user_settings(pass_if_exists=True)
+        super().__init__()
         self.parse_unknown_args = True
 
     def _get_arg_parser(self, doc_parser=False):

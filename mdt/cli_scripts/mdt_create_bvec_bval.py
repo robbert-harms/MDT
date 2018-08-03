@@ -18,10 +18,6 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class CreateBvecBval(BasicShellApplication):
 
-    def __init__(self):
-        super(CreateBvecBval, self).__init__()
-        mdt.init_user_settings(pass_if_exists=True)
-
     def _get_arg_parser(self, doc_parser=False):
         description = textwrap.dedent(__doc__)
 

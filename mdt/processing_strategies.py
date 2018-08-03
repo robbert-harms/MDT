@@ -28,7 +28,7 @@ from mdt.utils import create_roi, load_samples
 import collections
 
 from mot.sample import AdaptiveMetropolisWithinGibbs
-from mdt.model_building.utils import ParameterTransformedModel
+from mdt.model_building.utils import wrap_objective_function
 from mot.lib.cl_runtime_info import CLRuntimeInfo
 from mot.optimize import minimize
 
@@ -443,11 +443,9 @@ class FittingProcessor(SimpleModelProcessor):
 
     def _process(self, roi_indices, next_indices=None):
         build_model = self._model.build(roi_indices)
+        codec = self._model.get_parameter_codec()
 
-        x0 = build_model.get_initial_parameters()
-
-        codec_model = ParameterTransformedModel(build_model, self._model.get_parameter_codec(), x0.shape[1])
-        x0 = codec_model.encode_parameters(build_model.get_initial_parameters())
+        x0 = codec.encode(build_model.get_initial_parameters(), build_model.get_kernel_data())
 
         cl_runtime_info = CLRuntimeInfo()
 
@@ -461,14 +459,20 @@ class FittingProcessor(SimpleModelProcessor):
         self._logger.info('We will use the optimizer {} '
                           'with optimizer settings {}'.format(self._method, self._optimizer_options))
 
-        results = minimize(codec_model, x0, method=self._method, cl_runtime_info=cl_runtime_info,
+        objective_func = wrap_objective_function(build_model.get_objective_function(),
+                                                 codec.get_decode_function(), x0.shape[1])
+
+        results = minimize(objective_func, x0, method=self._method,
+                           nmr_observations=build_model.get_nmr_observations(),
+                           cl_runtime_info=cl_runtime_info,
+                           data=build_model.get_kernel_data(),
                            options=self._optimizer_options)
 
         self._logger.info('Finished optimization')
 
-        optimized_parameters = codec_model.decode_parameters(results['x'])
+        x_final = codec.decode(results['x'], build_model.get_kernel_data())
 
-        results = codec_model.get_post_optimization_output(optimized_parameters, results['status'])
+        results = build_model.get_post_optimization_output(x_final, results['status'])
         results.update({self._used_mask_name: np.ones(roi_indices.shape[0], dtype=np.bool)})
 
         self._write_output_recursive(results, roi_indices)

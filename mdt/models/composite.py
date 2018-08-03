@@ -236,41 +236,37 @@ class DMRICompositeModel(DMRIOptimizable):
         Returns:
             mdt.model_building.utils.ParameterCodec: an instance of a parameter codec
         """
-        model_builder = self
+        def get_encode_function():
+            func = '''
+                void parameter_encode(mot_data_struct* data, local mot_float_type* x){
+            '''
+            if self._enforce_weights_sum_to_one:
+                func += self._get_weight_sum_to_one_transformation()
 
-        class Codec(ParameterCodec):
+            for d in self._get_parameter_transformations()[0]:
+                func += "\n" + "\t" * 4 + d.format('x')
 
-            def get_parameter_encode_function(self):
-                func = '''
-                    void parameter_encode(mot_data_struct* data, local mot_float_type* x){
-                '''
-                if model_builder._enforce_weights_sum_to_one:
-                    func += model_builder._get_weight_sum_to_one_transformation()
+            func += '''
+                }
+            '''
+            return SimpleCLFunction.from_string(func)
 
-                for d in model_builder._get_parameter_transformations()[0]:
-                    func += "\n" + "\t" * 4 + d.format('x')
+        def get_decode_function():
+            func = '''
+                void parameter_decode(mot_data_struct* data, local mot_float_type* x){
+            '''
+            for d in self._get_parameter_transformations()[1]:
+                func += "\n" + "\t" * 4 + d.format('x')
 
-                func += '''
-                    }
-                '''
-                return SimpleCLFunction.from_string(func)
+            if self._enforce_weights_sum_to_one:
+                func += self._get_weight_sum_to_one_transformation()
 
-            def get_parameter_decode_function(self):
-                func = '''
-                    void parameter_decode(mot_data_struct* data, local mot_float_type* x){
-                '''
-                for d in model_builder._get_parameter_transformations()[1]:
-                    func += "\n" + "\t" * 4 + d.format('x')
+            func += '''
+                }
+            '''
+            return SimpleCLFunction.from_string(func)
 
-                if model_builder._enforce_weights_sum_to_one:
-                    func += model_builder._get_weight_sum_to_one_transformation()
-
-                func += '''
-                    }
-                '''
-                return SimpleCLFunction.from_string(func)
-
-        return Codec()
+        return ParameterCodec(get_encode_function(), get_decode_function())
 
     def fix(self, model_param_name, value):
         """Fix the given model.param to the given value.
@@ -1314,9 +1310,12 @@ class DMRICompositeModel(DMRIOptimizable):
                                 
                     objective_value_tmp[local_id] += eval;
                     
-                    ''' + ('''if(objective_list){
-                        objective_list[observation_ind] = eval;
-                    }''' if support_for_objective_list else '') + '''
+                    ''' + ('''
+                    if(objective_list){
+                        // used by the nonlinear least-squares routines, which square the observations
+                        objective_list[observation_ind] = sqrt(fabs(eval));
+                    }
+                    ''' if support_for_objective_list else '') + '''
                 }
                 barrier(CLK_LOCAL_MEM_FENCE);
                 
@@ -1865,6 +1864,8 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
         hessian = NumericalHessian(CLRuntimeInfo(double_precision=True)).calculate(
             self,
             results_array,
+            self.get_lower_bounds(),
+            self.get_upper_bounds(),
             step_ratio=2,
             nmr_steps=5,
             step_offset=0
