@@ -122,8 +122,8 @@ def fit_model(model, input_data, output_folder,
 
 
 def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None, thinning=None,
-                 recalculate=False, cl_device_ind=None, double_precision=False, store_samples=True,
-                 sample_items_to_save=None, tmp_results_dir=True,
+                 method=None, recalculate=False, cl_device_ind=None, double_precision=False,
+                 store_samples=True, sample_items_to_save=None, tmp_results_dir=True,
                  initialization_data=None, post_processing=None
                  ):
     """Sample a composite model using the Adaptive Metropolis-Within-Gibbs (AMWG) MCMC algorithm [1].
@@ -140,6 +140,13 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
         thinning (int): how many sample we wait before storing a new one. This will draw extra samples such that
                 the total number of samples generated is ``nmr_samples * (thinning)`` and the number of samples stored
                 is ``nmr_samples``. If set to one or lower we store every sample after the burn in.
+        method (str): The sampling method to use, one of:
+            - 'AMWG', for the Adaptive Metropolis-Within-Gibbs method
+            - 'SCAM', for the Single Component Adaptive Metropolis
+            - 'FSL', for the sampling method used in the FSL toolbox
+
+            If not given, defaults to 'AMWG'.
+
         recalculate (boolean): If we want to recalculate the results if they are already present.
         cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices().
@@ -230,7 +237,8 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
         logger.info('The parameters we will sample are: {0}'.format(model.get_free_param_names()))
 
         return sample_composite_model(model, input_data, base_dir, nmr_samples, thinning, burnin,
-                                      get_temporary_results_dir(tmp_results_dir), recalculate=recalculate,
+                                      get_temporary_results_dir(tmp_results_dir),
+                                      method=method, recalculate=recalculate,
                                       store_samples=store_samples,
                                       sample_items_to_save=sample_items_to_save,
                                       initialization_data=initialization_data)

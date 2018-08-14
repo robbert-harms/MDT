@@ -27,7 +27,7 @@ from mdt.configuration import gzip_optimization_results, gzip_sampling_results
 from mdt.utils import create_roi, load_samples
 import collections
 
-from mot.sample import AdaptiveMetropolisWithinGibbs
+from mot.sample import AdaptiveMetropolisWithinGibbs, SingleComponentAdaptiveMetropolis
 from mdt.model_building.utils import wrap_objective_function
 from mot.configuration import CLRuntimeInfo
 from mot.optimize import minimize
@@ -503,7 +503,7 @@ class SamplingProcessor(SimpleModelProcessor):
     class SampleChainNotStored(object):
         pass
 
-    def __init__(self, nmr_samples, thinning, burnin, model, mask, nifti_header, output_dir, tmp_storage_dir,
+    def __init__(self, nmr_samples, thinning, burnin, method, model, mask, nifti_header, output_dir, tmp_storage_dir,
                  recalculate, samples_storage_strategy=None):
         """The processing worker for model sample.
 
@@ -514,13 +514,17 @@ class SamplingProcessor(SimpleModelProcessor):
             thinning (int): how many sample we wait before storing a new one. This will draw extra samples such that
                     the total number of samples generated is ``nmr_samples * (thinning)`` and the number of samples
                     stored is ``nmr_samples``. If set to one or lower we store every sample after the burn in.
-            sampler (AbstractSampler): the optimization sampler to use
+            method (str): The sampling method to use, one of:
+                - 'AMWG', for the Adaptive Metropolis-Within-Gibbs method
+                - 'SCAM', for the Single Component Adaptive Metropolis
+                - 'FSL', for the sampling method used in the FSL toolbox
             samples_storage_strategy (SamplesStorageStrategy): indicates which samples to store
         """
         super(SamplingProcessor, self).__init__(mask, nifti_header, output_dir, tmp_storage_dir, recalculate)
         self._nmr_samples = nmr_samples
         self._thinning = thinning
         self._burnin = burnin
+        self._method = method
         self._model = model
         self._write_volumes_gzipped = gzip_sampling_results()
         self._samples_to_save_method = samples_storage_strategy or SaveAllSamples()
@@ -531,7 +535,17 @@ class SamplingProcessor(SimpleModelProcessor):
     def _process(self, roi_indices, next_indices=None):
         model = self._model.build(roi_indices)
 
-        sampler = AdaptiveMetropolisWithinGibbs(
+        method = None
+
+        if self._method == 'AMWG':
+            method = AdaptiveMetropolisWithinGibbs
+        elif self._method == 'SCAM':
+            method = SingleComponentAdaptiveMetropolis
+
+        if method is None:
+            raise ValueError('Could not find the sampler with name {}.'.format(self._method))
+
+        sampler = method(
             model.get_log_likelihood_function(),
             model.get_log_prior_function(),
             model.get_initial_parameters(),

@@ -18,7 +18,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 def sample_composite_model(model, input_data, output_folder, nmr_samples, thinning, burnin, tmp_dir,
-                           recalculate=False, store_samples=True, sample_items_to_save=None,
+                           method=None, recalculate=False, store_samples=True, sample_items_to_save=None,
                            initialization_data=None):
     """Sample a composite model.
 
@@ -34,6 +34,12 @@ def sample_composite_model(model, input_data, output_folder, nmr_samples, thinni
                 the total number of samples generated is ``nmr_samples * (thinning)`` and the number of samples stored
                 is ``nmr_samples``. If set to one or lower we store every sample after the burn in.
         tmp_dir (str): the preferred temporary storage dir
+        method (str): The sampling method to use, one of:
+            - 'AMWG', for the Adaptive Metropolis-Within-Gibbs method
+            - 'SCAM', for the Single Component Adaptive Metropolis
+            - 'FSL', for the sampling method used in the FSL toolbox
+
+            If not given, defaults to 'AMWG'.
         recalculate (boolean): If we want to recalculate the results if they are already present.
         store_samples (boolean, sequence or :class:`mdt.processing_strategies.SamplesStorageStrategy`): if set to False
             we will store none of the samples. If set to True we will save all samples. If set to a sequence we expect a
@@ -79,7 +85,7 @@ def sample_composite_model(model, input_data, output_folder, nmr_samples, thinni
 
         with _log_info(logger, model.name):
             worker = SamplingProcessor(
-                nmr_samples, thinning, burnin,
+                nmr_samples, thinning, burnin, method or 'AMWG',
                 model, input_data.mask, input_data.nifti_header, output_folder,
                 get_full_tmp_results_path(output_folder, tmp_dir), recalculate,
                 samples_storage_strategy=samples_storage_strategy)
