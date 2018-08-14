@@ -159,13 +159,13 @@ class ModelFit(object):
         if cl_device_ind is not None and not isinstance(cl_device_ind, collections.Iterable):
             cl_device_ind = [cl_device_ind]
 
-        cl_environments = None
         if cl_device_ind is not None:
             cl_environments = [get_cl_devices()[ind] for ind in cl_device_ind]
-
-        self._cl_runtime_info = CLRuntimeInfo(cl_environments=cl_environments,
-                                              load_balancer=EvenDistribution(),
-                                              double_precision=double_precision)
+            self._cl_runtime_info = CLRuntimeInfo(cl_environments=cl_environments,
+                                                  load_balancer=EvenDistribution(),
+                                                  double_precision=double_precision)
+        else:
+            self._cl_runtime_info = CLRuntimeInfo(double_precision=double_precision)
 
         if not model.is_input_data_sufficient(self._input_data):
             raise InsufficientProtocolError(
