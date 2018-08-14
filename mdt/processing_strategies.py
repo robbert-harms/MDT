@@ -29,7 +29,7 @@ import collections
 
 from mot.sample import AdaptiveMetropolisWithinGibbs
 from mdt.model_building.utils import wrap_objective_function
-from mot.lib.cl_runtime_info import CLRuntimeInfo
+from mot.configuration import CLRuntimeInfo
 from mot.optimize import minimize
 
 __author__ = 'Robbert Harms'
@@ -531,7 +531,13 @@ class SamplingProcessor(SimpleModelProcessor):
     def _process(self, roi_indices, next_indices=None):
         model = self._model.build(roi_indices)
 
-        sampler = AdaptiveMetropolisWithinGibbs(model, model.get_initial_parameters(), model.get_rwm_proposal_stds())
+        sampler = AdaptiveMetropolisWithinGibbs(
+            model.get_log_likelihood_function(),
+            model.get_log_prior_function(),
+            model.get_initial_parameters(),
+            model.get_rwm_proposal_stds(),
+            data=model.get_kernel_data(),
+            finalize_proposal_func=model.get_finalize_proposal_function())
 
         sampling_output = sampler.sample(self._nmr_samples, burnin=self._burnin, thinning=self._thinning)
         samples = sampling_output.get_samples()

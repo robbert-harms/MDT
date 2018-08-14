@@ -346,9 +346,9 @@ class DKIMeasures(object):
         parameters = np.column_stack([parameters_dict[n] for n in param_names])
 
         nmr_voxels = parameters.shape[0]
-        kernel_data = {'parameters': Array(parameters, ctype='mot_float_type', is_readable=True, is_writable=False),
+        kernel_data = {'parameters': Array(parameters, ctype='mot_float_type'),
                        'directions': Array(DKIMeasures._get_spherical_samples(), ctype='mot_float_type4',
-                                           is_readable=True, is_writable=False, offset_str='0'),
+                                           offset_str='0'),
                        'nmr_directions': Scalar(DKIMeasures._get_spherical_samples().shape[0]),
                        'nmr_radial_directions': Scalar(256),
                        'mks': Zeros((nmr_voxels,), ctype='mot_float_type'),

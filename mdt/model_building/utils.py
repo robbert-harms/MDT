@@ -17,10 +17,9 @@ def wrap_objective_function(objective_function, decode_function, nmr_parameters)
 
             .. code-block:: c
 
-                double <func_name>(mot_data_struct* data,
-                                   local const mot_float_type* const x,
-                                   local mot_float_type* objective_list,
-                                   local double* objective_value_tmp);
+                double <func_name>(local const mot_float_type* const x,
+                                   mot_data_struct* data,
+                                   local mot_float_type* objective_list);
         decode_function (mot.lib.cl_function.CLFunction): An OpenCL function that is used in the CL kernel to
                 transform the parameters from encoded space to model space so they can be used as input to the model.
                 The signature of the CL function is:
@@ -36,10 +35,9 @@ def wrap_objective_function(objective_function, decode_function, nmr_parameters)
     """
     return SimpleCLFunction.from_string('''
         double wrapped_''' + objective_function.get_cl_function_name() + '''(
-                mot_data_struct* data, 
                 local const mot_float_type* const x,
-                local mot_float_type* objective_list,
-                local double* objective_value_tmp){
+                mot_data_struct* data, 
+                local mot_float_type* objective_list){
 
             local mot_float_type x_model[''' + str(nmr_parameters) + '''];
 
@@ -52,7 +50,7 @@ def wrap_objective_function(objective_function, decode_function, nmr_parameters)
             barrier(CLK_LOCAL_MEM_FENCE);
 
             return ''' + objective_function.get_cl_function_name() + '''(
-                data, x_model, objective_list, objective_value_tmp);    
+                x_model, data, objective_list);    
         }
     ''', dependencies=[objective_function, decode_function])
 
@@ -118,7 +116,7 @@ class ParameterCodec(object):
         Args:
             parameters (ndarray): The parameters to transform
             kernel_data (dict[str: mot.lib.utils.KernelData]): the additional data to load
-            cl_runtime_info (mot.lib.cl_runtime_info.CLRuntimeInfo): the runtime information
+            cl_runtime_info (mot.configuration.CLRuntimeInfo): the runtime information
 
         Returns:
             ndarray: The array with the transformed parameters.
@@ -134,7 +132,7 @@ class ParameterCodec(object):
         Args:
             parameters (ndarray): The parameters to transform
             kernel_data (dict[str: mot.lib.utils.KernelData]): the additional data to load
-            cl_runtime_info (mot.lib.cl_runtime_info.CLRuntimeInfo): the runtime information
+            cl_runtime_info (mot.configuration.CLRuntimeInfo): the runtime information
 
         Returns:
             ndarray: The array with the transformed parameters.
@@ -150,7 +148,7 @@ class ParameterCodec(object):
         Args:
             parameters (ndarray): The parameters to transform
             kernel_data (dict[str: mot.lib.utils.KernelData]): the additional data to load
-            cl_runtime_info (mot.lib.cl_runtime_info.CLRuntimeInfo): the runtime information
+            cl_runtime_info (mot.configuration.CLRuntimeInfo): the runtime information
 
         Returns:
             ndarray: The array with the transformed parameters.
@@ -169,23 +167,13 @@ class ParameterCodec(object):
     @staticmethod
     def _transform_parameters(cl_func, parameters, kernel_data, cl_runtime_info=None):
         cl_named_func = SimpleCLFunction.from_string('''
-            void transformParameterSpace(mot_data_struct* data){
-                local mot_float_type x[''' + str(parameters.shape[1]) + '''];
-                for(uint i = 0; i < ''' + str(parameters.shape[1]) + '''; i++){
-                    x[i] = data->x[i];
-                }
-
+            void transformParameterSpace(mot_data_struct* data, local mot_float_type* x){
                 ''' + cl_func.get_cl_function_name() + '''(data, x);
-
-                for(uint i = 0; i < ''' + str(parameters.shape[1]) + '''; i++){
-                    data->x[i] = x[i];
-                }
             }
         ''', dependencies=[cl_func])
 
-        data_struct = dict(kernel_data)
-        data_struct['x'] = Array(parameters, ctype='mot_float_type', is_writable=True)
+        kernel_data = {'data': dict(kernel_data or {}),
+                       'x': Array(parameters, ctype='mot_float_type', mode='rw')}
 
-        cl_named_func.evaluate({'data': data_struct}, nmr_instances=parameters.shape[0],
-                               cl_runtime_info=cl_runtime_info)
-        return data_struct['x'].get_data()
+        cl_named_func.evaluate(kernel_data, nmr_instances=parameters.shape[0], cl_runtime_info=cl_runtime_info)
+        return kernel_data['x'].get_data()

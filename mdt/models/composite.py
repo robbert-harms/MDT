@@ -14,14 +14,13 @@ from mdt.model_building.utils import ParameterCodec
 
 from mot.lib.cl_data_type import SimpleCLDataType
 from mot.lib.cl_function import SimpleCLFunction, SimpleCLFunctionParameter
-from mot.cl_routines import compute_log_likelihood
-from mot.cl_routines.numerical_hessian import NumericalHessian
+from mot.cl_routines import compute_log_likelihood, numerical_hessian
 from mdt.model_building.parameters import ProtocolParameter, FreeParameter, CurrentObservationParam
-from mot.lib.cl_runtime_info import CLRuntimeInfo
-from mot.lib.model_interfaces import SampleModelInterface, NumericalDerivativeInterface
+from mot.configuration import CLRuntimeInfo
+from mot.cl_routines.numerical_hessian import NumericalDerivativeInterface
 from mot.lib.utils import convert_data_to_dtype, \
     hessian_to_covariance, all_elements_equal, get_single_value
-from mot.lib.kernel_data import Array, Zeros, Scalar
+from mot.lib.kernel_data import Array, Zeros, Scalar, LocalMemory
 
 from mdt.models.base import MissingProtocolInput
 from mdt.models.base import DMRIOptimizable
@@ -160,7 +159,7 @@ class DMRICompositeModel(DMRIOptimizable):
                 the input data. Each of these input datasets must either be a scalar or be of equal length in the
                 first dimension. The user can either input raw ndarrays or input KernelData objects.
                 If an ndarray is given we will load it read/write by default.
-            cl_runtime_info (mot.lib.cl_runtime_info.CLRuntimeInfo): the runtime information for execution
+            cl_runtime_info (mot.configuration.CLRuntimeInfo): the runtime information for execution
 
         Returns:
             ndarray or tuple(ndarray, dict[str: ndarray]): we always return at least the return values of the function,
@@ -1281,10 +1280,9 @@ class DMRICompositeModel(DMRIOptimizable):
 
         cl_body = '''
             double getObjectiveInstanceValue(
-                    mot_data_struct* data, 
                     local const mot_float_type* const x,
-                    ''' + ('local mot_float_type* objective_list,' if support_for_objective_list else '') + ''' 
-                    local double* objective_value_tmp){
+                    mot_data_struct* data
+                    ''' + (', local mot_float_type* objective_list' if support_for_objective_list else '') + '''){
 
                 ''' + param_listing + '''
                 
@@ -1299,7 +1297,7 @@ class DMRICompositeModel(DMRIOptimizable):
                 
                 double eval;
                 uint observation_ind;
-                objective_value_tmp[local_id] = 0;
+                data->local_tmp[local_id] = 0;
                 for(uint i = 0; i < elements_for_workitem; i++){
                     observation_ind = i * workgroup_size + local_id;
                                 
@@ -1308,7 +1306,7 @@ class DMRICompositeModel(DMRIOptimizable):
                                 ''' + eval_function_info.get_cl_function_name() + '''(data, x, observation_ind),'''\
                                 + ','.join(eval_call_args) + ''');
                                 
-                    objective_value_tmp[local_id] += eval;
+                    data->local_tmp[local_id] += eval;
                     
                     ''' + ('''
                     if(objective_list){
@@ -1323,7 +1321,7 @@ class DMRICompositeModel(DMRIOptimizable):
                 if(local_id == 0){
                     sum = 0;
                     for(uint i = 0; i < workgroup_size; i++){
-                        sum += objective_value_tmp[i];
+                        sum += data->local_tmp[i];
                     }   
                 }
                 barrier(CLK_LOCAL_MEM_FENCE);
@@ -1439,7 +1437,7 @@ class DMRICompositeModel(DMRIOptimizable):
         return len(voxels_to_analyze)
 
     def _get_kernel_data(self, voxels_to_analyze):
-        data_items = {}
+        data_items = {'local_tmp': LocalMemory('double')}
         data_items.update(self._get_observations_data(voxels_to_analyze))
         data_items.update(self._get_fixed_parameters_as_var_data(voxels_to_analyze))
         data_items.update({'bounds': self._get_bounds_as_var_data(voxels_to_analyze)})
@@ -1529,7 +1527,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
         return SimpleCLFunction(
             'mot_float_type', 'getLogPrior',
-            [('mot_data_struct*', 'data'), ('local const mot_float_type* const', 'x')],
+            [('local const mot_float_type* const', 'x'), ('mot_data_struct*', 'data')],
             get_body(), cl_extra=get_preliminary())
 
     def _get_weight_prior(self):
@@ -1545,7 +1543,7 @@ class DMRICompositeModel(DMRIOptimizable):
         return None
 
 
-class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
+class BuildCompositeModel(NumericalDerivativeInterface):
 
     def __init__(self, used_problem_indices, name, input_data,
                  kernel_data_info, nmr_observations,
@@ -1557,8 +1555,9 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
                  post_optimization_modifiers, extra_optimization_maps, extra_sampling_maps,
                  dependent_map_calculator, fixed_parameter_maps,
                  free_param_names, parameter_codec, post_processing,
-                 rwm_proposal_stds, eval_function, objective_function,
-                 ll_function, log_prior_function,
+                 rwm_proposal_stds, eval_function,
+                 objective_function, ll_function,
+                 log_prior_function,
                  finalize_proposal_function):
         self.used_problem_indices = used_problem_indices
         self.name = name
@@ -1861,14 +1860,17 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
         Args:
             results_dict (dict): the list with the optimized points for each parameter
         """
-        hessian = NumericalHessian(CLRuntimeInfo(double_precision=True)).calculate(
+        hessian = numerical_hessian(
             self,
+            self._objective_function,
             results_array,
             self.get_lower_bounds(),
             self.get_upper_bounds(),
             step_ratio=2,
             nmr_steps=5,
-            step_offset=0
+            data=self.get_kernel_data(),
+            step_offset=0,
+            cl_runtime_info=CLRuntimeInfo(double_precision=True)
         )
         covars, is_singular = hessian_to_covariance(hessian, output_singularity=True)
 
@@ -1899,7 +1901,8 @@ class BuildCompositeModel(SampleModelInterface, NumericalDerivativeInterface):
             dict: the calculated information criterion maps
         """
         if log_likelihoods is None:
-            log_likelihoods = compute_log_likelihood(self, results_array)
+            log_likelihoods = compute_log_likelihood(self.get_log_likelihood_function(),
+                                                     results_array, data=self.get_kernel_data())
 
         k = self.nmr_parameters_for_bic_calculation
         n = self.get_nmr_observations()
@@ -2585,7 +2588,7 @@ def calculate_dependent_parameters(kernel_data, estimated_parameters_list,
         parameters_listing (str): The parameters listing in CL
         dependent_parameter_names (list of list of str): Per parameter we would like to obtain the CL name and the
             result map name. For example: (('Wball_w', 'Wball.w'),)
-        cl_runtime_info (mot.lib.cl_runtime_info.CLRuntimeInfo): the runtime information
+        cl_runtime_info (mot.configuration.CLRuntimeInfo): the runtime information
 
     Returns:
         dict: A dictionary with the calculated maps for the dependent parameters.
