@@ -22,7 +22,7 @@ class CurrentObservationParam(SimpleCLFunctionParameter):
 
         You can use this parameter by adding it to your model and then use the current name in your model equation.
         """
-        super(CurrentObservationParam, self).__init__(SimpleCLDataType.from_string('mot_float_type'), name)
+        super().__init__(SimpleCLDataType.from_string('mot_float_type'), name)
 
 
 class InputDataParameter(SimpleCLFunctionParameter):
@@ -39,7 +39,7 @@ class InputDataParameter(SimpleCLFunctionParameter):
             name (str): The name of this parameter
             value (double or ndarray): The value used if no value is given in the input data.
         """
-        super(InputDataParameter, self).__init__(data_type, name)
+        super().__init__(data_type, name)
         self.value = value
 
 
@@ -56,7 +56,7 @@ class ProtocolParameter(InputDataParameter):
             name (str): The name of this parameter
             value (None or float or ndarray): The value used if no value is given in the input data.
         """
-        super(ProtocolParameter, self).__init__(data_type, name, None)
+        super().__init__(data_type, name, None)
         self.value = value
 
 
@@ -82,7 +82,7 @@ class FreeParameter(SimpleCLFunctionParameter):
             numdiff_info (mdt.model_building.parameter_functions.numdiff_info.NumDiffInfo): the information
                 for taking the numerical derivative with respect to this parameter.
         """
-        super(FreeParameter, self).__init__(data_type, name)
+        super().__init__(data_type, name)
         self._value = value
         self._lower_bound = lower_bound
         self._upper_bound = upper_bound

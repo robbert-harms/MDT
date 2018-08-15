@@ -16,7 +16,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class TabTextual(QWidget, Ui_TabTextual):
 
     def __init__(self, controller, parent=None):
-        super(TabTextual, self).__init__(parent)
+        super().__init__(parent)
         self.setupUi(self)
 
         self._controller = controller

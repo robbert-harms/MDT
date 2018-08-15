@@ -34,7 +34,7 @@ class Protocol(collections.Mapping):
                 parameter (the same as those used in the model functions).
                 The values should be numpy arrays of equal length.
         """
-        super(Protocol, self).__init__()
+        super().__init__()
         self._gamma_h = 267.5987E6 # radians s^-1 T^-1 (s = seconds, T = Tesla)
         self._unweighted_threshold = 25e6 # s/m^2
         self._columns = {}
@@ -570,7 +570,7 @@ class SimpleVirtualColumn(VirtualColumn):
             name (str): the name of the column
             generate_function (python function): the function to generate the column
         """
-        super(SimpleVirtualColumn, self).__init__(name)
+        super().__init__(name)
         self._generate_function = generate_function
 
     def get_values(self, parent_protocol):
@@ -580,7 +580,7 @@ class SimpleVirtualColumn(VirtualColumn):
 class VirtualColumnB(VirtualColumn):
 
     def __init__(self):
-        super(VirtualColumnB, self).__init__('b')
+        super().__init__('b')
 
     def get_values(self, parent_protocol):
         sequence_timings = get_sequence_timings(parent_protocol)

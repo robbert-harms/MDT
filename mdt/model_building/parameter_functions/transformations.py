@@ -112,7 +112,7 @@ class ScaleClampTransform(AbstractTransformation):
         Args:
             scale (float): the scaling factor by which to scale the parameter
         """
-        super(ScaleClampTransform, self).__init__()
+        super().__init__()
         self._scale = scale
 
     def get_cl_encode(self):
@@ -170,7 +170,7 @@ class AbsModXTransform(AbstractTransformation):
 
     def __init__(self, x):
         """Create an transformation that returns the absolute modulo x value of the input."""
-        super(AbsModXTransform, self).__init__()
+        super().__init__()
         self._x = x
 
     def get_cl_encode(self):
@@ -184,10 +184,10 @@ class AbsModXTransform(AbstractTransformation):
 
 class AbsModPiTransform(AbsModXTransform):
     def __init__(self):
-        super(AbsModPiTransform, self).__init__('M_PI')
+        super().__init__('M_PI')
 
 
 class AbsModTwoPiTransform(AbsModXTransform):
     def __init__(self):
-        super(AbsModTwoPiTransform, self).__init__('(2 * M_PI)')
+        super().__init__('(2 * M_PI)')
 

@@ -11,7 +11,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class MyColourBarTickLocator(LinearLocator):
 
     def __init__(self, min_val, max_val, round_precision=3, **kwargs):
-        super(MyColourBarTickLocator, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.min_val = min_val
         self.max_val = max_val
         self.round_precision = round_precision

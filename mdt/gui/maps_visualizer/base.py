@@ -45,7 +45,7 @@ class Controller(object):
 
     def __init__(self):
         """Controller interface"""
-        super(Controller, self).__init__()
+        super().__init__()
 
     def get_model(self):
         """Get the model the view should represent.
@@ -102,7 +102,7 @@ class QtController(Controller, QObject):
     model_updated = pyqtSignal(DataConfigModel)
 
     def __init__(self):
-        super(QtController, self).__init__()
+        super().__init__()
         self._current_model = SimpleDataConfigModel(SimpleDataInfo({}), MapPlotConfig())
         self._actions_history = []
         self._redoable_actions = []

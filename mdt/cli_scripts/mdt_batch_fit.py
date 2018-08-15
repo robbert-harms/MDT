@@ -31,7 +31,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class BatchFit(BasicShellApplication):
 
     def __init__(self):
-        super(BatchFit, self).__init__()
+        super().__init__()
         self.available_devices = list((ind for ind, env in
                                        enumerate(cl_environments.CLEnvironmentFactory.smart_device_selection())))
 

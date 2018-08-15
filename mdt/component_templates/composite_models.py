@@ -93,7 +93,7 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                 volume_selection = template.volume_selection
 
                 if not volume_selection:
-                    return super(AutoCreatedDMRICompositeModel, self)._get_suitable_volume_indices(input_data)
+                    return super()._get_suitable_volume_indices(input_data)
 
                 use_unweighted = volume_selection.get('use_unweighted', True)
                 use_weighted = volume_selection.get('use_weighted', True)

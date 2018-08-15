@@ -9,7 +9,7 @@ from mot.configuration import CLRuntimeInfo
 class test_VanGelderenCylindricalRestrictedSignal(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
-        super(test_VanGelderenCylindricalRestrictedSignal, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def test_ncrs_float(self):
         test_params = self._generate_test_params().astype(dtype=np.float32)

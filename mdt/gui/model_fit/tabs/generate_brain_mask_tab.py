@@ -23,13 +23,13 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class GenerateBrainMaskTab(MainTab, Ui_GenerateBrainMaskTabContent, QObject):
 
     def __init__(self, shared_state, computations_thread):
-        super(GenerateBrainMaskTab, self).__init__()
+        super().__init__()
         self._shared_state = shared_state
         self._computations_thread = computations_thread
         self._generate_mask_worker = GenerateMaskWorker()
 
     def setupUi(self, tab_content):
-        super(GenerateBrainMaskTab, self).setupUi(tab_content)
+        super().setupUi(tab_content)
 
         self.selectImageButton.clicked.connect(lambda: self._select_image())
         self.selectProtocolButton.clicked.connect(lambda: self._select_protocol())
@@ -167,7 +167,7 @@ class GenerateMaskWorker(QObject):
     finished = pyqtSignal()
 
     def __init__(self):
-        super(GenerateMaskWorker, self).__init__()
+        super().__init__()
         self.starting.connect(self.run)
         self._args = []
         self._kwargs = {}

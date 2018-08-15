@@ -179,7 +179,7 @@ class MessageReceiver(QObject):
         Attributes:
             is_running (boolean): set to False to stop the receiver.
         """
-        super(MessageReceiver, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.queue = queue
         self.is_running = True
 
@@ -208,7 +208,7 @@ class TimedUpdate(QTimer):
         Args:
             update_cb (function): the function we would like to run after a timer has run out
         """
-        super(TimedUpdate, self).__init__()
+        super().__init__()
         self._cb_values = []
         self._update_cb = update_cb
         self.timeout.connect(self._call_update_cb)

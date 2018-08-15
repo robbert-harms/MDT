@@ -67,7 +67,7 @@ class SimpleBatchProfile(BatchProfile):
         Args:
             base_directory (str): the base directory from which we will load the subjects information
         """
-        super(SimpleBatchProfile, self).__init__()
+        super().__init__()
 
     def get_subjects(self, data_folder):
         return self._get_subjects(data_folder)
@@ -269,7 +269,7 @@ class AllSubjects(BatchSubjectSelection):
 
     def __init__(self):
         """Selects all subjects for use in the processing"""
-        super(AllSubjects, self).__init__()
+        super().__init__()
 
     def get_selection(self, subject_ids):
         return subject_ids
@@ -362,7 +362,7 @@ class BatchFitProtocolLoader(object):
         This either loads the protocol file if present, or autoloads the protocol using the auto_load_protocol
         from the protocol module.
         """
-        super(BatchFitProtocolLoader, self).__init__()
+        super().__init__()
         self._base_dir = base_dir
         self._protocol_fname = protocol_fname
         self._bvec_fname = bvec_fname

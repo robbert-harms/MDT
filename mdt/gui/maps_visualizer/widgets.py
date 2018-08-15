@@ -12,7 +12,7 @@ from mdt.gui.utils import TimedUpdate
 class CollapsablePanel(QFrame):
 
     def __init__(self, parent=None):
-        super(CollapsablePanel, self).__init__(parent)
+        super().__init__(parent)
 
     def toggle(self):
         content = self.findChild(CollapsablePanelContent)
@@ -32,14 +32,14 @@ class CollapsablePanel(QFrame):
 class CollapsablePanelHeader(QLabel):
 
     def mousePressEvent(self, QMouseEvent):
-        super(CollapsablePanelHeader, self).mousePressEvent(QMouseEvent)
+        super().mousePressEvent(QMouseEvent)
         self.parent().toggle()
 
 
 class CollapsablePanelContent(QFrame):
 
     def __init__(self, parent=None):
-        super(CollapsablePanelContent, self).__init__(parent)
+        super().__init__(parent)
 
 
 class TextConfigEditor(QPlainTextEdit):
@@ -47,7 +47,7 @@ class TextConfigEditor(QPlainTextEdit):
     new_config = pyqtSignal(str)
 
     def __init__(self, *args):
-        super(TextConfigEditor, self).__init__(*args)
+        super().__init__(*args)
         self._timer = TimedUpdate(self._timer_event)
         self.textChanged.connect(lambda: self._timer.add_delayed_callback(400))
 
@@ -61,7 +61,7 @@ class MapsReorderer(QListWidget):
     items_reordered = pyqtSignal()
 
     def __init__(self, *args):
-        super(MapsReorderer, self).__init__(*args)
+        super().__init__(*args)
         self.installEventFilter(self)
 
     def eventFilter(self, sender, event):

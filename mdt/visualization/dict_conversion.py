@@ -46,7 +46,7 @@ class OptionalConversionDecorator(ConversionSpecification):
             conversion_specification (ConversionSpecification): the conversion specification to use if the element
                 to convert is not None.
         """
-        super(OptionalConversionDecorator, self).__init__()
+        super().__init__()
         self._conversion_specification = conversion_specification
 
     def to_dict(self, obj):
@@ -70,7 +70,7 @@ class SimpleClassConversion(ConversionSpecification):
             attribute_conversions (List[ConversionSpecification]) the list of conversion specification for the
                 attributes
         """
-        super(SimpleClassConversion, self).__init__()
+        super().__init__()
         self._class_type = class_type
         self._attribute_conversions = attribute_conversions
 
@@ -93,7 +93,7 @@ class ConvertDictElements(ConversionSpecification):
 
     def __init__(self, conversion_type):
         """Converts all the elements in the value (a dictionary) using the given conversion type."""
-        super(ConvertDictElements, self).__init__()
+        super().__init__()
         self._conversion_type = conversion_type
 
     def to_dict(self, obj):
@@ -107,7 +107,7 @@ class ConvertListElements(ConversionSpecification):
 
     def __init__(self, conversion_type):
         """Converts all the elements in the value (a list) using the given conversion type."""
-        super(ConvertListElements, self).__init__()
+        super().__init__()
         self._conversion_type = conversion_type
 
     def to_dict(self, obj):
@@ -128,7 +128,7 @@ class ConvertDynamicFromModule(ConversionSpecification):
         Args:
             module (module): the python module to use for loading the data from dict
         """
-        super(ConvertDynamicFromModule, self).__init__()
+        super().__init__()
         self._module = module
 
     def to_dict(self, obj):
@@ -155,7 +155,7 @@ class SimpleFunctionConversion(ConversionSpecification):
             set_null_to_value (obj): the value to set null entries to. If this is None and allow_null is False we
                 raise an error.
         """
-        super(SimpleFunctionConversion, self).__init__()
+        super().__init__()
         self._conversion_func = conversion_func
         self._allow_none = allow_null
         self._set_null_to_value = set_null_to_value
@@ -198,7 +198,7 @@ class SimpleDictConversion(SimpleFunctionConversion):
             set_null_to_value (obj): the value to set null entries to. If this is None and allow_null is False we
                 raise an error.
         """
-        super(SimpleDictConversion, self).__init__(
+        super().__init__(
             conversion_func=SimpleDictConversion._get_conversion_func(conversion_func),
             allow_null=allow_null,
             set_null_to_value=set_null_to_value)
@@ -228,7 +228,7 @@ class SimpleListConversion(SimpleFunctionConversion):
             set_null_to_value (obj): the value to set null entries to. If this is None and allow_null is False we
                 raise an error.
         """
-        super(SimpleListConversion, self).__init__(
+        super().__init__(
             conversion_func=SimpleListConversion._get_conversion_func(conversion_func),
             allow_null=allow_null,
             set_null_to_value=set_null_to_value)
@@ -250,25 +250,25 @@ class SimpleListConversion(SimpleFunctionConversion):
 class StringConversion(SimpleFunctionConversion):
 
     def __init__(self, allow_null=True):
-        super(StringConversion, self).__init__(str, allow_null=allow_null)
+        super().__init__(str, allow_null=allow_null)
 
 
 class IntConversion(SimpleFunctionConversion):
 
     def __init__(self, allow_null=True):
-        super(IntConversion, self).__init__(int, allow_null=allow_null)
+        super().__init__(int, allow_null=allow_null)
 
 
 class FloatConversion(SimpleFunctionConversion):
 
     def __init__(self, allow_null=True):
-        super(FloatConversion, self).__init__(float, allow_null=allow_null)
+        super().__init__(float, allow_null=allow_null)
 
 
 class BooleanConversion(SimpleFunctionConversion):
 
     def __init__(self, allow_null=True):
-        super(BooleanConversion, self).__init__(bool, allow_null=allow_null)
+        super().__init__(bool, allow_null=allow_null)
 
 
 class WhiteListConversion(ConversionSpecification):
@@ -280,7 +280,7 @@ class WhiteListConversion(ConversionSpecification):
             white_list (list of object): list of allowable objects
             default (object): the default fallback object
         """
-        super(WhiteListConversion, self).__init__()
+        super().__init__()
         self.white_list = white_list
         self.default = default
 

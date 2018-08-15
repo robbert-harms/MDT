@@ -43,7 +43,7 @@ class SimplePrior(ParameterPrior, SimpleCLFunction):
         parameters = [('mot_float_type', 'value'),
                       ('mot_float_type', 'lower_bound'),
                       ('mot_float_type', 'upper_bound')] + extra_params
-        super(SimplePrior, self).__init__('mot_float_type', prior_name, parameters, prior_body,
+        super().__init__('mot_float_type', prior_name, parameters, prior_body,
                                           dependencies=dependencies)
 
 
@@ -51,7 +51,7 @@ class AlwaysOne(SimplePrior):
 
     def __init__(self):
         """The uniform prior is always 1. :math:`P(v) = 1` """
-        super(AlwaysOne, self).__init__('uniform', 'return 1;')
+        super().__init__('uniform', 'return 1;')
 
 
 class ReciprocalPrior(SimplePrior):
@@ -64,14 +64,14 @@ class ReciprocalPrior(SimplePrior):
             }
             return 1.0/value;
         '''
-        super(ReciprocalPrior, self).__init__('reciprocal', body)
+        super().__init__('reciprocal', body)
 
 
 class UniformWithinBoundsPrior(SimplePrior):
 
     def __init__(self):
         """This prior is 1 within the upper and lower bound of the parameter, 0 outside."""
-        super(UniformWithinBoundsPrior, self).__init__(
+        super().__init__(
             'uniform_within_bounds',
             'return value >= lower_bound && value <= upper_bound;')
 
@@ -80,14 +80,14 @@ class AbsSinPrior(SimplePrior):
 
     def __init__(self):
         """Angular prior: :math:`P(v) = |\\sin(v)|`"""
-        super(AbsSinPrior, self).__init__('abs_sin', 'return fabs(sin(value));')
+        super().__init__('abs_sin', 'return fabs(sin(value));')
 
 
 class AbsSinHalfPrior(SimplePrior):
 
     def __init__(self):
         """Angular prior: :math:`P(v) = |\\sin(x)/2.0|`"""
-        super(AbsSinHalfPrior, self).__init__('abs_sin_half', 'return fabs(sin(value)/2.0);')
+        super().__init__('abs_sin_half', 'return fabs(sin(value)/2.0);')
 
 
 class VagueGammaPrior(SimplePrior):
@@ -122,7 +122,7 @@ class VagueGammaPrior(SimplePrior):
 
             return (1.0 / (tgamma(kappa) * pow(theta, kappa))) * pow(value, kappa - 1) * exp(- value / theta);
         '''
-        super(VagueGammaPrior, self).__init__('vague_gamma_prior', body)
+        super().__init__('vague_gamma_prior', body)
 
 
 class NormalPDF(SimplePrior):
@@ -135,7 +135,7 @@ class NormalPDF(SimplePrior):
                         FreeParameter(SimpleCLDataType.from_string('mot_float_type'), 'sigma', True, 1, -np.inf, np.inf,
                                       sampling_prior=AlwaysOne())]
 
-        super(NormalPDF, self).__init__(
+        super().__init__(
             'normal_pdf',
             'return exp((mot_float_type) (-((value - mu) * (value - mu)) / (2 * sigma * sigma))) '
             '           / (sigma * sqrt(2 * M_PI));',
@@ -176,7 +176,7 @@ class AxialNormalPDF(SimplePrior):
                         FreeParameter(SimpleCLDataType.from_string('mot_float_type'), 'sigma', True, 1, -np.inf, np.inf,
                                       sampling_prior=AlwaysOne())]
 
-        super(AxialNormalPDF, self).__init__(
+        super().__init__(
             'axial_normal_pdf',
             '''
                 float kappa = 1.0 / pown(sigma, 2);
@@ -217,7 +217,7 @@ class ARDBeta(SimplePrior):
             }
             return beta * pow(1 - value, beta - 1);
         '''
-        super(ARDBeta, self).__init__('ard_beta_pdf', body, extra_params)
+        super().__init__('ard_beta_pdf', body, extra_params)
 
 
 class ARDGaussian(SimplePrior):
@@ -240,4 +240,4 @@ class ARDGaussian(SimplePrior):
             mot_float_type sigma = 1.0/sqrt(alpha);
             return exp(-pown(value, 2) / (2 * pown(sigma, 2))) / (sigma * sqrt(2 * M_PI));
         '''
-        super(ARDGaussian, self).__init__('ard_beta_pdf', body, extra_params)
+        super().__init__('ard_beta_pdf', body, extra_params)

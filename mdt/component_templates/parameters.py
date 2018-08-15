@@ -42,7 +42,7 @@ class ParameterBuilder(ComponentBuilder):
 
             class AutoFreeParameter(FreeParameter):
                 def __init__(self, nickname=None):
-                    super(AutoFreeParameter, self).__init__(
+                    super().__init__(
                         data_type,
                         nickname or template.name,
                         template.fixed,

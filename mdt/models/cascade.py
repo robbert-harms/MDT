@@ -16,7 +16,7 @@ class DMRICascadeModelInterface(DMRIOptimizable):
         it contains a number of models that are to be optimized one after another with the output results of
         the previous fit used to initialize the next model.
         """
-        super(DMRICascadeModelInterface, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     @property
     def name(self):
@@ -96,7 +96,7 @@ class SimpleCascadeModel(DMRICascadeModelInterface):
             name (str): the name of this cascade model
             model_list (list of models): the list of models this cascade consists of
         """
-        super(DMRICascadeModelInterface, self).__init__()
+        super().__init__()
         self._name = name
         self._model_list = model_list
         self._iteration_position = 0

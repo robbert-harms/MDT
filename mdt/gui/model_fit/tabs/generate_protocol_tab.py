@@ -23,7 +23,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class GenerateProtocolTab(MainTab, Ui_GenerateProtocolTabContent, QObject):
 
     def __init__(self, shared_state, computations_thread):
-        super(GenerateProtocolTab, self).__init__()
+        super().__init__()
         self._shared_state = shared_state
         self._protocol = Protocol()
         self._opened_file = self._shared_state.base_dir
@@ -32,7 +32,7 @@ class GenerateProtocolTab(MainTab, Ui_GenerateProtocolTabContent, QObject):
         self._system_columns = OrderedDict([['#', self._create_volume_number_column]])
 
     def setupUi(self, tab_content):
-        super(GenerateProtocolTab, self).setupUi(tab_content)
+        super().setupUi(tab_content)
         self._tab_content = tab_content
 
         self.loadProtocolButton.clicked.connect(lambda: self._select_protocol())
@@ -225,13 +225,13 @@ class NumericalSortedTableItem(QTableWidgetItem):
             except ValueError:
                 pass
 
-        return super(NumericalSortedTableItem, self).__lt__(other)
+        return super().__lt__(other)
 
 
 class LoadColumnDialog(Ui_UpdateColumnDialog, QDialog):
 
     def __init__(self, shared_state, parent):
-        super(LoadColumnDialog, self).__init__(parent)
+        super().__init__(parent)
         self._input_options = {'from_file': 0, 'from_value': 1}
         self._shared_state = shared_state
         self.setupUi(self)
@@ -303,7 +303,7 @@ class LoadColumnDialog(Ui_UpdateColumnDialog, QDialog):
 class LoadGBDialog(Ui_LoadGBDialog, QDialog):
 
     def __init__(self, shared_state, parent):
-        super(LoadGBDialog, self).__init__(parent)
+        super().__init__(parent)
         self._shared_state = shared_state
         self.setupUi(self)
         self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(False)

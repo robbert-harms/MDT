@@ -22,7 +22,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class CreateMask(BasicShellApplication):
 
     def __init__(self):
-        super(CreateMask, self).__init__()
+        super().__init__()
         self.available_devices = {ind: env for ind, env in
                                   enumerate(cl_environments.CLEnvironmentFactory.smart_device_selection())}
 

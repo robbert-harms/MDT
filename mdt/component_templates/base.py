@@ -51,7 +51,7 @@ def bind_function(func):
         class MyConfig(ComponentTemplate):
             @bind_function
             def test(self):
-                super(MyGoal, self).test()
+                super().test()
                 print('test2')
 
     The component builder takes care to actually bind the new method to the final object.
@@ -75,7 +75,7 @@ class ComponentTemplateMeta(type):
         to the ``bound_methods`` dictionary for binding them later to the constructed class. Second, it sets the
         ``name`` attribute to the template class name if there is no ``name`` attribute defined.
         """
-        result = super(ComponentTemplateMeta, mcs).__new__(mcs, name, bases, attributes)
+        result = super().__new__(mcs, name, bases, attributes)
 
         result.component_type = mcs._resolve_attribute(bases, attributes, '_component_type')
         result.bound_methods = mcs._get_bound_methods(bases, attributes)

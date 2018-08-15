@@ -25,7 +25,7 @@ class ModelOutputLogHandler(StreamHandler):
         It is by default (see the MDT configuration) already constructed and added to the logging module. To set a new
         file, or to disable this logger set the file using the :attr:`output_file` property.
         """
-        super(ModelOutputLogHandler, self).__init__()
+        super().__init__()
         self.__class__.__instances__.add(self)
 
         if codecs is None:
@@ -52,7 +52,7 @@ class ModelOutputLogHandler(StreamHandler):
 
     def emit(self, record):
         if self._output_file and self.stream:
-            super(ModelOutputLogHandler, self).emit(record)
+            super().emit(record)
 
     def close(self):
         if self._output_file:
@@ -63,7 +63,7 @@ class ModelOutputLogHandler(StreamHandler):
                     if hasattr(self.stream, "close"):
                         self.stream.close()
                     self.stream = None
-                super(ModelOutputLogHandler, self).close()
+                super().close()
             finally:
                 self.release()
 
@@ -90,11 +90,11 @@ class StdOutHandler(StreamHandler):
             stream: the IO stream to which to emit the log entries. If not given we use sys.stdout.
         """
         stream = stream or sys.stdout
-        super(StdOutHandler, self).__init__(stream=stream)
+        super().__init__(stream=stream)
 
     def emit(self, record):
         if self.stream:
-            super(StdOutHandler, self).emit(record)
+            super().emit(record)
 
 
 class LogDispatchHandler(StreamHandler):
@@ -112,7 +112,7 @@ class LogDispatchHandler(StreamHandler):
 
         In general only one copy of this class should be used.
         """
-        super(LogDispatchHandler, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def emit(self, record):
         for listener in self._listeners:

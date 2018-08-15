@@ -229,7 +229,7 @@ class _ComponentFromTemplate(_ComponentAdapter):
                     with temporary_component_updates():
                         for component in subcomponents:
                             add_template_component(component)
-                        super(SubComponentConstruct, self).__init__(*args, **kwargs)
+                        super().__init__(*args, **kwargs)
             return SubComponentConstruct
         else:
             return self.template()

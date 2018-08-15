@@ -20,13 +20,13 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class GenerateROIMaskTab(MainTab, Ui_GenerateROIMaskTabContent, QObject):
 
     def __init__(self, shared_state, computations_thread):
-        super(GenerateROIMaskTab, self).__init__()
+        super().__init__()
         self._shared_state = shared_state
         self._computations_thread = computations_thread
         self._generate_mask_worker = GenerateROIMaskWorker()
 
     def setupUi(self, tab_content):
-        super(GenerateROIMaskTab, self).setupUi(tab_content)
+        super().setupUi(tab_content)
 
         self.selectMaskButton.clicked.connect(lambda: self._select_mask())
         self.selectOutputFileInput.clicked.connect(lambda: self._select_output_file())
@@ -183,7 +183,7 @@ class GenerateROIMaskWorker(QObject):
     finished = pyqtSignal()
 
     def __init__(self):
-        super(GenerateROIMaskWorker, self).__init__()
+        super().__init__()
         self.starting.connect(self.run)
         self._args = []
         self._kwargs = {}

@@ -75,7 +75,7 @@ class DMRICompositeModel(DMRIOptimizable):
                 vector. For example, in the case of sample a spherical coordinate system, this callback can be used
                 to transform both the inclination and the azimuth at the same time to an antipodal point.
         """
-        super(DMRICompositeModel, self).__init__(model_name, model_tree, likelihood_function, signal_noise_model,
+        super().__init__(model_name, model_tree, likelihood_function, signal_noise_model,
                                                  input_data=input_data,
                                                  enforce_weights_sum_to_one=enforce_weights_sum_to_one)
         self._name = model_name
@@ -2000,7 +2000,7 @@ class CompositeModelFunction(SimpleCLFunction):
 
         cl_function_name = '_composite_model_function'
 
-        super(CompositeModelFunction, self).__init__(
+        super().__init__(
             'double', cl_function_name,
             [p.get_renamed(external_name) for m, p, _, external_name in self._get_model_function_parameters()],
             self._get_model_function_body(),
@@ -2107,7 +2107,7 @@ class _ModelFunctionPriorToCompositeModelPrior(SimpleCLFunction):
                       for p in model_function_prior.get_parameters()]
         self._old_params = model_function_prior.get_parameters()
 
-        super(_ModelFunctionPriorToCompositeModelPrior, self).__init__(
+        super().__init__(
             model_function_prior.get_return_type(),
             model_function_prior.get_cl_function_name(),
             parameters,

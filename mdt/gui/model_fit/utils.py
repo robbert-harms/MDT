@@ -22,7 +22,7 @@ class SharedState(QObject):
             dimension_index (int): the dimension index used in various operations
             slice_index (int): the slice index used in various operations
         """
-        super(SharedState, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         shared_attributes = {'base_dir': None,
                              'dimension_index': 0,

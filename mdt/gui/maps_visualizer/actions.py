@@ -117,7 +117,7 @@ class SimpleConfigAction(ConfigAction):
         The config_attribute can be a list, if so, we iteratively look up the corresponding attributes and change
         the last attribute element.
         """
-        super(SimpleConfigAction, self).__init__()
+        super().__init__()
         self.new_value = new_value
 
     def _apply(self, configuration):
@@ -140,14 +140,14 @@ class SimpleMapSpecificConfigAction(SimpleConfigAction):
     config_attribute = None
 
     def __init__(self, map_name, new_value):
-        super(SimpleMapSpecificConfigAction, self).__init__(new_value)
+        super().__init__(new_value)
         self.map_name = map_name
 
     def _apply(self, configuration):
         if self.map_name not in configuration.map_plot_options:
             configuration.map_plot_options[self.map_name] = SingleMapConfig()
 
-        single_map_config = super(SimpleMapSpecificConfigAction, self)._apply(
+        single_map_config = super()._apply(
             configuration.map_plot_options[self.map_name])
 
         if single_map_config is None:
@@ -156,7 +156,7 @@ class SimpleMapSpecificConfigAction(SimpleConfigAction):
         return configuration
 
     def _extra_actions(self, configuration):
-        single_map_config = super(SimpleMapSpecificConfigAction, self)._extra_actions(configuration)
+        single_map_config = super()._extra_actions(configuration)
         if single_map_config == SingleMapConfig():
             return None
         return single_map_config
@@ -165,7 +165,7 @@ class SimpleMapSpecificConfigAction(SimpleConfigAction):
 class NewConfigAction(ConfigAction):
 
     def __init__(self, new_config):
-        super(NewConfigAction, self).__init__()
+        super().__init__()
         self.new_config = new_config
 
     def apply(self, data_config_model):

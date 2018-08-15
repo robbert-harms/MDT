@@ -12,7 +12,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class GridLayout(object):
 
     def __init__(self, spacings=None):
-        super(GridLayout, self).__init__()
+        super().__init__()
         self.spacings = spacings or {'left': 0.10, 'right': 0.86,
                                      'top': 0.97, 'bottom': 0.03,
                                      'wspace': 0.40, 'hspace': 0.15}
@@ -95,7 +95,7 @@ class AutoGridLayout(GridLayout):
 class Rectangular(GridLayout):
 
     def __init__(self, rows=None, cols=None, spacings=None):
-        super(Rectangular, self).__init__(spacings=spacings)
+        super().__init__(spacings=spacings)
         self.rows = rows
         self.cols = cols
 
@@ -111,7 +111,7 @@ class Rectangular(GridLayout):
 
     @classmethod
     def _get_attribute_conversions(cls):
-        conversions = super(Rectangular, cls)._get_attribute_conversions()
+        conversions = super()._get_attribute_conversions()
         conversions.update({'rows': IntConversion(), 'cols': IntConversion()})
         return conversions
 
@@ -164,7 +164,7 @@ class LowerTriangular(GridLayout):
 
             spacings (dict): the spacings around each plot
         """
-        super(LowerTriangular, self).__init__(spacings=spacings)
+        super().__init__(spacings=spacings)
         self.padding = padding or 0
 
     def get_gridspec(self, figure, nmr_plots):
@@ -173,7 +173,7 @@ class LowerTriangular(GridLayout):
 
     @classmethod
     def _get_attribute_conversions(cls):
-        conversions = super(LowerTriangular, cls)._get_attribute_conversions()
+        conversions = super()._get_attribute_conversions()
         conversions.update({'padding': IntConversion()})
         return conversions
 

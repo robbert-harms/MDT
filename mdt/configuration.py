@@ -710,7 +710,7 @@ class SimpleConfigAction(ConfigAction):
 
         It is easiest to implement _apply() for extra actions.
         """
-        super(SimpleConfigAction, self).__init__()
+        super().__init__()
         self._old_config = {}
 
     def apply(self):
@@ -730,7 +730,7 @@ class SimpleConfigAction(ConfigAction):
 class YamlStringAction(SimpleConfigAction):
 
     def __init__(self, yaml_str):
-        super(YamlStringAction, self).__init__()
+        super().__init__()
         self._yaml_str = yaml_str
 
     def _apply(self):
@@ -740,7 +740,7 @@ class YamlStringAction(SimpleConfigAction):
 class SetGeneralSampler(SimpleConfigAction):
 
     def __init__(self, sampler_name, settings=None):
-        super(SetGeneralSampler, self).__init__()
+        super().__init__()
         self._sampler_name = sampler_name
         self._settings = settings or {}
 
@@ -752,7 +752,7 @@ class SetGeneralSampler(SimpleConfigAction):
 class SetGeneralOptimizer(SimpleConfigAction):
 
     def __init__(self, optimizer_name, settings=None):
-        super(SetGeneralOptimizer, self).__init__()
+        super().__init__()
         self._optimizer_name = optimizer_name
         self._settings = settings or {}
 

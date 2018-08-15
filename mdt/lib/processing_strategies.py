@@ -65,7 +65,7 @@ class ChunksProcessingStrategy(ModelProcessingStrategy):
 
     def __init__(self, *args, **kwargs):
         """This class is a base class for all model slice fitting strategies that fit the data in chunks/parts."""
-        super(ChunksProcessingStrategy, self).__init__()
+        super().__init__()
         self._logger = logging.getLogger(__name__)
 
     def process(self, processor):
@@ -182,7 +182,7 @@ class VoxelRange(ChunksProcessingStrategy):
         Attributes:
             max_nmr_voxels (int): the number of voxels per chunk
         """
-        super(VoxelRange, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.nmr_voxels = max_nmr_voxels
 
     def _get_chunks(self, total_roi_indices):
@@ -258,7 +258,7 @@ class SimpleModelProcessor(ModelProcessor):
             tmp_storage_dir (str): the location for the temporary output files
             recalculate (boolean): if we want to recalculate existing results if present
         """
-        super(SimpleModelProcessor, self).__init__()
+        super().__init__()
         self._write_volumes_gzipped = True
         self._used_mask_name = 'UsedMask'
         self._mask = mask
@@ -435,7 +435,7 @@ class FittingProcessor(SimpleModelProcessor):
         Args:
             method: the optimization routine to use
         """
-        super(FittingProcessor, self).__init__(mask, nifti_header, output_dir, tmp_storage_dir, recalculate)
+        super().__init__(mask, nifti_header, output_dir, tmp_storage_dir, recalculate)
         self._model = model
         self._method = method
         self._optimizer_options = optimizer_options
@@ -493,7 +493,7 @@ class FittingProcessor(SimpleModelProcessor):
         self._subdirs.add(sub_dir)
 
     def combine(self):
-        super(FittingProcessor, self).combine()
+        super().combine()
         for subdir in self._subdirs:
             self._combine_volumes(self._output_dir, self._tmp_storage_dir,
                                   self._nifti_header, maps_subdir=subdir)
@@ -522,7 +522,7 @@ class SamplingProcessor(SimpleModelProcessor):
                 - 'FSL', for the sampling method used in the FSL toolbox
             samples_storage_strategy (SamplesStorageStrategy): indicates which samples to store
         """
-        super(SamplingProcessor, self).__init__(mask, nifti_header, output_dir, tmp_storage_dir, recalculate)
+        super().__init__(mask, nifti_header, output_dir, tmp_storage_dir, recalculate)
         self._nmr_samples = nmr_samples
         self._thinning = thinning
         self._burnin = burnin
@@ -585,7 +585,7 @@ class SamplingProcessor(SimpleModelProcessor):
         self._logger.info('Finished post-processing')
 
     def combine(self):
-        super(SamplingProcessor, self).combine()
+        super().combine()
 
         for subdir in self._subdirs:
             self._combine_volumes(self._output_dir, self._tmp_storage_dir,

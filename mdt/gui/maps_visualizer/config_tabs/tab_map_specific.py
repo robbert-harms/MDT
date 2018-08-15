@@ -19,7 +19,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class TabMapSpecific(QWidget, Ui_TabMapSpecific):
 
     def __init__(self, controller, parent=None):
-        super(TabMapSpecific, self).__init__(parent)
+        super().__init__(parent)
         self.setupUi(self)
 
         self.map_specific_tab = MapSpecificOptions(controller, self)
@@ -70,7 +70,7 @@ class TabMapSpecific(QWidget, Ui_TabMapSpecific):
 class MapSpecificOptions(QWidget, Ui_MapSpecificOptions):
 
     def __init__(self, controller, parent=None):
-        super(MapSpecificOptions, self).__init__(parent)
+        super().__init__(parent)
         self.setupUi(self)
         self._controller = controller
 

@@ -416,7 +416,7 @@ class MockMRIInputData(SimpleMRIInputData):
                  **kwargs):
         """A mock DMRI input data object that returns None for everything unless given.
         """
-        super(MockMRIInputData, self).__init__(protocol, signal4d, mask, nifti_header, **kwargs)
+        super().__init__(protocol, signal4d, mask, nifti_header, **kwargs)
 
     def _get_constructor_args(self):
         """Get the constructor arguments needed to create a copy of this batch util using a copy constructor.
@@ -1570,7 +1570,7 @@ class AutoDict(defaultdict):
 
     def __init__(self):
         """Create an auto-vivacious dictionary."""
-        super(AutoDict, self).__init__(AutoDict)
+        super().__init__(AutoDict)
 
     def to_normal_dict(self):
         """Convert this dictionary to a normal dict (recursive).

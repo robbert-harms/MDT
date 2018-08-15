@@ -44,7 +44,7 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
         Args:
             controller (mdt.gui.maps_visualizer.base.Controller): the controller to use for updating the views
         """
-        super(MapsVisualizerWindow, self).__init__(parent)
+        super().__init__(parent)
         self.setupUi(self)
 
         self._controller = controller
@@ -265,12 +265,12 @@ class MapsVisualizerWindow(QMainWindow, Ui_MapsVisualizer):
 class PlottingFrameInfoToStatusBar(PlottingFrameInfoViewer):
 
     def __init__(self, controller, status_bar_label):
-        super(PlottingFrameInfoToStatusBar, self).__init__()
+        super().__init__()
         self._controller = controller
         self._status_bar_label = status_bar_label
 
     def set_voxel_info(self, map_name, onscreen_coords, data_index):
-        super(PlottingFrameInfoToStatusBar, self).set_voxel_info(map_name, onscreen_coords, data_index)
+        super().set_voxel_info(map_name, onscreen_coords, data_index)
 
         def format_value(v):
             value_format = '{:.3e}'
@@ -295,7 +295,7 @@ class PlottingFrameInfoToStatusBar(PlottingFrameInfoViewer):
                 self._status_bar_label.setText("{}, {}, {}".format(onscreen_coords, data_index, format_value(value)))
 
     def clear_voxel_info(self):
-        super(PlottingFrameInfoToStatusBar, self).clear_voxel_info()
+        super().clear_voxel_info()
         self._status_bar_label.setText("")
 
 
@@ -306,7 +306,7 @@ class ExportImageDialog(Ui_SaveImageDialog, QDialog):
                        'writeScriptsAndConfig': False}
 
     def __init__(self, parent, plotting_frame, controller):
-        super(ExportImageDialog, self).__init__(parent)
+        super().__init__(parent)
         self._extension_filters = [['png', '(*.png)'], ['svg', '(*.svg)']]
         self.setupUi(self)
         self._plotting_frame = plotting_frame
@@ -447,7 +447,7 @@ class ExportImageDialog(Ui_SaveImageDialog, QDialog):
 class AboutDialog(Ui_AboutDialog, QDialog):
 
     def __init__(self, parent):
-        super(AboutDialog, self).__init__(parent)
+        super().__init__(parent)
         self.setupUi(self)
         self.contentLabel.setText(self.contentLabel.text().replace('{version}', mdt.__version__))
 

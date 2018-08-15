@@ -21,13 +21,13 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class ViewResultsTab(MainTab, Ui_ViewResultsTabContent, QObject):
 
     def __init__(self, shared_state, computations_thread):
-        super(ViewResultsTab, self).__init__()
+        super().__init__()
         self._shared_state = shared_state
         self._parameter_files = {}
         self._folder = None
 
     def setupUi(self, ViewResultsTabContent):
-        super(ViewResultsTab, self).setupUi(ViewResultsTabContent)
+        super().setupUi(ViewResultsTabContent)
 
         self.selectFolderButton.clicked.connect(lambda: self._select_folder())
 

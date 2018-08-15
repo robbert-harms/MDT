@@ -28,7 +28,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
 
     def __init__(self, shared_state, computations_thread):
-        super(FitModelTab, self).__init__()
+        super().__init__()
         self._shared_state = shared_state
         self._computations_thread = computations_thread
         self._run_model_worker = RunModelWorker()
@@ -37,7 +37,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
         self._input_data_info = InputDataInfo()
 
     def setupUi(self, tab_content):
-        super(FitModelTab, self).setupUi(tab_content)
+        super().setupUi(tab_content)
         self._tab_content = tab_content
 
         self.selectDWI.clicked.connect(lambda: self._select_dwi())
@@ -384,7 +384,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
 class ProtocolWarningBox(QMessageBox):
 
     def __init__(self, problems, *args):
-        super(ProtocolWarningBox, self).__init__(*args)
+        super().__init__(*args)
         self.setIcon(QMessageBox.Warning)
         self.setWindowTitle("Insufficient protocol")
         self.setText("The provided protocol is insufficient for this model.")
@@ -401,7 +401,7 @@ class ProtocolWarningBox(QMessageBox):
 class OptimizationOptionsDialog(Ui_OptimizationOptionsDialog, QDialog):
 
     def __init__(self, shared_state, parent, config):
-        super(OptimizationOptionsDialog, self).__init__(parent)
+        super().__init__(parent)
         self._shared_state = shared_state
         self._config = config
         self.setupUi(self)
@@ -491,7 +491,7 @@ class InputDataInfo(object):
 class ExtraDataDialog(Ui_OptimizationExtraDataDialog, QDialog):
 
     def __init__(self, shared_state, parent, input_data_info):
-        super(ExtraDataDialog, self).__init__(parent)
+        super().__init__(parent)
         self._shared_state = shared_state
         self._input_data_info = input_data_info
         self.setupUi(self)
@@ -597,7 +597,7 @@ class ExtraDataDialog(Ui_OptimizationExtraDataDialog, QDialog):
 class AddProtocolMapDialog(Ui_AddProtocolMapDialog, QDialog):
 
     def __init__(self, shared_state, parent, extra_protocol):
-        super(AddProtocolMapDialog, self).__init__(parent)
+        super().__init__(parent)
         self._shared_state = shared_state
         self._extra_protocol = extra_protocol
         self.setupUi(self)
@@ -651,7 +651,7 @@ class RunModelWorker(QObject):
     finished = pyqtSignal()
 
     def __init__(self):
-        super(RunModelWorker, self).__init__()
+        super().__init__()
         self.starting.connect(self.run)
         self._args = []
         self._kwargs = {}

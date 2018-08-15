@@ -120,7 +120,7 @@ class GaussianLikelihoodFunction(AbstractLikelihoodFunction):
 
             log(PDF) = - ((observation - evaluation)^2 / (2 * sigma^2)) - log(sigma * sqrt(2*pi))
         """
-        super(GaussianLikelihoodFunction, self).__init__('GaussianNoiseModel', 'gaussianNoise')
+        super().__init__('GaussianNoiseModel', 'gaussianNoise')
 
     def _get_log_likelihood_body(self, include_constant_terms):
         if include_constant_terms:
@@ -151,7 +151,7 @@ class OffsetGaussianLikelihoodFunction(AbstractLikelihoodFunction):
 
             log(PDF) = - ((observation - sqrt(evaluation^2 + sigma^2))^2 / (2 * sigma^2)) - log(sigma * sqrt(2*pi))
         """
-        super(OffsetGaussianLikelihoodFunction, self).__init__('OffsetGaussianNoise', 'offsetGaussian')
+        super().__init__('OffsetGaussianNoise', 'offsetGaussian')
 
     def _get_log_likelihood_body(self, include_constant_terms):
         if include_constant_terms:
@@ -188,7 +188,7 @@ class RicianLikelihoodFunction(AbstractLikelihoodFunction):
                         - (observation^2 + evaluation^2) / (2 * sigma^2)
                         + log(bessel_i0((observation * evaluation) / sigma^2))
         """
-        super(RicianLikelihoodFunction, self).__init__('RicianNoise', 'ricianNoise', dependencies=(LogBesseli0(),))
+        super().__init__('RicianNoise', 'ricianNoise', dependencies=(LogBesseli0(),))
 
     def _get_log_likelihood_body(self, include_constant_terms):
         if include_constant_terms:

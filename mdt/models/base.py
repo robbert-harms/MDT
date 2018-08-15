@@ -15,7 +15,7 @@ class DMRIOptimizable(object):
         The methods in this interface have little to do with modelling, but unify some extra required methods
         in the cascades and composite models.
         """
-        super(DMRIOptimizable, self).__init__()
+        super().__init__()
 
     def is_input_data_sufficient(self, input_data=None):
         """Check if the input data has enough information for this model to work.
@@ -79,7 +79,7 @@ class InputDataProblem(object):
 class MissingProtocolInput(InputDataProblem):
 
     def __init__(self, missing_columns):
-        super(MissingProtocolInput, self).__init__()
+        super().__init__()
         self.missing_columns = missing_columns
 
     def __str__(self):
@@ -95,7 +95,7 @@ class NamedProtocolProblem(InputDataProblem):
             model_protocol_problem (InputDataProblem): The name for the problem with the given model.
             model_name (str): the name of the model
         """
-        super(NamedProtocolProblem, self).__init__()
+        super().__init__()
         self._model_protocol_problem = model_protocol_problem
         self._model_name = model_name
 

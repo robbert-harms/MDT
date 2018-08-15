@@ -84,7 +84,7 @@ class CompartmentModelTree(Tree):
         Args:
             model_lists (model tree list): The model tree list
         """
-        super(CompartmentModelTree, self).__init__()
+        super().__init__()
         self._init_tree(model_lists)
 
     def get_compartment_models(self):

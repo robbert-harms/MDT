@@ -157,7 +157,7 @@ class WeightBuilder(ComponentBuilder):
                     'cl_extra': template.cl_extra}
                 new_kwargs.update(kwargs)
 
-                super(AutoCreatedWeightModel, self).__init__(template.return_type, *new_args, **new_kwargs)
+                super().__init__(template.return_type, *new_args, **new_kwargs)
 
                 if hasattr(template, 'init'):
                     template.init(self)

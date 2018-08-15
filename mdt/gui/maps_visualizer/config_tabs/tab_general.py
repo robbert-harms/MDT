@@ -22,7 +22,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class TabGeneral(QWidget, Ui_TabGeneral):
 
     def __init__(self, controller, parent=None):
-        super(TabGeneral, self).__init__(parent)
+        super().__init__(parent)
         self.setupUi(self)
 
         self._controller = controller

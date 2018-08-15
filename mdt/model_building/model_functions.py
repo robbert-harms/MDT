@@ -77,7 +77,7 @@ class SimpleModelCLFunction(SampleModelCLFunction, SimpleCLFunction):
             model_function_priors (list of mot.lib.cl_function.CLFunction): list of priors concerning this whole model
                 function. The parameter names of the given functions must match those of this function.
         """
-        super(SimpleModelCLFunction, self).__init__(return_type, cl_function_name, parameters,
+        super().__init__(return_type, cl_function_name, parameters,
                                                     cl_body, dependencies=dependencies, cl_extra=cl_extra)
 
         self._name = name
@@ -167,7 +167,7 @@ class SimpleWeight(WeightType):
                                   )
         parameter_settings.update(parameter_kwargs or {})
 
-        super(SimpleWeight, self).__init__(
+        super().__init__(
             'mot_float_type',
             name,
             'Weight',

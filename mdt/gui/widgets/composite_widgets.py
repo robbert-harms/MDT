@@ -16,7 +16,7 @@ class ScientificNumberScroller(Ui_ScientificScroller, QWidget):
     valueChanged = pyqtSignal([float], ['QString'])
 
     def __init__(self, parent):
-        super(ScientificNumberScroller, self).__init__(parent)
+        super().__init__(parent)
         self.setupUi(self)
         self.mantissa.valueChanged.connect(self._value_changed_cb)
         self.exponent.valueChanged.connect(self._value_changed_cb)

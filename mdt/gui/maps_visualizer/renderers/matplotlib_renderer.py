@@ -23,7 +23,7 @@ from mdt.visualization.maps.base import Zoom, VoxelAnnotation
 class MatplotlibPlotting(PlottingFrame, QWidget):
 
     def __init__(self, controller, parent=None, plotting_info_viewer=None):
-        super(MatplotlibPlotting, self).__init__(controller, plotting_info_viewer=plotting_info_viewer)
+        super().__init__(controller, plotting_info_viewer=plotting_info_viewer)
 
         self._controller.model_updated.connect(self.update_model)
 

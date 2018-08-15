@@ -8,7 +8,7 @@ __licence__ = 'LGPL v3'
 class PlottingFrame(object):
 
     def __init__(self, controller, plotting_info_viewer=None):
-        super(PlottingFrame, self).__init__()
+        super().__init__()
         self._controller = controller
         self._plotting_info_viewer = plotting_info_viewer or NoOptPlottingFrameInfoViewer()
 
@@ -59,7 +59,7 @@ class PlottingFrameInfoViewer(object):
 class NoOptPlottingFrameInfoViewer(PlottingFrameInfoViewer):
 
     def set_voxel_info(self, map_name, onscreen_coords, data_index):
-        super(NoOptPlottingFrameInfoViewer, self).set_voxel_info(map_name, onscreen_coords, data_index)
+        super().set_voxel_info(map_name, onscreen_coords, data_index)
 
     def clear_voxel_info(self):
-        super(NoOptPlottingFrameInfoViewer, self).clear_voxel_info()
+        super().clear_voxel_info()

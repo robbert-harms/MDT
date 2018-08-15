@@ -41,7 +41,7 @@ class JohnsonNoise(SignalNoiseModel):
             sqrt(signal^2 + eta^2)
 
         """
-        super(JohnsonNoise, self).__init__(
+        super().__init__(
             'double', 'JohnsonNoise', 'JohnsonNoise',
             [SimpleCLFunctionParameter('double', 'signal'),
              FreeParameter('mot_float_type', 'eta', False, 0.1, 0, 100, parameter_transform=CosSqrClampTransform())],

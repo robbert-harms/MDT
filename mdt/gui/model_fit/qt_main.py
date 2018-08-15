@@ -44,7 +44,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
 
     def __init__(self, shared_state, computations_thread):
-        super(MDTGUISingleModel, self).__init__()
+        super().__init__()
         self.setupUi(self)
         self._shared_state = shared_state
 
@@ -104,7 +104,7 @@ class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
         self._message_receiver.is_running = False
         self._logging_update_thread.quit()
         self._logging_update_thread.wait(10)
-        super(MDTGUISingleModel, self).closeEvent(event)
+        super().closeEvent(event)
 
     def send_sigint(self, *args):
         self.close()
@@ -136,7 +136,7 @@ class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
 class RuntimeSettingsDialog(Ui_RuntimeSettingsDialog, QDialog):
 
     def __init__(self, parent):
-        super(RuntimeSettingsDialog, self).__init__(parent)
+        super().__init__(parent)
         self.setupUi(self)
 
         self.all_cl_devices = CLEnvironmentFactory.smart_device_selection()
@@ -171,7 +171,7 @@ class RuntimeSettingsDialog(Ui_RuntimeSettingsDialog, QDialog):
 class AboutDialog(Ui_AboutDialog, QDialog):
 
     def __init__(self, parent):
-        super(AboutDialog, self).__init__(parent)
+        super().__init__(parent)
         self.setupUi(self)
         self.contentLabel.setText(self.contentLabel.text().replace('{version}', mdt.__version__))
 
@@ -179,7 +179,7 @@ class AboutDialog(Ui_AboutDialog, QDialog):
 class GetExampleDataDialog(Ui_GetExampleDataDialog, QDialog):
 
     def __init__(self, parent, shared_state):
-        super(GetExampleDataDialog, self).__init__(parent)
+        super().__init__(parent)
         self._shared_state = shared_state
         self.setupUi(self)
         self.outputFileSelect.clicked.connect(lambda: self._select_output_folder())
@@ -232,7 +232,7 @@ class ComputationsThread(QThread):
         When running computations using this thread please connect signals to the starting and finished slot of this
         class. These handlers notify the main window of the computations.
         """
-        super(ComputationsThread, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     @pyqtSlot()
     def starting(self):

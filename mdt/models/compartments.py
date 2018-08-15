@@ -35,7 +35,7 @@ class DMRICompartmentModelFunction(SimpleModelCLFunction):
                 proposal callback functions. These are (indirectly) called by the MCMC sampler to finalize every
                 proposal.
         """
-        super(DMRICompartmentModelFunction, self).__init__(return_type, name, cl_function_name,
+        super().__init__(return_type, name, cl_function_name,
                                                            parameters, cl_body,
                                                            dependencies=dependencies,
                                                            model_function_priors=model_function_priors,

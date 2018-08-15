@@ -9,7 +9,7 @@ from mot.configuration import CLRuntimeInfo
 class test_SSFP(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
-        super(test_SSFP, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def test_ssfp_float(self):
         test_params = self._generate_test_params().astype(dtype=np.float32)

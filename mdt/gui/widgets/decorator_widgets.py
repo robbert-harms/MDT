@@ -9,7 +9,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class QDoubleSpinBoxDotSeparator(QDoubleSpinBox):
 
     def __init__(self, *args, **kwargs):
-        super(QDoubleSpinBoxDotSeparator, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def valueFromText(self, text):
         try:
