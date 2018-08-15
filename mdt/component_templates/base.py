@@ -66,34 +66,6 @@ def bind_function(func):
     return func
 
 
-def method_binding_meta(template, *bases):
-    """Adds all bound functions from the ComponentTemplate to the constructed component class.
-
-    Template methods are not automatically bound as methods to the constructed class. To bind them, decorate them
-    with :func:`bind_function`. In the template meta class they are then listed under the ``bound_methods`` attribute,
-    to be used here to bind them as methods to the component class.
-
-    This returns a metaclass similar to the with_metaclass of the six library.
-
-    Args:
-        template (ComponentTemplate): the component config with the bound_methods attribute which we will all add
-            to the attributes of the to creating class.
-        *bases (type): the list of base classes
-
-    Returns:
-        type: a metaclass that will bind the methods that were listed such in the meta class
-     """
-    class ApplyMethodBinding(type):
-        def __new__(mcs, name, bases, attributes):
-            attributes.update(template.bound_methods)
-            return super(ApplyMethodBinding, mcs).__new__(mcs, name, bases, attributes)
-
-    class ReturnClass(*bases, metaclass=ApplyMethodBinding):
-        pass
-
-    return ReturnClass
-
-
 class ComponentTemplateMeta(type):
 
     def __new__(mcs, name, bases, attributes):

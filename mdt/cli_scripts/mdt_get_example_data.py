@@ -10,7 +10,7 @@ import argparse
 import os
 import mdt
 from argcomplete.completers import FilesCompleter
-from mdt.shell_utils import BasicShellApplication
+from mdt.lib.shell_utils import BasicShellApplication
 import textwrap
 
 __author__ = 'Robbert Harms'

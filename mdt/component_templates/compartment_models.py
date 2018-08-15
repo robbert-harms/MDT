@@ -1,6 +1,6 @@
 from copy import deepcopy, copy
 import numpy as np
-from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate
+from mdt.component_templates.base import ComponentBuilder, ComponentTemplate
 from mdt.components import get_component, has_component
 from mdt.models.compartments import DMRICompartmentModelFunction
 from mdt.utils import spherical_to_cartesian
@@ -25,7 +25,7 @@ class CompartmentBuilder(ComponentBuilder):
         """
         builder = self
 
-        class AutoCreatedDMRICompartmentModel(method_binding_meta(template, DMRICompartmentModelFunction)):
+        class AutoCreatedDMRICompartmentModel(DMRICompartmentModelFunction):
 
             def __init__(self, *args, **kwargs):
                 parameters = []
@@ -57,10 +57,13 @@ class CompartmentBuilder(ComponentBuilder):
                     'proposal_callbacks': builder._get_proposal_callbacks(template, parameters)}
                 new_kwargs.update(kwargs)
 
-                super(AutoCreatedDMRICompartmentModel, self).__init__(*new_args, **new_kwargs)
+                super().__init__(*new_args, **new_kwargs)
 
                 if hasattr(template, 'init'):
                     template.init(self)
+
+        for name, method in template.bound_methods.items():
+            setattr(AutoCreatedDMRICompartmentModel, name, method)
 
         return AutoCreatedDMRICompartmentModel
 
@@ -129,7 +132,7 @@ class CompartmentBuilder(ComponentBuilder):
 class WeightBuilder(ComponentBuilder):
     def create_class(self, template):
 
-        class AutoCreatedWeightModel(method_binding_meta(template, WeightType)):
+        class AutoCreatedWeightModel(WeightType):
 
             def __init__(self, *args, **kwargs):
                 parameters = []
@@ -158,6 +161,9 @@ class WeightBuilder(ComponentBuilder):
 
                 if hasattr(template, 'init'):
                     template.init(self)
+
+        for name, method in template.bound_methods.items():
+            setattr(AutoCreatedWeightModel, name, method)
 
         return AutoCreatedWeightModel
 

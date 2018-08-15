@@ -13,7 +13,7 @@ from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QApplication
 
 from mdt.__version__ import __version__
-from mdt.log_handlers import LogListenerInterface
+from mdt.lib.log_handlers import LogListenerInterface
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-20"

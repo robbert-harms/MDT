@@ -21,7 +21,7 @@ from mdt.gui.maps_visualizer.config_tabs.tab_general import TabGeneral
 from mdt.gui.maps_visualizer.config_tabs.tab_map_specific import TabMapSpecific
 from mdt.gui.maps_visualizer.config_tabs.tab_textual import TabTextual
 from mdt.gui.maps_visualizer.design.ui_save_image_dialog import Ui_SaveImageDialog
-from mdt.nifti import is_nifti_file
+from mdt.lib.nifti import is_nifti_file
 
 import mdt
 from mdt.gui.maps_visualizer.base import DataConfigModel, \

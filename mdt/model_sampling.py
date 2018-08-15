@@ -6,9 +6,9 @@ import time
 
 from mdt import get_processing_strategy
 from mdt.utils import load_samples, per_model_logging_context
-from mdt.processing_strategies import SamplingProcessor, SaveAllSamples, \
+from mdt.lib.processing_strategies import SamplingProcessor, SaveAllSamples, \
     SaveNoSamples, get_full_tmp_results_path, SaveSpecificMaps
-from mdt.exceptions import InsufficientProtocolError
+from mdt.lib.exceptions import InsufficientProtocolError
 
 
 __author__ = 'Robbert Harms'
@@ -38,14 +38,15 @@ def sample_composite_model(model, input_data, output_folder, nmr_samples, thinni
             - 'AMWG', for the Adaptive Metropolis-Within-Gibbs method
             - 'SCAM', for the Single Component Adaptive Metropolis
             - 'FSL', for the sampling method used in the FSL toolbox
+            - 'MWG', for the Metropolis-Within-Gibbs (simple random walk metropolis without updates)
 
             If not given, defaults to 'AMWG'.
         recalculate (boolean): If we want to recalculate the results if they are already present.
-        store_samples (boolean, sequence or :class:`mdt.processing_strategies.SamplesStorageStrategy`): if set to False
+        store_samples (boolean, sequence or :class:`mdt.lib.processing_strategies.SamplesStorageStrategy`): if set to False
             we will store none of the samples. If set to True we will save all samples. If set to a sequence we expect a
             sequence of integer numbers with sample positions to store. Finally, you can also give a subclass instance
-            of :class:`~mdt.processing_strategies.SamplesStorageStrategy` (it is then typically set to
-            a :class:`mdt.processing_strategies.SaveThinnedSamples` instance).
+            of :class:`~mdt.lib.processing_strategies.SamplesStorageStrategy` (it is then typically set to
+            a :class:`mdt.lib.processing_strategies.SaveThinnedSamples` instance).
         sample_items_to_save (list): list of output names we want to store the samples of. If given, we only
             store the items specified in this list. Valid items are the free parameter names of the model and the
             items 'LogLikelihood' and 'LogPrior'.

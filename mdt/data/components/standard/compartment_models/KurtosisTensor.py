@@ -1,7 +1,7 @@
 import numpy as np
 import itertools
 
-from mdt.post_processing import DTIMeasures, DKIMeasures, noddi_dti_maps
+from mdt.lib.post_processing import DTIMeasures, DKIMeasures, noddi_dti_maps
 
 from mdt.model_building.parameter_functions.priors import AlwaysOne, UniformWithinBoundsPrior
 from mdt.component_templates.parameters import FreeParameterTemplate, ParameterBuilder

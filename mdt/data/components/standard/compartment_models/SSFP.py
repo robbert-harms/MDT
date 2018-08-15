@@ -1,5 +1,5 @@
 from mdt import CompartmentTemplate
-from mdt.post_processing import DTIMeasures
+from mdt.lib.post_processing import DTIMeasures
 
 __author__ = 'Robbert Harms'
 __date__ = '2017-08-03'

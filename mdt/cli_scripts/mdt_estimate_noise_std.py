@@ -12,7 +12,7 @@ import argparse
 import os
 import mdt
 from argcomplete.completers import FilesCompleter
-from mdt.shell_utils import BasicShellApplication
+from mdt.lib.shell_utils import BasicShellApplication
 from mot.lib import cl_environments
 import textwrap
 
@@ -41,15 +41,15 @@ class NoiseStdEstimation(BasicShellApplication):
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
                                          formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument('dwi',
-                            action=mdt.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
+                            action=mdt.lib.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
                             help='the diffusion weighted image').completer = FilesCompleter(['nii', 'gz', 'hdr', 'img'],
                                                                                             directories=False)
         parser.add_argument(
-            'protocol', action=mdt.shell_utils.get_argparse_extension_checker(['.prtcl']),
+            'protocol', action=mdt.lib.shell_utils.get_argparse_extension_checker(['.prtcl']),
             help='the protocol file, see mdt-create-protocol').completer = FilesCompleter(['prtcl'],
                                                                                             directories=False)
         parser.add_argument('mask',
-                            action=mdt.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
+                            action=mdt.lib.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
                             help='the (brain) mask to use').completer = FilesCompleter(['nii', 'gz', 'hdr', 'img'],
                                                                                directories=False)
 

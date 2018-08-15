@@ -2,7 +2,7 @@ import glob
 import os
 import numpy as np
 from mdt.utils import restore_volumes
-from mdt.nifti import write_nifti, load_nifti
+from mdt.lib.nifti import write_nifti, load_nifti
 
 __author__ = 'Robbert Harms'
 __date__ = "2017-02-28"

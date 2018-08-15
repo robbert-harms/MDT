@@ -462,7 +462,7 @@ def get_processing_strategy(processing_type, *args, **kwargs):
     Returns:
         ModelProcessingStrategy: the processing strategy to use for this model
     """
-    from mdt.processing_strategies import VoxelRange
+    from mdt.lib.processing_strategies import VoxelRange
     options = _config['processing_strategies'].get(processing_type, {}) or {}
     options.update(kwargs)
     return VoxelRange(*args, **options)

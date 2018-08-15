@@ -4,10 +4,10 @@
 import warnings
 import argparse
 import os
-from mdt.nifti import load_nifti, nifti_filepath_resolution
+from mdt.lib.nifti import load_nifti, nifti_filepath_resolution
 import textwrap
 
-from mdt.shell_utils import BasicShellApplication
+from mdt.lib.shell_utils import BasicShellApplication
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"

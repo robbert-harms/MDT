@@ -4,7 +4,7 @@ from copy import deepcopy
 import numpy as np
 import tatsu
 
-from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate
+from mdt.component_templates.base import ComponentBuilder, ComponentTemplate
 from mdt.components import get_component
 from mdt.models.composite import DMRICompositeModel
 from mot.lib.cl_function import CLFunction, SimpleCLFunction
@@ -37,17 +37,20 @@ class DMRICompositeModelBuilder(ComponentBuilder):
             template (CompositeModelTemplate): the composite model config template
                 to use for creating the class with the right init settings.
         """
-        class AutoCreatedDMRICompositeModel(method_binding_meta(template, DMRICompositeModel)):
+        class AutoCreatedDMRICompositeModel(DMRICompositeModel):
 
-            def __init__(self, model_name=None):
+            def __init__(self, model_name=None, **kwargs):
                 model_name = model_name or deepcopy(template.name)
 
-                super(AutoCreatedDMRICompositeModel, self).__init__(
+                keywords = {'signal_noise_model': deepcopy(template.signal_noise_model),
+                            'enforce_weights_sum_to_one': template.enforce_weights_sum_to_one}
+                keywords.update(kwargs)
+
+                super().__init__(
                     model_name,
                     CompartmentModelTree(parse_composite_model_expression(template.model_expression)),
                     deepcopy(_resolve_likelihood_function(template.likelihood_function)),
-                    signal_noise_model=deepcopy(template.signal_noise_model),
-                    enforce_weights_sum_to_one=template.enforce_weights_sum_to_one,
+                    **keywords
                 )
 
                 for full_param_name, value in template.inits.items():
@@ -115,6 +118,9 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                     return list(range(protocol.length))
 
                 return np.unique(protocol_indices)
+
+        for name, method in template.bound_methods.items():
+            setattr(AutoCreatedDMRICompositeModel, name, method)
 
         return AutoCreatedDMRICompositeModel
 

@@ -4,7 +4,7 @@
 import argparse
 import mdt
 import mdt.utils
-from mdt.shell_utils import BasicShellApplication
+from mdt.lib.shell_utils import BasicShellApplication
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"

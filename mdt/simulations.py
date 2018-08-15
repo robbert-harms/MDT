@@ -1,7 +1,7 @@
 import numpy as np
 import collections
 from mdt.components import get_model
-from mdt.nifti import get_all_nifti_data
+from mdt.lib.nifti import get_all_nifti_data
 from mdt.utils import create_roi, restore_volumes, MockMRIInputData
 from mot.lib.cl_function import SimpleCLFunction
 from mot.lib.kernel_data import Array, Zeros
@@ -103,7 +103,7 @@ def add_rician_noise(signals, noise_level, seed=None):
         seed (int): if given, the seed for the random number generation
 
     Returns:
-        ndarray: Rician distributed signals.
+        ndarray: make every element of the input signals contain Rician distributed noise.
     """
     random_state = np.random.RandomState(seed)
     x = noise_level * random_state.normal(size=signals.shape) + signals

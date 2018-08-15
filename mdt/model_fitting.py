@@ -7,14 +7,14 @@ import time
 import timeit
 from contextlib import contextmanager
 from mdt.__version__ import __version__
-from mdt.nifti import get_all_nifti_data
+from mdt.lib.nifti import get_all_nifti_data
 from mdt.components import get_model
 from mdt.configuration import get_processing_strategy, get_optimizer_for_model
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.utils import create_roi, get_cl_devices, model_output_exists, \
     per_model_logging_context, get_temporary_results_dir, SimpleInitializationData
-from mdt.processing_strategies import FittingProcessor, get_full_tmp_results_path
-from mdt.exceptions import InsufficientProtocolError
+from mdt.lib.processing_strategies import FittingProcessor, get_full_tmp_results_path
+from mdt.lib.exceptions import InsufficientProtocolError
 from mot.lib.load_balance_strategies import EvenDistribution
 import mot.configuration
 from mot.configuration import RuntimeConfigurationAction, CLRuntimeInfo

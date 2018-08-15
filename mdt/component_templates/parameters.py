@@ -1,4 +1,4 @@
-from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate
+from mdt.component_templates.base import ComponentBuilder, ComponentTemplate
 from mdt.components import has_component, get_component
 from mot.lib.cl_data_type import SimpleCLDataType
 from mdt.model_building.parameter_functions.numdiff_info import NumDiffInfo, SimpleNumDiffInfo
@@ -26,10 +26,13 @@ class ParameterBuilder(ComponentBuilder):
             data_type = SimpleCLDataType.from_string(data_type)
 
         if issubclass(template, ProtocolParameterTemplate):
-            class AutoProtocolParameter(method_binding_meta(template, ProtocolParameter)):
+            class AutoProtocolParameter(ProtocolParameter):
                 def __init__(self, nickname=None):
-                    super(AutoProtocolParameter, self).__init__(data_type, nickname or template.name,
-                                                                value=template.value)
+                    super().__init__(data_type, nickname or template.name, value=template.value)
+
+            for name, method in template.bound_methods.items():
+                setattr(AutoProtocolParameter, name, method)
+
             return AutoProtocolParameter
 
         elif issubclass(template, FreeParameterTemplate):
@@ -37,7 +40,7 @@ class ParameterBuilder(ComponentBuilder):
             if not isinstance(numdiff_info, NumDiffInfo) and numdiff_info is not None:
                 numdiff_info = SimpleNumDiffInfo(**numdiff_info)
 
-            class AutoFreeParameter(method_binding_meta(template, FreeParameter)):
+            class AutoFreeParameter(FreeParameter):
                 def __init__(self, nickname=None):
                     super(AutoFreeParameter, self).__init__(
                         data_type,
@@ -52,6 +55,10 @@ class ParameterBuilder(ComponentBuilder):
                         numdiff_info=numdiff_info
                     )
                     self.sampling_proposal_modulus = template.sampling_proposal_modulus
+
+            for name, method in template.bound_methods.items():
+                setattr(AutoFreeParameter, name, method)
+
             return AutoFreeParameter
 
 

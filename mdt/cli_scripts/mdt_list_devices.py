@@ -3,7 +3,7 @@
 """This script prints information about the available devices on your computer."""
 import argparse
 import textwrap
-from mdt.shell_utils import BasicShellApplication
+from mdt.lib.shell_utils import BasicShellApplication
 from mot.lib import cl_environments
 
 __author__ = 'Robbert Harms'

@@ -11,7 +11,7 @@ import argparse
 import os
 import mdt
 from argcomplete.completers import FilesCompleter
-from mdt.shell_utils import BasicShellApplication
+from mdt.lib.shell_utils import BasicShellApplication
 from mot.lib import cl_environments
 import textwrap
 
@@ -45,15 +45,15 @@ class ModelFit(BasicShellApplication):
         parser.add_argument('model', metavar='model', choices=mdt.get_models_list(),
                             help='model name, see mdt-list-models')
         parser.add_argument('dwi',
-                            action=mdt.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
+                            action=mdt.lib.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
                             help='the diffusion weighted image').completer = FilesCompleter(['nii', 'gz', 'hdr', 'img'],
                                                                                             directories=False)
         parser.add_argument(
-            'protocol', action=mdt.shell_utils.get_argparse_extension_checker(['.prtcl']),
+            'protocol', action=mdt.lib.shell_utils.get_argparse_extension_checker(['.prtcl']),
             help='the protocol file, see mdt-create-protocol').completer = FilesCompleter(['prtcl'],
                                                                                             directories=False)
         parser.add_argument('mask',
-                            action=mdt.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
+                            action=mdt.lib.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
                             help='the (brain) mask to use').completer = FilesCompleter(['nii', 'gz', 'hdr', 'img'],
                                                                                directories=False)
         parser.add_argument('-o', '--output_folder',
@@ -65,7 +65,7 @@ class ModelFit(BasicShellApplication):
                                  'Either set this to a value, or to a filename.')
 
         parser.add_argument('--gradient-deviations',
-                            action=mdt.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
+                            action=mdt.lib.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
                             help="The volume with the gradient deviations to use, in HCP WUMINN format.").\
             completer = FilesCompleter(['nii', 'gz', 'hdr', 'img'], directories=False)
 

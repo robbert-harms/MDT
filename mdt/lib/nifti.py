@@ -6,7 +6,7 @@ import nibabel as nib
 import numpy as np
 import shutil
 
-from mdt.deferred_mappings import DeferredActionDict
+from mdt.lib.deferred_mappings import DeferredActionDict
 
 __author__ = 'Robbert Harms'
 __date__ = "2014-08-28"

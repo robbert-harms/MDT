@@ -7,7 +7,7 @@ import mdt
 from argcomplete.completers import FilesCompleter
 import textwrap
 import mdt.protocols
-from mdt.shell_utils import BasicShellApplication
+from mdt.lib.shell_utils import BasicShellApplication
 from mdt.protocols import write_bvec_bval
 
 __author__ = 'Robbert Harms'

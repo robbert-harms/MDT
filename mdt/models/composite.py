@@ -6,8 +6,8 @@ import collections
 import numpy as np
 
 from mdt.configuration import get_active_post_processing
-from mdt.deferred_mappings import DeferredFunctionDict
-from mdt.exceptions import DoubleModelNameException
+from mdt.lib.deferred_mappings import DeferredFunctionDict
+from mdt.lib.exceptions import DoubleModelNameException
 from mdt.model_building.model_functions import WeightType
 from mdt.model_building.parameter_functions.dependencies import SimpleAssignment, AbstractParameterDependency
 from mdt.model_building.utils import ParameterCodec
@@ -37,7 +37,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class DMRICompositeModel(DMRIOptimizable):
 
     def __init__(self, model_name, model_tree, likelihood_function, signal_noise_model=None, input_data=None,
-                 enforce_weights_sum_to_one=True):
+                 enforce_weights_sum_to_one=True, volume_selection=True):
         """A model builder for a composite dMRI sample and optimization model.
 
         It implements some protocol check functions. These are used by the fit_model functions in MDT
@@ -54,12 +54,10 @@ class DMRICompositeModel(DMRIOptimizable):
             enforce_weights_sum_to_one (boolean): if we want to enforce that weights sum to one. This does the
                 following things; it fixes the first weight to the sum of the others and it adds a transformation
                 that ensures that those other weights sum to at most one.
-
-        Attributes:
-                The default is false, which means that we don't check for this.
             volume_selection (boolean): if we should do volume selection or not, set this before
                 calling ``set_input_data``.
 
+        Attributes:
             _post_optimization_modifiers (list): the list with post optimization modifiers. Every element
                 should contain a tuple with (str, Func) or (tuple, Func): where the first element is a single
                 output name or a list with output names and the Func is a callback function that returns one or more
@@ -84,6 +82,7 @@ class DMRICompositeModel(DMRIOptimizable):
         self._model_tree = model_tree
         self._likelihood_function = likelihood_function
         self._signal_noise_model = signal_noise_model
+        self.volume_selection = volume_selection
 
         self._enforce_weights_sum_to_one = enforce_weights_sum_to_one
 
@@ -127,7 +126,6 @@ class DMRICompositeModel(DMRIOptimizable):
             self._extra_optimization_maps_funcs.append(self._get_propagate_weights_uncertainty)
 
         self.nmr_parameters_for_bic_calculation = self.get_nmr_parameters()
-        self.volume_selection = True
         self._post_processing = get_active_post_processing()
 
     @property

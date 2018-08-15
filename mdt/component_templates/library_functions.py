@@ -1,6 +1,5 @@
 from copy import deepcopy
-from mdt.component_templates.base import ComponentBuilder, method_binding_meta, \
-    ComponentTemplate
+from mdt.component_templates.base import ComponentBuilder, ComponentTemplate
 from mot.lib.cl_data_type import SimpleCLDataType
 from mot.lib.cl_function import SimpleCLFunction
 from mdt.model_building.parameters import LibraryParameter
@@ -22,7 +21,7 @@ class LibraryFunctionsBuilder(ComponentBuilder):
             template (LibraryFunctionTemplate): the library config template to use for creating
                 the class with the right init settings.
         """
-        class AutoCreatedLibraryFunction(method_binding_meta(template, CLLibrary, SimpleCLFunction)):
+        class AutoCreatedLibraryFunction(CLLibrary, SimpleCLFunction):
 
             def __init__(self, *args, **kwargs):
                 cl_code = template.cl_code or ''
@@ -44,10 +43,13 @@ class LibraryFunctionsBuilder(ComponentBuilder):
                                   cl_extra=cl_extra)
                 new_kwargs.update(kwargs)
 
-                super(AutoCreatedLibraryFunction, self).__init__(*new_args, **new_kwargs)
+                super().__init__(*new_args, **new_kwargs)
 
                 if hasattr(template, 'init'):
                     template.init(self)
+
+        for name, method in template.bound_methods.items():
+            setattr(AutoCreatedLibraryFunction, name, method)
 
         return AutoCreatedLibraryFunction
 

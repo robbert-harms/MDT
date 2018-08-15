@@ -7,9 +7,7 @@ from warnings import warn
 import numpy as np
 import copy
 
-from scipy.stats import gaussian_kde
-
-from mdt.exceptions import ProtocolIOError
+from mdt.lib.exceptions import ProtocolIOError
 
 __author__ = 'Robbert Harms'
 __date__ = "2014-02-06"

@@ -1,7 +1,7 @@
 import os
 from textwrap import dedent
 
-from mdt.nifti import load_nifti
+from mdt.lib.nifti import load_nifti
 from PyQt5.QtCore import pyqtSlot, QObject, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog
 

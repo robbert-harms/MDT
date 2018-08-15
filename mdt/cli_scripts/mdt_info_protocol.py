@@ -7,7 +7,7 @@ import mdt
 from argcomplete.completers import FilesCompleter
 import textwrap
 
-from mdt.shell_utils import BasicShellApplication
+from mdt.lib.shell_utils import BasicShellApplication
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"
@@ -29,7 +29,7 @@ class InfoProtocol(BasicShellApplication):
                                          formatter_class=argparse.RawTextHelpFormatter)
 
         parser.add_argument('protocol',
-                            action=mdt.shell_utils.get_argparse_extension_checker(['.prtcl']),
+                            action=mdt.lib.shell_utils.get_argparse_extension_checker(['.prtcl']),
                             help='the protocol file').completer = FilesCompleter(['prtcl'], directories=False)
 
         return parser

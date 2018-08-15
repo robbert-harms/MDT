@@ -13,7 +13,7 @@ from argcomplete.completers import FilesCompleter
 import textwrap
 
 from mdt.utils import volume_merge
-from mdt.shell_utils import BasicShellApplication, get_argparse_extension_checker
+from mdt.lib.shell_utils import BasicShellApplication, get_argparse_extension_checker
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"

@@ -6,9 +6,9 @@ import os
 import mdt
 from argcomplete.completers import FilesCompleter
 import textwrap
-from mdt.nifti import load_nifti
+from mdt.lib.nifti import load_nifti
 import mdt.utils
-from mdt.shell_utils import BasicShellApplication
+from mdt.lib.shell_utils import BasicShellApplication
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"
@@ -31,7 +31,7 @@ class CreateRoiSlice(BasicShellApplication):
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
                                          formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument('mask',
-                            action=mdt.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
+                            action=mdt.lib.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
                             help='the mask to select a slice from').completer = \
             FilesCompleter(['nii', 'gz', 'hdr', 'img'], directories=False)
 
@@ -40,7 +40,7 @@ class CreateRoiSlice(BasicShellApplication):
                                                             "Defaults to center of chosen dimension.")
 
         parser.add_argument('-o', '--output-name',
-                            action=mdt.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
+                            action=mdt.lib.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
                             help='the filename of the output file. Default is <mask_name>_<dim>_<slice>.nii.gz').\
             completer = FilesCompleter(['nii', 'gz', 'hdr', 'img'], directories=False)
 

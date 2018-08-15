@@ -26,14 +26,14 @@ try:
 except ImportError:
     # python 3.4
     from queue import Queue
-from PyQt5 import QtGui, QtCore
+from PyQt5 import QtGui
 from PyQt5.QtCore import QThread, QTimer, pyqtSlot
 from PyQt5.QtWidgets import QMainWindow, QDialog, QDialogButtonBox
 from mdt.gui.model_fit.design.ui_main_gui import Ui_MainWindow
 from mdt.gui.utils import print_welcome_message, ForwardingListener, MessageReceiver, center_window, QtManager, \
     enable_pyqt_exception_hook
 from mdt.gui.model_fit.utils import SharedState
-from mdt.log_handlers import LogDispatchHandler
+from mdt.lib.log_handlers import LogDispatchHandler
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-06-26"

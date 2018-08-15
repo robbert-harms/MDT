@@ -2,8 +2,8 @@ import glob
 import os
 from itertools import filterfalse
 
-from mdt.batch_utils import SimpleBatchProfile, BatchFitProtocolLoader, SimpleSubjectInfo
-from mdt.component_templates.base import ComponentBuilder, method_binding_meta, ComponentTemplate
+from mdt.lib.batch_utils import SimpleBatchProfile, BatchFitProtocolLoader, SimpleSubjectInfo
+from mdt.component_templates.base import ComponentBuilder, ComponentTemplate
 
 __author__ = 'Robbert Harms'
 __date__ = "2017-02-14"
@@ -22,7 +22,7 @@ class BatchProfileBuilder(ComponentBuilder):
         Returns:
             SimpleBatchProfile: an subclass of a batch profile
         """
-        class AutoCreatedBatchProfile(method_binding_meta(template, SimpleBatchProfile)):
+        class AutoCreatedBatchProfile(SimpleBatchProfile):
             def _get_subjects(self, data_folder):
                 dirs = sorted([os.path.basename(f) for f in glob.glob(os.path.join(data_folder, '*'))])
 
@@ -70,6 +70,9 @@ class BatchProfileBuilder(ComponentBuilder):
 
             def __str__(self):
                 return template.name
+
+        for name, method in template.bound_methods.items():
+            setattr(AutoCreatedBatchProfile, name, method)
 
         return AutoCreatedBatchProfile
 

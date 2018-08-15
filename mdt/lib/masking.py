@@ -3,7 +3,7 @@ import numpy as np
 from scipy.ndimage import binary_dilation, generate_binary_structure, binary_fill_holes
 from mdt.utils import load_brain_mask
 from mdt.protocols import load_protocol
-from mdt.nifti import load_nifti, write_nifti
+from mdt.lib.nifti import load_nifti, write_nifti
 import mot.configuration
 from scipy.ndimage.filters import median_filter
 

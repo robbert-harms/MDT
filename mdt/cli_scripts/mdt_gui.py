@@ -8,7 +8,7 @@ import textwrap
 from argcomplete.completers import FilesCompleter
 
 from mdt.gui.model_fit.qt_main import start_gui
-from mdt.shell_utils import BasicShellApplication
+from mdt.lib.shell_utils import BasicShellApplication
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"

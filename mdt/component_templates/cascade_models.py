@@ -1,7 +1,6 @@
 from copy import deepcopy
 import mdt
-from mdt.component_templates.base import ComponentBuilder, bind_function, method_binding_meta, ComponentTemplate, \
-    ComponentTemplateMeta
+from mdt.component_templates.base import ComponentBuilder, bind_function, ComponentTemplate, ComponentTemplateMeta
 from mdt.models.cascade import SimpleCascadeModel
 
 __author__ = 'Robbert Harms'
@@ -19,7 +18,7 @@ class CascadeBuilder(ComponentBuilder):
             template (CascadeTemplate): the cascade config template to use for creating the class with the right init
                 settings.
         """
-        class AutoCreatedCascadeModel(method_binding_meta(template, SimpleCascadeModel)):
+        class AutoCreatedCascadeModel(SimpleCascadeModel):
 
             def __init__(self, *args):
                 models = []
@@ -33,11 +32,10 @@ class CascadeBuilder(ComponentBuilder):
                             models]
                 for ind, arg in args:
                     new_args[ind] = arg
-                super(AutoCreatedCascadeModel, self).__init__(*new_args)
+                super().__init__(*new_args)
 
             def _prepare_model(self, iteration_position, model, output_previous, output_all_previous):
-                super(AutoCreatedCascadeModel, self)._prepare_model(iteration_position, model,
-                                                                    output_previous, output_all_previous)
+                super()._prepare_model(iteration_position, model, output_previous, output_all_previous)
 
                 def parse_value(v):
                     if isinstance(v, str):
@@ -59,6 +57,9 @@ class CascadeBuilder(ComponentBuilder):
                 apply_func(template.upper_bounds, lambda name, value: model.set_upper_bound(name, value))
 
                 self._prepare_model_cb(iteration_position, model, output_previous, output_all_previous)
+
+        for name, method in template.bound_methods.items():
+            setattr(AutoCreatedCascadeModel, name, method)
 
         return AutoCreatedCascadeModel
 

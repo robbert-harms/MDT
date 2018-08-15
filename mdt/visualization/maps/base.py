@@ -8,7 +8,7 @@ import yaml
 
 import mdt
 import mdt.visualization.layouts
-from mdt.nifti import load_nifti, NiftiInfoDecorated
+from mdt.lib.nifti import load_nifti, NiftiInfoDecorated
 from mdt.visualization.dict_conversion import StringConversion, \
     SimpleClassConversion, IntConversion, SimpleListConversion, BooleanConversion, \
     ConvertDictElements, ConvertDynamicFromModule, FloatConversion, WhiteListConversion, ConvertListElements
@@ -467,7 +467,7 @@ class SingleMapInfo(object):
             data (ndarray or :class:`nibabel.spatialimages.SpatialImage`): the value of the map or the proxy to it
             file_path (str): optionally, the file path with the location of this map.
                 If not set we try to retreive it from the data if the data is of subclass
-                :class:`mdt.nifti.NiftiInfoDecorated`.
+                :class:`mdt.lib.nifti.NiftiInfoDecorated`.
         """
         self._data = data
         self._shape = self._data.shape

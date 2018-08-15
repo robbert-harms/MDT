@@ -22,7 +22,8 @@ import gc
 from numpy.lib.format import open_memmap
 
 import mot
-from mdt.nifti import write_all_as_nifti, get_all_nifti_data
+from mdt.lib.fsl_sampling_routine import FSLSamplingRoutine
+from mdt.lib.nifti import write_all_as_nifti, get_all_nifti_data
 from mdt.configuration import gzip_optimization_results, gzip_sampling_results
 from mdt.utils import create_roi, load_samples
 import collections
@@ -31,6 +32,7 @@ from mot.sample import AdaptiveMetropolisWithinGibbs, SingleComponentAdaptiveMet
 from mdt.model_building.utils import wrap_objective_function
 from mot.configuration import CLRuntimeInfo
 from mot.optimize import minimize
+from mot.sample.mwg import MetropolisWithinGibbs
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-07-29"
@@ -541,6 +543,10 @@ class SamplingProcessor(SimpleModelProcessor):
             method = AdaptiveMetropolisWithinGibbs
         elif self._method == 'SCAM':
             method = SingleComponentAdaptiveMetropolis
+        elif self._method == 'MWG':
+            method = MetropolisWithinGibbs
+        elif self._method == 'FSL':
+            method = FSLSamplingRoutine
 
         if method is None:
             raise ValueError('Could not find the sampler with name {}.'.format(self._method))

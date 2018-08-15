@@ -7,7 +7,7 @@ import textwrap
 from argcomplete.completers import FilesCompleter
 from mdt import view_maps
 from mdt.visualization.maps.base import SimpleDataInfo
-from mdt.shell_utils import BasicShellApplication
+from mdt.lib.shell_utils import BasicShellApplication
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"

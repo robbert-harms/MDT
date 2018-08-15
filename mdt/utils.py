@@ -18,10 +18,10 @@ import mot.lib.utils
 from mdt.components import get_model
 from mdt.configuration import get_config_dir
 from mdt.configuration import get_logging_configuration_dict, get_tmp_results_dir
-from mdt.deferred_mappings import DeferredActionDict, DeferredActionTuple
-from mdt.exceptions import NoiseStdEstimationNotPossible
-from mdt.log_handlers import ModelOutputLogHandler
-from mdt.nifti import load_nifti, write_nifti
+from mdt.lib.deferred_mappings import DeferredActionDict, DeferredActionTuple
+from mdt.lib.exceptions import NoiseStdEstimationNotPossible
+from mdt.lib.log_handlers import ModelOutputLogHandler
+from mdt.lib.nifti import load_nifti, write_nifti
 from mdt.protocols import load_protocol, write_protocol
 from mot.lib.cl_environments import CLEnvironmentFactory
 from mdt.model_building.parameter_functions.dependencies import AbstractParameterDependency
@@ -1788,7 +1788,7 @@ def create_median_otsu_brain_mask(dwi_info, protocol, output_fname=None, **kwarg
     Returns:
         ndarray: The created brain mask
     """
-    from mdt.masking import create_median_otsu_brain_mask, create_write_median_otsu_brain_mask
+    from mdt.lib.masking import create_median_otsu_brain_mask, create_write_median_otsu_brain_mask
 
     if output_fname:
         if not isinstance(dwi_info, (str, tuple, list)):
@@ -1949,7 +1949,7 @@ def load_volume_maps(directory, map_names=None, deferred=True):
         dict: A dictionary with the volumes. The keys of the dictionary are the filenames (without the extension) of the
             files in the given directory.
     """
-    from mdt.nifti import get_all_nifti_data
+    from mdt.lib.nifti import get_all_nifti_data
     return get_all_nifti_data(directory, map_names=map_names, deferred=deferred)
 
 

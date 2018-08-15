@@ -12,7 +12,7 @@ import os
 from argcomplete.completers import FilesCompleter
 import textwrap
 import mdt.protocols
-from mdt.shell_utils import BasicShellApplication
+from mdt.lib.shell_utils import BasicShellApplication
 from mdt.protocols import load_bvec_bval
 
 __author__ = 'Robbert Harms'

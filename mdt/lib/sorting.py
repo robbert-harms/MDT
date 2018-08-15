@@ -8,7 +8,7 @@ import collections
 from copy import copy
 import itertools
 import numpy as np
-from mdt.nifti import get_all_nifti_data, load_nifti
+from mdt.lib.nifti import get_all_nifti_data, load_nifti
 
 
 __author__ = 'Robbert Harms'

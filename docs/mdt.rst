@@ -18,10 +18,10 @@ Subpackages
 Submodules
 ----------
 
-mdt.batch_utils module
+mdt.lib.batch_utils module
 ----------------------
 
-.. automodule:: mdt.batch_utils
+.. automodule:: mdt.lib.batch_utils
     :members:
     :undoc-members:
     :show-inheritance:

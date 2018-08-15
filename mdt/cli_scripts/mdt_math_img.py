@@ -45,7 +45,7 @@ import mdt
 from argcomplete.completers import FilesCompleter
 import textwrap
 
-from mdt.shell_utils import BasicShellApplication
+from mdt.lib.shell_utils import BasicShellApplication
 from mdt.utils import split_image_path
 
 __author__ = 'Robbert Harms'

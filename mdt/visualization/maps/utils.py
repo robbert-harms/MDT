@@ -1,7 +1,7 @@
 import glob
 import os
 
-from mdt.nifti import nifti_filepath_resolution
+from mdt.lib.nifti import nifti_filepath_resolution
 from mdt.utils import split_image_path
 
 

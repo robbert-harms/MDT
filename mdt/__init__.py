@@ -29,15 +29,15 @@ from mdt.utils import estimate_noise_std, get_cl_devices, load_input_data,\
     get_slice_in_dimension, per_model_logging_context, \
     get_temporary_results_dir, get_example_data, SimpleInitializationData, InitializationData, load_volume_maps,\
     covariance_to_correlation, check_user_components, unzip_nifti, zip_nifti
-from mdt.sorting import sort_orientations, create_sort_matrix, sort_volumes_per_voxel
+from mdt.lib.sorting import sort_orientations, create_sort_matrix, sort_volumes_per_voxel
 from mdt.simulations import create_signal_estimates, simulate_signals, add_rician_noise
-from mdt.batch_utils import run_function_on_batch_fit_output, batch_apply, \
+from mdt.lib.batch_utils import run_function_on_batch_fit_output, batch_apply, \
     batch_profile_factory, get_subject_selection
 from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, write_protocol, write_bvec_bval, \
     create_protocol
 from mdt.configuration import config_context, get_processing_strategy, get_config_option, set_config_option
-from mdt.exceptions import InsufficientProtocolError
-from mdt.nifti import write_nifti
+from mdt.lib.exceptions import InsufficientProtocolError
+from mdt.lib.nifti import write_nifti
 from mdt.components import get_model, get_batch_profile, get_component
 
 
@@ -141,9 +141,10 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
                 the total number of samples generated is ``nmr_samples * (thinning)`` and the number of samples stored
                 is ``nmr_samples``. If set to one or lower we store every sample after the burn in.
         method (str): The sampling method to use, one of:
-            - 'AMWG', for the Adaptive Metropolis-Within-Gibbs method
+            - 'AMWG', for the Adaptive Metropolis-Within-Gibbs
             - 'SCAM', for the Single Component Adaptive Metropolis
             - 'FSL', for the sampling method used in the FSL toolbox
+            - 'MWG', for the Metropolis-Within-Gibbs (simple random walk metropolis without updates)
 
             If not given, defaults to 'AMWG'.
 
@@ -260,11 +261,11 @@ def batch_fit(data_folder, models_to_fit, output_folder=None, batch_profile=None
         models_to_fit (list of str): A list of models to fit to the data.
         output_folder (str): the folder in which to place the output, if not given we per default put an output folder
             next to the data_folder.
-        batch_profile (:class:`~mdt.batch_utils.BatchProfile` or str): the batch profile to use,
+        batch_profile (:class:`~mdt.lib.batch_utils.BatchProfile` or str): the batch profile to use,
             or the name of a batch profile to use. If not given it is auto detected.
-        subjects_selection (:class:`~mdt.batch_utils.BatchSubjectSelection` or iterable): the subjects to \
+        subjects_selection (:class:`~mdt.lib.batch_utils.BatchSubjectSelection` or iterable): the subjects to \
             use for processing. If None, all subjects are processed. If a list is given instead of a
-            :class:`~mdt.batch_utils.BatchSubjectSelection` instance, we apply the following. If the elements in that
+            :class:`~mdt.lib.batch_utils.BatchSubjectSelection` instance, we apply the following. If the elements in that
             list are string we use it as subject ids, if they are integers we use it as subject indices.
         recalculate (boolean): If we want to recalculate the results if they are already present.
         cl_device_ind (int or list of int): the index of the CL device to use.
@@ -475,7 +476,7 @@ def get_volume_names(directory):
     Returns:
         :class:`list`: A list with the names of the volumes.
     """
-    from mdt.nifti import yield_nifti_info
+    from mdt.lib.nifti import yield_nifti_info
     return list(sorted(el[1] for el in yield_nifti_info(directory)))
 
 
@@ -489,7 +490,7 @@ def write_volume_maps(maps, directory, header=None, overwrite_volumes=True, gzip
         overwrite_volumes (boolean): If we want to overwrite the volumes if they are present.
         gzip (boolean): if we want to write the results gzipped
     """
-    from mdt.nifti import write_all_as_nifti
+    from mdt.lib.nifti import write_all_as_nifti
     write_all_as_nifti(maps, directory, nifti_header=header, overwrite_volumes=overwrite_volumes, gzip=gzip)
 
 

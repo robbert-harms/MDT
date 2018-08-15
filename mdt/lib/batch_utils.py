@@ -17,10 +17,10 @@ import numbers
 import os
 from textwrap import dedent
 from mdt.components import get_batch_profile, get_component_list
-from mdt.masking import create_median_otsu_brain_mask
+from mdt.lib.masking import create_median_otsu_brain_mask
 from mdt.protocols import load_protocol, auto_load_protocol
 from mdt.utils import AutoDict, load_input_data, natural_key_sort_cb
-from mdt.nifti import load_nifti
+from mdt.lib.nifti import load_nifti
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-21"
@@ -328,13 +328,13 @@ def get_subject_selection(subjects_selection):
     """Load a subject selection object from the polymorphic input.
 
     Args:
-        subjects_selection (:class:`~mdt.batch_utils.BatchSubjectSelection` or iterable): the subjects to \
+        subjects_selection (:class:`~mdt.lib.batch_utils.BatchSubjectSelection` or iterable): the subjects to \
             use for processing. If None, all subjects are processed. If a list is given instead of a
-            :class:`~mdt.batch_utils.BatchSubjectSelection` instance, we apply the following. If the elements in that
+            :class:`~mdt.lib.batch_utils.BatchSubjectSelection` instance, we apply the following. If the elements in that
             list are string we use it as subject ids, if they are integers we use it as subject indices.
 
     Returns:
-        mdt.batch_utils.BatchSubjectSelection: a subject selection object.
+        mdt.lib.batch_utils.BatchSubjectSelection: a subject selection object.
 
     Raises:
         ValueError: if a list is given with mixed strings and integers.
@@ -425,11 +425,11 @@ def get_subject_information(data_folder, subject_ids, batch_profile=None):
     Args:
         data_folder (str): The data folder from which to load the subjects
         subject_ids (str or list of str): the subject we would like to retrieve, or a list of subject ids.
-        batch_profile (:class:`~mdt.batch_utils.BatchProfile` or str): the batch profile to use,
+        batch_profile (:class:`~mdt.lib.batch_utils.BatchProfile` or str): the batch profile to use,
             or the name of a batch profile to use. If not given it is auto detected.
 
     Returns:
-        Optional[mdt.batch_utils.SubjectInfo, List[mdt.batch_utils.SubjectInfo]]: the subject info or list of
+        Optional[mdt.lib.batch_utils.SubjectInfo, List[mdt.lib.batch_utils.SubjectInfo]]: the subject info or list of
             subject info's of the requested subjects.
 
     Raises:
@@ -455,11 +455,11 @@ def batch_apply(func, data_folder, batch_profile=None, subjects_selection=None, 
         func (callable): the function we will apply for every subject, should accept as single argument an instance of
             :class:`SubjectInfo`.
         data_folder (str): The data folder to process
-        batch_profile (:class:`~mdt.batch_utils.BatchProfile` or str): the batch profile to use,
+        batch_profile (:class:`~mdt.lib.batch_utils.BatchProfile` or str): the batch profile to use,
             or the name of a batch profile to use. If not given it is auto detected.
-        subjects_selection (:class:`~mdt.batch_utils.BatchSubjectSelection` or iterable): the subjects to
+        subjects_selection (:class:`~mdt.lib.batch_utils.BatchSubjectSelection` or iterable): the subjects to
             use for processing. If None, all subjects are processed. If a list is given instead of a
-            :class:`~mdt.batch_utils.BatchSubjectSelection` instance, we apply the following. If the elements in that
+            :class:`~mdt.lib.batch_utils.BatchSubjectSelection` instance, we apply the following. If the elements in that
             list are string we use it as subject ids, if they are integers we use it as subject indices.
         extra_args (list): a list of additional arguments that are passed to the function. If this is set,
             the callback function must accept these additional args.
