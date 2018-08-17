@@ -29,7 +29,6 @@ class S0T1GRE(CompositeModelTemplate):
 
 class S0T2_exvivo(CompositeModelTemplate):
 
-    name = 'S0-T2-ExVivo'
     description = 'Models the unweighted signal (aka. b0) with an extra T2.'
     model_expression = 'S0 * ExpT2Dec'
     upper_bounds = {'ExpT2Dec.T2': 0.5}
@@ -37,15 +36,12 @@ class S0T2_exvivo(CompositeModelTemplate):
 
 class S0T2(CompositeModelTemplate):
 
-    name = 'S0-T2'
     description = 'Models the unweighted signal (aka. b0) with an extra T2.'
     model_expression = 'S0 * ExpT2Dec'
-    upper_bounds = {'ExpT2Dec.T2': 2}
 
 
 class MPM(CompositeModelTemplate):
 
-    name = 'MPM'
     description = 'Model for estimating biological microstructure of the tissue/sample.'
     model_expression = 'S0 * MPM_Fit'
     likelihood_function = 'Gaussian'

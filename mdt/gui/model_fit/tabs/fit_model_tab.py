@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QFileDialog, QMessageBox, QDialog, QDialogButtonBox
 
 import mdt
 import mot
-from mdt.components import get_meta_info, list_composite_models, list_cascade_models
+from mdt.lib.components import get_meta_info, list_composite_models, list_cascade_models
 from mdt.gui.model_fit.design.ui_fit_model_tab import Ui_FitModelTabContent
 from mdt.gui.model_fit.design.ui_optimization_extra_data_add_protocol_map_dialog import Ui_AddProtocolMapDialog
 from mdt.gui.model_fit.design.ui_optimization_extra_data_dialog import Ui_OptimizationExtraDataDialog

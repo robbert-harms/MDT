@@ -1,7 +1,7 @@
 from copy import deepcopy, copy
 import numpy as np
 from mdt.component_templates.base import ComponentBuilder, ComponentTemplate
-from mdt.components import get_component, has_component
+from mdt.lib.components import get_component, has_component
 from mdt.models.compartments import DMRICompartmentModelFunction
 from mdt.utils import spherical_to_cartesian
 from mot.lib.cl_function import CLFunction, SimpleCLFunction

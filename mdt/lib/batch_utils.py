@@ -16,7 +16,7 @@ import logging
 import numbers
 import os
 from textwrap import dedent
-from mdt.components import get_batch_profile, get_component_list
+from mdt.lib.components import get_batch_profile, get_component_list
 from mdt.lib.masking import create_median_otsu_brain_mask
 from mdt.protocols import load_protocol, auto_load_protocol
 from mdt.utils import AutoDict, load_input_data, natural_key_sort_cb
@@ -293,8 +293,8 @@ class SelectedSubjects(BatchSubjectSelection):
         Set any one of the options to None to ignore that option.
 
         Args:
-            subject_ids (str or list of str): the list of names of subjects to process
-            indices (int or list of int): the list of indices of subjects we wish to process
+            subject_ids (str or Iterable[str]): the list of names of subjects to process
+            indices (int or Iterable[int]): the list of indices of subjects we wish to process
         """
         if isinstance(subject_ids, str):
             subject_ids = [subject_ids]
@@ -455,10 +455,10 @@ def batch_apply(func, data_folder, batch_profile=None, subjects_selection=None, 
         func (callable): the function we will apply for every subject, should accept as single argument an instance of
             :class:`SubjectInfo`.
         data_folder (str): The data folder to process
-        batch_profile (:class:`~mdt.lib.batch_utils.BatchProfile` or str): the batch profile to use,
+        batch_profile (BatchProfile or str): the batch profile to use,
             or the name of a batch profile to use. If not given it is auto detected.
-        subjects_selection (:class:`~mdt.lib.batch_utils.BatchSubjectSelection` or iterable): the subjects to
-            use for processing. If None, all subjects are processed. If a list is given instead of a
+        subjects_selection (BatchSubjectSelection or Iterable[Union[str, int]]): the
+            subjects to use for processing. If None, all subjects are processed. If a list is given instead of a
             :class:`~mdt.lib.batch_utils.BatchSubjectSelection` instance, we apply the following. If the elements in that
             list are string we use it as subject ids, if they are integers we use it as subject indices.
         extra_args (list): a list of additional arguments that are passed to the function. If this is set,

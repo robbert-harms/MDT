@@ -29,7 +29,7 @@ By virtue of meta-classes, this template will automatically be added to the MDT 
 Using Object Oriented inheritance it is possible to partially rewrite existing models with updated definitions.
 For example, instead of defining a completely new ``BallStick_r1`` model, we can also inherit from the existing template::
 
-    from mdt.components import get_template
+    from mdt import get_template
 
     class BallStick_r1(get_template('composite_models', 'BallStick_r1')):
         likelihood_function = 'Rician'

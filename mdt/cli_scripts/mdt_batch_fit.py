@@ -16,7 +16,7 @@ import os
 import mdt
 from argcomplete.completers import FilesCompleter
 from mdt.lib.batch_utils import batch_profile_factory, SelectedSubjects
-from mdt.components import get_component_list
+from mdt.lib.components import get_component_list
 
 from mdt.lib.shell_utils import BasicShellApplication
 from mot.lib import cl_environments

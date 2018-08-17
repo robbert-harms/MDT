@@ -85,7 +85,7 @@ class ComponentTemplateMeta(type):
         if len(_component_loading) == 1:
             try:
                 if result.component_type is not None and result.name:
-                    from mdt.components import add_template_component
+                    from mdt.lib.components import add_template_component
                     add_template_component(result)
             except ValueError:
                 pass

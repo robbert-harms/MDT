@@ -20,7 +20,7 @@ from mdt.component_templates.compartment_models import CompartmentTemplate, Weig
 from mdt.component_templates.composite_models import CompositeModelTemplate
 from mdt.component_templates.library_functions import LibraryFunctionTemplate
 
-from mdt.model_fitting import get_batch_fitting_function
+from mdt.lib.model_fitting import get_batch_fitting_function
 from mdt.utils import estimate_noise_std, get_cl_devices, load_input_data,\
     create_blank_mask, create_index_matrix, \
     volume_index_to_roi_index, roi_index_to_volume_index, load_brain_mask, init_user_settings, restore_volumes, \
@@ -38,7 +38,7 @@ from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, wri
 from mdt.configuration import config_context, get_processing_strategy, get_config_option, set_config_option
 from mdt.lib.exceptions import InsufficientProtocolError
 from mdt.lib.nifti import write_nifti
-from mdt.components import get_model, get_batch_profile, get_component
+from mdt.lib.components import get_model, get_batch_profile, get_component, get_template
 
 
 __author__ = 'Robbert Harms'
@@ -101,7 +101,7 @@ def fit_model(model, input_data, output_folder,
             This returns the results as 3d/4d volumes for every output map.
     """
     import mdt.utils
-    from mdt.model_fitting import ModelFit
+    from mdt.lib.model_fitting import ModelFit
 
     if not mdt.utils.check_user_components():
         init_user_settings(pass_if_exists=True)
@@ -184,7 +184,7 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
     """
     import mdt.utils
     from mot.lib.load_balance_strategies import EvenDistribution
-    from mdt.model_sampling import sample_composite_model
+    from mdt.lib.model_sampling import sample_composite_model
     from mdt.models.cascade import DMRICascadeModelInterface
     import mot.configuration
 
@@ -500,7 +500,7 @@ def get_models_list():
     Returns:
         list of str: A list of available model names.
     """
-    from mdt.components import list_composite_models, list_cascade_models
+    from mdt.lib.components import list_composite_models, list_cascade_models
     l = list(list_cascade_models())
     l.extend(list_composite_models())
     return list(sorted(l))
@@ -513,7 +513,7 @@ def get_models_meta_info():
         dict of dict: The first dictionary indexes the model names to the meta tags, the second holds the meta
             information.
     """
-    from mdt.components import list_cascade_models, list_composite_models, get_meta_info, get_component_list
+    from mdt.lib.components import list_cascade_models, list_composite_models, get_meta_info, get_component_list
     meta_info = {}
     for model_type in ('composite_models', 'cascade_models'):
         model_list = get_component_list(model_type)
@@ -563,15 +563,21 @@ def with_logging_to_debug():
         handler.setLevel(previous_level)
 
 
+def reload_components():
+    """Reload all the dynamic components.
+
+    This can be useful after changing some of the dynamically loadable modules. This function will remove all cached
+    components and reload the directories.
+    """
+    from mdt.lib.components import reload
+    try:
+        reload()
+    except Exception as exc:
+        logger = logging.getLogger(__name__)
+        logger.error('Failed to load the default components. Try removing your MDT home folder and reload.')
+
+
 if 'MDT.LOAD_COMPONENTS' in os.environ and os.environ['MDT.LOAD_COMPONENTS'] != '1':
     pass
 else:
-    def _reload_components():
-        from mdt.components import reload
-        try:
-            reload()
-        except Exception as exc:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error('Failed to load the default components. Try removing your MDT home folder and reload.')
-    _reload_components()
+    reload_components()

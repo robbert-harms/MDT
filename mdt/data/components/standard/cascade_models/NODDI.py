@@ -18,6 +18,15 @@ class NODDI(CascadeTemplate):
                        'NODDI_IC.phi': 'Stick0.phi'}}
 
 
+class NODDIDA(CascadeTemplate):
+
+    description = 'Cascade for NODDIDA initialized from Ball&Stick.'
+    models = ('BallStick_r1 (Cascade)',
+              'NODDIDA')
+    inits = {'NODDIDA': {'NODDI_IC.theta': 'Stick0.theta',
+                         'NODDI_IC.phi': 'Stick0.phi'}}
+
+
 class NODDI_Fixed(CascadeTemplate):
 
     cascade_name_modifier = 'fixed'

@@ -5,7 +5,7 @@ import numpy as np
 import tatsu
 
 from mdt.component_templates.base import ComponentBuilder, ComponentTemplate
-from mdt.components import get_component
+from mdt.lib.components import get_component
 from mdt.models.composite import DMRICompositeModel
 from mot.lib.cl_function import CLFunction, SimpleCLFunction
 from mdt.model_building.trees import CompartmentModelTree

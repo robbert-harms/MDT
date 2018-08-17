@@ -3,7 +3,7 @@ import numpy as np
 from mdt.utils import tensor_spherical_to_cartesian, tensor_cartesian_to_spherical
 from mot.lib.utils import split_in_batches, parse_cl_function
 from mot.lib.kernel_data import Array, Zeros, Scalar
-from mdt.components import get_component
+from mdt.lib.components import get_component
 
 
 __author__ = 'Robbert Harms'
@@ -188,7 +188,7 @@ class DTIMeasures(object):
                                              / (d ** 2 + dperp0 ** 2 + dperp1 ** 2))
 
         if len(d.shape) > 1 and d.shape[1] > 1:
-            fa = np.zeros_like(d)
+            fa = np.zeros(d.shape[:2])
             for batch_start, batch_end in split_in_batches(d.shape[1], 100):
                 fa[:, batch_start:batch_end] = compute(
                     d[:, batch_start:batch_end],

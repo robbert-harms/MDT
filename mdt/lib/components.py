@@ -1,3 +1,4 @@
+import logging
 from importlib.machinery import SourceFileLoader
 import inspect
 import os
@@ -412,21 +413,20 @@ def _load_home_folder():
 
     This first loads all components from the ``standard`` folder and next all those from the ``user`` folder.
     """
-    for user_type in ('standard', 'user'):
-        for component_type in supported_component_types:
-            path = os.path.join(get_config_dir(), 'components', user_type, component_type)
+    for user_type in ['standard', 'user']:
+        base_path = os.path.join(get_config_dir(), 'components', user_type)
+        for path, sub_dirs, files in os.walk(base_path):
+            for file in files:
+                if file.endswith('.py') and not file.startswith('__'):
+                    full_path = os.path.join(path, file)
 
-            for dir_name, sub_dirs, files in os.walk(path):
-                for file in files:
-                    if file.endswith('.py') and not file.startswith('__'):
-                        path = os.path.join(dir_name, file)
+                    module_name = os.path.splitext(full_path[len(os.path.join(get_config_dir(), 'components')):])[0]
 
-                        module_name = os.path.join(user_type, component_type, dir_name[len(path) + 1:],
-                                                   os.path.splitext(os.path.basename(path))[0])
-                        try:
-                            SourceFileLoader(module_name, path).load_module()
-                        except ImportError:
-                            pass
+                    try:
+                        SourceFileLoader(module_name, full_path).load_module()
+                    except Exception as e:
+                        logger = logging.getLogger(__name__)
+                        logger.warning('Could not load the file "{}", exception: "{}".'.format(full_path, str(e)))
 
 
 def _load_automatic_cascades():

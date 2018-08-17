@@ -66,7 +66,7 @@ Dynamically redefining components
 Alternatively, it is also possible to overwrite existing models on the fly, for example::
 
     import mdt
-    from mdt.components import get_template
+    from mdt import get_template
 
     class Tensor(get_template('composite_models', 'Tensor')):
         likelihood_function = 'Rician'
@@ -94,7 +94,7 @@ As such, the new ``Tensor`` model with the updated likelihood function will be u
 
 To remove an entry, you can use, for example::
 
-    mdt.components.remove_last_entry('composite_models', 'Tensor')
+    mdt.remove_last_entry('composite_models', 'Tensor')
 
 
 This functionality allows you to overwrite and add models without adding them to your home folder.

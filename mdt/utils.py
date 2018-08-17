@@ -15,7 +15,7 @@ import numpy as np
 import pkg_resources
 from numpy.lib.format import open_memmap
 import mot.lib.utils
-from mdt.components import get_model
+from mdt.lib.components import get_model
 from mdt.configuration import get_config_dir
 from mdt.configuration import get_logging_configuration_dict, get_tmp_results_dir
 from mdt.lib.deferred_mappings import DeferredActionDict, DeferredActionTuple
@@ -724,18 +724,28 @@ class PathJoiner(object):
         self._path = self._initial_path
         return self
 
-    def make_dirs(self, mode=None):
+    def make_dirs(self, dir=None, mode=None):
         """Create the directories if they do not exists.
+
+        This first creates the directory mentioned in the path joiner. Afterwards, it will create the additional
+        specified directory.
 
         This uses os.makedirs to make the directories. The given argument mode is handed to os.makedirs.
 
         Args:
+            dir (str or list or str): single additional directory to create, can be a nested directory.
             mode (int): the mode parameter for os.makedirs, defaults to 0o777
         """
         if mode is None:
             mode = 0o777
         if not os.path.exists(self._path):
             os.makedirs(self._path, mode)
+
+        if dir:
+            if isinstance(dir, str):
+                self.create_extended(dir, make_dirs=True, make_dirs_mode=mode)
+            else:
+                self.create_extended(*dir, make_dirs=True, make_dirs_mode=mode)
 
     def __call__(self, *args):
         if len(args) and args[0].startswith('/'):
@@ -1208,7 +1218,7 @@ def init_user_settings(pass_if_exists=True):
         make_sure_user_components_exists()
         copy_old_configs(tmp_dir)
 
-    from mdt.components import reload
+    from mdt.lib.components import reload
     reload()
 
     return path
@@ -1675,7 +1685,7 @@ def get_temporary_results_dir(user_value):
     return None
 
 
-def create_blank_mask(volume4d_path, output_fname):
+def create_blank_mask(volume4d_path, output_fname=None):
     """Create a blank mask for the given 4d volume.
 
     Sometimes you want to use all the voxels in the given dataset, without masking any voxel. Since the optimization
@@ -1684,8 +1694,13 @@ def create_blank_mask(volume4d_path, output_fname):
 
     Args:
         volume4d_path (str): the path to the 4d volume you want to create a blank mask for
-        output_fname (str): the path to the result mask
+        output_fname (str): the path to the result mask. If not given, we will use the name of the input file and
+            append '_mask' to it.
     """
+    if not output_fname:
+        input_split = split_image_path(volume4d_path)
+        output_fname = input_split[0] + input_split[1] + '_mask' + input_split[2]
+
     volume_info = load_nifti(volume4d_path)
     mask = np.ones(volume_info.shape[:3])
     write_nifti(mask, output_fname, volume_info.get_header())

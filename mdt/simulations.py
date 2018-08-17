@@ -1,6 +1,6 @@
 import numpy as np
 import collections
-from mdt.components import get_model
+from mdt.lib.components import get_model
 from mdt.lib.nifti import get_all_nifti_data
 from mdt.utils import create_roi, restore_volumes, MockMRIInputData
 from mot.lib.cl_function import SimpleCLFunction

@@ -3,7 +3,7 @@ from mdt.component_templates.base import ComponentBuilder, ComponentTemplate
 from mot.lib.cl_data_type import SimpleCLDataType
 from mot.lib.cl_function import SimpleCLFunction
 from mdt.model_building.parameters import LibraryParameter
-from mdt.components import get_component, has_component
+from mdt.lib.components import get_component, has_component
 from mot.library_functions.base import CLLibrary
 
 __author__ = 'Robbert Harms'

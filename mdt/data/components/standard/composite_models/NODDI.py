@@ -39,3 +39,18 @@ class NODDI(CompositeModelTemplate):
                          'ODI.std': np.std(np.arctan2(1.0, samples['NODDI_IC.kappa']) * 2 / np.pi, axis=1)
                          }
     ]
+
+
+class NODDIDA(NODDI):
+
+    description = 'The NODDIDA model, NODDI without the Ball compartment and without fixing parameters.'
+
+    model_expression = '''
+        S0 * ((Weight(w_ic) * NODDI_IC) +
+              (Weight(w_ec) * NODDI_EC)
+              )
+    '''
+
+    fixes = {'NODDI_EC.kappa': 'NODDI_IC.kappa',
+             'NODDI_EC.theta': 'NODDI_IC.theta',
+             'NODDI_EC.phi': 'NODDI_IC.phi'}

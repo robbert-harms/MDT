@@ -28,7 +28,7 @@ class test_SSFP(unittest.TestCase):
         assert_allclose(np.nan_to_num(python_results), np.nan_to_num(cl_results), atol=1e-7)
 
     def _calculate_cl(self, test_params, double_precision=False):
-        ssfp = mdt.components.get_component('library_functions', 'SSFP')()
+        ssfp = mdt.lib.components.get_component('library_functions', 'SSFP')()
 
         names = ['d', 'delta', 'G', 'TR', 'flip_angle', 'b1', 'T1', 'T2']
         input_data = dict(zip(names, [test_params[..., ind] for ind in range(test_params.shape[1])]))
