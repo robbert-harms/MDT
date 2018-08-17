@@ -1284,20 +1284,16 @@ class DMRICompositeModel(DMRIOptimizable):
 
                 ''' + param_listing + '''
                 
+                const uint nmr_observations = ''' + str(self.get_nmr_observations()) + ''';
                 uint local_id = get_local_id(0);
                 uint workgroup_size = get_local_size(0);
-                uint elements_for_workitem = ceil(''' + str(self.get_nmr_observations()) + ''' 
-                                                  / (mot_float_type)workgroup_size);                
-                if(workgroup_size * (elements_for_workitem - 1) + local_id 
-                        >= ''' + str(self.get_nmr_observations()) + '''){
-                    elements_for_workitem -= 1;
-                }
-                
+                    
                 double eval;
                 uint observation_ind;
                 data->local_tmp[local_id] = 0;
-                for(uint i = 0; i < elements_for_workitem; i++){
-                    observation_ind = i * workgroup_size + local_id;
+                
+                for(uint i = 0; i < ceil(nmr_observations / (mot_float_type)workgroup_size) 
+                                && (observation_ind = i * workgroup_size + local_id) < nmr_observations; i++){
                                 
                     eval = ''' + ('-' if negative_ll else '') + ''' ''' + eval_model_func.get_cl_function_name() + '''(
                                 data->observations[observation_ind], 
