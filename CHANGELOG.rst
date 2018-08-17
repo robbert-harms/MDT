@@ -2,6 +2,20 @@
 Changelog
 *********
 
+v0.14.2 (2018-08-17)
+====================
+
+Added
+-----
+- Adds NODDIDA.
+- Adds method argument to the mdt sample function.
+
+Other
+-----
+- Removed redundant super arguments.
+- Refactorings following changes in MOT.
+
+
 v0.14.1 (2018-08-02)
 ====================
 - Removed some non-ascii characters for compatibility.
