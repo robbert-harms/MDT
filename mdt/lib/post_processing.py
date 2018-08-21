@@ -2,7 +2,7 @@
 import numpy as np
 from mdt.utils import tensor_spherical_to_cartesian, tensor_cartesian_to_spherical
 from mot.lib.utils import split_in_batches, parse_cl_function
-from mot.lib.kernel_data import Array, Zeros, Scalar
+from mot.lib.kernel_data import Array, Zeros, Scalar, Struct
 from mdt.lib.components import get_component
 
 
@@ -355,7 +355,7 @@ class DKIMeasures(object):
                        'aks': Zeros((nmr_voxels,), ctype='mot_float_type'),
                        'rks': Zeros((nmr_voxels,), ctype='mot_float_type')}
 
-        DKIMeasures._get_compute_function(param_names).evaluate({'data': kernel_data}, nmr_instances=nmr_voxels)
+        DKIMeasures._get_compute_function(param_names).evaluate(kernel_data, nmr_voxels)
 
         return {'MK': kernel_data['mks'].get_data(),
                 'AK': kernel_data['aks'].get_data(),
@@ -364,7 +364,7 @@ class DKIMeasures(object):
     @staticmethod
     def _get_compute_function(param_names):
         def get_param_cl_ref(param_name):
-            return 'data->parameters[{}]'.format(param_names.index(param_name))
+            return 'parameters[{}]'.format(param_names.index(param_name))
 
         param_expansions = ['mot_float_type {} = params[{}];'.format(name, ind) for ind, name in enumerate(param_names)]
 
@@ -414,7 +414,13 @@ class DKIMeasures(object):
                 *perpendicular_vec = vec0;
             }
         
-            void calculate_measures(mot_data_struct* data){
+            void calculate_measures(global mot_float_type* parameters, 
+                                    global mot_float_type4* directions,
+                                    uint nmr_directions,
+                                    uint nmr_radial_directions,
+                                    global mot_float_type* mks,
+                                    global mot_float_type* aks,
+                                    global mot_float_type* rks){
                 int i, j;
 
                 mot_float_type4 vec0, vec1, vec2;
@@ -435,28 +441,28 @@ class DKIMeasures(object):
 
                 // Mean Kurtosis integrated over a set of directions
                 double mean = 0;
-                for(i = 0; i < data->nmr_directions; i++){
-                    mean += (apparent_kurtosis(data->parameters, data->directions[i], vec0, vec1, vec2) - mean)
+                for(i = 0; i < nmr_directions; i++){
+                    mean += (apparent_kurtosis(parameters, directions[i], vec0, vec1, vec2) - mean)
                                 / (i + 1);
                 }
-                *(data->mks) = clamp(mean, (double)0, (double)3);
+                *(mks) = clamp(mean, (double)0, (double)3);
 
 
                 // Axial Kurtosis over the principal direction of diffusion
-                *(data->aks) = clamp(apparent_kurtosis(data->parameters, *principal_vec, vec0, vec1, vec2),
+                *(aks) = clamp(apparent_kurtosis(parameters, *principal_vec, vec0, vec1, vec2),
                                    (double)0, (double)10);
 
 
                 // Radial Kurtosis integrated over a unit circle around the principal eigenvector.
                 mean = 0;
                 mot_float_type4 rotated_vec;
-                for(i = 0; i < data->nmr_radial_directions; i++){
+                for(i = 0; i < nmr_radial_directions; i++){
                     rotated_vec = RotateOrthogonalVector(*principal_vec, *perpendicular_vec,
-                                                         i * (2 * M_PI_F) / data->nmr_radial_directions);
+                                                         i * (2 * M_PI_F) / nmr_radial_directions);
 
-                    mean += (apparent_kurtosis(data->parameters, rotated_vec, vec0, vec1, vec2) - mean) / (i + 1);
+                    mean += (apparent_kurtosis(parameters, rotated_vec, vec0, vec1, vec2) - mean) / (i + 1);
                 }
-                *(data->rks) = max(mean, (double)0);
+                *(rks) = max(mean, (double)0);
             }
         ''', dependencies=[get_component('library_functions', 'RotateOrthogonalVector')(),
                            get_component('library_functions', 'TensorSphericalToCartesian')(),

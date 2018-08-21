@@ -44,11 +44,9 @@ def create_signal_estimates(model, input_data, parameters):
 
     kernel_data = {'data': build_model.get_kernel_data(),
                    'parameters': Array(parameters, ctype='mot_float_type'),
-                   'estimates': Zeros(
-                       (parameters.shape[0], build_model.get_nmr_observations()), 'mot_float_type')
-                   }
+                   'estimates': Zeros((parameters.shape[0], build_model.get_nmr_observations()), 'mot_float_type')}
 
-    _get_simulate_function(build_model).evaluate(kernel_data, nmr_instances=parameters.shape[0])
+    _get_simulate_function(build_model).evaluate(kernel_data, parameters.shape[0])
     results = kernel_data['estimates'].get_data()
 
     return restore_volumes(results, input_data.mask)
@@ -86,7 +84,7 @@ def simulate_signals(model, protocol, parameters):
                    'estimates': Zeros((nmr_problems, build_model.get_nmr_observations()), 'mot_float_type')
                    }
 
-    _get_simulate_function(build_model).evaluate(kernel_data, nmr_instances=nmr_problems)
+    _get_simulate_function(build_model).evaluate(kernel_data, nmr_problems)
     return kernel_data['estimates'].get_data()
 
 
@@ -121,7 +119,7 @@ def _get_simulate_function(model):
     """
     eval_function_info = model.get_model_eval_function()
     return SimpleCLFunction.from_string('''
-        void simulate(mot_data_struct* data, local mot_float_type* parameters, global mot_float_type* estimates){
+        void simulate(void* data, local mot_float_type* parameters, global mot_float_type* estimates){
             for(uint i = 0; i < ''' + str(model.get_nmr_observations()) + '''; i++){
                 estimates[i] = ''' + eval_function_info.get_cl_function_name() + '''(data, parameters, i);
             }

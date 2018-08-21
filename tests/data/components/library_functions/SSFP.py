@@ -4,6 +4,7 @@ from numpy import cos, exp, sin
 from numpy.testing import assert_allclose
 import mdt
 from mot.configuration import CLRuntimeInfo
+from mot.lib.kernel_data import Array
 
 
 class test_SSFP(unittest.TestCase):
@@ -31,9 +32,11 @@ class test_SSFP(unittest.TestCase):
         ssfp = mdt.lib.components.get_component('library_functions', 'SSFP')()
 
         names = ['d', 'delta', 'G', 'TR', 'flip_angle', 'b1', 'T1', 'T2']
-        input_data = dict(zip(names, [test_params[..., ind] for ind in range(test_params.shape[1])]))
+        input_data = dict(zip(names, [Array(test_params[..., ind], as_scalar=True)
+                                      for ind in range(test_params.shape[1])]))
 
-        return ssfp.evaluate(input_data, cl_runtime_info=CLRuntimeInfo(double_precision=double_precision))
+        return ssfp.evaluate(input_data, test_params.shape[0],
+                             cl_runtime_info=CLRuntimeInfo(double_precision=double_precision))
 
     def _generate_test_params(self):
         """

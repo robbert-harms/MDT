@@ -63,7 +63,7 @@ class SampleVisualizer(object):
             self.names = names
         if maps_to_show:
             self.maps_to_show = maps_to_show
-        self.voxel_ind = voxel_ind
+        self.voxel_ind = int(voxel_ind)
         self._nmr_bins = nmr_bins or self._nmr_bins
         self._show_trace = show_trace
         self.show_sliders = show_sliders
@@ -88,7 +88,7 @@ class SampleVisualizer(object):
                 plt.show(True)
 
     def set_voxel(self, voxel_ind):
-        voxel_ind = round(voxel_ind)
+        voxel_ind = int(round(voxel_ind))
         if not self._updating_sliders:
             self._updating_sliders = True
             self.voxel_ind = int(round(voxel_ind))

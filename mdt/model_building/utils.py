@@ -18,7 +18,7 @@ def wrap_objective_function(objective_function, decode_function, nmr_parameters)
             .. code-block:: c
 
                 double <func_name>(local const mot_float_type* const x,
-                                   mot_data_struct* data,
+                                   void* data,
                                    local mot_float_type* objective_list);
         decode_function (mot.lib.cl_function.CLFunction): An OpenCL function that is used in the CL kernel to
                 transform the parameters from encoded space to model space so they can be used as input to the model.
@@ -26,7 +26,7 @@ def wrap_objective_function(objective_function, decode_function, nmr_parameters)
 
                 .. code-block:: c
 
-                    void <fname>(mot_data_struct* data, local mot_float_type* x);
+                    void <fname>(void* data, local mot_float_type* x);
 
         nmr_parameters (int): the number of parameters we are decoding.
 
@@ -36,7 +36,7 @@ def wrap_objective_function(objective_function, decode_function, nmr_parameters)
     return SimpleCLFunction.from_string('''
         double wrapped_''' + objective_function.get_cl_function_name() + '''(
                 local const mot_float_type* const x,
-                mot_data_struct* data, 
+                void* data, 
                 local mot_float_type* objective_list){
 
             local mot_float_type x_model[''' + str(nmr_parameters) + '''];
@@ -67,7 +67,7 @@ class ParameterCodec(object):
 
                 .. code-block:: c
 
-                    void <fname>(mot_data_struct* data, local mot_float_type* x);
+                    void <fname>(void* data, local mot_float_type* x);
 
             decode_func (mot.lib.cl_function.CLFunction): An OpenCL function that is used in the CL kernel to
                 transform the parameters from encoded space to model space so they can be used as input to the model.
@@ -75,7 +75,7 @@ class ParameterCodec(object):
 
                 .. code-block:: c
 
-                    void <fname>(mot_data_struct* data, local mot_float_type* x);
+                    void <fname>(void* data, local mot_float_type* x);
         """
         self._encode_func = encode_func
         self._decode_func = decode_func
@@ -90,7 +90,7 @@ class ParameterCodec(object):
 
                 .. code-block:: c
 
-                    void <fname>(mot_data_struct* data, local mot_float_type* x);
+                    void <fname>(void* data, local mot_float_type* x);
         """
         return self._encode_func
 
@@ -104,11 +104,11 @@ class ParameterCodec(object):
 
                 .. code-block:: c
 
-                    void <fname>(mot_data_struct* data, local mot_float_type* x);
+                    void <fname>(void* data, local mot_float_type* x);
         """
         return self._decode_func
 
-    def decode(self, parameters, kernel_data, cl_runtime_info=None):
+    def decode(self, parameters, kernel_data=None, cl_runtime_info=None):
         """Decode the given parameters using the given model.
 
         This transforms the data from optimization space to model space.
@@ -124,7 +124,7 @@ class ParameterCodec(object):
         return self._transform_parameters(self.get_decode_function(),
                                           parameters, kernel_data, cl_runtime_info=cl_runtime_info)
 
-    def encode(self, parameters, kernel_data, cl_runtime_info=None):
+    def encode(self, parameters, kernel_data=None, cl_runtime_info=None):
         """Encode the given parameters using the given model.
 
         This transforms the data from model space to optimization space.
@@ -157,7 +157,7 @@ class ParameterCodec(object):
         decode_func = codec.get_decode_function()
 
         func = SimpleCLFunction.from_string('''
-            void encode_decode_parameters(mot_data_struct* data, local mot_float_type* x){
+            void encode_decode_parameters(void* data, local mot_float_type* x){
                 ''' + encode_func.get_cl_function_name() + '''(data, x);
                 ''' + decode_func.get_cl_function_name() + '''(data, x);
             }
@@ -167,13 +167,13 @@ class ParameterCodec(object):
     @staticmethod
     def _transform_parameters(cl_func, parameters, kernel_data, cl_runtime_info=None):
         cl_named_func = SimpleCLFunction.from_string('''
-            void transformParameterSpace(mot_data_struct* data, local mot_float_type* x){
+            void transformParameterSpace(void* data, local mot_float_type* x){
                 ''' + cl_func.get_cl_function_name() + '''(data, x);
             }
         ''', dependencies=[cl_func])
 
-        kernel_data = {'data': dict(kernel_data or {}),
+        kernel_data = {'data': kernel_data,
                        'x': Array(parameters, ctype='mot_float_type', mode='rw')}
 
-        cl_named_func.evaluate(kernel_data, nmr_instances=parameters.shape[0], cl_runtime_info=cl_runtime_info)
+        cl_named_func.evaluate(kernel_data, parameters.shape[0], cl_runtime_info=cl_runtime_info)
         return kernel_data['x'].get_data()

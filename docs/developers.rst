@@ -21,7 +21,7 @@ For example::
                              'd':     1e-9,
                              'theta': 1,
                              'phi':   1
-                             })
+                             }, 1)
 
 In this example we loaded the ``Stick`` compartment from the MDT repository, instantiated it and evalauted it based on a dictionary of input elements.
 This :meth:`~mot.lib.cl_function.CLFunction.evaluate` method allows takes as input a dictionary of values (one for each function parameter) and executes the CL code based on those inputs.
@@ -34,7 +34,7 @@ For example::
                              'd':     [1e-9, 2e-9],
                              'theta': [1, 2],
                              'phi':   1
-                             })
+                             }, 2)
 
 In this example, the Stick model will be evaluated twice, first on the set of parameters::
 
@@ -59,7 +59,7 @@ and second, on the set of parameters::
 Using the evaluate function, you can also evaluate library functions::
 
     model = mdt.get_component('library_functions', 'SphericalToCartesian')()
-    result = model.evaluate({'theta': 0.5, 'phi': 0.5})
+    result = model.evaluate({'theta': 0.5, 'phi': 0.5}, 1)
 
 
 and composite models::
@@ -74,7 +74,7 @@ and composite models::
                              'Stick0.d': 1e-9,
                              'Stick0.theta': 0.5,
                              'Stick0.phi': 0.5
-                             })
+                             }, 1)
 
 
 Using the printf function

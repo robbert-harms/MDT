@@ -20,7 +20,7 @@ from mot.configuration import CLRuntimeInfo
 from mot.cl_routines.numerical_hessian import NumericalDerivativeInterface
 from mot.lib.utils import convert_data_to_dtype, \
     hessian_to_covariance, all_elements_equal, get_single_value
-from mot.lib.kernel_data import Array, Zeros, Scalar, LocalMemory
+from mot.lib.kernel_data import Array, Zeros, Scalar, LocalMemory, Struct
 
 from mdt.models.base import MissingProtocolInput
 from mdt.models.base import DMRIOptimizable
@@ -146,7 +146,7 @@ class DMRICompositeModel(DMRIOptimizable):
         """
         return CompositeModelFunction(self._model_tree, signal_noise_model=self._signal_noise_model)
 
-    def evaluate(self, inputs, cl_runtime_info=None):
+    def evaluate(self, inputs, nmr_instances, cl_runtime_info=None):
         """Evaluate this model for each set of given parameters.
 
         This is a shortcut for evaluating the composite model build by this builder. This gets the composite
@@ -157,6 +157,7 @@ class DMRICompositeModel(DMRIOptimizable):
                 the input data. Each of these input datasets must either be a scalar or be of equal length in the
                 first dimension. The user can either input raw ndarrays or input KernelData objects.
                 If an ndarray is given we will load it read/write by default.
+            nmr_instances (int): the number of parallel processes to run.
             cl_runtime_info (mot.configuration.CLRuntimeInfo): the runtime information for execution
 
         Returns:
@@ -165,7 +166,7 @@ class DMRICompositeModel(DMRIOptimizable):
                 we return a tuple with as first element the return value and as second element a dictionary mapping
                 the output state of the parameters.
         """
-        return self.get_composite_model_function().evaluate(inputs, cl_runtime_info=cl_runtime_info)
+        return self.get_composite_model_function().evaluate(inputs, nmr_instances, cl_runtime_info=cl_runtime_info)
 
     def build(self, voxels_to_analyze=None):
         if self._input_data is None:
@@ -235,7 +236,8 @@ class DMRICompositeModel(DMRIOptimizable):
         """
         def get_encode_function():
             func = '''
-                void parameter_encode(mot_data_struct* data, local mot_float_type* x){
+                void parameter_encode(void* data, local mot_float_type* x){
+                    _mdt_model_data* model_data = (_mdt_model_data*)data;
             '''
             if self._enforce_weights_sum_to_one:
                 func += self._get_weight_sum_to_one_transformation()
@@ -250,7 +252,8 @@ class DMRICompositeModel(DMRIOptimizable):
 
         def get_decode_function():
             func = '''
-                void parameter_decode(mot_data_struct* data, local mot_float_type* x){
+                void parameter_decode(void* data, local mot_float_type* x){
+                    _mdt_model_data* model_data = (_mdt_model_data*)data;
             '''
             for d in self._get_parameter_transformations()[1]:
                 func += "\n" + "\t" * 4 + d.format('x')
@@ -824,7 +827,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
             return param_names, param_indices
 
-        body = ''
+        body = '_mdt_model_data* model_data = (_mdt_model_data*)data;'
 
         for name, ind in zip(*get_parameter_names_indices()):
             body += 'mot_float_type {} = x[{}]; \n'.format(name, str(ind))
@@ -835,7 +838,7 @@ class DMRICompositeModel(DMRIOptimizable):
             body += 'x[{}] = {}; \n'.format(str(ind), name)
 
         return SimpleCLFunction('void', 'finalizeProposal',
-                                [('mot_data_struct*', 'data'),
+                                [('void*', 'data'),
                                  ('local mot_float_type*', 'x')],
                                 body, dependencies=[func for _, func in self._proposal_callbacks])
 
@@ -967,7 +970,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
         if self._model_functions_info.is_fixed_to_value('{}.{}'.format(m.name, p.name)):
             param_name = '{}.{}'.format(m.name, p.name).replace('.', '_')
-            return '(' + data_type + ') data->{}'.format(param_name)
+            return '(' + data_type + ') model_data->{}'.format(param_name)
         elif self._model_functions_info.is_fixed_to_dependency(m, p):
             return self._get_dependent_parameters_listing(((m, p),))
 
@@ -982,7 +985,7 @@ class DMRICompositeModel(DMRIOptimizable):
         assignment = ''
 
         if isinstance(p, ProtocolParameter):
-            assignment = 'data->' + p.name + '[observation_index]'
+            assignment = 'model_data->' + p.name + '[observation_index]'
         elif isinstance(p, FreeParameter):
             assignment = self._get_free_parameter_assignment_value(m, p)
 
@@ -1041,12 +1044,12 @@ class DMRICompositeModel(DMRIOptimizable):
 
                 if p.name not in protocol_params_seen:
                     if all_elements_equal(value):
-                        assignment = 'data->protocol.' + p.name
+                        assignment = 'model_data->protocol->' + p.name
                     elif len(value.shape) > 1 and value.shape[0] == self._input_data.nmr_problems and \
                             value.shape[1] != self._input_data.nmr_observations:
-                        assignment = 'data->protocol.' + p.name + '[0]'
+                        assignment = 'model_data->protocol->' + p.name + '[0]'
                     else:
-                        assignment = 'data->protocol.' + p.name + '[observation_index]'
+                        assignment = 'model_data->protocol->' + p.name + '[observation_index]'
                     func += "\t"*4 + data_type + ' ' + p.name + ' = ' + assignment + ';' + "\n"
                     protocol_params_seen.append(p.name)
         return func
@@ -1065,7 +1068,7 @@ class DMRICompositeModel(DMRIOptimizable):
             if name not in exclude_list:
                 data_type = p.data_type.raw_data_type
                 param_name = '{}.{}'.format(m.name, p.name).replace('.', '_')
-                assignment = 'data->{}'.format(param_name)
+                assignment = 'model_data->{}'.format(param_name)
                 func += "\t"*4 + data_type + ' ' + name + ' = ' + assignment + ';' + "\n"
         return func
 
@@ -1160,7 +1163,7 @@ class DMRICompositeModel(DMRIOptimizable):
             if isinstance(param, ProtocolParameter):
                 param_list.append(param.name)
             elif isinstance(param, CurrentObservationParam):
-                param_list.append('data->observations[observation_index]')
+                param_list.append('model_data->observations[observation_index]')
             elif isinstance(param, FreeParameter):
                 param_list.append(param_name)
 
@@ -1186,7 +1189,7 @@ class DMRICompositeModel(DMRIOptimizable):
                 else:
                     return str(get_single_value(self._lower_bounds[parameter_name]))
             else:
-                return 'data->bounds.lb_{}'.format(parameter_name.replace('.', '_'))
+                return 'model_data->bounds->lb_{}'.format(parameter_name.replace('.', '_'))
         else:
             if all_elements_equal(self._upper_bounds[parameter_name]):
                 if np.isposinf(get_single_value(self._upper_bounds[parameter_name])):
@@ -1194,7 +1197,7 @@ class DMRICompositeModel(DMRIOptimizable):
                 else:
                     return str(get_single_value(self._upper_bounds[parameter_name]))
             else:
-                return 'data->bounds.ub_{}'.format(parameter_name.replace('.', '_'))
+                return 'model_data->bounds->ub_{}'.format(parameter_name.replace('.', '_'))
 
     def _get_max_numdiff_step(self):
         """Get the numerical differentiation step for each parameter.
@@ -1248,7 +1251,7 @@ class DMRICompositeModel(DMRIOptimizable):
             mot.lib.cl_function.CLFunction: A function with the signature:
                 .. code-block:: c
 
-                    void <func_name>(mot_data_struct* data, mot_float_type* params);
+                    void <func_name>(void* data, mot_float_type* params);
 
                 Where the data is the kernel data struct and params is the vector with the suggested parameters and
                 which can be modified in place. Note that this is called two times, one with the parameters plus
@@ -1262,7 +1265,7 @@ class DMRICompositeModel(DMRIOptimizable):
                     '({div} * floor(params[{ind}] / {div})));'.format(ind=ind, div=p.numdiff_info.modulus))
 
         func_name = 'param_transform'
-        return SimpleCLFunction('void', func_name, [('mot_data_struct*', 'data'), ('local mot_float_type*', 'params')],
+        return SimpleCLFunction('void', func_name, [('void*', 'data'), ('local mot_float_type*', 'params')],
                                 '\n'.join(transforms))
 
     def _get_log_likelihood_function(self, include_constant_terms, support_for_objective_list, negative_ll):
@@ -1279,9 +1282,11 @@ class DMRICompositeModel(DMRIOptimizable):
         cl_body = '''
             double getObjectiveInstanceValue(
                     local const mot_float_type* const x,
-                    mot_data_struct* data
+                    void* data
                     ''' + (', local mot_float_type* objective_list' if support_for_objective_list else '') + '''){
-
+                
+                _mdt_model_data* model_data = (_mdt_model_data*)data;
+                
                 ''' + param_listing + '''
                 
                 const uint nmr_observations = ''' + str(self.get_nmr_observations()) + ''';
@@ -1290,17 +1295,17 @@ class DMRICompositeModel(DMRIOptimizable):
                     
                 double eval;
                 uint observation_ind;
-                data->local_tmp[local_id] = 0;
+                model_data->local_tmp[local_id] = 0;
                 
                 for(uint i = 0; i < ceil(nmr_observations / (mot_float_type)workgroup_size) 
                                 && (observation_ind = i * workgroup_size + local_id) < nmr_observations; i++){
                                 
                     eval = ''' + ('-' if negative_ll else '') + ''' ''' + eval_model_func.get_cl_function_name() + '''(
-                                data->observations[observation_ind], 
+                                model_data->observations[observation_ind], 
                                 ''' + eval_function_info.get_cl_function_name() + '''(data, x, observation_ind),'''\
                                 + ','.join(eval_call_args) + ''');
                                 
-                    data->local_tmp[local_id] += eval;
+                    model_data->local_tmp[local_id] += eval;
                     
                     ''' + ('''
                     if(objective_list){
@@ -1315,7 +1320,7 @@ class DMRICompositeModel(DMRIOptimizable):
                 if(local_id == 0){
                     sum = 0;
                     for(uint i = 0; i < workgroup_size; i++){
-                        sum += data->local_tmp[i];
+                        sum += model_data->local_tmp[i];
                     }   
                 }
                 barrier(CLK_LOCAL_MEM_FENCE);
@@ -1335,7 +1340,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
                 .. code-block:: c
 
-                    double <func_name>(mot_data_struct* data, const mot_float_type* const x, uint observation_index);
+                    double <func_name>(void* data, const mot_float_type* const x, uint observation_index);
         """
         protocol_cbs = self._get_protocol_update_callbacks()
         composite_model_function = self.get_composite_model_function()
@@ -1346,7 +1351,7 @@ class DMRICompositeModel(DMRIOptimizable):
                 call_args.append('&{}'.format(protocol_parameter_name))
 
             for key, value in callback.get_kernel_input_data().items():
-                call_args.append('data->protocol_update_cbs.cb{}_{}'.format(str(callback_index), key))
+                call_args.append('model_data->protocol_update_cbs->cb{}_{}'.format(str(callback_index), key))
 
             call_args.append('observation_index')
 
@@ -1358,7 +1363,7 @@ class DMRICompositeModel(DMRIOptimizable):
                 exclude_list=['{}.{}'.format(m.name, p.name).replace('.', '_') for (m, p) in
                               self._model_functions_info.get_non_model_eval_param_listing()])
 
-            body = ''
+            body = '_mdt_model_data* model_data = (_mdt_model_data*)data;'
             body += dedent(param_listing.replace('\t', ' ' * 4)) + '\n'
 
             for ind, cb in enumerate(protocol_cbs):
@@ -1370,7 +1375,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
         return SimpleCLFunction(
             'double', '_evaluateModel',
-            [('mot_data_struct*', 'data'),
+            [('void*', 'data'),
              ('local const mot_float_type* const', 'x'),
              ('uint', 'observation_index')],
             get_function_body(),
@@ -1437,7 +1442,7 @@ class DMRICompositeModel(DMRIOptimizable):
         data_items.update({'bounds': self._get_bounds_as_var_data(voxels_to_analyze)})
         data_items.update({'protocol': self._get_protocol_data_as_var_data(voxels_to_analyze)})
         data_items.update({'protocol_update_cbs': self._get_protocol_update_callbacks_kernel_inputs(voxels_to_analyze)})
-        return data_items
+        return Struct(data_items, '_mdt_model_data')
 
     def _get_initial_parameters(self, voxels_to_analyze):
         np_dtype = np.float32
@@ -1482,7 +1487,8 @@ class DMRICompositeModel(DMRIOptimizable):
             return cl_str
 
         def get_body():
-            cl_str = 'mot_float_type prior = 1.0;\n'
+            cl_str = '_mdt_model_data* model_data = (_mdt_model_data*)data;\n' \
+                     'mot_float_type prior = 1.0;\n'
             for i, (m, p) in enumerate(self._model_functions_info.get_estimable_parameters_list()):
                 name = '{}.{}'.format(m.name, p.name)
 
@@ -1498,7 +1504,7 @@ class DMRICompositeModel(DMRIOptimizable):
                             estimable_index = self._model_functions_info.get_parameter_estimable_index(m, prior_param)
                             prior_params.append('x[{}]'.format(estimable_index))
                         else:
-                            prior_params.append('data->{}.{}'.format(m.name, prior_param.name).replace('.', '_'))
+                            prior_params.append('model_data->{}.{}'.format(m.name, prior_param.name).replace('.', '_'))
 
                     cl_str += 'prior *= {}(x[{}], {}, {}, {});\n'.format(function_name, i, lower_bound, upper_bound,
                                                                          ', '.join(prior_params))
@@ -1521,7 +1527,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
         return SimpleCLFunction(
             'mot_float_type', 'getLogPrior',
-            [('local const mot_float_type* const', 'x'), ('mot_data_struct*', 'data')],
+            [('local const mot_float_type* const', 'x'), ('void*', 'data')],
             get_body(), cl_extra=get_preliminary())
 
     def _get_weight_prior(self):
@@ -2587,31 +2593,25 @@ def calculate_dependent_parameters(kernel_data, estimated_parameters_list,
     Returns:
         dict: A dictionary with the calculated maps for the dependent parameters.
     """
-
     def get_cl_function():
         parameter_write_out = ''
         for i, p in enumerate([el[0] for el in dependent_parameter_names]):
-            parameter_write_out += 'data->_results[' + str(i) + '] = ' + p + ";\n"
+            parameter_write_out += 'results[' + str(i) + '] = ' + p + ";\n"
 
         return SimpleCLFunction.from_string('''
-            void transform(mot_data_struct* data){
-                mot_float_type x[''' + str(len(estimated_parameters_list)) + '''];
-                
-                for(uint i = 0; i < ''' + str(len(estimated_parameters_list)) + '''; i++){
-                    x[i] = data->x[i];
-                }
+            void transform(private mot_float_type* x, global mot_float_type* results, void* data){
+                _mdt_model_data* model_data = (_mdt_model_data*)data;
                 
                 ''' + parameters_listing + '''
                 ''' + parameter_write_out + '''
             }
         ''')
 
-    data_struct = dict(kernel_data)
-    data_struct['x'] = Array(np.dstack(estimated_parameters_list)[0, ...], ctype='mot_float_type')
-    data_struct['_results'] = Zeros(
-        (estimated_parameters_list[0].shape[0], len(dependent_parameter_names)), 'mot_float_type')
+    data_struct = {
+        'data': kernel_data,
+        'x': Array(np.dstack(estimated_parameters_list)[0, ...], ctype='mot_float_type'),
+        'results': Zeros((estimated_parameters_list[0].shape[0], len(dependent_parameter_names)), 'mot_float_type')
+    }
 
-    get_cl_function().evaluate({'data': data_struct}, nmr_instances=estimated_parameters_list[0].shape[0],
-                               cl_runtime_info=cl_runtime_info)
-
-    return data_struct['_results'].get_data()
+    get_cl_function().evaluate(data_struct, estimated_parameters_list[0].shape[0], cl_runtime_info=cl_runtime_info)
+    return data_struct['results'].get_data()
