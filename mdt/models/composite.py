@@ -180,7 +180,7 @@ class DMRICompositeModel(DMRIOptimizable):
                                    self._get_initial_parameters(voxels_to_analyze),
                                    self.get_lower_bounds(),
                                    self.get_upper_bounds(),
-                                   self._get_max_numdiff_step(),
+                                   self._get_numdiff_max_step_sizes(),
                                    self._get_numdiff_scaling_factors(),
                                    self._get_numdiff_use_bounds(),
                                    self._get_numdiff_use_lower_bounds(),
@@ -426,20 +426,16 @@ class DMRICompositeModel(DMRIOptimizable):
         return self._input_data
 
     def get_nmr_observations(self):
-        """See super class for details"""
         return self._input_data.nmr_observations
 
     def get_nmr_parameters(self):
-        """See super class for details"""
         return len(self._model_functions_info.get_estimable_parameters_list())
 
     def get_lower_bounds(self):
-        """See super class for details"""
         return [self._lower_bounds['{}.{}'.format(m.name, p.name)] for m, p in
                 self._model_functions_info.get_estimable_parameters_list()]
 
     def get_upper_bounds(self):
-        """See super class for details"""
         return [self._upper_bounds['{}.{}'.format(m.name, p.name)] for m, p in
                 self._model_functions_info.get_estimable_parameters_list()]
 
@@ -1199,7 +1195,7 @@ class DMRICompositeModel(DMRIOptimizable):
             else:
                 return 'model_data->bounds->ub_{}'.format(parameter_name.replace('.', '_'))
 
-    def _get_max_numdiff_step(self):
+    def _get_numdiff_max_step_sizes(self):
         """Get the numerical differentiation step for each parameter.
 
         Returns:
@@ -1548,7 +1544,7 @@ class BuildCompositeModel(NumericalDerivativeInterface):
     def __init__(self, used_problem_indices, name, input_data,
                  kernel_data_info, nmr_observations,
                  initial_parameters,
-                 lower_bounds, upper_bounds, numdiff_step,
+                 lower_bounds, upper_bounds, numdiff_max_step_sizes,
                  numdiff_scaling_factors, numdiff_use_bounds, numdiff_use_lower_bounds,
                  numdiff_use_upper_bounds, numdiff_param_transform, estimable_parameters_list,
                  nmr_parameters_for_bic_calculation,
@@ -1567,7 +1563,7 @@ class BuildCompositeModel(NumericalDerivativeInterface):
         self._initial_parameters = initial_parameters
         self._lower_bounds = lower_bounds
         self._upper_bounds = upper_bounds
-        self._numdiff_step = numdiff_step
+        self._numdiff_max_step_sizes = numdiff_max_step_sizes
         self._numdiff_scaling_factors = numdiff_scaling_factors
         self._numdiff_use_bounds = numdiff_use_bounds
         self._numdiff_use_lower_bounds = numdiff_use_lower_bounds
@@ -1608,23 +1604,8 @@ class BuildCompositeModel(NumericalDerivativeInterface):
     def get_upper_bounds(self):
         return self._upper_bounds
 
-    def numdiff_get_max_step(self):
-        return self._numdiff_step
-
-    def numdiff_get_scaling_factors(self):
-        return self._numdiff_scaling_factors
-
-    def numdiff_use_bounds(self):
-        return self._numdiff_use_bounds
-
     def numdiff_parameter_transformation(self):
         return self._numdiff_param_transform
-
-    def numdiff_use_upper_bounds(self):
-        return self._numdiff_use_upper_bounds
-
-    def numdiff_use_lower_bounds(self):
-        return self._numdiff_use_lower_bounds
 
     def get_log_likelihood_function(self):
         return self._ll_function
@@ -1860,16 +1841,28 @@ class BuildCompositeModel(NumericalDerivativeInterface):
         Args:
             results_dict (dict): the list with the optimized points for each parameter
         """
+        lower_bounds = self.get_lower_bounds()
+        for ind in range(len(lower_bounds)):
+            if not self._numdiff_use_bounds[ind] or not self._numdiff_use_lower_bounds[ind]:
+                lower_bounds[ind] = None
+
+        upper_bounds = self.get_upper_bounds()
+        for ind in range(len(upper_bounds)):
+            if not self._numdiff_use_bounds[ind] or not self._numdiff_use_upper_bounds[ind]:
+                upper_bounds[ind] = None
+
         hessian = numerical_hessian(
             self,
             self._objective_function,
             results_array,
-            self.get_lower_bounds(),
-            self.get_upper_bounds(),
+            lower_bounds,
+            upper_bounds,
             step_ratio=2,
             nmr_steps=5,
             data=self.get_kernel_data(),
             step_offset=0,
+            max_step_sizes=self._numdiff_max_step_sizes,
+            scaling_factors=self._numdiff_scaling_factors,
             cl_runtime_info=CLRuntimeInfo(double_precision=True)
         )
         covars, is_singular = hessian_to_covariance(hessian, output_singularity=True)
