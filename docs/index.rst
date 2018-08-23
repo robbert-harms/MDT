@@ -16,9 +16,9 @@ Introduction
 
     install
     getting_started
-    advanced_usage
     concepts
     adding_models
+    advanced_usage
     configuration
     FAQ <faq>
     changelog
