@@ -2,6 +2,17 @@
 Changelog
 *********
 
+v0.14.3 (2018-08-23)
+====================
+This version is significantly faster than previous versions when run using a GPU. All users are recommended to update
+to this version.
+
+Other
+-----
+- Following changes in MOT.
+- Small cosmetic improvement in the C code.
+
+
 v0.14.2 (2018-08-17)
 ====================
 
