@@ -249,7 +249,7 @@ class DTIMeasures(object):
 
         d, dperp0, dperp1 = (np.squeeze(el).astype(np.float64) for el in [d, dperp0, dperp1])
 
-        return np.stack([
+        gradient = np.stack([
             (d ** 2 * (dperp0 + dperp1) + 2 * d * dperp0 * dperp1 - dperp0 ** 3
              - dperp0 ** 2 * dperp1 - dperp0 * dperp1 ** 2 - dperp1 ** 3)
             / (2 * (d ** 2 + dperp0 ** 2 + dperp1 ** 2) ** (3 / 2.)
@@ -264,6 +264,10 @@ class DTIMeasures(object):
                * np.sqrt(d ** 2 - d * (dperp0 + dperp1) + dperp0 ** 2 - dperp0 * dperp1 + dperp1 ** 2))
         ], axis=-1)
 
+        if len(gradient.shape) < 2:
+            return gradient[None, :]
+        return gradient
+
     @staticmethod
     def _get_diffusivities_covariance_matrix(d_std, dperp0_std, dperp1_std, covariances=None):
         """Get the covariance matrix of the diffusivities.
@@ -272,7 +276,7 @@ class DTIMeasures(object):
         """
         d_std, dperp0_std, dperp1_std = (np.squeeze(el) for el in [d_std, dperp0_std, dperp1_std])
 
-        covars = np.zeros((d_std.shape[0], 3, 3)).astype(np.float64)
+        covars = np.zeros((1 if not len(d_std.shape) else d_std.shape[0], 3, 3)).astype(np.float64)
         covars[:, 0, 0] = d_std
         covars[:, 1, 1] = dperp0_std
         covars[:, 2, 2] = dperp1_std
