@@ -5,7 +5,7 @@ The Microstructure Diffusion Toolbox, MDT, (formerly known as the Maastricht Dif
 MDT's object oriented and modular design allows arbitrary user specification and combination of biophysical MRI compartment models, diffusion- and T1, T2, T2* based microstructure models,
 likelihood functions and optimization algorithms.
 MDT was designed with compatibility in mind and adheres to input, output and variable naming conventions used by other related software tools.
-Many diffusion and relaxometry microstructure models are included, and new models can be added simply by adding Python script files.
+Many diffusion and relaxometry microstructure models are included, and new models can be added dynamically.
 MDT can be extended to other modalities and other parametric models estimated from data volumes varying along controlled parameters (such as b-values, diffusion times, TE, TM, flip angle, etc).
 The parallelized accelerated computations allow for tens to hundred times faster model fitting, even on standard GPU (and/or CPU) hardware, making MDT ideal for large group studies or population studies.
 
@@ -16,9 +16,11 @@ Summary
 * HCP pipelines
 * Comes with ActiveAx, CHARMED, NODDI, Ball&Sticks, Kurtosis and Tensor models.
 * GUI, command line and python interface
-* Easy modeling language
+* Dynamically add your own models
 * Free Open Source Software: LGPL v3 license
 * Python and OpenCL based
+* Gaussian, Offset-Gaussian and Rician noise models
+* Supports hyperpriors on parameters
 * Tags: diffusion, dMRI, MRI, optimization, parallel, opencl, python
 
 
