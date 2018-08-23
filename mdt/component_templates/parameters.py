@@ -132,7 +132,7 @@ class FreeParameterTemplate(ParameterTemplate):
     sampling_proposal_std = 1
     sampling_proposal_modulus = None
     sampling_prior = UniformWithinBoundsPrior()
-    numdiff_info = {'max_step': 0.1, 'scale_factor': 1, 'use_bounds': True, 'modulus': None,
+    numdiff_info = {'max_step': 0.1, 'scale_factor': 1, 'use_bounds': True,
                     'use_upper_bound': True, 'use_lower_bound': True}
 
 

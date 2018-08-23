@@ -17,7 +17,6 @@ from mot.lib.cl_function import SimpleCLFunction, SimpleCLFunctionParameter
 from mot.cl_routines import compute_log_likelihood, numerical_hessian
 from mdt.model_building.parameters import ProtocolParameter, FreeParameter, CurrentObservationParam
 from mot.configuration import CLRuntimeInfo
-from mot.cl_routines.numerical_hessian import NumericalDerivativeInterface
 from mot.lib.utils import convert_data_to_dtype, \
     hessian_to_covariance, all_elements_equal, get_single_value
 from mot.lib.kernel_data import Array, Zeros, Scalar, LocalMemory, Struct
@@ -185,7 +184,6 @@ class DMRICompositeModel(DMRIOptimizable):
                                    self._get_numdiff_use_bounds(),
                                    self._get_numdiff_use_lower_bounds(),
                                    self._get_numdiff_use_upper_bounds(),
-                                   self._get_numdiff_param_transform(),
                                    self._model_functions_info.get_estimable_parameters_list(),
                                    self.nmr_parameters_for_bic_calculation,
                                    self._post_optimization_modifiers,
@@ -1240,30 +1238,6 @@ class DMRICompositeModel(DMRIOptimizable):
         """
         return [p.numdiff_info.use_lower_bound for _, p in self._model_functions_info.get_estimable_parameters_list()]
 
-    def _get_numdiff_param_transform(self):
-        """Get the parameter transformation for use in the numerical differentiation algorithm.
-
-        Returns:
-            mot.lib.cl_function.CLFunction: A function with the signature:
-                .. code-block:: c
-
-                    void <func_name>(void* data, mot_float_type* params);
-
-                Where the data is the kernel data struct and params is the vector with the suggested parameters and
-                which can be modified in place. Note that this is called two times, one with the parameters plus
-                the step and one time without.
-        """
-        transforms = []
-        for ind, (_, p) in enumerate(self._model_functions_info.get_estimable_parameters_list()):
-            if p.numdiff_info.modulus is not None and p.numdiff_info.modulus > 0:
-                transforms.append(
-                    'params[{ind}] = (params[{ind}] - '
-                    '({div} * floor(params[{ind}] / {div})));'.format(ind=ind, div=p.numdiff_info.modulus))
-
-        func_name = 'param_transform'
-        return SimpleCLFunction('void', func_name, [('void*', 'data'), ('local mot_float_type*', 'params')],
-                                '\n'.join(transforms))
-
     def _get_log_likelihood_function(self, include_constant_terms, support_for_objective_list, negative_ll):
         eval_function_info = self._get_model_eval_function()
         eval_model_func = self._likelihood_function.get_log_likelihood_function(
@@ -1539,14 +1513,14 @@ class DMRICompositeModel(DMRIOptimizable):
         return None
 
 
-class BuildCompositeModel(NumericalDerivativeInterface):
+class BuildCompositeModel(object):
 
     def __init__(self, used_problem_indices, name, input_data,
                  kernel_data_info, nmr_observations,
                  initial_parameters,
                  lower_bounds, upper_bounds, numdiff_max_step_sizes,
                  numdiff_scaling_factors, numdiff_use_bounds, numdiff_use_lower_bounds,
-                 numdiff_use_upper_bounds, numdiff_param_transform, estimable_parameters_list,
+                 numdiff_use_upper_bounds, estimable_parameters_list,
                  nmr_parameters_for_bic_calculation,
                  post_optimization_modifiers, extra_optimization_maps, extra_sampling_maps,
                  dependent_map_calculator, fixed_parameter_maps,
@@ -1568,7 +1542,6 @@ class BuildCompositeModel(NumericalDerivativeInterface):
         self._numdiff_use_bounds = numdiff_use_bounds
         self._numdiff_use_lower_bounds = numdiff_use_lower_bounds
         self._numdiff_use_upper_bounds = numdiff_use_upper_bounds
-        self._numdiff_param_transform = numdiff_param_transform
         self._estimable_parameters_list = estimable_parameters_list
         self.nmr_parameters_for_bic_calculation = nmr_parameters_for_bic_calculation
         self._post_optimization_modifiers = post_optimization_modifiers
@@ -1603,9 +1576,6 @@ class BuildCompositeModel(NumericalDerivativeInterface):
 
     def get_upper_bounds(self):
         return self._upper_bounds
-
-    def numdiff_parameter_transformation(self):
-        return self._numdiff_param_transform
 
     def get_log_likelihood_function(self):
         return self._ll_function
@@ -1852,17 +1822,17 @@ class BuildCompositeModel(NumericalDerivativeInterface):
                 upper_bounds[ind] = None
 
         hessian = numerical_hessian(
-            self,
             self._objective_function,
             results_array,
-            lower_bounds,
-            upper_bounds,
+            lower_bounds=lower_bounds,
+            upper_bounds=upper_bounds,
             step_ratio=2,
             nmr_steps=5,
             data=self.get_kernel_data(),
             step_offset=0,
             max_step_sizes=self._numdiff_max_step_sizes,
             scaling_factors=self._numdiff_scaling_factors,
+            parameter_transform_func=self._finalize_proposal_function,
             cl_runtime_info=CLRuntimeInfo(double_precision=True)
         )
         covars, is_singular = hessian_to_covariance(hessian, output_singularity=True)

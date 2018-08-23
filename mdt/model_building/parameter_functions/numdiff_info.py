@@ -41,39 +41,22 @@ class NumDiffInfo(object):
         """
         raise NotImplementedError()
 
-    @property
-    def modulus(self):
-        """Set this to a float value > 0 if this parameter wraps around the given value.
-
-        This is useful for for example angles that wrap around pi or 2*pi. In that case, use_bounds can be set to False
-        and using the modulus you can wrap the parameter around.
-
-        This modulus is used on the point estimate of the parameter plus/minus the step size.
-
-        Returns:
-            None or float: None if not needed, float > 0 if this parameter is supposed to wrap around.
-        """
-        raise NotImplementedError()
-
 
 class SimpleNumDiffInfo(NumDiffInfo):
 
-    def __init__(self, max_step=0.1, scale_factor=1, use_bounds=True, modulus=None,
-                 use_lower_bound=True, use_upper_bound=True):
+    def __init__(self, max_step=0.1, scale_factor=1, use_bounds=True, use_lower_bound=True, use_upper_bound=True):
         """A basic implementation of the numerical differentiation info for a parameter.
 
         Args:
             max_step (float): the numerical differentiation step size
             scale_factor (float): a scaling factor to rescale the parameter a unitary range
             use_bounds (boolean): if we need to use the boundary condition for this parameter
-            modulus (float): if this parameter wraps around a certain value, set this to a value > 0.
             use_lower_bound (boolean): if we are using bounds, if we are using the lower bound
             use_upper_bound (boolean): if we are using bounds, if we are using the upper bound
         """
         self._numdiff_step = max_step
         self._scale_factor = scale_factor
         self._use_bounds = use_bounds
-        self._modulus = modulus
         self._use_lower_bound = use_lower_bound
         self._use_upper_bound = use_upper_bound
 
@@ -88,10 +71,6 @@ class SimpleNumDiffInfo(NumDiffInfo):
     @property
     def use_bounds(self):
         return self._use_bounds
-
-    @property
-    def modulus(self):
-        return self._modulus
 
     @property
     def use_lower_bound(self):

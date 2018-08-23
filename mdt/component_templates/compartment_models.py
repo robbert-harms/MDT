@@ -94,8 +94,8 @@ class CompartmentBuilder(ComponentBuilder):
                 if p.name == param_name:
                     return p
 
-        if template.spherical_proposal_params is not None and existing_parameters(template.spherical_proposal_params):
-            corresponding_params = [get_corresponding_param(p) for p in template.spherical_proposal_params]
+        if template.spherical_parameters is not None and existing_parameters(template.spherical_parameters):
+            corresponding_params = [get_corresponding_param(p) for p in template.spherical_parameters]
 
             func = SimpleCLFunction(
                 'void',
@@ -240,11 +240,12 @@ class CompartmentTemplate(ComponentTemplate):
                 extra_sampling_maps = [lambda s: {'MD': np.mean((s['d'] + s['dperp0'] + s['dperp1'])/3., axis=1)}
                                       ...]
 
-        spherical_proposal_params (tuple or None): if None, this feature is disabled. If set, it should be a tuple
+        spherical_parameters (tuple or None): if None, this feature is disabled. If set, it should be a tuple
             with two elements for the name of the inclination and the azimuth parameters in the compartment model
             (defaults to 'theta' and 'phi'). If set to such a tuple, the compartment model will automatically add a
             proposal callback function that ensures that the these spherical coordinates are sampled correctly for
-            values near theta == PI.
+            values near theta == PI. Additionally, this callback function is used when computing the numerical
+            derivative.
 
     """
     _component_type = 'compartment_models'
@@ -261,7 +262,7 @@ class CompartmentTemplate(ComponentTemplate):
     post_optimization_modifiers = []
     extra_optimization_maps = []
     extra_sampling_maps = []
-    spherical_proposal_params = ('theta', 'phi')
+    spherical_parameters = ('theta', 'phi')
 
 
 class WeightCompartmentTemplate(ComponentTemplate):
