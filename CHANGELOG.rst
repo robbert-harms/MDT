@@ -2,6 +2,14 @@
 Changelog
 *********
 
+v0.14.5 (2018-08-24)
+====================
+
+Added
+-----
+- Adds support for weighted objective function computations during model fitting and sampling.
+
+
 v0.14.4 (2018-08-24)
 ====================
 
