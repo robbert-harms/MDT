@@ -2,6 +2,18 @@
 Changelog
 *********
 
+v0.14.4 (2018-08-24)
+====================
+
+Added
+-----
+- Adds the NODDI-DTI kappa and odi conversion.
+
+Other
+-----
+- Support for complex numbers in model functions using PyOpenCL.
+
+
 v0.14.3 (2018-08-23)
 ====================
 This version is significantly faster than previous versions when run using a GPU. All users are recommended to update
