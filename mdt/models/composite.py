@@ -501,7 +501,7 @@ class DMRICompositeModel(DMRIOptimizable):
         """Get the proposal callback for the gradient deformations.
 
         Returns:
-            ProtocolAdaptionCallbacks: the proposal adaption callback for the gradient deformations.
+            ProtocolAdaptionCallbacks: the protocol adaption callback for the gradient deformations.
         """
         if self._input_data.gradient_deviations is None:
             return None
@@ -1269,12 +1269,15 @@ class DMRICompositeModel(DMRIOptimizable):
                 
                 for(uint i = 0; i < ceil(nmr_observations / (mot_float_type)workgroup_size) 
                                 && (observation_ind = i * workgroup_size + local_id) < nmr_observations; i++){
-                                
+                    
                     eval = ''' + ('-' if negative_ll else '') + ''' ''' + eval_model_func.get_cl_function_name() + '''(
                                 model_data->observations[observation_ind], 
                                 ''' + eval_function_info.get_cl_function_name() + '''(data, x, observation_ind),'''\
                                 + ','.join(eval_call_args) + ''');
-                                
+                    
+                    ''' + ('eval *= model_data->volume_weights[observation_ind];'
+                            if self._input_data.volume_weights is not None else '') + ''';
+                    
                     model_data->local_tmp[local_id] += eval;
                     
                     ''' + ('''
@@ -1406,12 +1409,18 @@ class DMRICompositeModel(DMRIOptimizable):
         return len(voxels_to_analyze)
 
     def _get_kernel_data(self, voxels_to_analyze):
-        data_items = {'local_tmp': LocalMemory('double')}
+        data_items = {
+            'local_tmp': LocalMemory('double'),
+            'bounds': self._get_bounds_as_var_data(voxels_to_analyze),
+            'protocol': self._get_protocol_data_as_var_data(voxels_to_analyze),
+            'protocol_update_cbs': self._get_protocol_update_callbacks_kernel_inputs(voxels_to_analyze)
+        }
         data_items.update(self._get_observations_data(voxels_to_analyze))
         data_items.update(self._get_fixed_parameters_as_var_data(voxels_to_analyze))
-        data_items.update({'bounds': self._get_bounds_as_var_data(voxels_to_analyze)})
-        data_items.update({'protocol': self._get_protocol_data_as_var_data(voxels_to_analyze)})
-        data_items.update({'protocol_update_cbs': self._get_protocol_update_callbacks_kernel_inputs(voxels_to_analyze)})
+
+        if self._input_data.volume_weights is not None:
+            data_items.update({'volume_weights': Array(self._input_data.volume_weights, 'half')})
+
         return Struct(data_items, '_mdt_model_data')
 
     def _get_initial_parameters(self, voxels_to_analyze):

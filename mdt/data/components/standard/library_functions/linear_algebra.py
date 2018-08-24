@@ -140,3 +140,58 @@ class CartesianPolarDotProduct(LibraryFunctionTemplate):
         
         return (v0_x * (cos_phi * sin_theta)) + (v0_y * (sin_phi * sin_theta)) + (v0_z * cos_theta);
     '''
+
+
+class EigenvaluesSymmetric3x3(LibraryFunctionTemplate):
+    description = '''
+        Calculate the eigenvalues of a symmetric 3x3 matrix. 
+
+        This simple algorithm only works in case of a real and symmetric matrix. 
+
+        This returns the eigenvalues such that eig1 >= eig2 >= eig3, i.e. from large to small.
+
+        References:
+            [1]: https://en.wikipedia.org/wiki/Eigenvalue_algorithm#3.C3.973_matrices
+            [2]: Smith, Oliver K. (April 1961), "Eigenvalues of a symmetric 3 × 3 matrix.", Communications of the ACM, 
+                 4 (4): 168, doi:10.1145/355578.366316
+
+        Args:
+            A: the matrix as an array in c/row-major order
+            v: the output eigenvalues as a vector of three elements.            
+    '''
+    parameters = [('mot_float_type*', 'A'),
+                  ('mot_float_type*', 'v')]
+    cl_code = '''
+        double p1 = (A[1] * A[1]) + (A[2] * A[2]) + (A[5] * A[5]);
+
+        if (p1 == 0.0){
+            v[0] = A[0];
+            v[1] = A[4];
+            v[2] = A[8];
+            return;
+        }
+        
+        double q = (A[0] + A[4] + A[8]) / 3.0;
+        double p = sqrt(((A[0] - q)*(A[0] - q) + (A[4] - q)*(A[4] - q) + (A[8] - q)*(A[8] - q) + 2*p1) / 6.0);
+
+        double r = (
+             ((A[0] - q)/p) * ((((A[4] - q)/p) * ((A[8] - q)/p)) - ((A[7]/p) * (A[5]/p))) 
+            - (A[1]/p)      * ((A[3]/p) * ((A[8] - q)/p) - (A[6]/p) * (A[5]/p)) 
+            + (A[2]/p)      * ((A[3]/p) * (A[7]/p) - (A[6]/p) * ((A[4] - q)/p))
+        ) / 2.0;
+
+        double phi;
+        if(r <= -1){
+            phi = M_PI / 3.0;
+        }
+        else if(r >= 1){
+            phi = 0;
+        }
+        else{
+            phi = acos(r) / 3;
+        }
+
+        v[0] = q + 2 * p * cos(phi);
+        v[2] = q + 2 * p * cos(phi + (2*M_PI/3.0));
+        v[1] = 3 * q - v[0] - v[2];
+    '''

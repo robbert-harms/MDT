@@ -23,6 +23,7 @@ Summary
 * Free Open Source Software: LGPL v3 license
 * Python and OpenCL based
 * Supports hyperpriors on parameters
+* Supports gradient deviations per voxel and per voxel per volume
 * Parallelization over voxels and over volumes
 * Runs on Windows, Mac and Linux operating systems
 * Runs on Intel, Nvidia and AMD GPU's and CPU's.

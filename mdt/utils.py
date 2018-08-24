@@ -86,8 +86,8 @@ class MRIInputData(object):
         """Return the observations stored in this input data container.
 
         Returns:
-            ndarray: The list of observed instances per problem. Should be a 2d matrix of type float with as
-                columns the observations and as rows the problems.
+            ndarray: The list of observed instances per volumes. Should be a (n, d) matrix of type float with for
+                n voxels and d volumes the measured signal.
         """
         raise NotImplementedError()
 
@@ -152,6 +152,18 @@ class MRIInputData(object):
         """
         return None
 
+    @property
+    def volume_weights(self):
+        """Get the volume weights per voxel.
+
+        These weights are used during model fitting to weigh the objective function values per observation.
+
+        Returns:
+            ndarray: The list of observed instances per volumes. Should be a (n, d) matrix of type float16 (half type)
+                with for n voxels and d volumes a weight in [0, 1].
+        """
+        raise NotImplementedError()
+
     def get_subset(self, volumes_to_keep=None, volumes_to_remove=None):
         """Create a copy of this input data where we only keep a subset of the volumes.
 
@@ -174,7 +186,7 @@ class MRIInputData(object):
 class SimpleMRIInputData(MRIInputData):
 
     def __init__(self, protocol, signal4d, mask, nifti_header, extra_protocol=None, gradient_deviations=None,
-                 noise_std=None):
+                 noise_std=None, volume_weights=None):
         """An implementation of the input data for diffusion MRI models.
 
         Args:
@@ -207,6 +219,10 @@ class SimpleMRIInputData(MRIInputData):
 
             noise_std (number or ndarray): either None for automatic detection,
                 or a scalar, or an 3d matrix with one value per voxel.
+
+            volume_weights (ndarray): if given, a float matrix of the same size as the volume with per voxel and volume
+                a weight in [0, 1]. If set, these weights are used during model fitting to weigh the objective function
+                values per observation.
         """
         self._logger = logging.getLogger(__name__)
         self._signal4d = signal4d
@@ -216,7 +232,12 @@ class SimpleMRIInputData(MRIInputData):
         self._observation_list = None
         self._extra_protocol = self._preload_extra_protocol_items(extra_protocol)
         self._noise_std = noise_std
+
         self._gradient_deviations = gradient_deviations
+        self._gradient_deviations_list = None
+
+        self._volume_weights = volume_weights
+        self._volume_weights_list = None
 
         if protocol.length != 0:
             self._nmr_observations = protocol.length
@@ -227,6 +248,9 @@ class SimpleMRIInputData(MRIInputData):
                 signal4d.shape[3] != 0 and protocol.length != signal4d.shape[3]:
             raise ValueError('Length of the protocol ({}) does not equal the number of volumes ({}).'.format(
                 protocol.length, signal4d.shape[3]))
+
+        if self._volume_weights is not None and self._volume_weights.shape != self._signal4d.shape:
+            raise ValueError('The dimensions of the volume weights does not match the dimensions of the signal4d.')
 
     def has_input_data(self, parameter_name):
         try:
@@ -296,6 +320,10 @@ class SimpleMRIInputData(MRIInputData):
         if self.signal4d is not None:
             new_dwi_volume = self.signal4d[..., volumes_to_keep]
 
+        new_volume_weights = self._volume_weights
+        if self._volume_weights is not None:
+            new_volume_weights = new_volume_weights[..., volumes_to_keep]
+
         new_gradient_deviations = self._gradient_deviations
         if self._gradient_deviations is not None:
             if self._gradient_deviations.ndim > 4 and self._gradient_deviations[3] == self.protocol.length:
@@ -304,7 +332,8 @@ class SimpleMRIInputData(MRIInputData):
                 else:
                     new_gradient_deviations = self._gradient_deviations[..., volumes_to_keep, :, :]
 
-        return self.copy_with_updates(new_protocol, new_dwi_volume, gradient_deviations=new_gradient_deviations)
+        return self.copy_with_updates(new_protocol, new_dwi_volume, gradient_deviations=new_gradient_deviations,
+                                      volume_weights=new_volume_weights)
 
     @property
     def nmr_problems(self):
@@ -326,13 +355,23 @@ class SimpleMRIInputData(MRIInputData):
     def gradient_deviations(self):
         if self._gradient_deviations is None:
             return None
+        if self._gradient_deviations_list is None:
+            grad_dev = create_roi(self._gradient_deviations, self.mask)
 
-        grad_dev = create_roi(self._gradient_deviations, self.mask)
+            if grad_dev.shape[-1] == 9:  # HCP WUMINN format, Fortran major. Also adds the identity matrix as specified.
+                grad_dev = np.reshape(grad_dev, (-1, 3, 3), order='F') + np.eye(3)
 
-        if grad_dev.shape[-1] == 9:  # HCP WUMINN format, Fortran major. Also adds the identity matrix as specified.
-            grad_dev = np.reshape(grad_dev, (-1, 3, 3), order='F') + np.eye(3)
+            self._gradient_deviations_list = grad_dev
 
-        return grad_dev
+        return self._gradient_deviations_list
+
+    @property
+    def volume_weights(self):
+        if self._volume_weights is None:
+            return None
+        if self._volume_weights_list is None:
+            self._volume_weights_list = create_roi(self._volume_weights, self.mask).astype(np.float16)
+        return self._volume_weights_list
 
     @property
     def protocol(self):
@@ -441,7 +480,8 @@ class MockMRIInputData(SimpleMRIInputData):
         return 1
 
 
-def load_input_data(volume_info, protocol, mask, extra_protocol=None, gradient_deviations=None, noise_std=None):
+def load_input_data(volume_info, protocol, mask, extra_protocol=None, gradient_deviations=None,
+                    noise_std=None, volume_weights=None):
     """Load and create the input data object for diffusion MRI modeling.
 
     Args:
@@ -477,6 +517,10 @@ def load_input_data(volume_info, protocol, mask, extra_protocol=None, gradient_d
         noise_std (number or ndarray): either None for automatic detection,
             or a scalar, or an 3d matrix with one value per voxel.
 
+        volume_weights (ndarray): if given, a float matrix of the same size as the volume with per voxel and volume
+            a weight in [0, 1]. If set, these weights are used during model fitting to weigh the objective function
+            values per observation.
+
     Returns:
         SimpleMRIInputData: the input data object containing all the info needed for diffusion MRI model fitting
     """
@@ -493,8 +537,11 @@ def load_input_data(volume_info, protocol, mask, extra_protocol=None, gradient_d
     if isinstance(gradient_deviations, str):
         gradient_deviations = load_nifti(gradient_deviations).get_data()
 
+    if isinstance(volume_weights, str):
+        volume_weights = load_nifti(volume_weights).get_data()
+
     return SimpleMRIInputData(protocol, signal4d, mask, img_header, extra_protocol=extra_protocol, noise_std=noise_std,
-                              gradient_deviations=gradient_deviations)
+                              gradient_deviations=gradient_deviations, volume_weights=volume_weights)
 
 
 class InitializationData(object):
