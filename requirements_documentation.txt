@@ -6,5 +6,5 @@ nibabel
 argcomplete
 tatsu
 commonmark>= 0.5.6
-#sphinx-argparse # enable again when supported on read the docs
+sphinx-argparse
 sphinxcontrib-bibtex
