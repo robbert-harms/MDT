@@ -363,8 +363,8 @@ To (re-)create the protocol file for the b1k_b2k dataset you can use the followi
 .. code-block:: python
 
     protocol = mdt.create_protocol(
-        out_file='b1k_b2k.prtcl',
         bvecs='b1k_b2k.bvec', bvals='b1k_b2k.bval',
+        out_file='b1k_b2k.prtcl',
         Delta=26.5e-3, delta=16.2-3, TE=60e-3, TR=7.1)
 
 
@@ -439,6 +439,28 @@ When the calculations are done you can use the MDT maps visualizer for viewing t
     mdt.view_maps('../b1k_b2k/output/BallStick_r1')
 
 
+Full example
+------------
+To summarize the code written above, here a full MDT model fitting example:
+
+.. code-block:: python
+
+    import mdt
+
+    protocol = mdt.create_protocol(
+        bvecs='b1k_b2k.bvec', bvals='b1k_b2k.bval',
+        out_file='b1k_b2k.prtcl',
+        Delta=26.5e-3, delta=16.2-3, TE=60e-3, TR=7.1)
+
+    input_data = mdt.load_input_data(
+        'b1k_b2k_example_slices_24_38',
+        'b1k_b2k.prtcl',
+        'b1k_b2k_example_slices_24_38_mask')
+
+    mdt.fit_model('BallStick_r1 (Cascade)', input_data, 'output')
+
+
+
 Estimating any model
 --------------------
 In principle every model in MDT can be fitted using the model fitting routines.
@@ -457,7 +479,7 @@ The following example shows how to fix the fibre orientation parameters of the N
 
 .. code-block:: python
 
-    theta, phi = ...
+    theta, phi = <some function to generate angles>
 
     mdt.fit_model('NODDI',
         ...
@@ -533,49 +555,3 @@ Finally, using the MDT analyis GUI, the maps visualizer can be started using the
 .. figure:: _static/figures/mdt_start_visualizer_from_gui.png
 
     Starting the maps visualizer from the analysis GUI.
-
-
-**************
-Model building
-**************
-In MDT, models are constructed in an object oriented fashion with more complex objects being constructed out of simpler parts.
-The following figure shows the order of model construction in MDT:
-
-.. image:: _static/figures/mdt_model_building.png
-    :align: center
-
-That is, compartments models are constructed using one or more parameters, composite models are built out of one or more compartment models and cascade models consist out of one or more composite models.
-
-In MDT, models are added just by defining them using a templating mechanism.
-That is, MDT features a dynamic library system in which components can be overridden by newer versions just by defining the component.
-For example, adding a new compartment model or overriding an existing one can be done just by stating:
-
-.. code-block:: python
-
-    class BallStick_r1(CompositeModelTemplate):
-        model_expression = '''
-            S0 * ( (Weight(w_ball) * Ball) +
-                   (Weight(w_stick0) * Stick(Stick0)) )
-        '''
-
-
-In this example we overwrite the existing ``BallStick_r1`` model with a completely new model.
-Here, ``CompositeModelTemplate`` tells MDT that this class should be interpreted as a template for a dMRI composite model.
-By virtue of meta-classes, this template will automatically be added to the MDT component library for future use.
-
-Using Object Oriented inheritance it is possible to partially rewrite existing models with updated definitions.
-For example, instead of defining a completely new ``BallStick_r1`` model, we can also inherit from the existing template::
-
-    from mdt import get_template
-
-    class BallStick_r1(get_template('composite_models', 'BallStick_r1')):
-        likelihood_function = 'Rician'
-
-
-Here, we inherit from the existing template and overwrite the likelihood function with Rician.
-All other definitions will be taken from the previous template.
-
-See the section :ref:`adding_models` for all details on adding models.
-
-If you have added an interesting model to MDT which you wish to share, please do not hesitate to contact the developers to have it added to MDT.
-

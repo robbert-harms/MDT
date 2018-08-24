@@ -5,6 +5,6 @@ pyyaml
 nibabel
 argcomplete
 tatsu
-commonmark>= 0.5.6
+commonmark>=0.5.6
 sphinx-argparse
 sphinxcontrib-bibtex
