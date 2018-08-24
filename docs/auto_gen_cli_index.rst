@@ -31,6 +31,50 @@ mdt-batch-fit
 
 
 
+.. _cli_index_mdt-create-bvec-bval:
+
+mdt-create-bvec-bval
+====================
+
+.. argparse::
+   :ref: mdt.cli_scripts.mdt_create_bvec_bval.get_doc_arg_parser
+   :prog: mdt-create-bvec-bval
+
+
+
+.. _cli_index_mdt-create-mask:
+
+mdt-create-mask
+===============
+
+.. argparse::
+   :ref: mdt.cli_scripts.mdt_create_mask.get_doc_arg_parser
+   :prog: mdt-create-mask
+
+
+
+.. _cli_index_mdt-create-protocol:
+
+mdt-create-protocol
+===================
+
+.. argparse::
+   :ref: mdt.cli_scripts.mdt_create_protocol.get_doc_arg_parser
+   :prog: mdt-create-protocol
+
+
+
+.. _cli_index_mdt-create-roi-slice:
+
+mdt-create-roi-slice
+====================
+
+.. argparse::
+   :ref: mdt.cli_scripts.mdt_create_roi_slice.get_doc_arg_parser
+   :prog: mdt-create-roi-slice
+
+
+
 .. _cli_index_mdt-estimate-noise-std:
 
 mdt-estimate-noise-std
@@ -39,50 +83,6 @@ mdt-estimate-noise-std
 .. argparse::
    :ref: mdt.cli_scripts.mdt_estimate_noise_std.get_doc_arg_parser
    :prog: mdt-estimate-noise-std
-
-
-
-.. _cli_index_mdt-generate-bvec-bval:
-
-mdt-generate-bvec-bval
-======================
-
-.. argparse::
-   :ref: mdt.cli_scripts.mdt_generate_bvec_bval.get_doc_arg_parser
-   :prog: mdt-generate-bvec-bval
-
-
-
-.. _cli_index_mdt-generate-mask:
-
-mdt-generate-mask
-=================
-
-.. argparse::
-   :ref: mdt.cli_scripts.mdt_generate_mask.get_doc_arg_parser
-   :prog: mdt-generate-mask
-
-
-
-.. _cli_index_mdt-generate-protocol:
-
-mdt-generate-protocol
-=====================
-
-.. argparse::
-   :ref: mdt.cli_scripts.mdt_generate_protocol.get_doc_arg_parser
-   :prog: mdt-generate-protocol
-
-
-
-.. _cli_index_mdt-generate-roi-slice:
-
-mdt-generate-roi-slice
-======================
-
-.. argparse::
-   :ref: mdt.cli_scripts.mdt_generate_roi_slice.get_doc_arg_parser
-   :prog: mdt-generate-roi-slice
 
 
 

@@ -196,8 +196,8 @@ class SimpleMRIInputData(MRIInputData):
                 as a Nifti file. The matrix can be provided in multiple formats:
 
                 - an (x, y, z, 9) matrix with per voxel 9 values that constitute the gradient non-linearities
-                    according to the HCP guidelines. (see ``https://www.humanconnectome.org/storage/app/media/
-                                                            documentation/data_release/Q1_Release_Appendix_II.pdf``).
+                    according to the HCP guidelines. (see
+                    ``www.humanconnectome.org/storage/app/media/documentation/data_release/Q1_Release_Appendix_II.pdf``)
                     If given in this format, we will automatically add the identity matrix to it, as specified by the
                     HCP guidelines.
                 - an (x, y, z, 3, 3) matrix with per voxel the deformation matrix. This will be used as given (i.e. no
@@ -465,8 +465,8 @@ def load_input_data(volume_info, protocol, mask, extra_protocol=None, gradient_d
                 as a Nifti file. The matrix can be provided in multiple formats:
 
             - an (x, y, z, 9) matrix with per voxel 9 values that constitute the gradient non-linearities
-                according to the HCP guidelines. (see ``https://www.humanconnectome.org/storage/app/media/
-                                                        documentation/data_release/Q1_Release_Appendix_II.pdf``).
+                according to the HCP guidelines. (see
+                ``www.humanconnectome.org/storage/app/media/documentation/data_release/Q1_Release_Appendix_II.pdf``).
                 If given in this format, we will automatically add the identity matrix to it, as specified by the
                 HCP guidelines.
             - an (x, y, z, 3, 3) matrix with per voxel the deformation matrix. This will be used as given (i.e. no

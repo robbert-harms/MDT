@@ -513,17 +513,11 @@ Added
 
 Changed
 -------
-- Updates in the new version:
-  - Small update in the model fit GUI, separated the models from the
-    cascades to make it more clear what these mean
-  - Adds three new models:
-      - ActiveAx
-      - Time Dependent ActiveAx (see De Santis 2016)
-      - Kurtosis
-  - Simplified the processing strategies to make it more robust
-  - The visualization GUI can now load images from multiple folders
-  - The visualization GUI now also supports dragging nifti files into
-    the viewer for loading and viewing.
+- Small update in the model fit GUI, separated the models from the cascades to make it more clear what these mean
+- Adds three new models, ActiveAx, Time Dependent ActiveAx (see De Santis 2016), Kurtosis
+- Simplified the processing strategies to make it more robust
+- The visualization GUI can now load images from multiple folders
+- The visualization GUI now also supports dragging nifti files into the viewer for loading and viewing.
 - Updates to some of the relaxometry models, fixed the simulations to the latest MOT version.
 
 Fixed

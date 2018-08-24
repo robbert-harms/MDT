@@ -14,14 +14,18 @@ The parallelized accelerated computations allow for tens to hundred times faster
 Summary
 *******
 * HCP pipelines
-* Comes with ActiveAx, CHARMED, NODDI, Ball&Sticks, Kurtosis and Tensor models.
-* GUI, command line and python interface
+* Comes with ActiveAx, CHARMED, NODDI, NODDIDA, Ball&Sticks, Kurtosis, Tensor and relaxometry (T1, T2) models.
+* Gaussian, Offset-Gaussian and Rician noise models
+* Powell, Levenberg-Marquardt and Nelder-Mead Simplex optimization methods
+* Multiple MCMC sampling methods
+* GUI, command line and python interfaces
 * Dynamically add your own models
 * Free Open Source Software: LGPL v3 license
 * Python and OpenCL based
-* Gaussian, Offset-Gaussian and Rician noise models
 * Supports hyperpriors on parameters
-* Tags: diffusion, dMRI, MRI, optimization, parallel, opencl, python
+* Parallelization over voxels and over volumes
+* Runs on Windows, Mac and Linux operating systems
+* Runs on Intel, Nvidia and AMD GPU's and CPU's.
 
 
 *****

@@ -1,13 +1,6 @@
 mdt.models package
 ==================
 
-Subpackages
------------
-
-.. toctree::
-
-    mdt.models.parsers
-
 Submodules
 ----------
 
