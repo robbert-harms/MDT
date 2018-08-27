@@ -152,10 +152,12 @@ class DMRICompositeModel(DMRIOptimizable):
         model using :meth:`get_composite_model_function` and evaluates that.
 
         Args:
-            inputs (dict[str: Union(ndarray, mot.lib.utils.KernelData)]): for each parameter of the function
+            inputs (Iterable[Union(ndarray, mot.lib.utils.KernelData)]
+                    or Mapping[str: Union(ndarray, mot.lib.utils.KernelData)]): for each CL function parameter
                 the input data. Each of these input datasets must either be a scalar or be of equal length in the
-                first dimension. The user can either input raw ndarrays or input KernelData objects.
-                If an ndarray is given we will load it read/write by default.
+                first dimension. The elements can either be raw ndarrays or KernelData objects.
+                If an ndarray is given we will load it read/write by default. You can provide either an iterable
+                with one value per parameter, or a mapping with for every parameter a corresponding value.
             nmr_instances (int): the number of parallel processes to run.
             cl_runtime_info (mot.configuration.CLRuntimeInfo): the runtime information for execution
 

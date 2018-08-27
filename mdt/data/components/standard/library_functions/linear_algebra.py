@@ -195,3 +195,40 @@ class EigenvaluesSymmetric3x3(LibraryFunctionTemplate):
         v[2] = q + 2 * p * cos(phi + (2*M_PI/3.0));
         v[1] = 3 * q - v[0] - v[2];
     '''
+
+
+class SquareMatrixMultiplication(LibraryFunctionTemplate):
+    description = '''
+        Matrix multiplication of two square matrices. 
+        
+        Having this as a special function is slightly faster than a more generic matrix multiplication algorithm.
+        
+        All matrices are expected to be in c/row-major order.
+        
+        Args:
+            n: the rectangular size of the matrix (the number of rows / the number of columns). 
+            A: the left matrix 
+            B: the right matrix 
+            C: the output matrix            
+    '''
+    parameters = [('uint', 'n'),
+                  ('mot_float_type*', 'A'),
+                  ('mot_float_type*', 'B'),
+                  ('mot_float_type*', 'C')]
+    cl_code = '''
+        int i, j, z;
+        double sum;
+        for(int ind = 0; ind < n*n; ind++){
+            i = ind / n;
+            j = ind - n * i;
+            
+            printf("%i, %i, %i", ind, i, j);
+            
+            sum = 0;
+            for(z = 0; z < n; z++){
+                sum += A[i * n + z] * B[z * n + j];
+            }
+            C[ind] = sum;
+        }
+    '''
+

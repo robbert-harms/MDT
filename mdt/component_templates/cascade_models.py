@@ -119,13 +119,13 @@ class CascadeTemplate(ComponentTemplate, metaclass=CascadeTemplateMeta):
                 inits = {'CHARMED_r1': {
                             'Tensor.theta': 'Stick.theta',
                             'Tensor.phi': 'Stick.phi',
-                            'w_res0.w': lambda output_previous, output_all_previous: output_previous['w_stick.w']
+                            'w_res0.w': lambda out_previous, out_all_previous: out_all_previous[0]['w_stick.w']
                             }
                         }
 
             In this example the CHARMED_r1 model in the cascade initializes its Tensor compartment with a previous
             Ball&Stick model and initializes the restricted compartment volume fraction with the Stick fraction.
-            You can either provide a string matching the parameter name of the exact previous model, or provide
+            You can either provide a string matching the parameter name of the previous model, or provide a
             callback function that accepts both a dict containing the previous model estimates
             and a list of results from all previous model estimates, your callback function then returns a new
             initialization value (or map) for that parameter.

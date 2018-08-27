@@ -446,7 +446,7 @@ def _get_model_extra_optimization_maps_funcs(compartments):
         def get_compartment_specific_maps(results):
             maps = {k[len(compartment_name) + 1:]: v for k, v in results.items() if k.startswith(compartment_name)}
 
-            if results['covariances']:
+            if 'covariances' in results and results['covariances'] is not None:
                 p = re.compile(compartment_name + r'\.\w+_to_' + compartment_name + r'\.\w+')
                 maps['covariances'] = {k.replace(compartment_name + '.', ''): v
                                        for k, v in results['covariances'].items() if p.match(k)}
