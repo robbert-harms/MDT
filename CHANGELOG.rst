@@ -2,6 +2,15 @@
 Changelog
 *********
 
+v0.14.6 (2018-08-28)
+====================
+
+Added
+-----
+- Adds AstroSticks and AstroCylinders compartment models.
+- Adds Ball&Rackets model.
+
+
 v0.14.5 (2018-08-24)
 ====================
 
