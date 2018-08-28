@@ -14,7 +14,7 @@ The parallelized accelerated computations allow for tens to hundred times faster
 Summary
 *******
 * HCP pipelines
-* Comes with ActiveAx, CHARMED, NODDI, NODDIDA, NODDI-DTI, Ball&Sticks, Kurtosis, Tensor and relaxometry (T1, T2) models.
+* Comes with CHARMED, NODDI, NODDIDA, NODDI-DTI, ActiveAx, Ball&Sticks, Ball&Rackets, Kurtosis, Tensor and relaxometry (T1, T2) models.
 * Gaussian, Offset-Gaussian and Rician noise models
 * Powell, Levenberg-Marquardt and Nelder-Mead Simplex optimization methods
 * Multiple MCMC sampling methods
