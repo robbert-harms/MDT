@@ -24,6 +24,7 @@ Summary
 * Python and OpenCL based
 * Supports hyperpriors on parameters
 * Supports gradient deviations per voxel and per voxel per volume
+* Supports volume weighted objective function
 * Parallelization over voxels and over volumes
 * Runs on Windows, Mac and Linux operating systems
 * Runs on Intel, Nvidia and AMD GPU's and CPU's.
