@@ -222,18 +222,7 @@ class _ComponentFromTemplate(_ComponentAdapter):
         self.template = template
 
     def get_component(self):
-        if self.template.subcomponents:
-            subcomponents = self.template.subcomponents
-
-            class SubComponentConstruct(self.template()):
-                def __init__(self, *args, **kwargs):
-                    with temporary_component_updates():
-                        for component in subcomponents:
-                            add_template_component(component)
-                        super().__init__(*args, **kwargs)
-            return SubComponentConstruct
-        else:
-            return self.template()
+        return self.template()
 
     def get_meta_info(self):
         return self.template.meta_info()

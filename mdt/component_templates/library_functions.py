@@ -14,7 +14,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class LibraryFunctionsBuilder(ComponentBuilder):
 
-    def create_class(self, template):
+    def _create_class(self, template):
         """Creates classes with as base class LibraryFunctionsBase
 
         Args:

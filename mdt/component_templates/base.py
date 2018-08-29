@@ -1,6 +1,5 @@
 from copy import deepcopy
 
-
 __author__ = 'Robbert Harms'
 __date__ = '2017-07-20'
 __maintainer__ = 'Robbert Harms'
@@ -31,8 +30,36 @@ class ComponentBuilder(object):
         Returns:
             class: the class of the right type
         """
-        raise NotImplementedError()
+        from mdt.lib.components import temporary_component_updates, add_template_component
 
+        cls = self._create_class(template)
+
+        if template.subcomponents:
+            subcomponents = template.subcomponents
+
+            class SubComponentConstruct(cls):
+                def __init__(self, *args, **kwargs):
+                    with temporary_component_updates():
+                        for component in subcomponents:
+                            add_template_component(component)
+                        super().__init__(*args, **kwargs)
+
+            return SubComponentConstruct
+        return cls
+
+    def _create_class(self, template):
+        """Create a class of the right type given the information in the template.
+
+        This is to be used by subclasses.
+
+        Args:
+            template (ComponentTemplate): the information as a component config
+
+        Returns:
+            class: the class of the right type
+        """
+        raise NotImplementedError()
+    
 
 def bind_function(func):
     """This decorator is for methods in ComponentTemplates that we would like to bind to the constructed component.

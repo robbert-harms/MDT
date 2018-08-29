@@ -15,9 +15,13 @@ class BesselRoots(LibraryFunctionTemplate):
     cl_code = '''
         /** 
          * Zeros of integer-order Bessel function derivative Jn'(x).
+           Generated using the Python code:
+           
+           from scipy.special import jnp_zeros
+           print(jnp_zeros(1, 16))
+         
          */
         __constant int bessel_roots_jnp_length = 16;
-        
         __constant mot_float_type bessel_roots_jnp[] = {
             1.8411837813406593, 5.3314427735250325, 8.536316366346286,  11.706004902592063, 
             14.863588633909032, 18.015527862681804, 21.16436985918879,  24.311326857210776, 

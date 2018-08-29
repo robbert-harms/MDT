@@ -30,7 +30,7 @@ _composite_model_expression_parser = tatsu.compile('''
 
 class DMRICompositeModelBuilder(ComponentBuilder):
 
-    def create_class(self, template):
+    def _create_class(self, template):
         """Creates classes with as base class DMRICompositeModel
 
         Args:

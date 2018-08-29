@@ -16,7 +16,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class CompartmentBuilder(ComponentBuilder):
 
-    def create_class(self, template):
+    def _create_class(self, template):
         """Creates classes with as base class CompartmentBuildingBase
 
         Args:
@@ -130,7 +130,7 @@ class CompartmentBuilder(ComponentBuilder):
 
 
 class WeightBuilder(ComponentBuilder):
-    def create_class(self, template):
+    def _create_class(self, template):
 
         class AutoCreatedWeightModel(WeightType):
 
