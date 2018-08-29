@@ -2,6 +2,15 @@
 Changelog
 *********
 
+v0.14.8 (2018-08-29)
+====================
+
+Added
+-----
+- Adds the VERDICT model, according to Panagiotaki 2014, Noninvasive Quantification of Solid Tumor Microstructure Using VERDICT MRI.
+- Adds the Van Gelderen physical diffusion models for spherical diffusion.
+
+
 v0.14.7 (2018-08-29)
 ====================
 
