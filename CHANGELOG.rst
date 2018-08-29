@@ -2,6 +2,14 @@
 Changelog
 *********
 
+v0.14.7 (2018-08-29)
+====================
+
+Added
+-----
+- Adds the Neuman physical diffusion models for spherical diffusion.
+
+
 v0.14.6 (2018-08-28)
 ====================
 
