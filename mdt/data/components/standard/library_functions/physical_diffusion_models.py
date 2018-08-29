@@ -158,11 +158,13 @@ class NeumanSphereLongApprox(LibraryFunctionTemplate):
 class VanGelderenCylinder(LibraryFunctionTemplate):
     description = '''
         This function returns the displacement in the restricted signal attenuation for radius R 
-        according to the Van Gelderen model [1].
+        according to the Van Gelderen model [1, 2].
 
         References:
         1) Gelderen V, D D, PC van Z, CT M. Evaluation of Restricted Diffusion in Cylinders. 
             Phosphocreatine in Rabbit Leg Muscle. 1994. doi:10.1006/jmrb.1994.1038.
+        2) 1. Wang LZ, Caprihan A, Fukushima E. The narrow-pulse criterion for pulsed-gradient spin-echo 
+            diffusion measurements. JMagnResonSerA. 1995;117(2):209-219.
     '''
     return_type = 'double'
     parameters = ['G', 'Delta', 'delta', 'd', 'R']
@@ -188,6 +190,52 @@ class VanGelderenCylinder(LibraryFunctionTemplate):
                     - exp(-alpha2_d * (Delta - delta))
                     - exp(-alpha2_d * (Delta + delta)))
                         / ((alpha2_d * alpha * alpha2_d * alpha) * (bessel_roots_jnp[i] * bessel_roots_jnp[i] - 1));
+        }
+        return -2 * GAMMA_H_SQ * (G*G) * sum;
+    '''
+
+
+class VanGelderenSphere(LibraryFunctionTemplate):
+    description = '''
+        This function returns the displacement in the spherical signal attenuation for radius R 
+        according to the Van Gelderen model [1].
+
+        References:
+        1) 1. Wang LZ, Caprihan A, Fukushima E. The narrow-pulse criterion for pulsed-gradient spin-echo 
+            diffusion measurements. JMagnResonSerA. 1995;117(2):209-219.
+    '''
+    return_type = 'double'
+    parameters = ['G', 'Delta', 'delta', 'd', 'R']
+    dependencies = ['MRIConstants']
+    cl_code = '''
+        if(R == 0.0 || R < MOT_EPSILON){
+            return 0;
+        }
+        
+        const mot_float_type am_zeros[] = {
+            2.081575977818101, 5.940369990572713, 9.205840142936664, 12.404445021901974, 
+            15.579236410387185, 18.742645584774756, 21.89969647949278, 25.052825280992952, 
+            28.203361003952356, 31.352091726564478, 34.49951492136695, 37.645960323086385, 
+            40.79165523127188, 43.93676147141978, 47.08139741215418, 50.22565164918307
+        };
+        const int am_zeros_length = 16;
+        
+        double sum = 0;
+        mot_float_type alpha;
+        mot_float_type alpha2_d;
+        
+        #pragma unroll
+        for(uint i = 0; i < am_zeros_length; i++){
+            alpha = am_zeros[i] / R;
+            alpha2_d = d * alpha * alpha;
+
+            sum += (2 * alpha2_d * delta
+                    -  2
+                    + (2 * exp(-alpha2_d * delta))
+                    + (2 * exp(-alpha2_d * Delta))
+                    - exp(-alpha2_d * (Delta - delta))
+                    - exp(-alpha2_d * (Delta + delta)))
+                        / ((alpha2_d * alpha * alpha2_d * alpha) * (am_zeros[i] * am_zeros[i] - 2));
         }
         return -2 * GAMMA_H_SQ * (G*G) * sum;
     '''
