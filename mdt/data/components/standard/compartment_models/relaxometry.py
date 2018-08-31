@@ -7,15 +7,15 @@ __licence__ = 'LGPL v3'
 class ExpT1DecGRE(CompartmentTemplate):
 
     parameters = ('TR', 'flip_angle', 'excitation_b1', 'T1')
-    cl_code = """
-        return sin((double)flip_angle * excitation_b1) *
-              (1 - exp(-TR / (double)T1)) /
-              (1 - cos((double)flip_angle * excitation_b1) * exp(-TR / (double)T1) );
-    """
+    cl_code = '''
+        return sin(flip_angle * excitation_b1) *
+              (1 - exp(-TR / T1)) /
+              (1 - cos(flip_angle * excitation_b1) * exp(-TR / T1) );
+    '''
 
 
 class ExpT1DecIR(CompartmentTemplate):
-    description = """IR equation.
+    description = '''IR equation.
 
     IR equation in which TI and TR are considered to estimate T1. Assuming TE << T1, the TE component of the signal
     is discarded. In cascade, S0 contains T2 and PD weighted information. An efficiency factor is added to the TI
@@ -23,11 +23,11 @@ class ExpT1DecIR(CompartmentTemplate):
     
     This is made to model the MI-EPI sequence, a multi inversion recovery epi (Renvall et Al. 2016). 
     The Model is based on Stikov et al.'s three parameter model.
-    """
+    '''
     parameters = ('TR', 'TI', 'Efficiency', 'T1')
-    cl_code = """
-        return fabs(1 + exp(-TR / (double)T1) - 2 * Efficiency * exp(-TI / (double)T1));
-    """
+    cl_code = '''
+        return fabs(1 + exp(-TR / T1) - 2 * Efficiency * exp(-TI / T1));
+    '''
 
     class Efficiency(FreeParameterTemplate):
         init_value = 0.95
@@ -41,14 +41,14 @@ class ExpT1DecTM(CompartmentTemplate):
 
     parameters = ('SEf', 'TR', 'TM', 'TE', 'T1', 'flip_angle', 'excitation_b1', 'Refoc_fa1',
                   'refocusing1_b1', 'Refoc_fa2', 'refocusing2_b1', 'b', 'd_exvivo')
-    cl_code = """
-        return powr((double)0.5, (double)SEf)
-            * sin((double)flip_angle * excitation_b1)
-            * sin((double)Refoc_fa1 * refocusing1_b1)
-            * sin((double)Refoc_fa2 * (refocusing2_b1 * SEf + refocusing1_b1 * (1 - SEf)))
-            * (1 - exp(-(TR - TM) / (double)T1))
-            * exp(- ((TM * SEf) / (double)T1) - (double)(b * d_exvivo));
-    """
+    cl_code = '''
+        return powr((double)0.5, SEf)
+            * sin(flip_angle * excitation_b1)
+            * sin(Refoc_fa1 * refocusing1_b1)
+            * sin(Refoc_fa2 * (refocusing2_b1 * SEf + refocusing1_b1 * (1 - SEf)))
+            * (1 - exp(-(TR - TM) / T1))
+            * exp(- ((TM * SEf) / T1) - (b * d_exvivo));
+    '''
 
 
 class ExpT1DecTM_simple(CompartmentTemplate):
@@ -66,23 +66,23 @@ class ExpT1DecTR(CompartmentTemplate):
 class ExpT1ExpT2GRE(CompartmentTemplate):
 
     parameters = ('TR', 'TE', 'excitation_b1', 'flip_angle', 'T1', 'T2')
-    cl_code = """
+    cl_code = '''
         return sin(flip_angle * excitation_b1) * (1 - exp(-TR / T1)) 
                 / (1 - cos(flip_angle * excitation_b1) * exp(-TR / T1)) * exp(-TE / T2);
-    """
+    '''
 
 
 class ExpT1ExpT2sGRE(CompartmentTemplate):
 
     parameters = ('TR', 'TE', 'excitation_b1', 'flip_angle', 'T1', 'T2s')
-    cl_code = """
+    cl_code = '''
         return sin(flip_angle * excitation_b1) * (1 - exp(-TR / T1)) 
                 / (1 - cos(flip_angle * excitation_b1) * exp(-TR / T1)) * exp(-TE / T2s);
-    """
+    '''
 
 
 class ExpT1ExpT2STEAM(CompartmentTemplate):
-    description = """Generalised STEAM equation.
+    description = '''Generalised STEAM equation.
 
     From protocol, if the signal is SE, we can setup TM = 0 in all the volumes,
     which returns to the standard SE signal decay
@@ -97,17 +97,17 @@ class ExpT1ExpT2STEAM(CompartmentTemplate):
     (2) For STE data, this equation is used totally. Just SEf = 1.
 
     //UPDATE (24.03.17): This sequence is valid for STE SIGNAL ONLY! Don't mix with SE volumes.
-    """
+    '''
     parameters = ('SEf', 'TR', 'TE', 'TM', 'b', 'flip_angle', 'excitation_b1', 'Refoc_fa1',
                   'refocusing1_b1', 'Refoc_fa2', 'refocusing2_b1', 'T2', 'T1', 'd_exvivo')
-    cl_code = """
-        return sin((double)flip_angle * (double)excitation_b1)
-            *   sin((double)Refoc_fa1 * (double)refocusing1_b1)
-            *   sin((double)Refoc_fa2 * (double)refocusing2_b1)
-            *   (exp(- (double)TM / (double) T1) - exp(- (double)TR / (double)T1))
-            *   exp(- (double)TE / (double)T2)
-            *   exp(- (double)b * (double)d_exvivo);
-    """
+    cl_code = '''
+        return sin(flip_angle * excitation_b1)
+            *   sin(Refoc_fa1 * refocusing1_b1)
+            *   sin(Refoc_fa2 * refocusing2_b1)
+            *   (exp(- TM /  T1) - exp(- TR / T1))
+            *   exp(- TE / T2)
+            *   exp(- b * d_exvivo);
+    '''
 
 
 class ExpT2Dec(CompartmentTemplate):
@@ -120,46 +120,47 @@ class ExpT2DecSTEAM(CompartmentTemplate):
 
     parameters = ('SEf', 'TE', 'TM', 'b', 'flip_angle', 'excitation_b1', 'Refoc_fa1',
                       'refocusing1_b1', 'Refoc_fa2', 'refocusing2_b1', 'T2', 'T1', 'd_exvivo')
-    cl_code = """
-        return powr((double)0.5, (double)SEf)
-            *   sin((double)flip_angle * (double)excitation_b1)
-            *   sin((double)Refoc_fa1 * (double)refocusing1_b1)
-            *   sin((double)Refoc_fa2 * ((double)refocusing2_b1 * (double)SEf + 
-                                         (double)refocusing1_b1 * (double)(1 - SEf)))
-            *   exp(- (double)TE / (double)T2)
-            *   exp(- (double)TM * SEf / (double) T1)
-            *   exp(- (double)b * (double)d_exvivo);
-    """
+    cl_code = '''
+        return powr((double)0.5, SEf)
+            *   sin(flip_angle * excitation_b1)
+            *   sin(Refoc_fa1 * refocusing1_b1)
+            *   sin(Refoc_fa2 * (refocusing2_b1 * SEf + refocusing1_b1 * (1 - SEf)))
+            *   exp(- TE / T2)
+            *   exp(- TM * SEf /  T1)
+            *   exp(- b * d_exvivo);
+    '''
 
 
 class MPM_Fit(CompartmentTemplate):
-    description = """MPM fitting (Weiskopf, 2016 ESMRMB Workshop)
+    description = '''MPM fitting (Weiskopf, 2016 ESMRMB Workshop)
 
     This fitting is a model published by Helms (2008) and Weiskopf (2011) to determinate biological properties
     of the tissue/sample in function *of several images*, which includes T1w, PDw and MTw images. 
     This function is still an approximation and only if the assumptions of the approximations hold for ex-vivo tissue, 
     then can be used for ex-vivo data.
-    """
+    '''
     parameters = ('TR', 'flip_angle', 'excitation_b1', 'T1')
-    cl_code = 'return (flip_angle * excitation_b1) * ( (TR / T1) ' \
-              '     / ( pown(flip_angle * excitation_b1, 2) / 2 + ( TR / T1 ) ) );'
+    cl_code = '''
+        return (flip_angle * excitation_b1) * ( (TR / T1) / ( pown(flip_angle * excitation_b1, 2) / 2 + ( TR / T1 ) ) );
+    '''
 
 
 class LinMPM_Fit(CompartmentTemplate):
-    description = """MPM fitting (Weiskopf, 2016 ESMRMB Workshop)
+    description = '''MPM fitting (Weiskopf, 2016 ESMRMB Workshop)
 
     This fitting is a model published by Helms (2008) and Weiskopf (2011) to determinate biological properties
     of the tissue/sample in function *of several images*, which includes T1w, PDw and MTw images. 
     This function is still an approximation and only if the assumptions of the approximations hold for ex-vivo tissue, 
     then can be used for ex-vivo data.
-    """
+    '''
     parameters = ('TR', 'flip_angle', 'b1', 'T1')
-    cl_code = 'return log(flip_angle * b1) + log(TR / T1)' \
-              '       - log( pown(flip_angle * b1, 2) / 2 + ( TR / T1 ) ) ;'
+    cl_code = '''
+        return log(flip_angle * b1) + log(TR / T1) - log( pown(flip_angle * b1, 2) / 2 + ( TR / T1 ) ) ;
+    '''
 
 
 class LinT1GRE(CompartmentTemplate):
-    description = """Lineal T1 fitting (Weiskopf, 2016 ESMRMB Workshop)
+    description = '''Lineal T1 fitting (Weiskopf, 2016 ESMRMB Workshop)
 
     This fitting is the extension of the standard GRE equation for flip angles lower than 90deg. This modelling allows a
     linear fitting of the data if is enough data to support it. In principle, it should not be a problem if only two
@@ -170,11 +171,11 @@ class LinT1GRE(CompartmentTemplate):
     However, if this condition is not achieved, then return to the standard equation.
     
     Also, DATA HAS TO BE PROCESSED BEFORE TO USE THIS EQUATION. Please apply log() on the data.
-    """
+    '''
     parameters = ('Sw', 'E1')
-    cl_code = """
+    cl_code = '''
         return Sw * E1;
-    """
+    '''
 
 
 class LinT2Dec(CompartmentTemplate):

@@ -35,7 +35,7 @@ class ModelCLFunction(CLFunction):
 
 
 class SampleModelCLFunction(ModelCLFunction):
-    """Extended version of a model function for use in sample.
+    """Extended version of a model function for use in sampling.
 
     This adds functions to retrieve priors about this function.
     """
@@ -63,36 +63,37 @@ class SampleModelCLFunction(ModelCLFunction):
 
 class SimpleModelCLFunction(SampleModelCLFunction, SimpleCLFunction):
 
-    def __init__(self, return_type, name, cl_function_name, parameters, cl_body, dependencies=(),
-                 model_function_priors=None, cl_extra=None):
+    def __init__(self, return_type, cl_function_name, parameters, cl_body, dependencies=(),
+                 cl_extra=None, model_function_priors=None):
         """This CL function is for all estimable models
 
         Args:
             return_type (str): the CL return type of the function
-            name (str): The name of the model
             cl_function_name (string): The name of the CL function
             parameters (list or tuple of CLFunctionParameter): The list of parameters required for this function
             cl_body (str): the cl body of this function
             dependencies (list or tuple of CLFunction): The list of CL libraries this function depends on
+            cl_extra (str): extra CL code for this function that does not warrant an own function.
+                This is prepended to the function body.
             model_function_priors (list of mot.lib.cl_function.CLFunction): list of priors concerning this whole model
                 function. The parameter names of the given functions must match those of this function.
         """
         super().__init__(return_type, cl_function_name, parameters,
-                                                    cl_body, dependencies=dependencies, cl_extra=cl_extra)
-
-        self._name = name
+                         cl_body, dependencies=dependencies, cl_extra=cl_extra)
         self._model_function_priors = model_function_priors or []
         if isinstance(self._model_function_priors, CLFunction):
             self._model_function_priors = [self._model_function_priors]
 
     @property
     def name(self):
-        """Get the name of this model function.
+        """Get the function name of this model function.
+
+        This is left-over from previous code, prefer using :meth:`get_cl_function_name` instead.
 
         Returns:
             str: The name of this model function.
         """
-        return self._name
+        return self.get_cl_function_name()
 
     def get_model_function_priors(self):
         """Get all the model function priors.
@@ -170,7 +171,6 @@ class SimpleWeight(WeightType):
         super().__init__(
             'mot_float_type',
             name,
-            'Weight',
             (FreeParameter(SimpleCLDataType.from_string('mot_float_type'), param_name,
                            False, value, lower_bound, upper_bound, **parameter_settings),),
             'return ' + param_name + ';')

@@ -64,7 +64,7 @@ Using the evaluate function, you can also evaluate library functions::
 
 and composite models::
 
-    model = mdt.get_model('BallStick_r1')()
+    model = mdt.get_model('BallStick_r1')().get_composite_model_function()
     retval = model.evaluate({'g': [1, 0, 0],
                              'b': 2e9,
                              'S0.s0': 1000,

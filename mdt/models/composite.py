@@ -145,30 +145,6 @@ class DMRICompositeModel(DMRIOptimizable):
         """
         return CompositeModelFunction(self._model_tree, signal_noise_model=self._signal_noise_model)
 
-    def evaluate(self, inputs, nmr_instances, cl_runtime_info=None):
-        """Evaluate this model for each set of given parameters.
-
-        This is a shortcut for evaluating the composite model build by this builder. This gets the composite
-        model using :meth:`get_composite_model_function` and evaluates that.
-
-        Args:
-            inputs (Iterable[Union(ndarray, mot.lib.utils.KernelData)]
-                    or Mapping[str: Union(ndarray, mot.lib.utils.KernelData)]): for each CL function parameter
-                the input data. Each of these input datasets must either be a scalar or be of equal length in the
-                first dimension. The elements can either be raw ndarrays or KernelData objects.
-                If an ndarray is given we will load it read/write by default. You can provide either an iterable
-                with one value per parameter, or a mapping with for every parameter a corresponding value.
-            nmr_instances (int): the number of parallel processes to run.
-            cl_runtime_info (mot.configuration.CLRuntimeInfo): the runtime information for execution
-
-        Returns:
-            ndarray or tuple(ndarray, dict[str: ndarray]): we always return at least the return values of the function,
-                which can be None if this function has a void return type. If ``return_inputs`` is set to True then
-                we return a tuple with as first element the return value and as second element a dictionary mapping
-                the output state of the parameters.
-        """
-        return self.get_composite_model_function().evaluate(inputs, nmr_instances, cl_runtime_info=cl_runtime_info)
-
     def build(self, voxels_to_analyze=None):
         if self._input_data is None:
             raise RuntimeError('Input data is not set, can not build the model.')
@@ -1278,7 +1254,7 @@ class DMRICompositeModel(DMRIOptimizable):
                                 + ','.join(eval_call_args) + ''');
                     
                     ''' + ('eval *= model_data->volume_weights[observation_ind];'
-                            if self._input_data.volume_weights is not None else '') + ''';
+                            if self._input_data.volume_weights is not None else '') + '''
                     
                     model_data->local_tmp[local_id] += eval;
                     
@@ -1978,7 +1954,7 @@ class CompositeModelFunction(SimpleCLFunction):
 
         super().__init__(
             'double', cl_function_name,
-            [p.get_renamed(external_name) for m, p, _, external_name in self._get_model_function_parameters()],
+            [p.get_renamed(external_name) for m, p, external_name in self.get_model_function_parameters()],
             self._get_model_function_body(),
             dependencies=self._models)
 
@@ -1990,9 +1966,9 @@ class CompositeModelFunction(SimpleCLFunction):
         Returns:
             list of tuple: the list of (model, parameter) tuples for each of the models and parameters.
         """
-        return [(m, p) for m, p, cl_name, ext_name in self._get_model_function_parameters()]
+        return [(m, p) for m, p, ext_name in self.get_model_function_parameters()]
 
-    def _get_model_function_parameters(self):
+    def get_model_function_parameters(self):
         """Get the parameters to use in the model function.
 
         Returns:
@@ -2008,10 +1984,10 @@ class CompositeModelFunction(SimpleCLFunction):
         for m, p in self._parameter_model_list:
             if isinstance(p, (ProtocolParameter, CurrentObservationParam)):
                 if p.name not in seen_shared_params:
-                    shared_params.append((m, p, p.name, p.name))
+                    shared_params.append((m, p, p.name))
                     seen_shared_params.append(p.name)
             elif isinstance(p, FreeParameter):
-                other_params.append((m, p, '{}_{}'.format(m.name, p.name), '{}.{}'.format(m.name, p.name)))
+                other_params.append((m, p, '{}.{}'.format(m.name, p.name)))
         return shared_params + other_params
 
     def _get_model_function_body(self):

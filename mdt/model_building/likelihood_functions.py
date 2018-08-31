@@ -87,7 +87,7 @@ class AbstractLikelihoodFunction(LikelihoodFunction):
         return self._noise_std_param_name
 
     def get_log_likelihood_function(self, include_constant_terms=True):
-        return SimpleModelCLFunction('double', self.name, self._cl_function_name, self._parameter_list,
+        return SimpleModelCLFunction('double', self._cl_function_name, self._parameter_list,
                                      self._get_log_likelihood_body(include_constant_terms),
                                      dependencies=self._dependencies)
 

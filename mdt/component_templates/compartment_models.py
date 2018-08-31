@@ -37,7 +37,6 @@ class CompartmentBuilder(ComponentBuilder):
                     dependencies = _resolve_dependencies(template.dependencies)
 
                 new_args = [template.name,
-                            template.name,
                             parameters,
                             template.cl_code,
                             dependencies,
@@ -144,7 +143,6 @@ class WeightBuilder(ComponentBuilder):
                     dependencies = _resolve_dependencies(template.dependencies)
 
                 new_args = [template.name,
-                            template.name,
                             parameters,
                             template.cl_code,
                             ]
