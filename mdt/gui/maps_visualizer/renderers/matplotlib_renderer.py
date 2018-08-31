@@ -113,7 +113,7 @@ class MatplotlibPlotting(PlottingFrame, QWidget):
             logger.error(exception)
 
 
-class _MouseInteraction(object):
+class _MouseInteraction:
 
     def __init__(self, figure, plotting_info_viewer, controller):
         self.figure = figure
@@ -243,7 +243,7 @@ class _MouseInteraction(object):
         return None
 
 
-class _DraggingManager(object):
+class _DraggingManager:
 
     def __init__(self, controller):
         self.controller = controller
@@ -312,7 +312,7 @@ class _DraggingManager(object):
         self._start_y = self._end_y
 
 
-class _ScrollingManager(object):
+class _ScrollingManager:
 
     def __init__(self, controller):
         self.controller = controller

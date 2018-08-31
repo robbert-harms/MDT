@@ -8,7 +8,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_OptimizationExtraDataDialog(object):
+class Ui_OptimizationExtraDataDialog:
     def setupUi(self, OptimizationExtraDataDialog):
         OptimizationExtraDataDialog.setObjectName("OptimizationExtraDataDialog")
         OptimizationExtraDataDialog.resize(843, 331)

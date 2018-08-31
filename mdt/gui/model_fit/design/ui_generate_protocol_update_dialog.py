@@ -8,7 +8,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_UpdateColumnDialog(object):
+class Ui_UpdateColumnDialog:
     def setupUi(self, UpdateColumnDialog):
         UpdateColumnDialog.setObjectName("UpdateColumnDialog")
         UpdateColumnDialog.resize(831, 304)

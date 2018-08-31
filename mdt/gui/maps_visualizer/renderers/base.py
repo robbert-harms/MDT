@@ -5,7 +5,7 @@ __email__ = 'robbert.harms@maastrichtuniversity.nl'
 __licence__ = 'LGPL v3'
 
 
-class PlottingFrame(object):
+class PlottingFrame:
 
     def __init__(self, controller, plotting_info_viewer=None):
         super().__init__()
@@ -34,7 +34,7 @@ class PlottingFrame(object):
         """
 
 
-class PlottingFrameInfoViewer(object):
+class PlottingFrameInfoViewer:
 
     def __init__(self):
         """Implementations of this class can be given to a PlottingFrame to update viewing information.

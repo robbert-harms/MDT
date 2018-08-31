@@ -11,7 +11,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class SampleVisualizer(object):
+class SampleVisualizer:
 
     def __init__(self, voxels):
         self._voxels = voxels

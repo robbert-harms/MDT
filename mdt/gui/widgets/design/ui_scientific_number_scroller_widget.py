@@ -8,7 +8,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_ScientificScroller(object):
+class Ui_ScientificScroller:
     def setupUi(self, ScientificScroller):
         ScientificScroller.setObjectName("ScientificScroller")
         ScientificScroller.resize(283, 61)

@@ -33,7 +33,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class MRIInputData(object):
+class MRIInputData:
     """A simple container for the input data for optimization/sample models."""
 
     def has_input_data(self, parameter_name):
@@ -544,7 +544,7 @@ def load_input_data(volume_info, protocol, mask, extra_protocol=None, gradient_d
                               gradient_deviations=gradient_deviations, volume_weights=volume_weights)
 
 
-class InitializationData(object):
+class InitializationData:
 
     def apply_to_model(self, model, input_data):
         """Apply all information in this initialization data to the given model.
@@ -672,7 +672,7 @@ class SimpleInitializationData(InitializationData):
         return value
 
 
-class PathJoiner(object):
+class PathJoiner:
 
     def __init__(self, *args, make_dirs=False):
         """The path joining class.

@@ -11,7 +11,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class LikelihoodFunction(object):
+class LikelihoodFunction:
     """The likelihood function is the model under which you evaluate the model estimates against observations.
 
     Since we can have two different versions of the likelihood function (with or without the constant terms),

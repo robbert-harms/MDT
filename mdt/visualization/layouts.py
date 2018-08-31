@@ -9,7 +9,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class GridLayout(object):
+class GridLayout:
 
     def __init__(self, spacings=None):
         super().__init__()
@@ -52,7 +52,7 @@ class GridLayout(object):
         return not self.__eq__(other)
 
 
-class GridLayoutSpecifier(object):
+class GridLayoutSpecifier:
 
     def __init__(self, gridspec, figure, positions=None):
         """Create a grid layout specifier using the given gridspec and the given figure.

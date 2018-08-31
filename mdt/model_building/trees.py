@@ -6,7 +6,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class Tree(object):
+class Tree:
 
     def __init__(self, data=None, tag=None, children=None, parent=None):
         """Create a new Tree.
@@ -15,13 +15,13 @@ class Tree(object):
         Each node has a reference to its children and to its parent node.
 
         Args:
-            data (object): The data object
+            data : The data object
             tag (str): The tag used for displaying this node
             children (list of Tree): The list of children to this node
             parent (Tree): The parent tree node.
 
         Attributes:
-            data (object): The data object
+            data : The data object
             tag (str): The tag used for displaying this node
             children (list of Tree): The list of children to this node
             parent (Tree): The parent tree node.

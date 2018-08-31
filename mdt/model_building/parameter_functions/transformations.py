@@ -5,7 +5,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class AbstractTransformation(object):
+class AbstractTransformation:
     """The transformations define the encode and decode operations needed to build a codec.
 
     These objects define the basic transformation from and to model and optimization space.
@@ -28,7 +28,7 @@ class AbstractTransformation(object):
         raise NotImplementedError()
 
 
-class AssignmentConstructor(object):
+class AssignmentConstructor:
 
     def create_assignment(self, parameter_variable, lower_bound, upper_bound):
         """Create the assignment string.

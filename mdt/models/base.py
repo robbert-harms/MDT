@@ -4,7 +4,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class DMRIOptimizable(object):
+class DMRIOptimizable:
 
     def __init__(self, *args, **kwargs):
         """This is an interface for some base methods we expect in an MRI model.
@@ -62,7 +62,7 @@ class DMRIOptimizable(object):
         raise NotImplementedError()
 
 
-class InputDataProblem(object):
+class InputDataProblem:
 
     def __init__(self):
         """The base class for indicating problems with the input data.

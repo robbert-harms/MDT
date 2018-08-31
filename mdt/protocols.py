@@ -534,7 +534,7 @@ class Protocol(collections.Mapping):
         return s
 
 
-class VirtualColumn(object):
+class VirtualColumn:
 
     def __init__(self, name):
         """The interface for generating virtual columns.

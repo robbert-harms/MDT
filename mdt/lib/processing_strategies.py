@@ -43,7 +43,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 DEFAULT_TMP_RESULTS_SUBDIR_NAME = 'tmp_results'
 
 
-class ModelProcessingStrategy(object):
+class ModelProcessingStrategy:
     """Model processing strategies define in how many parts a composite model is processed."""
 
     def process(self, processor):
@@ -193,7 +193,7 @@ class VoxelRange(ChunksProcessingStrategy):
         return chunks
 
 
-class ModelProcessor(object):
+class ModelProcessor:
 
     def process(self, roi_indices, next_indices=None):
         """Get the worker specific for the given voxel indices.
@@ -502,7 +502,7 @@ class FittingProcessor(SimpleModelProcessor):
 
 class SamplingProcessor(SimpleModelProcessor):
 
-    class SampleChainNotStored(object):
+    class SampleChainNotStored:
         pass
 
     def __init__(self, nmr_samples, thinning, burnin, method, model, mask, nifti_header, output_dir, tmp_storage_dir,
@@ -647,7 +647,7 @@ class SamplingProcessor(SimpleModelProcessor):
             del saved
 
 
-class SamplesStorageStrategy(object):
+class SamplesStorageStrategy:
     """Defines if and how many samples are being stored, per output item.
 
     This can be used to only save a subset of the calculated samples, while still using the entire chain for

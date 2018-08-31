@@ -23,7 +23,7 @@ supported_component_types = ('batch_profiles', 'cascade_models', 'compartment_mo
                              'parameter_transforms')
 
 
-class _ComponentLibrary(object):
+class _ComponentLibrary:
 
     def __init__(self):
         """Holds the reference to all defined components, by component type and by name.
@@ -170,7 +170,7 @@ class _ComponentLibrary(object):
         self._mutation_history.append(_LibraryHistoryDelta('remove', component_type, name, adapter))
 
 
-class _ComponentAdapter(object):
+class _ComponentAdapter:
 
     def get_component(self):
         """Build or return the actual component class.
@@ -231,7 +231,7 @@ class _ComponentFromTemplate(_ComponentAdapter):
         return self.template
 
 
-class _LibraryHistoryDelta(object):
+class _LibraryHistoryDelta:
 
     def __init__(self, action, component_type, name, adapter):
         """Representation of a history change in the component library.

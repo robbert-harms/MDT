@@ -9,7 +9,7 @@ __email__ = 'robbert.harms@maastrichtuniversity.nl'
 __licence__ = 'LGPL v3'
 
 
-class TemplateModifier(object):
+class TemplateModifier:
 
     def __init__(self, template):
         """Given a template instance, this class can update the properties of the template and write that to a file.

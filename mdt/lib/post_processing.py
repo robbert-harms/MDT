@@ -15,7 +15,7 @@ __email__ = 'robbert.harms@maastrichtuniversity.nl'
 __licence__ = 'LGPL v3'
 
 
-class DTIMeasures(object):
+class DTIMeasures:
 
     @staticmethod
     def extra_optimization_maps(results, input_data=None):
@@ -257,7 +257,7 @@ class DTIMeasures(object):
         return sorted_eigenvalues, sorted_eigenvectors, ranking
 
 
-class DKIMeasures(object):
+class DKIMeasures:
 
     @staticmethod
     def extra_optimization_maps(parameters_dict):

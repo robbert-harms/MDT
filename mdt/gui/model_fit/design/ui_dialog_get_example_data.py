@@ -8,7 +8,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_GetExampleDataDialog(object):
+class Ui_GetExampleDataDialog:
     def setupUi(self, GetExampleDataDialog):
         GetExampleDataDialog.setObjectName("GetExampleDataDialog")
         GetExampleDataDialog.resize(691, 208)

@@ -8,7 +8,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_TabTextual(object):
+class Ui_TabTextual:
     def setupUi(self, TabTextual):
         TabTextual.setObjectName("TabTextual")
         TabTextual.resize(400, 300)

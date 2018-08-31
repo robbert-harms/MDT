@@ -142,7 +142,7 @@ class LogDispatchHandler(StreamHandler):
         del LogDispatchHandler._listeners[listener_id]
 
 
-class LogListenerInterface(object):
+class LogListenerInterface:
     """Interface for listeners to work in conjunction with :class:`LogDispatchHandler`"""
 
     def emit(self, record, formatted_message):

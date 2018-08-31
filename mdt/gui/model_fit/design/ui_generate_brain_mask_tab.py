@@ -8,7 +8,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_GenerateBrainMaskTabContent(object):
+class Ui_GenerateBrainMaskTabContent:
     def setupUi(self, GenerateBrainMaskTabContent):
         GenerateBrainMaskTabContent.setObjectName("GenerateBrainMaskTabContent")
         GenerateBrainMaskTabContent.resize(827, 427)

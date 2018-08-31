@@ -567,7 +567,7 @@ def parse_composite_model_expression(model_expression):
     Returns:
         :class:`list`: the compartment model tree for use in composite models.
     """
-    class Semantics(object):
+    class Semantics:
 
         def expr(self, ast):
             if not isinstance(ast, list):

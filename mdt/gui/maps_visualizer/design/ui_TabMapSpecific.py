@@ -8,7 +8,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_TabMapSpecific(object):
+class Ui_TabMapSpecific:
     def setupUi(self, TabMapSpecific):
         TabMapSpecific.setObjectName("TabMapSpecific")
         TabMapSpecific.resize(445, 534)

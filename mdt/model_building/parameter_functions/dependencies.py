@@ -5,7 +5,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class AbstractParameterDependency(object):
+class AbstractParameterDependency:
 
     @property
     def pre_transform_code(self):

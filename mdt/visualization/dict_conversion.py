@@ -6,7 +6,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class ConversionSpecification(object):
+class ConversionSpecification:
 
     def __init__(self):
         """Specifies how the content of an object is to be converted from and to a dictionary."""
@@ -15,7 +15,7 @@ class ConversionSpecification(object):
         """Convert the given value to a dictionary.
 
         Args:
-            obj (object): the value to convert to a dictionary
+            obj : the value to convert to a dictionary
 
         Returns:
             dict: the resulting converted dictionary
@@ -25,7 +25,7 @@ class ConversionSpecification(object):
         """Generate a result value from the given dictionary
 
         Args:
-            value (object): the dictionary to convert back to a value
+            value : the dictionary to convert back to a value
 
         Returns:
             object: the value represented by the dict.
@@ -278,7 +278,7 @@ class WhiteListConversion(ConversionSpecification):
 
         Args:
             white_list (list of object): list of allowable objects
-            default (object): the default fallback object
+            default : the default fallback object
         """
         super().__init__()
         self.white_list = white_list

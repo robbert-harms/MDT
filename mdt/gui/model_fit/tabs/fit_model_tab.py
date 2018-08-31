@@ -452,7 +452,7 @@ class OptimizationOptionsDialog(Ui_OptimizationOptionsDialog, QDialog):
         self.patience.setText(str(get_minimizer_options(method)['patience']))
 
 
-class OptimOptions(object):
+class OptimOptions:
 
     optim_routines = {'Powell\'s method': 'Powell',
                       'Nelder-Mead Simplex': 'Nelder-Mead',
@@ -472,7 +472,7 @@ class OptimOptions(object):
         self.recalculate_all = False
 
 
-class InputDataInfo(object):
+class InputDataInfo:
 
     def __init__(self):
         self.dwi = None

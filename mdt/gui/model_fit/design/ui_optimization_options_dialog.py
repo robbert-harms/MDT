@@ -8,7 +8,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_OptimizationOptionsDialog(object):
+class Ui_OptimizationOptionsDialog:
     def setupUi(self, OptimizationOptionsDialog):
         OptimizationOptionsDialog.setObjectName("OptimizationOptionsDialog")
         OptimizationOptionsDialog.resize(843, 337)

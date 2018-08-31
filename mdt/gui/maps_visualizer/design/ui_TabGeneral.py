@@ -8,7 +8,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_TabGeneral(object):
+class Ui_TabGeneral:
     def setupUi(self, TabGeneral):
         TabGeneral.setObjectName("TabGeneral")
         TabGeneral.resize(963, 704)

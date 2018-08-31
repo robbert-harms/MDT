@@ -12,7 +12,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class MapsVisualizer(object):
+class MapsVisualizer:
 
     def __init__(self, data_info, figure):
         self._data_info = data_info
@@ -65,7 +65,7 @@ class MapsVisualizer(object):
             plt.show(True)
 
 
-class AxisData(object):
+class AxisData:
 
     def __init__(self, axis, map_name, map_info, plot_config):
         """Contains a reference to a drawn matpotlib axis and to the accompanying data.
@@ -105,7 +105,7 @@ class AxisData(object):
         return self._map_info.data[tuple(index)]
 
 
-class Renderer(object):
+class Renderer:
 
     def __init__(self, data_info, figure, plot_config):
         """Create a new renderer for the given volumes on the given figure using the given configuration.

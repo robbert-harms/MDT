@@ -8,7 +8,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_FitModelTabContent(object):
+class Ui_FitModelTabContent:
     def setupUi(self, FitModelTabContent):
         FitModelTabContent.setObjectName("FitModelTabContent")
         FitModelTabContent.resize(1047, 427)

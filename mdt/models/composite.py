@@ -1500,7 +1500,7 @@ class DMRICompositeModel(DMRIOptimizable):
         return None
 
 
-class BuildCompositeModel(object):
+class BuildCompositeModel:
 
     def __init__(self, used_problem_indices, name, input_data,
                  kernel_data_info, nmr_observations,
@@ -2072,7 +2072,7 @@ class _ModelFunctionPriorToCompositeModelPrior(SimpleCLFunction):
         return ['{} {}'.format(p.data_type.get_declaration(), p.name.replace('.', '_')) for p in self._old_params]
 
 
-class ModelFunctionsInformation(object):
+class ModelFunctionsInformation:
 
     def __init__(self, model_tree, likelihood_function, signal_noise_model=None, enable_prior_parameters=False):
         """Contains centralized information about the model functions in the model builder parent.
@@ -2479,7 +2479,7 @@ class ModelFunctionsInformation(object):
             model_names.append(m.name)
 
 
-class ProtocolAdaptionCallbacks(object):
+class ProtocolAdaptionCallbacks:
     """Information container for the protocol adaption callbacks.
 
     During model evaluation, it may be necessary to apply a transformation on some or all of the protocol

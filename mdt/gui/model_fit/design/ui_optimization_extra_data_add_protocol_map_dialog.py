@@ -8,7 +8,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_AddProtocolMapDialog(object):
+class Ui_AddProtocolMapDialog:
     def setupUi(self, AddProtocolMapDialog):
         AddProtocolMapDialog.setObjectName("AddProtocolMapDialog")
         AddProtocolMapDialog.resize(719, 190)

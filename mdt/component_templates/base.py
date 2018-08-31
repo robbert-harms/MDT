@@ -11,7 +11,7 @@ __licence__ = 'LGPL v3'
 _component_loading = []
 
 
-class ComponentBuilder(object):
+class ComponentBuilder:
     """The base class for component builders.
 
     Component builders, together with ComponentTemplate allow you to define components using Templates,
@@ -70,7 +70,7 @@ def bind_function(func):
     .. code-block:: python
 
         # the class we want to create
-        class MyGoal(object):
+        class MyGoal:
             def test(self):
                 print('test')
 

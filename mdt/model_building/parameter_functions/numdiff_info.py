@@ -5,7 +5,7 @@ __email__ = 'robbert.harms@maastrichtuniversity.nl'
 __licence__ = 'LGPL v3'
 
 
-class NumDiffInfo(object):
+class NumDiffInfo:
     """Encapsulates information necessary for numerical differentiation of a parameter."""
 
     @property

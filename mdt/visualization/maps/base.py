@@ -21,7 +21,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class ConvertibleConfig(object):
+class ConvertibleConfig:
     """Base class for convertible configuration containers.
 
     Objects implementing this interface return a conversion specification that describes how the implementing
@@ -39,7 +39,7 @@ class ConvertibleConfig(object):
         raise NotImplementedError()
 
 
-class SimpleConvertibleConfig(object):
+class SimpleConvertibleConfig:
     """Offers an simplified implementation of convertible configs.
 
     In addition to slightly simplifying the creation of the conversion specification, it also implements
@@ -78,7 +78,7 @@ class SimpleConvertibleConfig(object):
         return not self.__eq__(other)
 
 
-class DataInfo(object):
+class DataInfo:
     """Information about the maps we are viewing."""
 
     def get_map_names(self):
@@ -458,7 +458,7 @@ class SimpleDataInfo(DataInfo):
         return Point2d(p0x, p0y), Point2d(p1x, p1y)
 
 
-class SingleMapInfo(object):
+class SingleMapInfo:
 
     def __init__(self, data, file_path=None):
         """Holds information about a single map.

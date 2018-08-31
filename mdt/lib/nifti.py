@@ -241,7 +241,7 @@ def unzip_nifti(input_filename, output_filename):
         shutil.copyfileobj(f_in, f_out)
 
 
-class NiftiInfo(object):
+class NiftiInfo:
 
     def __init__(self, header=None, filepath=None):
         """A nifti information object to store meta data alongside an array.
@@ -254,7 +254,7 @@ class NiftiInfo(object):
         self.filepath = filepath
 
 
-class NiftiInfoDecorated(object):
+class NiftiInfoDecorated:
     """The additional type of an array after it has been subclassed by :func:`nifti_info_decorate_array`.
 
     This subclass can be used to check if an array has nifti info attached to it.

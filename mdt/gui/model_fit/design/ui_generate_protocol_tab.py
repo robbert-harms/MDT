@@ -8,7 +8,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_GenerateProtocolTabContent(object):
+class Ui_GenerateProtocolTabContent:
     def setupUi(self, GenerateProtocolTabContent):
         GenerateProtocolTabContent.setObjectName("GenerateProtocolTabContent")
         GenerateProtocolTabContent.resize(827, 427)

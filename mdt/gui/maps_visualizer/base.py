@@ -2,7 +2,7 @@ from PyQt5.QtCore import QObject, pyqtSignal
 from mdt.visualization.maps.base import MapPlotConfig, SimpleDataInfo
 
 
-class DataConfigModel(object):
+class DataConfigModel:
     """The model contains all the state information for viewing the maps, both the data and the configuration."""
 
     def get_data(self):
@@ -41,7 +41,7 @@ class SimpleDataConfigModel(DataConfigModel):
         return self._config
 
 
-class Controller(object):
+class Controller:
 
     def __init__(self):
         """Controller interface"""

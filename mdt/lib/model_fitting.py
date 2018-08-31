@@ -51,7 +51,7 @@ def get_batch_fitting_function(total_nmr_subjects, models_to_fit, output_folder,
         logger.info('Fitted all models on subject {0} in time {1} (h:m:s)'.format(
             subject_id, time.strftime('%H:%M:%S', time.gmtime(timeit.default_timer() - start_time))))
 
-    class FitFunc(object):
+    class FitFunc:
 
         def __init__(self):
             self._index_counter = 0
@@ -94,7 +94,7 @@ def get_batch_fitting_function(total_nmr_subjects, models_to_fit, output_folder,
     return FitFunc()
 
 
-class ModelFit(object):
+class ModelFit:
 
     def __init__(self, model, input_data, output_folder,
                  method=None, optimizer_options=None, recalculate=False, only_recalculate_last=False,

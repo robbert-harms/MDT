@@ -21,7 +21,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class QtManager(object):
+class QtManager:
 
     windows = []
 
@@ -148,7 +148,7 @@ protocol_files_filters = ['MDT protocol (*.prtcl)',
                           'All files (*)']
 
 
-class UpdateDescriptor(object):
+class UpdateDescriptor:
 
     def __init__(self, attribute_name):
         """Descriptor that will emit a state_updated_signal at each update.
@@ -191,7 +191,7 @@ class MessageReceiver(QObject):
         self.finished.emit()
 
 
-class MainTab(object):
+class MainTab:
 
     def tab_opened(self):
         """Called when this tab is selected by the user."""

@@ -28,7 +28,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class BatchProfile(object):
+class BatchProfile:
 
     def get_subjects(self, data_folder):
         """Get the information about all the subjects in the current folder.
@@ -137,7 +137,7 @@ class SimpleBatchProfile(BatchProfile):
             bval_fname=bval_fname, protocol_columns=protocol_columns)
 
 
-class SubjectInfo(object):
+class SubjectInfo:
 
     @property
     def subject_id(self):
@@ -240,7 +240,7 @@ class SimpleSubjectInfo(SubjectInfo):
         return None
 
 
-class BatchSubjectSelection(object):
+class BatchSubjectSelection:
 
     def get_selection(self, subject_ids):
         """Get the selection of subjects from the given list of subjects.
@@ -354,7 +354,7 @@ def get_subject_selection(subjects_selection):
         raise ValueError('Subjects selection should contain either all strings or all integers.')
 
 
-class BatchFitProtocolLoader(object):
+class BatchFitProtocolLoader:
 
     def __init__(self, base_dir, protocol_fname=None, protocol_columns=None, bvec_fname=None, bval_fname=None):
         """A simple protocol loader for loading a protocol from a protocol file or bvec/bval files.
@@ -487,7 +487,7 @@ def batch_apply(func, data_folder, batch_profile=None, subjects_selection=None, 
     return results
 
 
-class BatchFitSubjectOutputInfo(object):
+class BatchFitSubjectOutputInfo:
 
     def __init__(self, output_path, subject_id, model_name):
         """This class is used in conjunction with the function :func:`run_function_on_batch_fit_output`.

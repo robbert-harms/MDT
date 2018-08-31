@@ -8,7 +8,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_GenerateROIMaskTabContent(object):
+class Ui_GenerateROIMaskTabContent:
     def setupUi(self, GenerateROIMaskTabContent):
         GenerateROIMaskTabContent.setObjectName("GenerateROIMaskTabContent")
         GenerateROIMaskTabContent.resize(827, 427)

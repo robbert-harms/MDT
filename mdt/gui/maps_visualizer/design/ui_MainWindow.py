@@ -8,7 +8,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_MapsVisualizer(object):
+class Ui_MapsVisualizer:
     def setupUi(self, MapsVisualizer):
         MapsVisualizer.setObjectName("MapsVisualizer")
         MapsVisualizer.resize(1000, 754)

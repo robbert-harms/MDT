@@ -8,7 +8,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_AboutDialog(object):
+class Ui_AboutDialog:
     def setupUi(self, AboutDialog):
         AboutDialog.setObjectName("AboutDialog")
         AboutDialog.resize(594, 379)

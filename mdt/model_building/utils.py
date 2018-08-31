@@ -55,7 +55,7 @@ def wrap_objective_function(objective_function, decode_function, nmr_parameters)
     ''', dependencies=[objective_function, decode_function])
 
 
-class ParameterCodec(object):
+class ParameterCodec:
 
     def __init__(self, encode_func, decode_func):
         """Create a parameter codec container.

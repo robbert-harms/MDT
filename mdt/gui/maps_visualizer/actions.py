@@ -3,7 +3,7 @@ from mdt.gui.maps_visualizer.base import SimpleDataConfigModel
 from mdt.visualization.maps.base import Zoom, Point2d, SingleMapConfig
 
 
-class ModelUpdateAction(object):
+class ModelUpdateAction:
 
     def apply(self, data_config_model):
         """Apply the changes to the given model and return a new model.

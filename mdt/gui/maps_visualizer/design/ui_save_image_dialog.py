@@ -8,7 +8,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_SaveImageDialog(object):
+class Ui_SaveImageDialog:
     def setupUi(self, SaveImageDialog):
         SaveImageDialog.setObjectName("SaveImageDialog")
         SaveImageDialog.resize(722, 284)

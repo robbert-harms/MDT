@@ -8,7 +8,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_ViewResultsTabContent(object):
+class Ui_ViewResultsTabContent:
     def setupUi(self, ViewResultsTabContent):
         ViewResultsTabContent.setObjectName("ViewResultsTabContent")
         ViewResultsTabContent.resize(938, 427)

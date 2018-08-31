@@ -8,7 +8,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_RuntimeSettingsDialog(object):
+class Ui_RuntimeSettingsDialog:
     def setupUi(self, RuntimeSettingsDialog):
         RuntimeSettingsDialog.setObjectName("RuntimeSettingsDialog")
         RuntimeSettingsDialog.resize(844, 243)

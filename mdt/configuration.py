@@ -70,7 +70,7 @@ def set_config_option(option_name, value):
 
     Args:
         option_name (list of str or str): the name of the option, or a path to the option.
-        value (object): the object to set for that option
+        value : the object to set for that option
 
     Returns:
         object: the raw configuration value defined for that option
@@ -100,7 +100,7 @@ def _config_insert(keys, value):
 
     Args:
         keys (list of str): the position of the input value
-        value (object): the value to put at the position of the key.
+        value : the value to put at the position of the key.
     """
     config = _config
     for key in keys[:-1]:
@@ -230,7 +230,7 @@ def update_write_config(config_file, update_dict):
         yaml.safe_dump(config_dict, f)
 
 
-class ConfigSectionLoader(object):
+class ConfigSectionLoader:
 
     def load(self, value):
         """Load the given configuration value into the current configuration.
@@ -673,7 +673,7 @@ def config_context(config_action):
     config_action.unapply()
 
 
-class ConfigAction(object):
+class ConfigAction:
 
     def __init__(self):
         """Defines a configuration action for the use in a configuration context.

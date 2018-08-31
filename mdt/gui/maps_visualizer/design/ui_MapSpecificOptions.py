@@ -8,7 +8,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_MapSpecificOptions(object):
+class Ui_MapSpecificOptions:
     def setupUi(self, MapSpecificOptions):
         MapSpecificOptions.setObjectName("MapSpecificOptions")
         MapSpecificOptions.resize(648, 590)

@@ -8,7 +8,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_LoadGBDialog(object):
+class Ui_LoadGBDialog:
     def setupUi(self, LoadGBDialog):
         LoadGBDialog.setObjectName("LoadGBDialog")
         LoadGBDialog.resize(831, 227)

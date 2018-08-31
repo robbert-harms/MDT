@@ -35,7 +35,7 @@ def get_argparse_extension_checker(choices, dir_allowed=False):
     return Act
 
 
-class BasicShellApplication(object):
+class BasicShellApplication:
 
     def __init__(self):
         self.parse_unknown_args = False
