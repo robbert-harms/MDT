@@ -51,7 +51,8 @@ class CompartmentBuilder(ComponentBuilder):
                     'post_optimization_modifiers': template.post_optimization_modifiers,
                     'extra_optimization_maps_funcs': builder._get_extra_optimization_map_funcs(
                         template, parameters),
-                    'extra_sampling_maps_funcs': copy(template.extra_sampling_maps),
+                    'extra_sampling_maps_funcs': builder._get_extra_sampling_map_funcs(
+                        template, parameters),
                     'cl_extra': template.cl_extra,
                     'proposal_callbacks': builder._get_proposal_callbacks(template, parameters)}
                 new_kwargs.update(kwargs)
@@ -72,6 +73,17 @@ class CompartmentBuilder(ComponentBuilder):
             extra_optimization_maps.append(lambda results: {
                 'vec0': spherical_to_cartesian(np.squeeze(results['theta']), np.squeeze(results['phi']))})
         return extra_optimization_maps
+
+    def _get_extra_sampling_map_funcs(self, template, parameter_list):
+        extra_sampling_maps = copy(template.extra_optimization_maps)
+
+        def compute(results):
+            return {'vec0': np.mean(spherical_to_cartesian(np.squeeze(results['theta']),
+                                                           np.squeeze(results['phi'])), axis=1)}
+
+        if all(map(lambda name: name in [p.name for p in parameter_list], ('theta', 'phi'))):
+            extra_sampling_maps.append(compute)
+        return extra_sampling_maps
 
     def _get_proposal_callbacks(self, template, parameter_list):
         """Get a list of proposal callback functions.
