@@ -75,7 +75,7 @@ class CompartmentBuilder(ComponentBuilder):
         return extra_optimization_maps
 
     def _get_extra_sampling_map_funcs(self, template, parameter_list):
-        extra_sampling_maps = copy(template.extra_optimization_maps)
+        extra_sampling_maps = copy(template.extra_sampling_maps)
 
         def compute(results):
             cartesian = spherical_to_cartesian(np.squeeze(results['theta']), np.squeeze(results['phi']))
