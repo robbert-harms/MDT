@@ -42,10 +42,10 @@ def sample_composite_model(model, input_data, output_folder, nmr_samples, thinni
 
             If not given, defaults to 'AMWG'.
         recalculate (boolean): If we want to recalculate the results if they are already present.
-        store_samples (boolean, sequence or :class:`mdt.lib.processing_strategies.SamplesStorageStrategy`): if set to False
-            we will store none of the samples. If set to True we will save all samples. If set to a sequence we expect a
-            sequence of integer numbers with sample positions to store. Finally, you can also give a subclass instance
-            of :class:`~mdt.lib.processing_strategies.SamplesStorageStrategy` (it is then typically set to
+        store_samples (boolean, sequence or :class:`mdt.lib.processing_strategies.SamplesStorageStrategy`): if set to
+            False, we will store none of the samples. If set to True we will save all samples. If set to a sequence we
+            expect a sequence of integer numbers with sample positions to store. Finally, you can also give a subclass
+            instance of :class:`~mdt.lib.processing_strategies.SamplesStorageStrategy` (it is then typically set to
             a :class:`mdt.lib.processing_strategies.SaveThinnedSamples` instance).
         sample_items_to_save (list): list of output names we want to store the samples of. If given, we only
             store the items specified in this list. Valid items are the free parameter names of the model and the
