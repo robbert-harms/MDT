@@ -1228,6 +1228,8 @@ def init_user_settings(pass_if_exists=True):
         shutil.rmtree(tmp_dir)
 
     def init_from_mdt():
+        if not os.path.exists(os.path.join(path, 'components')):
+            os.makedirs(os.path.join(path, 'components'))
         cache_path = pkg_resources.resource_filename('mdt', 'data/components')
         distutils.dir_util.copy_tree(cache_path, os.path.join(path, 'components'))
 
