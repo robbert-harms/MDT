@@ -78,8 +78,9 @@ class CompartmentBuilder(ComponentBuilder):
         extra_sampling_maps = copy(template.extra_optimization_maps)
 
         def compute(results):
-            return {'vec0': np.mean(spherical_to_cartesian(np.squeeze(results['theta']),
-                                                           np.squeeze(results['phi'])), axis=1)}
+            cartesian = spherical_to_cartesian(np.squeeze(results['theta']), np.squeeze(results['phi']))
+
+            return {'vec0': np.mean(cartesian, axis=1), 'vec0.std': np.std(cartesian, axis=1)}
 
         if all(map(lambda name: name in [p.name for p in parameter_list], ('theta', 'phi'))):
             extra_sampling_maps.append(compute)

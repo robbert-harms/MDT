@@ -1774,7 +1774,7 @@ class BuildCompositeModel:
         """
         results = {}
         for ind, param_name in enumerate(self.get_free_param_names()):
-            results['{}.mean'.format(param_name)] = np.mean(samples[:, ind, :], axis=1)
+            results['{}'.format(param_name)] = np.mean(samples[:, ind, :], axis=1)
             results['{}.std'.format(param_name)] = np.std(samples[:, ind, :], axis=1)
         return results
 
