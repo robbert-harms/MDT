@@ -618,7 +618,7 @@ class DMRICompositeModel(DMRIOptimizable):
             mdt.utils.MRIInputData: either the same input data or a changed copy.
         """
         if not self.volume_selection:
-            self._logger.info('Disabled volume selection, using all volumes.')
+            self._logger.info('Disabled volume selection, using all {} volumes.'.format(input_data.nmr_observations))
             return input_data
 
         indices = self._get_suitable_volume_indices(input_data)
@@ -629,7 +629,7 @@ class DMRICompositeModel(DMRIOptimizable):
                 len(indices), input_data.nmr_observations, str(indices).replace('\n', '').replace('[  ', '[')))
             return input_data.get_subset(volumes_to_keep=indices)
         else:
-            self._logger.info('No volume options to apply, using all volumes.')
+            self._logger.info('No volume options to apply, using all {} volumes.'.format(input_data.nmr_observations))
         return input_data
 
     def _check_data_consistency(self, input_data):
@@ -1678,6 +1678,8 @@ class BuildCompositeModel:
 
         if self._post_processing['sampling']['model_defined_maps']:
             items.update({'model_defined_maps': lambda: self._post_sampling_extra_model_defined_maps(samples)})
+        if self._post_processing['sampling']['univariate_normal']:
+            items.update({'univariate_normal': lambda: self._get_univariate_normal(samples)})
         if self._post_processing['sampling']['univariate_ess']:
             items.update({'univariate_ess': lambda: self._get_univariate_ess(samples)})
         if self._post_processing['sampling']['multivariate_ess']:
@@ -1760,6 +1762,21 @@ class BuildCompositeModel:
             return maps
 
         return mle_maps, map_maps
+
+    def _get_univariate_normal(self, samples):
+        """Fit a univariate normal distribution to the parameters, i.e. calculate the mean and std. of each parameter.
+
+        Args:
+            samples (ndarray): an (d, p, n) matrix for d problems, p parameters and n samples.
+
+        Returns:
+            dict: the volume maps with the univariate normal distribution fits (mean and std.)
+        """
+        results = {}
+        for ind, param_name in enumerate(self.get_free_param_names()):
+            results['{}.mean'.format(param_name)] = np.mean(samples[:, ind, :], axis=1)
+            results['{}.std'.format(param_name)] = np.std(samples[:, ind, :], axis=1)
+        return results
 
     def _get_univariate_ess(self, samples):
         """Get the univariate Effective Sample Size statistics for the given set of samples.

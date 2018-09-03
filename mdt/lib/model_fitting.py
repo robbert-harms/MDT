@@ -317,7 +317,7 @@ def _model_fit_logging(logger, model_name, free_param_names):
     """Adds logging information around the processing."""
     minimize_start_time = timeit.default_timer()
     logger.info('Fitting {} model'.format(model_name))
-    logger.info('The parameters we will fit are: {0}'.format(free_param_names))
+    logger.info('The {} parameters we will fit are: {}'.format(len(free_param_names), free_param_names))
     yield
     run_time = timeit.default_timer() - minimize_start_time
     run_time_str = time.strftime('%H:%M:%S', time.gmtime(run_time))

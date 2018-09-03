@@ -329,7 +329,8 @@ class ActivePostProcessingLoader(ConfigSectionLoader):
         sampling['multivariate_ess'] = sampling.get('multivariate_ess', False)
         sampling['maximum_likelihood'] = sampling.get('maximum_likelihood', False)
         sampling['maximum_a_posteriori'] = sampling.get('maximum_a_posteriori', False)
-        sampling['model_defined_maps'] = sampling.get('model_defined_maps', False)
+        sampling['model_defined_maps'] = sampling.get('model_defined_maps', True)
+        sampling['univariate_normal'] = sampling.get('univariate_normal', True)
 
         optimization = value.get('optimization', {})
         optimization['uncertainties'] = optimization.get('uncertainties', True)

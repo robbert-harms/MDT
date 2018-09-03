@@ -458,8 +458,12 @@ class FittingProcessor(SimpleModelProcessor):
         for env in cl_runtime_info.get_cl_environments():
             self._logger.info('Using device \'{}\'.'.format(str(env)))
         self._logger.info('Using compile flags: {}'.format(cl_runtime_info.get_compile_flags()))
-        self._logger.info('We will use the optimizer {} '
-                          'with optimizer settings {}'.format(self._method, self._optimizer_options))
+
+        if self._optimizer_options:
+            self._logger.info('We will use the optimizer {} '
+                              'with optimizer settings {}'.format(self._method, self._optimizer_options))
+        else:
+            self._logger.info('We will use the optimizer {} with default settings.'.format(self._method))
 
         objective_func = wrap_objective_function(build_model.get_objective_function(),
                                                  codec.get_decode_function(), x0.shape[1])
