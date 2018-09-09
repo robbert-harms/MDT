@@ -1,10 +1,33 @@
 from mdt import CompartmentTemplate
 
-
 __author__ = 'Robbert Harms'
-__date__ = "2015-06-21"
-__maintainer__ = "Robbert Harms"
-__email__ = "robbert.harms@maastrichtuniversity.nl"
+__date__ = '2018-09-07'
+__maintainer__ = 'Robbert Harms'
+__email__ = 'robbert.harms@maastrichtuniversity.nl'
+__licence__ = 'LGPL v3'
+
+
+class NODDI_EC(CompartmentTemplate):
+    """The Extra-Cellular compartment of the NODDI-Watson model."""
+    parameters = ('g', 'b', 'd', 'dperp0', 'theta', 'phi', 'kappa')
+    dependencies = ('dawson', 'Zeppelin')
+    cl_code = '''
+        mot_float_type tmp;
+        mot_float_type dw_0, dw_1;
+
+        if(kappa > 1e-5){
+            tmp = sqrt(kappa)/dawson(sqrt(kappa));
+            dw_0 = ( -(d - dperp0) + 2 * dperp0 * kappa + (d - dperp0) * tmp) / (2.0 * kappa);
+            dw_1 = ( (d - dperp0) + 2 * (d+dperp0) * kappa - (d - dperp0) * tmp) / (4.0 * kappa);
+        }
+        else{
+            tmp = 2 * (d - dperp0) * kappa;
+            dw_0 = ((2 * dperp0 + d) / 3.0) + (tmp/22.5) + ((tmp * kappa) / 236.0);
+            dw_1 = ((2 * dperp0 + d) / 3.0) - (tmp/45.0) - ((tmp * kappa) / 472.0);
+        }
+
+        return Zeppelin(g, b, dw_0, dw_1, theta, phi);
+    '''
 
 
 class NODDI_IC(CompartmentTemplate):
@@ -75,7 +98,7 @@ class NODDI_IC(CompartmentTemplate):
                 // to eliminate the branch I added this to the front, this saves an if/else.
                 // also, since we are after the legendre terms with a list with n = [0, 2, 4, 6, 8, ...]
                 // the legendre terms collaps to this loop if fabs(x) == 1.0
-                
+
                 for(int i = 0; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
                     legendre_terms[i] = 1.0;
                 }
@@ -252,4 +275,56 @@ class NODDI_IC(CompartmentTemplate):
                 result[6] = 4.65678 + 6.30069*lnkd[0] + 1.13754*lnkd[1] - 1.38393*lnkd[2] - 0.0134758*lnkd[3] + 0.331686*lnkd[4] - 0.105954*lnkd[5];
             }
         }
+    '''
+
+
+class BinghamNODDI_EN(CompartmentTemplate):
+    """The Extra-Neurite tissue model of Bingham NODDI."""
+    parameters = ('g', 'b', 'd', 'dperp0', 'theta', 'phi', 'psi', 'kappa', 'bn_beta(beta)')
+    dependencies = ['BinghamNormalization_3x3', 'SphericalToCartesian', 'Tensor']
+    cl_code = '''
+        double DELTA = 1e-4;
+        double diff;
+        double normalization_constant = BinghamNormalization_3x3(-kappa, -beta, 0);
+
+        diff = (BinghamNormalization_3x3(-(kappa+DELTA), -beta, 0) - 
+                BinghamNormalization_3x3(-(kappa-DELTA), -beta, 0)) / (2*DELTA); 
+        double d_mu_1 = dperp0 + (d - dperp0) * (diff / normalization_constant);
+
+        diff = (BinghamNormalization_3x3(-kappa, -(beta+DELTA), 0) - 
+                BinghamNormalization_3x3(-kappa, -(beta-DELTA), 0)) / (2*DELTA);
+        double d_mu_2 = dperp0 + (d - dperp0) * (diff / normalization_constant);
+
+        double d_mu_3 = d + 2*dperp0 - d_mu_1 - d_mu_2;
+
+        return Tensor(g, b, d_mu_1, d_mu_2, d_mu_3, theta, phi, psi);
+    '''
+
+
+class BinghamNODDI_IN(CompartmentTemplate):
+    """The Intra-Neurite tissue model of Bingham NODDI."""
+    parameters = ('g', 'b', 'd', 'theta', 'phi', 'psi', 'kappa', 'bn_beta(beta)')
+    dependencies = ['EigenvaluesSymmetric3x3', 'BinghamNormalization_3x3', 'TensorSphericalToCartesian']
+    cl_code = '''
+        mot_float_type4 v1, v2, v3;
+        TensorSphericalToCartesian(theta, phi, psi, &v1, &v2, &v3);
+
+        mot_float_type Q[9];
+        Q[0] = pown(dot(g, v3), 2) * (-b * d);
+        Q[1] = dot(g, v3) * dot(g, v2) * (-b * d);
+        Q[2] = dot(g, v3) * dot(g, v1) * (-b * d);
+        Q[3] = Q[1];
+        Q[4] = pown(dot(g, v2), 2) * (-b * d);
+        Q[5] = dot(g, v2) * dot(g, v1) * (-b * d);
+        Q[6] = Q[2];
+        Q[7] = Q[5];
+        Q[8] = pown(dot(g, v1), 2) * (-b * d);
+
+        Q[4] += beta;
+        Q[8] += kappa;
+
+        mot_float_type e[3];
+        EigenvaluesSymmetric3x3(Q,e);
+
+        return (BinghamNormalization_3x3(-e[0], -e[1], -e[2]) / BinghamNormalization_3x3(-kappa, -beta, 0));
     '''

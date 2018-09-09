@@ -9,7 +9,6 @@ __licence__ = 'LGPL v3'
 
 class Kurtosis(CascadeTemplate):
 
-    description = 'Initializes the primary directions using a Tensor estimate.'
     models = ('Tensor (Cascade)',
               'Kurtosis')
 

@@ -131,7 +131,7 @@ def _resolve_parameters(parameter_list):
                 param = get_component('parameters', item)()
                 parameters.append(LibraryParameter(param.data_type, item))
             else:
-                parameters.append(LibraryParameter(SimpleCLDataType.from_string('mot_float_type'), item))
+                parameters.append(LibraryParameter(SimpleCLDataType.from_string('double'), item))
         else:
             parameters.append(deepcopy(item))
     return parameters

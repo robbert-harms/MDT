@@ -1712,10 +1712,8 @@ class BuildCompositeModel:
         for routine in self._extra_sampling_maps:
             try:
                 results_dict.update(routine(post_processing_data))
-            except KeyError as exc:
-                logger = logging.getLogger(__name__)
-                logger.error(
-                    'Failed to execute extra sample maps function, missing input: {}.'.format(str(exc)))
+            except KeyError:
+                pass
         return results_dict
 
     def _get_mle_map_statistics(self, sampling_output):

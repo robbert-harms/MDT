@@ -28,11 +28,10 @@ def extra_dti_results(results_dict):
 
 
 class SymmetricNonParametricTensor(CompartmentTemplate):
+    """The Tensor model in which a symmetric D matrix is optimized directly.
 
-    description = '''
-        The Tensor model in which a symmetric D matrix is optimized directly,
-        without vector/diffusivity parameterization.
-    '''
+    This does not use the vector/diffusivity parameterization using the eigenvectors/eigenvalues.
+    """
     parameters = ('g', 'b',
                   'Tensor_D_00(D_00)', 'Tensor_D_01(D_01)', 'Tensor_D_02(D_02)',
                                        'Tensor_D_11(D_11)', 'Tensor_D_12(D_12)',

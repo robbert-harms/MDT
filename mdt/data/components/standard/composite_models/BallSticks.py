@@ -9,7 +9,6 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class BallStick_r1(CompositeModelTemplate):
 
-    description = 'The default Ball & Stick model'
     model_expression = '''
         S0 * ( (Weight(w_ball) * Ball) +
                (Weight(w_stick0) * Stick(Stick0)) )
@@ -29,7 +28,6 @@ class BallStick_r1(CompositeModelTemplate):
 
 class BallStick_r2(CompositeModelTemplate):
 
-    description = 'The Ball & 2x Stick model'
     model_expression = '''
         S0 * ( (Weight(w_ball) * Ball) +
                (Weight(w_stick0) * Stick(Stick0)) +
@@ -56,7 +54,6 @@ class BallStick_r2(CompositeModelTemplate):
 
 class BallStick_r3(CompositeModelTemplate):
 
-    description = 'The Ball & 3x Stick model'
     model_expression = '''
             S0 * ( (Weight(w_ball) * Ball) +
                    (Weight(w_stick0) * Stick(Stick0)) +

@@ -9,7 +9,6 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class BallRacket_r1(CompositeModelTemplate):
 
-    description = 'The default Ball & Rackets model'
     model_expression = '''
         S0 * ( (Weight(w_ball) * Ball) +
                (Weight(w_res0) * Racket(Racket0)) )
@@ -28,7 +27,6 @@ class BallRacket_r1(CompositeModelTemplate):
 
 class BallRacket_r2(CompositeModelTemplate):
 
-    description = 'The Ball & 2x Racket model'
     model_expression = '''
         S0 * ( (Weight(w_ball) * Ball) +
                (Weight(w_res0) * Racket(Racket0)) +

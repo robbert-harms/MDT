@@ -7,22 +7,20 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 class TimeDependentZeppelin(CompartmentTemplate):
+    """Implements a Zeppelin (cylindrical symmetric Tensor) with time dependence in the perpendicular diffusivity.
+    The perpendicular diffusivity is calculated as:
 
-    description = '''
-        Implements a Zeppelin (cylindrical symmetric Tensor) with time dependence in the perpendicular diffusivity.
-        The perpendicular diffusivity is calculated as:
+    .. math::
 
-        .. math::
-
-            D_{h, \perp} = D_{h,\infty} + A \frac{\ln(\Delta/\delta) + 3/2}{\Delta - \delta/3}
+        D_{h, \perp} = D_{h,\infty} + A \frac{\ln(\Delta/\delta) + 3/2}{\Delta - \delta/3}
 
 
-        For a detailed description please see equation 11 in (De Santis 2016).
+    For a detailed description please see equation 11 in [1].
 
-        References:
-            De Santis, S., Jones D., Roebroeck A., 2016. Including diffusion time dependence in the extra-axonal space
+    References:
+        [1] De Santis, S., Jones D., Roebroeck A., 2016. Including diffusion time dependence in the extra-axonal space
             improves in vivo estimates of axonal diameter and density in human white matter, NeuroImage 2016.
-    '''
+    """
     parameters = ('g', 'b', 'd', 'd_bulk', 'theta', 'phi', 'time_dependent_characteristic_coefficient(A)',
                   'Delta', 'delta')
     dependencies = ('Zeppelin',)

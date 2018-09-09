@@ -9,13 +9,11 @@ __licence__ = 'LGPL v3'
 
 
 class ActiveAx(CompositeModelTemplate):
+    """The ActiveAx model for use in in-vivo measurements.
 
-    description = '''
-        The ActiveAx model for use in in-vivo measurements.
-
-        This model has a CSF compartment and white matter intrinsic diffusivity is fixed at 1.7E-9 m^2/s and 
-        CSF diffusivity at 3.0E-9 m^2/s. (In CAMINO this model is listed as "MMWMD_INVIVO").
-    '''
+    This model has a CSF compartment and white matter intrinsic diffusivity is fixed at 1.7E-9 m^2/s and
+    CSF diffusivity at 3.0E-9 m^2/s. (In CAMINO this model is listed as "MMWMD_INVIVO").
+    """
     model_expression = '''
         S0 * ((Weight(w_ic) * CylinderGPD) +
               (Weight(w_ec) * Zeppelin) +
@@ -37,14 +35,12 @@ class ActiveAx(CompositeModelTemplate):
 
 
 class ActiveAx_ExVivo(CompositeModelTemplate):
+    """The ActiveAx model for use in ex-vivo measurements.
 
-    description = '''
-        The ActiveAx model for use in ex-vivo measurements.
-
-        This model has all the compartments as described in Alexander et al NIMG 2010. The white matter intrinsic
-        diffusivity is fixed at 0.6e-9 m^2/s and CSF diffusivity is fixed at 2.0e-9 m^2/s. 
-        (In CAMINO this model is listed as "MMWMD_Fixed").
-    '''
+    This model has all the compartments as described in Alexander et al NIMG 2010. The white matter intrinsic
+    diffusivity is fixed at 0.6e-9 m^2/s and CSF diffusivity is fixed at 2.0e-9 m^2/s.
+    (In CAMINO this model is listed as "MMWMD_Fixed").
+    """
     model_expression = '''
         S0 * ((Weight(w_ic) * CylinderGPD) +
               (Weight(w_ec) * Zeppelin) +
@@ -70,8 +66,10 @@ class ActiveAx_ExVivo(CompositeModelTemplate):
 
 
 class TimeDependentActiveAx(CompositeModelTemplate):
+    """Fits the extra-axonal time dependent ActiveAx model (De Santis 2016).
 
-    description = 'Fits the extra-axonal time dependent ActiveAx model (De Santis 2016).'
+    This fits a single Radius using the CylinderGPD compartment model.
+    """
     model_expression = '''
         S0 * ExpT1DecTM_simple * ( (Weight(w_ic) * CylinderGPD) + 
                                    (Weight(w_ec) * TimeDependentZeppelin)

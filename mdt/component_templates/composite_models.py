@@ -251,8 +251,8 @@ class CompositeModelTemplate(ComponentTemplate):
 
             If the method ``_get_suitable_volume_indices`` is overwritten, this does nothing.
 
-        prior (str, mdt.model_building.utils.ModelPrior or None): a model wide prior. This is used in conjunction with
-            the compartment priors and the parameter priors. If a string is given we will automatically construct a
+        extra_prior (str, mdt.model_building.utils.ModelPrior or None): a model wide prior. This is used in conjunction
+            with the compartment priors and the parameter priors. If a string is given we will automatically construct a
             :class:`mdt.model_building.utils.ModelPrior` from that string.
     """
     _component_type = 'composite_models'
@@ -317,15 +317,20 @@ def _resolve_model_prior(prior, model_parameters):
     if isinstance(prior, CLFunction):
         return [prior]
 
+    dotted_names = ['{}.{}'.format(m.name, p.name) for m, p in model_parameters]
+    dotted_names.sort(key=len, reverse=True)
+
     parameters = []
-    for m, p in model_parameters:
-        dotted_name = '{}.{}'.format(m.name, p.name)
+    remaining_prior = prior
+    for dotted_name in dotted_names:
         bar_name = dotted_name.replace('.', '_')
 
-        if dotted_name in prior:
+        if dotted_name in remaining_prior:
             prior = prior.replace(dotted_name, bar_name)
+            remaining_prior = remaining_prior.replace(dotted_name, '')
             parameters.append(('mot_float_type', dotted_name))
-        elif bar_name in prior:
+        elif bar_name in remaining_prior:
+            remaining_prior = remaining_prior.replace(bar_name, '')
             parameters.append(('mot_float_type', dotted_name))
 
     return [SimpleCLFunction('mot_float_type', 'model_prior', parameters, prior)]

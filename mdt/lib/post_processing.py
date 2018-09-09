@@ -676,6 +676,54 @@ class DKIMeasures:
                          [-0.9636, 0.0579, 0.2611]])
 
 
+class NODDIMeasures:
+
+    @staticmethod
+    def noddi_watson_extra_optimization_maps(results):
+        """Computes the NDI and ODI for the NODDI Watson model"""
+        return {'NDI': results['w_ic.w'] / (results['w_ic.w'] + results['w_ec.w']),
+                'ODI': np.arctan2(1.0, results['NODDI_IC.kappa']) * 2 / np.pi}
+
+    @staticmethod
+    def noddi_watson_extra_sampling_maps(results):
+        """Computes the NDI and ODI per sample and average over the derived values."""
+        ndi = results['w_ic.w'] / (results['w_ic.w'] + results['w_ec.w'])
+        odi = np.arctan2(1.0, results['NODDI_IC.kappa']) * 2 / np.pi
+
+        return {'NDI': np.mean(ndi, axis=1), 'NDI.std': np.std(ndi, axis=1),
+                'ODI': np.mean(odi, axis=1), 'ODI.std': np.std(odi, axis=1)}
+
+    @staticmethod
+    def noddi_bingham_extra_optimization_maps(results):
+        """Computes the ODI's and Dispersion Anisotropic Index (DAI) for the NODDI Bingham model"""
+        kappa = results['BinghamNODDI_IN.kappa']
+        beta = results['BinghamNODDI_IN.beta']
+        return {'ODI_p': np.arctan2(1.0, kappa - beta) * 2 / np.pi,
+                'ODI_s': np.arctan2(1.0, kappa) * 2 / np.pi,
+                'ODI': np.arctan2(1.0, np.sqrt(np.abs(kappa * (kappa - beta)))) * 2 / np.pi,
+                'DAI': np.arctan2(beta, kappa - beta) * 2 / np.pi}
+
+    @staticmethod
+    def noddi_bingham_extra_sampling_maps(results):
+        """Computes the ODI's and Dispersion Anisotropic Index (DAI) for the NODDI Bingham model.
+
+        This computes the indices per sample and takes the mean and std. over that.
+        """
+        kappa = results['BinghamNODDI_IN.kappa']
+        beta = results['BinghamNODDI_IN.beta']
+
+        odi_p = np.arctan2(1.0, kappa - beta) * 2 / np.pi
+        odi_s = np.arctan2(1.0, kappa) * 2 / np.pi
+        odi = np.arctan2(1.0, np.sqrt(np.abs(kappa * (kappa - beta)))) * 2 / np.pi
+        dai = np.arctan2(beta, kappa - beta) * 2 / np.pi
+
+        return {'ODI_p': np.mean(odi_p, axis=1), 'ODI_p.std': np.std(odi_p, axis=1),
+                'ODI_s': np.mean(odi_s, axis=1), 'ODI_s.std': np.std(odi_s, axis=1),
+                'ODI': np.mean(odi, axis=1), 'ODI.std': np.std(odi, axis=1),
+                'DAI': np.mean(dai, axis=1), 'DAI.std': np.std(dai, axis=1)}
+
+
+
 def noddi_dti_maps(results, input_data=None):
     """Compute NODDI-like statistics from Tensor/Kurtosis parameter fits.
 

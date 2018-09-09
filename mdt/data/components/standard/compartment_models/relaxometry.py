@@ -15,7 +15,7 @@ class ExpT1DecGRE(CompartmentTemplate):
 
 
 class ExpT1DecIR(CompartmentTemplate):
-    description = '''IR equation.
+    """IR equation.
 
     IR equation in which TI and TR are considered to estimate T1. Assuming TE << T1, the TE component of the signal
     is discarded. In cascade, S0 contains T2 and PD weighted information. An efficiency factor is added to the TI
@@ -23,7 +23,7 @@ class ExpT1DecIR(CompartmentTemplate):
     
     This is made to model the MI-EPI sequence, a multi inversion recovery epi (Renvall et Al. 2016). 
     The Model is based on Stikov et al.'s three parameter model.
-    '''
+    """
     parameters = ('TR', 'TI', 'Efficiency', 'T1')
     cl_code = '''
         return fabs(1 + exp(-TR / T1) - 2 * Efficiency * exp(-TI / T1));
@@ -82,10 +82,12 @@ class ExpT1ExpT2sGRE(CompartmentTemplate):
 
 
 class ExpT1ExpT2STEAM(CompartmentTemplate):
-    description = '''Generalised STEAM equation.
+    """Generalised STEAM equation.
 
     From protocol, if the signal is SE, we can setup TM = 0 in all the volumes,
     which returns to the standard SE signal decay
+
+    Please note, this sequence is valid for STE SIGNAL ONLY! Don't mix with SE volumes.
 
     This equation can be used to calculate relaxation time (T1/T2) from spin echo (SE) and/or stimulated spin echo (STE)
     data. It is important to notice that in the protocol you have to define some parameters in a specific way:
@@ -95,9 +97,7 @@ class ExpT1ExpT2STEAM(CompartmentTemplate):
         Refoc_fa1 has to be HALF of the used FA in the protocol (then, also Refoc_fa2). Also, the 0.5 factor is
         not included, then SEf (Spin echo flag) should be 0. Finally, TM (mixing time) has to be 0.
     (2) For STE data, this equation is used totally. Just SEf = 1.
-
-    //UPDATE (24.03.17): This sequence is valid for STE SIGNAL ONLY! Don't mix with SE volumes.
-    '''
+    """
     parameters = ('SEf', 'TR', 'TE', 'TM', 'b', 'flip_angle', 'excitation_b1', 'Refoc_fa1',
                   'refocusing1_b1', 'Refoc_fa2', 'refocusing2_b1', 'T2', 'T1', 'd_exvivo')
     cl_code = '''
@@ -132,13 +132,13 @@ class ExpT2DecSTEAM(CompartmentTemplate):
 
 
 class MPM_Fit(CompartmentTemplate):
-    description = '''MPM fitting (Weiskopf, 2016 ESMRMB Workshop)
+    """MPM fitting (Weiskopf, 2016 ESMRMB Workshop)
 
     This fitting is a model published by Helms (2008) and Weiskopf (2011) to determinate biological properties
     of the tissue/sample in function *of several images*, which includes T1w, PDw and MTw images. 
     This function is still an approximation and only if the assumptions of the approximations hold for ex-vivo tissue, 
     then can be used for ex-vivo data.
-    '''
+    """
     parameters = ('TR', 'flip_angle', 'excitation_b1', 'T1')
     cl_code = '''
         return (flip_angle * excitation_b1) * ( (TR / T1) / ( pown(flip_angle * excitation_b1, 2) / 2 + ( TR / T1 ) ) );
@@ -146,13 +146,13 @@ class MPM_Fit(CompartmentTemplate):
 
 
 class LinMPM_Fit(CompartmentTemplate):
-    description = '''MPM fitting (Weiskopf, 2016 ESMRMB Workshop)
+    """MPM fitting (Weiskopf, 2016 ESMRMB Workshop)
 
     This fitting is a model published by Helms (2008) and Weiskopf (2011) to determinate biological properties
     of the tissue/sample in function *of several images*, which includes T1w, PDw and MTw images. 
     This function is still an approximation and only if the assumptions of the approximations hold for ex-vivo tissue, 
     then can be used for ex-vivo data.
-    '''
+    """
     parameters = ('TR', 'flip_angle', 'b1', 'T1')
     cl_code = '''
         return log(flip_angle * b1) + log(TR / T1) - log( pown(flip_angle * b1, 2) / 2 + ( TR / T1 ) ) ;
@@ -160,7 +160,7 @@ class LinMPM_Fit(CompartmentTemplate):
 
 
 class LinT1GRE(CompartmentTemplate):
-    description = '''Lineal T1 fitting (Weiskopf, 2016 ESMRMB Workshop)
+    """Linear T1 fitting (Weiskopf, 2016 ESMRMB Workshop)
 
     This fitting is the extension of the standard GRE equation for flip angles lower than 90deg. This modelling allows a
     linear fitting of the data if is enough data to support it. In principle, it should not be a problem if only two
@@ -171,7 +171,7 @@ class LinT1GRE(CompartmentTemplate):
     However, if this condition is not achieved, then return to the standard equation.
     
     Also, DATA HAS TO BE PROCESSED BEFORE TO USE THIS EQUATION. Please apply log() on the data.
-    '''
+    """
     parameters = ('Sw', 'E1')
     cl_code = '''
         return Sw * E1;

@@ -8,7 +8,6 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class CHARMED1(CascadeTemplate):
 
-    description = 'Initializes the directions to Ball & Stick.'
     models = ('BallStick_r1 (Cascade)',
               'CHARMED_r1')
     inits = {'CHARMED_r1': {'CHARMEDRestricted0.theta': 'Stick0.theta',
@@ -26,7 +25,6 @@ class CHARMED1Gelderen(CHARMED1):
 class CHARMEDR1Fixed(CascadeTemplate):
 
     cascade_name_modifier = 'fixed'
-    description = 'Fixes the directions to Ball & Stick.'
     models = ('BallStick_r1 (Cascade)',
               'CHARMED_r1')
     inits = {'CHARMED_r1': {'Tensor.theta': 'Stick0.theta',
@@ -38,7 +36,6 @@ class CHARMEDR1Fixed(CascadeTemplate):
 
 class CHARMEDR2(CascadeTemplate):
 
-    description = 'Initializes the directions to 2x Ball & Stick.'
     models = ('BallStick_r2 (Cascade)',
               'CHARMED_r2')
     inits = {'CHARMED_r2': [('Tensor.theta', 'Stick0.theta'),
@@ -54,7 +51,6 @@ class CHARMEDR2(CascadeTemplate):
 class CHARMEDR2Fixed(CascadeTemplate):
 
     cascade_name_modifier = 'fixed'
-    description = 'Fixes the directions to 2x Ball & Stick.'
     models = ('BallStick_r2 (Cascade)',
               'CHARMED_r2')
     inits = {'CHARMED_r2': [('Tensor.theta', 'Stick0.theta'),
@@ -70,7 +66,6 @@ class CHARMEDR2Fixed(CascadeTemplate):
 
 class CHARMED_r3(CascadeTemplate):
 
-    description = 'Initializes the directions to 3x Ball & Stick.'
     models = ('BallStick_r3 (Cascade)',
               'CHARMED_r3')
     inits = {'CHARMED_r3': [('Tensor.theta', 'Stick0.theta'),
@@ -90,7 +85,6 @@ class CHARMED_r3(CascadeTemplate):
 class CHARMED_r3_Fixed(CascadeTemplate):
 
     cascade_name_modifier = 'fixed'
-    description = 'Fixes the directions to 3x Ball & Stick.'
     models = ('BallStick_r3 (Cascade)',
               'CHARMED_r3')
     inits = {'CHARMED_r3': [('Tensor.theta', 'Stick0.theta'),

@@ -8,7 +8,6 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class BallRacket_r1_c(CascadeTemplate):
 
-    description = 'Initializing the Ball&Rackets using Ball&Stick.'
     models = ('BallStick_r1 (Cascade)',
               'BallRacket_r1')
     inits = {'BallRacket_r1': {'Racket0.theta': 'Stick0.theta',
@@ -18,7 +17,6 @@ class BallRacket_r1_c(CascadeTemplate):
 
 class BallRacket_r2(CascadeTemplate):
 
-    description = 'Cascade for BallRacket_r2.'
     models = ('BallStick_r2 (Cascade)',
               'BallRacket_r1 (Cascade)',
               'BallRacket_r2')
@@ -30,7 +28,6 @@ class BallRacket_r2(CascadeTemplate):
 
 class BallRacket_r2_fixed(CascadeTemplate):
 
-    description = 'Cascade for BallRacket_r2.'
     cascade_name_modifier = 'fixed'
     models = ('BallStick_r2 (Cascade)',
               'BallRacket_r1 (Cascade)',

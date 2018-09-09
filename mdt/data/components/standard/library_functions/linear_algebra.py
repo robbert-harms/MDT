@@ -6,8 +6,6 @@ class RotateOrthogonalVector(LibraryFunctionTemplate):
     description = '''
         Uses Rodrigues' rotation formula to rotate the given vector v by psi around k.
 
-        This function assumes that the given vectors v and k are orthogonal which allows a speed up/
-
         Args:
             basis: the unit vector defining the rotation axis (k)
             to_rotate: the vector to rotate by the angle psi (v)
@@ -24,7 +22,9 @@ class RotateOrthogonalVector(LibraryFunctionTemplate):
         mot_float_type cos_psi;
         mot_float_type sin_psi = sincos(psi, &cos_psi);
 
-        return to_rotate * cos_psi + (cross(basis, to_rotate) * sin_psi);
+        return to_rotate * cos_psi 
+                    + (cross(basis, to_rotate) * sin_psi) 
+                    + basis * dot(basis, to_rotate) * (1 - cos_psi);
     '''
 
 
@@ -71,7 +71,8 @@ class SphericalToCartesian(LibraryFunctionTemplate):
             phi: azimuth angle of the first vector
     '''
     return_type = 'mot_float_type4'
-    parameters = ['theta', 'phi']
+    parameters = [('mot_float_type', 'theta'),
+                  ('mot_float_type', 'phi')]
     cl_code = '''
         mot_float_type cos_theta;
         mot_float_type sin_theta = sincos(theta, &cos_theta);
@@ -221,8 +222,6 @@ class SquareMatrixMultiplication(LibraryFunctionTemplate):
         for(int ind = 0; ind < n*n; ind++){
             i = ind / n;
             j = ind - n * i;
-            
-            printf("%i, %i, %i", ind, i, j);
             
             sum = 0;
             for(z = 0; z < n; z++){

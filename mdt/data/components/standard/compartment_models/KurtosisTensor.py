@@ -84,9 +84,6 @@ def get_parameters():
 
 class KurtosisTensor(CompartmentTemplate):
 
-    description = '''
-        The Kurtosis Tensor model.
-    '''
     parameters = get_parameters()
     dependencies = ['TensorApparentDiffusion', 'KurtosisMultiplication']
     cl_code = '''

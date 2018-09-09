@@ -7,8 +7,8 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 class Kurtosis(CompositeModelTemplate):
+    """The standard Kurtosis model with in vivo defaults."""
 
-    description = 'The standard Kurtosis model with in vivo defaults.'
     model_expression = '''
         S0 * KurtosisTensor
     '''

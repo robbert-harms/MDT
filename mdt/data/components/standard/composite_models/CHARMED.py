@@ -8,8 +8,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 class CHARMED_r1(CompositeModelTemplate):
-
-    description = 'The CHARMED model with 1 restricted compartments'
+    """The CHARMED model with 1 restricted compartments"""
 
     model_expression = '''
         S0 * ( (Weight(w_hin0) * Tensor) +
@@ -33,8 +32,7 @@ class CHARMED_r1(CompositeModelTemplate):
 
 
 class CHARMED_r1_Gelderen(CHARMED_r1):
-
-    description = 'The CHARMED model using the van Gelderen cylindrical diffusion model.'
+    """The CHARMED model using the van Gelderen cylindrical diffusion model."""
     model_expression = '''
         S0 * ( (Weight(w_hin0) * Tensor) +
                (Weight(w_res0) * CHARMEDRestrictedGelderen(CHARMEDRestricted0))
@@ -43,8 +41,7 @@ class CHARMED_r1_Gelderen(CHARMED_r1):
 
 
 class CHARMED_r2(CompositeModelTemplate):
-
-    description = 'The CHARMED model with 2 restricted compartments'
+    """The CHARMED model with 2 restricted compartments."""
 
     model_expression = '''
         S0 * ( (Weight(w_hin0) * Tensor) +
@@ -71,8 +68,7 @@ class CHARMED_r2(CompositeModelTemplate):
 
 
 class CHARMED_r3(CompositeModelTemplate):
-
-    description = 'The standard CHARMED model with 3 restricted compartments'
+    """The standard CHARMED model with 3 restricted compartments"""
 
     model_expression = '''
         S0 * ( (Weight(w_hin0) * Tensor) +

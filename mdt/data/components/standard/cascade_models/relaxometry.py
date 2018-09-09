@@ -9,7 +9,6 @@ __licence__ = 'LGPL v3'
 
 class S0T1_MI_EPI(CascadeTemplate):
 
-    description = 'Cascade for S0T1_MI_EPI model.'
     models = ('S0',
               ('S0T1_MI_EPI', 'S0T1_MI_EPI_fixed_eff'),
               'S0T1_MI_EPI')
@@ -18,6 +17,5 @@ class S0T1_MI_EPI(CascadeTemplate):
 
 class S0_T2(CascadeTemplate):
 
-    description = 'Cascade for S0-T2 model.'
     models = ('S0',
               'S0-T2')

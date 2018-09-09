@@ -209,9 +209,9 @@ class R(FreeParameterTemplate):
 
 
 class kappa(FreeParameterTemplate):
-    """The kappa parameter of the Watson distribution in the NODDI model.
+    """The kappa parameter used in the NODDI models.
 
-    The NODDI model computes the spherical harmonic (SH) coefficients of the Watson distribution with the
+    The NODDI-Watson model computes the spherical harmonic (SH) coefficients of the Watson distribution with the
     concentration parameter k (kappa) up to the 12th order.
 
     Truncating at the 12th order gives good approximation for kappa up to 64, as such we define kappa to be between
@@ -225,9 +225,19 @@ class kappa(FreeParameterTemplate):
     numdiff_info = {'max_step': 0.1}
 
 
-# for use in ExpT1DecSTEAM model. It is assumed for ex-vivo values. For in-vivo use d instead.
-class d_exvivo(FreeParameterTemplate):
+class bn_beta(FreeParameterTemplate):
+    """The Bingham-NODDI beta parameter."""
+    init_value = 0.5
+    lower_bound = 0
+    upper_bound = 32
+    parameter_transform = 'CosSqrClamp'
+    sampling_proposal_std = 0.1
+    numdiff_info = {'max_step': 0.1}
 
+
+
+class d_exvivo(FreeParameterTemplate):
+    """For use in ExpT1DecSTEAM model. It assumes ex-vivo values. For in-vivo use ``d`` instead."""
     init_value = 5.0e-10
     lower_bound = 0.0
     upper_bound = 1.0e-8

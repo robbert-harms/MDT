@@ -32,6 +32,7 @@ class CHARMEDRestricted(CompartmentTemplate):
 
 
 class CHARMEDRestrictedGelderen(CompartmentTemplate):
+
     parameters = ('g', 'b', 'G', 'Delta', 'delta', 'd', 'theta', 'phi')
     dependencies = ('SphericalToCartesian', 'VanGelderenCylinder')
     cl_code = '''
