@@ -2,6 +2,21 @@
 Changelog
 *********
 
+v0.14.9 (2018-09-10)
+====================
+
+Added
+-----
+- Adds the Bingham NODDI model.
+- Adds theta/phi to vector to the sampling post processing.
+- Adds univariate normal fits to the sampling post-processing.
+
+Other
+-----
+- Refactored the descriptions of the components
+- Removed (object) declaration from the class declaratoins, it is no longer needed with Python 3.
+
+
 v0.14.8 (2018-08-29)
 ====================
 
