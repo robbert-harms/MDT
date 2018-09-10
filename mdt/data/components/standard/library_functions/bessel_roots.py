@@ -8,9 +8,7 @@ __licence__ = 'LGPL v3'
 
 
 class BesselRoots(LibraryFunctionTemplate):
-    description = '''
-        Constant arrays holding some often used Bessel roots. 
-    '''
+    """Constant arrays holding some often used Bessel roots."""
     is_function = False
     cl_code = '''
         /** 

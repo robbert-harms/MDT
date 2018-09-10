@@ -7,18 +7,16 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 class TensorApparentDiffusion(LibraryFunctionTemplate):
+    """Calculates the apparent diffusion for the Tensor model.
 
-    description = '''
-        Calculates the apparent diffusion for the Tensor model.
-        
-        Args:
-            theta: polar angle of the first vector
-            phi: azimuth angle of the first vector
-            psi: rotation around the first vector, used to generate the perpendicular vectors.
-            d: first eigenvalue
-            dperp0: second eigenvalue
-            dperp1: third eigenvalue
-    '''
+    Args:
+        theta: polar angle of the first vector
+        phi: azimuth angle of the first vector
+        psi: rotation around the first vector, used to generate the perpendicular vectors.
+        d: first eigenvalue
+        dperp0: second eigenvalue
+        dperp1: third eigenvalue
+    """
     return_type = 'mot_float_type'
     dependencies = ['TensorSphericalToCartesian']
     parameters = ['theta', 'phi', 'psi', 'd', 'dperp0', 'dperp1', 'g']

@@ -63,18 +63,18 @@ class flip_angle(ProtocolParameterTemplate):
     value = 1
 
 
-# For STEAM/TSE sequences, depending on the model in which they are used.
 class Refoc_fa1(ProtocolParameterTemplate):
+    """For STEAM/TSE sequences, depending on the model in which they are used."""
     pass
 
 
-# For STEAM/TSE sequences, depending on the model in which they are used.
 class Refoc_fa2(ProtocolParameterTemplate):
+    """For STEAM/TSE sequences, depending on the model in which they are used."""
     pass
 
 
-# For STEAM/TSE sequences, depending on the model in which they are used.
 class SEf(ProtocolParameterTemplate):
+    """For STEAM/TSE sequences, depending on the model in which they are used."""
     pass
 
 
@@ -91,21 +91,21 @@ class Sw(ProtocolParameterTemplate):
     value = 1
 
 
-# For STEAM/TSE sequences, depending on the model in which they are used.
 class Dt(ProtocolParameterTemplate):
+    """For STEAM/TSE sequences, depending on the model in which they are used."""
     pass
 
 
-# For STEAM/TSE sequences, depending on the model in which they are used.
 class excitation_b1(ProtocolParameterTemplate):
+    """For STEAM/TSE sequences, depending on the model in which they are used."""
     pass
 
 
-# For STEAM/TSE sequences, depending on the model in which they are used.
 class refocusing1_b1(ProtocolParameterTemplate):
+    """For STEAM/TSE sequences, depending on the model in which they are used."""
     pass
 
 
-# For STEAM/TSE sequences, depending on the model in which they are used.
 class refocusing2_b1(ProtocolParameterTemplate):
+    """For STEAM/TSE sequences, depending on the model in which they are used."""
     pass

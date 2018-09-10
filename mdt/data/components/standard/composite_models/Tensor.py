@@ -7,8 +7,6 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 class Tensor(CompositeModelTemplate):
-
-    description = 'The standard Tensor model with in vivo defaults.'
     model_expression = '''
         S0 * Tensor
     '''
@@ -23,8 +21,6 @@ class Tensor(CompositeModelTemplate):
 
 
 class NonParametricTensor(CompositeModelTemplate):
-
-    description = 'The Tensor non-parameterized.'
     model_expression = '''
         S0 * SymmetricNonParametricTensor(Tensor)
     '''

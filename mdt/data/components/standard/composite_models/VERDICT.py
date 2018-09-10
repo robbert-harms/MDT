@@ -7,17 +7,14 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 class VERDICT(CompositeModelTemplate):
+    """Implements the VERDICT colorectal model, as in Panagiotaki et al Cancer Research 2014 paper.
+        
+    The diffusivity parameter is assumed the same in the intracellular (SphereGPD) amd extracellular (Ball)
+    compartments dR = d|| = 9e-10 m^2/s.
 
-    description = '''
-        Implements the VERDICT colorectal model, as in Panagiotaki et al Cancer
-        Research 2014 paper. 
-        
-        The diffusivity parameter is assumed the same in the intracellular (SphereGPD) amd extracellular (Ball) 
-        compartments dR = d|| = 9e-10 m^2/s.
-        
-        The weights, ``w_vasc``, ``w_ees`` and ``w_ic`` stand for weight vascular, extracellular-extravascular space 
-        and intracellular.
-    '''
+    The weights, ``w_vasc``, ``w_ees`` and ``w_ic`` stand for weight vascular, extracellular-extravascular space
+    and intracellular.
+    """
     model_expression = '''
         S0 * ( (Weight(w_vasc) * Stick) +
                (Weight(w_ees) * Ball) +

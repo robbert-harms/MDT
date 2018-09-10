@@ -8,23 +8,21 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 class SSFP(LibraryFunctionTemplate):
+    """Implementation of the SSFP signal attenuation.
 
-    description = '''
-        Implementation of the SSFP signal attenuation.
+    This uses the algorithm described in:
+    "The Diffusion Sensitivity of Fast Steady-State Free Precession Imaging", Richard B. Buxton (1993)
 
-        This uses the algorithm described in:
-        "The Diffusion Sensitivity of Fast Steady-State Free Precession Imaging", Richard B. Buxton (1993)
-
-        Args:
-            d: diffusivity or Apparent Diffusion Coefficient (m^2/s)
-            delta: gradient diffusion duration (s)
-            G: gradient amplitude (T/m)
-            TR: repetition time (seconds)
-            flip_angle: the excitation angle (radians)
-            b1: taken from a b1+ map (a.u.)
-            T1: longitudinal relaxation time (s)
-            T2: transversal relaxation time (s)
-    '''
+    Args:
+        d: diffusivity or Apparent Diffusion Coefficient (m^2/s)
+        delta: gradient diffusion duration (s)
+        G: gradient amplitude (T/m)
+        TR: repetition time (seconds)
+        flip_angle: the excitation angle (radians)
+        b1: taken from a b1+ map (a.u.)
+        T1: longitudinal relaxation time (s)
+        T2: transversal relaxation time (s)
+    """
     return_type = 'double'
     parameters = ['d', 'delta', 'G', 'TR', 'flip_angle', 'b1', 'T1', 'T2']
     dependencies = ('MRIConstants',)

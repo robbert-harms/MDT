@@ -4,7 +4,6 @@ from mdt import CompositeModelTemplate
 class SSFP_BallStick_r1_ExVivo(CompositeModelTemplate):
 
     name = 'SSFP_BallStick_r1-ExVivo'
-    description = 'The SSFP Ball & Stick model'
     model_expression = '''
         S0 * ( (Weight(w_ball) * SSFP_Ball) +
                (Weight(w_stick0) * SSFP_Stick(SSFP_Stick0)) )
@@ -20,7 +19,6 @@ class SSFP_BallStick_r1_ExVivo(CompositeModelTemplate):
 class SSFP_Tensor_ExVivo(CompositeModelTemplate):
 
     name = 'SSFP_Tensor-ExVivo'
-    description = 'The SSFP Tensor model with ex vivo defaults.'
     model_expression = '''
         S0 * SSFP_Tensor
     '''

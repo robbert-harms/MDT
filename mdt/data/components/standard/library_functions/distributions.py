@@ -8,22 +8,21 @@ __licence__ = 'LGPL v3'
 
 
 class BinghamNormalization_3x3(LibraryFunctionTemplate):
-    description = '''
-        Computes 1F1(1/2; 3/2; e), the confluent hypergeometric function of the first kind for a 3x3 matrix [1].
+    """Computes 1F1(1/2; 3/2; e), the confluent hypergeometric function of the first kind for a 3x3 matrix [1].
 
-        This computes the normalization factor for the Bingham distribution of a 3x3 matrix by means of a saddlepoint
-        approximation [2].
+    This computes the normalization factor for the Bingham distribution of a 3x3 matrix by means of a saddlepoint
+    approximation [2].
 
-        Args:
-            e0, e1, e2: the eigenvalues of the 3x3 matrix for which you want to compute the Bingham 
-                normalization factor.
+    Args:
+        e0, e1, e2: the eigenvalues of the 3x3 matrix for which you want to compute the Bingham
+            normalization factor.
 
-        References:
-        [1] Mardia, K.V., Jupp, P.E., 2000. Distributions on spheres. Directional Statistics. 
-            John Wiley & Sons, pp. 159–192  
-        [2] Kume A, Wood ATA. Saddlepoint approximations for the Bingham and Fisher-Bingham normalising constants. 
-            Biometrika. 2005;92(2):465-476. doi:10.1093/biomet/92.2.465.
-    '''
+    References:
+    [1] Mardia, K.V., Jupp, P.E., 2000. Distributions on spheres. Directional Statistics.
+        John Wiley & Sons, pp. 159–192
+    [2] Kume A, Wood ATA. Saddlepoint approximations for the Bingham and Fisher-Bingham normalising constants.
+        Biometrika. 2005;92(2):465-476. doi:10.1093/biomet/92.2.465.
+    """
     return_type = 'double'
     parameters = ['e0', 'e1', 'e2']
     dependencies = ['solve_cubic_pol_real']

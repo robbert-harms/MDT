@@ -8,16 +8,15 @@ __licence__ = 'LGPL v3'
 
 
 class NeumanCylinder(LibraryFunctionTemplate):
-    description = '''
-        This function returns the displacement in the restricted signal attenuation, for radius R 
+    """This function returns the displacement in the restricted signal attenuation, for radius R
         according to the C.H. Neuman model, equation (20) in [1].
 
-        In spin-echo experiments, tau is typically TE/2.
+    In spin-echo experiments, tau is typically TE/2.
 
-        References:
-        1) 1. Neuman CH. Spin echo of spins diffusing in a bounded medium. 
-            J Chem Phys. 1974;60(11):4508-4511. doi:10.1063/1.1680931.
-    '''
+    References:
+    [1] Neuman CH. Spin echo of spins diffusing in a bounded medium.
+        J Chem Phys. 1974;60(11):4508-4511. doi:10.1063/1.1680931.
+    """
     return_type = 'double'
     parameters = ['G', 'tau', 'd', 'R']
     dependencies = ['MRIConstants', 'BesselRoots']
@@ -45,16 +44,15 @@ class NeumanCylinder(LibraryFunctionTemplate):
 
 
 class NeumanSphere(LibraryFunctionTemplate):
-    description = '''
-        This function returns the displacement in spherical signal attenuation, for radius R 
+    """This function returns the displacement in spherical signal attenuation, for radius R
         according to the C.H. Neuman model, equation (18) in [1].
 
-        In spin-echo experiments, tau is typically TE/2.
+    In spin-echo experiments, tau is typically TE/2.
 
-        References:
-        1) 1. Neuman CH. Spin echo of spins diffusing in a bounded medium. 
-            J Chem Phys. 1974;60(11):4508-4511. doi:10.1063/1.1680931.
-    '''
+    References:
+    [1] Neuman CH. Spin echo of spins diffusing in a bounded medium.
+        J Chem Phys. 1974;60(11):4508-4511. doi:10.1063/1.1680931.
+    """
     return_type = 'double'
     parameters = ['G', 'tau', 'd', 'R']
     dependencies = ['MRIConstants']
@@ -114,16 +112,15 @@ class NeumanSphere(LibraryFunctionTemplate):
 
 
 class NeumanCylinderLongApprox(LibraryFunctionTemplate):
-    description = '''
-        This function returns the displacement in the restricted signal attenuation, for radius R according to the 
-        long diffusion time approximation of the C.H. Neuman model, equation (28) in [1].
+    """This function returns the displacement in the restricted signal attenuation, for radius R according to the
+       long diffusion time approximation of the C.H. Neuman model, equation (28) in [1].
 
-        In typical spin-echo experiments, ``tau = TE/2``.
+    In typical spin-echo experiments, ``tau = TE/2``.
 
-        References:
-        1) 1. Neuman CH. Spin echo of spins diffusing in a bounded medium. 
-            J Chem Phys. 1974;60(11):4508-4511. doi:10.1063/1.1680931.
-    '''
+    References:
+    [1] Neuman CH. Spin echo of spins diffusing in a bounded medium.
+        J Chem Phys. 1974;60(11):4508-4511. doi:10.1063/1.1680931.
+    """
     return_type = 'double'
     parameters = ['G', 'tau', 'd', 'R']
     dependencies = ['MRIConstants']
@@ -135,16 +132,15 @@ class NeumanCylinderLongApprox(LibraryFunctionTemplate):
 
 
 class NeumanSphereLongApprox(LibraryFunctionTemplate):
-    description = '''
-        This function returns the displacement in the spherical signal attenuation, for radius R according to the 
-        long diffusion time approximation of the C.H. Neuman model, equation (27) in [1].
+    """This function returns the displacement in the spherical signal attenuation, for radius R according to the
+       long diffusion time approximation of the C.H. Neuman model, equation (27) in [1].
 
-        In typical spin-echo experiments, ``tau = TE/2``.
+    In typical spin-echo experiments, ``tau = TE/2``.
 
-        References:
-        1) 1. Neuman CH. Spin echo of spins diffusing in a bounded medium. 
-            J Chem Phys. 1974;60(11):4508-4511. doi:10.1063/1.1680931.
-    '''
+    References:
+    [1] Neuman CH. Spin echo of spins diffusing in a bounded medium.
+        J Chem Phys. 1974;60(11):4508-4511. doi:10.1063/1.1680931.
+    """
     return_type = 'double'
     parameters = ['G', 'tau', 'd', 'R']
     dependencies = ['MRIConstants']
@@ -156,16 +152,15 @@ class NeumanSphereLongApprox(LibraryFunctionTemplate):
 
 
 class VanGelderenCylinder(LibraryFunctionTemplate):
-    description = '''
-        This function returns the displacement in the restricted signal attenuation for radius R 
-        according to the Van Gelderen model [1, 2].
+    """This function returns the displacement in the restricted signal attenuation for radius R
+       according to the Van Gelderen model [1, 2].
 
-        References:
-        1) Gelderen V, D D, PC van Z, CT M. Evaluation of Restricted Diffusion in Cylinders. 
-            Phosphocreatine in Rabbit Leg Muscle. 1994. doi:10.1006/jmrb.1994.1038.
-        2) 1. Wang LZ, Caprihan A, Fukushima E. The narrow-pulse criterion for pulsed-gradient spin-echo 
-            diffusion measurements. JMagnResonSerA. 1995;117(2):209-219.
-    '''
+    References:
+    [1] Gelderen V, D D, PC van Z, CT M. Evaluation of Restricted Diffusion in Cylinders.
+        Phosphocreatine in Rabbit Leg Muscle. 1994. doi:10.1006/jmrb.1994.1038.
+    [2] 1. Wang LZ, Caprihan A, Fukushima E. The narrow-pulse criterion for pulsed-gradient spin-echo
+        diffusion measurements. JMagnResonSerA. 1995;117(2):209-219.
+    """
     return_type = 'double'
     parameters = ['G', 'Delta', 'delta', 'd', 'R']
     dependencies = ['MRIConstants', 'BesselRoots']
@@ -196,14 +191,13 @@ class VanGelderenCylinder(LibraryFunctionTemplate):
 
 
 class VanGelderenSphere(LibraryFunctionTemplate):
-    description = '''
-        This function returns the displacement in the spherical signal attenuation for radius R 
-        according to the Van Gelderen model [1].
+    """This function returns the displacement in the spherical signal attenuation for radius R
+       according to the Van Gelderen model [1].
 
-        References:
-        1) 1. Wang LZ, Caprihan A, Fukushima E. The narrow-pulse criterion for pulsed-gradient spin-echo 
-            diffusion measurements. JMagnResonSerA. 1995;117(2):209-219.
-    '''
+    References:
+    [1] Wang LZ, Caprihan A, Fukushima E. The narrow-pulse criterion for pulsed-gradient spin-echo
+        diffusion measurements. JMagnResonSerA. 1995;117(2):209-219.
+    """
     return_type = 'double'
     parameters = ['G', 'Delta', 'delta', 'd', 'R']
     dependencies = ['MRIConstants']

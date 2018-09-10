@@ -7,8 +7,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 class S0(CompositeModelTemplate):
-
-    description = 'Models the unweighted signal (aka. b0).'
+    """Models the unweighted signal (aka. b0)."""
     model_expression = 'S0'
     volume_selection = {'unweighted_threshold': 250e6,
                         'use_unweighted': True,
