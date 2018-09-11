@@ -2,6 +2,12 @@
 Changelog
 *********
 
+v0.14.10 (2018-09-11)
+=====================
+- Renamed the Bingham normalization function to the Confluent Hypergeometric function.
+- Small refactoring of the NODDI model (model is still the same).
+
+
 v0.14.9 (2018-09-10)
 ====================
 
