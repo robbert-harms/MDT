@@ -7,11 +7,11 @@ __email__ = 'robbert.harms@maastrichtuniversity.nl'
 __licence__ = 'LGPL v3'
 
 
-class BinghamNormalization_3x3(LibraryFunctionTemplate):
+class ConfluentHyperGeometricFirstKind(LibraryFunctionTemplate):
     """Computes 1F1(1/2; 3/2; e), the confluent hypergeometric function of the first kind for a 3x3 matrix [1].
 
-    This computes the normalization factor for the Bingham distribution of a 3x3 matrix by means of a saddlepoint
-    approximation [2].
+    This can be used to compute the normalization factor of the Bingham distribution for a 3x3 matrix.
+    This implementation uses a saddlepoint approximation [2].
 
     Args:
         e0, e1, e2: the eigenvalues of the 3x3 matrix for which you want to compute the Bingham
@@ -30,7 +30,19 @@ class BinghamNormalization_3x3(LibraryFunctionTemplate):
         if(e0 == 0 && e1 == 0 && e2 == 0){
             return 1;
         }
-
+        
+        /** 
+            These coefficients are calculated using the sympy code:
+            
+                x1, x2, x3, t = symbols('x1, x2, x3, t', real=True)
+                K1 = cancel((Integer(1)/2 * 1/(x1 - t)) + (Integer(1)/2 * 1/(x2 - t)) + (Integer(1)/2 * 1/(x3 - t)))
+                n, d = fraction(K1)
+                f = collect(n - d, t)
+                print(f)
+                
+            That is, we create a single polynomial and set the numerator equal to the denominator, such that
+            the polynomial equals 1, as in the paper.
+        */   
         double coef_roots[4] = {
             2, 
             -2*e0 - 2*e1 - 2*e2 + 3,

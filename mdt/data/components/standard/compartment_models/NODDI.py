@@ -37,93 +37,37 @@ class NODDI_IC(CompartmentTemplate):
     cylindrical model has been removed to simplify the code.
     """
     parameters = ('g', 'b', 'd', 'theta', 'phi', 'kappa')
-    dependencies = ('erfi',
-                    'MRIConstants',
-                    'SphericalToCartesian')
+    dependencies = ('erfi', 'MRIConstants', 'SphericalToCartesian', 'EvenLegendreTerms')
     cl_code = '''
         mot_float_type LePerp = 0; // used to be "VanGelderenCylinder(G, Delta, delta, d, R)" with R fixed to 0.
-        mot_float_type ePerp = exp(LePerp);
-        mot_float_type Lpmp = LePerp + d * b;
-
-        mot_float_type watson_coeff[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
-        NODDI_IC_WatsonSHCoeff(kappa, watson_coeff);
+        mot_float_type LePar = -d * b;
+        
+        mot_float_type watson_sh_coeff[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
+        NODDI_IC_WatsonSHCoeff(kappa, watson_sh_coeff);
 
         mot_float_type lgi[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
-        NODDI_IC_LegendreGaussianIntegral(Lpmp, lgi);
-
-        // split the summation into two parts to save one array (reusing the lgi array for the legendre terms)
+        NODDI_IC_LegendreGaussianIntegral(LePerp - LePar, lgi);
+        
+        double legendre_terms[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
+        EvenLegendreTerms(dot(g, SphericalToCartesian(theta, phi)), 
+                          2 * (NODDI_IC_MAX_POLYNOMIAL_ORDER + 1), legendre_terms);
+        
+        double signal = 0.0;
         for(int i = 0; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
-            watson_coeff[i] *= lgi[i] * sqrt((i + 0.25)/M_PI_F);
+            // summing only over the even terms
+            signal += watson_sh_coeff[i] * sqrt((i + 0.25)/M_PI_F) * legendre_terms[i] * lgi[i];  
         }
-
-        NODDI_IC_create_legendre_terms(dot(g, SphericalToCartesian(theta, phi)), lgi);
-
-        mot_float_type signal = 0.0;
-        for(int i = 0; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
-            signal += lgi[i] * watson_coeff[i];
+        
+        if(signal < 0){
+            signal = 0;
         }
-
-        return ePerp * signal / 2.0;
+        
+        return exp(LePerp) * signal / 2.0;
     '''
     cl_extra = '''
         // do not change this value! It would require adding approximations to the functions below
         #define NODDI_IC_MAX_POLYNOMIAL_ORDER 6
-        // sqrt(pi)/2
-        #define M_SQRTPI_2_F 0.8862269254527580f
-        // sqrt(pi)
-        #define M_SQRTPI_F 1.7724538509055160f
-
-
-        /**
-         * This will create the legendre terms we need for the NODDI IC model.
-         *
-         * For the NODDI IC model we need to have a few legendre terms for the same position (argument to x)
-         * with linearly increasing degrees of step size 2.
-         *
-         * This is a specialized version of the function of the function firstLegendreTerm in the MOT library.
-         *
-         * This function will fill the given array legendre_terms with the values:
-         * [0] = firstLegendreTerm(x, 0)
-         * [1] = firstLegendreTerm(x, 2)
-         * [2] = firstLegendreTerm(x, 4)
-         * [3] = firstLegendreTerm(x, 8)
-         * ...
-         *
-         * Changes:
-         *  - 2018-06-04, Dr. Luke Edwards: corrected the indices to correctly account for a step size of two.
-         */
-        void NODDI_IC_create_legendre_terms(const mot_float_type x, mot_float_type* const legendre_terms){
-            if(fabs(x) == 1.0){
-                // this is the default if fabs(x) == 1.0
-                // to eliminate the branch I added this to the front, this saves an if/else.
-                // also, since we are after the legendre terms with a list with n = [0, 2, 4, 6, 8, ...]
-                // the legendre terms collaps to this loop if fabs(x) == 1.0
-
-                for(int i = 0; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
-                    legendre_terms[i] = 1.0;
-                }
-                return;
-            }
-
-            legendre_terms[0] = 1.0;
-
-            mot_float_type P0 = 1.0;
-            mot_float_type P1 = x;
-            mot_float_type Pn;
-
-            for(int k = 1; k < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; k++){
-                Pn = ((2 * (2*k-1) + 1) * x * P1 - ((2*k-1) * P0)) / ((2*k-1) + 1);
-                P0 = P1;
-                P1 = Pn;
-
-                legendre_terms[k] = Pn;
-
-                Pn = ((2 * ((2*k-1)+1) + 1) * x * P1 - (((2*k-1)+1) * P0)) / (((2*k-1)+1) + 1);
-                P0 = P1;
-                P1 = Pn;
-            }
-        }
-
+        
         /**
             Copied from the Matlab NODDI toolbox
 
@@ -143,7 +87,7 @@ class NODDI_IC(CompartmentTemplate):
             if(x > 0.05){
                 // exact
                 mot_float_type tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
-                tmp[0] = M_SQRTPI_F * erf(sqrt(x))/sqrt(x);
+                tmp[0] = sqrt(M_PI) * erf(sqrt(x))/sqrt(x);
                 for(int i = 1; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
                     tmp[i] = (-exp(-x) + (i - 0.5) * tmp[i-1]) / x;
                 }
@@ -187,7 +131,7 @@ class NODDI_IC(CompartmentTemplate):
             author: Gary Hui Zhang (gary.zhang@ucl.ac.uk)
         */
         void NODDI_IC_WatsonSHCoeff(const mot_float_type kappa, mot_float_type* const result){
-            result[0] = M_SQRTPI_F * 2;
+            result[0] = sqrt(M_PI) * 2;
 
             if(kappa <= 30){
                 mot_float_type ks[NODDI_IC_MAX_POLYNOMIAL_ORDER - 1];
@@ -210,7 +154,7 @@ class NODDI_IC(CompartmentTemplate):
                     mot_float_type erfik = erfi(sks[0]);
                     mot_float_type ierfik = 1/erfik;
                     mot_float_type ek = exp(kappa);
-                    mot_float_type dawsonk = M_SQRTPI_2_F * erfik/ek;
+                    mot_float_type dawsonk = sqrt(M_PI)/2 * erfik/ek;
 
                     result[1] = 3 * sks[0] - (3 + 2 * kappa) * dawsonk;
                     result[1] = sqrt(5.0) * result[1] * ek;
@@ -281,18 +225,18 @@ class NODDI_IC(CompartmentTemplate):
 class BinghamNODDI_EN(CompartmentTemplate):
     """The Extra-Neurite tissue model of Bingham NODDI."""
     parameters = ('g', 'b', 'd', 'dperp0', 'theta', 'phi', 'psi', 'kappa', 'bn_beta(beta)')
-    dependencies = ['BinghamNormalization_3x3', 'SphericalToCartesian', 'Tensor']
+    dependencies = ['ConfluentHyperGeometricFirstKind', 'SphericalToCartesian', 'Tensor']
     cl_code = '''
         double DELTA = 1e-4;
         double diff;
-        double normalization_constant = BinghamNormalization_3x3(-kappa, -beta, 0);
+        double normalization_constant = ConfluentHyperGeometricFirstKind(-kappa, -beta, 0);
 
-        diff = (BinghamNormalization_3x3(-(kappa+DELTA), -beta, 0) - 
-                BinghamNormalization_3x3(-(kappa-DELTA), -beta, 0)) / (2*DELTA); 
+        diff = (ConfluentHyperGeometricFirstKind(-(kappa+DELTA), -beta, 0) - 
+                ConfluentHyperGeometricFirstKind(-(kappa-DELTA), -beta, 0)) / (2*DELTA); 
         double d_mu_1 = dperp0 + (d - dperp0) * (diff / normalization_constant);
 
-        diff = (BinghamNormalization_3x3(-kappa, -(beta+DELTA), 0) - 
-                BinghamNormalization_3x3(-kappa, -(beta-DELTA), 0)) / (2*DELTA);
+        diff = (ConfluentHyperGeometricFirstKind(-kappa, -(beta+DELTA), 0) - 
+                ConfluentHyperGeometricFirstKind(-kappa, -(beta-DELTA), 0)) / (2*DELTA);
         double d_mu_2 = dperp0 + (d - dperp0) * (diff / normalization_constant);
 
         double d_mu_3 = d + 2*dperp0 - d_mu_1 - d_mu_2;
@@ -304,7 +248,7 @@ class BinghamNODDI_EN(CompartmentTemplate):
 class BinghamNODDI_IN(CompartmentTemplate):
     """The Intra-Neurite tissue model of Bingham NODDI."""
     parameters = ('g', 'b', 'd', 'theta', 'phi', 'psi', 'kappa', 'bn_beta(beta)')
-    dependencies = ['EigenvaluesSymmetric3x3', 'BinghamNormalization_3x3', 'TensorSphericalToCartesian']
+    dependencies = ['EigenvaluesSymmetric3x3', 'ConfluentHyperGeometricFirstKind', 'TensorSphericalToCartesian']
     cl_code = '''
         mot_float_type4 v1, v2, v3;
         TensorSphericalToCartesian(theta, phi, psi, &v1, &v2, &v3);
@@ -326,5 +270,6 @@ class BinghamNODDI_IN(CompartmentTemplate):
         mot_float_type e[3];
         EigenvaluesSymmetric3x3(Q,e);
 
-        return (BinghamNormalization_3x3(-e[0], -e[1], -e[2]) / BinghamNormalization_3x3(-kappa, -beta, 0));
+        return (ConfluentHyperGeometricFirstKind(-e[0], -e[1], -e[2]) 
+                / ConfluentHyperGeometricFirstKind(-kappa, -beta, 0));
     '''

@@ -18,7 +18,7 @@ class Racket(CompartmentTemplate):
         diffusion-weighted MRI. Neuroimage. 2012;60(2):1412-1425. doi:10.1016/j.neuroimage.2012.01.056.
     """
     parameters = ('g', 'b', 'd', 'theta', 'phi', 'psi', 'k1', 'kw')
-    dependencies = ['EigenvaluesSymmetric3x3', 'BinghamNormalization_3x3']
+    dependencies = ['EigenvaluesSymmetric3x3', 'ConfluentHyperGeometricFirstKind']
     cl_code = '''
         double k2 = k1 / kw;
 
@@ -59,7 +59,7 @@ class Racket(CompartmentTemplate):
         mot_float_type e[3];
         EigenvaluesSymmetric3x3(Q, e);
         
-        return (BinghamNormalization_3x3(-e[0], -e[1], -e[2]) / BinghamNormalization_3x3(k1, k2, 0));
+        return (ConfluentHyperGeometricFirstKind(-e[0], -e[1], -e[2]) / ConfluentHyperGeometricFirstKind(k1, k2, 0));
     '''
     extra_optimization_maps = [
         lambda d: {'k2': d['k1'] / d['kw']},
