@@ -2,6 +2,15 @@
 Changelog
 *********
 
+v0.14.11 (2018-09-12)
+=====================
+
+Added
+-----
+- Adds Watson NODDI ExVivo model.
+- Adds Bingham NODDI with two directions.
+
+
 v0.14.10 (2018-09-11)
 =====================
 - Renamed the Bingham normalization function to the Confluent Hypergeometric function.
