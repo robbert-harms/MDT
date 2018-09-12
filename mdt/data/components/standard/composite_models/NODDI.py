@@ -29,6 +29,29 @@ class NODDI(CompositeModelTemplate):
     extra_sampling_maps = [NODDIMeasures.noddi_watson_extra_sampling_maps]
 
 
+class NODDI_ExVivo(CompositeModelTemplate):
+    """The NODDI Watson model"""
+
+    model_expression = '''
+        S0 * ((Weight(w_csf) * Ball) +
+              (Weight(w_dot) * Dot) +
+              (Weight(w_ic) * NODDI_IC) +
+              (Weight(w_ec) * NODDI_EC)
+              )
+    '''
+
+    fixes = {'NODDI_IC.d': 0.6e-9,
+             'NODDI_EC.d': 0.6e-9,
+             'Ball.d': 2.0e-9,
+             'NODDI_EC.dperp0': 'NODDI_EC.d * (isnan(w_ec.w / (w_ec.w + w_ic.w)) ? 0 : (w_ec.w / (w_ec.w + w_ic.w)))',
+             'NODDI_EC.kappa': 'NODDI_IC.kappa',
+             'NODDI_EC.theta': 'NODDI_IC.theta',
+             'NODDI_EC.phi': 'NODDI_IC.phi'}
+
+    extra_optimization_maps = [NODDIMeasures.noddi_watson_extra_optimization_maps]
+    extra_sampling_maps = [NODDIMeasures.noddi_watson_extra_sampling_maps]
+
+
 class NODDIDA(NODDI):
     """The NODDIDA model, NODDI without the Ball compartment and without fixing parameters."""
 

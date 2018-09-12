@@ -17,14 +17,6 @@ class NODDI(CascadeTemplate):
                        'NODDI_IC.phi': 'Stick0.phi'}}
 
 
-class NODDIDA(CascadeTemplate):
-
-    models = ('BallStick_r1 (Cascade)',
-              'NODDIDA')
-    inits = {'NODDIDA': {'NODDI_IC.theta': 'Stick0.theta',
-                         'NODDI_IC.phi': 'Stick0.phi'}}
-
-
 class NODDI_Fixed(CascadeTemplate):
 
     cascade_name_modifier = 'fixed'
@@ -36,6 +28,37 @@ class NODDI_Fixed(CascadeTemplate):
     fixes = {'NODDI': {'NODDI_IC.theta': 'Stick0.theta',
                        'NODDI_IC.phi': 'Stick0.phi'}}
 
+
+class NODDI_ExVivo(CascadeTemplate):
+
+    models = ('BallStick_r1 (Cascade)',
+              'NODDI_ExVivo')
+    inits = {'NODDI_ExVivo': {'w_ic.w': lambda output_previous, _: output_previous['w_stick0.w'] / 2.0,
+                              'w_ec.w': lambda output_previous, _: output_previous['w_stick0.w'] / 2.0,
+                              'w_csf.w': 'w_ball.w',
+                              'NODDI_IC.theta': 'Stick0.theta',
+                              'NODDI_IC.phi': 'Stick0.phi'}}
+
+
+class NODDI_ExVivo_Fixed(CascadeTemplate):
+
+    cascade_name_modifier = 'fixed'
+    models = ('BallStick_r1 (Cascade)',
+              'NODDI_ExVivo')
+    inits = {'NODDI_ExVivo': {'w_ic.w': lambda output_previous, _: output_previous['w_stick0.w'] / 2.0,
+                              'w_ec.w': lambda output_previous, _: output_previous['w_stick0.w'] / 2.0,
+                              'w_csf.w': 'w_ball.w'}}
+    fixes = {'NODDI_ExVivo': {'NODDI_IC.theta': 'Stick0.theta',
+                              'NODDI_IC.phi': 'Stick0.phi'}}
+
+
+
+class NODDIDA(CascadeTemplate):
+
+    models = ('BallStick_r1 (Cascade)',
+              'NODDIDA')
+    inits = {'NODDIDA': {'NODDI_IC.theta': 'Stick0.theta',
+                         'NODDI_IC.phi': 'Stick0.phi'}}
 
 
 class BinghamNODDI_r1(CascadeTemplate):
