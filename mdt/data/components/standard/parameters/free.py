@@ -209,7 +209,7 @@ class R(FreeParameterTemplate):
 
 
 class kappa(FreeParameterTemplate):
-    """The kappa parameter used in the NODDI models.
+    """The kappa parameter used in the NODDI Watson model.
 
     The NODDI-Watson model computes the spherical harmonic (SH) coefficients of the Watson distribution with the
     concentration parameter k (kappa) up to the 12th order.
@@ -222,18 +222,27 @@ class kappa(FreeParameterTemplate):
     upper_bound = 64
     parameter_transform = 'CosSqrClamp'
     sampling_proposal_std = 0.1
-    numdiff_info = {'max_step': 0.1}
+    numdiff_info = {'max_step': 0.1, 'use_upper_bound': False}
 
 
-class bn_beta(FreeParameterTemplate):
-    """The Bingham-NODDI beta parameter."""
-    init_value = 0.5
+class k1(FreeParameterTemplate):
+    """The kappa parameter for the Ball&Racket and NODDI Bingham model"""
+    init_value = 1
     lower_bound = 0
-    upper_bound = 32
+    upper_bound = 64
     parameter_transform = 'CosSqrClamp'
     sampling_proposal_std = 0.1
-    numdiff_info = {'max_step': 0.1}
+    numdiff_info = {'max_step': 0.1, 'use_upper_bound': False}
 
+
+class kw(FreeParameterTemplate):
+    """We optimize the ratio w = k1/k2 in the Ball&Racket and NODDI Bingham model"""
+    init_value = 2
+    lower_bound = 1
+    upper_bound = 64
+    parameter_transform = 'CosSqrClamp'
+    sampling_proposal_std = 0.1
+    numdiff_info = {'max_step': 0.1, 'use_upper_bound': False}
 
 
 class d_exvivo(FreeParameterTemplate):

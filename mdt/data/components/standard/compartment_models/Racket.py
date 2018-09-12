@@ -73,21 +73,3 @@ class Racket(CompartmentTemplate):
                          'k2': np.mean(samples['k1'] / samples['kw'], axis=1),
                          'k2.std': np.std(samples['k1'] / samples['kw'], axis=1)}
     ]
-
-    class k1(FreeParameterTemplate):
-        init_value = 20
-        lower_bound = 0
-        upper_bound = 64
-        parameter_transform = 'CosSqrClamp'
-        sampling_proposal_std = 0.1
-        numdiff_info = {'max_step': 0.1, 'use_upper_bound': False}
-
-    class kw(FreeParameterTemplate):
-        """We optimize the ratio w = k1/k2"""
-        init_value = 4
-        lower_bound = 1
-        upper_bound = 64
-        parameter_transform = 'CosSqrClamp'
-        sampling_proposal_std = 0.1
-        numdiff_info = {'max_step': 0.1, 'use_upper_bound': False}
-

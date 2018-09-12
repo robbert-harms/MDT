@@ -696,12 +696,20 @@ class NODDIMeasures:
     @staticmethod
     def noddi_bingham_extra_optimization_maps(results):
         """Computes the ODI's and Dispersion Anisotropic Index (DAI) for the NODDI Bingham model"""
-        kappa = results['BinghamNODDI_IN.kappa']
-        beta = results['BinghamNODDI_IN.beta']
-        return {'ODI_p': np.arctan2(1.0, kappa - beta) * 2 / np.pi,
-                'ODI_s': np.arctan2(1.0, kappa) * 2 / np.pi,
-                'ODI': np.arctan2(1.0, np.sqrt(np.abs(kappa * (kappa - beta)))) * 2 / np.pi,
-                'DAI': np.arctan2(beta, kappa - beta) * 2 / np.pi}
+        def compute(ind, kappa, beta):
+            return {'ODI_p{}'.format(ind): np.arctan2(1.0, kappa - beta) * 2 / np.pi,
+                    'ODI_s{}'.format(ind): np.arctan2(1.0, kappa) * 2 / np.pi,
+                    'ODI{}'.format(ind): np.arctan2(1.0, np.sqrt(np.abs(kappa * (kappa - beta)))) * 2 / np.pi,
+                    'DAI{}'.format(ind): np.arctan2(beta, kappa - beta) * 2 / np.pi}
+
+        output = {}
+        for ind in range(2):
+            if 'BinghamNODDI_IN{}.k1'.format(ind) in results:
+                output.update(compute(
+                    ind,
+                    results['BinghamNODDI_IN{}.k1'.format(ind)],
+                    results['BinghamNODDI_IN{}.k1'.format(ind)] / results['BinghamNODDI_IN{}.kw'.format(ind)]))
+        return output
 
     @staticmethod
     def noddi_bingham_extra_sampling_maps(results):
@@ -709,19 +717,29 @@ class NODDIMeasures:
 
         This computes the indices per sample and takes the mean and std. over that.
         """
-        kappa = results['BinghamNODDI_IN.kappa']
-        beta = results['BinghamNODDI_IN.beta']
+        def compute(ind, kappa, beta):
+            odi_p = np.arctan2(1.0, kappa - beta) * 2 / np.pi
+            odi_s = np.arctan2(1.0, kappa) * 2 / np.pi
+            odi = np.arctan2(1.0, np.sqrt(np.abs(kappa * (kappa - beta)))) * 2 / np.pi
+            dai = np.arctan2(beta, kappa - beta) * 2 / np.pi
 
-        odi_p = np.arctan2(1.0, kappa - beta) * 2 / np.pi
-        odi_s = np.arctan2(1.0, kappa) * 2 / np.pi
-        odi = np.arctan2(1.0, np.sqrt(np.abs(kappa * (kappa - beta)))) * 2 / np.pi
-        dai = np.arctan2(beta, kappa - beta) * 2 / np.pi
+            return {'ODI_p{}'.format(ind): np.mean(odi_p, axis=1),
+                    'ODI_p{}.std'.format(ind): np.std(odi_p, axis=1),
+                    'ODI_s{}'.format(ind): np.mean(odi_s, axis=1),
+                    'ODI_s{}.std'.format(ind): np.std(odi_s, axis=1),
+                    'ODI{}'.format(ind): np.mean(odi, axis=1),
+                    'ODI{}.std'.format(ind): np.std(odi, axis=1),
+                    'DAI{}'.format(ind): np.mean(dai, axis=1),
+                    'DAI{}.std'.format(ind): np.std(dai, axis=1)}
 
-        return {'ODI_p': np.mean(odi_p, axis=1), 'ODI_p.std': np.std(odi_p, axis=1),
-                'ODI_s': np.mean(odi_s, axis=1), 'ODI_s.std': np.std(odi_s, axis=1),
-                'ODI': np.mean(odi, axis=1), 'ODI.std': np.std(odi, axis=1),
-                'DAI': np.mean(dai, axis=1), 'DAI.std': np.std(dai, axis=1)}
-
+        output = {}
+        for ind in range(2):
+            if 'BinghamNODDI_IN{}.k1'.format(ind) in results:
+                output.update(compute(
+                    ind,
+                    results['BinghamNODDI_IN{}.k1'.format(ind)],
+                    results['BinghamNODDI_IN{}.k1'.format(ind)] / results['BinghamNODDI_IN{}.kw'.format(ind)]))
+        return output
 
 
 def noddi_dti_maps(results, input_data=None):

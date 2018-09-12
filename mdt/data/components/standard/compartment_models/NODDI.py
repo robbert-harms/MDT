@@ -1,4 +1,5 @@
 from mdt import CompartmentTemplate
+import numpy as np
 
 __author__ = 'Robbert Harms'
 __date__ = '2018-09-07'
@@ -224,9 +225,12 @@ class NODDI_IC(CompartmentTemplate):
 
 class BinghamNODDI_EN(CompartmentTemplate):
     """The Extra-Neurite tissue model of Bingham NODDI."""
-    parameters = ('g', 'b', 'd', 'dperp0', 'theta', 'phi', 'psi', 'kappa', 'bn_beta(beta)')
+    parameters = ('g', 'b', 'd', 'dperp0', 'theta', 'phi', 'psi', 'k1', 'kw')
     dependencies = ['ConfluentHyperGeometricFirstKind', 'SphericalToCartesian', 'Tensor']
     cl_code = '''
+        double kappa = k1;
+        double beta = k1 / kw;
+        
         double DELTA = 1e-4;
         double diff;
         double normalization_constant = ConfluentHyperGeometricFirstKind(-kappa, -beta, 0);
@@ -247,9 +251,12 @@ class BinghamNODDI_EN(CompartmentTemplate):
 
 class BinghamNODDI_IN(CompartmentTemplate):
     """The Intra-Neurite tissue model of Bingham NODDI."""
-    parameters = ('g', 'b', 'd', 'theta', 'phi', 'psi', 'kappa', 'bn_beta(beta)')
+    parameters = ('g', 'b', 'd', 'theta', 'phi', 'psi', 'k1', 'kw')
     dependencies = ['EigenvaluesSymmetric3x3', 'ConfluentHyperGeometricFirstKind', 'TensorSphericalToCartesian']
     cl_code = '''
+        double kappa = k1;
+        double beta = k1 / kw;
+    
         mot_float_type4 v1, v2, v3;
         TensorSphericalToCartesian(theta, phi, psi, &v1, &v2, &v3);
 

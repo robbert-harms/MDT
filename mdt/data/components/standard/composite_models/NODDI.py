@@ -42,29 +42,64 @@ class NODDIDA(NODDI):
              'NODDI_EC.phi': 'NODDI_IC.phi'}
 
 
-class BinghamNODDI(CompositeModelTemplate):
-    """The Bingham NODDI model"""
+class BinghamNODDI_r1(CompositeModelTemplate):
+    """The Bingham NODDI model with one intra- and extra-cellular compartments"""
 
     model_expression = '''
         S0 * ((Weight(w_csf) * Ball) +
-              (Weight(w_ic) * BinghamNODDI_IN) +
-              (Weight(w_ec) * BinghamNODDI_EN)
+              (Weight(w_in0) * BinghamNODDI_IN(BinghamNODDI_IN0)) +
+              (Weight(w_en0) * BinghamNODDI_EN(BinghamNODDI_EN0))
               )
     '''
+    fixes = {
+        'BinghamNODDI_IN0.d': 1.7e-9,
+        'BinghamNODDI_EN0.d': 1.7e-9,
+        'Ball.d': 3.0e-9,
+        'BinghamNODDI_EN0.dperp0': 'BinghamNODDI_EN0.d * (isnan(w_en0.w / (w_en0.w + w_in0.w)) ? '
+                                   '                      0 : (w_en0.w / (w_en0.w + w_in0.w)))',
+        'BinghamNODDI_EN0.k1': 'BinghamNODDI_IN0.k1',
+        'BinghamNODDI_EN0.kw':  'BinghamNODDI_IN0.kw',
+        'BinghamNODDI_EN0.theta': 'BinghamNODDI_IN0.theta',
+        'BinghamNODDI_EN0.phi':   'BinghamNODDI_IN0.phi',
+        'BinghamNODDI_EN0.psi':   'BinghamNODDI_IN0.psi'
+    }
+    extra_optimization_maps = [NODDIMeasures.noddi_bingham_extra_optimization_maps]
+    extra_sampling_maps = [NODDIMeasures.noddi_bingham_extra_sampling_maps]
 
-    fixes = {'BinghamNODDI_IN.d': 1.7e-9,
-             'BinghamNODDI_EN.d': 1.7e-9,
-             'Ball.d': 3.0e-9,
-             'BinghamNODDI_EN.dperp0': 'BinghamNODDI_EN.d * (isnan(w_ec.w / (w_ec.w + w_ic.w)) ? '
-                                       '                     0 : (w_ec.w / (w_ec.w + w_ic.w)))',
-             'BinghamNODDI_EN.kappa': 'BinghamNODDI_IN.kappa',
-             'BinghamNODDI_EN.beta':  'BinghamNODDI_IN.beta',
-             'BinghamNODDI_EN.theta': 'BinghamNODDI_IN.theta',
-             'BinghamNODDI_EN.phi':   'BinghamNODDI_IN.phi',
-             'BinghamNODDI_EN.psi':   'BinghamNODDI_IN.psi'
-             }
 
-    extra_prior = 'return BinghamNODDI_IN.kappa >= BinghamNODDI_IN.beta;'
+class BinghamNODDI_r2(CompositeModelTemplate):
+    """The Bingham NODDI model with two intra- and extra-cellular compartments."""
 
+    model_expression = '''
+        S0 * ((Weight(w_csf) * Ball) +
+              (Weight(w_in0) * BinghamNODDI_IN(BinghamNODDI_IN0)) +
+              (Weight(w_en0) * BinghamNODDI_EN(BinghamNODDI_EN0)) +
+              (Weight(w_in1) * BinghamNODDI_IN(BinghamNODDI_IN1)) +
+              (Weight(w_en1) * BinghamNODDI_EN(BinghamNODDI_EN1))
+              )
+    '''
+    fixes = {
+        'Ball.d': 3.0e-9,
+        'BinghamNODDI_IN0.d': 1.7e-9,
+        'BinghamNODDI_EN0.d': 1.7e-9,
+
+        'BinghamNODDI_EN0.dperp0': 'BinghamNODDI_EN0.d * (isnan(w_en0.w / (w_en0.w + w_in0.w)) ? '
+                                   '                      0 : (w_en0.w / (w_en0.w + w_in0.w)))',
+        'BinghamNODDI_EN0.k1': 'BinghamNODDI_IN0.k1',
+        'BinghamNODDI_EN0.kw':  'BinghamNODDI_IN0.kw',
+        'BinghamNODDI_EN0.theta': 'BinghamNODDI_IN0.theta',
+        'BinghamNODDI_EN0.phi':   'BinghamNODDI_IN0.phi',
+        'BinghamNODDI_EN0.psi':   'BinghamNODDI_IN0.psi',
+
+        'BinghamNODDI_IN1.d': 1.7e-9,
+        'BinghamNODDI_EN1.d': 1.7e-9,
+        'BinghamNODDI_EN1.dperp0': 'BinghamNODDI_EN1.d * (isnan(w_en1.w / (w_en1.w + w_in1.w)) ? '
+                                   '                      0 : (w_en1.w / (w_en1.w + w_in1.w)))',
+        'BinghamNODDI_EN1.k1': 'BinghamNODDI_IN1.k1',
+        'BinghamNODDI_EN1.kw': 'BinghamNODDI_IN1.kw',
+        'BinghamNODDI_EN1.theta': 'BinghamNODDI_IN1.theta',
+        'BinghamNODDI_EN1.phi': 'BinghamNODDI_IN1.phi',
+        'BinghamNODDI_EN1.psi': 'BinghamNODDI_IN1.psi'
+    }
     extra_optimization_maps = [NODDIMeasures.noddi_bingham_extra_optimization_maps]
     extra_sampling_maps = [NODDIMeasures.noddi_bingham_extra_sampling_maps]
