@@ -1245,32 +1245,34 @@ class DMRICompositeModel(DMRIOptimizable):
                 uint observation_ind;
                 model_data->local_tmp[local_id] = 0;
                 
-                for(uint i = 0; i < ceil(nmr_observations / (mot_float_type)workgroup_size) 
-                                && (observation_ind = i * workgroup_size + local_id) < nmr_observations; i++){
-                    
-                    eval = ''' + ('-' if negative_ll else '') + ''' ''' + eval_model_func.get_cl_function_name() + '''(
-                                model_data->observations[observation_ind], 
-                                ''' + eval_function_info.get_cl_function_name() + '''(data, x, observation_ind),'''\
-                                + ','.join(eval_call_args) + ''');
-                    
-                    ''' + ('eval *= model_data->volume_weights[observation_ind];'
-                            if self._input_data.volume_weights is not None else '') + '''
-                    
-                    model_data->local_tmp[local_id] += eval;
-                    
-                    ''' + ('''
-                    if(objective_list){
-                        // used by the nonlinear least-squares routines, which square the observations
-                        objective_list[observation_ind] = sqrt(fabs(eval));
+                for(uint i = 0; i < ceil(nmr_observations / (mot_float_type)workgroup_size); i++){
+                    if(i * workgroup_size + local_id < nmr_observations){
+                        observation_ind = i * workgroup_size + local_id;
+                        
+                        eval = ''' + ('-' if negative_ll else '') + ''' ''' + eval_model_func.get_cl_function_name() + '''(
+                                    model_data->observations[observation_ind], 
+                                    ''' + eval_function_info.get_cl_function_name() + '''(data, x, observation_ind),'''\
+                                    + ','.join(eval_call_args) + ''');
+                        
+                        ''' + ('eval *= model_data->volume_weights[observation_ind];'
+                                if self._input_data.volume_weights is not None else '') + '''
+                        
+                        model_data->local_tmp[local_id] += eval;
+                        
+                        ''' + ('''
+                        if(objective_list){
+                            // used by the nonlinear least-squares routines, which square the observations
+                            objective_list[observation_ind] = sqrt(fabs(eval));
+                        }
+                        ''' if support_for_objective_list else '') + '''
                     }
-                    ''' if support_for_objective_list else '') + '''
                 }
                 barrier(CLK_LOCAL_MEM_FENCE);
                 
                 local double sum;                
                 if(local_id == 0){
                     sum = 0;
-                    for(uint i = 0; i < workgroup_size; i++){
+                    for(uint i = 0; i < min(nmr_observations, workgroup_size); i++){
                         sum += model_data->local_tmp[i];
                     }   
                 }

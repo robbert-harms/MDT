@@ -84,7 +84,7 @@ class BinghamNODDI_r1_fixed(CascadeTemplate):
                               'BinghamNODDI_IN0.phi': 'Stick0.phi'}}
 
 
-class BinghamNODDI2(CascadeTemplate):
+class BinghamNODDI_r2(CascadeTemplate):
 
     models = ('BallStick_r2 (Cascade)',
               'BinghamNODDI_r1 (Cascade)',
