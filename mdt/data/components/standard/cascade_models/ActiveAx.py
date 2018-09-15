@@ -7,6 +7,14 @@ __email__ = 'robbert.harms@maastrichtuniversity.nl'
 __licence__ = 'LGPL v3'
 
 
+class ActiveAx(CascadeTemplate):
+
+    models = ('BallStick_r1 (Cascade)',
+              'ActiveAx')
+    inits = {'ActiveAx': {'CylinderGPD.theta': 'Stick0.theta',
+                          'CylinderGPD.phi': 'Stick0.phi'}}
+
+
 class ActiveAx_ExVivo(CascadeTemplate):
 
     models = ('BallStick_r1 (Cascade)',
@@ -15,9 +23,17 @@ class ActiveAx_ExVivo(CascadeTemplate):
                                  'CylinderGPD.phi': 'Stick0.phi'}}
 
 
-class ActiveAx(CascadeTemplate):
+class ActiveAx_Fixed(CascadeTemplate):
 
     models = ('BallStick_r1 (Cascade)',
               'ActiveAx')
-    inits = {'ActiveAx': {'CylinderGPD.theta': 'Stick0.theta',
+    fixes = {'ActiveAx': {'CylinderGPD.theta': 'Stick0.theta',
                           'CylinderGPD.phi': 'Stick0.phi'}}
+
+
+class ActiveAx_ExVivo_Fixed(CascadeTemplate):
+
+    models = ('BallStick_r1 (Cascade)',
+              'ActiveAx_ExVivo')
+    fixes = {'ActiveAx_ExVivo': {'CylinderGPD.theta': 'Stick0.theta',
+                                 'CylinderGPD.phi': 'Stick0.phi'}}

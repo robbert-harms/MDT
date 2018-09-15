@@ -1246,9 +1246,9 @@ class DMRICompositeModel(DMRIOptimizable):
                 model_data->local_tmp[local_id] = 0;
                 
                 for(uint i = 0; i < ceil(nmr_observations / (mot_float_type)workgroup_size); i++){
-                    if(i * workgroup_size + local_id < nmr_observations){
-                        observation_ind = i * workgroup_size + local_id;
-                        
+                    observation_ind = i * workgroup_size + local_id;
+                    
+                    if(observation_ind < nmr_observations){
                         eval = ''' + ('-' if negative_ll else '') + ''' ''' + eval_model_func.get_cl_function_name() + '''(
                                     model_data->observations[observation_ind], 
                                     ''' + eval_function_info.get_cl_function_name() + '''(data, x, observation_ind),'''\

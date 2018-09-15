@@ -475,11 +475,14 @@ class FittingProcessor(SimpleModelProcessor):
                            options=self._optimizer_options)
 
         self._logger.info('Finished optimization')
+        self._logger.info('Starting post-processing')
 
         x_final = codec.decode(results['x'], build_model.get_kernel_data())
 
         results = build_model.get_post_optimization_output(x_final, results['status'])
         results.update({self._used_mask_name: np.ones(roi_indices.shape[0], dtype=np.bool)})
+
+        self._logger.info('Finished post-processing')
 
         self._write_output_recursive(results, roi_indices)
 

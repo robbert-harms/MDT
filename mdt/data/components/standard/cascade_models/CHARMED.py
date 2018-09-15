@@ -6,7 +6,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class CHARMED1(CascadeTemplate):
+class CHARMED_r1(CascadeTemplate):
 
     models = ('BallStick_r1 (Cascade)',
               'CHARMED_r1')
@@ -17,12 +17,7 @@ class CHARMED1(CascadeTemplate):
                             'w_res0.w': 'w_stick0.w'}}
 
 
-class CHARMED1Gelderen(CHARMED1):
-    models = ('BallStick_r1 (Cascade)',
-              'CHARMED_r1_Gelderen')
-
-
-class CHARMEDR1Fixed(CascadeTemplate):
+class CHARMED_r1_Fixed(CascadeTemplate):
 
     cascade_name_modifier = 'fixed'
     models = ('BallStick_r1 (Cascade)',
@@ -34,7 +29,7 @@ class CHARMEDR1Fixed(CascadeTemplate):
                             'CHARMEDRestricted0.phi': 'Stick0.phi'}}
 
 
-class CHARMEDR2(CascadeTemplate):
+class CHARMED_r2(CascadeTemplate):
 
     models = ('BallStick_r2 (Cascade)',
               'CHARMED_r2')
@@ -48,7 +43,7 @@ class CHARMEDR2(CascadeTemplate):
                             ('w_res1.w', 'w_stick1.w')]}
 
 
-class CHARMEDR2Fixed(CascadeTemplate):
+class CHARMED_r2_Fixed(CascadeTemplate):
 
     cascade_name_modifier = 'fixed'
     models = ('BallStick_r2 (Cascade)',

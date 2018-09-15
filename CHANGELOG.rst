@@ -2,6 +2,11 @@
 Changelog
 *********
 
+v0.14.12 (2018-09-15)
+=====================
+- Slight improvement in the objective function.
+
+
 v0.14.11 (2018-09-12)
 =====================
 
