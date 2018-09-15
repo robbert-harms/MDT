@@ -4,7 +4,10 @@ Changelog
 
 v0.14.12 (2018-09-15)
 =====================
-- Slight improvement in the objective function.
+
+Added
+-----
+- Adds the AxCaliber model
 
 
 v0.14.11 (2018-09-12)
