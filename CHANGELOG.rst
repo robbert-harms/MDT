@@ -2,6 +2,14 @@
 Changelog
 *********
 
+v0.14.13 (2018-09-16)
+=====================
+
+Changed
+-------
+- Updated the AxCaliber model to provide only the basic AxCaliber. People can edit the basic model for their own purposes.
+
+
 v0.14.12 (2018-09-15)
 =====================
 
