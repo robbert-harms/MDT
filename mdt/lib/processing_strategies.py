@@ -545,11 +545,13 @@ class SamplingProcessor(SimpleModelProcessor):
         model = self._model.build(roi_indices)
 
         method = None
+        method_kwargs = {}
 
         if self._method == 'AMWG':
             method = AdaptiveMetropolisWithinGibbs
         elif self._method == 'SCAM':
             method = SingleComponentAdaptiveMetropolis
+            method_kwargs['epsilon'] = model.get_rwm_proposal_stds()[0] * 1e-5
         elif self._method == 'MWG':
             method = MetropolisWithinGibbs
         elif self._method == 'FSL':
@@ -564,7 +566,8 @@ class SamplingProcessor(SimpleModelProcessor):
             model.get_initial_parameters(),
             model.get_rwm_proposal_stds(),
             data=model.get_kernel_data(),
-            finalize_proposal_func=model.get_finalize_proposal_function())
+            finalize_proposal_func=model.get_finalize_proposal_function(),
+            **method_kwargs)
 
         sampling_output = sampler.sample(self._nmr_samples, burnin=self._burnin, thinning=self._thinning)
         samples = sampling_output.get_samples()
