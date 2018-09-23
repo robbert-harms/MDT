@@ -1308,8 +1308,6 @@ def configure_per_model_logging(output_path, overwrite=False):
     if output_path:
         output_path = os.path.abspath(os.path.join(output_path, 'info.log'))
 
-    had_this_output_file = all(h.output_file == output_path for h in ModelOutputLogHandler.__instances__)
-
     if overwrite:
         # close any open files
         for handler in ModelOutputLogHandler.__instances__:
@@ -1319,13 +1317,6 @@ def configure_per_model_logging(output_path, overwrite=False):
 
     for handler in ModelOutputLogHandler.__instances__:
         handler.output_file = output_path
-
-    logger = logging.getLogger(__name__)
-    if not had_this_output_file:
-        if output_path:
-            logger.info('Started appending to the per model log file')
-        else:
-            logger.info('Stopped appending to the per model log file')
 
 
 @contextmanager

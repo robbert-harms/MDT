@@ -54,6 +54,10 @@ class CHARMED_r2(CompositeModelTemplate):
         lambda results: {'FR': 1 - results['w_hin0.w']},
         lambda results: {'FR.std': results['w_hin0.w.std']}
     ]
+    extra_sampling_maps = [
+        lambda samples: {'FR': np.mean(1 - samples['w_hin0.w'], axis=1),
+                         'FR.std': np.std(1 - samples['w_hin0.w'], axis=1)}
+    ]
 
     extra_prior = 'return w_res1.w < w_res0.w;'
 
@@ -83,6 +87,10 @@ class CHARMED_r3(CompositeModelTemplate):
     extra_optimization_maps = [
         lambda results: {'FR': 1 - results['w_hin0.w']},
         lambda results: {'FR.std': results['w_hin0.w.std']}
+    ]
+    extra_sampling_maps = [
+        lambda samples: {'FR': np.mean(1 - samples['w_hin0.w'], axis=1),
+                         'FR.std': np.std(1 - samples['w_hin0.w'], axis=1)}
     ]
 
     extra_prior = 'return w_res2.w < w_res1.w && w_res1.w < w_res0.w;'

@@ -60,12 +60,12 @@ class FSLSamplingRoutine(AbstractRWMSampler):
         kernel_source = '''
             void _updateProposalState(_mcmc_method_data* method_data, ulong current_iteration,
                                       local mot_float_type* current_position){    
+
                 if(current_iteration > 0 && current_iteration % ''' + str(self._batch_size) + ''' == 0){
                     for(uint k = 0; k < ''' + str(self._nmr_params) + '''; k++){
-                        
                         method_data->proposal_stds[k] *= sqrt(
-                            ((mot_float_type)method_data->acceptance_counter[k]) /
-                            (''' + str(self._batch_size) + ''' - method_data->acceptance_counter[k]));
+                            ((mot_float_type)method_data->acceptance_counter[k] + 1) /
+                            (''' + str(self._batch_size) + ''' - method_data->acceptance_counter[k] + 1));
                         
                         method_data->proposal_stds[k] = clamp(method_data->proposal_stds[k], 
                                                         (mot_float_type)''' + str(self._min_val) + ''', 

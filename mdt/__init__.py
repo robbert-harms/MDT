@@ -235,7 +235,8 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
         logger = logging.getLogger(__name__)
         logger.info('Using MDT version {}'.format(__version__))
         logger.info('Preparing for model {0}'.format(model.name))
-        logger.info('The parameters we will sample are: {0}'.format(model.get_free_param_names()))
+        logger.info('The {0} parameters we will sample are: {1}'.format(len(model.get_free_param_names()),
+                                                                            model.get_free_param_names()))
 
         return sample_composite_model(model, input_data, base_dir, nmr_samples, thinning, burnin,
                                       get_temporary_results_dir(tmp_results_dir),

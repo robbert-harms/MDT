@@ -797,13 +797,14 @@ def noddi_dti_maps(results, input_data=None):
     if input_data is not None:
         shells = input_data.protocol.get_b_values_shells()
 
-        b = shells[0]['b_value']
-        if len(shells) > 1:
-            b = shells[1]['b_value'] - shells[0]['b_value']
+        if shells:
+            b = shells[0]['b_value']
+            if len(shells) > 1:
+                b = shells[1]['b_value'] - shells[0]['b_value']
 
-        sum = (d ** 2 + dperp0 ** 2 + dperp1 ** 2) / 5 + 2 * (d * dperp0 + d * dperp1 + dperp0 * dperp1) / 15
+            sum = (d ** 2 + dperp0 ** 2 + dperp1 ** 2) / 5 + 2 * (d * dperp0 + d * dperp1 + dperp0 * dperp1) / 15
 
-        MD += ((b / 6) * sum) * results.get('MK', 1)
+            MD += ((b / 6) * sum) * results.get('MK', 1)
 
     ndi = 1 - np.sqrt(0.5 * ((3 * MD) / noddi_d - 1))
     ndi = np.clip(np.nan_to_num(ndi), 0, 1)

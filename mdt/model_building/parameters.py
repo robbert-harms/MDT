@@ -12,7 +12,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class CurrentObservationParam(SimpleCLFunctionParameter):
 
-    def __init__(self, name='_observation'):
+    def __init__(self, name='observation'):
         """This parameter indicates that the model should inject the current observation value in the model.
 
         Sometimes during model linearization or other mathematical operations the current observation appears on

@@ -20,7 +20,7 @@ class CascadeBuilder(ComponentBuilder):
         """
         class AutoCreatedCascadeModel(SimpleCascadeModel):
 
-            def __init__(self, *args):
+            def __init__(self):
                 models = []
                 for model_def in template.models:
                     if isinstance(model_def, str):
@@ -28,11 +28,7 @@ class CascadeBuilder(ComponentBuilder):
                     else:
                         models.append(mdt.get_model(model_def[0])(model_def[1]))
 
-                new_args = [deepcopy(template.name),
-                            models]
-                for ind, arg in args:
-                    new_args[ind] = arg
-                super().__init__(*new_args)
+                super().__init__(deepcopy(template.name), models)
 
             def _prepare_model(self, iteration_position, model, output_previous, output_all_previous):
                 super()._prepare_model(iteration_position, model, output_previous, output_all_previous)

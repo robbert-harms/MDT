@@ -1,7 +1,7 @@
 from copy import deepcopy
 from mdt.component_templates.base import ComponentBuilder, ComponentTemplate
 from mot.lib.cl_data_type import SimpleCLDataType
-from mot.lib.cl_function import SimpleCLFunction
+from mot.lib.cl_function import SimpleCLFunction, CLFunctionParameter, SimpleCLFunctionParameter
 from mdt.model_building.parameters import LibraryParameter
 from mdt.lib.components import get_component, has_component
 from mot.library_functions.base import CLLibrary
@@ -18,35 +18,19 @@ class LibraryFunctionsBuilder(ComponentBuilder):
         """Creates classes with as base class LibraryFunctionsBase
 
         Args:
-            template (LibraryFunctionTemplate): the library config template to use for creating
-                the class with the right init settings.
+            template (LibraryFunctionTemplate): the library config template to use for creating the library function
         """
         class AutoCreatedLibraryFunction(CLLibrary, SimpleCLFunction):
-
-            def __init__(self, *args, **kwargs):
+            def __init__(self):
                 cl_code = template.cl_code or ''
                 cl_extra = template.cl_extra or ''
                 if not template.is_function:
                     cl_code = ''
                     cl_extra += '\n' + template.cl_code
 
-                new_args = [template.return_type,
-                            template.name,
-                            _resolve_parameters(template.parameters),
-                            cl_code,
-                            ]
-
-                for ind, already_set_arg in enumerate(args):
-                    new_args[ind] = already_set_arg
-
-                new_kwargs = dict(dependencies=_resolve_dependencies(template.dependencies),
-                                  cl_extra=cl_extra)
-                new_kwargs.update(kwargs)
-
-                super().__init__(*new_args, **new_kwargs)
-
-                if hasattr(template, 'init'):
-                    template.init(self)
+                super().__init__(
+                    template.return_type, template.name, _resolve_parameters(template.parameters), cl_code,
+                    dependencies=_resolve_dependencies(template.dependencies), cl_extra=cl_extra)
 
         for name, method in template.bound_methods.items():
             setattr(AutoCreatedLibraryFunction, name, method)
@@ -58,10 +42,6 @@ class LibraryFunctionTemplate(ComponentTemplate):
     """The library function config to inherit from.
 
     These configs are loaded on the fly by the LibraryFunctionsBuilder.
-
-    All methods you define are automatically bound to the SimpleCLLibrary. Also, to do extra
-    initialization you can define a method ``init``. This method is called after object construction to allow
-    for additional initialization and is is not added to the final object.
 
     Attributes:
         name (str): the name of the model, defaults to the class name
@@ -132,6 +112,8 @@ def _resolve_parameters(parameter_list):
                 parameters.append(LibraryParameter(param.data_type, item))
             else:
                 parameters.append(LibraryParameter(SimpleCLDataType.from_string('double'), item))
+        elif isinstance(item, (tuple, list)):
+            parameters.append(SimpleCLFunctionParameter(item[0], item[1]))
         else:
             parameters.append(deepcopy(item))
     return parameters

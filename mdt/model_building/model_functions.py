@@ -86,9 +86,7 @@ class SimpleModelCLFunction(SampleModelCLFunction, SimpleCLFunction):
 
     @property
     def name(self):
-        """Get the function name of this model function.
-
-        This is left-over from previous code, prefer using :meth:`get_cl_function_name` instead.
+        """Get the name of this model function, used in the composite model function
 
         Returns:
             str: The name of this model function.

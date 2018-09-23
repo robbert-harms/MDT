@@ -39,18 +39,13 @@ class DMRICompositeModelBuilder(ComponentBuilder):
         """
         class AutoCreatedDMRICompositeModel(DMRICompositeModel):
 
-            def __init__(self, model_name=None, **kwargs):
-                model_name = model_name or deepcopy(template.name)
-
-                keywords = {'signal_noise_model': deepcopy(template.signal_noise_model),
-                            'enforce_weights_sum_to_one': template.enforce_weights_sum_to_one}
-                keywords.update(kwargs)
-
+            def __init__(self):
                 super().__init__(
-                    model_name,
+                    deepcopy(template.name),
                     CompartmentModelTree(parse_composite_model_expression(template.model_expression)),
                     deepcopy(_resolve_likelihood_function(template.likelihood_function)),
-                    **keywords
+                    signal_noise_model=deepcopy(template.signal_noise_model),
+                    enforce_weights_sum_to_one=template.enforce_weights_sum_to_one
                 )
 
                 for full_param_name, value in template.inits.items():

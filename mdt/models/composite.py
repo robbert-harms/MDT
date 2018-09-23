@@ -75,8 +75,7 @@ class DMRICompositeModel(DMRIOptimizable):
                 to transform both the inclination and the azimuth at the same time to an antipodal point.
         """
         super().__init__(model_name, model_tree, likelihood_function, signal_noise_model,
-                                                 input_data=input_data,
-                                                 enforce_weights_sum_to_one=enforce_weights_sum_to_one)
+                         input_data=input_data, enforce_weights_sum_to_one=enforce_weights_sum_to_one)
         self._name = model_name
         self._model_tree = model_tree
         self._likelihood_function = likelihood_function
@@ -1654,9 +1653,8 @@ class BuildCompositeModel:
                     results_dict.update(routine(results_dict, self._input_data))
                 else:
                     results_dict.update(routine(results_dict))
-            except KeyError as exc:
-                logger = logging.getLogger(__name__)
-                logger.error('Failed to execute extra optimization maps function, missing input: {}.'.format(str(exc)))
+            except KeyError:
+                pass
 
         if not self._post_processing['optimization']['store_covariances']:
             del results_dict['covariances']

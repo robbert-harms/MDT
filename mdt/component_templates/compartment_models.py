@@ -2,10 +2,10 @@ from copy import deepcopy, copy
 import numpy as np
 from mdt.component_templates.base import ComponentBuilder, ComponentTemplate
 from mdt.lib.components import get_component, has_component
-from mdt.models.compartments import DMRICompartmentModelFunction
+from mdt.models.compartments import DMRICompartmentModelFunction, WeightCompartment
+from mdt.model_building.computation_caching import DataCacheParameter, CacheInfo, CachePrimitive
 from mdt.utils import spherical_to_cartesian
-from mot.lib.cl_function import CLFunction, SimpleCLFunction
-from mdt.model_building.model_functions import WeightType
+from mot.lib.cl_function import CLFunction, SimpleCLFunction, SimpleCLFunctionParameter
 from mdt.model_building.parameters import CurrentObservationParam
 
 __author__ = 'Robbert Harms'
@@ -27,40 +27,25 @@ class CompartmentBuilder(ComponentBuilder):
 
         class AutoCreatedDMRICompartmentModel(DMRICompartmentModelFunction):
 
-            def __init__(self, *args, **kwargs):
-                parameters = []
-                if len(template.parameters):
-                    parameters = _resolve_parameters(template.parameters)
+            def __init__(self, nickname=None):
+                parameters = _resolve_parameters(template.parameters, template.name)
+                dependencies = _resolve_dependencies(template.dependencies)
 
-                dependencies = []
-                if len(template.dependencies):
-                    dependencies = _resolve_dependencies(template.dependencies)
-
-                new_args = [template.name,
-                            parameters,
-                            template.cl_code,
-                            dependencies,
-                            template.return_type]
-
-                for ind, already_set_arg in enumerate(args):
-                    new_args[ind] = already_set_arg
-
-                new_kwargs = {
-                    'model_function_priors': (_resolve_prior(template.extra_prior, template.name,
-                                                             [p.name for p in parameters],)),
-                    'post_optimization_modifiers': template.post_optimization_modifiers,
-                    'extra_optimization_maps_funcs': builder._get_extra_optimization_map_funcs(
-                        template, parameters),
-                    'extra_sampling_maps_funcs': builder._get_extra_sampling_map_funcs(
-                        template, parameters),
-                    'cl_extra': template.cl_extra,
-                    'proposal_callbacks': builder._get_proposal_callbacks(template, parameters)}
-                new_kwargs.update(kwargs)
-
-                super().__init__(*new_args, **new_kwargs)
-
-                if hasattr(template, 'init'):
-                    template.init(self)
+                super().__init__(
+                    template.return_type,
+                    template.name,
+                    parameters,
+                    template.cl_code,
+                    dependencies=dependencies,
+                    model_function_priors=_resolve_prior(template.extra_prior, template.name,
+                                                         [p.name for p in parameters]),
+                    cl_extra=template.cl_extra,
+                    post_optimization_modifiers=template.post_optimization_modifiers,
+                    extra_optimization_maps_funcs=builder._get_extra_optimization_map_funcs(template, parameters),
+                    extra_sampling_maps_funcs= builder._get_extra_sampling_map_funcs(template, parameters),
+                    proposal_callbacks=builder._get_proposal_callbacks(template, parameters),
+                    nickname=nickname,
+                    cache_info=builder._get_cache_info(template))
 
         for name, method in template.bound_methods.items():
             setattr(AutoCreatedDMRICompartmentModel, name, method)
@@ -114,9 +99,6 @@ class CompartmentBuilder(ComponentBuilder):
                 'proposal_callback_spherical_{}'.format(template.name),
                 [('mot_float_type*', 'theta'), ('mot_float_type*', 'phi')],
                 '''
-                    mot_float_type oldtheta = *theta;
-                    mot_float_type oldphi = *phi;
-                
                     if(*phi > M_PI_F){
                         *phi -= M_PI_F;
                         *theta = M_PI_F - *theta;
@@ -140,38 +122,35 @@ class CompartmentBuilder(ComponentBuilder):
 
         return callbacks
 
+    def _get_cache_info(self, template):
+        if template.cache_info is None:
+            return CacheInfo([], '')
+
+        fields = []
+        for field in template.cache_info['fields']:
+            if len(field) == 3:
+                fields.append(CachePrimitive(field[0], field[1], nmr_elements=field[2]))
+            else:
+                fields.append(CachePrimitive(field[0], field[1]))
+
+        return CacheInfo(fields, template.cache_info['cl_code'])
+
 
 class WeightBuilder(ComponentBuilder):
     def _create_class(self, template):
+        """Creates the weight compartments
 
-        class AutoCreatedWeightModel(WeightType):
+        Args:
+            template (WeightCompartmentTemplate): the compartment config template
+        """
+        class AutoCreatedWeightModel(WeightCompartment):
 
-            def __init__(self, *args, **kwargs):
-                parameters = []
-                if len(template.parameters):
-                    parameters = _resolve_parameters(template.parameters)
-
-                dependencies = []
-                if len(template.dependencies):
-                    dependencies = _resolve_dependencies(template.dependencies)
-
-                new_args = [template.name,
-                            parameters,
-                            template.cl_code,
-                            ]
-
-                for ind, already_set_arg in enumerate(args):
-                    new_args[ind] = already_set_arg
-
-                new_kwargs = {
-                    'dependencies': dependencies,
-                    'cl_extra': template.cl_extra}
-                new_kwargs.update(kwargs)
-
-                super().__init__(template.return_type, *new_args, **new_kwargs)
-
-                if hasattr(template, 'init'):
-                    template.init(self)
+            def __init__(self, nickname=None):
+                super().__init__(
+                    template.return_type, template.name,
+                    _resolve_parameters(template.parameters, template.name), template.cl_code,
+                    dependencies=_resolve_dependencies(template.dependencies),
+                    cl_extra=template.cl_extra, nickname=nickname)
 
         for name, method in template.bound_methods.items():
             setattr(AutoCreatedWeightModel, name, method)
@@ -184,18 +163,20 @@ class CompartmentTemplate(ComponentTemplate):
 
     These configs are loaded on the fly by the CompartmentBuilder.
 
-    All methods you define are automatically bound to the DMRICompartmentModelFunction. Also, to do extra
-    initialization you can define a method ``init``. This method is called after object construction to allow
-    for additional initialization and is not added to the final object.
-
     Attributes:
         name (str): the name of the model, defaults to the class name
 
         description (str): model description
 
-        parameters (list): the list of parameters to use. If a parameter is a string we will
-            use it automatically, if not it is supposed to be a CLFunctionParameter
-            instance that we append directly.
+        parameters (list): the list of parameters to use. A few options are possible per item:
+
+            * provide a string, we will look for a corresponding parameter with the given name
+            * provide an instance of a CLFunctionParameter subclass, this will then be used directly
+            * provide the literal ``@observation``, this injects the current volume/observation into this function
+                of type ``mot_float_type`` and name name ``observation``.
+            * provide the literal ``@cache``, this injects the data cache into this function, with the name ``cache``
+                and a struct as datatype. The struct type name is provided by this compartment name appended with
+                ``_DataCache``.
 
         cl_code (str): the CL code definition to use, please provide here the body of your CL function.
 
@@ -258,6 +239,10 @@ class CompartmentTemplate(ComponentTemplate):
             values near theta == PI. Additionally, this callback function is used when computing the numerical
             derivative.
 
+        cache_info (dict): the data cache information. This works in combination with specifying the ``@cache``
+            parameter for this compartment. The cache info should have two elements, ``fields`` and ``cl_code``.
+            The fields specify the items we need to store in the structure and the cl_code the code that initializes
+            the cache in every new model composite model evaluation.
     """
     _component_type = 'compartment_models'
     _builder = CompartmentBuilder()
@@ -274,6 +259,7 @@ class CompartmentTemplate(ComponentTemplate):
     extra_optimization_maps = []
     extra_sampling_maps = []
     spherical_parameters = ('theta', 'phi')
+    cache_info = None
 
 
 class WeightCompartmentTemplate(ComponentTemplate):
@@ -305,6 +291,9 @@ def _resolve_dependencies(dependencies):
     Returns:
         list: a new list with the string elements resolved as :class:`~mot.library_functions.CLLibrary`.
     """
+    if not len(dependencies):
+        return []
+
     result = []
     for dependency in dependencies:
         if isinstance(dependency, str):
@@ -329,19 +318,19 @@ def _resolve_prior(prior, compartment_name, compartment_parameters):
             for looking up the used parameters in a string prior
 
     Returns:
-        None or mdt.models.compartments.CompartmentPrior: a proper prior instance
+        List[mdt.models.compartments.CompartmentPrior]: the list of extra priors for this compartment
     """
     if prior is None:
-        return None
+        return []
 
     if isinstance(prior, CLFunction):
-        return prior
+        return [prior]
 
     parameters = [('mot_float_type', p) for p in compartment_parameters if p in prior]
-    return SimpleCLFunction('mot_float_type', 'prior_' + compartment_name, parameters, prior)
+    return [SimpleCLFunction('mot_float_type', 'prior_' + compartment_name, parameters, prior)]
 
 
-def _resolve_parameters(parameter_list):
+def _resolve_parameters(parameter_list, compartment_name):
     """Convert all the parameters in the given parameter list to actual parameter objects.
 
     Args:
@@ -352,11 +341,16 @@ def _resolve_parameters(parameter_list):
     Returns:
         list: the list of actual parameter objects
     """
+    if not parameter_list:
+        return []
+
     parameters = []
     for item in parameter_list:
         if isinstance(item, str):
-            if item == '_observation':
-                parameters.append(CurrentObservationParam())
+            if item == '@observation':
+                parameters.append(CurrentObservationParam(name='observation'))
+            elif item == '@cache':
+                parameters.append(DataCacheParameter(compartment_name, 'cache'))
             else:
                 if '(' in item:
                     param_name = item[:item.index('(')].strip()
@@ -365,6 +359,8 @@ def _resolve_parameters(parameter_list):
                     param_name = item
                     nickname = None
                 parameters.append(get_component('parameters', param_name)(nickname=nickname))
+        elif isinstance(item, (tuple, list)):
+            parameters.append(SimpleCLFunctionParameter(item[0], item[1]))
         else:
             parameters.append(deepcopy(item))
     return parameters
