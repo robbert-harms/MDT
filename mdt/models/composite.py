@@ -172,6 +172,7 @@ class DMRICompositeModel(DMRIOptimizable):
                                    self.get_parameter_codec(),
                                    copy.deepcopy(self._post_processing),
                                    self._get_rwm_proposal_stds(voxels_to_analyze),
+                                   self._get_rwm_epsilons(),
                                    self._get_model_eval_function(),
                                    self._get_log_likelihood_function(False, True, True),
                                    self._get_log_likelihood_function(True, False, False),
@@ -760,6 +761,22 @@ class DMRICompositeModel(DMRIOptimizable):
                     proposal_stds.append(proposal_std[voxels_to_analyze, ...])
 
         return np.concatenate([np.transpose(np.array([s])) if len(s.shape) < 2 else s for s in proposal_stds], axis=1)
+
+    def _get_rwm_epsilons(self):
+        """Get per parameter a value small relative to the parameter's standard deviation.
+
+        This is used in, for example, the SCAM MCMC sampling routine to add to the new proposal standard deviation to
+        ensure it does not collapse to zero.
+        """
+        scaling_factor = 1e-5
+        epsilons = []
+        for m, p in self._model_functions_info.get_estimable_parameters_list():
+            proposal_std = p.sampling_proposal_std
+            if is_scalar(proposal_std):
+                epsilons.append(proposal_std * scaling_factor)
+            else:
+                epsilons.append(np.mean(proposal_std) * 1e-6)
+        return epsilons
 
     def _get_finalize_proposal_function(self):
         """Get the building function used to finalize the proposal"""
@@ -1513,7 +1530,7 @@ class BuildCompositeModel:
                  post_optimization_modifiers, extra_optimization_maps, extra_sampling_maps,
                  dependent_map_calculator, fixed_parameter_maps,
                  free_param_names, parameter_codec, post_processing,
-                 rwm_proposal_stds, eval_function,
+                 rwm_proposal_stds, rwm_epsilons, eval_function,
                  objective_function, ll_function,
                  log_prior_function,
                  finalize_proposal_function):
@@ -1541,6 +1558,7 @@ class BuildCompositeModel:
         self._extra_optimization_maps = extra_optimization_maps
         self._extra_sampling_maps = extra_sampling_maps
         self._rwm_proposal_stds = rwm_proposal_stds
+        self._rwm_epsilons = rwm_epsilons
         self._eval_function = eval_function
         self._objective_function = objective_function
         self._ll_function = ll_function
@@ -1596,6 +1614,17 @@ class BuildCompositeModel:
             ndarray: the proposal standard deviations of each free parameter, for each problem instance
         """
         return self._rwm_proposal_stds
+
+    def get_rwm_epsilons(self):
+        """Get per parameter a value small relative to the parameter's standard deviation.
+
+        This is used in, for example, the SCAM Random Walk Metropolis sampling routine to add to the new proposal
+        standard deviation to ensure it does not collapse to zero.
+
+        Returns:
+            list: per parameter an epsilon, relative to the proposal standard deviation
+        """
+        return self._rwm_epsilons
 
     def post_process_optimization_maps(self, results_dict, results_array=None, log_likelihoods=None):
         """This adds some extra optimization maps to the results dictionary.

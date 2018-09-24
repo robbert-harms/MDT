@@ -1,3 +1,4 @@
+import numpy as np
 from mdt.component_templates.base import ComponentBuilder, ComponentTemplate
 from mdt.lib.components import has_component, get_component
 from mot.lib.cl_data_type import SimpleCLDataType
@@ -125,9 +126,9 @@ class FreeParameterTemplate(ParameterTemplate):
     """
     data_type = 'mot_float_type'
     fixed = False
-    init_value = 0.03
-    lower_bound = 0.0
-    upper_bound = 4.0
+    init_value = 1
+    lower_bound = -np.inf
+    upper_bound = np.inf
     parameter_transform = 'Identity'
     sampling_proposal_std = 1
     sampling_proposal_modulus = None

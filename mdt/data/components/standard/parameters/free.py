@@ -22,6 +22,7 @@ class s0(FreeParameterTemplate):
     upper_bound = 1e10
     parameter_transform = 'Clamp'
     sampling_proposal_std = 10.0
+    scale_factor = 0.1
 
 
 class w(FreeParameterTemplate):
@@ -33,6 +34,7 @@ class w(FreeParameterTemplate):
     sampling_proposal_std = 0.01
     sampling_prior = UniformWithinBoundsPrior()
     numdiff_info = {'scale_factor': 10}
+    scale_factor = 10
 
 
 class w_ard_beta(w):
@@ -51,7 +53,6 @@ class T1(FreeParameterTemplate):
     lower_bound = 1e-5
     upper_bound = 4.0
     parameter_transform = 'Clamp'
-    sampling_proposal_std = 0.0001
 
 
 class T2(FreeParameterTemplate):
@@ -60,7 +61,6 @@ class T2(FreeParameterTemplate):
     lower_bound = 1e-5
     upper_bound = 2.0
     parameter_transform = 'Clamp'
-    sampling_proposal_std = 0.0001
 
 
 class T2_star(FreeParameterTemplate):
@@ -69,7 +69,6 @@ class T2_star(FreeParameterTemplate):
     lower_bound = 0.0
     upper_bound = 1.0
     parameter_transform = 'Clamp'
-    sampling_proposal_std = 0.0001
 
 
 class E1(FreeParameterTemplate):
@@ -80,12 +79,10 @@ class E1(FreeParameterTemplate):
     After estimation of this parameter, T1 can be recovered by applying the next equation:
         -TR / log( E1 ).
     """
-
     init_value = 0.37
     lower_bound = 0.0
     upper_bound = 1.0
     parameter_transform = 'Clamp'
-    sampling_proposal_std = 0.0001
 
 
 class R1(FreeParameterTemplate):
@@ -95,7 +92,6 @@ class R1(FreeParameterTemplate):
     lower_bound = 0.25
     upper_bound = 100.0
     parameter_transform = 'Clamp'
-    sampling_proposal_std = 0.0001
 
 
 class R2(FreeParameterTemplate):
@@ -105,7 +101,6 @@ class R2(FreeParameterTemplate):
     lower_bound = 0.5
     upper_bound = 500.0
     parameter_transform = 'Clamp'
-    sampling_proposal_std = 0.0001
 
 
 class R2s(FreeParameterTemplate):
@@ -115,7 +110,6 @@ class R2s(FreeParameterTemplate):
     lower_bound = 1
     upper_bound = 50.0
     parameter_transform = 'Clamp'
-    sampling_proposal_std = 0.0001
 
 
 class theta(FreeParameterTemplate):

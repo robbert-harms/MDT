@@ -551,7 +551,7 @@ class SamplingProcessor(SimpleModelProcessor):
             method = AdaptiveMetropolisWithinGibbs
         elif self._method == 'SCAM':
             method = SingleComponentAdaptiveMetropolis
-            method_kwargs['epsilon'] = model.get_rwm_proposal_stds()[0] * 1e-5
+            method_kwargs['epsilon'] = model.get_rwm_epsilons()
         elif self._method == 'MWG':
             method = MetropolisWithinGibbs
         elif self._method == 'FSL':
