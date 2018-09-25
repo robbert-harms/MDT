@@ -331,6 +331,7 @@ class ActivePostProcessingLoader(ConfigSectionLoader):
         sampling['maximum_a_posteriori'] = sampling.get('maximum_a_posteriori', False)
         sampling['model_defined_maps'] = sampling.get('model_defined_maps', True)
         sampling['univariate_normal'] = sampling.get('univariate_normal', True)
+        sampling['average_acceptance_rate'] = sampling.get('average_acceptance_rate', False)
 
         optimization = value.get('optimization', {})
         optimization['uncertainties'] = optimization.get('uncertainties', True)

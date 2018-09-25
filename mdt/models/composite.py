@@ -1713,6 +1713,8 @@ class BuildCompositeModel:
             items.update({'univariate_ess': lambda: self._get_univariate_ess(samples)})
         if self._post_processing['sampling']['multivariate_ess']:
             items.update({'multivariate_ess': lambda: self._get_multivariate_ess(samples)})
+        if self._post_processing['sampling']['average_acceptance_rate']:
+            items.update({'average_acceptance_rate': lambda: self._get_average_acceptance_rate(samples)})
         if self._post_processing['sampling']['maximum_likelihood'] \
                 or self._post_processing['sampling']['maximum_a_posteriori']:
             mle_maps_cb, map_maps_cb = self._get_mle_map_statistics(sampling_output)
@@ -1832,6 +1834,24 @@ class BuildCompositeModel:
         ess[np.isinf(ess)] = 0
         ess = np.nan_to_num(ess)
         return {'MultivariateESS': ess}
+
+    def _get_average_acceptance_rate(self, samples):
+        """Get the multivariate Effective Sample Size statistics for the given set of samples.
+
+        This computes the acceptance rate on basis of the obtained samples, not taking into account any thinning
+        during the generation of the samples.
+
+        Args:
+            samples (ndarray): an (d, p, n) matrix for d problems, p parameters and n samples.
+
+        Returns:
+            dict: the volume maps with the average acceptance rates
+        """
+        results = {}
+        for ind, param_name in enumerate(self.get_free_param_names()):
+            results['{}'.format(param_name)] = np.count_nonzero(samples[:, ind, 1:] - samples[:, ind, :-1], axis=1) \
+                                               / samples.shape[2]
+        return results
 
     def _compute_fisher_information_matrix(self, results_array):
         """Calculate the covariance and correlation matrix by taking the inverse of the Hessian.
