@@ -22,7 +22,6 @@ class s0(FreeParameterTemplate):
     upper_bound = 1e10
     parameter_transform = 'Clamp'
     sampling_proposal_std = 10.0
-    scale_factor = 0.1
 
 
 class w(FreeParameterTemplate):
@@ -31,10 +30,9 @@ class w(FreeParameterTemplate):
     lower_bound = 0
     upper_bound = 1
     parameter_transform = 'CosSqrClamp'
-    sampling_proposal_std = 0.01
+    sampling_proposal_std = 0.5
     sampling_prior = UniformWithinBoundsPrior()
     numdiff_info = {'scale_factor': 10}
-    scale_factor = 10
 
 
 class w_ard_beta(w):
@@ -215,7 +213,7 @@ class kappa(FreeParameterTemplate):
     lower_bound = 0
     upper_bound = 64
     parameter_transform = 'CosSqrClamp'
-    sampling_proposal_std = 0.1
+    sampling_proposal_std = 0.01
     numdiff_info = {'max_step': 0.1, 'use_upper_bound': False}
 
 

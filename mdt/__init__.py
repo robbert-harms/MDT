@@ -124,7 +124,7 @@ def fit_model(model, input_data, output_folder,
 def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None, thinning=None,
                  method=None, recalculate=False, cl_device_ind=None, double_precision=False,
                  store_samples=True, sample_items_to_save=None, tmp_results_dir=True,
-                 initialization_data=None, post_processing=None
+                 initialization_data=None, post_processing=None, post_sampling_cb=None
                  ):
     """Sample a composite model using the Adaptive Metropolis-Within-Gibbs (AMWG) MCMC algorithm [1].
 
@@ -173,6 +173,10 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
             For valid elements, please see the configuration file settings for ``sample`` under ``post_processing``.
             Valid input for this parameter is for example: {'sample_statistics': True} to enable automatic calculation
             of the sample statistics.
+        post_sampling_cb (Callable[
+            [mot.sample.base.SamplingOutput, mdt.models.composite.BuildCompositeModel], Optional[Dict]]):
+                additional post-processing called after sampling. This function can optionally return a (nested)
+                dictionary with as keys dir-/file-names and as values maps to be stored in the results directory.
 
     Returns:
         dict: if store_samples is True then we return the samples per parameter as a numpy memmap. If store_samples
@@ -243,7 +247,8 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
                                       method=method, recalculate=recalculate,
                                       store_samples=store_samples,
                                       sample_items_to_save=sample_items_to_save,
-                                      initialization_data=initialization_data)
+                                      initialization_data=initialization_data,
+                                      post_sampling_cb=post_sampling_cb)
 
 
 def batch_fit(data_folder, models_to_fit, output_folder=None, batch_profile=None,

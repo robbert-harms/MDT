@@ -775,7 +775,7 @@ class DMRICompositeModel(DMRIOptimizable):
             if is_scalar(proposal_std):
                 epsilons.append(proposal_std * scaling_factor)
             else:
-                epsilons.append(np.mean(proposal_std) * 1e-6)
+                epsilons.append(np.mean(proposal_std) * scaling_factor)
         return epsilons
 
     def _get_finalize_proposal_function(self):
@@ -1696,7 +1696,7 @@ class BuildCompositeModel:
         This will return a dictionary mapping folder names to dictionaries with volumes to write.
 
         Args:
-            sampling_output (mot.cl_routines.sample.base.SimpleSampleOutput): the output of the sampler
+            sampling_output (mot.sample.base.SamplingOutput): the output of the sampler
 
         Returns:
             dict: a dictionary with for every subdirectory the maps to save

@@ -513,7 +513,7 @@ class SamplingProcessor(SimpleModelProcessor):
         pass
 
     def __init__(self, nmr_samples, thinning, burnin, method, model, mask, nifti_header, output_dir, tmp_storage_dir,
-                 recalculate, samples_storage_strategy=None):
+                 recalculate, samples_storage_strategy=None, post_sampling_cb=None):
         """The processing worker for model sample.
 
         Args:
@@ -528,6 +528,10 @@ class SamplingProcessor(SimpleModelProcessor):
                 - 'SCAM', for the Single Component Adaptive Metropolis
                 - 'FSL', for the sampling method used in the FSL toolbox
             samples_storage_strategy (SamplesStorageStrategy): indicates which samples to store
+            post_sampling_cb (Callable[
+                [mot.sample.base.SamplingOutput, mdt.models.composite.BuildCompositeModel], Optional[Dict]]):
+                    additional post-processing called after sampling. This function can optionally return a (nested)
+                    dictionary with as keys dir-/file-names and as values maps to be stored in the results directory.
         """
         super().__init__(mask, nifti_header, output_dir, tmp_storage_dir, recalculate)
         self._nmr_samples = nmr_samples
@@ -540,6 +544,7 @@ class SamplingProcessor(SimpleModelProcessor):
         self._subdirs = set()
         self._logger = logging.getLogger(__name__)
         self._samples_output_stored = []
+        self._post_sampling_cb = post_sampling_cb
 
     def _process(self, roi_indices, next_indices=None):
         model = self._model.build(roi_indices)
@@ -575,6 +580,12 @@ class SamplingProcessor(SimpleModelProcessor):
         self._logger.info('Starting post-processing')
         maps_to_save = model.get_post_sampling_maps(sampling_output)
         maps_to_save.update({self._used_mask_name: np.ones(samples.shape[0], dtype=np.bool)})
+
+        if self._post_sampling_cb:
+            out = self._post_sampling_cb(sampling_output, model)
+            if out:
+                maps_to_save.update(out)
+
         self._write_output_recursive(maps_to_save, roi_indices)
 
         def get_output(output_name):
