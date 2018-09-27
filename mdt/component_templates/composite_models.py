@@ -39,13 +39,14 @@ class DMRICompositeModelBuilder(ComponentBuilder):
         """
         class AutoCreatedDMRICompositeModel(DMRICompositeModel):
 
-            def __init__(self):
+            def __init__(self, volume_selection=True):
                 super().__init__(
                     deepcopy(template.name),
                     CompartmentModelTree(parse_composite_model_expression(template.model_expression)),
                     deepcopy(_resolve_likelihood_function(template.likelihood_function)),
                     signal_noise_model=deepcopy(template.signal_noise_model),
-                    enforce_weights_sum_to_one=template.enforce_weights_sum_to_one
+                    enforce_weights_sum_to_one=template.enforce_weights_sum_to_one,
+                    volume_selection=volume_selection
                 )
 
                 for full_param_name, value in template.inits.items():
