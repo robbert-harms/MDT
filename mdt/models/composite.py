@@ -2219,6 +2219,14 @@ class ModelFunctionsInformation:
         """
         return self._model_list
 
+    def get_compartment_models(self):
+        """Get a list of all the compartment models in the model.
+
+        Returns:
+            list of mdt.models.compartments.CompartmentModel: the compartment models in this composite model
+        """
+        return self._model_tree.get_compartment_models()
+
     def get_model_parameter_list(self):
         """Get a list of all model, parameter tuples.
 

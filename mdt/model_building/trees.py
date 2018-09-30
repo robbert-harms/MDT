@@ -75,14 +75,14 @@ class CompartmentModelTree(Tree):
         Valid model trees abides this grammar:
 
         tree     ::= model | '(' tree ')' | '(' tree ',' operator ')'
-        model    ::= ModelCLFunction
+        model    ::= CompartmentModel ['(' nickname ')']
         operator ::= '*' | '/' | '+' | '-'
 
-        This means that one can build complex models consisting of "Model Functions" (for example,
-        compartment models) that are combined using basic math operators.
+        This means that one can build complex models consisting of compartment models combined using basic
+        math operators.
 
         Args:
-            model_lists (model tree list): The model tree list
+            model_lists (list of mdt.models.compartments.CompartmentModel): The model tree list
         """
         super().__init__()
         self._init_tree(model_lists)
@@ -93,7 +93,7 @@ class CompartmentModelTree(Tree):
         This basically just returns the leaves of the tree.
 
         Returns:
-            list of ModelCLFunction: the compartments in this tree
+            list of mdt.models.compartments.CompartmentModel: the compartments in this tree
         """
         return [n.data for n in self.leaves]
 

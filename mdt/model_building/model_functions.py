@@ -12,10 +12,8 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 class ModelCLFunction(CLFunction):
-    """Interface for a basic model function just for optimization purposes.
+    """Extends a CLFunction with modeling information."""
 
-    If you need to sample the model, use the extended version of this interface :class:`SampleModelCLFunction`.
-    """
     @property
     def name(self):
         """Get the name of this model function.
@@ -33,13 +31,6 @@ class ModelCLFunction(CLFunction):
         """
         raise NotImplementedError()
 
-
-class SampleModelCLFunction(ModelCLFunction):
-    """Extended version of a model function for use in sampling.
-
-    This adds functions to retrieve priors about this function.
-    """
-
     def get_prior_parameters(self, parameter):
         """Get the prior parameters of the given parameter.
 
@@ -55,17 +46,17 @@ class SampleModelCLFunction(ModelCLFunction):
         """Get all the model function priors.
 
         Returns:
-            list[mot.lib.cl_function.CLFunction]: the priors for this model function,
+            list of mot.lib.cl_function.CLFunction: the priors for this model function,
                 these are supposed to be used in conjunction to the parameter priors.
         """
         raise NotImplementedError()
 
 
-class SimpleModelCLFunction(SampleModelCLFunction, SimpleCLFunction):
+class SimpleModelCLFunction(ModelCLFunction, SimpleCLFunction):
 
     def __init__(self, return_type, cl_function_name, parameters, cl_body, dependencies=(),
                  cl_extra=None, model_function_priors=None):
-        """This CL function is for all estimable models
+        """A default implementation of a This CL function is for all estimable models
 
         Args:
             return_type (str): the CL return type of the function
@@ -111,18 +102,19 @@ class SimpleModelCLFunction(SampleModelCLFunction, SimpleCLFunction):
         return list([p for p in self.get_parameters() if isinstance(p, FreeParameter)])
 
     def get_prior_parameters(self, parameter):
-        """Get the parameters referred to by the priors of the free parameters.
+        """Get the parameters referred to by the priors of each of the free parameters.
 
-        This returns a list of all the parameters referenced by the prior parameters, recursively.
+        This returns a list of all the parameters referenced by the priors of the parameters, recursively.
 
         Returns:
-            list of parameters: the list of additional parameters in the prior for the given parameter
+            list of mot.lib.cl_function.CLFunctionParameter: the list of additional parameters used by each of the
+                parameter priors
         """
         def get_prior_parameters(params):
             return_params = []
 
             for param in params:
-                prior_params = param.sampling_prior.get_parameters()[3:]
+                prior_params = param.sampling_prior.get_extra_parameters()
                 proxy_prior_params = [prior_param.get_renamed('{}.prior.{}'.format(param.name, prior_param.name))
                                       for prior_param in prior_params]
 

@@ -68,19 +68,19 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                         template.sort_maps, self._model_functions_info.get_model_parameter_list()))
 
                 self._post_optimization_modifiers.extend(_get_model_post_optimization_modifiers(
-                    self._model_functions_info.get_model_list()))
+                    self._model_functions_info.get_compartment_models()))
                 self._post_optimization_modifiers.extend(deepcopy(template.post_optimization_modifiers))
 
                 self._extra_optimization_maps_funcs.extend(_get_model_extra_optimization_maps_funcs(
-                    self._model_functions_info.get_model_list()))
+                    self._model_functions_info.get_compartment_models()))
                 self._extra_optimization_maps_funcs.extend(deepcopy(template.extra_optimization_maps))
 
                 self._extra_sampling_maps_funcs.extend(_get_model_extra_sampling_maps_funcs(
-                    self._model_functions_info.get_model_list()))
+                    self._model_functions_info.get_compartment_models()))
                 self._extra_sampling_maps_funcs.extend(deepcopy(template.extra_sampling_maps))
 
                 self._proposal_callbacks.extend(_get_model_proposal_callbacks(
-                    self._model_functions_info.get_model_list()))
+                    self._model_functions_info.get_compartment_models()))
 
                 self._model_priors.extend(_resolve_model_prior(
                     template.extra_prior, self._model_functions_info.get_model_parameter_list()))
@@ -420,9 +420,8 @@ def _get_model_post_optimization_modifiers(compartments):
         return wrapped_modifier
 
     for compartment in compartments:
-        if hasattr(compartment, 'post_optimization_modifiers'):
-            for modifier in compartment.post_optimization_modifiers:
-                modifiers.append(get_wrapped_modifier(compartment.name, modifier))
+        for modifier in compartment.get_post_optimization_modifiers():
+            modifiers.append(get_wrapped_modifier(compartment.name, modifier))
 
     return modifiers
 
@@ -466,9 +465,8 @@ def _get_model_extra_optimization_maps_funcs(compartments):
         return wrapped_modifier
 
     for compartment in compartments:
-        if hasattr(compartment, 'extra_optimization_maps_funcs'):
-            for func in compartment.extra_optimization_maps_funcs:
-                funcs.append(get_wrapped_func(compartment.name, func))
+        for func in compartment.get_extra_optimization_maps_funcs():
+            funcs.append(get_wrapped_func(compartment.name, func))
 
     return funcs
 
@@ -499,9 +497,8 @@ def _get_model_extra_sampling_maps_funcs(compartments):
         return wrapped_modifier
 
     for compartment in compartments:
-        if hasattr(compartment, 'extra_sampling_maps_funcs'):
-            for func in compartment.extra_sampling_maps_funcs:
-                funcs.append(get_wrapped_func(compartment.name, func))
+        for func in compartment.get_extra_sampling_maps_funcs():
+            funcs.append(get_wrapped_func(compartment.name, func))
 
     return funcs
 
@@ -520,10 +517,9 @@ def _get_model_proposal_callbacks(compartments):
     """
     funcs = []
     for compartment in compartments:
-        if hasattr(compartment, 'proposal_callbacks'):
-            for params, func in compartment.proposal_callbacks:
-                compartment_params = [(compartment, p) for p in params]
-                funcs.append((compartment_params, func))
+        for params, func in compartment.get_proposal_callbacks():
+            compartment_params = [(compartment, p) for p in params]
+            funcs.append((compartment_params, func))
     return funcs
 
 

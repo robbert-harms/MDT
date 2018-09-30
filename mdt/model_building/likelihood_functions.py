@@ -49,7 +49,7 @@ class LikelihoodFunction:
             include_constant_terms (boolean): if we want to include the constant terms or not.
 
         Returns:
-            mdt.model_building.model_functions.SampleModelCLFunction: The log likelihood function for the given
+            mdt.model_building.model_functions.ModelCLFunction: The log likelihood function for the given
                 observation index under this noise model.
         """
         raise NotImplementedError()

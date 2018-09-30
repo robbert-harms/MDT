@@ -67,8 +67,6 @@ class FreeParameter(SimpleCLFunctionParameter):
                  sampling_prior=None, numdiff_info=None):
         """This are the kind of parameters that are generally meant to be optimized.
 
-        These parameters may optionally be fixed to a value or list of values for all problems.
-
         Args:
             data_type (str or mot.lib.cl_data_type.SimpleCLDataType): the data type expected by this parameter
             name (str): The name of this parameter
@@ -76,9 +74,11 @@ class FreeParameter(SimpleCLFunctionParameter):
             value (double or ndarray): A single value for all problems or a list of values for each problem.
             lower_bound (double): The lower bound of this parameter
             upper_bound (double): The upper bound of this parameter
-            parameter_transform (AbstractTransformation): The parameter transformation function
+            parameter_transform (mdt.model_building.parameter_functions.transformations.AbstractTransformation):
+                The parameter transformation function
             sampling_proposal_std (float): The proposal standard deviation, used in some MCMC sample routines
-            sampling_prior (ParameterPrior): The prior function for use in model sample
+            sampling_prior (mdt.model_building.parameter_functions.priors.ParameterPrior): The prior function for
+                use in model sample
             numdiff_info (mdt.model_building.parameter_functions.numdiff_info.NumDiffInfo): the information
                 for taking the numerical derivative with respect to this parameter.
         """
@@ -111,18 +111,38 @@ class FreeParameter(SimpleCLFunctionParameter):
 
     @property
     def parameter_transform(self):
+        """Get the parameter transformation function used during optimization.
+
+        Returns:
+            mdt.model_building.parameter_functions.transformations.AbstractTransformation: the transformation method
+        """
         return self._parameter_transform
 
     @property
     def sampling_proposal_std(self):
+        """Get the initial proposal standard deviation for this parameter.
+
+        Returns:
+            float: the initial default proposal standard deviation for use in MCMC sampling
+        """
         return self._sampling_proposal_std
 
     @property
     def sampling_prior(self):
+        """Get the prior for this parameter, this is used in MCMC sampling.
+
+        Returns:
+            mdt.model_building.parameter_functions.priors.ParameterPrior: the prior for this parameter
+        """
         return self._sampling_prior
 
     @property
     def numdiff_info(self):
+        """Specifies how to numerically differentiate this parameter.
+
+        Returns:
+            mdt.model_building.parameter_functions.numdiff_info.NumDiffInfo: the numerical differentiation information
+        """
         return self._numdiff_info
 
 

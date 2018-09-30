@@ -25,8 +25,18 @@ class ParameterPrior(CLFunction):
                                          <extra_parameters>)
     """
 
+    def get_extra_parameters(self):
+        """Get the additional prior specific parameters.
 
-class SimplePrior(ParameterPrior, SimpleCLFunction):
+        Each prior has at least 3 parameters, the value, lower bound and upper bound, but it can have more parameters.
+
+        Returns:
+            list: list of additional parameters
+        """
+        raise NotImplementedError()
+
+
+class SimpleParameterPrior(ParameterPrior, SimpleCLFunction):
 
     def __init__(self, prior_name, prior_body, extra_params=None, dependencies=()):
         """A prior template function.
@@ -39,22 +49,25 @@ class SimplePrior(ParameterPrior, SimpleCLFunction):
             extra_params (list): additional parameters for this prior
             dependencies (list or tuple): the list of dependency functions
         """
-        extra_params = extra_params or []
+        self.extra_params = extra_params or []
         parameters = [('mot_float_type', 'value'),
                       ('mot_float_type', 'lower_bound'),
-                      ('mot_float_type', 'upper_bound')] + extra_params
+                      ('mot_float_type', 'upper_bound')] + self.extra_params
         super().__init__('mot_float_type', prior_name, parameters, prior_body,
                                           dependencies=dependencies)
 
+    def get_extra_parameters(self):
+        return self.extra_params
 
-class AlwaysOne(SimplePrior):
+
+class AlwaysOne(SimpleParameterPrior):
 
     def __init__(self):
         """The uniform prior is always 1. :math:`P(v) = 1` """
         super().__init__('uniform', 'return 1;')
 
 
-class ReciprocalPrior(SimplePrior):
+class ReciprocalPrior(SimpleParameterPrior):
 
     def __init__(self):
         """The reciprocal of the current value. :math:`P(v) = 1/v` """
@@ -67,7 +80,7 @@ class ReciprocalPrior(SimplePrior):
         super().__init__('reciprocal', body)
 
 
-class UniformWithinBoundsPrior(SimplePrior):
+class UniformWithinBoundsPrior(SimpleParameterPrior):
 
     def __init__(self):
         """This prior is 1 within the upper and lower bound of the parameter, 0 outside."""
@@ -76,21 +89,21 @@ class UniformWithinBoundsPrior(SimplePrior):
             'return value >= lower_bound && value <= upper_bound;')
 
 
-class AbsSinPrior(SimplePrior):
+class AbsSinPrior(SimpleParameterPrior):
 
     def __init__(self):
         """Angular prior: :math:`P(v) = |\\sin(v)|`"""
         super().__init__('abs_sin', 'return fabs(sin(value));')
 
 
-class AbsSinHalfPrior(SimplePrior):
+class AbsSinHalfPrior(SimpleParameterPrior):
 
     def __init__(self):
         """Angular prior: :math:`P(v) = |\\sin(x)/2.0|`"""
         super().__init__('abs_sin_half', 'return fabs(sin(value)/2.0);')
 
 
-class VagueGammaPrior(SimplePrior):
+class VagueGammaPrior(SimpleParameterPrior):
 
     def __init__(self):
         """The vague gamma prior is meant as a proper uniform prior.
@@ -125,7 +138,7 @@ class VagueGammaPrior(SimplePrior):
         super().__init__('vague_gamma_prior', body)
 
 
-class NormalPDF(SimplePrior):
+class NormalPDF(SimpleParameterPrior):
 
     def __init__(self):
         r"""Normal PDF on the given value: :math:`P(v) = N(v; \mu, \sigma)`"""
@@ -142,7 +155,7 @@ class NormalPDF(SimplePrior):
             extra_params)
 
 
-class AxialNormalPDF(SimplePrior):
+class AxialNormalPDF(SimpleParameterPrior):
 
     def __init__(self):
         r"""The axial normal PDF is a Normal distribution wrapped around 0 and :math:`\pi`.
@@ -191,7 +204,7 @@ class AxialNormalPDF(SimplePrior):
             dependencies=(LogBesseli0(), LogCosh()))
 
 
-class ARDBeta(SimplePrior):
+class ARDBeta(SimpleParameterPrior):
 
     def __init__(self):
         r"""This is a collapsed form of the Beta PDF meant for use in Automatic Relevance Detection sample.
@@ -220,7 +233,7 @@ class ARDBeta(SimplePrior):
         super().__init__('ard_beta_pdf', body, extra_params)
 
 
-class ARDGaussian(SimplePrior):
+class ARDGaussian(SimpleParameterPrior):
 
     def __init__(self):
         """This is a Gaussian prior meant for use in Automatic Relevance Detection sample.

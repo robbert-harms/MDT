@@ -52,16 +52,11 @@ class CacheStruct(CacheData):
         self._name = name
 
     def get_type_definitions(self, address_space):
-        other_structs = '\n'.join(element.get_type_definitions(address_space) for element in self._elements)
-        return other_structs + '''
-            #ifndef {ctype}_CACHE
-            #define {ctype}_CACHE
-            
+        # other_structs = '\n'.join(element.get_type_definitions(address_space) for element in self._elements)
+        return '''
             typedef struct {ctype}_cache{{
                 {definitions}
             }} {ctype}_cache;
-            
-            #endif /* {ctype}_CACHE */
         '''.format(ctype=self._name,
                    definitions='\n'.join(element.get_struct_declaration(address_space) for element in self._elements))
 
@@ -74,7 +69,7 @@ class CacheStruct(CacheData):
             return_str += element.initialize_variable(
                 '{}_{}_cache'.format(parent_name, self._name), address_space) + '\n'
 
-        inits = [element.get_struct_initialization('{}_{}_cache'.format(parent_name, self._name), address_space)
+        inits = [element.get_struct_initialization('{}_{}_cache'.format(parent_name, self._name))
                  for element in self._elements]
 
         return return_str + '''
@@ -105,6 +100,8 @@ class CachePrimitive(CacheData):
             return '{} {} {}_{};'.format(address_space, self._ctype, parent_name, self._name)
 
     def get_struct_initialization(self, parent_name):
+        if self._nmr_elements > 1:
+            return '{}_{}'.format(parent_name, self._name)
         return '&{}_{}'.format(parent_name, self._name)
 
 

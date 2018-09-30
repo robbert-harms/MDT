@@ -1,5 +1,4 @@
 from mdt import CompartmentTemplate
-import numpy as np
 
 __author__ = 'Robbert Harms'
 __date__ = '2018-09-07'

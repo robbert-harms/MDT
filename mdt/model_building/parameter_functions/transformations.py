@@ -8,7 +8,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class AbstractTransformation:
     """The transformations define the encode and decode operations needed to build a codec.
 
-    These objects define the basic transformation from and to model and optimization space.
+    These objects define the transformation to and from model and optimization space.
     """
 
     def get_cl_encode(self):
