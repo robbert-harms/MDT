@@ -2,6 +2,11 @@
 Changelog
 *********
 
+v0.15.1 (2018-10-04)
+====================
+- Small update to the ActiveAx and NODDI models. Reordering the compartments provides a slightly better fit in some voxels.
+
+
 v0.15.0 (2018-10-04)
 ====================
 The most important change in this version is the new caching feature for compartment models.
