@@ -530,7 +530,7 @@ def load_input_data(volume_info, protocol, mask, extra_protocol=None, gradient_d
     if isinstance(volume_info, str):
         info = load_nifti(volume_info)
         signal4d = info.get_data()
-        img_header = info.get_header()
+        img_header = info.header
     else:
         signal4d, img_header = volume_info
 
@@ -895,7 +895,7 @@ def write_slice_roi(brain_mask_fname, roi_dimension, roi_slice, output_fname, ov
 
     brain_mask_img = load_nifti(brain_mask_fname)
     brain_mask = brain_mask_img.get_data()
-    img_header = brain_mask_img.get_header()
+    img_header = brain_mask_img.header
     roi_mask = create_slice_roi(brain_mask, roi_dimension, roi_slice)
     write_nifti(roi_mask, output_fname, img_header)
     return roi_mask
@@ -1531,7 +1531,7 @@ def apply_mask_to_file(input_fname, mask, output_fname=None):
     if output_fname is None:
         output_fname = input_fname
 
-    write_nifti(apply_mask(input_fname, mask), output_fname, load_nifti(input_fname).get_header())
+    write_nifti(apply_mask(input_fname, mask), output_fname, load_nifti(input_fname).header)
 
 
 def load_samples(data_folder, mode='r'):
@@ -1743,7 +1743,7 @@ def create_blank_mask(volume4d_path, output_fname=None):
 
     volume_info = load_nifti(volume4d_path)
     mask = np.ones(volume_info.shape[:3])
-    write_nifti(mask, output_fname, volume_info.get_header())
+    write_nifti(mask, output_fname, volume_info.header)
 
 
 def volume_merge(volume_paths, output_fname, sort=False):
@@ -1775,7 +1775,7 @@ def volume_merge(volume_paths, output_fname, sort=False):
 
     for volume in volume_paths:
         nib_container = load_nifti(volume)
-        header = header or nib_container.get_header()
+        header = header or nib_container.header
         image_data = nib_container.get_data()
 
         if len(image_data.shape) < 4:
@@ -1896,7 +1896,7 @@ def extract_volumes(input_volume_fname, input_protocol, output_volume_fname, out
 
     input_volume = load_nifti(input_volume_fname)
     image_data = input_volume.get_data()[..., volume_indices]
-    write_nifti(image_data, output_volume_fname, input_volume.get_header())
+    write_nifti(image_data, output_volume_fname, input_volume.header)
 
 
 def natural_key_sort_cb(_str):

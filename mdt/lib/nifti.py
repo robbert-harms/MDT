@@ -319,7 +319,7 @@ def nifti_info_decorate_nibabel_image(nifti_obj):
 
     def get_data(self, *args, **kwargs):
         data = original_function(*args, **kwargs)
-        return nifti_info_decorate_array(data, NiftiInfo(header=self.get_header(), filepath=self.get_filename()))
+        return nifti_info_decorate_array(data, NiftiInfo(header=self.header, filepath=self.get_filename()))
 
     nifti_obj.get_data = get_data.__get__(nifti_obj, type(nifti_obj))
     return nifti_obj

@@ -41,7 +41,7 @@ class InfoImg(BasicShellApplication):
             try:
                 image_path = nifti_filepath_resolution(image_path)
                 img = load_nifti(image_path)
-                header = img.get_header()
+                header = img.header
                 print('{}'.format(image))
                 self.print_info(header)
                 print('')

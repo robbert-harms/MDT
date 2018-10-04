@@ -106,7 +106,7 @@ def generate_simple_wm_mask(fa_fname, brain_mask_fname, out_fname, fa_threshold=
     for ind in range(numpass):
         fa_data_masked = median_filter(fa_data_masked, footprint=filter_footprint, mode='constant')
 
-    write_nifti(fa_data_masked, out_fname, nib_container.get_header())
+    write_nifti(fa_data_masked, out_fname, nib_container.header)
     logger.info('Finished calculating a white matter mask.')
 
 
@@ -127,7 +127,7 @@ def create_write_median_otsu_brain_mask(dwi_info, protocol, output_fname, **kwar
     if isinstance(dwi_info, str):
         signal_img = load_nifti(dwi_info)
         dwi = signal_img.get_data()
-        header = signal_img.get_header()
+        header = signal_img.header
     else:
         dwi = dwi_info[0]
         header = dwi_info[1]
