@@ -2,6 +2,24 @@
 Changelog
 *********
 
+v0.15.0 (2018-10-04)
+====================
+The most important change in this version is the new caching feature for compartment models.
+This cache is meant to contain values that are constant per volume, to speed up the evaluation of the compartment model for each volume.
+The speed-up is dependent on the model, but for AxCaliber and Bingham NODDI the speed-up is about 2~5x.
+
+Added
+-----
+- Adds a caching mechanism for caching computations in a compartment model.
+- Added a post-sampling callback to add additional results to the sampling output.
+- Adds average auto correlation to the sampling post processing.
+- Adds default RWM epsilons for the SCAM MCMC algorithm, set to 1e-5 times the initial proposal standard deviation of a parameter.
+
+Other
+-----
+- Use nifti.header instead of nifti.get_header() when working with Nibabel.
+
+
 v0.14.13 (2018-09-16)
 =====================
 
