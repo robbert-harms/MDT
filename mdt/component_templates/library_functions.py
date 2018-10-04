@@ -1,7 +1,7 @@
 from copy import deepcopy
 from mdt.component_templates.base import ComponentBuilder, ComponentTemplate
 from mot.lib.cl_data_type import SimpleCLDataType
-from mot.lib.cl_function import SimpleCLFunction, CLFunctionParameter, SimpleCLFunctionParameter
+from mot.lib.cl_function import SimpleCLFunction, SimpleCLFunctionParameter, SimpleCLCodeObject
 from mdt.model_building.parameters import LibraryParameter
 from mdt.lib.components import get_component, has_component
 from mot.library_functions.base import CLLibrary
@@ -20,17 +20,34 @@ class LibraryFunctionsBuilder(ComponentBuilder):
         Args:
             template (LibraryFunctionTemplate): the library config template to use for creating the library function
         """
-        class AutoCreatedLibraryFunction(CLLibrary, SimpleCLFunction):
-            def __init__(self):
-                cl_code = template.cl_code or ''
-                cl_extra = template.cl_extra or ''
-                if not template.is_function:
-                    cl_code = ''
-                    cl_extra += '\n' + template.cl_code
+        if template.is_function:
+            class AutoCreatedLibraryFunction(CLLibrary, SimpleCLFunction):
+                def __init__(self):
+                    dependencies = _resolve_dependencies(template.dependencies)
 
-                super().__init__(
-                    template.return_type, template.name, _resolve_parameters(template.parameters), cl_code,
-                    dependencies=_resolve_dependencies(template.dependencies), cl_extra=cl_extra)
+                    if template.cl_extra:
+                        extra_code = '''
+                                    #ifndef {inclusion_guard_name}
+                                    #define {inclusion_guard_name}
+                                    {cl_extra}
+                                    #endif // {inclusion_guard_name}
+                                '''.format(inclusion_guard_name='INCLUDE_GUARD_CL_EXTRA_{}'.format(template.name),
+                                           cl_extra=template.cl_extra)
+                        dependencies.append(SimpleCLCodeObject(extra_code))
+
+                    super().__init__(
+                        template.return_type, template.name,
+                        _resolve_parameters(template.parameters), template.cl_code,
+                        dependencies=dependencies)
+        else:
+            class AutoCreatedLibraryFunction(SimpleCLCodeObject):
+                def __init__(self):
+                    str = ''
+                    if template.cl_extra is not None:
+                        str += template.cl_extra
+                    if template.cl_code is not None:
+                        str += template.cl_code
+                    super().__init__(str)
 
         for name, method in template.bound_methods.items():
             setattr(AutoCreatedLibraryFunction, name, method)
@@ -55,7 +72,7 @@ class LibraryFunctionTemplate(ComponentTemplate):
         dependencies (list): the list of functions this function depends on, can contain string which will be
             resolved as library functions.
         is_function (boolean): set to False to disable the automatic generation of a function signature.
-            Use this for C macro only libraries.
+            Use this for macro or typedef only libraries.
     """
     _component_type = 'library_functions'
     _builder = LibraryFunctionsBuilder()

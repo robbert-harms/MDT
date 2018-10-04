@@ -17,6 +17,7 @@ class AxCaliber(CascadeTemplate):
 
 class AxCaliber_Fixed(CascadeTemplate):
 
+    cascade_name_modifier = 'fixed'
     models = ('BallStick_r1 (Cascade)',
               'AxCaliber')
     fixes = {'AxCaliber': {'GDRCylinders.theta': 'Stick0.theta',

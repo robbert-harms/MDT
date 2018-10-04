@@ -223,7 +223,7 @@ class k1(FreeParameterTemplate):
     lower_bound = 0
     upper_bound = 64
     parameter_transform = 'CosSqrClamp'
-    sampling_proposal_std = 0.1
+    sampling_proposal_std = 0.01
     numdiff_info = {'max_step': 0.1, 'use_upper_bound': False}
 
 
@@ -233,7 +233,7 @@ class kw(FreeParameterTemplate):
     lower_bound = 1
     upper_bound = 64
     parameter_transform = 'CosSqrClamp'
-    sampling_proposal_std = 0.1
+    sampling_proposal_std = 0.01
     numdiff_info = {'max_step': 0.1, 'use_upper_bound': False}
 
 

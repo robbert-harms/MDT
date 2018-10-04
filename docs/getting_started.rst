@@ -404,7 +404,7 @@ An example of operating on a nifti file is given by:
 
     nifti = mdt.load_nifti('mask.nii.gz')
     data = nifti.get_data()
-    header = nifti.get_header()
+    header = nifti.header
 
     roi_slice = data[..., 30]
 

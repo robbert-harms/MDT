@@ -8,12 +8,13 @@ import numpy as np
 from mdt.configuration import get_active_post_processing
 from mdt.lib.deferred_mappings import DeferredFunctionDict
 from mdt.lib.exceptions import DoubleModelNameException
+from mdt.model_building.computation_caching import DataCacheParameter, CacheStruct
 from mdt.model_building.model_functions import WeightType
 from mdt.model_building.parameter_functions.dependencies import SimpleAssignment, AbstractParameterDependency
 from mdt.model_building.utils import ParameterCodec
 
 from mot.lib.cl_data_type import SimpleCLDataType
-from mot.lib.cl_function import SimpleCLFunction, SimpleCLFunctionParameter
+from mot.lib.cl_function import SimpleCLFunction, SimpleCLFunctionParameter, SimpleCLCodeObject
 from mot.cl_routines import compute_log_likelihood, numerical_hessian
 from mdt.model_building.parameters import ProtocolParameter, FreeParameter, CurrentObservationParam
 from mot.configuration import CLRuntimeInfo
@@ -173,7 +174,7 @@ class DMRICompositeModel(DMRIOptimizable):
                                    copy.deepcopy(self._post_processing),
                                    self._get_rwm_proposal_stds(voxels_to_analyze),
                                    self._get_rwm_epsilons(),
-                                   self._get_model_eval_function(),
+                                   self._get_model_eval_function(include_cache_func=True),
                                    self._get_log_likelihood_function(False, True, True),
                                    self._get_log_likelihood_function(True, False, False),
                                    self._get_log_prior_function(),
@@ -462,8 +463,9 @@ class DMRICompositeModel(DMRIOptimizable):
     def param_dict_to_array(self, volume_dict):
         params = [volume_dict['{}.{}'.format(m.name, p.name)] for m, p
                   in self._model_functions_info.get_estimable_parameters_list()]
-        return np.concatenate([np.transpose(np.array([s]))
-                               if len(s.shape) < 2 else s for s in params], axis=1)
+        elements = [np.transpose(np.atleast_2d([s])) if len(np.array(s).shape) < 2
+                    else np.atleast_2d(s) for s in params]
+        return np.concatenate(elements, axis=1)
 
     def _get_propagate_weights_uncertainty(self, results):
         std_names = ['{}.{}.std'.format(m.name, p.name) for (m, p) in self._model_functions_info.get_weights()]
@@ -1138,25 +1140,6 @@ class DMRICompositeModel(DMRIOptimizable):
         """
         return observations
 
-    def _get_composite_model_function_signature(self, composite_model):
-        """Create the parameter call code for the composite model.
-
-        Args:
-            composite_model (CompositeModelFunction): the composite model function
-        """
-        param_list = []
-        for model, param in composite_model.get_model_parameter_list():
-            param_name = '{}.{}'.format(model.name, param.name).replace('.', '_')
-
-            if isinstance(param, ProtocolParameter):
-                param_list.append(param.name)
-            elif isinstance(param, CurrentObservationParam):
-                param_list.append('model_data->observations[observation_index]')
-            elif isinstance(param, FreeParameter):
-                param_list.append(param_name)
-
-        return composite_model.get_cl_function_name() + '(' + ', '.join(param_list) + ')'
-
     def _get_bound_definition(self, parameter_name, bound_type):
         """Get the definition of the lower bound to use in model functions.
 
@@ -1233,15 +1216,22 @@ class DMRICompositeModel(DMRIOptimizable):
         return [p.numdiff_info.use_lower_bound for _, p in self._model_functions_info.get_estimable_parameters_list()]
 
     def _get_log_likelihood_function(self, include_constant_terms, support_for_objective_list, negative_ll):
-        eval_function_info = self._get_model_eval_function()
+        eval_function_info = self._get_model_eval_function(include_cache_func=False)
         eval_model_func = self._likelihood_function.get_log_likelihood_function(
             include_constant_terms=include_constant_terms)
+        cache_init_func = self._get_cache_init_function()
+        cache_struct = self._get_cache_struct()
 
         eval_call_args = []
         param_listing = ''
         for p in eval_model_func.get_free_parameters():
             param_listing += self._get_param_listing_for_param(eval_model_func, p)
             eval_call_args.append('{}.{}'.format(eval_model_func.name, p.name).replace('.', '_'))
+
+        eval_func_args = ['data', 'x', 'observation_ind', '&' + cache_struct.get_variable_name()]
+        cache_init_params = ['data', 'x', '&' + cache_struct.get_variable_name()]
+
+        cache_init = self._get_cache_init_function().get_cl_function_name() + '(' + ', '.join(cache_init_params) + ');'
 
         cl_body = '''
             double getObjectiveInstanceValue(
@@ -1252,11 +1242,13 @@ class DMRICompositeModel(DMRIOptimizable):
                 _mdt_model_data* model_data = (_mdt_model_data*)data;
                 
                 ''' + param_listing + '''
+                ''' + cache_struct.get_variable_declaration('local') + '''
+                ''' + cache_init + '''
                 
                 const uint nmr_observations = ''' + str(self.get_nmr_observations()) + ''';
                 uint local_id = get_local_id(0);
                 uint workgroup_size = get_local_size(0);
-                    
+                
                 double eval;
                 uint observation_ind;
                 model_data->local_tmp[local_id] = 0;
@@ -1265,10 +1257,11 @@ class DMRICompositeModel(DMRIOptimizable):
                     observation_ind = i * workgroup_size + local_id;
                     
                     if(observation_ind < nmr_observations){
-                        eval = ''' + ('-' if negative_ll else '') + ''' ''' + eval_model_func.get_cl_function_name() + '''(
+                        eval = ''' + ('-' if negative_ll else '') + ''' ''' + \
+                  eval_model_func.get_cl_function_name() + '''(
                                     model_data->observations[observation_ind], 
-                                    ''' + eval_function_info.get_cl_function_name() + '''(data, x, observation_ind),'''\
-                                    + ','.join(eval_call_args) + ''');
+                                    ''' + eval_function_info.get_cl_function_name() + \
+                  '(' + ', '.join(eval_func_args) + '),' + ','.join(eval_call_args) + ''');
                         
                         ''' + ('eval *= model_data->volume_weights[observation_ind];'
                                 if self._input_data.volume_weights is not None else '') + '''
@@ -1296,13 +1289,86 @@ class DMRICompositeModel(DMRIOptimizable):
                 return sum;
             }
         '''
-        return SimpleCLFunction.from_string(cl_body, dependencies=[eval_function_info, eval_model_func])
+        return SimpleCLFunction.from_string(
+            cl_body,
+            dependencies=[SimpleCLCodeObject(cache_struct.get_type_definitions('local')),
+                          cache_init_func, eval_function_info, eval_model_func])
 
-    def _get_model_eval_function(self):
+    def _get_cache_init_function(self):
+        """Get the function to initialize all the caches of all the compartments in this composite model.
+
+        This does not include the cache typedefinitions.
+
+        Returns:
+            CLFunction: the CL function for initializing the data caches.
+        """
+        cache_struct = self._get_cache_struct()
+
+        def include_cache_init_calls():
+            calls = []
+            for compartment in self._model_functions_info.get_compartment_models():
+                if compartment.get_cache_init_function():
+                    func = compartment.get_cache_init_function()
+
+                    param_list = []
+                    for param in func.get_parameters():
+                        if isinstance(param, FreeParameter):
+                            param_list.append('{}.{}'.format(compartment.name, param.name).replace('.', '_'))
+                        elif isinstance(param, DataCacheParameter):
+                            param_list.append(cache_struct.get_variable_name() +
+                                              '->' + compartment.get_cache_struct().get_field_name())
+
+                    calls.append('{}({});'.format(func.get_cl_function_name(), ', '.join(param_list)))
+            return '\n'.join(calls)
+
+        def get_function_body():
+            exclude_list = ['{}.{}'.format(m.name, p.name).replace('.', '_') for (m, p) in
+                            self._model_functions_info.get_non_model_eval_param_listing()]
+
+            param_listing = ''
+            param_listing += self._get_fixed_parameters_listing(exclude_list=exclude_list)
+            param_listing += self._get_estimable_parameters_listing(exclude_list=exclude_list)
+            param_listing += self._get_dependent_parameters_listing(exclude_list=exclude_list)
+
+            body = '_mdt_model_data* model_data = (_mdt_model_data*)data;'
+            body += dedent(param_listing.replace('\t', ' ' * 4)) + '\n'
+
+            body += include_cache_init_calls()
+
+            body += '\n'
+            return body
+
+        dependencies = []
+        for compartment in self._model_functions_info.get_compartment_models():
+            if compartment.get_cache_init_function():
+                dependencies.extend(compartment.get_dependencies())
+                dependencies.append(compartment.get_cache_init_function())
+
+        parameters = [('void*', 'data'),
+                      ('local const mot_float_type* const', 'x'),
+                      (cache_struct.get_type_name() + '*', cache_struct.get_variable_name())]
+
+        return SimpleCLFunction(
+            'void', '_initCaches', parameters, get_function_body(), dependencies=dependencies)
+
+    def _get_cache_struct(self):
+        """Get the complete cache struct for this composite model."""
+        dependencies = []
+        for compartment in self._model_functions_info.get_compartment_models():
+            if compartment.get_cache_struct():
+                dependencies.append(compartment.get_cache_struct())
+        return CacheStruct(self.name + '_cache', dependencies, self.name, 'caches')
+
+    def _get_model_eval_function(self, include_cache_func=True):
         """Get the evaluation function that evaluates the model at the given parameters.
 
         The returned function should not do any error calculations, it should merely return the result of
         evaluating the model for the given parameters.
+
+        Args:
+            include_cache_func (boolean): if this function needs to inline the cache initialization function.
+                If yes, this function will initialize the cache in private memory. If no, an additional argument will
+                be added to the eval function for specifying the cache.
 
         Returns:
             mot.lib.cl_function.CLFunction: a named CL function with the following signature:
@@ -1313,6 +1379,32 @@ class DMRICompositeModel(DMRIOptimizable):
         """
         protocol_cbs = self._get_protocol_update_callbacks()
         composite_model_function = self.get_composite_model_function()
+
+        cache_struct = self._get_cache_struct()
+
+        def get_composite_model_function_signature(composite_model):
+            """Create the parameter call code for the composite model.
+
+            Args:
+                composite_model (CompositeModelFunction): the composite model function
+            """
+            param_list = []
+            for model, param in composite_model.get_model_parameter_list():
+                if isinstance(param, ProtocolParameter):
+                    param_list.append(param.name)
+                elif isinstance(param, CurrentObservationParam):
+                    param_list.append('model_data->observations[observation_index]')
+                elif isinstance(param, FreeParameter):
+                    param_list.append('{}.{}'.format(model.name, param.name).replace('.', '_'))
+                elif isinstance(param, DataCacheParameter):
+                    if include_cache_func:
+                        param_list.append(cache_struct.get_variable_name() +
+                                          '.' + model.get_cache_struct().get_field_name())
+                    else:
+                        param_list.append(cache_struct.get_variable_name() +
+                                          '->' + model.get_cache_struct().get_field_name())
+
+            return composite_model.get_cl_function_name() + '(' + ', '.join(param_list) + ')'
 
         def get_protocol_cb_call(callback, callback_index):
             call_args = []
@@ -1338,17 +1430,35 @@ class DMRICompositeModel(DMRIOptimizable):
             for ind, cb in enumerate(protocol_cbs):
                 body += get_protocol_cb_call(cb, ind) + '\n'
 
+            if include_cache_func:
+                body += cache_struct.get_variable_declaration('private')
+
+                params = ['data', 'x', '&' + cache_struct.get_variable_name()]
+                body += self._get_cache_init_function().get_cl_function_name() + '(' + ', '.join(params) + ');'
+
             body += '\n'
-            body += 'return ' + self._get_composite_model_function_signature(composite_model_function) + ';'
+            body += 'return ' + get_composite_model_function_signature(composite_model_function) + ';'
             return body
 
+        def get_dependencies():
+            deps = []
+            if include_cache_func:
+                deps.append(SimpleCLCodeObject(self._get_cache_struct().get_type_definitions('private')))
+                deps.append(self._get_cache_init_function())
+            deps.append(composite_model_function)
+            deps.extend([cb.get_callback_function() for cb in protocol_cbs])
+            return deps
+
+        def get_function_parameters():
+            parameters = [('void*', 'data'),
+                          ('local const mot_float_type* const', 'x'),
+                          ('uint', 'observation_index')]
+            if not include_cache_func:
+                parameters.append((cache_struct.get_type_name() + '*', cache_struct.get_variable_name()))
+            return parameters
+
         return SimpleCLFunction(
-            'double', '_evaluateModel',
-            [('void*', 'data'),
-             ('local const mot_float_type* const', 'x'),
-             ('uint', 'observation_index')],
-            get_function_body(),
-            dependencies=[composite_model_function] + [cb.get_callback_function() for cb in protocol_cbs])
+            'double', '_evaluateModel', get_function_parameters(), get_function_body(), dependencies=get_dependencies())
 
     def _get_protocol_update_callbacks(self):
         """Get a list of all protocol update callbacks"""
@@ -1452,14 +1562,14 @@ class DMRICompositeModel(DMRIOptimizable):
         return convert_data_to_dtype(starting_points, 'mot_float_type', SimpleCLDataType.from_string('float'))
 
     def _get_log_prior_function(self):
-        def get_preliminary():
-            cl_str = ''
+        def get_dependencies():
+            dependencies = []
             for i, (m, p) in enumerate(self._model_functions_info.get_estimable_parameters_list()):
-                cl_str += p.sampling_prior.get_cl_code()
+                dependencies.append(p.sampling_prior)
 
             for model_prior in self._model_priors:
-                cl_str += model_prior.get_cl_code()
-            return cl_str
+                dependencies.append(model_prior)
+            return dependencies
 
         def get_body():
             cl_str = '_mdt_model_data* model_data = (_mdt_model_data*)data;\n' \
@@ -1503,7 +1613,7 @@ class DMRICompositeModel(DMRIOptimizable):
         return SimpleCLFunction(
             'mot_float_type', 'getLogPrior',
             [('local const mot_float_type* const', 'x'), ('void*', 'data')],
-            get_body(), cl_extra=get_preliminary())
+            get_body(), dependencies=get_dependencies())
 
     def _get_weight_prior(self):
         """Get the prior limiting the weights between 0 and 1"""
@@ -2050,7 +2160,7 @@ class CompositeModelFunction(SimpleCLFunction):
                 if p.name not in seen_shared_params:
                     shared_params.append((m, p, p.name))
                     seen_shared_params.append(p.name)
-            elif isinstance(p, FreeParameter):
+            elif isinstance(p, (FreeParameter, DataCacheParameter)):
                 other_params.append((m, p, '{}.{}'.format(m.name, p.name)))
         return shared_params + other_params
 
@@ -2128,8 +2238,7 @@ class _ModelFunctionPriorToCompositeModelPrior(SimpleCLFunction):
             model_function_prior.get_cl_function_name(),
             parameters,
             model_function_prior.get_cl_body(),
-            dependencies=model_function_prior.get_dependencies(),
-            cl_extra=model_function_prior.get_cl_extra()
+            dependencies=model_function_prior.get_dependencies()
         )
 
     def _get_parameter_signatures(self):

@@ -1,4 +1,4 @@
-from mdt import CompartmentTemplate
+from mdt import CompartmentTemplate, LibraryFunctionTemplate
 
 __author__ = 'Robbert Harms'
 __date__ = '2018-09-07'
@@ -37,53 +37,52 @@ class NODDI_IC(CompartmentTemplate):
     cylindrical model has been removed to simplify the code.
     """
     parameters = ('g', 'b', 'd', 'theta', 'phi', 'kappa')
-    dependencies = ('erfi', 'MRIConstants', 'SphericalToCartesian', 'EvenLegendreTerms')
+    dependencies = ('MRIConstants', 'SphericalToCartesian', 'EvenLegendreTerms',
+                    'NODDI_IC_LegendreGaussianIntegral', 'NODDI_IC_WatsonSHCoeff')
     cl_code = '''
         mot_float_type LePerp = 0; // used to be "VanGelderenCylinder(G, Delta, delta, d, R)" with R fixed to 0.
         mot_float_type LePar = -d * b;
-        
+
         mot_float_type watson_sh_coeff[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
         NODDI_IC_WatsonSHCoeff(kappa, watson_sh_coeff);
 
         mot_float_type lgi[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
         NODDI_IC_LegendreGaussianIntegral(LePerp - LePar, lgi);
-        
+
         double legendre_terms[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
         EvenLegendreTerms(dot(g, SphericalToCartesian(theta, phi)), 
                           2 * (NODDI_IC_MAX_POLYNOMIAL_ORDER + 1), legendre_terms);
-        
+
         double signal = 0.0;
         for(int i = 0; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
             // summing only over the even terms
             signal += watson_sh_coeff[i] * sqrt((i + 0.25)/M_PI_F) * legendre_terms[i] * lgi[i];  
         }
-        
+
         if(signal < 0){
             signal = 0;
         }
-        
+
         return exp(LePerp) * signal / 2.0;
     '''
-    cl_extra = '''
-        // do not change this value! It would require adding approximations to the functions below
-        #define NODDI_IC_MAX_POLYNOMIAL_ORDER 6
-        
-        /**
-            Copied from the Matlab NODDI toolbox
 
-            function [L, D] = legendreGaussianIntegral(x, n)
-            Computes legendre gaussian integrals up to the order specified and the
-            derivatives if requested
+    class NODDI_IC_LegendreGaussianIntegral(LibraryFunctionTemplate):
+        """Computes legendre gaussian integrals up to the order specified.
 
-            The integral takes the following form, in Mathematica syntax,
+        Copied from the Matlab NODDI toolbox: function [L, D] = legendreGaussianIntegral(x, n)
 
-            L[x, n] = Integrate[Exp[-x \mu^2] Legendre[2*n, \mu], {\mu, -1, 1}]
-            D[x, n] = Integrate[Exp[-x \mu^2] (-\mu^2) Legendre[2*n, \mu], {\mu, -1, 1}]
+        The integral takes the following form, in Mathematica syntax,
 
-            original author: Gary Hui Zhang (gary.zhang@ucl.ac.uk)
-        */
-        void NODDI_IC_LegendreGaussianIntegral(const mot_float_type x, mot_float_type* const result){
+        L[x, n] = Integrate[Exp[-x \mu^2] Legendre[2*n, \mu], {\mu, -1, 1}]
+        D[x, n] = Integrate[Exp[-x \mu^2] (-\mu^2) Legendre[2*n, \mu], {\mu, -1, 1}]
 
+        original author: Gary Hui Zhang (gary.zhang@ucl.ac.uk)
+        """
+        parameters = [('mot_float_type', 'x'), ('mot_float_type*', 'result')]
+        cl_code = '''
+            // do not change this value! It would require adding approximations
+            #define NODDI_IC_MAX_POLYNOMIAL_ORDER 6
+    
             if(x > 0.05){
                 // exact
                 mot_float_type tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
@@ -117,20 +116,25 @@ class NODDI_IC(CompartmentTemplate):
                 result[5] = -64*tmp[3]/14549535.0;
                 result[6] = 128*tmp[4]/760543875.0;
             }
-        }
+        '''
 
-        /**
-            function [C, D] = WatsonSHCoeff(k)
-            Computes the spherical harmonic (SH) coefficients of the Watson's
-            distribution with the concentration parameter k (kappa) up to the 12th order.
+    class NODDI_IC_WatsonSHCoeff(LibraryFunctionTemplate):
+        """Computes the spherical harmonic (SH) coefficients of the Watson's distribution up to the 12th order.
 
-            Truncating at the 12th order gives good approximation for kappa up to 64.
+        Copied from the Matlab toolbox: function [C, D] = WatsonSHCoeff(k)
 
-            Note that the SH coefficients of the odd orders are always zero.
+        Truncating at the 12th order gives good approximation for kappa up to 64.
 
-            author: Gary Hui Zhang (gary.zhang@ucl.ac.uk)
-        */
-        void NODDI_IC_WatsonSHCoeff(const mot_float_type kappa, mot_float_type* const result){
+        Note that the SH coefficients of the odd orders are always zero.
+
+        original author: Gary Hui Zhang (gary.zhang@ucl.ac.uk)
+        """
+        parameters = [('mot_float_type', 'kappa'), ('mot_float_type*', 'result')]
+        dependencies = ('erfi',)
+        cl_code = '''
+            // do not change this value! It would require adding approximations
+            #define NODDI_IC_MAX_POLYNOMIAL_ORDER 6
+
             result[0] = sqrt(M_PI) * 2;
 
             if(kappa <= 30){
@@ -218,39 +222,44 @@ class NODDI_IC(CompartmentTemplate):
                 result[5] = 6.30113 + 6.09914*lnkd[0] - 0.16088*lnkd[1] - 1.05578*lnkd[2] + 0.338069*lnkd[3] + 0.0937157*lnkd[4] - 0.106935*lnkd[5];
                 result[6] = 4.65678 + 6.30069*lnkd[0] + 1.13754*lnkd[1] - 1.38393*lnkd[2] - 0.0134758*lnkd[3] + 0.331686*lnkd[4] - 0.105954*lnkd[5];
             }
-        }
-    '''
+        '''
 
 
 class BinghamNODDI_EN(CompartmentTemplate):
     """The Extra-Neurite tissue model of Bingham NODDI."""
-    parameters = ('g', 'b', 'd', 'dperp0', 'theta', 'phi', 'psi', 'k1', 'kw')
+    parameters = ('g', 'b', 'd', 'dperp0', 'theta', 'phi', 'psi', 'k1', 'kw', '@cache')
     dependencies = ['ConfluentHyperGeometricFirstKind', 'SphericalToCartesian', 'Tensor']
     cl_code = '''
-        double kappa = k1;
-        double beta = k1 / kw;
-        
-        double DELTA = 1e-4;
-        double diff;
-        double normalization_constant = ConfluentHyperGeometricFirstKind(-kappa, -beta, 0);
-
-        diff = (ConfluentHyperGeometricFirstKind(-(kappa+DELTA), -beta, 0) - 
-                ConfluentHyperGeometricFirstKind(-(kappa-DELTA), -beta, 0)) / (2*DELTA); 
-        double d_mu_1 = dperp0 + (d - dperp0) * (diff / normalization_constant);
-
-        diff = (ConfluentHyperGeometricFirstKind(-kappa, -(beta+DELTA), 0) - 
-                ConfluentHyperGeometricFirstKind(-kappa, -(beta-DELTA), 0)) / (2*DELTA);
-        double d_mu_2 = dperp0 + (d - dperp0) * (diff / normalization_constant);
-
+        double d_mu_1 = dperp0 + (d - dperp0) * *cache->diff_kappa;
+        double d_mu_2 = dperp0 + (d - dperp0) * *cache->diff_beta;
         double d_mu_3 = d + 2*dperp0 - d_mu_1 - d_mu_2;
 
         return Tensor(g, b, d_mu_1, d_mu_2, d_mu_3, theta, phi, psi);
     '''
+    cache_info = {
+        'fields': ['double diff_kappa',
+                   'double diff_beta'],
+        'cl_code': '''
+            double kappa = k1;
+            double beta = k1 / kw;
+
+            double DELTA = 1e-4;
+            double normalization_constant = ConfluentHyperGeometricFirstKind(-kappa, -beta, 0);
+
+            *cache->diff_kappa = (ConfluentHyperGeometricFirstKind(-(kappa+DELTA), -beta, 0) -
+                                  ConfluentHyperGeometricFirstKind(-(kappa-DELTA), -beta, 0))
+                                  / (2*DELTA) / normalization_constant;
+
+            *cache->diff_beta = (ConfluentHyperGeometricFirstKind(-kappa, -(beta+DELTA), 0) -
+                                 ConfluentHyperGeometricFirstKind(-kappa, -(beta-DELTA), 0))
+                                 / (2*DELTA) / normalization_constant;
+        '''
+    }
 
 
 class BinghamNODDI_IN(CompartmentTemplate):
     """The Intra-Neurite tissue model of Bingham NODDI."""
-    parameters = ('g', 'b', 'd', 'theta', 'phi', 'psi', 'k1', 'kw')
+    parameters = ('g', 'b', 'd', 'theta', 'phi', 'psi', 'k1', 'kw', '@cache')
     dependencies = ['EigenvaluesSymmetric3x3', 'ConfluentHyperGeometricFirstKind', 'TensorSphericalToCartesian']
     cl_code = '''
         double kappa = k1;
@@ -276,6 +285,11 @@ class BinghamNODDI_IN(CompartmentTemplate):
         mot_float_type e[3];
         EigenvaluesSymmetric3x3(Q,e);
 
-        return (ConfluentHyperGeometricFirstKind(-e[0], -e[1], -e[2]) 
-                / ConfluentHyperGeometricFirstKind(-kappa, -beta, 0));
+        return ConfluentHyperGeometricFirstKind(-e[0], -e[1], -e[2]) / *cache->denom;
     '''
+    cache_info = {
+        'fields': ['double denom'],
+        'cl_code': '''
+            *cache->denom = ConfluentHyperGeometricFirstKind(-k1, -(k1 / kw), 0);
+        '''
+    }

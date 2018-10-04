@@ -5,7 +5,7 @@ from mdt.lib.components import get_component, has_component
 from mdt.models.compartments import DMRICompartmentModelFunction, WeightCompartment
 from mdt.model_building.computation_caching import DataCacheParameter, CacheInfo, CachePrimitive
 from mdt.utils import spherical_to_cartesian
-from mot.lib.cl_function import CLFunction, SimpleCLFunction, SimpleCLFunctionParameter
+from mot.lib.cl_function import CLFunction, SimpleCLFunction, SimpleCLFunctionParameter, SimpleCLCodeObject
 from mdt.model_building.parameters import CurrentObservationParam
 
 __author__ = 'Robbert Harms'
@@ -31,6 +31,16 @@ class CompartmentBuilder(ComponentBuilder):
                 parameters = _resolve_parameters(template.parameters, template.name)
                 dependencies = _resolve_dependencies(template.dependencies)
 
+                if template.cl_extra:
+                    extra_code = '''
+                        #ifndef {inclusion_guard_name}
+                        #define {inclusion_guard_name}
+                        {cl_extra}
+                        #endif // {inclusion_guard_name}
+                    '''.format(inclusion_guard_name='INCLUDE_GUARD_CL_EXTRA_{}'.format(template.name),
+                               cl_extra=template.cl_extra)
+                    dependencies.append(SimpleCLCodeObject(extra_code))
+
                 super().__init__(
                     template.return_type,
                     template.name,
@@ -39,7 +49,6 @@ class CompartmentBuilder(ComponentBuilder):
                     dependencies=dependencies,
                     model_function_priors=_resolve_prior(template.extra_prior, template.name,
                                                          [p.name for p in parameters]),
-                    cl_extra=template.cl_extra,
                     post_optimization_modifiers=template.post_optimization_modifiers,
                     extra_optimization_maps_funcs=builder._get_extra_optimization_map_funcs(template, parameters),
                     extra_sampling_maps_funcs= builder._get_extra_sampling_map_funcs(template, parameters),
@@ -124,16 +133,37 @@ class CompartmentBuilder(ComponentBuilder):
 
     def _get_cache_info(self, template):
         if template.cache_info is None:
-            return CacheInfo([], '')
+            return None
 
         fields = []
         for field in template.cache_info['fields']:
-            if len(field) == 3:
-                fields.append(CachePrimitive(field[0], field[1], nmr_elements=field[2]))
-            else:
-                fields.append(CachePrimitive(field[0], field[1]))
+            if isinstance(field, str):
+                param = SimpleCLFunctionParameter.from_string(field)
 
-        return CacheInfo(fields, template.cache_info['cl_code'])
+                ctype = param.data_type.ctype
+                name = param.name
+                nmr_elements = 1
+                if param.data_type.is_array_type:
+                    nmr_elements = np.prod(param.data_type.array_sizes)
+            else:
+                ctype, name = field[:2]
+                nmr_elements = 1
+                if len(field) == 3:
+                    nmr_elements = field[2]
+
+            fields.append(CachePrimitive(ctype, name, nmr_elements=nmr_elements))
+
+        if template.cache_info.get('use_local_reduction', False):
+            cl_code = '''
+                if(get_local_id(0) == 0){{
+                    {}
+                }}
+                barrier(CLK_LOCAL_MEM_FENCE);
+            '''.format(template.cache_info['cl_code'])
+        else:
+            cl_code = template.cache_info['cl_code']
+
+        return CacheInfo(fields, cl_code)
 
 
 class WeightBuilder(ComponentBuilder):
@@ -146,11 +176,23 @@ class WeightBuilder(ComponentBuilder):
         class AutoCreatedWeightModel(WeightCompartment):
 
             def __init__(self, nickname=None):
+                dependencies = _resolve_dependencies(template.dependencies)
+
+                if template.cl_extra:
+                    extra_code = '''
+                        #ifndef {inclusion_guard_name}
+                        #define {inclusion_guard_name}
+                        {cl_extra}
+                        #endif // {inclusion_guard_name}
+                    '''.format(inclusion_guard_name='INCLUDE_GUARD_CL_EXTRA_{}'.format(template.name),
+                               cl_extra=template.cl_extra)
+                    dependencies.append(SimpleCLCodeObject(extra_code))
+
                 super().__init__(
                     template.return_type, template.name,
                     _resolve_parameters(template.parameters, template.name), template.cl_code,
-                    dependencies=_resolve_dependencies(template.dependencies),
-                    cl_extra=template.cl_extra, nickname=nickname)
+                    dependencies=dependencies,
+                    nickname=nickname)
 
         for name, method in template.bound_methods.items():
             setattr(AutoCreatedWeightModel, name, method)
@@ -241,8 +283,14 @@ class CompartmentTemplate(ComponentTemplate):
 
         cache_info (dict): the data cache information. This works in combination with specifying the ``@cache``
             parameter for this compartment. The cache info should have two elements, ``fields`` and ``cl_code``.
-            The fields specify the items we need to store in the structure and the cl_code the code that initializes
-            the cache in every new model composite model evaluation.
+            The fields specify the items we need to store in the structure, the syntax per field is either a string
+            like ``double alpha`` or a tuple like ``('double', 'alpha')``. Specifying a tuple also allows for specifying
+            arrays like: ``('double', 'beta', 10)``. The CL code given by ``cl_code`` is supposed to fill the cache.
+            This cl_code will be wrapped in a function with as arguments all free parameters of the compartments,
+            and the cache. The fields in the cache are accessible using ``*cache->alpha``, i.e. dereferencing a pointer
+            to a variable using the cache. An optional element in the cache info is "use_local_reduction"
+            which specifies that for this compartment we use all workitems in the workgroup. If not set, or if False,
+            we will execute the cache CL code only for the first work item. The default is False.
     """
     _component_type = 'compartment_models'
     _builder = CompartmentBuilder()

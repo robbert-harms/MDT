@@ -54,8 +54,8 @@ class ModelCLFunction(CLFunction):
 
 class SimpleModelCLFunction(ModelCLFunction, SimpleCLFunction):
 
-    def __init__(self, return_type, cl_function_name, parameters, cl_body, dependencies=(),
-                 cl_extra=None, model_function_priors=None):
+    def __init__(self, return_type, cl_function_name, parameters, cl_body, dependencies=None,
+                 model_function_priors=None):
         """A default implementation of a This CL function is for all estimable models
 
         Args:
@@ -64,13 +64,11 @@ class SimpleModelCLFunction(ModelCLFunction, SimpleCLFunction):
             parameters (list or tuple of CLFunctionParameter): The list of parameters required for this function
             cl_body (str): the cl body of this function
             dependencies (list or tuple of CLFunction): The list of CL libraries this function depends on
-            cl_extra (str): extra CL code for this function that does not warrant an own function.
-                This is prepended to the function body.
             model_function_priors (list of mot.lib.cl_function.CLFunction): list of priors concerning this whole model
                 function. The parameter names of the given functions must match those of this function.
         """
         super().__init__(return_type, cl_function_name, parameters,
-                         cl_body, dependencies=dependencies, cl_extra=cl_extra)
+                         cl_body, dependencies=dependencies)
         self._model_function_priors = model_function_priors or []
         if isinstance(self._model_function_priors, CLFunction):
             self._model_function_priors = [self._model_function_priors]

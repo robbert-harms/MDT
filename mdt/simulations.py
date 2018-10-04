@@ -114,8 +114,6 @@ def _get_simulate_function(model):
 
     This is a wrapper around the model evaluation function. As such, it includes the protocol adaptation callbacks.
     It creates the model signal just as used by the log-likelihood function during model optimization.
-
-    Please note that this function does not include the
     """
     eval_function_info = model.get_model_eval_function()
     return SimpleCLFunction.from_string('''

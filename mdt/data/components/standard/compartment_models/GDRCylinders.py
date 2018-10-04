@@ -9,34 +9,49 @@ __licence__ = 'LGPL v3'
 
 class GDRCylinders(CompartmentTemplate):
     """Gamma Distributed Radii cylinders, for use in AxCaliber modelling."""
-    parameters = ('g', 'b', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'shape', 'scale')
+    parameters = ('g', 'b', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'shape', 'scale', '@cache')
     dependencies = ('VanGelderenCylinder', 'SphericalToCartesian', 'gamma_ppf', 'gamma_pdf')
     cl_code = '''
         const uint nmr_radii = 16;
-
-        const double lower_radius = gamma_ppf(0.01, shape, scale);
-        const double upper_radius = gamma_ppf(0.99, shape, scale);
-        const double radius_spacing = (upper_radius - lower_radius) / nmr_radii;
+        const double radius_spacing = (*cache->upper_radius - *cache->lower_radius) / nmr_radii;
 
         const mot_float_type direction_2 = pown(dot(g, SphericalToCartesian(theta, phi)), 2);
         const mot_float_type diffusivity_par = -b * d * direction_2;
 
         double radius;
-        double weight;
         double diffusivity_perp;
         double weight_sum = 0;
         double signal_sum = 0;
 
         for(uint i = 0; i < nmr_radii; i++){
-            radius = lower_radius + (i + 0.5) * radius_spacing;
-            weight = gamma_pdf(radius, shape, scale) * (radius * radius);  // area without * M_PI since it is a constant
-
+            radius = *cache->lower_radius + (i + 0.5) * radius_spacing;
+            
             diffusivity_perp = (1 - direction_2) * VanGelderenCylinder(G, Delta, delta, d, radius);
-            signal_sum += weight * exp(diffusivity_par + diffusivity_perp);
-            weight_sum += weight;
+            signal_sum += cache->weights[i] * exp(diffusivity_par + diffusivity_perp);
+            weight_sum += cache->weights[i];
         }
         return signal_sum / weight_sum;
     '''
+    cache_info = {
+        'fields': ['double lower_radius',
+                   'double upper_radius',
+                   ('double', 'weights', 16)],
+        'cl_code': '''
+            *cache->lower_radius = gamma_ppf(0.01, shape, scale);
+            *cache->upper_radius = gamma_ppf(0.99, shape, scale);
+            
+            const uint nmr_radii = 16;
+            double radius_spacing = (*cache->upper_radius - *cache->lower_radius) / nmr_radii;
+            
+            double radius;
+            for(uint i = 0; i < nmr_radii; i++){
+                radius = *cache->lower_radius + (i + 0.5) * radius_spacing;
+                
+                // area without * M_PI since it is a constant
+                cache->weights[i] = gamma_pdf(radius, shape, scale) * (radius * radius);  
+            }
+        '''
+    }
     extra_optimization_maps = [lambda d: {'R': d['shape'] * d['scale'],
                                           'R_variance': d['shape'] * d['scale'] * d['scale']}]
 
