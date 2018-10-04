@@ -15,9 +15,9 @@ class ActiveAx(CompositeModelTemplate):
     CSF diffusivity at 3.0E-9 m^2/s. (In CAMINO this model is listed as "MMWMD_INVIVO").
     """
     model_expression = '''
-        S0 * ((Weight(w_ic) * CylinderGPD) +
-              (Weight(w_ec) * Zeppelin) +
-              (Weight(w_csf) * Ball))
+        S0 * ((Weight(w_csf) * Ball) + 
+              (Weight(w_ic) * CylinderGPD) +
+              (Weight(w_ec) * Zeppelin))
     '''
     inits = {
         'w_csf.w': 0.01
@@ -42,10 +42,10 @@ class ActiveAx_ExVivo(CompositeModelTemplate):
     (In CAMINO this model is listed as "MMWMD_Fixed").
     """
     model_expression = '''
-        S0 * ((Weight(w_ic) * CylinderGPD) +
-              (Weight(w_ec) * Zeppelin) +
-              (Weight(w_csf) * Ball) + 
-              (Weight(w_stat) * Dot))
+        S0 * ((Weight(w_csf) * Ball) + 
+              (Weight(w_stat) * Dot) +
+              (Weight(w_ic) * CylinderGPD) + 
+              (Weight(w_ec) * Zeppelin))
     '''
     inits = {
         'w_csf.w': 0.01,

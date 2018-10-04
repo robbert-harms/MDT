@@ -25,6 +25,7 @@ class ActiveAx_ExVivo(CascadeTemplate):
 
 class ActiveAx_Fixed(CascadeTemplate):
 
+    cascade_name_modifier = 'fixed'
     models = ('BallStick_r1 (Cascade)',
               'ActiveAx')
     fixes = {'ActiveAx': {'CylinderGPD.theta': 'Stick0.theta',
@@ -33,6 +34,7 @@ class ActiveAx_Fixed(CascadeTemplate):
 
 class ActiveAx_ExVivo_Fixed(CascadeTemplate):
 
+    cascade_name_modifier = 'fixed'
     models = ('BallStick_r1 (Cascade)',
               'ActiveAx_ExVivo')
     fixes = {'ActiveAx_ExVivo': {'CylinderGPD.theta': 'Stick0.theta',
