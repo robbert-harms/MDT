@@ -2,6 +2,11 @@
 Changelog
 *********
 
+v0.15.2 (2018-10-05)
+====================
+- Small fix to make AxCaliber working again.
+
+
 v0.15.1 (2018-10-04)
 ====================
 - Small update to the ActiveAx and NODDI models. Reordering the compartments provides a slightly better fit in some voxels.
