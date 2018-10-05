@@ -11,7 +11,10 @@ class ActiveAx(CascadeTemplate):
 
     models = ('BallStick_r1 (Cascade)',
               'ActiveAx')
-    inits = {'ActiveAx': {'CylinderGPD.theta': 'Stick0.theta',
+    inits = {'ActiveAx': {'w_ic.w': lambda output_previous, _: output_previous['w_stick0.w'] / 2.0,
+                          'w_ec.w': lambda output_previous, _: output_previous['w_stick0.w'] / 2.0,
+                          'w_csf.w': 'w_ball.w',
+                          'CylinderGPD.theta': 'Stick0.theta',
                           'CylinderGPD.phi': 'Stick0.phi'}}
 
 
@@ -19,7 +22,10 @@ class ActiveAx_ExVivo(CascadeTemplate):
 
     models = ('BallStick_r1 (Cascade)',
               'ActiveAx_ExVivo')
-    inits = {'ActiveAx_ExVivo': {'CylinderGPD.theta': 'Stick0.theta',
+    inits = {'ActiveAx_ExVivo': {'w_ic.w': lambda output_previous, _: output_previous['w_stick0.w'] / 2.0,
+                                 'w_ec.w': lambda output_previous, _: output_previous['w_stick0.w'] / 2.0,
+                                 'w_csf.w': 'w_ball.w',
+                                 'CylinderGPD.theta': 'Stick0.theta',
                                  'CylinderGPD.phi': 'Stick0.phi'}}
 
 
@@ -28,7 +34,10 @@ class ActiveAx_Fixed(CascadeTemplate):
     cascade_name_modifier = 'fixed'
     models = ('BallStick_r1 (Cascade)',
               'ActiveAx')
-    fixes = {'ActiveAx': {'CylinderGPD.theta': 'Stick0.theta',
+    fixes = {'ActiveAx': {'w_ic.w': lambda output_previous, _: output_previous['w_stick0.w'] / 2.0,
+                          'w_ec.w': lambda output_previous, _: output_previous['w_stick0.w'] / 2.0,
+                          'w_csf.w': 'w_ball.w',
+                          'CylinderGPD.theta': 'Stick0.theta',
                           'CylinderGPD.phi': 'Stick0.phi'}}
 
 
@@ -37,5 +46,8 @@ class ActiveAx_ExVivo_Fixed(CascadeTemplate):
     cascade_name_modifier = 'fixed'
     models = ('BallStick_r1 (Cascade)',
               'ActiveAx_ExVivo')
-    fixes = {'ActiveAx_ExVivo': {'CylinderGPD.theta': 'Stick0.theta',
+    fixes = {'ActiveAx_ExVivo': {'w_ic.w': lambda output_previous, _: output_previous['w_stick0.w'] / 2.0,
+                                 'w_ec.w': lambda output_previous, _: output_previous['w_stick0.w'] / 2.0,
+                                 'w_csf.w': 'w_ball.w',
+                                 'CylinderGPD.theta': 'Stick0.theta',
                                  'CylinderGPD.phi': 'Stick0.phi'}}

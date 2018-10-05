@@ -13,8 +13,7 @@ class NODDI(CompositeModelTemplate):
     model_expression = '''
         S0 * ((Weight(w_csf) * Ball) +
               (Weight(w_ic) * NODDI_IC) +
-              (Weight(w_ec) * NODDI_EC)
-              )
+              (Weight(w_ec) * NODDI_EC))
     '''
 
     fixes = {'NODDI_IC.d': 1.7e-9,
@@ -36,10 +35,12 @@ class NODDI_ExVivo(CompositeModelTemplate):
         S0 * ((Weight(w_csf) * Ball) +
               (Weight(w_stat) * Dot) +
               (Weight(w_ic) * NODDI_IC) +
-              (Weight(w_ec) * NODDI_EC)
-              )
+              (Weight(w_ec) * NODDI_EC))
     '''
-
+    inits = {
+        'w_csf.w': 0.01,
+        'w_stat.w': 0.01
+    }
     fixes = {'NODDI_IC.d': 0.6e-9,
              'Ball.d': 2.0e-9,
              'NODDI_EC.d': 'NODDI_IC.d',
@@ -57,8 +58,7 @@ class NODDIDA(NODDI):
 
     model_expression = '''
         S0 * ((Weight(w_ic) * NODDI_IC) +
-              (Weight(w_ec) * NODDI_EC)
-              )
+              (Weight(w_ec) * NODDI_EC))
     '''
     fixes = {'NODDI_EC.kappa': 'NODDI_IC.kappa',
              'NODDI_EC.theta': 'NODDI_IC.theta',
@@ -71,8 +71,7 @@ class BinghamNODDI_r1(CompositeModelTemplate):
     model_expression = '''
         S0 * ((Weight(w_csf) * Ball) +
               (Weight(w_in0) * BinghamNODDI_IN(BinghamNODDI_IN0)) +
-              (Weight(w_en0) * BinghamNODDI_EN(BinghamNODDI_EN0))
-              )
+              (Weight(w_en0) * BinghamNODDI_EN(BinghamNODDI_EN0)))
     '''
     fixes = {
         'BinghamNODDI_IN0.d': 1.7e-9,
@@ -98,8 +97,7 @@ class BinghamNODDI_r2(CompositeModelTemplate):
               (Weight(w_in0) * BinghamNODDI_IN(BinghamNODDI_IN0)) +
               (Weight(w_en0) * BinghamNODDI_EN(BinghamNODDI_EN0)) +
               (Weight(w_in1) * BinghamNODDI_IN(BinghamNODDI_IN1)) +
-              (Weight(w_en1) * BinghamNODDI_EN(BinghamNODDI_EN1))
-              )
+              (Weight(w_en1) * BinghamNODDI_EN(BinghamNODDI_EN1)))
     '''
     fixes = {
         'Ball.d': 3.0e-9,

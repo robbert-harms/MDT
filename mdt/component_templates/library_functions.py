@@ -27,12 +27,12 @@ class LibraryFunctionsBuilder(ComponentBuilder):
 
                     if template.cl_extra:
                         extra_code = '''
-                                    #ifndef {inclusion_guard_name}
-                                    #define {inclusion_guard_name}
-                                    {cl_extra}
-                                    #endif // {inclusion_guard_name}
-                                '''.format(inclusion_guard_name='INCLUDE_GUARD_CL_EXTRA_{}'.format(template.name),
-                                           cl_extra=template.cl_extra)
+                            #ifndef {inclusion_guard_name}
+                            #define {inclusion_guard_name}
+                            {cl_extra}
+                            #endif // {inclusion_guard_name}
+                        '''.format(inclusion_guard_name='INCLUDE_GUARD_{}'.format(template.name),
+                                   cl_extra=template.cl_extra)
                         dependencies.append(SimpleCLCodeObject(extra_code))
 
                     super().__init__(
@@ -47,7 +47,16 @@ class LibraryFunctionsBuilder(ComponentBuilder):
                         str += template.cl_extra
                     if template.cl_code is not None:
                         str += template.cl_code
-                    super().__init__(str)
+
+                    cl_code = '''
+                        #ifndef {inclusion_guard_name}
+                        #define {inclusion_guard_name}
+                        {cl_code}
+                        #endif // {inclusion_guard_name}
+                    '''.format(inclusion_guard_name='INCLUDE_GUARD_{}'.format(template.name),
+                               cl_code=str)
+                    
+                    super().__init__(cl_code)
 
         for name, method in template.bound_methods.items():
             setattr(AutoCreatedLibraryFunction, name, method)
