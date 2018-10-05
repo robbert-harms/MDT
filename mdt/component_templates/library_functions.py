@@ -55,7 +55,7 @@ class LibraryFunctionsBuilder(ComponentBuilder):
                         #endif // {inclusion_guard_name}
                     '''.format(inclusion_guard_name='INCLUDE_GUARD_{}'.format(template.name),
                                cl_code=str)
-                    
+
                     super().__init__(cl_code)
 
         for name, method in template.bound_methods.items():
