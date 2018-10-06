@@ -2,6 +2,14 @@
 Changelog
 *********
 
+v0.15.3 (2018-10-06)
+====================
+
+Other
+-----
+- Update requirement to newer MOT version to fix NODDI computation overflow.
+
+
 v0.15.2 (2018-10-05)
 ====================
 - Small fix to make AxCaliber working again.
