@@ -50,8 +50,7 @@ class NODDI_IC(CompartmentTemplate):
         NODDI_IC_LegendreGaussianIntegral(LePerp - LePar, lgi);
 
         double legendre_terms[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
-        EvenLegendreTerms(dot(g, SphericalToCartesian(theta, phi)), 
-                          2 * (NODDI_IC_MAX_POLYNOMIAL_ORDER + 1), legendre_terms);
+        EvenLegendreTerms(dot(g, SphericalToCartesian(theta, phi)), NODDI_IC_MAX_POLYNOMIAL_ORDER + 1, legendre_terms);
 
         double signal = 0.0;
         for(int i = 0; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
