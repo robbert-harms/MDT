@@ -1,5 +1,4 @@
 import numpy as np
-from mot.lib.cl_data_type import SimpleCLDataType
 from mot.lib.cl_function import CLFunction, SimpleCLFunction
 
 
@@ -53,8 +52,7 @@ class SimpleParameterPrior(ParameterPrior, SimpleCLFunction):
         parameters = [('mot_float_type', 'value'),
                       ('mot_float_type', 'lower_bound'),
                       ('mot_float_type', 'upper_bound')] + self.extra_params
-        super().__init__('mot_float_type', prior_name, parameters, prior_body,
-                                          dependencies=dependencies)
+        super().__init__('mot_float_type', prior_name, parameters, prior_body, dependencies=dependencies)
 
     def get_extra_parameters(self):
         return self.extra_params
@@ -143,9 +141,9 @@ class NormalPDF(SimpleParameterPrior):
     def __init__(self):
         r"""Normal PDF on the given value: :math:`P(v) = N(v; \mu, \sigma)`"""
         from mdt.model_building.parameters import FreeParameter
-        extra_params = [FreeParameter(SimpleCLDataType.from_string('mot_float_type'), 'mu', True, 0, -np.inf, np.inf,
+        extra_params = [FreeParameter('mot_float_type', 'mu', True, 0, -np.inf, np.inf,
                                       sampling_prior=AlwaysOne()),
-                        FreeParameter(SimpleCLDataType.from_string('mot_float_type'), 'sigma', True, 1, -np.inf, np.inf,
+                        FreeParameter('mot_float_type', 'sigma', True, 1, -np.inf, np.inf,
                                       sampling_prior=AlwaysOne())]
 
         super().__init__(
@@ -184,9 +182,9 @@ class AxialNormalPDF(SimpleParameterPrior):
         from mdt.model_building.parameters import FreeParameter
         from mot.library_functions import LogCosh, LogBesseli0
 
-        extra_params = [FreeParameter(SimpleCLDataType.from_string('mot_float_type'), 'mu', True, 0, -np.inf, np.inf,
+        extra_params = [FreeParameter('mot_float_type', 'mu', True, 0, -np.inf, np.inf,
                                       sampling_prior=AlwaysOne()),
-                        FreeParameter(SimpleCLDataType.from_string('mot_float_type'), 'sigma', True, 1, -np.inf, np.inf,
+                        FreeParameter('mot_float_type', 'sigma', True, 1, -np.inf, np.inf,
                                       sampling_prior=AlwaysOne())]
 
         super().__init__(
@@ -207,7 +205,7 @@ class AxialNormalPDF(SimpleParameterPrior):
 class ARDBeta(SimpleParameterPrior):
 
     def __init__(self):
-        r"""This is a collapsed form of the Beta PDF meant for use in Automatic Relevance Detection sample.
+        r"""This is a collapsed form of the Beta PDF meant for use in Automatic Relevance Detection sampling.
 
         In this prior the ``alpha`` parameter of the Beta prior is set to 1 which simplifies the equation.
         The parameter ``beta`` is still free and can be changed as desired.
@@ -220,12 +218,12 @@ class ARDBeta(SimpleParameterPrior):
 
         """
         from mdt.model_building.parameters import FreeParameter
-        extra_params = [FreeParameter(SimpleCLDataType.from_string('mot_float_type'), 'beta', False, 1, 1e-4, 1000,
+        extra_params = [FreeParameter('mot_float_type', 'beta', False, 1, 1e-4, 1000,
                                       sampling_prior=ReciprocalPrior(),
                                       sampling_proposal_std=0.01)]
 
         body = '''
-            if(value < 0 || value > 1){
+            if(value < lower_bound || value > upper_bound){
                 return 0;
             }
             return beta * pow(1 - value, beta - 1);
@@ -236,21 +234,21 @@ class ARDBeta(SimpleParameterPrior):
 class ARDGaussian(SimpleParameterPrior):
 
     def __init__(self):
-        """This is a Gaussian prior meant for use in Automatic Relevance Detection sample.
+        """This is a Gaussian prior meant for use in Automatic Relevance Detection sampling.
 
         This uses a Gaussian prior with mean at zero and a standard deviation determined by the ``alpha`` parameter
         with the relationship :math:`\sigma = 1/\\sqrt(\\alpha)`.
         """
         from mdt.model_building.parameters import FreeParameter
-        extra_params = [FreeParameter(SimpleCLDataType.from_string('mot_float_type'), 'alpha', False, 8, 1e-5, 1e4,
+        extra_params = [FreeParameter('mot_float_type', 'alpha', False, 8, 1e-5, 1e4,
                                       sampling_prior=UniformWithinBoundsPrior(),
-                                      sampling_proposal_std=20)]
+                                      sampling_proposal_std=1)]
 
         body = '''
-            if(value < 0 || value > 1){
+            if(value < lower_bound || value > upper_bound){
                 return 0;
             }
             mot_float_type sigma = 1.0/sqrt(alpha);
             return exp(-pown(value, 2) / (2 * pown(sigma, 2))) / (sigma * sqrt(2 * M_PI));
         '''
-        super().__init__('ard_beta_pdf', body, extra_params)
+        super().__init__('ard_gaussian_pdf', body, extra_params)

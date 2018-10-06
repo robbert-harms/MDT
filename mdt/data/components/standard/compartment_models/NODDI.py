@@ -58,12 +58,8 @@ class NODDI_IC(CompartmentTemplate):
             // summing only over the even terms
             signal += watson_sh_coeff[i] * sqrt((i + 0.25)/M_PI_F) * legendre_terms[i] * lgi[i];  
         }
-
-        if(signal < 0){
-            signal = 0;
-        }
-
-        return exp(LePerp) * signal / 2.0;
+        
+        return exp(LePerp) * fmax(signal, (double)0.0) / 2.0;
     '''
 
     class NODDI_IC_LegendreGaussianIntegral(LibraryFunctionTemplate):

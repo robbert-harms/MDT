@@ -513,7 +513,7 @@ class SamplingProcessor(SimpleModelProcessor):
         pass
 
     def __init__(self, nmr_samples, thinning, burnin, method, model, mask, nifti_header, output_dir, tmp_storage_dir,
-                 recalculate, samples_storage_strategy=None, post_sampling_cb=None):
+                 recalculate, samples_storage_strategy=None, post_sampling_cb=None, sampler_options=None):
         """The processing worker for model sample.
 
         Args:
@@ -532,6 +532,8 @@ class SamplingProcessor(SimpleModelProcessor):
                 [mot.sample.base.SamplingOutput, mdt.models.composite.BuildCompositeModel], Optional[Dict]]):
                     additional post-processing called after sampling. This function can optionally return a (nested)
                     dictionary with as keys dir-/file-names and as values maps to be stored in the results directory.
+            sampler_options (dict): specific options for the MCMC routine. These will be provided to the sampling routine
+                as additional keyword arguments to the constructor.
         """
         super().__init__(mask, nifti_header, output_dir, tmp_storage_dir, recalculate)
         self._nmr_samples = nmr_samples
@@ -545,6 +547,7 @@ class SamplingProcessor(SimpleModelProcessor):
         self._logger = logging.getLogger(__name__)
         self._samples_output_stored = []
         self._post_sampling_cb = post_sampling_cb
+        self._sampler_options = sampler_options or {}
 
     def _process(self, roi_indices, next_indices=None):
         model = self._model.build(roi_indices)
@@ -561,6 +564,8 @@ class SamplingProcessor(SimpleModelProcessor):
             method = MetropolisWithinGibbs
         elif self._method == 'FSL':
             method = FSLSamplingRoutine
+
+        method_kwargs.update(self._sampler_options)
 
         if method is None:
             raise ValueError('Could not find the sampler with name {}.'.format(self._method))

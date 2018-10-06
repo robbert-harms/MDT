@@ -19,7 +19,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 def sample_composite_model(model, input_data, output_folder, nmr_samples, thinning, burnin, tmp_dir,
                            method=None, recalculate=False, store_samples=True, sample_items_to_save=None,
-                           initialization_data=None, post_sampling_cb=None):
+                           initialization_data=None, post_sampling_cb=None, sampler_options=None):
     """Sample a composite model.
 
     Args:
@@ -57,6 +57,8 @@ def sample_composite_model(model, input_data, output_folder, nmr_samples, thinni
             [mot.sample.base.SamplingOutput, mdt.models.composite.BuildCompositeModel], Optional[Dict]]):
                 additional post-processing called after sampling. This function can optionally return a (nested)
                 dictionary with as keys dir-/file-names and as values maps to be stored in the results directory.
+        sampler_options (dict): specific options for the MCMC routine. These will be provided to the sampling routine
+            as additional keyword arguments to the constructor.
     """
     samples_storage_strategy = SaveAllSamples()
     if store_samples:
@@ -93,7 +95,9 @@ def sample_composite_model(model, input_data, output_folder, nmr_samples, thinni
                 nmr_samples, thinning, burnin, method or 'AMWG',
                 model, input_data.mask, input_data.nifti_header, output_folder,
                 get_full_tmp_results_path(output_folder, tmp_dir), recalculate,
-                samples_storage_strategy=samples_storage_strategy, post_sampling_cb=post_sampling_cb)
+                samples_storage_strategy=samples_storage_strategy,
+                post_sampling_cb=post_sampling_cb,
+                sampler_options=sampler_options)
 
             processing_strategy = get_processing_strategy('sampling')
             return processing_strategy.process(worker)

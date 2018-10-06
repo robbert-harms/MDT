@@ -136,20 +136,23 @@ class SampleVisualizer:
                 nmr_bins = self._nmr_bins
 
             hist_plot = plt.subplot(grid[i])
-            n, bins, patches = hist_plot.hist(np.nan_to_num(samples[self.voxel_ind, :]), nmr_bins, normed=True)
-            plt.title(title)
-            i += 1
-
-            if self._fit_gaussian:
-                mu, sigma = norm.fit(samples[self.voxel_ind, :])
-                bincenters = 0.5*(bins[1:] + bins[:-1])
-                y = mlab.normpdf(bincenters, mu, sigma)
-                hist_plot.plot(bincenters, y, 'r', linewidth=1)
-
-            if self._show_trace:
-                trace_plot = plt.subplot(grid[i])
-                trace_plot.plot(samples[self.voxel_ind, :])
+            try:
+                n, bins, patches = hist_plot.hist(np.nan_to_num(samples[self.voxel_ind, :]), nmr_bins, normed=True)
+                plt.title(title)
                 i += 1
+
+                if self._fit_gaussian:
+                    mu, sigma = norm.fit(samples[self.voxel_ind, :])
+                    bincenters = 0.5*(bins[1:] + bins[:-1])
+                    y = mlab.normpdf(bincenters, mu, sigma)
+                    hist_plot.plot(bincenters, y, 'r', linewidth=1)
+
+                if self._show_trace:
+                    trace_plot = plt.subplot(grid[i])
+                    trace_plot.plot(samples[self.voxel_ind, :])
+                    i += 1
+            except IndexError:
+                pass
 
 
 class _DiscreteSlider(Slider):

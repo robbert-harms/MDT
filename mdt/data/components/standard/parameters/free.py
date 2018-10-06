@@ -6,8 +6,7 @@ value to disable them from being optimized in a given situation, but they remain
 
 import numpy as np
 from mdt import FreeParameterTemplate
-from mdt.model_building.parameter_functions.priors import UniformWithinBoundsPrior, ARDBeta, ARDGaussian
-
+from mdt.model_building.parameter_functions.priors import UniformWithinBoundsPrior
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-12-12"
@@ -33,16 +32,6 @@ class w(FreeParameterTemplate):
     sampling_proposal_std = 0.01
     sampling_prior = UniformWithinBoundsPrior()
     numdiff_info = {'scale_factor': 10}
-
-
-class w_ard_beta(w):
-    """Subclasses the weight to add a Beta prior for in use with Automatic Relevance Detection during sample."""
-    sampling_prior = ARDBeta()
-
-
-class w_ard_gaussian(w):
-    """Subclasses the weight to add a Gaussian prior for in use with Automatic Relevance Detection during sample."""
-    sampling_prior = ARDGaussian()
 
 
 class T1(FreeParameterTemplate):
