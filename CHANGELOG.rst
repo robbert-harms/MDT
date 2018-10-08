@@ -2,6 +2,18 @@
 Changelog
 *********
 
+v0.15.4 (2018-10-08)
+====================
+
+Fixed
+-----
+- Fixed the init user settings initialization for newer versions of Python.
+
+Other
+-----
+- Following changes in MOT (changed the function signature of the Legendre Polynomial).
+
+
 v0.15.3 (2018-10-06)
 ====================
 
