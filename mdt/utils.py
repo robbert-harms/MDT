@@ -1231,7 +1231,16 @@ def init_user_settings(pass_if_exists=True):
         if not os.path.exists(os.path.join(path, 'components')):
             os.makedirs(os.path.join(path, 'components'))
         cache_path = pkg_resources.resource_filename('mdt', 'data/components')
-        distutils.dir_util.copy_tree(cache_path, os.path.join(path, 'components'))
+
+        for cache_subpath, dirs, files in os.walk(cache_path):
+            subdir = cache_subpath[len(cache_path)+1:]
+            config_path = os.path.join(path, 'components', subdir)
+
+            if not os.path.exists(config_path):
+                os.makedirs(config_path)
+
+            for file in files:
+                shutil.copy(os.path.join(cache_subpath, file), os.path.join(config_path, file))
 
         cache_path = pkg_resources.resource_filename('mdt', 'data/mdt.conf')
         shutil.copy(cache_path, path + '/mdt.default.conf')
