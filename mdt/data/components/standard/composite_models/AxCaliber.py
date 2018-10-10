@@ -14,7 +14,3 @@ class AxCaliber(CompositeModelTemplate):
         S0 * ((Weight(w_hin) * Tensor) +
               (Weight(w_res) * GDRCylinders))
     '''
-    extra_optimization_maps = [
-        lambda d: {'AxonDensityIndex': (4 * (d['w_ic.w'] / (d['w_ec.w'] + d['w_ic.w'])))
-                                        / (np.pi * (2 * d['GDRCylinders.R']) ** 2)}
-    ]

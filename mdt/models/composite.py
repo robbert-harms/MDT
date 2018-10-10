@@ -1792,8 +1792,9 @@ class BuildCompositeModel:
                     results_dict.update(routine(results_dict, self._input_data))
                 else:
                     results_dict.update(routine(results_dict))
-            except KeyError:
-                pass
+            except KeyError as exc:
+                if not exc.args[0].endswith('.std'):
+                    raise exc
 
         if not self._post_processing['optimization']['store_covariances']:
             del results_dict['covariances']
