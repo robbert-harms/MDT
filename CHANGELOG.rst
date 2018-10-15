@@ -2,6 +2,14 @@
 Changelog
 *********
 
+v0.15.5 (2018-10-09)
+====================
+
+Fixed
+-----
+- Fixes the issue that the models would not load.
+
+
 v0.15.4 (2018-10-08)
 ====================
 

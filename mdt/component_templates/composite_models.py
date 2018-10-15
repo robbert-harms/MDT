@@ -176,10 +176,13 @@ class CompositeModelTemplate(ComponentTemplate):
             Please note that this is only for adding additional maps. For changing the point estimate of the
             optimization, please use the ``post_optimization_modifiers`` directive.
 
+            These functions should accept as single argument an object of type
+            :class:`mdt.models.composite.ExtraOptimizationMapsInfo`.
+
             Examples::
 
                 extra_optimization_maps = [lambda d: {'FS': 1 - d['w_ball.w']},
-                                           lambda d, protocol: {'Kurtosis.MK': <...>},
+                                           lambda d: {'Kurtosis.MK': <...>},
                                            lambda d: {'Power2': d['foo']**2, 'Power3': d['foo']**3},
                                            ...]
 
@@ -443,24 +446,21 @@ def _get_model_extra_optimization_maps_funcs(compartments):
     funcs = []
 
     def get_wrapped_func(compartment_name, original_func):
-        def get_compartment_specific_maps(results):
+        def get_compartment_specific_results(results):
             maps = {k[len(compartment_name) + 1:]: v for k, v in results.items() if k.startswith(compartment_name)}
 
             if 'covariances' in results and results['covariances'] is not None:
                 p = re.compile(compartment_name + r'\.\w+_to_' + compartment_name + r'\.\w+')
                 maps['covariances'] = {k.replace(compartment_name + '.', ''): v
                                        for k, v in results['covariances'].items() if p.match(k)}
-            return maps
+
+            return results.copy_with_different_results(maps)
 
         def prepend_compartment_name(results):
             return {'{}.{}'.format(compartment_name, key): value for key, value in results.items()}
 
-        if 'input_data' in inspect.signature(original_func).parameters:
-            def wrapped_modifier(results, input_data):
-                return prepend_compartment_name(original_func(get_compartment_specific_maps(results), input_data))
-        else:
-            def wrapped_modifier(results):
-                return prepend_compartment_name(original_func(get_compartment_specific_maps(results)))
+        def wrapped_modifier(results):
+            return prepend_compartment_name(original_func(get_compartment_specific_results(results)))
 
         return wrapped_modifier
 

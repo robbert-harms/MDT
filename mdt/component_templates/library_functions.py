@@ -31,7 +31,7 @@ class LibraryFunctionsBuilder(ComponentBuilder):
                             #define {inclusion_guard_name}
                             {cl_extra}
                             #endif // {inclusion_guard_name}
-                        '''.format(inclusion_guard_name='INCLUDE_GUARD_{}'.format(template.name),
+                        '''.format(inclusion_guard_name='INCLUDE_GUARD_{}_EXTRA'.format(template.name),
                                    cl_extra=template.cl_extra)
                         dependencies.append(SimpleCLCodeObject(extra_code))
 

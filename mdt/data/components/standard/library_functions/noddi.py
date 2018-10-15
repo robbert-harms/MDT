@@ -18,10 +18,12 @@ class NODDI_SphericalHarmonicsIntegral(LibraryFunctionTemplate):
         exponent_term: the term in the exponent of the NODDI integral, negative number
     """
     return_type = 'double'
-    parameters = (('mot_float_type4', 'g'), 'theta', 'phi', 'kappa', 'exponent_term')
-    dependencies = ('SphericalToCartesian', 'EvenLegendreTerms',
-                    'NODDI_LegendreGaussianIntegral', 'NODDI_WatsonSHCoeff')
+    parameters = ('angle_term', 'exponent_term', 'kappa')
+    dependencies = ('NODDI_WatsonSHCoeff', 'NODDI_LegendreGaussianIntegral', 'EvenLegendreTerms')
     cl_code = '''
+        // do not change this value! It would require adding approximations
+        #define NODDI_IC_MAX_POLYNOMIAL_ORDER 6
+        
         mot_float_type watson_sh_coeff[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
         NODDI_WatsonSHCoeff(kappa, watson_sh_coeff);
 
@@ -29,7 +31,7 @@ class NODDI_SphericalHarmonicsIntegral(LibraryFunctionTemplate):
         NODDI_LegendreGaussianIntegral(-exponent_term, lgi);
 
         double legendre_terms[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
-        EvenLegendreTerms(dot(g, SphericalToCartesian(theta, phi)), NODDI_IC_MAX_POLYNOMIAL_ORDER + 1, legendre_terms);
+        EvenLegendreTerms(angle_term, NODDI_IC_MAX_POLYNOMIAL_ORDER + 1, legendre_terms);
 
         double signal = 0.0;
         for(int i = 0; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){

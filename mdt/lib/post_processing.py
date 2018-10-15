@@ -18,7 +18,7 @@ __licence__ = 'LGPL v3'
 class DTIMeasures:
 
     @staticmethod
-    def extra_optimization_maps(results, input_data=None):
+    def extra_optimization_maps(results):
         """Return some interesting measures like FA, MD, RD and AD.
 
         This function is meant to be used as a post processing routine in Tensor-like compartment models.
@@ -26,7 +26,6 @@ class DTIMeasures:
         Args:
             results (dict): Dictionary containing at least theta, phi, psi, d, dperp0 and dperp1
                 We will use this to generate some standard measures from the diffusion Tensor.
-            input_data (mdt.utils.MRIInputData): optionally, the input data used during the model fitting.
 
         Returns:
             dict: as keys typical elements like 'FA and 'MD' as interesting output and as per values the maps.
@@ -742,7 +741,7 @@ class NODDIMeasures:
         return output
 
 
-def noddi_dti_maps(results, input_data=None):
+def noddi_dti_maps(results):
     """Compute NODDI-like statistics from Tensor/Kurtosis parameter fits.
 
     Several authors noted correspondence between NODDI parameters and DTI parameters [1, 2]. This function computes
@@ -753,7 +752,7 @@ def noddi_dti_maps(results, input_data=None):
     NODDI-DTI results.
 
     Args:
-        results (dict): the result dictionary, should contain at least:
+        results (mdt.models.composite.ExtraOptimizationMapsInfo): the results data, should contain at least:
 
             - d (ndarray): principal diffusivity
             - dperp0 (ndarray): primary perpendicular diffusion
@@ -764,9 +763,6 @@ def noddi_dti_maps(results, input_data=None):
             - FA (ndarray): if computed already, the Fractional Anisotropy of the given diffusivities
             - MD (ndarray): if computed already, the Mean Diffusivity of the given diffusivities
             - MK (ndarray): if computing for Kurtosis, the computed Mean Kurtosis. If not given, we assume unity.
-
-        input_data (mdt.utils.MRIInputData): optionally, the input data used during the model fitting.
-                If set, we apply the heuristic correction for Diffusional Kurtosis to the MD [1].
 
     Returns:
         dict: maps for the the NODDI-DTI, NDI and ODI measures.
@@ -794,17 +790,15 @@ def noddi_dti_maps(results, input_data=None):
     kappa = _tau_to_kappa(tau)
     odi = np.mean(np.arctan2(1.0, kappa) * 2 / np.pi, axis=1)
 
-    if input_data is not None:
-        shells = input_data.protocol.get_b_values_shells()
+    shells = results.input_data.protocol.get_b_values_shells()
+    if shells:
+        b = shells[0]['b_value']
+        if len(shells) > 1:
+            b = shells[1]['b_value'] - shells[0]['b_value']
 
-        if shells:
-            b = shells[0]['b_value']
-            if len(shells) > 1:
-                b = shells[1]['b_value'] - shells[0]['b_value']
+        sum = (d ** 2 + dperp0 ** 2 + dperp1 ** 2) / 5 + 2 * (d * dperp0 + d * dperp1 + dperp0 * dperp1) / 15
 
-            sum = (d ** 2 + dperp0 ** 2 + dperp1 ** 2) / 5 + 2 * (d * dperp0 + d * dperp1 + dperp0 * dperp1) / 15
-
-            MD += ((b / 6) * sum) * results.get('MK', 1)
+        MD += ((b / 6) * sum) * results.get('MK', 1)
 
     ndi = 1 - np.sqrt(0.5 * ((3 * MD) / noddi_d - 1))
     ndi = np.clip(np.nan_to_num(ndi), 0, 1)

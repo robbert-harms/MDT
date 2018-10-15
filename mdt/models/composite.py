@@ -1,5 +1,6 @@
 import inspect
 import logging
+from collections import Mapping
 from textwrap import dedent
 import copy
 import collections
@@ -1630,7 +1631,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
 class BuildCompositeModel:
 
-    def __init__(self, used_problem_indices, name, input_data,
+    def __init__(self, voxels_to_analyze, name, input_data,
                  kernel_data_info, nmr_observations,
                  initial_parameters,
                  lower_bounds, upper_bounds, numdiff_max_step_sizes,
@@ -1644,7 +1645,7 @@ class BuildCompositeModel:
                  objective_function, ll_function,
                  log_prior_function,
                  finalize_proposal_function):
-        self.used_problem_indices = used_problem_indices
+        self.voxels_to_analyze = voxels_to_analyze
         self.name = name
         self._input_data = input_data
         self._kernel_data_info = kernel_data_info
@@ -1786,12 +1787,10 @@ class BuildCompositeModel:
             results_dict.update(fim['stds'])
             results_dict['covariances'] = fim['covariances']
 
+        routine_input = ExtraOptimizationMapsInfo(results_dict, self._input_data, self.voxels_to_analyze)
         for routine in self._extra_optimization_maps:
             try:
-                if 'input_data' in inspect.signature(routine).parameters:
-                    results_dict.update(routine(results_dict, self._input_data))
-                else:
-                    results_dict.update(routine(results_dict))
+                results_dict.update(routine(routine_input))
             except KeyError as exc:
                 if not exc.args[0].endswith('.std'):
                     raise exc
@@ -2747,3 +2746,64 @@ def calculate_dependent_parameters(kernel_data, estimated_parameters_list,
 
     get_cl_function().evaluate(data_struct, estimated_parameters_list[0].shape[0], cl_runtime_info=cl_runtime_info)
     return data_struct['results'].get_data()
+
+
+class ExtraOptimizationMapsInfo(Mapping):
+
+    def __init__(self, results, input_data, voxel_roi_indices):
+        """Container holding information usable for computing extra optimization maps, after optimization.
+
+        For backwards compatibility, this class functions both as a dictionary as well as a data container. That is,
+        one can index this object with map names and it will forward those indices to the results container.
+        Additionally, it provides some auxiliary data and functions for getting protocol information.
+
+        Args:
+            results (dict): the dictionary with all the optimization results
+            input_data (mdt.utils.MRIInputData): the input data used during the optimization
+            voxel_roi_indices (ndarray): a one dimensional array with indices in the region of interest
+                This holds the voxels we are currently optimizing.
+        """
+        self.results = results
+        self.input_data = input_data
+        self.voxel_roi_indices = voxel_roi_indices
+
+    def copy_with_different_results(self, new_results):
+        """Create a copy of this optimization maps info but then with different result maps.
+
+        Args:
+            results (dict): the dictionary with the new set of optimization results
+
+        Returns:
+            ExtraOptimizationMapsInfo: same as the current class but then with updated results
+        """
+        return ExtraOptimizationMapsInfo(new_results, self.input_data, self.voxel_roi_indices)
+
+    def get_input_data(self, parameter_name):
+        """Get the input data for the given parameter.
+
+        This gets the input data from the protocol and for maps it only returns the voxels within the voxel roi indices
+        we optimized.
+
+        Args:
+             parameter_name (str): the name of the parameter for which we want to get input data
+
+        Returns:
+            float, ndarray or None: either a scalar, a vector or a matrix with values for the given parameter.
+
+        Raises:
+            ValueError: if no suitable value can be found.
+        """
+        value = self.input_data.get_input_data(parameter_name)
+        if value.shape[0] == np.count_nonzero(self.input_data.mask) and self.voxel_roi_indices is not None:
+            return value[self.voxel_roi_indices]
+        return value
+
+    def __getitem__(self, item):
+        return self.results[item]
+
+    def __iter__(self):
+        return self.results.__iter__()
+
+    def __len__(self):
+        return len(self.results)
+

@@ -256,6 +256,9 @@ class CompartmentTemplate(ComponentTemplate):
             Please note that this is only for adding additional maps. For changing the point estimate of the
             optimization, please use the ``post_optimization_modifiers`` directive.
 
+            These functions should accept as single argument an object of type
+            :class:`mdt.models.composite.ExtraOptimizationMapsInfo`.
+
             Examples:
 
             .. code-block:: python

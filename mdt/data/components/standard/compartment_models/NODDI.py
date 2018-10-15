@@ -23,18 +23,19 @@ class NODDI_EC(CompartmentTemplate):
 class NODDI_EC_Integration(CompartmentTemplate):
     """Extra-Cellular NODDI with the compartment inside the integration instead of outside."""
     parameters = ('g', 'b', 'd', 'dperp0', 'theta', 'phi', 'kappa')
-    dependencies = ('NODDI_SphericalHarmonicsIntegral',)
+    dependencies = ('NODDI_SphericalHarmonicsIntegral', 'SphericalToCartesian')
     cl_code = '''
-        return exp(-b * dperp0) * NODDI_SphericalHarmonicsIntegral(g, theta, phi, kappa, -b * (d - dperp0));
+        return exp(-b * dperp0) * NODDI_SphericalHarmonicsIntegral(dot(g, SphericalToCartesian(theta, phi)), 
+                                                                   -b * (d - dperp0), kappa);
     '''
 
 
 class NODDI_IC(CompartmentTemplate):
     """Generate the compartment model signal for the NODDI Intra Cellular (Stick with dispersion) compartment."""
     parameters = ('g', 'b', 'd', 'theta', 'phi', 'kappa')
-    dependencies = ('NODDI_SphericalHarmonicsIntegral',)
+    dependencies = ('NODDI_SphericalHarmonicsIntegral', 'SphericalToCartesian')
     cl_code = '''
-        return NODDI_SphericalHarmonicsIntegral(g, theta, phi, kappa, -b*d);
+        return NODDI_SphericalHarmonicsIntegral(dot(g, SphericalToCartesian(theta, phi)), -b*d, kappa);
     '''
 
 
