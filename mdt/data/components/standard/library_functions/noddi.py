@@ -7,17 +7,58 @@ __email__ = 'robbert.harms@maastrichtuniversity.nl'
 __licence__ = 'LGPL v3'
 
 
+class NODDI_SphericalHarmonicsIntegral(LibraryFunctionTemplate):
+    """Approximate the integral of the Watson distribution using spherical harmonics.
+
+    Args:
+        g: from the protocol
+        theta: the polar angle, estimated
+        phi: the azimuth angle, estimated
+        kappa: Watson distribution concentration parameter
+        exponent_term: the term in the exponent of the NODDI integral, negative number
+    """
+    return_type = 'double'
+    parameters = (('mot_float_type4', 'g'), 'theta', 'phi', 'kappa', 'exponent_term')
+    dependencies = ('SphericalToCartesian', 'EvenLegendreTerms',
+                    'NODDI_LegendreGaussianIntegral', 'NODDI_WatsonSHCoeff')
+    cl_code = '''
+        mot_float_type watson_sh_coeff[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
+        NODDI_WatsonSHCoeff(kappa, watson_sh_coeff);
+
+        mot_float_type lgi[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
+        NODDI_LegendreGaussianIntegral(-exponent_term, lgi);
+
+        double legendre_terms[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
+        EvenLegendreTerms(dot(g, SphericalToCartesian(theta, phi)), NODDI_IC_MAX_POLYNOMIAL_ORDER + 1, legendre_terms);
+
+        double signal = 0.0;
+        for(int i = 0; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
+            // summing only over the even terms
+            signal += watson_sh_coeff[i] * sqrt(i + 0.25) * legendre_terms[i] * lgi[i];  
+        }
+
+        return fmax(signal, (double)0.0) / (2.0 * sqrt(M_PI));
+    '''
+
+
 class NODDI_LegendreGaussianIntegral(LibraryFunctionTemplate):
     """Computes legendre gaussian integrals up to the order specified.
 
-    Copied from the Matlab NODDI toolbox: function [L, D] = legendreGaussianIntegral(x, n)
+    Copied from the Matlab NODDI toolbox: function legendreGaussianIntegral(x, n)
+    programmed by Gary Hui Zhang (gary.zhang@ucl.ac.uk)
 
     The integral takes the following form, in Mathematica syntax,
 
     L[x, n] = Integrate[Exp[-x \mu^2] Legendre[2*n, \mu], {\mu, -1, 1}]
-    D[x, n] = Integrate[Exp[-x \mu^2] (-\mu^2) Legendre[2*n, \mu], {\mu, -1, 1}]
 
-    original author: Gary Hui Zhang (gary.zhang@ucl.ac.uk)
+    where x should be a column vector of positive numbers, specifying the parameters of the gaussian and
+    n should be a non-negative integer, such that 2n specifies the maximum order of legendre polynomial
+
+    In this implementation, we approximate the integral up to the 12th order.
+
+    Args:
+        x: a positive numbers, specifying the parameters of the gaussian
+        result: array of size 7, holding the even terms of the integral
     """
     parameters = [('mot_float_type', 'x'), ('mot_float_type*', 'result')]
     cl_code = '''
@@ -25,13 +66,25 @@ class NODDI_LegendreGaussianIntegral(LibraryFunctionTemplate):
         #define NODDI_IC_MAX_POLYNOMIAL_ORDER 6
 
         if(x > 0.05){
-            // exact
+            /* 
+                Computing the related exponent gaussian integrals
+                
+                I[x, n] = Integrate[Exp[-x \mu^2] \mu^(2*n), {\mu, -1, 1}]
+                
+                with the following recursion:
+                
+                1) I[x, 0] = Sqrt[\pi]Erf[x]/Sqrt[x]
+                2) I[x, n+1] = -Exp[-x]/x + (2n+1)/(2x) I[x, n]
+                
+                This does not work well when x is small
+            */
             mot_float_type tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
             tmp[0] = sqrt(M_PI) * erf(sqrt(x))/sqrt(x);
             for(int i = 1; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
                 tmp[i] = (-exp(-x) + (i - 0.5) * tmp[i-1]) / x;
             }
-
+            
+            // for large enough x
             result[0] = tmp[0];
             result[1] = -0.5*tmp[0] + 1.5*tmp[1];
             result[2] = 0.375*tmp[0] - 3.75*tmp[1] + 4.375*tmp[2];
@@ -41,7 +94,7 @@ class NODDI_LegendreGaussianIntegral(LibraryFunctionTemplate):
             result[6] = (231/1024.0)*tmp[0] - (18018/1024.0)*tmp[1] + (225225/1024.0)*tmp[2] - (1021020/1024.0)*tmp[3] + (2078505/1024.0)*tmp[4] - (1939938/1024.0)*tmp[5] + (676039/1024.0)*tmp[6];
         }
         else{
-            // approximate
+            // approximate for small x
             mot_float_type tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER - 1];
             tmp[0] = x * x;
             tmp[1] = tmp[0] * x;
@@ -63,13 +116,22 @@ class NODDI_LegendreGaussianIntegral(LibraryFunctionTemplate):
 class NODDI_WatsonSHCoeff(LibraryFunctionTemplate):
     """Computes the spherical harmonic (SH) coefficients of the Watson's distribution up to the 12th order.
 
-    Copied from the Matlab toolbox: function [C, D] = WatsonSHCoeff(k)
+    Copied from the Matlab toolbox: function WatsonSHCoeff(k)
+    programmed by Gary Hui Zhang (gary.zhang@ucl.ac.uk)
 
     Truncating at the 12th order gives good approximation for kappa up to 64.
 
     Note that the SH coefficients of the odd orders are always zero and are therefore not returned.
 
-    original author: Gary Hui Zhang (gary.zhang@ucl.ac.uk)
+    Args:
+        kappa: the concentration parameter of the NODDI model
+        result: vector with 7 elements, for the spherical harmonic coefficients up to order 12
+            This will store the items as:
+
+            result[0] = coefficient[0]
+            result[1] = coefficient[2]
+            ...
+            result[7] = coefficient[14]
     """
     parameters = [('mot_float_type', 'kappa'), ('mot_float_type*', 'result')]
     dependencies = ('erfi',)
@@ -164,4 +226,43 @@ class NODDI_WatsonSHCoeff(LibraryFunctionTemplate):
             result[5] = 6.30113 + 6.09914*lnkd[0] - 0.16088*lnkd[1] - 1.05578*lnkd[2] + 0.338069*lnkd[3] + 0.0937157*lnkd[4] - 0.106935*lnkd[5];
             result[6] = 4.65678 + 6.30069*lnkd[0] + 1.13754*lnkd[1] - 1.38393*lnkd[2] - 0.0134758*lnkd[3] + 0.331686*lnkd[4] - 0.105954*lnkd[5];
         }
+    '''
+
+
+class NODDI_WatsonHinderedDiffusionCoeff(LibraryFunctionTemplate):
+    """Anisotropic hindered diffusion using the Watson's distribution as orientation distribution function.
+
+    Copied from the Matlab NODDI toolbox: function WatsonHinderedDiffusionCoeff(dPar, dPerp, kappa)
+    programmed by Gary Hui Zhang (gary.zhang@ucl.ac.uk)
+
+    This compute the diffusion coefficients after integrating for all possible orientations. This is meant to be used
+    for an hindered compartment with impermeable cylinders's oriented with a Watson's distribution.
+
+    Args:
+         d: INPUT: the free diffusivity of the material inside and outside the cylinders.
+            OUTPUT: the equivalent diffusivity after integration
+         dperp0: INPUT: the hindered diffusivity outside the cylinders in perpendicular directions.
+                 OUTPUT: the equivalent diffusivity after integration
+         kappa: the concentration parameter of the Watson's distribution
+    """
+    parameters = [('mot_float_type*', 'd'),
+                  ('mot_float_type*', 'dperp0'),
+                  'kappa']
+    dependencies = ['dawson']
+    cl_code = '''
+        double tmp;
+        double dw_0, dw_1;
+
+        if(kappa > 1e-5){
+            tmp = sqrt(kappa)/dawson(sqrt(kappa));
+            dw_0 = ( -(*d - *dperp0) + 2 * *dperp0 * kappa + (*d - *dperp0) * tmp) / (2.0 * kappa);
+            dw_1 = (  (*d - *dperp0) + 2 * (*d + *dperp0) * kappa - (*d - *dperp0) * tmp) / (4.0 * kappa);
+        }
+        else{
+            tmp = 2 * (*d - *dperp0) * kappa;
+            dw_0 = ((2 * *dperp0 + *d) / 3.0) + (tmp/22.5) + ((tmp * kappa) / 236.0);
+            dw_1 = ((2 * *dperp0 + *d) / 3.0) - (tmp/45.0) - ((tmp * kappa) / 472.0);
+        }
+        *d = dw_0;
+        *dperp0 = dw_1;
     '''

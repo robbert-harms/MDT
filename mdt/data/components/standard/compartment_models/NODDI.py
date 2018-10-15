@@ -1,4 +1,4 @@
-from mdt import CompartmentTemplate, LibraryFunctionTemplate
+from mdt import CompartmentTemplate
 
 __author__ = 'Robbert Harms'
 __date__ = '2018-09-07'
@@ -8,57 +8,33 @@ __licence__ = 'LGPL v3'
 
 
 class NODDI_EC(CompartmentTemplate):
-    """The Extra-Cellular compartment of the NODDI-Watson model."""
+    """The Extra-Cellular compartment of the NODDI-Watson model.
+
+    This is the compartment as described in Gary Zhang's papers, with the exponent model outside the integral.
+    """
     parameters = ('g', 'b', 'd', 'dperp0', 'theta', 'phi', 'kappa')
-    dependencies = ('dawson', 'Zeppelin')
+    dependencies = ('NODDI_WatsonHinderedDiffusionCoeff', 'Zeppelin')
     cl_code = '''
-        mot_float_type tmp;
-        mot_float_type dw_0, dw_1;
+        NODDI_WatsonHinderedDiffusionCoeff(&d, &dperp0, kappa);
+        return Zeppelin(g, b, d, dperp0, theta, phi);
+    '''
 
-        if(kappa > 1e-5){
-            tmp = sqrt(kappa)/dawson(sqrt(kappa));
-            dw_0 = ( -(d - dperp0) + 2 * dperp0 * kappa + (d - dperp0) * tmp) / (2.0 * kappa);
-            dw_1 = ( (d - dperp0) + 2 * (d+dperp0) * kappa - (d - dperp0) * tmp) / (4.0 * kappa);
-        }
-        else{
-            tmp = 2 * (d - dperp0) * kappa;
-            dw_0 = ((2 * dperp0 + d) / 3.0) + (tmp/22.5) + ((tmp * kappa) / 236.0);
-            dw_1 = ((2 * dperp0 + d) / 3.0) - (tmp/45.0) - ((tmp * kappa) / 472.0);
-        }
 
-        return Zeppelin(g, b, dw_0, dw_1, theta, phi);
+class NODDI_EC_Integration(CompartmentTemplate):
+    """Extra-Cellular NODDI with the compartment inside the integration instead of outside."""
+    parameters = ('g', 'b', 'd', 'dperp0', 'theta', 'phi', 'kappa')
+    dependencies = ('NODDI_SphericalHarmonicsIntegral',)
+    cl_code = '''
+        return exp(-b * dperp0) * NODDI_SphericalHarmonicsIntegral(g, theta, phi, kappa, -b * (d - dperp0));
     '''
 
 
 class NODDI_IC(CompartmentTemplate):
-    """Generate the compartment model signal for the NODDI Intra Cellular (Stick with dispersion) compartment.
-
-    This is a transcription from the NODDI matlab toolbox, but with a few changes. Most notably, support for the
-    cylindrical model has been removed to simplify the code.
-    """
+    """Generate the compartment model signal for the NODDI Intra Cellular (Stick with dispersion) compartment."""
     parameters = ('g', 'b', 'd', 'theta', 'phi', 'kappa')
-    dependencies = ('MRIConstants', 'SphericalToCartesian', 'EvenLegendreTerms',
-                    'NODDI_LegendreGaussianIntegral', 'NODDI_WatsonSHCoeff')
+    dependencies = ('NODDI_SphericalHarmonicsIntegral',)
     cl_code = '''
-        mot_float_type LePerp = 0; // used to be "VanGelderenCylinder(G, Delta, delta, d, R)" with R fixed to 0.
-        mot_float_type LePar = -d * b;
-
-        mot_float_type watson_sh_coeff[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
-        NODDI_WatsonSHCoeff(kappa, watson_sh_coeff);
-
-        mot_float_type lgi[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
-        NODDI_LegendreGaussianIntegral(LePerp - LePar, lgi);
-
-        double legendre_terms[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
-        EvenLegendreTerms(dot(g, SphericalToCartesian(theta, phi)), NODDI_IC_MAX_POLYNOMIAL_ORDER + 1, legendre_terms);
-
-        double signal = 0.0;
-        for(int i = 0; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
-            // summing only over the even terms
-            signal += watson_sh_coeff[i] * sqrt((i + 0.25)/M_PI_F) * legendre_terms[i] * lgi[i];  
-        }
-        
-        return exp(LePerp) * fmax(signal, (double)0.0) / 2.0;
+        return NODDI_SphericalHarmonicsIntegral(g, theta, phi, kappa, -b*d);
     '''
 
 
