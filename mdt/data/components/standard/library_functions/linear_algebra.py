@@ -4,6 +4,8 @@ from mdt import LibraryFunctionTemplate
 class RotateOrthogonalVector(LibraryFunctionTemplate):
     """Uses Rodrigues' rotation formula to rotate the given vector v by psi around k.
 
+    This assumes that the vectors we are rotating are orthogonal to each other.
+
     Args:
         basis: the unit vector defining the rotation axis (k)
         to_rotate: the vector to rotate by the angle psi (v)
@@ -19,15 +21,15 @@ class RotateOrthogonalVector(LibraryFunctionTemplate):
     cl_code = '''
         mot_float_type cos_psi;
         mot_float_type sin_psi = sincos(psi, &cos_psi);
-
-        return to_rotate * cos_psi 
-                    + (cross(basis, to_rotate) * sin_psi) 
-                    + basis * dot(basis, to_rotate) * (1 - cos_psi);
+        
+        return to_rotate * cos_psi + (cross(basis, to_rotate) * sin_psi);
     '''
 
 
 class RotateVector(LibraryFunctionTemplate):
     """Uses Rodrigues' rotation formula to rotate the given vector v by psi around k.
+
+    This function makes no assumptions on the orthogonality of the vectors.
 
     Args:
         basis: the unit vector defining the rotation axis (k)
