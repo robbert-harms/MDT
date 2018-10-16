@@ -29,7 +29,7 @@ from mdt.utils import create_roi, load_samples
 import collections
 
 from mot.sample import AdaptiveMetropolisWithinGibbs, SingleComponentAdaptiveMetropolis
-from mdt.model_building.utils import wrap_objective_function
+from mdt.model_building.utils import ObjectiveFunctionWrapper
 from mot.configuration import CLRuntimeInfo
 from mot.optimize import minimize
 from mot.sample.mwg import MetropolisWithinGibbs
@@ -465,13 +465,15 @@ class FittingProcessor(SimpleModelProcessor):
         else:
             self._logger.info('We will use the optimizer {} with default settings.'.format(self._method))
 
-        objective_func = wrap_objective_function(build_model.get_objective_function(),
-                                                 codec.get_decode_function(), x0.shape[1])
+        wrapper = ObjectiveFunctionWrapper(x0.shape[1])
+        objective_func = wrapper.wrap_objective_function(build_model.get_objective_function(),
+                                                         codec.get_decode_function())
+        input_data = wrapper.wrap_input_data(build_model.get_kernel_data())
 
         results = minimize(objective_func, x0, method=self._method,
                            nmr_observations=build_model.get_nmr_observations(),
                            cl_runtime_info=cl_runtime_info,
-                           data=build_model.get_kernel_data(),
+                           data=input_data,
                            options=self._optimizer_options)
 
         self._logger.info('Finished optimization')

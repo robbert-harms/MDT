@@ -1236,7 +1236,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
         cl_body = '''
             double getObjectiveInstanceValue(
-                    local const mot_float_type* const x,
+                    local mot_float_type* x,
                     void* data
                     ''' + (', local mot_float_type* objective_list' if support_for_objective_list else '') + '''){
                 
@@ -1279,14 +1279,10 @@ class DMRICompositeModel(DMRIOptimizable):
                 }
                 barrier(CLK_LOCAL_MEM_FENCE);
                 
-                local double sum;                
-                if(local_id == 0){
-                    sum = 0;
-                    for(uint i = 0; i < min(nmr_observations, workgroup_size); i++){
-                        sum += model_data->local_tmp[i];
-                    }   
+                double sum = 0;
+                for(uint i = 0; i < min(nmr_observations, workgroup_size); i++){
+                    sum += model_data->local_tmp[i];
                 }
-                barrier(CLK_LOCAL_MEM_FENCE);
                 return sum;
             }
         '''
@@ -1346,7 +1342,7 @@ class DMRICompositeModel(DMRIOptimizable):
                 dependencies.append(compartment.get_cache_init_function())
 
         parameters = [('void*', 'data'),
-                      ('local const mot_float_type* const', 'x'),
+                      ('local mot_float_type*', 'x'),
                       (cache_struct.get_type_name() + '*', cache_struct.get_variable_name())]
 
         return SimpleCLFunction(
@@ -1376,7 +1372,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
                 .. code-block:: c
 
-                    double <func_name>(void* data, const mot_float_type* const x, uint observation_index);
+                    double <func_name>(void* data, mot_float_type* x, uint observation_index);
         """
         protocol_cbs = self._get_protocol_update_callbacks()
         composite_model_function = self.get_composite_model_function()
@@ -1452,7 +1448,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
         def get_function_parameters():
             parameters = [('void*', 'data'),
-                          ('local const mot_float_type* const', 'x'),
+                          ('local mot_float_type*', 'x'),
                           ('uint', 'observation_index')]
             if not include_cache_func:
                 parameters.append((cache_struct.get_type_name() + '*', cache_struct.get_variable_name()))
@@ -1613,7 +1609,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
         return SimpleCLFunction(
             'mot_float_type', 'getLogPrior',
-            [('local const mot_float_type* const', 'x'), ('void*', 'data')],
+            [('local mot_float_type*', 'x'), ('void*', 'data')],
             get_body(), dependencies=get_dependencies())
 
     def _get_weight_prior(self):

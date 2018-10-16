@@ -1,6 +1,5 @@
 from mot.lib.cl_function import SimpleCLFunction
-from mot.lib.kernel_data import Array
-
+from mot.lib.kernel_data import Array, Struct, LocalMemory
 
 __author__ = 'Robbert Harms'
 __date__ = '2017-05-29'
@@ -9,50 +8,70 @@ __email__ = 'robbert.harms@maastrichtuniversity.nl'
 __licence__ = 'LGPL v3'
 
 
-def wrap_objective_function(objective_function, decode_function, nmr_parameters):
-    """Decorates the given objective function with parameter decoding.
+class ObjectiveFunctionWrapper:
 
-    Args:
-        objective_function (mot.lib.cl_function.CLFunction): A CL function with the signature:
+    def __init__(self, nmr_parameters):
+        self._nmr_parameters = nmr_parameters
 
-            .. code-block:: c
+    def wrap_input_data(self, input_data):
+        """Wrap the input data with extra information this wrapper might need.
 
-                double <func_name>(local const mot_float_type* const x,
-                                   void* data,
-                                   local mot_float_type* objective_list);
-        decode_function (mot.lib.cl_function.CLFunction): An OpenCL function that is used in the CL kernel to
-                transform the parameters from encoded space to model space so they can be used as input to the model.
-                The signature of the CL function is:
+        Args:
+            input_data (mot.lib.kernel_data.KernelData): the kernel data we will wrap
+
+        Returns:
+            mot.lib.kernel_data.KernelData: the wrapped kernel data
+        """
+        return Struct({'data': input_data, 'x_tmp': LocalMemory('mot_float_type', nmr_items=self._nmr_parameters)},
+                      'objective_function_wrapper_data')
+
+    def wrap_objective_function(self, objective_function, decode_function):
+        """Decorates the given objective function with parameter decoding.
+
+        This will change the given parameter vector in-place. This is possible because the optimization routines
+        make a copy of the vector before handing it over to the optimization function.
+
+        Args:
+            objective_function (mot.lib.cl_function.CLFunction): A CL function with the signature:
 
                 .. code-block:: c
 
-                    void <fname>(void* data, local mot_float_type* x);
+                    double <func_name>(local mot_float_type* x,
+                                       void* data,
+                                       local mot_float_type* objective_list);
+            decode_function (mot.lib.cl_function.CLFunction): An OpenCL function that is used in the CL kernel to
+                    transform the parameters from encoded space to model space so they can be used as input to the model.
+                    The signature of the CL function is:
 
-        nmr_parameters (int): the number of parameters we are decoding.
+                    .. code-block:: c
 
-    Returns:
-        mot.lib.cl_function.CLFunction: the wrapped objective function.
-    """
-    return SimpleCLFunction.from_string('''
-        double wrapped_''' + objective_function.get_cl_function_name() + '''(
-                local const mot_float_type* const x,
-                void* data, 
-                local mot_float_type* objective_list){
+                        void <fname>(void* data, local mot_float_type* x);
 
-            local mot_float_type x_model[''' + str(nmr_parameters) + '''];
+            nmr_parameters (int): the number of parameters we are decoding.
 
-            if(get_local_id(0) == 0){
-                for(uint i = 0; i < ''' + str(nmr_parameters) + '''; i++){
-                    x_model[i] = x[i];
+        Returns:
+            mot.lib.cl_function.CLFunction: the wrapped objective function.
+        """
+        return SimpleCLFunction.from_string('''
+            double wrapped_''' + objective_function.get_cl_function_name() + '''(
+                    local mot_float_type* x,
+                    void* data, 
+                    local mot_float_type* objective_list){
+                
+                local mot_float_type* x_tmp = ((objective_function_wrapper_data*)data)->x_tmp;
+                
+                if(get_local_id(0) == 0){
+                    for(uint i = 0; i < ''' + str(self._nmr_parameters) + '''; i++){
+                        x_tmp[i] = x[i];
+                    }
+                    ''' + decode_function.get_cl_function_name() + '''(data, x_tmp);
                 }
-                ''' + decode_function.get_cl_function_name() + '''(data, x_model);
+                barrier(CLK_LOCAL_MEM_FENCE);
+    
+                return ''' + objective_function.get_cl_function_name() + '''(
+                    x_tmp, ((objective_function_wrapper_data*)data)->data, objective_list);    
             }
-            barrier(CLK_LOCAL_MEM_FENCE);
-
-            return ''' + objective_function.get_cl_function_name() + '''(
-                x_model, data, objective_list);    
-        }
-    ''', dependencies=[objective_function, decode_function])
+        ''', dependencies=[objective_function, decode_function])
 
 
 class ParameterCodec:
