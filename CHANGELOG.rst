@@ -2,6 +2,21 @@
 Changelog
 *********
 
+v0.15.6 (2018-10-17)
+====================
+
+Changed
+-------
+- Updated the rotate orthogonal vector CL function. This reverts changes from a few versions ago, this gives the same value but faster and more stable.
+- Work on moving local variable declarations outside of non-kernel functions. This should in the future allow running MOT on LLVM OpenCL implementations. More work needed.
+
+Other
+-----
+- Speed-up of Tensor post-processing.
+- Refactoring of the NODDI model.
+- Removed the AxonDensity index from the AxCaliber models.
+
+
 v0.15.5 (2018-10-09)
 ====================
 
