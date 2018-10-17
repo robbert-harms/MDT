@@ -1,6 +1,6 @@
 """This module contains various standard post-processing routines for use after optimization or sample."""
 import numpy as np
-from mdt.utils import tensor_spherical_to_cartesian, tensor_cartesian_to_spherical
+from mdt.utils import tensor_spherical_to_cartesian, tensor_cartesian_to_spherical, voxelwise_vector_matrix_vector_product
 from mot import minimize
 from mot.lib.cl_function import SimpleCLFunction
 from mot.lib.utils import split_in_batches, parse_cl_function
@@ -153,11 +153,7 @@ class DTIMeasures:
         gradient = DTIMeasures._get_fractional_anisotropy_gradient(d, dperp0, dperp1)
         covars = DTIMeasures._get_diffusivities_covariance_matrix(d_std, dperp0_std, dperp1_std,
                                                                   covariances=covariances)
-
-        fa_std = np.zeros((gradient.shape[0]))
-        for ind in range(gradient.shape[0]):
-            fa_std[ind] = np.sqrt(np.dot(np.dot(gradient[ind], covars[ind]), gradient[ind]))
-        return np.nan_to_num(fa_std)
+        return np.nan_to_num(np.sqrt(voxelwise_vector_matrix_vector_product(gradient, covars, gradient)))
 
     @staticmethod
     def _get_fractional_anisotropy_gradient(d, dperp0, dperp1):

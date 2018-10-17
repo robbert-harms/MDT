@@ -2055,3 +2055,26 @@ def zip_nifti(in_file, out_file=None, remove_old=False):
 
     if remove_old:
         os.remove(in_file)
+
+
+def voxelwise_vector_matrix_vector_product(a, B, c):
+    """Compute the dot product of a*B*c assuming the first axii are voxel wise dimensions.
+
+    This function can be used in error propagation where you multiply the gradient (assuming univariate function) with
+    the covariance matrix with the gradient transposed.
+
+    Args:
+        a (ndarray): of size (n, m) or (x, y, z, m), vector elements per voxel
+        B (ndarray): of size (n, m, m) or (x, y, z, m, m), matrix elements per voxel
+        c (ndarray): of size (n, m) or (x, y, z, m), vector elements per voxel
+
+    Returns:
+        ndarray: either of size (n, 1) or of size (x, y, z, 1), the voxelwise matrix multiplication of aBc.
+    """
+    m = a.shape[-1]
+
+    tmp = np.zeros_like(a)
+    for ind in range(m):
+        tmp[..., ind] = np.sum(a * B[..., ind, :], axis=-1)
+
+    return np.sum(tmp * c, axis=-1)
