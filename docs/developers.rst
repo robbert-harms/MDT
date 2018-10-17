@@ -207,6 +207,27 @@ If you additionally want to generate the PDF documentation file you will have to
         latexmk
 
 
+Generating a release (only possible with access rights)
+=======================================================
+Use ``make prepare-release`` to prepare the release, then use ``make release`` to push the release.
+
+Required packages:
+
+.. code-block:: bash
+
+    $ sudo apt install \
+        python3-pystache \
+        dput \
+        python3-stdeb \
+        devscripts \
+        build-essential \
+        twine
+
+    $ sudo pip3 install \
+        gitchangelog \
+        python3-wheel
+
+
 *******
 Credits
 *******

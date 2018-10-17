@@ -1,6 +1,7 @@
 """This module contains various standard post-processing routines for use after optimization or sample."""
 import numpy as np
-from mdt.utils import tensor_spherical_to_cartesian, tensor_cartesian_to_spherical, voxelwise_vector_matrix_vector_product
+from mdt.utils import tensor_spherical_to_cartesian, tensor_cartesian_to_spherical, \
+    voxelwise_vector_matrix_vector_product, create_covariance_matrix
 from mot import minimize
 from mot.lib.cl_function import SimpleCLFunction
 from mot.lib.utils import split_in_batches, parse_cl_function
@@ -151,8 +152,10 @@ class DTIMeasures:
             ndarray: the standard deviation of the fraction anisotropy using error propagation of the diffusivities.
         """
         gradient = DTIMeasures._get_fractional_anisotropy_gradient(d, dperp0, dperp1)
-        covars = DTIMeasures._get_diffusivities_covariance_matrix(d_std, dperp0_std, dperp1_std,
-                                                                  covariances=covariances)
+        covars = create_covariance_matrix(
+                {'d.std': d_std, 'dperp0.std': dperp0_std, 'dperp1.std': dperp1_std},
+                ['d', 'dperp0', 'dperp1'], covariances)
+
         return np.nan_to_num(np.sqrt(voxelwise_vector_matrix_vector_product(gradient, covars, gradient)))
 
     @staticmethod
@@ -198,30 +201,6 @@ class DTIMeasures:
         if len(gradient.shape) < 2:
             return gradient[None, :]
         return gradient
-
-    @staticmethod
-    def _get_diffusivities_covariance_matrix(d_std, dperp0_std, dperp1_std, covariances=None):
-        """Get the covariance matrix of the diffusivities.
-
-        This is required for the error propagation of the Fractional Anisotropy.
-        """
-        d_std, dperp0_std, dperp1_std = (np.squeeze(el) for el in [d_std, dperp0_std, dperp1_std])
-
-        covars = np.zeros((1 if not len(d_std.shape) else d_std.shape[0], 3, 3)).astype(np.float64)
-        covars[:, 0, 0] = d_std
-        covars[:, 1, 1] = dperp0_std
-        covars[:, 2, 2] = dperp1_std
-
-        covars **= 2
-
-        if covariances is not None:
-            covars[:, 0, 1] = covars[:, 1, 0] = np.squeeze(
-                covariances.get('d_to_dperp0', covariances.get('dperp0_to_d', 0)))
-            covars[:, 0, 2] = covars[:, 2, 0] = np.squeeze(
-                covariances.get('d_to_dperp1', covariances.get('dperp1_to_d', 0)))
-            covars[:, 1, 2] = covars[:, 2, 1] = np.squeeze(
-                covariances.get('dperp0_to_dperp1', covariances.get('dperp1_to_dperp0', 0)))
-        return covars
 
     @staticmethod
     def _sort_eigensystem(parameters_dict):
