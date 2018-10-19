@@ -2,6 +2,16 @@
 Changelog
 *********
 
+v0.15.7 (2018-10-19)
+====================
+Fixed an important bug in the code that was present since version 0.14.8. The noise std was not correctly set anymore in the log likelihood method.
+All users are advised to upgrade to this version.
+
+Fixed
+-----
+- Fixed the issue that the noise std was not set correctly due to naming issues in the log likelihood function.
+
+
 v0.15.6 (2018-10-17)
 ====================
 
