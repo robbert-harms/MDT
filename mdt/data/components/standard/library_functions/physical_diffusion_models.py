@@ -43,6 +43,26 @@ class NeumanCylinder(LibraryFunctionTemplate):
     '''
 
 
+class NeumanCylinderLongApprox(LibraryFunctionTemplate):
+    """This function returns the displacement in the restricted signal attenuation, for radius R according to the
+       long diffusion time approximation of the C.H. Neuman model, equation (28) in [1].
+
+    In typical spin-echo experiments, ``tau = TE/2``.
+
+    References:
+    [1] Neuman CH. Spin echo of spins diffusing in a bounded medium.
+        J Chem Phys. 1974;60(11):4508-4511. doi:10.1063/1.1680931.
+    """
+    return_type = 'double'
+    parameters = ['G', 'tau', 'd', 'R']
+    dependencies = ['MRIConstants']
+    cl_code = '''
+        return -( (pown(R, 4) * GAMMA_H_HZ_SQ * (G * G)) / d ) 
+                    * (7 / 296.0) 
+                    * (2 * tau - (99/112.0) * (pown(R, 2) / d)); 
+    '''
+
+
 class NeumanSphere(LibraryFunctionTemplate):
     """This function returns the displacement in spherical signal attenuation, for radius R
         according to the C.H. Neuman model, equation (18) in [1].
@@ -111,26 +131,6 @@ class NeumanSphere(LibraryFunctionTemplate):
     '''
 
 
-class NeumanCylinderLongApprox(LibraryFunctionTemplate):
-    """This function returns the displacement in the restricted signal attenuation, for radius R according to the
-       long diffusion time approximation of the C.H. Neuman model, equation (28) in [1].
-
-    In typical spin-echo experiments, ``tau = TE/2``.
-
-    References:
-    [1] Neuman CH. Spin echo of spins diffusing in a bounded medium.
-        J Chem Phys. 1974;60(11):4508-4511. doi:10.1063/1.1680931.
-    """
-    return_type = 'double'
-    parameters = ['G', 'tau', 'd', 'R']
-    dependencies = ['MRIConstants']
-    cl_code = '''
-        return -( (pown(R, 4) * GAMMA_H_HZ_SQ * (G * G)) / d ) 
-                    * (7 / 296.0) 
-                    * (2 * tau - (99/112.0) * (pown(R, 2) / d)); 
-    '''
-
-
 class NeumanSphereLongApprox(LibraryFunctionTemplate):
     """This function returns the displacement in the spherical signal attenuation, for radius R according to the
        long diffusion time approximation of the C.H. Neuman model, equation (27) in [1].
@@ -168,7 +168,7 @@ class VanGelderenCylinder(LibraryFunctionTemplate):
         if(R == 0.0 || R < MOT_EPSILON){
             return 0;
         }
-
+        
         double sum = 0;
         mot_float_type alpha;
         mot_float_type alpha2_d;
