@@ -391,7 +391,7 @@ class DMRICompositeModel(DMRIOptimizable):
         self._input_data = input_data
         if self._input_data.noise_std is not None:
             self._model_functions_info.set_parameter_value('{}.{}'.format(
-                self._likelihood_function.name,
+                self._likelihood_function.get_log_likelihood_function().name,
                 self._likelihood_function.get_noise_std_param_name()), self._input_data.noise_std)
         return self
 

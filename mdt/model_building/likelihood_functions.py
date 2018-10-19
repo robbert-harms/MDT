@@ -18,11 +18,6 @@ class LikelihoodFunction:
     this class is a proxy to the model function embedding the likelihood function.
     """
 
-    @property
-    def name(self):
-        """Get the name of this model. Should be the same as the name in the CL header."""
-        raise NotImplementedError()
-
     def get_noise_std_param_name(self):
         """Get the name of the parameter that is associated with the noise standard deviation in the problem data.
 
@@ -78,10 +73,6 @@ class AbstractLikelihoodFunction(LikelihoodFunction):
         ]
         self._noise_std_param_name = noise_std_param_name or 'sigma'
         self._dependencies = dependencies or ()
-
-    @property
-    def name(self):
-        return self._name
 
     def get_noise_std_param_name(self):
         return self._noise_std_param_name
