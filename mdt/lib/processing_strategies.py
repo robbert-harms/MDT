@@ -455,7 +455,7 @@ class FittingProcessor(SimpleModelProcessor):
         self._logger.info('Using MOT version {}'.format(mot.__version__))
         self._logger.info('We will use a {} precision float type for the calculations.'.format(
             'double' if cl_runtime_info.double_precision else 'single'))
-        for env in cl_runtime_info.get_cl_environments():
+        for env in cl_runtime_info.cl_environments:
             self._logger.info('Using device \'{}\'.'.format(str(env)))
         self._logger.info('Using compile flags: {}'.format(cl_runtime_info.get_compile_flags()))
 

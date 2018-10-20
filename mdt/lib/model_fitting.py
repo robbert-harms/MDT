@@ -1,4 +1,3 @@
-import collections
 import glob
 import logging
 import os
@@ -15,7 +14,6 @@ from mdt.utils import create_roi, get_cl_devices, model_output_exists, \
     per_model_logging_context, get_temporary_results_dir, SimpleInitializationData
 from mdt.lib.processing_strategies import FittingProcessor, get_full_tmp_results_path
 from mdt.lib.exceptions import InsufficientProtocolError
-from mot.lib.load_balance_strategies import EvenDistribution
 import mot.configuration
 from mot.configuration import RuntimeConfigurationAction, CLRuntimeInfo
 
@@ -156,13 +154,8 @@ class ModelFit:
         self._tmp_results_dir = get_temporary_results_dir(tmp_results_dir)
         self._initialization_data = initialization_data or SimpleInitializationData()
 
-        if cl_device_ind is not None and not isinstance(cl_device_ind, collections.Iterable):
-            cl_device_ind = [cl_device_ind]
-
         if cl_device_ind is not None:
-            cl_environments = [get_cl_devices()[ind] for ind in cl_device_ind]
-            self._cl_runtime_info = CLRuntimeInfo(cl_environments=cl_environments,
-                                                  load_balancer=EvenDistribution(),
+            self._cl_runtime_info = CLRuntimeInfo(cl_environments=get_cl_devices(cl_device_ind),
                                                   double_precision=double_precision)
         else:
             self._cl_runtime_info = CLRuntimeInfo(double_precision=double_precision)
@@ -229,8 +222,7 @@ class ModelFit:
 
     def _run_composite_model(self, model, recalculate, model_names, apply_user_provided_initialization=False):
         with mot.configuration.config_context(RuntimeConfigurationAction(
-                cl_environments=self._cl_runtime_info.cl_environments,
-                load_balancer=self._cl_runtime_info.load_balancer)):
+                cl_environments=self._cl_runtime_info.cl_environments)):
             if apply_user_provided_initialization:
                 self._apply_user_provided_initialization_data(model)
 

@@ -189,7 +189,6 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
            doi:10.1198/jcgs.2009.06134.
     """
     import mdt.utils
-    from mot.lib.load_balance_strategies import EvenDistribution
     from mdt.lib.model_sampling import sample_composite_model
     from mdt.models.cascade import DMRICascadeModelInterface
     import mot.configuration
@@ -217,16 +216,11 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
     if isinstance(model, DMRICascadeModelInterface):
         raise ValueError('The function \'sample_model()\' does not accept cascade models.')
 
-    if cl_device_ind is not None and not isinstance(cl_device_ind, collections.Iterable):
-        cl_device_ind = [cl_device_ind]
-
     if cl_device_ind is None:
         cl_context_action = mot.configuration.VoidConfigurationAction()
     else:
-        cl_envs = [get_cl_devices()[ind] for ind in cl_device_ind]
         cl_context_action = mot.configuration.RuntimeConfigurationAction(
-            cl_environments=cl_envs,
-            load_balancer=EvenDistribution(),
+            cl_environments=get_cl_devices(cl_device_ind),
             double_precision=double_precision)
 
     with mot.configuration.config_context(cl_context_action):

@@ -15,8 +15,7 @@ from mdt.gui.model_fit.design.ui_optimization_extra_data_dialog import Ui_Optimi
 from mdt.gui.model_fit.design.ui_optimization_options_dialog import Ui_OptimizationOptionsDialog
 from mdt.gui.utils import function_message_decorator, image_files_filters, protocol_files_filters, MainTab, \
     get_script_file_header_text
-from mdt.utils import split_image_path
-from mot.lib.cl_environments import CLEnvironmentFactory
+from mdt.utils import split_image_path, get_cl_devices
 from mot.optimize import get_minimizer_options
 
 __author__ = 'Robbert Harms'
@@ -251,7 +250,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
         input_data_info = kwargs['input_data_info']
         optim_options = kwargs['optim_options']
 
-        all_cl_devices = CLEnvironmentFactory.smart_device_selection()
+        all_cl_devices = get_cl_devices()
         user_selected_devices = mot.configuration.get_cl_environments()
 
         format_kwargs = dict(
@@ -328,7 +327,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
         input_data_info = kwargs['input_data_info']
         optim_options = kwargs['optim_options']
 
-        all_cl_devices = CLEnvironmentFactory.smart_device_selection()
+        all_cl_devices = get_cl_devices()
         user_selected_devices = mot.configuration.get_cl_environments()
 
         with open(output_file, 'w') as f:

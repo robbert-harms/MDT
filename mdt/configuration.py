@@ -28,7 +28,6 @@ from contextlib import contextmanager
 from pkg_resources import resource_stream
 
 import mot.configuration
-from mot.lib.load_balance_strategies import EvenDistribution
 
 from mdt.__version__ import __version__
 
@@ -355,17 +354,10 @@ class RuntimeSettingsLoader(ConfigSectionLoader):
         if 'cl_device_ind' in value:
             if value['cl_device_ind'] is not None:
                 from mdt.utils import get_cl_devices
-                all_devices = get_cl_devices()
-
-                indices = value['cl_device_ind']
-                if not isinstance(indices, collections.Iterable):
-                    indices = [indices]
-
-                devices = [all_devices[ind] for ind in indices if ind < len(all_devices)]
+                devices = get_cl_devices(value['cl_device_ind'])
 
                 if devices:
                     mot.configuration.set_cl_environments(devices)
-                    mot.configuration.set_load_balancer(EvenDistribution())
 
     def update(self, config_dict, updates):
         if 'runtime_settings' not in config_dict:

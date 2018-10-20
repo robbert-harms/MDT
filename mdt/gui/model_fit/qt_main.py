@@ -18,7 +18,6 @@ import mot.configuration
 from mdt.configuration import update_gui_config
 from mdt.gui.model_fit.tabs.generate_protocol_tab import GenerateProtocolTab
 from mot.lib.cl_environments import CLEnvironmentFactory
-from mot.lib.load_balance_strategies import EvenDistribution
 
 try:
     #python 2.7
@@ -145,12 +144,9 @@ class RuntimeSettingsDialog(Ui_RuntimeSettingsDialog, QDialog):
 
         self.cldevicesSelection.insertItems(0, [str(cl_device) for cl_device in self.all_cl_devices])
 
-        load_balancer = mot.configuration.get_load_balancer()
-        lb_used_devices = load_balancer.get_used_cl_environments(self.all_cl_devices)
-
         for ind, device in enumerate(self.all_cl_devices):
             self.cldevicesSelection.item(ind).setSelected(device in self.user_selected_devices
-                                                          and device in lb_used_devices)
+                                                          and device in self.all_cl_devices)
 
         self.buttonBox.button(QDialogButtonBox.Ok).clicked.connect(self._update_settings)
 
@@ -163,7 +159,6 @@ class RuntimeSettingsDialog(Ui_RuntimeSettingsDialog, QDialog):
         selection = [ind for ind in range(self.cldevicesSelection.count())
                      if self.cldevicesSelection.item(ind).isSelected()]
         mot.configuration.set_cl_environments([self.all_cl_devices[ind] for ind in selection])
-        mot.configuration.set_load_balancer(EvenDistribution())
 
         update_gui_config({'runtime_settings': {'cl_device_ind': selection}})
 

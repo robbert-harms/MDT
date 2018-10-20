@@ -1,7 +1,6 @@
 import collections
 import gzip
 import numbers
-import distutils.dir_util
 import glob
 import logging
 import logging.config as logging_config
@@ -1387,15 +1386,27 @@ def flatten(input_it):
                 yield j
 
 
-def get_cl_devices():
+def get_cl_devices(indices=None, device_type=None):
     """Get a list of all CL devices in the system.
 
     The indices of the devices can be used in the model fitting/sample functions for 'cl_device_ind'.
 
+    Args:
+        indices (List[int] or int): the indices of the CL devices to use. Either set this or preferred_device_type.
+        device_type (str): the preferred device type, one of 'CPU', 'GPU' or 'APU'. If set, we ignore the indices
+            parameter.
+
     Returns:
         A list of CLEnvironments, one for each device in the system.
     """
-    return CLEnvironmentFactory.smart_device_selection()
+    if device_type is not None:
+        return CLEnvironmentFactory.smart_device_selection(preferred_device_type=device_type)
+
+    if indices is not None and not isinstance(indices, collections.Iterable):
+        indices = [indices]
+
+    envs = CLEnvironmentFactory.smart_device_selection()
+    return [envs[ind] for ind in indices]
 
 
 def model_output_exists(model, output_folder, append_model_name_to_path=True):
