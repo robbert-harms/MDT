@@ -23,9 +23,9 @@ class ConfluentHyperGeometricFirstKind(LibraryFunctionTemplate):
     [2] Kume A, Wood ATA. Saddlepoint approximations for the Bingham and Fisher-Bingham normalising constants.
         Biometrika. 2005;92(2):465-476. doi:10.1093/biomet/92.2.465.
     """
-    return_type = 'double'
-    parameters = ['e0', 'e1', 'e2']
     dependencies = ['solve_cubic_pol_real']
+    return_type = 'double'
+    parameters = ['double e0', 'double e1', 'double e2']
     cl_code = '''
         if(e0 == 0 && e1 == 0 && e2 == 0){
             return 1;

@@ -1,9 +1,8 @@
 from copy import deepcopy
 from mdt.component_templates.base import ComponentBuilder, ComponentTemplate
-from mot.lib.cl_data_type import SimpleCLDataType
-from mot.lib.cl_function import SimpleCLFunction, SimpleCLFunctionParameter, SimpleCLCodeObject
+from mot.lib.cl_function import SimpleCLFunction, SimpleCLCodeObject
 from mdt.model_building.parameters import LibraryParameter
-from mdt.lib.components import get_component, has_component
+from mdt.lib.components import get_component
 from mot.library_functions.base import CLLibrary
 
 __author__ = 'Robbert Harms'
@@ -133,13 +132,7 @@ def _resolve_parameters(parameter_list):
     parameters = []
     for item in parameter_list:
         if isinstance(item, str):
-            if has_component('parameters', item):
-                param = get_component('parameters', item)()
-                parameters.append(LibraryParameter(param.data_type, item))
-            else:
-                parameters.append(LibraryParameter(SimpleCLDataType.from_string('double'), item))
-        elif isinstance(item, (tuple, list)):
-            parameters.append(SimpleCLFunctionParameter(item[0], item[1]))
+            parameters.append(LibraryParameter(item))
         else:
             parameters.append(deepcopy(item))
     return parameters

@@ -22,14 +22,11 @@ class ParameterBuilder(ComponentBuilder):
         Args:
             template (Type[ParameterTemplate]): the configuration for the parameter.
         """
-        data_type = template.data_type
-        if isinstance(data_type, str):
-            data_type = SimpleCLDataType.from_string(data_type)
-
         if issubclass(template, ProtocolParameterTemplate):
             class AutoProtocolParameter(ProtocolParameter):
                 def __init__(self, nickname=None):
-                    super().__init__(data_type, nickname or template.name, value=template.value)
+                    super().__init__('{} {}'.format(template.data_type, nickname or template.name),
+                                     value=template.value)
 
             for name, method in template.bound_methods.items():
                 setattr(AutoProtocolParameter, name, method)
@@ -44,8 +41,7 @@ class ParameterBuilder(ComponentBuilder):
             class AutoFreeParameter(FreeParameter):
                 def __init__(self, nickname=None):
                     super().__init__(
-                        data_type,
-                        nickname or template.name,
+                        '{} {}'.format(template.data_type, nickname or template.name),
                         template.fixed,
                         template.init_value,
                         template.lower_bound,
@@ -71,7 +67,7 @@ class ParameterTemplate(ComponentTemplate):
     template options:
         name (str): the name of the parameter, defaults to the class name
         description (str): the description of this parameter
-        data_type (str or DataType): either a string we use as datatype or the actual datatype itself
+        data_type (str): the data type for this parameter
     """
     _component_type = 'parameters'
     _builder = ParameterBuilder()

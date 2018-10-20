@@ -222,4 +222,4 @@ class DataCacheParameter(SimpleCLFunctionParameter):
                 This parameter will make sure it gets named to the correct caching struct type.
             name (str): the name of this parameter in the function
         """
-        super().__init__('{}_cache*'.format(compartment_name), name)
+        super().__init__('{}_cache* {}'.format(compartment_name, name))

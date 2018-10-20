@@ -159,6 +159,6 @@ class SimpleWeight(WeightType):
         super().__init__(
             'mot_float_type',
             name,
-            (FreeParameter(SimpleCLDataType.from_string('mot_float_type'), param_name,
-                           False, value, lower_bound, upper_bound, **parameter_settings),),
+            (FreeParameter('mot_float_type ' + param_name, False, value,
+                           lower_bound, upper_bound, **parameter_settings),),
             'return ' + param_name + ';')

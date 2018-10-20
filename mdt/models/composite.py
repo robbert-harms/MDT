@@ -571,10 +571,10 @@ class DMRICompositeModel(DMRIOptimizable):
 
         parameters_needed = [p for p in ['g', 'b', 'G'] if self._model_functions_info.has_protocol_parameter(p)]
 
-        function_arguments = [(self._model_functions_info.get_protocol_parameter_by_name(p).data_type.ctype + '*', p)
-                              for p in parameters_needed]
-        function_arguments.append(('global float*', 'gradient_deviations'))
-        function_arguments.append(('uint', 'observation_index'))
+        function_arguments = [self._model_functions_info.get_protocol_parameter_by_name(p).data_type.ctype
+                              + '* ' + p for p in parameters_needed]
+        function_arguments.append('global float* gradient_deviations')
+        function_arguments.append('uint observation_index')
 
         body = '''
             const uint matrix_index = ''' + str(get_observation_multiplier(gradient_deviations)) + ''' 
@@ -829,8 +829,8 @@ class DMRICompositeModel(DMRIOptimizable):
             body += 'x[{}] = {}; \n'.format(str(ind), name)
 
         return SimpleCLFunction('void', 'finalizeProposal',
-                                [('void*', 'data'),
-                                 ('local mot_float_type*', 'x')],
+                                ['void* data',
+                                 'local mot_float_type* x'],
                                 body, dependencies=[func for _, func in self._proposal_callbacks])
 
     def _get_weight_sum_to_one_transformation(self):
@@ -1341,9 +1341,9 @@ class DMRICompositeModel(DMRIOptimizable):
                 dependencies.extend(compartment.get_dependencies())
                 dependencies.append(compartment.get_cache_init_function())
 
-        parameters = [('void*', 'data'),
-                      ('local mot_float_type*', 'x'),
-                      (cache_struct.get_type_name() + '*', cache_struct.get_variable_name())]
+        parameters = ['void* data',
+                      'local mot_float_type* x',
+                      cache_struct.get_type_name() + '* ' + cache_struct.get_variable_name()]
 
         return SimpleCLFunction(
             'void', '_initCaches', parameters, get_function_body(), dependencies=dependencies)
@@ -1447,11 +1447,11 @@ class DMRICompositeModel(DMRIOptimizable):
             return deps
 
         def get_function_parameters():
-            parameters = [('void*', 'data'),
-                          ('local mot_float_type*', 'x'),
-                          ('uint', 'observation_index')]
+            parameters = ['void* data',
+                          'local mot_float_type* x',
+                          'uint observation_index']
             if not include_cache_func:
-                parameters.append((cache_struct.get_type_name() + '*', cache_struct.get_variable_name()))
+                parameters.append(cache_struct.get_type_name() + '* ' + cache_struct.get_variable_name())
             return parameters
 
         return SimpleCLFunction(
@@ -1609,7 +1609,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
         return SimpleCLFunction(
             'mot_float_type', 'getLogPrior',
-            [('local mot_float_type*', 'x'), ('void*', 'data')],
+            ['local mot_float_type* x', 'void* data'],
             get_body(), dependencies=get_dependencies())
 
     def _get_weight_prior(self):
@@ -1621,7 +1621,8 @@ class DMRICompositeModel(DMRIOptimizable):
         if len(weights) > 1:
             return SimpleCLFunction(
                 'mot_float_type', 'prior_estimable_weights_sum_to_one',
-                weights, 'return (' + ' + '.join(el[1].replace('.', '_') for el in weights) + ') <= 1;')
+                ['{} {}'.format(el[0], el[1]) for el in weights],
+                'return (' + ' + '.join(el[1].replace('.', '_') for el in weights) + ') <= 1;')
         return None
 
 
@@ -2225,7 +2226,7 @@ class _ModelFunctionPriorToCompositeModelPrior(SimpleCLFunction):
 
     def __init__(self, model_function_prior, compartment_name):
         """Simple prior class for easily converting the compartment priors to composite model priors."""
-        parameters = [SimpleCLFunctionParameter('mot_float_type', '{}.{}'.format(compartment_name, p.name))
+        parameters = [SimpleCLFunctionParameter('mot_float_type {}.{}'.format(compartment_name, p.name))
                       for p in model_function_prior.get_parameters()]
         self._old_params = model_function_prior.get_parameters()
 

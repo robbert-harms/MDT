@@ -18,9 +18,10 @@ class TensorApparentDiffusion(LibraryFunctionTemplate):
         dperp0: second eigenvalue
         dperp1: third eigenvalue
     """
-    return_type = 'mot_float_type'
     dependencies = ['TensorSphericalToCartesian']
-    parameters = ['theta', 'phi', 'psi', 'd', 'dperp0', 'dperp1', 'g']
+    return_type = 'mot_float_type'
+    parameters = ['mot_float_type theta', 'mot_float_type phi', 'mot_float_type psi',
+                  'mot_float_type d', 'mot_float_type dperp0', 'mot_float_type dperp1', 'mot_float_type4 g']
     cl_code = '''
         mot_float_type4 vec0, vec1, vec2;
         TensorSphericalToCartesian(theta, phi, psi, &vec0, &vec1, &vec2);
@@ -46,9 +47,12 @@ class KurtosisMultiplication(LibraryFunctionTemplate):
         double: the evaluated scalar.
     """
     return_type = 'double'
-    parameters = ['W_0000', 'W_1111', 'W_2222', 'W_1000', 'W_2000', 'W_1110',
-                  'W_2220', 'W_2111', 'W_2221', 'W_1100', 'W_2200', 'W_2211',
-                  'W_2100', 'W_2110', 'W_2210', ('mot_float_type4', 'n')]
+    parameters = ['mot_float_type W_0000', 'mot_float_type W_1111', 'mot_float_type W_2222',
+                  'mot_float_type W_1000', 'mot_float_type W_2000', 'mot_float_type W_1110',
+                  'mot_float_type W_2220', 'mot_float_type W_2111', 'mot_float_type W_2221',
+                  'mot_float_type W_1100', 'mot_float_type W_2200', 'mot_float_type W_2211',
+                  'mot_float_type W_2100', 'mot_float_type W_2110', 'mot_float_type W_2210',
+                  'mot_float_type4 n']
     cl_code = '''
         double kurtosis_sum = 0;
 

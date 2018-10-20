@@ -18,7 +18,9 @@ class NODDI_SphericalHarmonicsIntegral(LibraryFunctionTemplate):
         exponent_term: the term in the exponent of the NODDI integral, negative number
     """
     return_type = 'double'
-    parameters = ('angle_term', 'exponent_term', 'kappa')
+    parameters = ('double angle_term',
+                  'double exponent_term',
+                  'mot_float_type kappa')
     dependencies = ('NODDI_WatsonSHCoeff', 'NODDI_LegendreGaussianIntegral', 'EvenLegendreTerms')
     cl_code = '''
         // do not change this value! It would require adding approximations
@@ -62,7 +64,8 @@ class NODDI_LegendreGaussianIntegral(LibraryFunctionTemplate):
         x: a positive numbers, specifying the parameters of the gaussian
         result: array of size 7, holding the even terms of the integral
     """
-    parameters = [('mot_float_type', 'x'), ('mot_float_type*', 'result')]
+    parameters = ['mot_float_type x',
+                  'mot_float_type* result']
     cl_code = '''
         // do not change this value! It would require adding approximations
         #define NODDI_IC_MAX_POLYNOMIAL_ORDER 6
@@ -135,7 +138,8 @@ class NODDI_WatsonSHCoeff(LibraryFunctionTemplate):
             ...
             result[7] = coefficient[14]
     """
-    parameters = [('mot_float_type', 'kappa'), ('mot_float_type*', 'result')]
+    parameters = ['mot_float_type kappa',
+                  'mot_float_type* result']
     dependencies = ('erfi',)
     cl_code = '''
         // do not change this value! It would require adding approximations
@@ -247,9 +251,9 @@ class NODDI_WatsonHinderedDiffusionCoeff(LibraryFunctionTemplate):
                  OUTPUT: the equivalent diffusivity after integration
          kappa: the concentration parameter of the Watson's distribution
     """
-    parameters = [('mot_float_type*', 'd'),
-                  ('mot_float_type*', 'dperp0'),
-                  'kappa']
+    parameters = ['mot_float_type* d',
+                  'mot_float_type* dperp0',
+                  'mot_float_type kappa']
     dependencies = ['dawson']
     cl_code = '''
         double tmp;

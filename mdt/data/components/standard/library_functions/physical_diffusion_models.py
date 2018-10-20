@@ -18,7 +18,7 @@ class NeumanCylinder(LibraryFunctionTemplate):
         J Chem Phys. 1974;60(11):4508-4511. doi:10.1063/1.1680931.
     """
     return_type = 'double'
-    parameters = ['G', 'tau', 'd', 'R']
+    parameters = ['double G', 'double tau', 'double d', 'double R']
     dependencies = ['MRIConstants', 'BesselRoots']
     cl_code = '''
         if(R == 0.0 || R < MOT_EPSILON){
@@ -54,7 +54,7 @@ class NeumanCylinderLongApprox(LibraryFunctionTemplate):
         J Chem Phys. 1974;60(11):4508-4511. doi:10.1063/1.1680931.
     """
     return_type = 'double'
-    parameters = ['G', 'tau', 'd', 'R']
+    parameters = ['double G', 'double tau', 'double d', 'double R']
     dependencies = ['MRIConstants']
     cl_code = '''
         return -( (pown(R, 4) * GAMMA_H_HZ_SQ * (G * G)) / d ) 
@@ -74,7 +74,7 @@ class NeumanSphere(LibraryFunctionTemplate):
         J Chem Phys. 1974;60(11):4508-4511. doi:10.1063/1.1680931.
     """
     return_type = 'double'
-    parameters = ['G', 'tau', 'd', 'R']
+    parameters = ['double G', 'double tau', 'double d', 'double R']
     dependencies = ['MRIConstants']
     cl_code = '''
         if(R == 0.0 || R < MOT_EPSILON){
@@ -142,7 +142,7 @@ class NeumanSphereLongApprox(LibraryFunctionTemplate):
         J Chem Phys. 1974;60(11):4508-4511. doi:10.1063/1.1680931.
     """
     return_type = 'double'
-    parameters = ['G', 'tau', 'd', 'R']
+    parameters = ['double G', 'double tau', 'double d', 'double R']
     dependencies = ['MRIConstants']
     cl_code = '''
         return -( (pown(R, 4) * GAMMA_H_HZ_SQ * (G * G)) / d ) 
@@ -162,7 +162,7 @@ class VanGelderenCylinder(LibraryFunctionTemplate):
         diffusion measurements. JMagnResonSerA. 1995;117(2):209-219.
     """
     return_type = 'double'
-    parameters = ['G', 'Delta', 'delta', 'd', 'R']
+    parameters = ['double G', 'double Delta', 'double delta', 'double d', 'double R']
     dependencies = ['MRIConstants', 'BesselRoots']
     cl_code = '''
         if(R == 0.0 || R < MOT_EPSILON){
@@ -199,7 +199,7 @@ class VanGelderenSphere(LibraryFunctionTemplate):
         diffusion measurements. JMagnResonSerA. 1995;117(2):209-219.
     """
     return_type = 'double'
-    parameters = ['G', 'Delta', 'delta', 'd', 'R']
+    parameters = ['double G', 'double Delta', 'double delta', 'double d', 'double R']
     dependencies = ['MRIConstants']
     cl_code = '''
         if(R == 0.0 || R < MOT_EPSILON){

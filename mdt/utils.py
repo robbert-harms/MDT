@@ -1406,6 +1406,10 @@ def get_cl_devices(indices=None, device_type=None):
         indices = [indices]
 
     envs = CLEnvironmentFactory.smart_device_selection()
+
+    if indices is None:
+        return envs
+
     return [envs[ind] for ind in indices]
 
 

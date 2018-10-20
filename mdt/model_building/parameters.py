@@ -1,4 +1,3 @@
-from mot.lib.cl_data_type import SimpleCLDataType
 from mot.lib.cl_function import SimpleCLFunctionParameter
 from .parameter_functions.numdiff_info import SimpleNumDiffInfo
 from .parameter_functions.priors import UniformWithinBoundsPrior
@@ -22,12 +21,12 @@ class CurrentObservationParam(SimpleCLFunctionParameter):
 
         You can use this parameter by adding it to your model and then use the current name in your model equation.
         """
-        super().__init__(SimpleCLDataType.from_string('mot_float_type'), name)
+        super().__init__('mot_float_type ' + name)
 
 
 class InputDataParameter(SimpleCLFunctionParameter):
 
-    def __init__(self, data_type, name, value):
+    def __init__(self, declaration, value):
         """These parameters signal are meant to be contain data loaded from the input data object.
 
         In contrast to free parameters which are being optimized (or fixed to values), these parameters are
@@ -35,41 +34,37 @@ class InputDataParameter(SimpleCLFunctionParameter):
         to use for each problem instance and each data point.
 
         Args:
-            data_type (mot.lib.cl_data_type.SimpleCLDataType): the data type expected by this parameter
-            name (str): The name of this parameter
+            declaration (str): the declaration of this parameter. For example ``global int foo``.
             value (double or ndarray): The value used if no value is given in the input data.
         """
-        super().__init__(data_type, name)
+        super().__init__(declaration)
         self.value = value
 
 
 class ProtocolParameter(InputDataParameter):
 
-    def __init__(self, data_type, name, value=None):
+    def __init__(self, declaration, value=None):
         """Caries data per observation.
 
         Values for this parameter type are typically loaded from the input data. A default can be provided in the case
         that there is no suitable value in the input data.
 
         Args:
-            data_type (mot.lib.cl_data_type.SimpleCLDataType): the data type expected by this parameter
-            name (str): The name of this parameter
+            declaration (str): the declaration of this parameter. For example ``global int foo``.
             value (None or float or ndarray): The value used if no value is given in the input data.
         """
-        super().__init__(data_type, name, None)
-        self.value = value
+        super().__init__(declaration, value=value)
 
 
 class FreeParameter(SimpleCLFunctionParameter):
 
-    def __init__(self, data_type, name, fixed, value, lower_bound, upper_bound,
+    def __init__(self, declaration, fixed, value, lower_bound, upper_bound,
                  parameter_transform=None, sampling_proposal_std=None,
                  sampling_prior=None, numdiff_info=None):
         """This are the kind of parameters that are generally meant to be optimized.
 
         Args:
-            data_type (str or mot.lib.cl_data_type.SimpleCLDataType): the data type expected by this parameter
-            name (str): The name of this parameter
+            declaration (str): the declaration of this parameter. For example ``global int foo``.
             fixed (boolean): If this parameter is fixed to the value given
             value (double or ndarray): A single value for all problems or a list of values for each problem.
             lower_bound (double): The lower bound of this parameter
@@ -82,7 +77,7 @@ class FreeParameter(SimpleCLFunctionParameter):
             numdiff_info (mdt.model_building.parameter_functions.numdiff_info.NumDiffInfo): the information
                 for taking the numerical derivative with respect to this parameter.
         """
-        super().__init__(data_type, name)
+        super().__init__(declaration)
         self._value = value
         self._lower_bound = lower_bound
         self._upper_bound = upper_bound

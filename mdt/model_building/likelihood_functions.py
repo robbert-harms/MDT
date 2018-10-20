@@ -52,11 +52,10 @@ class LikelihoodFunction:
 
 class AbstractLikelihoodFunction(LikelihoodFunction):
 
-    def __init__(self, name, cl_function_name, parameter_list=None, noise_std_param_name=None, dependencies=()):
+    def __init__(self, cl_function_name, parameter_list=None, noise_std_param_name=None, dependencies=()):
         """The likelihood model is the model under which you evaluate your model estimates against observations.
 
         Args:
-            name (str): the name of the likelihood model
             cl_function_name (str): the name of the function
             parameter_list (list or tuple): the list of parameters this model requires to function correctly.
                 If set to None we set it to a default of three parameters, the observation, the model evaluation and
@@ -64,12 +63,11 @@ class AbstractLikelihoodFunction(LikelihoodFunction):
             noise_std_param_name (str): the name of the noise sigma parameter
             dependencies (list or tuple): the list of function dependencies
         """
-        self._name = name
         self._cl_function_name = cl_function_name
         self._parameter_list = parameter_list or [
-            ('double', 'observation'),
-            ('double', 'model_evaluation'),
-            FreeParameter('mot_float_type', 'sigma', True, 1, 0, 'INFINITY', parameter_transform=ClampTransform())
+            'double observation',
+            'double model_evaluation',
+            FreeParameter('mot_float_type sigma', True, 1, 0, 'INFINITY', parameter_transform=ClampTransform())
         ]
         self._noise_std_param_name = noise_std_param_name or 'sigma'
         self._dependencies = dependencies or ()
@@ -111,7 +109,7 @@ class GaussianLikelihoodFunction(AbstractLikelihoodFunction):
 
             log(PDF) = - ((observation - evaluation)^2 / (2 * sigma^2)) - log(sigma * sqrt(2*pi))
         """
-        super().__init__('GaussianNoiseModel', 'gaussianNoise')
+        super().__init__('GaussianNoiseModel')
 
     def _get_log_likelihood_body(self, include_constant_terms):
         if include_constant_terms:
@@ -142,7 +140,7 @@ class OffsetGaussianLikelihoodFunction(AbstractLikelihoodFunction):
 
             log(PDF) = - ((observation - sqrt(evaluation^2 + sigma^2))^2 / (2 * sigma^2)) - log(sigma * sqrt(2*pi))
         """
-        super().__init__('OffsetGaussianNoise', 'offsetGaussian')
+        super().__init__('OffsetGaussianNoise')
 
     def _get_log_likelihood_body(self, include_constant_terms):
         if include_constant_terms:
@@ -179,7 +177,7 @@ class RicianLikelihoodFunction(AbstractLikelihoodFunction):
                         - (observation^2 + evaluation^2) / (2 * sigma^2)
                         + log(bessel_i0((observation * evaluation) / sigma^2))
         """
-        super().__init__('RicianNoise', 'ricianNoise', dependencies=(LogBesseli0(),))
+        super().__init__('RicianNoise', dependencies=(LogBesseli0(),))
 
     def _get_log_likelihood_body(self, include_constant_terms):
         if include_constant_terms:

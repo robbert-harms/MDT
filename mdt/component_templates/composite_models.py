@@ -327,10 +327,10 @@ def _resolve_model_prior(prior, model_parameters):
         if dotted_name in remaining_prior:
             prior = prior.replace(dotted_name, bar_name)
             remaining_prior = remaining_prior.replace(dotted_name, '')
-            parameters.append(('mot_float_type', dotted_name))
+            parameters.append('mot_float_type ' + dotted_name)
         elif bar_name in remaining_prior:
             remaining_prior = remaining_prior.replace(bar_name, '')
-            parameters.append(('mot_float_type', dotted_name))
+            parameters.append('mot_float_type ' + dotted_name)
 
     return [SimpleCLFunction('mot_float_type', 'model_prior', parameters, prior)]
 

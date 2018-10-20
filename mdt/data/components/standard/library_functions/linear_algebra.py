@@ -15,9 +15,9 @@ class RotateOrthogonalVector(LibraryFunctionTemplate):
         vector: the rotated vector
     """
     return_type = 'mot_float_type4'
-    parameters = [('mot_float_type4', 'basis'),
-                  ('mot_float_type4', 'to_rotate'),
-                  ('mot_float_type', 'psi')]
+    parameters = ['mot_float_type4 basis',
+                  'mot_float_type4 to_rotate',
+                  'mot_float_type psi']
     cl_code = '''
         mot_float_type cos_psi;
         mot_float_type sin_psi = sincos(psi, &cos_psi);
@@ -40,9 +40,9 @@ class RotateVector(LibraryFunctionTemplate):
         vector: the rotated vector
     """
     return_type = 'mot_float_type4'
-    parameters = [('mot_float_type4', 'basis'),
-                  ('mot_float_type4', 'to_rotate'),
-                  ('mot_float_type', 'psi')]
+    parameters = ['mot_float_type4 basis',
+                  'mot_float_type4 to_rotate',
+                  'mot_float_type psi']
     cl_code = '''
         mot_float_type cos_psi;
         mot_float_type sin_psi = sincos(psi, &cos_psi);
@@ -67,8 +67,8 @@ class SphericalToCartesian(LibraryFunctionTemplate):
         phi: azimuth angle of the first vector
     """
     return_type = 'mot_float_type4'
-    parameters = [('mot_float_type', 'theta'),
-                  ('mot_float_type', 'phi')]
+    parameters = ['mot_float_type theta',
+                  'mot_float_type phi']
     cl_code = '''
         mot_float_type cos_theta;
         mot_float_type sin_theta = sincos(theta, &cos_theta);
@@ -93,10 +93,12 @@ class TensorSphericalToCartesian(LibraryFunctionTemplate):
         psi: rotation around the first vector, used to generate the perpendicular vectors.
     """
     dependencies = ['RotateOrthogonalVector', 'SphericalToCartesian']
-    parameters = ['theta', 'phi', 'psi',
-                  ('mot_float_type4*', 'vec0'),
-                  ('mot_float_type4*', 'vec1'),
-                  ('mot_float_type4*', 'vec2')]
+    parameters = ['mot_float_type theta',
+                  'mot_float_type phi',
+                  'mot_float_type psi',
+                  'mot_float_type4* vec0',
+                  'mot_float_type4* vec1',
+                  'mot_float_type4* vec2']
     cl_code = '''
         *vec0 = SphericalToCartesian(theta, phi);
         *vec1 = RotateOrthogonalVector(*vec0, SphericalToCartesian(theta + M_PI_2_F, phi), psi);
@@ -120,11 +122,11 @@ class CartesianPolarDotProduct(LibraryFunctionTemplate):
         dot product between the two vectors
     """
     return_type = 'mot_float_type'
-    parameters = [('mot_float_type', 'v0_x'),
-                  ('mot_float_type', 'v0_y'),
-                  ('mot_float_type', 'v0_z'),
-                  ('mot_float_type', 'v1_theta'),
-                  ('mot_float_type', 'v1_phi')]
+    parameters = ['mot_float_type v0_x',
+                  'mot_float_type v0_y',
+                  'mot_float_type v0_z',
+                  'mot_float_type v1_theta',
+                  'mot_float_type v1_phi']
     cl_code = '''
         mot_float_type cos_theta;
         mot_float_type sin_theta = sincos(v1_theta, &cos_theta);
@@ -151,8 +153,8 @@ class EigenvaluesSymmetric3x3(LibraryFunctionTemplate):
         A: the matrix as an array in c/row-major order
         v: the output eigenvalues as a vector of three elements.
     """
-    parameters = [('mot_float_type*', 'A'),
-                  ('mot_float_type*', 'v')]
+    parameters = ['mot_float_type* A',
+                  'mot_float_type* v']
     cl_code = '''
         double p1 = (A[1] * A[1]) + (A[2] * A[2]) + (A[5] * A[5]);
 
@@ -202,10 +204,10 @@ class SquareMatrixMultiplication(LibraryFunctionTemplate):
         B: the right matrix
         C: the output matrix
     """
-    parameters = [('uint', 'n'),
-                  ('mot_float_type*', 'A'),
-                  ('mot_float_type*', 'B'),
-                  ('mot_float_type*', 'C')]
+    parameters = ['uint n',
+                  'mot_float_type* A',
+                  'mot_float_type* B',
+                  'mot_float_type* C']
     cl_code = '''
         int i, j, z;
         double sum;

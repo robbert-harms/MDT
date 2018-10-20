@@ -106,7 +106,7 @@ class CompartmentBuilder(ComponentBuilder):
             func = SimpleCLFunction(
                 'void',
                 'proposal_callback_spherical_{}'.format(template.name),
-                [('mot_float_type*', 'theta'), ('mot_float_type*', 'phi')],
+                ['mot_float_type* theta', 'mot_float_type* phi'],
                 '''
                     if(*phi > M_PI_F){
                         *phi -= M_PI_F;
@@ -124,7 +124,7 @@ class CompartmentBuilder(ComponentBuilder):
                 func = SimpleCLFunction(
                     'void',
                     'proposal_callback_{}_{}'.format(template.name, p.name),
-                    [('mot_float_type*', p.name)],
+                    ['mot_float_type* ' + p.name],
                     '*{0} = *{0} - floor(*{0} / {1}) * {1};'.format(p.name, p.sampling_proposal_modulus))
 
                 callbacks.append(([p], func))
@@ -138,7 +138,7 @@ class CompartmentBuilder(ComponentBuilder):
         fields = []
         for field in template.cache_info['fields']:
             if isinstance(field, str):
-                param = SimpleCLFunctionParameter.from_string(field)
+                param = SimpleCLFunctionParameter(field)
 
                 ctype = param.data_type.ctype
                 name = param.name
@@ -377,7 +377,7 @@ def _resolve_prior(prior, compartment_name, compartment_parameters):
     if isinstance(prior, CLFunction):
         return [prior]
 
-    parameters = [('mot_float_type', p) for p in compartment_parameters if p in prior]
+    parameters = ['mot_float_type ' + p for p in compartment_parameters if p in prior]
     return [SimpleCLFunction('mot_float_type', 'prior_' + compartment_name, parameters, prior)]
 
 
@@ -411,7 +411,7 @@ def _resolve_parameters(parameter_list, compartment_name):
                     nickname = None
                 parameters.append(get_component('parameters', param_name)(nickname=nickname))
         elif isinstance(item, (tuple, list)):
-            parameters.append(SimpleCLFunctionParameter(item[0], item[1]))
+            parameters.append(SimpleCLFunctionParameter(item[0] + ' ' + item[1]))
         else:
             parameters.append(deepcopy(item))
     return parameters

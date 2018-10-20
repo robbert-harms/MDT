@@ -24,7 +24,8 @@ class SSFP(LibraryFunctionTemplate):
         T2: transversal relaxation time (s)
     """
     return_type = 'double'
-    parameters = ['d', 'delta', 'G', 'TR', 'flip_angle', 'b1', 'T1', 'T2']
+    parameters = ['double d', 'double delta', 'double G', 'double TR',
+                  'double flip_angle', 'double b1', 'double T1', 'double T2']
     dependencies = ('MRIConstants',)
     cl_code = '''
         double cos_b1_corrected_flip_angle;

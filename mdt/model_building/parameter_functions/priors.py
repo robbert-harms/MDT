@@ -49,9 +49,9 @@ class SimpleParameterPrior(ParameterPrior, SimpleCLFunction):
             dependencies (list or tuple): the list of dependency functions
         """
         self.extra_params = extra_params or []
-        parameters = [('mot_float_type', 'value'),
-                      ('mot_float_type', 'lower_bound'),
-                      ('mot_float_type', 'upper_bound')] + self.extra_params
+        parameters = ['mot_float_type value',
+                      'mot_float_type lower_bound',
+                      'mot_float_type upper_bound'] + self.extra_params
         super().__init__('mot_float_type', prior_name, parameters, prior_body, dependencies=dependencies)
 
     def get_extra_parameters(self):
@@ -141,9 +141,9 @@ class NormalPDF(SimpleParameterPrior):
     def __init__(self):
         r"""Normal PDF on the given value: :math:`P(v) = N(v; \mu, \sigma)`"""
         from mdt.model_building.parameters import FreeParameter
-        extra_params = [FreeParameter('mot_float_type', 'mu', True, 0, -np.inf, np.inf,
+        extra_params = [FreeParameter('mot_float_type mu', True, 0, -np.inf, np.inf,
                                       sampling_prior=AlwaysOne()),
-                        FreeParameter('mot_float_type', 'sigma', True, 1, -np.inf, np.inf,
+                        FreeParameter('mot_float_type sigma', True, 1, -np.inf, np.inf,
                                       sampling_prior=AlwaysOne())]
 
         super().__init__(
@@ -182,9 +182,9 @@ class AxialNormalPDF(SimpleParameterPrior):
         from mdt.model_building.parameters import FreeParameter
         from mot.library_functions import LogCosh, LogBesseli0
 
-        extra_params = [FreeParameter('mot_float_type', 'mu', True, 0, -np.inf, np.inf,
+        extra_params = [FreeParameter('mot_float_type mu', True, 0, -np.inf, np.inf,
                                       sampling_prior=AlwaysOne()),
-                        FreeParameter('mot_float_type', 'sigma', True, 1, -np.inf, np.inf,
+                        FreeParameter('mot_float_type sigma', True, 1, -np.inf, np.inf,
                                       sampling_prior=AlwaysOne())]
 
         super().__init__(
@@ -218,7 +218,7 @@ class ARDBeta(SimpleParameterPrior):
 
         """
         from mdt.model_building.parameters import FreeParameter
-        extra_params = [FreeParameter('mot_float_type', 'beta', False, 1, 1e-4, 1000,
+        extra_params = [FreeParameter('mot_float_type beta', False, 1, 1e-4, 1000,
                                       sampling_prior=ReciprocalPrior(),
                                       sampling_proposal_std=0.01)]
 
@@ -240,7 +240,7 @@ class ARDGaussian(SimpleParameterPrior):
         with the relationship :math:`\sigma = 1/\\sqrt(\\alpha)`.
         """
         from mdt.model_building.parameters import FreeParameter
-        extra_params = [FreeParameter('mot_float_type', 'alpha', False, 8, 1e-5, 1e4,
+        extra_params = [FreeParameter('mot_float_type alpha', False, 8, 1e-5, 1e4,
                                       sampling_prior=UniformWithinBoundsPrior(),
                                       sampling_proposal_std=1)]
 
