@@ -2,6 +2,18 @@
 Changelog
 *********
 
+v0.15.8 (2018-10-24)
+====================
+Most of the models are now compatible with POCL (tested with POCL version 1.1).
+Only the models with a cache will not work with POCL yet (BinghamNODDI, Ball&Racket, AxCaliber).
+
+
+Other
+-----
+- Following changes in MOT
+- Removed some local variable instances
+
+
 v0.15.7 (2018-10-19)
 ====================
 Fixed an important bug in the code that was present since version 0.14.8. The noise std was not correctly set anymore in the log likelihood method.
