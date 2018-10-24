@@ -1241,7 +1241,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
         cl_body = '''
             double getObjectiveInstanceValue(
-                    local mot_float_type* x,
+                    local const mot_float_type* const x,
                     void* data
                     ''' + (', local mot_float_type* objective_list' if support_for_objective_list else '') + '''){
                 
@@ -1347,7 +1347,7 @@ class DMRICompositeModel(DMRIOptimizable):
                 dependencies.append(compartment.get_cache_init_function())
 
         parameters = ['void* data',
-                      'local mot_float_type* x',
+                      'local const mot_float_type* const x',
                       cache_struct.get_type_name() + '* ' + cache_struct.get_variable_name()]
 
         return SimpleCLFunction(
@@ -1453,7 +1453,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
         def get_function_parameters():
             parameters = ['void* data',
-                          'local mot_float_type* x',
+                          'local const mot_float_type* const x',
                           'uint observation_index']
             if not include_cache_func:
                 parameters.append(cache_struct.get_type_name() + '* ' + cache_struct.get_variable_name())
@@ -1614,7 +1614,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
         return SimpleCLFunction(
             'mot_float_type', 'getLogPrior',
-            ['local mot_float_type* x', 'void* data'],
+            ['local const mot_float_type* const x', 'void* data'],
             get_body(), dependencies=get_dependencies())
 
     def _get_weight_prior(self):
