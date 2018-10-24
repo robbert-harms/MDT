@@ -175,6 +175,7 @@ class DMRICompositeModel(DMRIOptimizable):
                                    copy.deepcopy(self._post_processing),
                                    self._get_rwm_proposal_stds(voxels_to_analyze),
                                    self._get_rwm_epsilons(),
+                                   self._get_randomize_bounds(),
                                    self._get_model_eval_function(include_cache_func=True),
                                    self._get_log_likelihood_function(False, True, True),
                                    self._get_log_likelihood_function(True, False, False),
@@ -780,6 +781,10 @@ class DMRICompositeModel(DMRIOptimizable):
             else:
                 epsilons.append(np.mean(proposal_std) * scaling_factor)
         return epsilons
+
+    def _get_randomize_bounds(self):
+        """Get per estimable parameter the bounds for a randomization process."""
+        return [p.randomize_bounds for _, p in self._model_functions_info.get_estimable_parameters_list()]
 
     def _get_finalize_proposal_function(self):
         """Get the building function used to finalize the proposal"""
@@ -1638,8 +1643,8 @@ class BuildCompositeModel:
                  post_optimization_modifiers, extra_optimization_maps, extra_sampling_maps,
                  dependent_map_calculator, fixed_parameter_maps,
                  free_param_names, parameter_codec, post_processing,
-                 rwm_proposal_stds, rwm_epsilons, eval_function,
-                 objective_function, ll_function,
+                 rwm_proposal_stds, rwm_epsilons, randomize_bounds,
+                 eval_function, objective_function, ll_function,
                  log_prior_function,
                  finalize_proposal_function):
         self.voxels_to_analyze = voxels_to_analyze
@@ -1667,6 +1672,7 @@ class BuildCompositeModel:
         self._extra_sampling_maps = extra_sampling_maps
         self._rwm_proposal_stds = rwm_proposal_stds
         self._rwm_epsilons = rwm_epsilons
+        self._randomize_bounds = randomize_bounds
         self._eval_function = eval_function
         self._objective_function = objective_function
         self._ll_function = ll_function
@@ -1733,6 +1739,39 @@ class BuildCompositeModel:
             list: per parameter an epsilon, relative to the proposal standard deviation
         """
         return self._rwm_epsilons
+
+    def get_random_parameter_positions(self, nmr_positions=1):
+        """Get one or more random parameter positions centered around the initial parameters.
+
+        This can be used to generate random starting points for sampling routines with multiple walkers.
+
+        Per position requested, this function generates a normal distribution around the initial parameters (using
+        :meth:`get_initial_parameters`) with the standard deviation derived from the randomize bounds specified
+        in the free parameters. Afterwards, it will apply all post-optimization modifiers to ensure that the
+        parameters are nicely within bounds.
+
+        Returns:
+            ndarray: a 3d matrix for (voxels, parameters, nmr_positions).
+        """
+        initial_params = self.get_initial_parameters()
+        results = np.zeros((initial_params.shape[:2]) + (nmr_positions,), dtype=initial_params.dtype)
+        stds = np.mean(self._randomize_bounds, axis=1) / 1e2
+
+        for position_ind in range(nmr_positions):
+            position = np.random.normal(initial_params, stds)
+            position = self._parameter_codec.encode_decode(position, kernel_data=self.get_kernel_data())
+
+            d = {'{}.{}'.format(m.name, p.name): position[:, ind]
+                 for ind, (m, p) in enumerate(self._estimable_parameters_list)}
+
+            d.update(self._dependent_map_calculator(self, d))
+            d.update(self._fixed_parameter_maps)
+
+            for routine in self._post_optimization_modifiers:
+                d.update(routine(d))
+
+            results[..., position_ind] = self._param_dict_to_array(d)
+        return results
 
     def post_process_optimization_maps(self, results_dict, results_array=None, log_likelihoods=None):
         """This adds some extra optimization maps to the results dictionary.

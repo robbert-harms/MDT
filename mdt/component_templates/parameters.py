@@ -49,7 +49,8 @@ class ParameterBuilder(ComponentBuilder):
                         parameter_transform=_resolve_parameter_transform(template.parameter_transform),
                         sampling_proposal_std=template.sampling_proposal_std,
                         sampling_prior=template.sampling_prior,
-                        numdiff_info=numdiff_info
+                        numdiff_info=numdiff_info,
+                        randomize_bounds=template.randomize_bounds
                     )
                     self.sampling_proposal_modulus = template.sampling_proposal_modulus
 
@@ -91,8 +92,10 @@ class FreeParameterTemplate(ParameterTemplate):
         init_value (float): the initial value
         fixed (boolean or ndarray of float): if this parameter is fixed or not. If not fixed this should
             hold a reference to a value or a matrix
-        lower_bound (float): the lower bounds
-        upper_bound (float): the upper bounds
+        lower_bound (float): the lower bounds, used in the parameter transform and prior
+        upper_bound (float): the upper bounds, used in the parameter transform and prior
+        randomize_bounds (tuple): a tuple with the lower and upper bounds used when
+            generating a random value for this parameter. This defaults to the regular bounds when not specified.
         parameter_transform
             (str or :class:`~mdt.model_building.parameter_functions.transformations.AbstractTransformation`): the
             parameter transformation, this is used for automatic range transformation of the parameters during
@@ -125,6 +128,7 @@ class FreeParameterTemplate(ParameterTemplate):
     init_value = 1
     lower_bound = -np.inf
     upper_bound = np.inf
+    randomize_bounds = None
     parameter_transform = 'Identity'
     sampling_proposal_std = 1
     sampling_proposal_modulus = None

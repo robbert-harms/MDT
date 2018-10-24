@@ -74,7 +74,10 @@ class CompartmentBuilder(ComponentBuilder):
         def compute(results):
             cartesian = spherical_to_cartesian(np.squeeze(results['theta']), np.squeeze(results['phi']))
 
-            return {'vec0': np.mean(cartesian, axis=1), 'vec0.std': np.std(cartesian, axis=1)}
+            if len(cartesian.shape) == 3:
+                return {'vec0': np.mean(cartesian, axis=1), 'vec0.std': np.std(cartesian, axis=1)}
+            else:
+                return {'vec0': np.mean(cartesian, axis=0)[None, :], 'vec0.std': np.std(cartesian, axis=0)[None, :]}
 
         if all(map(lambda name: name in [p.name for p in parameter_list], ('theta', 'phi'))):
             extra_sampling_maps.append(compute)

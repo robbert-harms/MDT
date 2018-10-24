@@ -1,3 +1,4 @@
+import numpy as np
 from .model_functions import SimpleModelCLFunction
 from .parameters import FreeParameter
 from mot.library_functions import LogBesseli0
@@ -67,7 +68,7 @@ class AbstractLikelihoodFunction(LikelihoodFunction):
         self._parameter_list = parameter_list or [
             'double observation',
             'double model_evaluation',
-            FreeParameter('mot_float_type sigma', True, 1, 0, 'INFINITY', parameter_transform=ClampTransform())
+            FreeParameter('mot_float_type sigma', True, 1, 0, np.inf, parameter_transform=ClampTransform())
         ]
         self._noise_std_param_name = noise_std_param_name or 'sigma'
         self._dependencies = dependencies or ()

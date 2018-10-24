@@ -21,6 +21,7 @@ class s0(FreeParameterTemplate):
     upper_bound = 1e10
     parameter_transform = 'Clamp'
     sampling_proposal_std = 10.0
+    randomize_bounds = [1.5e3, 1.5e4]
 
 
 class w(FreeParameterTemplate):
@@ -169,6 +170,7 @@ class d(FreeParameterTemplate):
     parameter_transform = 'SinSqrClamp'
     sampling_proposal_std = 1e-10
     numdiff_info = {'scale_factor': 1e10, 'use_upper_bound': False}
+    randomize_bounds = [1e-11, 1e-9]
 
 
 class dperp0(FreeParameterTemplate):
@@ -179,6 +181,7 @@ class dperp0(FreeParameterTemplate):
     parameter_transform = 'SinSqrClamp'
     sampling_proposal_std = 1e-10
     numdiff_info = {'scale_factor': 1e10, 'use_upper_bound': False}
+    randomize_bounds = [1e-12, 1e-10]
 
 
 class dperp1(FreeParameterTemplate):
@@ -189,6 +192,7 @@ class dperp1(FreeParameterTemplate):
     parameter_transform = 'SinSqrClamp'
     sampling_proposal_std = 1e-10
     numdiff_info = {'scale_factor': 1e10, 'use_upper_bound': False}
+    randomize_bounds = [1e-12, 1e-10]
 
 
 class R(FreeParameterTemplate):

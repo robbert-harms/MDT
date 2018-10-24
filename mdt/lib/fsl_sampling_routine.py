@@ -59,7 +59,7 @@ class FSLSamplingRoutine(AbstractRWMSampler):
     def _get_proposal_update_function(self, nmr_samples, thinning, return_output):
         kernel_source = '''
             void _updateProposalState(_mcmc_method_data* method_data, ulong current_iteration,
-                                      local mot_float_type* current_position){    
+                                      global mot_float_type* current_position){    
 
                 if(current_iteration > 0 && current_iteration % ''' + str(self._batch_size) + ''' == 0){
                     for(uint k = 0; k < ''' + str(self._nmr_params) + '''; k++){

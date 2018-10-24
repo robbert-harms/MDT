@@ -60,7 +60,7 @@ class FreeParameter(SimpleCLFunctionParameter):
 
     def __init__(self, declaration, fixed, value, lower_bound, upper_bound,
                  parameter_transform=None, sampling_proposal_std=None,
-                 sampling_prior=None, numdiff_info=None):
+                 sampling_prior=None, numdiff_info=None, randomize_bounds=None):
         """This are the kind of parameters that are generally meant to be optimized.
 
         Args:
@@ -76,12 +76,15 @@ class FreeParameter(SimpleCLFunctionParameter):
                 use in model sample
             numdiff_info (mdt.model_building.parameter_functions.numdiff_info.NumDiffInfo): the information
                 for taking the numerical derivative with respect to this parameter.
+            randomize_bounds (tuple): the upper and lower bound we should use when generating a random value for this
+                parameter. If not given, we use the regular upper and lower bounds.
         """
         super().__init__(declaration)
         self._value = value
         self._lower_bound = lower_bound
         self._upper_bound = upper_bound
         self._fixed = fixed
+        self._randomize_bounds = randomize_bounds or (self._lower_bound, self._upper_bound)
 
         self._parameter_transform = parameter_transform or IdentityTransform()
         self._sampling_proposal_std = sampling_proposal_std or 1
@@ -139,6 +142,15 @@ class FreeParameter(SimpleCLFunctionParameter):
             mdt.model_building.parameter_functions.numdiff_info.NumDiffInfo: the numerical differentiation information
         """
         return self._numdiff_info
+
+    @property
+    def randomize_bounds(self):
+        """The lower and upper limits when generating random values for this parameter.
+
+        Returns:
+            tuple: a lower and upper bound scalar with the bounds for this parameter
+        """
+        return self._randomize_bounds
 
 
 class LibraryParameter(SimpleCLFunctionParameter):

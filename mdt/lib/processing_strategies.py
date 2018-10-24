@@ -33,6 +33,7 @@ from mdt.model_building.utils import ObjectiveFunctionWrapper
 from mot.configuration import CLRuntimeInfo
 from mot.optimize import minimize
 from mot.sample.mwg import MetropolisWithinGibbs
+from mot.sample.t_walk import ThoughtfulWalk
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-07-29"
@@ -555,7 +556,14 @@ class SamplingProcessor(SimpleModelProcessor):
         model = self._model.build(roi_indices)
 
         method = None
-        method_kwargs = {}
+        method_args = [model.get_log_likelihood_function(),
+                       model.get_log_prior_function(),
+                       model.get_initial_parameters()]
+        method_kwargs = {'data': model.get_kernel_data()}
+
+        if self._method in ['AMWG', 'SCAM', 'MWG', 'FSL']:
+            method_args.append(model.get_rwm_proposal_stds())
+            method_kwargs.update(finalize_proposal_func=model.get_finalize_proposal_function())
 
         if self._method == 'AMWG':
             method = AdaptiveMetropolisWithinGibbs
@@ -566,21 +574,17 @@ class SamplingProcessor(SimpleModelProcessor):
             method = MetropolisWithinGibbs
         elif self._method == 'FSL':
             method = FSLSamplingRoutine
+        elif self._method == 't-walk':
+            method = ThoughtfulWalk
+            method_args.append(model.get_random_parameter_positions()[..., 0])
+            method_kwargs.update(finalize_proposal_func=model.get_finalize_proposal_function())
 
         method_kwargs.update(self._sampler_options)
 
         if method is None:
             raise ValueError('Could not find the sampler with name {}.'.format(self._method))
 
-        sampler = method(
-            model.get_log_likelihood_function(),
-            model.get_log_prior_function(),
-            model.get_initial_parameters(),
-            model.get_rwm_proposal_stds(),
-            data=model.get_kernel_data(),
-            finalize_proposal_func=model.get_finalize_proposal_function(),
-            **method_kwargs)
-
+        sampler = method(*method_args, **method_kwargs)
         sampling_output = sampler.sample(self._nmr_samples, burnin=self._burnin, thinning=self._thinning)
         samples = sampling_output.get_samples()
 

@@ -159,7 +159,7 @@ class ParameterCodec:
         return self._transform_parameters(self.get_encode_function(),
                                           parameters, kernel_data, cl_runtime_info=cl_runtime_info)
 
-    def encode_decode(self, parameters, kernel_data, codec, cl_runtime_info=None):
+    def encode_decode(self, parameters, kernel_data=None, cl_runtime_info=None):
         """First apply an encoding operation and then apply a decoding operation again.
 
         This can be used to enforce boundary conditions in the parameters.
@@ -172,8 +172,8 @@ class ParameterCodec:
         Returns:
             ndarray: The array with the transformed parameters.
         """
-        encode_func = codec.get_encode_function()
-        decode_func = codec.get_decode_function()
+        encode_func = self.get_encode_function()
+        decode_func = self.get_decode_function()
 
         func = SimpleCLFunction.from_string('''
             void encode_decode_parameters(void* data, local mot_float_type* x){
