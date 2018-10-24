@@ -175,7 +175,6 @@ class DMRICompositeModel(DMRIOptimizable):
                                    copy.deepcopy(self._post_processing),
                                    self._get_rwm_proposal_stds(voxels_to_analyze),
                                    self._get_rwm_epsilons(),
-                                   self._get_randomize_bounds(),
                                    self._get_model_eval_function(include_cache_func=True),
                                    self._get_log_likelihood_function(False, True, True),
                                    self._get_log_likelihood_function(True, False, False),
@@ -781,10 +780,6 @@ class DMRICompositeModel(DMRIOptimizable):
             else:
                 epsilons.append(np.mean(proposal_std) * scaling_factor)
         return epsilons
-
-    def _get_randomize_bounds(self):
-        """Get per estimable parameter the bounds for a randomization process."""
-        return [p.randomize_bounds for _, p in self._model_functions_info.get_estimable_parameters_list()]
 
     def _get_finalize_proposal_function(self):
         """Get the building function used to finalize the proposal"""
@@ -1643,7 +1638,7 @@ class BuildCompositeModel:
                  post_optimization_modifiers, extra_optimization_maps, extra_sampling_maps,
                  dependent_map_calculator, fixed_parameter_maps,
                  free_param_names, parameter_codec, post_processing,
-                 rwm_proposal_stds, rwm_epsilons, randomize_bounds,
+                 rwm_proposal_stds, rwm_epsilons,
                  eval_function, objective_function, ll_function,
                  log_prior_function,
                  finalize_proposal_function):
@@ -1672,7 +1667,6 @@ class BuildCompositeModel:
         self._extra_sampling_maps = extra_sampling_maps
         self._rwm_proposal_stds = rwm_proposal_stds
         self._rwm_epsilons = rwm_epsilons
-        self._randomize_bounds = randomize_bounds
         self._eval_function = eval_function
         self._objective_function = objective_function
         self._ll_function = ll_function
@@ -1746,16 +1740,16 @@ class BuildCompositeModel:
         This can be used to generate random starting points for sampling routines with multiple walkers.
 
         Per position requested, this function generates a normal distribution around the initial parameters (using
-        :meth:`get_initial_parameters`) with the standard deviation derived from the randomize bounds specified
-        in the free parameters. Afterwards, it will apply all post-optimization modifiers to ensure that the
-        parameters are nicely within bounds.
+        :meth:`get_initial_parameters`) with the standard deviation derived from the random walk metropolis std.
+        Afterwards, it will apply the post-optimization modifiers to ensure that
+        the parameters are nicely within bounds.
 
         Returns:
             ndarray: a 3d matrix for (voxels, parameters, nmr_positions).
         """
         initial_params = self.get_initial_parameters()
         results = np.zeros((initial_params.shape[:2]) + (nmr_positions,), dtype=initial_params.dtype)
-        stds = np.mean(self._randomize_bounds, axis=1) / 1e2
+        stds = np.squeeze(self.get_rwm_proposal_stds()) * 2
 
         for position_ind in range(nmr_positions):
             position = np.random.normal(initial_params, stds)
