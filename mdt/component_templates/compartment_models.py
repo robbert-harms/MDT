@@ -2,11 +2,10 @@ from copy import deepcopy, copy
 import numpy as np
 from mdt.component_templates.base import ComponentBuilder, ComponentTemplate
 from mdt.lib.components import get_component, has_component
-from mdt.models.compartments import DMRICompartmentModelFunction, WeightCompartment
-from mdt.model_building.computation_caching import DataCacheParameter, CacheInfo, CachePrimitive
+from mdt.models.compartments import DMRICompartmentModelFunction, WeightCompartment, CacheInfo
 from mdt.utils import spherical_to_cartesian
 from mot.lib.cl_function import CLFunction, SimpleCLFunction, SimpleCLFunctionParameter, SimpleCLCodeObject
-from mdt.model_building.parameters import CurrentObservationParam
+from mdt.model_building.parameters import CurrentObservationParam, DataCacheParameter
 
 __author__ = 'Robbert Harms'
 __date__ = "2017-02-14"
@@ -154,9 +153,9 @@ class CompartmentBuilder(ComponentBuilder):
                 if len(field) == 3:
                     nmr_elements = field[2]
 
-            fields.append(CachePrimitive(ctype, name, nmr_elements=nmr_elements))
+            fields.append((ctype, name, nmr_elements))
 
-        if template.cache_info.get('use_local_reduction', False):
+        if template.cache_info.get('use_local_reduction', True):
             cl_code = '''
                 if(get_local_id(0) == 0){{
                     {}
@@ -296,7 +295,7 @@ class CompartmentTemplate(ComponentTemplate):
             and the cache. The fields in the cache are accessible using ``*cache->alpha``, i.e. dereferencing a pointer
             to a variable using the cache. An optional element in the cache info is "use_local_reduction"
             which specifies that for this compartment we use all workitems in the workgroup. If not set, or if False,
-            we will execute the cache CL code only for the first work item. The default is False.
+            we will execute the cache CL code only for the first work item. The default is True.
     """
     _component_type = 'compartment_models'
     _builder = CompartmentBuilder()

@@ -1,7 +1,7 @@
-from mdt.model_building.computation_caching import DataCacheParameter, CacheStruct, CacheInfo
 from mdt.model_building.model_functions import SimpleModelCLFunction, WeightType, ModelCLFunction
-from mdt.model_building.parameters import FreeParameter
-from mot.lib.cl_function import SimpleCLFunction, SimpleCLCodeObject
+from mdt.model_building.parameters import FreeParameter, DataCacheParameter
+from mot.lib.cl_function import SimpleCLFunction
+from mot.lib.kernel_data import Struct, PrivateMemory, LocalMemory
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-12-13"
@@ -55,8 +55,11 @@ class CompartmentModel(ModelCLFunction):
         """
         raise NotImplementedError()
 
-    def get_cache_struct(self):
-        """Get the cache data structure for this compartment model.
+    def get_cache_struct(self, address_space):
+        """Get the cache data for this compartment model.
+
+        Args:
+            address_space (str): the address space for the cache, either 'local' or 'private'
 
         Returns:
             Optional[mdt.model_building.computation_caching.CacheStruct]: the cache structure
@@ -103,8 +106,7 @@ class DMRICompartmentModelFunction(CompartmentModel, SimpleModelCLFunction):
                 proposal.
             nickname (str or None): the nickname of this compartment model function. If given, this is the name of this
                 compartment in a composite model function tree
-            cache_info (Optional[mdt.model_building.computation_caching.CacheInfo]): the cache information
-                for this compartment
+            cache_info (Optional[CacheInfo]): the cache information for this compartment
         """
         super().__init__(return_type, cl_function_name, parameters, cl_body, dependencies=dependencies,
                          model_function_priors=model_function_priors)
@@ -134,27 +136,29 @@ class DMRICompartmentModelFunction(CompartmentModel, SimpleModelCLFunction):
     def get_proposal_callbacks(self):
         return self._proposal_callbacks
 
-    def get_cache_struct(self):
+    def get_cache_struct(self, address_space):
         if not self._cache_info:
             return None
 
-        def get_cache_parameter():
-            for p in self.get_parameters():
-                if isinstance(p, DataCacheParameter):
-                    return p
-
-        dependencies = []
+        fields = {}
         for dependency in self.get_dependencies():
             if isinstance(dependency, CompartmentModel):
-                if dependency.get_cache_struct():
-                    dependencies.append(dependency.get_cache_struct())
+                if dependency.get_cache_struct(address_space):
+                    fields.update(dependency.get_cache_struct(address_space))
 
-        struct_name = get_cache_parameter().data_type.ctype
-        fields = list(self._cache_info.fields) + dependencies
-        return CacheStruct(struct_name, fields, self.name, self.name)
+        struct_name = self._get_cache_parameter().data_type.ctype
+
+        if address_space == 'private':
+            for ctype, name, nmr_elements in self._cache_info.fields:
+                fields[name] = PrivateMemory(nmr_elements, ctype)
+        else:
+            for ctype, name, nmr_elements in self._cache_info.fields:
+                fields[name] = LocalMemory(ctype, nmr_items=nmr_elements)
+
+        return {self.name: Struct(fields, struct_name)}
 
     def get_cache_init_function(self):
-        if not self.get_cache_struct():
+        if not self.get_cache_struct('private'):
             return None
 
         dependency_calls = []
@@ -183,36 +187,36 @@ class DMRICompartmentModelFunction(CompartmentModel, SimpleModelCLFunction):
         if not any(isinstance(p, DataCacheParameter) for p in self._parameter_list):
             return super().evaluate(*args, **kwargs)
 
-        cache_struct = self.get_cache_struct()
-        cache_init_func = self.get_cache_init_function()
+        cache_struct = self.get_cache_struct('private')[self.name]
+        cache_param_name = self._get_cache_parameter().name
 
-        def _get_call_parameters(func):
-            params = []
-            for p in func.get_parameters():
-                if isinstance(p, DataCacheParameter):
-                    params.append('&' + cache_struct.get_variable_name())
-                else:
-                    params.append(p.name)
-            return params
+        if isinstance(args[0], (tuple, list)):
+            args = list(args)
+            args[0] = tuple(args[0]) + (cache_struct,)
+        else:
+            args[0][cache_param_name] = cache_struct
+
+        cache_init_func = self.get_cache_init_function()
 
         with_cache_func = SimpleCLFunction(
             self._return_type,
             '_{}'.format(self._function_name),
-            [p for p in self._parameter_list if not isinstance(p, DataCacheParameter)],
+            self._parameter_list,
             '''
-                {initialize_struct}
                 {cache_init_func_name}({cache_params});
                 return {parent_func_name}({parent_func_params});
-            '''.format(initialize_struct=cache_struct.get_variable_declaration('private'),
-                       cache_init_func_name=cache_init_func.get_cl_function_name(),
+            '''.format(cache_init_func_name=cache_init_func.get_cl_function_name(),
                        parent_func_name=self.get_cl_function_name(),
-                       cache_params=', '.join(_get_call_parameters(cache_init_func)),
-                       parent_func_params=', '.join(_get_call_parameters(self))),
-            dependencies=[SimpleCLCodeObject(cache_struct.get_type_definitions('private')),
-                          cache_init_func,
-                          self])
+                       cache_params=', '.join([p.name for p in cache_init_func.get_parameters()]),
+                       parent_func_params=', '.join([p.name for p in self.get_parameters()])),
+            dependencies=[cache_init_func, self])
 
         return with_cache_func.evaluate(*args, **kwargs)
+
+    def _get_cache_parameter(self):
+        for p in self.get_parameters():
+            if isinstance(p, DataCacheParameter):
+                return p
 
 
 class WeightCompartment(CompartmentModel, WeightType):
@@ -252,8 +256,23 @@ class WeightCompartment(CompartmentModel, WeightType):
     def get_proposal_callbacks(self):
         return []
 
-    def get_cache_struct(self):
+    def get_cache_struct(self, address_space):
         return None
 
     def get_cache_init_function(self):
         return None
+
+
+class CacheInfo:
+
+    def __init__(self, fields, cl_code):
+        """A storage container for the cache info of an compartment function.
+
+        Args:
+            fields (list of tuple): the list of fields used in the cache. Each tuple element consists of
+                (ctype, name, nmr_elements).
+            cl_code (str): the body of the CL code needed for the cache initialization.
+                This will be turned into a function by the compartment model.
+        """
+        self.fields = fields
+        self.cl_code = cl_code

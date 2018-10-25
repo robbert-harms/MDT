@@ -144,3 +144,16 @@ class FreeParameter(SimpleCLFunctionParameter):
 class LibraryParameter(SimpleCLFunctionParameter):
     """Parameters of this type are used inside library functions. They are not meant to be used in Model functions.
     """
+
+
+class DataCacheParameter(SimpleCLFunctionParameter):
+
+    def __init__(self, compartment_name, name):
+        """This class provides a subclass for checking instance types.
+
+        Args:
+            compartment_name (str): the name of the compartment holding this parameter.
+                This parameter will make sure it gets named to the correct caching struct type.
+            name (str): the name of this parameter in the function
+        """
+        super().__init__('{}_cache* {}'.format(compartment_name, name))
