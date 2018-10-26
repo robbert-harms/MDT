@@ -2,6 +2,15 @@
 Changelog
 *********
 
+v0.16.0 (2018-10-26)
+====================
+All implemented models are now also compatible with POCL (tested with POCL version 1.1).
+
+Changed
+-------
+- Moved the memory allocation of the computation caching to the KernelData.
+
+
 v0.15.8 (2018-10-24)
 ====================
 Most of the models are now compatible with POCL (tested with POCL version 1.1).
