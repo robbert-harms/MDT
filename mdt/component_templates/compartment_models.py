@@ -142,11 +142,11 @@ class CompartmentBuilder(ComponentBuilder):
             if isinstance(field, str):
                 param = SimpleCLFunctionParameter(field)
 
-                ctype = param.data_type.ctype
+                ctype = param.ctype
                 name = param.name
                 nmr_elements = 1
-                if param.data_type.is_array_type:
-                    nmr_elements = np.prod(param.data_type.array_sizes)
+                if param.is_array_type:
+                    nmr_elements = np.prod(param.array_sizes)
             else:
                 ctype, name = field[:2]
                 nmr_elements = 1

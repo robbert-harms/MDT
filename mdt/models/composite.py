@@ -12,7 +12,6 @@ from mdt.model_building.model_functions import WeightType
 from mdt.model_building.parameter_functions.dependencies import SimpleAssignment, AbstractParameterDependency
 from mdt.model_building.utils import ParameterCodec
 
-from mot.lib.cl_data_type import SimpleCLDataType
 from mot.lib.cl_function import SimpleCLFunction, SimpleCLFunctionParameter
 from mot.cl_routines import compute_log_likelihood, numerical_hessian
 from mdt.model_building.parameters import ProtocolParameter, FreeParameter, CurrentObservationParam, DataCacheParameter
@@ -569,7 +568,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
         parameters_needed = [p for p in ['g', 'b', 'G'] if self._model_functions_info.has_protocol_parameter(p)]
 
-        function_arguments = [self._model_functions_info.get_protocol_parameter_by_name(p).data_type.ctype
+        function_arguments = [self._model_functions_info.get_protocol_parameter_by_name(p).ctype
                               + '* ' + p for p in parameters_needed]
         function_arguments.append('global float* gradient_deviations')
         function_arguments.append('uint observation_index')
@@ -883,14 +882,14 @@ class DMRICompositeModel(DMRIOptimizable):
                 raise ValueError('Could not find a suitable value for the protocol parameter "{}".'.format(p.name))
 
             if all_elements_equal(value):
-                const_d = {p.name: Scalar(get_single_value(value), ctype=p.data_type.declaration_type)}
+                const_d = {p.name: Scalar(get_single_value(value), ctype=p.ctype)}
             else:
                 if value.shape[0] == self._input_data.nmr_problems:
                     if voxels_to_analyze is not None:
                         value = value[voxels_to_analyze, ...]
-                    const_d = {p.name: Array(value, ctype=p.data_type.declaration_type)}
+                    const_d = {p.name: Array(value, ctype=p.ctype)}
                 else:
-                    const_d = {p.name: Array(value, ctype=p.data_type.declaration_type, offset_str='0')}
+                    const_d = {p.name: Array(value, ctype=p.ctype, offset_str='0')}
             return_data.update(const_d)
         return return_data
 
@@ -955,7 +954,7 @@ class DMRICompositeModel(DMRIOptimizable):
             m: model
             p: parameter
         """
-        data_type = p.data_type.raw_data_type
+        data_type = p.basic_ctype
 
         if self._model_functions_info.is_fixed_to_value('{}.{}'.format(m.name, p.name)):
             param_name = '{}.{}'.format(m.name, p.name).replace('.', '_')
@@ -969,7 +968,7 @@ class DMRICompositeModel(DMRIOptimizable):
     def _get_param_listing_for_param(self, m, p):
         """Get the param listing for one specific parameter. This can be used for example for the noise model params.
         """
-        data_type = p.data_type.raw_data_type
+        data_type = p.basic_ctype
         name = '{}.{}'.format(m.name, p.name).replace('.', '_')
         assignment = ''
 
@@ -1010,7 +1009,7 @@ class DMRICompositeModel(DMRIOptimizable):
         for m, p in param_list:
             name = '{}.{}'.format(m.name, p.name).replace('.', '_')
             if name not in exclude_list:
-                data_type = p.data_type.declaration_type
+                data_type = p.ctype
                 assignment = 'x[' + str(estimable_param_counter) + ']'
                 func += "\t"*4 + data_type + ' ' + name + ' = ' + assignment + ';' + "\n"
                 estimable_param_counter += 1
@@ -1029,7 +1028,6 @@ class DMRICompositeModel(DMRIOptimizable):
             if ('{}.{}'.format(m.name, p.name).replace('.', '_')) not in exclude_list:
 
                 value = self._get_protocol_value(p)
-                data_type = p.data_type.declaration_type
 
                 if p.name not in protocol_params_seen:
                     if all_elements_equal(value):
@@ -1039,7 +1037,7 @@ class DMRICompositeModel(DMRIOptimizable):
                         assignment = 'model_data->protocol->' + p.name + '[0]'
                     else:
                         assignment = 'model_data->protocol->' + p.name + '[observation_index]'
-                    func += "\t"*4 + data_type + ' ' + p.name + ' = ' + assignment + ';' + "\n"
+                    func += "\t"*4 + p.ctype + ' ' + p.name + ' = ' + assignment + ';' + "\n"
                     protocol_params_seen.append(p.name)
         return func
 
@@ -1055,7 +1053,7 @@ class DMRICompositeModel(DMRIOptimizable):
         for m, p in param_list:
             name = '{}.{}'.format(m.name, p.name).replace('.', '_')
             if name not in exclude_list:
-                data_type = p.data_type.raw_data_type
+                data_type = p.basic_ctype
                 param_name = '{}.{}'.format(m.name, p.name).replace('.', '_')
                 assignment = 'model_data->{}'.format(param_name)
                 func += "\t"*4 + data_type + ' ' + name + ' = ' + assignment + ';' + "\n"
@@ -1081,7 +1079,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
             assignment = self._convert_parameters_dot_to_bar(dependency.assignment_code)
             name = '{}.{}'.format(m.name, p.name).replace('.', '_')
-            data_type = p.data_type.raw_data_type
+            data_type = p.basic_ctype
 
             if ('{}.{}'.format(m.name, p.name).replace('.', '_')) not in exclude_list:
                 func += "\t"*4 + data_type + ' ' + name + ' = ' + assignment + ';' + "\n"
@@ -1094,11 +1092,11 @@ class DMRICompositeModel(DMRIOptimizable):
             param_name = '{}.{}'.format(m.name, p.name).replace('.', '_')
 
             if all_elements_equal(value):
-                var_data_dict[param_name] = Scalar(get_single_value(value), ctype=p.data_type.declaration_type)
+                var_data_dict[param_name] = Scalar(get_single_value(value), ctype=p.ctype)
             else:
                 if voxels_to_analyze is not None:
                     value = value[voxels_to_analyze, ...]
-                var_data_dict[param_name] = Array(value, ctype=p.data_type.declaration_type, as_scalar=True)
+                var_data_dict[param_name] = Array(value, ctype=p.ctype, as_scalar=True)
         return var_data_dict
 
     def _get_bounds_as_var_data(self, voxels_to_analyze):
@@ -1113,11 +1111,11 @@ class DMRICompositeModel(DMRIOptimizable):
                 data = value
 
                 if all_elements_equal(value):
-                    bounds_dict.update({name: Scalar(get_single_value(data), ctype=p.data_type.declaration_type)})
+                    bounds_dict.update({name: Scalar(get_single_value(data), ctype=p.ctype)})
                 else:
                     if voxels_to_analyze is not None:
                         data = data[voxels_to_analyze, ...]
-                    bounds_dict.update({name: Array(data, ctype=p.data_type.declaration_type, as_scalar=True)})
+                    bounds_dict.update({name: Array(data, ctype=p.ctype, as_scalar=True)})
 
         return bounds_dict
 
@@ -1529,7 +1527,7 @@ class DMRICompositeModel(DMRIOptimizable):
         starting_points = np.concatenate([np.transpose(np.array([s]))
                                           if len(s.shape) < 2 else s for s in starting_points], axis=1)
 
-        return convert_data_to_dtype(starting_points, 'mot_float_type', SimpleCLDataType.from_string('float'))
+        return convert_data_to_dtype(starting_points, 'mot_float_type', 'float')
 
     def _get_log_prior_function(self):
         def get_dependencies():
@@ -2245,7 +2243,11 @@ class _ModelFunctionPriorToCompositeModelPrior(SimpleCLFunction):
         )
 
     def _get_parameter_signatures(self):
-        return ['{} {}'.format(p.data_type.get_declaration(), p.name.replace('.', '_')) for p in self._old_params]
+        declarations = []
+        for p in self._old_params:
+            new_p = p.get_renamed(p.name.replace('.', '_'))
+            declarations.append(new_p.get_declaration())
+        return declarations
 
 
 class ModelFunctionsInformation:

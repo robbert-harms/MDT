@@ -1,4 +1,3 @@
-from mot.lib.cl_data_type import SimpleCLDataType
 from mot.lib.cl_function import CLFunction, SimpleCLFunction
 from .parameter_functions.numdiff_info import SimpleNumDiffInfo
 from .parameters import FreeParameter

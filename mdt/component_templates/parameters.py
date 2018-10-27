@@ -1,7 +1,6 @@
 import numpy as np
 from mdt.component_templates.base import ComponentBuilder, ComponentTemplate
 from mdt.lib.components import has_component, get_component
-from mot.lib.cl_data_type import SimpleCLDataType
 from mdt.model_building.parameter_functions.numdiff_info import NumDiffInfo, SimpleNumDiffInfo
 from mdt.model_building.parameters import ProtocolParameter, FreeParameter
 from mdt.model_building.parameter_functions.priors import UniformWithinBoundsPrior

@@ -146,7 +146,7 @@ class DMRICompartmentModelFunction(CompartmentModel, SimpleModelCLFunction):
                 if dependency.get_cache_struct(address_space):
                     fields.update(dependency.get_cache_struct(address_space))
 
-        struct_name = self._get_cache_parameter().data_type.ctype
+        struct_name = self._get_cache_parameter().ctype
 
         if address_space == 'private':
             for ctype, name, nmr_elements in self._cache_info.fields:
