@@ -2,6 +2,18 @@
 Changelog
 *********
 
+v0.16.1 (2018-10-29)
+====================
+
+Changed
+-------
+- Changed the map sorting feature in the post-processing of composite models. The new specification is easier to follow and more general.
+
+Other
+-----
+- Following changes in MOT.
+
+
 v0.16.0 (2018-10-26)
 ====================
 All implemented models are now also compatible with POCL (tested with POCL version 1.1).
