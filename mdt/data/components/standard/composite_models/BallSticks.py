@@ -1,6 +1,8 @@
 from mdt import CompositeModelTemplate
 import numpy as np
 
+from mdt.lib.post_processing import get_sort_modifier
+
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
 __maintainer__ = "Robbert Harms"
@@ -37,12 +39,18 @@ class BallStick_r2(CompositeModelTemplate):
              'Stick0.d': 1.7e-9,
              'Stick1.d': 1.7e-9}
 
-    sort_maps = [('w_stick0', 'w_stick1'), ('Stick0', 'Stick1')]
+    post_optimization_modifiers = [
+        get_sort_modifier({
+            'w_stick0.w': ('w_stick0', 'Stick0'),
+            'w_stick1.w': ('w_stick1', 'Stick1')
+        })
+    ]
 
     extra_optimization_maps = [
         lambda results: {'FS': 1 - results['w_ball.w']},
         lambda results: {'FS.std': results['w_ball.w.std']}
     ]
+
     extra_sampling_maps = [
         lambda samples: {
             'FS': np.mean(samples['w_stick0.w'] + samples['w_stick1.w'], axis=1),
@@ -66,16 +74,23 @@ class BallStick_r3(CompositeModelTemplate):
              'Stick2.d': 1.7e-9}
     inits = {'w_stick2.w': 0}
 
-    sort_maps = [('w_stick0', 'w_stick1', 'w_stick2'), ('Stick0', 'Stick1', 'Stick2')]
+    post_optimization_modifiers = [
+        get_sort_modifier({
+            'w_stick0.w': ('w_stick0', 'Stick0'),
+            'w_stick1.w': ('w_stick1', 'Stick1'),
+            'w_stick2.w': ('w_stick2', 'Stick2')
+        })
+    ]
 
     extra_optimization_maps = [
         lambda results: {'FS': 1 - results['w_ball.w']},
         lambda results: {'FS.std': results['w_ball.w.std']}
     ]
+
+    extra_prior = 'return w_stick2.w < w_stick1.w && w_stick1.w < w_stick0.w;'
+
     extra_sampling_maps = [
         lambda samples: {
             'FS': np.mean(samples['w_stick0.w'] + samples['w_stick1.w'] + samples['w_stick2.w'], axis=1),
             'FS.std': np.std(samples['w_stick0.w'] + samples['w_stick1.w'] + samples['w_stick2.w'], axis=1)}
     ]
-
-    extra_prior = 'return w_stick2.w < w_stick1.w && w_stick1.w < w_stick0.w;'

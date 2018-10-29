@@ -29,7 +29,7 @@ from mdt.utils import estimate_noise_std, get_cl_devices, load_input_data,\
     get_slice_in_dimension, per_model_logging_context, \
     get_temporary_results_dir, get_example_data, SimpleInitializationData, InitializationData, load_volume_maps,\
     covariance_to_correlation, check_user_components, unzip_nifti, zip_nifti
-from mdt.lib.sorting import sort_orientations, create_sort_matrix, sort_volumes_per_voxel
+from mdt.lib.sorting import sort_orientations, create_4d_sort_matrix, sort_volumes_per_voxel
 from mdt.simulations import create_signal_estimates, simulate_signals, add_rician_noise
 from mdt.lib.batch_utils import run_function_on_batch_fit_output, batch_apply, \
     batch_profile_factory, get_subject_selection
@@ -464,7 +464,7 @@ def sort_maps(input_maps, reversed_sort=False, sort_index_matrix=None):
         list: the list of sorted volumes
     """
     if sort_index_matrix is None:
-        sort_index_matrix = create_sort_matrix(input_maps, reversed_sort=reversed_sort)
+        sort_index_matrix = create_4d_sort_matrix(input_maps, reversed_sort=reversed_sort)
     elif isinstance(sort_index_matrix, str):
         sort_index_matrix = np.round(load_nifti(sort_index_matrix).get_data()).astype(np.int64)
     return sort_volumes_per_voxel(input_maps, sort_index_matrix)

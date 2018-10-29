@@ -92,7 +92,7 @@ If you wish to disable this feature, for example in a model that does not have a
 
 Protocol options
 ================
-It is possible to add a sort of dMRI volume selection to a composite model using the "protocol options".
+It is possible to add dMRI volume selection to a composite model using the "protocol options".
 These protocol options allow the composite model to select, using the protocol, only those volumes that it can use for optimization.
 For example, the Tensor model is defined to work with b-values up to 1500 s/mm^2, yet the user might be using a dataset that has more shells, with some shells above the b-value threshold.
 To prevent the user from having to load a separate dataset for the Tensor model and another dataset for the other models, we implemented in MDT model protocol options.

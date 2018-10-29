@@ -1,5 +1,6 @@
 import numpy as np
 from mdt import CompositeModelTemplate
+from mdt.lib.post_processing import get_sort_modifier
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -48,7 +49,12 @@ class CHARMED_r2(CompositeModelTemplate):
              'w_res0.w': 0.1,
              'w_res1.w': 0.1}
 
-    sort_maps = [('w_res0', 'w_res1'), ('CHARMEDRestricted0', 'CHARMEDRestricted1')]
+    post_optimization_modifiers = [
+        get_sort_modifier({
+            'w_res0.w': ('w_res0', 'CHARMEDRestricted0'),
+            'w_res1.w': ('w_res1', 'CHARMEDRestricted1'),
+        })
+    ]
 
     extra_optimization_maps = [
         lambda results: {'FR': 1 - results['w_hin0.w']},
@@ -82,7 +88,13 @@ class CHARMED_r3(CompositeModelTemplate):
              'w_res1.w': 0.1,
              'w_res2.w': 0.1}
 
-    sort_maps = [('w_res0', 'w_res1', 'w_res2'), ('CHARMEDRestricted0', 'CHARMEDRestricted1', 'CHARMEDRestricted2')]
+    post_optimization_modifiers = [
+        get_sort_modifier({
+            'w_res0.w': ('w_res0', 'CHARMEDRestricted0'),
+            'w_res1.w': ('w_res1', 'CHARMEDRestricted1'),
+            'w_res2.w': ('w_res2', 'CHARMEDRestricted2'),
+        })
+    ]
 
     extra_optimization_maps = [
         lambda results: {'FR': 1 - results['w_hin0.w']},

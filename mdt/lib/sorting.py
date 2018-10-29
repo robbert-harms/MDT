@@ -62,7 +62,7 @@ def sort_orientations(data_input, weight_names, extra_sortable_maps):
     sortable_maps = copy(extra_sortable_maps)
     sortable_maps.append(weight_names)
 
-    sort_index_matrix = create_sort_matrix([input_maps[k] for k in weight_names], reversed_sort=True)
+    sort_index_matrix = create_4d_sort_matrix([input_maps[k] for k in weight_names], reversed_sort=True)
 
     for sortable_map_names in sortable_maps:
         sorted = dict(zip(sortable_map_names, sort_volumes_per_voxel([input_maps[k] for k in sortable_map_names],
@@ -72,7 +72,29 @@ def sort_orientations(data_input, weight_names, extra_sortable_maps):
     return result_maps
 
 
-def create_sort_matrix(input_volumes, reversed_sort=False):
+def create_2d_sort_matrix(input_volumes, reversed_sort=False):
+    """Create an index matrix that sorts the given input on the 2th dimension from small to large values.
+
+    Args:
+        input_volumes (ndarray or list): either a list with 1d matrices or a 2d volume to use directly.
+        reversed_sort (boolean): if True we reverse the sort and we sort from large to small.
+
+    Returns:
+        ndarray: a 2d matrix with on the 2th dimension the indices of the elements in sorted order.
+    """
+    if isinstance(input_volumes, collections.Sequence):
+        sort_elements = np.column_stack(input_volumes)
+    else:
+        sort_elements = input_volumes
+
+    ranking = np.atleast_2d(np.squeeze(np.argsort(sort_elements, axis=1)))
+
+    if reversed_sort:
+        return ranking[..., ::-1]
+    return ranking
+
+
+def create_4d_sort_matrix(input_volumes, reversed_sort=False):
     """Create an index matrix that sorts the given input on the 4th dimension from small to large values (per element).
 
     Args:

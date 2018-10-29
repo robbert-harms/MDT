@@ -1,4 +1,3 @@
-import inspect
 import re
 from copy import deepcopy
 import numpy as np
@@ -62,10 +61,6 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                     self.set_upper_bound(full_param_name, deepcopy(value))
 
                 self.nmr_parameters_for_bic_calculation = self.get_nmr_parameters()
-
-                if template.sort_maps:
-                    self._post_optimization_modifiers.append(_get_map_sorting_modifier(
-                        template.sort_maps, self._model_functions_info.get_model_parameter_list()))
 
                 self._post_optimization_modifiers.extend(_get_model_post_optimization_modifiers(
                     self._model_functions_info.get_compartment_models()))
@@ -133,8 +128,6 @@ class CompositeModelTemplate(ComponentTemplate):
 
         post_optimization_modifiers (list): a list of modification callbacks to change the estimated
             optimization points. This should not add new maps, for that use the ``additional_results`` directive.
-            This can be used to, for example, sort maps into a similar valued but sorted representation
-            (actually the ``sort_maps`` directive creates a post_optimization_modifier)
 
             Examples:
 
@@ -145,30 +138,6 @@ class CompositeModelTemplate(ComponentTemplate):
                                                 ...]
 
             This should return a dictionary with updated maps.
-
-        sort_maps (list of tuple): The maps to sort voxel-by voxel as post-processing.
-            To ensure that the point estimate from optimization can directly be used in MCMC sample, we sometimes
-            need to rearrange the weights (and therefore the corresponding compartments). For example, some composite
-            models have a prior on the weights of similar compartments to restrict them to a decreasing order, which
-            is typically done to prevent bimodal continuous_distributions. This model directive allows you to easily specify
-            which parameters to rearrange as first post-processing of optimization results.
-
-            The first tuple needs to be a parameter reference or a  ``Weight`` compartment, the other tuples can
-            contain either parameters or compartments.
-
-            Example input::
-
-                sort_maps = [('w0.w', 'w1.w'), ('Stick0', 'Stick1')]
-
-            this input sorts the weights w0.w and w1.w and afterwards sorts all the parameters of the Stick0 and Stick1
-            compartment according to the sorting of those weights.
-
-            One can also sort just one parameter of a compartment using::
-
-                sort_maps = [('w0', 'w1'), ('Stick0.theta', 'Stick1.theta')]
-
-            which will again sort the weights but will only apply the sorting on the theta map of both the Stick
-            compartments.
 
         extra_optimization_maps (list): a list of functions to return extra information maps based on a point estimate.
             This is called after the post optimization modifiers and after the model calculated uncertainties based
@@ -272,7 +241,6 @@ class CompositeModelTemplate(ComponentTemplate):
     enforce_weights_sum_to_one = True
     volume_selection = None
     extra_prior = None
-    sort_maps = None
 
     @classmethod
     def meta_info(cls):
@@ -333,66 +301,6 @@ def _resolve_model_prior(prior, model_parameters):
             parameters.append('mot_float_type ' + dotted_name)
 
     return [SimpleCLFunction('mot_float_type', 'model_prior', parameters, prior)]
-
-
-def _get_map_sorting_modifier(sort_maps, model_list):
-    """Construct the map sorting modification routine for the given maps_to_sort attribute.
-
-    Args:
-        sort_maps (list of tuple): the list with compartments/parameters to sort. Sorting is done on the first element and
-            the other maps are sorted based on that indexing.
-        model_list (list of tuple): the list of model, parameter tuples to use for matching names.
-    Returns:
-        tuple: name, modification routine. The modification routine will sort the maps as specified.
-    """
-    def is_param_name(name):
-        return '.' in name
-
-    def get_model_by_name(name):
-        for model, parameter in model_list:
-            if model.name == name:
-                return model
-
-    sort_keys = []
-    for name in sort_maps[0]:
-        for model, parameter in model_list:
-            full_name = '{}.{}'.format(model.name, parameter.name)
-            if model.name == name or full_name == name:
-                sort_keys.append(full_name)
-                break
-
-    other_sort_pairs = []
-    for other_pair in sort_maps[1:]:
-        if is_param_name(other_pair[0]):
-            other_sort_pairs.append(other_pair)
-        else:
-            model = get_model_by_name(other_pair[0])
-            for parameter in model.get_free_parameters():
-                sort_pair = []
-                for model_name in other_pair:
-                    sort_pair.append('{}.{}'.format(model_name, parameter.name))
-                other_sort_pairs.append(sort_pair)
-
-    names = []
-    names.extend(sort_keys)
-    for pairs in other_sort_pairs:
-        names.extend(pairs)
-
-    def map_sorting(results):
-        sort_matrix = np.column_stack([results[map_name] for map_name in sort_keys])
-        ranking = np.atleast_2d(np.squeeze(np.argsort(sort_matrix, axis=1)[:, ::-1]))
-        list_index = np.arange(ranking.shape[0])
-
-        sorted_maps = []
-        sorted_maps.extend(sort_matrix[list_index, ranking[:, ind], None] for ind in range(ranking.shape[1]))
-
-        for pair in other_sort_pairs:
-            sort_matrix = np.column_stack([results[map_name] for map_name in pair])
-            sorted_maps.extend(sort_matrix[list_index, ranking[:, ind], None] for ind in range(ranking.shape[1]))
-
-        return dict(zip(names, sorted_maps))
-
-    return map_sorting
 
 
 def _get_model_post_optimization_modifiers(compartments):

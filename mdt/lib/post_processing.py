@@ -1,5 +1,7 @@
 """This module contains various standard post-processing routines for use after optimization or sample."""
 import numpy as np
+
+from mdt.lib.sorting import create_2d_sort_matrix
 from mdt.utils import tensor_spherical_to_cartesian, tensor_cartesian_to_spherical, \
     voxelwise_vector_matrix_vector_product, create_covariance_matrix
 from mot import minimize
@@ -14,6 +16,98 @@ __date__ = '2017-12-10'
 __maintainer__ = 'Robbert Harms'
 __email__ = 'robbert.harms@maastrichtuniversity.nl'
 __licence__ = 'LGPL v3'
+
+
+def get_sort_modifier(sort_specification):
+    """Create a callback routine to sort the output maps according to the given specification.
+
+    This is typically used to ensure that the point estimate from optimization can directly be used in MCMC sample.
+    For example, some models have a prior on the weights to restrict them to a decreasing order, which is typically
+    done to prevent bimodal distributions. To ensure that the optimization output is within such a prior, you will
+    need to sort the weights as a post processing after optimization.
+
+    The syntax of the sort specification is as follows::
+
+        sort_maps = {
+            <param_0>: (<map_0>, <other_map_0>, ...),
+            <param_1>: (<map_1>, <other_map_1>, ...)
+            ...
+        }
+
+    The keys of the dictionary provide the parameters to use for the sorting. These are typically one of the
+    parameters of a similar model, like a Weight compartment. The values of the dictionary specify which
+    compartments or parameters to sort based on the sorting of the keys. The length of the value tuples should
+    match for each key since each index is sorted against the same index in other tuples. That is, in the specification
+    above, <map_0> is sorted against <map_1>.
+
+    As an concrete example, suppose we have the model::
+
+        model_expression = '''
+            S0 * (Weight(w_zeppelin_1) * ExpT2Dec(ExpT2Dec_zeppelin_1) * Zeppelin(Zeppelin_1) +
+                  Weight(w_zeppelin_2) * ExpT2Dec(ExpT2Dec_zeppelin_2) * Zeppelin(Zeppelin_2) )
+        '''
+
+    And we wish to sort the weights and the Zeppelins based on the T2 values. To do so, we would specify::
+
+        sort_specification = {
+            'ExpT2Dec_zeppelin_1.T2': ('w_zeppelin_1', 'Zeppelin_1'),
+            'ExpT2Dec_zeppelin_2.T2': ('w_zeppelin_2', 'Zeppelin_2')
+        }
+
+    This specification first creates a sort matrix based on the T2's and then sort the T2's accordingly.
+    Afterwards it will sort the parameters of the Zeppelin and Weight compartments based on that sorting matrix.
+
+    One can also sort just one parameter of a compartment using::
+
+        sort_specification = {
+            'ExpT2Dec_zeppelin_1.T2': ('w_zeppelin_1', 'Zeppelin_1.theta'),
+            'ExpT2Dec_zeppelin_2.T2': ('w_zeppelin_2', 'Zeppelin_2.theta')
+        }
+
+    this will only apply the sorting on the theta map of both the Zeppelin compartments ((note the
+    additional ``.theta``).
+
+    Args:
+        sort_specification: the sorting specification used in the sorting
+
+    Returns:
+        function: the post optimization modification call back function.
+    """
+
+    def is_param_name(name):
+        return '.' in name
+
+    def resolve_sort_pairs(results):
+        sort_pairs = []
+        for specified_pair in list(zip(*sort_specification.values())):
+            if is_param_name(specified_pair[0]):
+                sort_pairs.append(specified_pair)
+            else:
+                expanded_keys = []
+                for sort_key in specified_pair:
+                    elements = []
+                    for result_key in results.keys():
+                        if result_key.startswith(sort_key + '.'):
+                            elements.append(result_key)
+                    expanded_keys.append(elements)
+
+                sort_pairs.extend(list(zip(*expanded_keys)))
+        return sort_pairs
+
+    def map_sorting(results):
+        ranking = create_2d_sort_matrix([results[map_name] for map_name in sort_specification.keys()],
+                                        reversed_sort=True)
+        list_index = np.arange(ranking.shape[0])
+        sort_pairs = resolve_sort_pairs(results)
+
+        updates = {}
+        for names in sort_pairs:
+            sort_matrix = np.column_stack([results[map_name] for map_name in names])
+            sorted_maps = [sort_matrix[list_index, ranking[:, ind], None] for ind in range(ranking.shape[1])]
+            updates.update(dict(zip(names, sorted_maps)))
+        return updates
+
+    return map_sorting
 
 
 class DTIMeasures:

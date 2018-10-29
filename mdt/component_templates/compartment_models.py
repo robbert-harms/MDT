@@ -238,9 +238,7 @@ class CompartmentTemplate(ComponentTemplate):
 
         post_optimization_modifiers (list): a list of modification callbacks to change the estimated
             optimization points. This should not add new maps, for that use
-            the ``extra_optimization_maps_funcs`` directive. This directive can be used to, for example,
-            sort maps into a similar valued but sorted representation (actually the ``sort_maps`` directive
-            creates a post_optimization_modifier)
+            the ``extra_optimization_maps_funcs`` directive.
 
             Examples:
 
