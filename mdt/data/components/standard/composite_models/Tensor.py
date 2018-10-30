@@ -24,16 +24,6 @@ class NonParametricTensor(CompositeModelTemplate):
     model_expression = '''
         S0 * SymmetricNonParametricTensor(Tensor)
     '''
-
-    inits = {'Tensor.D_00': 0.3e-9, 'Tensor.D_11': 0.3e-9, 'Tensor.D_22': 0.3e-9,
-             'Tensor.D_01': 0, 'Tensor.D_02': 0, 'Tensor.D_12': 0}
-
-    lower_bounds = {'Tensor.D_00': 0, 'Tensor.D_11': 0, 'Tensor.D_22': 0,
-                    'Tensor.D_01': -1e-9, 'Tensor.D_02': -1e-9, 'Tensor.D_12': -1e-9}
-
-    upper_bounds = {'Tensor.D_00': 5e-9, 'Tensor.D_11': 5e-9, 'Tensor.D_22': 5e-9,
-                    'Tensor.D_01': 1e-9, 'Tensor.D_02': 1e-9, 'Tensor.D_12': 1e-9}
-
     volume_selection = {'unweighted_threshold': 25e6,
                         'use_unweighted': True,
                         'use_weighted': True,
