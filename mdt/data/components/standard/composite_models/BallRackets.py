@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 from mdt import CompositeModelTemplate
 import numpy as np
 
@@ -37,12 +39,10 @@ class BallRacket_r2(CompositeModelTemplate):
     fixes = {'Racket0.d': 'Ball.d', 
              'Racket1.d': 'Ball.d'}
 
-    post_optimization_modifiers = [
-        get_sort_modifier({
-            'w_res0.w': ('w_stick0', 'Racket0'),
-            'w_res1.w': ('w_stick1', 'Racket1')
-        })
-    ]
+    get_sort_modifier(OrderedDict([
+        ('w_res0.w', ('w_res0', 'Racket0')),
+        ('w_res1.w', ('w_res1', 'Racket1'))
+    ]))
 
     extra_optimization_maps = [
         lambda results: {'FS': 1 - results['w_ball.w']},

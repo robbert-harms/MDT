@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 from mdt import CompositeModelTemplate
 import numpy as np
 
@@ -40,10 +42,10 @@ class BallStick_r2(CompositeModelTemplate):
              'Stick1.d': 1.7e-9}
 
     post_optimization_modifiers = [
-        get_sort_modifier({
-            'w_stick0.w': ('w_stick0', 'Stick0'),
-            'w_stick1.w': ('w_stick1', 'Stick1')
-        })
+        get_sort_modifier(OrderedDict([
+            ('w_stick0.w', ('w_stick0', 'Stick0')),
+            ('w_stick1.w', ('w_stick1', 'Stick1'))
+        ]))
     ]
 
     extra_optimization_maps = [
@@ -75,11 +77,11 @@ class BallStick_r3(CompositeModelTemplate):
     inits = {'w_stick2.w': 0}
 
     post_optimization_modifiers = [
-        get_sort_modifier({
-            'w_stick0.w': ('w_stick0', 'Stick0'),
-            'w_stick1.w': ('w_stick1', 'Stick1'),
-            'w_stick2.w': ('w_stick2', 'Stick2')
-        })
+        get_sort_modifier(OrderedDict([
+            ('w_stick0.w', ('w_stick0', 'Stick0')),
+            ('w_stick1.w', ('w_stick1', 'Stick1')),
+            ('w_stick2.w', ('w_stick2', 'Stick2'))
+        ]))
     ]
 
     extra_optimization_maps = [
