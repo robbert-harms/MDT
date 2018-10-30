@@ -16,8 +16,7 @@ class Tensor(CompositeModelTemplate):
     volume_selection = {'unweighted_threshold': 25e6,
                         'use_unweighted': True,
                         'use_weighted': True,
-                        'min_bval': 0,
-                        'max_bval': 1.5e9 + 0.1e9}
+                        'bval_ranges': [(0, 1.5e9 + 0.1e9)]}
 
 
 class NonParametricTensor(CompositeModelTemplate):
@@ -27,5 +26,4 @@ class NonParametricTensor(CompositeModelTemplate):
     volume_selection = {'unweighted_threshold': 25e6,
                         'use_unweighted': True,
                         'use_weighted': True,
-                        'min_bval': 0,
-                        'max_bval': 1.5e9 + 0.1e9}
+                        'bval_ranges': [(0, 1.5e9 + 0.1e9)]}

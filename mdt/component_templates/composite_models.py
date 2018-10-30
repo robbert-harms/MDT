@@ -94,9 +94,11 @@ class DMRICompositeModelBuilder(ComponentBuilder):
 
                 if protocol.has_column('g') and protocol.has_column('b'):
                     if use_weighted:
-                        if 'min_bval' in volume_selection and 'max_bval' in volume_selection:
-                            protocol_indices = protocol.get_indices_bval_in_range(start=volume_selection['min_bval'],
-                                                                                  end=volume_selection['max_bval'])
+                        if 'bval_ranges' in volume_selection and len(volume_selection['bval_ranges']):
+                            protocol_indices = []
+                            for bval_range in volume_selection['bval_ranges']:
+                                indices = protocol.get_indices_bval_in_range(start=bval_range[0], end=bval_range[1])
+                                protocol_indices.extend(indices)
                         else:
                             protocol_indices = protocol.get_weighted_indices(unweighted_threshold)
                     else:

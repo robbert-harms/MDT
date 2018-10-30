@@ -15,5 +15,4 @@ class Kurtosis(CompositeModelTemplate):
     volume_selection = {'unweighted_threshold': 25e6,
                         'use_unweighted': True,
                         'use_weighted': True,
-                        'min_bval': 0,
-                        'max_bval': 3e9 + 0.1e9}
+                        'bval_ranges': [(0, 3.0e9 + 0.1e9)]}

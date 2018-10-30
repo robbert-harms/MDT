@@ -108,12 +108,11 @@ The first is to add the ``volume_selection`` directive to your model:
         volume_selection = {'unweighted_threshold': 25e6,
                             'use_unweighted': True,
                             'use_weighted': True,
-                            'min_bval': 0,
-                            'max_bval': 1.5e9 + 0.1e9}
+                            'bval_ranges': [(0, 1.5e9 + 0.1e9)]}
 
 
-This directive specifies that we wish to use all unweighted volumes (under the unweighted threshold also here defined) and a subset of the weighted volumes
-(that is, between b-values b=0 and b=1.5e9 s/m^2)
+This directive specifies that we wish to use all unweighted volumes (under the unweighted threshold also here defined) and a subset of the weighted volumes,
+that is, a single b-value range with b-values between b=0 and b=1.5e9 s/m^2. It is possible to specify more than one range.
 
 The second method is to add the bound function ``_get_suitable_volume_indices`` to your model definition. For example:
 
