@@ -2,6 +2,18 @@
 Changelog
 *********
 
+v0.16.4 (2018-10-30)
+====================
+
+Changed
+-------
+- Changed the volume selection syntax to allow defining multiple ranges.
+
+Other
+-----
+- Slight refactoring of the NonParametricTensor compartment, removing the strict bounds.
+
+
 v0.16.3 (2018-10-30)
 ====================
 
