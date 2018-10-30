@@ -2,6 +2,11 @@
 Changelog
 *********
 
+v0.16.2 (2018-10-30)
+====================
+- Corrected sort order for Python <3.6 versions, in the post-processing of composite models.
+
+
 v0.16.1 (2018-10-29)
 ====================
 
