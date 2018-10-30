@@ -2,9 +2,20 @@
 Changelog
 *********
 
+v0.16.3 (2018-10-30)
+====================
+
+Fixed
+-----
+- Fixed documentation building.
+
+
 v0.16.2 (2018-10-30)
 ====================
-- Corrected sort order for Python <3.6 versions, in the post-processing of composite models.
+
+Changed
+-------
+- Corrected, in the post-processing of composite models, the sort order for Python <3.6 versions.
 
 
 v0.16.1 (2018-10-29)
