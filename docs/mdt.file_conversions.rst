@@ -1,11 +1,11 @@
-mdt.file_conversions package
-============================
+mdt\.file\_conversions package
+==============================
 
 Submodules
 ----------
 
-mdt.file_conversions.npy module
--------------------------------
+mdt\.file\_conversions\.npy module
+----------------------------------
 
 .. automodule:: mdt.file_conversions.npy
     :members:

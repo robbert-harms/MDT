@@ -18,32 +18,32 @@ Subpackages
 Submodules
 ----------
 
-mdt.configuration module
-------------------------
+mdt\.configuration module
+-------------------------
 
 .. automodule:: mdt.configuration
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.protocols module
---------------------
+mdt\.protocols module
+---------------------
 
 .. automodule:: mdt.protocols
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.simulations module
-----------------------
+mdt\.simulations module
+-----------------------
 
 .. automodule:: mdt.simulations
     :members:
     :undoc-members:
     :show-inheritance:
 
-mdt.utils module
-----------------
+mdt\.utils module
+-----------------
 
 .. automodule:: mdt.utils
     :members:

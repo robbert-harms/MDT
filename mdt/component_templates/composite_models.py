@@ -460,12 +460,12 @@ def parse_composite_model_expression(model_expression):
     """Parse the given model expression into a suitable model tree.
 
     Args:
-        model_expression (str): the model expression string. Example:
+        model_expression (str): the model expression string. Example::
 
-        .. code-block:: none
-
-            S0 * ( (Weight(Wball) * Ball) +
-                   (Weight(Wstick) * Stick ) )
+            model_expression = '''
+                S0 * ( (Weight(Wball) * Ball) +
+                       (Weight(Wstick) * Stick ) )
+            '''
 
         If the model name is followed by parenthesis the string in parenthesis will represent the model's nickname.
 

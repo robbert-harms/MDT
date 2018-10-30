@@ -25,10 +25,9 @@ from textwrap import dedent
 
 
 mock_as_class = ['QWidget', 'QMainWindow', 'QDialog', 'QObject',
-                 'CLRoutine', 'InputData', 'NumDiffInfo', 'SampleModelInterface',
-                 'NumericalDerivativeInterface', 'CLFunction', 'SimpleCLFunction']
+                 'CLFunction', 'SimpleCLFunction']
 mock_as_decorator = ['pyqtSlot']
-mock_modules = ['mot', 'pyopencl', 'PyQt5', 'matplotlib', 'mpl_toolkits']
+mock_modules = ['mot', 'pyopencl', 'PyQt5', 'matplotlib', 'mpl_toolkits', 'mdt.model_building.parameter_functions.priors']
 
 
 def mock_decorator(*args, **kwargs):
