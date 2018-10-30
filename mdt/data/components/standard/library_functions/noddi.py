@@ -11,16 +11,14 @@ class NODDI_SphericalHarmonicsIntegral(LibraryFunctionTemplate):
     """Approximate the integral of the Watson distribution using spherical harmonics.
 
     Args:
-        g: from the protocol
-        theta: the polar angle, estimated
-        phi: the azimuth angle, estimated
-        kappa: Watson distribution concentration parameter
+        angle_term: the angular term in the exponent of the NODDI integral, positive number
         exponent_term: the term in the exponent of the NODDI integral, negative number
+        kappa: Watson distribution concentration parameter
     """
     return_type = 'double'
     parameters = ('double angle_term',
                   'double exponent_term',
-                  'mot_float_type kappa')
+                  'double kappa')
     dependencies = ('NODDI_WatsonSHCoeff', 'NODDI_LegendreGaussianIntegral', 'EvenLegendreTerms')
     cl_code = '''
         // do not change this value! It would require adding approximations
