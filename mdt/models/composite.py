@@ -14,7 +14,8 @@ from mdt.model_building.utils import ParameterCodec
 
 from mot.lib.cl_function import SimpleCLFunction, SimpleCLFunctionParameter
 from mot.cl_routines import compute_log_likelihood, numerical_hessian
-from mdt.model_building.parameters import ProtocolParameter, FreeParameter, CurrentObservationParam, DataCacheParameter
+from mdt.model_building.parameters import ProtocolParameter, FreeParameter, CurrentObservationParam, \
+    DataCacheParameter, CurrentModelSignalParam, NoiseStdFreeParameter, NoiseStdInputParameter
 from mot.configuration import CLRuntimeInfo
 from mot.lib.utils import convert_data_to_dtype, \
     hessian_to_covariance, all_elements_equal, get_single_value
@@ -173,8 +174,8 @@ class DMRICompositeModel(DMRIOptimizable):
                                    self._get_rwm_proposal_stds(voxels_to_analyze),
                                    self._get_rwm_epsilons(),
                                    self._get_model_eval_function(include_cache_init_func=True),
-                                   self._get_log_likelihood_function(False, True, True),
-                                   self._get_log_likelihood_function(True, False, False),
+                                   self._get_log_likelihood_function(True, True),
+                                   self._get_log_likelihood_function(False, False),
                                    self._get_log_prior_function(),
                                    self._get_finalize_proposal_function())
 
@@ -368,8 +369,6 @@ class DMRICompositeModel(DMRIOptimizable):
     def set_input_data(self, input_data):
         """Set the input data this model will deal with.
 
-        This will also call the function set_noise_level_std() with the noise_std from the new input data.
-
         Args:
             input_data (mdt.utils.MRIInputData):
                 The container for the data we will use for this model.
@@ -387,9 +386,10 @@ class DMRICompositeModel(DMRIOptimizable):
 
         self._input_data = input_data
         if self._input_data.noise_std is not None:
-            self._model_functions_info.set_parameter_value('{}.{}'.format(
-                self._likelihood_function.get_log_likelihood_function().name,
-                self._likelihood_function.get_noise_std_param_name()), self._input_data.noise_std)
+            std_param = self._model_functions_info.get_noise_std_param()
+            self._model_functions_info.set_parameter_value(
+                '{}.{}'.format(self._likelihood_function.name, std_param.name),
+                self._input_data.noise_std)
         return self
 
     def get_input_data(self):
@@ -979,7 +979,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
         return data_type + ' ' + name + ' = ' + assignment + ';' + "\n"
 
-    def _get_parameters_listing(self, exclude_list=()):
+    def _get_parameters_listing(self):
         """Get the CL code for the parameter listing, this goes on top of the evaluate function.
 
         Args:
@@ -990,17 +990,14 @@ class DMRICompositeModel(DMRIOptimizable):
             An CL string that contains all the parameters as primitive data types.
         """
         func = ''
-        func += self._get_protocol_parameters_listing(exclude_list=exclude_list)
-        func += self._get_fixed_parameters_listing(exclude_list=exclude_list)
-        func += self._get_estimable_parameters_listing(exclude_list=exclude_list)
-        func += self._get_dependent_parameters_listing(exclude_list=exclude_list)
+        func += self._get_protocol_parameters_listing()
+        func += self._get_fixed_parameters_listing()
+        func += self._get_estimable_parameters_listing()
+        func += self._get_dependent_parameters_listing()
         return str(func)
 
-    def _get_estimable_parameters_listing(self, exclude_list=()):
+    def _get_estimable_parameters_listing(self):
         """Get the parameter listing for the free parameters.
-
-        Args:
-            exclude_list: a list of parameters to exclude from this listing
         """
         param_list = self._model_functions_info.get_estimable_parameters_list(exclude_priors=True)
 
@@ -1008,58 +1005,48 @@ class DMRICompositeModel(DMRIOptimizable):
         estimable_param_counter = 0
         for m, p in param_list:
             name = '{}.{}'.format(m.name, p.name).replace('.', '_')
-            if name not in exclude_list:
-                data_type = p.ctype
-                assignment = 'x[' + str(estimable_param_counter) + ']'
-                func += "\t"*4 + data_type + ' ' + name + ' = ' + assignment + ';' + "\n"
-                estimable_param_counter += 1
+            data_type = p.ctype
+            assignment = 'x[' + str(estimable_param_counter) + ']'
+            func += "\t"*4 + data_type + ' ' + name + ' = ' + assignment + ';' + "\n"
+            estimable_param_counter += 1
         return func
 
-    def _get_protocol_parameters_listing(self, exclude_list=()):
+    def _get_protocol_parameters_listing(self):
         """Get the parameter listing for the protocol parameters.
-
-        Args:
-            exclude_list: a list of parameters to exclude from this listing
         """
         param_list = self._model_functions_info.get_all_protocol_parameters()
         protocol_params_seen = []
         func = ''
         for m, p in param_list:
-            if ('{}.{}'.format(m.name, p.name).replace('.', '_')) not in exclude_list:
+            value = self._get_protocol_value(p)
 
-                value = self._get_protocol_value(p)
-
-                if p.name not in protocol_params_seen:
-                    if all_elements_equal(value):
-                        assignment = 'model_data->protocol->' + p.name
-                    elif len(value.shape) > 1 and value.shape[0] == self._input_data.nmr_problems and \
-                            value.shape[1] != self._input_data.nmr_observations:
-                        assignment = 'model_data->protocol->' + p.name + '[0]'
-                    else:
-                        assignment = 'model_data->protocol->' + p.name + '[observation_index]'
-                    func += "\t"*4 + p.ctype + ' ' + p.name + ' = ' + assignment + ';' + "\n"
-                    protocol_params_seen.append(p.name)
+            if p.name not in protocol_params_seen:
+                if all_elements_equal(value):
+                    assignment = 'model_data->protocol->' + p.name
+                elif len(value.shape) > 1 and value.shape[0] == self._input_data.nmr_problems and \
+                        value.shape[1] != self._input_data.nmr_observations:
+                    assignment = 'model_data->protocol->' + p.name + '[0]'
+                else:
+                    assignment = 'model_data->protocol->' + p.name + '[observation_index]'
+                func += "\t"*4 + p.ctype + ' ' + p.name + ' = ' + assignment + ';' + "\n"
+                protocol_params_seen.append(p.name)
         return func
 
-    def _get_fixed_parameters_listing(self, exclude_list=()):
+    def _get_fixed_parameters_listing(self):
         """Get the parameter listing for the fixed parameters.
-
-        Args:
-            exclude_list: a list of parameters to exclude from this listing
         """
         param_list = self._model_functions_info.get_value_fixed_parameters_list(exclude_priors=True)
 
         func = ''
         for m, p in param_list:
             name = '{}.{}'.format(m.name, p.name).replace('.', '_')
-            if name not in exclude_list:
-                data_type = p.basic_ctype
-                param_name = '{}.{}'.format(m.name, p.name).replace('.', '_')
-                assignment = 'model_data->{}'.format(param_name)
-                func += "\t"*4 + data_type + ' ' + name + ' = ' + assignment + ';' + "\n"
+            data_type = p.basic_ctype
+            param_name = '{}.{}'.format(m.name, p.name).replace('.', '_')
+            assignment = 'model_data->{}'.format(param_name)
+            func += "\t"*4 + data_type + ' ' + name + ' = ' + assignment + ';' + "\n"
         return func
 
-    def _get_dependent_parameters_listing(self, dependent_param_list=None, exclude_list=()):
+    def _get_dependent_parameters_listing(self, dependent_param_list=None):
         """Get the parameter listing for the dependent parameters.
 
         Args:
@@ -1080,9 +1067,7 @@ class DMRICompositeModel(DMRIOptimizable):
             assignment = self._convert_parameters_dot_to_bar(dependency.assignment_code)
             name = '{}.{}'.format(m.name, p.name).replace('.', '_')
             data_type = p.basic_ctype
-
-            if ('{}.{}'.format(m.name, p.name).replace('.', '_')) not in exclude_list:
-                func += "\t"*4 + data_type + ' ' + name + ' = ' + assignment + ';' + "\n"
+            func += "\t"*4 + data_type + ' ' + name + ' = ' + assignment + ';' + "\n"
         return func
 
     def _get_fixed_parameters_as_var_data(self, voxels_to_analyze):
@@ -1212,17 +1197,21 @@ class DMRICompositeModel(DMRIOptimizable):
         """
         return [p.numdiff_info.use_lower_bound for _, p in self._model_functions_info.get_estimable_parameters_list()]
 
-    def _get_log_likelihood_function(self, include_constant_terms, support_for_objective_list, negative_ll):
+    def _get_log_likelihood_function(self, support_for_objective_list, negative_ll):
         eval_function_info = self._get_model_eval_function(include_cache_init_func=False)
-        eval_model_func = self._likelihood_function.get_log_likelihood_function(
-            include_constant_terms=include_constant_terms)
+        eval_model_func = self._likelihood_function
         cache_init_func = self._get_cache_init_function()
 
         eval_call_args = []
         param_listing = ''
-        for p in eval_model_func.get_free_parameters():
-            param_listing += self._get_param_listing_for_param(eval_model_func, p)
-            eval_call_args.append('{}.{}'.format(eval_model_func.name, p.name).replace('.', '_'))
+        for p in eval_model_func.get_parameters():
+            if isinstance(p, CurrentObservationParam):
+                eval_call_args.append('model_data->observations[observation_ind]')
+            elif isinstance(p, CurrentModelSignalParam):
+                eval_call_args.append(eval_function_info.get_cl_function_name() + '(data, x, observation_ind)')
+            else:
+                param_listing += self._get_param_listing_for_param(eval_model_func, p)
+                eval_call_args.append('{}.{}'.format(eval_model_func.name, p.name).replace('.', '_'))
 
         cache_init = self._get_cache_init_function().get_cl_function_name() + '(data, x);'
 
@@ -1250,10 +1239,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
                     if(observation_ind < nmr_observations){
                         eval = ''' + ('-' if negative_ll else '') + ''' ''' + \
-                  eval_model_func.get_cl_function_name() + '''(
-                                    model_data->observations[observation_ind],
-                                    ''' + eval_function_info.get_cl_function_name() + '(data, x, observation_ind),' \
-                                    + ','.join(eval_call_args) + ''');
+                        eval_model_func.get_cl_function_name() + '(' + ', '.join(eval_call_args) + ''');
 
                         ''' + ('eval *= model_data->volume_weights[observation_ind];'
                                 if self._input_data.volume_weights is not None else '') + '''
@@ -1277,8 +1263,8 @@ class DMRICompositeModel(DMRIOptimizable):
                 return sum;
             }
         '''
-        return SimpleCLFunction.from_string(cl_body,
-                                            dependencies=[cache_init_func, eval_function_info, eval_model_func])
+        return SimpleCLFunction.from_string(cl_body, dependencies=[cache_init_func, eval_function_info,
+                                                                   eval_model_func])
 
     def _get_cache_init_function(self):
         """Get the function to initialize all the caches of all the compartments in this composite model.
@@ -1298,6 +1284,10 @@ class DMRICompositeModel(DMRIOptimizable):
                     for param in func.get_parameters():
                         if isinstance(param, FreeParameter):
                             param_list.append('{}.{}'.format(compartment.name, param.name).replace('.', '_'))
+                        elif isinstance(param, NoiseStdInputParameter):
+                            std_param = self._model_functions_info.get_noise_std_param()
+                            param_list.append(
+                                '{}.{}'.format(self._likelihood_function.name, std_param.name).replace('.', '_'))
                         elif isinstance(param, DataCacheParameter):
                             param_list.append('model_data->cache->' + compartment.name)
 
@@ -1305,13 +1295,10 @@ class DMRICompositeModel(DMRIOptimizable):
             return '\n'.join(calls)
 
         def get_function_body():
-            exclude_list = ['{}.{}'.format(m.name, p.name).replace('.', '_') for (m, p) in
-                            self._model_functions_info.get_non_model_eval_param_listing()]
-
             param_listing = ''
-            param_listing += self._get_fixed_parameters_listing(exclude_list=exclude_list)
-            param_listing += self._get_estimable_parameters_listing(exclude_list=exclude_list)
-            param_listing += self._get_dependent_parameters_listing(exclude_list=exclude_list)
+            param_listing += self._get_fixed_parameters_listing()
+            param_listing += self._get_estimable_parameters_listing()
+            param_listing += self._get_dependent_parameters_listing()
 
             body = '_mdt_model_data* model_data = (_mdt_model_data*)data;'
             body += dedent(param_listing.replace('\t', ' ' * 4)) + '\n'
@@ -1361,6 +1348,9 @@ class DMRICompositeModel(DMRIOptimizable):
                     param_list.append(param.name)
                 elif isinstance(param, CurrentObservationParam):
                     param_list.append('model_data->observations[observation_index]')
+                elif isinstance(param, NoiseStdInputParameter):
+                    std_param = self._model_functions_info.get_noise_std_param()
+                    param_list.append('{}.{}'.format(self._likelihood_function.name, std_param.name).replace('.', '_'))
                 elif isinstance(param, FreeParameter):
                     param_list.append('{}.{}'.format(model.name, param.name).replace('.', '_'))
                 elif isinstance(param, DataCacheParameter):
@@ -1382,9 +1372,7 @@ class DMRICompositeModel(DMRIOptimizable):
             return '{}({});'.format(func_name, ', '.join(call_args))
 
         def get_function_body():
-            param_listing = self._get_parameters_listing(
-                exclude_list=['{}.{}'.format(m.name, p.name).replace('.', '_') for (m, p) in
-                              self._model_functions_info.get_non_model_eval_param_listing()])
+            param_listing = self._get_parameters_listing()
 
             body = '_mdt_model_data* model_data = (_mdt_model_data*)data;'
             body += dedent(param_listing.replace('\t', ' ' * 4)) + '\n'
@@ -2028,6 +2016,8 @@ class BuildCompositeModel:
         if log_likelihoods is None:
             log_likelihoods = compute_log_likelihood(self.get_log_likelihood_function(),
                                                      results_array, data=self.get_kernel_data())
+            log_likelihoods[np.isinf(log_likelihoods)] = 0
+            log_likelihoods = np.nan_to_num(log_likelihoods)
 
         k = self.nmr_parameters_for_bic_calculation
         n = self.get_nmr_observations()
@@ -2157,7 +2147,7 @@ class CompositeModelFunction(SimpleCLFunction):
         other_params = []
 
         for m, p in self._parameter_model_list:
-            if isinstance(p, (ProtocolParameter, CurrentObservationParam)):
+            if isinstance(p, (ProtocolParameter, CurrentObservationParam, NoiseStdInputParameter)):
                 if p.name not in seen_shared_params:
                     shared_params.append((m, p, p.name))
                     seen_shared_params.append(p.name)
@@ -2176,11 +2166,14 @@ class CompositeModelFunction(SimpleCLFunction):
 
             model_expression = ''
             if self._signal_noise_model:
-                noise_params = ''
-                for p in self._signal_noise_model.get_free_parameters():
-                    noise_params += '{}.{}'.format(self._signal_noise_model.name, p.name).replace('.', '_')
-                model_expression += '{}(({}), {});'.format(self._signal_noise_model.get_cl_function_name(),
-                                                           tree, noise_params)
+                inputs = []
+                for p in self._signal_noise_model.get_parameters():
+                    if isinstance(p, CurrentModelSignalParam):
+                        inputs.append('(' + tree + ')')
+                    else:
+                        inputs.append('{}.{}'.format(self._signal_noise_model.name, p.name).replace('.', '_'))
+
+                model_expression += '{}({});'.format(self._signal_noise_model.get_cl_function_name(), ', '.join(inputs))
             else:
                 model_expression += '(' + tree + ');'
             return model_expression
@@ -2202,7 +2195,7 @@ class CompositeModelFunction(SimpleCLFunction):
             """Convert a model to CL string."""
             param_list = []
             for param in model.get_parameters():
-                if isinstance(param, (ProtocolParameter, CurrentObservationParam)):
+                if isinstance(param, (ProtocolParameter, CurrentObservationParam, NoiseStdInputParameter)):
                     param_list.append(param.name)
                 else:
                     param_list.append('{}.{}'.format(model.name, param.name).replace('.', '_'))
@@ -2470,19 +2463,6 @@ class ModelFunctionsInformation:
                 return m, p
         raise ValueError('The parameter with the name "{}" could not be found in this model.'.format(parameter_name))
 
-    def get_non_model_eval_param_listing(self):
-        """Get the model, parameter tuples for all parameters that are not used model function itself.
-
-        Basically this returns the parameters of the likelihood function and the signal noise model.
-
-        Returns:
-            tuple: the (model, parameter) tuple for all non model evaluation parameters
-        """
-        listing = []
-        for p in self._likelihood_function.get_log_likelihood_function().get_parameters():
-            listing.append((self._likelihood_function.get_log_likelihood_function(), p))
-        return listing
-
     def is_fixed(self, parameter_name):
         """Check if the given (free) parameter is fixed or not (either to a value or to a dependency).
 
@@ -2626,6 +2606,16 @@ class ModelFunctionsInformation:
         """
         return parameter_name in list(p.name for p in self.get_unique_protocol_parameters())
 
+    def get_noise_std_param(self):
+        """Get a reference to the noise standard deviation parameter in the likelihood model.
+
+        Returns:
+            parameter: the reference to the NoiseStdFreeParam of the likelihood model
+        """
+        for p in self._likelihood_function.get_parameters():
+            if isinstance(p, NoiseStdFreeParameter):
+                return p
+
     def _get_model_parameter_list(self):
         """Get a list of all model, parameter tuples.
 
@@ -2651,7 +2641,7 @@ class ModelFunctionsInformation:
     def _get_model_list(self):
         """Get the list of all the applicable model functions"""
         models = list(self._model_tree.get_compartment_models())
-        models.append(self._likelihood_function.get_log_likelihood_function())
+        models.append(self._likelihood_function)
         if self._signal_noise_model:
             models.append(self._signal_noise_model)
         return models

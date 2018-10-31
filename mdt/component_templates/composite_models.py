@@ -43,7 +43,7 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                     deepcopy(template.name),
                     CompartmentModelTree(parse_composite_model_expression(template.model_expression)),
                     deepcopy(_resolve_likelihood_function(template.likelihood_function)),
-                    signal_noise_model=deepcopy(template.signal_noise_model),
+                    signal_noise_model=_resolve_signal_noise_model(template.signal_noise_model),
                     enforce_weights_sum_to_one=template.enforce_weights_sum_to_one,
                     volume_selection=volume_selection
                 )
@@ -253,7 +253,7 @@ class CompositeModelTemplate(ComponentTemplate):
 
 
 def _resolve_likelihood_function(likelihood_function):
-    """Resolve the likelihood function from string if necessary.
+    """Resolve the likelihood function from a string if necessary.
 
     The composite models accept likelihood functions as a string and as a object. This function
     resolves the strings if a string is given, else it returns the object passed.
@@ -265,9 +265,27 @@ def _resolve_likelihood_function(likelihood_function):
         mdt.model_building.likelihood_models.LikelihoodFunction: the likelihood function to use
     """
     if isinstance(likelihood_function, str):
-        return get_component('likelihood_functions', likelihood_function + 'LikelihoodFunction')()
+        return get_component('likelihood_functions', likelihood_function)()
     else:
         return likelihood_function
+
+
+def _resolve_signal_noise_model(signal_noise_function):
+    """Resolve the signal noise function from a string if necessary.
+
+    The composite models accept signal noise functions as a string and as a object. This function
+    resolves the strings if a string is given, else it returns the object passed.
+
+    Args:
+        signal_noise_function (str or object): the signal noise function to resolve to an object
+
+    Returns:
+        mdt.model_building.signal_noise_models.SignalNoiseModel: the signal noise function to use
+    """
+    if isinstance(signal_noise_function, str):
+        return get_component('signal_noise_functions', signal_noise_function)()
+    else:
+        return signal_noise_function
 
 
 def _resolve_model_prior(prior, model_parameters):

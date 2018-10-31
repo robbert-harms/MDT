@@ -1,5 +1,5 @@
 from mdt.model_building.model_functions import SimpleModelCLFunction, WeightType, ModelCLFunction
-from mdt.model_building.parameters import FreeParameter, DataCacheParameter
+from mdt.model_building.parameters import FreeParameter, DataCacheParameter, NoiseStdInputParameter
 from mot.lib.cl_function import SimpleCLFunction
 from mot.lib.kernel_data import Struct, PrivateMemory, LocalMemory
 
@@ -179,7 +179,8 @@ class DMRICompartmentModelFunction(CompartmentModel, SimpleModelCLFunction):
         return SimpleCLFunction(
             'void',
             '{}_init_cache'.format(self._function_name),
-            [p for p in self.get_parameters() if isinstance(p, (FreeParameter, DataCacheParameter))],
+            [p for p in self.get_parameters()
+             if isinstance(p, (FreeParameter, DataCacheParameter, NoiseStdInputParameter))],
             self._cache_info.cl_code + '\n'.join(dependency_calls),
             dependencies=cache_init_funcs + self.get_dependencies())
 

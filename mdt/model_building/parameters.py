@@ -9,21 +9,6 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class CurrentObservationParam(SimpleCLFunctionParameter):
-
-    def __init__(self, name='observation'):
-        """This parameter indicates that the model should inject the current observation value in the model.
-
-        Sometimes during model linearization or other mathematical operations the current observation appears on
-        both sides of the optimization equation. That is, it sometimes happens you want to use the current observation
-        to model that same observation. This parameter is a signal to the model builder to inject the current
-        observation.
-
-        You can use this parameter by adding it to your model and then use the current name in your model equation.
-        """
-        super().__init__('mot_float_type ' + name)
-
-
 class InputDataParameter(SimpleCLFunctionParameter):
 
     def __init__(self, declaration, value):
@@ -141,9 +126,56 @@ class FreeParameter(SimpleCLFunctionParameter):
         return self._numdiff_info
 
 
+class NoiseStdFreeParameter(FreeParameter):
+
+    def __init__(self, *args, **kwargs):
+        """Specifies that this parameter should be set to the current noise standard deviation estimate.
+
+        Parameters of this type are only meant to be used in the likelihood functions. They indicate the
+        parameter to use for the initialization of the noise standard deviation.
+        """
+        super().__init__(*args, **kwargs)
+
+
+class NoiseStdInputParameter(SimpleCLFunctionParameter):
+
+    def __init__(self, name='noise_std'):
+        """Parameter indicating that this parameter should be fixed to the current value of the noise std.
+
+        Parameters of this type are meant to be used in compartment models specifying that we should use the
+        noise standard deviation value from the likelihood function as input to this function.
+        """
+        super().__init__('double ' + name)
+
+
 class LibraryParameter(SimpleCLFunctionParameter):
     """Parameters of this type are used inside library functions. They are not meant to be used in Model functions.
     """
+
+
+class CurrentObservationParam(SimpleCLFunctionParameter):
+
+    def __init__(self, name='observation'):
+        """This parameter indicates that the model should inject the current observation value in the model.
+
+        Sometimes during model linearization or other mathematical operations the current observation appears on
+        both sides of the optimization equation. That is, it sometimes happens you want to use the current observation
+        to model that same observation. This parameter is a signal to the model builder to inject the current
+        observation.
+
+        You can use this parameter by adding it to your model and then use the current name in your model equation.
+        """
+        super().__init__('double ' + name)
+
+
+class CurrentModelSignalParam(SimpleCLFunctionParameter):
+
+    def __init__(self, name='model_signal'):
+        """This parameter indicates that the model should inject here the current signal value of the model.
+
+        Parameters of this type can only be used by the signal noise and the likelihood functions.
+        """
+        super().__init__('double ' + name)
 
 
 class DataCacheParameter(SimpleCLFunctionParameter):

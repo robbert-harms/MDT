@@ -7,6 +7,7 @@ from contextlib import contextmanager
 import mdt
 import mot
 from mdt.configuration import get_config_dir
+from mdt.model_building.signal_noise_models import SignalNoiseModel
 from mot.library_functions import CLLibrary
 from mdt.model_building.likelihood_functions import LikelihoodFunction
 from mdt.model_building.parameter_functions.transformations import AbstractTransformation
@@ -20,7 +21,7 @@ __licence__ = 'LGPL v3'
 
 supported_component_types = ('batch_profiles', 'cascade_models', 'compartment_models',
                              'composite_models', 'library_functions', 'parameters', 'likelihood_functions',
-                             'parameter_transforms')
+                             'signal_noise_functions', 'parameter_transforms')
 
 
 class _ComponentLibrary:
@@ -388,6 +389,7 @@ def _load_mot_components():
     items = [
         (mot.library_functions, CLLibrary, 'library_functions'),
         (mdt.model_building.likelihood_functions, LikelihoodFunction, 'likelihood_functions'),
+        (mdt.model_building.signal_noise_models, SignalNoiseModel, 'signal_noise_functions'),
         (mdt.model_building.parameter_functions.transformations, AbstractTransformation, 'parameter_transforms'),
     ]
 

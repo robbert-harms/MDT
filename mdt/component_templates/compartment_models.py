@@ -5,7 +5,7 @@ from mdt.lib.components import get_component, has_component
 from mdt.models.compartments import DMRICompartmentModelFunction, WeightCompartment, CacheInfo
 from mdt.utils import spherical_to_cartesian
 from mot.lib.cl_function import CLFunction, SimpleCLFunction, SimpleCLFunctionParameter, SimpleCLCodeObject
-from mdt.model_building.parameters import CurrentObservationParam, DataCacheParameter
+from mdt.model_building.parameters import CurrentObservationParam, DataCacheParameter, NoiseStdInputParameter
 
 __author__ = 'Robbert Harms'
 __date__ = "2017-02-14"
@@ -212,15 +212,17 @@ class CompartmentTemplate(ComponentTemplate):
 
         description (str): model description
 
-        parameters (list): the list of parameters to use. A few options are possible per item:
+        parameters (list): the list of parameters to use. A few options are possible per item, that is, if given:
 
-            * provide a string, we will look for a corresponding parameter with the given name
-            * provide an instance of a CLFunctionParameter subclass, this will then be used directly
-            * provide the literal ``@observation``, this injects the current volume/observation into this function
+            * a string, we will look for a corresponding parameter with the given name
+            * an instance of a CLFunctionParameter subclass, this will then be used directly
+            * the literal ``@observation``, this injects the current volume/observation into this function
                 of type ``mot_float_type`` and name name ``observation``.
-            * provide the literal ``@cache``, this injects the data cache into this function, with the name ``cache``
+            * the literal ``@cache``, this injects the data cache into this function, with the name ``cache``
                 and a struct as datatype. The struct type name is provided by this compartment name appended with
                 ``_DataCache``.
+            * the literal ``@noise_std``, this injects the current value of the noise standard sigma parameter value
+                 of the likelihood function in this parameter.
 
         cl_code (str): the CL code definition to use, please provide here the body of your CL function.
 
@@ -402,6 +404,8 @@ def _resolve_parameters(parameter_list, compartment_name):
                 parameters.append(CurrentObservationParam(name='observation'))
             elif item == '@cache':
                 parameters.append(DataCacheParameter(compartment_name, 'cache'))
+            elif item == '@noise_std':
+                parameters.append(NoiseStdInputParameter(name='noise_std'))
             else:
                 if '(' in item:
                     param_name = item[:item.index('(')].strip()
