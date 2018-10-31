@@ -64,6 +64,9 @@ class NODDIDA(NODDI):
              'NODDI_EC.theta': 'NODDI_IC.theta',
              'NODDI_EC.phi': 'NODDI_IC.phi'}
 
+    extra_optimization_maps = [NODDIMeasures.noddi_watson_extra_optimization_maps]
+    extra_sampling_maps = [NODDIMeasures.noddi_watson_extra_sampling_maps]
+
 
 class BinghamNODDI_r1(CompositeModelTemplate):
     """The Bingham NODDI model with one intra- and extra-cellular compartments"""

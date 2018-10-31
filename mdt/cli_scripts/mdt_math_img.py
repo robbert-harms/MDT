@@ -87,8 +87,11 @@ class MathImg(BasicShellApplication):
         parser.set_defaults(as_expression=True)
 
         parser.add_argument('-o', '--output-file',
-                            help='the output file, if not set nothing is written').completer = \
+                            help='the output file, if set we write to this specific file').completer = \
             FilesCompleter(['nii', 'gz', 'hdr', 'img'], directories=False)
+
+        parser.add_argument('-w', '--write', help='write the results', dest='write_output', action='store_true')
+        parser.set_defaults(write_output=False)
 
         parser.add_argument('-4d', '--input-4d', action='store_true',
                             help='Add a singleton dimension to all input 3d maps to make them 4d, this prevents '
@@ -99,8 +102,6 @@ class MathImg(BasicShellApplication):
         return parser
 
     def run(self, args, extra_args):
-        write_output = args.output_file is not None
-
         file_names = []
         images = []
         for file in args.input_files:
@@ -157,22 +158,31 @@ class MathImg(BasicShellApplication):
             print('')
             print(output)
         else:
-            if not write_output:
+            if not args.write_output:
                 print(output)
 
         if args.verbose:
             print('')
 
-        if write_output:
-            output_file = os.path.realpath(args.output_file)
-            dirname, basename, ext = split_image_path(output_file)
-
+        if args.write_output:
             if isinstance(output, Sequence):
-                for ind, element in enumerate(output):
-                    mdt.write_nifti(element,
-                                    dirname + basename + '_' + str(ind) + ext,
-                                    mdt.load_nifti(file_names[0]).header)
+                if args.output_file:
+                    output_file = os.path.realpath(args.output_file)
+                    dirname, basename, ext = split_image_path(output_file)
+                    for ind, element in enumerate(output):
+                        mdt.write_nifti(element,
+                                        dirname + basename + '_' + str(ind) + ext,
+                                        mdt.load_nifti(file_names[0]).header)
+                else:
+                    for ind, element in enumerate(output):
+                        output_file = os.path.realpath(file_names[ind])
+                        mdt.write_nifti(element, output_file, mdt.load_nifti(file_names[ind]).header)
             else:
+                if args.output_file:
+                    output_file = os.path.realpath(args.output_file)
+                else:
+                    output_file = os.path.realpath(file_names[0])
+
                 mdt.write_nifti(output, output_file, mdt.load_nifti(file_names[0]).header)
 
     def _images_3d_to_4d(self, images):
