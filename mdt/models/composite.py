@@ -1347,7 +1347,10 @@ class DMRICompositeModel(DMRIOptimizable):
                 if isinstance(param, ProtocolParameter):
                     param_list.append(param.name)
                 elif isinstance(param, CurrentObservationParam):
-                    param_list.append('model_data->observations[observation_index]')
+                    if self._input_data.observations is not None:
+                        param_list.append('model_data->observations[observation_index]')
+                    else:
+                        param_list.append('0.0')
                 elif isinstance(param, NoiseStdInputParameter):
                     std_param = self._model_functions_info.get_noise_std_param()
                     param_list.append('{}.{}'.format(self._likelihood_function.name, std_param.name).replace('.', '_'))

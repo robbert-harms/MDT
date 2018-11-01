@@ -22,7 +22,6 @@ import os
 import re
 from copy import deepcopy
 
-import collections
 import yaml
 from contextlib import contextmanager
 from pkg_resources import resource_stream
@@ -656,8 +655,8 @@ def config_context(config_action):
     This loads the configuration from a YAML string and uses that configuration as the context.
 
     Args:
-        config_action (ConfigAction or str): the configuration action to apply. If a string is given we will
-            use it using the YamlStringAction config action.
+        config_action (mdt.configuration.ConfigAction or str): the configuration action to apply.
+            If a string is given we will use it using the YamlStringAction config action.
     """
     if isinstance(config_action, str):
         config_action = YamlStringAction(config_action)

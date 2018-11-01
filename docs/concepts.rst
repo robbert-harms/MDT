@@ -88,7 +88,7 @@ Dynamic modules
 ***************
 Extending and adapting MDT with new models is made easy using the dynamic library system allowing you to (re)define models anywhere.
 Users are free to add, remove and modify components and MDT will pickup the changes automatically.
-See :ref:`adding_models` for more information.
+See :ref:`components` for more information.
 
 
 .. _concepts_composite_and_cascade_models:
@@ -114,7 +114,7 @@ In terms of cascaded models, MDT comes standard pre-supplied with three variants
 * Cascade Fixed (CF) with the postfix "(Cascade|fixed)"
 
 All these cascade variants are ways of initializing the next model in the cascade to ensure a good starting position.
-In Harms 2017 :cite:`Harms201782` it is shown that this way of cascading can improve the fit over regular model optimization.
+In Harms 2017 :cite:`Harms2017` it is shown that this way of cascading can improve the fit over regular model optimization.
 
 The following figure shows how the three different cascades work with as example the NODDI model.
 

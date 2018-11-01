@@ -1,64 +1,28 @@
-.. _adding_models:
+.. _components:
 
-#############
-Adding models
-#############
-In MDT, models are constructed in an object oriented fashion with more complex objects being constructed out of simpler parts.
-The following figure shows the order of model construction in MDT:
+##########
+Components
+##########
+Components are a modular sub-system of MDT allowing you to add models and other functionality to MDT.
 
-.. image:: _static/figures/mdt_model_building.png
-    :align: center
+On the moment MDT supports the following components:
 
-That is, compartments models are constructed using one or more parameters, composite models are built out of one or more compartment models and cascade models consist out of one or more composite models.
-
-In MDT, models are added just by defining them using a templating mechanism, i.e. a dynamic library system in which components can be overridden by newer versions just by defining the component.
-For example, adding a new compartment model or overriding an existing one can be done just by stating:
-
-.. code-block:: python
-
-    from mdt import CompositeModelTemplate
-
-    class BallStick_r1(CompositeModelTemplate):
-        model_expression = '''
-            S0 * ( (Weight(w_ball) * Ball) +
-                   (Weight(w_stick0) * Stick(Stick0)) )
-        '''
+* Parameters: definitions of common parameters shared between models
+* Compartments: reusable models of diffusion and relaxometry models
+* Composite models: the models fitted by MDT, these are built out of the compartment models
+* Cascade models: initialization definitions for composite models
+* Library functions: library functions for use in composite models
+* Batch profiles: for the batch functionality in MDT
 
 
-In this example we overwrite the existing ``BallStick_r1`` model with a completely new model.
-Here, ``CompositeModelTemplate`` tells MDT that this class should be interpreted as a template for a dMRI composite model.
-By virtue of meta-classes, this template will automatically be added to the MDT component library for future use.
-
-Using Object Oriented inheritance it is possible to partially rewrite existing models with updated definitions.
-For example, instead of defining a completely new ``BallStick_r1`` model, we can also inherit from the existing template:
-
-.. code-block:: python
-
-    from mdt import get_template
-
-    class BallStick_r1(get_template('composite_models', 'BallStick_r1')):
-        likelihood_function = 'Rician'
+*******************
+Defining components
+*******************
+There are two ways of adding or updating components in MDT, by adding a component to your configuration folder or by defining it dynamically in your modeling scripts.
 
 
-Here, we inherit from the existing template and overwrite the likelihood function with Rician.
-All other definitions will be taken from the previous template.
-Afterwards you can directly use it in your model fitting code:
-
-.. code-block:: python
-
-    from mdt import get_template
-
-    class BallStick_r1(get_template('composite_models', 'BallStick_r1')):
-        likelihood_function = 'Rician'
-
-    mdt.fit_model('BallStick_r1', ...)
-
-which will now use the Ball&Stick model with a Rician noise model.
-
-
-************************
-Global model definitions
-************************
+Global definitions
+==================
 For persistent model definitions you can use the ``.mdt`` folder in your home folder.
 This folder contains diffusion MRI models and other functionality that you can extend without needing to reinstall or recompile MDT.
 
@@ -95,10 +59,27 @@ To make persistent changes you can add your modules to the *user* folder.
 The content of this folder is automatically copied to a new version.
 
 
-*********************************
-Dynamically redefining components
-*********************************
-Alternatively, as stated in the introduction, it is also possible to overwrite existing models on the fly, for example:
+Dynamic definitions
+===================
+Alternatively, it is also possible to define components on the fly in your analysis scripts.
+This is as simple as defining a template in your script prior to using it in your analysis.
+For example, prior to calling the fit model function, you can define a new model as:
+
+.. code-block:: python
+
+    from mdt import CompositeModelTemplate
+
+    class BallZeppelin(CompositeModelTemplate):
+        model_expression = '''
+            S0 * ( (Weight(w_csf) * Ball) +
+                   (Weight(w_res) * Zeppelin) )
+        '''
+
+    mdt.fit_model('BallZeppelin', ...)
+
+
+
+It is also possible to overwrite existing models on the fly, for example:
 
 .. code-block:: python
 

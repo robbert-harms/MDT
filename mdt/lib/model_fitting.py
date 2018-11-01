@@ -15,7 +15,7 @@ from mdt.utils import create_roi, get_cl_devices, model_output_exists, \
 from mdt.lib.processing_strategies import FittingProcessor, get_full_tmp_results_path
 from mdt.lib.exceptions import InsufficientProtocolError
 import mot.configuration
-from mot.configuration import RuntimeConfigurationAction, CLRuntimeInfo
+from mot.configuration import CLRuntimeInfo, CLRuntimeAction
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-05-01"
@@ -221,8 +221,7 @@ class ModelFit:
                                          apply_user_provided_initialization=not _in_recursion)
 
     def _run_composite_model(self, model, recalculate, model_names, apply_user_provided_initialization=False):
-        with mot.configuration.config_context(RuntimeConfigurationAction(
-                cl_environments=self._cl_runtime_info.cl_environments)):
+        with mot.configuration.config_context(CLRuntimeAction(self._cl_runtime_info)):
             if apply_user_provided_initialization:
                 self._apply_user_provided_initialization_data(model)
 

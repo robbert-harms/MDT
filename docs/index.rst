@@ -16,12 +16,9 @@ Introduction
 
     install
     getting_started
-    concepts
-    adding_models
     advanced_usage
-    configuration
+    concepts
+    components
     FAQ <faq>
-    changelog
-    developers
-    cli_index
     scientific_articles
+    changelog

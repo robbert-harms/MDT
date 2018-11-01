@@ -9,8 +9,7 @@ Microstructure Diffusion Toolbox
     getting_started
     advanced_usage
     concepts
-    adding_models
-    configuration
+    components
     FAQ <faq>
-    changelog
     developers
+    changelog

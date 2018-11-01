@@ -113,7 +113,6 @@ The first command to try is:
 
 which should print to the console a list of available CL devices.
 If this crashes or if there are no devices returned, please check to see if your OpenCL drivers are correctly installed.
-If this crashes with an exception then most likely the OpenCL environment can not be found, see :ref:`faq_clGetPlatformIDs_failed`.
 If it works but no devices can be found then please refer to the section :ref:`faq_no_opencl_device_found`.
 
 Next, one could try starting the graphical interface using:

@@ -8,11 +8,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class Kurtosis(CompositeModelTemplate):
     """The standard Kurtosis model with in vivo defaults."""
-
     model_expression = '''
         S0 * KurtosisTensor
     '''
-    volume_selection = {'unweighted_threshold': 25e6,
-                        'use_unweighted': True,
-                        'use_weighted': True,
-                        'bval_ranges': [(0, 3.0e9 + 0.1e9)]}
+    volume_selection = {'bval_ranges': [(0, 3.0e9 + 0.1e9)]}

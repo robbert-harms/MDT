@@ -58,28 +58,32 @@ and second, on the set of parameters::
 
 Using the evaluate function, you can also evaluate library functions::
 
-    model = mdt.get_component('library_functions', 'SphericalToCartesian')()
+    component = mdt.get_component('library_functions',
+                                  'SphericalToCartesian')
+    model = component()
     result = model.evaluate({'theta': 0.5, 'phi': 0.5}, 1)
 
 
 and composite models::
 
-    model = mdt.get_model('BallStick_r1')().get_composite_model_function()
-    retval = model.evaluate({'g': [1, 0, 0],
-                             'b': 2e9,
-                             'S0.s0': 1000,
-                             'w_ball.w': 0.5,
-                             'w_stick0.w': 0.5,
-                             'Ball.d': 1e-9,
-                             'Stick0.d': 1e-9,
-                             'Stick0.theta': 0.5,
-                             'Stick0.phi': 0.5
-                             }, 1)
+    model = mdt.get_model('BallStick_r1')()
+    model_function = model.get_composite_model_function()
+    retval = model_function.evaluate({
+        'g': [1, 0, 0],
+        'b': 2e9,
+        'S0.s0': 1000,
+        'w_ball.w': 0.5,
+        'w_stick0.w': 0.5,
+        'Ball.d': 1e-9,
+        'Stick0.d': 1e-9,
+        'Stick0.theta': 0.5,
+        'Stick0.phi': 0.5
+    }, 1)
 
 
 Using the printf function
 =========================
-In addition to the above, it is also possible to get information from inside the CL kernel, during execution, using the ``printf`` command.
+In addition to the above, it is also possible to print the execution status within a CL kernel, using the OpenCL ``printf`` command.
 The ``printf`` command is part of the OpenCL language and allows you to print some variables during kernel execution.
 
 As an example, suppose we want to print the output of the Stick compartment during model execution.

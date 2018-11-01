@@ -86,27 +86,14 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                 if not volume_selection:
                     return super()._get_suitable_volume_indices(input_data)
 
-                use_unweighted = volume_selection.get('use_unweighted', True)
-                use_weighted = volume_selection.get('use_weighted', True)
-                unweighted_threshold = volume_selection.get('unweighted_threshold', 25e6)
-
                 protocol = input_data.protocol
 
+                protocol_indices = []
                 if protocol.has_column('g') and protocol.has_column('b'):
-                    if use_weighted:
-                        if 'bval_ranges' in volume_selection and len(volume_selection['bval_ranges']):
-                            protocol_indices = []
-                            for bval_range in volume_selection['bval_ranges']:
-                                indices = protocol.get_indices_bval_in_range(start=bval_range[0], end=bval_range[1])
-                                protocol_indices.extend(indices)
-                        else:
-                            protocol_indices = protocol.get_weighted_indices(unweighted_threshold)
-                    else:
-                        protocol_indices = []
-
-                    if use_unweighted:
-                        protocol_indices = list(protocol_indices) + \
-                                           list(protocol.get_unweighted_indices(unweighted_threshold))
+                    if 'bval_ranges' in volume_selection and len(volume_selection['bval_ranges']):
+                        for bval_range in volume_selection['bval_ranges']:
+                            indices = protocol.get_indices_bval_in_range(start=bval_range[0], end=bval_range[1])
+                            protocol_indices.extend(indices)
                 else:
                     return list(range(protocol.length))
 
@@ -212,12 +199,7 @@ class CompositeModelTemplate(ComponentTemplate):
             Set to None, or an empty dict to disable.
             The options available are:
 
-               * ``unweighted_threshold`` (float): the threshold differentiating between
-                 weighted and unweighted volumes
-               * ``use_unweighted`` (bool): if we want to use unweighted volumes or not
-               * ``use_weighted`` (bool): if we want to use the diffusion weigthed volumes or not
-               * ``min_bval`` (float): the minimum b-value to include
-               * ``max_bval`` (float): the maximum b-value to include
+               * ``bval_ranges`` (list): a list of tuples with a minimum and maximum b-value
 
             If the method ``_get_suitable_volume_indices`` is overwritten, this does nothing.
 
