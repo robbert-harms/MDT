@@ -223,9 +223,10 @@ html_theme_options = {
     'sidebar_collapse': True,
     'fixed_sidebar': False,
     'extra_nav_links': {
-        'Developers': 'developers.html',
+        'Developer guidelines': 'developer_guidelines.html',
         'CLI Index': 'cli_index.html',
-        'Module index': 'py-modindex.html'
+        'Module index': 'py-modindex.html',
+        'Credits': 'credits.html'
     }
 }
 

@@ -49,9 +49,6 @@ The pre-provided list of column names is:
 Note that MDT expects the columns to be in **SI units**.
 
 The protocol dependencies change per model and MDT will issue a warning if a required column is missing from the protocol.
-If no b-value is provided, MDT will calculate one using Delta, delta and G.
-If the b-value and two out of three of ``{Delta, delta, G}`` are given, the provided b-value will take preference.
-If at least three of ``{b, Delta, delta, G}`` are given the missing value will be calculated automatically when required.
 
 A protocol can be created from a bvec/bval pair using the command line, python shell and/or GUI.
 Please see the relevant sections in :ref:`analysis` for more details on creating a Protocol file.

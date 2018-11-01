@@ -11,5 +11,6 @@ Microstructure Diffusion Toolbox
     concepts
     components
     FAQ <faq>
-    developers
+    developer_guidelines
     changelog
+    credits
