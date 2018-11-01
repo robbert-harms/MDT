@@ -53,8 +53,6 @@ class NoiseStdEstimation(BasicShellApplication):
                             help='the (brain) mask to use').completer = FilesCompleter(['nii', 'gz', 'hdr', 'img'],
                                                                                directories=False)
 
-        parser.add_argument('--estimator', '-e', type=str, help='The name of the estimation routine to use')
-
         return parser
 
     def run(self, args, extra_args):
@@ -62,12 +60,8 @@ class NoiseStdEstimation(BasicShellApplication):
                                          os.path.realpath(args.protocol),
                                          os.path.realpath(args.mask))
 
-        estimator = None
-        if args.estimator:
-            estimator = mdt.load_component('noise_std_estimators', args.estimator)
-
         with mdt.with_logging_to_debug():
-            noise_std = mdt.estimate_noise_std(input_data, estimator=estimator)
+            noise_std = mdt.estimate_noise_std(input_data)
             print(noise_std)
 
 
