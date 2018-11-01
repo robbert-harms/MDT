@@ -42,7 +42,8 @@ class BatchProfileBuilder(ComponentBuilder):
                     if not list(data_glob):
                         break
 
-                    noise_std = self._autoload_noise_std(data_folder, subject_id, file_pattern=template.noise_std_fname)
+                    noise_std = self._autoload_noise_std(data_folder, subject_id,
+                                                         file_pattern=_prepare_path(template.noise_std_fname))
 
                     protocol_loader = BatchFitProtocolLoader(
                         _prepare_path(template.protocol_auto_dir),
