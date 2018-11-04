@@ -19,11 +19,12 @@ from mdt.model_building.parameters import ProtocolParameter, FreeParameter, Curr
 from mot.configuration import CLRuntimeInfo
 from mot.lib.utils import convert_data_to_dtype, \
     hessian_to_covariance, all_elements_equal, get_single_value
-from mot.lib.kernel_data import Array, Zeros, Scalar, LocalMemory, Struct
+from mot.lib.kernel_data import Array, Zeros, Scalar, LocalMemory, Struct, CompositePrivateArray, PrivateMemory
 
 from mdt.models.base import MissingProtocolInput
 from mdt.models.base import DMRIOptimizable
-from mdt.utils import calculate_point_estimate_information_criterions, is_scalar, results_to_dict
+from mdt.utils import calculate_point_estimate_information_criterions, is_scalar, results_to_dict, \
+    create_covariance_matrix
 from mot.mcmc_diagnostics import multivariate_ess, univariate_ess
 
 __author__ = 'Robbert Harms'
@@ -242,7 +243,17 @@ class DMRICompositeModel(DMRIOptimizable):
             '''
             return SimpleCLFunction.from_string(func)
 
-        return ParameterCodec(get_encode_function(), get_decode_function())
+        def encode_bounds_func(lower_bounds, upper_bounds):
+            encoded_lbs = []
+            encoded_ubs = []
+            for m, p in self._model_functions_info.get_estimable_parameters_list():
+                ind = self._model_functions_info.get_parameter_estimable_index(m, p)
+                lb, ub = p.parameter_transform.encode_bounds(lower_bounds[ind], upper_bounds[ind])
+                encoded_lbs.append(lb)
+                encoded_ubs.append(ub)
+            return encoded_lbs, encoded_ubs
+
+        return ParameterCodec(get_encode_function(), get_decode_function(), encode_bounds_func=encode_bounds_func)
 
     def fix(self, model_param_name, value):
         """Fix the given model.param to the given value.
@@ -308,7 +319,8 @@ class DMRICompositeModel(DMRIOptimizable):
 
         Args:
             model_param_name (string): A model.param name like 'Ball.d'
-            value (scalar or vector): The value to set the lower bounds to
+            value (scalar or vector): The value to set the lower bounds to, either a single value for
+                every voxel or a value per voxel.
 
         Returns:
             Returns self for chainability
@@ -334,7 +346,8 @@ class DMRICompositeModel(DMRIOptimizable):
 
         Args:
             model_param_name (string): A model.param name like 'Ball.d'
-            value (scalar or vector): The value to set the upper bounds to
+            value (scalar or vector): The value to set the upper bounds to, either a single value for
+                every voxel or a value per voxel.
 
         Returns:
             Returns self for chainability
@@ -466,13 +479,10 @@ class DMRICompositeModel(DMRIOptimizable):
         return np.concatenate(elements, axis=1)
 
     def _get_propagate_weights_uncertainty(self, results):
-        std_names = ['{}.{}.std'.format(m.name, p.name) for (m, p) in self._model_functions_info.get_weights()]
-        if len(std_names) > 1:
-            if std_names[0] not in results and all(std in results for std in std_names[1:]):
-                total = results[std_names[1]]**2
-                for std in std_names[2:]:
-                    total += results[std]**2
-                return {std_names[0]: np.sqrt(total)}
+        weight_names = ['{}.{}'.format(m.name, p.name) for (m, p) in self._model_functions_info.get_weights()]
+        if len(weight_names) > 1:
+            covar_matrix = create_covariance_matrix(results, weight_names[1:], results.get('covariances', None))
+            return {weight_names[0] + '.std': np.sqrt(np.sum(np.sum(covar_matrix, axis=1), axis=1))}
         return {}
 
     def _get_gradient_deviation_proposal_callback(self):
@@ -1085,24 +1095,25 @@ class DMRICompositeModel(DMRIOptimizable):
         return var_data_dict
 
     def _get_bounds_as_var_data(self, voxels_to_analyze):
-        bounds_dict = {}
+        lower_bounds = []
+        upper_bounds = []
 
-        for m, p in self._model_functions_info.get_free_parameters_list():
+        for m, p in self._model_functions_info.get_estimable_parameters_list():
             lower_bound = self._lower_bounds['{}.{}'.format(m.name, p.name)]
             upper_bound = self._upper_bounds['{}.{}'.format(m.name, p.name)]
 
-            for bound_type, value in zip(('lb', 'ub'), (lower_bound, upper_bound)):
-                name = bound_type + '_' + '{}.{}'.format(m.name, p.name).replace('.', '_')
+            for elements, value in zip((lower_bounds, upper_bounds), (lower_bound, upper_bound)):
                 data = value
 
                 if all_elements_equal(value):
-                    bounds_dict.update({name: Scalar(get_single_value(data), ctype=p.ctype)})
+                    elements.append(Scalar(get_single_value(data), ctype=p.ctype))
                 else:
                     if voxels_to_analyze is not None:
                         data = data[voxels_to_analyze, ...]
-                    bounds_dict.update({name: Array(data, ctype=p.ctype, as_scalar=True)})
+                    elements.append(Array(data, ctype=p.ctype, as_scalar=True))
 
-        return bounds_dict
+        return {'lower_bounds': CompositePrivateArray(lower_bounds, 'mot_float_type'),
+                'upper_bounds': CompositePrivateArray(upper_bounds, 'mot_float_type')}
 
     def _transform_observations(self, observations):
         """Apply a transformation on the observations before fitting.
@@ -1121,36 +1132,6 @@ class DMRICompositeModel(DMRIOptimizable):
             observations (ndarray): a 2d matrix of the same shape as the input. This should hold the transformed data.
         """
         return observations
-
-    def _get_bound_definition(self, parameter_name, bound_type):
-        """Get the definition of the lower bound to use in model functions.
-
-        Since the lower bounds are not added to the ``data`` structure if they are all equal, we have a variable
-        way of referencing the lower bound.
-
-        Args:
-            parameter_name (str): the name of the parameter as ``<model>.<parameter>``.
-            bound_type (str): either ``upper`` or ``lower``.
-
-        Returns:
-            str: the way to reference the bound
-        """
-        if bound_type == 'lower':
-            if all_elements_equal(self._lower_bounds[parameter_name]):
-                if np.isneginf(get_single_value(self._lower_bounds[parameter_name])):
-                    return '-INFINITY'
-                else:
-                    return str(get_single_value(self._lower_bounds[parameter_name]))
-            else:
-                return 'model_data->bounds->lb_{}'.format(parameter_name.replace('.', '_'))
-        else:
-            if all_elements_equal(self._upper_bounds[parameter_name]):
-                if np.isposinf(get_single_value(self._upper_bounds[parameter_name])):
-                    return 'INFINITY'
-                else:
-                    return str(get_single_value(self._upper_bounds[parameter_name]))
-            else:
-                return 'model_data->bounds->ub_{}'.format(parameter_name.replace('.', '_'))
 
     def _get_numdiff_max_step_sizes(self):
         """Get the numerical differentiation step for each parameter.
@@ -1438,16 +1419,17 @@ class DMRICompositeModel(DMRIOptimizable):
             ind = self._model_functions_info.get_parameter_estimable_index(m, p)
             transform = parameter.parameter_transform
 
-            lower_bound = self._get_bound_definition(name, 'lower')
-            upper_bound = self._get_bound_definition(name, 'upper')
-
             s = '{0}[' + str(ind) + '] = ' + transform.get_cl_decode().create_assignment(
-                '{0}[' + str(ind) + ']', lower_bound, upper_bound) + ';'
+                '{0}[' + str(ind) + ']',
+                'model_data->bounds->lower_bounds[' + str(ind) + ']',
+                'model_data->bounds->upper_bounds[' + str(ind) + ']') + ';'
 
             dec_func_list.append(s)
 
             s = '{0}[' + str(ind) + '] = ' + transform.get_cl_encode().create_assignment(
-                '{0}[' + str(ind) + ']', lower_bound, upper_bound) + ';'
+                '{0}[' + str(ind) + ']',
+                'model_data->bounds->lower_bounds[' + str(ind) + ']',
+                'model_data->bounds->upper_bounds[' + str(ind) + ']') + ';'
 
             enc_func_list.append(s)
 
@@ -1536,9 +1518,6 @@ class DMRICompositeModel(DMRIOptimizable):
             for i, (m, p) in enumerate(self._model_functions_info.get_estimable_parameters_list()):
                 name = '{}.{}'.format(m.name, p.name)
 
-                lower_bound = self._get_bound_definition(name, 'lower')
-                upper_bound = self._get_bound_definition(name, 'upper')
-
                 function_name = p.sampling_prior.get_cl_function_name()
 
                 if m.get_prior_parameters(p):
@@ -1550,10 +1529,18 @@ class DMRICompositeModel(DMRIOptimizable):
                         else:
                             prior_params.append('model_data->{}.{}'.format(m.name, prior_param.name).replace('.', '_'))
 
-                    cl_str += 'prior *= {}(x[{}], {}, {}, {});\n'.format(function_name, i, lower_bound, upper_bound,
-                                                                         ', '.join(prior_params))
+                    cl_str += 'prior *= {}(x[{}], {}, {}, {});\n'.format(
+                        function_name,
+                        i,
+                        'model_data->bounds->lower_bounds[' + str(i) + ']',
+                        'model_data->bounds->upper_bounds[' + str(i) + ']',
+                        ', '.join(prior_params))
                 else:
-                    cl_str += 'prior *= {}(x[{}], {}, {});\n'.format(function_name, i, lower_bound, upper_bound)
+                    cl_str += 'prior *= {}(x[{}], {}, {});\n'.format(
+                        function_name,
+                        i,
+                        'model_data->bounds->lower_bounds[' + str(i) + ']',
+                        'model_data->bounds->upper_bounds[' + str(i) + ']')
 
             for model_prior in self._model_priors:
                 function_name = model_prior.get_cl_function_name()

@@ -1,3 +1,5 @@
+import numpy as np
+
 __author__ = 'Robbert Harms'
 __date__ = "2014-06-20"
 __license__ = "LGPL v3"
@@ -24,6 +26,18 @@ class AbstractTransformation:
 
         Returns:
             AssignmentConstructor: The cl code assignment constructor for decoding the parameter.
+        """
+        raise NotImplementedError()
+
+    def encode_bounds(self, lower_bounds, upper_bounds):
+        """Encode the given bounds into the encoded parameter space.
+
+        Args:
+            lower_bounds (floar or ndarray): either a single bound, or per voxel a bound
+            upper_bounds (floar or ndarray): either a single bound, or per voxel a bound
+
+        Returns:
+            tuple: the transformed lower and upper bounds, same shape as inputs
         """
         raise NotImplementedError()
 
@@ -76,6 +90,9 @@ class IdentityTransform(AbstractTransformation):
     def get_cl_decode(self):
         return FormatAssignmentConstructor('{parameter_variable}')
 
+    def encode_bounds(self, lower_bounds, upper_bounds):
+        return lower_bounds, upper_bounds
+
 
 class PositivityTransform(AbstractTransformation):
     """Restrain the parameter to the positive values, i.e. returns ``max(x, 0)``."""
@@ -85,6 +102,9 @@ class PositivityTransform(AbstractTransformation):
 
     def get_cl_decode(self):
         return FormatAssignmentConstructor('max({parameter_variable}, (mot_float_type)0)')
+
+    def encode_bounds(self, lower_bounds, upper_bounds):
+        return np.zeros_like(lower_bounds), upper_bounds
 
 
 class ClampTransform(AbstractTransformation):
@@ -100,14 +120,17 @@ class ClampTransform(AbstractTransformation):
                                            '(mot_float_type){lower_bound}, '
                                            '(mot_float_type){upper_bound})')
 
+    def encode_bounds(self, lower_bounds, upper_bounds):
+        return lower_bounds, upper_bounds
+
 
 class ScaleClampTransform(AbstractTransformation):
 
     def __init__(self, scale):
         """Clamps the value to the given bounds and applies a scaling to bring the parameters in sensible ranges.
 
-        The given scaling factor should be without the scaling factor. To encode, the parameter value is multiplied
-        by the scaling factor. To decode, it is divided by the scaling factor.
+        To encode, the parameter value is multiplied by the scaling factor.
+        To decode, it is divided by the scaling factor.
 
         Args:
             scale (float): the scaling factor by which to scale the parameter
@@ -125,6 +148,33 @@ class ScaleClampTransform(AbstractTransformation):
                                            '(mot_float_type){lower_bound}, '
                                            '(mot_float_type){upper_bound})')
 
+    def encode_bounds(self, lower_bounds, upper_bounds):
+        return lower_bounds * self._scale, upper_bounds * self._scale
+
+
+class ScaleTransform(AbstractTransformation):
+
+    def __init__(self, scale):
+        """Applies a scaling to bring the parameters in sensible ranges.
+
+        To encode, the parameter value is multiplied by the scaling factor.
+        To decode, it is divided by the scaling factor.
+
+        Args:
+            scale (float): the scaling factor by which to scale the parameter
+        """
+        super().__init__()
+        self._scale = scale
+
+    def get_cl_encode(self):
+        return FormatAssignmentConstructor('{parameter_variable} * ' + str(self._scale))
+
+    def get_cl_decode(self):
+        return FormatAssignmentConstructor('{parameter_variable} / ' + str(self._scale))
+
+    def encode_bounds(self, lower_bounds, upper_bounds):
+        return lower_bounds * self._scale, upper_bounds * self._scale
+
 
 class CosSqrClampTransform(AbstractTransformation):
     """The clamp transformation limits the parameter between its lower and upper bound using a cos(sqr()) transform."""
@@ -138,6 +188,9 @@ class CosSqrClampTransform(AbstractTransformation):
     def get_cl_decode(self):
         return FormatAssignmentConstructor('pown(cos({parameter_variable}), 2) * ' +
                                            '({upper_bound} - {lower_bound}) + {lower_bound}')
+
+    def encode_bounds(self, lower_bounds, upper_bounds):
+        return np.ones_like(lower_bounds) * -np.inf, np.ones_like(upper_bounds) * np.inf
 
 
 class SinSqrClampTransform(AbstractTransformation):
@@ -153,6 +206,9 @@ class SinSqrClampTransform(AbstractTransformation):
         return FormatAssignmentConstructor('pown(sin({parameter_variable}), 2) * ' +
                                            '({upper_bound} - {lower_bound}) + {lower_bound}')
 
+    def encode_bounds(self, lower_bounds, upper_bounds):
+        return np.ones_like(lower_bounds) * -np.inf, np.ones_like(upper_bounds) * np.inf
+
 
 class SqrClampTransform(AbstractTransformation):
     """The clamp transformation limits the parameter between its lower and upper bound using a sqr() transform."""
@@ -165,29 +221,37 @@ class SqrClampTransform(AbstractTransformation):
                                            '      (mot_float_type){lower_bound}, '
                                            '      (mot_float_type){upper_bound})')
 
+    def encode_bounds(self, lower_bounds, upper_bounds):
+        return np.sqrt(lower_bounds), np.sqrt(upper_bounds)
+
 
 class AbsModXTransform(AbstractTransformation):
 
-    def __init__(self, x):
+    def __init__(self, x_cl, x_python):
         """Create an transformation that returns the absolute modulo x value of the input."""
         super().__init__()
-        self._x = x
+        self._x_cl = x_cl
+        self._x_python = x_python
 
     def get_cl_encode(self):
         return FormatAssignmentConstructor(
-            '({parameter_variable} - (' + str(self._x) + ' * floor({parameter_variable} / ' + str(self._x) + ')))')
+            '({parameter_variable} - (' + str(self._x_cl) + ' * floor({parameter_variable} / '
+            + str(self._x_cl) + ')))')
 
     def get_cl_decode(self):
         return FormatAssignmentConstructor(
-            '({parameter_variable} - (' + str(self._x) + ' * floor({parameter_variable} / ' + str(self._x) + ')))')
+            '({parameter_variable} - (' + str(self._x_cl) + ' * floor({parameter_variable} / '
+            + str(self._x_cl) + ')))')
+
+    def encode_bounds(self, lower_bounds, upper_bounds):
+        return np.zeros_like(lower_bounds), np.ones_like(upper_bounds) * self._x_python
 
 
 class AbsModPiTransform(AbsModXTransform):
     def __init__(self):
-        super().__init__('M_PI')
+        super().__init__('M_PI', np.pi)
 
 
 class AbsModTwoPiTransform(AbsModXTransform):
     def __init__(self):
-        super().__init__('(2 * M_PI)')
-
+        super().__init__('(2 * M_PI)', 2 * np.pi)

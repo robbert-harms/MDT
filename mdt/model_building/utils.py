@@ -64,7 +64,9 @@ class ObjectiveFunctionWrapper:
                     for(uint i = 0; i < ''' + str(self._nmr_parameters) + '''; i++){
                         x_tmp[i] = x[i];
                     }
-                    ''' + decode_function.get_cl_function_name() + '''(data, x_tmp);
+                    ''' + decode_function.get_cl_function_name() + '''(
+                        ((objective_function_wrapper_data*)data)->data, 
+                        x_tmp);
                 }
                 barrier(CLK_LOCAL_MEM_FENCE);
     
@@ -76,7 +78,7 @@ class ObjectiveFunctionWrapper:
 
 class ParameterCodec:
 
-    def __init__(self, encode_func, decode_func):
+    def __init__(self, encode_func, decode_func, encode_bounds_func=None):
         """Create a parameter codec container.
 
         Args:
@@ -95,9 +97,12 @@ class ParameterCodec:
                 .. code-block:: c
 
                     void <fname>(void* data, local mot_float_type* x);
+            encode_bounds_func (Callable[[array, array], Tuple[array, array]]): encode the lower and upper bounds
+                to bounds of the encoded parameter space. If not set, we won't encode the bounds
         """
         self._encode_func = encode_func
         self._decode_func = decode_func
+        self._encode_bounds_func = encode_bounds_func
 
     def get_encode_function(self):
         """Get a CL function that can transform the model parameters from model space to an encoded space.
@@ -126,6 +131,20 @@ class ParameterCodec:
                     void <fname>(void* data, local mot_float_type* x);
         """
         return self._decode_func
+
+    def encode_bounds(self, lower_bounds, upper_bounds):
+        """Encode the given bounds to the encoded parameter space.
+
+        Args:
+            lower_bounds (list): for each parameter the lower bound(s). Each element can either be a scalar or a vector.
+            upper_bounds (list): for each parameter the upper bound(s). Each element can either be a scalar or a vector.
+
+        Returns:
+            tuple: the lower and the upper bounds, in a similar structure as the input
+        """
+        if self._encode_bounds_func is not None:
+            return self._encode_bounds_func(lower_bounds, upper_bounds)
+        return lower_bounds, upper_bounds
 
     def decode(self, parameters, kernel_data=None, cl_runtime_info=None):
         """Decode the given parameters using the given model.

@@ -448,8 +448,6 @@ class FittingProcessor(SimpleModelProcessor):
         build_model = self._model.build(roi_indices)
         codec = self._model.get_parameter_codec()
 
-        x0 = codec.encode(build_model.get_initial_parameters(), build_model.get_kernel_data())
-
         cl_runtime_info = CLRuntimeInfo()
 
         self._logger.info('Starting minimization')
@@ -465,6 +463,8 @@ class FittingProcessor(SimpleModelProcessor):
                               'with optimizer settings {}'.format(self._method, self._optimizer_options))
         else:
             self._logger.info('We will use the optimizer {} with default settings.'.format(self._method))
+
+        x0 = codec.encode(build_model.get_initial_parameters(), build_model.get_kernel_data())
 
         wrapper = ObjectiveFunctionWrapper(x0.shape[1])
         objective_func = wrapper.wrap_objective_function(build_model.get_objective_function(),
