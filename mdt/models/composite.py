@@ -19,7 +19,7 @@ from mdt.model_building.parameters import ProtocolParameter, FreeParameter, Curr
 from mot.configuration import CLRuntimeInfo
 from mot.lib.utils import convert_data_to_dtype, \
     hessian_to_covariance, all_elements_equal, get_single_value
-from mot.lib.kernel_data import Array, Zeros, Scalar, LocalMemory, Struct, CompositePrivateArray, PrivateMemory
+from mot.lib.kernel_data import Array, Zeros, Scalar, LocalMemory, Struct, CompositeArray
 
 from mdt.models.base import MissingProtocolInput
 from mdt.models.base import DMRIOptimizable
@@ -1112,8 +1112,8 @@ class DMRICompositeModel(DMRIOptimizable):
                         data = data[voxels_to_analyze, ...]
                     elements.append(Array(data, ctype=p.ctype, as_scalar=True))
 
-        return {'lower_bounds': CompositePrivateArray(lower_bounds, 'mot_float_type'),
-                'upper_bounds': CompositePrivateArray(upper_bounds, 'mot_float_type')}
+        return {'lower_bounds': CompositeArray(lower_bounds, 'mot_float_type', address_space='local'),
+                'upper_bounds': CompositeArray(upper_bounds, 'mot_float_type', address_space='local')}
 
     def _transform_observations(self, observations):
         """Apply a transformation on the observations before fitting.
