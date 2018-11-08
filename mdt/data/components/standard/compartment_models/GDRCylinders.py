@@ -58,7 +58,7 @@ class GDRCylinders(CompartmentTemplate):
 
     class shape(FreeParameterTemplate):
         init_value = 2
-        lower_bound = 1e-5
+        lower_bound = 1e-3
         upper_bound = 25
         sampling_proposal_std = 0.01
 
@@ -66,5 +66,5 @@ class GDRCylinders(CompartmentTemplate):
         init_value = 1e-6
         lower_bound = 0.01e-6
         upper_bound = 20e-6
-        parameter_transform = ScaleTransform(1e7)
+        parameter_transform = ScaleTransform(1e6)
         sampling_proposal_std = 0.01e-6
