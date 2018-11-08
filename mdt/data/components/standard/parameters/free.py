@@ -7,6 +7,7 @@ value to disable them from being optimized in a given situation, but they remain
 import numpy as np
 from mdt import FreeParameterTemplate
 from mdt.model_building.parameter_functions.priors import UniformWithinBoundsPrior, ARDBeta, ARDGaussian
+from mdt.model_building.parameter_functions.transformations import ScaleTransform
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-12-12"
@@ -19,7 +20,6 @@ class s0(FreeParameterTemplate):
     init_value = 1e4
     lower_bound = 0
     upper_bound = 1e10
-    parameter_transform = 'Clamp'
     sampling_proposal_std = 10.0
 
 
@@ -46,40 +46,18 @@ class w_ard_gaussian(w):
 
 class T1(FreeParameterTemplate):
 
-    init_value = 0.02
+    init_value = 0.05
     lower_bound = 1e-5
     upper_bound = 4.0
-    parameter_transform = 'Clamp'
+    parameter_transform = ScaleTransform(1e4)
 
 
 class T2(FreeParameterTemplate):
 
-    init_value = 0.01
+    init_value = 0.05
     lower_bound = 1e-5
     upper_bound = 2.0
-    parameter_transform = 'Clamp'
-
-
-class T2_star(FreeParameterTemplate):
-
-    init_value = 0.01
-    lower_bound = 0.0
-    upper_bound = 1.0
-    parameter_transform = 'Clamp'
-
-
-class E1(FreeParameterTemplate):
-    """This parameter is defined *only* for linear decay T1 fitting in GRE data *with* TR constant.
-
-    This parameter is also defined in the SSFP equation. However, in SSFP this parameter is from the protocol (!)
-        E1 = exp( -TR / T1 ).
-    After estimation of this parameter, T1 can be recovered by applying the next equation:
-        -TR / log( E1 ).
-    """
-    init_value = 0.37
-    lower_bound = 0.0
-    upper_bound = 1.0
-    parameter_transform = 'Clamp'
+    parameter_transform = ScaleTransform(1e4)
 
 
 class R1(FreeParameterTemplate):
@@ -88,7 +66,7 @@ class R1(FreeParameterTemplate):
     init_value = 2
     lower_bound = 0.25
     upper_bound = 100.0
-    parameter_transform = 'Clamp'
+    parameter_transform = ScaleTransform(1e2)
 
 
 class R2(FreeParameterTemplate):
@@ -97,7 +75,7 @@ class R2(FreeParameterTemplate):
     init_value = 5
     lower_bound = 0.5
     upper_bound = 500.0
-    parameter_transform = 'Clamp'
+    parameter_transform = ScaleTransform(1e2)
 
 
 class R2s(FreeParameterTemplate):
@@ -106,7 +84,7 @@ class R2s(FreeParameterTemplate):
     init_value = 10
     lower_bound = 1
     upper_bound = 50.0
-    parameter_transform = 'Clamp'
+    parameter_transform = ScaleTransform(1e2)
 
 
 class theta(FreeParameterTemplate):
@@ -166,7 +144,7 @@ class d(FreeParameterTemplate):
     init_value = 1.7e-9
     lower_bound = 1e-11
     upper_bound = 1.0e-8
-    parameter_transform = 'SinSqrClamp'
+    parameter_transform = ScaleTransform(1e10)
     sampling_proposal_std = 1e-10
     numdiff_info = {'scale_factor': 1e10, 'use_upper_bound': False}
 
@@ -176,7 +154,7 @@ class dperp0(FreeParameterTemplate):
     init_value = 1.7e-10
     lower_bound = 0
     upper_bound = 1.0e-8
-    parameter_transform = 'SinSqrClamp'
+    parameter_transform = ScaleTransform(1e10)
     sampling_proposal_std = 1e-10
     numdiff_info = {'scale_factor': 1e10, 'use_upper_bound': False}
 
@@ -186,7 +164,7 @@ class dperp1(FreeParameterTemplate):
     init_value = 1.7e-11
     lower_bound = 0
     upper_bound = 1.0e-8
-    parameter_transform = 'SinSqrClamp'
+    parameter_transform = ScaleTransform(1e10)
     sampling_proposal_std = 1e-10
     numdiff_info = {'scale_factor': 1e10, 'use_upper_bound': False}
 
@@ -195,7 +173,7 @@ class R(FreeParameterTemplate):
     init_value = 1.0e-6
     lower_bound = 1e-7
     upper_bound = 20e-6
-    parameter_transform = 'CosSqrClamp'
+    parameter_transform = ScaleTransform(1e7)
     sampling_proposal_std = 1e-7
 
 
@@ -211,7 +189,6 @@ class kappa(FreeParameterTemplate):
     init_value = 1
     lower_bound = 0
     upper_bound = 64
-    parameter_transform = 'CosSqrClamp'
     sampling_proposal_std = 0.01
     numdiff_info = {'max_step': 0.1, 'use_upper_bound': False}
 
@@ -221,7 +198,6 @@ class k1(FreeParameterTemplate):
     init_value = 1
     lower_bound = 0
     upper_bound = 64
-    parameter_transform = 'CosSqrClamp'
     sampling_proposal_std = 0.01
     numdiff_info = {'max_step': 0.1, 'use_upper_bound': False}
 
@@ -231,7 +207,6 @@ class kw(FreeParameterTemplate):
     init_value = 2
     lower_bound = 1
     upper_bound = 64
-    parameter_transform = 'CosSqrClamp'
     sampling_proposal_std = 0.01
     numdiff_info = {'max_step': 0.1, 'use_upper_bound': False}
 
@@ -241,18 +216,9 @@ class d_exvivo(FreeParameterTemplate):
     init_value = 5.0e-10
     lower_bound = 0.0
     upper_bound = 1.0e-8
-    parameter_transform = 'SinSqrClamp'
+    parameter_transform = ScaleTransform(1e10)
     sampling_proposal_std = 1e-11
     numdiff_info = {'scale_factor': 1e10, 'use_upper_bound': False}
-
-
-class time_dependent_characteristic_coefficient(FreeParameterTemplate):
-    """The time dependent characteristic as used in the TimeDependentZeppelin model. Values are in m^2."""
-    init_value = 1e-6
-    lower_bound = 1e-7
-    upper_bound = 1e-5
-    parameter_transform = 'CosSqrClamp'
-    sampling_proposal_std = 1e-7
 
 
 class d_bulk(FreeParameterTemplate):
@@ -260,6 +226,6 @@ class d_bulk(FreeParameterTemplate):
     init_value = 0.e-9
     lower_bound = 0
     upper_bound = 1.0e-8
-    parameter_transform = 'SinSqrClamp'
+    parameter_transform = ScaleTransform(1e10)
     sampling_proposal_std = 1e-10
     numdiff_info = {'scale_factor': 1e10, 'use_upper_bound': False}

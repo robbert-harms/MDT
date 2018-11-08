@@ -177,6 +177,18 @@ class LinT1GRE(CompartmentTemplate):
         return Sw * E1;
     '''
 
+    class E1(FreeParameterTemplate):
+        """This parameter is defined *only* for linear decay T1 fitting in GRE data *with* TR constant.
+
+        This parameter is also defined in the SSFP equation. However, in SSFP this parameter is from the protocol (!)
+            E1 = exp( -TR / T1 ).
+        After estimation of this parameter, T1 can be recovered by applying the next equation:
+            -TR / log( E1 ).
+        """
+        init_value = 0.37
+        lower_bound = 0.0
+        upper_bound = 1.0
+
 
 class LinT2Dec(CompartmentTemplate):
 

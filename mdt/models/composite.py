@@ -482,7 +482,9 @@ class DMRICompositeModel(DMRIOptimizable):
         weight_names = ['{}.{}'.format(m.name, p.name) for (m, p) in self._model_functions_info.get_weights()]
         if len(weight_names) > 1:
             covar_matrix = create_covariance_matrix(results, weight_names[1:], results.get('covariances', None))
-            return {weight_names[0] + '.std': np.sqrt(np.sum(np.sum(covar_matrix, axis=1), axis=1))}
+            std = np.sqrt(np.sum(np.sum(covar_matrix, axis=1), axis=1))
+            std[np.isinf(std) | np.isnan(std)] = 0
+            return {weight_names[0] + '.std': std}
         return {}
 
     def _get_gradient_deviation_proposal_callback(self):

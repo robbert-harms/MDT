@@ -1,4 +1,5 @@
 from mdt import CompartmentTemplate, FreeParameterTemplate
+from mdt.model_building.parameter_functions.transformations import ScaleTransform
 
 __author__ = 'Robbert Harms'
 __date__ = '2018-09-15'
@@ -59,12 +60,11 @@ class GDRCylinders(CompartmentTemplate):
         init_value = 2
         lower_bound = 1e-5
         upper_bound = 25
-        parameter_transform = 'CosSqrClamp'
         sampling_proposal_std = 0.01
 
     class scale(FreeParameterTemplate):
         init_value = 1e-6
         lower_bound = 0.01e-6
         upper_bound = 20e-6
-        parameter_transform = 'CosSqrClamp'
+        parameter_transform = ScaleTransform(1e7)
         sampling_proposal_std = 0.01e-6

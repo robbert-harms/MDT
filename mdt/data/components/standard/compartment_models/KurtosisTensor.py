@@ -6,7 +6,7 @@ from mdt.lib.post_processing import DTIMeasures, DKIMeasures, noddi_dti_maps
 from mdt.model_building.parameter_functions.priors import AlwaysOne, UniformWithinBoundsPrior
 from mdt.component_templates.parameters import FreeParameterTemplate, ParameterBuilder
 from mdt.component_templates.compartment_models import CompartmentTemplate
-from mdt.model_building.parameter_functions.transformations import IdentityTransform, PositivityTransform
+from mdt.model_building.parameter_functions.transformations import ScaleTransform
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -49,16 +49,18 @@ def build_param(index):
         Parameter: a constructed parameter to be used in a compartment model.
     """
     _lower_bound = -np.inf
-    _parameter_transform = IdentityTransform()
+    _parameter_transform = ScaleTransform(10)
     _sampling_prior = AlwaysOne()
+    _init_value = 0
+
     if len(set(index)) == 1:
         _lower_bound = 0
-        _parameter_transform = PositivityTransform()
+        _init_value = 0.1
         _sampling_prior = UniformWithinBoundsPrior()
 
     class matrix_element_param(FreeParameterTemplate):
         name = 'W_{}{}{}{}'.format(*index)
-        init_value = 0
+        init_value = _init_value
         lower_bound = _lower_bound
         upper_bound = np.inf
         parameter_transform = _parameter_transform

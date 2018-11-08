@@ -465,6 +465,8 @@ class FittingProcessor(SimpleModelProcessor):
             self._logger.info('We will use the optimizer {} with default settings.'.format(self._method))
 
         x0 = codec.encode(build_model.get_initial_parameters(), build_model.get_kernel_data())
+        lower_bounds, upper_bounds = codec.encode_bounds(build_model.get_lower_bounds(),
+                                                         build_model.get_upper_bounds())
 
         wrapper = ObjectiveFunctionWrapper(x0.shape[1])
         objective_func = wrapper.wrap_objective_function(build_model.get_objective_function(),
@@ -475,6 +477,8 @@ class FittingProcessor(SimpleModelProcessor):
                            nmr_observations=build_model.get_nmr_observations(),
                            cl_runtime_info=cl_runtime_info,
                            data=input_data,
+                           lower_bounds=lower_bounds,
+                           upper_bounds=upper_bounds,
                            options=self._optimizer_options)
 
         self._logger.info('Finished optimization')

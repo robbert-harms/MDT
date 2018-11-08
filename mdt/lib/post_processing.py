@@ -894,10 +894,14 @@ def _tau_to_kappa(tau):
 
     objective_func = SimpleCLFunction.from_string('''
         double tau_to_kappa(local const mot_float_type* const x, void* data, local mot_float_type* objective_list){
-            return pown(tau(x[0]) - *((mot_float_type*)data), 2); 
+            return pown(tau(x[0]) - ((_tau_to_kappa_data*)data)->tau, 2); 
         }
     ''', dependencies=[tau_func])
 
-    kappa = minimize(objective_func, np.ones_like(tau), data=Array(tau, 'mot_float_type')).x
-    return np.clip(kappa, 0, 64)
+    kappa = minimize(objective_func, np.ones_like(tau),
+                     data=Struct({'tau': Array(tau, 'mot_float_type', as_scalar=True)},
+                                 '_tau_to_kappa_data')).x
+    kappa[kappa > 64] = 1
+    kappa[kappa < 0] = 1
+    return kappa
 

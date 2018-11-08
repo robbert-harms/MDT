@@ -1,6 +1,7 @@
 import numpy as np
 from mdt import CompartmentTemplate, FreeParameterTemplate
 from mdt.lib.post_processing import DTIMeasures
+from mdt.model_building.parameter_functions.transformations import ScaleTransform
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -52,7 +53,7 @@ class SymmetricNonParametricTensor(CompartmentTemplate):
         init_value = 0.3e-9
         lower_bound = 0
         upper_bound = 5e-9
-        parameter_transform = 'SinSqrClamp'
+        parameter_transform = ScaleTransform(1e10)
         sampling_proposal_std = 1e-10
         numdiff_info = {'scale_factor': 1e10, 'use_upper_bound': False}
 
@@ -60,7 +61,7 @@ class SymmetricNonParametricTensor(CompartmentTemplate):
         init_value = 0.3e-9
         lower_bound = 0
         upper_bound = 5e-9
-        parameter_transform = 'SinSqrClamp'
+        parameter_transform = ScaleTransform(1e10)
         sampling_proposal_std = 1e-10
         numdiff_info = {'scale_factor': 1e10, 'use_upper_bound': False}
 
@@ -68,30 +69,30 @@ class SymmetricNonParametricTensor(CompartmentTemplate):
         init_value = 1.2e-9
         lower_bound = 0
         upper_bound = 5e-9
-        parameter_transform = 'SinSqrClamp'
+        parameter_transform = ScaleTransform(1e10)
         sampling_proposal_std = 1e-10
         numdiff_info = {'scale_factor': 1e10, 'use_upper_bound': False}
 
     class Tensor_D_01(FreeParameterTemplate):
-        init_value = 0
+        init_value = 0.1e-9
         lower_bound = 0
         upper_bound = 5e-9
-        parameter_transform = 'SinSqrClamp'
+        parameter_transform = ScaleTransform(1e10)
         sampling_proposal_std = 1e-10
         numdiff_info = {'scale_factor': 1e10, 'use_upper_bound': False}
 
     class Tensor_D_02(FreeParameterTemplate):
-        init_value = 0
+        init_value = 0.1e-9
         lower_bound = 0
         upper_bound = 5e-9
-        parameter_transform = 'SinSqrClamp'
+        parameter_transform = ScaleTransform(1e10)
         sampling_proposal_std = 1e-10
         numdiff_info = {'scale_factor': 1e10, 'use_upper_bound': False}
 
     class Tensor_D_12(FreeParameterTemplate):
-        init_value = 0
+        init_value = 0.1e-9
         lower_bound = 0
         upper_bound = 5e-9
-        parameter_transform = 'SinSqrClamp'
+        parameter_transform = ScaleTransform(1e10)
         sampling_proposal_std = 1e-10
         numdiff_info = {'scale_factor': 1e10, 'use_upper_bound': False}

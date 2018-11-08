@@ -104,7 +104,7 @@ class PositivityTransform(AbstractTransformation):
         return FormatAssignmentConstructor('max({parameter_variable}, (mot_float_type)0)')
 
     def encode_bounds(self, lower_bounds, upper_bounds):
-        return np.zeros_like(lower_bounds), upper_bounds
+        return np.ones_like(lower_bounds) * -np.inf, upper_bounds
 
 
 class ClampTransform(AbstractTransformation):
@@ -121,7 +121,7 @@ class ClampTransform(AbstractTransformation):
                                            '(mot_float_type){upper_bound})')
 
     def encode_bounds(self, lower_bounds, upper_bounds):
-        return lower_bounds, upper_bounds
+        return np.ones_like(lower_bounds) * -np.inf, np.ones_like(lower_bounds) * np.inf
 
 
 class ScaleClampTransform(AbstractTransformation):
@@ -149,7 +149,7 @@ class ScaleClampTransform(AbstractTransformation):
                                            '(mot_float_type){upper_bound})')
 
     def encode_bounds(self, lower_bounds, upper_bounds):
-        return lower_bounds * self._scale, upper_bounds * self._scale
+        return np.ones_like(lower_bounds) * -np.inf, np.ones_like(lower_bounds) * np.inf
 
 
 class ScaleTransform(AbstractTransformation):
@@ -222,7 +222,7 @@ class SqrClampTransform(AbstractTransformation):
                                            '      (mot_float_type){upper_bound})')
 
     def encode_bounds(self, lower_bounds, upper_bounds):
-        return np.sqrt(lower_bounds), np.sqrt(upper_bounds)
+        return np.ones_like(lower_bounds) * -np.inf, np.ones_like(upper_bounds) * np.inf
 
 
 class AbsModXTransform(AbstractTransformation):
@@ -244,7 +244,7 @@ class AbsModXTransform(AbstractTransformation):
             + str(self._x_cl) + ')))')
 
     def encode_bounds(self, lower_bounds, upper_bounds):
-        return np.zeros_like(lower_bounds), np.ones_like(upper_bounds) * self._x_python
+        return np.ones_like(lower_bounds) * -np.inf, np.ones_like(upper_bounds) * np.inf
 
 
 class AbsModPiTransform(AbsModXTransform):

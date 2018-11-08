@@ -1,4 +1,5 @@
-from mdt import CompartmentTemplate
+from mdt import CompartmentTemplate, FreeParameterTemplate
+from mdt.model_building.parameter_functions.transformations import ScaleTransform
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -28,3 +29,11 @@ class TimeDependentZeppelin(CompartmentTemplate):
         mot_float_type dperp0 = d_bulk + A * (log(Delta/delta) + 3/2.0)/(Delta - delta/3.0);
         return Zeppelin(g, b, d, dperp0, theta, phi);
     '''
+
+    class time_dependent_characteristic_coefficient(FreeParameterTemplate):
+        """The time dependent characteristic as used in the TimeDependentZeppelin model. Values are in m^2."""
+        init_value = 1e-6
+        lower_bound = 1e-7
+        upper_bound = 1e-5
+        parameter_transform = ScaleTransform(1e7)
+        sampling_proposal_std = 1e-7
