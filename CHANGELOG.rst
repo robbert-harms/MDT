@@ -2,6 +2,39 @@
 Changelog
 *********
 
+v0.17.0 (2018-11-09)
+====================
+The way the boundary constraints of the parameters are enforced is changed.
+Previously MDT used parameter transformations to enforce boundary conditions, in this new version we use the new support of MOT for the boundary conditions.
+In the new MOT version, boundary conditions (box-constraints) are handled by returning INFINITY if the bound is violated.
+While this is a crude way of enforcing boundary conditions, it does relieve us of the parameter transformations in MDT.
+
+As a result, fits looks slightly less noisy overall, and it seems to fit better in relaxometry models.
+
+
+Added
+-----
+- Adds additional parameters types to link the likelihood functions better with the models.
+- Adds support for the special parameter '@noise_std' to inject the current noise standard deviation into a compartment model.
+
+Changed
+-------
+- Changed the way the bounds are handed in the optimization.
+- Changed the likelihood function to always include the constant terms.
+
+Fixed
+-----
+- Fixed bug in the mdt-estimate-noise-std method.
+
+Other
+-----
+- Small update to the GDRCylinder bounds.
+- Following the support in MOT for boundary constraints, changed the parameter transformations of the parameters.
+- Small fix to the batch profiles, it did not pick up the noise_std.txt files.
+- Documentation updates.
+- Small update to the mdt-math-img command. Better way of handling multiple outputs.
+
+
 v0.16.4 (2018-10-30)
 ====================
 
