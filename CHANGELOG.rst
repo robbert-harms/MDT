@@ -2,6 +2,14 @@
 Changelog
 *********
 
+v0.17.1 (2018-11-12)
+====================
+
+Changed
+-------
+- Updated the Kurtosis initial parameter positions to try to prevent out of bounds problems within the optimization routines.
+
+
 v0.17.0 (2018-11-09)
 ====================
 The way the boundary constraints of the parameters are enforced is changed.
