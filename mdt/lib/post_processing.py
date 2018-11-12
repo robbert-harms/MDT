@@ -450,10 +450,9 @@ class DKIMeasures:
                 // Mean Kurtosis integrated over a set of directions
                 double mean = 0;
                 for(i = 0; i < nmr_directions; i++){
-                    mean += (apparent_kurtosis(parameters, directions[i], vec0, vec1, vec2) - mean)
-                                / (i + 1);
+                    mean += apparent_kurtosis(parameters, directions[i], vec0, vec1, vec2);
                 }
-                *(mks) = clamp(mean, (double)0, (double)3);
+                *(mks) = clamp(mean / nmr_directions, (double)0, (double)3);
 
 
                 // Axial Kurtosis over the principal direction of diffusion

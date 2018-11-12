@@ -1475,17 +1475,12 @@ class DMRICompositeModel(DMRIOptimizable):
     def _get_initial_parameters(self, voxels_to_analyze):
         np_dtype = np.float32
 
-        starting_points = []
-        for m, p in self._model_functions_info.get_estimable_parameters_list():
-            param_name = '{}.{}'.format(m.name, p.name)
-            value = self._model_functions_info.get_parameter_value(param_name)
-
+        def prepare_value(value):
             if is_scalar(value):
                 if self._get_nmr_problems(voxels_to_analyze) == 0:
-                    starting_points.append(np.full((1, 1), value, dtype=np_dtype))
+                    value = np.full((1, 1), value, dtype=np_dtype)
                 else:
-                    starting_points.append(np.full((self._get_nmr_problems(voxels_to_analyze), 1), value,
-                                                   dtype=np_dtype))
+                    value = np.full((self._get_nmr_problems(voxels_to_analyze), 1), value, dtype=np_dtype)
             else:
                 if len(value.shape) < 2:
                     value = np.transpose(np.asarray([value]))
@@ -1494,14 +1489,18 @@ class DMRICompositeModel(DMRIOptimizable):
                 else:
                     value = value
 
-                if voxels_to_analyze is None:
-                    starting_points.append(value)
-                else:
-                    starting_points.append(value[voxels_to_analyze, ...])
+                if voxels_to_analyze is not None:
+                    value = value[voxels_to_analyze, ...]
+            return value
+
+        starting_points = []
+        for ind, (m, p) in enumerate(self._model_functions_info.get_estimable_parameters_list()):
+            param_name = '{}.{}'.format(m.name, p.name)
+            value = prepare_value(self._model_functions_info.get_parameter_value(param_name))
+            starting_points.append(value)
 
         starting_points = np.concatenate([np.transpose(np.array([s]))
                                           if len(s.shape) < 2 else s for s in starting_points], axis=1)
-
         return convert_data_to_dtype(starting_points, 'mot_float_type', 'float')
 
     def _get_log_prior_function(self):
@@ -2266,6 +2265,8 @@ class ModelFunctionsInformation:
         self._parameter_values = {'{}.{}'.format(m.name, p.name): p.value for m, p in self.get_model_parameter_list()
                                   if hasattr(p, 'value')}
 
+        self._original_parameter_values = copy.deepcopy(self._parameter_values)
+
     def set_parameter_value(self, parameter_name, value):
         """Set the value we will use for the given parameter.
 
@@ -2290,6 +2291,16 @@ class ModelFunctionsInformation:
         if parameter_name in self._fixed_parameters and self._fixed_parameters[parameter_name]:
             return self._fixed_values[parameter_name]
         return self._parameter_values[parameter_name]
+
+    def get_default_parameter_value(self, parameter_name):
+        """Get the default parameter value for the given parameter. This is regardless of model fixation.
+
+        The default parameter value is the parameter value as originally defined in the model parameter.
+
+        Returns:
+            float or ndarray: the value for the given parameter
+        """
+        return self._original_parameter_values[parameter_name]
 
     def fix_parameter(self, parameter_name, value):
         """Fix the indicated free parameter to the given value.

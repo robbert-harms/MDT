@@ -49,13 +49,13 @@ def build_param(index):
         Parameter: a constructed parameter to be used in a compartment model.
     """
     _lower_bound = -np.inf
-    _parameter_transform = ScaleTransform(10)
+    _parameter_transform = ScaleTransform(100)
     _sampling_prior = AlwaysOne()
     _init_value = 0
 
     if len(set(index)) == 1:
         _lower_bound = 0
-        _init_value = 0.1
+        _init_value = 0.001
         _sampling_prior = UniformWithinBoundsPrior()
 
     class matrix_element_param(FreeParameterTemplate):
