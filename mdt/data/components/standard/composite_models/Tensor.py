@@ -13,11 +13,11 @@ class Tensor(CompositeModelTemplate):
     inits = {'Tensor.d': 1.7e-9,
              'Tensor.dperp0': 1.7e-10,
              'Tensor.dperp1': 1.7e-10}
-    volume_selection = {'bval_ranges': [(0, 1.5e9 + 0.1e9)]}
+    volume_selection = {'b': [(0, 1.5e9 + 0.1e9)]}
 
 
 class NonParametricTensor(CompositeModelTemplate):
     model_expression = '''
         S0 * SymmetricNonParametricTensor(Tensor)
     '''
-    volume_selection = {'bval_ranges': [(0, 1.5e9 + 0.1e9)]}
+    volume_selection = {'b': [(0, 1.5e9 + 0.1e9)]}

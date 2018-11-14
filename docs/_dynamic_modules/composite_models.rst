@@ -98,6 +98,8 @@ For example, the Tensor model is defined to work with b-values up to 1500 s/mm^2
 To prevent the user from having to load a separate dataset for the Tensor model and another dataset for the other models, we implemented in MDT model protocol options.
 This way, the end user can provide the whole protocol file and the models will pick from it what they need.
 
+Please note that these volume selections only work with columns in the protocol, not with the ``extra_protocol`` maps.
+
 There are two ways to enable this mechanism in your composite model.
 The first is to add the ``volume_selection`` directive to your model:
 
@@ -105,14 +107,11 @@ The first is to add the ``volume_selection`` directive to your model:
 
     class Tensor(CompositeModelTemplate):
         ...
-        volume_selection = {'unweighted_threshold': 25e6,
-                            'use_unweighted': True,
-                            'use_weighted': True,
-                            'bval_ranges': [(0, 1.5e9 + 0.1e9)]}
+        volume_selection = {'b': [(0, 1.5e9 + 0.1e9)]}
 
 
-This directive specifies that we wish to use all unweighted volumes (under the unweighted threshold also here defined) and a subset of the weighted volumes,
-that is, a single b-value range with b-values between b=0 and b=1.5e9 s/m^2. It is possible to specify more than one range.
+This directive specifies that we wish to use a subset of the weighted volumes, that is, a single b-value range with b-values between b=0 and b=1.5e9 s/m^2.
+Each key in ``volume_selection`` should refer to a column in the protocol file and each value should be a list of ranges.
 
 The second method is to add the bound function ``_get_suitable_volume_indices`` to your model definition. For example:
 

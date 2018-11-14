@@ -9,4 +9,4 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class S0(CompositeModelTemplate):
     """Models the unweighted signal (aka. b0)."""
     model_expression = 'S0'
-    volume_selection = {'bval_ranges': [(0, 250e6)]}
+    volume_selection = {'b': [(0, 250e6)]}

@@ -11,4 +11,4 @@ class Kurtosis(CompositeModelTemplate):
     model_expression = '''
         S0 * KurtosisTensor
     '''
-    volume_selection = {'bval_ranges': [(0, 3.0e9 + 0.1e9)]}
+    volume_selection = {'b': [(0, 3.0e9 + 0.1e9)]}

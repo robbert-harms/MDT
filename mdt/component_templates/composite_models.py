@@ -86,16 +86,12 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                 if not volume_selection:
                     return super()._get_suitable_volume_indices(input_data)
 
-                protocol = input_data.protocol
-
                 protocol_indices = []
-                if protocol.has_column('g') and protocol.has_column('b'):
-                    if 'bval_ranges' in volume_selection and len(volume_selection['bval_ranges']):
-                        for bval_range in volume_selection['bval_ranges']:
-                            indices = protocol.get_indices_bval_in_range(start=bval_range[0], end=bval_range[1])
-                            protocol_indices.extend(indices)
-                else:
-                    return list(range(protocol.length))
+                for protocol_name, ranges in volume_selection.items():
+                    values = input_data.protocol[protocol_name]
+
+                    for start, end in ranges:
+                        protocol_indices.extend(np.where((start <= values) * (values <= end))[0])
 
                 return np.unique(protocol_indices)
 
