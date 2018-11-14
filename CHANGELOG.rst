@@ -2,6 +2,19 @@
 Changelog
 *********
 
+v0.17.2 (2018-11-14)
+====================
+
+Changed
+-------
+- Changed the specification of the volume selection in the composite models to allow selection based on all protocol columns.
+
+Other
+-----
+- Small update to the BallStick cascade inits to make sure they are within bounds.
+- Small update to the weight numerical differentiation to not use the upper bound anymore. Provides for slightly better uncertainty computations.
+
+
 v0.17.1 (2018-11-12)
 ====================
 
