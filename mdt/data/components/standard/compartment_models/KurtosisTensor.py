@@ -48,22 +48,21 @@ def build_param(index):
     Returns:
         Parameter: a constructed parameter to be used in a compartment model.
     """
-    _lower_bound = -np.inf
-    _parameter_transform = ScaleTransform(100)
-    _sampling_prior = AlwaysOne()
-    _init_value = 0
-
     if len(set(index)) == 1:
         _lower_bound = 0
         _init_value = 0.001
         _sampling_prior = UniformWithinBoundsPrior()
+    else:
+        _lower_bound = -np.inf
+        _init_value = 0
+        _sampling_prior = AlwaysOne()
 
     class matrix_element_param(FreeParameterTemplate):
         name = 'W_{}{}{}{}'.format(*index)
         init_value = _init_value
         lower_bound = _lower_bound
         upper_bound = np.inf
-        parameter_transform = _parameter_transform
+        parameter_transform = ScaleTransform(100)
         sampling_prior = _sampling_prior
         sampling_proposal_std = 0.01
 

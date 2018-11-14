@@ -7,7 +7,7 @@ value to disable them from being optimized in a given situation, but they remain
 import numpy as np
 from mdt import FreeParameterTemplate
 from mdt.model_building.parameter_functions.priors import UniformWithinBoundsPrior, ARDBeta, ARDGaussian
-from mdt.model_building.parameter_functions.transformations import ScaleTransform
+from mdt.model_building.parameter_functions.transformations import ScaleTransform, ScaleClampTransform
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-12-12"
@@ -31,7 +31,7 @@ class w(FreeParameterTemplate):
     parameter_transform = 'CosSqrClamp'
     sampling_proposal_std = 0.01
     sampling_prior = UniformWithinBoundsPrior()
-    numdiff_info = {'scale_factor': 10}
+    numdiff_info = {'scale_factor': 10, 'use_upper_bound': False}
 
 
 class w_ard_beta(w):
