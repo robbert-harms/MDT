@@ -72,7 +72,7 @@ Additionally, one can define a sampling statistic function ``sampling_statistics
 
 Protocol parameters
 ===================
-These parameters are meant to be fulfilled by the values in the Protocol file (see :ref:`concepts_protocol`) or in the protocol maps.
+These parameters are meant to be fulfilled by the values in the Protocol file (see :ref:`concepts_protocol`) or in the extra protocol maps.
 During model optimization, MDT checks the model for protocol parameters and tries to match the names of the protocol parameters with available protocol data.
 Protocol data can be submitted using either the Protocol file, or using voxel-based protocol maps.
 

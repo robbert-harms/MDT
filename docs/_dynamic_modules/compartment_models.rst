@@ -99,18 +99,18 @@ These maps are meant to be forthcoming to the end-user by providing additional m
 Extra results maps can be added by both the composite model as well as by the compartment models.
 By defining them in a compartment model one ensures that all composite models that use that compartment profit from the additional output maps.
 
-Just as with composite models, one can add extra output maps by adding a list of post optimization modifiers, like for example:
+Just as with composite models, one can add extra output maps to the optimization results and to the sampling results as:
 
 .. code-block:: python
 
-    from mdt.utils import spherical_to_cartesian
-
-    class Stick(CompartmentTemplate):
+    class MyCompartment(CompartmentTemplate):
         ...
-        post_optimization_modifiers = [
-            ('vec0', lambda results: spherical_to_cartesian(results['theta'], results['phi']))
+        extra_optimization_maps = [
+            lambda results: ...
         ]
 
+        extra_sampling_maps = [
+            lambda samples: ...
+        ]
 
-In this example we added the (x, y, z) component vector to the results for the Stick compartment.
-
+where each callback function should return a dictionary with extra maps to add to the output.

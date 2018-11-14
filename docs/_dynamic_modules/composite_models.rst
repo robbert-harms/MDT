@@ -140,39 +140,52 @@ To use all volumes you can use something like this:
 
 Post optimization modifiers
 ===========================
-Post optimization modifiers allow you to change the values of the parameter maps after optimization, and allow you to add new maps to the final results.
-These modifiers complement the :ref:`dynamic_modules_compartments_extra_result_maps` from the compartment models.
+Post optimization modifiers allow you to change the values of the parameter maps after optimization.
+These modification routines are not allowed to add new maps to the results, for that use the :ref:`dynamic_modules_composite_models_extra_result_maps`.
 
-An example can be found in the CHARMED model, where one by default expects the ``FR`` map to be returned from model fitting.
-Since FR is not a parameter of any of the compartments, it would normally not be returned.
-To prevent the end users from having to do additional post-processing to add this map themselves,
-we added in MDT a post optimization modifier that adds the FR map automatically after optimization:
+These modifiers are for example useful to sort the results according to the model volume fraction weights, or to reorient the diffusion Tensor results to ensure decreasing diffusivities.
 
-.. code-block:: python
-
-    class CHARMED_r3(CompositeModelTemplate):
-        ...
-        post_optimization_modifiers = [
-            ('FR', lambda results: 1 - results['w_hin0.w'])
-        ]
-
-Here FR is defined as :math:`1 - w_{hin_{0}}`, which is the same as :math:`\sum_{i}^{n} w_{res_{i}}`.
-
-More in general, for every additional map you wish to add, add a tuple with the name of the desired map
-and as value a function callback that accepts the current dictionary with result maps and returns a new map to add to this dictionary.
-
-It is also possible to return more than one map from a single modifier, using both a list for the parameter name as for the modifier dictionary output.
-Something like:
+An example can be found in the BallStick_r2 model, where we would like the Sticks to be sorted according to their volume fractions.
+Since the optimization routines do not take into account the ordering, we have to do this as post-processing:
 
 .. code-block:: python
 
-    class FooBar(CompositeModelTemplate):
+    class BallStick_r2(CompositeModelTemplate):
         ...
         post_optimization_modifiers = [
-            ( ['Power2', 'Power3'], lambda d: [d['foo']**2, d['foo']**3] ),
+            get_sort_modifier(OrderedDict([
+                ('w_stick0.w', ('w_stick0', 'Stick0')),
+                ('w_stick1.w', ('w_stick1', 'Stick1'))
+            ]))
         ]
 
-This is useful if the callback function is a more complex function that converts multiple inputs to multiple outputs.
+
+the modifiers are callback functions that should return a dictionary with updated maps.
+
+
+.. _dynamic_modules_composite_models_extra_result_maps:
+
+Extra result maps
+=================
+It is also possible to add additional parameter maps to the fitting and sampling results.
+These maps are meant to be forthcoming to the end-user by providing additional maps to the output.
+Extra results maps can be added by both the composite model as well as by the compartment models.
+
+Just as with compartment models, one can add extra output maps to the optimization results and to the sampling results as:
+
+.. code-block:: python
+
+    class MyModel(CompositeModelTemplate):
+        ...
+        extra_optimization_maps = [
+            lambda results: ...
+        ]
+
+        extra_sampling_maps = [
+            lambda samples: ...
+        ]
+
+where each callback function should return a dictionary with extra maps to add to the output.
 
 
 .. _dynamic_modules_composite_model_likelihood_function:
