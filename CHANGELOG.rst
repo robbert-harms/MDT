@@ -529,7 +529,7 @@ To remove an entry, you can use, for example:
     mdt.components.remove_last_entry('composite_models', 'Tensor')
 
 
-See the section :ref:`adding_models` for more details on this modeling.
+See the section :ref:`components_defining_components` for more details on this modeling.
 
 
 Added

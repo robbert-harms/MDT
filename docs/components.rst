@@ -7,19 +7,23 @@ Components are a modular sub-system of MDT allowing you to add models and other 
 
 On the moment MDT supports the following components:
 
-* Parameters: definitions of common parameters shared between models
-* Compartments: reusable models of diffusion and relaxometry models
-* Composite models: the models fitted by MDT, these are built out of the compartment models
-* Cascade models: initialization definitions for composite models
-* Library functions: library functions for use in composite models
-* Batch profiles: for the batch functionality in MDT
+* :ref:`dynamic_modules_composite_models`: the models fitted by MDT, these are built out of the compartment models
+* :ref:`dynamic_modules_compartments`: reusable models of diffusion and relaxometry models
+* :ref:`dynamic_modules_parameters`: definitions of common parameters shared between models
+* :ref:`dynamic_modules_cascades`: initialization definitions for composite models
+* :ref:`dynamic_modules_library_functions`: library functions for use in composite models
+* :ref:`dynamic_modules_batch_profiles`: for the batch functionality in MDT
 
+
+.. _components_defining_components:
 
 *******************
 Defining components
 *******************
-There are two ways of adding or updating components in MDT, by adding a component to your configuration folder or by defining it dynamically in your modeling scripts.
+There are two ways of adding or updating components in MDT, :ref:`components_global_definitions`, by adding a component to your configuration folder or :ref:`components_dynamic_definitions` by defining it dynamically in your modeling scripts.
 
+
+.. _components_global_definitions:
 
 Global definitions
 ==================
@@ -58,6 +62,8 @@ These modules can change from version to version and any change you make in in t
 To make persistent changes you can add your modules to the *user* folder.
 The content of this folder is automatically copied to a new version.
 
+
+.. _components_dynamic_definitions:
 
 Dynamic definitions
 ===================

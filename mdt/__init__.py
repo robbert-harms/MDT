@@ -126,7 +126,7 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
                  store_samples=True, sample_items_to_save=None, tmp_results_dir=True,
                  initialization_data=None, post_processing=None, post_sampling_cb=None,
                  sampler_options=None):
-    """Sample a composite model using the Adaptive Metropolis-Within-Gibbs (AMWG) MCMC algorithm [1].
+    """Sample a composite model using Markov Chain Monte Carlo sampling.
 
     Args:
         model (:class:`~mdt.models.composite.DMRICompositeModel` or str): the model to sample
@@ -183,10 +183,6 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
     Returns:
         dict: if store_samples is True then we return the samples per parameter as a numpy memmap. If store_samples
             is False we return None
-
-    References:
-        1. Roberts GO, Rosenthal JS. Examples of adaptive MCMC. J Comput Graph Stat. 2009;18(2):349-367.
-           doi:10.1198/jcgs.2009.06134.
     """
     import mdt.utils
     from mdt.lib.model_sampling import sample_composite_model

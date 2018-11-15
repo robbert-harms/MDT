@@ -1860,12 +1860,8 @@ class BuildCompositeModel:
 
         samples = sampling_output.get_samples()
 
-        mle_samples = np.zeros(samples.shape[:2], dtype=samples.dtype)
-        map_samples = np.zeros(samples.shape[:2], dtype=samples.dtype)
-
-        for problem_ind in range(samples.shape[0]):
-            mle_samples[problem_ind] = samples[problem_ind, :, mle_indices[problem_ind]]
-            map_samples[problem_ind] = samples[problem_ind, :, map_indices[problem_ind]]
+        mle_samples = samples[range(samples.shape[0]), :, mle_indices]
+        map_samples = samples[range(samples.shape[0]), :, map_indices]
 
         def mle_maps():
             results = results_to_dict(mle_samples, self._free_param_names)

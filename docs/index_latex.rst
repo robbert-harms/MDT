@@ -6,11 +6,13 @@ Microstructure Diffusion Toolbox
     :maxdepth: 2
 
     readme_latex
-    getting_started
-    advanced_usage
+    install
+    model_fitting
+    model_sampling
+    maps_visualizer
     concepts
     components
+    configuration
     FAQ <faq>
-    developer_guidelines
-    changelog
+    scientific_articles
     credits

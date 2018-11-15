@@ -15,10 +15,12 @@ Introduction
     :hidden:
 
     install
-    getting_started
-    advanced_usage
+    model_fitting
+    model_sampling
+    maps_visualizer
     concepts
     components
+    configuration
     FAQ <faq>
     scientific_articles
-    changelog
+    credits

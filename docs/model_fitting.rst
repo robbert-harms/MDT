@@ -1,6 +1,21 @@
-###############
-Getting started
-###############
+.. _model_fitting:
+
+#############
+Model fitting
+#############
+Model fitting, also known as model inversion, is the core pillar of MDT.
+Using GPU accelerated fitting routines and a rich library of available models, MDT can swiftly fit many types of data.
+The main workflow is that you load some (pre-processed) MRI data, select a model, and let MDT fit your selected model to the data.
+The optimized parameter maps are written as nifti files alongside additional output maps and optimization diagnostic maps.
+
+For easy of use with population studies, MDT includes :ref:`hcp_pipelines` that can automatically detect the
+directory layout of the HCP MGH and HCP WuMinn studies and fit your desired model to a (subset of) the data.
+
+Single dataset fitting is accessible via three interfaces, the :ref:`Graphical User Interface (GUI) <analysis_using_the_gui>`,
+:ref:`Command Line Interface (CLI) <analysis_using_the_cli>` and/or directly using the :ref:`Python interface <analysis_using_python>`.
+
+
+.. _hcp_pipelines:
 
 ************
 HCP Pipeline
@@ -55,26 +70,12 @@ The *multishell_b6k_max* dataset has 6 b0's at the start and a range of 8 shells
 (see `De Santis et al., MRM, 2013 <http://dx.doi.org/10.1002/mrm.24717>`_) and is well suited for CHARMED analysis and other models that require high b-values (but no diffusion time variations).
 
 
-
-
-.. _analysis:
-
-***********************
-Single subject analysis
-***********************
-There are three ways to interface with MDT, the :ref:`Graphical User Interface (GUI) <analysis_using_the_gui>`,
-:ref:`the command line <analysis_using_the_cli>` and :ref:`using Python directly <analysis_using_python>`.
-This guide will walk you through basic model analysis with MDT using all of these interfaces.
-
-This guide can in principle be followed with any compatible dataset, but it is suggested to first follow the guide using the MDT example datasets, see :ref:`mdt_example_data` for obtaining these.
-
-
 .. _analysis_using_the_gui:
 
-Using the GUI
-=============
+*******************
+Graphical interface
+*******************
 One of the ways to use MDT for model analysis is by using the Graphical User Interface (GUI).
-After installation a few utility scripts are available on your system, one of which launches the GUI.
 To launch the GUI in Linux and OSX, please open a console and type ``mdt-gui`` or ``MDT`` to launch the analysis GUI.
 In Windows one can either open an Anaconda prompt and type ``mdt-gui`` or ``MDT`` or, alternatively,
 one can type ``mdt-gui`` or ``MDT`` in the search bar under the start button to find and launch the GUI.
@@ -92,7 +93,7 @@ This allows you to use the GUI to generate a coding template that can be used fo
 
 
 Creating a protocol file
-------------------------
+========================
 As explained in :ref:`concepts_protocol`, MDT stores all the acquisition settings relevant for the analysis in a Protocol file.
 To create one using the GUI, please go to the tab "Generate protocol file".
 On the bottom of the tab you can find the button "Load g & b" which is meant to load a b-vec and b-val file into the GUI.
@@ -128,7 +129,7 @@ Alternatively, you could save the file and open with a text editor to study the 
 
 
 Generating a brain mask
------------------------
+=======================
 MDT has some rough functionality for creating a brain mask, similar to the ``median_otsu`` algorithm in Dipy.
 This algorithm is not as sophisticated as for example BET in FSL, therefore we will not go in to much detail here.
 The mask generating functionality in MDT is merely meant for quickly creating a mask within MDT.
@@ -138,7 +139,7 @@ Also, the process is fairly straightforward by just supplying a DWI volume and a
 
 
 Generating a ROI mask
----------------------
+=====================
 It is sometimes convenient to run analysis on a single slice (Region Of Interest) before running it whole brain.
 Using the tab "Generate ROI mask" it is possible to load a whole brain mask and create a new mask where only one slice is used.
 This ROI mask is just another mask with even more voxels masked.
@@ -147,7 +148,7 @@ We do not need this step for the MDT example slices since that dataset is alread
 
 
 Ball&Stick_r1 estimation example
---------------------------------
+================================
 With a protocol and mask ready we can now proceed with model analysis.
 The first step is to check which devices we are currently using.
 Please open the runtime settings dialog using the menu bar (typically on the top of the GUI, File -> Runtime settings).
@@ -168,17 +169,17 @@ See :ref:`components` on how to add models to this list, see :ref:`concepts_comp
 Having filled in all the required fields, select the "Ball&Stick_r1 (Cascade|S0)" model, and press "Run".
 MDT will now compute your selected model on the data.
 When the calculations are finished you can go to the "View results" tab to launch the MDT map viewer GUI for visually inspecting the results.
-See :ref:`view_maps_gui` for more details on this visualizer.
+See :ref:`mdt_maps_visualizer` for more details on this visualizer.
 
 By default MDT returns a lot of result maps, like various error maps and additional maps like FSL like vector component maps.
-All these maps are in nifti format (.nii) and can be viewed and opened in any compatible viewer like for example ``fslview`` or the :ref:`view_maps_gui`.
+All these maps are in nifti format (.nii) and can be viewed and opened in any compatible viewer like for example ``fslview`` or the :ref:`mdt_maps_visualizer`.
 
 In addition to the results, MDT also writes a Python and a Bash script file to a "script" directory next to your DWI file.
 These script files allow you to reproduce the model fitting using a Python script file or command line.
 
 
 Estimating any model
---------------------
+====================
 In general, using the GUI, estimating any model is just a matter of selecting the right model and clicking the run button.
 Please be advised though that some models require specific protocol values to be present.
 For example, the CHARMED models requires that the "TE" is specified in the protocol or as a protocol map.
@@ -202,15 +203,16 @@ The defaults have been tuned to give optimal fit quality and run-time (see Harms
 
 .. _analysis_using_the_cli:
 
-Using the command line
-======================
+**********************
+Command Line interface
+**********************
 After installation a few command line functions are installed to your system.
-These commands, starting with ``mdt-`` allow you to use various functionality of MDT using the command line.
+These commands, prefixed with ``mdt-``, allow you to use various functionality of MDT using the command line.
 For an overview of the available commands, please see: :ref:`cli_index`.
 
 
 Creating a protocol file
-------------------------
+========================
 As explained in :ref:`concepts_protocol`, MDT stores all the acquisition settings relevant for the analysis in a Protocol file.
 To create one using the command line, you can use the command :ref:`cli_index_mdt-create-protocol`.
 The most basic usage is to create a protocol file from a b-vec and b-val file:
@@ -255,7 +257,7 @@ and the elements ``Delta``, ``delta``, ``TE`` and ``TR`` will automatically be s
 
 
 Creating a brain mask
----------------------
+=====================
 MDT has some rough functionality for creating a brain mask, similar to the ``median_otsu`` algorithm in Dipy.
 This algorithm is only meant for generating a rough brain mask and is not as sophisticated as for example BET from FSL.
 
@@ -269,7 +271,7 @@ which generates a mask named ``data_mask.nii.gz``.
 
 
 Generating a ROI mask
----------------------
+=====================
 It is sometimes convenient to run analysis on a single slice (Region Of Interest) before running it whole brain.
 For the example data we do not need this step since that dataset is already compressed to two slices.
 
@@ -292,7 +294,7 @@ Also note that since :ref:`cli_index_mdt-math-img` allows general expressions on
 
 
 Ball&Stick_r1 estimation example
---------------------------------
+================================
 Model fitting using the command line is made easy using the :ref:`cli_index_mdt-model-fit` command.
 Please see the reference manual for all switches and options for the model fit command.
 
@@ -316,11 +318,11 @@ When the calculations are done you can use the MDT maps visualizer (:ref:`cli_in
     $ cd output/BallStick_r1
     $ mdt-view-maps .
 
-For more details on the MDT maps visualizer, please see the chapter :ref:`view_maps_gui`.
+For more details on the MDT maps visualizer, please see the chapter :ref:`mdt_maps_visualizer`.
 
 
 Estimating any model
---------------------
+====================
 In principle every model in MDT can be fitted using the :ref:`cli_index_mdt-model-fit`.
 Please be advised though that some models require specific protocol values to be present.
 For example, the CHARMED models requires that the "TE" is specified in your protocol.
@@ -332,8 +334,9 @@ Please see the available switches of the :ref:`cli_index_mdt-model-fit` command.
 
 .. _analysis_using_python:
 
-Using Python
-============
+****************
+Python interface
+****************
 The most direct method to interface with MDT is by using the Python interface.
 Most actions in MDT are accessible using the ``mdt`` namespace, obtainable using:
 
@@ -354,7 +357,7 @@ about the MDT functions. For example:
 
 
 Creating a protocol file
-------------------------
+========================
 As explained in :ref:`concepts_protocol`, MDT stores all the acquisition settings relevant for the analysis in a Protocol file.
 The simplest way of creating a Protocol is by using the function :func:`~mdt.protocols.create_protocol` to create a Protocol file and object.
 
@@ -373,7 +376,7 @@ Also note that we require the columns to be in **SI units**.
 
 
 Generating a brain mask
------------------------
+=======================
 MDT has some rough functionality for creating a brain mask, similar to the ``median_otsu`` algorithm in Dipy.
 This algorithm is not as sophisticated as for example BET in FSL, therefore we will not go in to much detail here.
 The mask generating functionality in MDT is merely meant for quickly creating a mask within MDT.
@@ -393,7 +396,7 @@ which generates a mask named ``data_mask.nii.gz``.
 
 
 Generating a ROI mask
----------------------
+=====================
 It is sometimes convenient to run analysis on a single slice (Region Of Interest) before running it whole brain.
 For the example data we do not need this step since that dataset is already compressed to two slices.
 
@@ -414,7 +417,7 @@ this generates a mask in dimension 2 on index 30 (be wary, Numpy and hence MDT u
 
 
 Ball&Stick_r1 estimation example
---------------------------------
+================================
 For model fitting you can use the :func:`~mdt.fit_model` command.
 This command allows you to optimize any of the models in MDT given only a model, input data and output folder.
 
@@ -440,8 +443,8 @@ When the calculations are done you can use the MDT maps visualizer for viewing t
 
 
 Full example
-------------
-To summarize the code written above, here a full MDT model fitting example:
+============
+To summarize the code written above, here is a full MDT model fitting example:
 
 .. code-block:: python
 
@@ -462,7 +465,7 @@ To summarize the code written above, here a full MDT model fitting example:
 
 
 Estimating any model
---------------------
+====================
 In principle every model in MDT can be fitted using the model fitting routines.
 Please be advised though that some models require specific protocol values to be present.
 For example, the CHARMED models requires that the "TE" is specified in your protocol.
@@ -472,7 +475,7 @@ To add additional data to your model computations, you can use the additional ke
 
 
 Fixing parameters
------------------
+=================
 To fix parameters, as for example fibre orientation parameters, one can use the ``initialization_data`` keyword of the :func:`~mdt.fit_model` command.
 This keyword allows fixing and initializing parameters just before model optimization and sampling.
 The following example shows how to fix the fibre orientation parameters of the NODDI model during optimization:
@@ -497,61 +500,3 @@ where both ``fixes`` and ``inits`` are dictionaries with model parameter names m
 The ``fixes`` indicates parameters that will be fixed to those values, which will actively exclude those parameters from optimization.
 The ``inits`` indicate initial values (starting position) for the parameters.
 
-
-.. _view_maps_gui:
-
-*******************
-MDT maps visualizer
-*******************
-The MDT maps visualizer is a small convenience utility to visually inspect multiple nifti files simultaneously.
-In particular, it is useful for quickly visualizing model fitting results.
-
-This viewer is by far not as sophisticated as for example ``fslview`` and ``itksnap``, but that is also not its intention.
-The primary goal of this visualizer is to quickly display model fitting results to evaluate the quality of fit.
-A side-goal of the viewer is the ability to create reproducible and paper ready figures showing slices of various volumetric maps.
-
-Features include:
-
-* output figures as images (``.png`` and ``jpg``) and as vector files (``.svg``)
-* the ability to store plot configuration files that can later be loaded to reproduce figures
-* easily display multiple maps simultaneously
-
-Some usage tip and tricks are:
-
-* Click on a point on a map for an annotation box, click outside a map to disable
-* Zoom in by scrolling in a plot
-* Move the zoom box by clicking and dragging in a plot
-* Add new nifti files by dragging them from a folder into the GUI
-
-
-For more details about the visualization GUI, please see :ref:`advanced_usage_visualization_gui` in advanced usage.
-
-The following is a screenshot of the GUI displaying NODDI results of the b1k_b2k MDT example data slices.
-
-.. figure:: _static/figures/mdt_view_maps_gui.png
-
-    The MDT map visualizer in Linux
-
-
-The MDT maps visualizer can be started in three ways, from the MDT analysis GUI, from the command line and using the Python API.
-With the command line, the visualizer can be started using the command :ref:`cli_index_mdt-view-maps`, for example:
-
-.. code-block:: console
-
-    $ mdt-view-maps .
-
-In Windows, one can also type this command in the start menu search bar to load and start the GUI.
-Using Python, the GUI can be started using the command :func:`mdt.view_maps`, for example:
-
-.. code-block:: python
-
-    >>> import mdt
-    >>> mdt.view_maps('output/NODDI')
-
-
-Finally, using the MDT analyis GUI, the maps visualizer can be started using the button on the last tab:
-
-
-.. figure:: _static/figures/mdt_start_visualizer_from_gui.png
-
-    Starting the maps visualizer from the analysis GUI.

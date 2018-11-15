@@ -203,7 +203,7 @@ modindex_common_prefix = ['mdt.']
 
 # map to other projects
 intersphinx_mapping = {
-    'mot': ('http://mot.readthedocs.io/en/latest/', None),
+    'mot': ('https://mot.readthedocs.io/en/latest/', None),
 }
 
 
@@ -226,7 +226,7 @@ html_theme_options = {
         'Developer guidelines': 'developer_guidelines.html',
         'CLI Index': 'cli_index.html',
         'Module index': 'py-modindex.html',
-        'Credits': 'credits.html'
+        'Changelog': 'changelog.html'
     }
 }
 

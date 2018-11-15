@@ -51,7 +51,7 @@ Note that MDT expects the columns to be in **SI units**.
 The protocol dependencies change per model and MDT will issue a warning if a required column is missing from the protocol.
 
 A protocol can be created from a bvec/bval pair using the command line, python shell and/or GUI.
-Please see the relevant sections in :ref:`analysis` for more details on creating a Protocol file.
+Please see the relevant sections in :ref:`model_fitting` for more details on creating a Protocol file.
 
 
 .. _concepts_input_data_models:

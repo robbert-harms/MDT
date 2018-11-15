@@ -29,7 +29,7 @@ class GUI(BasicShellApplication):
             FilesCompleter(['conf'], directories=False)
 
         parser.add_argument('-m', '--maximize', action='store_true', help="Maximize the shown window")
-        parser.add_argument('--to-file', type=str, help="If set export the figure to the given filename")
+        parser.add_argument('--to-file', type=str, help="If set, export the figure to the given filename")
 
         parser.add_argument('--width', type=int, help="The width of the output file when --to-file is set")
         parser.add_argument('--height', type=int, help="The height of the output file when --to-file is set")
