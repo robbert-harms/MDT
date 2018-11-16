@@ -1,3 +1,7 @@
+import warnings
+from textwrap import dedent
+
+import numpy as np
 import glob
 import logging
 import os
@@ -11,16 +15,149 @@ from mdt.lib.components import get_model
 from mdt.configuration import get_processing_strategy, get_optimizer_for_model
 from mdt.models.cascade import DMRICascadeModelInterface
 from mdt.utils import create_roi, get_cl_devices, model_output_exists, \
-    per_model_logging_context, get_temporary_results_dir, SimpleInitializationData
+    per_model_logging_context, get_temporary_results_dir, SimpleInitializationData, InitializationData
 from mdt.lib.processing_strategies import FittingProcessor, get_full_tmp_results_path
 from mdt.lib.exceptions import InsufficientProtocolError
 import mot.configuration
 from mot.configuration import CLRuntimeInfo, CLRuntimeAction
+from mot.configuration import config_context as mot_config_context
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-05-01"
 __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
+
+
+def get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=None):
+    """Get better optimization starting points for the given model.
+
+    Since initialization can make quite a difference in optimization results, this function can generate
+    a good initialization starting point for the given model. The idea is that before you call the :func:`fit_model`
+    function, you call this function to get a better starting point. An usage example would be::
+
+        input_data = mdt.load_input_data(..)
+
+        init_data = get_optimization_inits('BallStick_r1', input_data, '/my/folder')
+
+        fit_model('BallStick_r1', input_data, '/my/folder',
+                  initialization_data={'inits': init_data})
+
+    Where the init data returned by this function can directly be used as input to the ``initialization_data``
+    argument of the :func`fit_model` function.
+
+    Please note that his function only supports models shipped by default with MDT.
+
+    Args:
+        model_name (str):
+            The name of a model for which we want the optimization starting points.
+        input_data (:class:`~mdt.utils.MRIInputData`): the input data object containing all
+            the info needed for model fitting of intermediate models.
+        output_folder (string): The path to the folder where to place the output, we will make a subdir with the
+            model name in it.
+        cl_device_ind (int or list): the index of the CL device to use. The index is from the list from the function
+            utils.get_cl_devices(). This can also be a list of device indices.
+
+    Returns:
+        dict: a dictionary with initialization points for the selected model
+    """
+    logger = logging.getLogger(__name__)
+
+    def get_subset(param_names, fit_results):
+        return {key: value for key, value in fit_results.items() if key in param_names}
+
+    def get_model_fit(model_name):
+        logger.info('Starting intermediate optimization for generating initialization point.')
+        results = ModelFit(model_name, input_data, output_folder, recalculate=False,
+                           initialization_data={'inits': get_init_data(model_name)}).run()
+        logger.info('Finished intermediate optimization for generating initialization point.')
+        return results
+
+    def get_init_data(model_name):
+        inits = {}
+        free_parameters = get_model(model_name)().get_free_param_names()
+
+        if 'S0.s0' in free_parameters and input_data.has_input_data('b'):
+            unweighted_locations = np.where(input_data.get_input_data('b') < 250e6)[0]
+            inits['S0.s0'] = np.mean(input_data.signal4d[..., unweighted_locations], axis=-1)
+
+        if model_name == 'BallStick_r2':
+            inits.update(get_subset(free_parameters, get_model_fit('BallStick_r1')))
+            inits['w_stick1.w'] = 0.05
+        elif model_name == 'BallStick_r3':
+            inits.update(get_subset(free_parameters, get_model_fit('BallStick_r2')))
+            inits['w_stick2.w'] = 0.05
+        elif model_name == 'Tensor':
+            fit_results = get_model_fit('BallStick_r1')
+            inits.update(get_subset(free_parameters, fit_results))
+            inits['Tensor.theta'] = fit_results['Stick0.theta']
+            inits['Tensor.phi'] = fit_results['Stick0.phi']
+        elif model_name.startswith('NODDI'):
+            fit_results = get_model_fit('BallStick_r1')
+            inits.update(get_subset(free_parameters, fit_results))
+            inits['w_ic.w'] = fit_results['w_stick0.w'] / 2.0
+            inits['w_ec.w'] = fit_results['w_stick0.w'] / 2.0
+            inits['w_csf.w'] = fit_results['w_ball.w']
+            inits['NODDI_IC.theta'] = fit_results['Stick0.theta']
+            inits['NODDI_IC.phi'] = fit_results['Stick0.phi']
+        elif model_name == 'BinghamNODDI_r1':
+            fit_results = get_model_fit('BallStick_r1')
+            inits.update(get_subset(free_parameters, fit_results))
+            inits['w_in0.w'] = fit_results['w_stick0.w'] / 2.0
+            inits['w_en0.w'] = fit_results['w_stick0.w'] / 2.0
+            inits['w_csf.w'] = fit_results['w_ball.w']
+            inits['BinghamNODDI_IN0.theta'] = fit_results['Stick0.theta']
+            inits['BinghamNODDI_IN0.phi'] = fit_results['Stick0.phi']
+        elif model_name == 'BinghamNODDI_r2':
+            bs2_results = get_model_fit('BallStick_r2')
+            inits.update(get_subset(free_parameters, bs2_results))
+            inits.update(get_subset(free_parameters, get_model_fit('BinghamNODDI_r1')))
+            inits['BinghamNODDI_IN1.theta'] = bs2_results['Stick1.theta']
+            inits['BinghamNODDI_IN1.phi'] = bs2_results['Stick1.phi']
+        elif model_name == 'Kurtosis':
+            fit_results = get_model_fit('Tensor')
+            inits.update(get_subset(free_parameters, fit_results))
+            inits.update({'KurtosisTensor.' + key: fit_results['Tensor.' + key]
+                          for key in ['theta', 'phi', 'psi', 'd', 'dperp0', 'dperp1']})
+        elif model_name.startswith('CHARMED_r'):
+            nmr_dir = model_name[len('CHARMED_r'):]
+            fit_results = get_model_fit('BallStick_r' + nmr_dir)
+            inits.update(get_subset(free_parameters, fit_results))
+            inits['Tensor.theta'] = fit_results['Stick0.theta']
+            inits['Tensor.phi'] = fit_results['Stick0.phi']
+            for dir_ind in range(int(nmr_dir)):
+                inits['w_res{}.w'.format(dir_ind)] = fit_results['w_stick{}.w'.format(dir_ind)]
+                inits['CHARMEDRestricted{}.theta'.format(dir_ind)] = fit_results['Stick{}.theta'.format(dir_ind)]
+                inits['CHARMEDRestricted{}.phi'.format(dir_ind)] = fit_results['Stick{}.phi'.format(dir_ind)]
+        elif model_name.startswith('BallRacket_r'):
+            nmr_dir = model_name[len('BallRacket_r'):]
+            fit_results = get_model_fit('BallStick_r' + nmr_dir)
+            inits.update(get_subset(free_parameters, fit_results))
+            for dir_ind in range(int(nmr_dir)):
+                inits['w_res{}.w'.format(dir_ind)] = fit_results['w_stick{}.w'.format(dir_ind)]
+                inits['Racket{}.theta'.format(dir_ind)] = fit_results['Stick{}.theta'.format(dir_ind)]
+                inits['Racket{}.phi'.format(dir_ind)] = fit_results['Stick{}.phi'.format(dir_ind)]
+        elif model_name == 'AxCaliber':
+            fit_results = get_model_fit('BallStick_r1')
+            inits.update(get_subset(free_parameters, fit_results))
+            inits['GDRCylinders.theta'] = fit_results['Stick0.theta']
+            inits['GDRCylinders.phi'] = fit_results['Stick0.phi']
+        elif model_name.startswith('ActiveAx'):
+            fit_results = get_model_fit('BallStick_r1')
+            inits.update(get_subset(free_parameters, fit_results))
+            inits['w_ic.w'] = fit_results['w_stick0.w'] / 2.0
+            inits['w_ec.w'] = fit_results['w_stick0.w'] / 2.0
+            inits['w_csf.w'] = fit_results['w_ball.w']
+            inits['CylinderGPD.theta'] = fit_results['Stick0.theta']
+            inits['CylinderGPD.phi'] = fit_results['Stick0.phi']
+
+        return inits
+
+    cl_environments = None
+    if cl_device_ind is not None:
+        cl_environments = get_cl_devices(cl_device_ind)
+
+    with mot_config_context(mot.configuration.RuntimeConfigurationAction(cl_environments=cl_environments)):
+        return get_init_data(model_name)
 
 
 def get_batch_fitting_function(total_nmr_subjects, models_to_fit, output_folder,
@@ -70,24 +207,42 @@ def get_batch_fitting_function(total_nmr_subjects, models_to_fit, output_folder,
             input_data = subject_info.get_input_data(use_gradient_deviations)
 
             with timer(subject_info.subject_id):
-                for model in models_to_fit:
-                    logger.info('Going to fit model {0} on subject {1}'.format(model, subject_info.subject_id))
+                for model_name in models_to_fit:
+                    if isinstance(model_name, str):
+                        model_instance = get_model(model_name)()
+                    else:
+                        model_instance = model_name
+                    if isinstance(model_instance, DMRICascadeModelInterface):
+                        warnings.warn(dedent('''
+                        
+                            Fitting cascade models has been deprecated, MDT now by default tries to find a suitable initialization point for your specified model. 
+                        
+                            As an example, instead of specifying 'NODDI (Cascade)', now just specify 'NODDI' and MDT will do its best to get the best model fit possible.
+                        '''), FutureWarning)
+
+                    logger.info('Going to fit model {0} on subject {1}'.format(model_name, subject_info.subject_id))
 
                     try:
-                        model_fit = ModelFit(model,
+                        if not isinstance(model_instance, DMRICascadeModelInterface):
+                            inits = get_optimization_inits(model_name, input_data, output_dir,
+                                                           cl_device_ind=cl_device_ind)
+                        else:
+                            inits = {}
+
+                        model_fit = ModelFit(model_name,
                                              input_data,
                                              output_dir,
                                              recalculate=recalculate,
-                                             only_recalculate_last=True,
                                              cl_device_ind=cl_device_ind,
                                              double_precision=double_precision,
-                                             tmp_results_dir=tmp_results_dir)
+                                             tmp_results_dir=tmp_results_dir,
+                                             initialization_data={'inits': inits})
                         model_fit.run()
                     except InsufficientProtocolError as ex:
                         logger.info('Could not fit model {0} on subject {1} '
-                                    'due to protocol problems. {2}'.format(model, subject_info.subject_id, ex))
+                                    'due to protocol problems. {2}'.format(model_name, subject_info.subject_id, ex))
                     else:
-                        logger.info('Done fitting model {0} on subject {1}'.format(model, subject_info.subject_id))
+                        logger.info('Done fitting model {0} on subject {1}'.format(model_name, subject_info.subject_id))
 
     return FitFunc()
 
@@ -126,9 +281,9 @@ class ModelFit:
             double_precision (boolean): if we would like to do the calculations in double precision
             tmp_results_dir (str, True or None): The temporary dir for the calculations. Set to a string to use
                 that path directly, set to True to use the config value, set to None to disable.
-            initialization_data (:class:`~mdt.utils.InitializationData`): extra initialization data to use
-                during model fitting. If we are optimizing a cascade model this data only applies to the last model in the
-                cascade.
+            initialization_data (dict or :class:`~mdt.utils.InitializationData`): extra initialization data to use
+                during model fitting. If we are optimizing a cascade model this data only applies to the last model in
+                the cascade.
             post_processing (dict): a dictionary with flags for post-processing options to enable or disable.
                 For valid elements, please see the configuration file settings for ``optimization``
                 under ``post_processing``. Valid input for this parameter is for example: {'covariance': False}
@@ -152,7 +307,11 @@ class ModelFit:
 
         self._model_names_list = []
         self._tmp_results_dir = get_temporary_results_dir(tmp_results_dir)
-        self._initialization_data = initialization_data or SimpleInitializationData()
+
+        if not isinstance(initialization_data, InitializationData) and initialization_data is not None:
+            self._initialization_data = SimpleInitializationData(**initialization_data)
+        else:
+            self._initialization_data = initialization_data or SimpleInitializationData()
 
         if cl_device_ind is not None:
             self._cl_runtime_info = CLRuntimeInfo(cl_environments=get_cl_devices(cl_device_ind),

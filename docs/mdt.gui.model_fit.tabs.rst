@@ -36,14 +36,6 @@ mdt\.gui\.model\_fit\.tabs\.generate\_roi\_mask\_tab module
     :undoc-members:
     :show-inheritance:
 
-mdt\.gui\.model\_fit\.tabs\.view\_results\_tab module
------------------------------------------------------
-
-.. automodule:: mdt.gui.model_fit.tabs.view_results_tab
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 
 Module contents
 ---------------

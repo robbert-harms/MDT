@@ -8,7 +8,8 @@ from PyQt5.QtWidgets import QFileDialog, QMessageBox, QDialog, QDialogButtonBox
 
 import mdt
 import mot
-from mdt.lib.components import get_meta_info, list_composite_models, list_cascade_models
+from mdt.gui.maps_visualizer.main import start_gui
+from mdt.lib.components import list_composite_models
 from mdt.gui.model_fit.design.ui_fit_model_tab import Ui_FitModelTabContent
 from mdt.gui.model_fit.design.ui_optimization_extra_data_add_protocol_map_dialog import Ui_AddProtocolMapDialog
 from mdt.gui.model_fit.design.ui_optimization_extra_data_dialog import Ui_OptimizationExtraDataDialog
@@ -16,6 +17,7 @@ from mdt.gui.model_fit.design.ui_optimization_options_dialog import Ui_Optimizat
 from mdt.gui.utils import function_message_decorator, image_files_filters, protocol_files_filters, MainTab, \
     get_script_file_header_text
 from mdt.utils import split_image_path, get_cl_devices
+from mdt.visualization.maps.base import SimpleDataInfo, MapPlotConfig
 from mot.optimize import get_minimizer_options
 
 __author__ = 'Robbert Harms'
@@ -47,20 +49,18 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
         self.selectedDWI.textChanged.connect(self._check_enable_action_buttons)
         self.selectedMask.textChanged.connect(self._check_enable_action_buttons)
         self.selectedProtocol.textChanged.connect(self._check_enable_action_buttons)
+        self.selectedOutputFolder.textChanged.connect(self._check_enable_action_buttons)
+        self.modelSelection.currentIndexChanged.connect(self._check_enable_action_buttons)
 
-        self.runButton.clicked.connect(lambda: self.run_model())
+        self.runButton.clicked.connect(lambda: self._run_model())
+        self.viewResultsButton.clicked.connect(lambda: self._start_maps_visualizer())
         self.optimizationOptionsButton.clicked.connect(self._run_optimization_options_dialog)
         self.additionalDataButton.clicked.connect(self._extra_data_dialog)
 
-        self.cascadedFitButtonGroup.buttonClicked.connect(self._update_cascade_selection_possible)
-
         self.modelSelection.addItems(list(sorted(list_composite_models())))
-        self.modelSelection.currentIndexChanged.connect(self._update_cascade_selection)
         initial_model = 'BallStick_r1'
 
         self.modelSelection.setCurrentText(initial_model)
-        self._update_cascade_selection()
-        self.cascadeSelection.setCurrentText('Cascade')
 
         if self._input_data_info.dwi:
             self.selectedDWI.setText(self._input_data_info.dwi)
@@ -71,34 +71,6 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
 
         self.update_output_folder_text()
         self._check_enable_action_buttons()
-
-    def _update_cascade_selection_possible(self):
-        self.cascadeSelection.setDisabled(self.noCascades.isChecked())
-
-    def _update_cascade_selection(self):
-        composite_model_name = self.modelSelection.currentText()
-        cascade_models = list_cascade_models(composite_model_name)
-
-        previous_cascade_selection = self.cascadeSelection.currentText()
-
-        cascade_type_names = [get_meta_info('cascade_models', model)['cascade_type_name'] for model in cascade_models]
-
-        self.cascadeSelection.clear()
-        self.cascadeSelection.addItems(cascade_type_names)
-
-        if previous_cascade_selection in cascade_type_names:
-            self.cascadeSelection.setCurrentText(previous_cascade_selection)
-        elif 'Cascade' in cascade_type_names:
-            self.cascadeSelection.setCurrentText('Cascade')
-
-        if not cascade_type_names:
-            self.noCascades.setChecked(True)
-            self._update_cascade_selection_possible()
-            self.useCascades.setDisabled(True)
-        else:
-            self.useCascades.setEnabled(True)
-            self.useCascades.setChecked(True)
-            self._update_cascade_selection_possible()
 
     def _select_dwi(self):
         initial_dir = self._shared_state.base_dir
@@ -161,6 +133,9 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
             os.path.isfile(self.selectedMask.text()) and
             os.path.isfile(self.selectedProtocol.text()) and
             self.selectedOutputFolder.text() != '')
+        self.viewResultsButton.setEnabled(
+            os.path.isdir(self.selectedOutputFolder.text() + '/' + self._get_current_model_name())
+        )
 
     def update_output_folder_text(self):
         if os.path.isfile(self.selectedDWI.text()) and os.path.isfile(self.selectedMask.text()):
@@ -183,14 +158,24 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
             dialog.write_config()
 
     def _get_current_model_name(self):
-        model_name = self.modelSelection.currentText()
-        if self.useCascades.isChecked():
-            model_name += ' ({})'.format(self.cascadeSelection.currentText())
-        return model_name
+        return self.modelSelection.currentText()
 
-    @pyqtSlot()
-    def run_model(self):
-        model = mdt.get_model(self._get_current_model_name())()
+    def _start_maps_visualizer(self):
+        folder = self.selectedOutputFolder.text() + '/' + self._get_current_model_name()
+        maps = mdt.load_volume_maps(folder)
+        a_map = maps[list(maps.keys())[0]]
+
+        config = MapPlotConfig()
+        config.dimension = 2
+
+        if len(a_map.shape) > 2:
+            config.slice_index = a_map.shape[2] // 2
+
+        start_gui(data=SimpleDataInfo.from_paths([folder]), config=config, app_exec=False)
+
+    def _run_model(self):
+        model_name = self._get_current_model_name()
+        model = mdt.get_model(model_name)()
 
         if not model.is_input_data_sufficient(self._input_data_info.build_input_data()):
             msg = ProtocolWarningBox(model.get_input_data_problems(self._input_data_info.build_input_data()))
@@ -198,12 +183,11 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
             return
 
         self._run_model_worker.set_args(
-            model,
+            model_name,
             self._input_data_info.build_input_data(),
             self.selectedOutputFolder.text(),
             recalculate=True,
             double_precision=self._optim_options.double_precision,
-            only_recalculate_last=not self._optim_options.recalculate_all,
             method=self._optim_options.method)
 
         self._computations_thread.start()
@@ -214,6 +198,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
 
         self._run_model_worker.starting.connect(lambda: self.runButton.setEnabled(False))
         self._run_model_worker.finished.connect(lambda: self.runButton.setEnabled(True))
+        self._run_model_worker.finished.connect(lambda: self.viewResultsButton.setEnabled(True))
 
         self._run_model_worker.finished.connect(
             lambda: self._shared_state.set_output_folder(self._get_full_model_output_path()))
@@ -230,8 +215,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
                            model=self._get_current_model_name(),
                            output_folder=self.selectedOutputFolder.text(),
                            recalculate=True,
-                           double_precision=self._optim_options.double_precision,
-                           only_recalculate_last=not self._optim_options.recalculate_all)
+                           double_precision=self._optim_options.double_precision)
 
         self._run_model_worker.finished.connect(
             lambda: self._write_python_script_file(script_basename + '.py', **script_info))
@@ -264,64 +248,45 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
             model=kwargs['model'],
             output_folder=kwargs['output_folder'],
             recalculate=kwargs['recalculate'],
-            only_recalculate_last=kwargs['only_recalculate_last'],
             double_precision=kwargs['double_precision'],
-            cl_device_ind=[ind for ind, device in enumerate(all_cl_devices) if device in user_selected_devices])
+            cl_device_ind=[ind for ind, device in enumerate(all_cl_devices) if device in user_selected_devices],
+            method=optim_options.method,
+            patience=optim_options.patience)
 
         with open(output_file, 'w') as f:
             f.write('#!/usr/bin/env python\n')
 
-            if optim_options.use_model_default_optimizer:
-                f.write(dedent('''
-                    {header}
+            f.write(dedent('''
+                {header}
 
-                    import mdt
+                import mdt
+                
+                input_data = mdt.load_input_data(
+                    {dwi!r},
+                    {protocol!r},
+                    {mask!r},
+                    noise_std={noise_std!r},
+                    gradient_deviations={gradient_deviations!r},
+                    extra_protocol={extra_protocol!r})
+                
+                init_data = mdt.get_optimization_inits(
+                    {model!r},
+                    input_data,
+                    {output_folder!r}, 
+                    cl_device_ind={cl_device_ind!r})
+                
+                mdt.fit_model(
+                    {model!r},
+                    input_data,
+                    {output_folder!r},
+                    recalculate={recalculate!r},
+                    double_precision={double_precision!r},
+                    cl_device_ind={cl_device_ind!r},
+                    initialization_data={{'inits': init_data}},
+                    method={method!r},
+                    optimizer_options={{'patience': {patience!r}}})
 
-                    input_data = mdt.load_input_data(
-                        {dwi!r},
-                        {protocol!r},
-                        {mask!r},
-                        noise_std={noise_std!r},
-                        gradient_deviations={gradient_deviations!r},
-                        extra_protocol={extra_protocol!r})
-
-                    mdt.fit_model(
-                        {model!r},
-                        input_data,
-                        {output_folder!r},
-                        recalculate={recalculate!r},
-                        only_recalculate_last={only_recalculate_last!r},
-                        double_precision={double_precision!r},
-                        cl_device_ind={cl_device_ind!r})
-
-                ''').format(**format_kwargs))
-            else:
-                format_kwargs.update({'method': optim_options.method, 'patience': optim_options.patience})
-                f.write(dedent('''
-                    {header}
-
-                    import mdt
-                    from mdt.configuration import SetGeneralOptimizer
-
-                    input_data = mdt.load_input_data(
-                        {dwi!r},
-                        {protocol!r},
-                        {mask!r},
-                        noise_std={noise_std!r},
-                        gradient_deviations={gradient_deviations!r},
-                        extra_protocol={extra_protocol!r})
-
-                    with mdt.config_context(SetGeneralOptimizer({method!r}, settings={{'patience': {patience!r}}})):
-                        mdt.fit_model(
-                            {model!r},
-                            input_data,
-                            {output_folder!r},
-                            recalculate={recalculate!r},
-                            only_recalculate_last={only_recalculate_last!r},
-                            double_precision={double_precision!r},
-                            cl_device_ind={cl_device_ind!r})
-
-                ''').format(**format_kwargs))
+            ''').format(**format_kwargs))
 
     def _write_bash_script_file(self, output_file, *args, **kwargs):
         input_data_info = kwargs['input_data_info']
@@ -360,7 +325,6 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
                 ' '.join(str(ind) for ind, device in enumerate(all_cl_devices) if device in user_selected_devices)))
 
             write_new_line('--recalculate' if kwargs['recalculate'] else '--no-recalculate')
-            write_new_line('--only-recalculate-last' if kwargs['only_recalculate_last'] else '--recalculate-all')
             write_new_line('--double' if kwargs['double_precision'] else '--float')
 
             if input_data_info.extra_protocol:
@@ -416,7 +380,6 @@ class OptimizationOptionsDialog(Ui_OptimizationOptionsDialog, QDialog):
     def write_config(self):
         """Write to the config the user selected options"""
         self._config.double_precision = self.doublePrecision.isChecked()
-        self._config.recalculate_all = self.recalculateAll_True.isChecked()
         self._config.use_model_default_optimizer = self.defaultOptimizer_True.isChecked()
         self._config.method = OptimOptions.optim_routines[self.optimizationRoutine.currentText()]
         self._config.patience = int(self.patience.text())
@@ -424,7 +387,6 @@ class OptimizationOptionsDialog(Ui_OptimizationOptionsDialog, QDialog):
     def _load_config(self):
         """Load the settings from the config into the GUI"""
         self.doublePrecision.setChecked(self._config.double_precision)
-        self.recalculateAll_True.setChecked(self._config.recalculate_all)
         self.defaultOptimizer_False.setChecked(not self._config.use_model_default_optimizer)
         self._update_optimization_routine_selection()
 
@@ -467,8 +429,6 @@ class OptimOptions:
 
         if self.patience is None:
             self.patience = get_minimizer_options(self.method)['patience']
-
-        self.recalculate_all = False
 
 
 class InputDataInfo:
@@ -663,6 +623,9 @@ class RunModelWorker(QObject):
                                 'Finished model fitting. You can view the results using the "View results" tab.')
     @pyqtSlot()
     def run(self):
-        mdt.fit_model(*self._args, **self._kwargs)
+        fit_kwargs = self._kwargs
+        fit_kwargs['initialization_data'] = {
+            'inits': mdt.get_optimization_inits(self._args[0], self._args[1], self._args[2])
+        }
+        mdt.fit_model(*self._args, **fit_kwargs)
         self.finished.emit()
-

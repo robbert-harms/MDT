@@ -2,13 +2,13 @@
 
 # Form implementation generated from reading ui file 'runtime_settings_dialog.ui'
 #
-# Created by: PyQt5 UI code generator 5.5.1
+# Created by: PyQt5 UI code generator 5.10.1
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_RuntimeSettingsDialog:
+class Ui_RuntimeSettingsDialog(object):
     def setupUi(self, RuntimeSettingsDialog):
         RuntimeSettingsDialog.setObjectName("RuntimeSettingsDialog")
         RuntimeSettingsDialog.resize(844, 243)

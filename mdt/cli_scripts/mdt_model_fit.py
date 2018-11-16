@@ -11,6 +11,8 @@ import argparse
 import os
 import mdt
 from argcomplete.completers import FilesCompleter
+
+from mdt import DMRICascadeModelInterface
 from mdt.lib.shell_utils import BasicShellApplication
 from mot.lib import cl_environments
 import textwrap
@@ -32,8 +34,7 @@ class ModelFit(BasicShellApplication):
         description = textwrap.dedent(__doc__)
 
         examples = textwrap.dedent('''
-            mdt-model-fit "BallStick_r1 (Cascade)" data.nii.gz data.prtcl roi_mask_0_50.nii.gz
-            mdt-model-fit "BallStick_r1 (Cascade)" data.nii.gz data.prtcl data_mask.nii.gz --no-recalculate
+            mdt-model-fit BallStick_r1 data.nii.gz data.prtcl roi_mask_0_50.nii.gz
             mdt-model-fit ... --cl-device-ind 1
             mdt-model-fit ... --cl-device-ind {0, 1}
             mdt-model-fit ... --extra-protocol T1=T1_map.nii.gz T2=10
@@ -85,6 +86,13 @@ class ModelFit(BasicShellApplication):
                             help="Recalculate all models in a cascade.")
         parser.set_defaults(only_recalculate_last=True)
 
+        parser.add_argument('--no-initialization', dest='with_initialization', action='store_false',
+                            help="Do not initialize the model with a better starting point.")
+        parser.add_argument('--with-initialization', dest='with_initialization', action='store_true',
+                            help="Initialize the model with a better starting point (default). "
+                                 "Only works for default MDT models.")
+        parser.set_defaults(with_initialization=True)
+
         parser.add_argument('--double', dest='double_precision', action='store_true',
                             help="Calculate in double precision.")
         parser.add_argument('--float', dest='double_precision', action='store_false',
@@ -121,20 +129,30 @@ class ModelFit(BasicShellApplication):
                 noise_std = float(noise_std)
 
         def fit_model():
+            input_data = mdt.load_input_data(
+                os.path.realpath(args.dwi),
+                os.path.realpath(args.protocol),
+                os.path.realpath(args.mask),
+                gradient_deviations=args.gradient_deviations,
+                noise_std=noise_std,
+                extra_protocol=get_extra_protocol(args.extra_protocol,
+                                                  os.path.realpath('')))
+
+            init_data = {}
+            if args.with_initialization:
+                if not isinstance(mdt.get_model(args.model)(), DMRICascadeModelInterface):
+                    init_data = mdt.get_optimization_inits(args.model, input_data, output_folder,
+                                                           cl_device_ind=args.cl_device_ind)
+
             mdt.fit_model(args.model,
-                          mdt.load_input_data(os.path.realpath(args.dwi),
-                                              os.path.realpath(args.protocol),
-                                              os.path.realpath(args.mask),
-                                              gradient_deviations=args.gradient_deviations,
-                                              noise_std=noise_std,
-                                              extra_protocol=get_extra_protocol(args.extra_protocol,
-                                                                                os.path.realpath(''))),
+                          input_data,
                           output_folder,
                           recalculate=args.recalculate,
                           only_recalculate_last=args.only_recalculate_last,
                           cl_device_ind=args.cl_device_ind,
                           double_precision=args.double_precision,
-                          tmp_results_dir=tmp_results_dir)
+                          tmp_results_dir=tmp_results_dir,
+                          initialization_data={'inits': init_data})
 
         if args.config_context:
             with mdt.config_context(args.config_context):

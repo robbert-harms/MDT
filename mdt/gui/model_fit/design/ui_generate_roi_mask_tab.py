@@ -2,13 +2,13 @@
 
 # Form implementation generated from reading ui file 'generate_roi_mask_tab.ui'
 #
-# Created by: PyQt5 UI code generator 5.5.1
+# Created by: PyQt5 UI code generator 5.10.1
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_GenerateROIMaskTabContent:
+class Ui_GenerateROIMaskTabContent(object):
     def setupUi(self, GenerateROIMaskTabContent):
         GenerateROIMaskTabContent.setObjectName("GenerateROIMaskTabContent")
         GenerateROIMaskTabContent.resize(827, 427)

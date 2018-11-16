@@ -2,13 +2,13 @@
 
 # Form implementation generated from reading ui file 'generate_protocol_update_dialog.ui'
 #
-# Created by: PyQt5 UI code generator 5.5.1
+# Created by: PyQt5 UI code generator 5.10.1
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_UpdateColumnDialog:
+class Ui_UpdateColumnDialog(object):
     def setupUi(self, UpdateColumnDialog):
         UpdateColumnDialog.setObjectName("UpdateColumnDialog")
         UpdateColumnDialog.resize(831, 304)

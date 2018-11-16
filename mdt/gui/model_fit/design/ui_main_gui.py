@@ -2,16 +2,16 @@
 
 # Form implementation generated from reading ui file 'main_gui.ui'
 #
-# Created by: PyQt5 UI code generator 5.5.1
+# Created by: PyQt5 UI code generator 5.10.1
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_MainWindow:
+class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(870, 650)
+        MainWindow.resize(870, 624)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -54,9 +54,6 @@ class Ui_MainWindow:
         self.generateProtocolTab = QtWidgets.QWidget()
         self.generateProtocolTab.setObjectName("generateProtocolTab")
         self.MainTabs.addTab(self.generateProtocolTab, "")
-        self.viewResultsTab = QtWidgets.QWidget()
-        self.viewResultsTab.setObjectName("viewResultsTab")
-        self.MainTabs.addTab(self.viewResultsTab, "")
         self.loggingTextBox = QtWidgets.QPlainTextEdit(self.splitter)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
@@ -64,7 +61,7 @@ class Ui_MainWindow:
         sizePolicy.setHeightForWidth(self.loggingTextBox.sizePolicy().hasHeightForWidth())
         self.loggingTextBox.setSizePolicy(sizePolicy)
         font = QtGui.QFont()
-        font.setFamily("Droid Sans Mono")
+        font.setFamily("Noto Mono")
         self.loggingTextBox.setFont(font)
         self.loggingTextBox.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.loggingTextBox.setFrameShadow(QtWidgets.QFrame.Sunken)
@@ -106,6 +103,10 @@ class Ui_MainWindow:
         self.actionAbout.setObjectName("actionAbout")
         self.action_GetExampleData = QtWidgets.QAction(MainWindow)
         self.action_GetExampleData.setObjectName("action_GetExampleData")
+        self.action_MapsVisualizer = QtWidgets.QAction(MainWindow)
+        self.action_MapsVisualizer.setObjectName("action_MapsVisualizer")
+        self.menuMenu.addAction(self.action_MapsVisualizer)
+        self.menuMenu.addSeparator()
         self.menuMenu.addAction(self.action_RuntimeSettings)
         self.menuMenu.addSeparator()
         self.menuMenu.addAction(self.actionExit)
@@ -126,7 +127,6 @@ class Ui_MainWindow:
         self.MainTabs.setTabText(self.MainTabs.indexOf(self.generateBrainMaskTab), _translate("MainWindow", "Generate brain mask"))
         self.MainTabs.setTabText(self.MainTabs.indexOf(self.generateROIMaskTab), _translate("MainWindow", "Generate ROI mask"))
         self.MainTabs.setTabText(self.MainTabs.indexOf(self.generateProtocolTab), _translate("MainWindow", "Generate protocol file"))
-        self.MainTabs.setTabText(self.MainTabs.indexOf(self.viewResultsTab), _translate("MainWindow", "View results"))
         self.executionStatusLabel.setText(_translate("MainWindow", "TextLabel"))
         self.executionStatusIcon.setText(_translate("MainWindow", "TextLabel"))
         self.menuMenu.setTitle(_translate("MainWindow", "&File"))
@@ -136,5 +136,6 @@ class Ui_MainWindow:
         self.action_RuntimeSettings.setText(_translate("MainWindow", "&Runtime settings"))
         self.actionAbout.setText(_translate("MainWindow", "&About"))
         self.action_GetExampleData.setText(_translate("MainWindow", "&Get example data"))
+        self.action_MapsVisualizer.setText(_translate("MainWindow", "Maps &visualizer"))
 
 from . import main_gui_rc

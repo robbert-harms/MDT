@@ -11,20 +11,13 @@ from mdt.gui.model_fit.design.ui_runtime_settings_dialog import Ui_RuntimeSettin
 from mdt.gui.model_fit.tabs.fit_model_tab import FitModelTab
 from mdt.gui.model_fit.tabs.generate_brain_mask_tab import GenerateBrainMaskTab
 from mdt.gui.model_fit.tabs.generate_roi_mask_tab import GenerateROIMaskTab
-from mdt.gui.model_fit.tabs.view_results_tab import ViewResultsTab
 
 import mdt.utils
 import mot.configuration
 from mdt.configuration import update_gui_config
 from mdt.gui.model_fit.tabs.generate_protocol_tab import GenerateProtocolTab
 from mot.lib.cl_environments import CLEnvironmentFactory
-
-try:
-    #python 2.7
-    from Queue import Queue
-except ImportError:
-    # python 3.4
-    from queue import Queue
+from queue import Queue
 from PyQt5 import QtGui
 from PyQt5.QtCore import QThread, QTimer, pyqtSlot
 from PyQt5.QtWidgets import QMainWindow, QDialog, QDialogButtonBox
@@ -71,6 +64,7 @@ class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
         self.actionExit.setShortcuts(['Ctrl+q', 'Ctrl+w'])
 
         self.action_RuntimeSettings.triggered.connect(lambda: RuntimeSettingsDialog(self).exec_())
+        self.action_MapsVisualizer.triggered.connect(lambda: mdt.gui.maps_visualizer.main.start_gui(app_exec=False))
         self.actionAbout.triggered.connect(lambda: AboutDialog(self).exec_())
         self.action_GetExampleData.triggered.connect(lambda: GetExampleDataDialog(self, shared_state).exec_())
 
@@ -83,9 +77,6 @@ class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
         self.generate_mask_tab = GenerateBrainMaskTab(shared_state, self._computations_thread)
         self.generate_mask_tab.setupUi(self.generateBrainMaskTab)
 
-        self.view_results_tab = ViewResultsTab(shared_state, self._computations_thread)
-        self.view_results_tab.setupUi(self.viewResultsTab)
-
         self.generate_roi_mask_tab = GenerateROIMaskTab(shared_state, self._computations_thread)
         self.generate_roi_mask_tab.setupUi(self.generateROIMaskTab)
 
@@ -93,7 +84,7 @@ class MDTGUISingleModel(QMainWindow, Ui_MainWindow):
         self.generate_protocol_tab.setupUi(self.generateProtocolTab)
 
         self.tabs = [self.fit_model_tab, self.generate_mask_tab, self.generate_roi_mask_tab,
-                     self.generate_protocol_tab, self.view_results_tab]
+                     self.generate_protocol_tab]
 
         self.MainTabs.currentChanged.connect(lambda index: self.tabs[index].tab_opened())
 

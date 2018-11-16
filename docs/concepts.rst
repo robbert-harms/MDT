@@ -2,7 +2,7 @@
 Concepts
 ########
 
-This chapter introduces the reader to a few concepts that help to get started using this software.
+This chapter introduces the reader to a few of the design concepts in MDT.
 
 .. _concepts_protocol:
 
@@ -88,43 +88,6 @@ Users are free to add, remove and modify components and MDT will pickup the chan
 See :ref:`components` for more information.
 
 
-.. _concepts_composite_and_cascade_models:
-
-****************************
-Composite and cascade models
-****************************
-Broadly there are two types of models that MDT can use in the model fitting routines,
-single composite models like "BallStick_r1" and cascade models like "BallStick_r1 (Cascade)".
-The composite models are simply multi-compartment models like "NODDI" and "CHARMED" taken from the reference papers and are the models being optimized by the optimization algorithms.
-Cascade models add a layer on top of the composite models by optimizing multiple models in turn and using the calculated maps of the more simpler models
-for the initialization of the more complex models.
-These cascade models are not directly optimized per-se but are more of an initialization strategy for the final model in the cascade.
-
-By default, the composite models follow a naming scheme in which models that can feature more than one restricted compartment are indicated with the postfix ``_r{n}``, where n is the number of restricted compartments.
-For example "BallStick_r1" is a model with only one restricted compartment (i.e. only one Stick), while the model "BallStick_r2" has two restricted compartments.
-The restricted compartment can differ per model, for example, in the "CHARMED_r2" model we have two cylinders since the restricted compartment in the "CHARMED" model is a cylinder.
-
-In terms of cascaded models, MDT comes standard pre-supplied with three variants:
-
-* Cascade S0 (CS) with the postfix "(Cascade|S0)"
-* Cascade Initialized (CI) with the postfix "(Cascade)"
-* Cascade Fixed (CF) with the postfix "(Cascade|fixed)"
-
-All these cascade variants are ways of initializing the next model in the cascade to ensure a good starting position.
-In Harms 2017 :cite:`Harms2017` it is shown that this way of cascading can improve the fit over regular model optimization.
-
-The following figure shows how the three different cascades work with as example the NODDI model.
-
-.. figure:: _static/figures/cascading_illustration.png
-
-    Illustration of the three different cascading strategies (for the example of the NODDI model): CS, CI and CF.
-    The blue arrows indicate initialization of a parameter, the orange arrows indicate fixing a parameter.
-
-
-In general we always recommend to run at least a "(Cascade|S0)" for any model and to gradually move to CI with the "(Cascade)" postfix
-or CF with the "(Cascade|fixed)" postfix.
-
-
 .. _concepts_cl_code:
 
 *******
@@ -146,12 +109,3 @@ See this figure for the general compilation flow in MDT:
 To support both single and double floating point precision, MDT uses the ``mot_float_type`` instead of ``float`` and ``double`` for most of the variables and function definitions.
 During optimization and sampling, ``mot_float_type`` is type-defined to be either a float or a double, depending on the desired precision.
 Of course this does not limit you to use ``double`` and ``float`` as well in your code.
-
-
-.. only:: html
-
-    .. rubric:: References
-
-.. bibliography:: references.bib
-    :style: plain
-    :filter: {"concepts"} & docnames

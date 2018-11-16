@@ -47,12 +47,7 @@ Using Python, the GUI can be started using the command :func:`mdt.view_maps`, fo
     >>> mdt.view_maps('output/NODDI')
 
 
-Finally, using the MDT analyis GUI, the maps visualizer can be started using the button on the last tab:
-
-
-.. figure:: _static/figures/mdt_start_visualizer_from_gui.png
-
-    Starting the maps visualizer from the analysis GUI.
+Finally, using the MDT analyis GUI, the maps visualizer can be started from the menu bar, "File" -> "Maps visualizer"
 
 
 **********

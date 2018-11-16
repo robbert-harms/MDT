@@ -116,14 +116,6 @@ mdt\.gui\.model\_fit\.design\.ui\_runtime\_settings\_dialog module
     :undoc-members:
     :show-inheritance:
 
-mdt\.gui\.model\_fit\.design\.ui\_view\_results\_tab module
------------------------------------------------------------
-
-.. automodule:: mdt.gui.model_fit.design.ui_view_results_tab
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 
 Module contents
 ---------------

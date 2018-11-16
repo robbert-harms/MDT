@@ -2,9 +2,14 @@ import collections
 import logging
 import logging.config as logging_config
 import os
+import warnings
 from contextlib import contextmanager
+from textwrap import dedent
+
 import numpy as np
 import shutil
+
+from mdt.models.cascade import DMRICascadeModelInterface
 from .__version__ import VERSION, VERSION_STATUS, __version__
 
 from mdt.configuration import get_logging_configuration_dict
@@ -48,11 +53,50 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
+def get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=None):
+    """Get better optimization starting points for the given model.
+
+    Since initialization can make quite a difference in optimization results, this function can generate
+    a good initialization starting point for the given model. The idea is that before you call the :func:`fit_model`
+    function, you call this function to get a better starting point. An usage example would be::
+
+        input_data = mdt.load_input_data(..)
+
+        init_data = get_optimization_inits('BallStick_r1', input_data, '/my/folder')
+
+        fit_model('BallStick_r1', input_data, '/my/folder',
+                  initialization_data={'inits': init_data})
+
+    Where the init data returned by this function can directly be used as input to the ``initialization_data``
+    argument of the :func`fit_model` function.
+
+    Please note that his function only supports models shipped by default with MDT.
+
+    Args:
+        model_name (str):
+            The name of a model for which we want the optimization starting points.
+        input_data (:class:`~mdt.utils.MRIInputData`): the input data object containing all
+            the info needed for model fitting of intermediate models.
+        output_folder (string): The path to the folder where to place the output, we will make a subdir with the
+            model name in it.
+        cl_device_ind (int or list): the index of the CL device to use. The index is from the list from the function
+            utils.get_cl_devices(). This can also be a list of device indices.
+
+    Returns:
+        dict: a dictionary with initialization points for the selected model
+    """
+    from mdt.lib.model_fitting import get_optimization_inits
+    return get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=cl_device_ind)
+
+
 def fit_model(model, input_data, output_folder,
               method=None, recalculate=False, only_recalculate_last=False,
               cl_device_ind=None, double_precision=False, tmp_results_dir=True,
               initialization_data=None, post_processing=None, optimizer_options=None):
     """Run the optimizer on the given model.
+
+    Since version 0.17.2 fitting cascade models has been deprecated in favor of a slightly more manual setup by
+    using the :func:`get_optimization_inits` function.
 
     Args:
         model (str or :class:`~mdt.models.composite.DMRICompositeModel` or :class:`~mdt.models.cascade.DMRICascadeModelInterface`):
@@ -90,6 +134,7 @@ def fit_model(model, input_data, output_folder,
             is transformed into::
 
                 initialization_data = SimpleInitializationData(fixes={...}, inits={...})
+
         post_processing (dict): a dictionary with flags for post-processing options to enable or disable.
             For valid elements, please see the configuration file settings for ``optimization``
             under ``post_processing``. Valid input for this parameter is for example: {'covariance': False}
@@ -111,6 +156,28 @@ def fit_model(model, input_data, output_folder,
 
     if cl_device_ind is not None and not isinstance(cl_device_ind, collections.Iterable):
         cl_device_ind = [cl_device_ind]
+
+    if isinstance(model, str):
+        model_instance = get_model(model)()
+    else:
+        model_instance = model
+
+    if isinstance(model_instance, DMRICascadeModelInterface):
+        warnings.warn(dedent('''
+            Fitting cascade models has been deprecated in favor of specifying 'initialization_data' directly.
+            
+            To replicate old fit results, use the function mdt.get_optimization_inits() 
+            
+            Old (deprecated) example:
+            
+                fit_model('NODDI (Cascade)', ...)
+            
+            New example:
+                            
+                inits = get_optimization_inits('NODDI', ...)
+                fit_model('NODDI', ..., 
+                          initialization_data={'inits': inits})
+        '''), FutureWarning)
 
     model_fit = ModelFit(model, input_data, output_folder, method=method, optimizer_options=optimizer_options,
                          recalculate=recalculate,

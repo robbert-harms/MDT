@@ -25,12 +25,11 @@ To run, please change directory to where you downloaded your (pre-processed) HCP
 
 .. code-block:: console
 
-    $ mdt-batch-fit . 'NODDI (Cascade)'
+    $ mdt-batch-fit . NODDI
 
 and it will autodetect the study in use and fit your selected model to all the subjects.
 
-Some of the models you can use are: ``NODDI``, ``ActiveAx``, ``CHARMED_r1``, ``Tensor``, ``BallStick_r1`` and cascaded versions of these.
-For a complete list of models run the command :ref:`cli_index_mdt-list-models` and for more information about cascades see :ref:`concepts_composite_and_cascade_models`.
+For a list of all available models, run the command :ref:`cli_index_mdt-list-models`.
 
 
 .. _mdt_example_data:
@@ -147,8 +146,8 @@ This ROI mask is just another mask with even more voxels masked.
 We do not need this step for the MDT example slices since that dataset is already compressed to two slices.
 
 
-Ball&Stick_r1 estimation example
-================================
+NODDI estimation example
+========================
 With a protocol and mask ready we can now proceed with model analysis.
 The first step is to check which devices we are currently using.
 Please open the runtime settings dialog using the menu bar (typically on the top of the GUI, File -> Runtime settings).
@@ -163,12 +162,12 @@ In contrast, on Apple / OSX the recommendation is to use the CPU since the OpenC
 
 Having chosen the device(s) to run on, please open the tab "Fit model" and fill in the fields using the "b1k_b2k" dataset as an example.
 The drop down menu shows the models MDT can use.
-All models that MDT can find are in this list, both single composite models and cascaded models, and both standard supplied models and your own (user) models.
-See :ref:`components` on how to add models to this list, see :ref:`concepts_composite_and_cascade_models` for more information on the types of models (composite and cascade).
 
-Having filled in all the required fields, select the "Ball&Stick_r1 (Cascade|S0)" model, and press "Run".
+Having filled in all the required fields, select the "NODDI" model, and press "Run".
 MDT will now compute your selected model on the data.
-When the calculations are finished you can go to the "View results" tab to launch the MDT map viewer GUI for visually inspecting the results.
+Please note that for some models, MDT will first compute another model to serve as initialization for your selected model.
+For instance, when running NODDI, MDT first estimates the BallStick_r1 model to use as initialization for the NODDI model.
+When the calculations are finished you can click the "View results" button to launch the MDT map viewer GUI for visually inspecting the results.
 See :ref:`mdt_maps_visualizer` for more details on this visualizer.
 
 By default MDT returns a lot of result maps, like various error maps and additional maps like FSL like vector component maps.
@@ -194,7 +193,7 @@ For adding additional data, like protocol maps, a noise standard deviation or a 
 If you are providing the gradient deviations map, please be advised that this uses the standard set by the HCP Wuminn consortium.
 
 The button "Optimization options" allows you to set specific optimization options like which optimizer to use and with which precision you would like to estimate the model.
-The defaults have been tuned to give optimal fit quality and run-time (see Harms et al., in press).
+The defaults have been tuned to give optimal fit quality and run-time.
 
 .. figure:: _static/figures/mdt_optimization_options.png
 
@@ -293,30 +292,31 @@ The other way of generating a mask is by using the :ref:`cli_index_mdt-math-img`
 Also note that since :ref:`cli_index_mdt-math-img` allows general expressions on nifti files, it can also generate more complex ROI masks.
 
 
-Ball&Stick_r1 estimation example
-================================
+NODDI estimation example
+========================
 Model fitting using the command line is made easy using the :ref:`cli_index_mdt-model-fit` command.
 Please see the reference manual for all switches and options for the model fit command.
 
-The basic usage is to fit for example Ball&Stick_r1 on a dataset:
+The basic usage is to fit for example NODDI on a dataset:
 
 .. code-block:: console
 
     $ cd b1k_b2k
-    $ mdt-model-fit "BallStick_r1 (Cascade)" \
+    $ mdt-model-fit NODDI \
         b1k_b2k_example_slices_24_38.nii.gz \
         b1k_b2k.prtcl \
         *mask.nii.gz
 
 This command needs at least a model name, a dataset, a protocol and a mask to function.
+Please note that for some models, MDT will first compute another model to serve as initialization for your selected model.
+For instance, when running NODDI, MDT first estimates the BallStick_r1 model to use as initialization for the NODDI model.
 For a list of supported models, please run the command :ref:`cli_index_mdt-list-models`.
 
 When the calculations are done you can use the MDT maps visualizer (:ref:`cli_index_mdt-view-maps`) for viewing the results:
 
 .. code-block:: console
 
-    $ cd output/BallStick_r1
-    $ mdt-view-maps .
+    $ mdt-view-maps output/BallStick_r1
 
 For more details on the MDT maps visualizer, please see the chapter :ref:`mdt_maps_visualizer`.
 
@@ -416,12 +416,12 @@ An example of operating on a nifti file is given by:
 this generates a mask in dimension 2 on index 30 (be wary, Numpy and hence MDT use 0-based indicing).
 
 
-Ball&Stick_r1 estimation example
-================================
+NODDI estimation example
+========================
 For model fitting you can use the :func:`~mdt.fit_model` command.
 This command allows you to optimize any of the models in MDT given only a model, input data and output folder.
 
-The basic usage is to fit for example Ball&Stick_r1 on a dataset:
+The basic usage is to fit for example NODDI on a dataset:
 
 .. code-block:: python
 
@@ -430,10 +430,17 @@ The basic usage is to fit for example Ball&Stick_r1 on a dataset:
         '../b1k_b2k/b1k_b2k.prtcl',
         '../b1k_b2k/b1k_b2k_example_slices_24_38_mask')
 
-    mdt.fit_model('BallStick_r1 (Cascade)', input_data, 'output')
+    inits = mdt.get_optimization_inits('NODDI', input_data, 'output')
+
+    mdt.fit_model('NODDI', input_data, 'output',
+                  initialization_data={'inits': inits})
 
 
-The model fit commands requires you to prepare your input data up front (see :func:`~mdt.utils.load_input_data`) such that it can be used in the model fitting.
+First, we load the input data (see :func:`~mdt.utils.load_input_data`) with all the relevant modeling information.
+Second, we try to find a good starting position for our model using the :func:`mdt.get_optimization_inits` command.
+This function returns a dictionary with initialization, fixation and boundary condition information which is suitable for your model and data.
+Please note that this function only works for models that ship by default with MDT, but due to the general nature of the ``initialization_data`` attribute
+of the :func:`~mdt.fit_model` function you can easily generate your own initialization values.
 
 When the calculations are done you can use the MDT maps visualizer for viewing the results:
 
@@ -460,8 +467,10 @@ To summarize the code written above, here is a full MDT model fitting example:
         'b1k_b2k.prtcl',
         'b1k_b2k_example_slices_24_38_mask')
 
-    mdt.fit_model('BallStick_r1 (Cascade)', input_data, 'output')
+    inits = mdt.get_optimization_inits('NODDI', input_data, 'output')
 
+    mdt.fit_model('NODDI', input_data, 'output',
+                  initialization_data={'inits': inits})
 
 
 Estimating any model
@@ -487,8 +496,8 @@ The following example shows how to fix the fibre orientation parameters of the N
     mdt.fit_model('NODDI',
         ...
         initialization_data={
-            'inits': {'w_ic.w': 0.5},
-            'fixes': {'NODDI_IC.theta': theta, 'NODDI_IC.phi': phi}
+            'fixes': {'NODDI_IC.theta': theta,
+                      'NODDI_IC.phi': phi}
         })
 
 
@@ -499,4 +508,3 @@ The syntax of the ``initialization_data`` is::
 where both ``fixes`` and ``inits`` are dictionaries with model parameter names mapping to either scalars or 3d/4d volumes.
 The ``fixes`` indicates parameters that will be fixed to those values, which will actively exclude those parameters from optimization.
 The ``inits`` indicate initial values (starting position) for the parameters.
-

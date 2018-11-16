@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1047</width>
-    <height>427</height>
+    <height>441</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -69,9 +69,6 @@
      <property name="horizontalSpacing">
       <number>10</number>
      </property>
-     <item row="5" column="1">
-      <widget class="QComboBox" name="modelSelection"/>
-     </item>
      <item row="1" column="2">
       <widget class="QLabel" name="label_5">
        <property name="font">
@@ -84,19 +81,6 @@
        </property>
       </widget>
      </item>
-     <item row="3" column="0">
-      <widget class="QLabel" name="label_13">
-       <property name="minimumSize">
-        <size>
-         <width>0</width>
-         <height>0</height>
-        </size>
-       </property>
-       <property name="text">
-        <string>Select output folder:</string>
-       </property>
-      </widget>
-     </item>
      <item row="2" column="0">
       <widget class="QLabel" name="label_10">
        <property name="minimumSize">
@@ -106,23 +90,44 @@
         </size>
        </property>
        <property name="text">
-        <string>Select protocol file:</string>
+        <string>Protocol file:</string>
        </property>
       </widget>
      </item>
-     <item row="3" column="2">
-      <widget class="QLabel" name="label_14">
-       <property name="font">
-        <font>
-         <italic>true</italic>
-        </font>
+     <item row="5" column="0">
+      <widget class="QLabel" name="label_12">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
        </property>
        <property name="text">
-        <string>(Defaults to &quot;output/&lt;mask_name&gt;&quot; in the DWI directory)</string>
+        <string>Model:</string>
        </property>
       </widget>
      </item>
-     <item row="10" column="1">
+     <item row="0" column="0">
+      <widget class="QLabel" name="label_6">
+       <property name="text">
+        <string>Data:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_3">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Brain mask:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="1">
       <layout class="QHBoxLayout" name="horizontalLayout_4">
        <property name="spacing">
         <number>10</number>
@@ -156,39 +161,30 @@
        </item>
       </layout>
      </item>
-     <item row="10" column="2">
-      <widget class="QLabel" name="label_17">
-       <property name="font">
-        <font>
-         <italic>true</italic>
-        </font>
-       </property>
-       <property name="text">
-        <string>(Additional settings)</string>
-       </property>
-      </widget>
-     </item>
-     <item row="9" column="0" colspan="3">
+     <item row="6" column="0" colspan="3">
       <widget class="Line" name="line_4">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
        </property>
       </widget>
      </item>
-     <item row="2" column="2">
-      <widget class="QLabel" name="label_11">
+     <item row="5" column="1">
+      <widget class="QComboBox" name="modelSelection"/>
+     </item>
+     <item row="3" column="2">
+      <widget class="QLabel" name="label_14">
        <property name="font">
         <font>
          <italic>true</italic>
         </font>
        </property>
        <property name="text">
-        <string>(Select your protocol file, see tab &quot;Generate protocol file&quot;)</string>
+        <string>(Defaults to &quot;output/&lt;mask_name&gt;&quot; in the DWI directory)</string>
        </property>
       </widget>
      </item>
-     <item row="1" column="0">
-      <widget class="QLabel" name="label_3">
+     <item row="3" column="0">
+      <widget class="QLabel" name="label_13">
        <property name="minimumSize">
         <size>
          <width>0</width>
@@ -196,39 +192,7 @@
         </size>
        </property>
        <property name="text">
-        <string>Select brain mask:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="2">
-      <widget class="QLabel" name="label_4">
-       <property name="font">
-        <font>
-         <italic>true</italic>
-        </font>
-       </property>
-       <property name="text">
-        <string>(Select your preprocessed 4d diffusion weighted volume)</string>
-       </property>
-      </widget>
-     </item>
-     <item row="5" column="0">
-      <widget class="QLabel" name="label_12">
-       <property name="minimumSize">
-        <size>
-         <width>0</width>
-         <height>0</height>
-        </size>
-       </property>
-       <property name="text">
-        <string>Select model:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="0">
-      <widget class="QLabel" name="label_6">
-       <property name="text">
-        <string>Select DWI:</string>
+        <string>Output folder:</string>
        </property>
       </widget>
      </item>
@@ -323,92 +287,39 @@
        </item>
       </layout>
      </item>
-     <item row="8" column="0">
-      <widget class="QLabel" name="label_16">
-       <property name="minimumSize">
-        <size>
-         <width>0</width>
-         <height>0</height>
-        </size>
-       </property>
-       <property name="text">
-        <string>Select cascade:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="7" column="0">
-      <widget class="QLabel" name="label_19">
-       <property name="minimumSize">
-        <size>
-         <width>0</width>
-         <height>0</height>
-        </size>
-       </property>
-       <property name="text">
-        <string>Use cascaded fit:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="7" column="1">
-      <layout class="QHBoxLayout" name="horizontalLayout_8">
-       <item>
-        <widget class="QRadioButton" name="useCascades">
-         <property name="text">
-          <string>Yes</string>
-         </property>
-         <property name="checked">
-          <bool>true</bool>
-         </property>
-         <attribute name="buttonGroup">
-          <string notr="true">cascadedFitButtonGroup</string>
-         </attribute>
-        </widget>
-       </item>
-       <item>
-        <widget class="QRadioButton" name="noCascades">
-         <property name="text">
-          <string>No</string>
-         </property>
-         <attribute name="buttonGroup">
-          <string notr="true">cascadedFitButtonGroup</string>
-         </attribute>
-        </widget>
-       </item>
-       <item>
-        <spacer name="horizontalSpacer_3">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-      </layout>
-     </item>
-     <item row="8" column="1">
-      <widget class="QComboBox" name="cascadeSelection"/>
-     </item>
-     <item row="6" column="0" colspan="3">
-      <widget class="Line" name="line_5">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-      </widget>
-     </item>
-     <item row="7" column="2" rowspan="2">
-      <widget class="QLabel" name="label_18">
+     <item row="7" column="2">
+      <widget class="QLabel" name="label_17">
        <property name="font">
         <font>
          <italic>true</italic>
         </font>
        </property>
        <property name="text">
-        <string>(Initializes your chosen model using parameter estimates
-of simpler model estimates)</string>
+        <string>(Additional settings)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="2">
+      <widget class="QLabel" name="label_4">
+       <property name="font">
+        <font>
+         <italic>true</italic>
+        </font>
+       </property>
+       <property name="text">
+        <string>(Select your preprocessed 4d MRI image data)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="2">
+      <widget class="QLabel" name="label_11">
+       <property name="font">
+        <font>
+         <italic>true</italic>
+        </font>
+       </property>
+       <property name="text">
+        <string>(Select your protocol file, see tab &quot;Generate protocol file&quot;)</string>
        </property>
       </widget>
      </item>
@@ -436,6 +347,13 @@ of simpler model estimates)</string>
        </property>
        <property name="text">
         <string>Run</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="viewResultsButton">
+       <property name="text">
+        <string>View results</string>
        </property>
       </widget>
      </item>
@@ -488,7 +406,4 @@ of simpler model estimates)</string>
  </tabstops>
  <resources/>
  <connections/>
- <buttongroups>
-  <buttongroup name="cascadedFitButtonGroup"/>
- </buttongroups>
 </ui>

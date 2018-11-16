@@ -2,13 +2,13 @@
 
 # Form implementation generated from reading ui file 'dialog_get_example_data.ui'
 #
-# Created by: PyQt5 UI code generator 5.5.1
+# Created by: PyQt5 UI code generator 5.10.1
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_GetExampleDataDialog:
+class Ui_GetExampleDataDialog(object):
     def setupUi(self, GetExampleDataDialog):
         GetExampleDataDialog.setObjectName("GetExampleDataDialog")
         GetExampleDataDialog.resize(691, 208)

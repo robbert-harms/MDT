@@ -25,9 +25,19 @@ from textwrap import dedent
 
 
 mock_as_class = ['QWidget', 'QMainWindow', 'QDialog', 'QObject',
-                 'CLFunction', 'SimpleCLFunction']
+                 'CLFunction', 'SimpleCLFunction', 'QtCore']
 mock_as_decorator = ['pyqtSlot']
-mock_modules = ['mot', 'pyopencl', 'PyQt5', 'matplotlib', 'mpl_toolkits', 'mdt.model_building.parameter_functions.priors']
+mock_modules = ['mot', 'pyopencl', 'PyQt5', 'matplotlib', 'mpl_toolkits',
+                'mdt.model_building.parameter_functions.priors']
+
+
+class mock_qtcore(MagicMock):
+    @staticmethod
+    def qVersion():
+        return '0.0.0.'
+
+    def qRegisterResourceData(self, *args, **kwargs):
+        pass
 
 
 def mock_decorator(*args, **kwargs):
@@ -51,6 +61,8 @@ class MockModule(MagicMock):
     """The base mocking class. This mimics a module."""
     @classmethod
     def __getattr__(cls, name):
+        if name == 'QtCore':
+            return mock_qtcore
         if name in mock_as_class:
             class MockClass(MagicMock):
                 @classmethod

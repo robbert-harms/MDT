@@ -10,7 +10,7 @@ On the moment MDT supports the following components:
 * :ref:`dynamic_modules_composite_models`: the models fitted by MDT, these are built out of the compartment models
 * :ref:`dynamic_modules_compartments`: reusable models of diffusion and relaxometry models
 * :ref:`dynamic_modules_parameters`: definitions of common parameters shared between models
-* :ref:`dynamic_modules_cascades`: initialization definitions for composite models
+* :ref:`dynamic_modules_cascades`: **deprecated**, initialization definitions for composite models
 * :ref:`dynamic_modules_library_functions`: library functions for use in composite models
 * :ref:`dynamic_modules_batch_profiles`: for the batch functionality in MDT
 

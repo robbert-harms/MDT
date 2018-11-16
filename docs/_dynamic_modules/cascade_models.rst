@@ -3,7 +3,7 @@
 **************
 Cascade models
 **************
-Cascade models are meant to make chained optimization procedures explicit.
+Cascade models were meant to make chained optimization procedures explicit.
 For example, complex models like CHARMED and NODDI are optimized better if the optimization routine is initialized at a better starting point (Harms 2017).
 This could be as simple as initializing the model with the height of the unweighted signal, or be as complex as initializing the fibre directions and volume fractions.
 To create a new cascade model, you will need to specify, at a minimum, the ``models`` attribute:
@@ -17,6 +17,22 @@ To create a new cascade model, you will need to specify, at a minimum, the ``mod
 
 
 In this example we create a cascade going from a (cascaded) BallStick_r3 model to a CHARMED_r3 model.
+
+**Deprecation warning:** In newer MDT versions Cascade models will be phased out in favor of more direct control of the initialization point.
+
+Previously, one would use something like this::
+
+    fit_model('NODDI (Cascade)', ...)
+
+
+In newer MDT versions, one would use::
+
+    inits = get_optimization_inits('NODDI', ...)
+    fit_model('NODDI', ...,
+              initialization_data={'inits': inits})
+
+This allows a more direct control of the initialization point.
+
 
 
 Cascade naming

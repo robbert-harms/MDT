@@ -24,10 +24,13 @@ A full example would be:
         '../b1k_b2k/b1k_b2k.prtcl',
         '../b1k_b2k/b1k_b2k_example_slices_24_38_mask')
 
-    mle = mdt.fit_model('BallStick_r1 (Cascade)', input_data, 'output')
+    inits = mdt.get_optimization_inits('NODDI', input_data, 'output')
+
+    mle = mdt.fit_model('NODDI', input_data, 'output',
+                        initialization_data={'inits': inits})
 
     samples = mdt.sample_model(
-        'BallStick_r1,
+        'NODDI',
         input_data,
         'output',
         nmr_samples=1000,
@@ -37,7 +40,7 @@ A full example would be:
     )
 
 
-here, we load the input data, fit the BallStick_r1 model using MDT and use that as a starting point for the MCMC sampling.
+here, we load the input data, get a suitable optimization starting point, fit the NODDI model and then finally use that as a starting point for the MCMC sampling.
 
 
 ***************
