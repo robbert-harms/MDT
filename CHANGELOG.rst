@@ -2,6 +2,23 @@
 Changelog
 *********
 
+v0.18.0 (2018-11-19)
+====================
+This version marks the deprecation of the Cascade models in MDT.
+Instead, MDT now strikes a balance between customizability and ease of use.
+For ease of use, using the GUI and command line MDT now automatically selects a good starting point based on pre-set rules.
+For customizability you can use the Python API in which you first compute the initialization point and then manually provide it to the model fitting.
+By providing it manually you can have a finer grained control over the initialization settings.
+
+For more details on how to properly initialize in newer newer versions see :ref:`model_fitting`.
+Even though this functionality is now deprecated, it will still be available for the near future to allow users the chance to move to the new workflow.
+
+Changed
+-------
+- Deprecated the Cascade interface in favor of a more direct control of the initialization point.
+- Refactored the documentation and added sampling documentation.
+
+
 v0.17.2 (2018-11-14)
 ====================
 
