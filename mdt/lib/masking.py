@@ -67,7 +67,7 @@ def create_median_otsu_brain_mask(dwi_info, protocol, mask_threshold=0, fill_hol
     return brain_mask
 
 
-def generate_simple_wm_mask(fa_fname, brain_mask_fname, out_fname, fa_threshold=0.3, median_radius=1, numpass=2):
+def generate_simple_wm_mask(fa_fname, brain_mask, out_fname, fa_threshold=0.3, median_radius=1, numpass=2):
     """Generate a simple white matter mask by thresholding the given FA map.
 
     Everything below the given FA threshold will be masked (not used). It also applies the regular brain mask to
@@ -75,7 +75,7 @@ def generate_simple_wm_mask(fa_fname, brain_mask_fname, out_fname, fa_threshold=
 
     Args:
         fa_fname (str): the path to the FA file
-        brain_mask_fname (str): the path to the general brain mask in use
+        brain_mask (str or ndarray): the general brain mask used in the FA model fitting
         out_fname (str): where to write the outfile.
         fa_threshold (double): the FA threshold. Everything below this threshold is masked (set to 0). To be precise:
             where fa_data < fa_threshold set the value to 0.
@@ -100,7 +100,7 @@ def generate_simple_wm_mask(fa_fname, brain_mask_fname, out_fname, fa_threshold=
     filter_footprint[median_radius, :, median_radius] = 1
     filter_footprint[median_radius, median_radius, :] = 1
 
-    mask = load_brain_mask(brain_mask_fname)
+    mask = load_brain_mask(brain_mask)
 
     fa_data_masked = np.ma.masked_array(fa_data, mask=mask)
     for ind in range(numpass):

@@ -52,7 +52,7 @@ class ModelFit(BasicShellApplication):
         parser.add_argument(
             'protocol', action=mdt.lib.shell_utils.get_argparse_extension_checker(['.prtcl']),
             help='the protocol file, see mdt-create-protocol').completer = FilesCompleter(['prtcl'],
-                                                                                            directories=False)
+                                                                                          directories=False)
         parser.add_argument('mask',
                             action=mdt.lib.shell_utils.get_argparse_extension_checker(['.nii', '.nii.gz', '.hdr', '.img']),
                             help='the (brain) mask to use').completer = FilesCompleter(['nii', 'gz', 'hdr', 'img'],
@@ -92,6 +92,13 @@ class ModelFit(BasicShellApplication):
                             help="Initialize the model with a better starting point (default). "
                                  "Only works for default MDT models.")
         parser.set_defaults(with_initialization=True)
+
+        parser.add_argument('--method', default='Powell',
+                            choices=['Powell', 'Nelder-Mead', 'Levenberg-Marquardt', 'Subplex'],
+                            help='The optimization method to use, defaults to Powell.')
+
+        parser.add_argument('--patience', type=int, default=None,
+                            help='The patience for the optimization routine')
 
         parser.add_argument('--double', dest='double_precision', action='store_true',
                             help="Calculate in double precision.")
@@ -144,9 +151,15 @@ class ModelFit(BasicShellApplication):
                     init_data = mdt.get_optimization_inits(args.model, input_data, output_folder,
                                                            cl_device_ind=args.cl_device_ind)
 
+            optimizer_options = {}
+            if args.patience is not None:
+                optimizer_options['patience'] = args.patience
+
             mdt.fit_model(args.model,
                           input_data,
                           output_folder,
+                          method=args.method,
+                          optimizer_options=optimizer_options,
                           recalculate=args.recalculate,
                           only_recalculate_last=args.only_recalculate_last,
                           cl_device_ind=args.cl_device_ind,

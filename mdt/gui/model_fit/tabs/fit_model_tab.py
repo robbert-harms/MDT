@@ -326,22 +326,13 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
 
             write_new_line('--recalculate' if kwargs['recalculate'] else '--no-recalculate')
             write_new_line('--double' if kwargs['double_precision'] else '--float')
+            write_new_line('--method {}'.format(optim_options.method))
+            write_new_line('--patience {}'.format(optim_options.patience))
 
             if input_data_info.extra_protocol:
                 write_new_line('--extra-protocol {}'.format(
                     ' '.join('{}="{}"'.format(key, value) for key, value in input_data_info.extra_protocol.items())
                 ))
-
-            if not optim_options.use_model_default_optimizer:
-                config = '''
-                    optimization:
-                        general:
-                            name: {}
-                            settings:
-                                patience: {}
-                '''.format(optim_options.method, optim_options.patience)
-                config_context = yaml.safe_dump(yaml.safe_load(config), default_flow_style=True).rstrip()
-                write_new_line('--config-context "{}"'.format(config_context))
 
 
 class ProtocolWarningBox(QMessageBox):

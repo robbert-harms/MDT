@@ -192,12 +192,7 @@ For adding additional data, like protocol maps, a noise standard deviation or a 
 
 If you are providing the gradient deviations map, please be advised that this uses the standard set by the HCP Wuminn consortium.
 
-The button "Optimization options" allows you to set specific optimization options like which optimizer to use and with which precision you would like to estimate the model.
-The defaults have been tuned to give optimal fit quality and run-time.
-
-.. figure:: _static/figures/mdt_optimization_options.png
-
-    The dialog for setting the optimization options.
+The button "Optimization options" allows you to set some of the :ref:`model_fitting_optimization_options`.
 
 
 .. _analysis_using_the_cli:
@@ -508,3 +503,64 @@ The syntax of the ``initialization_data`` is::
 where both ``fixes`` and ``inits`` are dictionaries with model parameter names mapping to either scalars or 3d/4d volumes.
 The ``fixes`` indicates parameters that will be fixed to those values, which will actively exclude those parameters from optimization.
 The ``inits`` indicate initial values (starting position) for the parameters.
+
+
+.. _model_fitting_optimization_options:
+
+*********************
+Optimization routines
+*********************
+MDT uses the `MOT package <https://mot.readthedocs.io/en/latest_release/>`_ for all model fitting.
+This packages contains various optimization routines programmed in OpenCL for optimal performance on both CPU and GPU.
+The following optimization routines are available in MDT:
+
+* ``Powell`` :cite:`Powell1964` (`wiki <https://en.wikipedia.org/wiki/Powell%27s_method>`_)
+* ``Levenberg-Marquardt`` :cite:`Levenberg1944`, (`wiki <https://en.wikipedia.org/wiki/Levenberg%E2%80%93Marquardt_algorithm>`_)
+* ``Nelder-Mead`` simplex  :cite:`Nelder1965`, (`wiki <https://en.wikipedia.org/wiki/Nelder%E2%80%93Mead_method>`_)
+* ``Subplex`` :cite:`Rowan1990`
+
+the number of iterations of each of these routines can be controlled by a variable named ``patience`` which sets the
+number of iterations to :math:`p * (n+1)` where :math:`p` is the patience and :math:`n` the number of parameters to be fitted.
+By setting the patience indirectly we can implicitly account for model complexity.
+
+By default, MDT uses the Powell routine for all models, although with some models a different routine might perform better
+for a specific model. We advice experimenting with the different routines to see which performs best for your model.
+
+
+Setting the routine
+===================
+From within the graphical interface, the options can be set using the `Optimization Options` button in the model fit tab.
+Showing you a frame similar to:
+
+.. figure:: _static/figures/mdt_optimization_options.png
+
+    The graphical dialog to setting the optimization options.
+
+Using the command line the same options can be set using ``--method`` and ``--patience``, as:
+
+.. code-block:: console
+
+    $ cd b1k_b2k
+    $ mdt-model-fit \
+        ... \
+        --method Powell
+        --patience 2
+
+Using the Python API the options are specified as:
+
+.. code-block:: python
+
+    mdt.fit_model(
+        ...,
+        method='Powell',
+        optimizer_options={'patience': 2}
+    )
+
+
+.. only:: html
+
+    .. rubric:: References
+
+.. bibliography:: references.bib
+    :style: plain
+    :filter: {"model_fitting"} & docnames
