@@ -149,6 +149,8 @@ def get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=
             inits['w_csf.w'] = fit_results['w_ball.w']
             inits['CylinderGPD.theta'] = fit_results['Stick0.theta']
             inits['CylinderGPD.phi'] = fit_results['Stick0.phi']
+        elif model_name.startswith('QMT_ReducedRamani'):
+            inits['S0.s0'] = np.mean(input_data.signal4d, axis=-1)
 
         return inits
 
