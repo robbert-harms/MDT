@@ -445,53 +445,53 @@ class FittingProcessor(SimpleModelProcessor):
         self._logger=logging.getLogger(__name__)
 
     def _process(self, roi_indices, next_indices=None):
-        build_model = self._model.build(roi_indices)
-        codec = self._model.get_parameter_codec()
+        with self._model.voxels_to_analyze_context(roi_indices):
+            codec = self._model.get_parameter_codec()
 
-        cl_runtime_info = CLRuntimeInfo()
+            cl_runtime_info = CLRuntimeInfo()
 
-        self._logger.info('Starting minimization')
-        self._logger.info('Using MOT version {}'.format(mot.__version__))
-        self._logger.info('We will use a {} precision float type for the calculations.'.format(
-            'double' if cl_runtime_info.double_precision else 'single'))
-        for env in cl_runtime_info.cl_environments:
-            self._logger.info('Using device \'{}\'.'.format(str(env)))
-        self._logger.info('Using compile flags: {}'.format(cl_runtime_info.get_compile_flags()))
+            self._logger.info('Starting minimization')
+            self._logger.info('Using MOT version {}'.format(mot.__version__))
+            self._logger.info('We will use a {} precision float type for the calculations.'.format(
+                'double' if cl_runtime_info.double_precision else 'single'))
+            for env in cl_runtime_info.cl_environments:
+                self._logger.info('Using device \'{}\'.'.format(str(env)))
+            self._logger.info('Using compile flags: {}'.format(cl_runtime_info.get_compile_flags()))
 
-        if self._optimizer_options:
-            self._logger.info('We will use the optimizer {} '
-                              'with optimizer settings {}'.format(self._method, self._optimizer_options))
-        else:
-            self._logger.info('We will use the optimizer {} with default settings.'.format(self._method))
+            if self._optimizer_options:
+                self._logger.info('We will use the optimizer {} '
+                                  'with optimizer settings {}'.format(self._method, self._optimizer_options))
+            else:
+                self._logger.info('We will use the optimizer {} with default settings.'.format(self._method))
 
-        x0 = codec.encode(build_model.get_initial_parameters(), build_model.get_kernel_data())
-        lower_bounds, upper_bounds = codec.encode_bounds(build_model.get_lower_bounds(),
-                                                         build_model.get_upper_bounds())
+            x0 = codec.encode(self._model.get_initial_parameters(), self._model.get_kernel_data())
+            lower_bounds, upper_bounds = codec.encode_bounds(self._model.get_lower_bounds(),
+                                                             self._model.get_upper_bounds())
 
-        wrapper = ObjectiveFunctionWrapper(x0.shape[1])
-        objective_func = wrapper.wrap_objective_function(build_model.get_objective_function(),
-                                                         codec.get_decode_function())
-        input_data = wrapper.wrap_input_data(build_model.get_kernel_data())
+            wrapper = ObjectiveFunctionWrapper(x0.shape[1])
+            objective_func = wrapper.wrap_objective_function(self._model.get_objective_function(),
+                                                             codec.get_decode_function())
+            input_data = wrapper.wrap_input_data(self._model.get_kernel_data())
 
-        results = minimize(objective_func, x0, method=self._method,
-                           nmr_observations=build_model.get_nmr_observations(),
-                           cl_runtime_info=cl_runtime_info,
-                           data=input_data,
-                           lower_bounds=lower_bounds,
-                           upper_bounds=upper_bounds,
-                           options=self._optimizer_options)
+            results = minimize(objective_func, x0, method=self._method,
+                               nmr_observations=self._model.get_nmr_observations(),
+                               cl_runtime_info=cl_runtime_info,
+                               data=input_data,
+                               lower_bounds=lower_bounds,
+                               upper_bounds=upper_bounds,
+                               options=self._optimizer_options)
 
-        self._logger.info('Finished optimization')
-        self._logger.info('Starting post-processing')
+            self._logger.info('Finished optimization')
+            self._logger.info('Starting post-processing')
 
-        x_final = codec.decode(results['x'], build_model.get_kernel_data())
+            x_final = codec.decode(results['x'], self._model.get_kernel_data())
 
-        results = build_model.get_post_optimization_output(x_final, results['status'])
-        results.update({self._used_mask_name: np.ones(roi_indices.shape[0], dtype=np.bool)})
+            results = self._model.get_post_optimization_output(x_final, results['status'])
+            results.update({self._used_mask_name: np.ones(roi_indices.shape[0], dtype=np.bool)})
 
-        self._logger.info('Finished post-processing')
+            self._logger.info('Finished post-processing')
 
-        self._write_output_recursive(results, roi_indices)
+            self._write_output_recursive(results, roi_indices)
 
     def _write_output_recursive(self, results, roi_indices, sub_dir=''):
         current_output = {}
@@ -536,7 +536,7 @@ class SamplingProcessor(SimpleModelProcessor):
                 - 'FSL', for the sampling method used in the FSL toolbox
             samples_storage_strategy (SamplesStorageStrategy): indicates which samples to store
             post_sampling_cb (Callable[
-                [mot.sample.base.SamplingOutput, mdt.models.composite.BuildCompositeModel], Optional[Dict]]):
+                [mot.sample.base.SamplingOutput, mdt.models.composite.DMRICompositeModel], Optional[Dict]]):
                     additional post-processing called after sampling. This function can optionally return a (nested)
                     dictionary with as keys dir-/file-names and as values maps to be stored in the results directory.
             sampler_options (dict): specific options for the MCMC routine. These will be provided to the sampling routine
@@ -557,68 +557,68 @@ class SamplingProcessor(SimpleModelProcessor):
         self._sampler_options = sampler_options or {}
 
     def _process(self, roi_indices, next_indices=None):
-        model = self._model.build(roi_indices)
+        with self._model.voxels_to_analyze_context(roi_indices):
 
-        method = None
-        method_args = [model.get_log_likelihood_function(),
-                       model.get_log_prior_function(),
-                       model.get_initial_parameters()]
-        method_kwargs = {'data': model.get_kernel_data()}
+            method = None
+            method_args = [self._model.get_log_likelihood_function(),
+                           self._model.get_log_prior_function(),
+                           self._model.get_initial_parameters()]
+            method_kwargs = {'data': self._model.get_kernel_data()}
 
-        if self._method in ['AMWG', 'SCAM', 'MWG', 'FSL']:
-            method_args.append(model.get_rwm_proposal_stds())
-            method_kwargs.update(finalize_proposal_func=model.get_finalize_proposal_function())
+            if self._method in ['AMWG', 'SCAM', 'MWG', 'FSL']:
+                method_args.append(self._model.get_rwm_proposal_stds())
+                method_kwargs.update(finalize_proposal_func=self._model.get_finalize_proposal_function())
 
-        if self._method == 'AMWG':
-            method = AdaptiveMetropolisWithinGibbs
-        elif self._method == 'SCAM':
-            method = SingleComponentAdaptiveMetropolis
-            method_kwargs['epsilon'] = model.get_rwm_epsilons()
-        elif self._method == 'MWG':
-            method = MetropolisWithinGibbs
-        elif self._method == 'FSL':
-            method = FSLSamplingRoutine
-        elif self._method == 't-walk':
-            method = ThoughtfulWalk
-            method_args.append(model.get_random_parameter_positions()[..., 0])
-            method_kwargs.update(finalize_proposal_func=model.get_finalize_proposal_function())
+            if self._method == 'AMWG':
+                method = AdaptiveMetropolisWithinGibbs
+            elif self._method == 'SCAM':
+                method = SingleComponentAdaptiveMetropolis
+                method_kwargs['epsilon'] = self._model.get_rwm_epsilons()
+            elif self._method == 'MWG':
+                method = MetropolisWithinGibbs
+            elif self._method == 'FSL':
+                method = FSLSamplingRoutine
+            elif self._method == 't-walk':
+                method = ThoughtfulWalk
+                method_args.append(self._model.get_random_parameter_positions()[..., 0])
+                method_kwargs.update(finalize_proposal_func=self._model.get_finalize_proposal_function())
 
-        method_kwargs.update(self._sampler_options)
+            method_kwargs.update(self._sampler_options)
 
-        if method is None:
-            raise ValueError('Could not find the sampler with name {}.'.format(self._method))
+            if method is None:
+                raise ValueError('Could not find the sampler with name {}.'.format(self._method))
 
-        sampler = method(*method_args, **method_kwargs)
-        sampling_output = sampler.sample(self._nmr_samples, burnin=self._burnin, thinning=self._thinning)
-        samples = sampling_output.get_samples()
+            sampler = method(*method_args, **method_kwargs)
+            sampling_output = sampler.sample(self._nmr_samples, burnin=self._burnin, thinning=self._thinning)
+            samples = sampling_output.get_samples()
 
-        self._logger.info('Starting post-processing')
-        maps_to_save = model.get_post_sampling_maps(sampling_output)
-        maps_to_save.update({self._used_mask_name: np.ones(samples.shape[0], dtype=np.bool)})
+            self._logger.info('Starting post-processing')
+            maps_to_save = self._model.get_post_sampling_maps(sampling_output)
+            maps_to_save.update({self._used_mask_name: np.ones(samples.shape[0], dtype=np.bool)})
 
-        if self._post_sampling_cb:
-            out = self._post_sampling_cb(sampling_output, model)
-            if out:
-                maps_to_save.update(out)
+            if self._post_sampling_cb:
+                out = self._post_sampling_cb(sampling_output, self._model)
+                if out:
+                    maps_to_save.update(out)
 
-        self._write_output_recursive(maps_to_save, roi_indices)
+            self._write_output_recursive(maps_to_save, roi_indices)
 
-        def get_output(output_name):
-            if output_name in model.get_free_param_names():
-                return samples[:, ind, ...]
-            elif output_name == 'LogLikelihood':
-                return sampling_output.get_log_likelihoods()
-            elif output_name == 'LogPrior':
-                return sampling_output.get_log_priors()
+            def get_output(output_name):
+                if output_name in self._model.get_free_param_names():
+                    return samples[:, ind, ...]
+                elif output_name == 'LogLikelihood':
+                    return sampling_output.get_log_likelihoods()
+                elif output_name == 'LogPrior':
+                    return sampling_output.get_log_priors()
 
-        items_to_save = {}
-        for ind, name in enumerate(list(model.get_free_param_names()) + ['LogLikelihood', 'LogPrior']):
-            if self._samples_to_save_method.store_samples(name):
-                self._samples_output_stored.append(name)
-                items_to_save.update({name: get_output(name)})
-        self._write_sample_results(items_to_save, roi_indices)
+            items_to_save = {}
+            for ind, name in enumerate(list(self._model.get_free_param_names()) + ['LogLikelihood', 'LogPrior']):
+                if self._samples_to_save_method.store_samples(name):
+                    self._samples_output_stored.append(name)
+                    items_to_save.update({name: get_output(name)})
+            self._write_sample_results(items_to_save, roi_indices)
 
-        self._logger.info('Finished post-processing')
+            self._logger.info('Finished post-processing')
 
     def combine(self):
         super().combine()
@@ -834,4 +834,3 @@ def _combine_volumes_write_out(info_pair):
 
     data = np.load(os.path.join(chunks_dir, map_name + '.npy'), mmap_mode='r')
     write_all_as_nifti({map_name: data}, output_dir, nifti_header=nifti_header, gzip=write_gzipped)
-

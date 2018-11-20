@@ -54,7 +54,7 @@ def sample_composite_model(model, input_data, output_folder, nmr_samples, thinni
             during model fitting. If we are optimizing a cascade model this data only applies to the last model in the
             cascade.
         post_sampling_cb (Callable[
-            [mot.sample.base.SamplingOutput, mdt.models.composite.BuildCompositeModel], Optional[Dict]]):
+            [mot.sample.base.SamplingOutput, mdt.models.composite.DMRICompositeModel], Optional[Dict]]):
                 additional post-processing called after sampling. This function can optionally return a (nested)
                 dictionary with as keys dir-/file-names and as values maps to be stored in the results directory.
         sampler_options (dict): specific options for the MCMC routine. These will be provided to the sampling routine

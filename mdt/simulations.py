@@ -34,7 +34,6 @@ def create_signal_estimates(model, input_data, parameters):
         model = get_model(model)()
 
     model.set_input_data(input_data)
-    build_model = model.build()
 
     if isinstance(parameters, str):
         parameters = get_all_nifti_data(parameters)
@@ -42,11 +41,11 @@ def create_signal_estimates(model, input_data, parameters):
     parameters = create_roi(parameters, input_data.mask)
     parameters = model.param_dict_to_array(parameters)
 
-    kernel_data = {'data': build_model.get_kernel_data(),
+    kernel_data = {'data': model.get_kernel_data(),
                    'parameters': Array(parameters, ctype='mot_float_type'),
-                   'estimates': Zeros((parameters.shape[0], build_model.get_nmr_observations()), 'mot_float_type')}
+                   'estimates': Zeros((parameters.shape[0], model.get_nmr_observations()), 'mot_float_type')}
 
-    _get_simulate_function(build_model).evaluate(kernel_data, parameters.shape[0])
+    _get_simulate_function(model).evaluate(kernel_data, parameters.shape[0])
     results = kernel_data['estimates'].get_data()
 
     return restore_volumes(results, input_data.mask)
@@ -72,19 +71,18 @@ def simulate_signals(model, protocol, parameters):
         model = get_model(model)()
 
     model.set_input_data(MockMRIInputData(protocol=protocol))
-    build_model = model.build()
 
     if isinstance(parameters, collections.Mapping):
         parameters = model.param_dict_to_array(parameters)
 
     nmr_problems = parameters.shape[0]
 
-    kernel_data = {'data': build_model.get_kernel_data(),
+    kernel_data = {'data': model.get_kernel_data(),
                    'parameters': Array(parameters, ctype='mot_float_type'),
-                   'estimates': Zeros((nmr_problems, build_model.get_nmr_observations()), 'mot_float_type')
+                   'estimates': Zeros((nmr_problems, model.get_nmr_observations()), 'mot_float_type')
                    }
 
-    _get_simulate_function(build_model).evaluate(kernel_data, nmr_problems)
+    _get_simulate_function(model).evaluate(kernel_data, nmr_problems)
     return kernel_data['estimates'].get_data()
 
 
