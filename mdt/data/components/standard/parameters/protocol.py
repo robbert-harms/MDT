@@ -12,7 +12,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
 class g(ProtocolParameterTemplate):
-    data_type = 'mot_float_type4'
+    data_type = 'float4'
 
 
 class gx(ProtocolParameterTemplate):

@@ -11,10 +11,10 @@ class CylinderGPD(CompartmentTemplate):
     parameters = ('g', 'b', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'R')
     dependencies = ('VanGelderenCylinder', 'SphericalToCartesian')
     cl_code = '''
-        const mot_float_type direction_2 = pown(dot(g, SphericalToCartesian(theta, phi)), 2);
+        double direction_2 = pown(dot(g, SphericalToCartesian(theta, phi)), 2);
 
-        const mot_float_type signal_par = -b * d * direction_2;
-        const mot_float_type signal_perp = (1 - direction_2) * VanGelderenCylinder(G, Delta, delta, d, R);
-        
+        double signal_par = -b * d * direction_2;
+        double signal_perp = (1 - direction_2) * VanGelderenCylinder(G, Delta, delta, d, R);
+
         return exp(signal_perp + signal_par);
     '''

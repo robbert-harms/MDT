@@ -456,7 +456,7 @@ class FittingProcessor(SimpleModelProcessor):
                 'double' if cl_runtime_info.double_precision else 'single'))
             for env in cl_runtime_info.cl_environments:
                 self._logger.info('Using device \'{}\'.'.format(str(env)))
-            self._logger.info('Using compile flags: {}'.format(cl_runtime_info.get_compile_flags()))
+            self._logger.info('Using compile flags: {}'.format(cl_runtime_info.compile_flags))
 
             if self._optimizer_options:
                 self._logger.info('We will use the optimizer {} '

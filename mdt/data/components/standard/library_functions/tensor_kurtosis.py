@@ -21,9 +21,9 @@ class TensorApparentDiffusion(LibraryFunctionTemplate):
     dependencies = ['TensorSphericalToCartesian']
     return_type = 'mot_float_type'
     parameters = ['mot_float_type theta', 'mot_float_type phi', 'mot_float_type psi',
-                  'mot_float_type d', 'mot_float_type dperp0', 'mot_float_type dperp1', 'mot_float_type4 g']
+                  'mot_float_type d', 'mot_float_type dperp0', 'mot_float_type dperp1', 'float4 g']
     cl_code = '''
-        mot_float_type4 vec0, vec1, vec2;
+        float4 vec0, vec1, vec2;
         TensorSphericalToCartesian(theta, phi, psi, &vec0, &vec1, &vec2);
 
         return  d *      pown(dot(vec0, g), 2) +
@@ -41,7 +41,7 @@ class KurtosisMultiplication(LibraryFunctionTemplate):
 
     Args:
         'W*' (double): the matrix elements.
-        n (mot_float_type4): the vector to evaluate the Kurtosis matrix against.
+        n (float4): the vector to evaluate the Kurtosis matrix against.
 
     Returns:
         double: the evaluated scalar.
@@ -52,7 +52,7 @@ class KurtosisMultiplication(LibraryFunctionTemplate):
                   'mot_float_type W_2220', 'mot_float_type W_2111', 'mot_float_type W_2221',
                   'mot_float_type W_1100', 'mot_float_type W_2200', 'mot_float_type W_2211',
                   'mot_float_type W_2100', 'mot_float_type W_2110', 'mot_float_type W_2210',
-                  'mot_float_type4 n']
+                  'float4 n']
     cl_code = '''
         double kurtosis_sum = 0;
 

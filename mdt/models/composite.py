@@ -127,7 +127,7 @@ class DMRICompositeModel(DMRIOptimizable):
         self.nmr_parameters_for_bic_calculation = self.get_nmr_parameters()
         self._post_processing = get_active_post_processing()
 
-        self.voxels_to_analyze = None
+        self._voxels_to_analyze = None
 
     @property
     def name(self):
@@ -140,10 +140,10 @@ class DMRICompositeModel(DMRIOptimizable):
         Args:
             voxels_to_analyze (List[int]): list of (1d ROI) voxel indices with the voxels we will compute now.
         """
-        tmp = self.voxels_to_analyze
-        self.voxels_to_analyze = voxels_to_analyze
+        tmp = self._voxels_to_analyze
+        self._voxels_to_analyze = voxels_to_analyze
         yield
-        self.voxels_to_analyze = tmp
+        self._voxels_to_analyze = tmp
 
     def get_composite_model_function(self):
         """Get the composite model function for the current model tree.
@@ -167,7 +167,20 @@ class DMRICompositeModel(DMRIOptimizable):
         Returns:
             mot.lib.kernel_data.KernelData: the kernel data used by this model
         """
-        return self._get_kernel_data(self.voxels_to_analyze)
+        data_items = {
+            'local_tmp': LocalMemory('double'),
+            'bounds': self._get_bounds_as_var_data(self._voxels_to_analyze),
+            'protocol': self._get_protocol_data_as_var_data(self._voxels_to_analyze),
+            'protocol_update_cbs': self._get_protocol_update_callbacks_kernel_inputs(self._voxels_to_analyze),
+            'cache': self._get_cache_struct()
+        }
+        data_items.update(self._get_observations_data(self._voxels_to_analyze))
+        data_items.update(self._get_fixed_parameters_as_var_data(self._voxels_to_analyze))
+
+        if self._input_data.volume_weights is not None:
+            data_items.update({'volume_weights': Array(self._input_data.volume_weights.astype(np.float16))})
+
+        return Struct(data_items, '_mdt_model_data')
 
     def get_objective_function(self):
         """For minimization, get the negative of the log-likelihood function."""
@@ -251,10 +264,10 @@ class DMRICompositeModel(DMRIOptimizable):
 
         def prepare_value(value):
             if is_scalar(value):
-                if self._get_nmr_problems(self.voxels_to_analyze) == 0:
+                if self._get_nmr_problems(self._voxels_to_analyze) == 0:
                     value = np.full((1, 1), value, dtype=np_dtype)
                 else:
-                    value = np.full((self._get_nmr_problems(self.voxels_to_analyze), 1), value, dtype=np_dtype)
+                    value = np.full((self._get_nmr_problems(self._voxels_to_analyze), 1), value, dtype=np_dtype)
             else:
                 if len(value.shape) < 2:
                     value = np.transpose(np.asarray([value]))
@@ -263,8 +276,8 @@ class DMRICompositeModel(DMRIOptimizable):
                 else:
                     value = value
 
-                if self.voxels_to_analyze is not None:
-                    value = value[self.voxels_to_analyze, ...]
+                if self._voxels_to_analyze is not None:
+                    value = value[self._voxels_to_analyze, ...]
             return value
 
         starting_points = []
@@ -273,9 +286,8 @@ class DMRICompositeModel(DMRIOptimizable):
             value = prepare_value(self._model_functions_info.get_parameter_value(param_name))
             starting_points.append(value)
 
-        starting_points = np.concatenate([np.transpose(np.array([s]))
-                                          if len(s.shape) < 2 else s for s in starting_points], axis=1)
-        return convert_data_to_dtype(starting_points, 'mot_float_type', 'float')
+        return np.concatenate([np.transpose(np.array([s]))
+                               if len(s.shape) < 2 else s for s in starting_points], axis=1)
 
     def get_post_optimization_output(self, optimized_parameters, return_codes):
         """Get the output after optimization.
@@ -298,7 +310,7 @@ class DMRICompositeModel(DMRIOptimizable):
         Returns:
             ndarray: the proposal standard deviations of each free parameter, for each problem instance
         """
-        return self._get_rwm_proposal_stds(self.voxels_to_analyze)
+        return self._get_rwm_proposal_stds(self._voxels_to_analyze)
 
     def get_rwm_epsilons(self):
         """Get per parameter a value small relative to the parameter's standard deviation.
@@ -336,7 +348,7 @@ class DMRICompositeModel(DMRIOptimizable):
                  for ind, (m, p) in enumerate(self._model_functions_info.get_estimable_parameters_list())}
 
             d.update(self._get_dependent_map_calculator()(self, d))
-            d.update(self._get_fixed_parameter_maps(self.voxels_to_analyze))
+            d.update(self._get_fixed_parameter_maps(self._voxels_to_analyze))
 
             for routine in self._post_optimization_modifiers:
                 d.update(routine(d))
@@ -381,7 +393,7 @@ class DMRICompositeModel(DMRIOptimizable):
             results_dict['raw'] = copy.copy(results_dict)
 
         results_dict.update(self._get_dependent_map_calculator()(self, results_dict))
-        results_dict.update(self._get_fixed_parameter_maps(self.voxels_to_analyze))
+        results_dict.update(self._get_fixed_parameter_maps(self._voxels_to_analyze))
 
         for routine in self._post_optimization_modifiers:
             results_dict.update(routine(results_dict))
@@ -394,7 +406,7 @@ class DMRICompositeModel(DMRIOptimizable):
             results_dict.update(fim['stds'])
             results_dict['covariances'] = fim['covariances']
 
-        routine_input = ExtraOptimizationMapsInfo(results_dict, self._input_data, self.voxels_to_analyze)
+        routine_input = ExtraOptimizationMapsInfo(results_dict, self._input_data, self._voxels_to_analyze)
         for routine in self._extra_optimization_maps_funcs:
             try:
                 results_dict.update(routine(routine_input))
@@ -455,7 +467,7 @@ class DMRICompositeModel(DMRIOptimizable):
             dict: some additional statistic maps we want to output as part of the samping results
         """
         post_processing_data = SamplingPostProcessingData(samples, self.get_free_param_names(),
-                                                          self._get_fixed_parameter_maps(self.voxels_to_analyze))
+                                                          self._get_fixed_parameter_maps(self._voxels_to_analyze))
         results_dict = {}
         for routine in self._extra_sampling_maps_funcs:
             try:
@@ -1021,7 +1033,7 @@ class DMRICompositeModel(DMRIOptimizable):
                     index_counter += 1
 
             return '''
-                mot_float_type4 new_g_non_normalized = (mot_float_type4)(
+                float4 new_g_non_normalized = (float4)(
                 ''' + elements[0] + ''' * (*g).x + 
                 ''' + elements[1] + ''' * (*g).y + 
                 ''' + elements[2] + ''' * (*g).z,
@@ -1331,7 +1343,7 @@ class DMRICompositeModel(DMRIOptimizable):
         if observations is not None:
             if voxels_to_analyze is not None:
                 observations = observations[voxels_to_analyze, ...]
-            observations = self._transform_observations(observations)
+            observations = self._transform_observations(observations).astype(np.float32)
             return {'observations': Array(observations)}
         return {}
 
@@ -1521,10 +1533,10 @@ class DMRICompositeModel(DMRIOptimizable):
                 else:
                     if voxels_to_analyze is not None:
                         data = data[voxels_to_analyze, ...]
-                    elements.append(Array(data, ctype=p.ctype, as_scalar=True))
+                    elements.append(Array(data, ctype='float', as_scalar=True))
 
-        return {'lower_bounds': CompositeArray(lower_bounds, 'mot_float_type', address_space='local'),
-                'upper_bounds': CompositeArray(upper_bounds, 'mot_float_type', address_space='local')}
+        return {'lower_bounds': CompositeArray(lower_bounds, 'float', address_space='local'),
+                'upper_bounds': CompositeArray(upper_bounds, 'float', address_space='local')}
 
     def _transform_observations(self, observations):
         """Apply a transformation on the observations before fitting.
@@ -1854,22 +1866,6 @@ class DMRICompositeModel(DMRIOptimizable):
             return 0
         return len(voxels_to_analyze)
 
-    def _get_kernel_data(self, voxels_to_analyze):
-        data_items = {
-            'local_tmp': LocalMemory('double'),
-            'bounds': self._get_bounds_as_var_data(voxels_to_analyze),
-            'protocol': self._get_protocol_data_as_var_data(voxels_to_analyze),
-            'protocol_update_cbs': self._get_protocol_update_callbacks_kernel_inputs(voxels_to_analyze),
-            'cache': self._get_cache_struct()
-        }
-        data_items.update(self._get_observations_data(voxels_to_analyze))
-        data_items.update(self._get_fixed_parameters_as_var_data(voxels_to_analyze))
-
-        if self._input_data.volume_weights is not None:
-            data_items.update({'volume_weights': Array(self._input_data.volume_weights, 'half')})
-
-        return Struct(data_items, '_mdt_model_data')
-
     def _get_cache_struct(self):
         """Get all cache Structs for this composite model.
 
@@ -1880,37 +1876,6 @@ class DMRICompositeModel(DMRIOptimizable):
             if compartment.get_cache_struct('local'):
                 elements.update(compartment.get_cache_struct('local'))
         return elements
-
-    def _get_initial_parameters(self, voxels_to_analyze):
-        np_dtype = np.float32
-
-        def prepare_value(value):
-            if is_scalar(value):
-                if self._get_nmr_problems(voxels_to_analyze) == 0:
-                    value = np.full((1, 1), value, dtype=np_dtype)
-                else:
-                    value = np.full((self._get_nmr_problems(voxels_to_analyze), 1), value, dtype=np_dtype)
-            else:
-                if len(value.shape) < 2:
-                    value = np.transpose(np.asarray([value]))
-                elif value.shape[1] > value.shape[0]:
-                    value = np.transpose(value)
-                else:
-                    value = value
-
-                if voxels_to_analyze is not None:
-                    value = value[voxels_to_analyze, ...]
-            return value
-
-        starting_points = []
-        for ind, (m, p) in enumerate(self._model_functions_info.get_estimable_parameters_list()):
-            param_name = '{}.{}'.format(m.name, p.name)
-            value = prepare_value(self._model_functions_info.get_parameter_value(param_name))
-            starting_points.append(value)
-
-        starting_points = np.concatenate([np.transpose(np.array([s]))
-                                          if len(s.shape) < 2 else s for s in starting_points], axis=1)
-        return convert_data_to_dtype(starting_points, 'mot_float_type', 'float')
 
     def _get_log_prior_function(self):
         def get_dependencies():

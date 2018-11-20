@@ -16,7 +16,7 @@ For example, the Stick model can be defined as::
 
         parameters = ('g', 'b', 'd', 'theta', 'phi')
         cl_code = '''
-            mot_float_type4 n = (mot_float_type4)(cos(phi) * sin(theta),
+            float4 n = (float4)(cos(phi) * sin(theta),
                                                   sin(phi) * sin(theta),
                                                   cos(theta),
                                                   0);
@@ -80,7 +80,7 @@ These can be added to the compartment model using the ``cl_extra`` attribute. Fo
         cl_code = 'return other_function(g, b, d);'
         cl_extra = '''
             double other_function(
-                    mot_float_type4 g,
+                    float4 g,
                     mot_float_type b,
                     mot_float_type d){
 

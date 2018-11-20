@@ -26,7 +26,7 @@ class NeumanCylinder(LibraryFunctionTemplate):
         }
 
         double sum = 0;
-        mot_float_type alpha;
+        float alpha;
         
         #pragma unroll
         for(uint i = 0; i < bessel_roots_jnp_length; i++){
@@ -75,52 +75,20 @@ class NeumanSphere(LibraryFunctionTemplate):
     """
     return_type = 'double'
     parameters = ['double G', 'double tau', 'double d', 'double R']
-    dependencies = ['MRIConstants']
+    dependencies = ['MRIConstants', 'BesselRoots']
     cl_code = '''
         if(R == 0.0 || R < MOT_EPSILON){
             return 0;
         }
 
-        /**
-         *  Zeros of (am*x)j3/2'(am*x)- 1/2 J3/2(am*x), used in computing diffusion in spherical boundaries
-            using the Neuman approximation.
-
-            Computed using the Python code:
-
-            from mpmath import findroot
-            from scipy.special import jvp, jv
-            import numpy as np
-
-
-            def f(a):
-                """Computes (am*x)j3/2'(am*x)- 1/2 J3/2(am*x)=0
-
-                References:
-                [1] Neuman CH. Spin echo of spins diffusing in a bounded medium. J Chem Phys.
-                    1974;60(11):4508-4511. doi:10.1063/1.1680931.
-                """
-                a = float(a)
-                return a * jvp(3/2., a) - 0.5 * jv(3/2., a)
-
-
-            print(', '.join([str(float(findroot(f, k))) for k in np.arange(2, 16*np.pi, np.pi)]))
-        */
-        const mot_float_type am_zeros[] = {
-            2.081575977818101, 5.940369990572713, 9.205840142936664, 12.404445021901974, 
-            15.579236410387185, 18.742645584774756, 21.89969647949278, 25.052825280992952, 
-            28.203361003952356, 31.352091726564478, 34.49951492136695, 37.645960323086385, 
-            40.79165523127188, 43.93676147141978, 47.08139741215418, 50.22565164918307
-        };
-        const int am_zeros_length = 16;
-
         double sum = 0;
-        mot_float_type alpha;
+        float alpha;
 
         #pragma unroll
-        for(uint i = 0; i < am_zeros_length; i++){
-            alpha = am_zeros[i] / R;
+        for(uint i = 0; i < bessel_roots_j3_2_length; i++){
+            alpha = bessel_roots_j3_2[i] / R;
 
-            sum += (pown(alpha, -4) / (am_zeros[i] * am_zeros[i] - 2)) * 
+            sum += (pown(alpha, -4) / (bessel_roots_j3_2[i] * bessel_roots_j3_2[i] - 2)) * 
                     (2 * tau - 
                         (3 - 4 * exp(-alpha * alpha * d * tau) + exp(- alpha * alpha * d * 2 * tau)) 
                          / (alpha * alpha * d)
@@ -170,8 +138,8 @@ class VanGelderenCylinder(LibraryFunctionTemplate):
         }
         
         double sum = 0;
-        mot_float_type alpha;
-        mot_float_type alpha2_d;
+        float alpha;
+        float alpha2_d;
         
         #pragma unroll
         for(uint i = 0; i < bessel_roots_jnp_length; i++){
@@ -206,21 +174,13 @@ class VanGelderenSphere(LibraryFunctionTemplate):
             return 0;
         }
         
-        const mot_float_type am_zeros[] = {
-            2.081575977818101, 5.940369990572713, 9.205840142936664, 12.404445021901974, 
-            15.579236410387185, 18.742645584774756, 21.89969647949278, 25.052825280992952, 
-            28.203361003952356, 31.352091726564478, 34.49951492136695, 37.645960323086385, 
-            40.79165523127188, 43.93676147141978, 47.08139741215418, 50.22565164918307
-        };
-        const int am_zeros_length = 16;
-        
         double sum = 0;
-        mot_float_type alpha;
-        mot_float_type alpha2_d;
+        float alpha;
+        float alpha2_d;
         
         #pragma unroll
-        for(uint i = 0; i < am_zeros_length; i++){
-            alpha = am_zeros[i] / R;
+        for(uint i = 0; i < bessel_roots_j3_2_length; i++){
+            alpha = bessel_roots_j3_2[i] / R;
             alpha2_d = d * alpha * alpha;
 
             sum += (2 * alpha2_d * delta
@@ -229,7 +189,7 @@ class VanGelderenSphere(LibraryFunctionTemplate):
                     + (2 * exp(-alpha2_d * Delta))
                     - exp(-alpha2_d * (Delta - delta))
                     - exp(-alpha2_d * (Delta + delta)))
-                        / ((alpha2_d * alpha * alpha2_d * alpha) * (am_zeros[i] * am_zeros[i] - 2));
+                        / ((alpha2_d * alpha * alpha2_d * alpha) * (bessel_roots_j3_2[i] * bessel_roots_j3_2[i] - 2));
         }
         return -2 * GAMMA_H_SQ * (G*G) * sum;
     '''

@@ -12,7 +12,7 @@ class Tensor(CompartmentTemplate):
     parameters = ('g', 'b', 'd', 'dperp0', 'dperp1', 'theta', 'phi', 'psi')
     dependencies = ['TensorApparentDiffusion']
     cl_code = '''
-        mot_float_type adc = TensorApparentDiffusion(theta, phi, psi, d, dperp0, dperp1, g);
+        double adc = TensorApparentDiffusion(theta, phi, psi, d, dperp0, dperp1, g);
         return exp(-b * adc);
     '''
     extra_prior = 'return dperp1 < dperp0 && dperp0 < d;'

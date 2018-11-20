@@ -74,30 +74,27 @@ class BinghamNODDI_EN(CompartmentTemplate):
 class BinghamNODDI_IN(CompartmentTemplate):
     """The Intra-Neurite tissue model of Bingham NODDI."""
     parameters = ('g', 'b', 'd', 'theta', 'phi', 'psi', 'k1', 'kw', '@cache')
-    dependencies = ['EigenvaluesSymmetric3x3', 'ConfluentHyperGeometricFirstKind', 'TensorSphericalToCartesian']
+    dependencies = ['eigenvalues_3x3_symmetric', 'ConfluentHyperGeometricFirstKind', 'TensorSphericalToCartesian']
     cl_code = '''
         double kappa = k1;
         double beta = k1 / kw;
     
-        mot_float_type4 v1, v2, v3;
+        float4 v1, v2, v3;
         TensorSphericalToCartesian(theta, phi, psi, &v1, &v2, &v3);
 
-        mot_float_type Q[9];
+        double Q[6]; // upper triangular
         Q[0] = pown(dot(g, v3), 2) * (-b * d);
         Q[1] = dot(g, v3) * dot(g, v2) * (-b * d);
         Q[2] = dot(g, v3) * dot(g, v1) * (-b * d);
-        Q[3] = Q[1];
-        Q[4] = pown(dot(g, v2), 2) * (-b * d);
-        Q[5] = dot(g, v2) * dot(g, v1) * (-b * d);
-        Q[6] = Q[2];
-        Q[7] = Q[5];
-        Q[8] = pown(dot(g, v1), 2) * (-b * d);
+        Q[3] = pown(dot(g, v2), 2) * (-b * d);
+        Q[4] = dot(g, v2) * dot(g, v1) * (-b * d);
+        Q[5] = pown(dot(g, v1), 2) * (-b * d);
 
-        Q[4] += beta;
-        Q[8] += kappa;
+        Q[3] += beta;
+        Q[5] += kappa;
 
-        mot_float_type e[3];
-        EigenvaluesSymmetric3x3(Q,e);
+        double e[3];
+        eigenvalues_3x3_symmetric(Q,e);
 
         return ConfluentHyperGeometricFirstKind(-e[0], -e[1], -e[2]) / *cache->denom;
     '''

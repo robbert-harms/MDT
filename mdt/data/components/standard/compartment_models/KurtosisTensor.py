@@ -88,13 +88,13 @@ class KurtosisTensor(CompartmentTemplate):
     parameters = get_parameters()
     dependencies = ['TensorApparentDiffusion', 'KurtosisMultiplication']
     cl_code = '''
-        mot_float_type adc = TensorApparentDiffusion(theta, phi, psi, d, dperp0, dperp1, g);
+        double adc = TensorApparentDiffusion(theta, phi, psi, d, dperp0, dperp1, g);
 
         if(adc <= 0.0){
             return 1;
         }
 
-        mot_float_type tensor_md_2 = pown((d + dperp0 + dperp1) / 3.0, 2);
+        double tensor_md_2 = pown((d + dperp0 + dperp1) / 3.0, 2);
 
         double kurtosis_sum = KurtosisMultiplication(
             W_0000, W_1111, W_2222, W_1000, W_2000, W_1110,

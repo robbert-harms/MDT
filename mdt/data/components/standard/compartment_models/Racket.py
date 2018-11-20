@@ -18,7 +18,7 @@ class Racket(CompartmentTemplate):
         diffusion-weighted MRI. Neuroimage. 2012;60(2):1412-1425. doi:10.1016/j.neuroimage.2012.01.056.
     """
     parameters = ('g', 'b', 'd', 'theta', 'phi', 'psi', 'k1', 'kw', '@cache')
-    dependencies = ['EigenvaluesSymmetric3x3', 'ConfluentHyperGeometricFirstKind']
+    dependencies = ['eigenvalues_3x3_symmetric', 'ConfluentHyperGeometricFirstKind']
     cl_code = '''
         /**
          *  This computes Q = R.T*B_diag*R * -bdg^2 in one go. 
@@ -38,33 +38,30 @@ class Racket(CompartmentTemplate):
 
             Please note that Q = B-bdg^2 is supposed to be symmetric.
         */
-        mot_float_type Q[9];
+        double Q[6]; // upper triangular
         Q[0] = -b*d*g.x*g.x + cache->B[0];
         Q[1] = -b*d*g.x*g.y + cache->B[1];
         Q[2] = -b*d*g.x*g.z + cache->B[2];
-        Q[3] = Q[1];
-        Q[4] = -b*d*g.y*g.y + cache->B[3];
-        Q[5] = -b*d*g.y*g.z + cache->B[4];
-        Q[6] = Q[2];
-        Q[7] = Q[5];
-        Q[8] = -b*d*g.z*g.z + cache->B[5];
+        Q[3] = -b*d*g.y*g.y + cache->B[3];
+        Q[4] = -b*d*g.y*g.z + cache->B[4];
+        Q[5] = -b*d*g.z*g.z + cache->B[5];
 
-        mot_float_type e[3];
-        EigenvaluesSymmetric3x3(Q, e);
+        double e[3];
+        eigenvalues_3x3_symmetric(Q, e);
         
         return ConfluentHyperGeometricFirstKind(-e[0], -e[1], -e[2]) / *cache->denom;
     '''
     cache_info = {
-        'fields': ['double denom', ('mot_float_type', 'B', 6)],
+        'fields': ['double denom', ('double', 'B', 6)],
         'cl_code': '''
             double k2 = k1 / kw;
             
-            mot_float_type cos_theta;
-            mot_float_type sin_theta = sincos(theta, &cos_theta);
-            mot_float_type cos_phi;
-            mot_float_type sin_phi = sincos(phi, &cos_phi);
-            mot_float_type cos_psi;
-            mot_float_type sin_psi = sincos(psi, &cos_psi);
+            double cos_theta;
+            double sin_theta = sincos(theta, &cos_theta);
+            double cos_phi;
+            double sin_phi = sincos(phi, &cos_phi);
+            double cos_psi;
+            double sin_psi = sincos(psi, &cos_psi);
             
             cache->B[0] = -k1*pown(sin_phi*sin_psi - cos_phi*cos_psi*cos_theta, 2) 
                             - k2*pown(sin_phi*cos_psi + sin_psi*cos_phi*cos_theta, 2);

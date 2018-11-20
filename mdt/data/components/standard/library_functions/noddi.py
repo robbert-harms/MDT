@@ -24,10 +24,10 @@ class NODDI_SphericalHarmonicsIntegral(LibraryFunctionTemplate):
         // do not change this value! It would require adding approximations
         #define NODDI_IC_MAX_POLYNOMIAL_ORDER 6
         
-        mot_float_type watson_sh_coeff[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
+        double watson_sh_coeff[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
         NODDI_WatsonSHCoeff(kappa, watson_sh_coeff);
 
-        mot_float_type lgi[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
+        double lgi[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
         NODDI_LegendreGaussianIntegral(-exponent_term, lgi);
 
         double legendre_terms[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
@@ -39,7 +39,7 @@ class NODDI_SphericalHarmonicsIntegral(LibraryFunctionTemplate):
             signal += watson_sh_coeff[i] * sqrt(i + 0.25) * legendre_terms[i] * lgi[i];  
         }
 
-        return fmax(signal, (double)0.0) / (2.0 * sqrt(M_PI));
+        return fmax(signal, 0.0) / (2.0 * sqrt(M_PI));
     '''
 
 
@@ -62,8 +62,8 @@ class NODDI_LegendreGaussianIntegral(LibraryFunctionTemplate):
         x: a positive numbers, specifying the parameters of the gaussian
         result: array of size 7, holding the even terms of the integral
     """
-    parameters = ['mot_float_type x',
-                  'mot_float_type* result']
+    parameters = ['double x',
+                  'double* result']
     cl_code = '''
         // do not change this value! It would require adding approximations
         #define NODDI_IC_MAX_POLYNOMIAL_ORDER 6
@@ -81,7 +81,7 @@ class NODDI_LegendreGaussianIntegral(LibraryFunctionTemplate):
                 
                 This does not work well when x is small
             */
-            mot_float_type tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
+            double tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
             tmp[0] = sqrt(M_PI) * erf(sqrt(x))/sqrt(x);
             for(int i = 1; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
                 tmp[i] = (-exp(-x) + (i - 0.5) * tmp[i-1]) / x;
@@ -98,7 +98,7 @@ class NODDI_LegendreGaussianIntegral(LibraryFunctionTemplate):
         }
         else{
             // approximate for small x
-            mot_float_type tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER - 1];
+            double tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER - 1];
             tmp[0] = x * x;
             tmp[1] = tmp[0] * x;
             tmp[2] = tmp[1] * x;
@@ -136,8 +136,8 @@ class NODDI_WatsonSHCoeff(LibraryFunctionTemplate):
             ...
             result[7] = coefficient[14]
     """
-    parameters = ['mot_float_type kappa',
-                  'mot_float_type* result']
+    parameters = ['double kappa',
+                  'double* result']
     dependencies = ('erfi',)
     cl_code = '''
         // do not change this value! It would require adding approximations
@@ -146,7 +146,7 @@ class NODDI_WatsonSHCoeff(LibraryFunctionTemplate):
         result[0] = sqrt(M_PI) * 2;
 
         if(kappa <= 30){
-            mot_float_type ks[NODDI_IC_MAX_POLYNOMIAL_ORDER - 1];
+            double ks[NODDI_IC_MAX_POLYNOMIAL_ORDER - 1];
             ks[0] = kappa * kappa;
             ks[1] = ks[0] * kappa;
             ks[2] = ks[1] * kappa;
@@ -155,7 +155,7 @@ class NODDI_WatsonSHCoeff(LibraryFunctionTemplate):
 
             if(kappa > 0.1){
                 // exact
-                mot_float_type sks[NODDI_IC_MAX_POLYNOMIAL_ORDER];
+                double sks[NODDI_IC_MAX_POLYNOMIAL_ORDER];
                 sks[0] = sqrt(kappa);
                 sks[1] = sks[0] * kappa;
                 sks[2] = sks[1] * kappa;
@@ -163,10 +163,10 @@ class NODDI_WatsonSHCoeff(LibraryFunctionTemplate):
                 sks[4] = sks[3] * kappa;
                 sks[5] = sks[4] * kappa;
 
-                mot_float_type erfik = erfi(sks[0]);
-                mot_float_type ierfik = 1/erfik;
-                mot_float_type ek = exp(kappa);
-                mot_float_type dawsonk = sqrt(M_PI)/2 * erfik/ek;
+                double erfik = erfi(sks[0]);
+                double ierfik = 1/erfik;
+                double ek = exp(kappa);
+                double dawsonk = sqrt(M_PI)/2 * erfik/ek;
 
                 result[1] = 3 * sks[0] - (3 + 2 * kappa) * dawsonk;
                 result[1] = sqrt(5.0) * result[1] * ek;
@@ -215,7 +215,7 @@ class NODDI_WatsonSHCoeff(LibraryFunctionTemplate):
         }
         else{
             // large
-            mot_float_type lnkd[NODDI_IC_MAX_POLYNOMIAL_ORDER];
+            double lnkd[NODDI_IC_MAX_POLYNOMIAL_ORDER];
             lnkd[0] = log(kappa) - log(30.0);
             lnkd[1] = lnkd[0] * lnkd[0];
             lnkd[2] = lnkd[1] * lnkd[0];

@@ -22,8 +22,7 @@ class SSFP_Stick(CompartmentTemplate):
     parameters = ('g', 'd', 'theta', 'phi', 'delta', 'G', 'TR', 'flip_angle', 'b1', 'T1', 'T2')
     dependencies = ('SSFP',)
     cl_code = '''
-        mot_float_type adc = d * pown(dot(g, (mot_float_type4)(cos(phi) * sin(theta), sin(phi) * sin(theta),
-                                                               cos(theta), 0.0)), 2);
+        double adc = d * pown(dot(g, (float4)(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta), 0.0)), 2);
 
         return SSFP(adc, delta, G, TR, flip_angle, b1, T1, T2);
     '''
@@ -35,7 +34,7 @@ class SSFP_Tensor(CompartmentTemplate):
                   'G', 'TR', 'flip_angle', 'b1', 'T1', 'T2')
     dependencies = ('SSFP', 'TensorApparentDiffusion')
     cl_code = '''
-        mot_float_type adc = TensorApparentDiffusion(theta, phi, psi, d, dperp0, dperp1, g);
+        double adc = TensorApparentDiffusion(theta, phi, psi, d, dperp0, dperp1, g);
         return SSFP(adc, delta, G, TR, flip_angle, b1, T1, T2);
     '''
     extra_prior = 'return dperp1 < dperp0 && dperp0 < d;'
@@ -49,7 +48,7 @@ class SSFP_Zeppelin(CompartmentTemplate):
     parameters = ('g', 'd', 'dperp0', 'theta', 'phi', 'delta', 'G', 'TR', 'flip_angle', 'b1', 'T1', 'T2')
     dependencies = ('SSFP',)
     cl_code = '''
-        mot_float_type adc = dperp0 + ((d - dperp0) * pown(dot(g, (mot_float_type4)(cos(phi) * sin(theta),
+        double adc = dperp0 + ((d - dperp0) * pown(dot(g, (float4)(cos(phi) * sin(theta), 
                                                                    sin(phi) * sin(theta), cos(theta), 0.0)), 2);
 
         return SSFP(adc, delta, G, TR, flip_angle, b1, T1, T2);

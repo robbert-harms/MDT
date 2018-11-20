@@ -35,9 +35,9 @@ class SymmetricNonParametricTensor(CompartmentTemplate):
     This does not use the vector/diffusivity parameterization using the eigenvectors/eigenvalues.
     """
     parameters = ('g', 'b',
-                  'Tensor_D_00(D_00)', 'Tensor_D_01(D_01)', 'Tensor_D_02(D_02)',
-                                       'Tensor_D_11(D_11)', 'Tensor_D_12(D_12)',
-                                                            'Tensor_D_22(D_22)')
+                  'D_00', 'D_01', 'D_02',
+                          'D_11', 'D_12',
+                                  'D_22')
     cl_code = '''
         double diff = g.x * g.x * D_00 +
                       g.y * g.x * D_01 * 2 +
@@ -49,7 +49,7 @@ class SymmetricNonParametricTensor(CompartmentTemplate):
     '''
     extra_optimization_maps = [extra_dti_results]
 
-    class Tensor_D_00(FreeParameterTemplate):
+    class D_00(FreeParameterTemplate):
         init_value = 0.3e-9
         lower_bound = 0
         upper_bound = 5e-9
@@ -57,7 +57,7 @@ class SymmetricNonParametricTensor(CompartmentTemplate):
         sampling_proposal_std = 1e-10
         numdiff_info = {'scale_factor': 1e10, 'use_upper_bound': False}
 
-    class Tensor_D_11(FreeParameterTemplate):
+    class D_11(FreeParameterTemplate):
         init_value = 0.3e-9
         lower_bound = 0
         upper_bound = 5e-9
@@ -65,7 +65,7 @@ class SymmetricNonParametricTensor(CompartmentTemplate):
         sampling_proposal_std = 1e-10
         numdiff_info = {'scale_factor': 1e10, 'use_upper_bound': False}
 
-    class Tensor_D_22(FreeParameterTemplate):
+    class D_22(FreeParameterTemplate):
         init_value = 1.2e-9
         lower_bound = 0
         upper_bound = 5e-9
@@ -73,7 +73,7 @@ class SymmetricNonParametricTensor(CompartmentTemplate):
         sampling_proposal_std = 1e-10
         numdiff_info = {'scale_factor': 1e10, 'use_upper_bound': False}
 
-    class Tensor_D_01(FreeParameterTemplate):
+    class D_01(FreeParameterTemplate):
         init_value = 0.1e-9
         lower_bound = 0
         upper_bound = 5e-9
@@ -81,7 +81,7 @@ class SymmetricNonParametricTensor(CompartmentTemplate):
         sampling_proposal_std = 1e-10
         numdiff_info = {'scale_factor': 1e10, 'use_upper_bound': False}
 
-    class Tensor_D_02(FreeParameterTemplate):
+    class D_02(FreeParameterTemplate):
         init_value = 0.1e-9
         lower_bound = 0
         upper_bound = 5e-9
@@ -89,7 +89,7 @@ class SymmetricNonParametricTensor(CompartmentTemplate):
         sampling_proposal_std = 1e-10
         numdiff_info = {'scale_factor': 1e10, 'use_upper_bound': False}
 
-    class Tensor_D_12(FreeParameterTemplate):
+    class D_12(FreeParameterTemplate):
         init_value = 0.1e-9
         lower_bound = 0
         upper_bound = 5e-9

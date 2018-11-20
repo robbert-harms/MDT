@@ -355,13 +355,13 @@ class DKIMeasures:
 
         nmr_voxels = parameters.shape[0]
         kernel_data = {'parameters': Array(parameters, ctype='mot_float_type'),
-                       'directions': Array(DKIMeasures._get_spherical_samples(), ctype='mot_float_type4',
+                       'directions': Array(DKIMeasures._get_spherical_samples(), ctype='float4',
                                            offset_str='0'),
                        'nmr_directions': Scalar(DKIMeasures._get_spherical_samples().shape[0]),
                        'nmr_radial_directions': Scalar(256),
-                       'mks': Zeros((nmr_voxels,), ctype='mot_float_type'),
-                       'aks': Zeros((nmr_voxels,), ctype='mot_float_type'),
-                       'rks': Zeros((nmr_voxels,), ctype='mot_float_type')}
+                       'mks': Zeros((nmr_voxels,), ctype='float'),
+                       'aks': Zeros((nmr_voxels,), ctype='float'),
+                       'rks': Zeros((nmr_voxels,), ctype='float')}
 
         DKIMeasures._get_compute_function(param_names).evaluate(kernel_data, nmr_voxels)
 
@@ -379,18 +379,18 @@ class DKIMeasures:
         return parse_cl_function('''
             double apparent_kurtosis(
                     global mot_float_type* params,
-                    mot_float_type4 direction,
-                    mot_float_type4 vec0,
-                    mot_float_type4 vec1,
-                    mot_float_type4 vec2){
+                    float4 direction,
+                    float4 vec0,
+                    float4 vec1,
+                    float4 vec2){
 
                 ''' + '\n'.join(param_expansions) + '''
 
-                mot_float_type adc = d *      pown(dot(vec0, direction), 2) +
-                                     dperp0 * pown(dot(vec1, direction), 2) +
-                                     dperp1 * pown(dot(vec2, direction), 2);
+                double adc = d *      pown(dot(vec0, direction), 2) +
+                             dperp0 * pown(dot(vec1, direction), 2) +
+                             dperp1 * pown(dot(vec2, direction), 2);
 
-                mot_float_type tensor_md = (d + dperp0 + dperp1) / 3.0;
+                double tensor_md = (d + dperp0 + dperp1) / 3.0;
 
                 double kurtosis_sum = KurtosisMultiplication(
                     W_0000, W_1111, W_2222, W_1000, W_2000, W_1110,
@@ -404,11 +404,11 @@ class DKIMeasures:
                     mot_float_type d,
                     mot_float_type dperp0,
                     mot_float_type dperp1,
-                    mot_float_type4* vec0,
-                    mot_float_type4* vec1,
-                    mot_float_type4* vec2,
-                    mot_float_type4** principal_vec,
-                    mot_float_type4** perpendicular_vec){
+                    float4* vec0,
+                    float4* vec1,
+                    float4* vec2,
+                    float4** principal_vec,
+                    float4** perpendicular_vec){
 
                 if(d >= dperp0 && d >= dperp1){
                     *principal_vec = vec0;
@@ -423,23 +423,23 @@ class DKIMeasures:
             }
         
             void calculate_measures(global mot_float_type* parameters, 
-                                    global mot_float_type4* directions,
+                                    global float4* directions,
                                     uint nmr_directions,
                                     uint nmr_radial_directions,
-                                    global mot_float_type* mks,
-                                    global mot_float_type* aks,
-                                    global mot_float_type* rks){
+                                    global float* mks,
+                                    global float* aks,
+                                    global float* rks){
                 int i, j;
 
-                mot_float_type4 vec0, vec1, vec2;
+                float4 vec0, vec1, vec2;
                 TensorSphericalToCartesian(
                     ''' + get_param_cl_ref('theta') + ''',
                     ''' + get_param_cl_ref('phi') + ''',
                     ''' + get_param_cl_ref('psi') + ''',
                     &vec0, &vec1, &vec2);
 
-                mot_float_type4* principal_vec;
-                mot_float_type4* perpendicular_vec;
+                float4* principal_vec;
+                float4* perpendicular_vec;
                 get_principal_and_perpendicular_eigenvector(
                     ''' + get_param_cl_ref('d') + ''',
                     ''' + get_param_cl_ref('dperp0') + ''',
@@ -452,24 +452,23 @@ class DKIMeasures:
                 for(i = 0; i < nmr_directions; i++){
                     mean += apparent_kurtosis(parameters, directions[i], vec0, vec1, vec2);
                 }
-                *(mks) = clamp(mean / nmr_directions, (double)0, (double)3);
+                *(mks) = clamp(mean / nmr_directions, 0.0, 3.0);
 
 
                 // Axial Kurtosis over the principal direction of diffusion
-                *(aks) = clamp(apparent_kurtosis(parameters, *principal_vec, vec0, vec1, vec2),
-                                   (double)0, (double)10);
+                *(aks) = clamp(apparent_kurtosis(parameters, *principal_vec, vec0, vec1, vec2), 0.0, 10.0);
 
 
                 // Radial Kurtosis integrated over a unit circle around the principal eigenvector.
                 mean = 0;
-                mot_float_type4 rotated_vec;
+                float4 rotated_vec;
                 for(i = 0; i < nmr_radial_directions; i++){
                     rotated_vec = RotateOrthogonalVector(*principal_vec, *perpendicular_vec,
                                                          i * (2 * M_PI_F) / nmr_radial_directions);
 
                     mean += (apparent_kurtosis(parameters, rotated_vec, vec0, vec1, vec2) - mean) / (i + 1);
                 }
-                *(rks) = max(mean, (double)0);
+                *(rks) = max(mean, 0.0);
             }
         ''', dependencies=[get_component('library_functions', 'RotateOrthogonalVector')(),
                            get_component('library_functions', 'TensorSphericalToCartesian')(),
@@ -884,7 +883,7 @@ def _tau_to_kappa(tau):
         ndarray: the list of corresponding kappa's
     """
     tau_func = SimpleCLFunction.from_string('''
-        mot_float_type tau(mot_float_type kappa){
+        double tau(double kappa){
             if(kappa < 1e-12){
                 return 1/3.0;
             }

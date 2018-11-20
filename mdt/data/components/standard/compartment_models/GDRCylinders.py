@@ -13,11 +13,11 @@ class GDRCylinders(CompartmentTemplate):
     parameters = ('g', 'b', 'G', 'Delta', 'delta', 'd', 'theta', 'phi', 'shape', 'scale', '@cache')
     dependencies = ('VanGelderenCylinder', 'SphericalToCartesian', 'gamma_ppf', 'gamma_pdf')
     cl_code = '''
-        const uint nmr_radii = 16;
-        const double radius_spacing = (*cache->upper_radius - *cache->lower_radius) / nmr_radii;
+        uint nmr_radii = 16;
+        double radius_spacing = (*cache->upper_radius - *cache->lower_radius) / nmr_radii;
 
-        const mot_float_type direction_2 = pown(dot(g, SphericalToCartesian(theta, phi)), 2);
-        const mot_float_type diffusivity_par = -b * d * direction_2;
+        double direction_2 = pown(dot(g, SphericalToCartesian(theta, phi)), 2);
+        double diffusivity_par = -b * d * direction_2;
 
         double radius;
         double diffusivity_perp;

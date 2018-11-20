@@ -15,8 +15,8 @@ class AstroCylinders(CompartmentTemplate):
             return 1;
         }
         
-        mot_float_type lperp = VanGelderenCylinder(G, Delta, delta, d, R) / (G * G);
-        mot_float_type lpar = -(b / (G*G)) * d;
+        double lperp = VanGelderenCylinder(G, Delta, delta, d, R) / (G * G);
+        double lpar = -(b / (G*G)) * d;
 
         return (sqrt(M_PI) / (2 * G * sqrt(lperp - lpar)))
                     * exp(G * G * lperp)
