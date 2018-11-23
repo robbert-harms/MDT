@@ -67,47 +67,39 @@ def create_median_otsu_brain_mask(dwi_info, protocol, mask_threshold=0, fill_hol
     return brain_mask
 
 
-def generate_simple_wm_mask(fa_fname, brain_mask, out_fname, fa_threshold=0.3, median_radius=1, numpass=2):
-    """Generate a simple white matter mask by thresholding the given FA map.
+def generate_simple_wm_mask(scalar_map, whole_brain_mask, threshold=0.3, median_radius=1, nmr_filter_passes=2):
+    """Generate a simple white matter mask by thresholding the given map and smoothing it using a median filter.
 
-    Everything below the given FA threshold will be masked (not used). It also applies the regular brain mask to
+    Everything below the given threshold will be masked (not used). It also applies the regular brain mask to
     only retain values inside the brain.
 
     Args:
-        fa_fname (str): the path to the FA file
-        brain_mask (str or ndarray): the general brain mask used in the FA model fitting
-        out_fname (str): where to write the outfile.
-        fa_threshold (double): the FA threshold. Everything below this threshold is masked (set to 0). To be precise:
+        scalar_map (str): the path to the FA file
+        whole_brain_mask (str or ndarray): the general brain mask used in the FA model fitting
+        threshold (double): the FA threshold. Everything below this threshold is masked (set to 0). To be precise:
             where fa_data < fa_threshold set the value to 0.
         median_radius (int): the radius of the median filter
-        numpass (int): the number of passes we apply the median filter
+        nmr_filter_passes (int): the number of passes we apply the median filter
     """
-    logger = logging.getLogger(__name__)
-    logger.info('Starting calculating a white matter mask using FA.')
-
-    nib_container = load_nifti(fa_fname)
-    fa_data = nib_container.get_data()
-
-    fa_data[fa_data < fa_threshold] = 0
-    fa_data[fa_data > 0] = 1
-
-    if len(fa_data.shape) > 3:
-        fa_data = fa_data[:, :, :, 0]
-
     filter_footprint = np.zeros((1 + 2 * median_radius,) * 3)
     filter_footprint[median_radius, median_radius, median_radius] = 1
     filter_footprint[:, median_radius, median_radius] = 1
     filter_footprint[median_radius, :, median_radius] = 1
     filter_footprint[median_radius, median_radius, :] = 1
 
-    mask = load_brain_mask(brain_mask)
+    map_data = load_nifti(scalar_map).get_data()
+    map_data[map_data < threshold] = 0
+    wm_mask = map_data.astype(np.bool)
 
-    fa_data_masked = np.ma.masked_array(fa_data, mask=mask)
-    for ind in range(numpass):
-        fa_data_masked = median_filter(fa_data_masked, footprint=filter_footprint, mode='constant')
+    if len(wm_mask.shape) > 3:
+        wm_mask = wm_mask[:, :, :, 0]
 
-    write_nifti(fa_data_masked, out_fname, nib_container.header)
-    logger.info('Finished calculating a white matter mask.')
+    mask = load_brain_mask(whole_brain_mask)
+
+    wm_mask_masked = np.ma.masked_array(wm_mask, mask=mask)
+    for ind in range(nmr_filter_passes):
+        wm_mask_masked = median_filter(wm_mask_masked, footprint=filter_footprint, mode='constant')
+    return wm_mask_masked
 
 
 def create_write_median_otsu_brain_mask(dwi_info, protocol, output_fname, **kwargs):
