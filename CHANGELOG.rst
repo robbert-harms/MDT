@@ -2,6 +2,21 @@
 Changelog
 *********
 
+v0.18.1 (2018-11-23)
+====================
+
+Added
+-----
+- Adds the ``use_cascaded_inits`` flag to the model fit command to simplify the new initialization interface.
+- Adds reduced Ramani QMT models to MDT.
+
+Other
+-----
+- Made the generate_wm_mask function more general.
+- Made all mot_float_type4 vectors float4 and moved some other parts from mot_float_type to either float or double depending on the situation.
+- Removed the building pattern from the composite models.
+
+
 v0.18.0 (2018-11-19)
 ====================
 This version marks the deprecation of the Cascade models in MDT.
