@@ -437,6 +437,24 @@ This function returns a dictionary with initialization, fixation and boundary co
 Please note that this function only works for models that ship by default with MDT, but due to the general nature of the ``initialization_data`` attribute
 of the :func:`~mdt.fit_model` function you can easily generate your own initialization values.
 
+By default, this model fit function tries to initialize the model with a good starting point using the function
+:func:`mdt.get_optimization_inits`. You can also disable this feature by setting ``use_cascaded_inits`` to False, i.e.::
+
+    mdt.fit_model('NODDI', input_data, 'output',
+                  use_cascaded_inits=False)
+
+
+For precise control of the initialization, you can also find the starting point yourself and initialize the model manually using::
+
+    input_data = ...
+
+    inits = mdt.get_optimization_inits('NODDI', input_data, 'output')
+
+    mdt.fit_model('NODDI', input_data, 'output',
+                  use_cascaded_inits=False,
+                  initialization_data={'inits': inits})
+
+
 When the calculations are done you can use the MDT maps visualizer for viewing the results:
 
 .. code-block:: python
@@ -446,7 +464,7 @@ When the calculations are done you can use the MDT maps visualizer for viewing t
 
 Full example
 ============
-To summarize the code written above, here is a full MDT model fitting example:
+To summarize the code written above, here is a complete and ease of use MDT model fitting example:
 
 .. code-block:: python
 
@@ -462,10 +480,7 @@ To summarize the code written above, here is a full MDT model fitting example:
         'b1k_b2k.prtcl',
         'b1k_b2k_example_slices_24_38_mask')
 
-    inits = mdt.get_optimization_inits('NODDI', input_data, 'output')
-
-    mdt.fit_model('NODDI', input_data, 'output',
-                  initialization_data={'inits': inits})
+    mdt.fit_model('NODDI', input_data, 'output')
 
 
 Estimating any model
