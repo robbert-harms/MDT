@@ -86,12 +86,12 @@ class ModelFit(BasicShellApplication):
                             help="Recalculate all models in a cascade.")
         parser.set_defaults(only_recalculate_last=True)
 
-        parser.add_argument('--no-initialization', dest='with_initialization', action='store_false',
+        parser.add_argument('--dont-use-cascaded-inits', dest='use_cascaded_inits', action='store_false',
                             help="Do not initialize the model with a better starting point.")
-        parser.add_argument('--with-initialization', dest='with_initialization', action='store_true',
+        parser.add_argument('--use-cascaded-inits', dest='use_cascaded_inits', action='store_true',
                             help="Initialize the model with a better starting point (default). "
                                  "Only works for default MDT models.")
-        parser.set_defaults(with_initialization=True)
+        parser.set_defaults(use_cascaded_inits=True)
 
         parser.add_argument('--method', default='Powell',
                             choices=['Powell', 'Nelder-Mead', 'Levenberg-Marquardt', 'Subplex'],
@@ -145,12 +145,6 @@ class ModelFit(BasicShellApplication):
                 extra_protocol=get_extra_protocol(args.extra_protocol,
                                                   os.path.realpath('')))
 
-            init_data = {}
-            if args.with_initialization:
-                if not isinstance(mdt.get_model(args.model)(), DMRICascadeModelInterface):
-                    init_data = mdt.get_optimization_inits(args.model, input_data, output_folder,
-                                                           cl_device_ind=args.cl_device_ind)
-
             optimizer_options = {}
             if args.patience is not None:
                 optimizer_options['patience'] = args.patience
@@ -165,7 +159,7 @@ class ModelFit(BasicShellApplication):
                           cl_device_ind=args.cl_device_ind,
                           double_precision=args.double_precision,
                           tmp_results_dir=tmp_results_dir,
-                          initialization_data={'inits': init_data})
+                          use_cascaded_inits=args.use_cascaded_inits)
 
         if args.config_context:
             with mdt.config_context(args.config_context):

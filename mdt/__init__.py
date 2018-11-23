@@ -92,7 +92,8 @@ def get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=
 def fit_model(model, input_data, output_folder,
               method=None, recalculate=False, only_recalculate_last=False,
               cl_device_ind=None, double_precision=False, tmp_results_dir=True,
-              initialization_data=None, post_processing=None, optimizer_options=None):
+              initialization_data=None, use_cascaded_inits=True, post_processing=None,
+              optimizer_options=None):
     """Run the optimizer on the given model.
 
     Since version 0.17.2 fitting cascade models has been deprecated in favor of a slightly more manual setup by
@@ -124,17 +125,26 @@ def fit_model(model, input_data, output_folder,
         double_precision (boolean): if we would like to do the calculations in double precision
         tmp_results_dir (str, True or None): The temporary dir for the calculations. Set to a string to use
             that path directly, set to True to use the config value, set to None to disable.
-        initialization_data (:class:`~mdt.utils.InitializationData` or dict): provides (extra) initialization data to
+        initialization_data (dict): provides (extra) initialization data to
             use during model fitting. If we are optimizing a cascade model this data only applies to the last model
-            in the cascade. If a dictionary is given we will load the elements as arguments to the
-            :class:`mdt.utils.SimpleInitializationData` class. For example::
+            in the cascade. This dictionary can contain the following elements:
 
-                initialization_data = {'fixes': {...}, 'inits': {...}}
+            * ``inits``: dictionary with per parameter an initialization point
+            * ``fixes``: dictionary with per parameter a fixed point, this will remove that parameter from the fitting
+            * ``lower_bounds``: dictionary with per parameter a lower bound
+            * ``upper_bounds``: dictionary with per parameter a upper bound
+            * ``unfix``: a list of parameters to unfix
 
-            is transformed into::
+            For example::
 
-                initialization_data = SimpleInitializationData(fixes={...}, inits={...})
+                initialization_data = {
+                    'fixes': {'Stick0.theta: np.array(...), ...},
+                    'inits': {...}
+                }
 
+        use_cascaded_inits (boolean): if set, we initialize the model parameters using :func:`get_optimization_inits`.
+            You can still overwrite these initializations using the ``initialization_data`` attribute.
+            Please note that this only works for non-cascade models.
         post_processing (dict): a dictionary with flags for post-processing options to enable or disable.
             For valid elements, please see the configuration file settings for ``optimization``
             under ``post_processing``. Valid input for this parameter is for example: {'covariance': False}
@@ -151,15 +161,14 @@ def fit_model(model, input_data, output_folder,
     if not mdt.utils.check_user_components():
         init_user_settings(pass_if_exists=True)
 
-    if not isinstance(initialization_data, InitializationData) and initialization_data is not None:
-        initialization_data = SimpleInitializationData(**initialization_data)
-
     if cl_device_ind is not None and not isinstance(cl_device_ind, collections.Iterable):
         cl_device_ind = [cl_device_ind]
 
     if isinstance(model, str):
+        model_name = model
         model_instance = get_model(model)()
     else:
+        model_name = model.name
         model_instance = model
 
     if isinstance(model_instance, DMRICascadeModelInterface):
@@ -173,11 +182,21 @@ def fit_model(model, input_data, output_folder,
                 fit_model('NODDI (Cascade)', ...)
             
             New example:
-                            
-                inits = get_optimization_inits('NODDI', ...)
-                fit_model('NODDI', ..., 
-                          initialization_data={'inits': inits})
+                
+                fit_model('NODDI', ..., use_cascaded_inits=True)
+            
+            Since ``use_cascaded_inits`` is True by default, you can also just use:
+                
+                fit_model('NODDI', ...)
         '''), FutureWarning)
+    else:
+        if use_cascaded_inits:
+            if initialization_data is None:
+                initialization_data = {}
+            initialization_data['inits'] = initialization_data.get('inits', {})
+            inits = get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=cl_device_ind)
+            inits.update(initialization_data['inits'])
+            initialization_data['inits'] = inits
 
     model_fit = ModelFit(model, input_data, output_folder, method=method, optimizer_options=optimizer_options,
                          recalculate=recalculate,

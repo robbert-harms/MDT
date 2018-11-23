@@ -188,7 +188,9 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
             self.selectedOutputFolder.text(),
             recalculate=True,
             double_precision=self._optim_options.double_precision,
-            method=self._optim_options.method)
+            method=self._optim_options.method,
+            use_cascaded_inits=True
+        )
 
         self._computations_thread.start()
         self._run_model_worker.moveToThread(self._computations_thread)
@@ -269,12 +271,6 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
                     gradient_deviations={gradient_deviations!r},
                     extra_protocol={extra_protocol!r})
                 
-                init_data = mdt.get_optimization_inits(
-                    {model!r},
-                    input_data,
-                    {output_folder!r}, 
-                    cl_device_ind={cl_device_ind!r})
-                
                 mdt.fit_model(
                     {model!r},
                     input_data,
@@ -282,7 +278,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
                     recalculate={recalculate!r},
                     double_precision={double_precision!r},
                     cl_device_ind={cl_device_ind!r},
-                    initialization_data={{'inits': init_data}},
+                    use_cascaded_inits=True,
                     method={method!r},
                     optimizer_options={{'patience': {patience!r}}})
 
@@ -328,6 +324,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
             write_new_line('--double' if kwargs['double_precision'] else '--float')
             write_new_line('--method {}'.format(optim_options.method))
             write_new_line('--patience {}'.format(optim_options.patience))
+            write_new_line('--use-cascaded-inits')
 
             if input_data_info.extra_protocol:
                 write_new_line('--extra-protocol {}'.format(
@@ -614,9 +611,5 @@ class RunModelWorker(QObject):
                                 'Finished model fitting. You can view the results using the "View results" tab.')
     @pyqtSlot()
     def run(self):
-        fit_kwargs = self._kwargs
-        fit_kwargs['initialization_data'] = {
-            'inits': mdt.get_optimization_inits(self._args[0], self._args[1], self._args[2])
-        }
-        mdt.fit_model(*self._args, **fit_kwargs)
+        mdt.fit_model(*self._args, **self._kwargs)
         self.finished.emit()

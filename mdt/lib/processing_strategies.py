@@ -148,7 +148,7 @@ class ChunksProcessingStrategy(ModelProcessingStrategy):
 
         def calculate_run_days(runtime):
             if runtime > 24 * 60 * 60:
-                return runtime // 24 * 60 * 60
+                return int(runtime // (24. * 60 * 60))
             return 0
 
         run_time = timeit.default_timer() - start_time
@@ -450,7 +450,7 @@ class FittingProcessor(SimpleModelProcessor):
 
             cl_runtime_info = CLRuntimeInfo()
 
-            self._logger.info('Starting minimization')
+            self._logger.info('Starting optimization')
             self._logger.info('Using MOT version {}'.format(mot.__version__))
             self._logger.info('We will use a {} precision float type for the calculations.'.format(
                 'double' if cl_runtime_info.double_precision else 'single'))

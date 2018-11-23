@@ -310,10 +310,10 @@ class ModelFit:
         self._model_names_list = []
         self._tmp_results_dir = get_temporary_results_dir(tmp_results_dir)
 
-        if not isinstance(initialization_data, InitializationData) and initialization_data is not None:
+        if initialization_data is not None and not isinstance(initialization_data, InitializationData):
             self._initialization_data = SimpleInitializationData(**initialization_data)
         else:
-            self._initialization_data = initialization_data or SimpleInitializationData()
+            self._initialization_data = initialization_data
 
         if cl_device_ind is not None:
             self._cl_runtime_info = CLRuntimeInfo(cl_environments=get_cl_devices(cl_device_ind),
@@ -403,8 +403,9 @@ class ModelFit:
         Args:
             model: the composite model we are preparing for fitting. Changes happen in place.
         """
-        self._logger.info('Preparing model {0} with the user provided initialization data.'.format(model.name))
-        self._initialization_data.apply_to_model(model, self._input_data)
+        if self._initialization_data is not None:
+            self._logger.info('Preparing model {0} with the user provided initialization data.'.format(model.name))
+            self._initialization_data.apply_to_model(model, self._input_data)
 
 
 def fit_composite_model(model, input_data, output_folder, method, tmp_results_dir,
