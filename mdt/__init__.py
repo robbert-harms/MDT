@@ -186,7 +186,6 @@ def fit_model(model, input_data, output_folder,
                 fit_model('NODDI', ..., use_cascaded_inits=True)
             
             Since ``use_cascaded_inits`` is True by default, you can also just use:
-                
                 fit_model('NODDI', ...)
         '''), FutureWarning)
     else:
