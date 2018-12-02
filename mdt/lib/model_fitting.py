@@ -1,6 +1,5 @@
 import warnings
 from textwrap import dedent
-
 import numpy as np
 import glob
 import logging
@@ -80,13 +79,13 @@ def get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=
             unweighted_locations = np.where(input_data.get_input_data('b') < 250e6)[0]
             inits['S0.s0'] = np.mean(input_data.signal4d[..., unweighted_locations], axis=-1)
 
-        if model_name == 'BallStick_r2':
+        if model_name.startswith('BallStick_r2'):
             inits.update(get_subset(free_parameters, get_model_fit('BallStick_r1')))
             inits['w_stick1.w'] = 0.05
-        elif model_name == 'BallStick_r3':
+        elif model_name.startswith('BallStick_r3'):
             inits.update(get_subset(free_parameters, get_model_fit('BallStick_r2')))
             inits['w_stick2.w'] = 0.05
-        elif model_name == 'Tensor':
+        elif model_name.startswith('Tensor'):
             fit_results = get_model_fit('BallStick_r1')
             inits.update(get_subset(free_parameters, fit_results))
             inits['Tensor.theta'] = fit_results['Stick0.theta']
@@ -99,7 +98,7 @@ def get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=
             inits['w_csf.w'] = fit_results['w_ball.w']
             inits['NODDI_IC.theta'] = fit_results['Stick0.theta']
             inits['NODDI_IC.phi'] = fit_results['Stick0.phi']
-        elif model_name == 'BinghamNODDI_r1':
+        elif model_name.startswith('BinghamNODDI_r1'):
             fit_results = get_model_fit('BallStick_r1')
             inits.update(get_subset(free_parameters, fit_results))
             inits['w_in0.w'] = fit_results['w_stick0.w'] / 2.0
@@ -107,19 +106,19 @@ def get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=
             inits['w_csf.w'] = fit_results['w_ball.w']
             inits['BinghamNODDI_IN0.theta'] = fit_results['Stick0.theta']
             inits['BinghamNODDI_IN0.phi'] = fit_results['Stick0.phi']
-        elif model_name == 'BinghamNODDI_r2':
+        elif model_name.startswith('BinghamNODDI_r2'):
             bs2_results = get_model_fit('BallStick_r2')
             inits.update(get_subset(free_parameters, bs2_results))
             inits.update(get_subset(free_parameters, get_model_fit('BinghamNODDI_r1')))
             inits['BinghamNODDI_IN1.theta'] = bs2_results['Stick1.theta']
             inits['BinghamNODDI_IN1.phi'] = bs2_results['Stick1.phi']
-        elif model_name == 'Kurtosis':
+        elif model_name.startswith('Kurtosis'):
             fit_results = get_model_fit('Tensor')
             inits.update(get_subset(free_parameters, fit_results))
             inits.update({'KurtosisTensor.' + key: fit_results['Tensor.' + key]
                           for key in ['theta', 'phi', 'psi', 'd', 'dperp0', 'dperp1']})
         elif model_name.startswith('CHARMED_r'):
-            nmr_dir = model_name[len('CHARMED_r'):]
+            nmr_dir = model_name[len('CHARMED_r'):len('CHARMED_r')+1]
             fit_results = get_model_fit('BallStick_r' + nmr_dir)
             inits.update(get_subset(free_parameters, fit_results))
             inits['Tensor.theta'] = fit_results['Stick0.theta']
@@ -129,14 +128,14 @@ def get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=
                 inits['CHARMEDRestricted{}.theta'.format(dir_ind)] = fit_results['Stick{}.theta'.format(dir_ind)]
                 inits['CHARMEDRestricted{}.phi'.format(dir_ind)] = fit_results['Stick{}.phi'.format(dir_ind)]
         elif model_name.startswith('BallRacket_r'):
-            nmr_dir = model_name[len('BallRacket_r'):]
+            nmr_dir = model_name[len('BallRacket_r'):len('BallRacket_r')+1]
             fit_results = get_model_fit('BallStick_r' + nmr_dir)
             inits.update(get_subset(free_parameters, fit_results))
             for dir_ind in range(int(nmr_dir)):
                 inits['w_res{}.w'.format(dir_ind)] = fit_results['w_stick{}.w'.format(dir_ind)]
                 inits['Racket{}.theta'.format(dir_ind)] = fit_results['Stick{}.theta'.format(dir_ind)]
                 inits['Racket{}.phi'.format(dir_ind)] = fit_results['Stick{}.phi'.format(dir_ind)]
-        elif model_name == 'AxCaliber':
+        elif model_name.startswith('AxCaliber'):
             fit_results = get_model_fit('BallStick_r1')
             inits.update(get_subset(free_parameters, fit_results))
             inits['GDRCylinders.theta'] = fit_results['Stick0.theta']

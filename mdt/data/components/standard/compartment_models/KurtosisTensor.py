@@ -53,7 +53,7 @@ def build_param(index):
         _init_value = 0.001
         _sampling_prior = UniformWithinBoundsPrior()
     else:
-        _lower_bound = -np.inf
+        _lower_bound = -1e20
         _init_value = 0
         _sampling_prior = AlwaysOne()
 

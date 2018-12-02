@@ -124,8 +124,8 @@ class FreeParameterTemplate(ParameterTemplate):
     data_type = 'mot_float_type'
     fixed = False
     init_value = 1
-    lower_bound = -np.inf
-    upper_bound = np.inf
+    lower_bound = -1e20
+    upper_bound = 1e20
     parameter_transform = 'Identity'
     sampling_proposal_std = 1
     sampling_proposal_modulus = None
