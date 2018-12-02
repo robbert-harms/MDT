@@ -2,6 +2,15 @@
 Changelog
 *********
 
+v0.18.2 (2018-12-02)
+====================
+
+Changed
+-------
+- Changed the maximum bounds to real numbers, anticipating bounded optimization methods. It used to be -inf and +inf, it is now -1e20 and 1e20. 
+- The initialization dictionary now also recognizes MDT models with a suffix. Like "BinghamNODDI_r1_MySuffix", which will load the initialization from "BinghamNODDI_r1".
+
+
 v0.18.1 (2018-11-23)
 ====================
 
