@@ -2,6 +2,16 @@
 Changelog
 *********
 
+v0.18.3 (2018-12-05)
+====================
+
+Changed
+-------
+- Adds model_names option to the run_function_on_batch_fit_output batch function.
+- Removed some numpy warnings in the qMT model.
+- Increased the JohnsonNoise eta upper bound.
+
+
 v0.18.2 (2018-12-02)
 ====================
 
