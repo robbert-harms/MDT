@@ -43,5 +43,5 @@ class JohnsonNoise(SignalNoiseModel):
         super().__init__(
             'double', 'JohnsonNoise', [
                 CurrentModelSignalParam('signal'),
-                FreeParameter('mot_float_type eta', False, 0.1, 0, 100, parameter_transform=CosSqrClampTransform())],
+                FreeParameter('mot_float_type eta', False, 0.1, 0, 1e5, parameter_transform=CosSqrClampTransform())],
             'return hypot(signal, (double)eta);')

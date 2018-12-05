@@ -136,6 +136,8 @@ def produce_reduced_ramani_model(lineshape_method_name):
         CompositeModelTemplate: the model template for the reduced Ramani model using the given line shape.
     """
     def extra_output_maps(results):
+        np.warnings.filterwarnings('ignore')
+
         Rb, RM0a, fterm, gM0a, T1a_T2a, s0 = [
             np.squeeze(results[n]) for n in ('QMT.Rb', 'QMT.RM0a', 'QMT.fterm', 'QMT.gM0a', 'QMT.T1a_T2a', 'S0.s0')]
         Rb_std, RM0a_std, fterm_std, gM0a_std, T1a_T2a_std, s0_std = [

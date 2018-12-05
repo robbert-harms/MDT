@@ -104,7 +104,7 @@ def add_rician_noise(signals, noise_level, seed=None):
     random_state = np.random.RandomState(seed)
     x = noise_level * random_state.normal(size=signals.shape) + signals
     y = noise_level * random_state.normal(size=signals.shape)
-    return np.sqrt(np.power(x, 2), np.power(y, 2)).astype(signals.dtype)
+    return np.sqrt(x**2, y**2).astype(signals.dtype)
 
 
 def _get_simulate_function(model):
