@@ -509,7 +509,7 @@ class BatchFitSubjectOutputInfo:
         '''.format(subject_id=self.subject_id, output_path=self.output_path, model_name=self.model_name)).strip()
 
 
-def run_function_on_batch_fit_output(func, output_folder, subjects_selection=None):
+def run_function_on_batch_fit_output(func, output_folder, subjects_selection=None, model_names=None):
     """Run a function on the output of a batch fitting routine.
 
     This enables you to run a function on every model output from every subject. This expects the output directory
@@ -521,6 +521,8 @@ def run_function_on_batch_fit_output(func, output_folder, subjects_selection=Non
         output_folder (str): The data input folder
         subjects_selection (BatchSubjectSelection or iterable): the subjects to use for processing.
             If None all subjects are processed.
+        model_names (list): the list of model names to process. If not given we will run the function on all
+            models.
 
     Returns:
         dict: indexed by subject->model_name, values are the return values of the users function
@@ -534,8 +536,13 @@ def run_function_on_batch_fit_output(func, output_folder, subjects_selection=Non
 
     results = AutoDict()
     for subject_id in subject_ids:
-        for model_name in os.listdir(os.path.join(output_folder, subject_id)):
+        subject_models = model_names
+        if subject_models is None:
+            subject_models = os.listdir(os.path.join(output_folder, subject_id))
+
+        for model_name in subject_models:
             info = BatchFitSubjectOutputInfo(os.path.join(output_folder, subject_id, model_name),
                                              subject_id, model_name)
             results[subject_id][model_name] = func(info)
+
     return results.to_normal_dict()
