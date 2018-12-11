@@ -2,6 +2,15 @@
 Changelog
 *********
 
+v0.18.4 (2018-12-11)
+====================
+
+Changed
+-------
+- Improved the Hessian computation of the models after fitting.
+- Changed the default BinghamNODDI_r1 initialization to depend on the Watson NODDI model.
+
+
 v0.18.3 (2018-12-05)
 ====================
 
