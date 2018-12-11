@@ -17,8 +17,7 @@ from mot.cl_routines import compute_log_likelihood, numerical_hessian
 from mdt.model_building.parameters import ProtocolParameter, FreeParameter, CurrentObservationParam, \
     DataCacheParameter, CurrentModelSignalParam, NoiseStdFreeParameter, NoiseStdInputParameter
 from mot.configuration import CLRuntimeInfo
-from mot.lib.utils import convert_data_to_dtype, \
-    hessian_to_covariance, all_elements_equal, get_single_value
+from mot.lib.utils import hessian_to_covariance, all_elements_equal, get_single_value
 from mot.lib.kernel_data import Array, Zeros, Scalar, LocalMemory, Struct, CompositeArray
 
 from mdt.models.base import MissingProtocolInput
@@ -587,31 +586,88 @@ class DMRICompositeModel(DMRIOptimizable):
         Args:
             results_dict (dict): the list with the optimized points for each parameter
         """
+        def _results_vector_to_matrix(vectors, nmr_params):
+            """Transform for every problem (and optionally every step size) the vector results to a square matrix.
+
+            Since we only process the lower triangular items, we have to convert the 1d vectors into 2d matrices for every
+            problem. This function does that.
+
+            Args:
+                vectors (ndarray): for every problem (and step size) the 1d vector with results
+                nmr_params (int): the number of parameters
+            """
+            matrices = np.zeros(vectors.shape[:-1] + (nmr_params, nmr_params), dtype=vectors.dtype)
+
+            ltr_ind = 0
+            for px in range(nmr_params):
+                matrices[..., px, px] = vectors[..., ltr_ind]
+                ltr_ind += 1
+
+                for py in range(px + 1, nmr_params):
+                    matrices[..., px, py] = vectors[..., ltr_ind]
+                    matrices[..., py, px] = vectors[..., ltr_ind]
+                    ltr_ind += 1
+            return matrices
+
+        scales = self._get_numdiff_scaling_factors()
+
+        parameter_transform_func = self.get_finalize_proposal_function()
+        if parameter_transform_func is None:
+            parameter_transform_func = SimpleCLFunction.from_string(
+                'void voidTransform(void* data, local mot_float_type* x){}')
+
+        wrapped_objective = SimpleCLFunction.from_string('''
+            double wrapped_''' + self.get_objective_function().get_cl_function_name() + '''(
+                    local mot_float_type* x, 
+                    void* data){
+                
+                local mot_float_type* x_tmp = ((hessian_function_wrapper_data*)data)->x_tmp;
+    
+                if(get_local_id(0) == 0){
+                    ''' + '\n'.join('x_tmp[{0}] = x[{0}] / {1};'.format(i, s) for i, s in enumerate(scales)) + '''
+                }
+                barrier(CLK_LOCAL_MEM_FENCE);
+                
+                return ''' + self.get_objective_function().get_cl_function_name() + '''(
+                    x_tmp, ((hessian_function_wrapper_data*)data)->data, 0);    
+            }
+        ''', dependencies=[self.get_objective_function(), parameter_transform_func])
+
+        wrapped_input_data = Struct({
+            'data': self.get_kernel_data(),
+            'x_tmp': LocalMemory('mot_float_type', nmr_items=self.get_nmr_parameters())
+        }, 'hessian_function_wrapper_data')
+
         lower_bounds = self.get_lower_bounds()
         for ind in range(len(lower_bounds)):
             if not self._get_numdiff_use_bounds()[ind] or not self._get_numdiff_use_lower_bounds()[ind]:
-                lower_bounds[ind] = None
+                lower_bounds[ind] = -np.inf
+            lower_bounds[ind] *= scales[ind]
 
         upper_bounds = self.get_upper_bounds()
         for ind in range(len(upper_bounds)):
             if not self._get_numdiff_use_bounds()[ind] or not self._get_numdiff_use_upper_bounds()[ind]:
-                upper_bounds[ind] = None
+                upper_bounds[ind] = np.inf
+            upper_bounds[ind] *= scales[ind]
 
         hessian = numerical_hessian(
-            self.get_objective_function(),
-            results_array,
+            wrapped_objective,
+            results_array * scales,
             lower_bounds=lower_bounds,
             upper_bounds=upper_bounds,
             step_ratio=2,
             nmr_steps=5,
-            data=self.get_kernel_data(),
             step_offset=0,
             max_step_sizes=self._get_numdiff_max_step_sizes(),
-            scaling_factors=self._get_numdiff_scaling_factors(),
-            parameter_transform_func=self.get_finalize_proposal_function(),
+            data=wrapped_input_data,
             cl_runtime_info=CLRuntimeInfo(double_precision=True)
         )
+
+        hessian = _results_vector_to_matrix(hessian, self.get_nmr_parameters())
+
         covars, is_singular = hessian_to_covariance(hessian, output_singularity=True)
+
+        covars /= np.outer(scales, scales)
 
         param_names = ['{}.{}'.format(m.name, p.name)
                        for m, p in self._model_functions_info.get_estimable_parameters_list()]

@@ -99,13 +99,14 @@ def get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=
             inits['NODDI_IC.theta'] = fit_results['Stick0.theta']
             inits['NODDI_IC.phi'] = fit_results['Stick0.phi']
         elif model_name.startswith('BinghamNODDI_r1'):
-            fit_results = get_model_fit('BallStick_r1')
-            inits.update(get_subset(free_parameters, fit_results))
-            inits['w_in0.w'] = fit_results['w_stick0.w'] / 2.0
-            inits['w_en0.w'] = fit_results['w_stick0.w'] / 2.0
-            inits['w_csf.w'] = fit_results['w_ball.w']
-            inits['BinghamNODDI_IN0.theta'] = fit_results['Stick0.theta']
-            inits['BinghamNODDI_IN0.phi'] = fit_results['Stick0.phi']
+            noddi_results = get_model_fit('NODDI')
+            inits.update(get_subset(free_parameters, noddi_results))
+            inits['w_in0.w'] = noddi_results['w_ic.w']
+            inits['w_en0.w'] = noddi_results['w_ec.w']
+            inits['w_csf.w'] = noddi_results['w_csf.w']
+            inits['BinghamNODDI_IN0.theta'] = noddi_results['NODDI_IC.theta']
+            inits['BinghamNODDI_IN0.phi'] = noddi_results['NODDI_IC.phi']
+            inits['BinghamNODDI_IN0.k1'] = noddi_results['NODDI_IC.kappa']
         elif model_name.startswith('BinghamNODDI_r2'):
             bs2_results = get_model_fit('BallStick_r2')
             inits.update(get_subset(free_parameters, bs2_results))

@@ -1,6 +1,6 @@
 import numpy as np
 from mdt import CompartmentTemplate, CompositeModelTemplate, FreeParameterTemplate, ProtocolParameterTemplate, \
-    LibraryFunctionTemplate, CascadeTemplate
+    LibraryFunctionTemplate
 from mdt.model_building.parameter_functions.transformations import ScaleTransform
 from mdt.utils import voxelwise_vector_matrix_vector_product, create_covariance_matrix
 from mot.library_functions import simpsons_rule
@@ -272,7 +272,7 @@ def produce_reduced_ramani_model(lineshape_method_name):
                 init_value = 1
                 lower_bound = 0.5
                 upper_bound = 1.5
-                numdiff_info = {'use_lower_bound': False, 'use_upper_bound': False}
+                numdiff_info = {'use_bounds': False}
 
             class f0(ProtocolParameterTemplate):
                 pass

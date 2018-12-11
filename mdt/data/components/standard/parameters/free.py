@@ -7,7 +7,7 @@ value to disable them from being optimized in a given situation, but they remain
 import numpy as np
 from mdt import FreeParameterTemplate
 from mdt.model_building.parameter_functions.priors import UniformWithinBoundsPrior, ARDBeta, ARDGaussian
-from mdt.model_building.parameter_functions.transformations import ScaleTransform, ScaleClampTransform
+from mdt.model_building.parameter_functions.transformations import ScaleTransform
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-12-12"
@@ -31,7 +31,7 @@ class w(FreeParameterTemplate):
     parameter_transform = 'CosSqrClamp'
     sampling_proposal_std = 0.01
     sampling_prior = UniformWithinBoundsPrior()
-    numdiff_info = {'scale_factor': 10, 'use_upper_bound': False}
+    numdiff_info = {'scale_factor': 10}
 
 
 class w_ard_beta(w):
@@ -100,7 +100,7 @@ class theta(FreeParameterTemplate):
     parameter_transform = 'AbsModPi'
     sampling_proposal_std = 0.1
     sampling_proposal_modulus = np.pi
-    numdiff_info = {'use_bounds': False}
+    numdiff_info = {'scale_factor': 10}
 
 
 class phi(FreeParameterTemplate):
@@ -122,7 +122,7 @@ class phi(FreeParameterTemplate):
     parameter_transform = 'AbsModPi'
     sampling_proposal_std = 0.1
     sampling_proposal_modulus = np.pi
-    numdiff_info = {'use_bounds': False}
+    numdiff_info = {'scale_factor': 10}
 
 
 class psi(FreeParameterTemplate):
@@ -136,7 +136,7 @@ class psi(FreeParameterTemplate):
     parameter_transform = 'AbsModPi'
     sampling_proposal_modulus = np.pi
     sampling_proposal_std = 0.1
-    numdiff_info = {'use_bounds': False}
+    numdiff_info = {'scale_factor': 10, 'use_bounds': False}
 
 
 class d(FreeParameterTemplate):

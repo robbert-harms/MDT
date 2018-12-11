@@ -98,6 +98,7 @@ class MathImg(BasicShellApplication):
                                  'some broadcast issues.')
 
         parser.add_argument('--verbose', '-v', action='store_true', help="Verbose, prints runtime information")
+        parser.set_defaults(verbose=False)
 
         return parser
 
