@@ -2,6 +2,7 @@ import os
 import numpy as np
 from matplotlib import pyplot as plt, patches
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib.cm import get_cmap
 from mdt import get_slice_in_dimension
 from mdt.visualization.maps.base import Clipping, Scale, Point2d
 from mdt.visualization.utils import MyColourBarTickLocator
@@ -381,9 +382,15 @@ class Renderer:
         return spacing
 
     def _get_map_plot_options(self, map_name):
+        cmap = get_cmap(self._get_map_attr(map_name, 'colormap', self._plot_config.colormap))
+
+        masked_color = self._get_map_attr(map_name, 'colormap_masked_color', self._plot_config.colormap_masked_color)
+        if masked_color is not None:
+            cmap.set_bad(color=masked_color)
+
         output_dict = {'vmin': self._data_info.get_single_map_info(map_name).min(),
                        'vmax': self._data_info.get_single_map_info(map_name).max(),
-                       'cmap': self._get_map_attr(map_name, 'colormap', self._plot_config.colormap)}
+                       'cmap': cmap}
 
         scale = self._get_map_attr(map_name, 'scale', Scale())
         if scale.use_max:

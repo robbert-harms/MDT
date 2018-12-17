@@ -1,4 +1,5 @@
 import copy
+import numbers
 import os
 import signal
 from textwrap import dedent
@@ -273,6 +274,9 @@ class PlottingFrameInfoToStatusBar(PlottingFrameInfoViewer):
         super().set_voxel_info(map_name, onscreen_coords, data_index)
 
         def format_value(v):
+            if not isinstance(v, numbers.Number):
+                return 'Masked'
+
             value_format = '{:.3e}'
             if 1e-3 < v < 1e3:
                 value_format = '{:.3f}'

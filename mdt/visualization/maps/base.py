@@ -1232,7 +1232,8 @@ class Font(SimpleConvertibleConfig):
 
 class MapPlotConfig(SimpleConvertibleConfig):
 
-    def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=90, colormap='hot', maps_to_show=None,
+    def __init__(self, dimension=2, slice_index=0, volume_index=0, rotate=90, colormap='hot',
+                 colormap_masked_color=None, maps_to_show=None,
                  font=None, grid_layout=None, show_axis=False, show_titles=True, zoom=None,
                  map_plot_options=None, interpolation='bilinear', flipud=None, title=None,
                  title_spacing=None, mask_name=None, colorbar_settings=None, annotations=None):
@@ -1245,6 +1246,7 @@ class MapPlotConfig(SimpleConvertibleConfig):
             rotate (int): the rotation factor, multiple of 90. By default we rotate 90 degrees to
                 show most in-vivo datasets in a natural way.
             colormap (str): the name of the colormap to use
+            colormap_masked_color (str): the color for masked, NaN and infinity values.
             maps_to_show (list of str): the names of the maps to show
             font (int): the font settings
             grid_layout (GridLayout): the layout of the grid
@@ -1269,6 +1271,7 @@ class MapPlotConfig(SimpleConvertibleConfig):
         self.volume_index = volume_index
         self.rotate = rotate
         self.colormap = colormap
+        self.colormap_masked_color = colormap_masked_color
         self.maps_to_show = maps_to_show or default_values['maps_to_show']
         self.zoom = zoom or default_values['zoom']
         self.font = font or default_values['font']
@@ -1327,6 +1330,7 @@ class MapPlotConfig(SimpleConvertibleConfig):
             'volume_index': 0,
             'rotate': 90,
             'colormap': 'hot',
+            'colormap_masked_color': None,
             'maps_to_show': '',
             'zoom': Zoom.no_zoom(),
             'font': Font(),
@@ -1350,6 +1354,7 @@ class MapPlotConfig(SimpleConvertibleConfig):
                 'volume_index': IntConversion(),
                 'rotate': IntConversion(),
                 'colormap': StringConversion(),
+                'colormap_masked_color': StringConversion(),
                 'maps_to_show': SimpleListConversion(),
                 'zoom': Zoom.get_conversion_info(),
                 'font': Font.get_conversion_info(),
@@ -1575,9 +1580,9 @@ class MapPlotConfig(SimpleConvertibleConfig):
 
 class SingleMapConfig(SimpleConvertibleConfig):
 
-    def __init__(self, title=None, scale=None, clipping=None, colormap=None, colorbar_label=None,
-                 show_title=None, title_spacing=None, mask_name=None, interpret_as_colormap=False,
-                 colormap_weight_map=None,
+    def __init__(self, title=None, scale=None, clipping=None, colormap=None, colormap_masked_color=None,
+                 colorbar_label=None, show_title=None, title_spacing=None, mask_name=None,
+                 interpret_as_colormap=False, colormap_weight_map=None,
                  colormap_order=None, colorbar_settings=None):
         """Creates the configuration for a single map plot.
 
@@ -1586,6 +1591,7 @@ class SingleMapConfig(SimpleConvertibleConfig):
             scale (Scale): the scaling for the values in this map
             clipping (Clipping): the clipping to apply to the values prior to plotting
             colormap (str): the matplotlib colormap to use
+            colormap_masked_color (str): the color for masked, NaN and infinity values.
             colorbar_label (str): the label for the colorbar
             show_title (boolean): if we want to show the title or not
             title_spacing (float): the spacing between the top of the plots and the title
@@ -1608,6 +1614,7 @@ class SingleMapConfig(SimpleConvertibleConfig):
         self.scale = scale or default_values['scale']
         self.clipping = clipping or default_values['clipping']
         self.colormap = colormap
+        self.colormap_masked_color = colormap_masked_color
         self.colorbar_label = colorbar_label
         self.show_title = bool(show_title) if show_title is not None else default_values['show_title']
         self.mask_name = mask_name
@@ -1632,6 +1639,7 @@ class SingleMapConfig(SimpleConvertibleConfig):
             'scale': Scale(),
             'clipping': Clipping(),
             'colormap': None,
+            'colormap_masked_color': None,
             'colorbar_label': None,
             'show_title': None,
             'mask_name': None,
@@ -1647,6 +1655,7 @@ class SingleMapConfig(SimpleConvertibleConfig):
                 'scale': Scale.get_conversion_info(),
                 'clipping': Clipping.get_conversion_info(),
                 'colormap': StringConversion(),
+                'colormap_masked_color': StringConversion(),
                 'colorbar_label': StringConversion(),
                 'title_spacing': FloatConversion(),
                 'mask_name': StringConversion(),
