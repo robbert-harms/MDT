@@ -63,7 +63,7 @@ class BatchProfileBuilder(ComponentBuilder):
                         data_glob = list(filterfalse(lambda v: v == grad_dev, data_glob))
 
                     subjects.append(SimpleSubjectInfo(
-                        subject_base_folder, subject_id, data_glob[0],
+                        data_folder, subject_base_folder, subject_id, data_glob[0],
                         protocol_loader, mask_fname, noise_std=noise_std,
                         gradient_deviations=grad_dev))
 

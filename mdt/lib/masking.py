@@ -74,7 +74,7 @@ def generate_simple_wm_mask(scalar_map, whole_brain_mask, threshold=0.3, median_
     only retain values inside the brain.
 
     Args:
-        scalar_map (str): the path to the FA file
+        scalar_map (str or ndarray): the path to the FA file
         whole_brain_mask (str or ndarray): the general brain mask used in the FA model fitting
         threshold (double): the FA threshold. Everything below this threshold is masked (set to 0). To be precise:
             where fa_data < fa_threshold set the value to 0.
@@ -87,12 +87,21 @@ def generate_simple_wm_mask(scalar_map, whole_brain_mask, threshold=0.3, median_
     filter_footprint[median_radius, :, median_radius] = 1
     filter_footprint[median_radius, median_radius, :] = 1
 
-    map_data = load_nifti(scalar_map).get_data()
+    if isinstance(scalar_map, str):
+        map_data = load_nifti(scalar_map).get_data()
+    else:
+        map_data = np.copy(scalar_map)
+
     map_data[map_data < threshold] = 0
     wm_mask = map_data.astype(np.bool)
 
     if len(wm_mask.shape) > 3:
         wm_mask = wm_mask[:, :, :, 0]
+
+    wm_mask[np.logical_not(load_brain_mask(whole_brain_mask))] = 0
+
+    if nmr_filter_passes == 0:
+        return wm_mask
 
     mask = load_brain_mask(whole_brain_mask)
 

@@ -274,6 +274,9 @@ class PlottingFrameInfoToStatusBar(PlottingFrameInfoViewer):
         super().set_voxel_info(map_name, onscreen_coords, data_index)
 
         def format_value(v):
+            if v == True or v == False:
+                v = int(v)
+
             if not isinstance(v, numbers.Number):
                 return 'Masked'
 

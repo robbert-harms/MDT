@@ -399,7 +399,7 @@ def batch_fit(data_folder, models_to_fit, output_folder=None, batch_profile=None
         cl_device_ind=cl_device_ind, double_precision=double_precision,
         tmp_results_dir=tmp_results_dir, use_gradient_deviations=use_gradient_deviations)
 
-    return batch_apply(batch_fit_func, data_folder, batch_profile=batch_profile, subjects_selection=subjects_selection)
+    return batch_apply(data_folder, batch_fit_func, batch_profile=batch_profile, subjects_selection=subjects_selection)
 
 
 def view_maps(data, config=None, figure_options=None,

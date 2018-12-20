@@ -149,6 +149,15 @@ class SubjectInfo:
         raise NotImplementedError()
 
     @property
+    def data_folder(self):
+        """The data folder in which this subject was found.
+
+        Returns:
+            str: the data folder used by the batch profile when loading this subject.
+        """
+        raise NotImplementedError()
+
+    @property
     def subject_base_folder(self):
         """Get the data base folder of this subject.
 
@@ -174,20 +183,23 @@ class SubjectInfo:
         return dedent('''
             {class_name}
                 subject_id: {subject_id}
+                data_folder: {data_folder}
                 subject_base_folder: {subject_base_folder}
                 get_input_data(): <MRIInputData object>
-        '''.format(class_name=self.__class__, subject_id=self.subject_id, subject_base_folder=self.subject_base_folder))
+        '''.format(class_name=self.__class__, subject_id=self.subject_id,
+                   data_folder=self.data_folder, subject_base_folder=self.subject_base_folder))
 
 
 class SimpleSubjectInfo(SubjectInfo):
 
-    def __init__(self, subject_base_folder, subject_id, dwi_fname, protocol_loader,
+    def __init__(self, data_folder, subject_base_folder, subject_id, dwi_fname, protocol_loader,
                  mask_fname, gradient_deviations=None, noise_std=None):
         """This class contains all the information about found subjects during batch fitting.
 
         It is returned by the method get_subjects() from the class BatchProfile.
 
         Args:
+            data_folder (str): the data folder used by the batch profile
             subject_base_folder (str): the base folder of this subject
             subject_id (str): the subject id
             dwi_fname (str): the filename with path to the dwi image
@@ -197,6 +209,7 @@ class SimpleSubjectInfo(SubjectInfo):
             noise_std (float, ndarray, str): either None for automatic noise detection or a float with the noise STD
                 to use during fitting or an ndarray with one value per voxel.
         """
+        self._data_folder = data_folder
         self._subject_base_folder = subject_base_folder
         self._subject_id = subject_id
         self._dwi_fname = dwi_fname
@@ -208,6 +221,10 @@ class SimpleSubjectInfo(SubjectInfo):
     @property
     def subject_id(self):
         return self._subject_id
+
+    @property
+    def data_folder(self):
+        return self._data_folder
 
     @property
     def subject_base_folder(self):
@@ -440,7 +457,7 @@ def get_subject_information(data_folder, subject_ids, batch_profile=None):
     def get_subjects(subject_info):
         subjects.append(subject_info)
 
-    batch_apply(get_subjects, data_folder, batch_profile=batch_profile,
+    batch_apply(data_folder, get_subjects, batch_profile=batch_profile,
                 subjects_selection=SelectedSubjects(subject_ids))
 
     if isinstance(subject_ids, str):
@@ -448,7 +465,7 @@ def get_subject_information(data_folder, subject_ids, batch_profile=None):
     return subjects
 
 
-def batch_apply(func, data_folder, batch_profile=None, subjects_selection=None, extra_args=None):
+def batch_apply(data_folder, func, batch_profile=None, subjects_selection=None, extra_args=None):
     """Apply a function on the subjects found in the batch profile.
 
     Args:
