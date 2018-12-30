@@ -589,8 +589,8 @@ class DMRICompositeModel(DMRIOptimizable):
         def _results_vector_to_matrix(vectors, nmr_params):
             """Transform for every problem (and optionally every step size) the vector results to a square matrix.
 
-            Since we only process the lower triangular items, we have to convert the 1d vectors into 2d matrices for every
-            problem. This function does that.
+            Since we only process the upper triangular items, we have to convert the 1d vectors into 2d matrices for
+            every problem. This function does that.
 
             Args:
                 vectors (ndarray): for every problem (and step size) the 1d vector with results
@@ -598,15 +598,15 @@ class DMRICompositeModel(DMRIOptimizable):
             """
             matrices = np.zeros(vectors.shape[:-1] + (nmr_params, nmr_params), dtype=vectors.dtype)
 
-            ltr_ind = 0
+            ind_counter = 0
             for px in range(nmr_params):
-                matrices[..., px, px] = vectors[..., ltr_ind]
-                ltr_ind += 1
+                matrices[..., px, px] = vectors[..., ind_counter]
+                ind_counter += 1
 
                 for py in range(px + 1, nmr_params):
-                    matrices[..., px, py] = vectors[..., ltr_ind]
-                    matrices[..., py, px] = vectors[..., ltr_ind]
-                    ltr_ind += 1
+                    matrices[..., px, py] = vectors[..., ind_counter]
+                    matrices[..., py, px] = vectors[..., ind_counter]
+                    ind_counter += 1
             return matrices
 
         scales = self._get_numdiff_scaling_factors()
