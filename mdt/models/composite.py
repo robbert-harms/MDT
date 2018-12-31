@@ -17,15 +17,13 @@ from mot.cl_routines import compute_log_likelihood, numerical_hessian
 from mdt.model_building.parameters import ProtocolParameter, FreeParameter, CurrentObservationParam, \
     DataCacheParameter, CurrentModelSignalParam, NoiseStdFreeParameter, NoiseStdInputParameter
 from mot.configuration import CLRuntimeInfo
-from mot.lib.utils import all_elements_equal, get_single_value
-from mot.lib.kernel_data import Array, Zeros, Scalar, LocalMemory, Struct, CompositeArray, PrivateMemory
+from mot.lib.utils import all_elements_equal, get_single_value, hessian_to_covariance
+from mot.lib.kernel_data import Array, Zeros, Scalar, LocalMemory, Struct, CompositeArray
 
 from mdt.models.base import MissingProtocolInput
 from mdt.models.base import DMRIOptimizable
 from mdt.utils import calculate_point_estimate_information_criterions, is_scalar, results_to_dict, \
     create_covariance_matrix
-from mot.library_functions import pseudo_inverse_real_symmetric_matrix, \
-    pseudo_inverse_real_symmetric_matrix_upper_triangular
 from mot.mcmc_diagnostics import multivariate_ess, univariate_ess
 
 __author__ = 'Robbert Harms'
@@ -588,7 +586,30 @@ class DMRICompositeModel(DMRIOptimizable):
         Args:
             results_dict (dict): the list with the optimized points for each parameter
         """
-        nmr_params = self.get_nmr_parameters()
+
+        def _results_vector_to_matrix(vectors, nmr_params):
+            """Transform for every problem (and optionally every step size) the vector results to a square matrix.
+
+            Since we only process the upper triangular items, we have to convert the 1d vectors into 2d matrices for
+            every problem. This function does that.
+
+            Args:
+                vectors (ndarray): for every problem (and step size) the 1d vector with results
+                nmr_params (int): the number of parameters
+            """
+            matrices = np.zeros(vectors.shape[:-1] + (nmr_params, nmr_params), dtype=vectors.dtype)
+
+            ind_counter = 0
+            for px in range(nmr_params):
+                matrices[..., px, px] = vectors[..., ind_counter]
+                ind_counter += 1
+
+                for py in range(px + 1, nmr_params):
+                    matrices[..., px, py] = vectors[..., ind_counter]
+                    matrices[..., py, px] = vectors[..., ind_counter]
+                    ind_counter += 1
+            return matrices
+
         scales = self._get_numdiff_scaling_factors()
 
         parameter_transform_func = self.get_finalize_proposal_function()
@@ -600,14 +621,14 @@ class DMRICompositeModel(DMRIOptimizable):
             double wrapped_''' + self.get_objective_function().get_cl_function_name() + '''(
                     local mot_float_type* x, 
                     void* data){
-                
+
                 local mot_float_type* x_tmp = ((hessian_function_wrapper_data*)data)->x_tmp;
-    
+
                 if(get_local_id(0) == 0){
                     ''' + '\n'.join('x_tmp[{0}] = x[{0}] / {1};'.format(i, s) for i, s in enumerate(scales)) + '''
                 }
                 barrier(CLK_LOCAL_MEM_FENCE);
-                
+
                 return ''' + self.get_objective_function().get_cl_function_name() + '''(
                     x_tmp, ((hessian_function_wrapper_data*)data)->data, 0);    
             }
@@ -615,7 +636,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
         wrapped_input_data = Struct({
             'data': self.get_kernel_data(),
-            'x_tmp': LocalMemory('mot_float_type', nmr_items=nmr_params)
+            'x_tmp': LocalMemory('mot_float_type', nmr_items=self.get_nmr_parameters())
         }, 'hessian_function_wrapper_data')
 
         lower_bounds = self.get_lower_bounds()
@@ -643,32 +664,23 @@ class DMRICompositeModel(DMRIOptimizable):
             cl_runtime_info=CLRuntimeInfo(double_precision=True)
         )
 
-        data = Array(hessian, ctype='double', mode='rw')
-        pseudo_inverse_real_symmetric_matrix_upper_triangular().evaluate((
-            Scalar(nmr_params, ctype='uint'),
-            data,
-            PrivateMemory(2 * nmr_params + 2 * nmr_params ** 2, 'double')
-        ), nmr_instances=hessian.shape[0], use_local_reduction=False)
+        hessian = _results_vector_to_matrix(hessian, self.get_nmr_parameters())
 
-        covars = data.get_data()
+        covars, is_singular = hessian_to_covariance(hessian, output_singularity=True)
 
-        scale_matrix = np.outer(scales, scales)
+        covars /= np.outer(scales, scales)
+
         param_names = ['{}.{}'.format(m.name, p.name)
                        for m, p in self._model_functions_info.get_estimable_parameters_list()]
 
         stds = {}
-        covariances = {}
+        covariances = {'Covariance.is_singular': is_singular}
 
-        ind_counter = 0
-        for x_ind in range(nmr_params):
-            stds[param_names[x_ind] + '.std'] = np.nan_to_num(np.sqrt(
-                covars[..., ind_counter] / scale_matrix[x_ind, x_ind]))
-            ind_counter += 1
+        for x_ind in range(len(param_names)):
+            stds[param_names[x_ind] + '.std'] = np.nan_to_num(np.sqrt(covars[:, x_ind, x_ind]))
 
-            for y_ind in range(x_ind + 1, nmr_params):
-                covariances['{}_to_{}'.format(param_names[x_ind], param_names[y_ind])] = \
-                    covars[..., ind_counter] / scale_matrix[x_ind, y_ind]
-                ind_counter += 1
+            for y_ind in range(x_ind + 1, len(param_names)):
+                covariances['{}_to_{}'.format(param_names[x_ind], param_names[y_ind])] = covars[:, x_ind, y_ind]
 
         return {'stds': stds, 'covariances': covariances}
 
