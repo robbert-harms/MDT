@@ -1,5 +1,4 @@
 FROM ubuntu:16.04
-MAINTAINER <alik@robarts.ca>
 
 RUN mkdir -p /src
 COPY container/silent.cfg /src
