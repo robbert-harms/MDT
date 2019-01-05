@@ -119,4 +119,6 @@ class KurtosisTensor(CompartmentTemplate):
         DKIMeasures.extra_optimization_maps,
         noddi_dti_maps
     ]
-    extra_sampling_maps = [DTIMeasures.extra_sampling_maps]
+    extra_sampling_maps = [
+        DTIMeasures.extra_sampling_maps
+    ]
