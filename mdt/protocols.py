@@ -337,7 +337,7 @@ class Protocol(collections.Mapping):
                 clustered_shells.append(new_shell)
             return clustered_shells
 
-        clusters = cluster_b_values(np.sort(self.get_column('b')[self.get_weighted_indices()]))
+        clusters = cluster_b_values(np.sort(np.squeeze(self.get_column('b')[self.get_weighted_indices()])))
 
         cluster_info = []
         for cluster in clusters:
