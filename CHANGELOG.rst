@@ -2,6 +2,25 @@
 Changelog
 *********
 
+v0.19.0 (2019-01-08)
+====================
+The primary change in this version is that we now use the pseudo-inverse for computing the covariance matrix from the Hessian.
+This is as good as a direct inverse but faster to compute and more robust to voxels with a badly conditioned Hessian.
+
+Added
+-----
+- Adds support for masked colors setting in the maps visualizer.
+
+Changed
+-------
+- Changed Fisher Information Matrix computation to use an eigen-decomposition based pseudo-inverse for all voxels.
+- Changed the signature of the batch_apply function to have the path as first argument. The subject info of the batch functions now include the data folder as property.
+
+Fixed
+-----
+- Fixed small issue in the GUI where shells were not correctly counted and represented due to a sorting issue in the protocol class.
+
+
 v0.18.4 (2018-12-11)
 ====================
 
