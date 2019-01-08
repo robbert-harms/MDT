@@ -2,6 +2,11 @@
 Changelog
 *********
 
+v0.19.1 (2019-01-08)
+====================
+- Corrected MOT version requirements.
+
+
 v0.19.0 (2019-01-08)
 ====================
 The primary change in this version is that we now use the pseudo-inverse for computing the covariance matrix from the Hessian.
