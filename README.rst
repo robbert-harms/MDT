@@ -76,6 +76,7 @@ For Debian users and Ubuntu < 16 users, install MDT with:
 Note that ``python3-nibabel`` may need NeuroDebian to be available on your machine. An alternative is to use ``pip3 install nibabel`` instead.
 
 A Dockerfile and Singularity recipe are also provided for installation with Intel OpenCL drivers pre-loaded (e.g. for containerized deployment on a CPU cluster).
+For example, to install using Docker use ``docker build -f containers/Dockerfile.intel .``.
 
 
 **Windows**
