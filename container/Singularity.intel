@@ -1,0 +1,30 @@
+Bootstrap: docker
+From: ubuntu:16.04
+#########
+%setup
+#########
+mkdir -p $SINGULARITY_ROOTFS/src
+cp container/silent.cfg $SINGULARITY_ROOTFS/src
+
+#########
+%post
+#########
+
+#install dependencies 
+apt-get update && apt-get install -y lsb-core wget
+
+
+#install Intel OpenCL runtime
+cd /src && wget http://registrationcenter-download.intel.com/akdlm/irc_nas/9019/opencl_runtime_16.1.1_x64_ubuntu_6.4.0.25.tgz && \
+tar -xvzf opencl_runtime_16.1.1_x64_ubuntu_6.4.0.25.tgz && \
+mv silent.cfg opencl_runtime_16.1.1_x64_ubuntu_6.4.0.25 && \
+cd opencl_runtime_16.1.1_x64_ubuntu_6.4.0.25 && \
+./install.sh --silent silent.cfg --cli-mode
+
+#install mdt
+export DEBIAN_FRONTEND noninteractive
+apt-get update && apt-get install -y software-properties-common && add-apt-repository ppa:robbert-harms/cbclab
+apt-get update && apt-get install -y python3-mdt python3-pip
+pip3 install tatsu
+
+
