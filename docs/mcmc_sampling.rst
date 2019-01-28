@@ -3,8 +3,9 @@
 #############
 MCMC sampling
 #############
-Next to model fitting, MDT also supports Markov Chain Monte Carlo (MCMC) sampling of all models as a way of recovering the full posterior density of the parameters.
-While model fitting provides you with a maximum likelihood estimate and standard deviations using the Fisher Information Matrix, MCMC sampling approximates the full posterior distribution by drawing many samples of the parameters.
+MDT supports Markov Chain Monte Carlo (MCMC) sampling of all models as a way of recovering the full posterior density of model parameters given the data.
+While model fitting provides you only with a maximum likelihood estimate and a standard deviations using the Fisher Information Matrix,
+MCMC sampling approximates the full posterior distribution by drawing many samples of the parameters.
 
 In contrary to model fitting, model sampling is currently only available using the Python function :func:`mdt.sample_model`.
 

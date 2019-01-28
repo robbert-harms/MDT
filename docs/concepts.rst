@@ -1,6 +1,8 @@
-########
-Concepts
-########
+.. _design_concepts:
+
+###############
+Design concepts
+###############
 
 This chapter introduces the reader to a few of the design concepts in MDT.
 

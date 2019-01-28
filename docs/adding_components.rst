@@ -1,8 +1,8 @@
 .. _components:
 
-##########
-Components
-##########
+#################
+Adding components
+#################
 Components are a modular sub-system of MDT allowing you to add models and other functionality to MDT.
 
 On the moment MDT supports the following components:

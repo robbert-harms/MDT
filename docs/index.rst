@@ -15,11 +15,12 @@ Introduction
     :hidden:
 
     install
-    model_fitting
-    model_sampling
+    using_mdt
+    mle_fitting
+    mcmc_sampling
+    adding_components
     maps_visualizer
     concepts
-    components
     configuration
     FAQ <faq>
     scientific_articles

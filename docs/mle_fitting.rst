@@ -1,15 +1,15 @@
 .. _model_fitting:
 
-#############
-Model fitting
-#############
-Model fitting, also known as model inversion, is the core pillar of MDT.
-Using GPU accelerated fitting routines and a rich library of available models, MDT can swiftly fit many types of data.
+#############################
+Maximum Likelihood Estimation
+#############################
+Maximum Likelihood Estimation (MLE), otherwise known as model fitting or model inversion, is one of the core strengths of MDT.
+Using GPU accelerated fitting routines and a rich library of available models, MDT can fit many types of MRI data within seconds to minutes :cite:`Harms2017`.
 The main workflow is that you load some (pre-processed) MRI data, select a model, and let MDT fit your selected model to the data.
-The optimized parameter maps are written as nifti files alongside additional output maps and optimization diagnostic maps.
+The optimized parameter maps are written as nifti files together with variance and covariance estimates and possibly other output maps.
 
-For easy of use with population studies, MDT includes :ref:`hcp_pipelines` that can automatically detect the
-directory layout of the HCP MGH and HCP WuMinn studies and fit your desired model to a (subset of) the data.
+For easy of use with population studies, MDT includes :ref:`pipelines <hcp_pipelines>` for the Human Connectome Project (HCP) study,
+which automatically detects the directory layout of the HCP MGH and HCP WuMinn studies and fit your desired model to (a subset of) the data.
 
 Single dataset fitting is accessible via three interfaces, the :ref:`Graphical User Interface (GUI) <analysis_using_the_gui>`,
 :ref:`Command Line Interface (CLI) <analysis_using_the_cli>` and/or directly using the :ref:`Python interface <analysis_using_python>`.
@@ -522,12 +522,13 @@ The ``inits`` indicate initial values (starting position) for the parameters.
 
 .. _model_fitting_optimization_options:
 
-*********************
-Optimization routines
-*********************
-MDT uses the `MOT package <https://mot.readthedocs.io/en/latest_release/>`_ for all model fitting.
-This packages contains various optimization routines programmed in OpenCL for optimal performance on both CPU and GPU.
-The following optimization routines are available in MDT:
+*******************************
+Available optimization routines
+*******************************
+MDT features GPU accelerated optimization routines, carefully selected for their use in microstructure MRI imaging :cite:`Harms2017`.
+For reusability, these optimization routines are available in the `Multithreaded Optimization Toolbox (MOT) <https://mot.readthedocs.io/en/latest_release/>`_.
+This optimization toolbox contains various optimization routines programmed in OpenCL for optimal performance on both CPU and GPU.
+The following optimization routines are available to MDT:
 
 * ``Powell`` :cite:`Powell1964` (`wiki <https://en.wikipedia.org/wiki/Powell%27s_method>`_)
 * ``Levenberg-Marquardt`` :cite:`Levenberg1944`, (`wiki <https://en.wikipedia.org/wiki/Levenberg%E2%80%93Marquardt_algorithm>`_)

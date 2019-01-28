@@ -7,13 +7,12 @@ Microstructure Diffusion Toolbox
 
     readme_latex
     install
-    model_fitting
-    model_sampling
+    mle_fitting
+    mcmc_sampling
+    adding_components
     maps_visualizer
     concepts
-    components
     configuration
     FAQ <faq>
     scientific_articles
     credits
-

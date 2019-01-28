@@ -257,8 +257,8 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
                 initialization_data = SimpleInitializationData(fixes={...}, inits={...})
         post_processing (dict): a dictionary with flags for post-processing options to enable or disable.
             For valid elements, please see the configuration file settings for ``sample`` under ``post_processing``.
-            Valid input for this parameter is for example: {'sample_statistics': True} to enable automatic calculation
-            of the sample statistics.
+            Valid input for this parameter is for example: {'univariate_normal': True} to enable automatic calculation
+            of the univariate normal distribution for the model parameters.
         post_sampling_cb (Callable[
             [mot.sample.base.SamplingOutput, mdt.models.composite.DMRICompositeModel], Optional[Dict]]):
                 additional post-processing called after sampling. This function can optionally return a (nested)

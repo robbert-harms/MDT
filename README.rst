@@ -1,9 +1,9 @@
 ################################
 Microstructure Diffusion Toolbox
 ################################
-The Microstructure Diffusion Toolbox, MDT, (formerly known as the Maastricht Diffusion Toolbox) is a framework and library for parallelized (GPU and multi-core CPU) diffusion Magnetic Resonance Imaging (MRI) modeling.
+The Microstructure Diffusion Toolbox, MDT, (formerly known as the Maastricht Diffusion Toolbox) is a framework and library for parallelized (GPU and multi-core CPU) Magnetic Resonance Imaging (MRI) microstructure modeling.
 MDT's object oriented and modular design allows arbitrary user specification and combination of biophysical MRI compartment models, diffusion- and T1, T2, T2* based microstructure models,
-likelihood functions and optimization algorithms.
+likelihood functions, optimization routines and MCMC sampling algorithms
 MDT was designed with compatibility in mind and adheres to input, output and variable naming conventions used by other related software tools.
 Many diffusion and relaxometry microstructure models are included, and new models can be added dynamically.
 MDT can be extended to other modalities and other parametric models estimated from data volumes varying along controlled parameters (such as b-values, diffusion times, TE, TM, flip angle, etc).
@@ -13,19 +13,19 @@ The parallelized accelerated computations allow for tens to hundred times faster
 *******
 Summary
 *******
-* HCP pipelines
+* Human Connectome Project (HCP) pipelines
 * Comes with CHARMED, NODDI, BinghamNODDI, NODDIDA, NODDI-DTI, ActiveAx, AxCaliber, Ball&Sticks, Ball&Rackets, Kurtosis, Tensor, QMT, and relaxometry (T1, T2) models.
 * Gaussian, Offset-Gaussian and Rician noise models
-* Powell, Levenberg-Marquardt and Nelder-Mead Simplex optimization methods
-* Multiple MCMC sampling methods
-* GUI, command line and python interfaces
+* Powell, Levenberg-Marquardt and Nelder-Mead Simplex optimization routines
+* Multiple (adaptive) MCMC sampling algorithms
 * Dynamically add your own models
-* Free Open Source Software: LGPL v3 license
-* Python and OpenCL based
+* Graphical, command line and python interfaces
 * Supports hyperpriors on parameters
 * Supports gradient deviations per voxel and per voxel per volume
 * Supports volume weighted objective function
 * Parallelization over voxels and over volumes
+* Python and OpenCL based
+* Free Open Source Software: LGPL v3 license
 * Runs on Windows, Mac and Linux operating systems
 * Runs on Intel, Nvidia and AMD GPU's and CPU's.
 

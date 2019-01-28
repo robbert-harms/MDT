@@ -1,8 +1,8 @@
 .. _configuration:
 
-#############
-Configuration
-#############
+######################
+Advanced configuration
+######################
 The default MDT configuration can be viewed in your home folder in ``.mdt/<version>/mdt.default.conf``.
 This file is merely there for reference and is not read by MDT (rather, those defaults are loaded within MDT).
 To override the default configuration you can copy this file to ``.mdt/<version>/mdt.conf`` and set (only) the options you wish to override.
