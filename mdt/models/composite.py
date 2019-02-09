@@ -13,7 +13,7 @@ from mdt.model_building.parameter_functions.dependencies import SimpleAssignment
 from mdt.model_building.utils import ParameterCodec
 
 from mot.lib.cl_function import SimpleCLFunction, SimpleCLFunctionParameter
-from mot.cl_routines import compute_log_likelihood, numerical_hessian
+from mot.cl_routines import compute_log_likelihood, estimate_hessian
 from mdt.model_building.parameters import ProtocolParameter, FreeParameter, CurrentObservationParam, \
     DataCacheParameter, CurrentModelSignalParam, NoiseStdFreeParameter, NoiseStdInputParameter
 from mot.configuration import CLRuntimeInfo
@@ -629,14 +629,13 @@ class DMRICompositeModel(DMRIOptimizable):
                 upper_bounds[ind] = np.inf
             upper_bounds[ind] *= scales[ind]
 
-        hessian = numerical_hessian(
+        hessian = estimate_hessian(
             wrapped_objective,
             results_array * scales,
             lower_bounds=lower_bounds,
             upper_bounds=upper_bounds,
             step_ratio=2,
             nmr_steps=5,
-            step_offset=0,
             max_step_sizes=self._get_numdiff_max_step_sizes(),
             data=wrapped_input_data,
             cl_runtime_info=CLRuntimeInfo(double_precision=True)
