@@ -59,7 +59,37 @@ class ComponentBuilder:
             class: the class of the right type
         """
         raise NotImplementedError()
-    
+
+
+class _MergeDict(dict):
+
+    def __init__(self, child_dict):
+        """Carrier object for merging dictionaries in the ComponentTemplateMeta."""
+        super().__init__(**child_dict)
+
+
+def merge_dict(dictionary):
+    """Makes sure that the given dictionary updates the dictionary of the parent template instead of overwriting it.
+
+    This is meant to be used inside component templates. Suppose the following hierarchy of templates::
+
+        class Template(ComponentTemplate):
+            property = {'a': 1, 'b': 2}
+
+        class Item(Template):
+            property = {'a': 3}
+
+    Here, the property of Item will overwrite those of Template and set the value to {'a': 3}. In some instances this
+    is desired, in other instances it can be desired to have the property of Item be set to {'a': 3, 'b': 2}.
+    To automatically merge the dictionaries with those of the parent you can use::
+
+         from mdt.component_templates.base import merge_dicts
+
+         class Item(Template):
+            property = merge_dict({'a': 3})
+    """
+    return _MergeDict(dictionary)
+
 
 def bind_function(func):
     """This decorator is for methods in ComponentTemplates that we would like to bind to the constructed component.
@@ -108,6 +138,8 @@ class ComponentTemplateMeta(type):
         result.bound_methods = mcs._get_bound_methods(bases, attributes)
         result.subcomponents = mcs._get_subcomponents(attributes)
         result.name = mcs._get_component_name_attribute(name, bases, attributes)
+
+        mcs._apply_merge_dicts(result, bases, attributes)
 
         if len(_component_loading) == 1:
             try:
@@ -179,6 +211,30 @@ class ComponentTemplateMeta(type):
             if hasattr(base, attribute_name) and base_predicate(getattr(base, attribute_name)):
                 return getattr(base, attribute_name)
         raise ValueError('Attribute not found in this component config or its superclasses.')
+
+    @staticmethod
+    def _apply_merge_dicts(result, bases, attributes):
+        """Apply the :class:`_MergeDict` properties, if present.
+
+        This loops over all the attributes trying to find an attribute which is an instance of :class:`_MergeDict`.
+        If found, we merge the dictionary of the child with the parent dictionary.
+        """
+        def find_parent_dict(attribute_name):
+            for base in bases:
+                if hasattr(base, attribute_name):
+                    if getattr(base, attribute_name) is not None:
+                        return getattr(base, attribute_name)
+            return {}
+
+        for name in attributes:
+            if isinstance(attributes[name], _MergeDict):
+                parent_value = find_parent_dict(name)
+
+                merged = dict(parent_value)
+                merged.update(attributes[name])
+
+                attributes[name] = merged
+                setattr(result, name, merged)
 
 
 class ComponentTemplate(object, metaclass=ComponentTemplateMeta):

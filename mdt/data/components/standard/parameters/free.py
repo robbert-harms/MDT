@@ -92,7 +92,6 @@ class theta(FreeParameterTemplate):
 
     This parameter is limited between [0, pi] but with modulus pi. That is, 0 == pi and this parameter should be
     allowed to wrap around pi.
-
     """
     init_value = np.pi / 2.0
     lower_bound = 0
@@ -100,7 +99,7 @@ class theta(FreeParameterTemplate):
     parameter_transform = 'AbsModPi'
     sampling_proposal_std = 0.1
     sampling_proposal_modulus = np.pi
-    numdiff_info = {'scale_factor': 10}
+    numdiff_info = {'max_step': 0.1, 'scale_factor': 10}
 
 
 class phi(FreeParameterTemplate):
@@ -122,7 +121,7 @@ class phi(FreeParameterTemplate):
     parameter_transform = 'AbsModPi'
     sampling_proposal_std = 0.1
     sampling_proposal_modulus = np.pi
-    numdiff_info = {'scale_factor': 10}
+    numdiff_info = {'max_step': 0.1, 'scale_factor': 10}
 
 
 class psi(FreeParameterTemplate):
@@ -136,7 +135,7 @@ class psi(FreeParameterTemplate):
     parameter_transform = 'AbsModPi'
     sampling_proposal_modulus = np.pi
     sampling_proposal_std = 0.1
-    numdiff_info = {'scale_factor': 10, 'use_bounds': False}
+    numdiff_info = {'max_step': 0.1, 'scale_factor': 10, 'use_bounds': False}
 
 
 class d(FreeParameterTemplate):
@@ -190,7 +189,7 @@ class kappa(FreeParameterTemplate):
     lower_bound = 0
     upper_bound = 64
     sampling_proposal_std = 0.01
-    numdiff_info = {'max_step': 0.1, 'use_upper_bound': False}
+    numdiff_info = {'use_upper_bound': False}
 
 
 class k1(FreeParameterTemplate):
@@ -199,7 +198,7 @@ class k1(FreeParameterTemplate):
     lower_bound = 0
     upper_bound = 64
     sampling_proposal_std = 0.01
-    numdiff_info = {'max_step': 0.1, 'use_upper_bound': False}
+    numdiff_info = {'use_upper_bound': False}
 
 
 class kw(FreeParameterTemplate):
@@ -208,7 +207,7 @@ class kw(FreeParameterTemplate):
     lower_bound = 1
     upper_bound = 64
     sampling_proposal_std = 0.01
-    numdiff_info = {'max_step': 0.1, 'use_upper_bound': False}
+    numdiff_info = {'use_upper_bound': False}
 
 
 class d_exvivo(FreeParameterTemplate):
