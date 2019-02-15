@@ -29,7 +29,7 @@ from mdt.utils import create_roi, load_samples
 import collections
 
 from mot.sample import AdaptiveMetropolisWithinGibbs, SingleComponentAdaptiveMetropolis
-from mdt.model_building.utils import ObjectiveFunctionWrapper
+from mdt.model_building.utils import ParameterDecodingWrapper
 from mot.configuration import CLRuntimeInfo
 from mot.optimize import minimize
 from mot.sample.mwg import MetropolisWithinGibbs
@@ -468,10 +468,10 @@ class FittingProcessor(SimpleModelProcessor):
             lower_bounds, upper_bounds = codec.encode_bounds(self._model.get_lower_bounds(),
                                                              self._model.get_upper_bounds())
 
-            wrapper = ObjectiveFunctionWrapper(x0.shape[1])
-            objective_func = wrapper.wrap_objective_function(self._model.get_objective_function(),
-                                                             codec.get_decode_function())
+            wrapper = ParameterDecodingWrapper(x0.shape[1], codec.get_decode_function())
             input_data = wrapper.wrap_input_data(self._model.get_kernel_data())
+            objective_func = wrapper.wrap_objective_function(self._model.get_objective_function())
+            constraints_func = wrapper.wrap_constraints_function(self._model.get_constraints_function())
 
             results = minimize(objective_func, x0, method=self._method,
                                nmr_observations=self._model.get_nmr_observations(),
@@ -479,6 +479,7 @@ class FittingProcessor(SimpleModelProcessor):
                                data=input_data,
                                lower_bounds=lower_bounds,
                                upper_bounds=upper_bounds,
+                               constraints_func=constraints_func,
                                options=self._optimizer_options)
 
             self._logger.info('Finished optimization')

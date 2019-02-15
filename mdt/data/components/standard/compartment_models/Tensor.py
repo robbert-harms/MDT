@@ -15,10 +15,10 @@ class Tensor(CompartmentTemplate):
         double adc = TensorApparentDiffusion(theta, phi, psi, d, dperp0, dperp1, g);
         return exp(-b * adc);
     '''
+    constraints = '''
+        constraints[0] = dperp0 - d;
+        constraints[1] = dperp1 - dperp0;
+    '''
     extra_prior = 'return dperp1 < dperp0 && dperp0 < d;'
-    post_optimization_modifiers = [DTIMeasures.post_optimization_modifier]
-    extra_optimization_maps = [
-        DTIMeasures.extra_optimization_maps,
-        noddi_dti_maps
-    ]
+    extra_optimization_maps = [DTIMeasures.extra_optimization_maps, noddi_dti_maps]
     extra_sampling_maps = [DTIMeasures.extra_sampling_maps]

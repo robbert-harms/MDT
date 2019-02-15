@@ -81,10 +81,10 @@ def get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=
 
         if model_name.startswith('BallStick_r2'):
             inits.update(get_subset(free_parameters, get_model_fit('BallStick_r1')))
-            inits['w_stick1.w'] = 0.05
+            inits['w_stick1.w'] = np.minimum(inits['w_stick0.w'], 0.05)
         elif model_name.startswith('BallStick_r3'):
             inits.update(get_subset(free_parameters, get_model_fit('BallStick_r2')))
-            inits['w_stick2.w'] = 0.05
+            inits['w_stick2.w'] = np.minimum(inits['w_stick1.w'], 0.05)
         elif model_name.startswith('Tensor'):
             fit_results = get_model_fit('BallStick_r1')
             inits.update(get_subset(free_parameters, fit_results))

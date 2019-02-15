@@ -5,10 +5,13 @@ import tatsu
 
 from mdt.component_templates.base import ComponentBuilder, ComponentTemplate
 from mdt.lib.components import get_component
+from mdt.model_building.parameters import FreeParameter, ProtocolParameter
 from mdt.models.composite import DMRICompositeModel
 from mot.lib.cl_function import CLFunction, SimpleCLFunction
 from mdt.model_building.trees import CompartmentModelTree
 import collections
+
+from mot.optimize.base import SimpleConstraintFunction
 
 __author__ = 'Robbert Harms'
 __date__ = "2017-02-14"
@@ -62,10 +65,6 @@ class DMRICompositeModelBuilder(ComponentBuilder):
 
                 self.nmr_parameters_for_bic_calculation = self.get_nmr_parameters()
 
-                self._post_optimization_modifiers.extend(_get_model_post_optimization_modifiers(
-                    self._model_functions_info.get_compartment_models()))
-                self._post_optimization_modifiers.extend(deepcopy(template.post_optimization_modifiers))
-
                 self._extra_optimization_maps_funcs.extend(_get_model_extra_optimization_maps_funcs(
                     self._model_functions_info.get_compartment_models()))
                 self._extra_optimization_maps_funcs.extend(deepcopy(template.extra_optimization_maps))
@@ -79,6 +78,13 @@ class DMRICompositeModelBuilder(ComponentBuilder):
 
                 self._model_priors.extend(_resolve_model_prior(
                     template.extra_prior, self._model_functions_info.get_model_parameter_list()))
+
+                constraint_func = _resolve_constraints(
+                    template.constraints, self._model_functions_info.get_model_parameter_list())
+                if constraint_func:
+                    self._constraints.append(constraint_func)
+                self._constraints.extend(_get_compartment_constraints(
+                    self._model_functions_info.get_compartment_models()))
 
             def _get_suitable_volume_indices(self, input_data):
                 volume_selection = template.volume_selection
@@ -111,24 +117,9 @@ class CompositeModelTemplate(ComponentTemplate):
 
         description (str): model description
 
-        post_optimization_modifiers (list): a list of modification callbacks to change the estimated
-            optimization points. This should not add new maps, for that use the ``additional_results`` directive.
-
-            Examples:
-
-            .. code-block:: python
-
-                post_optimization_modifiers = [lambda d: reorient_tensor(d),
-                                               lambda d: {'w_stick0.w': ..., 'w_stick1.w': ...}
-                                                ...]
-
-            This should return a dictionary with updated maps.
-
         extra_optimization_maps (list): a list of functions to return extra information maps based on a point estimate.
             This is called after the post optimization modifiers and after the model calculated uncertainties based
             on the Fisher Information Matrix. Therefore, these routines can propagate uncertainties in the estimates.
-            Please note that this is only for adding additional maps. For changing the point estimate of the
-            optimization, please use the ``post_optimization_modifiers`` directive.
 
             These functions should accept as single argument an object of type
             :class:`mdt.models.composite.ExtraOptimizationMapsInfo`.
@@ -202,13 +193,22 @@ class CompositeModelTemplate(ComponentTemplate):
         extra_prior (str, mdt.model_building.utils.ModelPrior or None): a model wide prior. This is used in conjunction
             with the compartment priors and the parameter priors. If a string is given we will automatically construct a
             :class:`mdt.model_building.utils.ModelPrior` from that string.
+
+        constraints (str or None): additional inequality constraints for this model. Each constraint needs to be
+            implemented as ``g(x)`` where we assume that ``g(x) <= 0``. For example, to implement a simple inequality
+            constraint like ``Tensor.d >= Tensor.dperp0``, we first write it as ``Tensor.dperp0 - Tensor.d <= 0``.
+            We can then implement it as::
+
+                constraints = 'constraints[0] = Tensor.dperp0 - Tensor.d;'
+
+            To add more constraint, add another entry to the ``constraints`` array. MDT parses the given text and
+            automatically recognizes the model parameter names and the number of constraints.
     """
     _component_type = 'composite_models'
     _builder = DMRICompositeModelBuilder()
 
     name = ''
     description = ''
-    post_optimization_modifiers = []
     extra_optimization_maps = []
     extra_sampling_maps = []
     model_expression = ''
@@ -221,6 +221,7 @@ class CompositeModelTemplate(ComponentTemplate):
     enforce_weights_sum_to_one = True
     volume_selection = None
     extra_prior = None
+    constraints = None
 
     @classmethod
     def meta_info(cls):
@@ -299,6 +300,96 @@ def _resolve_model_prior(prior, model_parameters):
             parameters.append('mot_float_type ' + dotted_name)
 
     return [SimpleCLFunction('mot_float_type', 'model_prior', parameters, prior)]
+
+
+def _get_compartment_constraints(compartments):
+    """Get a list of all the constraint functions defined in the compartments.
+
+    This function will add a wrapper around the constraint functions to make the inputs relative to the
+    compartment model. That it, the constraint functions of the compartments expect the parameter names without the
+    model name, whereas the expected input of the composite constraint functions is with the full model.map name.
+
+    Args:
+        compartments (list): the list of compartment models from which to get the constraints
+
+    Returns:
+        List[mot.optimize.base.ConstraintFunction]: list of constraint functions from the compartments.
+    """
+    constraints = []
+
+    def get_wrapped_function(compartment_name, original_constraint_func):
+        parameters = []
+        for param in original_constraint_func.get_parameters():
+            if isinstance(param, FreeParameter):
+                parameters.append(param.get_renamed('{}_{}'.format(compartment_name, param.name)))
+            elif isinstance(param, ProtocolParameter):
+                parameters.append(param)
+
+        body = original_constraint_func.get_cl_function_name() + \
+               '(' + ', '.join(p.name for p in parameters) + ', constraints);'
+
+        return SimpleConstraintFunction(
+            'void', 'wrapped_' + original_constraint_func.get_cl_function_name(),
+            parameters + ['local mot_float_type* constraints'],
+            body,
+            dependencies=[original_constraint_func],
+            nmr_constraints=original_constraint_func.get_nmr_constraints())
+
+    for compartment in compartments:
+        if compartment.get_constraints_func():
+            constraints.append(get_wrapped_function(compartment.name, compartment.get_constraints_func()))
+
+    return constraints
+
+
+def _resolve_constraints(constraint, model_parameters):
+    """Resolve the constraints.
+
+    This parses the given constraints to recognize the parameters and the number of constraints.
+
+    Args:
+        constraint (str): the string with the constraints
+        model_parameters (tuple(str)): the (model, parameter) tuples for all parameters in the model
+
+    Returns:
+        mot.optimize.base.ConstraintFunction: the additional constraint function for this composite model
+    """
+    if constraint is None:
+        return None
+
+    constraint_refs = re.findall(r'constraints\[(\d+)\]', constraint)
+
+    if not constraint_refs:
+        return None
+
+    nmr_constraints = max(map(int, constraint_refs)) + 1
+
+    parameters = []
+    protocol_parameters_seen = []
+    for m, p in model_parameters:
+        if isinstance(p, FreeParameter):
+            parameters.append(p.get_renamed('{}_{}'.format(m.name, p.name)))
+        elif isinstance(p, ProtocolParameter):
+            if p.name not in protocol_parameters_seen:
+                parameters.append(p)
+                protocol_parameters_seen.append(p.name)
+
+    dotted_names = ['{}.{}'.format(m.name, p.name) for m, p in model_parameters]
+    dotted_names.sort(key=len, reverse=True)
+
+    remaining_constraint = constraint
+    for dotted_name in dotted_names:
+        bar_name = dotted_name.replace('.', '_')
+
+        if dotted_name in remaining_constraint:
+            constraint = constraint.replace(dotted_name, bar_name)
+            remaining_constraint = remaining_constraint.replace(dotted_name, '')
+        elif bar_name in remaining_constraint:
+            remaining_constraint = remaining_constraint.replace(bar_name, '')
+
+    return SimpleConstraintFunction('void', 'model_constraints',
+                                    parameters + ['local mot_float_type* constraints'],
+                                    constraint, nmr_constraints=nmr_constraints)
 
 
 def _get_model_post_optimization_modifiers(compartments):

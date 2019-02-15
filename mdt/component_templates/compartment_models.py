@@ -1,3 +1,4 @@
+import re
 from copy import deepcopy, copy
 import numpy as np
 from mdt.component_templates.base import ComponentBuilder, ComponentTemplate
@@ -5,7 +6,9 @@ from mdt.lib.components import get_component, has_component
 from mdt.models.compartments import DMRICompartmentModelFunction, WeightCompartment, CacheInfo
 from mdt.utils import spherical_to_cartesian
 from mot.lib.cl_function import CLFunction, SimpleCLFunction, SimpleCLFunctionParameter, SimpleCLCodeObject
-from mdt.model_building.parameters import CurrentObservationParam, DataCacheParameter, NoiseStdInputParameter
+from mdt.model_building.parameters import CurrentObservationParam, DataCacheParameter, NoiseStdInputParameter, \
+    FreeParameter, ProtocolParameter
+from mot.optimize.base import SimpleConstraintFunction
 
 __author__ = 'Robbert Harms'
 __date__ = "2017-02-14"
@@ -46,9 +49,10 @@ class CompartmentBuilder(ComponentBuilder):
                     parameters,
                     template.cl_code,
                     dependencies=dependencies,
+                    constraints_func=_resolve_constraints(template.constraints, template.name,
+                                                          parameters, dependencies),
                     model_function_priors=_resolve_prior(template.extra_prior, template.name,
                                                          [p.name for p in parameters]),
-                    post_optimization_modifiers=template.post_optimization_modifiers,
                     extra_optimization_maps_funcs=builder._get_extra_optimization_map_funcs(template, parameters),
                     extra_sampling_maps_funcs= builder._get_extra_sampling_map_funcs(template, parameters),
                     proposal_callbacks=builder._get_proposal_callbacks(template, parameters),
@@ -238,25 +242,9 @@ class CompartmentTemplate(ComponentTemplate):
             or a string with a CL function body. If the latter, the :class:`~mdt.models.compartments.CompartmentPrior`
             is automatically constructed based on the content of the string (automatic parameter recognition).
 
-        post_optimization_modifiers (list): a list of modification callbacks to change the estimated
-            optimization points. This should not add new maps, for that use
-            the ``extra_optimization_maps_funcs`` directive.
-
-            Examples:
-
-            .. code-block:: python
-
-                post_optimization_modifiers = [lambda d: reorient_tensor(d),
-                                               lambda d: sort_maps(d)
-                                           ...]
-
-            Each function should accept the results dictionary as input and return a dictionary with new maps.
-
         extra_optimization_maps (list): a list of functions to return extra information maps based on a point estimate.
-            This is called after the post optimization modifiers and after the model calculated uncertainties based
-            on the Fisher Information Matrix. Therefore, these routines can propagate uncertainties in the estimates.
-            Please note that this is only for adding additional maps. For changing the point estimate of the
-            optimization, please use the ``post_optimization_modifiers`` directive.
+            This is called after the model calculated uncertainties based on the Fisher Information Matrix.
+            Therefore, these routines can propagate uncertainties in the estimates.
 
             These functions should accept as single argument an object of type
             :class:`mdt.models.composite.ExtraOptimizationMapsInfo`.
@@ -296,6 +284,15 @@ class CompartmentTemplate(ComponentTemplate):
             to a variable using the cache. An optional element in the cache info is "use_local_reduction"
             which specifies that for this compartment we use all workitems in the workgroup. If not set, or if False,
             we will execute the cache CL code only for the first work item. The default is True.
+
+        constraints (str or None): additional inequality constraints for this model. Each constraint needs to be
+            implemented as ``g(x)`` where we assume that ``g(x) <= 0``. For example, to implement a simple inequality
+            constraint like ``d >= dperp0``, we first write it as ``dperp0 - d <= 0``. We can then implement it as::
+
+                constraints = 'constraints[0] = dperp0 - d;'
+
+            To add more constraint, add another entry to the ``constraints`` array. MDT parses the given text and
+            automatically recognizes the model parameter names and the number of constraints.
     """
     _component_type = 'compartment_models'
     _builder = CompartmentBuilder()
@@ -308,11 +305,11 @@ class CompartmentTemplate(ComponentTemplate):
     dependencies = []
     return_type = 'double'
     extra_prior = None
-    post_optimization_modifiers = []
     extra_optimization_maps = []
     extra_sampling_maps = []
     spherical_parameters = ('theta', 'phi')
     cache_info = None
+    constraints = None
 
 
 class WeightCompartmentTemplate(ComponentTemplate):
@@ -381,6 +378,38 @@ def _resolve_prior(prior, compartment_name, compartment_parameters):
 
     parameters = ['mot_float_type ' + p for p in compartment_parameters if p in prior]
     return [SimpleCLFunction('mot_float_type', 'prior_' + compartment_name, parameters, prior)]
+
+
+def _resolve_constraints(constraint, compartment_name, compartment_parameters, dependencies):
+    """Create a constraint function out of the given constraint information.
+
+    Args:
+        constraint (str or None): The string containing the constraints
+        compartment_name (str): the name of the compartment
+        compartment_parameters (list of parameters): the list of parameters of this compartment
+            We only use the free and protocol parameters in the constraint functions.
+
+    Returns:
+        mot.optimize.base.ConstraintFunction: the constraint function for this compartment model
+    """
+    if constraint is None:
+        return None
+
+    constraint_refs = re.findall(r'constraints\[(\d+)\]', constraint)
+
+    if not constraint_refs:
+        return None
+
+    nmr_constraints = max(map(int, constraint_refs)) + 1
+
+    parameters = []
+    for param in compartment_parameters:
+        if isinstance(param, (FreeParameter, ProtocolParameter)):
+            parameters.append(param)
+
+    return SimpleConstraintFunction('void', compartment_name + '_constraints',
+                                    parameters + ['local mot_float_type* constraints'],
+                                    constraint, dependencies=dependencies, nmr_constraints=nmr_constraints)
 
 
 def _resolve_parameters(parameter_list, compartment_name):

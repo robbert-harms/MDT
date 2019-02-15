@@ -89,11 +89,11 @@ class KurtosisTensor(CompartmentTemplate):
     dependencies = ['TensorApparentDiffusion', 'KurtosisMultiplication']
     cl_code = '''
         double adc = TensorApparentDiffusion(theta, phi, psi, d, dperp0, dperp1, g);
-
+        
         if(adc <= 0.0){
             return 1;
         }
-
+        
         double tensor_md_2 = pown((d + dperp0 + dperp1) / 3.0, 2);
 
         double kurtosis_sum = KurtosisMultiplication(
@@ -101,19 +101,27 @@ class KurtosisTensor(CompartmentTemplate):
             W_2220, W_2111, W_2221, W_1100, W_2200, W_2211,
             W_2100, W_2110, W_2210, g);
 
-        if(kurtosis_sum < 0 || (((tensor_md_2 * b) / adc) * kurtosis_sum) > 3.0){
-            return INFINITY;
-        }
-
         return exp(-b*adc + (b*b)/6.0 * tensor_md_2 * kurtosis_sum);
     '''
 
     extra_prior = 'return dperp1 < dperp0 && dperp0 < d;'
 
-    auto_add_cartesian_vector = False
-    post_optimization_modifiers = [
-        DTIMeasures.post_optimization_modifier
-    ]
+    constraints = '''
+        constraints[0] = dperp0 - d;
+        constraints[1] = dperp1 - dperp0;
+        
+        double adc = TensorApparentDiffusion(theta, phi, psi, d, dperp0, dperp1, g);
+        
+        double tensor_md_2 = pown((d + dperp0 + dperp1) / 3.0, 2);
+        double kurtosis_sum = KurtosisMultiplication(
+            W_0000, W_1111, W_2222, W_1000, W_2000, W_1110,
+            W_2220, W_2111, W_2221, W_1100, W_2200, W_2211,
+            W_2100, W_2110, W_2210, g);
+        
+        if(kurtosis_sum < 0 || (((tensor_md_2 * b) / adc) * kurtosis_sum) > 3.0){
+            atomic_add_l_mft(&constraints[2], INFINITY); 
+        }
+    '''
     extra_optimization_maps = [
         DTIMeasures.extra_optimization_maps,
         DKIMeasures.extra_optimization_maps,

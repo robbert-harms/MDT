@@ -54,7 +54,14 @@ class NODDI_ExVivo(CompositeModelTemplate):
 
 
 class NODDIDA(NODDI):
-    """The NODDIDA model, NODDI without the Ball compartment and without fixing parameters."""
+    """The NODDIDA model, NODDI without the Ball compartment and without fixing parameters.
+
+    This implements the constraint NODDI_EC.d <= NODDI_IC.d as described in [1].
+
+    References:
+        1. Nicolas Kunz, et al., Intra- and extra-axonal axial diffusivities in the white matter: Which one is faster?,
+            NeuroImage, 2018. DOI: https://doi.org/10.1016/j.neuroimage.2018.07.020.
+    """
 
     model_expression = '''
         S0 * ((Weight(w_ic) * NODDI_IC) +
@@ -63,6 +70,10 @@ class NODDIDA(NODDI):
     fixes = {'NODDI_EC.kappa': 'NODDI_IC.kappa',
              'NODDI_EC.theta': 'NODDI_IC.theta',
              'NODDI_EC.phi': 'NODDI_IC.phi'}
+
+    constraints = '''
+        constraints[0] = NODDI_EC.d - NODDI_IC.d; 
+    '''
 
     extra_optimization_maps = [NODDIMeasures.noddi_watson_extra_optimization_maps]
     extra_sampling_maps = [NODDIMeasures.noddi_watson_extra_sampling_maps]

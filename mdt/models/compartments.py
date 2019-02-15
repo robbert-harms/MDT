@@ -11,14 +11,14 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 class CompartmentModel(ModelCLFunction):
 
-    def get_post_optimization_modifiers(self):
-        """Get a list of post optimization modification callbacks.
+    def get_constraints_func(self):
+        """Get a tuple with the constraint function information.
 
-        These functions are the first to be called after model optimization, allowing the compartment to transform
-        the optimization results.
+        If no constraints are defined for this model function, return None
 
         Returns:
-             list of functions: the list of functions to be called
+            None or mot.optimize.base.ConstraintFunction: None if no constraints are defined for this model. Else,
+                a constraint function.
         """
         raise NotImplementedError()
 
@@ -82,21 +82,20 @@ class CompartmentModel(ModelCLFunction):
 class DMRICompartmentModelFunction(CompartmentModel, SimpleModelCLFunction):
 
     def __init__(self, return_type, cl_function_name, parameters, cl_body, dependencies=None,
-                 model_function_priors=None, post_optimization_modifiers=None,
+                 constraints_func=None, model_function_priors=None,
                  extra_optimization_maps_funcs=None, extra_sampling_maps_funcs=None, proposal_callbacks=None,
                  nickname=None, cache_info=None):
         """Create a new dMRI compartment model function.
 
         Args:
+            return_type (str): the CL return type
             cl_function_name (str): the name of this function in the CL kernel
             parameters (list of CLFunctionParameter): the list of the function parameters
             cl_body (str): the body of the CL code
             dependencies (list): the list of functions we depend on inside the kernel
-            return_type (str): the CL return type
+            constraints_func (mot.optimize.base.ConstraintFunction): a constraint function for this compartment
             model_function_priors (list of mot.lib.cl_function.CLFunction): additional
                 compartment priors on top of the parameter priors.
-            post_optimization_modifiers (None or list or tuple): a list of modification callbacks to alter the
-                optimized point.
             extra_optimization_maps_funcs (None or list or tuple): a list of modification callbacks to add new maps
                 after optimization.
             extra_sampling_maps_funcs (None or list or tuple): a list of functions that can return additional maps
@@ -111,11 +110,11 @@ class DMRICompartmentModelFunction(CompartmentModel, SimpleModelCLFunction):
         super().__init__(return_type, cl_function_name, parameters, cl_body, dependencies=dependencies,
                          model_function_priors=model_function_priors)
         self._nickname = nickname
-        self._post_optimization_modifiers = post_optimization_modifiers or []
         self._extra_optimization_maps_funcs = extra_optimization_maps_funcs or []
         self._extra_sampling_maps_funcs = extra_sampling_maps_funcs or []
         self._proposal_callbacks = proposal_callbacks or []
         self._cache_info = cache_info
+        self._constraints_func = constraints_func
 
         if not self._cache_info and len([p for p in parameters if isinstance(p, DataCacheParameter)]):
             self._cache_info = CacheInfo([], '')
@@ -124,8 +123,8 @@ class DMRICompartmentModelFunction(CompartmentModel, SimpleModelCLFunction):
     def name(self):
         return self._nickname or self.get_cl_function_name()
 
-    def get_post_optimization_modifiers(self):
-        return self._post_optimization_modifiers
+    def get_constraints_func(self):
+        return self._constraints_func
 
     def get_extra_optimization_maps_funcs(self):
         return self._extra_optimization_maps_funcs
@@ -245,8 +244,8 @@ class WeightCompartment(CompartmentModel, WeightType):
     def name(self):
         return self._nickname or self.get_cl_function_name()
 
-    def get_post_optimization_modifiers(self):
-        return []
+    def get_constraints_func(self):
+        return None
 
     def get_extra_optimization_maps_funcs(self):
         return []

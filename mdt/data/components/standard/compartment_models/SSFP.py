@@ -37,8 +37,11 @@ class SSFP_Tensor(CompartmentTemplate):
         double adc = TensorApparentDiffusion(theta, phi, psi, d, dperp0, dperp1, g);
         return SSFP(adc, delta, G, TR, flip_angle, b1, T1, T2);
     '''
+    constraints = '''
+        constraints[0] = dperp0 - d;
+        constraints[1] = dperp1 - dperp0;
+    '''
     extra_prior = 'return dperp1 < dperp0 && dperp0 < d;'
-    post_optimization_modifiers = [DTIMeasures.post_optimization_modifier]
     extra_optimization_maps = [DTIMeasures.extra_optimization_maps]
     extra_sampling_maps = [DTIMeasures.extra_sampling_maps]
 

@@ -141,7 +141,7 @@ class psi(FreeParameterTemplate):
 class d(FreeParameterTemplate):
 
     init_value = 1.7e-9
-    lower_bound = 1e-11
+    lower_bound = 1e-12
     upper_bound = 1.0e-8
     parameter_transform = ScaleTransform(1e10)
     sampling_proposal_std = 1e-10

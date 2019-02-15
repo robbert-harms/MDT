@@ -1,8 +1,5 @@
-from collections import OrderedDict
-
 import numpy as np
 from mdt import CompositeModelTemplate
-from mdt.lib.post_processing import get_sort_modifier
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
@@ -51,12 +48,9 @@ class CHARMED_r2(CompositeModelTemplate):
              'w_res0.w': 0.1,
              'w_res1.w': 0.1}
 
-    post_optimization_modifiers = [
-        get_sort_modifier(OrderedDict([
-            ('w_res0.w', ('w_res0', 'CHARMEDRestricted0')),
-            ('w_res1.w', ('w_res1', 'CHARMEDRestricted1'))
-        ]))
-    ]
+    constraints = '''
+        constraints[0] = w_res1.w - w_res0.w;
+    '''
 
     extra_optimization_maps = [
         lambda results: {'FR': 1 - results['w_hin0.w']},
@@ -90,13 +84,10 @@ class CHARMED_r3(CompositeModelTemplate):
              'w_res1.w': 0.1,
              'w_res2.w': 0.1}
 
-    post_optimization_modifiers = [
-        get_sort_modifier(OrderedDict([
-            ('w_res0.w', ('w_res0', 'CHARMEDRestricted0')),
-            ('w_res1.w', ('w_res1', 'CHARMEDRestricted1')),
-            ('w_res2.w', ('w_res2', 'CHARMEDRestricted2'))
-        ]))
-    ]
+    constraints = '''
+        constraints[0] = w_res1.w - w_res0.w;
+        constraints[1] = w_res2.w - w_res1.w;
+    '''
 
     extra_optimization_maps = [
         lambda results: {'FR': 1 - results['w_hin0.w']},

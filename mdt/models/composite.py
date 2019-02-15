@@ -26,6 +26,7 @@ from mdt.utils import calculate_point_estimate_information_criterions, is_scalar
     create_covariance_matrix
 from mot.library_functions import pseudo_inverse_real_symmetric_matrix_upper_triangular
 from mot.mcmc_diagnostics import multivariate_ess, univariate_ess
+from mot.optimize.base import SimpleConstraintFunction
 
 __author__ = 'Robbert Harms'
 __date__ = "2014-10-26"
@@ -52,20 +53,15 @@ class DMRICompositeModel(DMRIOptimizable):
                 noise model to use to add noise to the model prediction
             input_data (mdt.utils.MRIInputData): the input data container
             enforce_weights_sum_to_one (boolean): if we want to enforce that weights sum to one. This does the
-                following things; it fixes the first weight to the sum of the others and it adds a transformation
-                that ensures that those other weights sum to at most one.
+                following things; it fixes the first weight to the sum of the others and it adds a constraint
+                to ensure that the remaining weights sum to maximally 1.
             volume_selection (boolean): if we should do volume selection or not, set this before
                 calling ``set_input_data``.
 
         Attributes:
-            _post_optimization_modifiers (list): the list with post optimization modifiers. Every element
-                should contain a tuple with (str, Func) or (tuple, Func): where the first element is a single
-                output name or a list with output names and the Func is a callback function that returns one or more
-                output maps.
-
-            model_priors (List[mot.lib.cl_function.CLFunction]): the list of model priors this class
+            _constraints (List[mot.optimize.base.ConstraintFunction]): the constraint functions
+            _model_priors (List[mot.lib.cl_function.CLFunction]): the list of model priors this class
                 will also use (next to the priors defined in the parameters).
-
             _proposal_callbacks (Iterable[Tuple[Tuple[CompartmentFunction, CLFunctionParameter], CLFunction]]):
                 the list of proposal callbacks. Each element in the list consists of a tuple with two elements,
                 first a reference to the used compartments (as a list of (compartment, parameter) tuples),
@@ -100,9 +96,14 @@ class DMRICompositeModel(DMRIOptimizable):
 
         self._set_default_dependencies()
 
+        self._constraints = []
         self._model_priors = []
 
         if self._enforce_weights_sum_to_one:
+            weight_constraint = self._get_weight_constraint()
+            if weight_constraint:
+                self._constraints.append(weight_constraint)
+
             weight_prior = self._get_weight_prior()
             if weight_prior:
                 self._model_priors.append(weight_prior)
@@ -116,7 +117,6 @@ class DMRICompositeModel(DMRIOptimizable):
         self._logger = logging.getLogger(__name__)
         self._original_input_data = None
 
-        self._post_optimization_modifiers = []
         self._extra_optimization_maps_funcs = []
         self._extra_sampling_maps_funcs = []
         self._proposal_callbacks = []
@@ -185,6 +185,10 @@ class DMRICompositeModel(DMRIOptimizable):
     def get_objective_function(self):
         """For minimization, get the negative of the log-likelihood function."""
         return self._get_log_likelihood_function(True, True)
+
+    def get_constraints_function(self):
+        """The function for the (inequality) constraints."""
+        return self._get_constraints_function()
 
     def get_log_likelihood_function(self):
         """For sampling, get the log-likelihood function."""
@@ -350,9 +354,6 @@ class DMRICompositeModel(DMRIOptimizable):
             d.update(self._get_dependent_map_calculator()(self, d))
             d.update(self._get_fixed_parameter_maps(self._voxels_to_analyze))
 
-            for routine in self._post_optimization_modifiers:
-                d.update(routine(d))
-
             results[..., position_ind] = self._param_dict_to_array(d)
         return results
 
@@ -369,10 +370,9 @@ class DMRICompositeModel(DMRIOptimizable):
 
             1) Add the maps for the dependent and fixed parameters
             2) Add the fixed maps to the results
-            3) Apply each of the ``post_optimization_modifiers`` functions
-            4) Add information criteria maps
-            5) Calculate the covariance matrix according to the Fisher Information Matrix theory
-            6) Add the additional results from the ``additional_result_funcs``
+            3) Add information criteria maps
+            4) Calculate the covariance matrix according to the Fisher Information Matrix theory
+            5) Add the additional results from the ``additional_result_funcs``
 
         Args:
             results_dict (dict): A dictionary with as keys the names of the parameters and as values the 1d maps with
@@ -389,15 +389,8 @@ class DMRICompositeModel(DMRIOptimizable):
         if results_array is None:
             results_array = self._param_dict_to_array(results_dict)
 
-        if self._post_optimization_modifiers:
-            results_dict['raw'] = copy.copy(results_dict)
-
         results_dict.update(self._get_dependent_map_calculator()(self, results_dict))
         results_dict.update(self._get_fixed_parameter_maps(self._voxels_to_analyze))
-
-        for routine in self._post_optimization_modifiers:
-            results_dict.update(routine(results_dict))
-
         results_dict.update(self._get_post_optimization_information_criterion_maps(
             results_array, log_likelihoods=log_likelihoods))
 
@@ -740,9 +733,6 @@ class DMRICompositeModel(DMRIOptimizable):
                 void parameter_encode(void* data, local mot_float_type* x){
                     _mdt_model_data* model_data = (_mdt_model_data*)data;
             '''
-            if self._enforce_weights_sum_to_one:
-                func += self._get_weight_sum_to_one_transformation()
-
             for d in self._get_parameter_transformations()[0]:
                 func += "\n" + "\t" * 4 + d.format('x')
 
@@ -758,9 +748,6 @@ class DMRICompositeModel(DMRIOptimizable):
             '''
             for d in self._get_parameter_transformations()[1]:
                 func += "\n" + "\t" * 4 + d.format('x')
-
-            if self._enforce_weights_sum_to_one:
-                func += self._get_weight_sum_to_one_transformation()
 
             func += '''
                 }
@@ -1309,21 +1296,6 @@ class DMRICompositeModel(DMRIOptimizable):
                 epsilons.append(np.mean(proposal_std) * scaling_factor)
         return epsilons
 
-    def _get_weight_sum_to_one_transformation(self):
-        """Returns a snippet of CL for the encode and decode functions to force the sum of the weights to 1"""
-        weight_indices = []
-        for (m, p) in self._model_functions_info.get_estimable_weights():
-            weight_indices.append(self._model_functions_info.get_parameter_estimable_index(m, p))
-
-        if len(weight_indices) > 1:
-            return '''
-                mot_float_type _weight_sum = ''' + ' + '.join('x[{}]'.format(index) for index in weight_indices) + ''';
-                if(_weight_sum > 1.0){
-                    ''' + '\n'.join('x[{}] /= _weight_sum;'.format(index) for index in weight_indices) + '''
-                }
-            '''
-        return ''
-
     def _set_default_dependencies(self):
         """Initialize the default dependencies.
 
@@ -1439,7 +1411,8 @@ class DMRICompositeModel(DMRIOptimizable):
             param_name = '{}.{}'.format(m.name, p.name).replace('.', '_')
             return '(' + data_type + ') model_data->{}'.format(param_name)
         elif self._model_functions_info.is_fixed_to_dependency(m, p):
-            return self._get_dependent_parameters_listing(((m, p),))
+            dependency = self._model_functions_info.get_parameter_value('{}.{}'.format(m.name, p.name))
+            return self._convert_parameters_dot_to_bar(dependency.assignment_code)
 
         ind = self._model_functions_info.get_parameter_estimable_index(m, p)
         return 'x[' + str(ind) + ']'
@@ -1497,19 +1470,24 @@ class DMRICompositeModel(DMRIOptimizable):
         protocol_params_seen = []
         func = ''
         for m, p in param_list:
-            value = self._get_protocol_value(p)
-
             if p.name not in protocol_params_seen:
-                if all_elements_equal(value):
-                    assignment = 'model_data->protocol->' + p.name
-                elif len(value.shape) > 1 and value.shape[0] == self._input_data.nmr_problems and \
-                    value.shape[1] != self._input_data.nmr_observations:
-                    assignment = 'model_data->protocol->' + p.name + '[0]'
-                else:
-                    assignment = 'model_data->protocol->' + p.name + '[observation_index]'
+                assignment = self._get_protocol_parameter_assignment(p)
                 func += "\t" * 4 + p.ctype + ' ' + p.name + ' = ' + assignment + ';' + "\n"
                 protocol_params_seen.append(p.name)
         return func
+
+    def _get_protocol_parameter_assignment(self, parameter):
+        """Get the assignment value for the given protocol parameter."""
+        value = self._get_protocol_value(parameter)
+
+        if all_elements_equal(value):
+            assignment = 'model_data->protocol->' + parameter.name
+        elif len(value.shape) > 1 and value.shape[0] == self._input_data.nmr_problems and \
+            value.shape[1] != self._input_data.nmr_observations:
+            assignment = 'model_data->protocol->' + parameter.name + '[0]'
+        else:
+            assignment = 'model_data->protocol->' + parameter.name + '[observation_index]'
+        return assignment
 
     def _get_fixed_parameters_listing(self):
         """Get the parameter listing for the fixed parameters.
@@ -1923,6 +1901,83 @@ class DMRICompositeModel(DMRIOptimizable):
             if compartment.get_cache_struct('local'):
                 elements.update(compartment.get_cache_struct('local'))
         return elements
+
+    def _get_constraints_function(self):
+        constraint_ind = 0
+        func_calls = []
+        for constraint_func in self._constraints:
+            func_call_params = []
+            for param in constraint_func.get_parameters():
+                if isinstance(param, FreeParameter):
+                    func_call_params.append(param.name)
+                elif isinstance(param, ProtocolParameter):
+                    func_call_params.append(self._get_protocol_parameter_assignment(param))
+
+            func_calls.append('{func}({params}, constraints + {ind});'.format(
+                func=constraint_func.get_cl_function_name(),
+                params=', '.join(func_call_params),
+                ind=constraint_ind
+            ))
+            constraint_ind += constraint_func.get_nmr_constraints()
+
+        params_listing = ''
+        params_listing += self._get_fixed_parameters_listing()
+        params_listing += self._get_estimable_parameters_listing()
+        params_listing += self._get_dependent_parameters_listing()
+
+        nmr_constraints = sum([c.get_nmr_constraints() for c in self._constraints])
+
+        return SimpleConstraintFunction.from_string('''
+                void modeling_constraints(
+                        local const mot_float_type* const x, 
+                        void* data,
+                        local mot_float_type* constraints){
+
+                    if(get_local_id(0) == 0){
+                        for(uint i = 0; i < ''' + str(nmr_constraints) + '''; i++){
+                            constraints[i] = 0;            
+                        }
+                    }
+                    barrier(CLK_LOCAL_MEM_FENCE);
+                    
+                    _mdt_model_data* model_data = (_mdt_model_data*)data;
+                    ''' + params_listing + '''
+                    
+                    const uint nmr_observations = ''' + str(self.get_nmr_observations()) + ''';
+                    uint local_id = get_local_id(0);
+                    uint workgroup_size = get_local_size(0);
+                    uint observation_index;
+    
+                    for(uint i = 0; i < (nmr_observations + workgroup_size - 1) / workgroup_size; i++){
+                        observation_index = i * workgroup_size + local_id;
+    
+                        if(observation_index < nmr_observations){
+                            ''' + '\n'.join(func_calls) + '''
+                        }
+                    }
+                    barrier(CLK_LOCAL_MEM_FENCE);
+            }
+        ''', dependencies=self._constraints,
+             nmr_constraints=nmr_constraints)
+
+    def _get_weight_constraint(self):
+        """Get the constraint limiting the sum of the weights to 1.
+
+        Return:
+            tuple: CLFunction, int: the constraint function and an integer for the number of constraints
+                in the function.
+        """
+        weights = []
+        for (m, p) in self._model_functions_info.get_estimable_weights():
+            weights.append(p.get_renamed('{}_{}'.format(m.name, p.name)))
+
+        if len(weights) > 1:
+            return SimpleConstraintFunction(
+                'void', 'constraint_weights_sum_to_one',
+                weights + ['local mot_float_type* constraints'],
+                'constraints[0] = (' + ' + '.join(w.name for w in weights) + ') - 1;',
+                nmr_constraints=1)
+        return None
 
     def _get_log_prior_function(self):
         def get_dependencies():
@@ -2431,15 +2486,27 @@ class ModelFunctionsInformation:
         """Get the parameter object of the given full parameter name in dot format.
 
         Args:
-            parameter_name (string): the parameter name in dot format: <model>.<param>
+            parameter_name (string): the parameter name in dot format ``<model>.<param>``, or in bar format
+                ``<model>_<param>``. If the bar format leads to ambiguous results, an exception will be raised.
 
         Returns:
             tuple: containing the (model, parameter) pair for the given parameter name
         """
+        matches = []
         for m, p in self.get_model_parameter_list():
             if '{}.{}'.format(m.name, p.name) == parameter_name:
-                return m, p
-        raise ValueError('The parameter with the name "{}" could not be found in this model.'.format(parameter_name))
+                matches.append((m, p))
+            elif '{}_{}'.format(m.name, p.name) == parameter_name:
+                matches.append((m, p))
+
+        if not matches:
+            raise ValueError('The parameter with the name "{}" could not be '
+                             'found in this model.'.format(parameter_name))
+        elif len(matches) > 1:
+            raise ValueError('Two parameters with the same name have been found in this model for the search key "{}", '
+                             'namely: {}'.format(parameter_name,
+                                                 ', '.join('{}.{}'.format(m.name, p.name) for m, p in matches)))
+        return matches[0]
 
     def is_fixed(self, parameter_name):
         """Check if the given (free) parameter is fixed or not (either to a value or to a dependency).

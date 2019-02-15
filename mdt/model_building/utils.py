@@ -1,5 +1,6 @@
 from mot.lib.cl_function import SimpleCLFunction
 from mot.lib.kernel_data import Array, Struct, LocalMemory
+from mot.optimize.base import SimpleConstraintFunction
 
 __author__ = 'Robbert Harms'
 __date__ = '2017-05-29'
@@ -8,10 +9,23 @@ __email__ = 'robbert.harms@maastrichtuniversity.nl'
 __licence__ = 'LGPL v3'
 
 
-class ObjectiveFunctionWrapper:
+class ParameterDecodingWrapper:
 
-    def __init__(self, nmr_parameters):
+    def __init__(self, nmr_parameters, decode_function):
+        """Wrap the objective function and constraint function with parameter decoding.
+
+        Args:
+            nmr_parameters (int): the number of parameters to decode
+            decode_function (mot.lib.cl_function.CLFunction): An OpenCL function that is used in the CL kernel to
+                    transform the parameters from encoded space to model space so they can be used as input to the model.
+                    The signature of the CL function is:
+
+                    .. code-block:: c
+
+                        void <fname>(void* data, local mot_float_type* x);
+        """
         self._nmr_parameters = nmr_parameters
+        self._decode_function = decode_function
 
     def wrap_input_data(self, input_data):
         """Wrap the input data with extra information this wrapper might need.
@@ -25,11 +39,8 @@ class ObjectiveFunctionWrapper:
         return Struct({'data': input_data, 'x_tmp': LocalMemory('mot_float_type', nmr_items=self._nmr_parameters)},
                       'objective_function_wrapper_data')
 
-    def wrap_objective_function(self, objective_function, decode_function):
+    def wrap_objective_function(self, objective_function):
         """Decorates the given objective function with parameter decoding.
-
-        This will change the given parameter vector in-place. This is possible because the optimization routines
-        make a copy of the vector before handing it over to the optimization function.
 
         Args:
             objective_function (mot.lib.cl_function.CLFunction): A CL function with the signature:
@@ -39,15 +50,6 @@ class ObjectiveFunctionWrapper:
                     double <func_name>(local mot_float_type* x,
                                        void* data,
                                        local mot_float_type* objective_list);
-            decode_function (mot.lib.cl_function.CLFunction): An OpenCL function that is used in the CL kernel to
-                    transform the parameters from encoded space to model space so they can be used as input to the model.
-                    The signature of the CL function is:
-
-                    .. code-block:: c
-
-                        void <fname>(void* data, local mot_float_type* x);
-
-            nmr_parameters (int): the number of parameters we are decoding.
 
         Returns:
             mot.lib.cl_function.CLFunction: the wrapped objective function.
@@ -64,7 +66,7 @@ class ObjectiveFunctionWrapper:
                     for(uint i = 0; i < ''' + str(self._nmr_parameters) + '''; i++){
                         x_tmp[i] = x[i];
                     }
-                    ''' + decode_function.get_cl_function_name() + '''(
+                    ''' + self._decode_function.get_cl_function_name() + '''(
                         ((objective_function_wrapper_data*)data)->data, 
                         x_tmp);
                 }
@@ -73,7 +75,46 @@ class ObjectiveFunctionWrapper:
                 return ''' + objective_function.get_cl_function_name() + '''(
                     x_tmp, ((objective_function_wrapper_data*)data)->data, objective_list);    
             }
-        ''', dependencies=[objective_function, decode_function])
+        ''', dependencies=[objective_function, self._decode_function])
+
+    def wrap_constraints_function(self, constraints_func):
+        """Decorates the given constraint function with parameter decoding.
+
+        Args:
+            constraints_func (mot.optimize.base.ConstraintFunction): A CL function with the signature:
+
+                .. code-block:: c
+
+                    void <func_name>(local mot_float_type* x,
+                                     void* data,
+                                     local mot_float_type* constraints);
+
+        Returns:
+            mot.optimize.base.ConstraintFunction: the wrapped constraint function.
+        """
+        return SimpleConstraintFunction.from_string('''
+            void wrapped_''' + constraints_func.get_cl_function_name() + '''(
+                    local mot_float_type* x,
+                    void* data, 
+                    local mot_float_type* constraints){
+
+                local mot_float_type* x_tmp = ((objective_function_wrapper_data*)data)->x_tmp;
+
+                if(get_local_id(0) == 0){
+                    for(uint i = 0; i < ''' + str(self._nmr_parameters) + '''; i++){
+                        x_tmp[i] = x[i];
+                    }
+                    ''' + self._decode_function.get_cl_function_name() + '''(
+                        ((objective_function_wrapper_data*)data)->data, 
+                        x_tmp);
+                }
+                barrier(CLK_LOCAL_MEM_FENCE);
+
+                ''' + constraints_func.get_cl_function_name() + '''(
+                    x_tmp, ((objective_function_wrapper_data*)data)->data, constraints);    
+            }
+        ''', dependencies=[constraints_func, self._decode_function],
+             nmr_constraints=constraints_func.get_nmr_constraints())
 
 
 class ParameterCodec:
