@@ -53,8 +53,8 @@ class DMRICompositeModel(DMRIOptimizable):
                 noise model to use to add noise to the model prediction
             input_data (mdt.utils.MRIInputData): the input data container
             enforce_weights_sum_to_one (boolean): if we want to enforce that weights sum to one. This does the
-                following things; it fixes the first weight to the sum of the others and it adds a constraint
-                to ensure that the remaining weights sum to maximally 1.
+                following things; it fixes the first weight to the sum of the others and it adds a transformation
+                that ensures that those other weights sum to at most one.
             volume_selection (boolean): if we should do volume selection or not, set this before
                 calling ``set_input_data``.
 
@@ -100,10 +100,6 @@ class DMRICompositeModel(DMRIOptimizable):
         self._model_priors = []
 
         if self._enforce_weights_sum_to_one:
-            weight_constraint = self._get_weight_constraint()
-            if weight_constraint:
-                self._constraints.append(weight_constraint)
-
             weight_prior = self._get_weight_prior()
             if weight_prior:
                 self._model_priors.append(weight_prior)
@@ -733,6 +729,9 @@ class DMRICompositeModel(DMRIOptimizable):
                 void parameter_encode(void* data, local mot_float_type* x){
                     _mdt_model_data* model_data = (_mdt_model_data*)data;
             '''
+            if self._enforce_weights_sum_to_one:
+                func += self._get_weight_sum_to_one_transformation()
+
             for d in self._get_parameter_transformations()[0]:
                 func += "\n" + "\t" * 4 + d.format('x')
 
@@ -748,6 +747,9 @@ class DMRICompositeModel(DMRIOptimizable):
             '''
             for d in self._get_parameter_transformations()[1]:
                 func += "\n" + "\t" * 4 + d.format('x')
+
+            if self._enforce_weights_sum_to_one:
+                func += self._get_weight_sum_to_one_transformation()
 
             func += '''
                 }
@@ -1295,6 +1297,21 @@ class DMRICompositeModel(DMRIOptimizable):
             else:
                 epsilons.append(np.mean(proposal_std) * scaling_factor)
         return epsilons
+
+    def _get_weight_sum_to_one_transformation(self):
+        """Returns a snippet of CL for the encode and decode functions to force the sum of the weights to 1"""
+        weight_indices = []
+        for (m, p) in self._model_functions_info.get_estimable_weights():
+            weight_indices.append(self._model_functions_info.get_parameter_estimable_index(m, p))
+
+        if len(weight_indices) > 1:
+            return '''
+                mot_float_type _weight_sum = ''' + ' + '.join('x[{}]'.format(index) for index in weight_indices) + ''';
+                if(_weight_sum > 1.0){
+                    ''' + '\n'.join('x[{}] /= _weight_sum;'.format(index) for index in weight_indices) + '''
+                }
+            '''
+        return ''
 
     def _set_default_dependencies(self):
         """Initialize the default dependencies.
@@ -1959,25 +1976,6 @@ class DMRICompositeModel(DMRIOptimizable):
             }
         ''', dependencies=self._constraints,
              nmr_constraints=nmr_constraints)
-
-    def _get_weight_constraint(self):
-        """Get the constraint limiting the sum of the weights to 1.
-
-        Return:
-            tuple: CLFunction, int: the constraint function and an integer for the number of constraints
-                in the function.
-        """
-        weights = []
-        for (m, p) in self._model_functions_info.get_estimable_weights():
-            weights.append(p.get_renamed('{}_{}'.format(m.name, p.name)))
-
-        if len(weights) > 1:
-            return SimpleConstraintFunction(
-                'void', 'constraint_weights_sum_to_one',
-                weights + ['local mot_float_type* constraints'],
-                'constraints[0] = (' + ' + '.join(w.name for w in weights) + ') - 1;',
-                nmr_constraints=1)
-        return None
 
     def _get_log_prior_function(self):
         def get_dependencies():
