@@ -568,6 +568,8 @@ class SamplingProcessor(SimpleModelProcessor):
 
             if self._method in ['AMWG', 'SCAM', 'MWG', 'FSL']:
                 method_args.append(self._model.get_rwm_proposal_stds())
+
+            if self._method in ['AMWG', 'SCAM', 'MWG', 'FSL', 't-walk']:
                 method_kwargs.update(finalize_proposal_func=self._model.get_finalize_proposal_function())
 
             if self._method == 'AMWG':
@@ -582,7 +584,6 @@ class SamplingProcessor(SimpleModelProcessor):
             elif self._method == 't-walk':
                 method = ThoughtfulWalk
                 method_args.append(self._model.get_random_parameter_positions()[..., 0])
-                method_kwargs.update(finalize_proposal_func=self._model.get_finalize_proposal_function())
 
             method_kwargs.update(self._sampler_options)
 

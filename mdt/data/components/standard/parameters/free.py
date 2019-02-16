@@ -6,6 +6,7 @@ value to disable them from being optimized in a given situation, but they remain
 
 import numpy as np
 from mdt import FreeParameterTemplate
+from mdt.component_templates.parameters import PolarAngleParameterTemplate, AzimuthAngleParameterTemplate
 from mdt.model_building.parameter_functions.priors import UniformWithinBoundsPrior, ARDBeta, ARDGaussian
 from mdt.model_building.parameter_functions.transformations import ScaleTransform
 
@@ -87,47 +88,28 @@ class R2s(FreeParameterTemplate):
     parameter_transform = ScaleTransform(1e2)
 
 
-class theta(FreeParameterTemplate):
-    """The inclination/polar angle.
+class theta(PolarAngleParameterTemplate):
+    """The polar/inclination angle for spherical coordinates.
 
-    This parameter is limited between [0, pi] but with modulus pi. That is, 0 == pi and this parameter should be
-    allowed to wrap around pi.
+    We subclass from a special spherical coordinate template class to signal to the composite model we
+    want to restrict this parameter between [0, pi], together with phi.
     """
-    init_value = np.pi / 2.0
-    lower_bound = 0
-    upper_bound = np.pi
-    parameter_transform = 'AbsModPi'
-    sampling_proposal_std = 0.1
-    sampling_proposal_modulus = np.pi
-    numdiff_info = {'max_step': 0.1, 'scale_factor': 10}
 
 
-class phi(FreeParameterTemplate):
-    """The azimuth angle.
+class phi(AzimuthAngleParameterTemplate):
+    """The azimuth angle for spherical coordinates.
 
-    We limit this parameter between [0, pi] making us only use (together with theta between [0, pi]) only the right
-    hemisphere. This is possible since diffusion is symmetric and works fine during optimization. For calculating the
-    numerical derivative we can let phi rotate around 2*pi again.
-
-    During sample the results can clip to pi since the standard formula for transforming spherical coordinates to
-    cartesian coordinates defines phi to be in the range [0, 2*pi]. This is both a problem and a blessing. The problem
-    is that the samples will not wrap nicely around pi, the blessing is that we prevent a bimodal distribution in phi.
-    Not wrapping around pi is not much of a problem though, as the sampler can easily sample only half of a gaussian
-    if the optimal parameter is around zero or pi.
+    We subclass from a special spherical coordinate template class to signal to the composite model we
+    want to restrict this parameter between [0, pi], together with theta.
     """
-    init_value = np.pi / 2.0
-    lower_bound = 0
-    upper_bound = np.pi
-    parameter_transform = 'AbsModPi'
-    sampling_proposal_std = 0.1
-    sampling_proposal_modulus = np.pi
-    numdiff_info = {'max_step': 0.1, 'scale_factor': 10}
 
 
 class psi(FreeParameterTemplate):
     """The rotation angle for use in cylindrical models.
 
     This parameter can be used to rotate a vector around another vector, as is for example done in the Tensor model.
+
+    This parameter is not part of the spherical coordinate parameters.
     """
     init_value = np.pi / 2.0
     lower_bound = 0

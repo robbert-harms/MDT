@@ -126,15 +126,43 @@ class FreeParameter(SimpleCLFunctionParameter):
         return self._numdiff_info
 
 
+class SphericalCoordinateParameter(FreeParameter):
+    """Template base class for spherical coordinate parameters.
+
+    These are meant to be inherited by the polar angle class and the azimuth angle class.
+    """
+
+
+class PolarAngleParameter(SphericalCoordinateParameter):
+    """Polar angle for use in spherical coordinate systems.
+
+    If a compartment uses both a :class:`PolarAngleParameter` and :class:`AzimuthAngleParameter`,
+    the composite model will ensure that the resulting cartesian coordinates are within the right spherical hemisphere.
+    This is possible since diffusion is symmetric.
+
+    In the background, we limit both the the polar angle and the azimuth angle between [0, pi] parameter
+    between [0, pi] by projecting any other angle combination onto the right spherical hemisphere.
+    """
+
+
+class AzimuthAngleParameter(SphericalCoordinateParameter):
+    """Azimuth angle for use in spherical coordinate systems.
+
+    If a compartment uses both a :class:`PolarAngleParameter` and :class:`AzimuthAngleParameter`,
+    the composite model will ensure that the resulting cartesian coordinates are within the right spherical hemisphere.
+    This is possible since diffusion is symmetric.
+
+    In the background, we limit both the the polar angle and the azimuth angle between [0, pi] parameter
+    between [0, pi] by projecting any other angle combination onto the right spherical hemisphere.
+    """
+
+
 class NoiseStdFreeParameter(FreeParameter):
+    """Specifies that this parameter should be set to the current noise standard deviation estimate.
 
-    def __init__(self, *args, **kwargs):
-        """Specifies that this parameter should be set to the current noise standard deviation estimate.
-
-        Parameters of this type are only meant to be used in the likelihood functions. They indicate the
-        parameter to use for the initialization of the noise standard deviation.
-        """
-        super().__init__(*args, **kwargs)
+    Parameters of this type are only meant to be used in the likelihood functions. They indicate the
+    parameter to use for the initialization of the noise standard deviation.
+    """
 
 
 class NoiseStdInputParameter(SimpleCLFunctionParameter):

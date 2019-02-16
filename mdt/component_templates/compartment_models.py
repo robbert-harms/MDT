@@ -55,7 +55,6 @@ class CompartmentBuilder(ComponentBuilder):
                                                          [p.name for p in parameters]),
                     extra_optimization_maps_funcs=builder._get_extra_optimization_map_funcs(template, parameters),
                     extra_sampling_maps_funcs= builder._get_extra_sampling_map_funcs(template, parameters),
-                    proposal_callbacks=builder._get_proposal_callbacks(template, parameters),
                     nickname=nickname,
                     cache_info=builder._get_cache_info(template))
 
@@ -85,57 +84,6 @@ class CompartmentBuilder(ComponentBuilder):
         if all(map(lambda name: name in [p.name for p in parameter_list], ('theta', 'phi'))):
             extra_sampling_maps.append(compute)
         return extra_sampling_maps
-
-    def _get_proposal_callbacks(self, template, parameter_list):
-        """Get a list of proposal callback functions.
-
-        These functions are (indirectly) called by a MCMC sample routine to finalize the new proposal vector.
-
-        Returns:
-            List[(Tuple, mot.lib.cl_function.CLFunction)]: a list of proposal callback functions coupled with
-                references to the compartment parameters used in the function.
-        """
-        callbacks = []
-
-        def existing_parameters(param_list):
-            param_names = [p.name for p in parameter_list]
-            return all(p in param_names for p in param_list)
-
-        def get_corresponding_param(param_name):
-            for p in parameter_list:
-                if p.name == param_name:
-                    return p
-
-        if template.spherical_parameters is not None and existing_parameters(template.spherical_parameters):
-            corresponding_params = [get_corresponding_param(p) for p in template.spherical_parameters]
-
-            func = SimpleCLFunction(
-                'void',
-                'proposal_callback_spherical_{}'.format(template.name),
-                ['mot_float_type* theta', 'mot_float_type* phi'],
-                '''
-                    if(*phi > M_PI_F){
-                        *phi -= M_PI_F;
-                        *theta = M_PI_F - *theta;
-                    }
-                    else if(*phi < 0){
-                        *phi += M_PI_F;
-                        *theta = M_PI_F - *theta;
-                    }
-            ''')
-            callbacks.append((corresponding_params, func))
-
-        for p in parameter_list:
-            if hasattr(p, 'sampling_proposal_modulus') and p.sampling_proposal_modulus is not None:
-                func = SimpleCLFunction(
-                    'void',
-                    'proposal_callback_{}_{}'.format(template.name, p.name),
-                    ['mot_float_type* ' + p.name],
-                    '*{0} = *{0} - floor(*{0} / {1}) * {1};'.format(p.name, p.sampling_proposal_modulus))
-
-                callbacks.append(([p], func))
-
-        return callbacks
 
     def _get_cache_info(self, template):
         if template.cache_info is None:
@@ -216,6 +164,8 @@ class CompartmentTemplate(ComponentTemplate):
 
         description (str): model description
 
+        return_type (str): the return type of this compartment, defaults to double.
+
         parameters (list): the list of parameters to use. A few options are possible per item, that is, if given:
 
             * a string, we will look for a corresponding parameter with the given name
@@ -228,19 +178,37 @@ class CompartmentTemplate(ComponentTemplate):
             * the literal ``@noise_std``, this injects the current value of the noise standard sigma parameter value
                  of the likelihood function in this parameter.
 
+        dependencies (list): the list of functions this function depends on, can contain string which will be
+            resolved as library functions.
+
         cl_code (str): the CL code definition to use, please provide here the body of your CL function.
 
         cl_extra (str): additional CL code for your model. This will be prepended to the body of your CL function.
 
-        dependencies (list): the list of functions this function depends on, can contain string which will be
-            resolved as library functions.
+        constraints (str or None): additional inequality constraints for this model. Each constraint needs to be
+            implemented as ``g(x)`` where we assume that ``g(x) <= 0``. For example, to implement a simple inequality
+            constraint like ``d >= dperp0``, we first write it as ``dperp0 - d <= 0``. We can then implement it as::
 
-        return_type (str): the return type of this compartment, defaults to double.
+                constraints = 'constraints[0] = dperp0 - d;'
+
+            To add more constraint, add another entry to the ``constraints`` array. MDT parses the given text and
+            automatically recognizes the model parameter names and the number of constraints.
 
         extra_prior (str or None): an extra MCMC sample prior for this compartment. This is additional to the priors
             defined in the parameters. This should be an instance of :class:`~mdt.models.compartments.CompartmentPrior`
             or a string with a CL function body. If the latter, the :class:`~mdt.models.compartments.CompartmentPrior`
             is automatically constructed based on the content of the string (automatic parameter recognition).
+
+        cache_info (dict): the data cache information. This works in combination with specifying the ``@cache``
+            parameter for this compartment. The cache info should have two elements, ``fields`` and ``cl_code``.
+            The fields specify the items we need to store in the structure, the syntax per field is either a string
+            like ``double alpha`` or a tuple like ``('double', 'alpha')``. Specifying a tuple also allows for specifying
+            arrays like: ``('double', 'beta', 10)``. The CL code given by ``cl_code`` is supposed to fill the cache.
+            This cl_code will be wrapped in a function with as arguments all free parameters of the compartments,
+            and the cache. The fields in the cache are accessible using ``*cache->alpha``, i.e. dereferencing a pointer
+            to a variable using the cache. An optional element in the cache info is "use_local_reduction"
+            which specifies that for this compartment we use all workitems in the workgroup. If not set, or if False,
+            we will execute the cache CL code only for the first work item. The default is True.
 
         extra_optimization_maps (list): a list of functions to return extra information maps based on a point estimate.
             This is called after the model calculated uncertainties based on the Fisher Information Matrix.
@@ -266,33 +234,6 @@ class CompartmentTemplate(ComponentTemplate):
 
                 extra_sampling_maps = [lambda s: {'MD': np.mean((s['d'] + s['dperp0'] + s['dperp1'])/3., axis=1)}
                                       ...]
-
-        spherical_parameters (tuple or None): if None, this feature is disabled. If set, it should be a tuple
-            with two elements for the name of the inclination and the azimuth parameters in the compartment model
-            (defaults to 'theta' and 'phi'). If set to such a tuple, the compartment model will automatically add a
-            proposal callback function that ensures that the these spherical coordinates are sampled correctly for
-            values near theta == PI. Additionally, this callback function is used when computing the numerical
-            derivative.
-
-        cache_info (dict): the data cache information. This works in combination with specifying the ``@cache``
-            parameter for this compartment. The cache info should have two elements, ``fields`` and ``cl_code``.
-            The fields specify the items we need to store in the structure, the syntax per field is either a string
-            like ``double alpha`` or a tuple like ``('double', 'alpha')``. Specifying a tuple also allows for specifying
-            arrays like: ``('double', 'beta', 10)``. The CL code given by ``cl_code`` is supposed to fill the cache.
-            This cl_code will be wrapped in a function with as arguments all free parameters of the compartments,
-            and the cache. The fields in the cache are accessible using ``*cache->alpha``, i.e. dereferencing a pointer
-            to a variable using the cache. An optional element in the cache info is "use_local_reduction"
-            which specifies that for this compartment we use all workitems in the workgroup. If not set, or if False,
-            we will execute the cache CL code only for the first work item. The default is True.
-
-        constraints (str or None): additional inequality constraints for this model. Each constraint needs to be
-            implemented as ``g(x)`` where we assume that ``g(x) <= 0``. For example, to implement a simple inequality
-            constraint like ``d >= dperp0``, we first write it as ``dperp0 - d <= 0``. We can then implement it as::
-
-                constraints = 'constraints[0] = dperp0 - d;'
-
-            To add more constraint, add another entry to the ``constraints`` array. MDT parses the given text and
-            automatically recognizes the model parameter names and the number of constraints.
     """
     _component_type = 'compartment_models'
     _builder = CompartmentBuilder()
@@ -307,7 +248,6 @@ class CompartmentTemplate(ComponentTemplate):
     extra_prior = None
     extra_optimization_maps = []
     extra_sampling_maps = []
-    spherical_parameters = ('theta', 'phi')
     cache_info = None
     constraints = None
 

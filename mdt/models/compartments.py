@@ -43,18 +43,6 @@ class CompartmentModel(ModelCLFunction):
         """
         raise NotImplementedError()
 
-    def get_proposal_callbacks(self):
-        """Get a list of proposal callbacks.
-
-        These are (indirectly) called by the MCMC sampler to finalize every proposal. That is, they can change the
-        proposal before it is handed to the prior and likelihood function.
-
-        Returns:
-            List[Tuple(Tuple(CLFunctionParameter), mot.lib.cl_function.CLFunction)]: a list with all the
-                information per callback
-        """
-        raise NotImplementedError()
-
     def get_cache_struct(self, address_space):
         """Get the cache data for this compartment model.
 
@@ -83,7 +71,7 @@ class DMRICompartmentModelFunction(CompartmentModel, SimpleModelCLFunction):
 
     def __init__(self, return_type, cl_function_name, parameters, cl_body, dependencies=None,
                  constraints_func=None, model_function_priors=None,
-                 extra_optimization_maps_funcs=None, extra_sampling_maps_funcs=None, proposal_callbacks=None,
+                 extra_optimization_maps_funcs=None, extra_sampling_maps_funcs=None,
                  nickname=None, cache_info=None):
         """Create a new dMRI compartment model function.
 
@@ -100,9 +88,6 @@ class DMRICompartmentModelFunction(CompartmentModel, SimpleModelCLFunction):
                 after optimization.
             extra_sampling_maps_funcs (None or list or tuple): a list of functions that can return additional maps
                 after sampling.
-            proposal_callbacks (List[Tuple(Tuple(CLFunctionParameter), mot.lib.cl_function.CLFunction)]): additional
-                proposal callback functions. These are (indirectly) called by the MCMC sampler to finalize every
-                proposal.
             nickname (str or None): the nickname of this compartment model function. If given, this is the name of this
                 compartment in a composite model function tree
             cache_info (Optional[CacheInfo]): the cache information for this compartment
@@ -112,7 +97,6 @@ class DMRICompartmentModelFunction(CompartmentModel, SimpleModelCLFunction):
         self._nickname = nickname
         self._extra_optimization_maps_funcs = extra_optimization_maps_funcs or []
         self._extra_sampling_maps_funcs = extra_sampling_maps_funcs or []
-        self._proposal_callbacks = proposal_callbacks or []
         self._cache_info = cache_info
         self._constraints_func = constraints_func
 
@@ -131,9 +115,6 @@ class DMRICompartmentModelFunction(CompartmentModel, SimpleModelCLFunction):
 
     def get_extra_sampling_maps_funcs(self):
         return self._extra_sampling_maps_funcs
-
-    def get_proposal_callbacks(self):
-        return self._proposal_callbacks
 
     def get_cache_struct(self, address_space):
         if not self._cache_info:
@@ -251,9 +232,6 @@ class WeightCompartment(CompartmentModel, WeightType):
         return []
 
     def get_extra_sampling_maps_funcs(self):
-        return []
-
-    def get_proposal_callbacks(self):
         return []
 
     def get_cache_struct(self, address_space):

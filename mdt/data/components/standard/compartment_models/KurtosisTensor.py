@@ -110,8 +110,7 @@ class KurtosisTensor(CompartmentTemplate):
         constraints[0] = dperp0 - d;
         constraints[1] = dperp1 - dperp0;
         
-        double adc = TensorApparentDiffusion(theta, phi, psi, d, dperp0, dperp1, g);
-        
+        double adc = TensorApparentDiffusion(theta, phi, psi, d, dperp0, dperp1, g);        
         double tensor_md_2 = pown((d + dperp0 + dperp1) / 3.0, 2);
         double kurtosis_sum = KurtosisMultiplication(
             W_0000, W_1111, W_2222, W_1000, W_2000, W_1110,
@@ -119,6 +118,9 @@ class KurtosisTensor(CompartmentTemplate):
             W_2100, W_2110, W_2210, g);
         
         if(kurtosis_sum < 0 || (((tensor_md_2 * b) / adc) * kurtosis_sum) > 3.0){
+            // need to have the literal "constraints[2]" for the parsing
+            // if out of bounds we immediately go to infinity
+            // combines two bounds
             atomic_add_l_mft(&constraints[2], INFINITY); 
         }
     '''

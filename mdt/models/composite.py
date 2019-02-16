@@ -15,7 +15,8 @@ from mdt.model_building.utils import ParameterCodec
 from mot.lib.cl_function import SimpleCLFunction, SimpleCLFunctionParameter
 from mot.cl_routines import compute_log_likelihood, estimate_hessian
 from mdt.model_building.parameters import ProtocolParameter, FreeParameter, CurrentObservationParam, \
-    DataCacheParameter, CurrentModelSignalParam, NoiseStdFreeParameter, NoiseStdInputParameter
+    DataCacheParameter, CurrentModelSignalParam, NoiseStdFreeParameter, NoiseStdInputParameter, PolarAngleParameter, \
+    AzimuthAngleParameter
 from mot.configuration import CLRuntimeInfo
 from mot.lib.utils import all_elements_equal, get_single_value
 from mot.lib.kernel_data import Array, Zeros, Scalar, LocalMemory, Struct, CompositeArray, PrivateMemory
@@ -115,7 +116,6 @@ class DMRICompositeModel(DMRIOptimizable):
 
         self._extra_optimization_maps_funcs = []
         self._extra_sampling_maps_funcs = []
-        self._proposal_callbacks = []
 
         if self._enforce_weights_sum_to_one:
             self._extra_optimization_maps_funcs.append(self._get_propagate_weights_uncertainty)
@@ -197,62 +197,17 @@ class DMRICompositeModel(DMRIOptimizable):
     def get_finalize_proposal_function(self):
         """Get the function used to finalize the proposal.
 
-        This function is used to finalize the proposals during sampling, as well as to finalize the proposals generated
-        by the numerical Hessian routine.
+        This function is used to finalize the proposals during sampling.
 
         Returns:
             mot.lib.cl_function.CLFunction: the CL function used to finalize a proposal during sampling.
         """
-
-        def get_applicable_proposal_callbacks():
-            """Since some of the model parameters may be fixed, not all callbacks are applicable."""
-            applicable_callbacks = []
-
-            for callback_info in self._proposal_callbacks:
-                if all(self._model_functions_info.is_parameter_estimable(m, p) for m, p in callback_info[0]):
-                    applicable_callbacks.append(callback_info)
-            return applicable_callbacks
-
-        def get_function_call_strings():
-            func_call_strings = []
-            for compartment_parameters, func in get_applicable_proposal_callbacks():
-                full_param_names = []
-                for compartment, parameter in compartment_parameters:
-                    full_param_names.append('{}.{}'.format(compartment.name, parameter.name).replace('.', '_'))
-
-                func_call_strings.append(func.get_cl_function_name() + '(' + ', '.join(
-                    '&' + name for name in full_param_names) + '); \n')
-            return func_call_strings
-
-        def get_parameter_names_indices():
-            param_names = []
-            param_indices = []
-
-            for compartment_parameters, func in get_applicable_proposal_callbacks():
-                for compartment, parameter in compartment_parameters:
-                    param_ind = self._model_functions_info.get_parameter_estimable_index(compartment, parameter)
-                    full_param_name = '{}.{}'.format(compartment.name, parameter.name).replace('.', '_')
-
-                    if full_param_name not in param_names:
-                        param_names.append(full_param_name)
-                        param_indices.append(param_ind)
-
-            return param_names, param_indices
-
-        body = '_mdt_model_data* model_data = (_mdt_model_data*)data;'
-
-        for name, ind in zip(*get_parameter_names_indices()):
-            body += 'mot_float_type {} = x[{}]; \n'.format(name, str(ind))
-
-        body += '\n'.join(get_function_call_strings())
-
-        for name, ind in zip(*get_parameter_names_indices()):
-            body += 'x[{}] = {}; \n'.format(str(ind), name)
-
-        return SimpleCLFunction('void', 'finalizeProposal',
-                                ['void* data',
-                                 'local mot_float_type* x'],
-                                body, dependencies=[func for _, func in self._proposal_callbacks])
+        return SimpleCLFunction.from_string('''
+            void finalizeProposal(void* data, local mot_float_type* x){
+                _mdt_model_data* model_data = (_mdt_model_data*)data;
+                ''' + '\n'.join(self._get_spherical_transformations()) + '''
+            }
+        ''', dependencies=[self._get_spherical_transformation_func()])
 
     def get_initial_parameters(self):
         """Get the initial parameters for eac of the voxels in ``voxels_to_analyze``.
@@ -574,15 +529,10 @@ class DMRICompositeModel(DMRIOptimizable):
         Afterwards we inverse the Hessian and compute a correlation matrix.
 
         Args:
-            results_dict (dict): the list with the optimized points for each parameter
+            results_array (ndarray): the list with the optimized points for each parameter
         """
         nmr_params = self.get_nmr_parameters()
         scales = self._get_numdiff_scaling_factors()
-
-        parameter_transform_func = self.get_finalize_proposal_function()
-        if parameter_transform_func is None:
-            parameter_transform_func = SimpleCLFunction.from_string(
-                'void voidTransform(void* data, local mot_float_type* x){}')
 
         wrapped_objective = SimpleCLFunction.from_string('''
             double wrapped_''' + self.get_objective_function().get_cl_function_name() + '''(
@@ -599,7 +549,7 @@ class DMRICompositeModel(DMRIOptimizable):
                 return ''' + self.get_objective_function().get_cl_function_name() + '''(
                     x_tmp, ((hessian_function_wrapper_data*)data)->data, 0);    
             }
-        ''', dependencies=[self.get_objective_function(), parameter_transform_func])
+        ''', dependencies=[self.get_objective_function()])
 
         wrapped_input_data = Struct({
             'data': self.get_kernel_data(),
@@ -718,11 +668,39 @@ class DMRICompositeModel(DMRIOptimizable):
     def get_parameter_codec(self):
         """Get a parameter codec that can be used to transform the parameters to and from optimization and model space.
 
-        This is typically used as input to the ParameterTransformedModel decorator model.
+        This does two things:
+        - It applies the transformation of each of the parameters
+        - For compartments with both a :class:`mdt.model_building.parameters.PolarAngleParameter` and
+          :class:`mdt.model_building.parameters.AzimuthAngleParameter`, we apply the right spherical transformation
+          to put the spherical coordinates in the right spherical hemisphere.
 
         Returns:
             mdt.model_building.utils.ParameterCodec: an instance of a parameter codec
         """
+        def get_parameter_transformations():
+            """Get the encode and decode transformations for each of the parameters. """
+            dec_func_list = []
+            enc_func_list = []
+            for m, p in self._model_functions_info.get_estimable_parameters_list():
+                parameter = p
+                ind = self._model_functions_info.get_parameter_estimable_index(m, p)
+                transform = parameter.parameter_transform
+
+                s = '{0}[' + str(ind) + '] = ' + transform.get_cl_decode().create_assignment(
+                    '{0}[' + str(ind) + ']',
+                    'model_data->bounds->lower_bounds[' + str(ind) + ']',
+                    'model_data->bounds->upper_bounds[' + str(ind) + ']') + ';'
+
+                dec_func_list.append(s)
+
+                s = '{0}[' + str(ind) + '] = ' + transform.get_cl_encode().create_assignment(
+                    '{0}[' + str(ind) + ']',
+                    'model_data->bounds->lower_bounds[' + str(ind) + ']',
+                    'model_data->bounds->upper_bounds[' + str(ind) + ']') + ';'
+
+                enc_func_list.append(s)
+
+            return tuple(reversed(enc_func_list)), dec_func_list
 
         def get_encode_function():
             func = '''
@@ -732,21 +710,27 @@ class DMRICompositeModel(DMRIOptimizable):
             if self._enforce_weights_sum_to_one:
                 func += self._get_weight_sum_to_one_transformation()
 
-            for d in self._get_parameter_transformations()[0]:
+            for transformation in self._get_spherical_transformations():
+                func += '\n' + '\t' * 4 + transformation
+
+            for d in get_parameter_transformations()[0]:
                 func += "\n" + "\t" * 4 + d.format('x')
 
             func += '''
                 }
             '''
-            return SimpleCLFunction.from_string(func)
+            return SimpleCLFunction.from_string(func, dependencies=[self._get_spherical_transformation_func()])
 
         def get_decode_function():
             func = '''
                 void parameter_decode(void* data, local mot_float_type* x){
                     _mdt_model_data* model_data = (_mdt_model_data*)data;
             '''
-            for d in self._get_parameter_transformations()[1]:
+            for d in get_parameter_transformations()[1]:
                 func += "\n" + "\t" * 4 + d.format('x')
+
+            for transformation in self._get_spherical_transformations():
+                func += '\n' + '\t' * 4 + transformation
 
             if self._enforce_weights_sum_to_one:
                 func += self._get_weight_sum_to_one_transformation()
@@ -754,7 +738,7 @@ class DMRICompositeModel(DMRIOptimizable):
             func += '''
                 }
             '''
-            return SimpleCLFunction.from_string(func)
+            return SimpleCLFunction.from_string(func, dependencies=[self._get_spherical_transformation_func()])
 
         def encode_bounds_func(lower_bounds, upper_bounds):
             encoded_lbs = []
@@ -1579,6 +1563,62 @@ class DMRICompositeModel(DMRIOptimizable):
         return {'lower_bounds': CompositeArray(lower_bounds, 'float', address_space='local'),
                 'upper_bounds': CompositeArray(upper_bounds, 'float', address_space='local')}
 
+    def _get_spherical_parameters(self):
+        """Get the spherical parameter pairs for each of the compartments.
+
+        Returns:
+            List[tuple]: (compartment, (spherical parameters)) nested tuple for each compartment that has
+                the spherical coordinate parameters.
+        """
+        spherical_params = []
+        for compartment in self._model_functions_info.get_compartment_models():
+            polar = list(filter(lambda p: isinstance(p, PolarAngleParameter), compartment.get_parameters()))
+            azimuth = list(filter(lambda p: isinstance(p, AzimuthAngleParameter), compartment.get_parameters()))
+
+            if polar and azimuth:
+                spherical_params.append((compartment, (polar[0], azimuth[0])))
+        return spherical_params
+
+    def _get_spherical_transformation_func(self):
+        """The transformation function for restraining the spherical coordinates with the right spherical hemisphere."""
+        return SimpleCLFunction.from_string('''
+            void _ensure_right_spherical_hemisphere(local mot_float_type* theta, local mot_float_type* phi){
+                if(*phi > M_PI_F){
+                    *phi -= M_PI_F;
+                    *theta = M_PI_F - *theta;
+                }
+                else if(*phi < 0){
+                    *phi += M_PI_F;
+                    *theta = M_PI_F - *theta;
+                }
+                *theta = *theta - floor(*theta / M_PI_F) * M_PI_F;
+                *phi = *phi - floor(*phi / M_PI_F) * M_PI_F;
+            }
+        ''')
+
+    def _get_spherical_transformations(self):
+        """Get the spherical transformations as a list of CL functions on the parameter vector x."""
+        spherical_transformations = []
+        for compartment, params in self._get_spherical_parameters():
+            polar_is_free = self._model_functions_info.is_parameter_estimable(compartment, params[0])
+            azimuth_is_free = self._model_functions_info.is_parameter_estimable(compartment, params[1])
+
+            if polar_is_free and azimuth_is_free:
+                polar_ind = self._model_functions_info.get_parameter_estimable_index(compartment, params[0])
+                azimuth_ind = self._model_functions_info.get_parameter_estimable_index(compartment, params[1])
+                spherical_transformations.append(
+                    '_ensure_right_spherical_hemisphere(x + {}, x + {});'.format(polar_ind, azimuth_ind)
+                )
+            elif polar_is_free:
+                polar_ind = self._model_functions_info.get_parameter_estimable_index(compartment, params[0])
+                spherical_transformations.append(
+                    'x[{0}] = x[{0}] - floor(x[{0}] / M_PI_F) * M_PI_F;'.format(polar_ind))
+            elif azimuth_is_free:
+                azimuth_ind = self._model_functions_info.get_parameter_estimable_index(compartment, params[1])
+                spherical_transformations.append(
+                    'x[{0}] = x[{0}] - floor(x[{0}] / M_PI_F) * M_PI_F;'.format(azimuth_ind))
+        return spherical_transformations
+
     def _transform_observations(self, observations):
         """Apply a transformation on the observations before fitting.
 
@@ -1874,31 +1914,6 @@ class DMRICompositeModel(DMRIOptimizable):
             for key, value in cb.get_kernel_input_data(voxels_to_analyze).items():
                 return_items['cb{}_{}'.format(str(ind), key)] = value
         return return_items
-
-    def _get_parameter_transformations(self):
-        dec_func_list = []
-        enc_func_list = []
-        for m, p in self._model_functions_info.get_estimable_parameters_list():
-            name = '{}.{}'.format(m.name, p.name)
-            parameter = p
-            ind = self._model_functions_info.get_parameter_estimable_index(m, p)
-            transform = parameter.parameter_transform
-
-            s = '{0}[' + str(ind) + '] = ' + transform.get_cl_decode().create_assignment(
-                '{0}[' + str(ind) + ']',
-                'model_data->bounds->lower_bounds[' + str(ind) + ']',
-                'model_data->bounds->upper_bounds[' + str(ind) + ']') + ';'
-
-            dec_func_list.append(s)
-
-            s = '{0}[' + str(ind) + '] = ' + transform.get_cl_encode().create_assignment(
-                '{0}[' + str(ind) + ']',
-                'model_data->bounds->lower_bounds[' + str(ind) + ']',
-                'model_data->bounds->upper_bounds[' + str(ind) + ']') + ';'
-
-            enc_func_list.append(s)
-
-        return tuple(reversed(enc_func_list)), dec_func_list
 
     def _get_nmr_problems(self, voxels_to_analyze):
         """See super class for details"""
@@ -2510,7 +2525,7 @@ class ModelFunctionsInformation:
         """Check if the given (free) parameter is fixed or not (either to a value or to a dependency).
 
         Args:
-            parameter_name (str): the name of the parameter to fix or unfix
+            parameter_name (str): the name of the parameter to check if it is fixed, in dot format.
 
         Returns:
             boolean: if the parameter is fixed or not (can be fixed to a value or dependency).
@@ -2521,7 +2536,7 @@ class ModelFunctionsInformation:
         """Check if the given (free) parameter is fixed to a value.
 
         Args:
-            parameter_name (str): the name of the parameter to fix or unfix
+            parameter_name (str): the name of the parameter to check if it is fixed, in dot format.
 
         Returns:
             boolean: if the parameter is fixed to a value or not

@@ -73,9 +73,6 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                     self._model_functions_info.get_compartment_models()))
                 self._extra_sampling_maps_funcs.extend(deepcopy(template.extra_sampling_maps))
 
-                self._proposal_callbacks.extend(_get_model_proposal_callbacks(
-                    self._model_functions_info.get_compartment_models()))
-
                 self._model_priors.extend(_resolve_model_prior(
                     template.extra_prior, self._model_functions_info.get_model_parameter_list()))
 
@@ -497,26 +494,6 @@ def _get_model_extra_sampling_maps_funcs(compartments):
         for func in compartment.get_extra_sampling_maps_funcs():
             funcs.append(get_wrapped_func(compartment.name, func))
 
-    return funcs
-
-
-def _get_model_proposal_callbacks(compartments):
-    """Get a list of all the additional proposal callback functions defined in the compartments.
-
-    This function will add a wrapper around the proposal callback to make the input and output maps relative to the
-    model.
-
-    Args:
-        compartments (list): the list of compartment models from which to get the modifiers
-
-    Returns:
-        list: the list of proposal callbacks taken from the compartment models.
-    """
-    funcs = []
-    for compartment in compartments:
-        for params, func in compartment.get_proposal_callbacks():
-            compartment_params = [(compartment, p) for p in params]
-            funcs.append((compartment_params, func))
     return funcs
 
 

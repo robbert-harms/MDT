@@ -2,7 +2,8 @@ import numpy as np
 from mdt.component_templates.base import ComponentBuilder, ComponentTemplate
 from mdt.lib.components import has_component, get_component
 from mdt.model_building.parameter_functions.numdiff_info import NumDiffInfo, SimpleNumDiffInfo
-from mdt.model_building.parameters import ProtocolParameter, FreeParameter
+from mdt.model_building.parameters import ProtocolParameter, FreeParameter, SphericalCoordinateParameter, \
+    PolarAngleParameter, AzimuthAngleParameter
 from mdt.model_building.parameter_functions.priors import UniformWithinBoundsPrior
 from mdt.model_building.parameter_functions.transformations import AbstractTransformation
 
@@ -37,7 +38,15 @@ class ParameterBuilder(ComponentBuilder):
             if not isinstance(numdiff_info, NumDiffInfo) and numdiff_info is not None:
                 numdiff_info = SimpleNumDiffInfo(**numdiff_info)
 
-            class AutoFreeParameter(FreeParameter):
+            base_class = FreeParameter
+            if issubclass(template, SphericalCoordinateParameterTemplate):
+                base_class = SphericalCoordinateParameter
+            if issubclass(template, PolarAngleParameterTemplate):
+                base_class = PolarAngleParameter
+            if issubclass(template, AzimuthAngleParameterTemplate):
+                base_class = AzimuthAngleParameter
+
+            class AutoFreeParameter(base_class):
                 def __init__(self, nickname=None):
                     super().__init__(
                         '{} {}'.format(template.data_type, nickname or template.name),
@@ -132,6 +141,40 @@ class FreeParameterTemplate(ParameterTemplate):
     sampling_prior = UniformWithinBoundsPrior()
     numdiff_info = {'max_step': 0.1, 'scale_factor': 1, 'use_bounds': True,
                     'use_upper_bound': True, 'use_lower_bound': True}
+
+
+class SphericalCoordinateParameterTemplate(FreeParameterTemplate):
+    """Template base class for spherical coordinate parameters.
+
+    These are meant to be inherited by the polar angle template and the azimuth angle template.
+    """
+    init_value = np.pi / 2.0
+    sampling_proposal_std = 0.1
+    numdiff_info = {'max_step': 0.1, 'scale_factor': 10}
+
+
+class PolarAngleParameterTemplate(SphericalCoordinateParameterTemplate):
+    """Polar angle for use in spherical coordinate systems.
+
+    If a compartment uses both a :class:`PolarAngleParameterTemplate` and :class:`AzimuthAngleParameterTemplate`,
+    the composite model will ensure that the resulting cartesian coordinates are within the right spherical hemisphere.
+    This is possible since diffusion is symmetric.
+
+    In the background, we limit both the the polar angle and the azimuth angle between [0, pi] parameter
+    between [0, pi] by projecting any other angle combination onto the right spherical hemisphere.
+    """
+
+
+class AzimuthAngleParameterTemplate(SphericalCoordinateParameterTemplate):
+    """Azimuth angle for use in spherical coordinate systems.
+
+    If a compartment uses both a :class:`PolarAngleParameterTemplate` and :class:`AzimuthAngleParameterTemplate`,
+    the composite model will ensure that the resulting cartesian coordinates are within the right spherical hemisphere.
+    This is possible since diffusion is symmetric.
+
+    In the background, we limit both the the polar angle and the azimuth angle between [0, pi] parameter
+    between [0, pi] by projecting any other angle combination onto the right spherical hemisphere.
+    """
 
 
 def _resolve_parameter_transform(parameter_transform):
