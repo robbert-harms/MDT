@@ -28,7 +28,7 @@ class w(FreeParameterTemplate):
     init_value = 0.5
     lower_bound = 0
     upper_bound = 1
-    parameter_transform = 'CosSqrClamp'
+    parameter_transform = ScaleTransform(10)
     sampling_proposal_std = 0.01
     sampling_prior = UniformWithinBoundsPrior()
     numdiff_info = {'scale_factor': 10}
