@@ -25,9 +25,6 @@ class CompartmentModel(ModelCLFunction):
     def get_extra_optimization_maps_funcs(self):
         """Get a list of functions to produce additional results post optimization.
 
-        These functions are called after all post optimization modifiers. In contrast to the modifiers, these
-        functions can return additional maps as optimization output.
-
         Returns:
             list of functions: the list of functions to be called
         """

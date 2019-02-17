@@ -115,8 +115,8 @@ class CompositeModelTemplate(ComponentTemplate):
         description (str): model description
 
         extra_optimization_maps (list): a list of functions to return extra information maps based on a point estimate.
-            This is called after the post optimization modifiers and after the model calculated uncertainties based
-            on the Fisher Information Matrix. Therefore, these routines can propagate uncertainties in the estimates.
+            This is called after after the model calculated uncertainties based on the Fisher Information Matrix.
+            Therefore, these routines can propagate uncertainties in the estimates.
 
             These functions should accept as single argument an object of type
             :class:`mdt.models.composite.ExtraOptimizationMapsInfo`.
@@ -389,50 +389,16 @@ def _resolve_constraints(constraint, model_parameters):
                                     constraint, nmr_constraints=nmr_constraints)
 
 
-def _get_model_post_optimization_modifiers(compartments):
-    """Get a list of all the post optimization modifiers defined in the models.
-
-    This function will add a wrapper around the modification routines to make the input and output maps relative to the
-    model. That it, these functions expect the parameter names without the model name and output map names without
-    the model name, whereas the expected input and output of the modifiers of the model is with the full model.map name.
-
-    Args:
-        compartments (list): the list of compartment models from which to get the modifiers
-
-    Returns:
-        list: the list of modification routines taken from the compartment models.
-    """
-    modifiers = []
-
-    def get_wrapped_modifier(compartment_name, original_modifier):
-        def get_compartment_specific_maps(results):
-            return {k[len(compartment_name) + 1:]: v for k, v in results.items() if k.startswith(compartment_name)}
-
-        def prepend_compartment_name(results):
-            return {'{}.{}'.format(compartment_name, key): value for key, value in results.items()}
-
-        def wrapped_modifier(results):
-            return prepend_compartment_name(original_modifier(get_compartment_specific_maps(results)))
-
-        return wrapped_modifier
-
-    for compartment in compartments:
-        for modifier in compartment.get_post_optimization_modifiers():
-            modifiers.append(get_wrapped_modifier(compartment.name, modifier))
-
-    return modifiers
-
-
 def _get_model_extra_optimization_maps_funcs(compartments):
     """Get a list of all the additional result functions defined in the compartments.
 
     This function will add a wrapper around the modification routines to make the input and output maps relative to the
     model. That it, the functions in the compartments expect the parameter names without the model name and they output
-    maps without the model name, whereas the expected input and output of the modifiers of the model is with the
+    maps without the model name, whereas the expected input and output of the functions of the model is with the
     full model.map name.
 
     Args:
-        compartments (list): the list of compartment models from which to get the modifiers
+        compartments (list): the list of compartment models from which to get the extra optimization maps
 
     Returns:
         list: the list of modification routines taken from the compartment models.
@@ -470,11 +436,11 @@ def _get_model_extra_sampling_maps_funcs(compartments):
 
     This function will add a wrapper around the modification routines to make the input and output maps relative to the
     model. That it, the functions in the compartments expect the parameter names without the model name and they output
-    maps without the model name, whereas the expected input and output of the modifiers of the model is with the
+    maps without the model name, whereas the expected input and output of the functions of the model is with the
     full model.map name.
 
     Args:
-        compartments (list): the list of compartment models from which to get the modifiers
+        compartments (list): the list of compartment models from which to get the extra sampling maps
 
     Returns:
         list: the list of extra sample routines taken from the compartment models.

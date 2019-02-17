@@ -286,8 +286,6 @@ class DMRICompositeModel(DMRIOptimizable):
 
         Per position requested, this function generates a normal distribution around the initial parameters (using
         :meth:`get_initial_parameters`) with the standard deviation derived from the random walk metropolis std.
-        Afterwards, it will apply the post-optimization modifiers to ensure that
-        the parameters are nicely within bounds.
 
         Returns:
             ndarray: a 3d matrix for (voxels, parameters, nmr_positions).
