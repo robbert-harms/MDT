@@ -114,3 +114,26 @@ Just as with composite models, one can add extra output maps to the optimization
         ]
 
 where each callback function should return a dictionary with extra maps to add to the output.
+
+
+Constraints
+===========
+It is possible to add additional inequality constraints to a compartment model, using the ``constraints`` attribute.
+These constraints need to be added as the result of the function :math:`g(x)` where we assume :math:`g(x) \leq 0`.
+
+For example, in the Tensor model we implemented the constraint that the diffusivities must be in a strict order, such that
+:math:`d_{\parallel} \geq d_{\perp_{0}} \geq d_{\perp_{1}}`.
+
+For implementation in MDT, we will state this as the two constraints :math:`d_{\perp_{0}} \leq d_{\parallel}` and :math:`d_{\perp_{1}} \leq d_{\perp_{0}}`, and implement it as::
+
+    class Tensor(CompartmentTemplate)
+        ...
+        constraints = '''
+            constraints[0] = dperp0 - d;
+            constraints[1] = dperp1 - dperp0;
+        '''
+
+This ``constraints`` attribute can hold arbitrary OpenCL C code, as long as it contains the literal ``constraints[i]`` for each additional constraint ``i``.
+
+From this constraints string, MDT creates a function with the same dependencies and parameters as the compartment model.
+This function is then provided to the optimization routines, which enforce it using the *penalty* method (https://en.wikipedia.org/wiki/Penalty_method).

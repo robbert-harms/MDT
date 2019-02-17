@@ -4,10 +4,11 @@
 Composite models
 ****************
 The composite models, or, multi-compartment models, are the models that MDT actually optimizes.
-They are formed by a combination of compartment models and since the compartments already contain the CL code, no further CL code is necessary in the multi-compartment models.
+Composite models are formed by a combination / composition, of compartment models.
 
 When asked to optimize (or sample) a composite model, MDT combines the CL code of the compartments into one objective function and
 combines it with a likelihood function (Rician, OffsetGaussian, Gaussian).
+Since the compartments already contain the CL code, no further CL modeling code is necessary in the multi-compartment models.
 
 Composite models are defined by inheriting from :class:`~mdt.component_templates.composite_models.CompositeModelTemplate`.
 The following is an minimal example of a composite (multi-compartment) model in MDT::
@@ -138,31 +139,6 @@ To use all volumes you can use something like this:
         return list(range(input_data.protocol.length))
 
 
-Post optimization modifiers
-===========================
-Post optimization modifiers allow you to change the values of the parameter maps after optimization.
-These modification routines are not allowed to add new maps to the results, for that use the :ref:`dynamic_modules_composite_models_extra_result_maps`.
-
-These modifiers are for example useful to sort the results according to the model volume fraction weights, or to reorient the diffusion Tensor results to ensure decreasing diffusivities.
-
-An example can be found in the BallStick_r2 model, where we would like the Sticks to be sorted according to their volume fractions.
-Since the optimization routines do not take into account the ordering, we have to do this as post-processing:
-
-.. code-block:: python
-
-    class BallStick_r2(CompositeModelTemplate):
-        ...
-        post_optimization_modifiers = [
-            get_sort_modifier(OrderedDict([
-                ('w_stick0.w', ('w_stick0', 'Stick0')),
-                ('w_stick1.w', ('w_stick1', 'Stick1'))
-            ]))
-        ]
-
-
-the modifiers are callback functions that should return a dictionary with updated maps.
-
-
 .. _dynamic_modules_composite_models_extra_result_maps:
 
 Extra result maps
@@ -224,3 +200,23 @@ For example:
 
 All listed likelihood functions require a standard deviation :math:`\sigma` representing the noise in the input data.
 This value is typically taken from the noise of the images in the complex domain and is provided in the input data (see :ref:`concepts_input_data_models`).
+
+
+Constraints
+===========
+It is possible to add additional inequality constraints to a composite model, using the ``constraints`` attribute.
+These constraints need to be added as the result of the function :math:`g(x)` where we assume :math:`g(x) \leq 0`.
+
+For example, in the NODDIDA model we implemented the constraint that the intra-cellular diffusivity must be larger than the extra-cellular diffusivity, following Kunz et al., NeuroImage 2018.
+Mathematically, this constraint can be stated as :math:`d_{ic} \geq d_{ec}`. For implementation in MDT, we will state it as :math:`d_{ec} - d_{ic} \leq 0` and implement it as::
+
+    class NODDIDA(CompositeModelTemplate)
+        ...
+        constraints = '''
+            constraints[0] = NODDI_EC.d - NODDI_IC.d;
+        '''
+
+This ``constraints`` attribute can hold arbitrary OpenCL C code, as long as it contains the literal ``constraints[i]`` for each additional constraint ``i``.
+
+From this constraints string, MDT creates a function with the same dependencies and parameters as the composite model.
+This function is then provided to the optimization routines, which enforce it using the *penalty* method (https://en.wikipedia.org/wiki/Penalty_method).
