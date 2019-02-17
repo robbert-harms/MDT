@@ -16,7 +16,7 @@ from mot.lib.cl_function import SimpleCLFunction, SimpleCLFunctionParameter
 from mot.cl_routines import compute_log_likelihood, estimate_hessian
 from mdt.model_building.parameters import ProtocolParameter, FreeParameter, CurrentObservationParam, \
     DataCacheParameter, CurrentModelSignalParam, NoiseStdFreeParameter, NoiseStdInputParameter, PolarAngleParameter, \
-    AzimuthAngleParameter
+    AzimuthAngleParameter, RotationalAngleParameter
 from mot.configuration import CLRuntimeInfo
 from mot.lib.utils import all_elements_equal, get_single_value
 from mot.lib.kernel_data import Array, Zeros, Scalar, LocalMemory, Struct, CompositeArray, PrivateMemory
@@ -206,6 +206,7 @@ class DMRICompositeModel(DMRIOptimizable):
             void finalizeProposal(void* data, local mot_float_type* x){
                 _mdt_model_data* model_data = (_mdt_model_data*)data;
                 ''' + '\n'.join(self._get_spherical_transformations()) + '''
+                ''' + '\n'.join(self._get_rotational_transformations()) + '''
             }
         ''', dependencies=[self._get_spherical_transformation_func()])
 
@@ -713,6 +714,9 @@ class DMRICompositeModel(DMRIOptimizable):
             for transformation in self._get_spherical_transformations():
                 func += '\n' + '\t' * 4 + transformation
 
+            for transformation in self._get_rotational_transformations():
+                func += '\n' + '\t' * 4 + transformation
+
             for d in get_parameter_transformations()[0]:
                 func += "\n" + "\t" * 4 + d.format('x')
 
@@ -730,6 +734,9 @@ class DMRICompositeModel(DMRIOptimizable):
                 func += "\n" + "\t" * 4 + d.format('x')
 
             for transformation in self._get_spherical_transformations():
+                func += '\n' + '\t' * 4 + transformation
+
+            for transformation in self._get_rotational_transformations():
                 func += '\n' + '\t' * 4 + transformation
 
             if self._enforce_weights_sum_to_one:
@@ -1618,6 +1625,21 @@ class DMRICompositeModel(DMRIOptimizable):
                 spherical_transformations.append(
                     'x[{0}] = x[{0}] - floor(x[{0}] / M_PI_F) * M_PI_F;'.format(azimuth_ind))
         return spherical_transformations
+
+    def _get_rotational_transformations(self):
+        """Get the transformations for the rotational parameters"""
+        rotational_transformations = []
+        for m, p in self._model_functions_info.get_estimable_parameters_list():
+            if isinstance(p, RotationalAngleParameter):
+                param_ind = self._model_functions_info.get_parameter_estimable_index(m, p)
+                modulus = p.modulus
+
+                if modulus is np.pi:
+                    modulus = 'M_PI'
+
+                rotational_transformations.append(
+                    'x[{0}] = x[{0}] - floor(x[{0}] / {1}) * {1};'.format(param_ind, modulus))
+        return rotational_transformations
 
     def _transform_observations(self, observations):
         """Apply a transformation on the observations before fitting.

@@ -4,9 +4,9 @@ The free parameters are meant to be used for parameters that one wants to optimi
 value to disable them from being optimized in a given situation, but they remain classified as 'optimizable' parameters.
 """
 
-import numpy as np
 from mdt import FreeParameterTemplate
-from mdt.component_templates.parameters import PolarAngleParameterTemplate, AzimuthAngleParameterTemplate
+from mdt.component_templates.parameters import PolarAngleParameterTemplate, AzimuthAngleParameterTemplate, \
+    RotationalAngleParameterTemplate
 from mdt.model_building.parameter_functions.priors import UniformWithinBoundsPrior, ARDBeta, ARDGaussian
 from mdt.model_building.parameter_functions.transformations import ScaleTransform
 
@@ -104,20 +104,13 @@ class phi(AzimuthAngleParameterTemplate):
     """
 
 
-class psi(FreeParameterTemplate):
+class psi(RotationalAngleParameterTemplate):
     """The rotation angle for use in cylindrical models.
 
     This parameter can be used to rotate a vector around another vector, as is for example done in the Tensor model.
 
     This parameter is not part of the spherical coordinate parameters.
     """
-    init_value = np.pi / 2.0
-    lower_bound = 0
-    upper_bound = np.pi
-    parameter_transform = 'AbsModPi'
-    sampling_proposal_modulus = np.pi
-    sampling_proposal_std = 0.1
-    numdiff_info = {'max_step': 0.1, 'scale_factor': 10, 'use_bounds': False}
 
 
 class d(FreeParameterTemplate):

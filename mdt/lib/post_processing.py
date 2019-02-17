@@ -76,10 +76,7 @@ class DTIMeasures:
             ('MD', (results['d'] + results['dperp0'] + results['dperp1']) / 3.),
             ('FA', DTIMeasures.fractional_anisotropy(results['d'], results['dperp0'], results['dperp1'])),
             ('RD', (results['dperp0'] + results['dperp1']) / 2.0),
-            ('AD', results['d']),
-            ('d', results['d']),
-            ('dperp0', results['dperp0']),
-            ('dperp1', results['dperp1']),
+            ('AD', results['d'])
         ]
 
         results = {}

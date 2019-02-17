@@ -3,7 +3,7 @@ from mdt.component_templates.base import ComponentBuilder, ComponentTemplate
 from mdt.lib.components import has_component, get_component
 from mdt.model_building.parameter_functions.numdiff_info import NumDiffInfo, SimpleNumDiffInfo
 from mdt.model_building.parameters import ProtocolParameter, FreeParameter, SphericalCoordinateParameter, \
-    PolarAngleParameter, AzimuthAngleParameter
+    PolarAngleParameter, AzimuthAngleParameter, RotationalAngleParameter
 from mdt.model_building.parameter_functions.priors import UniformWithinBoundsPrior
 from mdt.model_building.parameter_functions.transformations import AbstractTransformation
 
@@ -38,13 +38,23 @@ class ParameterBuilder(ComponentBuilder):
             if not isinstance(numdiff_info, NumDiffInfo) and numdiff_info is not None:
                 numdiff_info = SimpleNumDiffInfo(**numdiff_info)
 
+            kwargs = dict(
+                parameter_transform=_resolve_parameter_transform(template.parameter_transform),
+                sampling_proposal_std=template.sampling_proposal_std,
+                sampling_prior=template.sampling_prior,
+                numdiff_info=numdiff_info
+            )
+
             base_class = FreeParameter
             if issubclass(template, SphericalCoordinateParameterTemplate):
                 base_class = SphericalCoordinateParameter
-            if issubclass(template, PolarAngleParameterTemplate):
-                base_class = PolarAngleParameter
-            if issubclass(template, AzimuthAngleParameterTemplate):
-                base_class = AzimuthAngleParameter
+                if issubclass(template, PolarAngleParameterTemplate):
+                    base_class = PolarAngleParameter
+                if issubclass(template, AzimuthAngleParameterTemplate):
+                    base_class = AzimuthAngleParameter
+            elif issubclass(template, RotationalAngleParameterTemplate):
+                base_class = RotationalAngleParameter
+                kwargs.update(modulus=template.modulus)
 
             class AutoFreeParameter(base_class):
                 def __init__(self, nickname=None):
@@ -54,12 +64,8 @@ class ParameterBuilder(ComponentBuilder):
                         template.init_value,
                         template.lower_bound,
                         template.upper_bound,
-                        parameter_transform=_resolve_parameter_transform(template.parameter_transform),
-                        sampling_proposal_std=template.sampling_proposal_std,
-                        sampling_prior=template.sampling_prior,
-                        numdiff_info=numdiff_info
+                        **kwargs
                     )
-                    self.sampling_proposal_modulus = template.sampling_proposal_modulus
 
             for name, method in template.bound_methods.items():
                 setattr(AutoFreeParameter, name, method)
@@ -119,9 +125,6 @@ class FreeParameterTemplate(ParameterTemplate):
 
         sampling_proposal_std (float): the default proposal standard deviation for this parameter. This is used
             in some MCMC sample routines.
-        sampling_proposal_modulus (float or None): if given, a modulus we will use when finalizing the proposal
-            continuous_distributions. That is, when we are finalizing the proposals we will take, if set, the absolute
-            modulus of that parameter to ensure the parameter is within [0, <modulus>].
         sampling_prior: the prior function
         numdiff_info (dict or :class:`~mdt.model_building.parameter_functions.numdiff_info.NumDiffInfo`):
             the information necessary to take the numerical derivative of a model with respect to this parameter.
@@ -137,7 +140,6 @@ class FreeParameterTemplate(ParameterTemplate):
     upper_bound = 1e20
     parameter_transform = 'Identity'
     sampling_proposal_std = 1
-    sampling_proposal_modulus = None
     sampling_prior = UniformWithinBoundsPrior()
     numdiff_info = {'max_step': 0.1, 'scale_factor': 1, 'use_bounds': True,
                     'use_upper_bound': True, 'use_lower_bound': True}
@@ -175,6 +177,19 @@ class AzimuthAngleParameterTemplate(SphericalCoordinateParameterTemplate):
     In the background, we limit both the the polar angle and the azimuth angle between [0, pi] parameter
     between [0, pi] by projecting any other angle combination onto the right spherical hemisphere.
     """
+
+
+class RotationalAngleParameterTemplate(FreeParameterTemplate):
+    """Template base class for parameters for which we want to enforce a modulus range.
+
+    Parameters of this type are essentially unbounded, but their range is restricted to [0, modulus] using a modulo
+    transformation. The modulus can be provided as an argument. This parameter class is recognized by the
+    composite model which adds the necessary functions to the optimization and sampling routines.
+    """
+    init_value = np.pi / 2.0
+    modulus = np.pi
+    sampling_proposal_std = 0.1
+    numdiff_info = {'max_step': 0.1, 'scale_factor': 10}
 
 
 def _resolve_parameter_transform(parameter_transform):

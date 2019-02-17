@@ -2,6 +2,7 @@ from mot.lib.cl_function import SimpleCLFunctionParameter
 from .parameter_functions.numdiff_info import SimpleNumDiffInfo
 from .parameter_functions.priors import UniformWithinBoundsPrior
 from .parameter_functions.transformations import IdentityTransform
+import numpy as np
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-10-03"
@@ -155,6 +156,19 @@ class AzimuthAngleParameter(SphericalCoordinateParameter):
     In the background, we limit both the the polar angle and the azimuth angle between [0, pi] parameter
     between [0, pi] by projecting any other angle combination onto the right spherical hemisphere.
     """
+
+
+class RotationalAngleParameter(FreeParameter):
+
+    def __init__(self, *args, modulus=np.pi, **kwargs):
+        """Base class for parameters for which we want to enforce a modulus range.
+
+        Parameters of this type are essentially unbounded, but their range is restricted to [0, modulus] using a modulo
+        transformation. The modulus can be provided as an argument. This parameter class is recognized by the
+        composite model which adds the necessary functions to the optimization and sampling routines.
+        """
+        super().__init__(*args, **kwargs)
+        self.modulus = modulus
 
 
 class NoiseStdFreeParameter(FreeParameter):
