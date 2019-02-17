@@ -535,6 +535,15 @@ class DMRICompositeModel(DMRIOptimizable):
         nmr_params = self.get_nmr_parameters()
         scales = self._get_numdiff_scaling_factors()
 
+        modulus_transformations = []
+        transformation_template = 'x_tmp[{ind}] = x_tmp[{ind}] - floor(x_tmp[{ind}] / ({modulus})) * ({modulus});'
+        for m, p in self._model_functions_info.get_estimable_parameters_list():
+            ind = self._model_functions_info.get_parameter_estimable_index(m, p)
+            if isinstance(p, (PolarAngleParameter, RotationalAngleParameter)):
+                modulus_transformations.append(transformation_template.format(ind=ind, modulus='M_PI_F'))
+            elif isinstance(p, AzimuthAngleParameter):
+                modulus_transformations.append(transformation_template.format(ind=ind, modulus='2 * M_PI_F'))
+
         wrapped_objective = SimpleCLFunction.from_string('''
             double wrapped_''' + self.get_objective_function().get_cl_function_name() + '''(
                     local mot_float_type* x, 
@@ -544,6 +553,7 @@ class DMRICompositeModel(DMRIOptimizable):
 
                 if(get_local_id(0) == 0){
                     ''' + '\n'.join('x_tmp[{0}] = x[{0}] / {1};'.format(i, s) for i, s in enumerate(scales)) + '''
+                    ''' + '\n'.join(modulus_transformations) + '''
                 }
                 barrier(CLK_LOCAL_MEM_FENCE);
 

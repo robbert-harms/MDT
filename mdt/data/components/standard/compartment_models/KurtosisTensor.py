@@ -61,7 +61,7 @@ def build_param(index):
         name = 'W_{}{}{}{}'.format(*index)
         init_value = _init_value
         lower_bound = _lower_bound
-        upper_bound = np.inf
+        upper_bound = 1e20
         parameter_transform = ScaleTransform(100)
         sampling_prior = _sampling_prior
         sampling_proposal_std = 0.01
