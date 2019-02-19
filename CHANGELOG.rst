@@ -2,6 +2,30 @@
 Changelog
 *********
 
+v0.20.0 (2019-02-19)
+====================
+This version is the first version to support arbitrary non-linear inequality constraints.
+Currently, during optimization, these constraints are enforced using the penalty method (https://en.wikipedia.org/wiki/Penalty_method).
+
+Added
+-----
+- Adds special parameter classes for the spherical parameters. Now, the composite model will take care of the necessary transformations to keep the spherical parameters theta and phi within the right spherical hemisphere.
+- Adds support for inequality constraints to the compartments and composite models.
+- Adds utility function for merging dictionaries in inheriting component templates.
+
+Changed
+-------
+- Changed parameter transformation of the weights from CosSqrClamp to ScaleTransform
+
+Removed
+-------
+- Removed the post-optimization modifiers. They were unnecessary since capability of specifying constraints.
+
+Other
+-----
+- Added files for docker/singularity intel builds
+
+
 v0.19.1 (2019-01-08)
 ====================
 - Corrected MOT version requirements.
