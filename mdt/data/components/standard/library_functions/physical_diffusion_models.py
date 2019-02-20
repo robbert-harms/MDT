@@ -49,6 +49,8 @@ class NeumanCylinderLongApprox(LibraryFunctionTemplate):
 
     In typical spin-echo experiments, ``tau = TE/2``.
 
+    This approximation is valid when ``tau >> R^2 / d``.
+
     References:
     [1] Neuman CH. Spin echo of spins diffusing in a bounded medium.
         J Chem Phys. 1974;60(11):4508-4511. doi:10.1063/1.1680931.
@@ -105,6 +107,8 @@ class NeumanSphereLongApprox(LibraryFunctionTemplate):
 
     In typical spin-echo experiments, ``tau = TE/2``.
 
+    This approximation is valid when ``tau >> R^2 / d``.
+
     References:
     [1] Neuman CH. Spin echo of spins diffusing in a bounded medium.
         J Chem Phys. 1974;60(11):4508-4511. doi:10.1063/1.1680931.
@@ -126,7 +130,7 @@ class VanGelderenCylinder(LibraryFunctionTemplate):
     References:
     [1] Gelderen V, D D, PC van Z, CT M. Evaluation of Restricted Diffusion in Cylinders.
         Phosphocreatine in Rabbit Leg Muscle. 1994. doi:10.1006/jmrb.1994.1038.
-    [2] 1. Wang LZ, Caprihan A, Fukushima E. The narrow-pulse criterion for pulsed-gradient spin-echo
+    [2] Wang LZ, Caprihan A, Fukushima E. The narrow-pulse criterion for pulsed-gradient spin-echo
         diffusion measurements. JMagnResonSerA. 1995;117(2):209-219.
     """
     return_type = 'double'
