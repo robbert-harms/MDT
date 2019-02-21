@@ -2,6 +2,14 @@
 Changelog
 *********
 
+v0.20.1 (2019-02-21)
+====================
+
+Other
+-----
+- Removed atomic function from the KurtosisTensor, it was redundant.
+
+
 v0.20.0 (2019-02-19)
 ====================
 This version is the first version to support arbitrary non-linear inequality constraints.
