@@ -118,10 +118,7 @@ class KurtosisTensor(CompartmentTemplate):
             W_2100, W_2110, W_2210, g);
         
         if(kurtosis_sum < 0 || (((tensor_md_2 * b) / adc) * kurtosis_sum) > 3.0){
-            // need to have the literal "constraints[2]" for the parsing
-            // if out of bounds we immediately go to infinity
-            // combines two bounds
-            atomic_add_l_mft(&constraints[2], INFINITY); 
+            constraints[2] += INFINITY; 
         }
     '''
     extra_optimization_maps = [
