@@ -2095,10 +2095,11 @@ def voxelwise_vector_matrix_vector_product(a, B, c):
     return np.sum(tmp * c, axis=-1)
 
 
-def create_covariance_matrix(results, names, result_covars=None):
+def create_covariance_matrix(nmr_voxels, results, names, result_covars=None):
     """Create the covariance matrix for the given output maps.
 
     Args:
+        nmr_voxels (int): the number of voxels in the output covariance matrix.
         results (dict): the results dictionary from optimization, containing the standard deviation maps
             as '<name>.std' for each of the given names. If a map is not present we will use 0 for that variance.
         names (List[str]): the names of the maps to load, the order of the names is the order of the diagonal
@@ -2110,10 +2111,8 @@ def create_covariance_matrix(results, names, result_covars=None):
         ndarray: matrix of size (n, m) for n voxels and m names.
             If no covariance elements are given, we use zero for all off-diagonal terms.
     """
-    shape = results[list(results.keys())[0]].shape
-    n = 1 if not len(shape) else shape[0]
     m = len(names)
-    covars = np.zeros((n, m, m)).astype(np.float64)
+    covars = np.zeros((nmr_voxels, m, m)).astype(np.float64)
 
     for ind in range(m):
         covars[:, ind, ind] = results.get(names[ind] + '.std', 0)**2

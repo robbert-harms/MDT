@@ -105,9 +105,14 @@ def sample_composite_model(model, input_data, output_folder, nmr_samples, thinni
 
 @contextmanager
 def _log_info(logger, model_name):
+    def calculate_run_days(runtime):
+        if runtime > 24 * 60 * 60:
+            return int(runtime // (24. * 60 * 60))
+        return 0
+
     minimize_start_time = timeit.default_timer()
     logger.info('Sampling {} model'.format(model_name))
     yield
     run_time = timeit.default_timer() - minimize_start_time
-    run_time_str = time.strftime('%H:%M:%S', time.gmtime(run_time))
-    logger.info('Sampled {0} model with runtime {1} (h:m:s).'.format(model_name, run_time_str))
+    run_time_str = str(calculate_run_days(run_time)) + ':' + time.strftime('%H:%M:%S', time.gmtime(run_time))
+    logger.info('Sampled {0} model with runtime {1} (d:h:m:s).'.format(model_name, run_time_str))

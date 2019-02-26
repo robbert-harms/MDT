@@ -152,7 +152,7 @@ def produce_reduced_ramani_model(lineshape_method_name):
         f = fterm * Ra / (1.0 + fterm * Ra)
 
         covars = create_covariance_matrix(
-            results, ['QMT.RM0a', 'QMT.fterm', 'QMT.Rb'], results.get('covariances', None))
+            f.shape[0], results, ['QMT.RM0a', 'QMT.fterm', 'QMT.Rb'], results.get('covariances', None))
 
         Ra_gradient = get_ra_gradient(R_obs, RM0a, fterm, Rb)
         Ra_std = np.nan_to_num(np.sqrt(voxelwise_vector_matrix_vector_product(Ra_gradient, covars, Ra_gradient)))

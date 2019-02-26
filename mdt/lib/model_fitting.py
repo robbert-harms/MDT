@@ -468,10 +468,15 @@ def fit_composite_model(model, input_data, output_folder, method, tmp_results_di
 @contextmanager
 def _model_fit_logging(logger, model_name, free_param_names):
     """Adds logging information around the processing."""
+    def calculate_run_days(runtime):
+        if runtime > 24 * 60 * 60:
+            return int(runtime // (24. * 60 * 60))
+        return 0
+
     minimize_start_time = timeit.default_timer()
     logger.info('Fitting {} model'.format(model_name))
     logger.info('The {} parameters we will fit are: {}'.format(len(free_param_names), free_param_names))
     yield
     run_time = timeit.default_timer() - minimize_start_time
-    run_time_str = time.strftime('%H:%M:%S', time.gmtime(run_time))
-    logger.info('Fitted {0} model with runtime {1} (h:m:s).'.format(model_name, run_time_str))
+    run_time_str = str(calculate_run_days(run_time)) + ':' + time.strftime('%H:%M:%S', time.gmtime(run_time))
+    logger.info('Fitted {0} model with runtime {1} (d:h:m:s).'.format(model_name, run_time_str))

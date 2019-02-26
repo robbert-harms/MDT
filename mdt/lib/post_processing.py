@@ -127,9 +127,10 @@ class DTIMeasures:
         """
         gradient = DTIMeasures._get_fractional_anisotropy_gradient(d, dperp0, dperp1)
         covars = create_covariance_matrix(
-                {'d.std': d_std, 'dperp0.std': dperp0_std, 'dperp1.std': dperp1_std},
-                ['d', 'dperp0', 'dperp1'], covariances)
-
+            d.shape[0],
+            {'d.std': d_std, 'dperp0.std': dperp0_std, 'dperp1.std': dperp1_std},
+            ['d', 'dperp0', 'dperp1'],
+            covariances)
         return np.nan_to_num(np.sqrt(voxelwise_vector_matrix_vector_product(gradient, covars, gradient)))
 
     @staticmethod

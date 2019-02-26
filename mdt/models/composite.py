@@ -986,7 +986,9 @@ class DMRICompositeModel(DMRIOptimizable):
     def _get_propagate_weights_uncertainty(self, results):
         weight_names = ['{}.{}'.format(m.name, p.name) for (m, p) in self._model_functions_info.get_weights()]
         if len(weight_names) > 1:
-            covar_matrix = create_covariance_matrix(results, weight_names[1:], results.get('covariances', None))
+            nmr_voxels = results[weight_names[1]].shape[0]
+            covar_matrix = create_covariance_matrix(nmr_voxels, results, weight_names[1:],
+                                                    results.get('covariances', None))
             covar_sum = np.sum(np.sum(covar_matrix, axis=1), axis=1)
             covar_sum[np.isinf(covar_sum) | np.isnan(covar_sum) | (covar_sum < 0)] = 0
             std = np.sqrt(covar_sum)
