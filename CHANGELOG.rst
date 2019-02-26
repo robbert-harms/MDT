@@ -2,6 +2,14 @@
 Changelog
 *********
 
+v0.20.2 (2019-02-26)
+====================
+
+Other
+-----
+- Bug fix in the create_covariance_matrix, it sometimes tried to get the shape attribute of a dictionary, crashing the computations. This only happened in rare occasions.
+
+
 v0.20.1 (2019-02-21)
 ====================
 
