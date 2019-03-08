@@ -2,13 +2,13 @@
 
 # Form implementation generated from reading ui file 'TabMapSpecific.ui'
 #
-# Created by: PyQt5 UI code generator 5.5.1
+# Created by: PyQt5 UI code generator 5.10.1
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_TabMapSpecific:
+class Ui_TabMapSpecific(object):
     def setupUi(self, TabMapSpecific):
         TabMapSpecific.setObjectName("TabMapSpecific")
         TabMapSpecific.resize(445, 534)

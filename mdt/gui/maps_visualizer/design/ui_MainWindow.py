@@ -2,13 +2,13 @@
 
 # Form implementation generated from reading ui file 'MainWindow.ui'
 #
-# Created by: PyQt5 UI code generator 5.5.1
+# Created by: PyQt5 UI code generator 5.10.1
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_MapsVisualizer:
+class Ui_MapsVisualizer(object):
     def setupUi(self, MapsVisualizer):
         MapsVisualizer.setObjectName("MapsVisualizer")
         MapsVisualizer.resize(1000, 754)
@@ -35,7 +35,7 @@ class Ui_MapsVisualizer:
         self.verticalLayoutWidget = QtWidgets.QWidget(self.splitter)
         self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.verticalLayoutWidget)
-        self.verticalLayout.setContentsMargins(-1, -1, -1, 6)
+        self.verticalLayout.setContentsMargins(0, 0, 0, 6)
         self.verticalLayout.setSpacing(0)
         self.verticalLayout.setObjectName("verticalLayout")
         self.commandTabs = QtWidgets.QTabWidget(self.verticalLayoutWidget)
@@ -113,7 +113,7 @@ class Ui_MapsVisualizer:
         self.gridLayoutWidget = QtWidgets.QWidget(self.splitter)
         self.gridLayoutWidget.setObjectName("gridLayoutWidget")
         self.plotLayout = QtWidgets.QVBoxLayout(self.gridLayoutWidget)
-        self.plotLayout.setContentsMargins(-1, -1, -1, 0)
+        self.plotLayout.setContentsMargins(0, 0, 0, 0)
         self.plotLayout.setSpacing(0)
         self.plotLayout.setObjectName("plotLayout")
         self.gridLayout_2.addWidget(self.splitter, 0, 0, 1, 1)

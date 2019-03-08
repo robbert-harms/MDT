@@ -2,13 +2,13 @@
 
 # Form implementation generated from reading ui file 'scientific_number_scroller_widget.ui'
 #
-# Created by: PyQt5 UI code generator 5.4.2
+# Created by: PyQt5 UI code generator 5.10.1
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_ScientificScroller:
+class Ui_ScientificScroller(object):
     def setupUi(self, ScientificScroller):
         ScientificScroller.setObjectName("ScientificScroller")
         ScientificScroller.resize(283, 61)

@@ -203,7 +203,7 @@ class Ui_GenerateBrainMaskTabContent(object):
     def retranslateUi(self, GenerateBrainMaskTabContent):
         _translate = QtCore.QCoreApplication.translate
         GenerateBrainMaskTabContent.setWindowTitle(_translate("GenerateBrainMaskTabContent", "Form"))
-        self.label.setText(_translate("GenerateBrainMaskTabContent", "Generate brian mask"))
+        self.label.setText(_translate("GenerateBrainMaskTabContent", "Generate brain mask"))
         self.label_2.setText(_translate("GenerateBrainMaskTabContent", "Create a whole brain mask using the median-otsu algorithm."))
         self.label_5.setText(_translate("GenerateBrainMaskTabContent", "(To create one, please see the tab \"Generate protocol file\")"))
         self.label_12.setText(_translate("GenerateBrainMaskTabContent", "Number of passes:"))

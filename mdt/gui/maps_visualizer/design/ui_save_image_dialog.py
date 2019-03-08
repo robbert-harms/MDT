@@ -2,13 +2,13 @@
 
 # Form implementation generated from reading ui file 'save_image_dialog.ui'
 #
-# Created by: PyQt5 UI code generator 5.5.1
+# Created by: PyQt5 UI code generator 5.10.1
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_SaveImageDialog:
+class Ui_SaveImageDialog(object):
     def setupUi(self, SaveImageDialog):
         SaveImageDialog.setObjectName("SaveImageDialog")
         SaveImageDialog.resize(722, 284)

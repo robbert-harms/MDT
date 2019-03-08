@@ -2,13 +2,13 @@
 
 # Form implementation generated from reading ui file 'MapSpecificOptions.ui'
 #
-# Created by: PyQt5 UI code generator 5.5.1
+# Created by: PyQt5 UI code generator 5.10.1
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_MapSpecificOptions:
+class Ui_MapSpecificOptions(object):
     def setupUi(self, MapSpecificOptions):
         MapSpecificOptions.setObjectName("MapSpecificOptions")
         MapSpecificOptions.resize(648, 590)

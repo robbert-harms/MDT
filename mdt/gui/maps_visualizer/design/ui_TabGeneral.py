@@ -2,13 +2,13 @@
 
 # Form implementation generated from reading ui file 'TabGeneral.ui'
 #
-# Created by: PyQt5 UI code generator 5.5.1
+# Created by: PyQt5 UI code generator 5.10.1
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_TabGeneral:
+class Ui_TabGeneral(object):
     def setupUi(self, TabGeneral):
         TabGeneral.setObjectName("TabGeneral")
         TabGeneral.resize(963, 704)
