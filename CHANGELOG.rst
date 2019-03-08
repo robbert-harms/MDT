@@ -2,6 +2,18 @@
 Changelog
 *********
 
+v0.20.3 (2019-03-08)
+====================
+
+Changed
+-------
+- Reverted the parameter transformation of the weights back to the CosSqrClamp parameter transformation. This proves superior in edge cases.
+
+Other
+-----
+- Fixed spelling mistake in GUI (misspelled Brain as Brian).
+
+
 v0.20.2 (2019-02-26)
 ====================
 
