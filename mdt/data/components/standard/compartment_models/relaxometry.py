@@ -18,8 +18,7 @@ class ExpT1DecIR(CompartmentTemplate):
     """IR equation.
 
     IR equation in which TI and TR are considered to estimate T1. Assuming TE << T1, the TE component of the signal
-    is discarded. In cascade, S0 contains T2 and PD weighted information. An efficiency factor is added to the TI
-    parameter.
+    is discarded. An efficiency factor is added to the TI parameter.
     
     This is made to model the MI-EPI sequence, a multi inversion recovery epi (Renvall et Al. 2016). 
     The Model is based on Stikov et al.'s three parameter model.

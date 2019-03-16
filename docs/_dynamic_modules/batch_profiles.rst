@@ -20,6 +20,6 @@ This makes batch processing in some instances as simple as using:
 
 .. code-block:: bash
 
-    $ mdt-batch-fit . 'BallStick_r1 (Cascade)'
+    $ mdt-batch-fit . 'BallStick_r1'
 
 To fit BallStick_r1 to all subjects found (assuming a suitable batch profile was found).

@@ -19,8 +19,8 @@ __email__ = 'robbert.harms@maastrichtuniversity.nl'
 __licence__ = 'LGPL v3'
 
 
-supported_component_types = ('batch_profiles', 'cascade_models', 'compartment_models',
-                             'composite_models', 'library_functions', 'parameters', 'likelihood_functions',
+supported_component_types = ('batch_profiles', 'compartment_models', 'composite_models',
+                             'library_functions', 'parameters', 'likelihood_functions',
                              'signal_noise_functions', 'parameter_transforms')
 
 
@@ -319,57 +319,21 @@ def reload():
     component_library.reset()
     _load_mot_components()
     _load_home_folder()
-    _load_automatic_cascades()
 
 
 def get_model(model_name):
     """Load the class of one of the available models.
 
     Args:
-        model_name (str): One of the models from the cascade models or composite models
+        model_name (str): One of the models from the composite models
 
     Returns:
-        class: Either a cascade model or a composite model. In any case, a model that can be given to the ``fit_model``
-            function.
+        class: A composite model.
     """
     try:
-        return component_library.get_component('cascade_models', model_name)
+        return component_library.get_component('composite_models', model_name)
     except ValueError:
-        try:
-            return component_library.get_component('composite_models', model_name)
-        except ValueError:
-            raise ValueError('The model with the name "{}" could not be found.'.format(model_name))
-
-
-def list_composite_models():
-    """Get a name listing of all available composite models.
-
-    Returns:
-        list of str: a list of available composite model names
-    """
-    return component_library.get_component_list('composite_models')
-
-
-def list_cascade_models(target_model_name=None):
-    """Get a list of all available cascade models
-
-    Args:
-        target_model_name (str): if given we will only return the list of cascades that end with this composite model.
-
-    Returns:
-        list of str: A list of available cascade models
-    """
-    model_names = component_library.get_component_list('cascade_models')
-
-    if target_model_name:
-        cascades = []
-        for name in model_names:
-            meta_info = get_meta_info('cascade_models', name)
-            if meta_info['target_model'] == target_model_name:
-                cascades.append(name)
-        return cascades
-
-    return model_names
+        raise ValueError('The model with the name "{}" could not be found.'.format(model_name))
 
 
 def get_batch_profile(batch_profile):
@@ -418,39 +382,3 @@ def _load_home_folder():
                     except Exception as e:
                         logger = logging.getLogger(__name__)
                         logger.warning('Could not load the file "{}", exception: "{}".'.format(full_path, str(e)))
-
-
-def _load_automatic_cascades():
-    """Automatically create cascade models where possible.
-
-    This generates cascade models matching the scheme in Harms 2017: CS, CI and CF cascades:
-
-    - CS: Cascade S0, a cascade which only initializes the model with an S0 estimate
-    - CI: Cascade Initialized: initalizes the volume fractions and orientations
-    - CF: Cascade Fixed: initializes the volume fractions, fixes the orientations
-    """
-    from mdt.configuration import use_automatic_generated_cascades, get_automatic_generated_cascades_excluded
-
-    def get_missing_s0_cascades(models, cascades):
-        missing_cascades = []
-        for model_name in models:
-            if '{} (Cascade|S0)'.format(model_name) not in cascades:
-                missing_cascades.append('{} (Cascade|S0)'.format(model_name))
-        return missing_cascades
-
-    def generate_cascade(cascaded_name):
-        from mdt.component_templates.cascade_models import CascadeTemplate
-
-        if '(Cascade|S0)' in cascaded_name:
-            class Template(CascadeTemplate):
-                cascade_name_modifier = 'S0'
-                description = 'Automatically generated cascade.'
-                models = ('S0',
-                          cascaded_name[0:-len('(Cascade|S0)')].strip())
-
-    if use_automatic_generated_cascades():
-        excludes = get_automatic_generated_cascades_excluded()
-        models_list = [m for m in list_composite_models() if m not in excludes]
-
-        for cascade in get_missing_s0_cascades(models_list, list_cascade_models()):
-            generate_cascade(cascade)

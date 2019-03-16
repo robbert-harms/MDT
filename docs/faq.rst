@@ -34,44 +34,10 @@ The first is to install an AMD graphics card, their drivers come pre-supplied wi
 If you do not have a graphics card, or you have an NVidia card, you will have to install the `Intel OpenCL Drivers <https://software.intel.com/en-us/articles/opencl-drivers>`_ to your system.
 
 
-The GUI fails to start
-======================
-You have successfully installed MDT, but starting the Graphical User Interface (GUI) fails.
-Most of the time this is because PyQt5 is not installed on your machine.
-If you are using Windows, please make sure you are using the latest Anaconda version (> 4.2.0), at least one that includes PyQt5.
-If you are using Linux, please make sure you download the correct Python PyQt5 package for your machine.
-That should have been done automatically when you used the Ubuntu PPA.
-
 
 ********
 Analysis
 ********
-
-How does NODDI in MDT compare to the NODDI toolbox?
-===================================================
-Please see the following figure for a graphical comparison between the NODDI Matlab toolbox and MDT on a single slice of the NODDI example dataset (the dataset accompanying the Matlab implementation).
-
-.. figure:: _static/noddi_comparison/noddi_comparison.png
-
-    Comparison between the NODDI Matlab implementation (top) and MDT (bottom).
-
-For all practical purposes both toolboxes are in high agreement in white matter.
-There are some small differences visible in the CSF.
-These differences are caused by NODDI model unidentifiability, that is, the intracellular compartment with a high dispersion can substitute
-for the Ball compartment in CSF (this is similar to the findings in Jelescu 2015 :cite:`Jelescu2015a`).
-
-The NODDI Matlab results where computed using the NODDI Matlab toolbox by Dr. Gary Zhang, version 0.9 with Matlab 2012b on an Ubuntu 14.04 system.
-The MDT results where computed using MDT version 0.9.31 and MOT version 0.2.39 on the same Ubuntu system, using an AMD Fury X graphics card for the computations.
-We used here the cascade fixed initialization strategy ("NODDI (Cascade|fixed)") and the default Powell optimizer with a patience of 2.
-
-
-What do the "model protocol options" entries in the log file mean?
-==================================================================
-This message represent itself either as "Applying model protocol options, we will use a subset of the protocol and DWI." or as "No model protocol options to apply, using original protocol."
-In both cases, this refers to the :ref:`dynamic_modules_composite_models_protocol_options` set in the composite model you fitted or sampled.
-In the first case we are applying model protocol options and hence we are only using a subset of all volumes, in the second case we use all volumes.
-See the part about the :ref:`dynamic_modules_composite_models_protocol_options` for more information and on how to define these protocol options.
-
 
 Why does the noise standard deviation differ when using another mask?
 =====================================================================

@@ -10,7 +10,6 @@ On the moment MDT supports the following components:
 * :ref:`dynamic_modules_composite_models`: the models fitted by MDT, these are built out of the compartment models
 * :ref:`dynamic_modules_compartments`: reusable models of diffusion and relaxometry models
 * :ref:`dynamic_modules_parameters`: definitions of common parameters shared between models
-* :ref:`dynamic_modules_cascades`: **deprecated**, initialization definitions for composite models
 * :ref:`dynamic_modules_library_functions`: library functions for use in composite models
 * :ref:`dynamic_modules_batch_profiles`: for the batch functionality in MDT
 
@@ -94,13 +93,13 @@ It is also possible to overwrite existing models on the fly, for example:
     class Tensor(mdt.get_template('composite_models', 'Tensor')):
         likelihood_function = 'Rician'
 
-    mdt.fit_model('Tensor (Cascade)', ...)
+    mdt.fit_model('Tensor', ...)
 
 
 Breaking this up, in the first part::
 
     class Tensor(mdt.get_template('composite_models', 'Tensor')):
-            likelihood_function = 'Rician'
+        likelihood_function = 'Rician'
 
 
 we load the last available Tensor model template from MDT (using ``get_template('composite_models', 'Tensor')``) and use it as a basis for an updated template.
@@ -109,10 +108,10 @@ The body of this template then updates the previous Tensor, in this case by chan
 
 In the second part::
 
-    mdt.fit_model('Tensor (Cascade)', ...)
+    mdt.fit_model('Tensor', ...)
 
-we just call ``mdt.fit_model`` with as model ``Tensor (Cascade)``.
-MDT will then load the cascade and its models by taking the last known definitions.
+we just call ``mdt.fit_model`` with as model ``Tensor``.
+MDT will then load the model by taking the last known definitions.
 As such, the new ``Tensor`` model with the updated likelihood function will be used in the model fitting.
 
 To remove an entry, you can use, for example::
@@ -126,6 +125,5 @@ This functionality allows you to overwrite and add models without adding them to
 .. include:: _dynamic_modules/composite_models.rst
 .. include:: _dynamic_modules/compartment_models.rst
 .. include:: _dynamic_modules/parameters.rst
-.. include:: _dynamic_modules/cascade_models.rst
 .. include:: _dynamic_modules/library_functions.rst
 .. include:: _dynamic_modules/batch_profiles.rst

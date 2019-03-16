@@ -74,7 +74,7 @@ class ParameterBuilder(ComponentBuilder):
 
 
 class ParameterTemplate(ComponentTemplate):
-    """The cascade template to inherit from.
+    """The parameter template to inherit from.
 
     These templates are loaded on the fly by the ParametersBuilder
 

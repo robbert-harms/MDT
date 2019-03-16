@@ -36,7 +36,7 @@ During optimization, parameters of this type can be fixed to a specific value, w
 but that their values (per voxel) are provided by a scalar or a map.
 When fixed, these parameters are still classified as free parameters (you can consider them as fixed free parameters).
 
-To fix these parameters you can either define so in a composite model, a cascade model or using the Python API before model optimization
+To fix these parameters you can either define so in a composite model or using the Python API before model optimization
 
 .. code-block:: python
 

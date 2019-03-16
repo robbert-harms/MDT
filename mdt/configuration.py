@@ -339,14 +339,6 @@ class ActivePostProcessingLoader(ConfigSectionLoader):
         _config_insert(['active_post_processing', 'sampling'], sampling)
 
 
-class AutomaticCascadeModels(ConfigSectionLoader):
-    """Load the automatic cascade model settings."""
-
-    def load(self, value):
-        _config_insert(['auto_generate_cascade_models', 'enabled'], value.get('enabled', True))
-        _config_insert(['auto_generate_cascade_models', 'excluded'], value.get('excluded', []))
-
-
 class RuntimeSettingsLoader(ConfigSectionLoader):
 
     def load(self, value):
@@ -393,9 +385,6 @@ def get_section_loader(section):
 
     if section == 'runtime_settings':
         return RuntimeSettingsLoader()
-
-    if section == 'auto_generate_cascade_models':
-        return AutomaticCascadeModels()
 
     if section == 'active_post_processing':
         return ActivePostProcessingLoader()
@@ -449,7 +438,7 @@ def get_processing_strategy(processing_type, *args, **kwargs):
     Args:
         processing_type (str): 'optimization', 'sampling' or any other of the
             processing_strategies defined in the config
-        model_names (list of str): the list of model names (the full recursive cascade of model names)
+        *args: passed to the constructor of the loaded processing strategy.
         **kwargs: passed to the constructor of the loaded processing strategy.
 
     Returns:
@@ -473,34 +462,21 @@ def get_logging_configuration_dict():
     return _config['logging']['info_dict']
 
 
-def get_general_optimizer():
-    """Load the general optimizer from the configuration.
-
-    Returns:
-        Optimizer: the configured optimizer for use in MDT
-    """
-    return _config['optimization']['general']['name']
-
-
-def get_optimizer_for_model(model_names):
-    """Get the optimizer for this specific cascade of models.
-
-    This configuration function supports having a different optimizer for optimizing, for example, NODDI in a
-    cascade and NODDI without a cascade.
+def get_optimizer_for_model(model_name):
+    """Get the optimizer for this specific model.
 
     Args:
-        model_names (list of str): the list of model names (typically a cascade of models) for which we
-            want to get the optimizer to use.
+        model_name (str): the name of the composite model for which we want to get the optimizer to use.
 
     Returns:
         Optimizer: the optimizer to use for optimizing the specific model
     """
-    info_dict = get_model_config(model_names, _config['optimization']['model_specific'])
+    info_dict = get_model_config(model_name, _config['optimization']['model_specific'])
 
-    if info_dict:
-        return info_dict['name']
-    else:
-        return get_general_optimizer()
+    if not info_dict:
+        info_dict = _config['optimization']['general']
+
+    return info_dict['name'], info_dict['options']
 
 
 def get_general_optimizer_name():
@@ -530,95 +506,25 @@ def get_general_sampling_settings():
     return _config['sampling']['general']['settings']
 
 
-def use_automatic_generated_cascades():
-    """Check if we want to use the automatic cascade generation in MDT.
-
-    Returns:
-        boolean: True if we want to use the automatic cascades, False otherwise
-    """
-    return _config['auto_generate_cascade_models']['enabled']
-
-
-def get_automatic_generated_cascades_excluded():
-    """Get the information about the model names excluded from automatic cascade generation.
-
-    Returns:
-        list: the names of the composite models we want to exclude from automatic cascade generation
-    """
-    return _config['auto_generate_cascade_models']['excluded']
-
-
-def get_model_config(model_names, config):
+def get_model_config(model_name, config):
     """Get from the given dictionary the config for the given model.
 
-    This tries to find the best match between the given config items (by key) and the given model list. For example
-    if model_names is ['BallStick', 'S0'] and we have the following config dict:
-
-    .. code-block:: python
-
-        {'^S0$': 0,
-         '^BallStick$': 1
-         ('^BallStick$', '^S0$'): 2,
-         ('^BallStickStick$', '^BallStick$', '^S0$'): 3,
-         }
-
-    then this function should return 2. because that one is the best match, even though the last option is also a
-    viable match. That is, since a subset of the keys in the last option also matches the model names, it is
-    considered a match as well. Still the best match is the third option (returning 2).
+    This tries to find the best match between the given config items (by key) and the given model name.
 
     Args:
-        model_names (list of str): the names of the models we want to match. This should contain the entire
-            recursive list of cascades leading to the composite model we want to get the config for.
-        config (dict): the config items with as keys either a composite model regex for a name or a list of regex for
-            a chain of model names.
+        model_name (str): the name of the model we want to match.
+        config (dict): the config items with as keys a composite model regex
 
     Returns:
-        The config content of the best matching key.
+        The config content of a matching key.
     """
     if not config:
         return {}
 
-    def get_key_length(key):
-        if isinstance(key, tuple):
-            return len(key)
-        return 1
-
-    def is_match(model_names, config_key):
-        if isinstance(model_names, str):
-            model_names = [model_names]
-
-        if len(model_names) != get_key_length(config_key):
-            return False
-
-        if isinstance(config_key, tuple):
-            return all([re.match(config_key[ind], model_names[ind]) for ind in range(len(config_key))])
-
-        return re.match(config_key, model_names[0])
-
-    key_length_lookup = ((get_key_length(key), key) for key in config.keys())
-    ascending_keys = tuple(item[1] for item in sorted(key_length_lookup, key=lambda info: info[0]))
-
-    # direct matching
-    for key in ascending_keys:
-        if is_match(model_names, key):
+    for key in config.keys():
+        if re.match(key, model_name):
             return config[key]
 
-    # partial matching string keys to last model name
-    for key in ascending_keys:
-        if not isinstance(key, tuple):
-            if is_match(model_names[-1], key):
-                return config[key]
-
-    # partial matching tuple keys with a moving filter
-    for key in ascending_keys:
-        if isinstance(key, tuple):
-            for start_ind in range(len(key)):
-                sub_key = key[start_ind:]
-
-                if is_match(model_names, sub_key):
-                    return config[key]
-
-    # no match found
     return {}
 
 

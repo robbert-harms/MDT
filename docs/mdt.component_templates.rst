@@ -20,14 +20,6 @@ mdt\.component\_templates\.batch\_profiles module
     :undoc-members:
     :show-inheritance:
 
-mdt\.component\_templates\.cascade\_models module
--------------------------------------------------
-
-.. automodule:: mdt.component_templates.cascade_models
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 mdt\.component\_templates\.compartment\_models module
 -----------------------------------------------------
 

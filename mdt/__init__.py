@@ -2,30 +2,29 @@ import collections
 import logging
 import logging.config as logging_config
 import os
-import warnings
 from contextlib import contextmanager
-from textwrap import dedent
 
 import numpy as np
 import shutil
 
-from mdt.models.cascade import DMRICascadeModelInterface
+import mot
+from mot.configuration import CLRuntimeInfo, CLRuntimeAction
 from .__version__ import VERSION, VERSION_STATUS, __version__
 
-from mdt.configuration import get_logging_configuration_dict
+from mdt.configuration import get_logging_configuration_dict, get_optimizer_for_model
+
 try:
     logging_config.dictConfig(get_logging_configuration_dict())
 except ValueError:
     print('Logging disabled')
 
 from mdt.component_templates.parameters import FreeParameterTemplate, ProtocolParameterTemplate
-from mdt.component_templates.cascade_models import CascadeTemplate
 from mdt.component_templates.batch_profiles import BatchProfileTemplate
 from mdt.component_templates.compartment_models import CompartmentTemplate, WeightCompartmentTemplate
 from mdt.component_templates.composite_models import CompositeModelTemplate
 from mdt.component_templates.library_functions import LibraryFunctionTemplate
 
-from mdt.lib.model_fitting import get_batch_fitting_function
+from mdt.lib.model_fitting import get_batch_fitting_function, fit_composite_model
 from mdt.utils import estimate_noise_std, get_cl_devices, load_input_data,\
     create_blank_mask, create_index_matrix, \
     volume_index_to_roi_index, roi_index_to_volume_index, load_brain_mask, init_user_settings, restore_volumes, \
@@ -42,7 +41,7 @@ from mdt.protocols import load_bvec_bval, load_protocol, auto_load_protocol, wri
     create_protocol
 from mdt.configuration import config_context, get_processing_strategy, get_config_option, set_config_option
 from mdt.lib.exceptions import InsufficientProtocolError
-from mdt.lib.nifti import write_nifti
+from mdt.lib.nifti import write_nifti, get_all_nifti_data
 from mdt.lib.components import get_model, get_batch_profile, get_component, get_template
 
 
@@ -90,19 +89,15 @@ def get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=
 
 
 def fit_model(model, input_data, output_folder,
-              method=None, recalculate=False, only_recalculate_last=False,
-              cl_device_ind=None, double_precision=False, tmp_results_dir=True,
-              initialization_data=None, use_cascaded_inits=True, post_processing=None,
-              optimizer_options=None):
+              method=None, recalculate=False, cl_device_ind=None,
+              double_precision=False, tmp_results_dir=True,
+              initialization_data=None, use_cascaded_inits=True,
+              post_processing=None, optimizer_options=None):
     """Run the optimizer on the given model.
 
-    Since version 0.17.2 fitting cascade models has been deprecated in favor of a slightly more manual setup by
-    using the :func:`get_optimization_inits` function.
-
     Args:
-        model (str or :class:`~mdt.models.composite.DMRICompositeModel` or :class:`~mdt.models.cascade.DMRICascadeModelInterface`):
-            An implementation of an AbstractModel that contains the model we want to optimize or the name of
-            an model.
+        model (str or :class:`~mdt.models.composite.DMRICompositeModel`):
+            The name of a composite model or an implementation of a composite model.
         input_data (:class:`~mdt.utils.MRIInputData`): the input data object containing all
             the info needed for the model fitting.
         output_folder (string): The path to the folder where to place the output, we will make a subdir with the
@@ -116,18 +111,13 @@ def fit_model(model, input_data, output_folder,
             If not given, defaults to 'Powell'.
 
         recalculate (boolean): If we want to recalculate the results if they are already present.
-        only_recalculate_last (boolean):
-            This is only of importance when dealing with CascadeModels.
-            If set to true we only recalculate the last element in the chain (if recalculate is set to True, that is).
-            If set to false, we recalculate everything. This only holds for the first level of the cascade.
         cl_device_ind (int or list): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices(). This can also be a list of device indices.
         double_precision (boolean): if we would like to do the calculations in double precision
         tmp_results_dir (str, True or None): The temporary dir for the calculations. Set to a string to use
             that path directly, set to True to use the config value, set to None to disable.
         initialization_data (dict): provides (extra) initialization data to
-            use during model fitting. If we are optimizing a cascade model this data only applies to the last model
-            in the cascade. This dictionary can contain the following elements:
+            use during model fitting. This dictionary can contain the following elements:
 
             * ``inits``: dictionary with per parameter an initialization point
             * ``fixes``: dictionary with per parameter a fixed point, this will remove that parameter from the fitting
@@ -143,8 +133,7 @@ def fit_model(model, input_data, output_folder,
                 }
 
         use_cascaded_inits (boolean): if set, we initialize the model parameters using :func:`get_optimization_inits`.
-            You can still overwrite these initializations using the ``initialization_data`` attribute.
-            Please note that this only works for non-cascade models.
+            You can also overrule the default initializations using the ``initialization_data`` attribute.
         post_processing (dict): a dictionary with flags for post-processing options to enable or disable.
             For valid elements, please see the configuration file settings for ``optimization``
             under ``post_processing``. Valid input for this parameter is for example: {'covariance': False}
@@ -155,14 +144,18 @@ def fit_model(model, input_data, output_folder,
         dict: The result maps for the given composite model or the last model in the cascade.
             This returns the results as 3d/4d volumes for every output map.
     """
-    import mdt.utils
-    from mdt.lib.model_fitting import ModelFit
+    logger = logging.getLogger(__name__)
 
-    if not mdt.utils.check_user_components():
+    if not check_user_components():
         init_user_settings(pass_if_exists=True)
 
-    if cl_device_ind is not None and not isinstance(cl_device_ind, collections.Iterable):
-        cl_device_ind = [cl_device_ind]
+    if cl_device_ind is not None:
+        if not isinstance(cl_device_ind, collections.Iterable):
+            cl_device_ind = [cl_device_ind]
+        cl_runtime_info = CLRuntimeInfo(cl_environments=get_cl_devices(cl_device_ind),
+                                        double_precision=double_precision)
+    else:
+        cl_runtime_info = CLRuntimeInfo(double_precision=double_precision)
 
     if isinstance(model, str):
         model_name = model
@@ -171,40 +164,36 @@ def fit_model(model, input_data, output_folder,
         model_name = model.name
         model_instance = model
 
-    if isinstance(model_instance, DMRICascadeModelInterface):
-        warnings.warn(dedent('''
-            Fitting cascade models has been deprecated in favor of specifying 'initialization_data' directly.
-            
-            To replicate old fit results, use the function mdt.get_optimization_inits() 
-            
-            Old (deprecated) example:
-            
-                fit_model('NODDI (Cascade)', ...)
-            
-            New example:
-                
-                fit_model('NODDI', ..., use_cascaded_inits=True)
-            
-            Since ``use_cascaded_inits`` is True by default, you can also just use:
+    if not model_instance.is_input_data_sufficient(input_data):
+        raise InsufficientProtocolError(
+            'The provided protocol is insufficient for this model. '
+            'The reported errors where: {}'.format(model_instance.get_input_data_problems(input_data)))
 
-                fit_model('NODDI', ...)
-        '''), FutureWarning)
-    else:
-        if use_cascaded_inits:
-            if initialization_data is None:
-                initialization_data = {}
-            initialization_data['inits'] = initialization_data.get('inits', {})
-            inits = get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=cl_device_ind)
-            inits.update(initialization_data['inits'])
-            initialization_data['inits'] = inits
+    if post_processing:
+        model_instance.update_active_post_processing('optimization', post_processing)
 
-    model_fit = ModelFit(model, input_data, output_folder, method=method, optimizer_options=optimizer_options,
-                         recalculate=recalculate,
-                         only_recalculate_last=only_recalculate_last,
-                         cl_device_ind=cl_device_ind, double_precision=double_precision,
-                         tmp_results_dir=tmp_results_dir, initialization_data=initialization_data,
-                         post_processing=post_processing)
-    return model_fit.run()
+    if use_cascaded_inits:
+        if initialization_data is None:
+            initialization_data = {}
+        initialization_data['inits'] = initialization_data.get('inits', {})
+        inits = get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=cl_device_ind)
+        inits.update(initialization_data['inits'])
+        initialization_data['inits'] = inits
+
+        initialization_data = SimpleInitializationData(**initialization_data)
+        initialization_data.apply_to_model(model_instance, input_data)
+
+        logger.info('Preparing {0} with the cascaded initializations.'.format(model_name))
+
+    if method is None:
+        method, optimizer_options = get_optimizer_for_model(model_name)
+
+    with mot.configuration.config_context(CLRuntimeAction(cl_runtime_info)):
+        fit_composite_model(model_instance, input_data, output_folder, method,
+                            get_temporary_results_dir(tmp_results_dir), recalculate=recalculate,
+                            optimizer_options=optimizer_options)
+
+    return get_all_nifti_data(os.path.join(output_folder, model_name))
 
 
 def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None, thinning=None,
@@ -245,16 +234,22 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
             items 'LogLikelihood' and 'LogPrior'.
         tmp_results_dir (str, True or None): The temporary dir for the calculations. Set to a string to use
                 that path directly, set to True to use the config value, set to None to disable.
-        initialization_data (:class:`~mdt.utils.InitializationData` or dict): provides (extra) initialization data to
-            use during model fitting. If we are optimizing a cascade model this data only applies to the last model
-            in the cascade. If a dictionary is given we will load the elements as arguments to the
-            :class:`mdt.utils.SimpleInitializationData` class. For example::
+        initialization_data (dict): provides (extra) initialization data to
+            use during model fitting. This dictionary can contain the following elements:
 
-                initialization_data = {'fixes': {...}, 'inits': {...}}
+            * ``inits``: dictionary with per parameter an initialization point
+            * ``fixes``: dictionary with per parameter a fixed point, this will remove that parameter from the fitting
+            * ``lower_bounds``: dictionary with per parameter a lower bound
+            * ``upper_bounds``: dictionary with per parameter a upper bound
+            * ``unfix``: a list of parameters to unfix
 
-            is transformed into::
+            For example::
 
-                initialization_data = SimpleInitializationData(fixes={...}, inits={...})
+                initialization_data = {
+                    'fixes': {'Stick0.theta: np.array(...), ...},
+                    'inits': {...}
+                }
+
         post_processing (dict): a dictionary with flags for post-processing options to enable or disable.
             For valid elements, please see the configuration file settings for ``sample`` under ``post_processing``.
             Valid input for this parameter is for example: {'univariate_normal': True} to enable automatic calculation
@@ -272,7 +267,6 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
     """
     import mdt.utils
     from mdt.lib.model_sampling import sample_composite_model
-    from mdt.models.cascade import DMRICascadeModelInterface
     import mot.configuration
 
     settings = mdt.configuration.get_general_sampling_settings()
@@ -294,9 +288,6 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
 
     if post_processing:
         model.update_active_post_processing('sampling', post_processing)
-
-    if isinstance(model, DMRICascadeModelInterface):
-        raise ValueError('The function \'sample_model()\' does not accept cascade models.')
 
     if cl_device_ind is None:
         cl_context_action = mot.configuration.VoidConfigurationAction()
@@ -580,15 +571,13 @@ def write_volume_maps(maps, directory, header=None, overwrite_volumes=True, gzip
 
 
 def get_models_list():
-    """Get a list of all available models, composite and cascade.
+    """Get a list of all available composite models
 
     Returns:
         list of str: A list of available model names.
     """
-    from mdt.lib.components import list_composite_models, list_cascade_models
-    l = list(list_cascade_models())
-    l.extend(list_composite_models())
-    return list(sorted(l))
+    from mdt.lib.components import get_component_list
+    return list(sorted(get_component_list('composite_models')))
 
 
 def get_models_meta_info():
@@ -598,13 +587,8 @@ def get_models_meta_info():
         dict of dict: The first dictionary indexes the model names to the meta tags, the second holds the meta
             information.
     """
-    from mdt.lib.components import list_cascade_models, list_composite_models, get_meta_info, get_component_list
-    meta_info = {}
-    for model_type in ('composite_models', 'cascade_models'):
-        model_list = get_component_list(model_type)
-        for model in model_list:
-            meta_info.update({model: get_meta_info(model_type, model)})
-    return meta_info
+    from mdt.lib.components import get_meta_info, get_component_list
+    return {model: get_meta_info('composite_models', model) for model in get_component_list('composite_models')}
 
 
 def start_gui(base_dir=None, app_exec=True):

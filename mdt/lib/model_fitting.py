@@ -1,5 +1,3 @@
-import warnings
-from textwrap import dedent
 import numpy as np
 import glob
 import logging
@@ -11,14 +9,12 @@ from contextlib import contextmanager
 from mdt.__version__ import __version__
 from mdt.lib.nifti import get_all_nifti_data
 from mdt.lib.components import get_model
-from mdt.configuration import get_processing_strategy, get_optimizer_for_model
-from mdt.models.cascade import DMRICascadeModelInterface
+from mdt.configuration import get_processing_strategy
 from mdt.utils import create_roi, get_cl_devices, model_output_exists, \
-    per_model_logging_context, get_temporary_results_dir, SimpleInitializationData, InitializationData
+    per_model_logging_context
 from mdt.lib.processing_strategies import FittingProcessor, get_full_tmp_results_path
 from mdt.lib.exceptions import InsufficientProtocolError
 import mot.configuration
-from mot.configuration import CLRuntimeInfo, CLRuntimeAction
 from mot.configuration import config_context as mot_config_context
 
 __author__ = 'Robbert Harms'
@@ -66,8 +62,11 @@ def get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=
 
     def get_model_fit(model_name):
         logger.info('Starting intermediate optimization for generating initialization point.')
-        results = ModelFit(model_name, input_data, output_folder, recalculate=False,
-                           initialization_data={'inits': get_init_data(model_name)}).run()
+
+        from mdt import fit_model
+        results = fit_model(model_name, input_data, output_folder, recalculate=False, use_cascaded_inits=False,
+                            initialization_data={'inits': get_init_data(model_name)})
+
         logger.info('Finished intermediate optimization for generating initialization point.')
         return results
 
@@ -194,6 +193,8 @@ def get_batch_fitting_function(total_nmr_subjects, models_to_fit, output_folder,
             self._index_counter = 0
 
         def __call__(self, subject_info):
+            from mdt import fit_model
+
             logger.info('Going to process subject {}, ({} of {}, we are at {:.2%})'.format(
                 subject_info.subject_id, self._index_counter + 1, total_nmr_subjects,
                 self._index_counter / total_nmr_subjects))
@@ -209,37 +210,22 @@ def get_batch_fitting_function(total_nmr_subjects, models_to_fit, output_folder,
             input_data = subject_info.get_input_data(use_gradient_deviations)
 
             with timer(subject_info.subject_id):
-                for model_name in models_to_fit:
-                    if isinstance(model_name, str):
-                        model_instance = get_model(model_name)()
+                for model in models_to_fit:
+                    if isinstance(model, str):
+                        model_name = model
                     else:
-                        model_instance = model_name
-                    if isinstance(model_instance, DMRICascadeModelInterface):
-                        warnings.warn(dedent('''
-                        
-                            Fitting cascade models has been deprecated, MDT now by default tries to find a suitable initialization point for your specified model. 
-                        
-                            As an example, instead of specifying 'NODDI (Cascade)', now just specify 'NODDI' and MDT will do its best to get the best model fit possible.
-                        '''), FutureWarning)
+                        model_name = model.name
 
                     logger.info('Going to fit model {0} on subject {1}'.format(model_name, subject_info.subject_id))
 
                     try:
-                        if not isinstance(model_instance, DMRICascadeModelInterface):
-                            inits = get_optimization_inits(model_name, input_data, output_dir,
-                                                           cl_device_ind=cl_device_ind)
-                        else:
-                            inits = {}
+                        fit_model(model, input_data, output_dir,
+                                  recalculate=recalculate,
+                                  cl_device_ind=cl_device_ind,
+                                  double_precision=double_precision,
+                                  tmp_results_dir=tmp_results_dir,
+                                  use_cascaded_inits=True)
 
-                        model_fit = ModelFit(model_name,
-                                             input_data,
-                                             output_dir,
-                                             recalculate=recalculate,
-                                             cl_device_ind=cl_device_ind,
-                                             double_precision=double_precision,
-                                             tmp_results_dir=tmp_results_dir,
-                                             initialization_data={'inits': inits})
-                        model_fit.run()
                     except InsufficientProtocolError as ex:
                         logger.info('Could not fit model {0} on subject {1} '
                                     'due to protocol problems. {2}'.format(model_name, subject_info.subject_id, ex))
@@ -249,167 +235,8 @@ def get_batch_fitting_function(total_nmr_subjects, models_to_fit, output_folder,
     return FitFunc()
 
 
-class ModelFit:
-
-    def __init__(self, model, input_data, output_folder,
-                 method=None, optimizer_options=None, recalculate=False, only_recalculate_last=False,
-                 cl_device_ind=None, double_precision=False, tmp_results_dir=True, initialization_data=None,
-                 post_processing=None):
-        """Setup model fitting for the given input model and data.
-
-        To actually fit the model call run().
-
-        Args:
-            model (str or :class:`~mdt.models.composite.DMRICompositeModel` or :class:`~mdt.models.cascade.DMRICascadeModelInterface`):
-                    the model we want to optimize.
-            input_data (:class:`~mdt.utils.MRIInputData`): the input data object containing
-                all the info needed for the model fitting.
-            output_folder (string): The full path to the folder where to place the output
-            method (str): The optimization method to use, one of:
-                - 'Levenberg-Marquardt'
-                - 'Nelder-Mead'
-                - 'Powell'
-                - 'Subplex'
-
-                If not given, defaults to 'Powell'.
-            optimizer_options (dict): extra options passed to the optimization routines.
-            recalculate (boolean): If we want to recalculate the results if they are already present.
-            only_recalculate_last (boolean): If we want to recalculate all the models.
-                This is only of importance when dealing with CascadeModels. If set to true we only recalculate
-                the last element in the chain (if recalculate is set to True, that is). If set to false,
-                we recalculate everything. This only holds for the first level of the cascade.
-            cl_device_ind (int or list): the index of the CL device to use. The index is from the list from the function
-                get_cl_devices(). This can also be a list of device indices.
-            double_precision (boolean): if we would like to do the calculations in double precision
-            tmp_results_dir (str, True or None): The temporary dir for the calculations. Set to a string to use
-                that path directly, set to True to use the config value, set to None to disable.
-            initialization_data (dict or :class:`~mdt.utils.InitializationData`): extra initialization data to use
-                during model fitting. If we are optimizing a cascade model this data only applies to the last model in
-                the cascade.
-            post_processing (dict): a dictionary with flags for post-processing options to enable or disable.
-                For valid elements, please see the configuration file settings for ``optimization``
-                under ``post_processing``. Valid input for this parameter is for example: {'covariance': False}
-                to disable automatic calculation of the covariance from the Hessian.
-
-        """
-        if isinstance(model, str):
-            model = get_model(model)()
-
-        if post_processing:
-            model.update_active_post_processing('optimization', post_processing)
-
-        self._model = model
-        self._input_data = input_data
-        self._output_folder = output_folder
-        self._method = method
-        self._optimizer_options = optimizer_options
-        self._recalculate = recalculate
-        self._only_recalculate_last = only_recalculate_last
-        self._logger = logging.getLogger(__name__)
-
-        self._model_names_list = []
-        self._tmp_results_dir = get_temporary_results_dir(tmp_results_dir)
-
-        if initialization_data is not None and not isinstance(initialization_data, InitializationData):
-            self._initialization_data = SimpleInitializationData(**initialization_data)
-        else:
-            self._initialization_data = initialization_data
-
-        if cl_device_ind is not None:
-            self._cl_runtime_info = CLRuntimeInfo(cl_environments=get_cl_devices(cl_device_ind),
-                                                  double_precision=double_precision)
-        else:
-            self._cl_runtime_info = CLRuntimeInfo(double_precision=double_precision)
-
-        if not model.is_input_data_sufficient(self._input_data):
-            raise InsufficientProtocolError(
-                'The provided protocol is insufficient for this model. '
-                'The reported errors where: {}'.format(self._model.get_input_data_problems(self._input_data)))
-
-    def run(self):
-        """Run the model and return the resulting voxel estimates within the ROI.
-
-        Returns:
-            dict: The result maps for the given composite model or the last model in the cascade.
-                This returns the results as 3d/4d volumes for every output map.
-        """
-        _, maps = self._run(self._model, self._recalculate, self._only_recalculate_last)
-        return maps
-
-    def _run(self, model, recalculate, only_recalculate_last, _in_recursion=False):
-        """Recursively calculate the (cascade) models
-
-        Args:
-            model: The model to fit, if cascade we recurse
-            recalculate (boolean): if we recalculate
-            only_recalculate_last: if we recalculate, if we only recalculate the last item in the first cascade
-            _in_recursion (boolean): private flag, not to be set by the calling function.
-
-        Returns:
-            tuple: the first element are a dictionary with the ROI results for the maps, the second element is the
-                dictionary with the reconstructed map results.
-        """
-        self._model_names_list.append(model.name)
-
-        if isinstance(model, DMRICascadeModelInterface):
-            all_previous_results = []
-            last_results = None
-            while model.has_next():
-                sub_model = model.get_next(all_previous_results)
-
-                sub_recalculate = False
-                if recalculate:
-                    if only_recalculate_last:
-                        if not model.has_next():
-                            sub_recalculate = True
-                    else:
-                        sub_recalculate = True
-
-                new_in_recursion = True
-                if not _in_recursion and not model.has_next():
-                    new_in_recursion = False
-
-                new_results_roi, new_results_maps = self._run(sub_model, sub_recalculate, recalculate,
-                                                              _in_recursion=new_in_recursion)
-                all_previous_results.append(new_results_roi)
-                last_results = new_results_roi, new_results_maps
-                self._model_names_list.pop()
-
-            model.reset()
-            return last_results
-
-        return self._run_composite_model(model, recalculate, self._model_names_list,
-                                         apply_user_provided_initialization=not _in_recursion)
-
-    def _run_composite_model(self, model, recalculate, model_names, apply_user_provided_initialization=False):
-        with mot.configuration.config_context(CLRuntimeAction(self._cl_runtime_info)):
-            if apply_user_provided_initialization:
-                self._apply_user_provided_initialization_data(model)
-
-            method = self._method or get_optimizer_for_model(model_names)
-
-            results = fit_composite_model(model, self._input_data, self._output_folder, method,
-                                          self._tmp_results_dir, recalculate=recalculate, cascade_names=model_names,
-                                          optimizer_options=self._optimizer_options)
-
-        map_results = get_all_nifti_data(os.path.join(self._output_folder, model.name))
-        return results, map_results
-
-    def _apply_user_provided_initialization_data(self, model):
-        """Apply the initialization data to the model.
-
-        This has the ability to initialize maps as well as fix maps.
-
-        Args:
-            model: the composite model we are preparing for fitting. Changes happen in place.
-        """
-        if self._initialization_data is not None:
-            self._logger.info('Preparing model {0} with the user provided initialization data.'.format(model.name))
-            self._initialization_data.apply_to_model(model, self._input_data)
-
-
 def fit_composite_model(model, input_data, output_folder, method, tmp_results_dir,
-                        recalculate=False, cascade_names=None, optimizer_options=None):
+                        recalculate=False, optimizer_options=None):
     """Fits the composite model and returns the results as ROI lists per map.
 
      Args:
@@ -421,7 +248,6 @@ def fit_composite_model(model, input_data, output_folder, method, tmp_results_di
         method (str): The optimization routine to use.
         tmp_results_dir (str): the main directory to use for the temporary results
         recalculate (boolean): If we want to recalculate the results if they are already present.
-        cascade_names (list): the list of cascade names, meant for logging
         optimizer_options (dict): the additional optimization options
     """
     logger = logging.getLogger(__name__)
@@ -440,7 +266,6 @@ def fit_composite_model(model, input_data, output_folder, method, tmp_results_di
     with per_model_logging_context(output_path):
         logger.info('Using MDT version {}'.format(__version__))
         logger.info('Preparing for model {0}'.format(model.name))
-        logger.info('Current cascade: {0}'.format(cascade_names))
 
         model.set_input_data(input_data)
 

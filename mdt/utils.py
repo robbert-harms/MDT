@@ -1424,7 +1424,7 @@ def model_output_exists(model, output_folder, append_model_name_to_path=True):
     hence no maps will be generated. When we are testing if the output exists it will therefore return False.
 
     Args:
-        model (AbstractModel, CascadeModel or str): the model to check for existence, accepts cascade models.
+        model (AbstractModel, or str): the model to check for existence.
             If a string is given the model is tried to be loaded from the components loader.
         output_folder (str): the folder where the output folder of the results should reside in
         append_model_name_to_path (boolean): by default we will append the name of the model to the output folder.
@@ -1433,15 +1433,9 @@ def model_output_exists(model, output_folder, append_model_name_to_path=True):
 
     Returns:
         boolean: true if the output folder exists and contains files for all the parameters of the model.
-            For a cascade model it returns true if the maps of all the models exist.
     """
     if isinstance(model, str):
         model = get_model(model)()
-
-    from mdt.models.cascade import DMRICascadeModelInterface
-    if isinstance(model, DMRICascadeModelInterface):
-        return all(model_output_exists(sub_model, output_folder, append_model_name_to_path)
-                   for sub_model in model.get_model_names())
 
     if append_model_name_to_path:
         output_path = os.path.join(output_folder, model.name)

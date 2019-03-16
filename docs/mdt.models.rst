@@ -12,14 +12,6 @@ mdt\.models\.base module
     :undoc-members:
     :show-inheritance:
 
-mdt\.models\.cascade module
----------------------------
-
-.. automodule:: mdt.models.cascade
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 mdt\.models\.compartments module
 --------------------------------
 

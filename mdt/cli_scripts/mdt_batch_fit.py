@@ -53,8 +53,7 @@ class BatchFit(BasicShellApplication):
 
         parser.add_argument('data_folder', help='the directory with the subject to fit').completer = FilesCompleter()
 
-        parser.add_argument('models_to_fit', type=str, nargs='*',
-                            help="The models to fit, allows cascade models.")
+        parser.add_argument('models_to_fit', type=str, nargs='*', help="The models to fit")
 
         parser.add_argument('-o', '--output_folder',
                             help='the directory for the output, defaults to an output dir next to the input dir.')\

@@ -45,7 +45,7 @@ To run, after installing MDT, go to the folder where you downloaded your (pre-pr
 
 .. code-block:: console
 
-    $ mdt-batch-fit . 'NODDI (Cascade)'
+    $ mdt-batch-fit . NODDI
 
 and it will autodetect the study in use and fit your selected model to all the subjects.
 

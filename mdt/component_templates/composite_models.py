@@ -105,7 +105,7 @@ class DMRICompositeModelBuilder(ComponentBuilder):
 
 
 class CompositeModelTemplate(ComponentTemplate):
-    """The cascade config to inherit from.
+    """The composite model config to inherit from.
 
     These configs are loaded on the fly by the DMRICompositeModelBuilder
 

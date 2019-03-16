@@ -11,8 +11,6 @@ import argparse
 import os
 import mdt
 from argcomplete.completers import FilesCompleter
-
-from mdt import DMRICascadeModelInterface
 from mdt.lib.shell_utils import BasicShellApplication
 from mot.lib import cl_environments
 import textwrap
@@ -79,12 +77,6 @@ class ModelFit(BasicShellApplication):
         parser.add_argument('--no-recalculate', dest='recalculate', action='store_false',
                             help="Do not recalculate the model(s) if the output exists.")
         parser.set_defaults(recalculate=True)
-
-        parser.add_argument('--only-recalculate-last', dest='only_recalculate_last', action='store_true',
-                            help="Only recalculate the last model in a cascade. (default)")
-        parser.add_argument('--recalculate-all', dest='only_recalculate_last', action='store_false',
-                            help="Recalculate all models in a cascade.")
-        parser.set_defaults(only_recalculate_last=True)
 
         parser.add_argument('--dont-use-cascaded-inits', dest='use_cascaded_inits', action='store_false',
                             help="Do not initialize the model with a better starting point.")
@@ -155,7 +147,6 @@ class ModelFit(BasicShellApplication):
                           method=args.method,
                           optimizer_options=optimizer_options,
                           recalculate=args.recalculate,
-                          only_recalculate_last=args.only_recalculate_last,
                           cl_device_ind=args.cl_device_ind,
                           double_precision=args.double_precision,
                           tmp_results_dir=tmp_results_dir,

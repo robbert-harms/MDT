@@ -51,8 +51,7 @@ def sample_composite_model(model, input_data, output_folder, nmr_samples, thinni
             store the items specified in this list. Valid items are the free parameter names of the model and the
             items 'LogLikelihood' and 'LogPrior'.
         initialization_data (:class:`~mdt.utils.InitializationData`): provides (extra) initialization data to use
-            during model fitting. If we are optimizing a cascade model this data only applies to the last model in the
-            cascade.
+            during model sampling.
         post_sampling_cb (Callable[
             [mot.sample.base.SamplingOutput, mdt.models.composite.DMRICompositeModel], Optional[Dict]]):
                 additional post-processing called after sampling. This function can optionally return a (nested)

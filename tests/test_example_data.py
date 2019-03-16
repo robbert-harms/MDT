@@ -41,7 +41,7 @@ class ExampleDataTest(unittest.TestCase):
                                          pjoin('b1k_b2k.prtcl'),
                                          pjoin('b1k_b2k_example_slices_24_38_mask'))
 
-        for model_name in ['BallStick_r1 (Cascade)', 'Tensor (Cascade)', 'NODDI (Cascade|fixed)']:
+        for model_name in ['BallStick_r1', 'Tensor', 'NODDI']:
             mdt.fit_model(model_name, input_data, pjoin('output', 'b1k_b2k_example_slices_24_38_mask'))
 
     @classmethod
@@ -52,7 +52,7 @@ class ExampleDataTest(unittest.TestCase):
                                          pjoin('multishell_b6k_max.prtcl'),
                                          pjoin('multishell_b6k_max_example_slices_24_38_mask'))
 
-        for model_name in ['CHARMED_r1 (Cascade|fixed)', 'CHARMED_r2 (Cascade|fixed)', 'CHARMED_r3 (Cascade|fixed)']:
+        for model_name in ['CHARMED_r1', 'CHARMED_r2', 'CHARMED_r3']:
             mdt.fit_model(model_name, input_data, pjoin('output', 'multishell_b6k_max_example_slices_24_38_mask'))
 
     def test_lls_b1k_b2k(self):

@@ -104,7 +104,7 @@ class BasicShellApplication:
 
         epilog = textwrap.dedent("""
             Examples of use:
-                mdt-model-fit "BallStick (Cascade)" data.nii.gz data.prtcl roi_mask_0_50.nii.gz
+                mdt-model-fit BallStick_r1 data.nii.gz data.prtcl roi_mask_0_50.nii.gz
         """)
         parser = argparse.ArgumentParser(description=description, epilog=epilog,
                                          formatter_class=argparse.RawTextHelpFormatter)

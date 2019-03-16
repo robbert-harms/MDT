@@ -2,14 +2,12 @@ import os
 from copy import copy
 from textwrap import dedent
 
-import yaml
 from PyQt5.QtCore import pyqtSlot, QObject, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog, QMessageBox, QDialog, QDialogButtonBox
 
 import mdt
 import mot
 from mdt.gui.maps_visualizer.main import start_gui
-from mdt.lib.components import list_composite_models
 from mdt.gui.model_fit.design.ui_fit_model_tab import Ui_FitModelTabContent
 from mdt.gui.model_fit.design.ui_optimization_extra_data_add_protocol_map_dialog import Ui_AddProtocolMapDialog
 from mdt.gui.model_fit.design.ui_optimization_extra_data_dialog import Ui_OptimizationExtraDataDialog
@@ -57,7 +55,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
         self.optimizationOptionsButton.clicked.connect(self._run_optimization_options_dialog)
         self.additionalDataButton.clicked.connect(self._extra_data_dialog)
 
-        self.modelSelection.addItems(list(sorted(list_composite_models())))
+        self.modelSelection.addItems(mdt.get_models_list())
         initial_model = 'BallStick_r1'
 
         self.modelSelection.setCurrentText(initial_model)
