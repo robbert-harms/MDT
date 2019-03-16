@@ -537,7 +537,7 @@ class SamplingProcessor(SimpleModelProcessor):
                 - 'FSL', for the sampling method used in the FSL toolbox
             samples_storage_strategy (SamplesStorageStrategy): indicates which samples to store
             post_sampling_cb (Callable[
-                [mot.sample.base.SamplingOutput, mdt.models.composite.DMRICompositeModel], Optional[Dict]]):
+                [mot.sample.base.SamplingOutput, mdt.models.base.EstimableModel], Optional[Dict]]):
                     additional post-processing called after sampling. This function can optionally return a (nested)
                     dictionary with as keys dir-/file-names and as values maps to be stored in the results directory.
             sampler_options (dict): specific options for the MCMC routine. These will be provided to the sampling routine

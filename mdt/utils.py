@@ -552,7 +552,7 @@ class InitializationData:
 
         Args:
             model: the model to apply the initializations on
-            input_data (SimpleMRIInputData): the input data used in the fit
+            input_data (MRIInputData): the input data used in the fit
         """
         raise NotImplementedError()
 

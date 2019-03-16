@@ -22,7 +22,7 @@ from mot.lib.utils import all_elements_equal, get_single_value
 from mot.lib.kernel_data import Array, Zeros, Scalar, LocalMemory, Struct, CompositeArray, PrivateMemory
 
 from mdt.models.base import MissingProtocolInput
-from mdt.models.base import DMRIOptimizable
+from mdt.models.base import EstimableModel
 from mdt.utils import calculate_point_estimate_information_criterions, is_scalar, results_to_dict, \
     create_covariance_matrix
 from mot.library_functions import pseudo_inverse_real_symmetric_matrix_upper_triangular
@@ -36,7 +36,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class DMRICompositeModel(DMRIOptimizable):
+class DMRICompositeModel(EstimableModel):
 
     def __init__(self, model_name, model_tree, likelihood_function, signal_noise_model=None, input_data=None,
                  enforce_weights_sum_to_one=True, volume_selection=True):
@@ -156,7 +156,7 @@ class DMRICompositeModel(DMRIOptimizable):
         return CompositeModelFunction(self._model_tree, signal_noise_model=self._signal_noise_model)
 
     def get_kernel_data(self):
-        """Get the kernel data this model needs for evaluating the model.
+        """Get the kernel data this model needs for evaluation in OpenCL.
 
         This is needed for evaluating the priors, likelihoods and other functions.
 
@@ -399,257 +399,6 @@ class DMRICompositeModel(DMRIOptimizable):
 
     def get_model_eval_function(self):
         return self._get_model_eval_function(include_cache_init_func=True)
-
-    def _post_sampling_extra_model_defined_maps(self, samples):
-        """Compute the extra post-sample maps defined in the models.
-
-        Args:
-            samples (ndarray): the array with the samples
-
-        Returns:
-            dict: some additional statistic maps we want to output as part of the samping results
-        """
-        post_processing_data = SamplingPostProcessingData(samples, self.get_free_param_names(),
-                                                          self._get_fixed_parameter_maps(self._voxels_to_analyze))
-        results_dict = {}
-        for routine in self._extra_sampling_maps_funcs:
-            try:
-                results_dict.update(routine(post_processing_data))
-            except KeyError:
-                pass
-        return results_dict
-
-    def _get_mle_map_statistics(self, sampling_output):
-        """Get the maximum and corresponding volume maps of the MLE and MAP estimators.
-
-        This computes the Maximum Likelihood Estimator and the Maximum A Posteriori in one run and computes from that
-        the corresponding parameter and global post-optimization maps.
-
-        Args:
-            sampling_output (mot.cl_routines.sample.base.SimpleSampleOutput): the output of the sampler
-
-        Returns:
-            tuple(Func, Func): the function that generates the maps for the MLE and for the MAP estimators.
-        """
-        log_likelihoods = sampling_output.get_log_likelihoods()
-        posteriors = log_likelihoods + sampling_output.get_log_priors()
-
-        mle_indices = np.argmax(log_likelihoods, axis=1)
-        map_indices = np.argmax(posteriors, axis=1)
-
-        mle_values = log_likelihoods[range(log_likelihoods.shape[0]), mle_indices]
-        map_values = posteriors[range(posteriors.shape[0]), map_indices]
-
-        samples = sampling_output.get_samples()
-
-        mle_samples = samples[range(samples.shape[0]), :, mle_indices]
-        map_samples = samples[range(samples.shape[0]), :, map_indices]
-
-        def mle_maps():
-            results = results_to_dict(mle_samples, self.get_free_param_names())
-            maps = self.post_process_optimization_maps(results, results_array=mle_samples, log_likelihoods=mle_values)
-            maps.update({'MaximumLikelihoodEstimator.indices': mle_indices})
-            return maps
-
-        def map_maps():
-            results = results_to_dict(map_samples, self.get_free_param_names())
-            maps = self.post_process_optimization_maps(results, results_array=map_samples, log_likelihoods=mle_values)
-            maps.update({'MaximumAPosteriori': map_values,
-                         'MaximumAPosteriori.indices': map_indices})
-            return maps
-
-        return mle_maps, map_maps
-
-    def _get_univariate_normal(self, samples):
-        """Fit a univariate normal distribution to the parameters, i.e. calculate the mean and std. of each parameter.
-
-        Args:
-            samples (ndarray): an (d, p, n) matrix for d problems, p parameters and n samples.
-
-        Returns:
-            dict: the volume maps with the univariate normal distribution fits (mean and std.)
-        """
-        results = {}
-        for ind, param_name in enumerate(self.get_free_param_names()):
-            results['{}'.format(param_name)] = np.mean(samples[:, ind, :], axis=1)
-            results['{}.std'.format(param_name)] = np.std(samples[:, ind, :], axis=1)
-        return results
-
-    def _get_univariate_ess(self, samples):
-        """Get the univariate Effective Sample Size statistics for the given set of samples.
-
-        Args:
-            samples (ndarray): an (d, p, n) matrix for d problems, p parameters and n samples.
-
-        Returns:
-            dict: the volume maps with the univariate ESS statistics
-        """
-        ess = univariate_ess(samples, method='standard_error')
-        ess[np.isinf(ess)] = 0
-        ess = np.nan_to_num(ess)
-        return results_to_dict(ess, [a + '.UnivariateESS' for a in self.get_free_param_names()])
-
-    def _get_multivariate_ess(self, samples):
-        """Get the multivariate Effective Sample Size statistics for the given set of samples.
-
-        Args:
-            samples (ndarray): an (d, p, n) matrix for d problems, p parameters and n samples.
-
-        Returns:
-            dict: the volume maps with the ESS statistics
-        """
-        ess = multivariate_ess(samples)
-        ess[np.isinf(ess)] = 0
-        ess = np.nan_to_num(ess)
-        return {'MultivariateESS': ess}
-
-    def _get_average_acceptance_rate(self, samples):
-        """Get the multivariate Effective Sample Size statistics for the given set of samples.
-
-        This computes the acceptance rate on basis of the obtained samples, not taking into account any thinning
-        during the generation of the samples.
-
-        Args:
-            samples (ndarray): an (d, p, n) matrix for d problems, p parameters and n samples.
-
-        Returns:
-            dict: the volume maps with the average acceptance rates
-        """
-        results = {}
-        for ind, param_name in enumerate(self.get_free_param_names()):
-            results['{}'.format(param_name)] = np.count_nonzero(samples[:, ind, 1:] - samples[:, ind, :-1], axis=1) \
-                                               / samples.shape[2]
-        return results
-
-    def _compute_fisher_information_matrix(self, results_array):
-        """Calculate the covariance and correlation matrix by taking the inverse of the Hessian.
-
-        This first calculates/approximates the Hessian at each of the points using numerical differentiation.
-        Afterwards we inverse the Hessian and compute a correlation matrix.
-
-        Args:
-            results_array (ndarray): the list with the optimized points for each parameter
-        """
-        nmr_params = self.get_nmr_parameters()
-        scales = self._get_numdiff_scaling_factors()
-
-        modulus_transformations = []
-        transformation_template = 'x_tmp[{ind}] = x_tmp[{ind}] - floor(x_tmp[{ind}] / ({modulus})) * ({modulus});'
-        for m, p in self._model_functions_info.get_estimable_parameters_list():
-            ind = self._model_functions_info.get_parameter_estimable_index(m, p)
-            if isinstance(p, (PolarAngleParameter, RotationalAngleParameter)):
-                modulus_transformations.append(transformation_template.format(ind=ind, modulus='M_PI_F'))
-            elif isinstance(p, AzimuthAngleParameter):
-                modulus_transformations.append(transformation_template.format(ind=ind, modulus='2 * M_PI_F'))
-
-        wrapped_objective = SimpleCLFunction.from_string('''
-            double wrapped_''' + self.get_objective_function().get_cl_function_name() + '''(
-                    local mot_float_type* x, 
-                    void* data){
-
-                local mot_float_type* x_tmp = ((hessian_function_wrapper_data*)data)->x_tmp;
-
-                if(get_local_id(0) == 0){
-                    ''' + '\n'.join('x_tmp[{0}] = x[{0}] / {1};'.format(i, s) for i, s in enumerate(scales)) + '''
-                    ''' + '\n'.join(modulus_transformations) + '''
-                }
-                barrier(CLK_LOCAL_MEM_FENCE);
-
-                return ''' + self.get_objective_function().get_cl_function_name() + '''(
-                    x_tmp, ((hessian_function_wrapper_data*)data)->data, 0);    
-            }
-        ''', dependencies=[self.get_objective_function()])
-
-        wrapped_input_data = Struct({
-            'data': self.get_kernel_data(),
-            'x_tmp': LocalMemory('mot_float_type', nmr_items=nmr_params)
-        }, 'hessian_function_wrapper_data')
-
-        lower_bounds = self.get_lower_bounds()
-        for ind in range(len(lower_bounds)):
-            if not self._get_numdiff_use_bounds()[ind] or not self._get_numdiff_use_lower_bounds()[ind]:
-                lower_bounds[ind] = -np.inf
-            lower_bounds[ind] *= scales[ind]
-
-        upper_bounds = self.get_upper_bounds()
-        for ind in range(len(upper_bounds)):
-            if not self._get_numdiff_use_bounds()[ind] or not self._get_numdiff_use_upper_bounds()[ind]:
-                upper_bounds[ind] = np.inf
-            upper_bounds[ind] *= scales[ind]
-
-        hessian = estimate_hessian(
-            wrapped_objective,
-            results_array * scales,
-            lower_bounds=lower_bounds,
-            upper_bounds=upper_bounds,
-            step_ratio=2,
-            nmr_steps=5,
-            max_step_sizes=self._get_numdiff_max_step_sizes(),
-            data=wrapped_input_data,
-            cl_runtime_info=CLRuntimeInfo(double_precision=True)
-        )
-
-        hessian = np.nan_to_num(hessian)
-
-        data = Array(hessian, ctype='double', mode='rw')
-        pseudo_inverse_real_symmetric_matrix_upper_triangular().evaluate((
-            Scalar(nmr_params, ctype='uint'),
-            data,
-            PrivateMemory(2 * nmr_params + 2 * nmr_params ** 2, 'double')
-        ), nmr_instances=hessian.shape[0], use_local_reduction=False)
-
-        covars = data.get_data()
-        covars /= np.outer(scales, scales)[np.triu_indices(nmr_params)]
-
-        param_names = ['{}.{}'.format(m.name, p.name)
-                       for m, p in self._model_functions_info.get_estimable_parameters_list()]
-
-        stds = {}
-        covariances = {}
-
-        ind_counter = 0
-        for x_ind in range(nmr_params):
-            stds[param_names[x_ind] + '.std'] = np.nan_to_num(np.sqrt(covars[..., ind_counter]))
-            ind_counter += 1
-
-            for y_ind in range(x_ind + 1, nmr_params):
-                covariances['{}_to_{}'.format(param_names[x_ind], param_names[y_ind])] = covars[..., ind_counter]
-                ind_counter += 1
-
-        return {'stds': stds, 'covariances': covariances}
-
-    def _get_post_optimization_information_criterion_maps(self, results_array, log_likelihoods=None):
-        """Add some final results maps to the results dictionary.
-
-        This called by the function post_process_optimization_maps() as last call to add more maps.
-
-        Args:
-            results_array (ndarray): the results from model optimization.
-            log_likelihoods (ndarray): for every set of parameters the corresponding log likelihoods.
-                If not provided they will be calculated from the parameters.
-
-        Returns:
-            dict: the calculated information criterion maps
-        """
-        if log_likelihoods is None:
-            log_likelihoods = compute_log_likelihood(self.get_log_likelihood_function(),
-                                                     results_array, data=self.get_kernel_data())
-            log_likelihoods[np.isinf(log_likelihoods)] = 0
-            log_likelihoods = np.nan_to_num(log_likelihoods)
-
-        k = self.nmr_parameters_for_bic_calculation
-        n = self.get_nmr_observations()
-
-        result = {'LogLikelihood': log_likelihoods}
-        result.update(calculate_point_estimate_information_criterions(log_likelihoods, k, n))
-
-        return result
-
-    def _param_dict_to_array(self, volume_dict):
-        params = [volume_dict['{}.{}'.format(m.name, p.name)]
-                  for m, p in self._model_functions_info.get_estimable_parameters_list()]
-        return np.concatenate([np.transpose(np.array([s]))
-                               if len(s.shape) < 2 else s for s in params], axis=1)
 
     def update_active_post_processing(self, processing_type, settings):
         """Update the active post-processing semaphores.
@@ -956,9 +705,27 @@ class DMRICompositeModel(DMRIOptimizable):
                          isinstance(p, ProtocolParameter)]))
 
     def is_input_data_sufficient(self, input_data=None):
+        """Check if the input data has enough information for this model to work.
+
+        Args:
+            input_data (mdt.utils.MRIInputData): The input data we intend on using with this model.
+
+        Returns:
+            boolean: True if there is enough information in the input data, false otherwise.
+        """
         return not self.get_input_data_problems(input_data=input_data)
 
     def get_input_data_problems(self, input_data=None):
+        """Get all the problems with the protocol.
+
+        Args:
+            input_data (mdt.utils.MRIInputData): The input data we intend on using with this model.
+
+        Returns:
+            list of InputDataProblem: A list of
+                InputDataProblem instances or subclasses of that baseclass.
+                These objects indicate the problems with the protocol and this model.
+        """
         if input_data is None:
             input_data = self._input_data
 
@@ -982,6 +749,257 @@ class DMRICompositeModel(DMRIOptimizable):
         elements = [np.transpose(np.atleast_2d([s])) if len(np.array(s).shape) < 2
                     else np.atleast_2d(s) for s in params]
         return np.concatenate(elements, axis=1)
+
+    def _post_sampling_extra_model_defined_maps(self, samples):
+        """Compute the extra post-sample maps defined in the models.
+
+        Args:
+            samples (ndarray): the array with the samples
+
+        Returns:
+            dict: some additional statistic maps we want to output as part of the samping results
+        """
+        post_processing_data = SamplingPostProcessingData(samples, self.get_free_param_names(),
+                                                          self._get_fixed_parameter_maps(self._voxels_to_analyze))
+        results_dict = {}
+        for routine in self._extra_sampling_maps_funcs:
+            try:
+                results_dict.update(routine(post_processing_data))
+            except KeyError:
+                pass
+        return results_dict
+
+    def _get_mle_map_statistics(self, sampling_output):
+        """Get the maximum and corresponding volume maps of the MLE and MAP estimators.
+
+        This computes the Maximum Likelihood Estimator and the Maximum A Posteriori in one run and computes from that
+        the corresponding parameter and global post-optimization maps.
+
+        Args:
+            sampling_output (mot.cl_routines.sample.base.SimpleSampleOutput): the output of the sampler
+
+        Returns:
+            tuple(Func, Func): the function that generates the maps for the MLE and for the MAP estimators.
+        """
+        log_likelihoods = sampling_output.get_log_likelihoods()
+        posteriors = log_likelihoods + sampling_output.get_log_priors()
+
+        mle_indices = np.argmax(log_likelihoods, axis=1)
+        map_indices = np.argmax(posteriors, axis=1)
+
+        mle_values = log_likelihoods[range(log_likelihoods.shape[0]), mle_indices]
+        map_values = posteriors[range(posteriors.shape[0]), map_indices]
+
+        samples = sampling_output.get_samples()
+
+        mle_samples = samples[range(samples.shape[0]), :, mle_indices]
+        map_samples = samples[range(samples.shape[0]), :, map_indices]
+
+        def mle_maps():
+            results = results_to_dict(mle_samples, self.get_free_param_names())
+            maps = self.post_process_optimization_maps(results, results_array=mle_samples, log_likelihoods=mle_values)
+            maps.update({'MaximumLikelihoodEstimator.indices': mle_indices})
+            return maps
+
+        def map_maps():
+            results = results_to_dict(map_samples, self.get_free_param_names())
+            maps = self.post_process_optimization_maps(results, results_array=map_samples, log_likelihoods=mle_values)
+            maps.update({'MaximumAPosteriori': map_values,
+                         'MaximumAPosteriori.indices': map_indices})
+            return maps
+
+        return mle_maps, map_maps
+
+    def _get_univariate_normal(self, samples):
+        """Fit a univariate normal distribution to the parameters, i.e. calculate the mean and std. of each parameter.
+
+        Args:
+            samples (ndarray): an (d, p, n) matrix for d problems, p parameters and n samples.
+
+        Returns:
+            dict: the volume maps with the univariate normal distribution fits (mean and std.)
+        """
+        results = {}
+        for ind, param_name in enumerate(self.get_free_param_names()):
+            results['{}'.format(param_name)] = np.mean(samples[:, ind, :], axis=1)
+            results['{}.std'.format(param_name)] = np.std(samples[:, ind, :], axis=1)
+        return results
+
+    def _get_univariate_ess(self, samples):
+        """Get the univariate Effective Sample Size statistics for the given set of samples.
+
+        Args:
+            samples (ndarray): an (d, p, n) matrix for d problems, p parameters and n samples.
+
+        Returns:
+            dict: the volume maps with the univariate ESS statistics
+        """
+        ess = univariate_ess(samples, method='standard_error')
+        ess[np.isinf(ess)] = 0
+        ess = np.nan_to_num(ess)
+        return results_to_dict(ess, [a + '.UnivariateESS' for a in self.get_free_param_names()])
+
+    def _get_multivariate_ess(self, samples):
+        """Get the multivariate Effective Sample Size statistics for the given set of samples.
+
+        Args:
+            samples (ndarray): an (d, p, n) matrix for d problems, p parameters and n samples.
+
+        Returns:
+            dict: the volume maps with the ESS statistics
+        """
+        ess = multivariate_ess(samples)
+        ess[np.isinf(ess)] = 0
+        ess = np.nan_to_num(ess)
+        return {'MultivariateESS': ess}
+
+    def _get_average_acceptance_rate(self, samples):
+        """Get the multivariate Effective Sample Size statistics for the given set of samples.
+
+        This computes the acceptance rate on basis of the obtained samples, not taking into account any thinning
+        during the generation of the samples.
+
+        Args:
+            samples (ndarray): an (d, p, n) matrix for d problems, p parameters and n samples.
+
+        Returns:
+            dict: the volume maps with the average acceptance rates
+        """
+        results = {}
+        for ind, param_name in enumerate(self.get_free_param_names()):
+            results['{}'.format(param_name)] = np.count_nonzero(samples[:, ind, 1:] - samples[:, ind, :-1], axis=1) \
+                                               / samples.shape[2]
+        return results
+
+    def _compute_fisher_information_matrix(self, results_array):
+        """Calculate the covariance and correlation matrix by taking the inverse of the Hessian.
+
+        This first calculates/approximates the Hessian at each of the points using numerical differentiation.
+        Afterwards we inverse the Hessian and compute a correlation matrix.
+
+        Args:
+            results_array (ndarray): the list with the optimized points for each parameter
+        """
+        nmr_params = self.get_nmr_parameters()
+        scales = self._get_numdiff_scaling_factors()
+
+        modulus_transformations = []
+        transformation_template = 'x_tmp[{ind}] = x_tmp[{ind}] - floor(x_tmp[{ind}] / ({modulus})) * ({modulus});'
+        for m, p in self._model_functions_info.get_estimable_parameters_list():
+            ind = self._model_functions_info.get_parameter_estimable_index(m, p)
+            if isinstance(p, (PolarAngleParameter, RotationalAngleParameter)):
+                modulus_transformations.append(transformation_template.format(ind=ind, modulus='M_PI_F'))
+            elif isinstance(p, AzimuthAngleParameter):
+                modulus_transformations.append(transformation_template.format(ind=ind, modulus='2 * M_PI_F'))
+
+        wrapped_objective = SimpleCLFunction.from_string('''
+            double wrapped_''' + self.get_objective_function().get_cl_function_name() + '''(
+                    local mot_float_type* x, 
+                    void* data){
+
+                local mot_float_type* x_tmp = ((hessian_function_wrapper_data*)data)->x_tmp;
+
+                if(get_local_id(0) == 0){
+                    ''' + '\n'.join('x_tmp[{0}] = x[{0}] / {1};'.format(i, s) for i, s in enumerate(scales)) + '''
+                    ''' + '\n'.join(modulus_transformations) + '''
+                }
+                barrier(CLK_LOCAL_MEM_FENCE);
+
+                return ''' + self.get_objective_function().get_cl_function_name() + '''(
+                    x_tmp, ((hessian_function_wrapper_data*)data)->data, 0);    
+            }
+        ''', dependencies=[self.get_objective_function()])
+
+        wrapped_input_data = Struct({
+            'data': self.get_kernel_data(),
+            'x_tmp': LocalMemory('mot_float_type', nmr_items=nmr_params)
+        }, 'hessian_function_wrapper_data')
+
+        lower_bounds = self.get_lower_bounds()
+        for ind in range(len(lower_bounds)):
+            if not self._get_numdiff_use_bounds()[ind] or not self._get_numdiff_use_lower_bounds()[ind]:
+                lower_bounds[ind] = -np.inf
+            lower_bounds[ind] *= scales[ind]
+
+        upper_bounds = self.get_upper_bounds()
+        for ind in range(len(upper_bounds)):
+            if not self._get_numdiff_use_bounds()[ind] or not self._get_numdiff_use_upper_bounds()[ind]:
+                upper_bounds[ind] = np.inf
+            upper_bounds[ind] *= scales[ind]
+
+        hessian = estimate_hessian(
+            wrapped_objective,
+            results_array * scales,
+            lower_bounds=lower_bounds,
+            upper_bounds=upper_bounds,
+            step_ratio=2,
+            nmr_steps=5,
+            max_step_sizes=self._get_numdiff_max_step_sizes(),
+            data=wrapped_input_data,
+            cl_runtime_info=CLRuntimeInfo(double_precision=True)
+        )
+
+        hessian = np.nan_to_num(hessian)
+
+        data = Array(hessian, ctype='double', mode='rw')
+        pseudo_inverse_real_symmetric_matrix_upper_triangular().evaluate((
+            Scalar(nmr_params, ctype='uint'),
+            data,
+            PrivateMemory(2 * nmr_params + 2 * nmr_params ** 2, 'double')
+        ), nmr_instances=hessian.shape[0], use_local_reduction=False)
+
+        covars = data.get_data()
+        covars /= np.outer(scales, scales)[np.triu_indices(nmr_params)]
+
+        param_names = ['{}.{}'.format(m.name, p.name)
+                       for m, p in self._model_functions_info.get_estimable_parameters_list()]
+
+        stds = {}
+        covariances = {}
+
+        ind_counter = 0
+        for x_ind in range(nmr_params):
+            stds[param_names[x_ind] + '.std'] = np.nan_to_num(np.sqrt(covars[..., ind_counter]))
+            ind_counter += 1
+
+            for y_ind in range(x_ind + 1, nmr_params):
+                covariances['{}_to_{}'.format(param_names[x_ind], param_names[y_ind])] = covars[..., ind_counter]
+                ind_counter += 1
+
+        return {'stds': stds, 'covariances': covariances}
+
+    def _get_post_optimization_information_criterion_maps(self, results_array, log_likelihoods=None):
+        """Add some final results maps to the results dictionary.
+
+        This called by the function post_process_optimization_maps() as last call to add more maps.
+
+        Args:
+            results_array (ndarray): the results from model optimization.
+            log_likelihoods (ndarray): for every set of parameters the corresponding log likelihoods.
+                If not provided they will be calculated from the parameters.
+
+        Returns:
+            dict: the calculated information criterion maps
+        """
+        if log_likelihoods is None:
+            log_likelihoods = compute_log_likelihood(self.get_log_likelihood_function(),
+                                                     results_array, data=self.get_kernel_data())
+            log_likelihoods[np.isinf(log_likelihoods)] = 0
+            log_likelihoods = np.nan_to_num(log_likelihoods)
+
+        k = self.nmr_parameters_for_bic_calculation
+        n = self.get_nmr_observations()
+
+        result = {'LogLikelihood': log_likelihoods}
+        result.update(calculate_point_estimate_information_criterions(log_likelihoods, k, n))
+
+        return result
+
+    def _param_dict_to_array(self, volume_dict):
+        params = [volume_dict['{}.{}'.format(m.name, p.name)]
+                  for m, p in self._model_functions_info.get_estimable_parameters_list()]
+        return np.concatenate([np.transpose(np.array([s]))
+                               if len(s.shape) < 2 else s for s in params], axis=1)
 
     def _get_propagate_weights_uncertainty(self, results):
         weight_names = ['{}.{}'.format(m.name, p.name) for (m, p) in self._model_functions_info.get_weights()]

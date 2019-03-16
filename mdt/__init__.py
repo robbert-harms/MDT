@@ -96,7 +96,7 @@ def fit_model(model, input_data, output_folder,
     """Run the optimizer on the given model.
 
     Args:
-        model (str or :class:`~mdt.models.composite.DMRICompositeModel`):
+        model (str or :class:`~mdt.models.base.EstimableModel`):
             The name of a composite model or an implementation of a composite model.
         input_data (:class:`~mdt.utils.MRIInputData`): the input data object containing all
             the info needed for the model fitting.
@@ -204,7 +204,7 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
     """Sample a composite model using Markov Chain Monte Carlo sampling.
 
     Args:
-        model (:class:`~mdt.models.composite.DMRICompositeModel` or str): the model to sample
+        model (str or :class:`~mdt.models.base.EstimableModel`): the model to sample
         input_data (:class:`~mdt.utils.MRIInputData`): the input data object containing all
             the info needed for the model fitting.
         output_folder (string): The path to the folder where to place the output, we will make a subdir with the

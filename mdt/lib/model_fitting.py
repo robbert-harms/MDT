@@ -240,7 +240,7 @@ def fit_composite_model(model, input_data, output_folder, method, tmp_results_di
     """Fits the composite model and returns the results as ROI lists per map.
 
      Args:
-        model (:class:`~mdt.models.composite.DMRICompositeModel`): An implementation of an composite model
+        model (:class:`~mdt.models.base.EstimableModel`): An implementation of an composite model
             that contains the model we want to optimize.
         input_data (:class:`~mdt.utils.MRIInputData`): The input data object for the model.
         output_folder (string): The path to the folder where to place the output.

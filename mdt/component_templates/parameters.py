@@ -17,7 +17,7 @@ __email__ = "robbert.harms@maastrichtuniversity.nl"
 class ParameterBuilder(ComponentBuilder):
 
     def _create_class(self, template):
-        """Creates classes with as base class DMRICompositeModel
+        """Creates parameter classes
 
         Args:
             template (Type[ParameterTemplate]): the configuration for the parameter.

@@ -23,7 +23,7 @@ def sample_composite_model(model, input_data, output_folder, nmr_samples, thinni
     """Sample a composite model.
 
     Args:
-        model (:class:`~mdt.models.composite.DMRICompositeModel`): a composite model to sample
+        model (:class:`~mdt.models.base.EstimableModel`): a composite model to sample
         input_data (:class:`~mdt.utils.MRIInputData`): The input data object with which the model
             is initialized before running
         output_folder (string): The full path to the folder where to place the output
@@ -53,7 +53,7 @@ def sample_composite_model(model, input_data, output_folder, nmr_samples, thinni
         initialization_data (:class:`~mdt.utils.InitializationData`): provides (extra) initialization data to use
             during model sampling.
         post_sampling_cb (Callable[
-            [mot.sample.base.SamplingOutput, mdt.models.composite.DMRICompositeModel], Optional[Dict]]):
+            [mot.sample.base.SamplingOutput, mdt.models.base.EstimableModel], Optional[Dict]]):
                 additional post-processing called after sampling. This function can optionally return a (nested)
                 dictionary with as keys dir-/file-names and as values maps to be stored in the results directory.
         sampler_options (dict): specific options for the MCMC routine. These will be provided to the sampling routine

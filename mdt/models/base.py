@@ -1,21 +1,245 @@
+from contextlib import contextmanager
+
 __author__ = 'Robbert Harms'
 __date__ = "2015-10-27"
 __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-class DMRIOptimizable:
+class EstimableModel:
 
     def __init__(self, *args, **kwargs):
-        """This is an interface for some base methods we expect in an MRI model.
-
-        Since we have both composite dMRI models and cascade models we must have an overarching interface to make
-        sure that both type of models implement the same additional methods.
-
-        The methods in this interface have little to do with modelling, but unify some extra required methods
-        in the cascades and composite models.
+        """This is an interface for all methods needed to be able to optimize and sample a model.
         """
         super().__init__()
+
+    @property
+    def name(self):
+        """The name of this model.
+
+        Returns:
+            str: the name of this model.
+        """
+        raise NotImplementedError()
+
+    @contextmanager
+    def voxels_to_analyze_context(self, voxels_to_analyze):
+        """Context manager that should temporarily set the voxels we are analyzing.
+
+        Args:
+            voxels_to_analyze (List[int]): list of (1d ROI) voxel indices with the voxels we want to compute.
+        """
+        raise NotImplementedError()
+
+    def set_input_data(self, input_data):
+        """Set the input data this model will deal with.
+
+        Args:
+            input_data (mdt.utils.MRIInputData): The container for the data we will use for this model.
+
+        Returns:
+            Returns self for chainability
+        """
+        raise NotImplementedError()
+
+    def get_kernel_data(self):
+        """Get the kernel data this model needs for evaluation in OpenCL.
+
+        This is needed for evaluating the priors, likelihoods and other functions.
+
+        Returns:
+            mot.lib.kernel_data.KernelData: the kernel data used by this model
+        """
+        raise NotImplementedError()
+
+    def get_objective_function(self):
+        """For minimization, get the negative of the log-likelihood function.
+
+        Returns:
+            mot.lib.cl_function.CLFunction: the CL function for the optimization routines in MOT.
+        """
+        raise NotImplementedError()
+
+    def get_constraints_function(self):
+        """The function for the (inequality) constraints.
+
+        Returns:
+            mot.lib.cl_function.CLFunction: the CL function for the inequality constraints of this model.
+        """
+        raise NotImplementedError()
+
+    def get_log_likelihood_function(self):
+        """For sampling, get the log-likelihood function.
+
+        Returns:
+            mot.lib.cl_function.CLFunction: the CL function for the log likelihood function during MCMC sampling
+        """
+        raise NotImplementedError()
+
+    def get_log_prior_function(self):
+        """Get the prior function used during sampling.
+
+        Returns:
+            mot.lib.cl_function.CLFunction: the CL function for the log prior function during MCMC sampling
+        """
+        raise NotImplementedError()
+
+    def get_finalize_proposal_function(self):
+        """Get the function used to finalize the proposal.
+
+        This function is used to finalize the proposals during sampling.
+
+        Returns:
+            mot.lib.cl_function.CLFunction: the CL function used to finalize a proposal during sampling.
+        """
+        raise NotImplementedError()
+
+    def get_initial_parameters(self):
+        """Get the initial parameters for eac of the voxels in ``voxels_to_analyze``.
+
+        Returns:
+            ndarray: 2d array with for every problem (first dimension) the initial parameters (second dimension).
+        """
+        raise NotImplementedError()
+
+    def get_post_optimization_output(self, optimized_parameters, return_codes):
+        """Get the output after optimization.
+
+        This is called by the processing strategy to finalize the optimization of a batch of voxels.
+
+        Returns:
+            dict: dictionary with results maps, can be nested which should translate to sub-directories.
+        """
+        raise NotImplementedError()
+
+    def get_rwm_proposal_stds(self):
+        """Get the Random Walk Metropolis proposal standard deviations for every parameter and every problem instance.
+
+        These proposal standard deviations are used in Random Walk Metropolis MCMC sample.
+
+        Returns:
+            ndarray: the proposal standard deviations of each free parameter, for each problem instance
+        """
+        raise NotImplementedError()
+
+    def get_rwm_epsilons(self):
+        """Get per parameter a value small relative to the parameter's standard deviation.
+
+        This is used in, for example, the SCAM Random Walk Metropolis sampling routine to add to the new proposal
+        standard deviation to ensure it does not collapse to zero.
+
+        Returns:
+            list: per parameter an epsilon, relative to the proposal standard deviation
+        """
+        raise NotImplementedError()
+
+    def get_random_parameter_positions(self, nmr_positions=1):
+        """Get one or more random parameter positions centered around the initial parameters.
+
+        This can be used to generate random starting points for sampling routines with multiple walkers.
+
+        Per position requested, this function generates a normal distribution around the initial parameters (using
+        :meth:`get_initial_parameters`) with the standard deviation derived from the random walk metropolis std.
+
+        Returns:
+            ndarray: a 3d matrix for (voxels, parameters, nmr_positions).
+        """
+        raise NotImplementedError()
+
+    def post_process_optimization_maps(self, results_dict, results_array=None, log_likelihoods=None):
+        """Compute additional result maps.
+
+        This function behaves as a procedure and as a function. The input dict can be updated in place, but it should
+        also return a dict but that is merely for the purpose of chaining.
+
+        Args:
+            results_dict (dict): A dictionary with as keys the names of the parameters and as values the 1d maps with
+                for each voxel the optimized parameter value. The given dictionary can be altered by this function.
+            results_array (ndarray): if available, the results as an array instead of as a dictionary, if not given we
+                will construct it in this function.
+            log_likelihoods (ndarray): for every set of parameters the corresponding log likelihoods.
+                If not provided they will be calculated from the parameters.
+
+        Returns:
+            dict: The same result dictionary but with updated values or with additional maps.
+                It should at least return the results_dict.
+        """
+        raise NotImplementedError()
+
+    def get_post_sampling_maps(self, sampling_output):
+        """Get the post sampling volume maps.
+
+        This will return a dictionary mapping folder names to dictionaries with volumes to write.
+
+        Args:
+            sampling_output (mot.sample.base.SamplingOutput): the output of the sampler
+
+        Returns:
+            dict: a dictionary with for every subdirectory the maps to save
+        """
+        raise NotImplementedError()
+
+    def get_nmr_observations(self):
+        """Get the number of observations in the data.
+
+        Returns:
+            int: the number of observations present in the data
+        """
+        raise NotImplementedError()
+
+    def get_nmr_parameters(self):
+        """Get the number of estimable parameters in this model.
+
+        Returns:
+            int: the number of estimable parameters
+        """
+        raise NotImplementedError()
+
+    def get_lower_bounds(self):
+        """Get the lower bounds.
+
+        Returns:
+            List: for every parameter a lower bound which can either be None, a scalar or a vector with a
+                lower bound per problem instance.
+        """
+        raise NotImplementedError()
+
+    def get_upper_bounds(self):
+        """Get the upper bounds.
+
+        Returns:
+            List: for every parameter an upper bound which can either be None, a scalar or a vector with a
+                upper bound per problem instance.
+        """
+        raise NotImplementedError()
+
+    def get_free_param_names(self):
+        """Get the names of the free parameters.
+
+        Returns:
+            List: the name of the free parameters
+        """
+        raise NotImplementedError()
+
+    def get_parameter_codec(self):
+        """Get a parameter codec that can be used to transform the parameters to and from optimization and model space.
+
+        Returns:
+            mdt.model_building.utils.ParameterCodec: an instance of a parameter codec
+        """
+        raise NotImplementedError()
+
+    def update_active_post_processing(self, processing_type, settings):
+        """Update the active post-processing semaphores.
+
+        It is possible to control which post-processing routines get run by overwriting them using this method.
+        For a list of post-processors, please see the default mdt configuration file under ``active_post_processing``.
+
+        Args:
+            processing_type (str): one of ``sample`` or ``optimization``.
+            settings (dict): the items to set in the post-processing information
+        """
+        raise NotImplementedError()
 
     def is_input_data_sufficient(self, input_data=None):
         """Check if the input data has enough information for this model to work.
@@ -26,6 +250,7 @@ class DMRIOptimizable:
         Returns:
             boolean: True if there is enough information in the input data, false otherwise.
         """
+        raise NotImplementedError()
 
     def get_input_data_problems(self, input_data=None):
         """Get all the problems with the protocol.
@@ -37,27 +262,6 @@ class DMRIOptimizable:
             list of InputDataProblem: A list of
                 InputDataProblem instances or subclasses of that baseclass.
                 These objects indicate the problems with the protocol and this model.
-        """
-
-    def get_required_protocol_names(self):
-        """Get a list with the constant data names that are needed for this model to work.
-
-        For example, an implementing diffusion MRI model might require the presence of the protocol parameter
-        ``g`` and ``b``. This function should then return ``('g', 'b')``.
-
-        Returns:
-            :class:`list`: A list of columns names that are to be taken from the protocol data.
-        """
-
-    def update_active_post_processing(self, processing_type, settings):
-        """Update the active post-processing semaphores.
-
-        It is possible to control which post-processing routines get run by overwriting them using this method.
-        For a list of post-processors, please see the default mdt configuration file under ``active_post_processing``.
-
-        Args:
-            processing_type (str): one of ``sample`` or ``optimization``.
-            settings (dict): the items to set in the post-processing information
         """
         raise NotImplementedError()
 
