@@ -8,7 +8,6 @@ Subpackages
 
     mdt.cli_scripts
     mdt.component_templates
-    mdt.file_conversions
     mdt.gui
     mdt.lib
     mdt.model_building

@@ -1,6 +1,13 @@
 mdt\.lib package
 ================
 
+Subpackages
+-----------
+
+.. toctree::
+
+    mdt.lib.file_conversions
+
 Submodules
 ----------
 

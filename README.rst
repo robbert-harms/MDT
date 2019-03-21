@@ -1,29 +1,28 @@
 ################################
 Microstructure Diffusion Toolbox
 ################################
-The Microstructure Diffusion Toolbox, MDT, (formerly known as the Maastricht Diffusion Toolbox) is a framework and library for parallelized (GPU and multi-core CPU) Magnetic Resonance Imaging (MRI) microstructure modeling.
-MDT's object oriented and modular design allows arbitrary user specification and combination of biophysical MRI compartment models, diffusion- and T1, T2, T2* based microstructure models,
-likelihood functions, optimization routines and MCMC sampling algorithms
-MDT was designed with compatibility in mind and adheres to input, output and variable naming conventions used by other related software tools.
-Many diffusion and relaxometry microstructure models are included, and new models can be added dynamically.
-MDT can be extended to other modalities and other parametric models estimated from data volumes varying along controlled parameters (such as b-values, diffusion times, TE, TM, flip angle, etc).
-The parallelized accelerated computations allow for tens to hundred times faster model fitting, even on standard GPU (and/or CPU) hardware, making MDT ideal for large group studies or population studies.
+The Microstructure Diffusion Toolbox (MDT) is a framework and library for microstructure modeling of magnetic resonance imaging (MRI) data.
+The aim of MDT is to provide reproducible and comparable model fitting for MRI microstructure analysis.
+As such, we provide a common platform for microstructure modeling including many models that can all be processed using the same optimization routines.
+For maximum performance all models and algorithms were implemented to make use of all parallel processing capabilities of modern computers.
+MDT combines flexible modeling with fast processing, targeting both model developers and data analysts.
 
 
 *******
 Summary
 *******
+* GPU accelerated processing
 * Human Connectome Project (HCP) pipelines
-* Comes with CHARMED, NODDI, BinghamNODDI, NODDIDA, NODDI-DTI, ActiveAx, AxCaliber, Ball&Sticks, Ball&Rackets, Kurtosis, Tensor, QMT, and relaxometry (T1, T2) models.
-* Gaussian, Offset-Gaussian and Rician noise models
-* Powell, Levenberg-Marquardt and Nelder-Mead Simplex optimization routines
-* Multiple (adaptive) MCMC sampling algorithms
-* Dynamically add your own models
-* Graphical, command line and python interfaces
+* Includes CHARMED, NODDI, BinghamNODDI, NODDIDA, NODDI-DTI, ActiveAx, AxCaliber, Ball&Sticks, Ball&Rackets, Kurtosis, Tensor, VERDICT, qMT, and relaxometry (T1, T2) models.
+* Includes Gaussian, Offset-Gaussian and Rician likelihood models
+* Includes Powell, Levenberg-Marquardt and Nelder-Mead Simplex optimization routines
+* Includes multiple (adaptive) MCMC sampling algorithms
 * Supports hyperpriors on parameters
 * Supports gradient deviations per voxel and per voxel per volume
 * Supports volume weighted objective function
-* Parallelization over voxels and over volumes
+* Supports adding your own models
+* Offers Graphical, command line and python interfaces
+* Computations are parallelized over voxels and over volumes
 * Python and OpenCL based
 * Free Open Source Software: LGPL v3 license
 * Runs on Windows, Mac and Linux operating systems
