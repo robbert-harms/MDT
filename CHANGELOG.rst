@@ -2,6 +2,33 @@
 Changelog
 *********
 
+v0.21.0 (2019-04-01)
+====================
+This version marks the complete removal of the Cascade models.
+
+MDT still does cascaded initialization by default, but now using predefined initializations.
+The automatic initialization can of course be disabled and or overwritten using manual provided data. See the manual for instructions.
+
+There are two reasons for this change. First, the default cascade was used in 99% of the cases. Removing it and making it an implicit default simplifies the code.
+Second, the code change provides an opportunity of future extensions towards multi-modal modeling.
+
+Added
+-----
+- Added base class for EstimableModels.
+
+Fixed
+-----
+- Fixed bug in handling the gradient deviations.
+
+Removed
+-------
+- Removed the Cascade models.
+
+Other
+-----
+- Slight restructuring of the modules.
+
+
 v0.20.3 (2019-03-08)
 ====================
 
