@@ -236,6 +236,7 @@ html_theme_options = {
     'fixed_sidebar': False,
     'extra_nav_links': {
         'Developer guidelines': 'developer_guidelines.html',
+        'Development ideas': 'development_ideas.html',
         'CLI Index': 'cli_index.html',
         'Module index': 'py-modindex.html',
         'Changelog': 'changelog.html'

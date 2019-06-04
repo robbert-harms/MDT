@@ -2,6 +2,18 @@
 Changelog
 *********
 
+v1.0.0 (2019-06-04)
+===================
+Version 1.0 marking the end of the PhD of MDT's lead developer Robbert Harms.
+This software package will still be supported for the foreseeable future by Robbert.
+Future development will continue by CBCLab, Maastricht University under the supervision of Alard Roebroeck.
+For ideas, please check the "Development Ideas" page.
+
+As a personal note to all the users of MDT. Thank you all for using MDT and for your invaluable feedback over the past years. I could not have done it without you.
+
+Best wishes, Robbert
+
+
 v0.21.0 (2019-04-01)
 ====================
 This version marks the complete removal of the Cascade models.
