@@ -94,7 +94,7 @@ class ParameterTemplate(ComponentTemplate):
 class ProtocolParameterTemplate(ParameterTemplate):
     """The default template options for protocol parameters.
 
-    To save memory, protocol data is loaded as a float by default.
+    To save on memory, protocol data is loaded as a float by default.
     """
     data_type = 'float'
     value = None

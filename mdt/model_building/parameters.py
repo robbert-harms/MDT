@@ -207,7 +207,47 @@ class CurrentObservationParam(SimpleCLFunctionParameter):
 
         You can use this parameter by adding it to your model and then use the current name in your model equation.
         """
-        super().__init__('double ' + name)
+        super().__init__('float ' + name)
+
+
+class AllObservationsParam(SimpleCLFunctionParameter):
+
+    def __init__(self, name='observations'):
+        """This parameter indicates that the model should inject the observations array into the model.
+
+        Some models need to convolve a signal over part of the observations array. To do so, this parameter can be used.
+
+        You can use this parameter by adding it to your model and then use the current name in your model equation.
+        """
+        super().__init__('global float *' + name)
+
+
+class ObservationIndexParam(SimpleCLFunctionParameter):
+
+    def __init__(self, name='observation_ind'):
+        """Injects the current observation index into the compartment model.
+
+        Some models need to convolve a signal over part of the observations array. To do so, they typically require
+        all the observations (see :class:`AllObservationsParam`), the current observation index and the total number
+        of observations (see :class:`NmrObservationsParam`).
+
+        You can use this parameter by adding it to your model and then use the current name in your model equation.
+        """
+        super().__init__('uint ' + name)
+
+
+class NmrObservationsParam(SimpleCLFunctionParameter):
+
+    def __init__(self, name='nmr_observations'):
+        """Injects the total number of observation into the compartment model.
+
+        Some models need to convolve a signal over part of the observations array. To do so, they typically require
+        all the observations (see :class:`AllObservationsParam`), the current observation index
+        (see :class:`ObservationIndexParam`) and the total number of observations.
+
+        You can use this parameter by adding it to your model and then use the current name in your model equation.
+        """
+        super().__init__('uint ' + name)
 
 
 class CurrentModelSignalParam(SimpleCLFunctionParameter):

@@ -16,7 +16,7 @@ from mot.lib.cl_function import SimpleCLFunction, SimpleCLFunctionParameter
 from mot.cl_routines import compute_log_likelihood, estimate_hessian
 from mdt.model_building.parameters import ProtocolParameter, FreeParameter, CurrentObservationParam, \
     DataCacheParameter, CurrentModelSignalParam, NoiseStdFreeParameter, NoiseStdInputParameter, PolarAngleParameter, \
-    AzimuthAngleParameter, RotationalAngleParameter
+    AzimuthAngleParameter, RotationalAngleParameter, AllObservationsParam, ObservationIndexParam, NmrObservationsParam
 from mot.configuration import CLRuntimeInfo
 from mot.lib.utils import all_elements_equal, get_single_value
 from mot.lib.kernel_data import Array, Zeros, Scalar, LocalMemory, Struct, CompositeArray, PrivateMemory
@@ -1742,6 +1742,12 @@ class DMRICompositeModel(EstimableModel):
         for p in eval_model_func.get_parameters():
             if isinstance(p, CurrentObservationParam):
                 eval_call_args.append('model_data->observations[observation_ind]')
+            elif isinstance(p, AllObservationsParam):
+                eval_call_args.append('model_data->observations')
+            elif isinstance(p, ObservationIndexParam):
+                eval_call_args.append('observation_ind')
+            elif isinstance(p, NmrObservationsParam):
+                eval_call_args.append('nmr_observations')
             elif isinstance(p, CurrentModelSignalParam):
                 eval_call_args.append(eval_function_info.get_cl_function_name() + '(data, x, observation_ind)')
             else:
@@ -1887,6 +1893,21 @@ class DMRICompositeModel(EstimableModel):
                         param_list.append('model_data->observations[observation_index]')
                     else:
                         param_list.append('0.0')
+                elif isinstance(param, AllObservationsParam):
+                    if self._input_data.observations is not None:
+                        param_list.append('model_data->observations')
+                    else:
+                        param_list.append('null')
+                elif isinstance(param, ObservationIndexParam):
+                    if self._input_data.observations is not None:
+                        param_list.append('observation_index')
+                    else:
+                        param_list.append('0')
+                elif isinstance(param, NmrObservationsParam):
+                    if self._input_data.observations is not None:
+                        param_list.append(str(self.get_nmr_observations()))
+                    else:
+                        param_list.append('0')
                 elif isinstance(param, NoiseStdInputParameter):
                     std_param = self._model_functions_info.get_noise_std_param()
                     param_list.append('{}.{}'.format(self._likelihood_function.name, std_param.name).replace('.', '_'))
@@ -2228,8 +2249,11 @@ class CompositeModelFunction(SimpleCLFunction):
         shared_params = []
         other_params = []
 
+        shareable_param_types = (ProtocolParameter, CurrentObservationParam, NoiseStdInputParameter,
+                                 AllObservationsParam, ObservationIndexParam, NmrObservationsParam)
+
         for m, p in self._parameter_model_list:
-            if isinstance(p, (ProtocolParameter, CurrentObservationParam, NoiseStdInputParameter)):
+            if isinstance(p, shareable_param_types):
                 if p.name not in seen_shared_params:
                     shared_params.append((m, p, p.name))
                     seen_shared_params.append(p.name)
@@ -2274,12 +2298,14 @@ class CompositeModelFunction(SimpleCLFunction):
         Returns:
             str: model (sub-)equation
         """
+        shareable_param_types = (ProtocolParameter, CurrentObservationParam, NoiseStdInputParameter,
+                                 AllObservationsParam, ObservationIndexParam, NmrObservationsParam)
 
         def model_to_string(model):
             """Convert a model to CL string."""
             param_list = []
             for param in model.get_parameters():
-                if isinstance(param, (ProtocolParameter, CurrentObservationParam, NoiseStdInputParameter)):
+                if isinstance(param, shareable_param_types):
                     param_list.append(param.name)
                 else:
                     param_list.append('{}.{}'.format(model.name, param.name).replace('.', '_'))

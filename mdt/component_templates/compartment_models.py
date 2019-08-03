@@ -7,7 +7,7 @@ from mdt.models.compartments import DMRICompartmentModelFunction, WeightCompartm
 from mdt.utils import spherical_to_cartesian
 from mot.lib.cl_function import CLFunction, SimpleCLFunction, SimpleCLFunctionParameter, SimpleCLCodeObject
 from mdt.model_building.parameters import CurrentObservationParam, DataCacheParameter, NoiseStdInputParameter, \
-    FreeParameter, ProtocolParameter
+    FreeParameter, ProtocolParameter, AllObservationsParam, ObservationIndexParam, NmrObservationsParam
 from mot.optimize.base import SimpleConstraintFunction
 
 __author__ = 'Robbert Harms'
@@ -171,7 +171,13 @@ class CompartmentTemplate(ComponentTemplate):
             * a string, we will look for a corresponding parameter with the given name
             * an instance of a CLFunctionParameter subclass, this will then be used directly
             * the literal ``@observation``, this injects the current volume/observation into this function
-                of type ``mot_float_type`` and name name ``observation``.
+                of type ``mot_float_type`` and name ``observation``.
+            * the literal ``@observations``, this injects a pointer to all the observations into this function.
+                of type ``float`` and name ``observations``.
+            * the literal ``@observation_ind``, the index of the current observation we are computing the signal for,
+                of type ``uint`` and name ``observation_ind``.
+            * the literal ``@nmr_observation``, injects the total number of observations,
+                of type ``uint`` and name ``nmr_observation``.
             * the literal ``@cache``, this injects the data cache into this function, with the name ``cache``
                 and a struct as datatype. The struct type name is provided by this compartment name appended with
                 ``_DataCache``.
@@ -371,6 +377,12 @@ def _resolve_parameters(parameter_list, compartment_name):
         if isinstance(item, str):
             if item == '@observation':
                 parameters.append(CurrentObservationParam(name='observation'))
+            elif item == '@observations':
+                parameters.append(AllObservationsParam(name='observations'))
+            elif item == '@observation_ind':
+                parameters.append(ObservationIndexParam(name='observation_ind'))
+            elif item == '@nmr_observations':
+                parameters.append(NmrObservationsParam(name='nmr_observations'))
             elif item == '@cache':
                 parameters.append(DataCacheParameter(compartment_name, 'cache'))
             elif item == '@noise_std':
