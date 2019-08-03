@@ -1024,9 +1024,9 @@ def spherical_to_cartesian(theta, phi):
         return coordinate
 
     sin_theta = np.sin(theta)
-    return np.stack(map(ensure_shape, [sin_theta * np.cos(phi),
-                                       sin_theta * np.sin(phi),
-                                       np.cos(theta)]), axis=return_shape)
+    return np.stack(list(map(ensure_shape, [sin_theta * np.cos(phi),
+                                            sin_theta * np.sin(phi),
+                                            np.cos(theta)])), axis=return_shape)
 
 
 def cartesian_to_spherical(vectors, ensure_right_hemisphere=True):
