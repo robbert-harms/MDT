@@ -2222,9 +2222,15 @@ class CompositeModelFunction(SimpleCLFunction):
 
         super().__init__(
             'double', cl_function_name,
-            [p.get_renamed(external_name) for m, p, external_name in self.get_model_function_parameters()],
+            [p.get_renamed(external_name.replace('.', '_'))
+             for m, p, external_name in self.get_model_function_parameters()],
             self._get_model_function_body(),
             dependencies=self._models)
+
+    def evaluate(self, inputs, nmr_instances, use_local_reduction=False, cl_runtime_info=None):
+        inputs = {k.replace('.', '_'): v for k,v in inputs.items()}
+        return super().evaluate(inputs, nmr_instances, use_local_reduction=use_local_reduction,
+                                cl_runtime_info=cl_runtime_info)
 
     def get_model_parameter_list(self):
         """Get the model and parameter tuples that constructed this composite model.
