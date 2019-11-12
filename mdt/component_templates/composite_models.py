@@ -179,12 +179,12 @@ class CompositeModelTemplate(ComponentTemplate):
             By default it is True and we add them.
 
         volume_selection (dict): the volume selection by this model. This can be used to limit the volumes used
-            in the analysis to only the volumes included in the specification.
-            Set to None, or an empty dict to disable.
-            The options available are:
+            in the analysis to only the volumes included in the specification. You can specify specific protocol
+            names here for limiting the selected volumes. For example, for the Tensor model we can write::
 
-               * ``bval_ranges`` (list): a list of tuples with a minimum and maximum b-value
+                volume_selection = {'b': [(0, 1.5e9 + 0.1e9)]}
 
+            To limit the volumes to the b-values between 0 and 1.6e9.
             If the method ``_get_suitable_volume_indices`` is overwritten, this does nothing.
 
         extra_prior (str, mdt.model_building.utils.ModelPrior or None): a model wide prior. This is used in conjunction
