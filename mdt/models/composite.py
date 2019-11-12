@@ -362,6 +362,20 @@ class DMRICompositeModel(EstimableModel):
 
         return results_dict
 
+    def compute_fisher_information_matrix(self, results_dict):
+        """Compute the Fisher Information Matrix from the given results dictionary.
+
+        Args:
+            results_dict (dict): A dictionary with as keys the names of the parameters and as values the 1d maps with
+                for each voxel the optimized parameter value. The given dictionary can be altered by this function.
+
+        Returns:
+            dict: The results of the FIM computation, the dictionary has two main keys, 'stds' and 'covariances',
+                holding respectively the standard deviations and the covariances.
+        """
+        results_array = self._param_dict_to_array(results_dict)
+        return self._compute_fisher_information_matrix(results_array)
+
     def get_post_sampling_maps(self, sampling_output):
         """Get the post sample volume maps.
 

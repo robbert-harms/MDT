@@ -144,6 +144,7 @@ def fit_model(model, input_data, output_folder,
         dict: The result maps for the given composite model or the last model in the cascade.
             This returns the results as 3d/4d volumes for every output map.
     """
+    initialization_data = initialization_data or {}
     logger = logging.getLogger(__name__)
 
     if not check_user_components():
@@ -173,17 +174,14 @@ def fit_model(model, input_data, output_folder,
         model_instance.update_active_post_processing('optimization', post_processing)
 
     if use_cascaded_inits:
-        if initialization_data is None:
-            initialization_data = {}
         initialization_data['inits'] = initialization_data.get('inits', {})
         inits = get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=cl_device_ind)
         inits.update(initialization_data['inits'])
         initialization_data['inits'] = inits
-
-        initialization_data = SimpleInitializationData(**initialization_data)
-        initialization_data.apply_to_model(model_instance, input_data)
-
         logger.info('Preparing {0} with the cascaded initializations.'.format(model_name))
+
+    initialization_data = SimpleInitializationData(**initialization_data)
+    initialization_data.apply_to_model(model_instance, input_data)
 
     if method is None:
         method, optimizer_options = get_optimizer_for_model(model_name)
@@ -319,6 +317,91 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
                                       initialization_data=initialization_data,
                                       post_sampling_cb=post_sampling_cb,
                                       sampler_options=sampler_options)
+
+
+def compute_fim(model, input_data, optimization_results, output_folder=None, cl_device_ind=None,
+                initialization_data=None):
+    """Compute the Fisher Information Matrix (FIM).
+
+    This is typically done as post-processing step during the model fitting process, but can also be performed
+    separately after optimization.
+
+    Since the FIM depends on which parameters were optimized, results will change if different parameters are fixed.
+    That is, this function will compute the FIM for every estimable parameter (free-non-fixed parameters). If you want
+    to have the exact same FIM results as when you computed the FIM as optimization post-processing it is important
+    to have exactly the same maps fixed.
+
+    Contrary to the post-processing of the optimization maps, all FIM results are written to a single sub-folder in the
+    provided output folder.
+
+    Args:
+        model (str or :class:`~mdt.models.base.EstimableModel`):
+            The name of a composite model or an implementation of a composite model.
+        input_data (:class:`~mdt.utils.MRIInputData`): the input data object containing all
+            the info needed for the model fitting.
+        optimization_results (dict or str): the optimization results, either a dictionary with results or the
+            path to a folder.
+        output_folder (string): Optionally, the path to the folder where to place the output
+        cl_device_ind (int or list): the index of the CL device to use. The index is from the list from the function
+            utils.get_cl_devices(). This can also be a list of device indices.
+        initialization_data (dict): provides (extra) initialization data to
+            use during model fitting. This dictionary can contain the following elements:
+
+            * ``inits``: dictionary with per parameter an initialization point
+            * ``fixes``: dictionary with per parameter a fixed point, this will remove that parameter from the fitting
+            * ``lower_bounds``: dictionary with per parameter a lower bound
+            * ``upper_bounds``: dictionary with per parameter a upper bound
+            * ``unfix``: a list of parameters to unfix
+
+            For example::
+
+                initialization_data = {
+                    'fixes': {'Stick0.theta: np.array(...), ...},
+                    'inits': {...}
+                }
+
+    Returns:
+        dict: all the computed FIM maps in a flattened dictionary.
+    """
+    initialization_data = initialization_data or {}
+
+    if isinstance(optimization_results, str):
+        optimization_results = get_all_nifti_data(optimization_results)
+
+    if not check_user_components():
+        init_user_settings(pass_if_exists=True)
+
+    if cl_device_ind is not None:
+        if not isinstance(cl_device_ind, collections.Iterable):
+            cl_device_ind = [cl_device_ind]
+        cl_runtime_info = CLRuntimeInfo(cl_environments=get_cl_devices(cl_device_ind), double_precision=False)
+    else:
+        cl_runtime_info = CLRuntimeInfo(double_precision=False)
+
+    if isinstance(model, str):
+        model_name = model
+        model_instance = get_model(model)()
+    else:
+        model_name = model.name
+        model_instance = model
+
+    model_instance.set_input_data(input_data)
+
+    initialization_data = SimpleInitializationData(**initialization_data)
+    initialization_data.apply_to_model(model_instance, input_data)
+
+    with mot.configuration.config_context(CLRuntimeAction(cl_runtime_info)):
+        opt_points = create_roi(optimization_results, input_data.mask)
+        fim_results = model_instance.compute_fisher_information_matrix(opt_points)
+
+        return_results = {}
+        return_results.update(fim_results['stds'])
+        return_results.update(fim_results['covariances'])
+        return_results = restore_volumes(return_results, input_data.mask)
+
+        write_volume_maps(return_results, os.path.join(output_folder, model_name, 'FIM'))
+
+        return return_results
 
 
 def batch_fit(data_folder, models_to_fit, output_folder=None, batch_profile=None,
