@@ -13,4 +13,5 @@ List of contributors:
 * Francisco Fritz
     - Added Relaxometry, MPM and SSFP models
     - Quality Control on first public version
-
+* Mark Drakesmith
+    - Contributed the Poisson distributed ActiveAx model
