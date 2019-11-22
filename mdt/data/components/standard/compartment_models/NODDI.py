@@ -15,8 +15,11 @@ class NODDI_EC(CompartmentTemplate):
     parameters = ('g', 'b', 'd', 'dperp0', 'theta', 'phi', 'kappa')
     dependencies = ('NODDI_WatsonHinderedDiffusionCoeff', 'Zeppelin')
     cl_code = '''
-        NODDI_WatsonHinderedDiffusionCoeff(&d, &dperp0, kappa);
-        return Zeppelin(g, b, d, dperp0, theta, phi);
+        double d_ = d;
+        double dperp0_ = d;
+    
+        NODDI_WatsonHinderedDiffusionCoeff(&d_, &dperp0_, kappa);
+        return Zeppelin(g, b, d_, dperp0_, theta, phi);
     '''
 
 

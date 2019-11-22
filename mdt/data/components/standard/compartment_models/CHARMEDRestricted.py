@@ -19,7 +19,7 @@ class CHARMEDRestricted(CompartmentTemplate):
         float radii[] = {1.5e-6f, 2.5e-6f, 3.5e-6f, 4.5e-6f, 5.5e-6f, 6.5e-6f}; // meters
         
         double sum = 0;
-        mot_float_type signal_perp;
+        double signal_perp;
         
         #pragma unroll
         for(uint i = 0; i < 6; i++){

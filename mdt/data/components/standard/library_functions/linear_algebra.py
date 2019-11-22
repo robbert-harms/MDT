@@ -17,7 +17,7 @@ class RotateOrthogonalVector(LibraryFunctionTemplate):
     return_type = 'float4'
     parameters = ['float4 basis',
                   'float4 to_rotate',
-                  'mot_float_type psi']
+                  'float psi']
     cl_code = '''
         float cos_psi;
         float sin_psi = sincos(psi, &cos_psi);
@@ -42,7 +42,7 @@ class RotateVector(LibraryFunctionTemplate):
     return_type = 'float4'
     parameters = ['float4 basis',
                   'float4 to_rotate',
-                  'mot_float_type psi']
+                  'float psi']
     cl_code = '''
         float cos_psi;
         float sin_psi = sincos(psi, &cos_psi);
@@ -67,13 +67,13 @@ class SphericalToCartesian(LibraryFunctionTemplate):
         phi: azimuth angle of the first vector
     """
     return_type = 'float4'
-    parameters = ['mot_float_type theta',
-                  'mot_float_type phi']
+    parameters = ['float theta',
+                  'float phi']
     cl_code = '''
-        mot_float_type cos_theta;
-        mot_float_type sin_theta = sincos(theta, &cos_theta);
-        mot_float_type cos_phi;
-        mot_float_type sin_phi = sincos(phi, &cos_phi);
+        float cos_theta;
+        float sin_theta = sincos(theta, &cos_theta);
+        float cos_phi;
+        float sin_phi = sincos(phi, &cos_phi);
         
         return (float4)(cos_phi * sin_theta, sin_phi * sin_theta, cos_theta, 0.0);
     '''
@@ -93,9 +93,9 @@ class TensorSphericalToCartesian(LibraryFunctionTemplate):
         psi: rotation around the first vector, used to generate the perpendicular vectors.
     """
     dependencies = ['RotateOrthogonalVector', 'SphericalToCartesian']
-    parameters = ['mot_float_type theta',
-                  'mot_float_type phi',
-                  'mot_float_type psi',
+    parameters = ['float theta',
+                  'float phi',
+                  'float psi',
                   'float4* vec0',
                   'float4* vec1',
                   'float4* vec2']
@@ -121,17 +121,17 @@ class CartesianPolarDotProduct(LibraryFunctionTemplate):
     Returns:
         dot product between the two vectors
     """
-    return_type = 'mot_float_type'
-    parameters = ['mot_float_type v0_x',
-                  'mot_float_type v0_y',
-                  'mot_float_type v0_z',
-                  'mot_float_type v1_theta',
-                  'mot_float_type v1_phi']
+    return_type = 'float'
+    parameters = ['float v0_x',
+                  'float v0_y',
+                  'float v0_z',
+                  'float v1_theta',
+                  'float v1_phi']
     cl_code = '''
-        mot_float_type cos_theta;
-        mot_float_type sin_theta = sincos(v1_theta, &cos_theta);
-        mot_float_type cos_phi;
-        mot_float_type sin_phi = sincos(v1_phi, &cos_phi);
+        float cos_theta;
+        float sin_theta = sincos(v1_theta, &cos_theta);
+        float cos_phi;
+        float sin_phi = sincos(v1_phi, &cos_phi);
         
         return (v0_x * (cos_phi * sin_theta)) + (v0_y * (sin_phi * sin_theta)) + (v0_z * cos_theta);
     '''
@@ -151,9 +151,9 @@ class SquareMatrixMultiplication(LibraryFunctionTemplate):
         C: the output matrix
     """
     parameters = ['uint n',
-                  'mot_float_type* A',
-                  'mot_float_type* B',
-                  'mot_float_type* C']
+                  'float* A',
+                  'float* B',
+                  'float* C']
     cl_code = '''
         int i, j, z;
         double sum;

@@ -249,9 +249,9 @@ class NODDI_WatsonHinderedDiffusionCoeff(LibraryFunctionTemplate):
                  OUTPUT: the equivalent diffusivity after integration
          kappa: the concentration parameter of the Watson's distribution
     """
-    parameters = ['mot_float_type* d',
-                  'mot_float_type* dperp0',
-                  'mot_float_type kappa']
+    parameters = ['double* d',
+                  'double* dperp0',
+                  'double kappa']
     dependencies = ['dawson']
     cl_code = '''
         double tmp;
