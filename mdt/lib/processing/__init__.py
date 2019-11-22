@@ -1,0 +1,5 @@
+__author__ = 'Robbert Harms'
+__date__ = '2019-11-18'
+__maintainer__ = 'Robbert Harms'
+__email__ = 'robbert.harms@maastrichtuniversity.nl'
+__licence__ = 'LGPL v3'

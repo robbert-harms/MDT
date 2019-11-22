@@ -3,15 +3,13 @@ import logging
 import logging.config as logging_config
 import os
 from contextlib import contextmanager
-
 import numpy as np
-import shutil
 
 import mot
 from mot.configuration import CLRuntimeInfo, CLRuntimeAction
 from .__version__ import VERSION, VERSION_STATUS, __version__
 
-from mdt.configuration import get_logging_configuration_dict, get_optimizer_for_model
+from mdt.configuration import get_logging_configuration_dict, get_optimizer_for_model, get_general_sampling_settings
 
 try:
     logging_config.dictConfig(get_logging_configuration_dict())
@@ -24,7 +22,7 @@ from mdt.component_templates.compartment_models import CompartmentTemplate, Weig
 from mdt.component_templates.composite_models import CompositeModelTemplate
 from mdt.component_templates.library_functions import LibraryFunctionTemplate
 
-from mdt.lib.model_fitting import get_batch_fitting_function, fit_composite_model
+from mdt.lib.processing.model_fitting import get_batch_fitting_function
 from mdt.utils import estimate_noise_std, get_cl_devices, load_input_data,\
     create_blank_mask, create_index_matrix, \
     volume_index_to_roi_index, roi_index_to_volume_index, load_brain_mask, init_user_settings, restore_volumes, \
@@ -84,15 +82,15 @@ def get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=
     Returns:
         dict: a dictionary with initialization points for the selected model
     """
-    from mdt.lib.model_fitting import get_optimization_inits
+    from mdt.lib.processing.model_fitting import get_optimization_inits
     return get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=cl_device_ind)
 
 
 def fit_model(model, input_data, output_folder,
-              method=None, recalculate=False, cl_device_ind=None,
+              method=None, optimizer_options=None, recalculate=False, cl_device_ind=None,
               double_precision=False, tmp_results_dir=True,
               initialization_data=None, use_cascaded_inits=True,
-              post_processing=None, optimizer_options=None):
+              post_processing=None):
     """Run the optimizer on the given model.
 
     Args:
@@ -109,7 +107,7 @@ def fit_model(model, input_data, output_folder,
             - 'Subplex'
 
             If not given, defaults to 'Powell'.
-
+        optimizer_options (dict): extra options passed to the optimization routines.
         recalculate (boolean): If we want to recalculate the results if they are already present.
         cl_device_ind (int or list): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices(). This can also be a list of device indices.
@@ -138,7 +136,6 @@ def fit_model(model, input_data, output_folder,
             For valid elements, please see the configuration file settings for ``optimization``
             under ``post_processing``. Valid input for this parameter is for example: {'covariance': False}
             to disable automatic calculation of the covariance from the Hessian.
-        optimizer_options (dict): extra options passed to the optimization routines.
 
     Returns:
         dict: The result maps for the given composite model or the last model in the cascade.
@@ -187,6 +184,7 @@ def fit_model(model, input_data, output_folder,
         method, optimizer_options = get_optimizer_for_model(model_name)
 
     with mot.configuration.config_context(CLRuntimeAction(cl_runtime_info)):
+        from mdt.lib.processing.model_fitting import fit_composite_model
         fit_composite_model(model_instance, input_data, output_folder, method,
                             get_temporary_results_dir(tmp_results_dir), recalculate=recalculate,
                             optimizer_options=optimizer_options)
@@ -263,29 +261,10 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
         dict: if store_samples is True then we return the samples per parameter as a numpy memmap. If store_samples
             is False we return None
     """
-    import mdt.utils
-    from mdt.lib.model_sampling import sample_composite_model
-    import mot.configuration
+    initialization_data = initialization_data or {}
 
-    settings = mdt.configuration.get_general_sampling_settings()
-    if nmr_samples is None:
-        nmr_samples = settings['nmr_samples']
-    if burnin is None:
-        burnin = settings['burnin']
-    if thinning is None:
-        thinning = settings['thinning']
-
-    if not isinstance(initialization_data, InitializationData) and initialization_data is not None:
-        initialization_data = SimpleInitializationData(**initialization_data)
-
-    if not mdt.utils.check_user_components():
+    if not check_user_components():
         init_user_settings(pass_if_exists=True)
-
-    if isinstance(model, str):
-        model = get_model(model)()
-
-    if post_processing:
-        model.update_active_post_processing('sampling', post_processing)
 
     if cl_device_ind is None:
         cl_context_action = mot.configuration.VoidConfigurationAction()
@@ -294,27 +273,32 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
             cl_environments=get_cl_devices(cl_device_ind),
             double_precision=double_precision)
 
+    settings = get_general_sampling_settings()
+    if nmr_samples is None:
+        nmr_samples = settings['nmr_samples']
+    if burnin is None:
+        burnin = settings['burnin']
+    if thinning is None:
+        thinning = settings['thinning']
+
+    if isinstance(model, str):
+        model_instance = get_model(model)()
+    else:
+        model_instance = model
+
+    initialization_data = SimpleInitializationData(**initialization_data)
+    initialization_data.apply_to_model(model_instance, input_data)
+
+    if post_processing:
+        model_instance.update_active_post_processing('sampling', post_processing)
+
     with mot.configuration.config_context(cl_context_action):
-        base_dir = os.path.join(output_folder, model.name, 'samples')
-
-        if not os.path.isdir(base_dir):
-            os.makedirs(base_dir)
-
-        if recalculate:
-            shutil.rmtree(base_dir)
-
-        logger = logging.getLogger(__name__)
-        logger.info('Using MDT version {}'.format(__version__))
-        logger.info('Preparing for model {0}'.format(model.name))
-        logger.info('The {0} parameters we will sample are: {1}'.format(len(model.get_free_param_names()),
-                                                                            model.get_free_param_names()))
-
-        return sample_composite_model(model, input_data, base_dir, nmr_samples, thinning, burnin,
+        from mdt.lib.processing.model_sampling import sample_composite_model
+        return sample_composite_model(model_instance, input_data, output_folder, nmr_samples, thinning, burnin,
                                       get_temporary_results_dir(tmp_results_dir),
                                       method=method, recalculate=recalculate,
                                       store_samples=store_samples,
                                       sample_items_to_save=sample_items_to_save,
-                                      initialization_data=initialization_data,
                                       post_sampling_cb=post_sampling_cb,
                                       sampler_options=sampler_options)
 
@@ -402,6 +386,93 @@ def compute_fim(model, input_data, optimization_results, output_folder=None, cl_
         write_volume_maps(return_results, os.path.join(output_folder, model_name, 'FIM'))
 
         return return_results
+
+
+def residual_bootstrapping(model, input_data, optimization_results, output_folder, nmr_samples=None,
+                           optimization_method=None, optimizer_options=None, recalculate=False, cl_device_ind=None,
+                           double_precision=False, keep_samples=True, tmp_results_dir=True, initialization_data=None):
+    """Resample the model using residual bootstrapping.
+
+    This is typically used to construct confidence intervals on the optimized parameters.
+
+    Args:
+        model (str or :class:`~mdt.models.base.EstimableModel`): the model to sample
+        input_data (:class:`~mdt.utils.MRIInputData`): the input data object containing all
+            the info needed for the model fitting.
+        optimization_results (dict or str): the optimization results, either a dictionary with results or the
+            path to a folder.
+        output_folder (string): The path to the folder where to place the output, we will make a subdir with the
+            model name in it (for the optimization results) and then a subdir with the samples output.
+        nmr_samples (int): the number of samples we would like to compute. Defaults to 1000.
+        optimization_method (str): The optimization method to use, one of:
+            - 'Levenberg-Marquardt'
+            - 'Nelder-Mead'
+            - 'Powell'
+            - 'Subplex'
+
+            If not given, defaults to 'Powell'.
+        optimizer_options (dict): extra options passed to the optimization routines.
+        recalculate (boolean): If we want to recalculate the results if they are already present.
+        cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
+            utils.get_cl_devices().
+        double_precision (boolean): if we would like to do the calculations in double precision
+        keep_samples (boolean): determines if we keep any of the chains. If set to False, the chains will
+            be discarded after generating the mean and standard deviations.
+        tmp_results_dir (str, True or None): The temporary dir for the calculations. Set to a string to use
+                that path directly, set to True to use the config value, set to None to disable.
+        initialization_data (dict): provides (extra) initialization data to
+            use during model fitting. This dictionary can contain the following elements:
+
+            * ``inits``: dictionary with per parameter an initialization point
+            * ``fixes``: dictionary with per parameter a fixed point, this will remove that parameter from the fitting
+            * ``lower_bounds``: dictionary with per parameter a lower bound
+            * ``upper_bounds``: dictionary with per parameter a upper bound
+            * ``unfix``: a list of parameters to unfix
+
+            For example::
+
+                initialization_data = {
+                    'fixes': {'Stick0.theta: np.array(...), ...},
+                    'inits': {...}
+                }
+
+    Returns:
+        dict: if keep_samples is True we return the samples per parameter as a numpy memmap.
+            If store_samples is False we return None
+    """
+    initialization_data = initialization_data or {}
+    nmr_samples = nmr_samples or 1000
+
+    if not check_user_components():
+        init_user_settings(pass_if_exists=True)
+
+    if cl_device_ind is None:
+        cl_context_action = mot.configuration.VoidConfigurationAction()
+    else:
+        cl_context_action = mot.configuration.RuntimeConfigurationAction(
+            cl_environments=get_cl_devices(cl_device_ind),
+            double_precision=double_precision)
+
+    if isinstance(model, str):
+        model_name = model
+        model_instance = get_model(model)()
+    else:
+        model_name = model.name
+        model_instance = model
+
+    initialization_data = SimpleInitializationData(**initialization_data)
+    initialization_data.apply_to_model(model_instance, input_data)
+
+    if optimization_method is None:
+        optimization_method, optimizer_options = get_optimizer_for_model(model_name)
+
+    with mot.configuration.config_context(cl_context_action):
+        from mdt.lib.processing.model_bootstrapping import compute_residual_bootstrap
+        return compute_residual_bootstrap(model_instance, input_data, optimization_results, output_folder,
+                                          optimization_method, nmr_samples, get_temporary_results_dir(tmp_results_dir),
+                                          recalculate=recalculate,
+                                          keep_samples=keep_samples,
+                                          optimizer_options=optimizer_options)
 
 
 def batch_fit(data_folder, models_to_fit, output_folder=None, batch_profile=None,

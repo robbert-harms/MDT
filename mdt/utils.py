@@ -1,5 +1,6 @@
 import collections
 import gzip
+import hashlib
 import numbers
 import glob
 import logging
@@ -30,6 +31,9 @@ __date__ = "2014-02-05"
 __license__ = "LGPL v3"
 __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
+
+
+DEFAULT_INTERMEDIATE_RESULTS_SUBDIR_NAME = 'tmp_results'
 
 
 class MRIInputData:
@@ -268,32 +272,25 @@ class SimpleMRIInputData(MRIInputData):
             return self._protocol[parameter_name]
         raise ValueError('No input data could be find for the parameter "{}".'.format(parameter_name))
 
-    def copy_with_updates(self, *args, **kwargs):
+    def copy_with_updates(self, **updates):
         """Create a copy of this input data, while setting some of the arguments to new values.
 
-        You can use any of the arguments (args and kwargs) of the constructor for this call.
-        If given we will use those values instead of the values in this input data object for the copy.
+        Args:
+            updates (kwargs): with constructor names.
         """
-        new_args, new_kwargs = self._get_constructor_args()
-
-        for ind, value in enumerate(args):
-            new_args[ind] = value
-
-        for key, value in kwargs.items():
-            new_kwargs[key] = value
-
-        return self.__class__(*new_args, **new_kwargs)
-
-    def _get_constructor_args(self):
-        """Get the constructor arguments needed to create a copy of this batch util using a copy constructor.
-
-        Returns:
-            tuple: args and kwargs tuple
-        """
+        arg_names = ['protocol', 'signal4d', 'mask', 'nifti_header']
         args = [self._protocol, self.signal4d, self._mask, self.nifti_header]
-        kwargs = dict(extra_protocol=self._extra_protocol, gradient_deviations=self._gradient_deviations,
+        kwargs = dict(extra_protocol=self._extra_protocol,
+                      gradient_deviations=self._gradient_deviations,
                       noise_std=self._noise_std)
-        return args, kwargs
+
+        for ind, arg_name in enumerate(arg_names):
+            args[ind] = updates.get(arg_name, args[ind])
+
+        for kwarg_name in kwargs.keys():
+            kwargs[kwarg_name] = updates.get(kwarg_name, kwargs[kwarg_name])
+
+        return self.__class__(*args, **kwargs)
 
     def get_subset(self, volumes_to_keep=None, volumes_to_remove=None):
         if (volumes_to_keep is not None) and (volumes_to_remove is not None):
@@ -2119,3 +2116,22 @@ def create_covariance_matrix(nmr_voxels, results, names, result_covars=None):
                 elif '{}_to_{}'.format(names[y], names[x]) in result_covars:
                     covars[:, x, y] = result_covars['{}_to_{}'.format(names[y], names[x])]
     return covars
+
+
+def get_intermediate_results_path(output_dir, tmp_dir):
+    """Get a temporary results path for processing.
+
+    Args:
+        output_dir (str): the output directory of the results
+        tmp_dir (str): a preferred tmp dir. If not given we create a temporary directory in the output_dir.
+
+    Returns:
+        str: a path for saving intermediate computation results
+    """
+    if tmp_dir is None:
+        return os.path.join(output_dir, DEFAULT_INTERMEDIATE_RESULTS_SUBDIR_NAME)
+
+    if not output_dir.endswith('/'):
+        output_dir += '/'
+
+    return os.path.join(tmp_dir, hashlib.md5(output_dir.encode('utf-8')).hexdigest())

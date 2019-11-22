@@ -211,7 +211,7 @@ class DMRICompositeModel(EstimableModel):
         ''', dependencies=[self._get_spherical_transformation_func()])
 
     def get_initial_parameters(self):
-        """Get the initial parameters for eac of the voxels in ``voxels_to_analyze``.
+        """Get the initial parameters for each of the voxels in ``voxels_to_analyze``.
 
         Returns:
             ndarray: 2d array with for every problem (first dimension) the initial parameters (second dimension).
@@ -654,23 +654,27 @@ class DMRICompositeModel(EstimableModel):
         """
         return self._model_functions_info.has_parameter(model_param_name)
 
-    def set_input_data(self, input_data):
+    def set_input_data(self, input_data, suppress_warnings=False):
         """Set the input data this model will deal with.
 
         Args:
             input_data (mdt.utils.MRIInputData):
                 The container for the data we will use for this model.
+            suppress_warnings (boolean): set to suppress all warnings
 
         Returns:
             Returns self for chainability
         """
-        self._check_data_consistency(input_data)
+        if not suppress_warnings:
+            self._check_data_consistency(input_data)
+
         self._original_input_data = input_data
 
-        input_data = self._prepare_input_data(input_data)
+        input_data = self._prepare_input_data(input_data, suppress_warnings=suppress_warnings)
 
-        if input_data.gradient_deviations is not None and self._model_functions_info.has_protocol_parameter('g'):
-            self._logger.info('Using the gradient deviations in the model optimization.')
+        if not suppress_warnings:
+            if input_data.gradient_deviations is not None and self._model_functions_info.has_protocol_parameter('g'):
+                self._logger.info('Using the gradient deviations in the model optimization.')
 
         self._input_data = input_data
         if self._input_data.noise_std is not None:
@@ -1155,7 +1159,7 @@ class DMRICompositeModel(EstimableModel):
 
         return GradientDeviationProtocolUpdate()
 
-    def _prepare_input_data(self, input_data):
+    def _prepare_input_data(self, input_data, suppress_warnings=False):
         """Update the input data to make it suitable for this model.
 
         Some of the models in diffusion MRI can only handle a subset of all volumes. For example, the S0 model
@@ -1170,18 +1174,23 @@ class DMRICompositeModel(EstimableModel):
             mdt.utils.MRIInputData: either the same input data or a changed copy.
         """
         if not self.volume_selection:
-            self._logger.info('Disabled volume selection, using all {} volumes.'.format(input_data.nmr_observations))
+            if not suppress_warnings:
+                self._logger.info('Disabled volume selection, '
+                                  'using all {} volumes.'.format(input_data.nmr_observations))
             return input_data
 
         indices = self._get_suitable_volume_indices(input_data)
 
         if len(indices) != input_data.nmr_observations:
-            self._logger.info('For this model, {}, we will use a subset of the volumes.'.format(self._name))
-            self._logger.info('Using {} out of {} volumes, indices: {}'.format(
-                len(indices), input_data.nmr_observations, str(indices).replace('\n', '').replace('[  ', '[')))
+            if not suppress_warnings:
+                self._logger.info('For this model, {}, we will use a subset of the volumes.'.format(self._name))
+                self._logger.info('Using {} out of {} volumes, indices: {}'.format(
+                    len(indices), input_data.nmr_observations, str(indices).replace('\n', '').replace('[  ', '[')))
             return input_data.get_subset(volumes_to_keep=indices)
         else:
-            self._logger.info('No volume options to apply, using all {} volumes.'.format(input_data.nmr_observations))
+            if not suppress_warnings:
+                self._logger.info('No volume options to apply, '
+                                  'using all {} volumes.'.format(input_data.nmr_observations))
         return input_data
 
     def _check_data_consistency(self, input_data):

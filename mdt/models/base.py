@@ -31,11 +31,12 @@ class EstimableModel:
         """
         raise NotImplementedError()
 
-    def set_input_data(self, input_data):
+    def set_input_data(self, input_data, suppress_warnings=False):
         """Set the input data this model will deal with.
 
         Args:
             input_data (mdt.utils.MRIInputData): The container for the data we will use for this model.
+            suppress_warnings (boolean): set to suppress all warnings
 
         Returns:
             Returns self for chainability

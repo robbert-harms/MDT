@@ -1,3 +1,5 @@
+import collections
+
 import numpy as np
 import glob
 import logging
@@ -6,16 +8,19 @@ import shutil
 import time
 import timeit
 from contextlib import contextmanager
+import mot
 from mdt.__version__ import __version__
 from mdt.lib.nifti import get_all_nifti_data
 from mdt.lib.components import get_model
-from mdt.configuration import get_processing_strategy
+from mdt.configuration import get_processing_strategy, gzip_optimization_results
+from mdt.model_building.utils import ParameterDecodingWrapper
 from mdt.utils import create_roi, get_cl_devices, model_output_exists, \
-    per_model_logging_context
-from mdt.lib.processing_strategies import FittingProcessor, get_full_tmp_results_path
+    per_model_logging_context, get_intermediate_results_path
+from mdt.lib.processing.processing_strategies import SimpleModelProcessor
 from mdt.lib.exceptions import InsufficientProtocolError
 import mot.configuration
-from mot.configuration import config_context as mot_config_context
+from mot import minimize
+from mot.configuration import config_context as mot_config_context, CLRuntimeInfo
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-05-01"
@@ -279,7 +284,7 @@ def fit_composite_model(model, input_data, output_folder, method, tmp_results_di
             os.makedirs(output_path)
 
         with _model_fit_logging(logger, model.name, model.get_free_param_names()):
-            tmp_dir = get_full_tmp_results_path(output_path, tmp_results_dir)
+            tmp_dir = get_intermediate_results_path(output_path, tmp_results_dir)
             logger.info('Saving temporary results in {}.'.format(tmp_dir))
 
             worker = FittingProcessor(method, model, input_data.mask,
@@ -305,3 +310,93 @@ def _model_fit_logging(logger, model_name, free_param_names):
     run_time = timeit.default_timer() - minimize_start_time
     run_time_str = str(calculate_run_days(run_time)) + ':' + time.strftime('%H:%M:%S', time.gmtime(run_time))
     logger.info('Fitted {0} model with runtime {1} (d:h:m:s).'.format(model_name, run_time_str))
+
+
+class FittingProcessor(SimpleModelProcessor):
+
+    def __init__(self, method, model, mask, nifti_header, output_dir, tmp_storage_dir, recalculate,
+                 optimizer_options=None):
+        """The processing worker for model fitting.
+
+        Use this if you want to use the model processing strategy to do model fitting.
+
+        Args:
+            method: the optimization routine to use
+        """
+        super().__init__(mask, nifti_header, output_dir, tmp_storage_dir, recalculate)
+        self._model = model
+        self._method = method
+        self._optimizer_options = optimizer_options
+        self._write_volumes_gzipped = gzip_optimization_results()
+        self._subdirs = set()
+        self._logger=logging.getLogger(__name__)
+
+    def _process(self, roi_indices, next_indices=None):
+        with self._model.voxels_to_analyze_context(roi_indices):
+            codec = self._model.get_parameter_codec()
+
+            cl_runtime_info = CLRuntimeInfo()
+
+            self._logger.info('Starting optimization')
+            self._logger.info('Using MOT version {}'.format(mot.__version__))
+            self._logger.info('We will use a {} precision float type for the calculations.'.format(
+                'double' if cl_runtime_info.double_precision else 'single'))
+            for env in cl_runtime_info.cl_environments:
+                self._logger.info('Using device \'{}\'.'.format(str(env)))
+            self._logger.info('Using compile flags: {}'.format(cl_runtime_info.compile_flags))
+
+            if self._optimizer_options:
+                self._logger.info('We will use the optimizer {} '
+                                  'with optimizer settings {}'.format(self._method, self._optimizer_options))
+            else:
+                self._logger.info('We will use the optimizer {} with default settings.'.format(self._method))
+
+            x0 = codec.encode(self._model.get_initial_parameters(), self._model.get_kernel_data())
+            lower_bounds, upper_bounds = codec.encode_bounds(self._model.get_lower_bounds(),
+                                                             self._model.get_upper_bounds())
+
+            wrapper = ParameterDecodingWrapper(x0.shape[1], codec.get_decode_function())
+            input_data = wrapper.wrap_input_data(self._model.get_kernel_data())
+            objective_func = wrapper.wrap_objective_function(self._model.get_objective_function())
+            constraints_func = wrapper.wrap_constraints_function(self._model.get_constraints_function())
+
+            results = minimize(objective_func, x0, method=self._method,
+                               nmr_observations=self._model.get_nmr_observations(),
+                               cl_runtime_info=cl_runtime_info,
+                               data=input_data,
+                               lower_bounds=lower_bounds,
+                               upper_bounds=upper_bounds,
+                               constraints_func=constraints_func,
+                               options=self._optimizer_options)
+
+            self._logger.info('Finished optimization')
+            self._logger.info('Starting post-processing')
+
+            x_final = codec.decode(results['x'], self._model.get_kernel_data())
+
+            results = self._model.get_post_optimization_output(x_final, results['status'])
+            results.update({self._used_mask_name: np.ones(roi_indices.shape[0], dtype=np.bool)})
+
+            self._logger.info('Finished post-processing')
+
+            self._write_output_recursive(results, roi_indices)
+
+    def _write_output_recursive(self, results, roi_indices, sub_dir=''):
+        current_output = {}
+        sub_dir = sub_dir
+
+        for key, value in results.items():
+            if isinstance(value, collections.Mapping):
+                self._write_output_recursive(value, roi_indices, os.path.join(sub_dir, key))
+            else:
+                current_output[key] = value
+
+        self._write_volumes(current_output, roi_indices, os.path.join(self._tmp_storage_dir, sub_dir))
+        self._subdirs.add(sub_dir)
+
+    def combine(self):
+        super().combine()
+        for subdir in self._subdirs:
+            self._combine_volumes(self._output_dir, self._tmp_storage_dir,
+                                  self._nifti_header, maps_subdir=subdir)
+        return create_roi(get_all_nifti_data(self._output_dir), self._mask)
