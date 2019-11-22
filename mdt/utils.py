@@ -328,7 +328,8 @@ class SimpleMRIInputData(MRIInputData):
                 else:
                     new_gradient_deviations = self._gradient_deviations[..., volumes_to_keep, :, :]
 
-        return self.copy_with_updates(new_protocol, new_dwi_volume, gradient_deviations=new_gradient_deviations,
+        return self.copy_with_updates(protocol=new_protocol, signal4d=new_dwi_volume,
+                                      gradient_deviations=new_gradient_deviations,
                                       volume_weights=new_volume_weights)
 
     @property
