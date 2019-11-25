@@ -3,6 +3,10 @@ Development ideas
 #################
 Some ideas for future development of MDT.
 
+- to discuss: add 'scale_factor' to the parameters as a simple scaling factor
+    - for use in MLE and FIM
+    - replacing ScaleTransform and scale_factor in numdiff_info
+    - perhaps add it to MCMC as well
 - MPT (Microstructure Prototol Toolbox)
     - Perhaps a different package using MDT and MOT for protocol optimization
 - More optimization routines:
@@ -26,11 +30,6 @@ Some ideas for future development of MDT.
     - Allows protocol options per voxel.
 - remove mot_float_type, replace with either float or double depending on insight/tests
 - move g to gx, gy, gz
-- remove the pre_transform_code from the dependencies (was used for the weights transformation, but no longer neeed)
-- to discuss: add 'scale_factor' to the parameters as a simple scaling factor
-    - for use in MLE and FIM
-    - replacing ScaleTransform and scale_factor in numdiff_info
-    - perhaps add it to MCMC as well
 - Move to using an OpenCL Context instead of the devices
 - Add more model documentation, in particular what all the output maps are
 - DynamicGlobal kernel data element
