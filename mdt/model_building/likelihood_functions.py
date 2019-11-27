@@ -2,7 +2,6 @@ import numpy as np
 from .model_functions import SimpleModelCLFunction
 from .parameters import CurrentObservationParam, CurrentModelSignalParam, NoiseStdFreeParameter
 from mot.library_functions import LogBesseli0, normal_logpdf
-from .parameter_functions.transformations import ClampTransform
 
 
 __author__ = 'Robbert Harms'
@@ -36,7 +35,7 @@ class Gaussian(LikelihoodFunction):
         parameter_list = [
             CurrentObservationParam('observation'),
             CurrentModelSignalParam('model_evaluation'),
-            NoiseStdFreeParameter('mot_float_type sigma', True, 1, 0, np.inf, parameter_transform=ClampTransform())
+            NoiseStdFreeParameter('mot_float_type sigma', True, 1, 0, np.inf)
         ]
         body = '''
             return normal_logpdf(observation, model_evaluation, sigma);
@@ -64,7 +63,7 @@ class OffsetGaussian(LikelihoodFunction):
         parameter_list = [
             CurrentObservationParam('observation'),
             CurrentModelSignalParam('model_evaluation'),
-            NoiseStdFreeParameter('mot_float_type sigma', True, 1, 0, np.inf, parameter_transform=ClampTransform())
+            NoiseStdFreeParameter('mot_float_type sigma', True, 1, 0, np.inf)
         ]
         body = '''
             return normal_logpdf(observation, hypot(model_evaluation, (double)sigma), sigma);
@@ -98,7 +97,7 @@ class Rician(LikelihoodFunction):
         parameter_list = [
             CurrentObservationParam('observation'),
             CurrentModelSignalParam('model_evaluation'),
-            NoiseStdFreeParameter('mot_float_type sigma', True, 1, 0, np.inf, parameter_transform=ClampTransform())
+            NoiseStdFreeParameter('mot_float_type sigma', True, 1, 0, np.inf)
         ]
         body = '''
             double obs_div = observation / sigma;

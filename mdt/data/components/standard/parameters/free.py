@@ -29,7 +29,6 @@ class w(FreeParameterTemplate):
     init_value = 0.5
     lower_bound = 0
     upper_bound = 1
-    parameter_transform = 'CosSqrClamp'
     sampling_proposal_std = 0.01
     sampling_prior = UniformWithinBoundsPrior()
     numdiff_info = {'scale_factor': 10}
@@ -165,6 +164,7 @@ class kappa(FreeParameterTemplate):
     upper_bound = 64
     sampling_proposal_std = 0.01
     numdiff_info = {'use_upper_bound': False}
+    parameter_transform = ScaleTransform(1/64.)
 
 
 class k1(FreeParameterTemplate):
@@ -174,6 +174,7 @@ class k1(FreeParameterTemplate):
     upper_bound = 64
     sampling_proposal_std = 0.01
     numdiff_info = {'use_upper_bound': False}
+    parameter_transform = ScaleTransform(1/64.)
 
 
 class kw(FreeParameterTemplate):
@@ -183,6 +184,7 @@ class kw(FreeParameterTemplate):
     upper_bound = 64
     sampling_proposal_std = 0.01
     numdiff_info = {'use_upper_bound': False}
+    parameter_transform = ScaleTransform(1 / 64.)
 
 
 class d_exvivo(FreeParameterTemplate):

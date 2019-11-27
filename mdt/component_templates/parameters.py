@@ -5,8 +5,7 @@ from mdt.model_building.parameter_functions.numdiff_info import NumDiffInfo, Sim
 from mdt.model_building.parameters import ProtocolParameter, FreeParameter, SphericalCoordinateParameter, \
     PolarAngleParameter, AzimuthAngleParameter, RotationalAngleParameter
 from mdt.model_building.parameter_functions.priors import UniformWithinBoundsPrior
-from mdt.model_building.parameter_functions.transformations import AbstractTransformation
-
+from mdt.model_building.parameter_functions.transformations import AbstractTransformation, ScaleTransform
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-12-12"
@@ -115,6 +114,7 @@ class FreeParameterTemplate(ParameterTemplate):
             optimization. See Harms 2017 NeuroImage for details. Typical elements are:
 
             * ``Identity``: no transformation
+            * ``Scale``: scales the parameters (try to aim for a range between [0, 1])
             * ``Positivity``: ensures the parameters are positive
             * ``Clamp``: limits the parameter between its lower and upper bounds
             * ``CosSqrClamp``: changes the range of the optimized parameters to [0, 1] and ensures boundary constraints
@@ -153,6 +153,7 @@ class SphericalCoordinateParameterTemplate(FreeParameterTemplate):
     init_value = np.pi / 2.0
     sampling_proposal_std = 0.1
     numdiff_info = {'max_step': 0.1, 'scale_factor': 10}
+    parameter_transform = ScaleTransform(1/np.pi)
 
 
 class PolarAngleParameterTemplate(SphericalCoordinateParameterTemplate):
@@ -190,6 +191,7 @@ class RotationalAngleParameterTemplate(FreeParameterTemplate):
     modulus = np.pi
     sampling_proposal_std = 0.1
     numdiff_info = {'max_step': 0.1, 'scale_factor': 10}
+    parameter_transform = ScaleTransform(1 / np.pi)
 
 
 def _resolve_parameter_transform(parameter_transform):
