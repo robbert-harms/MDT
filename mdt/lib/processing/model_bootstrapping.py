@@ -11,10 +11,11 @@ from mdt.lib.deferred_mappings import DeferredActionDict
 from mdt.lib.nifti import write_all_as_nifti
 from mdt.model_building.utils import ParameterDecodingWrapper
 from mdt.utils import load_samples, per_model_logging_context, get_intermediate_results_path, create_roi, \
-    restore_volumes
+    restore_volumes, is_scalar, split_array_to_dict
 from mdt.lib.processing.processing_strategies import SimpleModelProcessor
 from mdt.lib.exceptions import InsufficientProtocolError
 from mot import minimize
+from mot.configuration import CLRuntimeInfo
 from mot.lib.cl_function import SimpleCLFunction
 from mot.lib.kernel_data import Array, Zeros
 
@@ -116,8 +117,6 @@ class BootstrappingProcessor(SimpleModelProcessor):
             optimization_method: the optimization routine to use
             optimization_results (dict): the starting point for the bootstrapping method
             nmr_samples (int): the number of samples we would like to return.
-            store_samples (boolean): if we want to store the samples or not
-            sample_items_to_save (list): the parameters we want to save the samples off
         """
         super().__init__(mask, nifti_header, output_dir, tmp_storage_dir, recalculate)
         self._logger = logging.getLogger(__name__)
@@ -131,68 +130,76 @@ class BootstrappingProcessor(SimpleModelProcessor):
         self._logger = logging.getLogger(__name__)
         self._optimizer_options = optimizer_options
 
+        self._model.set_input_data(input_data)
+
+        self._x_opt_array = self._model.param_dict_to_array(
+            DeferredActionDict(lambda _, v: create_roi(v, self._input_data.mask), self._optimization_results))
+
+        self._cl_runtime_info = CLRuntimeInfo()
+        self._codec = self._model.get_parameter_codec()
+        self._lower_bounds, self._upper_bounds = self._codec.encode_bounds(self._model.get_lower_bounds(),
+                                                                           self._model.get_upper_bounds())
+        self._wrapper = ParameterDecodingWrapper(self._model.get_nmr_parameters(), self._codec.get_decode_function())
+        self._objective_func = self._wrapper.wrap_objective_function(self._model.get_objective_function())
+        self._constraints_func = self._wrapper.wrap_constraints_function(self._model.get_constraints_function())
+
     def _process(self, roi_indices, next_indices=None):
         with self._memmapped_sample_storage() as sample_storage:
-            with self._model.voxels_to_analyze_context(roi_indices):
-                y_estimated = self._get_signal_estimates(roi_indices)
-                errors = self._input_data.observations[roi_indices] - y_estimated
+            y_estimated = self._get_signal_estimates(roi_indices)
+            errors = self._input_data.observations[roi_indices] - y_estimated
 
-                for sample_ind in range(self._nmr_samples):
-                    if sample_ind % (self._nmr_samples * 0.1) == 0:
-                        self._logger.info('Processed samples {} from {}'.format(sample_ind, self._nmr_samples))
+            x0 = self._codec.encode(self._x_opt_array[roi_indices],
+                                    self._model.get_kernel_data().get_subset(roi_indices))
 
-                    errors_resampled = errors[range(errors.shape[1]),
-                                              np.random.randint(0, errors.shape[1], size=errors.shape)]
-                    new_observations = y_estimated + errors_resampled
+            observations_star = np.zeros_like(self._input_data.observations)
 
-                    observations_star = np.zeros_like(self._input_data.observations)
-                    observations_star[roi_indices] = new_observations
-                    observations_star = restore_volumes(observations_star, self._input_data.mask)
-                    new_input_data = self._input_data.copy_with_updates(signal4d=observations_star)
+            for sample_ind in range(self._nmr_samples):
+                if sample_ind % (self._nmr_samples * 0.1) == 0:
+                    self._logger.info('Processed samples {} from {}'.format(sample_ind, self._nmr_samples))
 
-                    bootstrapped_params = self._single_optimization_run(new_input_data, roi_indices)
+                errors_resampled = errors[range(errors.shape[1]),
+                                          np.random.randint(0, errors.shape[1], size=errors.shape)]
+                new_observations = y_estimated + errors_resampled
 
-                    for param_name, storage in sample_storage.items():
-                        storage[roi_indices, sample_ind] = bootstrapped_params[param_name]
+                # todo, speed can be improved by having an InputData object that does not need a 4d volume
+                observations_star[roi_indices] = new_observations
+                observations_star_vols = restore_volumes(observations_star, self._input_data.mask)
+                new_input_data = self._input_data.copy_with_updates(signal4d=observations_star_vols)
 
-    def _single_optimization_run(self, input_data, roi_indices):
+                bootstrapped_params = self._single_optimization_run(new_input_data, x0, roi_indices)
+
+                for param_name, storage in sample_storage.items():
+                    storage[roi_indices, sample_ind] = bootstrapped_params[param_name]
+
+    def _single_optimization_run(self, input_data, x0, roi_indices):
         """Generate one new sample using a single run of the optimization routine."""
         self._model.set_input_data(input_data, suppress_warnings=True)
-        parameters = self._model.param_dict_to_array(
-            DeferredActionDict(lambda _, v: create_roi(v, input_data.mask), self._optimization_results))
-        parameters = parameters[roi_indices]
 
-        codec = self._model.get_parameter_codec()
+        kernel_data_subset = self._model.get_kernel_data().get_subset(roi_indices)
 
-        x0 = codec.encode(parameters, self._model.get_kernel_data())
-        lower_bounds, upper_bounds = codec.encode_bounds(self._model.get_lower_bounds(),
-                                                         self._model.get_upper_bounds())
-
-        wrapper = ParameterDecodingWrapper(x0.shape[1], codec.get_decode_function())
-        wrapped_input_data = wrapper.wrap_input_data(self._model.get_kernel_data())
-        objective_func = wrapper.wrap_objective_function(self._model.get_objective_function())
-        constraints_func = wrapper.wrap_constraints_function(self._model.get_constraints_function())
-
-        results = minimize(objective_func, x0,
+        results = minimize(self._objective_func, x0,
                            method=self._optimization_method,
                            nmr_observations=self._model.get_nmr_observations(),
-                           data=wrapped_input_data,
-                           lower_bounds=lower_bounds,
-                           upper_bounds=upper_bounds,
-                           constraints_func=constraints_func,
+                           cl_runtime_info=self._cl_runtime_info,
+                           data=self._wrapper.wrap_input_data(kernel_data_subset),
+                           lower_bounds=self._get_bounds(self._lower_bounds, roi_indices),
+                           upper_bounds=self._get_bounds(self._upper_bounds, roi_indices),
+                           constraints_func=self._constraints_func,
                            options=self._optimizer_options)
 
-        x_final = codec.decode(results['x'], self._model.get_kernel_data())
-        results = self._model.get_post_optimization_output(x_final, results['status'])
-        return results
+        x_final_array = self._codec.decode(results['x'], kernel_data_subset)
+
+        x_dict = split_array_to_dict(x_final_array, self._model.get_free_param_names())
+        x_dict.update({'ReturnCodes': results['status']})
+        x_dict.update(self._model.get_post_optimization_output(x_final_array, roi_indices=roi_indices,
+                                                               parameters_dict=x_dict))
+        return x_dict
 
     def _get_signal_estimates(self, roi_indices):
-        self._model.set_input_data(self._input_data)
-        parameters = self._model.param_dict_to_array(
-            DeferredActionDict(lambda _, v: create_roi(v, self._input_data.mask), self._optimization_results))
-        parameters = parameters[roi_indices]
+        self._model.set_input_data(self._input_data, suppress_warnings=True)
 
-        kernel_data = {'data': self._model.get_kernel_data(),
+        parameters = self._x_opt_array[roi_indices]
+        kernel_data = {'data': self._model.get_kernel_data().get_subset(roi_indices),
                        'parameters': Array(parameters, ctype='mot_float_type'),
                        'estimates': Zeros((parameters.shape[0], self._model.get_nmr_observations()), 'mot_float_type')}
 
@@ -207,6 +214,15 @@ class BootstrappingProcessor(SimpleModelProcessor):
 
         simulate_function.evaluate(kernel_data, parameters.shape[0])
         return kernel_data['estimates'].get_data()
+
+    def _get_bounds(self, bounds, roi_indices):
+        return_values = []
+        for el in bounds:
+            if is_scalar(el):
+                return_values.append(el)
+            else:
+                return_values.append(el[roi_indices])
+        return tuple(return_values)
 
     @contextmanager
     def _memmapped_sample_storage(self):

@@ -237,7 +237,7 @@ class DKIMeasures:
         nmr_voxels = parameters.shape[0]
         kernel_data = {'parameters': Array(parameters, ctype='mot_float_type'),
                        'directions': Array(DKIMeasures._get_spherical_samples(), ctype='float4',
-                                           offset_str='0'),
+                                           parallelize_over_first_dimension=False),
                        'nmr_directions': Scalar(DKIMeasures._get_spherical_samples().shape[0]),
                        'nmr_radial_directions': Scalar(256),
                        'mks': Zeros((nmr_voxels,), ctype='float'),

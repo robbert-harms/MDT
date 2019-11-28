@@ -1,5 +1,4 @@
 import collections
-
 import numpy as np
 import glob
 import logging
@@ -15,7 +14,7 @@ from mdt.lib.components import get_model
 from mdt.configuration import get_processing_strategy, gzip_optimization_results
 from mdt.model_building.utils import ParameterDecodingWrapper
 from mdt.utils import create_roi, get_cl_devices, model_output_exists, \
-    per_model_logging_context, get_intermediate_results_path
+    per_model_logging_context, get_intermediate_results_path, is_scalar, split_array_to_dict
 from mdt.lib.processing.processing_strategies import SimpleModelProcessor
 from mdt.lib.exceptions import InsufficientProtocolError
 import mot.configuration
@@ -331,55 +330,65 @@ class FittingProcessor(SimpleModelProcessor):
         self._subdirs = set()
         self._logger=logging.getLogger(__name__)
 
+        self._cl_runtime_info = CLRuntimeInfo()
+        self._codec = self._model.get_parameter_codec()
+        self._initial_params = self._model.get_initial_parameters()
+        self._wrapper = ParameterDecodingWrapper(self._model.get_nmr_parameters(), self._codec.get_decode_function())
+        self._kernel_data = self._model.get_kernel_data()
+        self._lower_bounds, self._upper_bounds = self._codec.encode_bounds(self._model.get_lower_bounds(),
+                                                                           self._model.get_upper_bounds())
+        self._objective_func = self._wrapper.wrap_objective_function(self._model.get_objective_function())
+        self._constraints_func = self._wrapper.wrap_constraints_function(self._model.get_constraints_function())
+
     def _process(self, roi_indices, next_indices=None):
-        with self._model.voxels_to_analyze_context(roi_indices):
-            codec = self._model.get_parameter_codec()
+        self._logger.info('Starting optimization')
+        self._logger.info('Using MOT version {}'.format(mot.__version__))
+        self._logger.info('We will use a {} precision float type for the calculations.'.format(
+            'double' if self._cl_runtime_info.double_precision else 'single'))
+        for env in self._cl_runtime_info.cl_environments:
+            self._logger.info('Using device \'{}\'.'.format(str(env)))
+        self._logger.info('Using compile flags: {}'.format(self._cl_runtime_info.compile_flags))
 
-            cl_runtime_info = CLRuntimeInfo()
+        if self._optimizer_options:
+            self._logger.info('We will use the optimizer {} '
+                              'with optimizer settings {}'.format(self._method, self._optimizer_options))
+        else:
+            self._logger.info('We will use the optimizer {} with default settings.'.format(self._method))
 
-            self._logger.info('Starting optimization')
-            self._logger.info('Using MOT version {}'.format(mot.__version__))
-            self._logger.info('We will use a {} precision float type for the calculations.'.format(
-                'double' if cl_runtime_info.double_precision else 'single'))
-            for env in cl_runtime_info.cl_environments:
-                self._logger.info('Using device \'{}\'.'.format(str(env)))
-            self._logger.info('Using compile flags: {}'.format(cl_runtime_info.compile_flags))
+        kernel_data_subset = self._kernel_data.get_subset(roi_indices)
+        x0 = self._codec.encode(self._initial_params[roi_indices], kernel_data_subset)
 
-            if self._optimizer_options:
-                self._logger.info('We will use the optimizer {} '
-                                  'with optimizer settings {}'.format(self._method, self._optimizer_options))
+        results = minimize(self._objective_func, x0, method=self._method,
+                           nmr_observations=self._model.get_nmr_observations(),
+                           cl_runtime_info=self._cl_runtime_info,
+                           data=self._wrapper.wrap_input_data(kernel_data_subset),
+                           lower_bounds=self._get_bounds(self._lower_bounds, roi_indices),
+                           upper_bounds=self._get_bounds(self._upper_bounds, roi_indices),
+                           constraints_func=self._constraints_func,
+                           options=self._optimizer_options)
+
+        self._logger.info('Finished optimization')
+        self._logger.info('Starting post-processing')
+
+        x_final_array = self._codec.decode(results['x'], kernel_data_subset)
+
+        x_dict = split_array_to_dict(x_final_array, self._model.get_free_param_names())
+        x_dict.update({'ReturnCodes': results['status']})
+        x_dict.update(self._model.get_post_optimization_output(x_final_array, roi_indices=roi_indices,
+                                                               parameters_dict=x_dict))
+        x_dict.update({self._used_mask_name: np.ones(roi_indices.shape[0], dtype=np.bool)})
+
+        self._logger.info('Finished post-processing')
+        self._write_output_recursive(x_dict, roi_indices)
+
+    def _get_bounds(self, bounds, roi_indices):
+        return_values = []
+        for el in bounds:
+            if is_scalar(el):
+                return_values.append(el)
             else:
-                self._logger.info('We will use the optimizer {} with default settings.'.format(self._method))
-
-            x0 = codec.encode(self._model.get_initial_parameters(), self._model.get_kernel_data())
-            lower_bounds, upper_bounds = codec.encode_bounds(self._model.get_lower_bounds(),
-                                                             self._model.get_upper_bounds())
-
-            wrapper = ParameterDecodingWrapper(x0.shape[1], codec.get_decode_function())
-            input_data = wrapper.wrap_input_data(self._model.get_kernel_data())
-            objective_func = wrapper.wrap_objective_function(self._model.get_objective_function())
-            constraints_func = wrapper.wrap_constraints_function(self._model.get_constraints_function())
-
-            results = minimize(objective_func, x0, method=self._method,
-                               nmr_observations=self._model.get_nmr_observations(),
-                               cl_runtime_info=cl_runtime_info,
-                               data=input_data,
-                               lower_bounds=lower_bounds,
-                               upper_bounds=upper_bounds,
-                               constraints_func=constraints_func,
-                               options=self._optimizer_options)
-
-            self._logger.info('Finished optimization')
-            self._logger.info('Starting post-processing')
-
-            x_final = codec.decode(results['x'], self._model.get_kernel_data())
-
-            results = self._model.get_post_optimization_output(x_final, results['status'])
-            results.update({self._used_mask_name: np.ones(roi_indices.shape[0], dtype=np.bool)})
-
-            self._logger.info('Finished post-processing')
-
-            self._write_output_recursive(results, roi_indices)
+                return_values.append(el[roi_indices])
+        return tuple(return_values)
 
     def _write_output_recursive(self, results, roi_indices, sub_dir=''):
         current_output = {}

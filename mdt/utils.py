@@ -1952,8 +1952,8 @@ def get_example_data(output_directory):
                 shutil.copy(full_fname, dataset_output_path)
 
 
-def results_to_dict(results, param_names):
-    """Create a dictionary out of the results.
+def split_array_to_dict(results, param_names):
+    """Create a dictionary out of an array.
 
     This basically splits the given nd-matrix into sub matrices based on the second dimension. The length of
     the parameter names should match the length of the second dimension. If a two dimensional matrix of shape (d, p) is

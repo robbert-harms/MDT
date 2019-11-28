@@ -4,7 +4,6 @@ from textwrap import dedent
 import copy
 import collections
 import numpy as np
-from contextlib import contextmanager
 from mdt.configuration import get_active_post_processing
 from mdt.lib.deferred_mappings import DeferredFunctionDict
 from mdt.lib.exceptions import DoubleModelNameException
@@ -23,7 +22,7 @@ from mot.lib.kernel_data import Array, Zeros, Scalar, LocalMemory, Struct, Compo
 
 from mdt.models.base import MissingProtocolInput
 from mdt.models.base import EstimableModel
-from mdt.utils import calculate_point_estimate_information_criterions, is_scalar, results_to_dict, \
+from mdt.utils import calculate_point_estimate_information_criterions, is_scalar, split_array_to_dict, \
     create_covariance_matrix
 from mot.library_functions import pseudo_inverse_real_symmetric_matrix_upper_triangular
 from mot.mcmc_diagnostics import multivariate_ess, univariate_ess
@@ -123,23 +122,9 @@ class DMRICompositeModel(EstimableModel):
         self.nmr_parameters_for_bic_calculation = self.get_nmr_parameters()
         self._post_processing = get_active_post_processing()
 
-        self._voxels_to_analyze = None
-
     @property
     def name(self):
         return self._name
-
-    @contextmanager
-    def voxels_to_analyze_context(self, voxels_to_analyze):
-        """Temporarily sets the attribute ``voxels_to_analyze`` to the given values.
-
-        Args:
-            voxels_to_analyze (List[int]): list of (1d ROI) voxel indices with the voxels we will compute now.
-        """
-        tmp = self._voxels_to_analyze
-        self._voxels_to_analyze = voxels_to_analyze
-        yield
-        self._voxels_to_analyze = tmp
 
     def get_composite_model_function(self):
         """Get the composite model function for the current model tree.
@@ -165,13 +150,13 @@ class DMRICompositeModel(EstimableModel):
         """
         data_items = {
             'local_tmp': LocalMemory('double'),
-            'bounds': self._get_bounds_as_var_data(self._voxels_to_analyze),
-            'protocol': self._get_protocol_data_as_var_data(self._voxels_to_analyze),
-            'protocol_update_cbs': self._get_protocol_update_callbacks_kernel_inputs(self._voxels_to_analyze),
+            'bounds': self._get_bounds_as_var_data(),
+            'protocol': self._get_protocol_data_as_var_data(),
+            'protocol_update_cbs': self._get_protocol_update_callbacks_kernel_inputs(),
             'cache': self._get_cache_struct()
         }
-        data_items.update(self._get_observations_data(self._voxels_to_analyze))
-        data_items.update(self._get_fixed_parameters_as_var_data(self._voxels_to_analyze))
+        data_items.update(self._get_observations_data())
+        data_items.update(self._get_fixed_parameters_as_var_data())
 
         if self._input_data.volume_weights is not None:
             data_items.update({'volume_weights': Array(self._input_data.volume_weights.astype(np.float16))})
@@ -211,7 +196,7 @@ class DMRICompositeModel(EstimableModel):
         ''', dependencies=[self._get_spherical_transformation_func()])
 
     def get_initial_parameters(self):
-        """Get the initial parameters for each of the voxels in ``voxels_to_analyze``.
+        """Get the initial parameters for all the voxels in the input data.
 
         Returns:
             ndarray: 2d array with for every problem (first dimension) the initial parameters (second dimension).
@@ -220,10 +205,10 @@ class DMRICompositeModel(EstimableModel):
 
         def prepare_value(value):
             if is_scalar(value):
-                if self._get_nmr_problems(self._voxels_to_analyze) == 0:
+                if self._get_nmr_problems() == 0:
                     value = np.full((1, 1), value, dtype=np_dtype)
                 else:
-                    value = np.full((self._get_nmr_problems(self._voxels_to_analyze), 1), value, dtype=np_dtype)
+                    value = np.full((self._get_nmr_problems(), 1), value, dtype=np_dtype)
             else:
                 if len(value.shape) < 2:
                     value = np.transpose(np.asarray([value]))
@@ -231,9 +216,6 @@ class DMRICompositeModel(EstimableModel):
                     value = np.transpose(value)
                 else:
                     value = value
-
-                if self._voxels_to_analyze is not None:
-                    value = value[self._voxels_to_analyze, ...]
             return value
 
         starting_points = []
@@ -245,7 +227,7 @@ class DMRICompositeModel(EstimableModel):
         return np.concatenate([np.transpose(np.array([s]))
                                if len(s.shape) < 2 else s for s in starting_points], axis=1)
 
-    def get_post_optimization_output(self, optimized_parameters, return_codes):
+    def get_post_optimization_output(self, optimized_parameters, roi_indices=None, parameters_dict=None):
         """Get the output after optimization.
 
         This is called by the processing strategy to finalize the optimization of a batch of voxels.
@@ -253,10 +235,11 @@ class DMRICompositeModel(EstimableModel):
         Returns:
             dict: dictionary with results maps, can be nested which should translate to sub-directories.
         """
-        volume_maps = results_to_dict(optimized_parameters, self.get_free_param_names())
-        volume_maps = self.post_process_optimization_maps(volume_maps, results_array=optimized_parameters)
-        volume_maps.update({'ReturnCodes': return_codes})
-        return volume_maps
+        if not parameters_dict:
+            parameters_dict = split_array_to_dict(optimized_parameters, self.get_free_param_names())
+        parameters_dict = self._post_process_optimization_maps(optimized_parameters, roi_indices,
+                                                               parameters_dict=parameters_dict)
+        return parameters_dict
 
     def get_rwm_proposal_stds(self):
         """Get the Random Walk Metropolis proposal standard deviations for every parameter and every problem instance.
@@ -266,7 +249,7 @@ class DMRICompositeModel(EstimableModel):
         Returns:
             ndarray: the proposal standard deviations of each free parameter, for each problem instance
         """
-        return self._get_rwm_proposal_stds(self._voxels_to_analyze)
+        return self._get_rwm_proposal_stds()
 
     def get_rwm_epsilons(self):
         """Get per parameter a value small relative to the parameter's standard deviation.
@@ -302,19 +285,14 @@ class DMRICompositeModel(EstimableModel):
                  for ind, (m, p) in enumerate(self._model_functions_info.get_estimable_parameters_list())}
 
             d.update(self._get_dependent_map_calculator()(self, d))
-            d.update(self._get_fixed_parameter_maps(self._voxels_to_analyze))
+            d.update(self._get_fixed_parameter_maps())
 
             results[..., position_ind] = self._param_dict_to_array(d)
         return results
 
-    def post_process_optimization_maps(self, results_dict, results_array=None, log_likelihoods=None):
-        """This adds some extra optimization maps to the results dictionary.
-
-        This function behaves as a procedure and as a function. The input dict can be updated in place, but it should
-        also return a dict but that is merely for the purpose of chaining.
-
-        This might change the results in the results dictionary with different parameter sets. For example,
-        it is possible to reorient some maps or swap variables in the optimization maps.
+    def _post_process_optimization_maps(self, parameters_array, roi_indices, parameters_dict=None,
+                                        log_likelihoods=None):
+        """Create post processing optimization maps.
 
         The current steps in this function:
 
@@ -325,31 +303,33 @@ class DMRICompositeModel(EstimableModel):
             5) Add the additional results from the ``additional_result_funcs``
 
         Args:
-            results_dict (dict): A dictionary with as keys the names of the parameters and as values the 1d maps with
-                for each voxel the optimized parameter value. The given dictionary can be altered by this function.
-            results_array (ndarray): if available, the results as an array instead of as a dictionary, if not given we
-                will construct it in this function.
+            parameters_array (ndarray): the optimization results
+            parameters_dict (dict): A dictionary with as keys the names of the parameters and as values the 1d maps with
+                for each voxel the optimized parameter value. If not given, we create it from the
+                ``optimized_parameters`` array.
             log_likelihoods (ndarray): for every set of parameters the corresponding log likelihoods.
                 If not provided they will be calculated from the parameters.
+            roi_indices (Iterable): if set, the problem instances optimized in this batch
 
         Returns:
-            dict: The same result dictionary but with updated values or with additional maps.
-                It should at least return the results_dict.
+            dict: The results dictionary.
         """
-        if results_array is None:
-            results_array = self._param_dict_to_array(results_dict)
+        results_dict = {}
+        if not parameters_dict:
+            parameters_dict = split_array_to_dict(parameters_array, self.get_free_param_names())
+        results_dict.update(parameters_dict)
 
-        results_dict.update(self._get_dependent_map_calculator()(self, results_dict))
-        results_dict.update(self._get_fixed_parameter_maps(self._voxels_to_analyze))
+        results_dict.update(self._get_dependent_map_calculator()(self, results_dict, roi_indices=roi_indices))
+        results_dict.update(self._get_fixed_parameter_maps(roi_indices))
         results_dict.update(self._get_post_optimization_information_criterion_maps(
-            results_array, log_likelihoods=log_likelihoods))
+            parameters_array, roi_indices, log_likelihoods=log_likelihoods))
 
         if self._post_processing['optimization']['uncertainties']:
-            fim = self._compute_fisher_information_matrix(results_array)
+            fim = self._compute_fisher_information_matrix(parameters_array, roi_indices)
             results_dict.update(fim['stds'])
             results_dict['covariances'] = fim['covariances']
 
-        routine_input = ExtraOptimizationMapsInfo(results_dict, self._input_data, self._voxels_to_analyze)
+        routine_input = ExtraOptimizationMapsInfo(results_dict, self._input_data, roi_indices)
         for routine in self._extra_optimization_maps_funcs:
             try:
                 results_dict.update(routine(routine_input))
@@ -362,27 +342,29 @@ class DMRICompositeModel(EstimableModel):
 
         return results_dict
 
-    def compute_fisher_information_matrix(self, results_dict):
+    def compute_fisher_information_matrix(self, results_dict, roi_indices=None):
         """Compute the Fisher Information Matrix from the given results dictionary.
 
         Args:
             results_dict (dict): A dictionary with as keys the names of the parameters and as values the 1d maps with
                 for each voxel the optimized parameter value. The given dictionary can be altered by this function.
+            roi_indices (Iterable): if set, the problem instances optimized in this batch
 
         Returns:
             dict: The results of the FIM computation, the dictionary has two main keys, 'stds' and 'covariances',
                 holding respectively the standard deviations and the covariances.
         """
         results_array = self._param_dict_to_array(results_dict)
-        return self._compute_fisher_information_matrix(results_array)
+        return self._compute_fisher_information_matrix(results_array, roi_indices)
 
-    def get_post_sampling_maps(self, sampling_output):
+    def get_post_sampling_maps(self, sampling_output, roi_indices=None):
         """Get the post sample volume maps.
 
         This will return a dictionary mapping folder names to dictionaries with volumes to write.
 
         Args:
             sampling_output (mot.sample.base.SamplingOutput): the output of the sampler
+            roi_indices (Iterable or None): if set, the problem instances optimized in this batch
 
         Returns:
             dict: a dictionary with for every subdirectory the maps to save
@@ -392,7 +374,8 @@ class DMRICompositeModel(EstimableModel):
         items = {}
 
         if self._post_processing['sampling']['model_defined_maps']:
-            items.update({'model_defined_maps': lambda: self._post_sampling_extra_model_defined_maps(samples)})
+            items.update({'model_defined_maps': lambda: self._post_sampling_extra_model_defined_maps(
+                samples, roi_indices)})
         if self._post_processing['sampling']['univariate_normal']:
             items.update({'univariate_normal': lambda: self._get_univariate_normal(samples)})
         if self._post_processing['sampling']['univariate_ess']:
@@ -403,7 +386,7 @@ class DMRICompositeModel(EstimableModel):
             items.update({'average_acceptance_rate': lambda: self._get_average_acceptance_rate(samples)})
         if self._post_processing['sampling']['maximum_likelihood'] \
             or self._post_processing['sampling']['maximum_a_posteriori']:
-            mle_maps_cb, map_maps_cb = self._get_mle_map_statistics(sampling_output)
+            mle_maps_cb, map_maps_cb = self._get_mle_map_statistics(sampling_output, roi_indices=roi_indices)
             if self._post_processing['sampling']['maximum_likelihood']:
                 items.update({'maximum_likelihood': mle_maps_cb})
             if self._post_processing['sampling']['maximum_a_posteriori']:
@@ -768,17 +751,18 @@ class DMRICompositeModel(EstimableModel):
                     else np.atleast_2d(s) for s in params]
         return np.concatenate(elements, axis=1)
 
-    def _post_sampling_extra_model_defined_maps(self, samples):
+    def _post_sampling_extra_model_defined_maps(self, samples, roi_indices):
         """Compute the extra post-sample maps defined in the models.
 
         Args:
             samples (ndarray): the array with the samples
+            roi_indices (Iterable or None): the indices of the voxels we processed
 
         Returns:
             dict: some additional statistic maps we want to output as part of the samping results
         """
         post_processing_data = SamplingPostProcessingData(samples, self.get_free_param_names(),
-                                                          self._get_fixed_parameter_maps(self._voxels_to_analyze))
+                                                          self._get_fixed_parameter_maps(roi_indices))
         results_dict = {}
         for routine in self._extra_sampling_maps_funcs:
             try:
@@ -787,7 +771,7 @@ class DMRICompositeModel(EstimableModel):
                 pass
         return results_dict
 
-    def _get_mle_map_statistics(self, sampling_output):
+    def _get_mle_map_statistics(self, sampling_output, roi_indices=None):
         """Get the maximum and corresponding volume maps of the MLE and MAP estimators.
 
         This computes the Maximum Likelihood Estimator and the Maximum A Posteriori in one run and computes from that
@@ -795,6 +779,7 @@ class DMRICompositeModel(EstimableModel):
 
         Args:
             sampling_output (mot.cl_routines.sample.base.SimpleSampleOutput): the output of the sampler
+            roi_indices (Iterable): if set, the problem instances sampled in this batch
 
         Returns:
             tuple(Func, Func): the function that generates the maps for the MLE and for the MAP estimators.
@@ -807,6 +792,7 @@ class DMRICompositeModel(EstimableModel):
 
         mle_values = log_likelihoods[range(log_likelihoods.shape[0]), mle_indices]
         map_values = posteriors[range(posteriors.shape[0]), map_indices]
+        map_lls = log_likelihoods[range(log_likelihoods.shape[0]), map_indices]
 
         samples = sampling_output.get_samples()
 
@@ -814,14 +800,12 @@ class DMRICompositeModel(EstimableModel):
         map_samples = samples[range(samples.shape[0]), :, map_indices]
 
         def mle_maps():
-            results = results_to_dict(mle_samples, self.get_free_param_names())
-            maps = self.post_process_optimization_maps(results, results_array=mle_samples, log_likelihoods=mle_values)
+            maps = self._post_process_optimization_maps(mle_samples, roi_indices, log_likelihoods=mle_values)
             maps.update({'MaximumLikelihoodEstimator.indices': mle_indices})
             return maps
 
         def map_maps():
-            results = results_to_dict(map_samples, self.get_free_param_names())
-            maps = self.post_process_optimization_maps(results, results_array=map_samples, log_likelihoods=mle_values)
+            maps = self._post_process_optimization_maps(map_samples, roi_indices, log_likelihoods=map_lls)
             maps.update({'MaximumAPosteriori': map_values,
                          'MaximumAPosteriori.indices': map_indices})
             return maps
@@ -855,7 +839,7 @@ class DMRICompositeModel(EstimableModel):
         ess = univariate_ess(samples, method='standard_error')
         ess[np.isinf(ess)] = 0
         ess = np.nan_to_num(ess)
-        return results_to_dict(ess, [a + '.UnivariateESS' for a in self.get_free_param_names()])
+        return split_array_to_dict(ess, [a + '.UnivariateESS' for a in self.get_free_param_names()])
 
     def _get_multivariate_ess(self, samples):
         """Get the multivariate Effective Sample Size statistics for the given set of samples.
@@ -889,7 +873,7 @@ class DMRICompositeModel(EstimableModel):
                                                / samples.shape[2]
         return results
 
-    def _compute_fisher_information_matrix(self, results_array):
+    def _compute_fisher_information_matrix(self, results_array, roi_indices):
         """Calculate the covariance and correlation matrix by taking the inverse of the Hessian.
 
         This first calculates/approximates the Hessian at each of the points using numerical differentiation.
@@ -897,6 +881,7 @@ class DMRICompositeModel(EstimableModel):
 
         Args:
             results_array (ndarray): the list with the optimized points for each parameter
+            roi_indices (Iterable or None): if set, the problem instances optimized in this batch
         """
         nmr_params = self.get_nmr_parameters()
         scales = self._get_numdiff_scaling_factors()
@@ -929,7 +914,7 @@ class DMRICompositeModel(EstimableModel):
         ''', dependencies=[self.get_objective_function()])
 
         wrapped_input_data = Struct({
-            'data': self.get_kernel_data(),
+            'data': self.get_kernel_data().get_subset(roi_indices),
             'x_tmp': LocalMemory('mot_float_type', nmr_items=nmr_params)
         }, 'hessian_function_wrapper_data')
 
@@ -938,12 +923,16 @@ class DMRICompositeModel(EstimableModel):
             if not self._get_numdiff_use_bounds()[ind] or not self._get_numdiff_use_lower_bounds()[ind]:
                 lower_bounds[ind] = -np.inf
             lower_bounds[ind] *= scales[ind]
+            if not is_scalar(lower_bounds[ind]) and roi_indices is not None:
+                lower_bounds[ind] = lower_bounds[ind][roi_indices]
 
         upper_bounds = self.get_upper_bounds()
         for ind in range(len(upper_bounds)):
             if not self._get_numdiff_use_bounds()[ind] or not self._get_numdiff_use_upper_bounds()[ind]:
                 upper_bounds[ind] = np.inf
             upper_bounds[ind] *= scales[ind]
+            if not is_scalar(upper_bounds[ind]) and roi_indices is not None:
+                upper_bounds[ind] = upper_bounds[ind][roi_indices]
 
         hessian = estimate_hessian(
             wrapped_objective,
@@ -986,13 +975,14 @@ class DMRICompositeModel(EstimableModel):
 
         return {'stds': stds, 'covariances': covariances}
 
-    def _get_post_optimization_information_criterion_maps(self, results_array, log_likelihoods=None):
+    def _get_post_optimization_information_criterion_maps(self, results_array, roi_indices, log_likelihoods=None):
         """Add some final results maps to the results dictionary.
 
         This called by the function post_process_optimization_maps() as last call to add more maps.
 
         Args:
             results_array (ndarray): the results from model optimization.
+            roi_indices (ndarray): limit the analysis to these voxels.
             log_likelihoods (ndarray): for every set of parameters the corresponding log likelihoods.
                 If not provided they will be calculated from the parameters.
 
@@ -1001,7 +991,7 @@ class DMRICompositeModel(EstimableModel):
         """
         if log_likelihoods is None:
             log_likelihoods = compute_log_likelihood(self.get_log_likelihood_function(),
-                                                     results_array, data=self.get_kernel_data())
+                                                     results_array, data=self.get_kernel_data().get_subset(roi_indices))
             log_likelihoods[np.isinf(log_likelihoods)] = 0
             log_likelihoods = np.nan_to_num(log_likelihoods)
 
@@ -1151,11 +1141,8 @@ class DMRICompositeModel(EstimableModel):
             def get_callback_function(self):
                 return SimpleCLFunction('void', 'gradient_deformations_protocol_callback', function_arguments, body)
 
-            def get_kernel_input_data(self, voxels_to_analyze=None):
-                grad_dev = gradient_deviations
-                if voxels_to_analyze is not None:
-                    grad_dev = grad_dev[voxels_to_analyze, ...]
-                return {'gradient_deviations': Array(grad_dev, ctype='float')}
+            def get_kernel_input_data(self):
+                return {'gradient_deviations': Array(gradient_deviations, ctype='float')}
 
         return GradientDeviationProtocolUpdate()
 
@@ -1270,19 +1257,19 @@ class DMRICompositeModel(EstimableModel):
 
             estimable_parameter_names = ['{}.{}'.format(m.name, p.name) for m, p in estimable_parameters]
 
-            def calculator(model, results_dict):
+            def calculator(model, results_dict, roi_indices=None):
                 estimated_parameters = [results_dict[k] for k in estimable_parameter_names]
 
-                vals = calculate_dependent_parameters(model.get_kernel_data(), estimated_parameters,
-                                                      func, dependent_parameter_names)
-                return results_to_dict(vals, [n[1] for n in dependent_parameter_names])
+                vals = calculate_dependent_parameters(model.get_kernel_data().get_subset(roi_indices),
+                                                      estimated_parameters, func, dependent_parameter_names)
+                return split_array_to_dict(vals, [n[1] for n in dependent_parameter_names])
         else:
             def calculator(model, results_dict):
                 return {}
 
         return calculator
 
-    def _get_fixed_parameter_maps(self, voxels_to_analyze):
+    def _get_fixed_parameter_maps(self, roi_indices=None):
         """In place add complete maps for the fixed parameters."""
         fixed_params = self._model_functions_info.get_value_fixed_parameters_list(exclude_priors=True)
 
@@ -1293,34 +1280,30 @@ class DMRICompositeModel(EstimableModel):
             value = self._model_functions_info.get_parameter_value(name)
 
             if is_scalar(value):
-                result.update({name: np.tile(np.array([value]), (self._get_nmr_problems(voxels_to_analyze),))})
+                result.update({name: np.tile(np.array([value]), (self._get_nmr_problems(roi_indices),))})
             else:
-                if voxels_to_analyze is not None:
-                    value = value[voxels_to_analyze, ...]
+                if roi_indices is not None:
+                    value = value[roi_indices, ...]
                 result.update({name: value})
 
         return result
 
-    def _get_rwm_proposal_stds(self, voxels_to_analyze):
+    def _get_rwm_proposal_stds(self):
         proposal_stds = []
         for m, p in self._model_functions_info.get_estimable_parameters_list():
             proposal_std = p.sampling_proposal_std
 
             if is_scalar(proposal_std):
-                if self._get_nmr_problems(voxels_to_analyze) == 0:
+                if self._get_nmr_problems() == 0:
                     proposal_stds.append(np.full((1, 1), proposal_std))
                 else:
-                    proposal_stds.append(np.full((self._get_nmr_problems(voxels_to_analyze), 1), proposal_std))
+                    proposal_stds.append(np.full((self._get_nmr_problems(), 1), proposal_std))
             else:
                 if len(proposal_std.shape) < 2:
                     proposal_std = np.transpose(np.asarray([proposal_std]))
                 elif proposal_std.shape[1] > proposal_std.shape[0]:
                     proposal_std = np.transpose(proposal_std)
-
-                if voxels_to_analyze is None:
-                    proposal_stds.append(proposal_std)
-                else:
-                    proposal_stds.append(proposal_std[voxels_to_analyze, ...])
+                proposal_stds.append(proposal_std)
 
         return np.concatenate([np.transpose(np.array([s])) if len(s.shape) < 2 else s for s in proposal_stds], axis=1)
 
@@ -1367,18 +1350,13 @@ class DMRICompositeModel(EstimableModel):
             if len(names) > 1:
                 self.fix(names[0], SimpleAssignment('max((double)1 - ({}), (double)0)'.format(' + '.join(names[1:]))))
 
-    def _get_protocol_data_as_var_data(self, voxels_to_analyze):
+    def _get_protocol_data_as_var_data(self):
         """Get the value for the given protocol parameter.
 
         The resolution order is as follows, with a latter stage taking preference over an earlier stage
 
         1. the value defined in the parameter definition
         2. the <param_name> in the input data
-
-        For protocol maps, this only returns the problems for which voxels_to_analyze is set.
-
-        Args:
-            voxels_to_analyze (ndarray): the problems we are interested in
 
         Returns:
             dict: the value for the given parameter.
@@ -1395,11 +1373,9 @@ class DMRICompositeModel(EstimableModel):
                 const_d = {p.name: Scalar(get_single_value(value), ctype=p.ctype)}
             else:
                 if value.shape[0] == self._input_data.nmr_problems:
-                    if voxels_to_analyze is not None:
-                        value = value[voxels_to_analyze, ...]
                     const_d = {p.name: Array(value, ctype=p.ctype)}
                 else:
-                    const_d = {p.name: Array(value, ctype=p.ctype, offset_str='0')}
+                    const_d = {p.name: Array(value, ctype=p.ctype, parallelize_over_first_dimension=False)}
             return_data.update(const_d)
         return return_data
 
@@ -1411,15 +1387,13 @@ class DMRICompositeModel(EstimableModel):
                 value = self._input_data.get_input_data(parameter.name)
             return value
 
-    def _get_observations_data(self, voxels_to_analyze):
+    def _get_observations_data(self):
         """Get the observations to use in the kernel.
 
         Can return None if there are no observations.
         """
         observations = self._input_data.observations
         if observations is not None:
-            if voxels_to_analyze is not None:
-                observations = observations[voxels_to_analyze, ...]
             observations = self._transform_observations(observations).astype(np.float32)
             return {'observations': Array(observations)}
         return {}
@@ -1586,7 +1560,7 @@ class DMRICompositeModel(EstimableModel):
             func += "\t" * 4 + data_type + ' ' + name + ' = ' + assignment + ';' + "\n"
         return func
 
-    def _get_fixed_parameters_as_var_data(self, voxels_to_analyze):
+    def _get_fixed_parameters_as_var_data(self):
         var_data_dict = {}
         for m, p in self._model_functions_info.get_value_fixed_parameters_list():
             value = self._model_functions_info.get_parameter_value('{}.{}'.format(m.name, p.name))
@@ -1595,12 +1569,10 @@ class DMRICompositeModel(EstimableModel):
             if all_elements_equal(value):
                 var_data_dict[param_name] = Scalar(get_single_value(value), ctype=p.ctype)
             else:
-                if voxels_to_analyze is not None:
-                    value = value[voxels_to_analyze, ...]
                 var_data_dict[param_name] = Array(value, ctype=p.ctype, as_scalar=True)
         return var_data_dict
 
-    def _get_bounds_as_var_data(self, voxels_to_analyze):
+    def _get_bounds_as_var_data(self):
         lower_bounds = []
         upper_bounds = []
 
@@ -1614,8 +1586,6 @@ class DMRICompositeModel(EstimableModel):
                 if all_elements_equal(value):
                     elements.append(Scalar(get_single_value(data), ctype=p.ctype))
                 else:
-                    if voxels_to_analyze is not None:
-                        data = data[voxels_to_analyze, ...]
                     elements.append(Array(data, ctype='float', as_scalar=True))
 
         return {'lower_bounds': CompositeArray(lower_bounds, 'float', address_space='local'),
@@ -1701,9 +1671,7 @@ class DMRICompositeModel(EstimableModel):
         To implement any behaviour here, you can override this function and add behaviour that changes the observations.
 
         Args:
-            observations (ndarray): the 2d matrix with the observations. This is the list of
-                observations used to build the model (that is, *after* the list has been optionally
-                limited with voxels_to_analyze).
+            observations (ndarray): the 2d matrix with the observations.
 
         Returns:
             observations (ndarray): a 2d matrix of the same shape as the input. This should hold the transformed data.
@@ -1997,7 +1965,7 @@ class DMRICompositeModel(EstimableModel):
 
         return protocol_update_callbacks
 
-    def _get_protocol_update_callbacks_kernel_inputs(self, voxels_to_analyze):
+    def _get_protocol_update_callbacks_kernel_inputs(self):
         """Get the kernel input data needed by the proposal update methods.
 
         Returns:
@@ -2005,17 +1973,16 @@ class DMRICompositeModel(EstimableModel):
         """
         return_items = {}
         for ind, cb in enumerate(self._get_protocol_update_callbacks()):
-            for key, value in cb.get_kernel_input_data(voxels_to_analyze).items():
+            for key, value in cb.get_kernel_input_data().items():
                 return_items['cb{}_{}'.format(str(ind), key)] = value
         return return_items
 
-    def _get_nmr_problems(self, voxels_to_analyze):
-        """See super class for details"""
-        if voxels_to_analyze is None:
+    def _get_nmr_problems(self, roi_indices=None):
+        if roi_indices is None:
             if self._input_data:
                 return self._input_data.nmr_problems
             return 0
-        return len(voxels_to_analyze)
+        return len(roi_indices)
 
     def _get_cache_struct(self):
         """Get all cache Structs for this composite model.
@@ -2846,12 +2813,8 @@ class ProtocolAdaptionCallbacks:
         """
         raise NotImplementedError()
 
-    def get_kernel_input_data(self, voxels_to_analyze=None):
+    def get_kernel_input_data(self):
         """Get the additional kernel input data needed for this proposal callback to work.
-
-        Args:
-            voxels_to_analyze (ndarray): if provided, we should limit the returned additional data to only these
-                voxels.
 
         Returns:
             Dict[str, KernelData]: additional kernel input data
@@ -2909,7 +2872,7 @@ def calculate_dependent_parameters(kernel_data, estimated_parameters_list,
 
 class ExtraOptimizationMapsInfo(Mapping):
 
-    def __init__(self, results, input_data, voxel_roi_indices):
+    def __init__(self, results, input_data, roi_indices):
         """Container holding information usable for computing extra optimization maps, after optimization.
 
         For backwards compatibility, this class functions both as a dictionary as well as a data container. That is,
@@ -2919,12 +2882,12 @@ class ExtraOptimizationMapsInfo(Mapping):
         Args:
             results (dict): the dictionary with all the optimization results
             input_data (mdt.utils.MRIInputData): the input data used during the optimization
-            voxel_roi_indices (ndarray): a one dimensional array with indices in the region of interest
+            roi_indices (ndarray): a one dimensional array with indices in the region of interest
                 This holds the voxels we are currently optimizing.
         """
         self.results = results
         self.input_data = input_data
-        self.voxel_roi_indices = voxel_roi_indices
+        self.roi_indices = roi_indices
 
     def copy_with_different_results(self, new_results):
         """Create a copy of this optimization maps info but then with different result maps.
@@ -2935,7 +2898,7 @@ class ExtraOptimizationMapsInfo(Mapping):
         Returns:
             ExtraOptimizationMapsInfo: same as the current class but then with updated results
         """
-        return ExtraOptimizationMapsInfo(new_results, self.input_data, self.voxel_roi_indices)
+        return ExtraOptimizationMapsInfo(new_results, self.input_data, self.roi_indices)
 
     def get_input_data(self, parameter_name):
         """Get the input data for the given parameter.
@@ -2953,8 +2916,8 @@ class ExtraOptimizationMapsInfo(Mapping):
             ValueError: if no suitable value can be found.
         """
         value = self.input_data.get_input_data(parameter_name)
-        if value.shape[0] == np.count_nonzero(self.input_data.mask) and self.voxel_roi_indices is not None:
-            return value[self.voxel_roi_indices]
+        if value.shape[0] == np.count_nonzero(self.input_data.mask) and self.roi_indices is not None:
+            return value[self.roi_indices]
         return value
 
     def __getitem__(self, item):

@@ -91,7 +91,7 @@ As an example, to replicate the ``maximum_a_posteriori`` post-processing option 
 .. code-block:: python
 
     def maximum_a_posteriori(sampling_output, composite_model):
-        from mdt.utils import results_to_dict
+        from mdt.utils import split_array_to_dict
 
         samples = sampling_output.get_samples()
         log_likelihoods = sampling_output.get_log_likelihoods()
@@ -102,7 +102,7 @@ As an example, to replicate the ``maximum_a_posteriori`` post-processing option 
         map_indices = np.argmax(posteriors, axis=1)
         map_samples = samples[range(samples.shape[0]), :, map_indices]
 
-        result_maps = results_to_dict(
+        result_maps = split_array_to_dict(
             map_samples,
             composite_model.get_free_param_names())
 

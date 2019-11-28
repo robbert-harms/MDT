@@ -1,5 +1,3 @@
-from contextlib import contextmanager
-
 __author__ = 'Robbert Harms'
 __date__ = "2015-10-27"
 __maintainer__ = "Robbert Harms"
@@ -22,15 +20,6 @@ class EstimableModel:
         """
         raise NotImplementedError()
 
-    @contextmanager
-    def voxels_to_analyze_context(self, voxels_to_analyze):
-        """Context manager that should temporarily set the voxels we are analyzing.
-
-        Args:
-            voxels_to_analyze (List[int]): list of (1d ROI) voxel indices with the voxels we want to compute.
-        """
-        raise NotImplementedError()
-
     def set_input_data(self, input_data, suppress_warnings=False):
         """Set the input data this model will deal with.
 
@@ -40,6 +29,48 @@ class EstimableModel:
 
         Returns:
             Returns self for chainability
+        """
+        raise NotImplementedError()
+
+    def get_nmr_observations(self):
+        """Get the number of observations in the data.
+
+        Returns:
+            int: the number of observations present in the data
+        """
+        raise NotImplementedError()
+
+    def get_nmr_parameters(self):
+        """Get the number of estimable parameters in this model.
+
+        Returns:
+            int: the number of estimable parameters
+        """
+        raise NotImplementedError()
+
+    def get_lower_bounds(self):
+        """Get the lower bounds.
+
+        Returns:
+            List: for every parameter a lower bound which can either be None, a scalar or a vector with a
+                lower bound per problem instance.
+        """
+        raise NotImplementedError()
+
+    def get_upper_bounds(self):
+        """Get the upper bounds.
+
+        Returns:
+            List: for every parameter an upper bound which can either be None, a scalar or a vector with a
+                upper bound per problem instance.
+        """
+        raise NotImplementedError()
+
+    def get_free_param_names(self):
+        """Get the names of the free parameters.
+
+        Returns:
+            List: the name of the free parameters
         """
         raise NotImplementedError()
 
@@ -96,17 +127,23 @@ class EstimableModel:
         raise NotImplementedError()
 
     def get_initial_parameters(self):
-        """Get the initial parameters for eac of the voxels in ``voxels_to_analyze``.
+        """Get the initial parameters for each of the voxels.
 
         Returns:
             ndarray: 2d array with for every problem (first dimension) the initial parameters (second dimension).
         """
         raise NotImplementedError()
 
-    def get_post_optimization_output(self, optimized_parameters, return_codes):
+    def get_post_optimization_output(self, optimized_parameters, roi_indices=None, parameters_dict=None):
         """Get the output after optimization.
 
         This is called by the processing strategy to finalize the optimization of a batch of voxels.
+
+        Args:
+            optimized_parameters (ndarray): the array of optimized parameters
+            roi_indices (Iterable or None): if set, the problem instances optimized in this batch
+            parameters_dict (dict): same data as ``optimized_parameters``, only then represented as a dict.
+                Only needed if available, to speed up this function.
 
         Returns:
             dict: dictionary with results maps, can be nested which should translate to sub-directories.
@@ -147,78 +184,17 @@ class EstimableModel:
         """
         raise NotImplementedError()
 
-    def post_process_optimization_maps(self, results_dict, results_array=None, log_likelihoods=None):
-        """Compute additional result maps.
-
-        This function behaves as a procedure and as a function. The input dict can be updated in place, but it should
-        also return a dict but that is merely for the purpose of chaining.
-
-        Args:
-            results_dict (dict): A dictionary with as keys the names of the parameters and as values the 1d maps with
-                for each voxel the optimized parameter value. The given dictionary can be altered by this function.
-            results_array (ndarray): if available, the results as an array instead of as a dictionary, if not given we
-                will construct it in this function.
-            log_likelihoods (ndarray): for every set of parameters the corresponding log likelihoods.
-                If not provided they will be calculated from the parameters.
-
-        Returns:
-            dict: The same result dictionary but with updated values or with additional maps.
-                It should at least return the results_dict.
-        """
-        raise NotImplementedError()
-
-    def get_post_sampling_maps(self, sampling_output):
+    def get_post_sampling_maps(self, sampling_output, roi_indices=None):
         """Get the post sampling volume maps.
 
         This will return a dictionary mapping folder names to dictionaries with volumes to write.
 
         Args:
             sampling_output (mot.sample.base.SamplingOutput): the output of the sampler
+            roi_indices (Iterable or None): if set, the problem instances sampled in this batch
 
         Returns:
             dict: a dictionary with for every subdirectory the maps to save
-        """
-        raise NotImplementedError()
-
-    def get_nmr_observations(self):
-        """Get the number of observations in the data.
-
-        Returns:
-            int: the number of observations present in the data
-        """
-        raise NotImplementedError()
-
-    def get_nmr_parameters(self):
-        """Get the number of estimable parameters in this model.
-
-        Returns:
-            int: the number of estimable parameters
-        """
-        raise NotImplementedError()
-
-    def get_lower_bounds(self):
-        """Get the lower bounds.
-
-        Returns:
-            List: for every parameter a lower bound which can either be None, a scalar or a vector with a
-                lower bound per problem instance.
-        """
-        raise NotImplementedError()
-
-    def get_upper_bounds(self):
-        """Get the upper bounds.
-
-        Returns:
-            List: for every parameter an upper bound which can either be None, a scalar or a vector with a
-                upper bound per problem instance.
-        """
-        raise NotImplementedError()
-
-    def get_free_param_names(self):
-        """Get the names of the free parameters.
-
-        Returns:
-            List: the name of the free parameters
         """
         raise NotImplementedError()
 

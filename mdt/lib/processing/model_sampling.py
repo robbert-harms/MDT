@@ -170,70 +170,71 @@ class SamplingProcessor(SimpleModelProcessor):
         self._post_sampling_cb = post_sampling_cb
         self._sampler_options = sampler_options or {}
 
+        self._kernel_data = self._model.get_kernel_data()
+        self._initial_params = self._model.get_initial_parameters()
+        self._ll_func = self._model.get_log_likelihood_function()
+        self._prior_func = self._model.get_log_prior_function()
+
     def _process(self, roi_indices, next_indices=None):
-        with self._model.voxels_to_analyze_context(roi_indices):
+        method = None
+        method_args = [self._ll_func, self._prior_func, self._initial_params[roi_indices]]
+        method_kwargs = {'data': self._kernel_data.get_subset(roi_indices)}
 
-            method = None
-            method_args = [self._model.get_log_likelihood_function(),
-                           self._model.get_log_prior_function(),
-                           self._model.get_initial_parameters()]
-            method_kwargs = {'data': self._model.get_kernel_data()}
+        if self._method in ['AMWG', 'SCAM', 'MWG', 'FSL']:
+            method_args.append(self._model.get_rwm_proposal_stds()[roi_indices])
 
-            if self._method in ['AMWG', 'SCAM', 'MWG', 'FSL']:
-                method_args.append(self._model.get_rwm_proposal_stds())
+        if self._method in ['AMWG', 'SCAM', 'MWG', 'FSL', 't-walk']:
+            method_kwargs.update(finalize_proposal_func=self._model.get_finalize_proposal_function())
 
-            if self._method in ['AMWG', 'SCAM', 'MWG', 'FSL', 't-walk']:
-                method_kwargs.update(finalize_proposal_func=self._model.get_finalize_proposal_function())
+        if self._method == 'AMWG':
+            method = AdaptiveMetropolisWithinGibbs
+        elif self._method == 'SCAM':
+            method = SingleComponentAdaptiveMetropolis
+            method_kwargs['epsilon'] = self._model.get_rwm_epsilons()
+        elif self._method == 'MWG':
+            method = MetropolisWithinGibbs
+        elif self._method == 'FSL':
+            method = FSLSamplingRoutine
+        elif self._method == 't-walk':
+            method = ThoughtfulWalk
+            method_args.append(self._model.get_random_parameter_positions(nmr_positions=1)[roi_indices, :, 0])
 
-            if self._method == 'AMWG':
-                method = AdaptiveMetropolisWithinGibbs
-            elif self._method == 'SCAM':
-                method = SingleComponentAdaptiveMetropolis
-                method_kwargs['epsilon'] = self._model.get_rwm_epsilons()
-            elif self._method == 'MWG':
-                method = MetropolisWithinGibbs
-            elif self._method == 'FSL':
-                method = FSLSamplingRoutine
-            elif self._method == 't-walk':
-                method = ThoughtfulWalk
-                method_args.append(self._model.get_random_parameter_positions()[..., 0])
+        method_kwargs.update(self._sampler_options)
 
-            method_kwargs.update(self._sampler_options)
+        if method is None:
+            raise ValueError('Could not find the sampler with name {}.'.format(self._method))
 
-            if method is None:
-                raise ValueError('Could not find the sampler with name {}.'.format(self._method))
+        sampler = method(*method_args, **method_kwargs)
+        sampling_output = sampler.sample(self._nmr_samples, burnin=self._burnin, thinning=self._thinning)
+        samples = sampling_output.get_samples()
 
-            sampler = method(*method_args, **method_kwargs)
-            sampling_output = sampler.sample(self._nmr_samples, burnin=self._burnin, thinning=self._thinning)
-            samples = sampling_output.get_samples()
+        self._logger.info('Starting post-processing')
+        maps_to_save = self._model.get_post_sampling_maps(sampling_output, roi_indices=roi_indices)
+        maps_to_save.update({self._used_mask_name: np.ones(samples.shape[0], dtype=np.bool)})
 
-            self._logger.info('Starting post-processing')
-            maps_to_save = self._model.get_post_sampling_maps(sampling_output)
-            maps_to_save.update({self._used_mask_name: np.ones(samples.shape[0], dtype=np.bool)})
+        if self._post_sampling_cb:
+            out = self._post_sampling_cb(sampling_output, self._model)
+            if out:
+                maps_to_save.update(out)
 
-            if self._post_sampling_cb:
-                out = self._post_sampling_cb(sampling_output, self._model)
-                if out:
-                    maps_to_save.update(out)
+        self._write_output_recursive(maps_to_save, roi_indices)
 
-            self._write_output_recursive(maps_to_save, roi_indices)
+        def get_output(output_name):
+            if output_name in self._model.get_free_param_names():
+                return samples[:, ind, ...]
+            elif output_name == 'LogLikelihood':
+                return sampling_output.get_log_likelihoods()
+            elif output_name == 'LogPrior':
+                return sampling_output.get_log_priors()
 
-            def get_output(output_name):
-                if output_name in self._model.get_free_param_names():
-                    return samples[:, ind, ...]
-                elif output_name == 'LogLikelihood':
-                    return sampling_output.get_log_likelihoods()
-                elif output_name == 'LogPrior':
-                    return sampling_output.get_log_priors()
+        items_to_save = {}
+        for ind, name in enumerate(list(self._model.get_free_param_names()) + ['LogLikelihood', 'LogPrior']):
+            if self._samples_to_save_method.store_samples(name):
+                self._samples_output_stored.append(name)
+                items_to_save.update({name: get_output(name)})
+        self._write_sample_results(items_to_save, roi_indices)
 
-            items_to_save = {}
-            for ind, name in enumerate(list(self._model.get_free_param_names()) + ['LogLikelihood', 'LogPrior']):
-                if self._samples_to_save_method.store_samples(name):
-                    self._samples_output_stored.append(name)
-                    items_to_save.update({name: get_output(name)})
-            self._write_sample_results(items_to_save, roi_indices)
-
-            self._logger.info('Finished post-processing')
+        self._logger.info('Finished post-processing')
 
     def combine(self):
         super().combine()
