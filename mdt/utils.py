@@ -117,6 +117,28 @@ class MRIInputData:
         raise NotImplementedError()
 
     @property
+    def extra_protocol(self):
+        """Get the extra protocol options stored in this input data container.
+
+        This should return the extra protocol options as ROI values only.
+
+        Here one may additionally specify values to be used for the protocol parameters. These additional values can
+        be scalars, vectors and/or volumes. This in contrast to the ``protocol`` which only contains
+        scalars and vectors. Items specified here will overwrite items from the protocol in the case of
+        duplicated names. This parameter can for example be used to specify gradient volumes, instead of a
+        gradient in the protocol, for example by specifying::
+
+            extra_protocol = {'g': np.array(...)}
+
+        Per element, the input can be a scalar, a vector, an array, or a filename. If a filename is given
+        we will try to interpret it again as a scalar, vector or array.
+
+        Returns:
+            dict: additional protocol items.
+        """
+        raise NotImplementedError()
+
+    @property
     def signal4d(self):
         """Return the 4d volume with on the first three axis the voxel coordinates and on the last axis the volumes.
 
@@ -207,8 +229,7 @@ class SimpleMRIInputData(MRIInputData):
 
                 Per element, the input can be a scalar, a vector, an array, or a filename. If a filename is given
                 we will try to interpret it again as a scalar, vector or array.
-            gradient_deviations (str or ndarray): a gradient deviations matrix. If a string is given we will interpret it
-                as a Nifti file. The matrix can be provided in multiple formats:
+            gradient_deviations (ndarray): a gradient deviations matrix. The matrix can be provided in multiple formats:
 
                 - an (x, y, z, 9) matrix with per voxel 9 values that constitute the gradient non-linearities
                     according to the HCP guidelines. (see
@@ -322,15 +343,22 @@ class SimpleMRIInputData(MRIInputData):
 
         new_gradient_deviations = self._gradient_deviations
         if self._gradient_deviations is not None:
-            if self._gradient_deviations.ndim > 4 and self._gradient_deviations[3] == self.protocol.length:
+            if self._gradient_deviations.ndim > 4 and self._gradient_deviations.shape[3] == self.protocol.length:
                 if self._gradient_deviations.ndim == 5:
                     new_gradient_deviations = self._gradient_deviations[..., volumes_to_keep, :]
                 else:
                     new_gradient_deviations = self._gradient_deviations[..., volumes_to_keep, :, :]
 
+        new_extra_protocol = {}
+        for key, value in self._extra_protocol.items():
+            value = np.array(value, copy=False)
+            if value.ndim > 3 and value.shape[3] == self.protocol.length:
+                value = value[:, :, :, volumes_to_keep, ...]
+            new_extra_protocol[key] = value
+
         return self.copy_with_updates(protocol=new_protocol, signal4d=new_dwi_volume,
                                       gradient_deviations=new_gradient_deviations,
-                                      volume_weights=new_volume_weights)
+                                      volume_weights=new_volume_weights, extra_protocol=new_extra_protocol)
 
     @property
     def nmr_problems(self):
@@ -373,6 +401,16 @@ class SimpleMRIInputData(MRIInputData):
     @property
     def protocol(self):
         return self._protocol
+
+    @property
+    def extra_protocol(self):
+        return_values = {}
+        for key, value in self._extra_protocol.items():
+            value = np.array(value, copy=False)
+            if len(value.shape) < 3:
+                return_values[key] = value
+            return_values[key] = create_roi(value, self.mask)
+        return return_values
 
     @property
     def observations(self):
@@ -475,6 +513,231 @@ class MockMRIInputData(SimpleMRIInputData):
     @property
     def noise_std(self):
         return 1
+
+
+class ROIMRIInputData(MRIInputData):
+
+    def __init__(self, protocol, observations, mask, nifti_header, extra_protocol=None, gradient_deviations=None,
+                 noise_std=None, volume_weights=None):
+        """An MRI input data object initialized with ROI voxels, instead of full 3d/4d volumes.
+
+        This can be helpful if you have a list of voxels (i.e. a ROI) you want to process. Using this class saves
+        memory and time from constructing 4d volumes.
+
+        Args:
+            protocol (Protocol): The protocol object used as input data to the model
+            observations (ndarray): The MRI data as a 2d list of observations
+            mask (ndarray): The mask used to create the observations list
+            nifti_header (nifti header): The header of the nifti file to use for writing the results.
+            extra_protocol (Dict[str, val]): additional protocol items. Here one may additionally specify values to be
+                used for the protocol parameters. These additional values can be scalars, vectors and/or 2d arrays.
+                This in contrast to the ``protocol`` which only contains scalars and vectors. Items specified here will
+                overwrite items from the protocol in the case of duplicated names. This parameter can for example be
+                used to specify gradient volumes, instead of a gradient in the protocol, for example by specifying::
+
+                    extra_protocol = {'g': np.array(...)}
+
+                Per element, the input can be a scalar, a vector, an array, or a filename. If a filename is given
+                we will try to interpret it again as a scalar, vector or array.
+            gradient_deviations (str or ndarray): a gradient deviations matrix.
+                The matrix can be provided in multiple formats:
+
+                - an (n, 9) matrix with per voxel 9 values that constitute the gradient non-linearities
+                    according to the HCP guidelines. (see
+                    ``www.humanconnectome.org/storage/app/media/documentation/data_release/Q1_Release_Appendix_II.pdf``)
+                    If given in this format, we will automatically add the identity matrix to it, as specified by the
+                    HCP guidelines.
+                - an (n, 3, 3) matrix with per voxel the deformation matrix. This will be used as given (i.e. no
+                    identity matrix will be added to it like in the HCP format).
+                - an (n, m, 3, 3) matrix with per voxel and per volume a deformation matrix. This will be used as
+                    given.
+
+            noise_std (number or ndarray): either None for automatic detection,
+                or a scalar, or an 3d matrix with one value per voxel.
+
+            volume_weights (ndarray): if given, a float matrix of the same size as the observations with per voxel
+                and volume a weight in [0, 1]. If set, these weights are used during model fitting to weigh the
+                objective function values per observation.
+        """
+        self._logger = logging.getLogger(__name__)
+        self._observation_list = observations
+        self._nifti_header = nifti_header
+        self._mask = mask
+        self._protocol = protocol
+        self._extra_protocol = self._preload_extra_protocol_items(extra_protocol)
+        self._noise_std = noise_std
+
+        self._gradient_deviations = gradient_deviations
+        self._gradient_deviations_list = None
+
+        self._volume_weights = volume_weights
+        self._volume_weights_list = None
+
+        self._signal4d = None
+
+        if protocol.length != 0:
+            self._nmr_observations = protocol.length
+        else:
+            self._nmr_observations = observations.shape[1]
+
+        if protocol.length != 0 and observations is not None and \
+                observations.shape[1] != 0 and protocol.length != observations.shape[1]:
+            raise ValueError('Length of the protocol ({}) does not equal the number of volumes ({}).'.format(
+                protocol.length, observations.shape[1]))
+
+        if self._volume_weights is not None and self._volume_weights.shape != self._observation_list.shape:
+            raise ValueError('The dimensions of the volume weights does not match the dimensions of the observations.')
+
+    @classmethod
+    def from_input_data(cls, input_data):
+        """Construct a ROI input data object from another input data object."""
+        return cls(input_data.protocol, input_data.observations, input_data.mask, input_data.nifti_header,
+                   extra_protocol=input_data.extra_protocol, gradient_deviations=input_data.gradient_deviations,
+                   noise_std=input_data.noise_std, volume_weights=input_data.volume_weights)
+
+    def has_input_data(self, parameter_name):
+        try:
+            self.get_input_data(parameter_name)
+            return True
+        except ValueError:
+            return False
+
+    def get_input_data(self, parameter_name):
+        if parameter_name in self._extra_protocol:
+            return np.array(self._extra_protocol[parameter_name], copy=False)
+        if parameter_name in self._protocol:
+            return self._protocol[parameter_name]
+        raise ValueError('No input data could be find for the parameter "{}".'.format(parameter_name))
+
+    def copy_with_updates(self, **updates):
+        """Create a copy of this input data, while setting some of the arguments to new values.
+
+        Args:
+            updates (kwargs): with constructor names.
+        """
+        arg_names = ['protocol', 'observations', 'mask', 'nifti_header']
+        args = [self._protocol, self._observation_list, self._mask, self.nifti_header]
+        kwargs = dict(extra_protocol=self._extra_protocol,
+                      gradient_deviations=self._gradient_deviations,
+                      noise_std=self._noise_std)
+
+        for ind, arg_name in enumerate(arg_names):
+            args[ind] = updates.get(arg_name, args[ind])
+
+        for kwarg_name in kwargs.keys():
+            kwargs[kwarg_name] = updates.get(kwarg_name, kwargs[kwarg_name])
+
+        return self.__class__(*args, **kwargs)
+
+    def get_subset(self, volumes_to_keep=None, volumes_to_remove=None):
+        if (volumes_to_keep is not None) and (volumes_to_remove is not None):
+            raise ValueError('You can not specify both the list with volumes to keep and volumes to remove. Choose one.')
+        if (volumes_to_keep is None) and (volumes_to_remove is None):
+            raise ValueError('Please specify either the list with volumes to keep or the list with volumes to remove.')
+
+        if volumes_to_keep is not None:
+            if is_scalar(volumes_to_keep):
+                volumes_to_keep = [volumes_to_keep]
+        elif volumes_to_remove is not None:
+            if is_scalar(volumes_to_remove):
+                volumes_to_remove = [volumes_to_remove]
+
+            volumes_to_keep = list(range(self.nmr_observations))
+            volumes_to_keep = [ind for ind in volumes_to_keep if ind not in volumes_to_remove]
+
+        new_protocol = self.protocol
+        if self.protocol is not None:
+            new_protocol = self.protocol.get_new_protocol_with_indices(volumes_to_keep)
+
+        new_observations = self.observations
+        if self.observations is not None:
+            new_observations = self.observations[..., volumes_to_keep]
+
+        new_volume_weights = self._volume_weights
+        if self._volume_weights is not None:
+            new_volume_weights = new_volume_weights[..., volumes_to_keep]
+
+        new_gradient_deviations = self._gradient_deviations
+        if self._gradient_deviations is not None:
+            if self._gradient_deviations.ndim > 3 and self._gradient_deviations.shape[1] == self.protocol.length:
+                new_gradient_deviations = self._gradient_deviations[:, volumes_to_keep, ...]
+
+        new_extra_protocol = {}
+        for key, value in self._extra_protocol.items():
+            value = np.array(value, copy=False)
+            if value.ndim > 1 and value.shape[1] == self.protocol.length:
+                value = value[:, volumes_to_keep, ...]
+            new_extra_protocol[key] = value
+
+        return self.copy_with_updates(protocol=new_protocol, observations=new_observations,
+                                      gradient_deviations=new_gradient_deviations,
+                                      volume_weights=new_volume_weights, extra_protocol=new_extra_protocol)
+
+    @property
+    def nmr_problems(self):
+        return self.observations.shape[0]
+
+    @property
+    def nmr_observations(self):
+        return self._nmr_observations
+
+    @property
+    def signal4d(self):
+        # return self._signal4d
+        return restore_volumes(self._observation_list, self.mask)
+
+    @property
+    def nifti_header(self):
+        return self._nifti_header
+
+    @property
+    def gradient_deviations(self):
+        return self._gradient_deviations
+
+    @property
+    def volume_weights(self):
+        return self._volume_weights_list
+
+    @property
+    def protocol(self):
+        return self._protocol
+
+    @property
+    def extra_protocol(self):
+        return self._extra_protocol
+
+    @property
+    def observations(self):
+        return self._observation_list
+
+    @property
+    def mask(self):
+        return self._mask
+
+    @property
+    def noise_std(self):
+        return self._noise_std
+
+    def _preload_extra_protocol_items(self, extra_protocol):
+        """Load all the extra protocol items that were defined by a filename."""
+        if extra_protocol is None:
+            return {}
+
+        return_items = {}
+        for key, value in extra_protocol.items():
+            if isinstance(value, str):
+                if value.endswith('.nii') or value.endswith('.nii.gz'):
+                    loaded_val = load_nifti(value).get_data()
+                else:
+                    loaded_val = np.genfromtxt(value)
+            else:
+                loaded_val = value
+
+            if len(loaded_val.shape) > 3:
+                loaded_val = create_roi(loaded_val, self._mask)
+
+            return_items[key] = loaded_val
+        return return_items
 
 
 def load_input_data(volume_info, protocol, mask, extra_protocol=None, gradient_deviations=None,

@@ -1,5 +1,6 @@
 import collections
 import numpy as np
+import numpy.ma as ma
 import glob
 import logging
 import os
@@ -14,7 +15,7 @@ from mdt.lib.components import get_model
 from mdt.configuration import get_processing_strategy, gzip_optimization_results
 from mdt.model_building.utils import ParameterDecodingWrapper
 from mdt.utils import create_roi, get_cl_devices, model_output_exists, \
-    per_model_logging_context, get_intermediate_results_path, is_scalar, split_array_to_dict
+    per_model_logging_context, get_intermediate_results_path, is_scalar, split_array_to_dict, restore_volumes
 from mdt.lib.processing.processing_strategies import SimpleModelProcessor
 from mdt.lib.exceptions import InsufficientProtocolError
 import mot.configuration
@@ -79,8 +80,12 @@ def get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=
         free_parameters = get_model(model_name)().get_free_param_names()
 
         if 'S0.s0' in free_parameters and input_data.has_input_data('b'):
-            unweighted_locations = np.where(input_data.get_input_data('b') < 250e6)[0]
-            inits['S0.s0'] = np.mean(input_data.signal4d[..., unweighted_locations], axis=-1)
+            if input_data.get_input_data('b').shape[0] == input_data.nmr_problems:
+                masked_observations = ma.masked_array(input_data.observations, input_data.get_input_data('b') < 250e6)
+                inits['S0.s0'] = restore_volumes(np.mean(masked_observations, axis=1), input_data.mask)
+            else:
+                unweighted_locations = np.where(input_data.get_input_data('b') < 250e6)[0]
+                inits['S0.s0'] = np.mean(input_data.signal4d[..., unweighted_locations], axis=-1)
 
         if model_name.startswith('BallStick_r2'):
             inits.update(get_subset(free_parameters, get_model_fit('BallStick_r1')))

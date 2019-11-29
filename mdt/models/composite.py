@@ -1264,7 +1264,7 @@ class DMRICompositeModel(EstimableModel):
                                                       estimated_parameters, func, dependent_parameter_names)
                 return split_array_to_dict(vals, [n[1] for n in dependent_parameter_names])
         else:
-            def calculator(model, results_dict):
+            def calculator(model, results_dict, roi_indices=None):
                 return {}
 
         return calculator

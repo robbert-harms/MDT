@@ -11,7 +11,7 @@ from mdt.lib.deferred_mappings import DeferredActionDict
 from mdt.lib.nifti import write_all_as_nifti
 from mdt.model_building.utils import ParameterDecodingWrapper
 from mdt.utils import load_samples, per_model_logging_context, get_intermediate_results_path, create_roi, \
-    restore_volumes, is_scalar, split_array_to_dict
+    restore_volumes, is_scalar, split_array_to_dict, ROIMRIInputData
 from mdt.lib.processing.processing_strategies import SimpleModelProcessor
 from mdt.lib.exceptions import InsufficientProtocolError
 from mot import minimize
@@ -122,6 +122,7 @@ class BootstrappingProcessor(SimpleModelProcessor):
         self._logger = logging.getLogger(__name__)
         self._optimization_method = optimization_method
         self._input_data = input_data
+        self._roi_input_data = ROIMRIInputData.from_input_data(self._input_data)
         self._optimization_results = optimization_results
         self._nmr_samples = nmr_samples
         self._model = model
@@ -145,13 +146,10 @@ class BootstrappingProcessor(SimpleModelProcessor):
 
     def _process(self, roi_indices, next_indices=None):
         with self._memmapped_sample_storage() as sample_storage:
-            y_estimated = self._get_signal_estimates(roi_indices)
-            errors = self._input_data.observations[roi_indices] - y_estimated
-
+            y = self._get_signal_estimates(roi_indices)
+            errors = self._input_data.observations[roi_indices] - y
             x0 = self._codec.encode(self._x_opt_array[roi_indices],
                                     self._model.get_kernel_data().get_subset(roi_indices))
-
-            observations_star = np.zeros_like(self._input_data.observations)
 
             for sample_ind in range(self._nmr_samples):
                 if sample_ind % (self._nmr_samples * 0.1) == 0:
@@ -159,21 +157,17 @@ class BootstrappingProcessor(SimpleModelProcessor):
 
                 errors_resampled = errors[range(errors.shape[1]),
                                           np.random.randint(0, errors.shape[1], size=errors.shape)]
-                new_observations = y_estimated + errors_resampled
 
-                # todo, speed can be improved by having an InputData object that does not need a 4d volume
-                observations_star[roi_indices] = new_observations
-                observations_star_vols = restore_volumes(observations_star, self._input_data.mask)
-                new_input_data = self._input_data.copy_with_updates(signal4d=observations_star_vols)
-
-                bootstrapped_params = self._single_optimization_run(new_input_data, x0, roi_indices)
+                y_star = y + errors_resampled
+                x_star = self._single_optimization_run(y_star, x0, roi_indices)
 
                 for param_name, storage in sample_storage.items():
-                    storage[roi_indices, sample_ind] = bootstrapped_params[param_name]
+                    storage[roi_indices, sample_ind] = x_star[param_name]
 
-    def _single_optimization_run(self, input_data, x0, roi_indices):
+    def _single_optimization_run(self, y_star, x0, roi_indices):
         """Generate one new sample using a single run of the optimization routine."""
-        self._model.set_input_data(input_data, suppress_warnings=True)
+        self._roi_input_data.observations[roi_indices] = y_star
+        self._model.set_input_data(self._roi_input_data, suppress_warnings=True)
 
         kernel_data_subset = self._model.get_kernel_data().get_subset(roi_indices)
 
