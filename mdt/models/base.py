@@ -32,6 +32,17 @@ class EstimableModel:
         """
         raise NotImplementedError()
 
+    def get_used_volumes(self, input_data=None):
+        """Get the indices of the input data volumes used by this model.
+
+        Args:
+            input_data (mdt.utils.MRIInputData): if given, limit the analysis to this input data.
+
+        Returns:
+            List: the list of volume indices with volumes to use. This indexes the input data.
+        """
+        raise NotImplementedError()
+
     def get_nmr_observations(self):
         """Get the number of observations in the data.
 

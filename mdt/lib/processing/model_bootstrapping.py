@@ -121,7 +121,7 @@ class BootstrappingProcessor(SimpleModelProcessor):
         super().__init__(mask, nifti_header, output_dir, tmp_storage_dir, recalculate)
         self._logger = logging.getLogger(__name__)
         self._optimization_method = optimization_method
-        self._input_data = input_data
+        self._input_data = input_data.get_subset(volumes_to_keep=model.get_used_volumes(input_data))
         self._roi_input_data = ROIMRIInputData.from_input_data(self._input_data)
         self._optimization_results = optimization_results
         self._nmr_samples = nmr_samples
@@ -130,6 +130,7 @@ class BootstrappingProcessor(SimpleModelProcessor):
         self._keep_samples = keep_samples
         self._logger = logging.getLogger(__name__)
         self._optimizer_options = optimizer_options
+        self._sample_storage = None
 
         self._model.set_input_data(input_data)
 
@@ -145,24 +146,21 @@ class BootstrappingProcessor(SimpleModelProcessor):
         self._constraints_func = self._wrapper.wrap_constraints_function(self._model.get_constraints_function())
 
     def _process(self, roi_indices, next_indices=None):
-        with self._memmapped_sample_storage() as sample_storage:
-            y = self._get_signal_estimates(roi_indices)
-            errors = self._input_data.observations[roi_indices] - y
-            x0 = self._codec.encode(self._x_opt_array[roi_indices],
-                                    self._model.get_kernel_data().get_subset(roi_indices))
+        y = self._get_signal_estimates(roi_indices)
+        errors = self._input_data.observations[roi_indices] - y
+        x0 = self._codec.encode(self._x_opt_array[roi_indices],
+                                self._model.get_kernel_data().get_subset(roi_indices))
 
-            for sample_ind in range(self._nmr_samples):
-                if sample_ind % (self._nmr_samples * 0.1) == 0:
-                    self._logger.info('Processed samples {} from {}'.format(sample_ind, self._nmr_samples))
+        for sample_ind in range(self._nmr_samples):
+            if sample_ind % (self._nmr_samples * 0.1) == 0:
+                self._logger.info('Processed samples {} from {}'.format(sample_ind, self._nmr_samples))
 
-                errors_resampled = errors[range(errors.shape[1]),
-                                          np.random.randint(0, errors.shape[1], size=errors.shape)]
+            errors_resampled = errors[range(errors.shape[1]),
+                                      np.random.randint(0, errors.shape[1], size=errors.shape)]
 
-                y_star = y + errors_resampled
-                x_star = self._single_optimization_run(y_star, x0, roi_indices)
-
-                for param_name, storage in sample_storage.items():
-                    storage[roi_indices, sample_ind] = x_star[param_name]
+            y_star = y + errors_resampled
+            x_star = self._single_optimization_run(y_star, x0, roi_indices)
+            self._store_sample(x_star, roi_indices, sample_ind)
 
     def _single_optimization_run(self, y_star, x0, roi_indices):
         """Generate one new sample using a single run of the optimization routine."""
@@ -218,40 +216,41 @@ class BootstrappingProcessor(SimpleModelProcessor):
                 return_values.append(el[roi_indices])
         return tuple(return_values)
 
-    @contextmanager
-    def _memmapped_sample_storage(self):
+    def _store_sample(self, optimization_results, roi_indices, sample_ind):
+        """Store the optimization results as a next sample."""
         if not os.path.exists(self._output_dir):
             os.makedirs(self._output_dir)
 
-        storage_arrays = {}
-        for ind, name in enumerate(self._model.get_free_param_names()):
-            samples_path = os.path.join(self._output_dir, name + '.samples.npy')
-            mode = 'w+'
+        if self._sample_storage is None:
+            self._sample_storage = {}
+            for key, value in optimization_results.items():
+                samples_path = os.path.join(self._output_dir, key + '.samples.npy')
+                mode = 'w+'
 
-            if os.path.isfile(samples_path):
-                mode = 'r+'
-                current_results = open_memmap(samples_path, mode='r')
-                if current_results.shape[1] != self._nmr_samples:
-                    mode = 'w+'  # opening the memmap with w+ creates a new one
-                del current_results  # closes the memmap
+                if os.path.isfile(samples_path):
+                    mode = 'r+'
+                    current_results = open_memmap(samples_path, mode='r')
+                    if current_results.shape[1] != self._nmr_samples:
+                        mode = 'w+'  # opening the memmap with w+ creates a new one
+                    del current_results  # closes the memmap
 
-            storage_arrays[name] = \
-                open_memmap(samples_path, mode=mode, dtype=np.float32,
-                            shape=(self._total_nmr_voxels, self._nmr_samples))
+                shape = [self._total_nmr_voxels, self._nmr_samples]
+                if value.ndim > 1:
+                    shape.extend(value.shape[1:])
+                self._sample_storage[key] = open_memmap(samples_path, mode=mode, dtype=value.dtype, shape=tuple(shape))
 
-        yield storage_arrays
-        del storage_arrays  # close the memmap
+        for key, value in optimization_results.items():
+            self._sample_storage[key][roi_indices, sample_ind] = value
 
     def combine(self):
         super().combine()
 
         statistic_maps = {}
-        for ind, name in enumerate(self._model.get_free_param_names()):
+        for name in self._sample_storage:
             samples_path = os.path.join(self._output_dir, name + '.samples.npy')
             samples = open_memmap(samples_path, mode='r')
             statistic_maps[name] = np.mean(samples, axis=1)
             statistic_maps[name + '.std'] = np.std(samples, axis=1)
-            del samples
 
         write_all_as_nifti(restore_volumes(statistic_maps, self._mask),
                            os.path.join(self._output_dir, 'univariate_normal'),

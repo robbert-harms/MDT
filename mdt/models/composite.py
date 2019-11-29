@@ -1146,6 +1146,10 @@ class DMRICompositeModel(EstimableModel):
 
         return GradientDeviationProtocolUpdate()
 
+    def get_used_volumes(self, input_data=None):
+        input_data = input_data or self._input_data
+        return self._get_suitable_volume_indices(input_data)
+
     def _prepare_input_data(self, input_data, suppress_warnings=False):
         """Update the input data to make it suitable for this model.
 
@@ -1229,8 +1233,7 @@ class DMRICompositeModel(EstimableModel):
     def _get_suitable_volume_indices(self, input_data):
         """Usable in combination with _prepare_input_data, return the suitable volume indices.
 
-        Get a list of volume indices that the model can use. This function is meant to remove common boilerplate code
-        from writing your own _prepare_input_data object.
+        Get a list of volume indices that the model can use. Can be overloaded by a sub-class.
 
         Args:
             input_data (mdt.utils.MRIInputData): the input data set by the user
