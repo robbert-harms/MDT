@@ -321,8 +321,10 @@ class DMRICompositeModel(EstimableModel):
 
         results_dict.update(self._get_dependent_map_calculator()(self, results_dict, roi_indices=roi_indices))
         results_dict.update(self._get_fixed_parameter_maps(roi_indices))
-        results_dict.update(self._get_post_optimization_information_criterion_maps(
-            parameters_array, roi_indices, log_likelihoods=log_likelihoods))
+
+        if self._post_processing['optimization']['ll_and_ic']:
+            results_dict.update(self._get_post_optimization_information_criterion_maps(
+                parameters_array, roi_indices, log_likelihoods=log_likelihoods))
 
         if self._post_processing['optimization']['uncertainties']:
             fim = self._compute_fisher_information_matrix(parameters_array, roi_indices)

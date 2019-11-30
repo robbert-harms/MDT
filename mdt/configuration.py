@@ -334,6 +334,7 @@ class ActivePostProcessingLoader(ConfigSectionLoader):
         optimization = value.get('optimization', {})
         optimization['uncertainties'] = optimization.get('uncertainties', True)
         optimization['store_covariances'] = optimization.get('store_covariances', True)
+        optimization['ll_and_ic'] = optimization.get('ll_and_ic', True)
 
         _config_insert(['active_post_processing', 'optimization'], optimization)
         _config_insert(['active_post_processing', 'sampling'], sampling)

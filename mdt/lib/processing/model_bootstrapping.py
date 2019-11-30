@@ -182,7 +182,6 @@ class BootstrappingProcessor(SimpleModelProcessor):
         x_final_array = self._codec.decode(results['x'], kernel_data_subset)
 
         x_dict = split_array_to_dict(x_final_array, self._model.get_free_param_names())
-        x_dict.update({'ReturnCodes': results['status']})
         x_dict.update(self._model.get_post_optimization_output(x_final_array, roi_indices=roi_indices,
                                                                parameters_dict=x_dict))
         return x_dict

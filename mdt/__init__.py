@@ -460,7 +460,7 @@ def residual_bootstrapping(model, input_data, optimization_results, output_folde
         model_name = model.name
         model_instance = model
 
-    model_instance.update_active_post_processing('optimization', {'uncertainties': False})
+    model_instance.update_active_post_processing('optimization', {'uncertainties': False, 'll_and_ic': False})
 
     initialization_data = SimpleInitializationData(**initialization_data)
     initialization_data.apply_to_model(model_instance, input_data)
