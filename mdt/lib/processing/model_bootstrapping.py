@@ -25,8 +25,9 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-def compute_residual_bootstrap(model, input_data, optimization_results, output_folder, optimization_method,
-                               nmr_samples, tmp_dir, recalculate=False, keep_samples=True, optimizer_options=None):
+def compute_bootstrap(model, input_data, optimization_results, output_folder, bootstrap_method, optimization_method,
+                      nmr_samples, tmp_dir, recalculate=False, keep_samples=True, optimizer_options=None,
+                      bootstrap_options=None):
     """Sample a composite model using residual bootstrapping
 
     Args:
@@ -37,6 +38,7 @@ def compute_residual_bootstrap(model, input_data, optimization_results, output_f
             path to a folder.
         output_folder (string): The relative output path.
             The resulting maps are placed in a subdirectory (named after the model name) in this output folder.
+        bootstrap_method (str): the bootstrap method to use, one of 'residual' or 'wild'.
         optimization_method (str): The optimization routine to use.
         nmr_samples (int): the number of samples we would like to return.
         tmp_dir (str): the preferred temporary storage dir
@@ -44,13 +46,14 @@ def compute_residual_bootstrap(model, input_data, optimization_results, output_f
         keep_samples (boolean): determines if we keep any of the chains. If set to False, the chains will
             be discarded after generating the mean and standard deviations.
         optimizer_options (dict): the additional optimization options
+        bootstrap_options (dict): the bootstrap options
     """
     from mdt.__version__ import __version__
     logger = logging.getLogger(__name__)
     logger.info('Using MDT version {}'.format(__version__))
-    logger.info('Preparing for model {0}'.format(model.name))
+    logger.info('Preparing {} bootstrap for model {}'.format(bootstrap_method, model.name))
 
-    output_folder = os.path.join(output_folder, model.name, 'residual_bootstrapping')
+    output_folder = os.path.join(output_folder, model.name, '{}_bootstrap'.format(bootstrap_method))
 
     if not model.is_input_data_sufficient(input_data):
         raise InsufficientProtocolError(
@@ -71,9 +74,16 @@ def compute_residual_bootstrap(model, input_data, optimization_results, output_f
     if not os.path.isdir(output_folder):
         os.makedirs(output_folder)
 
+    bootstrap_options = bootstrap_options or {}
+
     with per_model_logging_context(output_folder, overwrite=recalculate):
         with _log_info(logger, model.name):
-            worker = BootstrappingProcessor(
+            if bootstrap_method == 'residual':
+                worker_class = ResidualBootstrappingProcessor
+            else:
+                worker_class = WildBootstrappingProcessor
+
+            worker = worker_class(
                 optimization_method,
                 input_data,
                 optimization_results,
@@ -81,9 +91,11 @@ def compute_residual_bootstrap(model, input_data, optimization_results, output_f
                 model, input_data.mask, input_data.nifti_header, output_folder,
                 get_intermediate_results_path(output_folder, tmp_dir), recalculate,
                 keep_samples=keep_samples,
-                optimizer_options=optimizer_options)
+                optimizer_options=optimizer_options,
+                **bootstrap_options
+            )
 
-            processing_strategy = get_processing_strategy('optimization')
+            processing_strategy = get_processing_strategy('sampling')
             return processing_strategy.process(worker)
 
 
@@ -146,21 +158,11 @@ class BootstrappingProcessor(SimpleModelProcessor):
         self._constraints_func = self._wrapper.wrap_constraints_function(self._model.get_constraints_function())
 
     def _process(self, roi_indices, next_indices=None):
-        y = self._get_signal_estimates(roi_indices)
-        errors = self._input_data.observations[roi_indices] - y
-        x0 = self._codec.encode(self._x_opt_array[roi_indices],
-                                self._model.get_kernel_data().get_subset(roi_indices))
+        """Apply the bootstrapping procedure on the given voxels.
 
-        for sample_ind in range(self._nmr_samples):
-            if sample_ind % (self._nmr_samples * 0.1) == 0:
-                self._logger.info('Processed samples {} from {}'.format(sample_ind, self._nmr_samples))
-
-            errors_resampled = errors[range(errors.shape[1]),
-                                      np.random.randint(0, errors.shape[1], size=errors.shape)]
-
-            y_star = y + errors_resampled
-            x_star = self._single_optimization_run(y_star, x0, roi_indices)
-            self._store_sample(x_star, roi_indices, sample_ind)
+        This method needs to be defined per bootstrapping scheme.
+        """
+        return NotImplementedError()
 
     def _single_optimization_run(self, y_star, x0, roi_indices):
         """Generate one new sample using a single run of the optimization routine."""
@@ -264,3 +266,79 @@ class BootstrappingProcessor(SimpleModelProcessor):
                 os.remove(os.path.join(self._output_dir, name + '.samples.npy'))
         else:
             return load_samples(self._output_dir)
+
+
+class ResidualBootstrappingProcessor(BootstrappingProcessor):
+
+    def __init__(self, *args, **kwargs):
+        """Compute bootstrap samples using residual bootstrapping. """
+        super().__init__(*args, **kwargs)
+
+    def _process(self, roi_indices, next_indices=None):
+        y = self._get_signal_estimates(roi_indices)
+        errors = self._input_data.observations[roi_indices] - y
+        x0 = self._codec.encode(self._x_opt_array[roi_indices],
+                                self._model.get_kernel_data().get_subset(roi_indices))
+
+        for sample_ind in range(self._nmr_samples):
+            if sample_ind % (self._nmr_samples * 0.1) == 0:
+                self._logger.info('Processed samples {} from {}'.format(sample_ind, self._nmr_samples))
+
+            errors_resampled = errors[range(errors.shape[1]),
+                                      np.random.randint(0, errors.shape[1], size=errors.shape)]
+
+            y_star = y + errors_resampled
+            x_star = self._single_optimization_run(y_star, x0, roi_indices)
+            self._store_sample(x_star, roi_indices, sample_ind)
+
+
+class WildBootstrappingProcessor(BootstrappingProcessor):
+
+    def __init__(self, *args, random_variable_method=None, **kwargs):
+        """Compute bootstrap samples using the wild bootstrap
+
+        The wild bootstrap has the additional option to define the random variable selection method. This
+        is a callback function used to compute the random variable on which a new bootstrap is based.
+
+        Args:
+            random_variable_method (Callable[[Tuple], ndarray] or str), either a callable accepting a shape and
+                returning an array of random variables of that shape, or a string with the name of a method to use.
+                If a string is given, it can be one of:
+                - normal for the standard normal distribution
+                - mammen for the distribution proposed by Mammen 1993
+                - simple for a distribution of v = -1 with p=0.5 and +1 for p=0.5
+        """
+        super().__init__(*args, **kwargs)
+        self._random_variable_method = random_variable_method or (lambda v: np.random.randn(*v))
+
+        if self._random_variable_method == 'normal':
+            self._random_variable_method = (lambda v: np.random.randn(*v))
+        elif self._random_variable_method == 'mannen':
+            def distr(shape):
+                cutoff = (np.sqrt(5) + 1) / (2 * np.sqrt(5))
+                r = np.random.rand(*shape)
+                r[r < cutoff] = -(np.sqrt(5) - 1) / 2
+                r[r >= cutoff] = (np.sqrt(5) + 1) / 2
+                return r
+            self._random_variable_method = distr
+        elif self._random_variable_method == 'simple':
+            def distr(shape):
+                r = np.random.rand(*shape)
+                r[r < 0.5] = -1
+                r[r >= 0.5] = 1
+                return r
+            self._random_variable_method = distr
+
+    def _process(self, roi_indices, next_indices=None):
+        y = self._get_signal_estimates(roi_indices)
+        errors = self._input_data.observations[roi_indices] - y
+        x0 = self._codec.encode(self._x_opt_array[roi_indices],
+                                self._model.get_kernel_data().get_subset(roi_indices))
+
+        for sample_ind in range(self._nmr_samples):
+            if sample_ind % (self._nmr_samples * 0.1) == 0:
+                self._logger.info('Processed samples {} from {}'.format(sample_ind, self._nmr_samples))
+
+            y_star = y + errors * self._random_variable_method(errors.shape)
+            x_star = self._single_optimization_run(y_star, x0, roi_indices)
+            self._store_sample(x_star, roi_indices, sample_ind)

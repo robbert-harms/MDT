@@ -2215,7 +2215,7 @@ def get_example_data(output_directory):
                 shutil.copy(full_fname, dataset_output_path)
 
 
-def split_array_to_dict(results, param_names):
+def split_array_to_dict(data, param_names):
     """Create a dictionary out of an array.
 
     This basically splits the given nd-matrix into sub matrices based on the second dimension. The length of
@@ -2223,17 +2223,45 @@ def split_array_to_dict(results, param_names):
     given we return p matrices of shape (d,). If a matrix of shape (d, p, s_1, s_2, ..., s_n) is given, we return
     p matrices of shape (d, s_1, s_2, ..., s_n).
 
+    This is basically the inverse of :func:`combine_dict_to_array`.
+
     Args:
-        results: a multidimensional matrix we index based on the second dimension.
+        data (ndarray): a multidimensional matrix we index based on the second dimension.
         param_names (list of str): the names of the parameters, one per column
 
     Returns:
         dict: the results packed in a dictionary
     """
-    if results.shape[1] != len(param_names):
+    if data.shape[1] != len(param_names):
         raise ValueError('The number of columns ({}) in the matrix does not match '
-                         'the number of dictionary keys provided ({}).'.format(results.shape[1], len(param_names)))
-    return {name: results[:, i, ...] for i, name in enumerate(param_names)}
+                         'the number of dictionary keys provided ({}).'.format(data.shape[1], len(param_names)))
+    return {name: data[:, i, ...] for i, name in enumerate(param_names)}
+
+
+def combine_dict_to_array(data, param_names):
+    """Create an array out of the given data dictionary.
+
+    The final array will consist of elements of the data dictionary, concatenated on the second dimension based
+    on the order and names of the ``param_names`` list.
+
+    This is basically the inverse of :func:`split_array_to_dict`.
+
+    Args:
+        data (dict): matrices, each of shape (n, 1) or (n,) which we will concatenate on the second dimension
+        param_names (List[str]): the items we extract from the data, in that order
+
+    Returns:
+         ndarray: the dictionary elements compressed as a 2d array of size ``(n, len(param_names))``.
+    """
+    elements = []
+    for name in param_names:
+        d = data[name]
+        if len(np.array(d).shape) < 2:
+            d = np.transpose(np.atleast_2d([d]))
+        else:
+            d = np.atleast_2d(d)
+        elements.append(d)
+    return np.concatenate(elements, axis=1)
 
 
 def covariance_to_correlation(input_maps):

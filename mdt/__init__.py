@@ -23,14 +23,14 @@ from mdt.component_templates.composite_models import CompositeModelTemplate
 from mdt.component_templates.library_functions import LibraryFunctionTemplate
 
 from mdt.lib.processing.model_fitting import get_batch_fitting_function
-from mdt.utils import estimate_noise_std, get_cl_devices, load_input_data,\
+from mdt.utils import estimate_noise_std, get_cl_devices, load_input_data, \
     create_blank_mask, create_index_matrix, \
     volume_index_to_roi_index, roi_index_to_volume_index, load_brain_mask, init_user_settings, restore_volumes, \
     apply_mask, create_roi, volume_merge, protocol_merge, create_median_otsu_brain_mask, create_brain_mask, \
     load_samples, load_sample, load_nifti, write_slice_roi, apply_mask_to_file, extract_volumes, \
     get_slice_in_dimension, per_model_logging_context, \
-    get_temporary_results_dir, get_example_data, SimpleInitializationData, InitializationData, load_volume_maps,\
-    covariance_to_correlation, check_user_components, unzip_nifti, zip_nifti
+    get_temporary_results_dir, get_example_data, SimpleInitializationData, InitializationData, load_volume_maps, \
+    covariance_to_correlation, check_user_components, unzip_nifti, zip_nifti, combine_dict_to_array
 from mdt.lib.sorting import sort_orientations, create_4d_sort_matrix, sort_volumes_per_voxel
 from mdt.simulations import create_signal_estimates, simulate_signals, add_rician_noise
 from mdt.lib.batch_utils import run_function_on_batch_fit_output, batch_apply, \
@@ -376,21 +376,28 @@ def compute_fim(model, input_data, optimization_results, output_folder=None, cl_
 
     with mot.configuration.config_context(CLRuntimeAction(cl_runtime_info)):
         opt_points = create_roi(optimization_results, input_data.mask)
-        fim_results = model_instance.compute_fisher_information_matrix(opt_points)
+        opt_array = combine_dict_to_array(opt_points, model_instance.get_free_param_names())
+
+        covars = model_instance.compute_covariance_matrix(opt_array)
+        covariance_names = model_instance.get_covariance_output_names()
 
         return_results = {}
-        return_results.update(fim_results['stds'])
-        return_results.update(fim_results['covariances'])
-        return_results = restore_volumes(return_results, input_data.mask)
+        for ind, name in enumerate(covariance_names):
+            if name.endswith('.std'):
+                return_results[name] = np.nan_to_num(np.sqrt(covars[..., ind]))
+            else:
+                return_results[name] = covars[..., ind]
 
+        return_results = restore_volumes(return_results, input_data.mask)
         write_volume_maps(return_results, os.path.join(output_folder, model_name, 'FIM'))
 
         return return_results
 
 
-def residual_bootstrapping(model, input_data, optimization_results, output_folder, nmr_samples=None,
-                           optimization_method=None, optimizer_options=None, recalculate=False, cl_device_ind=None,
-                           double_precision=False, keep_samples=True, tmp_results_dir=True, initialization_data=None):
+def bootstrap_model(model, input_data, optimization_results, output_folder, bootstrap_method=None,
+                    bootstrap_options=None, nmr_samples=None, optimization_method=None, optimizer_options=None,
+                    recalculate=False, cl_device_ind=None, double_precision=False, keep_samples=True,
+                    tmp_results_dir=True, initialization_data=None):
     """Resample the model using residual bootstrapping.
 
     This is typically used to construct confidence intervals on the optimized parameters.
@@ -403,6 +410,8 @@ def residual_bootstrapping(model, input_data, optimization_results, output_folde
             path to a folder.
         output_folder (string): The path to the folder where to place the output, we will make a subdir with the
             model name in it (for the optimization results) and then a subdir with the samples output.
+        bootstrap_method (str): the bootstrap method we want to use, 'residual', or 'wild'. Defaults to 'wild'.
+        bootstrap_options (dict): bootstrapping options specific for the bootstrap method in use
         nmr_samples (int): the number of samples we would like to compute. Defaults to 1000.
         optimization_method (str): The optimization method to use, one of:
             - 'Levenberg-Marquardt'
@@ -442,6 +451,7 @@ def residual_bootstrapping(model, input_data, optimization_results, output_folde
     """
     initialization_data = initialization_data or {}
     nmr_samples = nmr_samples or 1000
+    bootstrap_method = bootstrap_method or 'wild'
 
     if not check_user_components():
         init_user_settings(pass_if_exists=True)
@@ -469,12 +479,14 @@ def residual_bootstrapping(model, input_data, optimization_results, output_folde
         optimization_method, optimizer_options = get_optimizer_for_model(model_name)
 
     with mot.configuration.config_context(cl_context_action):
-        from mdt.lib.processing.model_bootstrapping import compute_residual_bootstrap
-        return compute_residual_bootstrap(model_instance, input_data, optimization_results, output_folder,
-                                          optimization_method, nmr_samples, get_temporary_results_dir(tmp_results_dir),
-                                          recalculate=recalculate,
-                                          keep_samples=keep_samples,
-                                          optimizer_options=optimizer_options)
+        from mdt.lib.processing.model_bootstrapping import compute_bootstrap
+        return compute_bootstrap(model_instance, input_data, optimization_results,
+                                 output_folder, bootstrap_method, optimization_method, nmr_samples,
+                                 get_temporary_results_dir(tmp_results_dir),
+                                 recalculate=recalculate,
+                                 keep_samples=keep_samples,
+                                 optimizer_options=optimizer_options,
+                                 bootstrap_options=bootstrap_options)
 
 
 def batch_fit(data_folder, models_to_fit, output_folder=None, batch_profile=None,

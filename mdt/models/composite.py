@@ -344,20 +344,45 @@ class DMRICompositeModel(EstimableModel):
 
         return results_dict
 
-    def compute_fisher_information_matrix(self, results_dict, roi_indices=None):
-        """Compute the Fisher Information Matrix from the given results dictionary.
+    def compute_covariance_matrix(self, parameters, roi_indices=None):
+        """Calculate the covariance and correlation matrix by taking the inverse of the Hessian.
+
+        This first calculates/approximates the Hessian at each of the points using numerical differentiation.
+        Afterwards we inverse the Hessian to return the covariance matrix.
+
+        This function only returns the upper triangular data of the covariance matrix.
 
         Args:
-            results_dict (dict): A dictionary with as keys the names of the parameters and as values the 1d maps with
-                for each voxel the optimized parameter value. The given dictionary can be altered by this function.
-            roi_indices (Iterable): if set, the problem instances optimized in this batch
+            parameters (ndarray): for each voxel, the optimized parameters
+            roi_indices (Iterable or None): if set, the problem instances optimized in this batch.
 
         Returns:
-            dict: The results of the FIM computation, the dictionary has two main keys, 'stds' and 'covariances',
-                holding respectively the standard deviations and the covariances.
+            ndarray: for each voxel (first dimension ) a covariance matrix (second dimension)
         """
-        results_array = self._param_dict_to_array(results_dict)
-        return self._compute_fisher_information_matrix(results_array, roi_indices)
+        return self._compute_covariance_matrix(parameters, roi_indices=roi_indices)
+
+    def get_covariance_output_names(self):
+        """Get pretty names for each of the covariance matrix outputs.
+
+        This corresponds to the output array from :meth:`compute_covariance_matrix`.
+
+        Returns:
+            List[str]: for each elements in the upper triangular covariance vector, a pretty name
+        """
+        nmr_params = self.get_nmr_parameters()
+        param_names = ['{}.{}'.format(m.name, p.name)
+                       for m, p in self._model_functions_info.get_estimable_parameters_list()]
+
+        covariance_names = {}
+        ind_counter = 0
+        for x_ind in range(nmr_params):
+            covariance_names[ind_counter] = param_names[x_ind] + '.std'
+            ind_counter += 1
+
+            for y_ind in range(x_ind + 1, nmr_params):
+                covariance_names[ind_counter] = '{}_to_{}'.format(param_names[x_ind], param_names[y_ind])
+                ind_counter += 1
+        return [covariance_names[ind] for ind in range(len(covariance_names))]
 
     def get_post_sampling_maps(self, sampling_output, roi_indices=None):
         """Get the post sample volume maps.
@@ -885,6 +910,34 @@ class DMRICompositeModel(EstimableModel):
             results_array (ndarray): the list with the optimized points for each parameter
             roi_indices (Iterable or None): if set, the problem instances optimized in this batch
         """
+        covars = self._compute_covariance_matrix(results_array, roi_indices)
+        names = self.get_covariance_output_names()
+
+        stds = {}
+        covariances = {}
+        for ind, name in enumerate(names):
+            if name.endswith('.std'):
+                stds[name] = np.nan_to_num(np.sqrt(covars[..., ind]))
+            else:
+                covariances[name] = covars[..., ind]
+
+        return {'stds': stds, 'covariances': covariances}
+
+    def _compute_covariance_matrix(self, results_array, roi_indices=None):
+        """Calculate the covariance and correlation matrix by taking the inverse of the Hessian.
+
+        This first calculates/approximates the Hessian at each of the points using numerical differentiation.
+        Afterwards we inverse the Hessian to return the covariance matrix.
+
+        This function only returns the upper triangular data of the covariance matrix.
+
+        Args:
+            results_array (ndarray): the list with the optimized points for each parameter
+            roi_indices (Iterable or None): if set, the problem instances optimized in this batch
+
+        Returns:
+            ndarray: for each voxel (first dimension ) a covariance matrix (second dimension)
+        """
         nmr_params = self.get_nmr_parameters()
         scales = self._get_numdiff_scaling_factors()
 
@@ -959,23 +1012,7 @@ class DMRICompositeModel(EstimableModel):
 
         covars = data.get_data()
         covars /= np.outer(scales, scales)[np.triu_indices(nmr_params)]
-
-        param_names = ['{}.{}'.format(m.name, p.name)
-                       for m, p in self._model_functions_info.get_estimable_parameters_list()]
-
-        stds = {}
-        covariances = {}
-
-        ind_counter = 0
-        for x_ind in range(nmr_params):
-            stds[param_names[x_ind] + '.std'] = np.nan_to_num(np.sqrt(covars[..., ind_counter]))
-            ind_counter += 1
-
-            for y_ind in range(x_ind + 1, nmr_params):
-                covariances['{}_to_{}'.format(param_names[x_ind], param_names[y_ind])] = covars[..., ind_counter]
-                ind_counter += 1
-
-        return {'stds': stds, 'covariances': covariances}
+        return covars
 
     def _get_post_optimization_information_criterion_maps(self, results_array, roi_indices, log_likelihoods=None):
         """Add some final results maps to the results dictionary.
