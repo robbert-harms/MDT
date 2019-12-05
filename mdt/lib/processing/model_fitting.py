@@ -14,13 +14,13 @@ from mdt.lib.nifti import get_all_nifti_data
 from mdt.lib.components import get_model
 from mdt.configuration import get_processing_strategy, gzip_optimization_results
 from mdt.model_building.utils import ParameterDecodingWrapper
-from mdt.utils import create_roi, get_cl_devices, model_output_exists, \
+from mdt.utils import create_roi, model_output_exists, \
     per_model_logging_context, get_intermediate_results_path, is_scalar, split_array_to_dict, restore_volumes
 from mdt.lib.processing.processing_strategies import SimpleModelProcessor
 from mdt.lib.exceptions import InsufficientProtocolError
 import mot.configuration
 from mot import minimize
-from mot.configuration import config_context as mot_config_context, CLRuntimeInfo
+from mot.configuration import CLRuntimeInfo
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-05-01"
@@ -28,7 +28,8 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-def get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=None):
+def get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=None,
+                           method=None, optimizer_options=None, double_precision=False):
     """Get better optimization starting points for the given model.
 
     Since initialization can make quite a difference in optimization results, this function can generate
@@ -56,6 +57,15 @@ def get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=
             model name in it.
         cl_device_ind (int or list): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices(). This can also be a list of device indices.
+        method (str): The optimization method to use, one of:
+            - 'Levenberg-Marquardt'
+            - 'Nelder-Mead'
+            - 'Powell'
+            - 'Subplex'
+
+            If not given, defaults to 'Powell'.
+        optimizer_options (dict): extra options passed to the optimization routines.
+        double_precision (boolean): if we would like to do the calculations in double precision
 
     Returns:
         dict: a dictionary with initialization points for the selected model
@@ -68,9 +78,12 @@ def get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=
     def get_model_fit(model_name):
         logger.info('Starting intermediate optimization for generating initialization point.')
 
+        inits = get_init_data(model_name)
+
         from mdt import fit_model
         results = fit_model(model_name, input_data, output_folder, recalculate=False, use_cascaded_inits=False,
-                            initialization_data={'inits': get_init_data(model_name)})
+                            method=method, optimizer_options=optimizer_options, double_precision=double_precision,
+                            cl_device_ind=cl_device_ind, initialization_data={'inits': inits})
 
         logger.info('Finished intermediate optimization for generating initialization point.')
         return results
@@ -161,13 +174,7 @@ def get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=
             inits['S0.s0'] = np.mean(input_data.signal4d, axis=-1)
 
         return inits
-
-    cl_environments = None
-    if cl_device_ind is not None:
-        cl_environments = get_cl_devices(cl_device_ind)
-
-    with mot_config_context(mot.configuration.RuntimeConfigurationAction(cl_environments=cl_environments)):
-        return get_init_data(model_name)
+    return get_init_data(model_name)
 
 
 def get_batch_fitting_function(total_nmr_subjects, models_to_fit, output_folder,

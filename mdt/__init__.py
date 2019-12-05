@@ -50,7 +50,8 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert.harms@maastrichtuniversity.nl"
 
 
-def get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=None):
+def get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=None,
+                           method=None, optimizer_options=None, double_precision=False):
     """Get better optimization starting points for the given model.
 
     Since initialization can make quite a difference in optimization results, this function can generate
@@ -78,12 +79,23 @@ def get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=
             model name in it.
         cl_device_ind (int or list): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices(). This can also be a list of device indices.
+        method (str): The optimization method to use, one of:
+            - 'Levenberg-Marquardt'
+            - 'Nelder-Mead'
+            - 'Powell'
+            - 'Subplex'
+
+            If not given, defaults to 'Powell'.
+        optimizer_options (dict): extra options passed to the optimization routines.
+        double_precision (boolean): if we would like to do the calculations in double precision
 
     Returns:
         dict: a dictionary with initialization points for the selected model
     """
     from mdt.lib.processing.model_fitting import get_optimization_inits
-    return get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=cl_device_ind)
+    return get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=cl_device_ind,
+                                  method=method, optimizer_options=optimizer_options,
+                                  double_precision=double_precision)
 
 
 def fit_model(model, input_data, output_folder,
@@ -172,7 +184,9 @@ def fit_model(model, input_data, output_folder,
 
     if use_cascaded_inits:
         initialization_data['inits'] = initialization_data.get('inits', {})
-        inits = get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=cl_device_ind)
+        inits = get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=cl_device_ind,
+                                       method=method, optimizer_options=optimizer_options,
+                                       double_precision=double_precision)
         inits.update(initialization_data['inits'])
         initialization_data['inits'] = inits
         logger.info('Preparing {0} with the cascaded initializations.'.format(model_name))
