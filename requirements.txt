@@ -2,7 +2,7 @@ matplotlib>=1.5.1
 numpy>=1.9.0
 pyopencl>=2015.2
 scipy>=0.12.1
-mot>=0.9.3
+mot>=0.9.4
 pyyaml
 nibabel
 argcomplete

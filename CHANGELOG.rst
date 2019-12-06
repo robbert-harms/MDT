@@ -2,6 +2,31 @@
 Changelog
 *********
 
+v1.1.0 (2019-12-06)
+===================
+
+Added
+-----
+- Adds optimization and runtime options to the get_optimization_inits function.
+- Adds wild and residual bootstrapping functionality.
+- Adds a post-processing flag to the model to disable computation of the log likelihood and the information criterion maps.
+- Adds a separate compute_fim function to MDT. This can be used to compute the FIM matrix post-hoc.
+- Adds the IVIM model.
+- Adds the poisson distributed ActiveAx model, courtesy by Mark Drakesmith from CUBRIC.
+
+Changed
+-------
+- Changed some of the parameter transformations.
+- Changed signature of the input data copy_with_updates function.
+
+Other
+-----
+- From the composite model, removed the voxels_to_analyze context. Instead, we now use the 'get_subset' method from the kernel data objects. This allows for cleaner code.
+- Removed a few more mot_float_types for either float or double.
+- Implements the meta-parameters 'observations', 'observation_ind' and 'nmr_observations' in the compartment model.
+- Removed Numpy future warning concerning stacking using generators.
+
+
 v1.0.0 (2019-06-04)
 ===================
 Version 1.0 marking the end of the PhD of MDT's lead developer Robbert Harms.
