@@ -209,7 +209,7 @@ class EstimableModel:
         """
         raise NotImplementedError()
 
-    def get_parameter_codec(self):
+    def get_mle_codec(self):
         """Get a parameter codec that can be used to transform the parameters to and from optimization and model space.
 
         Returns:

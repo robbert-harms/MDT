@@ -150,7 +150,7 @@ class BootstrappingProcessor(SimpleModelProcessor):
             DeferredActionDict(lambda _, v: create_roi(v, self._input_data.mask), self._optimization_results))
 
         self._cl_runtime_info = CLRuntimeInfo()
-        self._codec = self._model.get_parameter_codec()
+        self._codec = self._model.get_mle_codec()
         self._lower_bounds, self._upper_bounds = self._codec.encode_bounds(self._model.get_lower_bounds(),
                                                                            self._model.get_upper_bounds())
         self._wrapper = ParameterDecodingWrapper(self._model.get_nmr_parameters(), self._codec.get_decode_function())

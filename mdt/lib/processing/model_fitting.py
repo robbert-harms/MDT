@@ -343,7 +343,7 @@ class FittingProcessor(SimpleModelProcessor):
         self._logger=logging.getLogger(__name__)
 
         self._cl_runtime_info = CLRuntimeInfo()
-        self._codec = self._model.get_parameter_codec()
+        self._codec = self._model.get_mle_codec()
         self._initial_params = self._model.get_initial_parameters()
         self._wrapper = ParameterDecodingWrapper(self._model.get_nmr_parameters(), self._codec.get_decode_function())
         self._kernel_data = self._model.get_kernel_data()

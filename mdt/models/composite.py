@@ -279,7 +279,7 @@ class DMRICompositeModel(EstimableModel):
 
         for position_ind in range(nmr_positions):
             position = np.random.normal(initial_params, stds)
-            position = self.get_parameter_codec().encode_decode(position, kernel_data=self.get_kernel_data())
+            position = self.get_mle_codec().encode_decode(position, kernel_data=self.get_kernel_data())
 
             d = {'{}.{}'.format(m.name, p.name): position[:, ind]
                  for ind, (m, p) in enumerate(self._model_functions_info.get_estimable_parameters_list())}
@@ -447,7 +447,7 @@ class DMRICompositeModel(EstimableModel):
         """
         return copy.deepcopy(self._post_processing)
 
-    def get_parameter_codec(self):
+    def get_mle_codec(self):
         """Get a parameter codec that can be used to transform the parameters to and from optimization and model space.
 
         This does two things:
@@ -952,7 +952,7 @@ class DMRICompositeModel(EstimableModel):
 
         wrapped_objective = SimpleCLFunction.from_string('''
             double wrapped_''' + self.get_objective_function().get_cl_function_name() + '''(
-                    local mot_float_type* x, 
+                    local mot_float_type* x,
                     void* data){
 
                 local mot_float_type* x_tmp = ((hessian_function_wrapper_data*)data)->x_tmp;
@@ -964,7 +964,7 @@ class DMRICompositeModel(EstimableModel):
                 barrier(CLK_LOCAL_MEM_FENCE);
 
                 return ''' + self.get_objective_function().get_cl_function_name() + '''(
-                    x_tmp, ((hessian_function_wrapper_data*)data)->data, 0);    
+                    x_tmp, ((hessian_function_wrapper_data*)data)->data, 0);
             }
         ''', dependencies=[self.get_objective_function()])
 
@@ -1134,16 +1134,16 @@ class DMRICompositeModel(EstimableModel):
 
             return '''
                 float4 new_g_non_normalized = (float4)(
-                ''' + elements[0] + ''' * (*g).x + 
-                ''' + elements[1] + ''' * (*g).y + 
+                ''' + elements[0] + ''' * (*g).x +
+                ''' + elements[1] + ''' * (*g).y +
                 ''' + elements[2] + ''' * (*g).z,
 
-                ''' + elements[3] + ''' * (*g).x + 
-                ''' + elements[4] + ''' * (*g).y + 
+                ''' + elements[3] + ''' * (*g).x +
+                ''' + elements[4] + ''' * (*g).y +
                 ''' + elements[5] + ''' * (*g).z,
 
-                ''' + elements[6] + ''' * (*g).x + 
-                ''' + elements[7] + ''' * (*g).y + 
+                ''' + elements[6] + ''' * (*g).x +
+                ''' + elements[7] + ''' * (*g).y +
                 ''' + elements[8] + ''' * (*g).z,
                 0);
             '''
@@ -1159,7 +1159,7 @@ class DMRICompositeModel(EstimableModel):
         function_arguments.append('uint observation_index')
 
         body = '''
-            const uint matrix_index = ''' + str(get_observation_multiplier(gradient_deviations)) + ''' 
+            const uint matrix_index = ''' + str(get_observation_multiplier(gradient_deviations)) + '''
                                         * observation_index;
 
             ''' + get_cl_deviations_computation_code(zero_locations) + '''
@@ -2064,28 +2064,28 @@ class DMRICompositeModel(EstimableModel):
 
         return SimpleConstraintFunction.from_string('''
                 void modeling_constraints(
-                        local const mot_float_type* const x, 
+                        local const mot_float_type* const x,
                         void* data,
                         local mot_float_type* constraints){
 
                     if(get_local_id(0) == 0){
                         for(uint i = 0; i < ''' + str(nmr_constraints) + '''; i++){
-                            constraints[i] = 0;            
+                            constraints[i] = 0;
                         }
                     }
                     barrier(CLK_LOCAL_MEM_FENCE);
-                    
+
                     _mdt_model_data* model_data = (_mdt_model_data*)data;
                     ''' + params_listing + '''
-                    
+
                     const uint nmr_observations = ''' + str(self.get_nmr_observations()) + ''';
                     uint local_id = get_local_id(0);
                     uint workgroup_size = get_local_size(0);
                     uint observation_index;
-    
+
                     for(uint i = 0; i < (nmr_observations + workgroup_size - 1) / workgroup_size; i++){
                         observation_index = i * workgroup_size + local_id;
-    
+
                         if(observation_index < nmr_observations){
                             ''' + '\n'.join(func_calls) + '''
                         }
