@@ -152,8 +152,7 @@ class SphericalCoordinateParameterTemplate(FreeParameterTemplate):
     """
     init_value = np.pi / 2.0
     sampling_proposal_std = 0.1
-    numdiff_info = {'max_step': 0.1, 'scale_factor': 10}
-    parameter_transform = ScaleTransform(1/np.pi)
+    numdiff_info = {'max_step': 0.1, 'scale_factor': 10, 'use_lower_bound': False, 'use_upper_bound': False}
 
 
 class PolarAngleParameterTemplate(SphericalCoordinateParameterTemplate):
@@ -190,8 +189,7 @@ class RotationalAngleParameterTemplate(FreeParameterTemplate):
     init_value = np.pi / 2.0
     modulus = np.pi
     sampling_proposal_std = 0.1
-    numdiff_info = {'max_step': 0.1, 'scale_factor': 10}
-    parameter_transform = ScaleTransform(1 / np.pi)
+    numdiff_info = {'max_step': 0.1, 'scale_factor': 10, 'use_lower_bound': False, 'use_upper_bound': False}
 
 
 def _resolve_parameter_transform(parameter_transform):

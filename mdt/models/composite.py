@@ -941,15 +941,6 @@ class DMRICompositeModel(EstimableModel):
         nmr_params = self.get_nmr_parameters()
         scales = self._get_numdiff_scaling_factors()
 
-        modulus_transformations = []
-        transformation_template = 'x_tmp[{ind}] = x_tmp[{ind}] - floor(x_tmp[{ind}] / ({modulus})) * ({modulus});'
-        for m, p in self._model_functions_info.get_estimable_parameters_list():
-            ind = self._model_functions_info.get_parameter_estimable_index(m, p)
-            if isinstance(p, (PolarAngleParameter, RotationalAngleParameter)):
-                modulus_transformations.append(transformation_template.format(ind=ind, modulus='M_PI_F'))
-            elif isinstance(p, AzimuthAngleParameter):
-                modulus_transformations.append(transformation_template.format(ind=ind, modulus='2 * M_PI_F'))
-
         wrapped_objective = SimpleCLFunction.from_string('''
             double wrapped_''' + self.get_objective_function().get_cl_function_name() + '''(
                     local mot_float_type* x,
@@ -959,14 +950,17 @@ class DMRICompositeModel(EstimableModel):
 
                 if(get_local_id(0) == 0){
                     ''' + '\n'.join('x_tmp[{0}] = x[{0}] / {1};'.format(i, s) for i, s in enumerate(scales)) + '''
-                    ''' + '\n'.join(modulus_transformations) + '''
+                    ''' + '\n'.join(tr for tr in self._get_spherical_transformations(vector_name='x_tmp')) + '''
+                    ''' + '\n'.join(tr for tr in self._get_rotational_transformations(vector_name='x_tmp')) + '''
+                    ''' + (self._get_weight_sum_to_one_transformation(vector_name='x_tmp')
+                           if self._enforce_weights_sum_to_one else '') + '''
                 }
                 barrier(CLK_LOCAL_MEM_FENCE);
 
                 return ''' + self.get_objective_function().get_cl_function_name() + '''(
                     x_tmp, ((hessian_function_wrapper_data*)data)->data, 0);
             }
-        ''', dependencies=[self.get_objective_function()])
+        ''', dependencies=[self.get_objective_function(), self._get_spherical_transformation_func()])
 
         wrapped_input_data = Struct({
             'data': self.get_kernel_data().get_subset(roi_indices),
@@ -1365,17 +1359,23 @@ class DMRICompositeModel(EstimableModel):
                 epsilons.append(np.mean(proposal_std) * scaling_factor)
         return epsilons
 
-    def _get_weight_sum_to_one_transformation(self):
-        """Returns a snippet of CL for the encode and decode functions to force the sum of the weights to 1"""
+    def _get_weight_sum_to_one_transformation(self, vector_name='x'):
+        """Returns a snippet of CL for the encode and decode functions to force the sum of the weights to 1.
+
+        Args:
+            vector_name (str): the name of the vector on which to operate
+        """
         weight_indices = []
         for (m, p) in self._model_functions_info.get_estimable_weights():
             weight_indices.append(self._model_functions_info.get_parameter_estimable_index(m, p))
 
         if len(weight_indices) > 1:
             return '''
-                mot_float_type _weight_sum = ''' + ' + '.join('x[{}]'.format(index) for index in weight_indices) + ''';
+                mot_float_type _weight_sum = ''' + \
+                   ' + '.join(vector_name + '[{}]'.format(index) for index in weight_indices) + ''';
                 if(_weight_sum > 1.0){
-                    ''' + '\n'.join('x[{}] /= _weight_sum;'.format(index) for index in weight_indices) + '''
+                    ''' + '\n'.join(vector_name + '[{}] /= _weight_sum;'.format(index)
+                                    for index in weight_indices) + '''
                 }
             '''
         return ''
@@ -1666,8 +1666,12 @@ class DMRICompositeModel(EstimableModel):
             }
         ''')
 
-    def _get_spherical_transformations(self):
-        """Get the spherical transformations as a list of CL functions on the parameter vector x."""
+    def _get_spherical_transformations(self, vector_name='x'):
+        """Get the spherical transformations as a list of CL functions on the parameter vector.
+
+        Args:
+            vector_name (str): the name of the vector on which to operate
+        """
         spherical_transformations = []
         for compartment, params in self._get_spherical_parameters():
             polar_is_free = self._model_functions_info.is_parameter_estimable(compartment, params[0])
@@ -1677,20 +1681,27 @@ class DMRICompositeModel(EstimableModel):
                 polar_ind = self._model_functions_info.get_parameter_estimable_index(compartment, params[0])
                 azimuth_ind = self._model_functions_info.get_parameter_estimable_index(compartment, params[1])
                 spherical_transformations.append(
-                    '_ensure_right_spherical_hemisphere(x + {}, x + {});'.format(polar_ind, azimuth_ind)
+                    '_ensure_right_spherical_hemisphere({vn} + {pind}, {vn} + {aind});'.format(
+                        vn=vector_name, pind=polar_ind, aind=azimuth_ind)
                 )
             elif polar_is_free:
                 polar_ind = self._model_functions_info.get_parameter_estimable_index(compartment, params[0])
                 spherical_transformations.append(
-                    'x[{0}] = x[{0}] - floor(x[{0}] / M_PI_F) * M_PI_F;'.format(polar_ind))
+                    '{vn}[{pind}] = x[{pind}] - floor({vn}[{pind}] / M_PI_F) * M_PI_F;'.format(
+                        vn=vector_name, pind=polar_ind))
             elif azimuth_is_free:
                 azimuth_ind = self._model_functions_info.get_parameter_estimable_index(compartment, params[1])
                 spherical_transformations.append(
-                    'x[{0}] = x[{0}] - floor(x[{0}] / M_PI_F) * M_PI_F;'.format(azimuth_ind))
+                    '{vn}[{aind}] = {vn}[{aind}] - floor({vn}[{aind}] / M_PI_F) * M_PI_F;'.format(
+                        vn=vector_name, aind=azimuth_ind))
         return spherical_transformations
 
-    def _get_rotational_transformations(self):
-        """Get the transformations for the rotational parameters"""
+    def _get_rotational_transformations(self, vector_name='x'):
+        """Get the transformations for the rotational parameters.
+
+        Args:
+            vector_name (str): the name of the vector on which to operate
+        """
         rotational_transformations = []
         for m, p in self._model_functions_info.get_estimable_parameters_list():
             if isinstance(p, RotationalAngleParameter):
@@ -1701,7 +1712,8 @@ class DMRICompositeModel(EstimableModel):
                     modulus = 'M_PI'
 
                 rotational_transformations.append(
-                    'x[{0}] = x[{0}] - floor(x[{0}] / {1}) * {1};'.format(param_ind, modulus))
+                    '{vn}[{pind}] = {vn}[{pind}] - floor(x[{pind}] / {mod}) * {mod};'.format(
+                        vn=vector_name, pind=param_ind, mod=modulus))
         return rotational_transformations
 
     def _transform_observations(self, observations):
