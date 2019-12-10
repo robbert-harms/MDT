@@ -15,6 +15,8 @@ import mdt
 import os
 from pkg_resources import resource_filename
 
+import mdt.lib.input_data
+
 
 class ExampleDataTest(unittest.TestCase):
 
@@ -37,9 +39,9 @@ class ExampleDataTest(unittest.TestCase):
     def _run_b1k_b2k_analysis(cls):
         pjoin = mdt.make_path_joiner(os.path.join(cls._tmp_dir, cls._tmp_dir_subdir, 'b1k_b2k'))
 
-        input_data = mdt.load_input_data(pjoin('b1k_b2k_example_slices_24_38'),
-                                         pjoin('b1k_b2k.prtcl'),
-                                         pjoin('b1k_b2k_example_slices_24_38_mask'))
+        input_data = mdt.lib.input_data.load_input_data(pjoin('b1k_b2k_example_slices_24_38'),
+                                                        pjoin('b1k_b2k.prtcl'),
+                                                        pjoin('b1k_b2k_example_slices_24_38_mask'))
 
         for model_name in ['BallStick_r1', 'Tensor', 'NODDI']:
             mdt.fit_model(model_name, input_data, pjoin('output', 'b1k_b2k_example_slices_24_38_mask'))
@@ -48,9 +50,9 @@ class ExampleDataTest(unittest.TestCase):
     def _run_b6k_analysis(cls):
         pjoin = mdt.make_path_joiner(os.path.join(cls._tmp_dir, cls._tmp_dir_subdir, 'multishell_b6k_max'))
 
-        input_data = mdt.load_input_data(pjoin('multishell_b6k_max_example_slices_24_38'),
-                                         pjoin('multishell_b6k_max.prtcl'),
-                                         pjoin('multishell_b6k_max_example_slices_24_38_mask'))
+        input_data = mdt.lib.input_data.load_input_data(pjoin('multishell_b6k_max_example_slices_24_38'),
+                                                        pjoin('multishell_b6k_max.prtcl'),
+                                                        pjoin('multishell_b6k_max_example_slices_24_38_mask'))
 
         for model_name in ['CHARMED_r1', 'CHARMED_r2', 'CHARMED_r3']:
             mdt.fit_model(model_name, input_data, pjoin('output', 'multishell_b6k_max_example_slices_24_38_mask'))

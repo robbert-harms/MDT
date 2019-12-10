@@ -51,7 +51,7 @@ class DMRICompositeModel(EstimableModel):
                 use for the resulting complete model.
             signal_noise_model (mdt.model_building.signal_noise_models.SignalNoiseModel): the optional signal
                 noise model to use to add noise to the model prediction
-            input_data (mdt.utils.MRIInputData): the input data container
+            input_data (mdt.lib.input_data.MRIInputData): the input data container
             enforce_weights_sum_to_one (boolean): if we want to enforce that weights sum to one. This does the
                 following things; it fixes the first weight to the sum of the others and it adds a transformation
                 that ensures that those other weights sum to at most one.
@@ -668,7 +668,7 @@ class DMRICompositeModel(EstimableModel):
         """Set the input data this model will deal with.
 
         Args:
-            input_data (mdt.utils.MRIInputData):
+            input_data (mdt.lib.input_data.MRIInputData):
                 The container for the data we will use for this model.
             suppress_warnings (boolean): set to suppress all warnings
 
@@ -698,7 +698,7 @@ class DMRICompositeModel(EstimableModel):
         """Get the input data actually being used by this model.
 
         Returns:
-            mdt.utils.MRIInputData: the input data being used by this model
+            mdt.lib.input_data.MRIInputData: the input data being used by this model
         """
         return self._input_data
 
@@ -736,7 +736,7 @@ class DMRICompositeModel(EstimableModel):
         """Check if the input data has enough information for this model to work.
 
         Args:
-            input_data (mdt.utils.MRIInputData): The input data we intend on using with this model.
+            input_data (mdt.lib.input_data.MRIInputData): The input data we intend on using with this model.
 
         Returns:
             boolean: True if there is enough information in the input data, false otherwise.
@@ -747,7 +747,7 @@ class DMRICompositeModel(EstimableModel):
         """Get all the problems with the protocol.
 
         Args:
-            input_data (mdt.utils.MRIInputData): The input data we intend on using with this model.
+            input_data (mdt.lib.input_data.MRIInputData): The input data we intend on using with this model.
 
         Returns:
             list of InputDataProblem: A list of
@@ -1192,10 +1192,10 @@ class DMRICompositeModel(EstimableModel):
         Overwrite this function to limit the input data to a suitable range.
 
         Args:
-            input_data (mdt.utils.MRIInputData): the input data set by the user
+            input_data (mdt.lib.input_data.MRIInputData): the input data set by the user
 
         Returns:
-            mdt.utils.MRIInputData: either the same input data or a changed copy.
+            mdt.lib.input_data.MRIInputData: either the same input data or a changed copy.
         """
         if not self.volume_selection:
             if not suppress_warnings:
@@ -1225,7 +1225,7 @@ class DMRICompositeModel(EstimableModel):
         The final argument for putting this here is that I do not want any log output in the protocol tab.
 
         Args:
-            input_data (mdt.utils.MRIInputData): the input data to analyze.
+            input_data (mdt.lib.input_data.MRIInputData): the input data to analyze.
         """
 
         def warn(warning):
@@ -1269,7 +1269,7 @@ class DMRICompositeModel(EstimableModel):
         Get a list of volume indices that the model can use. Can be overloaded by a sub-class.
 
         Args:
-            input_data (mdt.utils.MRIInputData): the input data set by the user
+            input_data (mdt.lib.input_data.MRIInputData): the input data set by the user
 
         Returns:
             list: the list of indices we want to use for this model.
@@ -2935,7 +2935,7 @@ class ExtraOptimizationMapsInfo(Mapping):
 
         Args:
             results (dict): the dictionary with all the optimization results
-            input_data (mdt.utils.MRIInputData): the input data used during the optimization
+            input_data (mdt.lib.input_data.MRIInputData): the input data used during the optimization
             roi_indices (ndarray): a one dimensional array with indices in the region of interest
                 This holds the voxels we are currently optimizing.
         """

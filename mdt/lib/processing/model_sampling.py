@@ -28,7 +28,7 @@ def sample_composite_model(model, input_data, output_folder, nmr_samples, thinni
 
     Args:
         model (:class:`~mdt.models.base.EstimableModel`): a composite model to sample
-        input_data (:class:`~mdt.utils.MRIInputData`): The input data object with which the model
+        input_data (:class:`~mdt.lib.input_data.MRIInputData`): The input data object with which the model
             is initialized before running
         output_folder (string): The relative output path.
             The resulting maps are placed in a subdirectory (named after the model name) in this output folder.

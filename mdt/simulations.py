@@ -2,7 +2,8 @@ import numpy as np
 import collections
 from mdt.lib.components import get_model
 from mdt.lib.nifti import get_all_nifti_data
-from mdt.utils import create_roi, restore_volumes, MockMRIInputData
+from mdt.utils import create_roi, restore_volumes
+from mdt.lib.input_data import MockMRIInputData
 from mot.lib.cl_function import SimpleCLFunction
 from mot.lib.kernel_data import Array, Zeros
 
@@ -23,7 +24,7 @@ def create_signal_estimates(model, input_data, parameters):
 
     Args:
         model (str or model): the model or the name of the model to use for estimating the signals
-        input_data (mdt.utils.MRIInputData): the input data object, we will set this to the model
+        input_data (mdt.lib.input_data.MRIInputData): the input data object, we will set this to the model
         parameters (str or dict): either a directory file name or a dictionary containing optimization results
             Each element is assumed to be a 4d volume with the voxels we are using for the simulations.
 

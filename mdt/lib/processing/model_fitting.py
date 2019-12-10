@@ -51,7 +51,7 @@ def get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=
     Args:
         model_name (str):
             The name of a model for which we want the optimization starting points.
-        input_data (:class:`~mdt.utils.MRIInputData`): the input data object containing all
+        input_data (:class:`~mdt.lib.input_data.MRIInputData`): the input data object containing all
             the info needed for model fitting of intermediate models.
         output_folder (string): The path to the folder where to place the output, we will make a subdir with the
             model name in it.
@@ -258,7 +258,7 @@ def fit_composite_model(model, input_data, output_folder, method, tmp_results_di
      Args:
         model (:class:`~mdt.models.base.EstimableModel`): An implementation of an composite model
             that contains the model we want to optimize.
-        input_data (:class:`~mdt.utils.MRIInputData`): The input data object for the model.
+        input_data (:class:`~mdt.lib.input_data.MRIInputData`): The input data object for the model.
         output_folder (string): The path to the folder where to place the output.
             The resulting maps are placed in a subdirectory (named after the model name) in this output folder.
         method (str): The optimization routine to use.

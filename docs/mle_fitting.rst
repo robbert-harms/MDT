@@ -431,7 +431,7 @@ The basic usage is to fit for example NODDI on a dataset:
                   initialization_data={'inits': inits})
 
 
-First, we load the input data (see :func:`~mdt.utils.load_input_data`) with all the relevant modeling information.
+First, we load the input data (see :func:`~mdt.lib.input_data.load_input_data`) with all the relevant modeling information.
 Second, we try to find a good starting position for our model using the :func:`mdt.get_optimization_inits` command.
 This function returns a dictionary with initialization, fixation and boundary condition information which is suitable for your model and data.
 Please note that this function only works for models that ship by default with MDT, but due to the general nature of the ``initialization_data`` attribute
@@ -490,7 +490,7 @@ Please be advised though that some models require specific protocol values to be
 For example, the CHARMED models requires that the "TE" is specified in your protocol.
 MDT will help you by warning you if the available data is not suited for the selected model.
 
-To add additional data to your model computations, you can use the additional keyword arguments to the :func:`~mdt.utils.load_input_data` command.
+To add additional data to your model computations, you can use the additional keyword arguments to the :func:`~mdt.lib.input_data.load_input_data` command.
 
 
 Fixing parameters

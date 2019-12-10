@@ -11,7 +11,8 @@ from mdt.lib.deferred_mappings import DeferredActionDict
 from mdt.lib.nifti import write_all_as_nifti
 from mdt.model_building.utils import ParameterDecodingWrapper
 from mdt.utils import load_samples, per_model_logging_context, get_intermediate_results_path, create_roi, \
-    restore_volumes, is_scalar, split_array_to_dict, ROIMRIInputData
+    restore_volumes, is_scalar, split_array_to_dict
+from mdt.lib.input_data import ROIMRIInputData
 from mdt.lib.processing.processing_strategies import SimpleModelProcessor
 from mdt.lib.exceptions import InsufficientProtocolError
 from mot import minimize
@@ -32,7 +33,7 @@ def compute_bootstrap(model, input_data, optimization_results, output_folder, bo
 
     Args:
         model (:class:`~mdt.models.base.EstimableModel`): a composite model to sample
-        input_data (:class:`~mdt.utils.MRIInputData`): The input data object with which the model
+        input_data (:class:`~mdt.lib.input_data.MRIInputData`): The input data object with which the model
             is initialized before running
         optimization_results (dict or str): the optimization results, either a dictionary with results or the
             path to a folder.

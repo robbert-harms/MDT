@@ -19,7 +19,8 @@ from textwrap import dedent
 from mdt.lib.components import get_batch_profile, get_component_list
 from mdt.lib.masking import create_median_otsu_brain_mask
 from mdt.protocols import load_protocol, auto_load_protocol
-from mdt.utils import AutoDict, load_input_data, natural_key_sort_cb
+from mdt.utils import AutoDict, natural_key_sort_cb
+from mdt.lib.input_data import load_input_data
 from mdt.lib.nifti import load_nifti
 
 __author__ = 'Robbert Harms'
@@ -175,7 +176,7 @@ class SubjectInfo:
             use_gradient_deviations (boolean): if we should enable the use of the gradient deviations
 
         Returns:
-            :class:`~mdt.utils.MRIInputData`: the input data to use during model fitting
+            :class:`~mdt.lib.input_data.MRIInputData`: the input data to use during model fitting
         """
         raise NotImplementedError()
 

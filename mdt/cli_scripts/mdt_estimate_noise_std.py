@@ -12,6 +12,8 @@ import argparse
 import os
 import mdt
 from argcomplete.completers import FilesCompleter
+
+import mdt.lib.input_data
 from mdt.lib.shell_utils import BasicShellApplication
 from mot.lib import cl_environments
 import textwrap
@@ -56,9 +58,9 @@ class NoiseStdEstimation(BasicShellApplication):
         return parser
 
     def run(self, args, extra_args):
-        input_data = mdt.load_input_data(os.path.realpath(args.dwi),
-                                         os.path.realpath(args.protocol),
-                                         os.path.realpath(args.mask))
+        input_data = mdt.lib.input_data.load_input_data(os.path.realpath(args.dwi),
+                                                        os.path.realpath(args.protocol),
+                                                        os.path.realpath(args.mask))
 
         with mdt.with_logging_to_debug():
             noise_std = mdt.estimate_noise_std(input_data)

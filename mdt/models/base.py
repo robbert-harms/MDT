@@ -24,7 +24,7 @@ class EstimableModel:
         """Set the input data this model will deal with.
 
         Args:
-            input_data (mdt.utils.MRIInputData): The container for the data we will use for this model.
+            input_data (mdt.lib.input_data.MRIInputData): The container for the data we will use for this model.
             suppress_warnings (boolean): set to suppress all warnings
 
         Returns:
@@ -36,7 +36,7 @@ class EstimableModel:
         """Get the indices of the input data volumes used by this model.
 
         Args:
-            input_data (mdt.utils.MRIInputData): if given, limit the analysis to this input data.
+            input_data (mdt.lib.input_data.MRIInputData): if given, limit the analysis to this input data.
 
         Returns:
             List: the list of volume indices with volumes to use. This indexes the input data.
@@ -233,7 +233,7 @@ class EstimableModel:
         """Check if the input data has enough information for this model to work.
 
         Args:
-            input_data (mdt.utils.MRIInputData): The input data we intend on using with this model.
+            input_data (mdt.lib.input_data.MRIInputData): The input data we intend on using with this model.
 
         Returns:
             boolean: True if there is enough information in the input data, false otherwise.
@@ -244,7 +244,7 @@ class EstimableModel:
         """Get all the problems with the protocol.
 
         Args:
-            input_data (mdt.utils.MRIInputData): The input data we intend on using with this model.
+            input_data (mdt.lib.input_data.MRIInputData): The input data we intend on using with this model.
 
         Returns:
             list of InputDataProblem: A list of

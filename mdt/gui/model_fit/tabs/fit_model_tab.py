@@ -6,6 +6,7 @@ from PyQt5.QtCore import pyqtSlot, QObject, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog, QMessageBox, QDialog, QDialogButtonBox
 
 import mdt
+import mdt.lib.input_data
 import mot
 from mdt.gui.maps_visualizer.main import start_gui
 from mdt.gui.model_fit.design.ui_fit_model_tab import Ui_FitModelTabContent
@@ -428,9 +429,9 @@ class InputDataInfo:
         self.noise_std = None
 
     def build_input_data(self):
-        return mdt.load_input_data(self.dwi, self.protocol, self.mask,
-                                   noise_std=self.noise_std, gradient_deviations=self.gradient_deviations,
-                                   extra_protocol=self.extra_protocol)
+        return mdt.lib.input_data.load_input_data(self.dwi, self.protocol, self.mask,
+                                                  noise_std=self.noise_std, gradient_deviations=self.gradient_deviations,
+                                                  extra_protocol=self.extra_protocol)
 
 
 class ExtraDataDialog(Ui_OptimizationExtraDataDialog, QDialog):

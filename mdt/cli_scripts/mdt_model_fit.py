@@ -11,6 +11,8 @@ import argparse
 import os
 import mdt
 from argcomplete.completers import FilesCompleter
+
+import mdt.lib.input_data
 from mdt.lib.shell_utils import BasicShellApplication
 from mot.lib import cl_environments
 import textwrap
@@ -128,7 +130,7 @@ class ModelFit(BasicShellApplication):
                 noise_std = float(noise_std)
 
         def fit_model():
-            input_data = mdt.load_input_data(
+            input_data = mdt.lib.input_data.load_input_data(
                 os.path.realpath(args.dwi),
                 os.path.realpath(args.protocol),
                 os.path.realpath(args.mask),

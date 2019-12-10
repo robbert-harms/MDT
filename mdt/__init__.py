@@ -23,14 +23,14 @@ from mdt.component_templates.composite_models import CompositeModelTemplate
 from mdt.component_templates.library_functions import LibraryFunctionTemplate
 
 from mdt.lib.processing.model_fitting import get_batch_fitting_function
-from mdt.utils import estimate_noise_std, get_cl_devices, load_input_data, \
-    create_blank_mask, create_index_matrix, \
+from mdt.utils import estimate_noise_std, get_cl_devices, create_blank_mask, create_index_matrix, \
     volume_index_to_roi_index, roi_index_to_volume_index, load_brain_mask, init_user_settings, restore_volumes, \
     apply_mask, create_roi, volume_merge, protocol_merge, create_median_otsu_brain_mask, create_brain_mask, \
     load_samples, load_sample, load_nifti, write_slice_roi, apply_mask_to_file, extract_volumes, \
     get_slice_in_dimension, per_model_logging_context, \
     get_temporary_results_dir, get_example_data, SimpleInitializationData, InitializationData, load_volume_maps, \
     covariance_to_correlation, check_user_components, unzip_nifti, zip_nifti, combine_dict_to_array
+from mdt.lib.input_data import load_input_data
 from mdt.lib.sorting import sort_orientations, create_4d_sort_matrix, sort_volumes_per_voxel
 from mdt.simulations import create_signal_estimates, simulate_signals, add_rician_noise
 from mdt.lib.batch_utils import run_function_on_batch_fit_output, batch_apply, \
@@ -73,7 +73,7 @@ def get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=
     Args:
         model_name (str):
             The name of a model for which we want the optimization starting points.
-        input_data (:class:`~mdt.utils.MRIInputData`): the input data object containing all
+        input_data (:class:`~mdt.lib.input_data.MRIInputData`): the input data object containing all
             the info needed for model fitting of intermediate models.
         output_folder (string): The path to the folder where to place the output, we will make a subdir with the
             model name in it.
@@ -108,7 +108,7 @@ def fit_model(model, input_data, output_folder,
     Args:
         model (str or :class:`~mdt.models.base.EstimableModel`):
             The name of a composite model or an implementation of a composite model.
-        input_data (:class:`~mdt.utils.MRIInputData`): the input data object containing all
+        input_data (:class:`~mdt.lib.input_data.MRIInputData`): the input data object containing all
             the info needed for the model fitting.
         output_folder (string): The path to the folder where to place the output, we will make a subdir with the
             model name in it.
@@ -215,7 +215,7 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
 
     Args:
         model (str or :class:`~mdt.models.base.EstimableModel`): the model to sample
-        input_data (:class:`~mdt.utils.MRIInputData`): the input data object containing all
+        input_data (:class:`~mdt.lib.input_data.MRIInputData`): the input data object containing all
             the info needed for the model fitting.
         output_folder (string): The path to the folder where to place the output, we will make a subdir with the
             model name in it (for the optimization results) and then a subdir with the samples output.
@@ -335,7 +335,7 @@ def compute_fim(model, input_data, optimization_results, output_folder=None, cl_
     Args:
         model (str or :class:`~mdt.models.base.EstimableModel`):
             The name of a composite model or an implementation of a composite model.
-        input_data (:class:`~mdt.utils.MRIInputData`): the input data object containing all
+        input_data (:class:`~mdt.lib.input_data.MRIInputData`): the input data object containing all
             the info needed for the model fitting.
         optimization_results (dict or str): the optimization results, either a dictionary with results or the
             path to a folder.
@@ -418,7 +418,7 @@ def bootstrap_model(model, input_data, optimization_results, output_folder, boot
 
     Args:
         model (str or :class:`~mdt.models.base.EstimableModel`): the model to sample
-        input_data (:class:`~mdt.utils.MRIInputData`): the input data object containing all
+        input_data (:class:`~mdt.lib.input_data.MRIInputData`): the input data object containing all
             the info needed for the model fitting.
         optimization_results (dict or str): the optimization results, either a dictionary with results or the
             path to a folder.
