@@ -1233,10 +1233,10 @@ class DMRICompositeModel(EstimableModel):
 
         def convert_to_total_map(value):
             if is_scalar(value):
-                return np.ones((input_data.nmr_problems, input_data.nmr_observations)) * value
+                return np.ones((input_data.nmr_voxels, input_data.nmr_observations)) * value
             if value.shape[0] == input_data.nmr_observations:
-                return np.tile(np.squeeze(value)[None, :], (input_data.nmr_problems, 1))
-            if value.shape[0] == input_data.nmr_problems and value.shape[1] != input_data.nmr_observations:
+                return np.tile(np.squeeze(value)[None, :], (input_data.nmr_voxels, 1))
+            if value.shape[0] == input_data.nmr_voxels and value.shape[1] != input_data.nmr_observations:
                 return np.tile(np.squeeze(value)[:, None], (1, input_data.nmr_observations))
             return value
 
@@ -1414,7 +1414,7 @@ class DMRICompositeModel(EstimableModel):
             if all_elements_equal(value):
                 const_d = {p.name: Scalar(get_single_value(value), ctype=p.ctype)}
             else:
-                if value.shape[0] == self._input_data.nmr_problems:
+                if value.shape[0] == self._input_data.nmr_voxels:
                     const_d = {p.name: Array(value, ctype=p.ctype)}
                 else:
                     const_d = {p.name: Array(value, ctype=p.ctype, parallelize_over_first_dimension=False)}
@@ -1557,7 +1557,7 @@ class DMRICompositeModel(EstimableModel):
 
         if all_elements_equal(value):
             assignment = 'model_data->protocol->' + parameter.name
-        elif len(value.shape) > 1 and value.shape[0] == self._input_data.nmr_problems and \
+        elif len(value.shape) > 1 and value.shape[0] == self._input_data.nmr_voxels and \
             value.shape[1] != self._input_data.nmr_observations:
             assignment = 'model_data->protocol->' + parameter.name + '[0]'
         else:
@@ -2034,7 +2034,7 @@ class DMRICompositeModel(EstimableModel):
     def _get_nmr_problems(self, roi_indices=None):
         if roi_indices is None:
             if self._input_data:
-                return self._input_data.nmr_problems
+                return self._input_data.nmr_voxels
             return 0
         return len(roi_indices)
 

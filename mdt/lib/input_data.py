@@ -3,6 +3,7 @@ import numbers
 import numpy as np
 from mdt.lib.exceptions import NoiseStdEstimationNotPossible
 from mdt.utils import is_scalar, create_roi, estimate_noise_std, load_nifti, restore_volumes, load_protocol, load_brain_mask
+from mot.lib.utils import all_elements_equal, get_single_value
 
 __author__ = 'Robbert Harms'
 __date__ = '2019-12-10'
@@ -12,7 +13,7 @@ __licence__ = 'LGPL v3'
 
 
 class MRIInputData:
-    """A simple container for the input data for optimization/sample models."""
+    """A container for the input data for optimization/sample models."""
 
     def has_input_data(self, parameter_name):
         """Check if input data for the given parameter is defined in the model.
@@ -28,6 +29,9 @@ class MRIInputData:
     def get_input_data(self, parameter_name):
         """Get the input data for the given parameter.
 
+        This may compress the input data whenever possible. For example, when all the datapoints are equal it
+        may return a single scalar instead of the vector.
+
         Args:
              parameter_name (str): the name of the parameter for which we want to get input data
 
@@ -39,18 +43,33 @@ class MRIInputData:
         """
         raise NotImplementedError()
 
-    @property
-    def nmr_problems(self):
-        """Get the number of problems present in this input data.
+    def get_kernel_data(self, parameter_name):
+        """Get the input data for the given parameter as a `mot.lib.kernel_data.KernelData` object.
+
+        This may compress the input data whenever possible. For example, when all the datapoints are equal it
+        may return a single scalar instead of the vector.
+
+        Args:
+            parameter_name (str): the name of the parameter for which we want to get the kernel data
 
         Returns:
-            int: the number of problem instances
+            mot.lib.kernel_data.KernelData: the kernel data object for this parameter
+        """
+        raise NotImplementedError()
+        # todo add
+
+    @property
+    def nmr_voxels(self):
+        """Get the number of voxels present in this input data.
+
+        Returns:
+            int: the number of voxels we have data for
         """
         raise NotImplementedError()
 
     @property
     def nmr_observations(self):
-        """Get the number of observations/data points per problem.
+        """Get the number of observations/data points per voxels.
 
         The minimum is one observation per problem.
 
@@ -261,11 +280,19 @@ class SimpleMRIInputData(MRIInputData):
     def get_input_data(self, parameter_name):
         if parameter_name in self._extra_protocol:
             value = np.array(self._extra_protocol[parameter_name], copy=False)
-            if len(value.shape) < 3:
-                return value
-            return create_roi(value, self.mask)
+
+            if all_elements_equal(value):
+                return get_single_value(value)
+
+            if value.ndim >= 3:
+                value = create_roi(value, self.mask)
+            return value
+
         if parameter_name in self._protocol:
+            if all_elements_equal(self._protocol[parameter_name]):
+                return get_single_value(self._protocol[parameter_name])
             return self._protocol[parameter_name]
+
         raise ValueError('No input data could be find for the parameter "{}".'.format(parameter_name))
 
     def copy_with_updates(self, **updates):
@@ -336,7 +363,7 @@ class SimpleMRIInputData(MRIInputData):
                                       volume_weights=new_volume_weights, extra_protocol=new_extra_protocol)
 
     @property
-    def nmr_problems(self):
+    def nmr_voxels(self):
         return self.observations.shape[0]
 
     @property
@@ -478,7 +505,7 @@ class MockMRIInputData(SimpleMRIInputData):
         return args, kwargs
 
     @property
-    def nmr_problems(self):
+    def nmr_voxels(self):
         return 0
 
     @property
@@ -578,6 +605,7 @@ class ROIMRIInputData(MRIInputData):
             return False
 
     def get_input_data(self, parameter_name):
+        # todo compress
         if parameter_name in self._extra_protocol:
             return np.array(self._extra_protocol[parameter_name], copy=False)
         if parameter_name in self._protocol:
@@ -649,7 +677,7 @@ class ROIMRIInputData(MRIInputData):
                                       volume_weights=new_volume_weights, extra_protocol=new_extra_protocol)
 
     @property
-    def nmr_problems(self):
+    def nmr_voxels(self):
         return self.observations.shape[0]
 
     @property

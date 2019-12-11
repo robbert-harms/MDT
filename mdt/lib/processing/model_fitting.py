@@ -93,7 +93,7 @@ def get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=
         free_parameters = get_model(model_name)().get_free_param_names()
 
         if 'S0.s0' in free_parameters and input_data.has_input_data('b'):
-            if input_data.get_input_data('b').shape[0] == input_data.nmr_problems:
+            if input_data.get_input_data('b').shape[0] == input_data.nmr_voxels:
                 masked_observations = ma.masked_array(input_data.observations, input_data.get_input_data('b') < 250e6)
                 inits['S0.s0'] = restore_volumes(np.mean(masked_observations, axis=1), input_data.mask)
             else:
