@@ -21,7 +21,7 @@ class RotateOrthogonalVector(LibraryFunctionTemplate):
     cl_code = '''
         float cos_psi;
         float sin_psi = sincos(psi, &cos_psi);
-        
+
         return to_rotate * cos_psi + (cross(basis, to_rotate) * sin_psi);
     '''
 
@@ -74,7 +74,7 @@ class SphericalToCartesian(LibraryFunctionTemplate):
         float sin_theta = sincos(theta, &cos_theta);
         float cos_phi;
         float sin_phi = sincos(phi, &cos_phi);
-        
+
         return (float4)(cos_phi * sin_theta, sin_phi * sin_theta, cos_theta, 0.0);
     '''
 
@@ -132,7 +132,7 @@ class CartesianPolarDotProduct(LibraryFunctionTemplate):
         float sin_theta = sincos(v1_theta, &cos_theta);
         float cos_phi;
         float sin_phi = sincos(v1_phi, &cos_phi);
-        
+
         return (v0_x * (cos_phi * sin_theta)) + (v0_y * (sin_phi * sin_theta)) + (v0_z * cos_theta);
     '''
 
@@ -160,7 +160,7 @@ class SquareMatrixMultiplication(LibraryFunctionTemplate):
         for(int ind = 0; ind < n*n; ind++){
             i = ind / n;
             j = ind - n * i;
-            
+
             sum = 0;
             for(z = 0; z < n; z++){
                 sum += A[i * n + z] * B[z * n + j];
@@ -169,3 +169,30 @@ class SquareMatrixMultiplication(LibraryFunctionTemplate):
         }
     '''
 
+
+class sphdot(LibraryFunctionTemplate):
+    """Calculates the dot product between two spherical coordinate vectors.
+
+    Args:
+        theta_0: the polar angle of the first vector
+        phi_0: the azimuth angle of the first vector
+        theta_1: the polar angle of the second vector
+        phi_1: the azimuth angle of the second vector
+
+    Returns:
+        dot product between the two vectors
+    """
+    return_type = 'double'
+    parameters = ['double theta_0',
+                  'double phi_0',
+                  'double theta_1',
+                  'double phi_1']
+    cl_code = '''
+        double cos_theta_0;
+        double sin_theta_0 = sincos(theta_0, &cos_theta_0);
+
+        double cos_theta_1;
+        double sin_theta_1 = sincos(theta_1, &cos_theta_1);
+
+        return sin_theta_0 * sin_theta_1 * cos(phi_0 - phi_1) + cos_theta_0 * cos_theta_1;
+    '''

@@ -40,6 +40,7 @@ class Protocol(collections.Mapping):
         self._columns = {}
         self._preferred_column_order = ('gx', 'gy', 'gz', 'G', 'Delta', 'delta', 'TE', 'T1', 'b', 'q', 'maxG')
         self._virtual_columns = [VirtualColumnB(),
+                                 VirtualColumn_g_spherical(),
                                  SimpleVirtualColumn('Delta', lambda protocol: get_sequence_timings(protocol)['Delta']),
                                  SimpleVirtualColumn('delta', lambda protocol: get_sequence_timings(protocol)['delta']),
                                  SimpleVirtualColumn('G', lambda protocol: get_sequence_timings(protocol)['G'])]
@@ -489,7 +490,10 @@ class Protocol(collections.Mapping):
         """
         for virtual_column in self._virtual_columns:
             if virtual_column.name == column_name:
-                return np.reshape(virtual_column.get_values(self), (-1, 1))
+                data = virtual_column.get_values(self)
+                if data.ndim == 1:
+                    return np.reshape(data, (-1, 1))
+                return data
 
         raise KeyError('The given column name "{}" could not be found in this protocol.'.format(column_name))
 
@@ -588,6 +592,17 @@ class VirtualColumnB(VirtualColumn):
                                    sequence_timings['G'] ** 2 *
                                    sequence_timings['delta'] ** 2 *
                                    (sequence_timings['Delta'] - (sequence_timings['delta'] / 3))), (-1, 1))
+
+
+class VirtualColumn_g_spherical(VirtualColumn):
+
+    def __init__(self):
+        super().__init__('g_sph')
+
+    def get_values(self, parent_protocol):
+        from mdt.utils import cartesian_to_spherical
+        thetas, phis = cartesian_to_spherical(parent_protocol['g'], ensure_right_hemisphere=False)
+        return np.array([thetas, phis]).T
 
 
 def get_sequence_timings(protocol):

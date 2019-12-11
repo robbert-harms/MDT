@@ -15,6 +15,11 @@ class g(ProtocolParameterTemplate):
     data_type = 'float4'
 
 
+class g_sph(ProtocolParameterTemplate):
+    """Gradient vector g represented as spherical coordinates {theta, phi}"""
+    data_type = 'float2'
+
+
 class gx(ProtocolParameterTemplate):
     pass
 
