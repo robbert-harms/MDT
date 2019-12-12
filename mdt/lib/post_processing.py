@@ -99,7 +99,7 @@ class DTIMeasures:
 
         if len(d.shape) > 1 and d.shape[1] > 1:
             fa = np.zeros(d.shape[:2])
-            for batch_start, batch_end in split_in_batches(d.shape[1], 100):
+            for batch_start, batch_end in split_in_batches(d.shape[1], max_batch_size=100):
                 fa[:, batch_start:batch_end] = compute(
                     d[:, batch_start:batch_end],
                     dperp0[:, batch_start:batch_end],
@@ -280,7 +280,7 @@ class DKIMeasures:
 
                 return pown(tensor_md / adc, 2) * kurtosis_sum;
             }
-        
+
             void get_principal_and_perpendicular_eigenvector(
                     mot_float_type d,
                     mot_float_type dperp0,
@@ -302,8 +302,8 @@ class DKIMeasures:
                 *principal_vec = vec2;
                 *perpendicular_vec = vec0;
             }
-        
-            void calculate_measures(global mot_float_type* parameters, 
+
+            void calculate_measures(global mot_float_type* parameters,
                                     global float4* directions,
                                     uint nmr_directions,
                                     uint nmr_radial_directions,
@@ -773,7 +773,7 @@ def _tau_to_kappa(tau):
 
     objective_func = SimpleCLFunction.from_string('''
         double tau_to_kappa(local const mot_float_type* const x, void* data, local mot_float_type* objective_list){
-            return pown(tau(x[0]) - ((_tau_to_kappa_data*)data)->tau, 2); 
+            return pown(tau(x[0]) - ((_tau_to_kappa_data*)data)->tau, 2);
         }
     ''', dependencies=[tau_func])
 
