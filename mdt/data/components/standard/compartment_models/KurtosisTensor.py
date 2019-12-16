@@ -118,7 +118,7 @@ class KurtosisTensor(CompartmentTemplate):
             W_2100, W_2110, W_2210, g);
 
         if(kurtosis_sum < 0 || (((tensor_md_2 * b) / adc) * kurtosis_sum) > 3.0){
-            constraints[2] = INFINITY;
+            constraints[2] += INFINITY;
         }
     '''
     extra_optimization_maps = [

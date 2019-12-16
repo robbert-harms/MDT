@@ -1820,25 +1820,26 @@ class DMRICompositeModel(EstimableModel):
                 uint observation_ind;
                 model_data->local_tmp[local_id] = 0;
 
-                for(uint i = 0; i < (nmr_observations + workgroup_size - 1) / workgroup_size; i++){
-                    observation_ind = i * workgroup_size + local_id;
+                uint batch_range;
+                uint offset = get_workitem_batch(nmr_observations, &batch_range);
 
-                    if(observation_ind < nmr_observations){
-                        eval = ''' + ('-' if negative_ll else '') + ''' ''' + \
-                  eval_model_func.get_cl_function_name() + '(' + ', '.join(eval_call_args) + ''');
+                for(uint i = offset; i < offset + batch_range; i++){
+                    observation_ind = i;
 
-                        ''' + ('eval *= model_data->volume_weights[observation_ind];'
-                        if self._input_data.volume_weights is not None else '') + '''
+                    eval = ''' + ('-' if negative_ll else '') + ''' ''' + \
+                            eval_model_func.get_cl_function_name() + '(' + ', '.join(eval_call_args) + ''');
 
-                        model_data->local_tmp[local_id] += eval;
+                    ''' + ('eval *= model_data->volume_weights[observation_ind];'
+                    if self._input_data.volume_weights is not None else '') + '''
 
-                        ''' + ('''
-                        if(objective_list){
-                            // used by the nonlinear least-squares routines, which square the observations
-                            objective_list[observation_ind] = sqrt(fabs(eval));
-                        }
-                        ''' if support_for_objective_list else '') + '''
+                    model_data->local_tmp[local_id] += eval;
+
+                    ''' + ('''
+                    if(objective_list){
+                        // used by the nonlinear least-squares routines, which square the observations
+                        objective_list[observation_ind] = sqrt(fabs(eval));
                     }
+                    ''' if support_for_objective_list else '') + '''
                 }
                 barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -2090,17 +2091,12 @@ class DMRICompositeModel(EstimableModel):
                     _mdt_model_data* model_data = (_mdt_model_data*)data;
                     ''' + params_listing + '''
 
-                    const uint nmr_observations = ''' + str(self.get_nmr_observations()) + ''';
-                    uint local_id = get_local_id(0);
-                    uint workgroup_size = get_local_size(0);
                     uint observation_index;
-
-                    for(uint i = 0; i < (nmr_observations + workgroup_size - 1) / workgroup_size; i++){
-                        observation_index = i * workgroup_size + local_id;
-
-                        if(observation_index < nmr_observations){
-                            ''' + '\n'.join(func_calls) + '''
-                        }
+                    uint batch_range;
+                    uint offset = get_workitem_batch(''' + str(self.get_nmr_observations()) + ''', &batch_range);
+                    for(int i = offset; i < offset + batch_range; i++){
+                        observation_index = i;
+                        ''' + '\n'.join(func_calls) + '''
                     }
                     barrier(CLK_LOCAL_MEM_FENCE);
             }
@@ -2271,10 +2267,10 @@ class CompositeModelFunction(SimpleCLFunction):
             self._get_model_function_body(),
             dependencies=self._models)
 
-    def evaluate(self, inputs, nmr_instances, use_local_reduction=False, cl_runtime_info=None):
+    def evaluate(self, inputs, nmr_instances, use_local_reduction=False, local_size=None, cl_runtime_info=None):
         inputs = {k.replace('.', '_'): v for k,v in inputs.items()}
         return super().evaluate(inputs, nmr_instances, use_local_reduction=use_local_reduction,
-                                cl_runtime_info=cl_runtime_info)
+                                local_size=local_size, cl_runtime_info=cl_runtime_info)
 
     def get_model_parameter_list(self):
         """Get the model and parameter tuples that constructed this composite model.
