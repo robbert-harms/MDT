@@ -777,10 +777,11 @@ def _tau_to_kappa(tau):
         }
     ''', dependencies=[tau_func])
 
-    kappa = minimize(objective_func, np.ones_like(tau),
-                     data=Struct({'tau': Array(tau, 'mot_float_type', as_scalar=True)},
-                                 '_tau_to_kappa_data')).x
+    result = minimize(objective_func, np.ones_like(tau),
+                      data=Struct({'tau': Array(tau, 'mot_float_type', as_scalar=True)},
+                                  '_tau_to_kappa_data'),
+                      use_local_reduction=False)
+    kappa = result.x
     kappa[kappa > 64] = 1
     kappa[kappa < 0] = 1
     return kappa
-
