@@ -2,6 +2,26 @@
 Changelog
 *********
 
+v1.1.1 (2019-12-16)
+===================
+
+Added
+-----
+- Adds infrastructure to be able to represent the gradient vector as spherical angles in a compute kernel.
+- Added weight sum to one transformation to the FIM objective function.
+
+Changed
+-------
+- Removed local reduction from the Tensor-DTI post-processing. This was unnecessary.
+- Moved all the input data classes and functions to a dedicated module.
+- Renamed get_parameter_codec to get_mle_codec.
+
+Other
+-----
+- Followed changes in MOT allowing the work to be better splitted over workitems.
+- Moved repository to private github account.
+
+
 v1.1.0 (2019-12-06)
 ===================
 
