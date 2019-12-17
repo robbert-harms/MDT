@@ -1752,7 +1752,7 @@ def compute_noddi_dti(model, input_data, results, noddi_d=1.7e-9):
     dperp1 = get_value('dperp1')
 
     FA = get_value('FA', default=DTIMeasures.fractional_anisotropy(d, dperp0, dperp1))
-    MD = get_value('MD', (d + dperp0 + dperp1) / 3.)
+    MD = np.copy(get_value('MD', (d + dperp0 + dperp1) / 3.))
 
     tau = 1 / 3. * (1 + (4 / np.fabs(noddi_d - MD)) * (MD * FA / np.sqrt(3 - 2 * FA ** 2)))
     tau = np.nan_to_num(tau)
