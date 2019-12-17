@@ -29,7 +29,8 @@ from mdt.utils import estimate_noise_std, get_cl_devices, create_blank_mask, cre
     load_samples, load_sample, load_nifti, write_slice_roi, apply_mask_to_file, extract_volumes, \
     get_slice_in_dimension, per_model_logging_context, \
     get_temporary_results_dir, get_example_data, SimpleInitializationData, InitializationData, load_volume_maps, \
-    covariance_to_correlation, check_user_components, unzip_nifti, zip_nifti, combine_dict_to_array
+    covariance_to_correlation, check_user_components, unzip_nifti, zip_nifti, combine_dict_to_array, \
+    compute_noddi_dti
 from mdt.lib.input_data import load_input_data
 from mdt.lib.sorting import sort_orientations, create_4d_sort_matrix, sort_volumes_per_voxel
 from mdt.simulations import create_signal_estimates, simulate_signals, add_rician_noise

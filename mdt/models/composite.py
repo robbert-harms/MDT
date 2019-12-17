@@ -331,7 +331,7 @@ class DMRICompositeModel(EstimableModel):
             results_dict.update(fim['stds'])
             results_dict['covariances'] = fim['covariances']
 
-        routine_input = ExtraOptimizationMapsInfo(results_dict, self._input_data, roi_indices)
+        routine_input = ExtraOptimizationMapsInfo(self, results_dict, self._input_data, roi_indices)
         for routine in self._extra_optimization_maps_funcs:
             try:
                 results_dict.update(routine(routine_input))
@@ -2922,7 +2922,7 @@ def calculate_dependent_parameters(kernel_data, estimated_parameters_list,
 
 class ExtraOptimizationMapsInfo(Mapping):
 
-    def __init__(self, results, input_data, roi_indices):
+    def __init__(self, model, results, input_data, roi_indices):
         """Container holding information usable for computing extra optimization maps, after optimization.
 
         For backwards compatibility, this class functions both as a dictionary as well as a data container. That is,
@@ -2930,11 +2930,13 @@ class ExtraOptimizationMapsInfo(Mapping):
         Additionally, it provides some auxiliary data and functions for getting protocol information.
 
         Args:
+            model (DMRICompositeModel): the model used to compute the results
             results (dict): the dictionary with all the optimization results
             input_data (mdt.lib.input_data.MRIInputData): the input data used during the optimization
             roi_indices (ndarray): a one dimensional array with indices in the region of interest
                 This holds the voxels we are currently optimizing.
         """
+        self.model = model
         self.results = results
         self.input_data = input_data
         self.roi_indices = roi_indices
@@ -2948,7 +2950,7 @@ class ExtraOptimizationMapsInfo(Mapping):
         Returns:
             ExtraOptimizationMapsInfo: same as the current class but then with updated results
         """
-        return ExtraOptimizationMapsInfo(new_results, self.input_data, self.roi_indices)
+        return ExtraOptimizationMapsInfo(self.model, new_results, self.input_data, self.roi_indices)
 
     def get_input_data(self, parameter_name):
         """Get the input data for the given parameter.

@@ -1,12 +1,10 @@
 """This module contains various standard post-processing routines for use after optimization or sample."""
 import numpy as np
-from mdt.utils import tensor_spherical_to_cartesian, voxelwise_vector_matrix_vector_product, create_covariance_matrix
-from mot import minimize
-from mot.lib.cl_function import SimpleCLFunction
+from mdt.utils import tensor_spherical_to_cartesian, voxelwise_vector_matrix_vector_product, create_covariance_matrix, \
+    compute_noddi_dti
 from mot.lib.utils import split_in_batches, parse_cl_function
-from mot.lib.kernel_data import Array, Zeros, Scalar, Struct
+from mot.lib.kernel_data import Array, Zeros, Scalar
 from mdt.lib.components import get_component
-from mot.library_functions import dawson
 
 __author__ = 'Robbert Harms'
 __date__ = '2017-12-10'
@@ -692,12 +690,7 @@ class NODDIMeasures:
 def noddi_dti_maps(results):
     """Compute NODDI-like statistics from Tensor/Kurtosis parameter fits.
 
-    Several authors noted correspondence between NODDI parameters and DTI parameters [1, 2]. This function computes
-    the neurite density index (NDI) and NODDI's measure of neurite dispersion using Tensor parameters.
-
-    The corresponding theory assumes that the intrinsic diffusivity of the intra-neurite compartment of NODDI
-    is fixed to d = 1.7 x 10^-9 m^2 s^-1. As such, we fix it here to that value as well and compute the corresponding
-    NODDI-DTI results.
+    This uses :func:`mdt.utils.compute_noddi_dti` for the computation, see there for more information.
 
     Args:
         results (mdt.models.composite.ExtraOptimizationMapsInfo): the results data, should contain at least:
@@ -714,74 +707,5 @@ def noddi_dti_maps(results):
 
     Returns:
         dict: maps for the the NODDI-DTI, NDI and ODI measures.
-
-    References:
-        1. Edwards LJ, Pine KJ, Ellerbrock I, Weiskopf N, Mohammadi S. NODDI-DTI: Estimating neurite orientation and
-            dispersion parameters from a diffusion tensor in healthy white matter.
-            Front Neurosci. 2017;11(DEC):1-15. doi:10.3389/fnins.2017.00720.
-        2. Lampinen B, Szczepankiewicz F, Martensson J, van Westen D, Sundgren PC, Nilsson M. Neurite density
-            imaging versus imaging of microscopic anisotropy in diffusion MRI: A model comparison using spherical
-            tensor encoding. Neuroimage. 2017;147(July 2016):517-531. doi:10.1016/j.neuroimage.2016.11.053.
     """
-    noddi_d = 1.7e-9
-
-    d = results['d']
-    dperp0 = results['dperp0']
-    dperp1 = results['dperp1']
-
-    FA = results.get('FA', DTIMeasures.fractional_anisotropy(d, dperp0, dperp1))
-    MD = results.get('MD', (d + dperp0 + dperp1) / 3.)
-
-    tau = 1 / 3. * (1 + (4 / np.fabs(noddi_d - MD)) * (MD * FA / np.sqrt(3 - 2 * FA ** 2)))
-    tau = np.nan_to_num(tau)
-
-    kappa = _tau_to_kappa(tau)
-    odi = np.mean(np.arctan2(1.0, kappa) * 2 / np.pi, axis=1)
-
-    shells = results.input_data.protocol.get_b_values_shells()
-    if shells:
-        b = shells[0]['b_value']
-        if len(shells) > 1:
-            b = shells[1]['b_value'] - shells[0]['b_value']
-
-        sum = (d ** 2 + dperp0 ** 2 + dperp1 ** 2) / 5 + 2 * (d * dperp0 + d * dperp1 + dperp0 * dperp1) / 15
-
-        MD += ((b / 6) * sum) * results.get('MK', 1)
-
-    ndi = 1 - np.sqrt(0.5 * ((3 * MD) / noddi_d - 1))
-    ndi = np.clip(np.nan_to_num(ndi), 0, 1)
-
-    return {'NODDI_DTI_NDI': ndi, 'NODDI_DTI_TAU': tau, 'NODDI_DTI_KAPPA': kappa, 'NODDI_DTI_ODI': odi}
-
-
-def _tau_to_kappa(tau):
-    """Using non-linear optimization, convert the NODDI-DTI Tau variables to NODDI kappa's.
-
-    Args:
-        tau (ndarray): the list of tau's per voxel.
-
-    Returns:
-        ndarray: the list of corresponding kappa's
-    """
-    tau_func = SimpleCLFunction.from_string('''
-        double tau(double kappa){
-            if(kappa < 1e-12){
-                return 1/3.0;
-            }
-            return 0.5 * ( 1 / ( sqrt(kappa) * dawson(sqrt(kappa) ) ) - 1/kappa);
-        }''', dependencies=[dawson()])
-
-    objective_func = SimpleCLFunction.from_string('''
-        double tau_to_kappa(local const mot_float_type* const x, void* data, local mot_float_type* objective_list){
-            return pown(tau(x[0]) - ((_tau_to_kappa_data*)data)->tau, 2);
-        }
-    ''', dependencies=[tau_func])
-
-    result = minimize(objective_func, np.ones_like(tau),
-                      data=Struct({'tau': Array(tau, 'mot_float_type', as_scalar=True)},
-                                  '_tau_to_kappa_data'),
-                      use_local_reduction=False)
-    kappa = result.x
-    kappa[kappa > 64] = 1
-    kappa[kappa < 0] = 1
-    return kappa
+    return compute_noddi_dti(results.model, results.input_data, results.results, noddi_d=1.7e-9)

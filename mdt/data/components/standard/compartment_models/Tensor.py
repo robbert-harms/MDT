@@ -1,5 +1,5 @@
 from mdt import CompartmentTemplate
-from mdt.lib.post_processing import DTIMeasures, noddi_dti_maps
+from mdt.lib.post_processing import DTIMeasures
 
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-21"
@@ -20,5 +20,5 @@ class Tensor(CompartmentTemplate):
         constraints[1] = dperp1 - dperp0;
     '''
     extra_prior = 'return dperp1 < dperp0 && dperp0 < d;'
-    extra_optimization_maps = [DTIMeasures.extra_optimization_maps, noddi_dti_maps]
+    extra_optimization_maps = [DTIMeasures.extra_optimization_maps]
     extra_sampling_maps = [DTIMeasures.extra_sampling_maps]
