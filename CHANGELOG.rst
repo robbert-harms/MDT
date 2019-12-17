@@ -2,6 +2,18 @@
 Changelog
 *********
 
+v1.1.4 (2019-12-17)
+===================
+
+Added
+-----
+- Adds some introduction text to the mdt.conf file.
+
+Other
+-----
+- Small bugfix in the noddi-dti computation. MD was changed in place.
+
+
 v1.1.3 (2019-12-17)
 ===================
 - Upped the voxel batch size again as the previous change did not provide a solution.
