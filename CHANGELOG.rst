@@ -2,6 +2,32 @@
 Changelog
 *********
 
+v1.1.2 (2019-12-17)
+===================
+
+Changed
+-------
+- Changed the default optimization batch size from 100k to 10k voxels per run. Due to changes in MOT, the current batch size fails for some users.
+
+Changed
+-------
+- Removed the NODDI-DTI maps from the Tensor and KurtosisTensor post-processing. They do not seem to be widely used.
+  For users that do desire these maps there are two ways to go about it:
+
+  1) Reinstate the post-processing. This can be done by going to the
+  Tensor compartment model, and add ``noddi_dti_maps`` to the
+  extra_optimization_maps list. This function can be imported from:
+  ``from mdt.lib.post_processing import noddi_dti_maps``.
+
+  2) Use the function mdt.compute_noddi_dti() to compute the maps manually
+  based on optimization results. Typically used as:
+
+  .. code-block:: python
+
+      results = mdt.fit_model(model, input_data, ...)
+      noddi_dti = mdt.compute_noddi_dti(model, input_data, results)
+
+
 v1.1.1 (2019-12-16)
 ===================
 
