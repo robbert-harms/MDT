@@ -2,6 +2,11 @@
 Changelog
 *********
 
+v1.1.3 (2019-12-17)
+===================
+- Upped the voxel batch size again as the previous change did not provide a solution.
+
+
 v1.1.2 (2019-12-17)
 ===================
 
