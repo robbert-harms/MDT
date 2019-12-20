@@ -160,13 +160,8 @@ def fit_model(model, input_data, output_folder,
     if not check_user_components():
         init_user_settings(pass_if_exists=True)
 
-    if cl_device_ind is not None:
-        if not isinstance(cl_device_ind, collections.Iterable):
-            cl_device_ind = [cl_device_ind]
-        cl_runtime_info = CLRuntimeInfo(cl_environments=get_cl_devices(cl_device_ind),
-                                        double_precision=double_precision)
-    else:
-        cl_runtime_info = CLRuntimeInfo(double_precision=double_precision)
+    cl_runtime_info = CLRuntimeInfo(cl_environments=cl_device_ind,
+                                    double_precision=double_precision)
 
     if isinstance(model, str):
         model_name = model
@@ -370,12 +365,8 @@ def compute_fim(model, input_data, optimization_results, output_folder=None, cl_
     if not check_user_components():
         init_user_settings(pass_if_exists=True)
 
-    if cl_device_ind is not None:
-        if not isinstance(cl_device_ind, collections.Iterable):
-            cl_device_ind = [cl_device_ind]
-        cl_runtime_info = CLRuntimeInfo(cl_environments=get_cl_devices(cl_device_ind), double_precision=False)
-    else:
-        cl_runtime_info = CLRuntimeInfo(double_precision=False)
+    cl_runtime_info = CLRuntimeInfo(cl_environments=cl_device_ind,
+                                    double_precision=True)
 
     if isinstance(model, str):
         model_name = model
