@@ -100,7 +100,8 @@ def get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=
 
 
 def fit_model(model, input_data, output_folder,
-              method=None, optimizer_options=None, recalculate=False, cl_device_ind=None,
+              method=None, optimizer_options=None, recalculate=False,
+              cl_device_ind=None, cl_load_balancer=None,
               double_precision=False, tmp_results_dir=True,
               initialization_data=None, use_cascaded_inits=True,
               post_processing=None):
@@ -122,8 +123,12 @@ def fit_model(model, input_data, output_folder,
             If not given, defaults to 'Powell'.
         optimizer_options (dict): extra options passed to the optimization routines.
         recalculate (boolean): If we want to recalculate the results if they are already present.
-        cl_device_ind (int or list): the index of the CL device to use. The index is from the list from the function
-            utils.get_cl_devices(). This can also be a list of device indices.
+        cl_device_ind (List[Union[mot.lib.cl_environments.CLEnvironment, int]]
+                             or mot.lib.cl_environments.CLEnvironment or int): the CL devices to use.
+            Either provide MOT CLEnvironment's or indices from into the list from the function mdt.get_cl_devices().
+        cl_load_balancer (mot.lib.load_balancers.LoadBalancer or Tuple[float]): the load balancer to use. Can also
+            be an array of fractions (summing to 1) with one fraction per device. For example, for two devices one
+            can specify ``cl_load_balancer = [0.3, 0.7]`` to let one device to more work than another.
         double_precision (boolean): if we would like to do the calculations in double precision
         tmp_results_dir (str, True or None): The temporary dir for the calculations. Set to a string to use
             that path directly, set to True to use the config value, set to None to disable.
@@ -161,7 +166,8 @@ def fit_model(model, input_data, output_folder,
         init_user_settings(pass_if_exists=True)
 
     cl_runtime_info = CLRuntimeInfo(cl_environments=cl_device_ind,
-                                    double_precision=double_precision)
+                                    double_precision=double_precision,
+                                    load_balancer=cl_load_balancer)
 
     if isinstance(model, str):
         model_name = model
@@ -203,7 +209,7 @@ def fit_model(model, input_data, output_folder,
 
 
 def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None, thinning=None,
-                 method=None, recalculate=False, cl_device_ind=None, double_precision=False,
+                 method=None, recalculate=False, cl_device_ind=None, cl_load_balancer=None, double_precision=False,
                  store_samples=True, sample_items_to_save=None, tmp_results_dir=True,
                  initialization_data=None, post_processing=None, post_sampling_cb=None,
                  sampler_options=None):
@@ -232,6 +238,9 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
         recalculate (boolean): If we want to recalculate the results if they are already present.
         cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices().
+        cl_load_balancer (mot.lib.load_balancers.LoadBalancer or Tuple[float]): the load balancer to use. Can also
+            be an array of fractions (summing to 1) with one fraction per device. For example, for two devices one
+            can specify ``cl_load_balancer = [0.3, 0.7]`` to let one device to more work than another.
         double_precision (boolean): if we would like to do the calculations in double precision
         store_samples (boolean): determines if we store any of the samples. If set to False we will store none
             of the samples.
@@ -276,12 +285,9 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
     if not check_user_components():
         init_user_settings(pass_if_exists=True)
 
-    if cl_device_ind is None:
-        cl_context_action = mot.configuration.VoidConfigurationAction()
-    else:
-        cl_context_action = mot.configuration.RuntimeConfigurationAction(
-            cl_environments=get_cl_devices(cl_device_ind),
-            double_precision=double_precision)
+    cl_runtime_info = CLRuntimeInfo(cl_environments=cl_device_ind,
+                                    double_precision=double_precision,
+                                    load_balancer=cl_load_balancer)
 
     settings = get_general_sampling_settings()
     if nmr_samples is None:
@@ -302,7 +308,7 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
     if post_processing:
         model_instance.update_active_post_processing('sampling', post_processing)
 
-    with mot.configuration.config_context(cl_context_action):
+    with mot.configuration.config_context(CLRuntimeAction(cl_runtime_info)):
         from mdt.lib.processing.model_sampling import sample_composite_model
         return sample_composite_model(model_instance, input_data, output_folder, nmr_samples, thinning, burnin,
                                       get_temporary_results_dir(tmp_results_dir),
@@ -313,7 +319,7 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
                                       sampler_options=sampler_options)
 
 
-def compute_fim(model, input_data, optimization_results, output_folder=None, cl_device_ind=None,
+def compute_fim(model, input_data, optimization_results, output_folder=None, cl_device_ind=None, cl_load_balancer=None,
                 initialization_data=None):
     """Compute the Fisher Information Matrix (FIM).
 
@@ -338,6 +344,9 @@ def compute_fim(model, input_data, optimization_results, output_folder=None, cl_
         output_folder (string): Optionally, the path to the folder where to place the output
         cl_device_ind (int or list): the index of the CL device to use. The index is from the list from the function
             utils.get_cl_devices(). This can also be a list of device indices.
+        cl_load_balancer (mot.lib.load_balancers.LoadBalancer or Tuple[float]): the load balancer to use. Can also
+            be an array of fractions (summing to 1) with one fraction per device. For example, for two devices one
+            can specify ``cl_load_balancer = [0.3, 0.7]`` to let one device to more work than another.
         initialization_data (dict): provides (extra) initialization data to
             use during model fitting. This dictionary can contain the following elements:
 
@@ -366,7 +375,8 @@ def compute_fim(model, input_data, optimization_results, output_folder=None, cl_
         init_user_settings(pass_if_exists=True)
 
     cl_runtime_info = CLRuntimeInfo(cl_environments=cl_device_ind,
-                                    double_precision=True)
+                                    double_precision=True,
+                                    load_balancer=cl_load_balancer)
 
     if isinstance(model, str):
         model_name = model
