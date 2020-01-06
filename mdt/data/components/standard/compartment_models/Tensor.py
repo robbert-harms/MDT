@@ -19,6 +19,6 @@ class Tensor(CompartmentTemplate):
         constraints[0] = dperp0 - d;
         constraints[1] = dperp1 - dperp0;
     '''
-    extra_prior = 'return dperp1 < dperp0 && dperp0 < d;'
+    prior = 'return dperp1 < dperp0 && dperp0 < d;'
     extra_optimization_maps = [DTIMeasures.extra_optimization_maps]
     extra_sampling_maps = [DTIMeasures.extra_sampling_maps]

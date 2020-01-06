@@ -74,7 +74,7 @@ class DMRICompositeModelBuilder(ComponentBuilder):
                 self._extra_sampling_maps_funcs.extend(deepcopy(template.extra_sampling_maps))
 
                 self._model_priors.extend(_resolve_model_prior(
-                    template.extra_prior, self._model_functions_info.get_model_parameter_list()))
+                    template.prior, self._model_functions_info.get_model_parameter_list()))
 
                 constraint_func = _resolve_constraints(
                     template.constraints, self._model_functions_info.get_model_parameter_list())
@@ -187,9 +187,8 @@ class CompositeModelTemplate(ComponentTemplate):
             To limit the volumes to the b-values between 0 and 1.6e9.
             If the method ``_get_suitable_volume_indices`` is overwritten, this does nothing.
 
-        extra_prior (str, mdt.model_building.utils.ModelPrior or None): a model wide prior. This is used in conjunction
-            with the compartment priors and the parameter priors. If a string is given we will automatically construct a
-            :class:`mdt.model_building.utils.ModelPrior` from that string.
+        prior (str or CLFunction or None): a model wide prior. This is used in conjunction
+            with the compartment priors and the parameter priors.
 
         constraints (str or None): additional inequality constraints for this model. Each constraint needs to be
             implemented as ``g(x)`` where we assume that ``g(x) <= 0``. For example, to implement a simple inequality
@@ -217,7 +216,7 @@ class CompositeModelTemplate(ComponentTemplate):
     lower_bounds = {}
     enforce_weights_sum_to_one = True
     volume_selection = None
-    extra_prior = None
+    prior = None
     constraints = None
 
     @classmethod

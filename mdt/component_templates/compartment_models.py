@@ -51,7 +51,7 @@ class CompartmentBuilder(ComponentBuilder):
                     dependencies=dependencies,
                     constraints_func=_resolve_constraints(template.constraints, template.name,
                                                           parameters, dependencies),
-                    model_function_priors=_resolve_prior(template.extra_prior, template.name,
+                    model_function_priors=_resolve_prior(template.prior, template.name,
                                                          [p.name for p in parameters]),
                     extra_optimization_maps_funcs=builder._get_extra_optimization_map_funcs(template, parameters),
                     extra_sampling_maps_funcs= builder._get_extra_sampling_map_funcs(template, parameters),
@@ -195,15 +195,16 @@ class CompartmentTemplate(ComponentTemplate):
             implemented as ``g(x)`` where we assume that ``g(x) <= 0``. For example, to implement a simple inequality
             constraint like ``d >= dperp0``, we first write it as ``dperp0 - d <= 0``. We can then implement it as::
 
-                constraints = 'constraints[0] = dperp0 - d;'
+                constraints = '''
+                    constraints[0] = dperp0 - d;
+                '''
 
             To add more constraint, add another entry to the ``constraints`` array. MDT parses the given text and
             automatically recognizes the model parameter names and the number of constraints.
 
-        extra_prior (str or None): an extra MCMC sample prior for this compartment. This is additional to the priors
-            defined in the parameters. This should be an instance of :class:`~mdt.models.compartments.CompartmentPrior`
-            or a string with a CL function body. If the latter, the :class:`~mdt.models.compartments.CompartmentPrior`
-            is automatically constructed based on the content of the string (automatic parameter recognition).
+        prior (str or None): an extra MCMC sample prior for this compartment. This is additional to the priors
+            defined in the parameters. This should be an instance of a CLFunction or a string with a CL function body.
+            If the latter, the CLFunction is automatically constructed based on the content of the string.
 
         cache_info (dict): the data cache information. This works in combination with specifying the ``@cache``
             parameter for this compartment. The cache info should have two elements, ``fields`` and ``cl_code``.
@@ -251,7 +252,7 @@ class CompartmentTemplate(ComponentTemplate):
     cl_extra = None
     dependencies = []
     return_type = 'double'
-    extra_prior = None
+    prior = None
     extra_optimization_maps = []
     extra_sampling_maps = []
     cache_info = None

@@ -61,7 +61,7 @@ class CHARMED_r2(CompositeModelTemplate):
                          'FR.std': np.std(samples['w_res0.w'] + samples['w_res1.w'], axis=1)}
     ]
 
-    extra_prior = 'return w_res1.w < w_res0.w;'
+    prior = 'return w_res1.w < w_res0.w;'
 
 
 class CHARMED_r3(CompositeModelTemplate):
@@ -98,5 +98,5 @@ class CHARMED_r3(CompositeModelTemplate):
                          'FR.std': np.std(samples['w_res0.w'] + samples['w_res1.w'] + samples['w_res2.w'], axis=1)}
     ]
 
-    extra_prior = 'return w_res2.w < w_res1.w && w_res1.w < w_res0.w;'
+    prior = 'return w_res2.w < w_res1.w && w_res1.w < w_res0.w;'
 

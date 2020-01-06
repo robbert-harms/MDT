@@ -32,7 +32,7 @@ class BallRacket_r2(CompositeModelTemplate):
                (Weight(w_res0) * Racket(Racket0)) +
                (Weight(w_res1) * Racket(Racket1)) )
     '''
-    fixes = {'Racket0.d': 'Ball.d', 
+    fixes = {'Racket0.d': 'Ball.d',
              'Racket1.d': 'Ball.d'}
 
     constraints = '''
@@ -49,4 +49,4 @@ class BallRacket_r2(CompositeModelTemplate):
             'FS.std': np.std(samples['w_res0.w'] + samples['w_res1.w'], axis=1)}
     ]
 
-    extra_prior = 'return w_res1.w < w_res0.w;'
+    prior = 'return w_res1.w < w_res0.w;'

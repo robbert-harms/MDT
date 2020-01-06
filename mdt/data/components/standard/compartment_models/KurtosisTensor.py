@@ -104,7 +104,7 @@ class KurtosisTensor(CompartmentTemplate):
         return exp(-b*adc + (b*b)/6.0 * tensor_md_2 * kurtosis_sum);
     '''
 
-    extra_prior = 'return dperp1 < dperp0 && dperp0 < d;'
+    prior = 'return dperp1 < dperp0 && dperp0 < d;'
 
     constraints = '''
         constraints[0] = dperp0 - d;

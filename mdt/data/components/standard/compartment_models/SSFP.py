@@ -41,7 +41,7 @@ class SSFP_Tensor(CompartmentTemplate):
         constraints[0] = dperp0 - d;
         constraints[1] = dperp1 - dperp0;
     '''
-    extra_prior = 'return dperp1 < dperp0 && dperp0 < d;'
+    prior = 'return dperp1 < dperp0 && dperp0 < d;'
     extra_optimization_maps = [DTIMeasures.extra_optimization_maps]
     extra_sampling_maps = [DTIMeasures.extra_sampling_maps]
 
@@ -51,7 +51,7 @@ class SSFP_Zeppelin(CompartmentTemplate):
     parameters = ('g', 'd', 'dperp0', 'theta', 'phi', 'delta', 'G', 'TR', 'flip_angle', 'b1', 'T1', 'T2')
     dependencies = ('SSFP',)
     cl_code = '''
-        double adc = dperp0 + ((d - dperp0) * pown(dot(g, (float4)(cos(phi) * sin(theta), 
+        double adc = dperp0 + ((d - dperp0) * pown(dot(g, (float4)(cos(phi) * sin(theta),
                                                                    sin(phi) * sin(theta), cos(theta), 0.0)), 2);
 
         return SSFP(adc, delta, G, TR, flip_angle, b1, T1, T2);
