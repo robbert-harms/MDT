@@ -219,7 +219,7 @@ class AllObservationsParam(SimpleCLFunctionParameter):
 
         You can use this parameter by adding it to your model and then use the current name in your model equation.
         """
-        super().__init__('global float *' + name)
+        super().__init__('float *' + name)
 
 
 class ObservationIndexParam(SimpleCLFunctionParameter):

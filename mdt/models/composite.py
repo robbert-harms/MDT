@@ -149,7 +149,6 @@ class DMRICompositeModel(EstimableModel):
             mot.lib.kernel_data.KernelData: the kernel data used by this model
         """
         data_items = {
-            'local_tmp': LocalMemory('double'),
             'bounds': self._get_bounds_as_var_data(),
             'protocol': self._get_protocol_data_as_var_data(),
             'protocol_update_cbs': self._get_protocol_update_callbacks_kernel_inputs(),
@@ -188,7 +187,7 @@ class DMRICompositeModel(EstimableModel):
             mot.lib.cl_function.CLFunction: the CL function used to finalize a proposal during sampling.
         """
         return SimpleCLFunction.from_string('''
-            void finalizeProposal(void* data, local mot_float_type* x){
+            void finalizeProposal(void* data, mot_float_type* x){
                 _mdt_model_data* model_data = (_mdt_model_data*)data;
                 ''' + '\n'.join(self._get_spherical_transformations()) + '''
                 ''' + '\n'.join(self._get_rotational_transformations()) + '''
@@ -291,7 +290,7 @@ class DMRICompositeModel(EstimableModel):
         return results
 
     def _post_process_optimization_maps(self, parameters_array, roi_indices, parameters_dict=None,
-                                        log_likelihoods=None):
+                                        log_likelihoods=None, estimate_fim=None):
         """Create post processing optimization maps.
 
         The current steps in this function:
@@ -310,6 +309,8 @@ class DMRICompositeModel(EstimableModel):
             log_likelihoods (ndarray): for every set of parameters the corresponding log likelihoods.
                 If not provided they will be calculated from the parameters.
             roi_indices (Iterable): if set, the problem instances optimized in this batch
+            estimate_fim (None or boolean): if None, we use the value from the post-processing configuration.
+                When a boolean is provided it overrules the configuration settings.
 
         Returns:
             dict: The results dictionary.
@@ -326,7 +327,11 @@ class DMRICompositeModel(EstimableModel):
             results_dict.update(self._get_post_optimization_information_criterion_maps(
                 parameters_array, roi_indices, log_likelihoods=log_likelihoods))
 
-        if self._post_processing['optimization']['uncertainties']:
+        estimate_uncertainties = self._post_processing['optimization']['uncertainties']
+        if estimate_fim is not None:
+            estimate_uncertainties = estimate_fim
+
+        if estimate_uncertainties:
             fim = self._compute_fisher_information_matrix(parameters_array, roi_indices)
             results_dict.update(fim['stds'])
             results_dict['covariances'] = fim['covariances']
@@ -486,7 +491,7 @@ class DMRICompositeModel(EstimableModel):
 
         def get_encode_function():
             func = '''
-                void parameter_encode(void* data, local mot_float_type* x){
+                void parameter_encode(void* data, mot_float_type* x){
                     _mdt_model_data* model_data = (_mdt_model_data*)data;
             '''
             if self._enforce_weights_sum_to_one:
@@ -508,7 +513,7 @@ class DMRICompositeModel(EstimableModel):
 
         def get_decode_function():
             func = '''
-                void parameter_decode(void* data, local mot_float_type* x){
+                void parameter_decode(void* data, mot_float_type* x){
                     _mdt_model_data* model_data = (_mdt_model_data*)data;
             '''
             for d in get_parameter_transformations()[1]:
@@ -827,12 +832,14 @@ class DMRICompositeModel(EstimableModel):
         map_samples = samples[range(samples.shape[0]), :, map_indices]
 
         def mle_maps():
-            maps = self._post_process_optimization_maps(mle_samples, roi_indices, log_likelihoods=mle_values)
+            maps = self._post_process_optimization_maps(mle_samples, roi_indices, log_likelihoods=mle_values,
+                                                        estimate_fim=False)
             maps.update({'MaximumLikelihoodEstimator.indices': mle_indices})
             return maps
 
         def map_maps():
-            maps = self._post_process_optimization_maps(map_samples, roi_indices, log_likelihoods=map_lls)
+            maps = self._post_process_optimization_maps(map_samples, roi_indices, log_likelihoods=map_lls,
+                                                        estimate_fim=False)
             maps.update({'MaximumAPosteriori': map_values,
                          'MaximumAPosteriori.indices': map_indices})
             return maps
@@ -943,7 +950,7 @@ class DMRICompositeModel(EstimableModel):
 
         wrapped_objective = SimpleCLFunction.from_string('''
             double wrapped_''' + self.get_objective_function().get_cl_function_name() + '''(
-                    local mot_float_type* x,
+                    mot_float_type* x,
                     void* data){
 
                 local mot_float_type* x_tmp = ((hessian_function_wrapper_data*)data)->x_tmp;
@@ -1149,7 +1156,7 @@ class DMRICompositeModel(EstimableModel):
 
         function_arguments = [self._model_functions_info.get_protocol_parameter_by_name(p).ctype
                               + '* ' + p for p in parameters_needed]
-        function_arguments.append('global float* gradient_deviations')
+        function_arguments.append('float* gradient_deviations')
         function_arguments.append('uint observation_index')
 
         body = '''
@@ -1652,7 +1659,7 @@ class DMRICompositeModel(EstimableModel):
     def _get_spherical_transformation_func(self):
         """The transformation function for restraining the spherical coordinates with the right spherical hemisphere."""
         return SimpleCLFunction.from_string('''
-            void _ensure_right_spherical_hemisphere(local mot_float_type* theta, local mot_float_type* phi){
+            void _ensure_right_spherical_hemisphere(mot_float_type* theta, mot_float_type* phi){
                 if(*phi > M_PI_F){
                     *phi -= M_PI_F;
                     *theta = M_PI_F - *theta;
@@ -1803,9 +1810,9 @@ class DMRICompositeModel(EstimableModel):
 
         cl_body = '''
             double getObjectiveInstanceValue(
-                    local const mot_float_type* const x,
+                    const mot_float_type* const x,
                     void* data
-                    ''' + (', local mot_float_type* objective_list' if support_for_objective_list else '') + '''){
+                    ''' + (', mot_float_type* objective_list' if support_for_objective_list else '') + '''){
 
                 _mdt_model_data* model_data = (_mdt_model_data*)data;
 
@@ -1818,7 +1825,7 @@ class DMRICompositeModel(EstimableModel):
 
                 double eval;
                 uint observation_ind;
-                model_data->local_tmp[local_id] = 0;
+                double sum = 0;
 
                 uint batch_range;
                 uint offset = get_workitem_batch(nmr_observations, &batch_range);
@@ -1832,7 +1839,7 @@ class DMRICompositeModel(EstimableModel):
                     ''' + ('eval *= model_data->volume_weights[observation_ind];'
                     if self._input_data.volume_weights is not None else '') + '''
 
-                    model_data->local_tmp[local_id] += eval;
+                    sum += eval;
 
                     ''' + ('''
                     if(objective_list){
@@ -1841,13 +1848,7 @@ class DMRICompositeModel(EstimableModel):
                     }
                     ''' if support_for_objective_list else '') + '''
                 }
-                barrier(CLK_LOCAL_MEM_FENCE);
-
-                double sum = 0;
-                for(uint i = 0; i < min(nmr_observations, workgroup_size); i++){
-                    sum += model_data->local_tmp[i];
-                }
-                return sum;
+                return work_group_reduce_add(sum);
             }
         '''
         return SimpleCLFunction.from_string(cl_body, dependencies=[cache_init_func, eval_function_info,
@@ -1903,7 +1904,7 @@ class DMRICompositeModel(EstimableModel):
                 dependencies.append(compartment.get_cache_init_function())
 
         parameters = ['void* data',
-                      'local const mot_float_type* const x']
+                      'const mot_float_type* const x']
 
         return SimpleCLFunction(
             'void', '_initCaches', parameters, get_function_body(), dependencies=dependencies)
@@ -2003,7 +2004,7 @@ class DMRICompositeModel(EstimableModel):
 
         def get_function_parameters():
             parameters = ['void* data',
-                          'local const mot_float_type* const x',
+                          'const mot_float_type* const x',
                           'uint observation_index']
             return parameters
 
@@ -2077,9 +2078,9 @@ class DMRICompositeModel(EstimableModel):
 
         return SimpleConstraintFunction.from_string('''
                 void modeling_constraints(
-                        local const mot_float_type* const x,
+                        const mot_float_type* const x,
                         void* data,
-                        local mot_float_type* constraints){
+                        mot_float_type* constraints){
 
                     if(get_local_id(0) == 0){
                         for(uint i = 0; i < ''' + str(nmr_constraints) + '''; i++){
@@ -2159,7 +2160,7 @@ class DMRICompositeModel(EstimableModel):
 
         return SimpleCLFunction(
             'mot_float_type', 'getLogPrior',
-            ['local const mot_float_type* const x', 'void* data'],
+            ['const mot_float_type* const x', 'void* data'],
             get_body(), dependencies=get_dependencies())
 
     def _get_weight_prior(self):
@@ -2902,7 +2903,7 @@ def calculate_dependent_parameters(kernel_data, estimated_parameters_list,
             parameter_write_out += 'results[' + str(i) + '] = ' + p + ";\n"
 
         return SimpleCLFunction.from_string('''
-            void transform(private mot_float_type* x, global mot_float_type* results, void* data){
+            void transform(mot_float_type* x, mot_float_type* results, void* data){
                 _mdt_model_data* model_data = (_mdt_model_data*)data;
 
                 ''' + parameters_listing + '''

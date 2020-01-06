@@ -22,7 +22,7 @@ class ParameterDecodingWrapper:
 
                     .. code-block:: c
 
-                        void <fname>(void* data, local mot_float_type* x);
+                        void <fname>(void* data, mot_float_type* x);
         """
         self._nmr_parameters = nmr_parameters
         self._decode_function = decode_function
@@ -47,33 +47,33 @@ class ParameterDecodingWrapper:
 
                 .. code-block:: c
 
-                    double <func_name>(local mot_float_type* x,
+                    double <func_name>(mot_float_type* x,
                                        void* data,
-                                       local mot_float_type* objective_list);
+                                       mot_float_type* objective_list);
 
         Returns:
             mot.lib.cl_function.CLFunction: the wrapped objective function.
         """
         return SimpleCLFunction.from_string('''
             double wrapped_''' + objective_function.get_cl_function_name() + '''(
-                    local mot_float_type* x,
-                    void* data, 
-                    local mot_float_type* objective_list){
-                
+                    mot_float_type* x,
+                    void* data,
+                    mot_float_type* objective_list){
+
                 local mot_float_type* x_tmp = ((objective_function_wrapper_data*)data)->x_tmp;
-                
+
                 if(get_local_id(0) == 0){
                     for(uint i = 0; i < ''' + str(self._nmr_parameters) + '''; i++){
                         x_tmp[i] = x[i];
                     }
                     ''' + self._decode_function.get_cl_function_name() + '''(
-                        ((objective_function_wrapper_data*)data)->data, 
+                        ((objective_function_wrapper_data*)data)->data,
                         x_tmp);
                 }
                 barrier(CLK_LOCAL_MEM_FENCE);
-    
+
                 return ''' + objective_function.get_cl_function_name() + '''(
-                    x_tmp, ((objective_function_wrapper_data*)data)->data, objective_list);    
+                    x_tmp, ((objective_function_wrapper_data*)data)->data, objective_list);
             }
         ''', dependencies=[objective_function, self._decode_function])
 
@@ -85,18 +85,18 @@ class ParameterDecodingWrapper:
 
                 .. code-block:: c
 
-                    void <func_name>(local mot_float_type* x,
+                    void <func_name>(mot_float_type* x,
                                      void* data,
-                                     local mot_float_type* constraints);
+                                     mot_float_type* constraints);
 
         Returns:
             mot.optimize.base.ConstraintFunction: the wrapped constraint function.
         """
         return SimpleConstraintFunction.from_string('''
             void wrapped_''' + constraints_func.get_cl_function_name() + '''(
-                    local mot_float_type* x,
-                    void* data, 
-                    local mot_float_type* constraints){
+                    mot_float_type* x,
+                    void* data,
+                    mot_float_type* constraints){
 
                 local mot_float_type* x_tmp = ((objective_function_wrapper_data*)data)->x_tmp;
 
@@ -105,13 +105,13 @@ class ParameterDecodingWrapper:
                         x_tmp[i] = x[i];
                     }
                     ''' + self._decode_function.get_cl_function_name() + '''(
-                        ((objective_function_wrapper_data*)data)->data, 
+                        ((objective_function_wrapper_data*)data)->data,
                         x_tmp);
                 }
                 barrier(CLK_LOCAL_MEM_FENCE);
 
                 ''' + constraints_func.get_cl_function_name() + '''(
-                    x_tmp, ((objective_function_wrapper_data*)data)->data, constraints);    
+                    x_tmp, ((objective_function_wrapper_data*)data)->data, constraints);
             }
         ''', dependencies=[constraints_func, self._decode_function],
              nmr_constraints=constraints_func.get_nmr_constraints())
@@ -129,7 +129,7 @@ class ParameterCodec:
 
                 .. code-block:: c
 
-                    void <fname>(void* data, local mot_float_type* x);
+                    void <fname>(void* data, mot_float_type* x);
 
             decode_func (mot.lib.cl_function.CLFunction): An OpenCL function that is used in the CL kernel to
                 transform the parameters from encoded space to model space so they can be used as input to the model.
@@ -137,7 +137,7 @@ class ParameterCodec:
 
                 .. code-block:: c
 
-                    void <fname>(void* data, local mot_float_type* x);
+                    void <fname>(void* data, mot_float_type* x);
             encode_bounds_func (Callable[[array, array], Tuple[array, array]]): encode the lower and upper bounds
                 to bounds of the encoded parameter space. If not set, we won't encode the bounds
         """
@@ -155,7 +155,7 @@ class ParameterCodec:
 
                 .. code-block:: c
 
-                    void <fname>(void* data, local mot_float_type* x);
+                    void <fname>(void* data, mot_float_type* x);
         """
         return self._encode_func
 
@@ -169,7 +169,7 @@ class ParameterCodec:
 
                 .. code-block:: c
 
-                    void <fname>(void* data, local mot_float_type* x);
+                    void <fname>(void* data, mot_float_type* x);
         """
         return self._decode_func
 
@@ -236,7 +236,7 @@ class ParameterCodec:
         decode_func = self.get_decode_function()
 
         func = SimpleCLFunction.from_string('''
-            void encode_decode_parameters(void* data, local mot_float_type* x){
+            void encode_decode_parameters(void* data, mot_float_type* x){
                 ''' + encode_func.get_cl_function_name() + '''(data, x);
                 ''' + decode_func.get_cl_function_name() + '''(data, x);
             }
@@ -246,7 +246,7 @@ class ParameterCodec:
     @staticmethod
     def _transform_parameters(cl_func, parameters, kernel_data, cl_runtime_info=None):
         cl_named_func = SimpleCLFunction.from_string('''
-            void transformParameterSpace(void* data, local mot_float_type* x){
+            void transformParameterSpace(void* data, mot_float_type* x){
                 ''' + cl_func.get_cl_function_name() + '''(data, x);
             }
         ''', dependencies=[cl_func])

@@ -257,7 +257,7 @@ class DKIMeasures:
 
         return parse_cl_function('''
             double apparent_kurtosis(
-                    global mot_float_type* params,
+                    mot_float_type* params,
                     float4 direction,
                     float4 vec0,
                     float4 vec1,
@@ -301,13 +301,13 @@ class DKIMeasures:
                 *perpendicular_vec = vec0;
             }
 
-            void calculate_measures(global mot_float_type* parameters,
-                                    global float4* directions,
+            void calculate_measures(mot_float_type* parameters,
+                                    float4* directions,
                                     uint nmr_directions,
                                     uint nmr_radial_directions,
-                                    global float* mks,
-                                    global float* aks,
-                                    global float* rks){
+                                    float* mks,
+                                    float* aks,
+                                    float* rks){
                 int i, j;
 
                 float4 vec0, vec1, vec2;

@@ -116,7 +116,7 @@ def _get_simulate_function(model):
     """
     eval_function_info = model.get_model_eval_function()
     return SimpleCLFunction.from_string('''
-        void simulate(void* data, local mot_float_type* parameters, global mot_float_type* estimates){
+        void simulate(void* data, mot_float_type* parameters, mot_float_type* estimates){
             for(uint i = 0; i < ''' + str(model.get_nmr_observations()) + '''; i++){
                 estimates[i] = ''' + eval_function_info.get_cl_function_name() + '''(data, parameters, i);
             }

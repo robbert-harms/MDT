@@ -355,7 +355,7 @@ def _resolve_constraints(constraint, compartment_name, compartment_parameters, d
             parameters.append(param)
 
     return SimpleConstraintFunction('void', compartment_name + '_constraints',
-                                    parameters + ['local mot_float_type* constraints'],
+                                    parameters + ['mot_float_type* constraints'],
                                     constraint, dependencies=dependencies, nmr_constraints=nmr_constraints)
 
 

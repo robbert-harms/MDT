@@ -81,7 +81,7 @@ class LineshapeSuperLorentzianInterpolated(LibraryFunctionTemplate):
         return scale * linear_cubic_interpolation(sf, freq_count, LineshapeSuperLorentzianInterpolated_lookup_table);
     '''
     cl_extra = '''
-        constant float LineshapeSuperLorentzianInterpolated_lookup_table[] = {
+        global float LineshapeSuperLorentzianInterpolated_lookup_table[] = {
              1.6351068497997384e-05, 1.3115492795811157e-05, 1.1241666681196103e-05, 9.869994321088873e-06, 
              8.79781041979886e-06, 7.914196403750282e-06, 7.159953545164688e-06, 6.501822309129753e-06, 
              5.9187370092896205e-06, 5.396337299169265e-06, 4.9244567517431185e-06, 4.495680550607755e-06, 

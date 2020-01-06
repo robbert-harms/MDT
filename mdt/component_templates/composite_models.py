@@ -326,7 +326,7 @@ def _get_compartment_constraints(compartments):
 
         return SimpleConstraintFunction(
             'void', 'wrapped_' + original_constraint_func.get_cl_function_name(),
-            parameters + ['local mot_float_type* constraints'],
+            parameters + ['mot_float_type* constraints'],
             body,
             dependencies=[original_constraint_func],
             nmr_constraints=original_constraint_func.get_nmr_constraints())
@@ -384,7 +384,7 @@ def _resolve_constraints(constraint, model_parameters):
             remaining_constraint = remaining_constraint.replace(bar_name, '')
 
     return SimpleConstraintFunction('void', 'model_constraints',
-                                    parameters + ['local mot_float_type* constraints'],
+                                    parameters + ['mot_float_type* constraints'],
                                     constraint, nmr_constraints=nmr_constraints)
 
 

@@ -1726,7 +1726,7 @@ def compute_noddi_dti(model, input_data, results, noddi_d=1.7e-9):
             }''', dependencies=[dawson()])
 
         objective_func = SimpleCLFunction.from_string('''
-            double tau_to_kappa(local const mot_float_type* const x, void* data, local mot_float_type* objective_list){
+            double tau_to_kappa(const mot_float_type* const x, void* data, mot_float_type* objective_list){
                 return pown(tau(x[0]) - ((_tau_to_kappa_data*)data)->tau, 2);
             }
         ''', dependencies=[tau_func])
