@@ -261,7 +261,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
                 {header}
 
                 import mdt
-                
+
                 input_data = mdt.load_input_data(
                     {dwi!r},
                     {protocol!r},
@@ -269,7 +269,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
                     noise_std={noise_std!r},
                     gradient_deviations={gradient_deviations!r},
                     extra_protocol={extra_protocol!r})
-                
+
                 mdt.fit_model(
                     {model!r},
                     input_data,

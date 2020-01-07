@@ -60,7 +60,7 @@ class ParameterDecodingWrapper:
                     void* data,
                     mot_float_type* objective_list){
 
-                local mot_float_type* x_tmp = ((objective_function_wrapper_data*)data)->x_tmp;
+                mot_float_type* x_tmp = ((objective_function_wrapper_data*)data)->x_tmp;
 
                 if(get_local_id(0) == 0){
                     for(uint i = 0; i < ''' + str(self._nmr_parameters) + '''; i++){
@@ -98,7 +98,7 @@ class ParameterDecodingWrapper:
                     void* data,
                     mot_float_type* constraints){
 
-                local mot_float_type* x_tmp = ((objective_function_wrapper_data*)data)->x_tmp;
+                mot_float_type* x_tmp = ((objective_function_wrapper_data*)data)->x_tmp;
 
                 if(get_local_id(0) == 0){
                     for(uint i = 0; i < ''' + str(self._nmr_parameters) + '''; i++){

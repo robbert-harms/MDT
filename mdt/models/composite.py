@@ -953,7 +953,7 @@ class DMRICompositeModel(EstimableModel):
                     mot_float_type* x,
                     void* data){
 
-                local mot_float_type* x_tmp = ((hessian_function_wrapper_data*)data)->x_tmp;
+                mot_float_type* x_tmp = ((hessian_function_wrapper_data*)data)->x_tmp;
 
                 if(get_local_id(0) == 0){
                     ''' + '\n'.join('x_tmp[{0}] = x[{0}] / {1};'.format(i, s) for i, s in enumerate(scales)) + '''
