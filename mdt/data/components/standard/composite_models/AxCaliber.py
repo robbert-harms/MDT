@@ -1,4 +1,3 @@
-import numpy as np
 from mdt import CompositeModelTemplate
 
 __author__ = 'Robbert Harms'
