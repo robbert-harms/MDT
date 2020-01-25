@@ -2,6 +2,23 @@
 Changelog
 *********
 
+v1.1.5 (2020-01-25)
+===================
+
+Added
+-----
+- Adds CL load balancing option to the model processing functions.
+
+Changed
+-------
+- Updates the credits with sponsors information.
+- Renamed extra_prior to prior in the compartment and composite model definitions.
+
+Other
+-----
+- Following changes in MOT to allow easier cl environment initialization.
+
+
 v1.1.4 (2019-12-17)
 ===================
 
