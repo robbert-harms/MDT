@@ -45,7 +45,7 @@ class FSLSamplingRoutine(AbstractRWMSampler):
     def _get_mcmc_method_kernel_data_elements(self):
         kernel_data = super()._get_mcmc_method_kernel_data_elements()
         kernel_data.update({
-            'acceptance_counter': Array(self._acceptance_counter, mode='rw', ensure_zero_copy=True)
+            'acceptance_counter': Array(self._acceptance_counter, mode='rw')
         })
         return kernel_data
 
