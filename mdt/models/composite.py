@@ -2267,10 +2267,9 @@ class CompositeModelFunction(SimpleCLFunction):
             self._get_model_function_body(),
             dependencies=self._models)
 
-    def evaluate(self, inputs, nmr_instances, use_local_reduction=False, local_size=None, cl_runtime_info=None):
+    def evaluate(self, inputs, nmr_instances, **kwargs):
         inputs = {k.replace('.', '_'): v for k,v in inputs.items()}
-        return super().evaluate(inputs, nmr_instances, use_local_reduction=use_local_reduction,
-                                local_size=local_size, cl_runtime_info=cl_runtime_info)
+        return super().evaluate(inputs, nmr_instances, **kwargs)
 
     def get_model_parameter_list(self):
         """Get the model and parameter tuples that constructed this composite model.
