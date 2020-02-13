@@ -158,7 +158,8 @@ class DMRICompositeModel(EstimableModel):
         data_items.update(self._get_fixed_parameters_as_var_data())
 
         if self._input_data.volume_weights is not None:
-            data_items.update({'volume_weights': Array(self._input_data.volume_weights.astype(np.float16))})
+            data_items.update({'volume_weights': Array(self._input_data.volume_weights.astype(np.float16),
+                                                       mode='r', use_host_ptr=False)})
 
         return Struct(data_items, '_mdt_model_data')
 
@@ -1182,7 +1183,7 @@ class DMRICompositeModel(EstimableModel):
                 return SimpleCLFunction('void', 'gradient_deformations_protocol_callback', function_arguments, body)
 
             def get_kernel_input_data(self):
-                return {'gradient_deviations': Array(gradient_deviations, ctype='float')}
+                return {'gradient_deviations': Array(gradient_deviations, ctype='float', mode='r', use_host_ptr=False)}
 
         return GradientDeviationProtocolUpdate()
 
@@ -1422,9 +1423,10 @@ class DMRICompositeModel(EstimableModel):
                 const_d = {p.name: Scalar(get_single_value(value), ctype=p.ctype)}
             else:
                 if value.shape[0] == self._input_data.nmr_voxels:
-                    const_d = {p.name: Array(value, ctype=p.ctype)}
+                    const_d = {p.name: Array(value, ctype=p.ctype, mode='r', use_host_ptr=False)}
                 else:
-                    const_d = {p.name: Array(value, ctype=p.ctype, parallelize_over_first_dimension=False)}
+                    const_d = {p.name: Array(value, ctype=p.ctype, parallelize_over_first_dimension=False,
+                                             mode='r', use_host_ptr=False)}
             return_data.update(const_d)
         return return_data
 
@@ -1444,7 +1446,7 @@ class DMRICompositeModel(EstimableModel):
         observations = self._input_data.observations
         if observations is not None:
             observations = self._transform_observations(observations).astype(np.float32)
-            return {'observations': Array(observations)}
+            return {'observations': Array(observations, mode='r', use_host_ptr=False)}
         return {}
 
     def _convert_parameters_dot_to_bar(self, string):
@@ -1618,7 +1620,7 @@ class DMRICompositeModel(EstimableModel):
             if all_elements_equal(value):
                 var_data_dict[param_name] = Scalar(get_single_value(value), ctype=p.ctype)
             else:
-                var_data_dict[param_name] = Array(value, ctype=p.ctype, as_scalar=True)
+                var_data_dict[param_name] = Array(value, ctype=p.ctype, as_scalar=True, mode='r', use_host_ptr=False)
         return var_data_dict
 
     def _get_bounds_as_var_data(self):
@@ -1635,7 +1637,7 @@ class DMRICompositeModel(EstimableModel):
                 if all_elements_equal(value):
                     elements.append(Scalar(get_single_value(data), ctype=p.ctype))
                 else:
-                    elements.append(Array(data, ctype='float', as_scalar=True))
+                    elements.append(Array(data, ctype='float', as_scalar=True, mode='r', use_host_ptr=False))
 
         return {'lower_bounds': CompositeArray(lower_bounds, 'float', address_space='local'),
                 'upper_bounds': CompositeArray(upper_bounds, 'float', address_space='local')}
@@ -2912,7 +2914,7 @@ def calculate_dependent_parameters(kernel_data, estimated_parameters_list,
 
     data_struct = {
         'data': kernel_data,
-        'x': Array(np.dstack(estimated_parameters_list)[0, ...], ctype='mot_float_type'),
+        'x': Array(np.dstack(estimated_parameters_list)[0, ...], ctype='mot_float_type', mode='r', use_host_ptr=False),
         'results': Zeros((estimated_parameters_list[0].shape[0], len(dependent_parameter_names)), 'mot_float_type')
     }
 
