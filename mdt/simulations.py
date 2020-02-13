@@ -43,7 +43,7 @@ def create_signal_estimates(model, input_data, parameters):
     parameters = model.param_dict_to_array(parameters)
 
     kernel_data = {'data': model.get_kernel_data(),
-                   'parameters': Array(parameters, ctype='mot_float_type'),
+                   'parameters': Array(parameters, ctype='mot_float_type', mode='r'),
                    'estimates': Zeros((parameters.shape[0], model.get_nmr_observations()), 'mot_float_type')}
 
     _get_simulate_function(model).evaluate(kernel_data, parameters.shape[0])
@@ -79,7 +79,7 @@ def simulate_signals(model, protocol, parameters):
     nmr_problems = parameters.shape[0]
 
     kernel_data = {'data': model.get_kernel_data(),
-                   'parameters': Array(parameters, ctype='mot_float_type'),
+                   'parameters': Array(parameters, ctype='mot_float_type', mode='r'),
                    'estimates': Zeros((nmr_problems, model.get_nmr_observations()), 'mot_float_type')
                    }
 
