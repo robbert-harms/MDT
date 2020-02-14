@@ -2,6 +2,14 @@
 Changelog
 *********
 
+v1.2.1 (2020-02-14)
+===================
+
+Changed
+-------
+- Small fix to the buffer allocation flags. The post-processing failed sometimes.
+
+
 v1.2.0 (2020-02-14)
 ===================
 Upgrade to match the latest version of MOT, which contains a vast number of changes regarding buffer and kernel allocation.
