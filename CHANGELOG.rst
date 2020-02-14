@@ -2,6 +2,11 @@
 Changelog
 *********
 
+v1.2.0 (2020-02-14)
+===================
+Upgrade to match the latest version of MOT, which contains a vast number of changes regarding buffer and kernel allocation.
+
+
 v1.1.5 (2020-01-25)
 ===================
 
