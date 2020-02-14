@@ -194,7 +194,7 @@ class BootstrappingProcessor(SimpleModelProcessor):
 
         parameters = self._x_opt_array[roi_indices]
         kernel_data = {'data': self._model.get_kernel_data().get_subset(roi_indices),
-                       'parameters': Array(parameters, ctype='mot_float_type', mode='r', use_host_ptr=False),
+                       'parameters': Array(parameters, ctype='mot_float_type'),
                        'estimates': Zeros((parameters.shape[0], self._model.get_nmr_observations()), 'mot_float_type')}
 
         eval_function_info = self._model.get_model_eval_function()
