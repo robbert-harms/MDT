@@ -236,8 +236,9 @@ def sample_model(model, input_data, output_folder, nmr_samples=None, burnin=None
             If not given, defaults to 'AMWG'.
 
         recalculate (boolean): If we want to recalculate the results if they are already present.
-        cl_device_ind (int): the index of the CL device to use. The index is from the list from the function
-            utils.get_cl_devices().
+        cl_device_ind (List[Union[mot.lib.cl_environments.CLEnvironment, int]]
+                             or mot.lib.cl_environments.CLEnvironment or int): the CL devices to use.
+            Either provide MOT CLEnvironment's or indices from into the list from the function mdt.get_cl_devices().
         cl_load_balancer (mot.lib.load_balancers.LoadBalancer or Tuple[float]): the load balancer to use. Can also
             be an array of fractions (summing to 1) with one fraction per device. For example, for two devices one
             can specify ``cl_load_balancer = [0.3, 0.7]`` to let one device to more work than another.
@@ -342,8 +343,9 @@ def compute_fim(model, input_data, optimization_results, output_folder=None, cl_
         optimization_results (dict or str): the optimization results, either a dictionary with results or the
             path to a folder.
         output_folder (string): Optionally, the path to the folder where to place the output
-        cl_device_ind (int or list): the index of the CL device to use. The index is from the list from the function
-            utils.get_cl_devices(). This can also be a list of device indices.
+        cl_device_ind (List[Union[mot.lib.cl_environments.CLEnvironment, int]]
+                             or mot.lib.cl_environments.CLEnvironment or int): the CL devices to use.
+            Either provide MOT CLEnvironment's or indices from into the list from the function mdt.get_cl_devices().
         cl_load_balancer (mot.lib.load_balancers.LoadBalancer or Tuple[float]): the load balancer to use. Can also
             be an array of fractions (summing to 1) with one fraction per device. For example, for two devices one
             can specify ``cl_load_balancer = [0.3, 0.7]`` to let one device to more work than another.
