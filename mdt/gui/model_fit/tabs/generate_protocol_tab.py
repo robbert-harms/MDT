@@ -17,7 +17,7 @@ from mdt.protocols import Protocol, load_bvec_bval
 __author__ = 'Robbert Harms'
 __date__ = "2016-06-27"
 __maintainer__ = "Robbert Harms"
-__email__ = "robbert.harms@maastrichtuniversity.nl"
+__email__ = "robbert@xkls.nl"
 
 
 class GenerateProtocolTab(MainTab, Ui_GenerateProtocolTabContent, QObject):

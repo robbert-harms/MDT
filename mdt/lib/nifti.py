@@ -12,7 +12,7 @@ __author__ = 'Robbert Harms'
 __date__ = "2014-08-28"
 __license__ = "LGPL v3"
 __maintainer__ = "Robbert Harms"
-__email__ = "robbert.harms@maastrichtuniversity.nl"
+__email__ = "robbert@xkls.nl"
 
 
 def load_nifti(nifti_volume):

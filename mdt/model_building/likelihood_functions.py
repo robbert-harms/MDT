@@ -8,7 +8,7 @@ __author__ = 'Robbert Harms'
 __date__ = "2014-08-05"
 __license__ = "LGPL v3"
 __maintainer__ = "Robbert Harms"
-__email__ = "robbert.harms@maastrichtuniversity.nl"
+__email__ = "robbert@xkls.nl"
 
 
 class LikelihoodFunction(SimpleModelCLFunction):
@@ -102,7 +102,7 @@ class Rician(LikelihoodFunction):
         body = '''
             double obs_div = observation / sigma;
             double eval_div = model_evaluation / sigma;
-            
+
             return   log(obs_div / sigma)
                    - ((obs_div * obs_div + eval_div * eval_div) / 2)
                    + log_bessel_i0(obs_div * eval_div);

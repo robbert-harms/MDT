@@ -9,7 +9,7 @@ from mdt.lib.shell_utils import BasicShellApplication
 __author__ = 'Robbert Harms'
 __date__ = "2015-08-18"
 __maintainer__ = "Robbert Harms"
-__email__ = "robbert.harms@maastrichtuniversity.nl"
+__email__ = "robbert@xkls.nl"
 
 
 class InitUserSettings(BasicShellApplication):

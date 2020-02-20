@@ -3,7 +3,7 @@ from mdt import LibraryFunctionTemplate
 __author__ = 'Robbert Harms'
 __date__ = '2018-10-10'
 __maintainer__ = 'Robbert Harms'
-__email__ = 'robbert.harms@maastrichtuniversity.nl'
+__email__ = 'robbert@xkls.nl'
 __licence__ = 'LGPL v3'
 
 
@@ -23,7 +23,7 @@ class NODDI_SphericalHarmonicsIntegral(LibraryFunctionTemplate):
     cl_code = '''
         // do not change this value! It would require adding approximations
         #define NODDI_IC_MAX_POLYNOMIAL_ORDER 6
-        
+
         double watson_sh_coeff[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
         NODDI_WatsonSHCoeff(kappa, watson_sh_coeff);
 
@@ -36,7 +36,7 @@ class NODDI_SphericalHarmonicsIntegral(LibraryFunctionTemplate):
         double signal = 0.0;
         for(int i = 0; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
             // summing only over the even terms
-            signal += watson_sh_coeff[i] * sqrt(i + 0.25) * legendre_terms[i] * lgi[i];  
+            signal += watson_sh_coeff[i] * sqrt(i + 0.25) * legendre_terms[i] * lgi[i];
         }
 
         return fmax(signal, 0.0) / (2.0 * sqrt(M_PI));
@@ -69,16 +69,16 @@ class NODDI_LegendreGaussianIntegral(LibraryFunctionTemplate):
         #define NODDI_IC_MAX_POLYNOMIAL_ORDER 6
 
         if(x > 0.05){
-            /* 
+            /*
                 Computing the related exponent gaussian integrals
-                
+
                 I[x, n] = Integrate[Exp[-x \mu^2] \mu^(2*n), {\mu, -1, 1}]
-                
+
                 with the following recursion:
-                
+
                 1) I[x, 0] = Sqrt[\pi]Erf[x]/Sqrt[x]
                 2) I[x, n+1] = -Exp[-x]/x + (2n+1)/(2x) I[x, n]
-                
+
                 This does not work well when x is small
             */
             double tmp[NODDI_IC_MAX_POLYNOMIAL_ORDER + 1];
@@ -86,7 +86,7 @@ class NODDI_LegendreGaussianIntegral(LibraryFunctionTemplate):
             for(int i = 1; i < NODDI_IC_MAX_POLYNOMIAL_ORDER + 1; i++){
                 tmp[i] = (-exp(-x) + (i - 0.5) * tmp[i-1]) / x;
             }
-            
+
             // for large enough x
             result[0] = tmp[0];
             result[1] = -0.5*tmp[0] + 1.5*tmp[1];

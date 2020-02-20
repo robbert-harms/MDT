@@ -22,7 +22,7 @@ from mot.optimize import get_minimizer_options
 __author__ = 'Robbert Harms'
 __date__ = "2016-06-27"
 __maintainer__ = "Robbert Harms"
-__email__ = "robbert.harms@maastrichtuniversity.nl"
+__email__ = "robbert@xkls.nl"
 
 
 class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
@@ -261,7 +261,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
                 {header}
 
                 import mdt
-                
+
                 input_data = mdt.load_input_data(
                     {dwi!r},
                     {protocol!r},
@@ -269,7 +269,7 @@ class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):
                     noise_std={noise_std!r},
                     gradient_deviations={gradient_deviations!r},
                     extra_protocol={extra_protocol!r})
-                
+
                 mdt.fit_model(
                     {model!r},
                     input_data,

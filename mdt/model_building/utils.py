@@ -5,7 +5,7 @@ from mot.optimize.base import SimpleConstraintFunction
 __author__ = 'Robbert Harms'
 __date__ = '2017-05-29'
 __maintainer__ = 'Robbert Harms'
-__email__ = 'robbert.harms@maastrichtuniversity.nl'
+__email__ = 'robbert@xkls.nl'
 __licence__ = 'LGPL v3'
 
 
@@ -57,23 +57,23 @@ class ParameterDecodingWrapper:
         return SimpleCLFunction.from_string('''
             double wrapped_''' + objective_function.get_cl_function_name() + '''(
                     local mot_float_type* x,
-                    void* data, 
+                    void* data,
                     local mot_float_type* objective_list){
-                
+
                 local mot_float_type* x_tmp = ((objective_function_wrapper_data*)data)->x_tmp;
-                
+
                 if(get_local_id(0) == 0){
                     for(uint i = 0; i < ''' + str(self._nmr_parameters) + '''; i++){
                         x_tmp[i] = x[i];
                     }
                     ''' + self._decode_function.get_cl_function_name() + '''(
-                        ((objective_function_wrapper_data*)data)->data, 
+                        ((objective_function_wrapper_data*)data)->data,
                         x_tmp);
                 }
                 barrier(CLK_LOCAL_MEM_FENCE);
-    
+
                 return ''' + objective_function.get_cl_function_name() + '''(
-                    x_tmp, ((objective_function_wrapper_data*)data)->data, objective_list);    
+                    x_tmp, ((objective_function_wrapper_data*)data)->data, objective_list);
             }
         ''', dependencies=[objective_function, self._decode_function])
 
@@ -95,7 +95,7 @@ class ParameterDecodingWrapper:
         return SimpleConstraintFunction.from_string('''
             void wrapped_''' + constraints_func.get_cl_function_name() + '''(
                     local mot_float_type* x,
-                    void* data, 
+                    void* data,
                     local mot_float_type* constraints){
 
                 local mot_float_type* x_tmp = ((objective_function_wrapper_data*)data)->x_tmp;
@@ -105,13 +105,13 @@ class ParameterDecodingWrapper:
                         x_tmp[i] = x[i];
                     }
                     ''' + self._decode_function.get_cl_function_name() + '''(
-                        ((objective_function_wrapper_data*)data)->data, 
+                        ((objective_function_wrapper_data*)data)->data,
                         x_tmp);
                 }
                 barrier(CLK_LOCAL_MEM_FENCE);
 
                 ''' + constraints_func.get_cl_function_name() + '''(
-                    x_tmp, ((objective_function_wrapper_data*)data)->data, constraints);    
+                    x_tmp, ((objective_function_wrapper_data*)data)->data, constraints);
             }
         ''', dependencies=[constraints_func, self._decode_function],
              nmr_constraints=constraints_func.get_nmr_constraints())

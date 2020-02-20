@@ -17,7 +17,7 @@ from mdt.gui.utils import function_message_decorator, image_files_filters, proto
 __author__ = 'Robbert Harms'
 __date__ = "2016-06-26"
 __maintainer__ = "Robbert Harms"
-__email__ = "robbert.harms@maastrichtuniversity.nl"
+__email__ = "robbert@xkls.nl"
 
 
 class GenerateBrainMaskTab(MainTab, Ui_GenerateBrainMaskTabContent, QObject):

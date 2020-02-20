@@ -3,7 +3,7 @@ from mdt import CompartmentTemplate, FreeParameterTemplate, LibraryFunctionTempl
 __author__ = 'Robbert Harms'
 __date__ = '2019-11-14'
 __maintainer__ = 'Robbert Harms'
-__email__ = 'robbert.harms@maastrichtuniversity.nl'
+__email__ = 'robbert@xkls.nl'
 __licence__ = 'LGPL v3'
 
 
@@ -17,17 +17,17 @@ class CylindersPoissonDistr(CompartmentTemplate):
     cl_code = '''
         double direction_2 = pown(dot(g, SphericalToCartesian(theta, phi)), 2);
         double diffusivity_par = -b * d * direction_2;
-    
+
         double radius;
         double diffusivity_perp;
         double weight_sum = 0;
         double signal_sum = 0;
-        
+
         for(uint i = 0; i < PDRCylinders_nmr_radii; i++){
             radius = PDRCylinders_radii[i] * 1e-6;
-            
+
             diffusivity_perp = (1 - direction_2) * VanGelderenCylinder(G, Delta, delta, d, radius);
-            signal_sum += cache->weights[i] * exp(diffusivity_par + diffusivity_perp); 
+            signal_sum += cache->weights[i] * exp(diffusivity_par + diffusivity_perp);
             weight_sum += cache->weights[i];
         }
         return signal_sum / weight_sum;
@@ -44,7 +44,7 @@ class CylindersPoissonDistr(CompartmentTemplate):
             double radius;
             for(uint i = 0; i < PDRCylinders_nmr_radii; i++){
                 radius = PDRCylinders_radii[i];
-                
+
                 // area without * M_PI since it is a constant
                 cache->weights[i] = PoissonPDF(poisson_lambda, radius)  * (radius * radius);
             }

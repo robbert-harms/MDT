@@ -7,7 +7,7 @@ from .parameter_functions.transformations import CosSqrClampTransform
 __author__ = 'Robbert Harms'
 __date__ = "2016-10-03"
 __maintainer__ = "Robbert Harms"
-__email__ = "robbert.harms@maastrichtuniversity.nl"
+__email__ = "robbert@xkls.nl"
 
 
 class ModelCLFunction(CLFunction):

@@ -15,7 +15,7 @@ from mdt.model_building.parameter_functions.transformations import AbstractTrans
 __author__ = 'Robbert Harms'
 __date__ = '2018-03-22'
 __maintainer__ = 'Robbert Harms'
-__email__ = 'robbert.harms@maastrichtuniversity.nl'
+__email__ = 'robbert@xkls.nl'
 __licence__ = 'LGPL v3'
 
 

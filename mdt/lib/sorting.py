@@ -14,7 +14,7 @@ from mdt.lib.nifti import get_all_nifti_data, load_nifti
 __author__ = 'Robbert Harms'
 __date__ = '2017-11-02'
 __maintainer__ = 'Robbert Harms'
-__email__ = 'robbert.harms@maastrichtuniversity.nl'
+__email__ = 'robbert@xkls.nl'
 __licence__ = 'LGPL v3'
 
 

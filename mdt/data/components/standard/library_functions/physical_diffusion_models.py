@@ -3,7 +3,7 @@ from mdt import LibraryFunctionTemplate
 __author__ = 'Robbert Harms'
 __date__ = '2018-05-02'
 __maintainer__ = 'Robbert Harms'
-__email__ = 'robbert.harms@maastrichtuniversity.nl'
+__email__ = 'robbert@xkls.nl'
 __licence__ = 'LGPL v3'
 
 
@@ -27,17 +27,17 @@ class NeumanCylinder(LibraryFunctionTemplate):
 
         double sum = 0;
         float alpha;
-        
+
         #pragma unroll
         for(uint i = 0; i < bessel_roots_jnp_length; i++){
             alpha = bessel_roots_jnp[i] / R;
 
-            sum += (pown(alpha, -4) / (bessel_roots_jnp[i] * bessel_roots_jnp[i] - 1)) * 
-                    (2 * tau - 
-                        (3 - 4 * exp(-alpha * alpha * d * tau) + exp(- alpha * alpha * d * 2 * tau)) 
+            sum += (pown(alpha, -4) / (bessel_roots_jnp[i] * bessel_roots_jnp[i] - 1)) *
+                    (2 * tau -
+                        (3 - 4 * exp(-alpha * alpha * d * tau) + exp(- alpha * alpha * d * 2 * tau))
                          / (alpha * alpha * d)
                      );
-        }        
+        }
 
         return -((2 * GAMMA_H_SQ * (G*G)) / d) * sum;
     '''
@@ -59,9 +59,9 @@ class NeumanCylinderLongApprox(LibraryFunctionTemplate):
     parameters = ['double G', 'double tau', 'double d', 'double R']
     dependencies = ['MRIConstants']
     cl_code = '''
-        return -( (pown(R, 4) * GAMMA_H_HZ_SQ * (G * G)) / d ) 
-                    * (7 / 296.0) 
-                    * (2 * tau - (99/112.0) * (pown(R, 2) / d)); 
+        return -( (pown(R, 4) * GAMMA_H_HZ_SQ * (G * G)) / d )
+                    * (7 / 296.0)
+                    * (2 * tau - (99/112.0) * (pown(R, 2) / d));
     '''
 
 
@@ -90,12 +90,12 @@ class NeumanSphere(LibraryFunctionTemplate):
         for(uint i = 0; i < bessel_roots_j3_2_length; i++){
             alpha = bessel_roots_j3_2[i] / R;
 
-            sum += (pown(alpha, -4) / (bessel_roots_j3_2[i] * bessel_roots_j3_2[i] - 2)) * 
-                    (2 * tau - 
-                        (3 - 4 * exp(-alpha * alpha * d * tau) + exp(- alpha * alpha * d * 2 * tau)) 
+            sum += (pown(alpha, -4) / (bessel_roots_j3_2[i] * bessel_roots_j3_2[i] - 2)) *
+                    (2 * tau -
+                        (3 - 4 * exp(-alpha * alpha * d * tau) + exp(- alpha * alpha * d * 2 * tau))
                          / (alpha * alpha * d)
                      );
-        }        
+        }
 
         return -((2 * GAMMA_H_SQ * (G*G)) / d) * sum;
     '''
@@ -117,9 +117,9 @@ class NeumanSphereLongApprox(LibraryFunctionTemplate):
     parameters = ['double G', 'double tau', 'double d', 'double R']
     dependencies = ['MRIConstants']
     cl_code = '''
-        return -( (pown(R, 4) * GAMMA_H_HZ_SQ * (G * G)) / d ) 
-                    * (8 / 175.0) 
-                    * (2 * tau - (581/840.0) * (pown(R, 2) / d)); 
+        return -( (pown(R, 4) * GAMMA_H_HZ_SQ * (G * G)) / d )
+                    * (8 / 175.0)
+                    * (2 * tau - (581/840.0) * (pown(R, 2) / d));
     '''
 
 
@@ -140,11 +140,11 @@ class VanGelderenCylinder(LibraryFunctionTemplate):
         if(R == 0.0 || R < MOT_EPSILON){
             return 0;
         }
-        
+
         double sum = 0;
         float alpha;
         float alpha2_d;
-        
+
         #pragma unroll
         for(uint i = 0; i < bessel_roots_jnp_length; i++){
             alpha = bessel_roots_jnp[i] / R;
@@ -177,11 +177,11 @@ class VanGelderenSphere(LibraryFunctionTemplate):
         if(R == 0.0 || R < MOT_EPSILON){
             return 0;
         }
-        
+
         double sum = 0;
         float alpha;
         float alpha2_d;
-        
+
         #pragma unroll
         for(uint i = 0; i < bessel_roots_j3_2_length; i++){
             alpha = bessel_roots_j3_2[i] / R;

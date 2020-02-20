@@ -3,7 +3,7 @@ from mdt import CompartmentTemplate
 __author__ = 'Robbert Harms'
 __date__ = '2018-09-07'
 __maintainer__ = 'Robbert Harms'
-__email__ = 'robbert.harms@maastrichtuniversity.nl'
+__email__ = 'robbert@xkls.nl'
 __licence__ = 'LGPL v3'
 
 
@@ -17,7 +17,7 @@ class NODDI_EC(CompartmentTemplate):
     cl_code = '''
         double d_ = d;
         double dperp0_ = d;
-    
+
         NODDI_WatsonHinderedDiffusionCoeff(&d_, &dperp0_, kappa);
         return Zeppelin(g, b, d_, dperp0_, theta, phi);
     '''
@@ -28,7 +28,7 @@ class NODDI_EC_Integration(CompartmentTemplate):
     parameters = ('g', 'b', 'd', 'dperp0', 'theta', 'phi', 'kappa')
     dependencies = ('NODDI_SphericalHarmonicsIntegral', 'SphericalToCartesian')
     cl_code = '''
-        return exp(-b * dperp0) * NODDI_SphericalHarmonicsIntegral(dot(g, SphericalToCartesian(theta, phi)), 
+        return exp(-b * dperp0) * NODDI_SphericalHarmonicsIntegral(dot(g, SphericalToCartesian(theta, phi)),
                                                                    -b * (d - dperp0), kappa);
     '''
 
@@ -81,7 +81,7 @@ class BinghamNODDI_IN(CompartmentTemplate):
     cl_code = '''
         double kappa = k1;
         double beta = k1 / kw;
-    
+
         float4 v1, v2, v3;
         TensorSphericalToCartesian(theta, phi, psi, &v1, &v2, &v3);
 

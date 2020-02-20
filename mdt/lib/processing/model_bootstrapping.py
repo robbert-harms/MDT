@@ -23,7 +23,7 @@ from mot.lib.kernel_data import Array, Zeros
 __author__ = 'Robbert Harms'
 __date__ = "2015-05-01"
 __maintainer__ = "Robbert Harms"
-__email__ = "robbert.harms@maastrichtuniversity.nl"
+__email__ = "robbert@xkls.nl"
 
 
 def compute_bootstrap(model, input_data, optimization_results, output_folder, bootstrap_method, optimization_method,
