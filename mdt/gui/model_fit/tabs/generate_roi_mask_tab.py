@@ -14,7 +14,7 @@ from mdt.utils import split_image_path, write_slice_roi
 __author__ = 'Robbert Harms'
 __date__ = "2016-06-26"
 __maintainer__ = "Robbert Harms"
-__email__ = "robbert.harms@maastrichtuniversity.nl"
+__email__ = "robbert@xkls.nl"
 
 
 class GenerateROIMaskTab(MainTab, Ui_GenerateROIMaskTabContent, QObject):

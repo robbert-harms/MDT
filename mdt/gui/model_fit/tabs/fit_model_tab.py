@@ -22,7 +22,7 @@ from mot.optimize import get_minimizer_options
 __author__ = 'Robbert Harms'
 __date__ = "2016-06-27"
 __maintainer__ = "Robbert Harms"
-__email__ = "robbert.harms@maastrichtuniversity.nl"
+__email__ = "robbert@xkls.nl"
 
 
 class FitModelTab(MainTab, Ui_FitModelTabContent, QObject):

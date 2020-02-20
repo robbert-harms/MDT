@@ -10,7 +10,7 @@ from mot.lib.kernel_data import Array, Zeros
 __author__ = 'Robbert Harms'
 __date__ = '2017-05-29'
 __maintainer__ = 'Robbert Harms'
-__email__ = 'robbert.harms@maastrichtuniversity.nl'
+__email__ = 'robbert@xkls.nl'
 __licence__ = 'LGPL v3'
 
 
@@ -43,7 +43,7 @@ def create_signal_estimates(model, input_data, parameters):
     parameters = model.param_dict_to_array(parameters)
 
     kernel_data = {'data': model.get_kernel_data(),
-                   'parameters': Array(parameters, ctype='mot_float_type', mode='r'),
+                   'parameters': Array(parameters, ctype='mot_float_type'),
                    'estimates': Zeros((parameters.shape[0], model.get_nmr_observations()), 'mot_float_type')}
 
     _get_simulate_function(model).evaluate(kernel_data, parameters.shape[0])
@@ -79,7 +79,7 @@ def simulate_signals(model, protocol, parameters):
     nmr_problems = parameters.shape[0]
 
     kernel_data = {'data': model.get_kernel_data(),
-                   'parameters': Array(parameters, ctype='mot_float_type', mode='r'),
+                   'parameters': Array(parameters, ctype='mot_float_type'),
                    'estimates': Zeros((nmr_problems, model.get_nmr_observations()), 'mot_float_type')
                    }
 

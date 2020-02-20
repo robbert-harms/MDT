@@ -4,7 +4,7 @@ from mdt.lib.post_processing import NODDIMeasures
 __author__ = 'Robbert Harms'
 __date__ = "2015-06-22"
 __maintainer__ = "Robbert Harms"
-__email__ = "robbert.harms@maastrichtuniversity.nl"
+__email__ = "robbert@xkls.nl"
 
 
 class NODDI(CompositeModelTemplate):
@@ -72,7 +72,7 @@ class NODDIDA(NODDI):
              'NODDI_EC.phi': 'NODDI_IC.phi'}
 
     constraints = '''
-        constraints[0] = NODDI_EC.d - NODDI_IC.d; 
+        constraints[0] = NODDI_EC.d - NODDI_IC.d;
     '''
 
     extra_optimization_maps = [NODDIMeasures.noddi_watson_extra_optimization_maps]

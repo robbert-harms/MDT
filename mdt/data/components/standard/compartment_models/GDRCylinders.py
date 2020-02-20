@@ -4,7 +4,7 @@ from mdt.model_building.parameter_functions.transformations import ScaleTransfor
 __author__ = 'Robbert Harms'
 __date__ = '2018-09-15'
 __maintainer__ = 'Robbert Harms'
-__email__ = 'robbert.harms@maastrichtuniversity.nl'
+__email__ = 'robbert@xkls.nl'
 __licence__ = 'LGPL v3'
 
 
@@ -26,7 +26,7 @@ class GDRCylinders(CompartmentTemplate):
 
         for(uint i = 0; i < nmr_radii; i++){
             radius = *cache->lower_radius + (i + 0.5) * radius_spacing;
-            
+
             diffusivity_perp = (1 - direction_2) * VanGelderenCylinder(G, Delta, delta, d, radius);
             signal_sum += cache->weights[i] * exp(diffusivity_par + diffusivity_perp);
             weight_sum += cache->weights[i];
@@ -40,16 +40,16 @@ class GDRCylinders(CompartmentTemplate):
         'cl_code': '''
             *cache->lower_radius = gamma_ppf(0.01, shape, scale);
             *cache->upper_radius = gamma_ppf(0.99, shape, scale);
-            
+
             const uint nmr_radii = 16;
             double radius_spacing = (*cache->upper_radius - *cache->lower_radius) / nmr_radii;
-            
+
             double radius;
             for(uint i = 0; i < nmr_radii; i++){
                 radius = *cache->lower_radius + (i + 0.5) * radius_spacing;
-                
+
                 // area without * M_PI since it is a constant
-                cache->weights[i] = gamma_pdf(radius, shape, scale) * (radius * radius);  
+                cache->weights[i] = gamma_pdf(radius, shape, scale) * (radius * radius);
             }
         '''
     }

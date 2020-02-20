@@ -9,7 +9,7 @@ import mdt
 __author__ = 'Robbert Harms'
 __date__ = "2015-10-16"
 __maintainer__ = "Robbert Harms"
-__email__ = "robbert.harms@maastrichtuniversity.nl"
+__email__ = "robbert@xkls.nl"
 
 
 def get_argparse_extension_checker(choices, dir_allowed=False):

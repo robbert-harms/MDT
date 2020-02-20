@@ -4,7 +4,7 @@ import numpy as np
 __author__ = 'Robbert Harms'
 __date__ = '2019-10-22'
 __maintainer__ = 'Robbert Harms'
-__email__ = 'robbert.harms@maastrichtuniversity.nl'
+__email__ = 'robbert@xkls.nl'
 __licence__ = 'LGPL v3'
 
 
@@ -28,7 +28,7 @@ class sIVIM(CompositeModelTemplate):
     class sIVIM_PerfusionDeltaFunc(CompartmentTemplate):
         parameters = ('b',)
         cl_code = '''
-            return b <= 1e-5;            
+            return b <= 1e-5;
         '''
 
 

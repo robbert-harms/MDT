@@ -23,7 +23,7 @@ from mot.lib.kernel_data import Array, Zeros
 __author__ = 'Robbert Harms'
 __date__ = "2015-05-01"
 __maintainer__ = "Robbert Harms"
-__email__ = "robbert.harms@maastrichtuniversity.nl"
+__email__ = "robbert@xkls.nl"
 
 
 def compute_bootstrap(model, input_data, optimization_results, output_folder, bootstrap_method, optimization_method,
@@ -194,7 +194,7 @@ class BootstrappingProcessor(SimpleModelProcessor):
 
         parameters = self._x_opt_array[roi_indices]
         kernel_data = {'data': self._model.get_kernel_data().get_subset(roi_indices),
-                       'parameters': Array(parameters, ctype='mot_float_type', mode='r', use_host_ptr=False),
+                       'parameters': Array(parameters, ctype='mot_float_type'),
                        'estimates': Zeros((parameters.shape[0], self._model.get_nmr_observations()), 'mot_float_type')}
 
         eval_function_info = self._model.get_model_eval_function()

@@ -9,7 +9,7 @@ from mdt.lib.components import get_component
 __author__ = 'Robbert Harms'
 __date__ = '2017-12-10'
 __maintainer__ = 'Robbert Harms'
-__email__ = 'robbert.harms@maastrichtuniversity.nl'
+__email__ = 'robbert@xkls.nl'
 __licence__ = 'LGPL v3'
 
 
@@ -233,9 +233,9 @@ class DKIMeasures:
         parameters = np.column_stack([parameters_dict[n] for n in param_names])
 
         nmr_voxels = parameters.shape[0]
-        kernel_data = {'parameters': Array(parameters, ctype='mot_float_type', mode='r', use_host_ptr=False),
+        kernel_data = {'parameters': Array(parameters, ctype='mot_float_type'),
                        'directions': Array(DKIMeasures._get_spherical_samples(), ctype='float4',
-                                           parallelize_over_first_dimension=False, mode='r', use_host_ptr=False),
+                                           parallelize_over_first_dimension=False),
                        'nmr_directions': Scalar(DKIMeasures._get_spherical_samples().shape[0]),
                        'nmr_radial_directions': Scalar(256),
                        'mks': Zeros((nmr_voxels,), ctype='float'),

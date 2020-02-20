@@ -18,7 +18,7 @@ from mot.sample.t_walk import ThoughtfulWalk
 __author__ = 'Robbert Harms'
 __date__ = "2015-05-01"
 __maintainer__ = "Robbert Harms"
-__email__ = "robbert.harms@maastrichtuniversity.nl"
+__email__ = "robbert@xkls.nl"
 
 
 def sample_composite_model(model, input_data, output_folder, nmr_samples, thinning, burnin, tmp_dir,

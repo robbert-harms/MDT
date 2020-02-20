@@ -4,7 +4,7 @@ from mdt import CompositeModelTemplate
 __author__ = 'Robbert Harms'
 __date__ = '2017-07-19'
 __maintainer__ = 'Robbert Harms'
-__email__ = 'robbert.harms@maastrichtuniversity.nl'
+__email__ = 'robbert@xkls.nl'
 __licence__ = 'LGPL v3'
 
 
@@ -15,7 +15,7 @@ class ActiveAx(CompositeModelTemplate):
     CSF diffusivity at 3.0E-9 m^2/s. (In CAMINO this model is listed as "MMWMD_INVIVO").
     """
     model_expression = '''
-        S0 * ((Weight(w_csf) * Ball) + 
+        S0 * ((Weight(w_csf) * Ball) +
               (Weight(w_ic) * CylinderGPD) +
               (Weight(w_ec) * Zeppelin))
     '''
@@ -42,9 +42,9 @@ class ActiveAx_ExVivo(CompositeModelTemplate):
     (In CAMINO this model is listed as "MMWMD_Fixed").
     """
     model_expression = '''
-        S0 * ((Weight(w_csf) * Ball) + 
+        S0 * ((Weight(w_csf) * Ball) +
               (Weight(w_stat) * Dot) +
-              (Weight(w_ic) * CylinderGPD) + 
+              (Weight(w_ic) * CylinderGPD) +
               (Weight(w_ec) * Zeppelin))
     '''
     inits = {
@@ -71,7 +71,7 @@ class TimeDependentActiveAx(CompositeModelTemplate):
     This fits a single Radius using the CylinderGPD compartment model.
     """
     model_expression = '''
-        S0 * ExpT1DecTM_simple * ( (Weight(w_ic) * CylinderGPD) + 
+        S0 * ExpT1DecTM_simple * ( (Weight(w_ic) * CylinderGPD) +
                                    (Weight(w_ec) * TimeDependentZeppelin)
                                   )
     '''

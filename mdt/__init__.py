@@ -48,7 +48,7 @@ __author__ = 'Robbert Harms'
 __date__ = "2015-03-10"
 __license__ = "LGPL v3"
 __maintainer__ = "Robbert Harms"
-__email__ = "robbert.harms@maastrichtuniversity.nl"
+__email__ = "robbert@xkls.nl"
 
 
 def get_optimization_inits(model_name, input_data, output_folder, cl_device_ind=None,
