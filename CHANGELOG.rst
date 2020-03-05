@@ -2,6 +2,19 @@
 Changelog
 *********
 
+v1.2.2 (2020-03-05)
+===================
+
+Changed
+-------
+- Updates the container files to use a specific version of tatsu, since newer versions of tatsu are not upwards compatible.
+
+Other
+-----
+- Following MOT which fixes a bug relating to the Singularity container.
+- Replaced maintainer e-mail address with personal e-mail address.
+
+
 v1.2.1 (2020-02-14)
 ===================
 
