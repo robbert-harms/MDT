@@ -44,6 +44,9 @@ This might recompile a few packages to use the latest versions.
 
 Alternatively, you could try the Singularity recipe at https://github.com/akhanf/mdt-singularity , kindly made available by an user of MDT.
 
+A docker installation is also available. If you do, a tip from an MDT user is that
+"when you use Docker it is mandatory to mount the https://github.com/robbert-harms/MDT/tree/master/mdt/data directory in the ~/.mdt/<latest version>/ inside container in order to work."
+
 After installation please continue with the section `Initialization`_ below.
 
 
