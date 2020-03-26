@@ -317,7 +317,7 @@ def reload():
     This will load the components from the user home folder and from the MOT library.
     """
     component_library.reset()
-    _load_mot_components()
+    _load_builtin_components()
     _load_home_folder()
 
 
@@ -348,7 +348,7 @@ def get_batch_profile(batch_profile):
     return component_library.get_component('batch_profiles', batch_profile)
 
 
-def _load_mot_components():
+def _load_builtin_components():
     """Load all the components from MOT."""
     items = [
         (mot.library_functions, CLLibrary, 'library_functions'),
