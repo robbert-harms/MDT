@@ -2,6 +2,15 @@
 Changelog
 *********
 
+v1.2.3 (2020-03-26)
+===================
+
+Added
+-----
+- Adds small documentation tip for Docker users.
+- Adds nvidia GPU enabled docker file.
+
+
 v1.2.2 (2020-03-05)
 ===================
 
