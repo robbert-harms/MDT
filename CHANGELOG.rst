@@ -2,6 +2,14 @@
 Changelog
 *********
 
+v1.2.4 (2020-04-20)
+===================
+
+Changed
+-------
+- Updated default configuration to disable the uncertainties (FIM) computation. This was a frequent encountered error while being an hardly used feature.
+
+
 v1.2.3 (2020-03-26)
 ===================
 
