@@ -1,7 +1,7 @@
 import numpy as np
 from .model_functions import SimpleModelCLFunction
 from .parameters import CurrentObservationParam, CurrentModelSignalParam, NoiseStdFreeParameter
-from mot.library_functions import LogBesseli0, normal_logpdf
+from mot.library_functions import log_bessi0, normal_logpdf
 
 
 __author__ = 'Robbert Harms'
@@ -105,6 +105,6 @@ class Rician(LikelihoodFunction):
 
             return   log(obs_div / sigma)
                    - ((obs_div * obs_div + eval_div * eval_div) / 2)
-                   + log_bessel_i0(obs_div * eval_div);
+                   + log_bessi0(obs_div * eval_div);
         '''
-        super().__init__('double', 'Rician', parameter_list, body, dependencies=(LogBesseli0(),))
+        super().__init__('double', 'Rician', parameter_list, body, dependencies=(log_bessi0(),))

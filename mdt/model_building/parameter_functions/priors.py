@@ -180,7 +180,7 @@ class AxialNormalPDF(SimpleParameterPrior):
             Environmental and Ecological Statistics, volume 13, issue 3, pages 271-285.
         """
         from mdt.model_building.parameters import FreeParameter
-        from mot.library_functions import LogCosh, LogBesseli0
+        from mot.library_functions import LogCosh, log_bessi0
 
         extra_params = [FreeParameter('mot_float_type mu', True, 0, -np.inf, np.inf,
                                       sampling_prior=AlwaysOne()),
@@ -195,11 +195,11 @@ class AxialNormalPDF(SimpleParameterPrior):
                 float b = kappa * cos(mu);
 
                 return exp(log_cosh(a * sin(value) + b * cos(value))
-                            - log_bessel_i0(sqrt(pown(a, 2) + pown(b, 2)))
+                            - log_bessi0(sqrt(pown(a, 2) + pown(b, 2)))
                             - log(M_PI) );
             ''',
             extra_params,
-            dependencies=(LogBesseli0(), LogCosh()))
+            dependencies=(log_bessi0(), LogCosh()))
 
 
 class ARDBeta(SimpleParameterPrior):
