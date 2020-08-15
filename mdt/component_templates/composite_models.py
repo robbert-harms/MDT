@@ -506,21 +506,21 @@ def parse_composite_model_expression(model_expression):
     class Semantics:
 
         def expr(self, ast):
-            if not isinstance(ast, list):
+            if not isinstance(ast, (list,tuple)):
                 return ast
-            if isinstance(ast, list):
+            if isinstance(ast, (list,tuple)):
                 return ast[0], ast[2], ast[1]
             return ast
 
         def term(self, ast):
-            if not isinstance(ast, list):
+            if not isinstance(ast, (list,tuple)):
                 return ast
             if isinstance(ast, list):
                 return ast[0], ast[2], ast[1]
             return ast
 
         def factor(self, ast):
-            if isinstance(ast, list):
+            if isinstance(ast, (list,tuple)):
                 return ast[1]
             return ast
 
@@ -529,5 +529,4 @@ def parse_composite_model_expression(model_expression):
                 return get_component('compartment_models', ast)()
             else:
                 return get_component('compartment_models', ast[0])(ast[2])
-
     return _composite_model_expression_parser.parse(model_expression, semantics=Semantics())
