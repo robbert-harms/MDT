@@ -2,8 +2,8 @@ PYTHON=$$(which python3)
 PIP=$$(which pip3)
 PROJECT_NAME=mdt
 PROJECT_VERSION=$$($(PYTHON) setup.py --version)
-GPG_SIGN_KEY=0E1AA560
-UBUNTU_DISTRIBUTIONS=xenial bionic
+GPG_SIGN_KEY=6F4438DB0E1AA560
+UBUNTU_DISTRIBUTIONS=focal bionic xenial
 
 .PHONY: help
 help:
