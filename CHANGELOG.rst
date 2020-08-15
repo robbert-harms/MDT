@@ -2,6 +2,14 @@
 Changelog
 *********
 
+v1.2.6 (2020-08-15)
+===================
+
+Fixed
+-----
+- Fixed issue originating from using latest Tatsu build. This fixes the issue "ValueError: Double operator in model listing."
+
+
 v1.2.5 (2020-05-10)
 ===================
 - Following changes in MOT (renaming of a few library functions).
