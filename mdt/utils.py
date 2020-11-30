@@ -1090,7 +1090,7 @@ def load_sample(fname, mode='r'):
 def estimate_noise_std(input_data):
     """Estimate the noise standard deviation.
 
-    This calculates per voxel (in the brain mas) the std over all unweighted volumes
+    This calculates per voxel (in the brain mask) the std over all unweighted volumes
     and takes the mean of those estimates as the standard deviation of the noise.
 
     The method is taken from Camino (http://camino.cs.ucl.ac.uk/index.php?n=Man.Estimatesnr).

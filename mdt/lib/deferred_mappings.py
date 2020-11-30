@@ -7,7 +7,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert@xkls.nl"
 
 
-class DeferredActionDict(collections.MutableMapping):
+class DeferredActionDict(collections.abc.MutableMapping):
 
     def __init__(self, func, items, cache=True):
         """Applies the given function on the given items at the moment of data request.
@@ -71,7 +71,7 @@ class DeferredActionDict(collections.MutableMapping):
         return new_one
 
 
-class DeferredFunctionDict(collections.MutableMapping):
+class DeferredFunctionDict(collections.abc.MutableMapping):
 
     def __init__(self, items, cache=True):
         """The items should contain a list of functions that we apply at the moment of request.
@@ -128,7 +128,7 @@ class DeferredFunctionDict(collections.MutableMapping):
         return new_one
 
 
-class DeferredActionTuple(collections.Sequence):
+class DeferredActionTuple(collections.abc.Sequence):
 
     def __init__(self, func, items, cache=True):
         """Applies the given function on the given items at moment of request.

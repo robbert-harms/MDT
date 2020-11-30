@@ -3,6 +3,14 @@ Development ideas
 #################
 Some ideas for future development of MDT.
 
+- correct deprectation errors:
+    DeprecationWarning: get_header method is deprecated.
+    Please use the ``img.header`` property instead.
+
+    * deprecated from version: 2.1
+    * Will raise <class 'nibabel.deprecator.ExpiredDeprecationError'> as of version: 4.0
+      header = mdt.load_nifti(input_fname).get_header()
+
 - to discuss: add 'scale_factor' to the parameters as a simple scaling factor
     - for use in MLE and FIM
     - replacing ScaleTransform and scale_factor in numdiff_info
