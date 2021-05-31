@@ -107,7 +107,7 @@ class CompartmentModelTree(Tree):
                 for node in listing:
                     if isinstance(node, str):
                         if operator is not None:
-                            raise ValueError('Double operator in model listing.')
+                            raise ValueError('Duplicate operator in model listing.')
                         operator = node
                     else:
                         nn = CompartmentModelTree(node)
