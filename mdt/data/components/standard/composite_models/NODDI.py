@@ -1,3 +1,5 @@
+import numpy as np
+
 from mdt import CompositeModelTemplate
 from mdt.lib.post_processing import NODDIMeasures
 
@@ -24,6 +26,59 @@ class NODDI(CompositeModelTemplate):
              'NODDI_EC.theta': 'NODDI_IC.theta',
              'NODDI_EC.phi': 'NODDI_IC.phi'}
 
+    extra_optimization_maps = [NODDIMeasures.noddi_watson_extra_optimization_maps]
+    extra_sampling_maps = [NODDIMeasures.noddi_watson_extra_sampling_maps]
+
+
+class NODDI_ZhangFormulation(CompositeModelTemplate):
+    """The NODDI Watson model using the original formulation from Gary Zhang."""
+
+    model_expression = '''
+        S0 * (
+                Weight(fiso_neg) * (
+                    (Weight(ficvf) * NODDI_IC) +
+                    (Weight(ficvf_neg) * NODDI_EC)
+                ) +
+                (Weight(fiso) * Ball)
+        )
+    '''
+
+    enforce_weights_sum_to_one = False
+
+    fixes = {'NODDI_IC.d': 1.7e-9,
+             'NODDI_EC.d': 1.7e-9,
+             'Ball.d': 3.0e-9,
+             'fiso_neg.w': '1 - fiso.w',
+             'ficvf_neg.w': '1 - ficvf.w',
+             'NODDI_EC.dperp0': 'NODDI_EC.d * (1 - ficvf.w)',
+             'NODDI_EC.kappa': 'NODDI_IC.kappa',
+             'NODDI_EC.theta': 'NODDI_IC.theta',
+             'NODDI_EC.phi': 'NODDI_IC.phi'}
+
+    extra_optimization_maps = [lambda results: {'ODI': np.arctan2(1.0, results['NODDI_IC.kappa']) * 2 / np.pi}]
+
+
+class NODDI_Fixed_IC_EC_LT(CompositeModelTemplate):
+    """ Fixed IC parallel. EC estimated but less than IC value with constraint. """
+
+    model_expression = '''
+        S0 * ((Weight(w_csf) * Ball) +
+              (Weight(w_ic) * NODDI_IC) +
+              (Weight(w_ec) * NODDI_EC))
+    '''
+    fixes = {
+             'NODDI_IC.d': 1.7e-9,
+             'Ball.d': 3.0e-9,
+             'NODDI_EC.dperp0': 'NODDI_EC.d * w_ec.w / (w_ec.w + w_ic.w)',
+             'NODDI_EC.kappa': 'NODDI_IC.kappa',
+             'NODDI_EC.theta': 'NODDI_IC.theta',
+             'NODDI_EC.phi': 'NODDI_IC.phi'}
+    inits = {
+        'NODDI_EC.d': 1.5e-9
+    }
+    constraints = '''
+        constraints[0] = NODDI_EC.d - NODDI_IC.d;
+    '''
     extra_optimization_maps = [NODDIMeasures.noddi_watson_extra_optimization_maps]
     extra_sampling_maps = [NODDIMeasures.noddi_watson_extra_sampling_maps]
 
