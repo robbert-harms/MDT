@@ -2,6 +2,26 @@
 Changelog
 *********
 
+v1.2.7 (2022-10-20)
+===================
+
+Added
+-----
+- Adds a few more NODDI formulations, among which the original Zhang formulation.
+
+Changed
+-------
+- Changed Double to Duplicate on a suggestion by Luke Edwards.
+
+Other
+-----
+- Removed Ubuntu build for now. It was broken and no time to repair it.
+- Made MDT compatible with Python3.10 and the latest version of the TatSu library.
+- Update physical_diffusion_models.py (#46)
+  Fixed dependency error on Bessel functions when using GDP/VanGelderenSphere.
+- Small deprecation warning fixes.
+
+
 v1.2.6 (2020-08-15)
 ===================
 
