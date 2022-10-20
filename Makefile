@@ -115,7 +115,7 @@ prepare-release: clean
 	@echo "Consider manually inspecting CHANGELOG.rst for possible improvements."
 
 .PHONY: release
-release: clean release-ubuntu-ppa release-pip release-github
+release: clean release-pip release-github
 
 .PHONY: release-pip
 release-pip:
