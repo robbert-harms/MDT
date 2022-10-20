@@ -172,7 +172,7 @@ class VanGelderenSphere(LibraryFunctionTemplate):
     """
     return_type = 'double'
     parameters = ['double G', 'double Delta', 'double delta', 'double d', 'double R']
-    dependencies = ['MRIConstants']
+    dependencies = ['MRIConstants', 'BesselRoots']
     cl_code = '''
         if(R == 0.0 || R < MOT_EPSILON){
             return 0;
