@@ -1,5 +1,5 @@
 import logging
-from collections import Mapping
+from collections.abc import Mapping
 from textwrap import dedent
 import copy
 import collections
@@ -2176,7 +2176,7 @@ class DMRICompositeModel(EstimableModel):
         return None
 
 
-class SamplingPostProcessingData(collections.Mapping):
+class SamplingPostProcessingData(collections.abc.Mapping):
 
     def __init__(self, samples, param_names, fixed_parameters):
         """Stores the sample output for use in the model defined post-processing routines.

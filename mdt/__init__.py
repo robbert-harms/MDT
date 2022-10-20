@@ -610,7 +610,7 @@ def view_maps(data, config=None, figure_options=None,
 
     if isinstance(data, str):
         data = SimpleDataInfo.from_paths([data])
-    elif isinstance(data, collections.MutableMapping):
+    elif isinstance(data, collections.abc.MutableMapping):
         data = SimpleDataInfo(data)
     elif isinstance(data, collections.Sequence):
         if all(isinstance(el, str) for el in data):

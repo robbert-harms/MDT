@@ -26,6 +26,8 @@ class NODDI(CompositeModelTemplate):
              'NODDI_EC.theta': 'NODDI_IC.theta',
              'NODDI_EC.phi': 'NODDI_IC.phi'}
 
+    likelihood_function = 'Gaussian'
+
     extra_optimization_maps = [NODDIMeasures.noddi_watson_extra_optimization_maps]
     extra_sampling_maps = [NODDIMeasures.noddi_watson_extra_sampling_maps]
 

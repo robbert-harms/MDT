@@ -462,7 +462,7 @@ def _get_model_extra_sampling_maps_funcs(compartments):
     return funcs
 
 
-class CompartmentContextResults(collections.Mapping):
+class CompartmentContextResults(collections.abc.Mapping):
 
     def __init__(self, compartment_name, input_results):
         """Translates the original results to the context of a single compartment.

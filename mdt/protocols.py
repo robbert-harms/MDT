@@ -16,7 +16,7 @@ __maintainer__ = "Robbert Harms"
 __email__ = "robbert@xkls.nl"
 
 
-class Protocol(collections.Mapping):
+class Protocol(collections.abc.Mapping):
 
     def __init__(self, columns=None):
         """Create a new protocol. Optionally initializes the protocol with the given set of columns.

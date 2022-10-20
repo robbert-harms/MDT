@@ -407,7 +407,7 @@ class FittingProcessor(SimpleModelProcessor):
         sub_dir = sub_dir
 
         for key, value in results.items():
-            if isinstance(value, collections.Mapping):
+            if isinstance(value, collections.abc.Mapping):
                 self._write_output_recursive(value, roi_indices, os.path.join(sub_dir, key))
             else:
                 current_output[key] = value

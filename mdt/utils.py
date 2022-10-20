@@ -435,13 +435,13 @@ def create_roi(data, brain_mask):
             return_val = np.expand_dims(return_val, axis=1)
         return return_val
 
-    if isinstance(data, (dict, collections.Mapping)):
+    if isinstance(data, (dict, collections.abc.Mapping)):
         return DeferredActionDict(lambda _, item: create_roi(item, brain_mask), data)
     elif isinstance(data, str):
         if os.path.isdir(data):
             return create_roi(load_volume_maps(data), brain_mask)
         return creator(load_nifti(data).get_data())
-    elif isinstance(data, (list, tuple, collections.Sequence)):
+    elif isinstance(data, (list, tuple, collections.abc.Sequence)):
         return DeferredActionTuple(lambda _, item: create_roi(item, brain_mask), data)
     return creator(data)
 

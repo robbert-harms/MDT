@@ -1,4 +1,4 @@
-from collections import Mapping, Sequence
+from collections.abc import Mapping, Sequence
 
 __author__ = 'Robbert Harms'
 __date__ = "2016-09-03"
