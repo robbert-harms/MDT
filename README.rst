@@ -32,7 +32,7 @@ Summary
 *****
 Links
 *****
-* Full documentation: http://mdt_toolbox.readthedocs.io
+* Full documentation: https://mdt-toolbox.readthedocs.io/
 * Project home: https://github.com/robbert-harms/MDT
 
 
